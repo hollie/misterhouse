@@ -1,3 +1,4 @@
+
 =head1 B<Insteon::Irrigation>
 
 =head2 SYNOPSIS
@@ -59,14 +60,14 @@ package Insteon::Irrigation;
 @Insteon::Irrigation::ISA = ('Insteon::BaseDevice');
 
 our %message_types = (
-	%Insteon::BaseDevice::message_types,
-	sprinkler_status => 0x27,
-	sprinkler_control => 0x44,
-	sprinkler_valve_on => 0x40,
-	sprinkler_valve_off => 0x41,
-	sprinkler_program_on => 0x42,
-	sprinkler_program_off => 0x43,
-	sprinkler_timers_request => 0x45
+    %Insteon::BaseDevice::message_types,
+    sprinkler_status         => 0x27,
+    sprinkler_control        => 0x44,
+    sprinkler_valve_on       => 0x40,
+    sprinkler_valve_off      => 0x41,
+    sprinkler_program_on     => 0x42,
+    sprinkler_program_off    => 0x43,
+    sprinkler_timers_request => 0x45
 );
 
 # -------------------- START OF SUBROUTINES --------------------
@@ -79,21 +80,25 @@ Instantiates a new object.
 =cut
 
 sub new {
-   my ($class, $p_deviceid, $p_interface) = @_;
+    my ( $class, $p_deviceid, $p_interface ) = @_;
 
-   my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
-   bless $self, $class;
-   $$self{active_valve_id} = undef;
-   $$self{active_program_number} = undef;
-   $$self{program_is_running} = undef;
-   $$self{pump_enabled} = undef;
-   $$self{valve_is_running} = undef;
-   $self->restore_data('active_valve_id', 'active_program_number', 
-    'program_is_running', 'pump_enabled', 'valve_is_running', 'timer_0',
-    'timer_1', 'timer_2', 'timer_3', 'timer_4');
-   $$self{message_types} = \%message_types;
-   $$self{status_timer} = new Timer;
-   return $self;
+    my $self = new Insteon::BaseDevice( $p_deviceid, $p_interface );
+    bless $self, $class;
+    $$self{active_valve_id}       = undef;
+    $$self{active_program_number} = undef;
+    $$self{program_is_running}    = undef;
+    $$self{pump_enabled}          = undef;
+    $$self{valve_is_running}      = undef;
+    $self->restore_data(
+        'active_valve_id',    'active_program_number',
+        'program_is_running', 'pump_enabled',
+        'valve_is_running',   'timer_0',
+        'timer_1',            'timer_2',
+        'timer_3',            'timer_4'
+    );
+    $$self{message_types} = \%message_types;
+    $$self{status_timer}  = new Timer;
+    return $self;
 }
 
 =item C<request_status()>
@@ -104,11 +109,13 @@ device is printed to the log and stores the result in memory.
 =cut
 
 sub request_status {
-   my ($self, $requestor) = @_;
-   my $subcmd = '02';
-   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'sprinkler_control', $subcmd);
-   $self->_send_cmd($message);
-   return;
+    my ( $self, $requestor ) = @_;
+    my $subcmd = '02';
+    my $message =
+      new Insteon::InsteonMessage( 'insteon_send', $self, 'sprinkler_control',
+        $subcmd );
+    $self->_send_cmd($message);
+    return;
 }
 
 #Deprecated Routine Name
@@ -125,22 +132,25 @@ or off.
 =cut
 
 sub set_valve {
-   my ($self, $valve_id, $state) = @_;
-   my $subcmd = sprintf("%02X", $valve_id-1);
-   my $cmd = undef;
-   if (lc($state) eq 'on') {
-      $cmd = 'sprinkler_valve_on';
-   } elsif (lc($state) eq 'off') {
-      $cmd = 'sprinkler_valve_off';
-   }
-   unless ($cmd and $subcmd) {
-      &::print_log("Insteon::Irrigation] ERROR: You must specify a valve number and a valid state (ON or OFF)")
-          if $self->debuglevel(1, 'insteon');
-      return;
-   }
-   my $message = new Insteon::InsteonMessage('insteon_send', $self, $cmd, $subcmd);
-   $self->_send_cmd($message);
-   return;
+    my ( $self, $valve_id, $state ) = @_;
+    my $subcmd = sprintf( "%02X", $valve_id - 1 );
+    my $cmd = undef;
+    if ( lc($state) eq 'on' ) {
+        $cmd = 'sprinkler_valve_on';
+    }
+    elsif ( lc($state) eq 'off' ) {
+        $cmd = 'sprinkler_valve_off';
+    }
+    unless ( $cmd and $subcmd ) {
+        &::print_log(
+            "Insteon::Irrigation] ERROR: You must specify a valve number and a valid state (ON or OFF)"
+        ) if $self->debuglevel( 1, 'insteon' );
+        return;
+    }
+    my $message =
+      new Insteon::InsteonMessage( 'insteon_send', $self, $cmd, $subcmd );
+    $self->_send_cmd($message);
+    return;
 }
 
 =item C<set_program(program_id, proggram_state)>
@@ -151,22 +161,25 @@ on or off.
 =cut
 
 sub set_program {
-   my ($self, $program_id, $state) = @_;
-   my $subcmd = sprintf("%02X", $program_id-1);
-   my $cmd = undef;
-   if (lc($state) eq 'on') {
-      $cmd = 'sprinkler_program_on';
-   } elsif (lc($state) eq 'off') {
-      $cmd = 'sprinkler_program_off';
-   }
-   unless ($cmd and $subcmd) {
-      &::print_log("Insteon::Irrigation] ERROR: You must specify a program number and a valid state (ON or OFF)")
-          if $self->debuglevel(1, 'insteon');
-      return;
-   }
-   my $message = new Insteon::InsteonMessage('insteon_send', $self, $cmd, $subcmd);
-   $self->_send_cmd($message);
-   return;
+    my ( $self, $program_id, $state ) = @_;
+    my $subcmd = sprintf( "%02X", $program_id - 1 );
+    my $cmd = undef;
+    if ( lc($state) eq 'on' ) {
+        $cmd = 'sprinkler_program_on';
+    }
+    elsif ( lc($state) eq 'off' ) {
+        $cmd = 'sprinkler_program_off';
+    }
+    unless ( $cmd and $subcmd ) {
+        &::print_log(
+            "Insteon::Irrigation] ERROR: You must specify a program number and a valid state (ON or OFF)"
+        ) if $self->debuglevel( 1, 'insteon' );
+        return;
+    }
+    my $message =
+      new Insteon::InsteonMessage( 'insteon_send', $self, $cmd, $subcmd );
+    $self->_send_cmd($message);
+    return;
 }
 
 =item C<get_active_valve_id()>
@@ -177,8 +190,8 @@ C<poll_valve_status()> request.
 =cut
 
 sub get_active_valve_id() {
-   my ($self) = @_;
-   return $$self{'active_valve_id'};
+    my ($self) = @_;
+    return $$self{'active_valve_id'};
 }
 
 =item C<get_valve_is_running()>
@@ -189,8 +202,8 @@ C<poll_valve_status()> request is running.
 =cut
 
 sub get_valve_is_running() {
-   my ($self) = @_;
-   return $$self{'valve_is_running'};
+    my ($self) = @_;
+    return $$self{'valve_is_running'};
 }
 
 =item C<get_active_program_number()>
@@ -201,8 +214,8 @@ C<poll_valve_status()> request.
 =cut
 
 sub get_active_program_number() {
-   my ($self) = @_;
-   return $$self{'active_program_number'};
+    my ($self) = @_;
+    return $$self{'active_program_number'};
 }
 
 =item C<get_program_is_running()>
@@ -213,8 +226,8 @@ C<poll_valve_status()> request is running.
 =cut
 
 sub get_program_is_running() {
-   my ($self) = @_;
-   return $$self{'program_is_running'};
+    my ($self) = @_;
+    return $$self{'program_is_running'};
 }
 
 =item C<get_pump_enabled()>
@@ -226,8 +239,8 @@ of water pump that runs to provide water to your sprinklers.
 =cut
 
 sub get_pump_enabled() {
-   my ($self) = @_;
-   return $$self{'pump_enabled'};
+    my ($self) = @_;
+    return $$self{'pump_enabled'};
 }
 
 =item C<get_timers()>
@@ -243,13 +256,14 @@ the proper times.
 =cut
 
 sub get_timers() {
-   my ($self, $program) = @_;
-   $program = 0 unless (defined $program);
-   my $cmd = 'sprinkler_timers_request';
-   my $subcmd = sprintf("%02X", $program);
-   my $message = new Insteon::InsteonMessage('insteon_send', $self, $cmd, $subcmd);
-   $self->_send_cmd($message);
-   return;
+    my ( $self, $program ) = @_;
+    $program = 0 unless ( defined $program );
+    my $cmd = 'sprinkler_timers_request';
+    my $subcmd = sprintf( "%02X", $program );
+    my $message =
+      new Insteon::InsteonMessage( 'insteon_send', $self, $cmd, $subcmd );
+    $self->_send_cmd($message);
+    return;
 }
 
 =item C<set_timers(program, valve1, valve2, valve3, valve4, valve5, valve6, 
@@ -268,20 +282,24 @@ By default, each valve is set to 30 minutes for each program.
 =cut
 
 sub set_timers() {
-   my ($self, $program, @time_array) = @_;
-   #Command is reused in different format for EXT msgs
-   my $cmd = 'sprinkler_valve_on';
-   my $extra = sprintf("%02X", $program);
-   foreach my $time (@time_array){
+    my ( $self, $program, @time_array ) = @_;
+
+    #Command is reused in different format for EXT msgs
+    my $cmd = 'sprinkler_valve_on';
+    my $extra = sprintf( "%02X", $program );
+    foreach my $time (@time_array) {
+
         #Store values in MH Cache
-        $self->_valve_timer($program, $time);
+        $self->_valve_timer( $program, $time );
+
         #compose message data
-        $extra .= sprintf("%02X", $time);
-   }
-   $extra .= '0' x (30 - length $extra);
-   my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, $cmd, $extra);
-   $self->_send_cmd($message);
-   return;
+        $extra .= sprintf( "%02X", $time );
+    }
+    $extra .= '0' x ( 30 - length $extra );
+    my $message =
+      new Insteon::InsteonMessage( 'insteon_ext_send', $self, $cmd, $extra );
+    $self->_send_cmd($message);
+    return;
 }
 
 =item C<_is_info_request()>
@@ -292,69 +310,79 @@ to C<Insteon::BaseObject::_is_info_request()|Insteon::BaseInsteon/Insteon::BaseO
 =cut
 
 sub _is_info_request {
-   my ($self, $cmd, $ack_setby, %msg) = @_;
-   my $is_info_request = 0;
-   if ($cmd eq 'sprinkler_control'
+    my ( $self, $cmd, $ack_setby, %msg ) = @_;
+    my $is_info_request = 0;
+    if (   $cmd eq 'sprinkler_control'
         or $cmd eq 'sprinkler_valve_on'
         or $cmd eq 'sprinkler_valve_off'
         or $cmd eq 'sprinkler_program_on'
-        or $cmd eq 'sprinkler_program_off') {
-      $is_info_request = 1;
-      $self->_process_status($msg{extra});
-   }
-   else {
-      #Check if this was a generic info_request
-      $is_info_request = $self->SUPER::_is_info_request($cmd, $ack_setby, %msg);
-   }
-   return $is_info_request;
+        or $cmd eq 'sprinkler_program_off' )
+    {
+        $is_info_request = 1;
+        $self->_process_status( $msg{extra} );
+    }
+    else {
+        #Check if this was a generic info_request
+        $is_info_request =
+          $self->SUPER::_is_info_request( $cmd, $ack_setby, %msg );
+    }
+    return $is_info_request;
 
 }
+
 sub _process_status {
-    my ($self, $val) = @_;
+    my ( $self, $val ) = @_;
     $val = hex($val);
-    $$self{'active_valve_id'} = ($val & 7) + 1;
-    $$self{'active_program_number'} = (($val >> 3) & 3) + 1;
-    $$self{'program_is_running'} = ($val >> 5) & 1;
-    $$self{'pump_enabled'} = ($val >> 6) & 1;
-    $$self{'valve_is_running'} = ($val >> 7) & 1;
-    &::print_log("[Insteon::Irrigation] active_valve_id: $$self{'active_valve_id'},"
-    . " valve_is_running: $$self{'valve_is_running'}, active_program: $$self{'active_program_number'},"
-    . " program_is_running: $$self{'program_is_running'}, pump_enabled: $$self{'pump_enabled'}");
-    
+    $$self{'active_valve_id'} = ( $val & 7 ) + 1;
+    $$self{'active_program_number'} = ( ( $val >> 3 ) & 3 ) + 1;
+    $$self{'program_is_running'}    = ( $val >> 5 ) & 1;
+    $$self{'pump_enabled'}          = ( $val >> 6 ) & 1;
+    $$self{'valve_is_running'}      = ( $val >> 7 ) & 1;
+    &::print_log(
+            "[Insteon::Irrigation] active_valve_id: $$self{'active_valve_id'},"
+          . " valve_is_running: $$self{'valve_is_running'}, active_program: $$self{'active_program_number'},"
+          . " program_is_running: $$self{'program_is_running'}, pump_enabled: $$self{'pump_enabled'}"
+    );
+
     # Set a timer to check the status of the device after we expect the timer
     # for the current valve to run out.
-    if ($$self{'valve_is_running'}){
-        my $action = $self->get_object_name . "->_timer_query()";
+    if ( $$self{'valve_is_running'} ) {
+        my $action  = $self->get_object_name . "->_timer_query()";
         my $program = 0;
-        $program = $$self{'active_program_number'} 
-        if ($$self{'program_is_running'});
-        my $time = $self->_valve_timer($program, $$self{'active_valve_id'});
-        $time = ($time * 60) + 5; #Add 5 seconds to allow things to happen.
-        #Only set the timer if it is something worthwhile ie actually set.
-        $$self{status_timer}->set($time,$action) if $time > 5;
+        $program = $$self{'active_program_number'}
+          if ( $$self{'program_is_running'} );
+        my $time = $self->_valve_timer( $program, $$self{'active_valve_id'} );
+        $time = ( $time * 60 ) + 5;    #Add 5 seconds to allow things to happen.
+             #Only set the timer if it is something worthwhile ie actually set.
+        $$self{status_timer}->set( $time, $action ) if $time > 5;
     }
-    
+
     # Set child objects if they exist
-    my $valve = $$self{'active_valve_id'};
+    my $valve   = $$self{'active_valve_id'};
     my $program = $$self{'active_program_number'};
-    
+
     # Loop valves, updating state of all that have changed
-    for (my $v = 1; $v <= 8; $v++){
+    for ( my $v = 1; $v <= 8; $v++ ) {
         my $valve_status = 'off';
-        $valve_status = 'on' if ($$self{'valve_is_running'} && $v == $valve);
-        if (ref $$self{'child_valve_'.$v} &&
-            (lc($$self{'child_valve_'.$v}->state) ne $valve_status)){
-            $$self{'child_valve_'.$v}->set_receive($valve_status);
+        $valve_status = 'on' if ( $$self{'valve_is_running'} && $v == $valve );
+        if ( ref $$self{ 'child_valve_' . $v }
+            && ( lc( $$self{ 'child_valve_' . $v }->state ) ne $valve_status ) )
+        {
+            $$self{ 'child_valve_' . $v }->set_receive($valve_status);
         }
     }
-    
+
     # Loop programs, updating state of all that have changed
-    for (my $p = 1; $p <= 4; $p++){
+    for ( my $p = 1; $p <= 4; $p++ ) {
         my $program_status = 'off';
-        $program_status = 'on' if ($$self{'program_is_running'} && $p == $program);
-        if (ref $$self{'child_program_'.$p} &&
-            (lc($$self{'child_program_'.$p}->state) ne $program_status)){
-            $$self{'child_program_'.$p}->set_receive($program_status);
+        $program_status = 'on'
+          if ( $$self{'program_is_running'} && $p == $program );
+        if ( ref $$self{ 'child_program_' . $p }
+            && (
+                lc( $$self{ 'child_program_' . $p }->state ) ne
+                $program_status ) )
+        {
+            $$self{ 'child_program_' . $p }->set_receive($program_status);
         }
     }
 }
@@ -363,7 +391,7 @@ sub _process_status {
 # believes that a valve is still on
 sub _timer_query {
     my ($self) = @_;
-    $self->request_status() if ($$self{'valve_is_running'});
+    $self->request_status() if ( $$self{'valve_is_running'} );
 }
 
 =item C<_process_message()>
@@ -375,69 +403,81 @@ all other responses are handed off to the C<Insteon::BaseObject::_process_messag
 =cut
 
 sub _process_message {
-	my ($self,$p_setby,%msg) = @_;
-	my $clear_message = 0;
-	my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
-	my $ack_setby = (ref $$self{m_status_request_pending}) ? $$self{m_status_request_pending} : $p_setby;
-	if ($msg{is_ack} && $self->_is_info_request($pending_cmd,$ack_setby,%msg)) {
-		$clear_message = 1;
-		$$self{m_status_request_pending} = 0;
-		$self->_process_command_stack(%msg);
-	}
-	elsif ($msg{type} eq 'broadcast' && $msg{cmd_code} eq '27') {
-        #These are the broadcast status messages from the device.
-        $self->_process_status($msg{dev_attribs});
-        ::print_log("[Insteon::Irrigation] Received broadcast status update.") 
-            if $self->debuglevel(2, 'insteon');
+    my ( $self, $p_setby, %msg ) = @_;
+    my $clear_message = 0;
+    my $pending_cmd =
+      ( $$self{_prior_msg} ) ? $$self{_prior_msg}->command : $msg{command};
+    my $ack_setby =
+      ( ref $$self{m_status_request_pending} )
+      ? $$self{m_status_request_pending}
+      : $p_setby;
+    if (   $msg{is_ack}
+        && $self->_is_info_request( $pending_cmd, $ack_setby, %msg ) )
+    {
+        $clear_message = 1;
+        $$self{m_status_request_pending} = 0;
         $self->_process_command_stack(%msg);
-	}
-	# The device uses cmd 0x41 differently depending on STD or EXT Msgs
-	elsif ($msg{command} eq "sprinkler_valve_off" && $msg{is_extended}) {
-    	my $program = hex(substr($msg{extra},0,2));
-    	for (my $i; $i<= 8; $i++){
-    	    my $time = hex(substr($msg{extra},$i*2,2));
-    	    $self->_valve_timer($program, $i, $time);
-    	}
-        
-        if ($program < 4){
-            $self->get_timers($program+1);
+    }
+    elsif ( $msg{type} eq 'broadcast' && $msg{cmd_code} eq '27' ) {
+
+        #These are the broadcast status messages from the device.
+        $self->_process_status( $msg{dev_attribs} );
+        ::print_log("[Insteon::Irrigation] Received broadcast status update.")
+          if $self->debuglevel( 2, 'insteon' );
+        $self->_process_command_stack(%msg);
+    }
+
+    # The device uses cmd 0x41 differently depending on STD or EXT Msgs
+    elsif ( $msg{command} eq "sprinkler_valve_off" && $msg{is_extended} ) {
+        my $program = hex( substr( $msg{extra}, 0, 2 ) );
+        for ( my $i; $i <= 8; $i++ ) {
+            my $time = hex( substr( $msg{extra}, $i * 2, 2 ) );
+            $self->_valve_timer( $program, $i, $time );
+        }
+
+        if ( $program < 4 ) {
+            $self->get_timers( $program + 1 );
         }
         else {
-            my $output = "[Insteon::Irrigation] The timers for " 
-                . $self->get_object_name . " are:\n";
-                $output .= "      Program 0:      Program 1:      Program 2:      ".
-                    "Program 3:      Program 4:\n";
-            for (my $i_v = 1; $i_v <= 8; $i_v++){
+            my $output =
+                "[Insteon::Irrigation] The timers for "
+              . $self->get_object_name
+              . " are:\n";
+            $output .= "      Program 0:      Program 1:      Program 2:      "
+              . "Program 3:      Program 4:\n";
+            for ( my $i_v = 1; $i_v <= 8; $i_v++ ) {
                 $output .= '  ';
-                for (my $i_p = 0; $i_p <= 4; $i_p++){
-                    $output .= "     Valve $i_v:" . 
-                        sprintf("% 3d", $self->_valve_timer($i_p, $i_v, ));
+                for ( my $i_p = 0; $i_p <= 4; $i_p++ ) {
+                    $output .= "     Valve $i_v:"
+                      . sprintf( "% 3d", $self->_valve_timer( $i_p, $i_v, ) );
                 }
                 $output .= "\n";
             }
             ::print_log($output);
         }
-        
-		#Clear message from message queue
-		$clear_message = 1;
-        $self->_process_command_stack(%msg);
-	}
-	else {
-		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
-	}
-	return $clear_message;
-}
 
+        #Clear message from message queue
+        $clear_message = 1;
+        $self->_process_command_stack(%msg);
+    }
+    else {
+        $clear_message = $self->SUPER::_process_message( $p_setby, %msg );
+    }
+    return $clear_message;
+}
 
 # Used to store and retreive the valve times from MH cache
 sub _valve_timer {
-    my ($self, $program, $valve, $time) = @_;
-    if (defined $time){
+    my ( $self, $program, $valve, $time ) = @_;
+    if ( defined $time ) {
+
         # Not the ideal way to store this, but restore_data can't handle hashes
-    	# or arrays. So we store the times in a string similar to the msg payload.
-    	substr($$self{'timer_' . $program},(($valve-1)*3),3) = sprintf("%03d", $time);
+        # or arrays. So we store the times in a string similar to the msg payload.
+        substr( $$self{ 'timer_' . $program }, ( ( $valve - 1 ) * 3 ), 3 ) =
+          sprintf( "%03d", $time );
     }
-    return int(substr($$self{'timer_' . $program},(($valve-1)*3),3));
+    return
+      int( substr( $$self{ 'timer_' . $program }, ( ( $valve - 1 ) * 3 ), 3 ) );
 }
 
 =item C<enable_pump(boolean)>
@@ -449,18 +489,21 @@ valve 8 to a normal sprinkler valve
 =cut
 
 sub enable_pump {
-   my ($self, $enable) = @_;
-   my $subcmd = '08';
-   if ($enable){
-       $subcmd = '07';
-       ::print_log("[Insteon::Irrigation] Enabling valve 8 pump feature.");
-   }
-   else {
-       ::print_log("[Insteon::Irrigation] Setting valve 8 to act as regular valve.");
-   }
-   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'sprinkler_control', $subcmd);
-   $self->_send_cmd($message);
-   return;
+    my ( $self, $enable ) = @_;
+    my $subcmd = '08';
+    if ($enable) {
+        $subcmd = '07';
+        ::print_log("[Insteon::Irrigation] Enabling valve 8 pump feature.");
+    }
+    else {
+        ::print_log(
+            "[Insteon::Irrigation] Setting valve 8 to act as regular valve.");
+    }
+    my $message =
+      new Insteon::InsteonMessage( 'insteon_send', $self, 'sprinkler_control',
+        $subcmd );
+    $self->_send_cmd($message);
+    return;
 }
 
 =item C<enable_status(boolean)>
@@ -476,18 +519,20 @@ PLM in monitor mode, but do this at your own risk.
 =cut
 
 sub enable_status {
-   my ($self, $enable) = @_;
-   my $subcmd = '0A';
-   if ($enable){
-       $subcmd = '09';
-       ::print_log("[Insteon::Irrigation] Enabling valve status messages.");
-   }
-   else {
-       ::print_log("[Insteon::Irrigation] Disabling valve status messages.");
-   }
-   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'sprinkler_control', $subcmd);
-   $self->_send_cmd($message);
-   return;
+    my ( $self, $enable ) = @_;
+    my $subcmd = '0A';
+    if ($enable) {
+        $subcmd = '09';
+        ::print_log("[Insteon::Irrigation] Enabling valve status messages.");
+    }
+    else {
+        ::print_log("[Insteon::Irrigation] Disabling valve status messages.");
+    }
+    my $message =
+      new Insteon::InsteonMessage( 'insteon_send', $self, 'sprinkler_control',
+        $subcmd );
+    $self->_send_cmd($message);
+    return;
 }
 
 =back
@@ -539,15 +584,15 @@ use strict;
 @Insteon::Irrigation_valve::ISA = ('Generic_Item');
 
 sub new {
-	my ($class, $parent, $valve) = @_;
-	my $self = new Generic_Item();
-	bless $self, $class;
-	$$self{parent} = $parent;
-	$$self{valve} = $valve;
-	@{$$self{states}} = ('Off', '5 min', '15 min', ' 30 min', 'On');
-	$$self{parent}{'child_valve_'.$valve} = $self;
-	$$self{state_timer} = new Timer;
-	return $self;
+    my ( $class, $parent, $valve ) = @_;
+    my $self = new Generic_Item();
+    bless $self, $class;
+    $$self{parent} = $parent;
+    $$self{valve}  = $valve;
+    @{ $$self{states} } = ( 'Off', '5 min', '15 min', ' 30 min', 'On' );
+    $$self{parent}{ 'child_valve_' . $valve } = $self;
+    $$self{state_timer} = new Timer;
+    return $self;
 }
 
 =item C<set()>
@@ -566,37 +611,45 @@ default length and then turning off.
 =cut
 
 sub set {
-	my ($self, $p_state, $p_setby, $p_response) = @_;
-	if ($p_state =~ /(on|off)/i){
-	        $p_state = $1;
-	        ::print_log("[Insteon::Irrigation] Received request to set ".
-	                $self->get_object_name . " $p_state.");
-                $$self{parent}->set_valve($$self{valve}, $p_state);
-	}
-	elsif ($p_state =~ /(\d+)/) {
-	        $p_state = $1;
-	        ::print_log("[Insteon::Irrigation] Received request to set ".
-	                $self->get_object_name . " ON for $p_state minutes.");
-                $$self{parent}->set_valve($$self{valve}, 'on');
-                #Set timer to turn off
-                my $action = $$self{parent}->get_object_name . "->set_valve(".
-                        $$self{valve} .", 'off')";
-                my $time = ($p_state * 60);
-                $$self{state_timer}->set($time,$action);
-	}
-	else {
-	        ::print_log("[Insteon::Irrigation] Cannot set ". 
-	                $self->get_object_name . " to unknown state of $p_state.");
-        }
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
+    if ( $p_state =~ /(on|off)/i ) {
+        $p_state = $1;
+        ::print_log( "[Insteon::Irrigation] Received request to set "
+              . $self->get_object_name
+              . " $p_state." );
+        $$self{parent}->set_valve( $$self{valve}, $p_state );
+    }
+    elsif ( $p_state =~ /(\d+)/ ) {
+        $p_state = $1;
+        ::print_log( "[Insteon::Irrigation] Received request to set "
+              . $self->get_object_name
+              . " ON for $p_state minutes." );
+        $$self{parent}->set_valve( $$self{valve}, 'on' );
+
+        #Set timer to turn off
+        my $action =
+            $$self{parent}->get_object_name
+          . "->set_valve("
+          . $$self{valve}
+          . ", 'off')";
+        my $time = ( $p_state * 60 );
+        $$self{state_timer}->set( $time, $action );
+    }
+    else {
+        ::print_log( "[Insteon::Irrigation] Cannot set "
+              . $self->get_object_name
+              . " to unknown state of $p_state." );
+    }
 }
 
 sub set_receive {
-	my ($self, $p_state) = @_;
-	if ($p_state =~ /off/i){
-	        #Clear any off timers that are outstanding
-	        $$self{state_timer}->set(0);
-	}
-	$self->SUPER::set($p_state);
+    my ( $self, $p_state ) = @_;
+    if ( $p_state =~ /off/i ) {
+
+        #Clear any off timers that are outstanding
+        $$self{state_timer}->set(0);
+    }
+    $self->SUPER::set($p_state);
 }
 
 =back
@@ -634,15 +687,15 @@ use strict;
 @Insteon::Irrigation_program::ISA = ('Generic_Item');
 
 sub new {
-	my ($class, $parent, $program) = @_;
-	my $self = new Generic_Item();
-	bless $self, $class;
-	$$self{parent} = $parent;
-	$$self{program} = $program;
-	@{$$self{states}} = ('Off', 'On');
-	$$self{parent}{'child_program_'.$program} = $self;
-	$$self{state_timer} = new Timer;
-	return $self;
+    my ( $class, $parent, $program ) = @_;
+    my $self = new Generic_Item();
+    bless $self, $class;
+    $$self{parent}  = $parent;
+    $$self{program} = $program;
+    @{ $$self{states} } = ( 'Off', 'On' );
+    $$self{parent}{ 'child_program_' . $program } = $self;
+    $$self{state_timer} = new Timer;
+    return $self;
 }
 
 =item C<set()>
@@ -654,24 +707,25 @@ Accepts on and off commands.
 =cut
 
 sub set {
-	my ($self, $p_state, $p_setby, $p_response) = @_;
-	if ($p_state =~ /(on|off)/i){
-	        $p_state = $1;
-	        ::print_log("[Insteon::Irrigation] Received request to set ".
-	                $self->get_object_name . " $p_state.");
-                $$self{parent}->set_program($$self{program}, $p_state);
-	}
-	else {
-	        ::print_log("[Insteon::Irrigation] Cannot set ". 
-	                $self->get_object_name . " to unknown state of $p_state.");
-        }
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
+    if ( $p_state =~ /(on|off)/i ) {
+        $p_state = $1;
+        ::print_log( "[Insteon::Irrigation] Received request to set "
+              . $self->get_object_name
+              . " $p_state." );
+        $$self{parent}->set_program( $$self{program}, $p_state );
+    }
+    else {
+        ::print_log( "[Insteon::Irrigation] Cannot set "
+              . $self->get_object_name
+              . " to unknown state of $p_state." );
+    }
 }
 
 sub set_receive {
-	my ($self, $p_state) = @_;
-	$self->SUPER::set($p_state);
+    my ( $self, $p_state ) = @_;
+    $self->SUPER::set($p_state);
 }
-
 
 =back
 

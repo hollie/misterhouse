@@ -47,11 +47,10 @@ use Getopt::Long;
 use Pod::Usage;
 use vars qw( $OS_win $ob $port $log_dir);
 use RollFileHandle;
-my $version=.04;
+my $version = .04;
 
-my $man = 0;
+my $man  = 0;
 my $help = 0;
-
 
 my $debug;
 my $debug_parse;
@@ -62,231 +61,221 @@ my $debug_udp;
 
 my @debug_raw;
 my $report_version;
-my $net_dest="127.0.0.1";
-my $udp_port="5055";
-my $max_zones=8;     ## minimum number of zones by default on NX8
-my $getopt_result=GetOptions("debug:s"=>\@debug_raw,
-				"version"=>\$report_version,
-				"com_port=s"=>\$port,
-				"net_dest=s"=>\$net_dest,
-				"udp_port=s"=>\$udp_port,
-				"zones=i"=>\$max_zones,
-				"help|?"=>\$help,
-				"man"=>\$man,
-				"log_dir=s"=>\$log_dir,
-			) or pod2usage(2);
+my $net_dest      = "127.0.0.1";
+my $udp_port      = "5055";
+my $max_zones     = 8;             ## minimum number of zones by default on NX8
+my $getopt_result = GetOptions(
+    "debug:s"    => \@debug_raw,
+    "version"    => \$report_version,
+    "com_port=s" => \$port,
+    "net_dest=s" => \$net_dest,
+    "udp_port=s" => \$udp_port,
+    "zones=i"    => \$max_zones,
+    "help|?"     => \$help,
+    "man"        => \$man,
+    "log_dir=s"  => \$log_dir,
+) or pod2usage(2);
 
-@debug_raw=split(/,/,join(',',@debug_raw));  # consolidate multiple options
-foreach my $debug_test(@debug_raw){
-	$debug=1;  ## generic debug
-	if(lc $debug_test eq "io"){
-		$debug_io=1;
-	}
-	elsif(lc $debug_test eq "sum"){
-		$debug_sum=1;
-	}
-	elsif(lc $debug_test eq "msg"){
-		$debug_msg=1;
-	}
-	elsif(lc $debug_test eq "parse"){
-		$debug_parse=1;
-	}
-	elsif(lc $debug_test eq "udp"){
-		$debug_udp=1;
-	}
-	elsif(lc $debug_test eq "all"){
-		$debug_parse=1;
-		$debug_msg=1;
-		$debug_sum=1;
-		$debug_io=1;
-		$debug_udp=1;
-	}
-	else{
-		die "unknown debug option: $debug_test\n";
-	}
+@debug_raw =
+  split( /,/, join( ',', @debug_raw ) );    # consolidate multiple options
+foreach my $debug_test (@debug_raw) {
+    $debug = 1;                             ## generic debug
+    if ( lc $debug_test eq "io" ) {
+        $debug_io = 1;
+    }
+    elsif ( lc $debug_test eq "sum" ) {
+        $debug_sum = 1;
+    }
+    elsif ( lc $debug_test eq "msg" ) {
+        $debug_msg = 1;
+    }
+    elsif ( lc $debug_test eq "parse" ) {
+        $debug_parse = 1;
+    }
+    elsif ( lc $debug_test eq "udp" ) {
+        $debug_udp = 1;
+    }
+    elsif ( lc $debug_test eq "all" ) {
+        $debug_parse = 1;
+        $debug_msg   = 1;
+        $debug_sum   = 1;
+        $debug_io    = 1;
+        $debug_udp   = 1;
+    }
+    else {
+        die "unknown debug option: $debug_test\n";
+    }
 }
 $debug && print "zones: $max_zones\n";
 $debug && print "net_dest: $net_dest\n";
 $debug && print "udp_port: $udp_port\n";
 $debug && print "com_port: $port\n";
 pod2usage(1) if $help;
-pod2usage(-exitstatus => 0, -verbose => 2) if $man;
-if($report_version){
-	print "$0: version $version\n";
-	exit(0);
+pod2usage( -exitstatus => 0, -verbose => 2 ) if $man;
+if ($report_version) {
+    print "$0: version $version\n";
+    exit(0);
 
 }
 
-
 # removed leading slash for windows folks
-my $debug_log=new RollFileHandle(">> $log_dir/caddx.log.%m%d");
-my $stdout_log=new RollFileHandle(">> $log_dir/caddx.out.%m%d");
-die "can't open debug log in [$log_dir/caddx.log.mmdd]\n" unless $debug_log;
+my $debug_log  = new RollFileHandle(">> $log_dir/caddx.log.%m%d");
+my $stdout_log = new RollFileHandle(">> $log_dir/caddx.out.%m%d");
+die "can't open debug log in [$log_dir/caddx.log.mmdd]\n"  unless $debug_log;
 die "can't redirect stdout to [$log_dir/caddx.out.mmdd]\n" unless $stdout_log;
 $stdout_log->trap_stdxxx();    # install as default for stdout
 select $debug_log;
-$|=1; # hotpipe
+$| = 1;                        # hotpipe
 select STDOUT;
-$|=1; # hotpipe
+$| = 1;                        # hotpipe
 
 #print &caddx::parse::getbits("\xff",2),"\n";
 #my @qq;
 my $msg_recv_time;
+
 #push(@qq,&caddx::parse::getbits("\xff",2));
 #push(@qq,scalar(&caddx::parse::getbits("\xff",'4-5')));
 #print join(":",@qq),"\n";
 #exit;
 
-my(%zone_hash);
-my(@xmit_q);
-my($reply_pending);
-my $alarmed =0;
-my(%ack_mate)=(
-	"\x01"=>["\x21"],
-	"\x03"=>["\x23"],
-	"\x04"=>["\x24"],
-	"\x05"=>["\x25"],
-	"\x06"=>["\x26"],
-	"\x07"=>["\x27"],
-	"\x09"=>["\x29"],
-	"\x0a"=>["\x2a"],
-	"\x10"=>["\x30"],
-	"\x12"=>["\x32","\x33","\x34","\x35"],
-	"\x1d"=>sub {&rm_pending_xmit("ack");},   # msg OK, flush pending msg
-	"\x1f"=>sub {&rm_pending_xmit("nak");},   # msg rejected, kill whatever msg caused it
-	"\x1e"=>sub {&force_resend()}   # nak from host, resend
+my (%zone_hash);
+my (@xmit_q);
+my ($reply_pending);
+my $alarmed = 0;
+my (%ack_mate) = (
+    "\x01" => ["\x21"],
+    "\x03" => ["\x23"],
+    "\x04" => ["\x24"],
+    "\x05" => ["\x25"],
+    "\x06" => ["\x26"],
+    "\x07" => ["\x27"],
+    "\x09" => ["\x29"],
+    "\x0a" => ["\x2a"],
+    "\x10" => ["\x30"],
+    "\x12" => [ "\x32", "\x33", "\x34", "\x35" ],
+    "\x1d" => sub { &rm_pending_xmit("ack"); },    # msg OK, flush pending msg
+    "\x1f" => sub { &rm_pending_xmit("nak"); }
+    ,    # msg rejected, kill whatever msg caused it
+    "\x1e" => sub { &force_resend() }    # nak from host, resend
 
-	);
+);
 
-my $z="30";
+my $z = "30";
 my $msg;
-$msg="84097e1058f00100";
-my $start="\x0a";
-my $end="\x0d";
-my $enc=pack("C H*",length($msg)/2,$msg);
-my $l=length($enc);
-my $dec=unpack("H*",$enc);
+$msg = "84097e1058f00100";
+my $start = "\x0a";
+my $end   = "\x0d";
+my $enc   = pack( "C H*", length($msg) / 2, $msg );
+my $l     = length($enc);
+my $dec   = unpack( "H*", $enc );
+
 #print "length: $l :: $dec\n";
 #&fletcher_sum("$enc");
 #my $tst=&build_msg($msg);
 #&verify_msg($tst);
 
-
-sub build_msg{
-	my($data)=@_;
-	my $encode=pack("C H*",length($data)/2,$data);
-	my $sum=&fletcher_sum("$encode");
-	my $decode=unpack("H*",$encode);
-	my $ascii_sum=unpack("H*",$sum);
-	my $msg1="\x7e" . $encode . $sum ;
-	&dump($msg1,"build msg1");
-	$msg1;
-}
-sub verify_msg{
-	my($raw)=@_;
-	if(ord($raw) == 10){ # lf?
-		print "looks like ascii msg\n";
-		my $data;
-		$data=substr($raw,1); # dump first byte;
-		chop($data);         # dump last byte;
-		my $sum=substr($data,-4,4); # get checksum
-		substr($data,-4,4)=""; # dump checksum
-		print "verify_msg: sum: [$sum]\n";
-		print "verify_msg: data: [$data]\n";
-
-		my $encode=pack("H*",$data);
-		my $calc_sum=&fletcher_sum($encode);
-		my $ascii_sum=unpack("H*",$calc_sum);
-		print "verify_msg: calc_sum: [$ascii_sum]\n";
-	}
-
-
-}
-sub fletcher_sum{
-	my ($msg)=@_;
-	my ($sum1,$sum2);
-	$sum1=$sum2=0;
-	$debug_sum && print "calculating sum (data lth:",length($msg),")\n";
-	foreach my $char (split(//,$msg)){
-		my $hex=unpack("H*",$char);
-		my $c=ord($char);
-		$debug_sum && print "hex: $hex  ord: $c\n";
-
-		if(255-$sum1 < $c){$sum1++;}
-		$sum1+=$c;
-		$sum1&=255;   # force 8bit math
-		if($sum1==255){$sum1=0;}
-
-		if(255 - $sum2 < $sum1) {$sum2++;}
-		$sum2+=$sum1;
-		$sum2&=255;   # force 8bit math
-		if($sum2==255){$sum2=0;}
-
-
-		my $h1=sprintf("%x",$sum1);
-		my $h2=sprintf("%x",$sum2);
-		$debug_sum && print "hex: $hex  ord: $c s1:$h1 s2:$h2\n";
-
-	}
-	return(pack("CC",$sum1,$sum2));
-}
-sub dump{
-	my ($msg,$context,$force_dump)=@_;
-
-	return unless ($debug_msg || $force_dump);
-	my $hhmmss=&fmt_hhmmss;
-	print $debug_log "$hhmmss [$context] dump:\t";
-	foreach my $char (split(//,$msg)){
-		my $hex=unpack("H*",$char);
-		print $debug_log "[$hex]";
-	}
-		print $debug_log "\n";
+sub build_msg {
+    my ($data) = @_;
+    my $encode    = pack( "C H*", length($data) / 2, $data );
+    my $sum       = &fletcher_sum("$encode");
+    my $decode    = unpack( "H*", $encode );
+    my $ascii_sum = unpack( "H*", $sum );
+    my $msg1      = "\x7e" . $encode . $sum;
+    &dump( $msg1, "build msg1" );
+    $msg1;
 }
 
+sub verify_msg {
+    my ($raw) = @_;
+    if ( ord($raw) == 10 ) {    # lf?
+        print "looks like ascii msg\n";
+        my $data;
+        $data = substr( $raw, 1 );    # dump first byte;
+        chop($data);                  # dump last byte;
+        my $sum = substr( $data, -4, 4 );    # get checksum
+        substr( $data, -4, 4 ) = "";         # dump checksum
+        print "verify_msg: sum: [$sum]\n";
+        print "verify_msg: data: [$data]\n";
 
+        my $encode    = pack( "H*", $data );
+        my $calc_sum  = &fletcher_sum($encode);
+        my $ascii_sum = unpack( "H*", $calc_sum );
+        print "verify_msg: calc_sum: [$ascii_sum]\n";
+    }
 
+}
 
+sub fletcher_sum {
+    my ($msg) = @_;
+    my ( $sum1, $sum2 );
+    $sum1 = $sum2 = 0;
+    $debug_sum && print "calculating sum (data lth:", length($msg), ")\n";
+    foreach my $char ( split( //, $msg ) ) {
+        my $hex = unpack( "H*", $char );
+        my $c = ord($char);
+        $debug_sum && print "hex: $hex  ord: $c\n";
 
+        if ( 255 - $sum1 < $c ) { $sum1++; }
+        $sum1 += $c;
+        $sum1 &= 255;    # force 8bit math
+        if ( $sum1 == 255 ) { $sum1 = 0; }
 
+        if ( 255 - $sum2 < $sum1 ) { $sum2++; }
+        $sum2 += $sum1;
+        $sum2 &= 255;    # force 8bit math
+        if ( $sum2 == 255 ) { $sum2 = 0; }
 
+        my $h1 = sprintf( "%x", $sum1 );
+        my $h2 = sprintf( "%x", $sum2 );
+        $debug_sum && print "hex: $hex  ord: $c s1:$h1 s2:$h2\n";
 
+    }
+    return ( pack( "CC", $sum1, $sum2 ) );
+}
 
+sub dump {
+    my ( $msg, $context, $force_dump ) = @_;
 
-
-
-
-
+    return unless ( $debug_msg || $force_dump );
+    my $hhmmss = &fmt_hhmmss;
+    print $debug_log "$hhmmss [$context] dump:\t";
+    foreach my $char ( split( //, $msg ) ) {
+        my $hex = unpack( "H*", $char );
+        print $debug_log "[$hex]";
+    }
+    print $debug_log "\n";
+}
 
 BEGIN {
-	## Unshift to catch MH libs from default install
-	## (caddx.pl in mh/code/public/)
-	unshift (@INC, './../../lib', './../../lib/site', '.');
+    ## Unshift to catch MH libs from default install
+    ## (caddx.pl in mh/code/public/)
+    unshift( @INC, './../../lib', './../../lib/site', '.' );
 
-        $OS_win = ($^O eq "MSWin32") ? 1 : 0;
-        if ($OS_win) {
-            eval "use Win32::SerialPort";
-	    die "$@\n" if ($@);
-	    $log_dir="c:/ha/data";
-        }
-        else {
-            eval "use Device::SerialPort";
-	    die "$@\n" if ($@);
-	    $log_dir="/tmp/";
-        }
-} # End BEGIN
+    $OS_win = ( $^O eq "MSWin32" ) ? 1 : 0;
+    if ($OS_win) {
+        eval "use Win32::SerialPort";
+        die "$@\n" if ($@);
+        $log_dir = "c:/ha/data";
+    }
+    else {
+        eval "use Device::SerialPort";
+        die "$@\n" if ($@);
+        $log_dir = "/tmp/";
+    }
+}    # End BEGIN
 
 if ($OS_win) {
     $port = 'COM1' unless $port;
-    $ob = Win32::SerialPort->new ($port);
+    $ob = Win32::SerialPort->new($port);
 }
 else {
     $port = '/dev/ttyS0' unless $port;
-    $ob = Device::SerialPort->new ($port);
+    $ob = Device::SerialPort->new($port);
 }
 die "Can't open serial port $port: $^E\n" unless ($ob);
 
-$ob->user_msg(1);	# misc. warnings
-$ob->error_msg(1);	# hardware and data errors
+$ob->user_msg(1);     # misc. warnings
+$ob->error_msg(1);    # hardware and data errors
 
 #	$ob->baudrate(9600);
 #	$ob->parity("even");
@@ -296,35 +285,36 @@ $ob->error_msg(1);	# hardware and data errors
 #	$ob->handshake('none');
 #
 
-my $pick_baud=38400;
+my $pick_baud = 38400;
 
 $ob->baudrate($pick_baud);
 $ob->parity("none");
-$ob->parity_enable(0);   # for any parity except "none"
+$ob->parity_enable(0);    # for any parity except "none"
 $ob->databits(8);
 $ob->stopbits(1);
 $ob->handshake('none');
 
 $ob->write_settings;
 
-my $baud = $ob->baudrate;
+my $baud   = $ob->baudrate;
 my $parity = $ob->parity;
-my $data = $ob->databits;
-my $stop = $ob->stopbits;
+my $data   = $ob->databits;
+my $stop   = $ob->stopbits;
 my $hshake = $ob->handshake;
 
 print "B = $baud, D = $data, S = $stop, P = $parity, H = $hshake\n";
 $ob->read_const_time(60000);
-my $udp_dest=$net_dest. ":" . $udp_port;
-my        $udp_fh= IO::Socket::INET->new(
-                                 PeerAddr => $udp_dest,
-                                 Proto     => 'udp');
+my $udp_dest = $net_dest . ":" . $udp_port;
+my $udp_fh   = IO::Socket::INET->new(
+    PeerAddr => $udp_dest,
+    Proto    => 'udp'
+);
 
 die "can't open udp connection to $udp_dest" unless $udp_fh;
 
 my $accum;
 my $accum_age;
-my $consecutive_csum_fail=0;
+my $consecutive_csum_fail = 0;
 &reset_accum();
 
 &get_interface_config();
@@ -333,159 +323,160 @@ my $consecutive_csum_fail=0;
 
 &get_partition_snap(1);
 &get_zone_snap(1);
-	&get_zone_name(1);
-foreach my $zone (1..$max_zones){
-	&get_zone_name($zone);
-	&get_zone_status($zone);
-	&get_partition_status($zone);
+&get_zone_name(1);
+foreach my $zone ( 1 .. $max_zones ) {
+    &get_zone_name($zone);
+    &get_zone_status($zone);
+    &get_partition_status($zone);
 }
 
-while(1){
+while (1) {
 
-	$stdout_log->roll_logfile();     # re-open log file when date rolls.
-	$debug_log->roll_logfile();      # re-open log file when date rolls.
-	if($alarmed){
-		&check_q("alarm timeout");
-	}
+    $stdout_log->roll_logfile();    # re-open log file when date rolls.
+    $debug_log->roll_logfile();     # re-open log file when date rolls.
+    if ($alarmed) {
+        &check_q("alarm timeout");
+    }
 
-	## the read_const_time should break us out of the read if the
-	##   controller quits responding.
-	##if(@xmit_q){
-	##	$SIG{ALRM}=\&wake_up;
-	##	alarm(5);  # (re)send msg if controller is quiet
-	##}
-	##else{
-	##	alarm(0);  # turn it off
-	##}
-	if(@xmit_q){  ## if there is data pending...
-		$ob->read_const_time(5000);   ## use a (shorter) timeout
-	}
-	else{
-		$ob->read_const_time(60000);  ## not much to do anyway (except keep an eye on rtc drift)
-	}
+    ## the read_const_time should break us out of the read if the
+    ##   controller quits responding.
+    ##if(@xmit_q){
+    ##	$SIG{ALRM}=\&wake_up;
+    ##	alarm(5);  # (re)send msg if controller is quiet
+    ##}
+    ##else{
+    ##	alarm(0);  # turn it off
+    ##}
+    if (@xmit_q) {    ## if there is data pending...
+        $ob->read_const_time(5000);    ## use a (shorter) timeout
+    }
+    else {
+        $ob->read_const_time(60000)
+          ;    ## not much to do anyway (except keep an eye on rtc drift)
+    }
 
-	my $result;
-	my $char = $ob->GETC();
-#	my ($count, $result) = $ob->read(100);
-#	my $result  = $ob->READLINE();
-	if(defined $char){
-		my $hhmmss=&fmt_hhmmss;
-		$debug_io && print "$hhmmss read char:",length($char),":";
-		$debug_io && printf("[%02x]\n",ord($char));
-		if($char eq "\x7e" ){   # start of new msg, flush old msg
-			# fall thru to the send code
-			&reset_accum(1);        # force flush the accumulator
-		}
-		&collect_accum($char);
-	}
-	else{
-		$debug_io &&print "Read failed?!:",Time::HiRes::time(),"\n";
-		&check_q("read timeout");   ## since we've been inactive for a while...
-		&set_clock();   ## debug msg to see if we're still talking
-	}
+    my $result;
+    my $char = $ob->GETC();
 
+    #	my ($count, $result) = $ob->read(100);
+    #	my $result  = $ob->READLINE();
+    if ( defined $char ) {
+        my $hhmmss = &fmt_hhmmss;
+        $debug_io && print "$hhmmss read char:", length($char), ":";
+        $debug_io && printf( "[%02x]\n", ord($char) );
+        if ( $char eq "\x7e" ) {    # start of new msg, flush old msg
+                                    # fall thru to the send code
+            &reset_accum(1);        # force flush the accumulator
+        }
+        &collect_accum($char);
+    }
+    else {
+        $debug_io && print "Read failed?!:", Time::HiRes::time(), "\n";
+        &check_q("read timeout");    ## since we've been inactive for a while...
+        &set_clock();                ## debug msg to see if we're still talking
+    }
 
+    my ( $start, $lth, $msg ) = unpack( "a C a*", $accum );
+    my ($msg_num) = unpack( "C a*", $msg );
+    my ($ack_required) = $msg_num & 128;
+    $msg_num &= 63;                  ## just bits 0-5
+    if ( $lth && ( length($accum) == $lth + 4 ) ) {
+        $msg_recv_time = Time::HiRes::time();
 
-	my($start,$lth,$msg)=unpack("a C a*",$accum);
-	my($msg_num)=unpack("C a*",$msg);
-	my($ack_required)=$msg_num & 128;
-	$msg_num &=63;   ## just bits 0-5
-	if($lth && (length($accum) == $lth +4)){
-		$msg_recv_time=Time::HiRes::time();
+        ## touchy error when checksum ends in "\x0a" ("\n")
+        ##   the regex honors the \n as eol and leaves it in the
+        ##   string, and zaps part of the msg instead:: use substr
+        ##$msg=~s/(..)$//;  # last 2 chars is checksum
+        my $line_sum = substr( $msg, -2, 2, "" );    # get sum and replace w/""
 
-		## touchy error when checksum ends in "\x0a" ("\n")
-		##   the regex honors the \n as eol and leaves it in the
-		##   string, and zaps part of the msg instead:: use substr
-		##$msg=~s/(..)$//;  # last 2 chars is checksum
-		my $line_sum=substr($msg,-2,2,"");  # get sum and replace w/""
+        $debug_io && printf( "start: [%02x]\n",        ord($start) );
+        $debug_io && printf("native lth: $lth\n");
+        $debug_io && printf( "msg lth w/o csum: %d\n", length($msg) );
+        $debug_io && printf( "msg csum lth: %d\n",     length($line_sum) );
+        $debug_io && printf( "msg num : %02d\n",       $msg_num );
+        &dump( $accum, "Raw accum" );
+        &dump( $msg,   "Raw   msg" );
+        my $calc_sum = &fletcher_sum( pack( "C", $lth ) . $msg );
+        if ( $calc_sum eq $line_sum ) {
+            $debug_sum && print "checksum MATCH\n";
+            &dump( $accum, "Match:" );
+            my $key = uc( sprintf( "%02x", $msg_num ) . "h" );
+            if ( $caddx::parse::laycode{$key} ) {
+                $debug_sum && print "calling rtn for $key\n";
+                my $phash = &{ $caddx::parse::laycode{$key} }($msg);
+                &show_parsed( $phash->{_parsed_}, $key );
+                &process_msg( $msg_num, $phash );
 
-		$debug_io && printf("start: [%02x]\n",ord($start));
-		$debug_io && printf("native lth: $lth\n");
-		$debug_io && printf("msg lth w/o csum: %d\n",length($msg));
-		$debug_io && printf("msg csum lth: %d\n",length($line_sum));
-		$debug_io && printf("msg num : %02d\n",$msg_num);
-			&dump($accum,"Raw accum");
-			&dump($msg,  "Raw   msg");
-		my $calc_sum=&fletcher_sum(pack("C",$lth) . $msg);
-		if($calc_sum eq $line_sum){
-			$debug_sum && print "checksum MATCH\n";
-			&dump($accum,"Match:");
-			my $key=uc(sprintf("%02x",$msg_num)."h");
-			if($caddx::parse::laycode{$key}){
-				$debug_sum && print "calling rtn for $key\n";
-				my $phash=&{$caddx::parse::laycode{$key}}($msg);
-				&show_parsed($phash->{_parsed_},$key);
-				&process_msg($msg_num,$phash);
+            }
+            else {
+                $debug_sum && print "NO  rtn for $key\n";
+            }
+            if ($ack_required) {
+                $debug_io && print "ACK required\n";
+                my $reply = &build_msg("1d");
+                $ob->PRINT($reply);
+            }
+            else {
+                $debug_io && print "ACK Not required\n";
+            }
+            &apply_ack($msg_num);
+            &check_q("message processed");
 
-			}
-			else{
-				$debug_sum && print "NO  rtn for $key\n";
-			}
-			if($ack_required){
-				$debug_io && print "ACK required\n";
-				my $reply=&build_msg("1d");
-				$ob->PRINT($reply);
-			}
-			else{
-				$debug_io && print "ACK Not required\n";
-			}
-			&apply_ack($msg_num);
-			&check_q("message processed");
+            $consecutive_csum_fail = 0;    # reset with good msg
+        }
+        else {
+            $consecutive_csum_fail++;      # got another one.
+            $debug_sum && print "checksum FAIL [$consecutive_csum_fail]\n";
+            &dump( $calc_sum, "Calculated Sum:",       1 );
+            &dump( $accum,    "Csum Failed accum:",    1 );
+            &dump( $msg,      "Csum Failed Raw msg:",  1 );
+            &dump( $line_sum, "Csum Failed line_sum:", 1 );
+            ## workaround for bad csum calculation!??
+            ##  if the csum gets stuck, everything locks
+            ##  up, w/ the controller resending the same msg
+            ##  and us refusing it.   this hasn't happened
+            ##  in a while now...  switched from Ack to Nak
+            my $reply;
+            if ( $consecutive_csum_fail > 5 ) {    ## are we stuck?
+                $reply = &build_msg("1d");         # forced ACK :-(
+                ## and log the forced ack.
+                &dump( $reply, "Csum Failed Force Ack:", 1 );
+            }
+            else {
+                $reply = &build_msg("1e");         # forced NAK :-(
+            }
+            $ob->PRINT($reply);
+        }
+        $result = $accum;
+        &reset_accum();                            # empty out the accumulator
+        $debug_io && print "got a msg!!\n"
+          ## got a msg!!
 
-
-			$consecutive_csum_fail=0;   # reset with good msg
-		}
-		else{
-			$consecutive_csum_fail++;   # got another one.
-			$debug_sum && print "checksum FAIL [$consecutive_csum_fail]\n";
-			&dump($calc_sum,"Calculated Sum:",1);
-			&dump($accum,"Csum Failed accum:",1);
-			&dump($msg,  "Csum Failed Raw msg:",1);
-			&dump($line_sum,  "Csum Failed line_sum:",1);
-				## workaround for bad csum calculation!??
-				##  if the csum gets stuck, everything locks
-				##  up, w/ the controller resending the same msg
-				##  and us refusing it.   this hasn't happened
-				##  in a while now...  switched from Ack to Nak
-			my $reply;
-			if($consecutive_csum_fail >5){  ## are we stuck?
-				$reply=&build_msg("1d");   # forced ACK :-(
-				## and log the forced ack.
-				&dump($reply,  "Csum Failed Force Ack:",1);
-			}
-			else{
-				$reply=&build_msg("1e");   # forced NAK :-(
-			}
-			$ob->PRINT($reply);
-		}
-		$result=$accum;
-		&reset_accum();        # empty out the accumulator
-		$debug_io && print "got a msg!!\n"
-		## got a msg!!
-
-		#my $msg="action=scanner_input&data=$result&";
-		#$udp_fh->send($msg);
-		#print "sent udp: [$msg]\n";
-		#for(my $x=0;$x<length($result);$x++){
-		#	printf("[%02x]",ord(substr($result,$x,1)));
-		#}
-		#print "\n";
-		#&reset_accum();        # empty out the accumulator
-	}
+          #my $msg="action=scanner_input&data=$result&";
+          #$udp_fh->send($msg);
+          #print "sent udp: [$msg]\n";
+          #for(my $x=0;$x<length($result);$x++){
+          #	printf("[%02x]",ord(substr($result,$x,1)));
+          #}
+          #print "\n";
+          #&reset_accum();        # empty out the accumulator
+    }
 }
 undef $ob;
 
 my $unstuff_pending;
-sub reset_accum{
-	my($force)=@_;
-	if($accum && $force ){
-		my $now=time();
-		$debug_io && print "WARNING: flushed stale data [$accum] $accum_age $now\n";
-	}
 
-	$accum="";
-	$accum_age=0;
-	$unstuff_pending=0;
+sub reset_accum {
+    my ($force) = @_;
+    if ( $accum && $force ) {
+        my $now = time();
+        $debug_io
+          && print "WARNING: flushed stale data [$accum] $accum_age $now\n";
+    }
+
+    $accum           = "";
+    $accum_age       = 0;
+    $unstuff_pending = 0;
 }
 ###############################################################
 ##  this rtn will collect each character scanned into the accumulator.
@@ -496,28 +487,29 @@ sub reset_accum{
 ##
 ###############################################################
 
-sub collect_accum{
-       my ($char)=@_;
-       if($accum_age +2  < time()){   #shouldn't take over 1 second
-           &reset_accum();
-           $accum_age=time();
-       }
-       if($unstuff_pending){
-           my $orig_char=$char;
-           $char=ord($char) ^ ord("\x20");
-           $char=pack("C",$char);
+sub collect_accum {
+    my ($char) = @_;
+    if ( $accum_age + 2 < time() ) {    #shouldn't take over 1 second
+        &reset_accum();
+        $accum_age = time();
+    }
+    if ($unstuff_pending) {
+        my $orig_char = $char;
+        $char = ord($char) ^ ord("\x20");
+        $char = pack( "C", $char );
 
-           $debug_io && printf("UNSTUFFED %02x gave
-                                 %02x\n",ord($orig_char),ord($char));
-           $unstuff_pending=0;
-       }
-       elsif($char eq "\x7d"){    #don't unstuff an unstuffed 7d :-)
-           $debug_io && printf("STUFFED %02x Found\n",
-                               ord($char));
-           $unstuff_pending=1;
-           $char = "";
-       }
-       $accum .= $char;
+        $debug_io && printf(
+            "UNSTUFFED %02x gave
+                                 %02x\n", ord($orig_char), ord($char)
+        );
+        $unstuff_pending = 0;
+    }
+    elsif ( $char eq "\x7d" ) {    #don't unstuff an unstuffed 7d :-)
+        $debug_io && printf( "STUFFED %02x Found\n", ord($char) );
+        $unstuff_pending = 1;
+        $char            = "";
+    }
+    $accum .= $char;
 }
 
 ###########################################################
@@ -526,30 +518,28 @@ sub collect_accum{
 ##
 ###########################################################
 my $last_set_clock;
-sub set_clock{
-	my $now=time();
-	return unless($last_set_clock + 3600  < $now);
-	$debug_msg && print "set clock processing\n";
-	$last_set_clock=$now;
 
-	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=
-		localtime($now);
-	my $time_hex=pack("C C C C C C",
-		$year%100,
-		$mon+1,
-		$mday,
-		$hour,
-		$min,
-		$wday + 1);
-	my $time_fmt=unpack("H*",$time_hex);
+sub set_clock {
+    my $now = time();
+    return unless ( $last_set_clock + 3600 < $now );
+    $debug_msg && print "set clock processing\n";
+    $last_set_clock = $now;
 
-	&dump($time_hex, "time_hex");
-	&dump($time_fmt, "time_fmt");
-	# my $clock_msg=&build_msg("3b" . $time_fmt);
-	my $clock_msg=&build_msg("bb" . $time_fmt);
-	## my $clock_msg=&build_msg("3b01090e070703");
-	&dump($clock_msg,"tentative set_clock");
-	&queue_msg($clock_msg);
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
+      localtime($now);
+    my $time_hex = pack( "C C C C C C",
+        $year % 100,
+        $mon + 1, $mday, $hour, $min, $wday + 1 );
+    my $time_fmt = unpack( "H*", $time_hex );
+
+    &dump( $time_hex, "time_hex" );
+    &dump( $time_fmt, "time_fmt" );
+
+    # my $clock_msg=&build_msg("3b" . $time_fmt);
+    my $clock_msg = &build_msg( "bb" . $time_fmt );
+    ## my $clock_msg=&build_msg("3b01090e070703");
+    &dump( $clock_msg, "tentative set_clock" );
+    &queue_msg($clock_msg);
 
 }
 ###########################################################
@@ -561,12 +551,12 @@ sub set_clock{
 ##    a way to set the zone name from this interface :-(
 ##
 ###########################################################
-sub get_zone_name{
-	my ($zone)=@_;
-	$debug_msg && print "get zone name invoked\n";
-	my $zone_msg=&build_msg("23" . sprintf("%02d",$zone-1));
-	&dump($zone_msg,"tentative zone_name_msg");
-	&queue_msg($zone_msg);
+sub get_zone_name {
+    my ($zone) = @_;
+    $debug_msg && print "get zone name invoked\n";
+    my $zone_msg = &build_msg( "23" . sprintf( "%02d", $zone - 1 ) );
+    &dump( $zone_msg, "tentative zone_name_msg" );
+    &queue_msg($zone_msg);
 
 }
 ###########################################################
@@ -574,12 +564,12 @@ sub get_zone_name{
 ##    a status update for the zone.
 ##
 ###########################################################
-sub get_zone_status{
-	my ($zone)=@_;
-	$debug_msg && print "get zone status invoked\n";
-	my $zone_msg=&build_msg("24" . sprintf("%02d",$zone-1));
-	&dump($zone_msg,"tentative zone_status_msg");
-	&queue_msg($zone_msg);
+sub get_zone_status {
+    my ($zone) = @_;
+    $debug_msg && print "get zone status invoked\n";
+    my $zone_msg = &build_msg( "24" . sprintf( "%02d", $zone - 1 ) );
+    &dump( $zone_msg, "tentative zone_status_msg" );
+    &queue_msg($zone_msg);
 
 }
 ###########################################################
@@ -588,11 +578,11 @@ sub get_zone_status{
 ##
 ##
 ###########################################################
-sub toggle_zone_bypass{
-	my ($zone)=@_;
-	$debug_msg && print "toggle zone bypass invoked\n";
-	my $zone_msg=&build_msg("3f" . sprintf("%02d",$zone-1));
-	&queue_msg($zone_msg);
+sub toggle_zone_bypass {
+    my ($zone) = @_;
+    $debug_msg && print "toggle zone bypass invoked\n";
+    my $zone_msg = &build_msg( "3f" . sprintf( "%02d", $zone - 1 ) );
+    &queue_msg($zone_msg);
 
 }
 ###########################################################
@@ -601,12 +591,12 @@ sub toggle_zone_bypass{
 ##
 ##
 ###########################################################
-sub get_zone_snap{
-	my ($zone)=@_;
-	$debug_msg && print "get zone snap invoked\n";
-	my $zone_msg=&build_msg("25" . sprintf("%02d",$zone-1));
-	&dump($zone_msg,"tentative zone_snap");
-	&queue_msg($zone_msg);
+sub get_zone_snap {
+    my ($zone) = @_;
+    $debug_msg && print "get zone snap invoked\n";
+    my $zone_msg = &build_msg( "25" . sprintf( "%02d", $zone - 1 ) );
+    &dump( $zone_msg, "tentative zone_snap" );
+    &queue_msg($zone_msg);
 
 }
 ###########################################################
@@ -615,11 +605,11 @@ sub get_zone_snap{
 ##
 ##
 ###########################################################
-sub get_partition_status{
-	my ($part)=@_;
-	$debug_msg && print "get part status invoked\n";
-	my $msg=&build_msg("26" . sprintf("%02d",$part-1));
-	&queue_msg($msg);
+sub get_partition_status {
+    my ($part) = @_;
+    $debug_msg && print "get part status invoked\n";
+    my $msg = &build_msg( "26" . sprintf( "%02d", $part - 1 ) );
+    &queue_msg($msg);
 
 }
 ###########################################################
@@ -628,10 +618,10 @@ sub get_partition_status{
 ##
 ##
 ###########################################################
-sub get_partition_snap{
-	$debug_msg && print "get partition snap invoked\n";
-	my $msg=&build_msg("27");
-	&queue_msg($msg);
+sub get_partition_snap {
+    $debug_msg && print "get partition snap invoked\n";
+    my $msg = &build_msg("27");
+    &queue_msg($msg);
 
 }
 ###########################################################
@@ -640,40 +630,40 @@ sub get_partition_snap{
 ##
 ##
 ###########################################################
-sub get_user_info{
-	my ($user)=@_;
-	$debug_msg && print "get user info invoked\n";
-	my $user_msg=&build_msg("33" . sprintf("%02d",$user));
-	&dump($user_msg,"tentative user_info");
-	&queue_msg($user_msg);
+sub get_user_info {
+    my ($user) = @_;
+    $debug_msg && print "get user info invoked\n";
+    my $user_msg = &build_msg( "33" . sprintf( "%02d", $user ) );
+    &dump( $user_msg, "tentative user_info" );
+    &queue_msg($user_msg);
 }
 ###########################################################
 ##  get_interface_config will send a msg to the controller requesting
 ##    the configuration status msg from the controller.
 ##
 ###########################################################
-sub get_interface_config{
-	my ($user)=@_;
-	$debug_msg && print "get interface_config invoked\n";
-	my $msg=&build_msg("21" . sprintf("%02d",$user));
-	&dump($msg,"tentative interface_config");
-	&queue_msg($msg);
+sub get_interface_config {
+    my ($user) = @_;
+    $debug_msg && print "get interface_config invoked\n";
+    my $msg = &build_msg( "21" . sprintf( "%02d", $user ) );
+    &dump( $msg, "tentative interface_config" );
+    &queue_msg($msg);
 }
 ## untested 11/17/2001
-sub put_request_terminal_mode{
-	my ($keypad,$seconds)=@_;
-	my $msg=&build_msg("2c" . sprintf("%02d%02d",$keypad,$seconds));
-	&dump($msg,"keypad_request ");
-	&queue_msg($msg);
+sub put_request_terminal_mode {
+    my ( $keypad, $seconds ) = @_;
+    my $msg = &build_msg( "2c" . sprintf( "%02d%02d", $keypad, $seconds ) );
+    &dump( $msg, "keypad_request " );
+    &queue_msg($msg);
 }
 ## untested 11/17/2001
-sub put_keypad_data{
-	my ($keypad,$text)=@_;
-	my $msg=&build_msg("2b" . sprintf("%02d0000",$keypad));
-	my $hextext=unpack("H24",$text);
-	$msg .=$hextext;
-	&dump($msg,"keypad_request ");
-	&queue_msg($msg);
+sub put_keypad_data {
+    my ( $keypad, $text ) = @_;
+    my $msg = &build_msg( "2b" . sprintf( "%02d0000", $keypad ) );
+    my $hextext = unpack( "H24", $text );
+    $msg .= $hextext;
+    &dump( $msg, "keypad_request " );
+    &queue_msg($msg);
 }
 ###########################################################
 ##  queue_msg will put an outbound msg to the controller in
@@ -683,86 +673,92 @@ sub put_keypad_data{
 ##
 ##  all msgs to the controller should be routed thru the queue.
 ###########################################################
-sub queue_msg{
-	my ($msg)=@_;
-	my $new_q={};
-	$new_q->{msg}=$msg;
-	$new_q->{submit_time}=Time::HiRes::time();
-	$new_q->{xmit_count}=0;
-	$new_q->{xmit_time}=0;
-	$new_q->{msgnum}=substr($msg,2,1);
-	push(@xmit_q,$new_q);
+sub queue_msg {
+    my ($msg) = @_;
+    my $new_q = {};
+    $new_q->{msg}         = $msg;
+    $new_q->{submit_time} = Time::HiRes::time();
+    $new_q->{xmit_count}  = 0;
+    $new_q->{xmit_time}   = 0;
+    $new_q->{msgnum}      = substr( $msg, 2, 1 );
+    push( @xmit_q, $new_q );
 
-	&check_q("message added");
+    &check_q("message added");
 }
 ###########################################################
 ##  check_q will check to see if there is a msg in the q
 ##    that is eligible for (re)xmit
 ##
 ###########################################################
-sub check_q{
-	my ($rsn)=@_;
+sub check_q {
+    my ($rsn) = @_;
 
-	$debug_io && print "check_q b/c: $rsn\n";
-	# give the controller a chance to answer pending msg.
-	return if ($reply_pending + 3 > time());
+    $debug_io && print "check_q b/c: $rsn\n";
 
-	# is there a msg in queue that is eligible for send/resend
-	if($xmit_q[0] && $xmit_q[0]{xmit_time}+3 < time()){
+    # give the controller a chance to answer pending msg.
+    return if ( $reply_pending + 3 > time() );
 
-		$xmit_q[0]{xmit_count}++;
-		$xmit_q[0]{xmit_time}=Time::HiRes::time();
-		$ob->PRINT($xmit_q[0]{msg});
+    # is there a msg in queue that is eligible for send/resend
+    if ( $xmit_q[0] && $xmit_q[0]{xmit_time} + 3 < time() ) {
 
-		&dump($xmit_q[0]{msg},"check_q send:");
-		$debug_io && print scalar(localtime(time())),"\n";
-		$debug_io && printf("sending msg [%02x] for the %d time (%d in queue)\n",
-			ord($xmit_q[0]{msgnum}),
-			$xmit_q[0]{xmit_count},
-			scalar(@xmit_q));
-		$reply_pending=time();
-	}
+        $xmit_q[0]{xmit_count}++;
+        $xmit_q[0]{xmit_time} = Time::HiRes::time();
+        $ob->PRINT( $xmit_q[0]{msg} );
+
+        &dump( $xmit_q[0]{msg}, "check_q send:" );
+        $debug_io && print scalar( localtime( time() ) ), "\n";
+        $debug_io && printf(
+            "sending msg [%02x] for the %d time (%d in queue)\n",
+            ord( $xmit_q[0]{msgnum} ),
+            $xmit_q[0]{xmit_count},
+            scalar(@xmit_q)
+        );
+        $reply_pending = time();
+    }
 }
 
 ##  see if the reply we just got relieves a pending ack
-sub apply_ack{
-	my($msgnum)=@_;  # decimal msgnum
-	my $msghex=pack("C",$msgnum);
-	if( ! $xmit_q[0]){
-		return;  # no pending ack
-	}
-	if($ack_mate{$msghex}){
-		if(ref($ack_mate{$msghex}) eq "CODE"){
-			$debug_io && printf("calling sub ref to ack %02x\n",ord($msghex));
-			&{$ack_mate{$msghex}}();   # call it
-		}
-		if(ref($ack_mate{$msghex}) eq "ARRAY"){
-			if(grep ($xmit_q[0]{msgnum}, @{$ack_mate{$msghex}})){
-				&rm_pending_xmit("mate");
-			}
-			else{
+sub apply_ack {
+    my ($msgnum) = @_;    # decimal msgnum
+    my $msghex = pack( "C", $msgnum );
+    if ( !$xmit_q[0] ) {
+        return;           # no pending ack
+    }
+    if ( $ack_mate{$msghex} ) {
+        if ( ref( $ack_mate{$msghex} ) eq "CODE" ) {
+            $debug_io
+              && printf( "calling sub ref to ack %02x\n", ord($msghex) );
+            &{ $ack_mate{$msghex} }();    # call it
+        }
+        if ( ref( $ack_mate{$msghex} ) eq "ARRAY" ) {
+            if ( grep ( $xmit_q[0]{msgnum}, @{ $ack_mate{$msghex} } ) ) {
+                &rm_pending_xmit("mate");
+            }
+            else {
 
-				$debug_io && printf("pending msg  [%02x] not ack'ed by [%02x]\n",
-					ord($xmit_q[0]{msgnum}),
-					ord($msghex));
-			}
-		}
-	}
+                $debug_io && printf(
+                    "pending msg  [%02x] not ack'ed by [%02x]\n",
+                    ord( $xmit_q[0]{msgnum} ),
+                    ord($msghex)
+                );
+            }
+        }
+    }
 }
 #####################################
 ##  called in response to nak from controller
 ##    --resend the last msg.
 #####################################
-sub force_resend{
-	if($xmit_q[0]){
-		$debug_io && print "forcing resend\n";
-		$reply_pending=0;
-		$xmit_q[0]{xmit_time}=0;
-		&check_q();
-	}
-	else{
-		$debug_io && print "force resend failed, no msg pending\n";
-	}
+sub force_resend {
+    if ( $xmit_q[0] ) {
+        $debug_io && print "forcing resend\n";
+        $reply_pending = 0;
+        $xmit_q[0]{xmit_time} = 0;
+        &check_q();
+    }
+    else {
+        $debug_io && print "force resend failed, no msg pending\n";
+    }
 }
 
 #####################################
@@ -770,136 +766,138 @@ sub force_resend{
 ##    --either directly called by  x1d or x1f
 ##    --or called b/c we got a matching reply to a request that we sent.
 #####################################
-sub rm_pending_xmit{
-	my ($rsn)=@_;
-	my $relieve_time=Time::HiRes::time();
-	$debug_io && print "rm_pending_ack shrinking the xmit q b/c [$rsn]\n";
-	&dump ('',"rm_pending_ack shrinking the xmit q b/c [$rsn]");
-	my $complete_msg=shift @xmit_q;
+sub rm_pending_xmit {
+    my ($rsn) = @_;
+    my $relieve_time = Time::HiRes::time();
+    $debug_io && print "rm_pending_ack shrinking the xmit q b/c [$rsn]\n";
+    &dump( '', "rm_pending_ack shrinking the xmit q b/c [$rsn]" );
+    my $complete_msg = shift @xmit_q;
 
-	if($debug_io){
-		my $elapsed_time=$relieve_time - $complete_msg->{submit_time};
-		my $process_time=$relieve_time - $complete_msg->{xmit_time};
-		printf ("caddx stat: msg: [%02x] send cound: %d elapsed: %6.3f process: %6.3f\n",
-			ord($complete_msg->{msgnum}),
-			$complete_msg->{xmit_count},
-			$elapsed_time,$process_time);
-	}
-	$reply_pending=0;
-	&check_q();
+    if ($debug_io) {
+        my $elapsed_time = $relieve_time - $complete_msg->{submit_time};
+        my $process_time = $relieve_time - $complete_msg->{xmit_time};
+        printf(
+            "caddx stat: msg: [%02x] send cound: %d elapsed: %6.3f process: %6.3f\n",
+            ord( $complete_msg->{msgnum} ),
+            $complete_msg->{xmit_count},
+            $elapsed_time, $process_time
+        );
+    }
+    $reply_pending = 0;
+    &check_q();
 
 }
 #####################################
 ##  wake_up is an alarm handler that will
 ##    trigger a resend if the controller hasn't replied to a pending msg.
 #####################################
-sub wake_up{
-	$alarmed=1;
+sub wake_up {
+    $alarmed = 1;
 }
 #####################################
 ##  process_msg will digest the msgs
 ##    received from the controller.
 #####################################
-sub process_msg{
-	my ($msg_num,$phash) =@_;
-	if($msg_num ==3){ # zone name
-		my $zone=$phash->{zone};
-		if(defined $zone){
-			$zone=ord($zone)+1;
-			&cache_info($zone,"zone_name",$phash->{zone_name});
-		}
-	}
-	elsif($msg_num ==4){ # zone status
-		my $zone=$phash->{zone};
-		if(defined $zone){
-			$zone=ord($zone)+1;
-			&cache_info($zone,"faulted",$phash->{faulted});
-			&cache_info($zone,"tampered",$phash->{tampered});
-			&cache_info($zone,"trouble",$phash->{trouble});
-			&cache_info($zone,"bypassed",$phash->{bypassed});
-			&cache_info($zone,"alarm_memory",$phash->{alarm_memory});
-		}
-	}
-	elsif($msg_num ==5){ # zone snapshot
-		## caddx docs call this zone offset, but it's really zone base
-		##  (the offset is the 1-8 within the msg)
-		my $zone_base=$phash->{zone_offset};
-		my $zsnap_rtn;
-		if($caddx::parse::laycode{ZSNAP}){
-			$zsnap_rtn=$caddx::parse::laycode{ZSNAP};
+sub process_msg {
+    my ( $msg_num, $phash ) = @_;
+    if ( $msg_num == 3 ) {    # zone name
+        my $zone = $phash->{zone};
+        if ( defined $zone ) {
+            $zone = ord($zone) + 1;
+            &cache_info( $zone, "zone_name", $phash->{zone_name} );
+        }
+    }
+    elsif ( $msg_num == 4 ) {    # zone status
+        my $zone = $phash->{zone};
+        if ( defined $zone ) {
+            $zone = ord($zone) + 1;
+            &cache_info( $zone, "faulted",      $phash->{faulted} );
+            &cache_info( $zone, "tampered",     $phash->{tampered} );
+            &cache_info( $zone, "trouble",      $phash->{trouble} );
+            &cache_info( $zone, "bypassed",     $phash->{bypassed} );
+            &cache_info( $zone, "alarm_memory", $phash->{alarm_memory} );
+        }
+    }
+    elsif ( $msg_num == 5 ) {    # zone snapshot
+        ## caddx docs call this zone offset, but it's really zone base
+        ##  (the offset is the 1-8 within the msg)
+        my $zone_base = $phash->{zone_offset};
+        my $zsnap_rtn;
+        if ( $caddx::parse::laycode{ZSNAP} ) {
+            $zsnap_rtn = $caddx::parse::laycode{ZSNAP};
 
-		}
-		else{
-			print "no layout for zsnap\n";
-			return;
-		}
+        }
+        else {
+            print "no layout for zsnap\n";
+            return;
+        }
 
-		if(defined $zone_base){
-			$zone_base=ord($zone_base);
-			my @zoffset=sort grep(/zone\d/i,keys %$phash);
-			foreach my $zoff (@zoffset){
-				my $zone;
-				if($zoff =~ /(\d+)/){
-					$zone=$1 + (16 * $zone_base);
-				}
-				else{
-					next;
-				}
-				$debug_msg && print "calling rtn for zsnap $zoff [$zone]\n";
-				my $phash=&{$zsnap_rtn}($phash->{$zoff});
-				&show_parsed($phash->{_parsed_},"$zoff [$zone]");
-				&cache_info($zone,"faulted",$phash->{faulted});
-				&cache_info($zone,"trouble",$phash->{trouble});
-				&cache_info($zone,"bypassed",$phash->{bypassed});
-				&cache_info($zone,"alarm_memory",$phash->{alarm_memory});
+        if ( defined $zone_base ) {
+            $zone_base = ord($zone_base);
+            my @zoffset = sort grep( /zone\d/i, keys %$phash );
+            foreach my $zoff (@zoffset) {
+                my $zone;
+                if ( $zoff =~ /(\d+)/ ) {
+                    $zone = $1 + ( 16 * $zone_base );
+                }
+                else {
+                    next;
+                }
+                $debug_msg && print "calling rtn for zsnap $zoff [$zone]\n";
+                my $phash = &{$zsnap_rtn}( $phash->{$zoff} );
+                &show_parsed( $phash->{_parsed_}, "$zoff [$zone]" );
+                &cache_info( $zone, "faulted",      $phash->{faulted} );
+                &cache_info( $zone, "trouble",      $phash->{trouble} );
+                &cache_info( $zone, "bypassed",     $phash->{bypassed} );
+                &cache_info( $zone, "alarm_memory", $phash->{alarm_memory} );
 
-			}
-		}
-	}
-	elsif($msg_num ==6){ # partition status
-		my $partition=$phash->{hex_partition};
-		if(defined $partition){
-			$partition="partition" . (ord($partition)+1);
-			&cache_info($partition,"armed",$phash->{armed});
-			&cache_info($partition,"ready",$phash->{ready});
-			&cache_info($partition,"chime",$phash->{chime});
-			&cache_info($partition,"stay",$phash->{stay});
-		}
-	}
-	elsif($msg_num ==7){ # partition snapshot
-		my $psnap_rtn;
-		if($caddx::parse::laycode{PSNAP}){
-			$psnap_rtn=$caddx::parse::laycode{PSNAP};
+            }
+        }
+    }
+    elsif ( $msg_num == 6 ) {    # partition status
+        my $partition = $phash->{hex_partition};
+        if ( defined $partition ) {
+            $partition = "partition" . ( ord($partition) + 1 );
+            &cache_info( $partition, "armed", $phash->{armed} );
+            &cache_info( $partition, "ready", $phash->{ready} );
+            &cache_info( $partition, "chime", $phash->{chime} );
+            &cache_info( $partition, "stay",  $phash->{stay} );
+        }
+    }
+    elsif ( $msg_num == 7 ) {    # partition snapshot
+        my $psnap_rtn;
+        if ( $caddx::parse::laycode{PSNAP} ) {
+            $psnap_rtn = $caddx::parse::laycode{PSNAP};
 
-		}
-		else{
-			print "no layout for psnap\n";
-			return;
-		}
+        }
+        else {
+            print "no layout for psnap\n";
+            return;
+        }
 
-		my @partitions=sort grep(/partition\d/i,keys %$phash);
-		foreach my $pkey (@partitions){
-			my $pnum;
-			if($pkey =~ /(\d+)/){
-				$pnum=$1;
-			}
-			else{
-				next;
-			}
-			$debug_msg && print "calling rtn for psnap $pkey\n";
-			my $phash=&{$psnap_rtn}($phash->{$pkey});
-			&show_parsed($phash->{_parsed_},$pkey);
+        my @partitions = sort grep( /partition\d/i, keys %$phash );
+        foreach my $pkey (@partitions) {
+            my $pnum;
+            if ( $pkey =~ /(\d+)/ ) {
+                $pnum = $1;
+            }
+            else {
+                next;
+            }
+            $debug_msg && print "calling rtn for psnap $pkey\n";
+            my $phash = &{$psnap_rtn}( $phash->{$pkey} );
+            &show_parsed( $phash->{_parsed_}, $pkey );
 
-			## skip invalid partitions.
-			return unless($phash->{valid});
-			&cache_info($pkey,"ready",$phash->{ready});
-			&cache_info($pkey,"armed",$phash->{armed});
-			&cache_info($pkey,"stay",$phash->{stay});
-			&cache_info($pkey,"chime",$phash->{chime});
+            ## skip invalid partitions.
+            return unless ( $phash->{valid} );
+            &cache_info( $pkey, "ready", $phash->{ready} );
+            &cache_info( $pkey, "armed", $phash->{armed} );
+            &cache_info( $pkey, "stay",  $phash->{stay} );
+            &cache_info( $pkey, "chime", $phash->{chime} );
 
-		}
-	}
-	## &cache_dump();
+        }
+    }
+    ## &cache_dump();
 }
 ##########################################################
 ##  cache_info will cache a local status of the controller
@@ -908,29 +906,28 @@ sub process_msg{
 ##    when the status changes, call cache_modified to
 ##       perform zone change notification.
 ##########################################################
-sub cache_info{
-	my ($key1,$key2,$data)=@_;
-	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=
-		localtime(time());
-	my $tfmt=sprintf("%02d/%02d %02d:%02d:%02d",$mon+1,$mday,$hour,$min,$sec);
+sub cache_info {
+    my ( $key1, $key2, $data ) = @_;
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
+      localtime( time() );
+    my $tfmt =
+      sprintf( "%02d/%02d %02d:%02d:%02d", $mon + 1, $mday, $hour, $min, $sec );
 
-
-	if(exists($zone_hash{$key1}{$key2})){
-		if($zone_hash{$key1}{$key2} ne $data){
-			print "$tfmt cache_info changing [$key1],[$key2] from:",
-				"[$zone_hash{$key1}{$key2}], to [$data]\n";
-			&cache_modified("old",@_);
-		}
-		else{
-			print "$tfmt cache_info static [$key1][$key2][$data]\n";
-		}
-	}
-	else{
-		print "$tfmt cache_info adding [$key1],[$key2] as:",
-			"[$data]\n";
-		&cache_modified("new",@_);
-	}
-	$zone_hash{$key1}{$key2}=$data;
+    if ( exists( $zone_hash{$key1}{$key2} ) ) {
+        if ( $zone_hash{$key1}{$key2} ne $data ) {
+            print "$tfmt cache_info changing [$key1],[$key2] from:",
+              "[$zone_hash{$key1}{$key2}], to [$data]\n";
+            &cache_modified( "old", @_ );
+        }
+        else {
+            print "$tfmt cache_info static [$key1][$key2][$data]\n";
+        }
+    }
+    else {
+        print "$tfmt cache_info adding [$key1],[$key2] as:", "[$data]\n";
+        &cache_modified( "new", @_ );
+    }
+    $zone_hash{$key1}{$key2} = $data;
 
 }
 #####################################
@@ -938,66 +935,70 @@ sub cache_info{
 ##    of a zone changes.  we'll send the udp message
 ##    announcing the change.
 #####################################
-sub cache_modified{
-	my ($src,$key1,$key2,$data)=@_;
-#	if($src eq "old" && $key1 eq "partition1" && $key2 eq "armed"
-#		&& $data eq "0"){
-#		foreach my $zone (1..5,7,8){
-#			&toggle_zone_bypass($zone);
-#		}
-#	}
+sub cache_modified {
+    my ( $src, $key1, $key2, $data ) = @_;
 
-	print "cache modified: $key1 $key2\n";
+    #	if($src eq "old" && $key1 eq "partition1" && $key2 eq "armed"
+    #		&& $data eq "0"){
+    #		foreach my $zone (1..5,7,8){
+    #			&toggle_zone_bypass($zone);
+    #		}
+    #	}
 
-	if($key2 eq "faulted"){
-		&udp_send("zone=$key1" . "&" . "$key2=$data&time=$msg_recv_time\n");
-	}
+    print "cache modified: $key1 $key2\n";
 
+    if ( $key2 eq "faulted" ) {
+        &udp_send( "zone=$key1" . "&" . "$key2=$data&time=$msg_recv_time\n" );
+    }
 
-	## and report partition transitions...
-        if($key2 eq "armed"){
-                &udp_send("partition=$key1" . "&" . "$key2=$data&time=$msg_recv_time\n");
-        }
-        if($key2 eq "stay"){
-                &udp_send("partition=$key1" . "&" . "$key2=$data&time=$msg_recv_time\n");
-        }
+    ## and report partition transitions...
+    if ( $key2 eq "armed" ) {
+        &udp_send(
+            "partition=$key1" . "&" . "$key2=$data&time=$msg_recv_time\n" );
+    }
+    if ( $key2 eq "stay" ) {
+        &udp_send(
+            "partition=$key1" . "&" . "$key2=$data&time=$msg_recv_time\n" );
+    }
 }
-sub udp_send{
-	my ($msg)=@_;
-	$udp_fh->send($msg);
-	$debug_udp && print "udp sent dest:[$udp_dest] msg:[$msg]\n";
+
+sub udp_send {
+    my ($msg) = @_;
+    $udp_fh->send($msg);
+    $debug_udp && print "udp sent dest:[$udp_dest] msg:[$msg]\n";
 }
 #####################################
 ##  debug rtn to dump the cache
 #####################################
-sub cache_dump{
-	foreach my $key (sort keys %zone_hash){
-		print "cadump: $key : $zone_hash{$key}  \n";
-		if(ref($zone_hash{$key}) eq "HASH"){
-			my $zh=$zone_hash{$key};
-			foreach my $key2 (sort keys %$zh){
-				print "cadump: [$key] : [$key2] [$zh->{$key2}]\n";
-			}
-		}
-	}
+sub cache_dump {
+    foreach my $key ( sort keys %zone_hash ) {
+        print "cadump: $key : $zone_hash{$key}  \n";
+        if ( ref( $zone_hash{$key} ) eq "HASH" ) {
+            my $zh = $zone_hash{$key};
+            foreach my $key2 ( sort keys %$zh ) {
+                print "cadump: [$key] : [$key2] [$zh->{$key2}]\n";
+            }
+        }
+    }
 
 }
 #####################################
 ##  debug rtn to dump parsed msg.
 #####################################
-sub show_parsed{
-	my ($parsed,$rsn)=@_;
-	return unless $debug_parse;
-	for(my $x=0;$x < @$parsed;$x++){
-		my $cur=$$parsed[$x];
-		my $disp=$cur->[2];
-		$disp=sprintf("%02x",ord($disp)) unless $disp =~/^\w*$/;
-		print "sparse: $rsn |$cur->[0] | $cur->[1] | $disp | $cur->[2] |\n";
-	}
+sub show_parsed {
+    my ( $parsed, $rsn ) = @_;
+    return unless $debug_parse;
+    for ( my $x = 0; $x < @$parsed; $x++ ) {
+        my $cur  = $$parsed[$x];
+        my $disp = $cur->[2];
+        $disp = sprintf( "%02x", ord($disp) ) unless $disp =~ /^\w*$/;
+        print "sparse: $rsn |$cur->[0] | $cur->[1] | $disp | $cur->[2] |\n";
+    }
 }
-sub fmt_hhmmss{
-	use POSIX;
-	return strftime("%H:%M:%S",localtime(time()));
+
+sub fmt_hhmmss {
+    use POSIX;
+    return strftime( "%H:%M:%S", localtime( time() ) );
 }
 __END__
 

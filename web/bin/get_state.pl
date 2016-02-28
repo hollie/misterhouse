@@ -16,4 +16,3 @@ print "returning status of $object: $state\n";
 # Use this if you want simple raw data, like for use by php
 return $state;
 
-

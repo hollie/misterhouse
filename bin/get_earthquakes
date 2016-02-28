@@ -10,7 +10,7 @@
 #      Michael Stovenour    www.stovenour.net
 #  Change log:
 #    - 01/22/2009 - Initial version based on original internet_earthquakes.pl
-#                   common code script written by Tim Doyle and David Norwood 
+#                   common code script written by Tim Doyle and David Norwood
 #
 #  This free software is licensed under the terms of the GNU public license.
 #
@@ -20,22 +20,25 @@
 #Threshold check marks the item for speech.  Then "read" will speak all items
 #  marked for speech and "get" will speak new items that are marked for speech.
 
-
 use strict;
 
-our ($Pgm_Path, $Pgm_Name);
+our ( $Pgm_Path, $Pgm_Name );
+
 BEGIN {
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
-my ($Version) = q$Revision: 398 $ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+my ($Version) =
+  q$Revision: 398 $ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
 
 use Getopt::Long;
 our %parms;
-if (!&GetOptions(\%parms, "h", "help", "v", "d") or @ARGV or
-    ($parms{h} or $parms{help})) {
-    print<<eof;
+if (  !&GetOptions( \%parms, "h", "help", "v", "d" )
+    or @ARGV
+    or ( $parms{h} or $parms{help} ) )
+{
+    print <<eof;
 
 $Pgm_Name gets earthquake events from USGS
 
@@ -50,34 +53,37 @@ Usage:
 
 eof
     exit;
-  }
+}
 
-BEGIN { eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'" } # Use BEGIN eval to keep perl2exe happy
-require 'handy_utilities.pl';       # For read_mh_opts funcion
+BEGIN {
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";
+}                                # Use BEGIN eval to keep perl2exe happy
+require 'handy_utilities.pl';    # For read_mh_opts funcion
 
 my %config_parms;
-main::read_mh_opts(\%config_parms, $Pgm_Path);
+main::read_mh_opts( \%config_parms, $Pgm_Path );
 
 use DB_File;
 use Math::Trig;
 use Time::Local;
+
 #use Data::Dumper;
 
 # Default Magnitude Thresholds
 my %Magnitude_thresholds = (
-    99999,  5.5,     # show anything anywhere over 5.5
-    500,    3.5,     # show anything within 500 miles/km over 3.5
-    100,    0,       # show anything within 100 miles/km any size
+    99999, 5.5,    # show anything anywhere over 5.5
+    500,   3.5,    # show anything within 500 miles/km over 3.5
+    100,   0,      # show anything within 100 miles/km any size
 );
-if ($config_parms{Earthquake_Magnitudes}) {
-  %Magnitude_thresholds = split ' ', $config_parms{Earthquake_Magnitudes};
+if ( $config_parms{Earthquake_Magnitudes} ) {
+    %Magnitude_thresholds = split ' ', $config_parms{Earthquake_Magnitudes};
 }
-my $Earthquake_Units = lc($config_parms{Earthquake_Units});
-$Earthquake_Units='miles' unless $Earthquake_Units;
-my $Earthquake_Display = lc( $config_parms{Earthquake_Display});
+my $Earthquake_Units = lc( $config_parms{Earthquake_Units} );
+$Earthquake_Units = 'miles' unless $Earthquake_Units;
+my $Earthquake_Display = lc( $config_parms{Earthquake_Display} );
 $Earthquake_Display = 'all' unless $Earthquake_Display;
-my $latitude = $config_parms{latitude}+0;
-my $longitude = $config_parms{longitude}+0;
+my $latitude  = $config_parms{latitude} + 0;
+my $longitude = $config_parms{longitude} + 0;
 
 my $f_cnss_merged_txt = "$config_parms{data_dir}/web/earthquakes_cnss_14.txt";
 my $f_earthquakes_txt = "$config_parms{data_dir}/web/earthquakes.txt";
@@ -86,240 +92,284 @@ my $f_earthquakes_gif = "$config_parms{data_dir}/web/earthquakes.gif";
 $parms{dbm} = "$config_parms{data_dir}/web/earthquakes.dbm" unless $parms{dbm};
 print "\nData will be stored in $parms{dbm}\n" if $parms{v};
 my %DBM;
-unless( tie %DBM, 'DB_File', $parms{dbm}, O_RDWR|O_CREAT, 0666) {
-  die "$Pgm_Name: Can not open dbm file $parms{dbm}: $!";
+unless ( tie %DBM, 'DB_File', $parms{dbm}, O_RDWR | O_CREAT, 0666 ) {
+    die "$Pgm_Name: Can not open dbm file $parms{dbm}: $!";
 }
 
-if( $parms{d}) {
-  print map( { "$_ => $DBM{$_}\n" } keys(%DBM));
-  untie %DBM;
-  die "Dumpped the DBM file.  Exiting!\n";
+if ( $parms{d} ) {
+    print map( {"$_ => $DBM{$_}\n"} keys(%DBM) );
+    untie %DBM;
+    die "Dumpped the DBM file.  Exiting!\n";
 }
 
 unlink $f_cnss_merged_txt;
 my $getURLcmd = 'net_ftp -passive 1 -command get -server hazards.cr.usgs.gov ';
 $getURLcmd .= ' -user anonymous -password anonymous';
-system($getURLcmd . " -file $f_cnss_merged_txt -file_remote cnss/cnss_14.fing ");
+system( $getURLcmd
+      . " -file $f_cnss_merged_txt -file_remote cnss/cnss_14.fing " );
 
-unless (open CNSS, $f_cnss_merged_txt) {
+unless ( open CNSS, $f_cnss_merged_txt ) {
     die "$Pgm_Name: Failed to retrieve file from USGS\n";
 }
 my @txtFile = <CNSS>;
 close CNSS;
-print("$Pgm_Name: read " . scalar(@txtFile) . " entries\n") if $parms{v};
+print( "$Pgm_Name: read " . scalar(@txtFile) . " entries\n" ) if $parms{v};
 
-
-my ($event, @dbmEvent, $key, $line);
+my ( $event, @dbmEvent, $key, $line );
 my $keyNewest = "";
 my %DBMsync;
+
 #  0   1   2    3      4        5      6         7       8     9
 #[gmt,lat,lon,depth,magnitude,source,location,distance,speak,spoken]
 #Key format -> gmt:lat:lon
 foreach $line (@txtFile) {
-  
-#  print("$Pgm_Name: considering event -> $line") if $parms{v};
 
-  if( $event = parse_quake($line)) {
-    $key = join(':', @{$event}[0..2]);
+    #  print("$Pgm_Name: considering event -> $line") if $parms{v};
 
-#  print "\$key: " . $key . "\n"; 
-      
-    if ( !exists($DBM{$key}) ) {
-      #Entry is new so go ahead and calculate the distance; expensive
-      $event->[7] = sprintf "%d", calc_distance($latitude, $longitude,
-          $event->[1], $event->[2], $Earthquake_Units) + .5;
-      $event->[9] = 0;
-    } else {
-      #Retrieve the previously calculated distance and speak settings
-      @dbmEvent   = split( $;, $DBM{$key} );
-      $event->[7] = $dbmEvent[7];
-      $event->[9] = $dbmEvent[9];
-    }
+    if ( $event = parse_quake($line) ) {
+        $key = join( ':', @{$event}[ 0 .. 2 ] );
 
+        #  print "\$key: " . $key . "\n";
 
-    #Re-calculate the speak flag based on the configured magnitudes
-    #  even for old entries.  This allows the user to reconfigure the 
-    #  thresholds and have previously masked events spoken
-    $event->[8] = 0;
-    foreach my $distance (keys %Magnitude_thresholds) {
-      if ( $event->[7] <= $distance and $event->[4] >= $Magnitude_thresholds{$distance}) {
-        print("$Pgm_Name: found magnitude " . $event->[4] . " quake " 
-            . $event->[7] . " $Earthquake_Units away\n") if $parms{v};
-        print($line) if $parms{v};
-        $event->[8] = 1;
-        last;
-      }
-    }
+        if ( !exists( $DBM{$key} ) ) {
 
-    #Update %DBM and add to %DBMsync so it will not be purged
-    $DBM{$key} = join( $;, @{$event} );
-    $DBMsync{$key} = 1;
-    
-#print "\$event: " . Dumper( $event) . "\n"; 
-
-    #Store off the newest key for the image retrieval
-    #  Only store images for events that will be displayed
-    #Not deterministic for multiple events in the same second
-    #  but it doesn't fail
-    if( $Earthquake_Display eq "all" || $event->[8]) {
-      if( $keyNewest ne "" ) {
-        @dbmEvent = split( $;, $DBM{$keyNewest} );
-        if( $event->[0] > $dbmEvent[0]) {
-          $keyNewest = $key;
+            #Entry is new so go ahead and calculate the distance; expensive
+            $event->[7] = sprintf "%d",
+              calc_distance( $latitude, $longitude,
+                $event->[1], $event->[2], $Earthquake_Units ) + .5;
+            $event->[9] = 0;
         }
-      } else {
-        $keyNewest = $key;
-      }
-    }
-#    print "\$keyNewest: $keyNewest\n";
-  } else {
-    print("$Pgm_Name: Failed to parse\n$line") if $parms{v};
-  }
-    
-} #end while more lines
+        else {
+            #Retrieve the previously calculated distance and speak settings
+            @dbmEvent = split( $;, $DBM{$key} );
+            $event->[7] = $dbmEvent[7];
+            $event->[9] = $dbmEvent[9];
+        }
 
+        #Re-calculate the speak flag based on the configured magnitudes
+        #  even for old entries.  This allows the user to reconfigure the
+        #  thresholds and have previously masked events spoken
+        $event->[8] = 0;
+        foreach my $distance ( keys %Magnitude_thresholds ) {
+            if (    $event->[7] <= $distance
+                and $event->[4] >= $Magnitude_thresholds{$distance} )
+            {
+                print(  "$Pgm_Name: found magnitude "
+                      . $event->[4]
+                      . " quake "
+                      . $event->[7]
+                      . " $Earthquake_Units away\n" )
+                  if $parms{v};
+                print($line) if $parms{v};
+                $event->[8] = 1;
+                last;
+            }
+        }
+
+        #Update %DBM and add to %DBMsync so it will not be purged
+        $DBM{$key} = join( $;, @{$event} );
+        $DBMsync{$key} = 1;
+
+        #print "\$event: " . Dumper( $event) . "\n";
+
+        #Store off the newest key for the image retrieval
+        #  Only store images for events that will be displayed
+        #Not deterministic for multiple events in the same second
+        #  but it doesn't fail
+        if ( $Earthquake_Display eq "all" || $event->[8] ) {
+            if ( $keyNewest ne "" ) {
+                @dbmEvent = split( $;, $DBM{$keyNewest} );
+                if ( $event->[0] > $dbmEvent[0] ) {
+                    $keyNewest = $key;
+                }
+            }
+            else {
+                $keyNewest = $key;
+            }
+        }
+
+        #    print "\$keyNewest: $keyNewest\n";
+    }
+    else {
+        print("$Pgm_Name: Failed to parse\n$line") if $parms{v};
+    }
+
+}    #end while more lines
 
 #calculate the image file name for the first new entry
 #  0   1   2    3      4        5      6         7       8     9
 #[gmt,lat,lon,depth,magnitude,source,location,distance,speak,spoken]
-if($keyNewest ne "") {
-  @dbmEvent = split( $; , $DBM{$keyNewest});
-  my $long_reso = abs(5 * round($dbmEvent[1]/5)) > 45 ? (abs(5 * round($dbmEvent[1]/5)) > 65 ? 20 : 10) : 5;
-  my $image = 'http://earthquake.usgs.gov/recenteqsww/Maps/10/' . $long_reso * round(($dbmEvent[2] < 0 ? 360 + $dbmEvent[2] : $dbmEvent[2])/$long_reso) . '_' . 5 * round($dbmEvent[1]/5) . '.gif';
-  unlink $f_earthquakes_gif;
-  $getURLcmd = "get_url " . ($parms{v} ? "" : "-quiet");
-  system($getURLcmd . " $image $f_earthquakes_gif");
+if ( $keyNewest ne "" ) {
+    @dbmEvent = split( $;, $DBM{$keyNewest} );
+    my $long_reso =
+      abs( 5 * round( $dbmEvent[1] / 5 ) ) > 45
+      ? ( abs( 5 * round( $dbmEvent[1] / 5 ) ) > 65 ? 20 : 10 )
+      : 5;
+    my $image =
+      'http://earthquake.usgs.gov/recenteqsww/Maps/10/'
+      . $long_reso *
+      round(
+        ( $dbmEvent[2] < 0 ? 360 + $dbmEvent[2] : $dbmEvent[2] ) / $long_reso )
+      . '_'
+      . 5 *
+      round( $dbmEvent[1] / 5 ) . '.gif';
+    unlink $f_earthquakes_gif;
+    $getURLcmd = "get_url " . ( $parms{v} ? "" : "-quiet" );
+    system( $getURLcmd . " $image $f_earthquakes_gif" );
 }
 
 #Purge entries not in %DBMsync
-my @keysOld = grep{!exists($DBMsync{$_})} keys(%DBM);
+my @keysOld = grep { !exists( $DBMsync{$_} ) } keys(%DBM);
 delete @DBM{@keysOld};
 
-
 #Create the old earthquakes.txt file optionally with only the matching magnitudes.
-my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday);
-my ($qnoso, $qeawe, $qmag, $qspeek);
+my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday );
+my ( $qnoso, $qeawe, $qmag, $qspeek );
 my @keysSpeak;
 
-unless (open TXT, "> $f_earthquakes_txt") {
-  die "$Pgm_Name: Failed to retrieve file from USGS\n";
+unless ( open TXT, "> $f_earthquakes_txt" ) {
+    die "$Pgm_Name: Failed to retrieve file from USGS\n";
 }
 
-if( $Earthquake_Display eq "all") {
-  #make an array of all the keys
-  @keysSpeak = keys(%DBM);
-} else {
-  #make an array of all the keys where speak is true
-  @keysSpeak = grep { @dbmEvent=split($;, $DBM{$_}); $dbmEvent[8]} keys(%DBM);
+if ( $Earthquake_Display eq "all" ) {
 
-  my $units = $Earthquake_Units eq 'miles' ? "miles" : "km   ";
-  print( TXT "List is filtered using the follwing:\n");
-  print( TXT "  Distance <=   Magnitude >=\n");
-  foreach my $distThresh (sort({$b <=> $a} keys(%Magnitude_thresholds))) {
-    my $magThresh = $Magnitude_thresholds{$distThresh};
-    $distThresh = $distThresh > 20038 ? "  Any" : sprintf("%5.0d", $distThresh);
-    $magThresh = $magThresh == 0 ? " Any" : sprintf("%4.1f", $magThresh);
-    print( TXT "  $distThresh $units        $magThresh\n");
-  }
-  print( TXT "\n");
+    #make an array of all the keys
+    @keysSpeak = keys(%DBM);
+}
+else {
+    #make an array of all the keys where speak is true
+    @keysSpeak =
+      grep { @dbmEvent = split( $;, $DBM{$_} ); $dbmEvent[8] } keys(%DBM);
+
+    my $units = $Earthquake_Units eq 'miles' ? "miles" : "km   ";
+    print( TXT "List is filtered using the follwing:\n" );
+    print( TXT "  Distance <=   Magnitude >=\n" );
+    foreach my $distThresh ( sort( { $b <=> $a } keys(%Magnitude_thresholds) ) )
+    {
+        my $magThresh = $Magnitude_thresholds{$distThresh};
+        $distThresh =
+          $distThresh > 20038 ? "  Any" : sprintf( "%5.0d", $distThresh );
+        $magThresh = $magThresh == 0 ? " Any" : sprintf( "%4.1f", $magThresh );
+        print( TXT "  $distThresh $units        $magThresh\n" );
+    }
+    print( TXT "\n" );
 }
 
-#  Distance <=   Magnitude >=   
+#  Distance <=   Magnitude >=
 #  99999 miles         5.5            # show anything anywhere over 5.5
 #    500 miles         3.5            # show anything within 500 miles/km over 3.5
 #    100 miles           0            # show anything within 100 miles/km any size
 
-
-print( TXT "The full Bulletin is available via the Internet at:\n");
-print( TXT "ftp://hazards.cr.usgs.gov/cnss/cnss_14.fing\n\n");
-print( TXT "Updated as of " . scalar(localtime()) . ".\n\n");
-print( TXT "  DATE-(UTC)-TIME     LAT    LON     DEP   MAG     COMMENTS\n");
-print( TXT "yyyy/mm/dd hh:mm:ss   deg.   deg.     km\n");   
+print( TXT "The full Bulletin is available via the Internet at:\n" );
+print( TXT "ftp://hazards.cr.usgs.gov/cnss/cnss_14.fing\n\n" );
+print( TXT "Updated as of " . scalar( localtime() ) . ".\n\n" );
+print( TXT "  DATE-(UTC)-TIME     LAT    LON     DEP   MAG     COMMENTS\n" );
+print( TXT "yyyy/mm/dd hh:mm:ss   deg.   deg.     km\n" );
 
 #  0   1   2    3      4        5      6         7       8     9
 #[gmt,lat,lon,depth,magnitude,source,location,distance,speak,spoken]
-foreach my $key (reverse(sort(@keysSpeak))) {
-  @dbmEvent = split($;, $DBM{$key});
-  
-  ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday) = gmtime($dbmEvent[0]);
-  printf(TXT "%04d/%02d/%02d %02d:%02d:%02d ", 
-      $year+1900, $mon+1, $mday, $hour, $min, $sec);
-  
-  $qnoso = $dbmEvent[1] < 0 ? "S" : "N";
-  $qeawe = $dbmEvent[2] < 0 ? "W" : "E";
-  $qmag = $dbmEvent[4] > 0 ? sprintf("%3.1fM", $dbmEvent[4]) : "    ";
-  $qspeek = $dbmEvent[8] ? "S" : " ";
-  printf(TXT "%6.2f%s %6.2f%s %5.1f %s  %s  %s\n", 
-      abs($dbmEvent[1]), $qnoso, abs($dbmEvent[2]), $qeawe, $dbmEvent[3], 
-      $qmag, $qspeek, $dbmEvent[6]);
+foreach my $key ( reverse( sort(@keysSpeak) ) ) {
+    @dbmEvent = split( $;, $DBM{$key} );
+
+    ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday ) =
+      gmtime( $dbmEvent[0] );
+    printf( TXT "%04d/%02d/%02d %02d:%02d:%02d ",
+        $year + 1900,
+        $mon + 1, $mday, $hour, $min, $sec
+    );
+
+    $qnoso = $dbmEvent[1] < 0 ? "S" : "N";
+    $qeawe = $dbmEvent[2] < 0 ? "W" : "E";
+    $qmag = $dbmEvent[4] > 0 ? sprintf( "%3.1fM", $dbmEvent[4] ) : "    ";
+    $qspeek = $dbmEvent[8] ? "S" : " ";
+    printf( TXT "%6.2f%s %6.2f%s %5.1f %s  %s  %s\n",
+        abs( $dbmEvent[1] ),
+        $qnoso, abs( $dbmEvent[2] ),
+        $qeawe, $dbmEvent[3], $qmag, $qspeek, $dbmEvent[6]
+    );
 }
 
 close TXT;
 untie %DBM;
 exit;
 
-
-
 sub parse_quake {
-  my ($line) = @_;
+    my ($line) = @_;
 
-#   GMT                lat     lon   depth mag   source  location
-#2009/02/11 01:23:56  34.02N 117.24W  12.6 1.6      CI: GREATER LOS ANGELES AREA, CALIF.
-#2009/01/04 21:57:49  33.98N 116.78W  16.7 1.5      CI: SOUTHERN CALIFORNIA
-#
-#  0   1   2    3      4        5      6         7       8     9
-#[gmt,lat,lon,depth,magnitude,source,location,distance,speak,spoken]
+    #   GMT                lat     lon   depth mag   source  location
+    #2009/02/11 01:23:56  34.02N 117.24W  12.6 1.6      CI: GREATER LOS ANGELES AREA, CALIF.
+    #2009/01/04 21:57:49  33.98N 116.78W  16.7 1.5      CI: SOUTHERN CALIFORNIA
+    #
+    #  0   1   2    3      4        5      6         7       8     9
+    #[gmt,lat,lon,depth,magnitude,source,location,distance,speak,spoken]
 
-  if (my ($qdate, $qtime, $qlatd, $qnoso, $qlong, $qeawe, $qdept, $qmagn, $qsrc, $qloca) =
-      $line =~ m!^(.{10})\s(.{8})\s(.{6})([NS])\s(.{6})([EW])\s(.{5})\s(.{3})\s(.{7}):\s(.+)! ) {
+    if (
+        my (
+            $qdate, $qtime, $qlatd, $qnoso, $qlong,
+            $qeawe, $qdept, $qmagn, $qsrc,  $qloca
+        )
+        = $line =~
+        m!^(.{10})\s(.{8})\s(.{6})([NS])\s(.{6})([EW])\s(.{5})\s(.{3})\s(.{7}):\s(.+)!
+      )
+    {
 
-    #convert timestamp to gmt
-    my ($qyear, $qmnth, $qday) = $qdate =~ m!(\S+)/(\S+)/(\S+)!;
-    my ($qhour, $qminu, $qseco) = $qtime =~ m!(\S+):(\S+):(\S+)!;
-    my $qgmt;
-    eval {
-      $qgmt = timegm($qseco,$qminu,$qhour,$qday,$qmnth-1,$qyear);
-    };
-    if ($@) {
-      print("$Pgm_Name: timegm() failed to parse date and time\n") if $parms{v};
-      return 0;    #failed to parse
+        #convert timestamp to gmt
+        my ( $qyear, $qmnth, $qday )  = $qdate =~ m!(\S+)/(\S+)/(\S+)!;
+        my ( $qhour, $qminu, $qseco ) = $qtime =~ m!(\S+):(\S+):(\S+)!;
+        my $qgmt;
+        eval {
+            $qgmt = timegm( $qseco, $qminu, $qhour, $qday, $qmnth - 1, $qyear );
+        };
+        if ($@) {
+            print("$Pgm_Name: timegm() failed to parse date and time\n")
+              if $parms{v};
+            return 0;    #failed to parse
+        }
+
+        #Normalize lat and lon
+        $qlatd += 0;
+        $qlong += 0;
+        $qlatd *= -1 if ( $qnoso eq "S" );
+        $qlong *= -1 if ( $qeawe eq "W" );
+
+        #Make sure the magnitued and depth are a number
+        $qdept += 0;
+        $qmagn += 0;
+
+        #Trim leading and trailing spaces if any
+        $qsrc =~ s/^\s+//;
+        $qloca =~ s/^\s+//;
+        $qsrc =~ s/\s+$//;
+        $qloca =~ s/\s+$//;
+
+        #          0       1       2      3       4       5      6
+        return ( [ $qgmt, $qlatd, $qlong, $qdept, $qmagn, $qsrc, $qloca ] );
     }
-    
-    #Normalize lat and lon
-    $qlatd += 0; $qlong += 0;
-    $qlatd *= -1 if ( $qnoso eq "S" );
-    $qlong *= -1 if ( $qeawe eq "W" );
-    
-    #Make sure the magnitued and depth are a number
-    $qdept +=0; $qmagn +=0;
-    
-    #Trim leading and trailing spaces if any
-    $qsrc =~ s/^\s+//; $qloca =~ s/^\s+//;
-    $qsrc =~ s/\s+$//; $qloca =~ s/\s+$//;
-    
-    #          0       1       2      3       4       5      6
-    return( [$qgmt, $qlatd, $qlong, $qdept, $qmagn, $qsrc, $qloca]);
-  } else {
-    print("$Pgm_Name: Line does not match expected format\n") if $parms{v};
-    return 0;
-  }
+    else {
+        print("$Pgm_Name: Line does not match expected format\n") if $parms{v};
+        return 0;
+    }
 }
 
-
 sub calc_distance {
-  my ($lat1, $lon1, $lat2, $lon2, $units) = @_;
-  my ($c, $d);
+    my ( $lat1, $lon1, $lat2, $lon2, $units ) = @_;
+    my ( $c, $d );
 
-  $c = 57.3; # radian conversion factor
-  $lat1 /= $c; $lat2 /= $c; $lon1 /= $c; $lon2 /= $c;
+    $c = 57.3;    # radian conversion factor
+    $lat1 /= $c;
+    $lat2 /= $c;
+    $lon1 /= $c;
+    $lon2 /= $c;
 
-  $d = 2*Math::Trig::asin(
-      sqrt((sin(($lat1-$lat2)/2))**2 	
-      + cos($lat1)*cos($lat2)*(sin(($lon1-$lon2)/2))**2)
-      );
+    $d = 2 * Math::Trig::asin(
+        sqrt(
+            ( sin( ( $lat1 - $lat2 ) / 2 ) )**2 +
+              cos($lat1) * cos($lat2) * ( sin( ( $lon1 - $lon2 ) / 2 ) )**2
+        )
+    );
 
-	if ($units ne 'miles') {
-		return $d*6378; # convert to kilometers and return
-	}
-    return $d*(.5*7915.6);  # convert to miles and return
+    if ( $units ne 'miles' ) {
+        return $d * 6378;    # convert to kilometers and return
+    }
+    return $d * ( .5 * 7915.6 );    # convert to miles and return
 }

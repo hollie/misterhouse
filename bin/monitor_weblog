@@ -28,12 +28,16 @@ use strict;
 
 my %parms;
 use Getopt::Long;
-if (!&GetOptions(\%parms, "h", "help",
-                 "mailto=s", "ignore=s",
-                 "runid=s", "outdir=s",
-                 "debug") or @ARGV > 1 or 
-    ($parms{h} or $parms{help})) {
-    print<<eof;
+if (
+    !&GetOptions(
+        \%parms,    "h",       "help",     "mailto=s",
+        "ignore=s", "runid=s", "outdir=s", "debug"
+    )
+    or @ARGV > 1
+    or ( $parms{h} or $parms{help} )
+  )
+{
+    print <<eof;
 
 
 monitor_weblog is a stand alone daemon that monitors a Apache web log file.
@@ -56,111 +60,119 @@ Usage:
 
 eof
 
-  exit;
+    exit;
 }
 
-$parms{mh_server} = 'house' unless $parms{mh_server};
-$parms{mh_port}   = '8082'          unless $parms{mh_port};
+$parms{mh_server} = 'house'                       unless $parms{mh_server};
+$parms{mh_port}   = '8082'                        unless $parms{mh_port};
 $parms{ignore}    = 'house,dm,p90,c2,misterhouse' unless $parms{ignore};
 
-my %ignore_list = map{$_, 1} split(',', $parms{ignore});
+my %ignore_list = map { $_, 1 } split( ',', $parms{ignore} );
 
 my $log_file = shift;
 $log_file = "/var/log/httpd/access_log" unless $log_file;
+
 #log_file = "/usr/local/apache/logs/misterhouse.net.ws-access_log" unless $log_file;
-my $log_pos  = &open_log($log_file);
+my $log_pos = &open_log($log_file);
 
 print "Current log position=$log_pos\n";
 
-my (%clients, %hits, $hits_hour, $hits_day, $clients_hour, $clients_day, $last_active);
+my ( %clients, %hits, $hits_hour, $hits_day, $clients_hour, $clients_day,
+    $last_active );
 my $id_cnt = 'WebGuy1';
 
 while (1) {
     sleep 2;
-    my ($sec, $min, $hour) = (localtime)[0,1,2];
-    if ($min == 2 and $sec < 5) {
-        &speak("rooms=all $hits_hour web hits from $clients_hour clients in the last hour") if $hits_hour > 5;
-        $hits_hour = 0;
+    my ( $sec, $min, $hour ) = (localtime)[ 0, 1, 2 ];
+    if ( $min == 2 and $sec < 5 ) {
+        &speak(
+            "rooms=all $hits_hour web hits from $clients_hour clients in the last hour"
+        ) if $hits_hour > 5;
+        $hits_hour    = 0;
         $clients_hour = 0;
     }
-    elsif ($hour == 20 and $min == 1 and $sec < 5) {
-        &speak("rooms=all Notice, there were $hits_day web hits from $clients_day clients in the last day") if $hits_day > 1;
-        $hits_day = 0;
+    elsif ( $hour == 20 and $min == 1 and $sec < 5 ) {
+        &speak(
+            "rooms=all Notice, there were $hits_day web hits from $clients_day clients in the last day"
+        ) if $hits_day > 1;
+        $hits_day    = 0;
         $clients_day = 0;
     }
-#   print '.';
+
+    #   print '.';
     undef %hits;
     my ($hits);
 
-                                # Restart log if it hasn't changed in a while
-                                #  - This allows us to not get stuck following a rotated log file
-#   $log_pos  = &open_log($log_file) if ($last_active + 3600*8) < time;
-#   $log_pos  = &open_log($log_file) if ($hour == 3 and $min == 30 and $sec < 5) ;
-    if ($hour == 5 and $min == 2 and $sec < 5) {
+    # Restart log if it hasn't changed in a while
+    #  - This allows us to not get stuck following a rotated log file
+    #   $log_pos  = &open_log($log_file) if ($last_active + 3600*8) < time;
+    #   $log_pos  = &open_log($log_file) if ($hour == 3 and $min == 30 and $sec < 5) ;
+    if ( $hour == 5 and $min == 2 and $sec < 5 ) {
         &speak("Restarting monitor weblog");
         exit;
     }
 
-    seek(LOG, $log_pos, 0);     # Reset end of file flag
+    seek( LOG, $log_pos, 0 );    # Reset end of file flag
     while (<LOG>) {
-        my ($client, $day, $hour) = $_ =~ m!^(\S+) - - \[(\d+)/\w+/\d{4}:(\d+):\d+:\d+ [\d+-]+\]!;
+        my ( $client, $day, $hour ) =
+          $_ =~ m!^(\S+) - - \[(\d+)/\w+/\d{4}:(\d+):\d+:\d+ [\d+-]+\]!;
         next unless defined $hour;
         $last_active = time;
 
-#       next if grep($client eq $_, @ignore_list);
+        #       next if grep($client eq $_, @ignore_list);
         next if $ignore_list{$client};
 
-                                # Keep only the last 3 qualifiers (e.g. xyz.proxy.aol.com)
+        # Keep only the last 3 qualifiers (e.g. xyz.proxy.aol.com)
         $client = $1 if $client =~ /((\.?[^\.]*){1,3})$/;
 
         my $time_since_last_visit = time - $clients{$client}{time};
         $clients{$client}{time} = time;
-        $clients{$client}{id}   = $id_cnt++ unless $clients{$client}{id};
+        $clients{$client}{id} = $id_cnt++ unless $clients{$client}{id};
         $hits{$client}++;
         $hits++;
         $hits_hour++;
         $hits_day++;
-        if ($time_since_last_visit > 3600) {
-            $client =~ s/[\d\.]/ /g; # Get rid of digits and dots
+        if ( $time_since_last_visit > 3600 ) {
+            $client =~ s/[\d\.]/ /g;    # Get rid of digits and dots
             $client = 'unknown' if $client =~ /^ *$/;
-#           &speak("rooms=all display=600 Web access from $client");
+
+            #           &speak("rooms=all display=600 Web access from $client");
             &speak("Web access from $client");
             $clients_hour++;
             $clients_day++;
         }
     }
-    $log_pos  = tell(LOG);
+    $log_pos = tell(LOG);
 
-    if ($hits > 3) {
+    if ( $hits > 3 ) {
         &speak('sound_beep1.wav');
     }
-    elsif ($hits > 2) {
+    elsif ( $hits > 2 ) {
         &speak('sound_gleep1.wav');
     }
     elsif ($hits) {
         &speak('sound_glurp1.wav');
     }
 
-#    my $msg;
-#    for my $client (sort keys %hits) {
-#        $msg .= $clients{$client}{id} . " has $hits{$client} hits. ";
-#    }
-#    &speak($msg) if $msg;
+    #    my $msg;
+    #    for my $client (sort keys %hits) {
+    #        $msg .= $clients{$client}{id} . " has $hits{$client} hits. ";
+    #    }
+    #    &speak($msg) if $msg;
 }
-
 
 sub open_log {
     my ($log_file) = @_;
     $last_active = time;
     print "Opening log file $log_file\n";
     close LOG;
-    open (LOG, $log_file) or die "Error, could not open log file $log_file: $!\n";
-    while (<LOG>) {}
-    return tell(LOG);           # On startup, point pointer to the tail of the file
+    open( LOG, $log_file )
+      or die "Error, could not open log file $log_file: $!\n";
+    while (<LOG>) { }
+    return tell(LOG);    # On startup, point pointer to the tail of the file
 }
 
-
-                                # This works with the mhsend server
+# This works with the mhsend server
 sub speak {
     my ($text) = @_;
     use IO::Socket;
@@ -168,20 +180,24 @@ sub speak {
     my $Pgm_Path = cwd();
     system("$Pgm_Path/mhsend -speak '$text'");
 }
-    
-                                # This only works with the old speak_server.pl code
+
+# This only works with the old speak_server.pl code
 sub speak_old {
     use IO::Socket;
     my ($text) = @_;
-    my $socket = new IO::Socket::INET (PeerAddr => $parms{mh_server},
-                                       PeerPort => $parms{mh_port}, Proto => 'tcp');
+    my $socket = new IO::Socket::INET(
+        PeerAddr => $parms{mh_server},
+        PeerPort => $parms{mh_port},
+        Proto    => 'tcp'
+    );
     if ($socket) {
         $text = "$text\n";
         print $socket $text;
         close $socket;
     }
     else {
-        print "monitor_weblog error opening socket to $parms{mh_server} on port $parms{mh_port}: $!\n";
+        print
+          "monitor_weblog error opening socket to $parms{mh_server} on port $parms{mh_port}: $!\n";
     }
 }
 

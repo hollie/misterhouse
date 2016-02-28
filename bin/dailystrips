@@ -7,12 +7,11 @@
 # Description:      creates an HTML page containing a number of online comics, with an easily exensible framework
 # Author:           Andrew Medico <amedico@amedico.dhs.org>
 # Created:          23 Nov 2000, 23:33 EST
-# Last Modified:    24 Aug 2003, 16:55 
+# Last Modified:    24 Aug 2003, 16:55
 # Current Revision: 1.0.28-patched
 #
 # This copy of dailystrips has been patched by Matthew Williams
 # to bypass the United Comics Flash based DRM scheme.
-
 
 # Set up
 use strict;
@@ -24,24 +23,33 @@ use POSIX qw(strftime);
 use Getopt::Long;
 use File::Copy;
 
-
 # Variables
-my (%options, $version, $time_today, @localtime_today, @localtime_yesterday, @localtime_tomorrow, $long_date, $short_date,
-    $short_date_yesterday, $short_date_tomorrow, @get, @strips, %defs, $known_strips, %groups, $known_groups, %classes, $val,
-    $link_tomorrow, $no_dateparse, @base_dirparts);
+my (
+    %options,             $version,             $time_today,
+    @localtime_today,     @localtime_yesterday, @localtime_tomorrow,
+    $long_date,           $short_date,          $short_date_yesterday,
+    $short_date_tomorrow, @get,                 @strips,
+    %defs,                $known_strips,        %groups,
+    $known_groups,        %classes,             $val,
+    $link_tomorrow,       $no_dateparse,        @base_dirparts
+);
 
 $version = "1.0.28";
 
 $time_today = time;
 
-
 # Get options
-GetOptions(\%options, 'quiet|q','verbose','output=s','lite','local|l','noindex',
-	'archive|a','dailydir|d','stripdir','save|s','nostale','date=s',
-	'new|n','defs=s','nopersonal','basedir=s','list','proxy=s',
-	'proxyauth=s','noenvproxy','nospaces','useragent=s','version|v','help|h',
-	'avantgo', 'random','nosystem','stripnav','nosymlinks','titles=s',
-	'retries=s','clean=s','updates=s','noupdates') or exit 1;
+GetOptions(
+    \%options,    'quiet|q',    'verbose',     'output=s',
+    'lite',       'local|l',    'noindex',     'archive|a',
+    'dailydir|d', 'stripdir',   'save|s',      'nostale',
+    'date=s',     'new|n',      'defs=s',      'nopersonal',
+    'basedir=s',  'list',       'proxy=s',     'proxyauth=s',
+    'noenvproxy', 'nospaces',   'useragent=s', 'version|v',
+    'help|h',     'avantgo',    'random',      'nosystem',
+    'stripnav',   'nosymlinks', 'titles=s',    'retries=s',
+    'clean=s',    'updates=s',  'noupdates'
+) or exit 1;
 
 # Process options:
 #  Note: Blocks have been ordered so that we only do as much as absolutely
@@ -49,9 +57,8 @@ GetOptions(\%options, 'quiet|q','verbose','output=s','lite','local|l','noindex',
 #  specified)
 
 # Help and version override anything else
-if ($options{'help'}) {
-	print
-"Usage: $0 [OPTION] STRIPS
+if ( $options{'help'} ) {
+    print "Usage: $0 [OPTION] STRIPS
 STRIPS can be a mix of strip names and group names
 (group names must be preceeded by an '\@' symbol)
 'all' may be used to retrieve all known strips,
@@ -109,10 +116,8 @@ Options:
   -v  --version              Print version number
 ";
 
-
-	if ($^O =~ /Win32/ ) {
-		print
-"Additional Win32 Notes:
+    if ( $^O =~ /Win32/ ) {
+        print "Additional Win32 Notes:
 
 Windows lacks a number of features and programs found on *NIX, so a number of
 changes must be made to the program's operation:
@@ -121,262 +126,265 @@ changes must be made to the program's operation:
 2. Personal and update definition files may or may not work
 3. System-wide definition files are not supported
 ";
-	} # ' please emacs perlmode
+    }    # ' please emacs perlmode
 
-print "\nBugs and comments to dailystrips\@amedico.dhs.org\n";
+    print "\nBugs and comments to dailystrips\@amedico.dhs.org\n";
 
-	exit;
+    exit;
 }
 
-if ($options{'version'}) {
-		print "dailystrips version $version\n";
-		exit;
+if ( $options{'version'} ) {
+    print "dailystrips version $version\n";
+    exit;
 }
 
+if ( $options{'date'} ) {
+    eval "require Date::Parse";
+    if ( $@ ne "" ) {
+        die "Error: cannot use --date - Date::Parse not installed\n";
+    }
+    else {
+        import Date::Parse;
+    }
 
-if ($options{'date'}) {
-	eval "require Date::Parse";
-	if ($@ ne "") {
-		die "Error: cannot use --date - Date::Parse not installed\n";
-	} else {
-		import Date::Parse;
-	}
-
-	unless ($time_today = str2time($options{'date'})) {
-		die "Error: invalid date specified\n";
-	}
+    unless ( $time_today = str2time( $options{'date'} ) ) {
+        die "Error: invalid date specified\n";
+    }
 }
-
 
 # setup time variables (needed during defs parsing)
 @localtime_today = localtime $time_today;
+
 #long_date = strftime("\%A, \%B \%e, \%Y", @localtime_today);
-$long_date = strftime("\%A, \%B \%d, \%Y", @localtime_today); 
+$long_date = strftime( "\%A, \%B \%d, \%Y", @localtime_today );
 
-$short_date = strftime("\%Y.\%m.\%d", @localtime_today);
+$short_date = strftime( "\%Y.\%m.\%d", @localtime_today );
 
-@localtime_yesterday = localtime($time_today - ( 24 * 60 * 60 ));
-$short_date_yesterday = strftime("\%Y.\%m.\%d", @localtime_yesterday);
-@localtime_tomorrow = localtime ($time_today + 24 * 60 * 60);
-$short_date_tomorrow = strftime("\%Y.\%m.\%d", @localtime_tomorrow);
-
+@localtime_yesterday = localtime( $time_today - ( 24 * 60 * 60 ) );
+$short_date_yesterday = strftime( "\%Y.\%m.\%d", @localtime_yesterday );
+@localtime_tomorrow   = localtime( $time_today + 24 * 60 * 60 );
+$short_date_tomorrow  = strftime( "\%Y.\%m.\%d", @localtime_tomorrow );
 
 # Get strip definitions now - info used below
-unless ($options{'defs'}) {
-	if ($^O =~ /Win32/ ) {
-		$options{'defs'} = 'strips.def';
-	} else {
-		$options{'defs'} = '/usr/share/dailystrips/strips.def';
-	}
+unless ( $options{'defs'} ) {
+    if ( $^O =~ /Win32/ ) {
+        $options{'defs'} = 'strips.def';
+    }
+    else {
+        $options{'defs'} = '/usr/share/dailystrips/strips.def';
+    }
 }
 
-&get_defs($options{'defs'});
-
+&get_defs( $options{'defs'} );
 
 # Load updated defs file
-unless (defined $options{'updates'})
-{
-        $options{'updates'} = &get_homedir() . "/.dailystrips-updates.def";
+unless ( defined $options{'updates'} ) {
+    $options{'updates'} = &get_homedir() . "/.dailystrips-updates.def";
 }
 
-
-unless($options{'noupdates'})
-{
-	if (-r $options{'updates'}) {
-		&get_defs($options{'updates'});
-	}
+unless ( $options{'noupdates'} ) {
+    if ( -r $options{'updates'} ) {
+        &get_defs( $options{'updates'} );
+    }
 }
 
 # Get system configurable strip definitions now
-unless ($options{'nosystem'}) {
-	unless (($^O =~ /Win32/) or (! -r '/etc/dailystrips.defs')) {
-		&get_defs('/etc/dailystrips.defs');
-	}
+unless ( $options{'nosystem'} ) {
+    unless ( ( $^O =~ /Win32/ ) or ( !-r '/etc/dailystrips.defs' ) ) {
+        &get_defs('/etc/dailystrips.defs');
+    }
 }
 
-unless ($options{'nopersonal'}){
-	my $personal_defs = &get_homedir()  . "/.dailystrips.defs";
-	if (-r $personal_defs) {
-		&get_defs($personal_defs);
-	}
+unless ( $options{'nopersonal'} ) {
+    my $personal_defs = &get_homedir() . "/.dailystrips.defs";
+    if ( -r $personal_defs ) {
+        &get_defs($personal_defs);
+    }
 }
 
-$known_strips = join('|', sort keys %defs);
-$known_groups = join('|', sort keys %groups);
+$known_strips = join( '|', sort keys %defs );
+$known_groups = join( '|', sort keys %groups );
 
-if ($options{'random'}) {
-	my @known_strips_array = keys %defs;
+if ( $options{'random'} ) {
+    my @known_strips_array = keys %defs;
 
-	push(@get, $known_strips_array[(rand $#known_strips_array)]);
+    push( @get, $known_strips_array[ ( rand $#known_strips_array ) ] );
 
-	undef @known_strips_array;
-} else {
-	# Only strips/groups to download remain in @ARGV
-	# Unconfigured options were already trapped by Getopts with an 'unknown option'
-	# error
-	for (@ARGV) {
-		if (/^($known_strips|all)$/io) {
-			if ($_ eq "all") {
-				push (@get, split(/\|/, $known_strips));
-			} else {
-				push(@get, $_);
-			}
-		} elsif (/^@/) {
-			if (/^@($known_groups)$/io) {
-				push(@get, split(/;/, $groups{$1}{'strips'}));
-			} else {
-				die "Error: unknown group: $_\n";
-			}
-		} else {
-			die "Error: unknown strip: $_\n";
-		}
-	}
+    undef @known_strips_array;
+}
+else {
+    # Only strips/groups to download remain in @ARGV
+    # Unconfigured options were already trapped by Getopts with an 'unknown option'
+    # error
+    for (@ARGV) {
+        if (/^($known_strips|all)$/io) {
+            if ( $_ eq "all" ) {
+                push( @get, split( /\|/, $known_strips ) );
+            }
+            else {
+                push( @get, $_ );
+            }
+        }
+        elsif (/^@/) {
+            if (/^@($known_groups)$/io) {
+                push( @get, split( /;/, $groups{$1}{'strips'} ) );
+            }
+            else {
+                die "Error: unknown group: $_\n";
+            }
+        }
+        else {
+            die "Error: unknown strip: $_\n";
+        }
+    }
 }
 
-if ($options{'list'}) {
-format =
+if ( $options{'list'} ) {
+    format =
 @<<<<<<<<<<<<<<<<<<<<<<<< 	@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 $_, $val
 .
-	print "Available strips:\n";
-	for (split(/\|/, $known_strips)) {
-		$val = $defs{$_}{'name'};
-		write;
-	}
-	
-	print "\nAvailable groups:\n";
-	for (split(/\|/, $known_groups)) {
-		$val = $groups{$_}{'desc'};
-		write;
-	}
-	exit;
+    print "Available strips:\n";
+    for ( split( /\|/, $known_strips ) ) {
+        $val = $defs{$_}{'name'};
+        write;
+    }
+
+    print "\nAvailable groups:\n";
+    for ( split( /\|/, $known_groups ) ) {
+        $val = $groups{$_}{'desc'};
+        write;
+    }
+    exit;
 }
 
-if ($options{'dailydir'} and $options{'stripdir'}) {
-		die "Error: --dailydir and --stripdir cannot be used together\n";
+if ( $options{'dailydir'} and $options{'stripdir'} ) {
+    die "Error: --dailydir and --stripdir cannot be used together\n";
 }
 
 #Set proxy
-if ($options{'proxy'}) {
-		$options{'proxy'} =~ /^(http:\/\/)?(.*?):(.+?)\/?$/i;
-		unless ($2 and $3) {
-			die "Error: incorrectly formatted proxy server ('http://server:port' expected)\n";
-		}
-				
-		$options{'proxy'} = "http://$2:$3";
+if ( $options{'proxy'} ) {
+    $options{'proxy'} =~ /^(http:\/\/)?(.*?):(.+?)\/?$/i;
+    unless ( $2 and $3 ) {
+        die
+          "Error: incorrectly formatted proxy server ('http://server:port' expected)\n";
+    }
+
+    $options{'proxy'} = "http://$2:$3";
 }
 
-if (!$options{'noenvproxy'} and !$options{'proxy'} and $ENV{'http_proxy'} ) {
-	$ENV{'http_proxy'} =~ /(http:\/\/)?(.*?):(.+?)\/?$/i;
-	unless ($2 and $3) {
-		die "Error: incorrectly formatted proxy server environment variable\n('http://server:port' expected)\n";
-	}
-			
-	$options{'proxy'} = "http://$2:$3";
+if ( !$options{'noenvproxy'} and !$options{'proxy'} and $ENV{'http_proxy'} ) {
+    $ENV{'http_proxy'} =~ /(http:\/\/)?(.*?):(.+?)\/?$/i;
+    unless ( $2 and $3 ) {
+        die
+          "Error: incorrectly formatted proxy server environment variable\n('http://server:port' expected)\n";
+    }
+
+    $options{'proxy'} = "http://$2:$3";
 }
 
-if ($options{'proxyauth'}) {
-	unless ($options{'proxyauth'} =~ /^.+?:.+?$/) {
-			die "Error: incorrectly formatted proxy credentials ('user:pass' expected)\n";
-	}
+if ( $options{'proxyauth'} ) {
+    unless ( $options{'proxyauth'} =~ /^.+?:.+?$/ ) {
+        die
+          "Error: incorrectly formatted proxy credentials ('user:pass' expected)\n";
+    }
 }
-
 
 # Handle/validate other options
-if ($options{'clean'} =~ m/\D/) {
-	die "Error: 'clean' value must be numeric\n";
+if ( $options{'clean'} =~ m/\D/ ) {
+    die "Error: 'clean' value must be numeric\n";
 }
 
-if ($options{'retries'} =~ m/\D/) {
-	die "Error: 'retries' value must be numeric\n";
+if ( $options{'retries'} =~ m/\D/ ) {
+    die "Error: 'retries' value must be numeric\n";
 }
 
-unless ($options{'retries'}) {
-	$options{'retries'} = 3;
+unless ( $options{'retries'} ) {
+    $options{'retries'} = 3;
 }
 
-
-if ($options{'basedir'}) {
-	unless (chdir $options{'basedir'}) {
-		die "Error: could not change directory to $options{'basedir'}\n";
-	}
+if ( $options{'basedir'} ) {
+    unless ( chdir $options{'basedir'} ) {
+        die "Error: could not change directory to $options{'basedir'}\n";
+    }
 }
 
-if ($options{'titles'}) {
-	$options{'titles'} .= " ";
+if ( $options{'titles'} ) {
+    $options{'titles'} .= " ";
 }
 
 unless (@get) {
-	die "Error: no strip specified (--list to list available strips)\n";
+    die "Error: no strip specified (--list to list available strips)\n";
 }
-
 
 # verbose overrides quiet
-if ($options{'verbose'} and $options{'quiet'}) {
-	undef $options{'quiet'};
+if ( $options{'verbose'} and $options{'quiet'} ) {
+    undef $options{'quiet'};
 }
-
 
 # Un-needed vars
-undef $known_strips; undef $known_groups; undef $val;
-
+undef $known_strips;
+undef $known_groups;
+undef $val;
 
 # Go
-unless ($options{'quiet'}) {
-	warn "dailystrips $version starting:\n";
+unless ( $options{'quiet'} ) {
+    warn "dailystrips $version starting:\n";
 }
-
 
 # Report proxy settings
-if ($options{'proxy'}) {
-	if ($options{'verbose'}) {
-		warn "Using proxy server $options{'proxy'}\n";
-	}
-	
-	if ($options{'verbose'} and $options{'proxy_auth'}) {
-		warn "Using proxy server authentication\n";
-	}
+if ( $options{'proxy'} ) {
+    if ( $options{'verbose'} ) {
+        warn "Using proxy server $options{'proxy'}\n";
+    }
+
+    if ( $options{'verbose'} and $options{'proxy_auth'} ) {
+        warn "Using proxy server authentication\n";
+    }
 }
 
+if ( $options{'local'} ) {
+    unless ( $options{'quiet'} ) {
+        warn "Operating in local mode\n";
+    }
 
-if ($options{'local'}) {
-	unless ($options{'quiet'}) {
-		warn "Operating in local mode\n";
-	}
-	
-	if ($options{'dailydir'}) {
-		unless ($options{'quiet'}) {
-			warn "Operating in daily directory mode\n";
-		}
-		
-		unless (-d $short_date) {
-			# any issues with masks and Win32?
-			unless(mkdir ($short_date, 0755)) {
-				die "Error: could not create today's directory ($short_date/)\n";
-			}
-		}
-	}
-	
-	unless(open(STDOUT, ">dailystrips-$short_date.html")) {
-		die "Error: could not open HTML file (dailystrips-$short_date.html) for writing\n";
-	}
+    if ( $options{'dailydir'} ) {
+        unless ( $options{'quiet'} ) {
+            warn "Operating in daily directory mode\n";
+        }
 
-	unless ($options{'date'}) {
-		unless ($options{'noindex'}) {
-			unless ($^O =~ /Win32/) {
-				unlink("index.html");
-				system("ln -s dailystrips-$short_date.html index.html");
-			}
-		}
-	}
+        unless ( -d $short_date ) {
 
-	if ($options{'archive'}) {
-	
-		unless (-e "archive.html") {
-			# Doesn't exist.. create
-			open(ARCHIVE, ">archive.html") or die "Error: could not create archive.html\n";
-			print ARCHIVE
-"<html>
+            # any issues with masks and Win32?
+            unless ( mkdir( $short_date, 0755 ) ) {
+                die
+                  "Error: could not create today's directory ($short_date/)\n";
+            }
+        }
+    }
+
+    unless ( open( STDOUT, ">dailystrips-$short_date.html" ) ) {
+        die
+          "Error: could not open HTML file (dailystrips-$short_date.html) for writing\n";
+    }
+
+    unless ( $options{'date'} ) {
+        unless ( $options{'noindex'} ) {
+            unless ( $^O =~ /Win32/ ) {
+                unlink("index.html");
+                system("ln -s dailystrips-$short_date.html index.html");
+            }
+        }
+    }
+
+    if ( $options{'archive'} ) {
+
+        unless ( -e "archive.html" ) {
+
+            # Doesn't exist.. create
+            open( ARCHIVE, ">archive.html" )
+              or die "Error: could not create archive.html\n";
+            print ARCHIVE "<html>
 
 <head>
 	<title>$options{'titles'}dailystrips archive</title>
@@ -399,107 +407,124 @@ if ($options{'local'}) {
 </body>
 
 </html>";
-			close(ARCHIVE);
-		}
-		
-		open(ARCHIVE, "<archive.html") or die "Error: could not open archive.html for reading\n";
-		my @archive = <ARCHIVE>;
-		close(ARCHIVE);
+            close(ARCHIVE);
+        }
 
-		unless (grep(/<a href="dailystrips-$short_date.html">/, @archive)) {
-			for (@archive) {
-				if (s/(<!--insert below-->)/$1\n<a href="dailystrips-$short_date.html">$long_date<\/a><br>/) {
-					unless(open(ARCHIVE, ">archive.html")) {
-						die "Error: could not open archive.html for writing\n";
-					}
-					
-					print ARCHIVE @archive;
-					close(ARCHIVE);
-					last;
-				}
-			}
-		}
-	}
-	
-	# Update previous day's file with a "Next Day" link to today's file
-	if (open(PREVIOUS, "<dailystrips-$short_date_yesterday.html")) {
-		my @previous_page = <PREVIOUS>;
-		close(PREVIOUS);
-	
-		# Don't bother if no tag exists in the file (because it has already been updated)
-		if (grep(/<!--nextday-->/, @previous_page)) {
-			my $match_count;
+        open( ARCHIVE, "<archive.html" )
+          or die "Error: could not open archive.html for reading\n";
+        my @archive = <ARCHIVE>;
+        close(ARCHIVE);
 
-			for (@previous_page) {
-				if (s/<!--nextday-->/ | <a href="dailystrips-$short_date.html">Next day<\/a>/) {
-					$match_count++;
-					last if ($match_count == 2);
-				}
-			}
-		
-			if (open(PREVIOUS, ">dailystrips-$short_date_yesterday.html")) {
-				print PREVIOUS @previous_page;
-				close(PREVIOUS);
-			} else {
-				 warn "Warning: could not open dailystrips-$short_date_yesterday.html for writing\n";
-			}
-		} else {
-			warn "Warning: did not find any tag in previous day's file to make today's link\n";
-		}
-	} else {
-		warn "Warning: could not open dailystrips-$short_date_yesterday.html for reading\n";
-	}
+        unless ( grep( /<a href="dailystrips-$short_date.html">/, @archive ) ) {
+            for (@archive) {
+                if (
+                    s/(<!--insert below-->)/$1\n<a href="dailystrips-$short_date.html">$long_date<\/a><br>/
+                  )
+                {
+                    unless ( open( ARCHIVE, ">archive.html" ) ) {
+                        die "Error: could not open archive.html for writing\n";
+                    }
 
+                    print ARCHIVE @archive;
+                    close(ARCHIVE);
+                    last;
+                }
+            }
+        }
+    }
 
-} elsif ($options{'output'}) {
-	unless ($options{'quiet'}) {
-		warn "Writing to file $options{'output'}\n";
-	}
-	
-	unless (open(STDOUT, ">$options{'output'}")) {
-		die "Error: Could not open output file ($options{'output'}) for writing\n";
-	}
+    # Update previous day's file with a "Next Day" link to today's file
+    if ( open( PREVIOUS, "<dailystrips-$short_date_yesterday.html" ) ) {
+        my @previous_page = <PREVIOUS>;
+        close(PREVIOUS);
+
+        # Don't bother if no tag exists in the file (because it has already been updated)
+        if ( grep( /<!--nextday-->/, @previous_page ) ) {
+            my $match_count;
+
+            for (@previous_page) {
+                if (
+                    s/<!--nextday-->/ | <a href="dailystrips-$short_date.html">Next day<\/a>/
+                  )
+                {
+                    $match_count++;
+                    last if ( $match_count == 2 );
+                }
+            }
+
+            if ( open( PREVIOUS, ">dailystrips-$short_date_yesterday.html" ) ) {
+                print PREVIOUS @previous_page;
+                close(PREVIOUS);
+            }
+            else {
+                warn
+                  "Warning: could not open dailystrips-$short_date_yesterday.html for writing\n";
+            }
+        }
+        else {
+            warn
+              "Warning: did not find any tag in previous day's file to make today's link\n";
+        }
+    }
+    else {
+        warn
+          "Warning: could not open dailystrips-$short_date_yesterday.html for reading\n";
+    }
+
 }
+elsif ( $options{'output'} ) {
+    unless ( $options{'quiet'} ) {
+        warn "Writing to file $options{'output'}\n";
+    }
 
+    unless ( open( STDOUT, ">$options{'output'}" ) ) {
+        die
+          "Error: Could not open output file ($options{'output'}) for writing\n";
+    }
+}
 
 # Download image URLs
-unless ($options{'quiet'}) {
-	if ($options{'verbose'}) {
-		warn "\nRetrieving URLS:\n"
-	} else {
-		print STDERR "\nRetrieving URLS..."
-	}
+unless ( $options{'quiet'} ) {
+    if ( $options{'verbose'} ) {
+        warn "\nRetrieving URLS:\n";
+    }
+    else {
+        print STDERR "\nRetrieving URLS...";
+    }
 }
 for (@get) {
-	if ($options{'verbose'}) { warn "Retrieving URL for $_\n" }
-	&get_strip($_);
+    if ( $options{'verbose'} ) { warn "Retrieving URL for $_\n" }
+    &get_strip($_);
 }
-unless ($options{'quiet'}) {
-	if ($options{'verbose'}) {
-		warn "Retrieving URLS: done\n"
-	} else {
-		warn "done\n"
-	}
-}
-
-if (-e "dailystrips-$short_date_tomorrow.html") {
-	$link_tomorrow = " | <a href=\"dailystrips-$short_date_tomorrow.html\">Next day</a>"
-} else {
-	$link_tomorrow = "<!--nextday-->"
+unless ( $options{'quiet'} ) {
+    if ( $options{'verbose'} ) {
+        warn "Retrieving URLS: done\n";
+    }
+    else {
+        warn "done\n";
+    }
 }
 
+if ( -e "dailystrips-$short_date_tomorrow.html" ) {
+    $link_tomorrow =
+      " | <a href=\"dailystrips-$short_date_tomorrow.html\">Next day</a>";
+}
+else {
+    $link_tomorrow = "<!--nextday-->";
+}
 
 # Generate HTML page
-if ($options{'lite'}) {
-	print "<font face=\"helvetica\" size=\"+2\"><b><u>$options{'titles'}dailystrips for $long_date</u></b></font><br><br>\n";
-} else {
-	my $topanchor;
-	if ($options{'stripnav'}) {
-		$topanchor = "\n<a name=\"top\">\n";
-	}
+if ( $options{'lite'} ) {
+    print
+      "<font face=\"helvetica\" size=\"+2\"><b><u>$options{'titles'}dailystrips for $long_date</u></b></font><br><br>\n";
+}
+else {
+    my $topanchor;
+    if ( $options{'stripnav'} ) {
+        $topanchor = "\n<a name=\"top\">\n";
+    }
 
-	print
-"<html>
+    print "<html>
 
 <head>
 	<title>$options{'titles'}dailystrips for $long_date</title>
@@ -513,273 +538,344 @@ $topanchor
 
 <p><font face=\"helvetica\">
 &lt; <a href=\"dailystrips-$short_date_yesterday.html\">Previous day</a>$link_tomorrow";
-	
-	if ($options{'archive'}) {
-		print " | <a href=\"archive.html\">Archives</a>";
-	}
-	
-	print
-" &gt;
+
+    if ( $options{'archive'} ) {
+        print " | <a href=\"archive.html\">Archives</a>";
+    }
+
+    print " &gt;
 </font></p>
 ";
 
-	if ($options{'stripnav'}) {
-		print "<font face=\"helvetica\">Strips:</font><br>\n";
-		for (@strips) {
-			my ($strip, $name) = (split(/;/, $_))[0,1];
-			print "<a href=\"#$strip\">$name</A>&nbsp;&nbsp;";
-		}
-		print "\n<br><br>";
-	}
+    if ( $options{'stripnav'} ) {
+        print "<font face=\"helvetica\">Strips:</font><br>\n";
+        for (@strips) {
+            my ( $strip, $name ) = ( split( /;/, $_ ) )[ 0, 1 ];
+            print "<a href=\"#$strip\">$name</A>&nbsp;&nbsp;";
+        }
+        print "\n<br><br>";
+    }
 
-	print "\n\n<table border=\"0\">\n";
+    print "\n\n<table border=\"0\">\n";
 }
 
-
-if ($options{'local'} and !$options{'quiet'}) {
-	if ($options{'verbose'}) {
-		warn "\nDownloading strip files:\n"
-	} else {
-		print STDERR "Downloading strip files...";
-	}
+if ( $options{'local'} and !$options{'quiet'} ) {
+    if ( $options{'verbose'} ) {
+        warn "\nDownloading strip files:\n";
+    }
+    else {
+        print STDERR "Downloading strip files...";
+    }
 }
 
 for (@strips) {
-	my ($strip, $name, $homepage, $img_addr, $referer, $prefetch, $artist) = split(/;/, $_);
-	my ($img_line, $local_name, $local_name_dir, $local_name_file, $local_name_ext, $image, $ext,
-	   $local_name_yesterday, $local_name_yesterday_dir, $local_name_yesterday_file, $local_name_yesterday_ext);
-	
-	if ($options{'verbose'} and $options{'local'}) {
-		warn "Downloading strip file for " . lc((split(/;/, $_))[0]) . "\n";
-	}
-	
-	if ($img_addr =~ "^unavail") {
-		if ($options{'verbose'}) {
-			warn "Error: $strip: could not retrieve URL\n";
-		}
+    my ( $strip, $name, $homepage, $img_addr, $referer, $prefetch, $artist ) =
+      split( /;/, $_ );
+    my (
+        $img_line,                 $local_name,
+        $local_name_dir,           $local_name_file,
+        $local_name_ext,           $image,
+        $ext,                      $local_name_yesterday,
+        $local_name_yesterday_dir, $local_name_yesterday_file,
+        $local_name_yesterday_ext
+    );
 
-		$img_line = "[Error - unable to retrieve URL]";
-	} else {
-		if ($options{'local'}) {
-			# local mode - download strips
-			$img_addr =~ /http:\/\/(.*)\/(.*)\.(.*?)([?&].+)?$/;
-			if (defined $3) { $ext = ".$3" }
+    if ( $options{'verbose'} and $options{'local'} ) {
+        warn "Downloading strip file for "
+          . lc( ( split( /;/, $_ ) )[0] ) . "\n";
+    }
 
-			# prepare file names
-			if ($options{'stripdir'}) {
- 				$local_name_yesterday = "$name/$short_date_yesterday$ext";
- 				$local_name_yesterday_dir = "$name/";
- 				$local_name_yesterday_file = $short_date_yesterday;
- 				$local_name_yesterday_ext = $ext;
- 				
- 				$local_name = "$name/$short_date$ext";
- 				$local_name_dir = "$name/";
- 				$local_name_file = "$short_date";
- 				$local_name_ext = "$ext";
- 			} elsif ($options{'dailydir'}) {
-				$local_name_yesterday = "$short_date_yesterday/$name-$short_date_yesterday$ext";
-				$local_name_yesterday_dir = "$short_date_yesterday/";	
-				$local_name_yesterday_file = "$name-$short_date_yesterday";
-				$local_name_yesterday_ext = "$ext";
-				
-				$local_name = "$short_date/$name-$short_date$ext";
-				$local_name_dir = "$short_date/";
-				$local_name_file = "$name-$short_date";
-				$local_name_ext = "$ext";
-			} else {
-				$local_name_yesterday = "$name-$short_date_yesterday$ext";				
-				$local_name_yesterday_dir = "./";
-				$local_name_yesterday_file = "$name-$short_date_yesterday";
-				$local_name_yesterday_ext = "$ext";
-				
-				$local_name = "$name-$short_date$ext";
-				$local_name_dir = "./";
-				$local_name_file = "$name-$short_date";
-				$local_name_ext = "$ext";
-			}
-			
-			if ($options{'nospaces'}) {
-				# impossible to tell for sure if previous day's file
-				# used --nospaces or not, but this should work more
-				# often
-				$local_name_yesterday =~ s/\s+//g;
-				$local_name_yesterday_dir =~ s/\s+//g;
-				$local_name_yesterday_file =~ s/\s+//g;
-				
-				$local_name =~ s/\s+//g;
-				$local_name_dir =~ s/\s+//g;
-				$local_name_file =~ s/\s+//g;
- 			}
-			
-			# do ops that depend on file name
-			if ($options{'stripdir'}) {
- 				unless (-d $local_name_dir) {
-	 				# any issues with masks and Win32?
- 					mkdir $local_name_dir, 0755;
- 				}
- 			}
-									
-			if ($options{'save'} and  -e $local_name) {
-				# already have a suitable local file - skip downloading
-				if ($options{'avantgo'}) {
-					$img_line = &make_avantgo_table($local_name, $ext);
-				} else {
-					$img_addr = $local_name;
-					$img_addr =~ s/ /\%20/go;
-					if ($options{'stripnav'}) {
-						$img_line = "<img src=\"$img_addr\" alt=\"$name\"><br><a href=\"#top\">Return to top</a>";
-					} else {
-						$img_line = "<img src=\"$img_addr\" alt=\"$name\">";
-					}
-				}
-			} else {			
-				# need to download
-				if ($prefetch) {
-					if (&http_get($prefetch, $referer) =~ m/^ERROR/) {
-						warn "Error: $strip: could not download prefetch URL\n";
-						$image = "ERROR";
-					} else {
-						$image = &http_get($img_addr, $referer);
-					}
-				} else {
-					$image = &http_get($img_addr, $referer);
-					#$image = &http_get($img_addr, "");
-				}
-				
-				if ($image =~ /^ERROR/) {
-					# couldn't get the image
-					# FIXME: what to do if a file for the day has already been
-					# downloaded, but downloading fails when script is run again
-					# that day? maybe reuse existing file instead of throwing
-					# error?
-					if (-e $local_name) {
-						# an image file for today already exists.. jump to outputting code
-						#warn "DEBUG: couldn't download strip, but we already have it\n";
-						goto HAVE_IMAGE;
-					} else {
-						if ($options{'verbose'}) {
-							warn "Error: $strip: could not download strip\n";
-						}
-					}
-				
-					$img_line = "[Error - unable to download image]";
-				} else {
-					HAVE_IMAGE:
-					# got the image
-					if ($^O =~ /Win32/) {
-						# can't do any diff checking on windows (easily, that is - it is doable)
-						open(IMAGE, ">$local_name");
-						binmode(IMAGE);
-						print IMAGE $image;
-						close(IMAGE);
-					
-						$img_addr = $local_name;
-						$img_addr =~ s/ /\%20/go;
-						if ($options{'stripnav'}) {
-							$img_line = "<img src=\"$img_addr\" alt=\"$name\"><br><a href=\"#top\">Return to top</a>";
-						} else {
-							$img_line = "<img src=\"$img_addr\" alt=\"$name\">";
-						}
-					} else {
-						# FIXME: only download to .tmp if earlier file exists
-						open(IMAGE, ">$local_name.tmp");
-						binmode(IMAGE);
-						print IMAGE $image;
-						close(IMAGE);
-				
-						if (-e $local_name and system("diff \"$local_name\" \"$local_name.tmp\" >/dev/null 2>&1") == 0) {
-							# already downloaded the same strip earlier today
-							unlink("$local_name.tmp");
-						
-							if ($options{'avantgo'}) {
-								$img_line = &make_avantgo_table($local_name, $ext);
-							} else {
-								$img_addr = $local_name;
-								$img_addr =~ s/ /\%20/go;
-								if ($options{'stripnav'}) {
-									$img_line = "<img src=\"$img_addr\" alt=\"$name\"><br><a href=\"#top\">Return to top</a>";
-								} else {
-									$img_line = "<img src=\"$img_addr\" alt=\"$name\">";
-								}
-							}
-						} elsif (system("diff \"$local_name_yesterday\" \"$local_name.tmp\" >/dev/null 2>&1") == 0) {
-							# same strip as yesterday
-							if ($options{'nosymlinks'}) {
-								system("mv","$local_name.tmp","$local_name");
-							} else {
-								unlink("$local_name.tmp");
-								if ($options{'stripdir'} or $options{'dailydir'}) {
-									system("ln -s \"../$local_name_yesterday\" \"$local_name\" >/dev/null 2>&1");
-								} else {
-									system("ln -s \"$local_name_yesterday\" \"$local_name\" >/dev/null 2>&1");
-								}
+    if ( $img_addr =~ "^unavail" ) {
+        if ( $options{'verbose'} ) {
+            warn "Error: $strip: could not retrieve URL\n";
+        }
 
-							}
-							
-							if ($options{'nostale'}) {
-								$img_line = "[Error - new strip not available]";
-							} else {
-								$img_addr = $local_name;
-								$img_addr =~ s/ /\%20/go;
-								if ($options{'stripnav'}) {
-									$img_line = "<img src=\"$img_addr\" alt=\"$name\"><br><a href=\"#top\">Return to top</a>";
-								} else {
-									$img_line = "<img src=\"$img_addr\" alt=\"$name\">";
-								}
-							}								
-						} else {
-							# completely new strip
-							#  possible to get here by:
-							#   -downloading a strip for the first time in a day
-							#   -downloading an updated strip that replaces an old one downloaded at
-							#    an earlier time on the same day
-							system("mv","$local_name.tmp","$local_name");
-						
-							if ($options{'avantgo'}) {
-								&make_avantgo_files($local_name, $local_name_ext);
-								$img_line = &make_avantgo_table($local_name, $ext);
-							} else {
-								$img_addr = $local_name;
-								$img_addr =~ s/ /\%20/go;
-								if ($options{'stripnav'}) {
-									$img_line = "<img src=\"$img_addr\" alt=\"$name\"><br><a href=\"#top\">Return to top</a>";
-								} else {
-									$img_line = "<img src=\"$img_addr\" alt=\"$name\">";
-								}
-							}
-						}
-					}
-				}
-			}
+        $img_line = "[Error - unable to retrieve URL]";
+    }
+    else {
+        if ( $options{'local'} ) {
 
-		} else {
-			# regular mode - just give addresses to strips on their webserver
-			if ($options{'stripnav'}) {
-				$img_line = "<img src=\"$img_addr\" alt=\"$name\"><br><a href=\"#top\">Return to top</a>";
-			} else {
-				$img_line = "<img src=\"$img_addr\" alt=\"$name\">";
-			}
-		}
-	}
-		
-	if ($artist) {
-		$artist = " by $artist";
-	}
-	
-	if ($options{'lite'}){
-		print
-"<font face=\"helvetica\" size=\"+1\"><b><a href=\"$homepage\">$name</a>$artist</b></font><br>
+            # local mode - download strips
+            $img_addr =~ /http:\/\/(.*)\/(.*)\.(.*?)([?&].+)?$/;
+            if ( defined $3 ) { $ext = ".$3" }
+
+            # prepare file names
+            if ( $options{'stripdir'} ) {
+                $local_name_yesterday      = "$name/$short_date_yesterday$ext";
+                $local_name_yesterday_dir  = "$name/";
+                $local_name_yesterday_file = $short_date_yesterday;
+                $local_name_yesterday_ext  = $ext;
+
+                $local_name      = "$name/$short_date$ext";
+                $local_name_dir  = "$name/";
+                $local_name_file = "$short_date";
+                $local_name_ext  = "$ext";
+            }
+            elsif ( $options{'dailydir'} ) {
+                $local_name_yesterday =
+                  "$short_date_yesterday/$name-$short_date_yesterday$ext";
+                $local_name_yesterday_dir  = "$short_date_yesterday/";
+                $local_name_yesterday_file = "$name-$short_date_yesterday";
+                $local_name_yesterday_ext  = "$ext";
+
+                $local_name      = "$short_date/$name-$short_date$ext";
+                $local_name_dir  = "$short_date/";
+                $local_name_file = "$name-$short_date";
+                $local_name_ext  = "$ext";
+            }
+            else {
+                $local_name_yesterday      = "$name-$short_date_yesterday$ext";
+                $local_name_yesterday_dir  = "./";
+                $local_name_yesterday_file = "$name-$short_date_yesterday";
+                $local_name_yesterday_ext  = "$ext";
+
+                $local_name      = "$name-$short_date$ext";
+                $local_name_dir  = "./";
+                $local_name_file = "$name-$short_date";
+                $local_name_ext  = "$ext";
+            }
+
+            if ( $options{'nospaces'} ) {
+
+                # impossible to tell for sure if previous day's file
+                # used --nospaces or not, but this should work more
+                # often
+                $local_name_yesterday =~ s/\s+//g;
+                $local_name_yesterday_dir =~ s/\s+//g;
+                $local_name_yesterday_file =~ s/\s+//g;
+
+                $local_name =~ s/\s+//g;
+                $local_name_dir =~ s/\s+//g;
+                $local_name_file =~ s/\s+//g;
+            }
+
+            # do ops that depend on file name
+            if ( $options{'stripdir'} ) {
+                unless ( -d $local_name_dir ) {
+
+                    # any issues with masks and Win32?
+                    mkdir $local_name_dir, 0755;
+                }
+            }
+
+            if ( $options{'save'} and -e $local_name ) {
+
+                # already have a suitable local file - skip downloading
+                if ( $options{'avantgo'} ) {
+                    $img_line = &make_avantgo_table( $local_name, $ext );
+                }
+                else {
+                    $img_addr = $local_name;
+                    $img_addr =~ s/ /\%20/go;
+                    if ( $options{'stripnav'} ) {
+                        $img_line =
+                          "<img src=\"$img_addr\" alt=\"$name\"><br><a href=\"#top\">Return to top</a>";
+                    }
+                    else {
+                        $img_line = "<img src=\"$img_addr\" alt=\"$name\">";
+                    }
+                }
+            }
+            else {
+                # need to download
+                if ($prefetch) {
+                    if ( &http_get( $prefetch, $referer ) =~ m/^ERROR/ ) {
+                        warn "Error: $strip: could not download prefetch URL\n";
+                        $image = "ERROR";
+                    }
+                    else {
+                        $image = &http_get( $img_addr, $referer );
+                    }
+                }
+                else {
+                    $image = &http_get( $img_addr, $referer );
+
+                    #$image = &http_get($img_addr, "");
+                }
+
+                if ( $image =~ /^ERROR/ ) {
+
+                    # couldn't get the image
+                    # FIXME: what to do if a file for the day has already been
+                    # downloaded, but downloading fails when script is run again
+                    # that day? maybe reuse existing file instead of throwing
+                    # error?
+                    if ( -e $local_name ) {
+
+                        # an image file for today already exists.. jump to outputting code
+                        #warn "DEBUG: couldn't download strip, but we already have it\n";
+                        goto HAVE_IMAGE;
+                    }
+                    else {
+                        if ( $options{'verbose'} ) {
+                            warn "Error: $strip: could not download strip\n";
+                        }
+                    }
+
+                    $img_line = "[Error - unable to download image]";
+                }
+                else {
+                    HAVE_IMAGE:
+
+                    # got the image
+                    if ( $^O =~ /Win32/ ) {
+
+                        # can't do any diff checking on windows (easily, that is - it is doable)
+                        open( IMAGE, ">$local_name" );
+                        binmode(IMAGE);
+                        print IMAGE $image;
+                        close(IMAGE);
+
+                        $img_addr = $local_name;
+                        $img_addr =~ s/ /\%20/go;
+                        if ( $options{'stripnav'} ) {
+                            $img_line =
+                              "<img src=\"$img_addr\" alt=\"$name\"><br><a href=\"#top\">Return to top</a>";
+                        }
+                        else {
+                            $img_line = "<img src=\"$img_addr\" alt=\"$name\">";
+                        }
+                    }
+                    else {
+                        # FIXME: only download to .tmp if earlier file exists
+                        open( IMAGE, ">$local_name.tmp" );
+                        binmode(IMAGE);
+                        print IMAGE $image;
+                        close(IMAGE);
+
+                        if (
+                            -e $local_name
+                            and system(
+                                "diff \"$local_name\" \"$local_name.tmp\" >/dev/null 2>&1"
+                            ) == 0
+                          )
+                        {
+                            # already downloaded the same strip earlier today
+                            unlink("$local_name.tmp");
+
+                            if ( $options{'avantgo'} ) {
+                                $img_line =
+                                  &make_avantgo_table( $local_name, $ext );
+                            }
+                            else {
+                                $img_addr = $local_name;
+                                $img_addr =~ s/ /\%20/go;
+                                if ( $options{'stripnav'} ) {
+                                    $img_line =
+                                      "<img src=\"$img_addr\" alt=\"$name\"><br><a href=\"#top\">Return to top</a>";
+                                }
+                                else {
+                                    $img_line =
+                                      "<img src=\"$img_addr\" alt=\"$name\">";
+                                }
+                            }
+                        }
+                        elsif (
+                            system(
+                                "diff \"$local_name_yesterday\" \"$local_name.tmp\" >/dev/null 2>&1"
+                            ) == 0
+                          )
+                        {
+                            # same strip as yesterday
+                            if ( $options{'nosymlinks'} ) {
+                                system( "mv", "$local_name.tmp",
+                                    "$local_name" );
+                            }
+                            else {
+                                unlink("$local_name.tmp");
+                                if (   $options{'stripdir'}
+                                    or $options{'dailydir'} )
+                                {
+                                    system(
+                                        "ln -s \"../$local_name_yesterday\" \"$local_name\" >/dev/null 2>&1"
+                                    );
+                                }
+                                else {
+                                    system(
+                                        "ln -s \"$local_name_yesterday\" \"$local_name\" >/dev/null 2>&1"
+                                    );
+                                }
+
+                            }
+
+                            if ( $options{'nostale'} ) {
+                                $img_line = "[Error - new strip not available]";
+                            }
+                            else {
+                                $img_addr = $local_name;
+                                $img_addr =~ s/ /\%20/go;
+                                if ( $options{'stripnav'} ) {
+                                    $img_line =
+                                      "<img src=\"$img_addr\" alt=\"$name\"><br><a href=\"#top\">Return to top</a>";
+                                }
+                                else {
+                                    $img_line =
+                                      "<img src=\"$img_addr\" alt=\"$name\">";
+                                }
+                            }
+                        }
+                        else {
+                            # completely new strip
+                            #  possible to get here by:
+                            #   -downloading a strip for the first time in a day
+                            #   -downloading an updated strip that replaces an old one downloaded at
+                            #    an earlier time on the same day
+                            system( "mv", "$local_name.tmp", "$local_name" );
+
+                            if ( $options{'avantgo'} ) {
+                                &make_avantgo_files( $local_name,
+                                    $local_name_ext );
+                                $img_line =
+                                  &make_avantgo_table( $local_name, $ext );
+                            }
+                            else {
+                                $img_addr = $local_name;
+                                $img_addr =~ s/ /\%20/go;
+                                if ( $options{'stripnav'} ) {
+                                    $img_line =
+                                      "<img src=\"$img_addr\" alt=\"$name\"><br><a href=\"#top\">Return to top</a>";
+                                }
+                                else {
+                                    $img_line =
+                                      "<img src=\"$img_addr\" alt=\"$name\">";
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+        else {
+            # regular mode - just give addresses to strips on their webserver
+            if ( $options{'stripnav'} ) {
+                $img_line =
+                  "<img src=\"$img_addr\" alt=\"$name\"><br><a href=\"#top\">Return to top</a>";
+            }
+            else {
+                $img_line = "<img src=\"$img_addr\" alt=\"$name\">";
+            }
+        }
+    }
+
+    if ($artist) {
+        $artist = " by $artist";
+    }
+
+    if ( $options{'lite'} ) {
+        print
+          "<font face=\"helvetica\" size=\"+1\"><b><a href=\"$homepage\">$name</a>$artist</b></font><br>
 $img_line<br>
 <br>
 ";
-	} else {
-		my $stripanchor;
-		if ($options{'stripnav'}) {
-			$stripanchor = "<a name=\"$strip\">";
-		}
-		
-		print
-"	<tr>
+    }
+    else {
+        my $stripanchor;
+        if ( $options{'stripnav'} ) {
+            $stripanchor = "<a name=\"$strip\">";
+        }
+
+        print "	<tr>
 		<td>
 			<font face=\"helvetica\" size=\"+1\"><b>$stripanchor<a href=\"$homepage\">$name</a>$artist</b></font>
 		</td>
@@ -791,30 +887,29 @@ $img_line<br>
 		</td>
 	</tr>
 ";
-	}
+    }
 }
 
-if ($options{'local'} and !$options{'quiet'}) {
-	if ($options{'verbose'}) {
-		warn "Downloading strip files: done\n"
-	} else {
-		warn "done\n"
-	}
+if ( $options{'local'} and !$options{'quiet'} ) {
+    if ( $options{'verbose'} ) {
+        warn "Downloading strip files: done\n";
+    }
+    else {
+        warn "done\n";
+    }
 }
 
-unless ($options{'lite'}) {
-	print
-"</table>
+unless ( $options{'lite'} ) {
+    print "</table>
 
 <p><font face=\"helvetica\">
 &lt; <a href=\"dailystrips-$short_date_yesterday.html\">Previous day</a>$link_tomorrow";
 
-	if ($options{'archive'}) {
-		print " | <a href=\"archive.html\">Archives</a>";
-	}
-	
-	print
-" &gt;
+    if ( $options{'archive'} ) {
+        print " | <a href=\"archive.html\">Archives</a>";
+    }
+
+    print " &gt;
 </font></p>
 
 <font face=\"helvetica\">Generated by dailystrips $version</font>
@@ -825,718 +920,771 @@ unless ($options{'lite'}) {
 ";
 }
 
-if (!$options{'date'} and !$options{'noindex'} and $^O =~ /Win32/) {
-	# no symlinks on windows.. just make a copy of the file
-	close(STDOUT);
-	copy("dailystrips-$short_date.html","index.html");
+if ( !$options{'date'} and !$options{'noindex'} and $^O =~ /Win32/ ) {
+
+    # no symlinks on windows.. just make a copy of the file
+    close(STDOUT);
+    copy( "dailystrips-$short_date.html", "index.html" );
 }
 
-
 # Clean out old files, if requested
-if ($options{'clean'}) {
-	unless ($options{'quiet'}) {
-		print STDERR "Cleaning files older than $options{'clean'} days...";
-	}
-	
-	unless (system("perl -S dailystrips-clean --quiet $options{'clean'}")) {
-		unless ($options{'quiet'}) {
-			print STDERR "done\n";
-		}
-	}
-	else {
-		warn "failed\nWarning: could not run dailystrips-clean script\n";
-	}
-	
-	
+if ( $options{'clean'} ) {
+    unless ( $options{'quiet'} ) {
+        print STDERR "Cleaning files older than $options{'clean'} days...";
+    }
+
+    unless ( system("perl -S dailystrips-clean --quiet $options{'clean'}") ) {
+        unless ( $options{'quiet'} ) {
+            print STDERR "done\n";
+        }
+    }
+    else {
+        warn "failed\nWarning: could not run dailystrips-clean script\n";
+    }
+
 }
 
 sub http_get {
-	my ($url, $referer) = @_;
-	my ($request, $response, $status);
+    my ( $url, $referer ) = @_;
+    my ( $request, $response, $status );
 
-	# default value
-	#unless ($retries) {
-	#	$retries = 3;
-	#}
+    # default value
+    #unless ($retries) {
+    #	$retries = 3;
+    #}
 
-	if ($referer eq "") {$referer = $url;}
+    if ( $referer eq "" ) { $referer = $url; }
 
-	my $headers = new HTTP::Headers;
-	$headers->proxy_authorization_basic(split(/:/, $options{'proxyauth'}));
-	$headers->referer($referer);
-	
-	my $ua = LWP::UserAgent->new;
-	$ua->agent($options{'useragent'});
-	$ua->proxy('http', $options{'proxy'});
-	
-	for (1 .. $options{'retries'}) {
-		# main request
-		$request = HTTP::Request->new('GET', $url, $headers);				
-		$response = $ua->request($request);
-		($status = $response->status_line()) =~ s/^(\d+)/$1:/;
+    my $headers = new HTTP::Headers;
+    $headers->proxy_authorization_basic( split( /:/, $options{'proxyauth'} ) );
+    $headers->referer($referer);
 
-		if ($response->is_error()) {
-			if ($options{'verbose'}) {
-				warn "Warning: could not download $url: $status (attempt $_ of $options{'retries'})\n";
-			}
-		} else {
-			return $response->content;
-		}
-	}
+    my $ua = LWP::UserAgent->new;
+    $ua->agent( $options{'useragent'} );
+    $ua->proxy( 'http', $options{'proxy'} );
 
-	# if we get here, URL retrieval completely failed
-	warn "Warning: failed to download $url\n";
-	return "ERROR: $status";
+    for ( 1 .. $options{'retries'} ) {
+
+        # main request
+        $request = HTTP::Request->new( 'GET', $url, $headers );
+        $response = $ua->request($request);
+        ( $status = $response->status_line() ) =~ s/^(\d+)/$1:/;
+
+        if ( $response->is_error() ) {
+            if ( $options{'verbose'} ) {
+                warn
+                  "Warning: could not download $url: $status (attempt $_ of $options{'retries'})\n";
+            }
+        }
+        else {
+            return $response->content;
+        }
+    }
+
+    # if we get here, URL retrieval completely failed
+    warn "Warning: failed to download $url\n";
+    return "ERROR: $status";
 }
 
 sub get_strip {
-	my ($strip) = @_;
-	my ($page, $addr);
-	
-	if ($options{'date'} and $defs{$strip}{'provides'} eq "latest") {
-		if ($options{'verbose'}) {
-			warn "Warning: strip $strip not compatible with --date, skipping\n";
-		}
-		
-		next;
-	}
-	
-	if ($defs{$strip}{'type'} eq "search") {
-		$page = &http_get($defs{$strip}{'searchpage'});
+    my ($strip) = @_;
+    my ( $page, $addr );
 
-		if ($page =~ /^ERROR/) {
-			if ($options{'verbose'}) {
-				warn "Error: $strip: could not download searchpage $defs{$strip}{'searchpage'}\n";
-			}
-			
-			$addr = "unavail-server";
-		} else {
-			$page =~ /$defs{$strip}{'searchpattern'}/si;
-			my @regexmatch;
-			for (1..9) {
-				$regexmatch[$_] = ${$_};
-				#warn "regex match #$_: ${$_}\n";	
-			}
+    if ( $options{'date'} and $defs{$strip}{'provides'} eq "latest" ) {
+        if ( $options{'verbose'} ) {
+            warn "Warning: strip $strip not compatible with --date, skipping\n";
+        }
 
-			unless (${$defs{$strip}{'matchpart'}}) {
-				if ($options{'verbose'}) {
-					warn "Error: $strip: searchpattern $defs{$strip}{'searchpattern'} did not match anything in searchpage $defs{$strip}{'searchpage'}\n";
-				}
-				
-				$addr = "unavail-nomatch";
-			} else {
-				my $match = ${$defs{$strip}{'matchpart'}};
+        next;
+    }
 
-				if ($defs{$strip}{'imageurl'}) {
-					$addr = $defs{$strip}{'imageurl'};
-					$addr =~ s/\$match_(\d)/$regexmatch[$1]/ge;
-					$addr =~ s/\$match/$match/ge;
-				} else {
-					$addr = $defs{$strip}{'baseurl'} . $match . $defs{$strip}{'urlsuffix'};
-				}
-			}
-		}
-		
-	} elsif ($defs{$strip}{'type'} eq "generate") {
-		$addr = $defs{$strip}{'baseurl'} . $defs{$strip}{'imageurl'};
-	} elsif ($defs{$strip}{'type'} eq "flashdrm") {
-		$page = &http_get($defs{$strip}{'searchpage'});
+    if ( $defs{$strip}{'type'} eq "search" ) {
+        $page = &http_get( $defs{$strip}{'searchpage'} );
 
-		if ($page =~ /^ERROR/) {
-			if ($options{'verbose'}) {
-				warn "Error: $strip: could not download searchpage $defs{$strip}{'searchpage'}\n";
-			}
-			
-			$addr = "unavail-server";
-		} else {
-			$page =~ /$defs{$strip}{'searchpattern'}/si;
-			my @regexmatch;
-			for (1..9) {
-				$regexmatch[$_] = ${$_};
-				#warn "regex match #$_: ${$_}\n";	
-			}
+        if ( $page =~ /^ERROR/ ) {
+            if ( $options{'verbose'} ) {
+                warn
+                  "Error: $strip: could not download searchpage $defs{$strip}{'searchpage'}\n";
+            }
 
-			unless ($regexmatch[1]) {
-				warn "didn't match\n";
-				if ($options{'verbose'}) {
-					warn "Error: $strip: searchpattern $defs{$strip}{'searchpattern'} did not match anything in searchpage $defs{$strip}{'searchpage'}\n";
-				}
-				
-				$addr = "unavail-nomatch";
-			} else {
-				$page = &http_get($defs{$strip}{'drmurl'});
-				if ($page =~ /^ERROR/) {
-					warn "Error: $strip: can't download drmurl\n";
-					$addr = "unavail-server";
-				} else {
-					my ($drmkey) = $page =~ m!<key>(.+)</key>!s;
-					if ($drmkey eq '') {
-						warn "Error: $strip: unable to locate drmkey\n";
-					} else {
-						my $match = ${$defs{$strip}{'matchpart'}};
+            $addr = "unavail-server";
+        }
+        else {
+            $page =~ /$defs{$strip}{'searchpattern'}/si;
+            my @regexmatch;
+            for ( 1 .. 9 ) {
+                $regexmatch[$_] = ${$_};
 
-						if ($defs{$strip}{'imageurl'}) {
-							$addr = $defs{$strip}{'imageurl'};
-							$addr =~ s/\$match_(\d)/$regexmatch[$1]/ge;
-							$addr =~ s/\$match/$match/ge;
-							$addr =~ s/\$drmkey/$drmkey/ge;
-						} else {
-							warn "Error: $strip: You must supply an imageurl\n";
-						}
-					}
-				}
-			}
-		}
-	} elsif ($defs{$strip}{'type'} eq "doublesearch") {
-		$page = &http_get($defs{$strip}{'searchpage'});
+                #warn "regex match #$_: ${$_}\n";
+            }
 
-		if ($page =~ /^ERROR/) {
-			if ($options{'verbose'}) {
-				warn "Error: $strip: could not download searchpage $defs{$strip}{'searchpage'}\n";
-			}
-			
-			$addr = "unavail-server";
-		} else {
-			$page =~ /$defs{$strip}{'searchpattern'}/si;
-			my @regexmatch;
-			for (1..9) {
-				$regexmatch[$_] = ${$_};
-				#warn "regex match #$_: ${$_}\n";	
-			}
+            unless ( ${ $defs{$strip}{'matchpart'} } ) {
+                if ( $options{'verbose'} ) {
+                    warn
+                      "Error: $strip: searchpattern $defs{$strip}{'searchpattern'} did not match anything in searchpage $defs{$strip}{'searchpage'}\n";
+                }
 
-			unless ($regexmatch[2]) {
-				warn "didn't match\n";
-				if ($options{'verbose'}) {
-					warn "Error: $strip: searchpattern $defs{$strip}{'searchpattern'} did not match anything in searchpage $defs{$strip}{'searchpage'}\n";
-				}
-				
-				$addr = "unavail-nomatch";
-			} else {
-				$addr=$defs{$strip}{'baseurl'}.$regexmatch[1].$regexmatch[2];
-				$addr =~ s/%3D/=/g;
-				$addr =~ s/%26/&/g;
-				#warn "downloading $addr\n";
-				$page = &http_get($addr);
-				if ($page =~ /^ERROR/) {
-					warn "Error: $strip: can't download drmurl\n";
-					$addr = "unavail-server";
-				} else {
-					$regexmatch[1]='';
-					$page =~ /$defs{$strip}{'searchpattern2'}/si;
-					for (1..9) {
-						$regexmatch[$_] = ${$_};
-						#warn "regex match #$_: ${$_}\n";	
-					}
-					unless ($regexmatch[1]) {
-						warn "didn't match 2\n";
-						if ($options{'verbose'}) {
-							warn "Error: $strip: searchpattern $defs{$strip}{'searchpattern2'} did not match anything in searchpage $defs{$strip}{'baseurl'}.$regexmatch[1].$regexmatch[2]\n";
-						}
-					} else {
-						$addr=$regexmatch[1];
-					}
-				}
-			}
-		}
-	} elsif ($defs{$strip}{'type'} eq "search2pages") {
-		# Search pattern for when it takes two pages to get to the image file
-		# Pull down the first page
-		$page = &http_get($defs{$strip}{'searchpage'});
-		if ($page =~ /^ERROR/) {
-			if ($options{'verbose'}) {
-				warn "Error: $strip: could not download searchpage $defs{$strip}{'searchpage'}\n";
-			}
-			$addr = "unavail-server";
-		} else { # And dig through it for the URL for the second page
-			$page =~ /$defs{$strip}{'searchpattern'}/si;
-			my @regexmatch;
-			for (1..9) { $regexmatch[$_] = ${$_}; 
-			}
-			unless ($regexmatch[1]) {
-				warn "didn't match\n";
-				if ($options{'verbose'}) {
-					warn "Error: $strip: searchpattern $defs{$strip}{'searchpattern'} did not match anything in searchpage $defs{$strip}{'searchpage'}\n";
-				}	
-				$addr = "unavail-nomatch";
-			} else {
-				# Now go to the second page, and dig through it for the image URL
-				$addr = $defs{$strip}{'baseurl'} . $regexmatch[1];
-				$page = &http_get($addr);
-				if ($page =~ /^ERROR/) {
-					warn "Error: $strip: can't download 2nd page\n";
-					$addr = "unavail-server";
-				} else {
-					# find the information in the second page
-					my ($searchkey) = $page =~ /$defs{$strip}{'searchpattern2'}/;
-					if ($searchkey eq '') {
-						warn "Error: $strip: unable to locate searchkey2\n";
-					} else {
-						# and build the image url from it and the base.
-						if ($defs{$strip}{'baseurl'}) {
-							$addr = $defs{$strip}{'baseurl'} . $searchkey;
-						} else {
-							warn "Error: $strip: You must supply a baseurl\n";
-						}
-					}
-				}
-			}
-		}
-	}
-	
-	unless ($addr =~ /^(http:\/\/|unavail)/io) { $addr = "http://" . $addr }
-	
-	push(@strips,"$strip;$defs{$strip}{'name'};$defs{$strip}{'homepage'};$addr;$defs{$strip}{'referer'};$defs{$strip}{'prefetch'};$defs{$strip}{'artist'}");
+                $addr = "unavail-nomatch";
+            }
+            else {
+                my $match = ${ $defs{$strip}{'matchpart'} };
+
+                if ( $defs{$strip}{'imageurl'} ) {
+                    $addr = $defs{$strip}{'imageurl'};
+                    $addr =~ s/\$match_(\d)/$regexmatch[$1]/ge;
+                    $addr =~ s/\$match/$match/ge;
+                }
+                else {
+                    $addr =
+                        $defs{$strip}{'baseurl'}
+                      . $match
+                      . $defs{$strip}{'urlsuffix'};
+                }
+            }
+        }
+
+    }
+    elsif ( $defs{$strip}{'type'} eq "generate" ) {
+        $addr = $defs{$strip}{'baseurl'} . $defs{$strip}{'imageurl'};
+    }
+    elsif ( $defs{$strip}{'type'} eq "flashdrm" ) {
+        $page = &http_get( $defs{$strip}{'searchpage'} );
+
+        if ( $page =~ /^ERROR/ ) {
+            if ( $options{'verbose'} ) {
+                warn
+                  "Error: $strip: could not download searchpage $defs{$strip}{'searchpage'}\n";
+            }
+
+            $addr = "unavail-server";
+        }
+        else {
+            $page =~ /$defs{$strip}{'searchpattern'}/si;
+            my @regexmatch;
+            for ( 1 .. 9 ) {
+                $regexmatch[$_] = ${$_};
+
+                #warn "regex match #$_: ${$_}\n";
+            }
+
+            unless ( $regexmatch[1] ) {
+                warn "didn't match\n";
+                if ( $options{'verbose'} ) {
+                    warn
+                      "Error: $strip: searchpattern $defs{$strip}{'searchpattern'} did not match anything in searchpage $defs{$strip}{'searchpage'}\n";
+                }
+
+                $addr = "unavail-nomatch";
+            }
+            else {
+                $page = &http_get( $defs{$strip}{'drmurl'} );
+                if ( $page =~ /^ERROR/ ) {
+                    warn "Error: $strip: can't download drmurl\n";
+                    $addr = "unavail-server";
+                }
+                else {
+                    my ($drmkey) = $page =~ m!<key>(.+)</key>!s;
+                    if ( $drmkey eq '' ) {
+                        warn "Error: $strip: unable to locate drmkey\n";
+                    }
+                    else {
+                        my $match = ${ $defs{$strip}{'matchpart'} };
+
+                        if ( $defs{$strip}{'imageurl'} ) {
+                            $addr = $defs{$strip}{'imageurl'};
+                            $addr =~ s/\$match_(\d)/$regexmatch[$1]/ge;
+                            $addr =~ s/\$match/$match/ge;
+                            $addr =~ s/\$drmkey/$drmkey/ge;
+                        }
+                        else {
+                            warn "Error: $strip: You must supply an imageurl\n";
+                        }
+                    }
+                }
+            }
+        }
+    }
+    elsif ( $defs{$strip}{'type'} eq "doublesearch" ) {
+        $page = &http_get( $defs{$strip}{'searchpage'} );
+
+        if ( $page =~ /^ERROR/ ) {
+            if ( $options{'verbose'} ) {
+                warn
+                  "Error: $strip: could not download searchpage $defs{$strip}{'searchpage'}\n";
+            }
+
+            $addr = "unavail-server";
+        }
+        else {
+            $page =~ /$defs{$strip}{'searchpattern'}/si;
+            my @regexmatch;
+            for ( 1 .. 9 ) {
+                $regexmatch[$_] = ${$_};
+
+                #warn "regex match #$_: ${$_}\n";
+            }
+
+            unless ( $regexmatch[2] ) {
+                warn "didn't match\n";
+                if ( $options{'verbose'} ) {
+                    warn
+                      "Error: $strip: searchpattern $defs{$strip}{'searchpattern'} did not match anything in searchpage $defs{$strip}{'searchpage'}\n";
+                }
+
+                $addr = "unavail-nomatch";
+            }
+            else {
+                $addr =
+                  $defs{$strip}{'baseurl'} . $regexmatch[1] . $regexmatch[2];
+                $addr =~ s/%3D/=/g;
+                $addr =~ s/%26/&/g;
+
+                #warn "downloading $addr\n";
+                $page = &http_get($addr);
+                if ( $page =~ /^ERROR/ ) {
+                    warn "Error: $strip: can't download drmurl\n";
+                    $addr = "unavail-server";
+                }
+                else {
+                    $regexmatch[1] = '';
+                    $page =~ /$defs{$strip}{'searchpattern2'}/si;
+                    for ( 1 .. 9 ) {
+                        $regexmatch[$_] = ${$_};
+
+                        #warn "regex match #$_: ${$_}\n";
+                    }
+                    unless ( $regexmatch[1] ) {
+                        warn "didn't match 2\n";
+                        if ( $options{'verbose'} ) {
+                            warn
+                              "Error: $strip: searchpattern $defs{$strip}{'searchpattern2'} did not match anything in searchpage $defs{$strip}{'baseurl'}.$regexmatch[1].$regexmatch[2]\n";
+                        }
+                    }
+                    else {
+                        $addr = $regexmatch[1];
+                    }
+                }
+            }
+        }
+    }
+    elsif ( $defs{$strip}{'type'} eq "search2pages" ) {
+
+        # Search pattern for when it takes two pages to get to the image file
+        # Pull down the first page
+        $page = &http_get( $defs{$strip}{'searchpage'} );
+        if ( $page =~ /^ERROR/ ) {
+            if ( $options{'verbose'} ) {
+                warn
+                  "Error: $strip: could not download searchpage $defs{$strip}{'searchpage'}\n";
+            }
+            $addr = "unavail-server";
+        }
+        else {    # And dig through it for the URL for the second page
+            $page =~ /$defs{$strip}{'searchpattern'}/si;
+            my @regexmatch;
+            for ( 1 .. 9 ) {
+                $regexmatch[$_] = ${$_};
+            }
+            unless ( $regexmatch[1] ) {
+                warn "didn't match\n";
+                if ( $options{'verbose'} ) {
+                    warn
+                      "Error: $strip: searchpattern $defs{$strip}{'searchpattern'} did not match anything in searchpage $defs{$strip}{'searchpage'}\n";
+                }
+                $addr = "unavail-nomatch";
+            }
+            else {
+                # Now go to the second page, and dig through it for the image URL
+                $addr = $defs{$strip}{'baseurl'} . $regexmatch[1];
+                $page = &http_get($addr);
+                if ( $page =~ /^ERROR/ ) {
+                    warn "Error: $strip: can't download 2nd page\n";
+                    $addr = "unavail-server";
+                }
+                else {
+                    # find the information in the second page
+                    my ($searchkey) =
+                      $page =~ /$defs{$strip}{'searchpattern2'}/;
+                    if ( $searchkey eq '' ) {
+                        warn "Error: $strip: unable to locate searchkey2\n";
+                    }
+                    else {
+                        # and build the image url from it and the base.
+                        if ( $defs{$strip}{'baseurl'} ) {
+                            $addr = $defs{$strip}{'baseurl'} . $searchkey;
+                        }
+                        else {
+                            warn "Error: $strip: You must supply a baseurl\n";
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    unless ( $addr =~ /^(http:\/\/|unavail)/io ) { $addr = "http://" . $addr }
+
+    push( @strips,
+        "$strip;$defs{$strip}{'name'};$defs{$strip}{'homepage'};$addr;$defs{$strip}{'referer'};$defs{$strip}{'prefetch'};$defs{$strip}{'artist'}"
+    );
 }
 
 sub get_defs {
-	my $defs_file = shift;
-	my ($strip, $class, $sectype, $group);
-	my $line;
-	
-	unless(open(DEFS, "<$defs_file")) {
-		die "Error: could not open strip definitions file $defs_file\n";
-	}
-	
-	my @defs_file = <DEFS>;
-	close(DEFS);
-	
-	if ($options{'verbose'}) {
-		warn "Loading definitions from file $defs_file\n";
-	}
-	
-	for (@defs_file) {
-		$line++;
-		
-		chomp;
-		s/#(.*)//; s/^\s*//; s/\s*$//;
+    my $defs_file = shift;
+    my ( $strip, $class, $sectype, $group );
+    my $line;
 
-		next if $_ eq "";
+    unless ( open( DEFS, "<$defs_file" ) ) {
+        die "Error: could not open strip definitions file $defs_file\n";
+    }
 
-		if (!$sectype) {
-			if (/^strip\s+(\w+)$/i)
-			{
-				if (defined ($defs{$1}))
-				{
-					undef $defs{$1};
-				}
-				
-				$strip = $1;
-				$sectype = "strip";
-			}
-			elsif (/^class\s+(.*)$/i)
-			{
-				if (defined ($classes{$1}))
-				{
-					undef $classes{$1};
-				}
-							
-				$class = $1;
-				$sectype = "class";
-			}
-			elsif (/^group\s+(.*)$/i)
-			{
-				if (defined ($groups{$1}))
-				{
-					undef $groups{$1};
-				}
-			
-				$group = $1;
-				$sectype = "group";
-			}
-			elsif (/^(.*)/)
-			{
-				die "Error: Unknown keyword '$1' at $defs_file line $line\n";
-			}
-		}
-		elsif (/^end$/i)
-		{
-			if ($sectype eq "class")
-			{
-				undef $class
-			}		
-			elsif ($sectype eq "strip")
-			{
-				if ($defs{$strip}{'useclass'}) {
-					my $using_class = $defs{$strip}{'useclass'};
-					
-					# import vars from class
-					for (qw(homepage searchpage searchpattern baseurl imageurl urlsuffix referer prefetch artist drmurl searchpattern2)) {
-						if ($classes{$using_class}{$_} and !$defs{$strip}{$_}) {
-							my $classvar = $classes{$using_class}{$_};
-							$classvar =~ s/(\$[0-9])/$defs{$strip}{$1}/g;
-							$classvar =~ s/\$strip/$strip/g;
-							$defs{$strip}{$_} = $classvar;
-						}
-					}
-				
-					for (qw(type matchpart provides)) {
-						if ($classes{$using_class}{$_} and !$defs{$strip}{$_}) {
-							$defs{$strip}{$_} = $classes{$using_class}{$_};
-						}
-					}	
-				}	
-						
-				#substitute auto vars for real vals here/set defaults
-				unless ($defs{$strip}{'searchpage'}) {$defs{$strip}{'searchpage'} = $defs{$strip}{'homepage'}}
-				unless ($defs{$strip}{'referer'})    {
-					if ($defs{$strip}{'searchpage'}) {
-						$defs{$strip}{'referer'} = $defs{$strip}{'searchpage'}
-					} else {
-						$defs{$strip}{'referer'} = $defs{$strip}{'homepage'}
-					}
-				}
-				
-				#other vars in definition
-				for (qw(homepage searchpage searchpattern imageurl baseurl urlsuffix referer prefetch)) {
-					if ($defs{$strip}{$_}) {
-						$defs{$strip}{$_} =~ s/\$(name|homepage|searchpage|searchpattern|imageurl|baseurl|referer|prefetch)/$defs{$strip}{$1}/g;
-					}
-				}			
-		
-				#dates		
-				for (qw(homepage searchpage searchpattern imageurl baseurl urlsuffix referer prefetch)) {
-					if ($defs{$strip}{$_}) {
-						$defs{$strip}{$_} =~ s/(\%(-?)[a-zA-Z])/strftime("$1", @localtime_today)/ge;
-					}
-				}
-				
-				# <code:> stuff
-				for (qw(homepage searchpage searchpattern imageurl baseurl urlsuffix referer)) {
-					if ($defs{$strip}{$_}) {
-						$defs{$strip}{$_} =~ s/<code:(.*?)(?<!\\)>/&my_eval($1)/ge;
-					}
-				}
-				
-				#sanity check vars
-				for (qw(name homepage type)) {
-					unless ($defs{$strip}{$_}) {
-						die "Error: strip $strip has no '$_' value\n";
-					}
-				}
-				
-				for (qw(homepage searchpage baseurl imageurl)){	
-					if ($defs{$strip}{$_} and $defs{$strip}{$_} !~ /^http:\/\//io) {
-						die "Error: strip $strip has invalid $_\n"
-					}
-				}
-				
-				if ($defs{$strip}{'type'} eq "search") {
-					unless ($defs{$strip}{'searchpattern'}) {
-						die "Error: strip $strip has no 'searchpattern' value in $defs_file\n";
-					}
-					
-					unless ($defs{$strip}{'searchpattern'} =~ /\(.+\)/) {
-						die "Error: strip $strip has no parentheses in searchpattern\n";
-					}
-					
-					unless ($defs{$strip}{'matchpart'}) {
-						#die "Error: strip $strip has no 'matchpart' value in $defs_file\n";
-						$defs{$strip}{'matchpart'} = 1;
-					}
-					
-					if ($defs{$strip}{'imageurl'} and ($defs{$strip}{'baseurl'} or $defs{$strip}{'urlsuffix'})) {
-						die "Error: strip $strip: cannot use both 'imageurl' at the same time as 'baseurl'\nor 'urlsuffix'\n";
-					}
-				} elsif ($defs{$strip}{'type'} eq "generate") {
-					unless ($defs{$strip}{'imageurl'}) {
-						die "Error: strip $strip has no 'imageurl' value in $defs_file\n";
-					}
-				}
-				
-				unless ($defs{$strip}{'provides'}) {
-					die "Error: strip $strip has no 'provides' value in $defs_file\n";
-				}
-				
-				#debugger
-				#foreach my $strip (keys %defs) {
-				#	foreach my $key (qw(homepage searchpage searchpattern imageurl baseurl referer prefetch)) {
-				#		warn "DEBUG: $strip:$key=$defs{$strip}{$key}\n";
-				#	}
-				#	#warn "DEBUG: $strip:name=$defs{$strip}{'name'}\n";
-				#}
-			
-				undef $strip;
-			}
-			elsif ($sectype eq "group")
-			{
-				chop $groups{$group}{'strips'};
-				
-				unless ($groups{$group}{'desc'}) {
-					$groups{$group}{'desc'} = "[No description]";
-				}
-				
-				undef $group;
-			}
-			
-			undef $sectype;
-		}
-		elsif ($sectype eq "class") {
-			if (/^homepage\s+(.+)$/i) {
-				$classes{$class}{'homepage'} = $1;
-			}
-			elsif (/^type\s+(.+)$/i)
-			{
-				unless ($1 =~ /^(search|generate|flashdrm)$/io) {
-					die "Error: invalid type at $defs_file line $line\n";
-				}
-				
-				$classes{$class}{'type'} = $1;
-			}
-			elsif (/^searchpage\s+(.+)$/i)
-			{
-				$classes{$class}{'searchpage'} = $1;
-			}
-			elsif (/^searchpattern\s+(.+)$/i)
-			{
-				$classes{$class}{'searchpattern'} = $1;
-			}
-			elsif (/^matchpart\s+(.+)$/i)
-			{
-				unless ($1 =~ /^(\d)$/) {
-					die "Error: invalid 'matchpart' at $defs_file line $line\n";
-				}
-				
-				$classes{$class}{'matchpart'} = $1;
-			}
-			elsif (/^baseurl\s+(.+)$/i)
-			{
-				$classes{$class}{'baseurl'} = $1;
-			}
-			elsif (/^urlsuffix\s+(.+)$/i)
-			{
-				$classes{$class}{'urlsufix'} = $1;
-			}
-			elsif (/^imageurl\s+(.+)$/i)
-			{
-				$classes{$class}{'imageurl'} = $1;
-			}
-			elsif (/^referer\s+(.+)$/i)
-			{
-				$classes{$class}{'referer'} = $1;
-			}
-			elsif (/^prefetch\s+(.+)$/i)
-			{
-				$classes{$class}{'prefetch'} = $1;
-			}
-			elsif (/^provides\s+(.+)$/i)
-			{
-				unless ($1 =~ /^(any|latest)$/i) {
-					die "Error: invalid 'provides' at $defs_file line $line\n";
-				}
+    my @defs_file = <DEFS>;
+    close(DEFS);
 
-				$classes{$class}{'provides'} = $1;
-			}
-			elsif (/^artist\s+(.+)$/i)
-			{
-				$classes{$class}{'artist'} = $1;
-			}
-			elsif (/^drmurl\s+(.+)$/i)
-			{
-				$classes{$class}{'drmurl'} = $1;
-			}
-			elsif (/^(.+)\s+?/)
-			{
-				die "Unknown keyword '$1' at $defs_file line $line\n";
-			}
-		}
-		elsif ($sectype eq "strip") {
-			if (/^name\s+(.+)$/i)
-			{
-				$defs{$strip}{'name'} = $1;
-			}
-			elsif (/^useclass\s+(.+)$/i)
-			{
-				unless (defined $classes{$1}) {
-					die "Error: strip $strip references invalid class $1 at $defs_file line $line\n";
-				}
+    if ( $options{'verbose'} ) {
+        warn "Loading definitions from file $defs_file\n";
+    }
 
-				$defs{$strip}{'useclass'} = $1;
-			}
-			elsif (/^homepage\s+(.+)$/i) {
-				$defs{$strip}{'homepage'} = $1;
-			}
-			elsif (/^type\s+(.+)$/i)
-			{
-				unless ($1 =~ /^(search|generate|flashdrm|search2pages|doublesearch)$/i) {
-					die "Error: invalid 'type' at $defs_file line $line\n";
-				}
-				
-				$defs{$strip}{'type'} = $1;
-			}
-			elsif (/^searchpage\s+(.+)$/i)
-			{
-				$defs{$strip}{'searchpage'} = $1;
-			}
-			elsif (/^searchpattern\s+(.+)$/i)
-			{
-				$defs{$strip}{'searchpattern'} = $1;
-			}
-			elsif (/^searchpattern2\s+(.+)$/i)
-			{
-				$defs{$strip}{'searchpattern2'} = $1;
-			}
-			elsif (/^matchpart\s+(.+)$/i)
-			{
-				unless ($1 =~ /^(\d+)$/) {
-					die "Error: invalid 'matchpart' at $defs_file line $line\n";
-				}
-				
-				$defs{$strip}{'matchpart'} = $1;
-			}
-			elsif (/^baseurl\s+(.+)$/i)
-			{
-				$defs{$strip}{'baseurl'} = $1;
-			}
-			elsif (/^urlsuffix\s+(.+)$/i)
-			{
-				$defs{$strip}{'urlsuffix'} = $1;
-			}
-			elsif (/^imageurl\s+(.+)$/i)
-			{
-				$defs{$strip}{'imageurl'} = $1;
-			}
-			elsif (/^referer\s+(.+)$/i)
-			{
-				$defs{$strip}{'referer'} = $1;
-			}
-			elsif (/^prefetch\s+(.+)$/i)
-			{
-				$defs{$strip}{'prefetch'} = $1;
-			}
-			elsif (/^(\$\d)\s+(.+)$/)
-			{
-				$defs{$strip}{$1} = $2;
-			}
-			elsif (/^provides\s+(.+)$/i)
-			{
-				unless ($1 =~ /^(any|latest)$/i) {
-					die "Error: invalid 'provides' at $defs_file line $line\n";
-				}
-				
-				$defs{$strip}{'provides'} = $1;
-			}
-			elsif (/^artist\s+(.+)$/i)
-			{
-				$defs{$strip}{'artist'} = $1;
-			}
-			elsif (/^(.+)\s+?/)
-			{
-				die "Error: Unknown keyword '$1' at $defs_file line $line, in strip $strip\n";
-			}
-		} elsif ($sectype eq  "group") {
-			if (/^desc\s+(.+)$/i)
-			{
-				$groups{$group}{'desc'} = $1;
-			}
-			elsif (/^include\s+(.+)$/i)
-			{
-				$groups{$group}{'strips'} .= join(';', split(/\s+/, $1)) . ";";
-			}
-			elsif (/^exclude\s+(.+)$/i)
-			{
-				$groups{$group}{'nostrips'} .= join(';', split(/\s+/, $1)) . ";";
-			}
-			elsif (/^(.+)\s+?/)
-			{
-				die "Error: Unknown keyword '$1' at $defs_file line $line, in group $group\n";
-			}
-		}
-	}
-	
-	# Post-processing validation
-	for $group (keys %groups) {
-		my (@strips, %nostrips, @okstrips);
-		
-		if (defined($groups{$group}{'nostrips'})) {
-			@strips = sort(keys(%defs));
-			foreach (split (/;/,$groups{$group}{'nostrips'})) {
-				$nostrips{$_} = 1;
-			}
-		} else {
-			@strips = split(/;/, $groups{$group}{'strips'});
-			%nostrips = ();   #empty
-		}
+    for (@defs_file) {
+        $line++;
 
-		foreach (@strips) {
-			unless ($defs{$_}) {
-				warn "Warning: group $group references non-existant strip $_\n";
-			}
-			
-			next if ($nostrips{$_});
-			push (@okstrips,$_);
-		}
-		$groups{$group}{'strips'} = join(';',@okstrips);
-	}
-	
+        chomp;
+        s/#(.*)//;
+        s/^\s*//;
+        s/\s*$//;
+
+        next if $_ eq "";
+
+        if ( !$sectype ) {
+            if (/^strip\s+(\w+)$/i) {
+                if ( defined( $defs{$1} ) ) {
+                    undef $defs{$1};
+                }
+
+                $strip   = $1;
+                $sectype = "strip";
+            }
+            elsif (/^class\s+(.*)$/i) {
+                if ( defined( $classes{$1} ) ) {
+                    undef $classes{$1};
+                }
+
+                $class   = $1;
+                $sectype = "class";
+            }
+            elsif (/^group\s+(.*)$/i) {
+                if ( defined( $groups{$1} ) ) {
+                    undef $groups{$1};
+                }
+
+                $group   = $1;
+                $sectype = "group";
+            }
+            elsif (/^(.*)/) {
+                die "Error: Unknown keyword '$1' at $defs_file line $line\n";
+            }
+        }
+        elsif (/^end$/i) {
+            if ( $sectype eq "class" ) {
+                undef $class;
+            }
+            elsif ( $sectype eq "strip" ) {
+                if ( $defs{$strip}{'useclass'} ) {
+                    my $using_class = $defs{$strip}{'useclass'};
+
+                    # import vars from class
+                    for (
+                        qw(homepage searchpage searchpattern baseurl imageurl urlsuffix referer prefetch artist drmurl searchpattern2)
+                      )
+                    {
+                        if ( $classes{$using_class}{$_} and !$defs{$strip}{$_} )
+                        {
+                            my $classvar = $classes{$using_class}{$_};
+                            $classvar =~ s/(\$[0-9])/$defs{$strip}{$1}/g;
+                            $classvar =~ s/\$strip/$strip/g;
+                            $defs{$strip}{$_} = $classvar;
+                        }
+                    }
+
+                    for (qw(type matchpart provides)) {
+                        if ( $classes{$using_class}{$_} and !$defs{$strip}{$_} )
+                        {
+                            $defs{$strip}{$_} = $classes{$using_class}{$_};
+                        }
+                    }
+                }
+
+                #substitute auto vars for real vals here/set defaults
+                unless ( $defs{$strip}{'searchpage'} ) {
+                    $defs{$strip}{'searchpage'} = $defs{$strip}{'homepage'};
+                }
+                unless ( $defs{$strip}{'referer'} ) {
+                    if ( $defs{$strip}{'searchpage'} ) {
+                        $defs{$strip}{'referer'} = $defs{$strip}{'searchpage'};
+                    }
+                    else {
+                        $defs{$strip}{'referer'} = $defs{$strip}{'homepage'};
+                    }
+                }
+
+                #other vars in definition
+                for (
+                    qw(homepage searchpage searchpattern imageurl baseurl urlsuffix referer prefetch)
+                  )
+                {
+                    if ( $defs{$strip}{$_} ) {
+                        $defs{$strip}{$_} =~
+                          s/\$(name|homepage|searchpage|searchpattern|imageurl|baseurl|referer|prefetch)/$defs{$strip}{$1}/g;
+                    }
+                }
+
+                #dates
+                for (
+                    qw(homepage searchpage searchpattern imageurl baseurl urlsuffix referer prefetch)
+                  )
+                {
+                    if ( $defs{$strip}{$_} ) {
+                        $defs{$strip}{$_} =~
+                          s/(\%(-?)[a-zA-Z])/strftime("$1", @localtime_today)/ge;
+                    }
+                }
+
+                # <code:> stuff
+                for (
+                    qw(homepage searchpage searchpattern imageurl baseurl urlsuffix referer)
+                  )
+                {
+                    if ( $defs{$strip}{$_} ) {
+                        $defs{$strip}{$_} =~
+                          s/<code:(.*?)(?<!\\)>/&my_eval($1)/ge;
+                    }
+                }
+
+                #sanity check vars
+                for (qw(name homepage type)) {
+                    unless ( $defs{$strip}{$_} ) {
+                        die "Error: strip $strip has no '$_' value\n";
+                    }
+                }
+
+                for (qw(homepage searchpage baseurl imageurl)) {
+                    if (    $defs{$strip}{$_}
+                        and $defs{$strip}{$_} !~ /^http:\/\//io )
+                    {
+                        die "Error: strip $strip has invalid $_\n";
+                    }
+                }
+
+                if ( $defs{$strip}{'type'} eq "search" ) {
+                    unless ( $defs{$strip}{'searchpattern'} ) {
+                        die
+                          "Error: strip $strip has no 'searchpattern' value in $defs_file\n";
+                    }
+
+                    unless ( $defs{$strip}{'searchpattern'} =~ /\(.+\)/ ) {
+                        die
+                          "Error: strip $strip has no parentheses in searchpattern\n";
+                    }
+
+                    unless ( $defs{$strip}{'matchpart'} ) {
+
+                        #die "Error: strip $strip has no 'matchpart' value in $defs_file\n";
+                        $defs{$strip}{'matchpart'} = 1;
+                    }
+
+                    if (
+                        $defs{$strip}{'imageurl'}
+                        and (  $defs{$strip}{'baseurl'}
+                            or $defs{$strip}{'urlsuffix'} )
+                      )
+                    {
+                        die
+                          "Error: strip $strip: cannot use both 'imageurl' at the same time as 'baseurl'\nor 'urlsuffix'\n";
+                    }
+                }
+                elsif ( $defs{$strip}{'type'} eq "generate" ) {
+                    unless ( $defs{$strip}{'imageurl'} ) {
+                        die
+                          "Error: strip $strip has no 'imageurl' value in $defs_file\n";
+                    }
+                }
+
+                unless ( $defs{$strip}{'provides'} ) {
+                    die
+                      "Error: strip $strip has no 'provides' value in $defs_file\n";
+                }
+
+                #debugger
+                #foreach my $strip (keys %defs) {
+                #	foreach my $key (qw(homepage searchpage searchpattern imageurl baseurl referer prefetch)) {
+                #		warn "DEBUG: $strip:$key=$defs{$strip}{$key}\n";
+                #	}
+                #	#warn "DEBUG: $strip:name=$defs{$strip}{'name'}\n";
+                #}
+
+                undef $strip;
+            }
+            elsif ( $sectype eq "group" ) {
+                chop $groups{$group}{'strips'};
+
+                unless ( $groups{$group}{'desc'} ) {
+                    $groups{$group}{'desc'} = "[No description]";
+                }
+
+                undef $group;
+            }
+
+            undef $sectype;
+        }
+        elsif ( $sectype eq "class" ) {
+            if (/^homepage\s+(.+)$/i) {
+                $classes{$class}{'homepage'} = $1;
+            }
+            elsif (/^type\s+(.+)$/i) {
+                unless ( $1 =~ /^(search|generate|flashdrm)$/io ) {
+                    die "Error: invalid type at $defs_file line $line\n";
+                }
+
+                $classes{$class}{'type'} = $1;
+            }
+            elsif (/^searchpage\s+(.+)$/i) {
+                $classes{$class}{'searchpage'} = $1;
+            }
+            elsif (/^searchpattern\s+(.+)$/i) {
+                $classes{$class}{'searchpattern'} = $1;
+            }
+            elsif (/^matchpart\s+(.+)$/i) {
+                unless ( $1 =~ /^(\d)$/ ) {
+                    die "Error: invalid 'matchpart' at $defs_file line $line\n";
+                }
+
+                $classes{$class}{'matchpart'} = $1;
+            }
+            elsif (/^baseurl\s+(.+)$/i) {
+                $classes{$class}{'baseurl'} = $1;
+            }
+            elsif (/^urlsuffix\s+(.+)$/i) {
+                $classes{$class}{'urlsufix'} = $1;
+            }
+            elsif (/^imageurl\s+(.+)$/i) {
+                $classes{$class}{'imageurl'} = $1;
+            }
+            elsif (/^referer\s+(.+)$/i) {
+                $classes{$class}{'referer'} = $1;
+            }
+            elsif (/^prefetch\s+(.+)$/i) {
+                $classes{$class}{'prefetch'} = $1;
+            }
+            elsif (/^provides\s+(.+)$/i) {
+                unless ( $1 =~ /^(any|latest)$/i ) {
+                    die "Error: invalid 'provides' at $defs_file line $line\n";
+                }
+
+                $classes{$class}{'provides'} = $1;
+            }
+            elsif (/^artist\s+(.+)$/i) {
+                $classes{$class}{'artist'} = $1;
+            }
+            elsif (/^drmurl\s+(.+)$/i) {
+                $classes{$class}{'drmurl'} = $1;
+            }
+            elsif (/^(.+)\s+?/) {
+                die "Unknown keyword '$1' at $defs_file line $line\n";
+            }
+        }
+        elsif ( $sectype eq "strip" ) {
+            if (/^name\s+(.+)$/i) {
+                $defs{$strip}{'name'} = $1;
+            }
+            elsif (/^useclass\s+(.+)$/i) {
+                unless ( defined $classes{$1} ) {
+                    die
+                      "Error: strip $strip references invalid class $1 at $defs_file line $line\n";
+                }
+
+                $defs{$strip}{'useclass'} = $1;
+            }
+            elsif (/^homepage\s+(.+)$/i) {
+                $defs{$strip}{'homepage'} = $1;
+            }
+            elsif (/^type\s+(.+)$/i) {
+                unless ( $1 =~
+                    /^(search|generate|flashdrm|search2pages|doublesearch)$/i )
+                {
+                    die "Error: invalid 'type' at $defs_file line $line\n";
+                }
+
+                $defs{$strip}{'type'} = $1;
+            }
+            elsif (/^searchpage\s+(.+)$/i) {
+                $defs{$strip}{'searchpage'} = $1;
+            }
+            elsif (/^searchpattern\s+(.+)$/i) {
+                $defs{$strip}{'searchpattern'} = $1;
+            }
+            elsif (/^searchpattern2\s+(.+)$/i) {
+                $defs{$strip}{'searchpattern2'} = $1;
+            }
+            elsif (/^matchpart\s+(.+)$/i) {
+                unless ( $1 =~ /^(\d+)$/ ) {
+                    die "Error: invalid 'matchpart' at $defs_file line $line\n";
+                }
+
+                $defs{$strip}{'matchpart'} = $1;
+            }
+            elsif (/^baseurl\s+(.+)$/i) {
+                $defs{$strip}{'baseurl'} = $1;
+            }
+            elsif (/^urlsuffix\s+(.+)$/i) {
+                $defs{$strip}{'urlsuffix'} = $1;
+            }
+            elsif (/^imageurl\s+(.+)$/i) {
+                $defs{$strip}{'imageurl'} = $1;
+            }
+            elsif (/^referer\s+(.+)$/i) {
+                $defs{$strip}{'referer'} = $1;
+            }
+            elsif (/^prefetch\s+(.+)$/i) {
+                $defs{$strip}{'prefetch'} = $1;
+            }
+            elsif (/^(\$\d)\s+(.+)$/) {
+                $defs{$strip}{$1} = $2;
+            }
+            elsif (/^provides\s+(.+)$/i) {
+                unless ( $1 =~ /^(any|latest)$/i ) {
+                    die "Error: invalid 'provides' at $defs_file line $line\n";
+                }
+
+                $defs{$strip}{'provides'} = $1;
+            }
+            elsif (/^artist\s+(.+)$/i) {
+                $defs{$strip}{'artist'} = $1;
+            }
+            elsif (/^(.+)\s+?/) {
+                die
+                  "Error: Unknown keyword '$1' at $defs_file line $line, in strip $strip\n";
+            }
+        }
+        elsif ( $sectype eq "group" ) {
+            if (/^desc\s+(.+)$/i) {
+                $groups{$group}{'desc'} = $1;
+            }
+            elsif (/^include\s+(.+)$/i) {
+                $groups{$group}{'strips'} .=
+                  join( ';', split( /\s+/, $1 ) ) . ";";
+            }
+            elsif (/^exclude\s+(.+)$/i) {
+                $groups{$group}{'nostrips'} .=
+                  join( ';', split( /\s+/, $1 ) ) . ";";
+            }
+            elsif (/^(.+)\s+?/) {
+                die
+                  "Error: Unknown keyword '$1' at $defs_file line $line, in group $group\n";
+            }
+        }
+    }
+
+    # Post-processing validation
+    for $group ( keys %groups ) {
+        my ( @strips, %nostrips, @okstrips );
+
+        if ( defined( $groups{$group}{'nostrips'} ) ) {
+            @strips = sort( keys(%defs) );
+            foreach ( split( /;/, $groups{$group}{'nostrips'} ) ) {
+                $nostrips{$_} = 1;
+            }
+        }
+        else {
+            @strips = split( /;/, $groups{$group}{'strips'} );
+            %nostrips = ();    #empty
+        }
+
+        foreach (@strips) {
+            unless ( $defs{$_} ) {
+                warn "Warning: group $group references non-existant strip $_\n";
+            }
+
+            next if ( $nostrips{$_} );
+            push( @okstrips, $_ );
+        }
+        $groups{$group}{'strips'} = join( ';', @okstrips );
+    }
+
 }
 
 sub my_eval {
-	my ($code) = @_;
-	
-	$code =~ s/\\\>/\>/g;
-	
-	return eval $code;
-	#print STDERR "DEBUG: eval returned: " . scalar(eval $code) . ", errors: $!\n";
+    my ($code) = @_;
+
+    $code =~ s/\\\>/\>/g;
+
+    return eval $code;
+
+    #print STDERR "DEBUG: eval returned: " . scalar(eval $code) . ", errors: $!\n";
 }
 
 sub make_avantgo_table {
-	my ($file, $file_ext) = @_;
-	my ($rows, $cols, $table);
-	
-	my $dimensions = `identify \"$file\"`;
-	
-	$dimensions =~ m/^$file (\d+)x(\d+)/;
-	my $width = $1; my $height = $2;
-	
-	if (int($width/160) != ($width/160)) {
-		$cols = int($width/160) + 1;
-	} else {
-		$cols = $width/160;
-	}
-	
-	if (int($height/160) != ($height/160)) {
-		$rows = int($height/160) + 1;
-	} else {
-		$rows = $height/160;
-	}
-	
-	my $file_base = $file; $file_base =~ s/$file_ext$//;
+    my ( $file, $file_ext ) = @_;
+    my ( $rows, $cols, $table );
 
-	$file_base =~ s/ /\%20/g;
-	
-	$table = "<table border=0 cellspacing=0 cellpadding=0>";
-	foreach my $row (0 .. ($rows-1)) {
-		$table .= "<tr>";
-		foreach my $col (0 .. ($cols-1)) {
-			$table .= "<td><img src=$file_base-" . (($row * $cols) + $col) . "$file_ext></td>";
-		
-		}
-		$table .= "</tr>";
-	}
-	$table .= "</table>";
-	
-	return $table;
+    my $dimensions = `identify \"$file\"`;
+
+    $dimensions =~ m/^$file (\d+)x(\d+)/;
+    my $width  = $1;
+    my $height = $2;
+
+    if ( int( $width / 160 ) != ( $width / 160 ) ) {
+        $cols = int( $width / 160 ) + 1;
+    }
+    else {
+        $cols = $width / 160;
+    }
+
+    if ( int( $height / 160 ) != ( $height / 160 ) ) {
+        $rows = int( $height / 160 ) + 1;
+    }
+    else {
+        $rows = $height / 160;
+    }
+
+    my $file_base = $file;
+    $file_base =~ s/$file_ext$//;
+
+    $file_base =~ s/ /\%20/g;
+
+    $table = "<table border=0 cellspacing=0 cellpadding=0>";
+    foreach my $row ( 0 .. ( $rows - 1 ) ) {
+        $table .= "<tr>";
+        foreach my $col ( 0 .. ( $cols - 1 ) ) {
+            $table .=
+                "<td><img src=$file_base-"
+              . ( ( $row * $cols ) + $col )
+              . "$file_ext></td>";
+
+        }
+        $table .= "</tr>";
+    }
+    $table .= "</table>";
+
+    return $table;
 }
 
 sub make_avantgo_files {
-	my ($file, $file_ext) = @_;
+    my ( $file, $file_ext ) = @_;
 
-	my $file_base = $file; $file_base =~ s/$file_ext$//;
+    my $file_base = $file;
+    $file_base =~ s/$file_ext$//;
 
-	system("convert -crop 160x160 \"$file\" \"$file_base-\%d$file_ext\"");
+    system("convert -crop 160x160 \"$file\" \"$file_base-\%d$file_ext\"");
 }
 
-sub get_homedir
-{
-	if ($^O =~ /Win32/ )
-	{
-		my $dir = $ENV{'USERPROFILE'};
-		if ($dir eq "") {$dir = $ENV{'WINDIR'};}
-		$dir =~ s|\\|/|g;
-		return $dir; 
-        }
-	else
-	{
-		return (getpwuid($>))[7];
-        }
+sub get_homedir {
+    if ( $^O =~ /Win32/ ) {
+        my $dir = $ENV{'USERPROFILE'};
+        if ( $dir eq "" ) { $dir = $ENV{'WINDIR'}; }
+        $dir =~ s|\\|/|g;
+        return $dir;
+    }
+    else {
+        return ( getpwuid($>) )[7];
+    }
 }

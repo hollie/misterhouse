@@ -1,3 +1,4 @@
+
 =head1 B<CCNet_Monitor>
 
 =head2 SYNOPSIS
@@ -40,168 +41,185 @@ package CCNet_Monitor;
 
 @CCNet_Monitor::ISA = ('Base_Item');
 
-sub new
-{
-        my ($class,$name,$project,$base_url,$indicator,$suspect_report) = @_;
-        my $self={};
+sub new {
+    my ( $class, $name, $project, $base_url, $indicator, $suspect_report ) = @_;
+    my $self = {};
 
-        bless $self,$class;
+    bless $self, $class;
 
-	$$self{base_url} = $base_url;
-	$$self{project} = $project;	
-	$$self{process} = "";
-	$$self{name} = $name;
-	$$self{indicator} = $indicator;
-	$$self{suspect_report} = $suspect_report;
-	$$self{previous_status} = "";
-	$$self{status} = "UNKNOWN";
+    $$self{base_url}        = $base_url;
+    $$self{project}         = $project;
+    $$self{process}         = "";
+    $$self{name}            = $name;
+    $$self{indicator}       = $indicator;
+    $$self{suspect_report}  = $suspect_report;
+    $$self{previous_status} = "";
+    $$self{status}          = "UNKNOWN";
 
-	$$self{data_file} = $main::config_parms{data_dir} . "/web/ccnet_status-" . $$self{project} . ".html";
-        return $self;
+    $$self{data_file} =
+        $main::config_parms{data_dir}
+      . "/web/ccnet_status-"
+      . $$self{project} . ".html";
+    return $self;
 }
 
-sub current_status
-{
-	my ($self,$p_status) = @_;
-	$$self{status} = $p_status if defined $p_status;
-	return $$self{status};
+sub current_status {
+    my ( $self, $p_status ) = @_;
+    $$self{status} = $p_status if defined $p_status;
+    return $$self{status};
 }
 
-sub previous_status
-{
-	my ($self,$p_status) = @_;
-	$$self{previous_status} = $p_status if defined $p_status;
-	return $$self{previous_status};
+sub previous_status {
+    my ( $self, $p_status ) = @_;
+    $$self{previous_status} = $p_status if defined $p_status;
+    return $$self{previous_status};
 }
 
-sub get_status
-{
-	my ($self) = @_;
-	my $cmd0 = "get_url " . $$self{base_url} . "/server/local/project/" . $$self{project} . "/ViewLatestBuildReport.aspx " . $$self{data_file};
-#	$$self{process} = new Process_Item("get_url " . $$self{base_url} . "/server/local/project/" . $$self{project} . "/ViewLatestBuildReport.aspx " . $$self{data_file});
-	my $cmd1 = '$' . $$self{name} . "->parse_status()";
-#	$$self{process}->add($cmd1);
-#	$$self{process}->start();
+sub get_status {
+    my ($self) = @_;
+    my $cmd0 =
+        "get_url "
+      . $$self{base_url}
+      . "/server/local/project/"
+      . $$self{project}
+      . "/ViewLatestBuildReport.aspx "
+      . $$self{data_file};
 
-	&::print_log("Retrieving ccnet status for: $$self{project}, with " . $cmd1 . ":");
-#	exec($cmd0);
-	&::run('inline',$cmd0);
-	$self->parse_status();
-	return;
+    #	$$self{process} = new Process_Item("get_url " . $$self{base_url} . "/server/local/project/" . $$self{project} . "/ViewLatestBuildReport.aspx " . $$self{data_file});
+    my $cmd1 = '$' . $$self{name} . "->parse_status()";
+
+    #	$$self{process}->add($cmd1);
+    #	$$self{process}->start();
+
+    &::print_log(
+        "Retrieving ccnet status for: $$self{project}, with " . $cmd1 . ":" );
+
+    #	exec($cmd0);
+    &::run( 'inline', $cmd0 );
+    $self->parse_status();
+    return;
 }
 
-sub parse_status
-{
-	my ($self) = @_;
-	my $l_file;
-	my @l_data;
-	my $found_status;
-	my $found_section;
-	my $section_no=0;
-	my $previous_suspect;
-	my $line_no=0;
+sub parse_status {
+    my ($self) = @_;
+    my $l_file;
+    my @l_data;
+    my $found_status;
+    my $found_section;
+    my $section_no = 0;
+    my $previous_suspect;
+    my $line_no = 0;
 
-	open(l_file,$$self{data_file});
-	while(<l_file>)
-	{
-		$line_no++;
+    open( l_file, $$self{data_file} );
+    while (<l_file>) {
+        $line_no++;
 #### Status
-#	<td class="header-title" colspan="2">BUILD SUCCESSFUL</td>
+        #	<td class="header-title" colspan="2">BUILD SUCCESSFUL</td>
 ##########
-		if (/.*class=\"header-title\"/)
-		{
-			$found_status = 1;
-			$self->previous_status($$self{status});
-			@l_data = $_ =~ /<td class=\"header-title\" colspan=\"2\">BUILD (.*)</;
-			$self->current_status($l_data[0]);
-#			$self->{status} = $l_data[0];
-			if ($self->current_status() ne 'SUCCESSFUL' or
-			( $self->previous_status() ne 'SUCCESSFUL' and $self->previous_status() ne '' and $self->current_status() eq 'SUCCESSFUL')
-			)
-			{
-				$self->notification($self->current_status());
-				if ($$self{status} ne 'SUCCESSFUL')
-				{
-					$$self{indicator}->set('ON') if defined $$self{indicator};
-				} else {
-					$$self{indicator}->set('OFF') if defined $$self{indicator};
-				}
-			}
-		}
-#### Suspects
-#  <tr class="section-evenrow">
-#    <td class="section-data" valign="top">Modified</td>
-#    <td class="section-data" valign="top">banderson</td>
-#    <td class="section-data" valign="top">/Company/ProgramSuite/trunk/Class Libraries/Company.ProgramSuite.Model/VendorAccount.cs</td>
-#    <td class="section-data" valign="top">Added TermTypeID for handling value type in serialization</td>
-#    <td class="section-data" valign="top">2007-01-31 14:17:27</td>
-#  </tr>
-#############
-		if (/.*Modifications since last build.*/ and $found_status eq 1 and $$self{suspect_report} eq 1)
-		{
-			$$self{suspects} = undef;			
-			if ($self->current_status() ne 'SUCCESSFUL')
-			{
-				&::play(mode=> wait, file => "suspects.wav");
-			}
-		}
+        if (/.*class=\"header-title\"/) {
+            $found_status = 1;
+            $self->previous_status( $$self{status} );
+            @l_data =
+              $_ =~ /<td class=\"header-title\" colspan=\"2\">BUILD (.*)</;
+            $self->current_status( $l_data[0] );
 
-		if (/.*<tr class=\"section.*row\">/ and $found_status eq 1 and $found_section ne 1 and $$self{suspect_report} eq 1)
-		{
-			$found_section=1;
-			$section_no=0;
-		}
-		if (/.*<td class=\"section-data\" valign=\"top\">/ and $found_section eq 1)
-		{
-			$section_no++;
-			if($section_no eq 2)
-			{
-				$section_no=0;
-				$found_section = 0;
-				@l_data = $_ =~ /<td class=\"section-data\" valign=\"top\">(.*)<\/td>/;
-				if ($self->current_status() ne 'SUCCESSFUL' and $previous_suspect ne $l_data[0])
-				{
-					$$self{suspects} += $l_data[0] . ",";
-					if ($l_data[0] ne "")
-					{
-						$self->notification_suspect($l_data[0]);
-					} else {
-						$self->notification_suspect('kminder');
-					}
-					$previous_suspect = $l_data[0];
-				}
-			}
-		}
-		next;
-	}
-	close(l_file);
-	&::print_log("Build:$$self{project} Status:$$self{status} Suspects:$$self{suspects} Previous:$$self{previous_status}");
-	return $self;
+            #			$self->{status} = $l_data[0];
+            if (
+                $self->current_status() ne 'SUCCESSFUL'
+                or (    $self->previous_status() ne 'SUCCESSFUL'
+                    and $self->previous_status() ne ''
+                    and $self->current_status() eq 'SUCCESSFUL' )
+              )
+            {
+                $self->notification( $self->current_status() );
+                if ( $$self{status} ne 'SUCCESSFUL' ) {
+                    $$self{indicator}->set('ON') if defined $$self{indicator};
+                }
+                else {
+                    $$self{indicator}->set('OFF') if defined $$self{indicator};
+                }
+            }
+        }
+#### Suspects
+        #  <tr class="section-evenrow">
+        #    <td class="section-data" valign="top">Modified</td>
+        #    <td class="section-data" valign="top">banderson</td>
+        #    <td class="section-data" valign="top">/Company/ProgramSuite/trunk/Class Libraries/Company.ProgramSuite.Model/VendorAccount.cs</td>
+        #    <td class="section-data" valign="top">Added TermTypeID for handling value type in serialization</td>
+        #    <td class="section-data" valign="top">2007-01-31 14:17:27</td>
+        #  </tr>
+#############
+        if (    /.*Modifications since last build.*/
+            and $found_status eq 1
+            and $$self{suspect_report} eq 1 )
+        {
+            $$self{suspects} = undef;
+            if ( $self->current_status() ne 'SUCCESSFUL' ) {
+                &::play( mode => wait, file => "suspects.wav" );
+            }
+        }
+
+        if (    /.*<tr class=\"section.*row\">/
+            and $found_status eq 1
+            and $found_section ne 1
+            and $$self{suspect_report} eq 1 )
+        {
+            $found_section = 1;
+            $section_no    = 0;
+        }
+        if ( /.*<td class=\"section-data\" valign=\"top\">/
+            and $found_section eq 1 )
+        {
+            $section_no++;
+            if ( $section_no eq 2 ) {
+                $section_no    = 0;
+                $found_section = 0;
+                @l_data =
+                  $_ =~ /<td class=\"section-data\" valign=\"top\">(.*)<\/td>/;
+                if (    $self->current_status() ne 'SUCCESSFUL'
+                    and $previous_suspect ne $l_data[0] )
+                {
+                    $$self{suspects} += $l_data[0] . ",";
+                    if ( $l_data[0] ne "" ) {
+                        $self->notification_suspect( $l_data[0] );
+                    }
+                    else {
+                        $self->notification_suspect('kminder');
+                    }
+                    $previous_suspect = $l_data[0];
+                }
+            }
+        }
+        next;
+    }
+    close(l_file);
+    &::print_log(
+        "Build:$$self{project} Status:$$self{status} Suspects:$$self{suspects} Previous:$$self{previous_status}"
+    );
+    return $self;
 }
 
+sub notification {
+    my ( $self, $p_status ) = @_;
 
-sub notification
-{
-	my ($self,$p_status) = @_;
+    my $filen;
 
-	my $filen;
+    $filen = $$self{project} . "-notification.wav";
+    &::play( mode => wait, file => $filen );
 
-	$filen = $$self{project} . "-notification.wav";
-	&::play(mode=> wait, file => $filen);
+    $filen = $$self{project} . "-" . lc($p_status) . '.wav';
+    &::play( mode => wait, file => $filen );
+    return $self;
+}
 
-	$filen = $$self{project} . "-" . lc($p_status) . '.wav';
-	&::play(mode=> wait, file => $filen);
-	return $self;
-}		
+sub notification_suspect {
+    my ( $self, $suspect ) = @_;
 
-sub notification_suspect
-{
-	my ($self,$suspect) = @_;
+    $suspect = lc($suspect);
 
-	$suspect=lc($suspect);
-#	&::play(mode=>wait,file=>$$self{project} . "-$suspect.wav");
-	&::play(mode=>wait,file=>"$suspect.wav");
-	return $self;
+    #	&::play(mode=>wait,file=>$$self{project} . "-$suspect.wav");
+    &::play( mode => wait, file => "$suspect.wav" );
+    return $self;
 }
 
 1;

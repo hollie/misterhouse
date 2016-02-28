@@ -588,12 +588,13 @@ sub CheckCmd {
          .")" );
 
       foreach my $rf_key (keys %{$$self{wireless}}){
-         if ($rf_key =~ /^${rf_id}\.?(.*)/) {
+         if ($rf_key =~ /^$rf_id\.?(.*)/) {
             my $LoopNum = 1;
             my $SensorType = 's';
-            ($LoopNum, $SensorType) = split('.', $1);
+	    my $Loopmap = $1;
+	    if ($Loopmap =~ /(\d{1,3})\.(\w{1})$/) { $LoopNum = $1; $SensorType = $2 }
+            if ($Loopmap =~ /^(\d{1,3})$/) { $LoopNum = $1 } 
             my $ZoneNum = $$self{wireless}{$rf_key};
-
             my $ZoneStatus = "ready";
             if ($status_type->{rf_low_batt} == "1") {
                $ZoneStatus = "low battery";
@@ -684,33 +685,34 @@ sub CheckCmd {
       if ( $status_type->{armed_away_flag}) {
          # TODO The setting of modes needs to be done on partitions
          my $mode = "armed away - error";
-         if (index($status_type->{alphanumeric}, "ALL SECURE")) {
+         if (index($status_type->{alphanumeric}, "ALL SECURE") >= 1) {
             $mode = "armed away";
          }
-         elsif (index($status_type->{alphanumeric}, "You may exit now")) {
+         elsif (index($status_type->{alphanumeric}, "You may exit now") >= 1) {
             $mode = "exit delay";
          }
-         elsif (index($status_type->{alphanumeric}, "or alarm occurs")) {
+         elsif (index($status_type->{alphanumeric}, "or alarm occurs") >= 1) {
             $mode = "entry delay";
          }
-         elsif (index($status_type->{alphanumeric}, "ZONE BYPASSED")) {
+         elsif (index($status_type->{alphanumeric}, "ZONE BYPASSED") >= 1) {
             $mode = "armed away - bypass";
          }
       }
 
       # ARMED HOME
+	$self->debug_log("armed_home_flag = ". $status_type->{armed_home_flag} ." Alpha status = ". $status_type->{alphanumeric} . "| stay = ". index($status_type->{alphanumeric}, "***STAY***") . " exit delay = ". index($status_type->{alphanumeric}, "You may exit now") . "entry delay = ". index($status_type->{alphanumeric}, "or alarm occurs") );
       if ( $status_type->{armed_home_flag}) {
          $mode = "armed stay - error";
-         if (index($status_type->{alphanumeric}, "You may exit now")) {
+         if (index($status_type->{alphanumeric}, "You may exit now") >= 1) {
             $mode = "exit delay";
          }
-         elsif (index($status_type->{alphanumeric}, "or alarm occurs")) {
+         elsif (index($status_type->{alphanumeric}, "or alarm occurs") >= 1) {
             $mode = "entry delay";
          }
-         elsif (index($status_type->{alphanumeric}, "ZONE BYPASSED")) {
+         elsif (index($status_type->{alphanumeric}, "ZONE BYPASSED") >= 1) {
             $mode = "armed stay - bypass";
          }
-         elsif (index($status_type->{alphanumeric}, "***STAY***")) {
+         elsif (index($status_type->{alphanumeric}, "***STAY***") >= 1) {
             $mode = "armed stay";
          }
       }
@@ -767,7 +769,9 @@ sub CheckCmd {
          $mode = "battery low";
          $self->debug_log("Panel is low on battery");;
       }
+
       if ($mode ne $self->state && $mode ne ''){
+	 $self->debug_log("Setting system state to >>>>> $mode");
          $self->set_receive($mode);
       }
    }
@@ -813,6 +817,7 @@ sub GetStatusType {
       }
       #Place message in partition if address is equal to partition, or no 
       #address is specified (system wide messages).
+	$self->debug_log(">>> Message is for Partition address: ". @addresses );
       foreach my $partition (keys %{$$self{partition_address}}){
          my $part_addr = $$self{partition_address}{$partition};
          if (grep($part_addr, @addresses) || 
@@ -852,7 +857,7 @@ sub GetStatusType {
          $message{status} = 1;
       }
    }
-   elsif ($AdemcoStr =~ /!RFX:(\d{7}),(\d{2})/) {
+   elsif ($AdemcoStr =~ /!RFX:(\d{7}),(\w{2})/) {
       $self->debug_log("Wireless status received.");
       $message{wireless} = 1;
       $message{rf_id} = $1;
@@ -991,15 +996,15 @@ sub DefineCmdMsg {
    my ($self) = @_;
    my $instance = $self->{instance};
    my %Return_Hash = (
-      "Disarm"          => $Configuration{$instance."_user_master_code"}."1",
-      "ArmAway"         => $Configuration{$instance."_user_master_code"}."2",
-      "ArmStay"         => $Configuration{$instance."_user_master_code"}."3",
-      "ArmAwayMax"      => $Configuration{$instance."_user_master_code"}."4",
-      "Test"            => $Configuration{$instance."_user_master_code"}."5",
-      "Bypass"          => $Configuration{$instance."_user_master_code"}."6#",
-      "ArmStayInstant"  => $Configuration{$instance."_user_master_code"}."7",
-      "Code"            => $Configuration{$instance."_user_master_code"}."8",
-      "Chime"           => $Configuration{$instance."_user_master_code"}."9",
+      "Disarm"          => $::config_parms{$instance."_user_master_code"}."1",
+      "ArmAway"         => $::config_parms{$instance."_user_master_code"}."2",
+      "ArmStay"         => $::config_parms{$instance."_user_master_code"}."3",
+      "ArmAwayMax"      => $::config_parms{$instance."_user_master_code"}."4",
+      "Test"            => $::config_parms{$instance."_user_master_code"}."5",
+      "Bypass"          => $::config_parms{$instance."_user_master_code"}."6#",
+      "ArmStayInstant"  => $::config_parms{$instance."_user_master_code"}."7",
+      "Code"            => $::config_parms{$instance."_user_master_code"}."8",
+      "Chime"           => $::config_parms{$instance."_user_master_code"}."9",
       "ToggleVoice"     => '#024',
       "ShowFaults"      => "*",
       "AD2Reboot"       => "=",
@@ -1007,30 +1012,30 @@ sub DefineCmdMsg {
    );
 
    my $two_digit_zone;
-   foreach my $key (keys %Configuration) {
+   foreach my $key (keys %::config_parms) {
       #Create Commands for Relays
       if ($key =~ /^${instance}_output_(\D+)_(\d+)$/){
          if ($1 eq 'co') {
-            $Return_Hash{$Configuration{$key}."c"} = $Configuration{$instance."_user_master_code"}."#70$2";
-            $Return_Hash{$Configuration{$key}."o"} = $Configuration{$instance."_user_master_code"}."#80$2";
+            $Return_Hash{$::config_parms{$key}."c"} = $::config_parms{$instance."_user_master_code"}."#70$2";
+            $Return_Hash{$::config_parms{$key}."o"} = $::config_parms{$instance."_user_master_code"}."#80$2";
          }
          elsif ($1 eq 'oc') {
-            $Return_Hash{$Configuration{$key}."o"} = $Configuration{$instance."_user_master_code"}."#80$2";
-            $Return_Hash{$Configuration{$key}."c"} = $Configuration{$instance."_user_master_code"}."#70$2";
+            $Return_Hash{$::config_parms{$key}."o"} = $::config_parms{$instance."_user_master_code"}."#80$2";
+            $Return_Hash{$::config_parms{$key}."c"} = $::config_parms{$instance."_user_master_code"}."#70$2";
          }
          elsif ($1 eq 'o') {
-            $Return_Hash{$Configuration{$key}."o"} = $Configuration{$instance."_user_master_code"}."#80$2";
+            $Return_Hash{$::config_parms{$key}."o"} = $::config_parms{$instance."_user_master_code"}."#80$2";
          }
          elsif ($1 eq 'c') {
-            $Return_Hash{$Configuration{$key}."c"} = $Configuration{$instance."_user_master_code"}."#70$2";
+            $Return_Hash{$::config_parms{$key}."c"} = $::config_parms{$instance."_user_master_code"}."#70$2";
          }
       }
       #Create Commands for Zone Expanders
       elsif ($key =~ /^${instance}_expander_(\d+)$/) {
-         $two_digit_zone = substr($Configuration{$key}, 1); #Trim leading zero
-         $Return_Hash{"exp".$Configuration{$key}."c"} = "L$two_digit_zone"."0";
-         $Return_Hash{"exp".$Configuration{$key}."f"} = "L$two_digit_zone"."1";
-         $Return_Hash{"exp".$Configuration{$key}."p"} = "L$two_digit_zone"."2"; 
+         $two_digit_zone = substr($::config_parms{$key}, 1); #Trim leading zero
+         $Return_Hash{"exp".$::config_parms{$key}."c"} = "L$two_digit_zone"."0";
+         $Return_Hash{"exp".$::config_parms{$key}."f"} = "L$two_digit_zone"."1";
+         $Return_Hash{"exp".$::config_parms{$key}."p"} = "L$two_digit_zone"."2";
       }
    }
 
@@ -1041,10 +1046,10 @@ sub output_cmd {
    my ($self, $cmd, $output) = @_;
    my $instance = $self->{instance};
    if ($cmd =~ /start/i){
-      $Configuration{$instance."_user_master_code"}."#7$output";
+      $Configuration{$instance."_user_master_code"}."#8$output";
    }
    else {
-      $Configuration{$instance."_user_master_code"}."#8$output";
+      $Configuration{$instance."_user_master_code"}."#7$output";
    }
 }
 
@@ -1136,7 +1141,7 @@ sub cmd {
       }
    }
    else {
-      $main::Serial_Ports{$instance}{'socket'}->write("$CmdStr");
+      $main::Serial_Ports{$instance}{object}->write("$CmdStr");
    }
    return "Sending to ADEMCO panel: $CmdName ($cmd)";
 }
@@ -1150,7 +1155,7 @@ Used to send commands to the interface.
 sub set {
    my ($self, $p_state, $p_setby, $p_response) = @_;
    my $instance = $$self{instance};
-   $p_state = lc($p_state);
+   ## W.G. Doesn't match hash key ## $p_state = lc($p_state);
    my $cmd = ( exists $self->{CmdMsg}->{$p_state} ) ? $self->{CmdMsg}->{$p_state} : $p_state;
    $self->debug_log(">>> Sending to ADEMCO panel              $p_state ($cmd)");
    $self->{keys_sent} = $self->{keys_sent} + length($cmd);
@@ -1169,7 +1174,7 @@ sub set {
       }
    }
    else {
-      $main::Serial_Ports{$instance}{'socket'}->write("$cmd");
+      $main::Serial_Ports{$instance}{object}->write("$cmd");
    }
    return;
 }
@@ -1760,7 +1765,7 @@ sub set {
 	if ($found_state){
 		::print_log("[AD2::Partition] Received request to "
 			. $p_state . " for partition " . $self->get_object_name);
-		$$self{interface}->cmd($p_state);
+		$$self{interface}->set($p_state);
 	}
 	else {
 	   $$self{interface}->set($p_state);   
@@ -1874,7 +1879,7 @@ sub set
       my $reported_state;
       if ($p_state =~ /^start/i || $p_state =~ /^stop/i) {
          $reported_state = $p_state;
-         $$self{interface}->output_cmd($p_state, $$self{output});
+         $$self{interface}->set(($$self{interface}->output_cmd($p_state, $$self{output})));
       } 
       else {
          # This may be an attempt to send the alarm code, not sure if this is

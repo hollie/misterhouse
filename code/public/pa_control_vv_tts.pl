@@ -31,12 +31,14 @@ SERIAL,   BW11100, pa_speaker,  Relays|PA_System, all_parents_asleep
 
 =cut
 
-my $speakers = "default,garage,dining,office,master,all,outside,all_in_and_out,all_parents_asleep,off";
+my $speakers =
+  "default,garage,dining,office,master,all,outside,all_in_and_out,all_parents_asleep,off";
 $v_pa_control = new Voice_Cmd("Set pa speaker to [$speakers]");
-if ($state = said $v_pa_control) {
+if ( $state = said $v_pa_control) {
     my $room = $state;
-    if ($state eq 'default') {
-        $room = "all"; # add more code here to determine default according to outside occupation. 
+    if ( $state eq 'default' ) {
+        $room = "all"
+          ; # add more code here to determine default according to outside occupation.
     }
     set $pa_speaker $room;
     print_log "setting pa_speaker to $room";

@@ -1,3 +1,4 @@
+
 =begin comment
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -29,6 +30,7 @@ Special Thanks to:
 use UPB_Device;
 
 use strict;
+
 package UPB_Link;
 
 @UPB_Link::ISA = ('UPB_Device');
@@ -69,42 +71,41 @@ my %message_types = (
  );
 =cut
 
-sub new
-{
-	my ($class,$p_interface,$p_networkid,$p_deviceid) = @_;
+sub new {
+    my ( $class, $p_interface, $p_networkid, $p_deviceid ) = @_;
 
-	my $self = $class->SUPER::new($p_interface,$p_networkid,$p_deviceid);
-	bless $self,$class;
-	$$self{firstOctet} = "8";
-	return $self;
+    my $self = $class->SUPER::new( $p_interface, $p_networkid, $p_deviceid );
+    bless $self, $class;
+    $$self{firstOctet} = "8";
+    return $self;
 }
 
-sub _xlate_upb_mh
-{
-	my ($self,$p_state) = @_;
+sub _xlate_upb_mh {
+    my ( $self, $p_state ) = @_;
 
-	my $state = undef;
-	$state = $self->SUPER::_xlate_upb_mh($p_state);
+    my $state = undef;
+    $state = $self->SUPER::_xlate_upb_mh($p_state);
 
-	## As link devices, we xlate activate/deactivate into ON/OFF
-	if (lc($state) eq 'activate_link') {
-		$state = 'ON';
-	} elsif (lc($state) eq 'deactivate_link') {
-		$state = 'OFF';
-	}
-	return $state;
+    ## As link devices, we xlate activate/deactivate into ON/OFF
+    if ( lc($state) eq 'activate_link' ) {
+        $state = 'ON';
+    }
+    elsif ( lc($state) eq 'deactivate_link' ) {
+        $state = 'OFF';
+    }
+    return $state;
 }
 
-sub _xlate_mh_upb
-{
-	my ($self,$p_state) = @_;
-	my $state=$p_state;
-	if (lc($p_state) eq 'on') {
-		$state = 'activate_link';
-	} elsif (lc($p_state) eq 'off') {
-		$state = 'deactivate_link';
-	}
-	return $self->SUPER::_xlate_mh_upb($state);
+sub _xlate_mh_upb {
+    my ( $self, $p_state ) = @_;
+    my $state = $p_state;
+    if ( lc($p_state) eq 'on' ) {
+        $state = 'activate_link';
+    }
+    elsif ( lc($p_state) eq 'off' ) {
+        $state = 'deactivate_link';
+    }
+    return $self->SUPER::_xlate_mh_upb($state);
 
 }
 

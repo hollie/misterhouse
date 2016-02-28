@@ -1,3 +1,4 @@
+
 =head1 B<Light_Switch_Item>
 
 =head2 SYNOPSIS
@@ -86,72 +87,83 @@ package Light_Switch_Item;
 @Light_Switch_Item::ISA = ('Base_Item');
 
 sub initialize {
-   my ($self) = @_;
-   $$self{m_write} = 0;
-   $$self{m_lockable} = 0;
-   $$self{m_lock_timeout} = 0;
-   @{$$self{m_setby}} = ('serial');
+    my ($self) = @_;
+    $$self{m_write}        = 0;
+    $$self{m_lockable}     = 0;
+    $$self{m_lock_timeout} = 0;
+    @{ $$self{m_setby} } = ('serial');
 }
 
 sub only_when_set_by {
-   my ($self, @setby) = @_;
-   push(@{$$self{m_setby}}, @setby) if (@setby);
-   return @{$$self{m_setby}};
+    my ( $self, @setby ) = @_;
+    push( @{ $$self{m_setby} }, @setby ) if (@setby);
+    return @{ $$self{m_setby} };
 }
 
 sub lockable {
-   my ($self, $lockable) = @_;
-   $$self{m_lockable} = $lockable if defined $lockable;
-   return $$self{m_lockable};
+    my ( $self, $lockable ) = @_;
+    $$self{m_lockable} = $lockable if defined $lockable;
+    return $$self{m_lockable};
 }
 
 sub lock_timeout_on {
-   my ($self, $timeout) = @_;
-   $$self{m_lock_timeout_on} = $timeout if defined $timeout;
-   $$self{m_lockable} = 1;
-   return $$self{m_lock_timeout_on};
+    my ( $self, $timeout ) = @_;
+    $$self{m_lock_timeout_on} = $timeout if defined $timeout;
+    $$self{m_lockable} = 1;
+    return $$self{m_lock_timeout_on};
 }
 
 sub lock_timeout_off {
-   my ($self, $timeout) = @_;
-   $$self{m_lock_timeout_off} = $timeout if defined $timeout;
-   $$self{m_lockable} = 1;
-   return $$self{m_lock_timeout_off};
+    my ( $self, $timeout ) = @_;
+    $$self{m_lock_timeout_off} = $timeout if defined $timeout;
+    $$self{m_lockable} = 1;
+    return $$self{m_lock_timeout_off};
 }
 
 sub lock_timeout {
-   my ($self, $timeout) = @_;
-   $$self{m_lock_timeout_on} = $timeout if defined $timeout;
-   $$self{m_lock_timeout_off} = $timeout if defined $timeout;
-   $$self{m_lockable} = 1;
-   return $$self{m_lock_timeout_on};
+    my ( $self, $timeout ) = @_;
+    $$self{m_lock_timeout_on}  = $timeout if defined $timeout;
+    $$self{m_lock_timeout_off} = $timeout if defined $timeout;
+    $$self{m_lockable}         = 1;
+    return $$self{m_lock_timeout_on};
 }
 
 sub set {
-   my ($self, $p_state, $p_setby) = @_;
-   if (ref $p_setby) {
-      if ($p_setby->can('get_set_by')) {
-         &::print_log("Light_Switch_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by) if $main::Debug{occupancy};
-      } else {
-         &::print_log("Light_Switch_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name}") if $main::Debug{occupancy};
-      }
-   }
-   return if ($p_state eq 'manual');
+    my ( $self, $p_state, $p_setby ) = @_;
+    if ( ref $p_setby ) {
+        if ( $p_setby->can('get_set_by') ) {
+            &::print_log(
+                "Light_Switch_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by "
+                  . $p_setby->get_set_by )
+              if $main::Debug{occupancy};
+        }
+        else {
+            &::print_log(
+                "Light_Switch_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name}"
+            ) if $main::Debug{occupancy};
+        }
+    }
+    return if ( $p_state eq 'manual' );
 
-   if ($p_setby and $$self{m_setby}) {
-      foreach (@{$$self{m_setby}}) {
-         if (($p_setby->get_set_by() eq $_) or ($p_setby->get_set_by() and $p_setby eq $p_setby->get_set_by())) {
-            &::print_log("Light_Switch_Item($$self{object_name}): setting state to 'pressed'") if $main::Debug{occupancy};
-            $self->SUPER::set('pressed', $p_setby);
-            last;
-         }
-      }
-   } 
+    if ( $p_setby and $$self{m_setby} ) {
+        foreach ( @{ $$self{m_setby} } ) {
+            if (
+                ( $p_setby->get_set_by() eq $_ )
+                or (    $p_setby->get_set_by()
+                    and $p_setby eq $p_setby->get_set_by() )
+              )
+            {
+                &::print_log(
+                    "Light_Switch_Item($$self{object_name}): setting state to 'pressed'"
+                ) if $main::Debug{occupancy};
+                $self->SUPER::set( 'pressed', $p_setby );
+                last;
+            }
+        }
+    }
 }
 
 1;
-
-
 
 =back
 
