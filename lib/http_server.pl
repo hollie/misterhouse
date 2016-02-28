@@ -1173,7 +1173,7 @@ sub html_response {
             #  - some browsers (audrey) do not return full referer url :(
             #    so allow for referer(url)...
             if ( my ($rurl) = $h_response =~ /^reff?erer(\S+)/ ) {
-                $Http{Referer} =~ m|(http://\S+?)/|;
+                $Http{Referer} =~ m|(https?://\S+?)/|;
                 $h_response = $1 . $rurl;
             }
             elsif ( $h_response =~ /^reff?erer/ ) {
@@ -2038,7 +2038,7 @@ eof
     $body = 'No data' unless $body;
 
     # Allow for redirect and pre-formated responses (e.g. vxml response)
-    return http_redirect($body) if $body =~ /^http:\S+$/i;
+    return http_redirect($body) if $body =~ /^https?:\S+$/i;
     return $body if $body =~ /^HTTP\//;    # HTTP/1.0 200 OK
 
     # This meta tag does not work :(
@@ -3308,7 +3308,7 @@ sub unescape {
 sub referer {
     my ($r) = @_;
     $r =~ tr/\|/?/;
-    $Http{Referer} =~ m|(http://\S+?)/|;
+    $Http{Referer} =~ m|(https?://\S+?)/|;
     $r = $1 . $r unless $r =~ /^http/;
     return $r;
 }
