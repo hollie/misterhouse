@@ -4,6 +4,7 @@
 #@ To use several groups need to be set up:
 #@   HB__<TYPE> where type is LIGHT, LOCK, FAN, GARAGEDOOR, BLINDS, SWITCH, THERMOSTAT
 #@ Thermostat control only tested with a few models. 
+#@ requires homebridge-httpmulti accessory: https://github.com/hplato/homebridge-httpmulti
 
 # TODO:
 # Status Calls: determine if an object is on or off
@@ -20,7 +21,6 @@ my $username = $config_parms{homebridge_username};
 $username = "CC:22:3D:E3:CE:30" unless ($username);
 my $version = "2";
 my $filepath = $config_parms{data_dir} . "/homebridge_config.json";
-$filepath = $config_parms{homebridge_config_dir} . "/config.json" if (defined $config_parms{homebridge_config_dir});
 my $acc_count;
 $v_generate_hb_config = new Voice_Cmd("Generate new Homebridge config.json file");
 
@@ -52,8 +52,8 @@ if (said $v_generate_hb_config) {
 sub add_group {
 	my ($type) = @_;
 	my %url_types;
-	$url_types{lock}{on} = "lock";
-	$url_types{lock}{off} = "unlock";
+	$url_types{lock}{on} = "locked";
+	$url_types{lock}{off} = "unlocked";
 	$url_types{blind}{on} = "up";
 	$url_types{blind}{off} = "down";
 	$url_types{garagedoor}{on} = "open";
@@ -115,7 +115,7 @@ sub hb_thermo_setpoint {
 			$object -> set_schedule("off");
 			$sp_delay = 5;
 		}
-		my $auto_mode = ""
+		my $auto_mode = "";
 		$auto_mode = &calc_auto_mode($value,$object->get_temp()) if ($object->get_mode() eq "auto");
 		print_log "Homebridge: Thermostat calc mode is $auto_mode" if ($auto_mode);
 		if (($object->get_mode() eq "cooling") or ($auto_mode eq "cool")) {
@@ -138,7 +138,7 @@ sub hb_thermo_setpoint {
 
 	} elsif (UNIVERSAL::isa($object,'Insteon::Thermostat')) {
 		print_log "Homebridge: Insteon Thermostat found";
-		my $auto_mode = ""
+		my $auto_mode = "";
 		$auto_mode = &calc_auto_mode($value) if ($object->get_mode() eq "auto");
 		print_log "Homebridge: Thermostat calc mode is $auto_mode" if ($auto_mode);
 		if (($object->get_mode() eq "cool") or ($auto_mode eq "cool")) {
@@ -156,6 +156,7 @@ sub calc_auto_mode {
 	
 	my $mode = "heat";
 	my $cool_threshold = 8; #set to cool if outside less
+	$cool_threshold = $config_parms{homebridge_auto_sp_threshold} if (defined $config_parms{homebridge_auto_sp_threshold});
 	my $outside = "";
 	$outside = $Weather{Outdoor} if (defined $Weather{TempOutdoor});
 	$outside = $outtemp if (defined $outtemp);
@@ -167,6 +168,5 @@ sub calc_auto_mode {
 	
 	return $mode;
 }
-
 	
 	
