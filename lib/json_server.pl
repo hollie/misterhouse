@@ -172,8 +172,8 @@ sub json_get {
         eval {
             my $json_collections = file_read($collection_file);
             $json_collections =~ s/\$config_parms\{(.+?)\}/$config_parms{$1}/gs;
-            $json_data{'collections'} = decode_json($json_collections)
-              ;    #HP, wrap this in eval to prevent MH crashes
+     		$json_collections =~ s/\$Authorized/$Authorized/gs; # needed for including current "Authorize" status
+            $json_data{'collections'} = decode_json($json_collections);    #HP, wrap this in eval to prevent MH crashes
         };
         if ($@) {
             print_log
@@ -181,7 +181,7 @@ sub json_get {
             $json_data{'collections'} =
               decode_json('{ "0" : { "name" : "error" } }')
               ;    #write a blank collection
-
+            config_checker($collection_file);
         }
     }
 
@@ -204,6 +204,7 @@ sub json_get {
             $json_data{'ia7_config'} =
               decode_json('{ "prefs" : { "status" : "error" } }')
               ;                     #write a blank collection
+        	config_checker($prefs_file);
         }
 
         # Look at the client ip overrides, and replace any pref key with the client_ip specific item
@@ -1273,6 +1274,89 @@ sub json_notification {
     }
     push @json_notifications, $data;
 }
+
+sub config_checker { 
+	my ($file) = @_;
+	
+	my (%collections, $key, $output, $temp);
+	my @data = file_read($file);
+
+
+	foreach my $row (@data) {
+  		$key = $1 if $row =~ /\"(\d+?)\" \:/;
+  		$row =~ /\"(.+?)\" \: \"(.+?)\"/ ;
+  		$collections{$key}{$1} = $2 if $1;  
+  	}
+
+	foreach my $row (@data) {
+  		$key = $1 if $row =~ /\"(\d+?)\" \:/;
+  		if ($row =~ /(\d+?)(\,|\n)/) {
+			my $sub_key = $1;
+    		my $comma = $2;
+    		$collections{$key}{children} .= "\t$1: " ;  
+			$collections{$key}{children} .= "$collections{$sub_key}{name}";
+			$collections{$key}{children} .= "\n";
+		}
+  	}
+
+ 
+	foreach $key (sort check_numerically keys %collections) {
+		$output .= "$key: $collections{$key}{name}:$collections{$key}{link}$collections{$key}{external}$collections{$key}{iframe}:$collections{$key}{comment}:$collections{$key}{mode}:$collections{$key}{children}";  
+   	}
+  
+	my ($row, $show_row, $bracket_errors, $comma_errors1, $comma_errors2, %brackets, $curly, $square);
+	$curly = 'closed';
+	$square = 'closed';
+
+	while ($row < @data) {
+  		$show_row = $row + 1;
+  		$data[$row] =~ s/\s+$//; # remove trailing spaces
+  		if ($data[$row] =~ /\{/ and $data[$row] !~ /iframe|external/) {
+    		$brackets{open_curly} ++;
+    		$bracket_errors .= "Repeated open curly bracket in line $show_row: '$data[$row]'\n" if $curly and $curly eq 'open';
+    		$curly = 'open';
+    	}
+  		if ($data[$row] =~ /\}/ and $data[$row] !~ /iframe|external/) {
+    		$brackets{close_curly} ++;
+    		$bracket_errors .= "Repeated close curly bracket in line $show_row: '$data[$row]'\n" if $curly eq 'closed';
+    		$curly = 'closed';
+  		}
+  		if ($data[$row] =~ /\[/) {
+    		$brackets{open_square} ++;
+    		$bracket_errors .= "Repeated open square bracket in line $show_row: '$data[$row]'\n" if $square eq 'open';
+    		$square = 'open';
+  		}
+  		if ($data[$row] =~ /\]/) {
+    		$brackets{close_square} ++;
+    		$bracket_errors .= "Repeated close square bracket in line $show_row: '$data[$row]'\n" if $square eq 'closed';
+    		$square = 'closed';
+  		}
+  
+  		$comma_errors1 .= $row + 1 . ": '$data[$row]'\n" if $data[$row] !~ /\, *$/ 
+     		and $data[$row + 1] !~ /(\}|\])/ 
+     		and $data[$row] !~ /\: (\{|\[)/ 
+     		and $data[$row] !~ /^\{/ 
+     		and $data[$row] !~ /\}$/;
+
+  		$comma_errors2 .= $row + 1 . ": '$data[$row]'\n" if $data[$row] =~ /\,/ and $data[$row + 1] =~ /(\}|\])\,/; 
+
+  		$row ++;
+	}
+
+	$output .= "Possible bracket errors:\n$bracket_errors Repeated brackets at the beginning and end are not errors.)\n" if $bracket_errors;
+	$output .= "The following lines should possibly have a comma at the end:\n$comma_errors1\n" if $comma_errors1;
+	$output .= "The following lines should possibly not have a comma at the end:\n$comma_errors2\n" if $comma_errors2;
+
+	$output .= "There are $brackets{open_square} '[' and $brackets{close_square} ']'.\n";
+	$output .= "There are $brackets{open_curly} '{' and $brackets{close_curly} '}'.\n";
+
+	$output .= "Documentation for creating customized links is here:\n'$Pgm_Root/docs/mh.html#customizing_the_web_interface' target=_blank>$Pgm_Root/docs/mh.html#customizing_the_web_interface";
+
+	print_log $output;
+}
+
+sub check_numerically { $a <=> $b }
+
 
 return 1;    # Make require happy
 
