@@ -33,22 +33,14 @@ use Telephony_Item;
 =cut
 
 # Use this for each of your cid hardware interfaces
-$cid_interface1 = new Telephony_Interface(
-    $config_parms{callerid_name},
-    $config_parms{callerid_port},
-    $config_parms{callerid_type}
-);
+$cid_interface1 = new Telephony_Interface($config_parms{callerid_name},$config_parms{callerid_port},$config_parms{callerid_type});
 $cid_item = new CID_Lookup($cid_interface1);
 
 my $cid_interface2;
 
 if ( $Startup and defined( $config_parms{callerid2_name} ) ) {
     print_log("Creating and adding 2nd Caller ID interface");
-    $cid_interface2 = new Telephony_Interface(
-        $config_parms{callerid2_name},
-        $config_parms{callerid2_port},
-        $config_parms{callerid2_type}
-    );
+    $cid_interface2 = new Telephony_Interface($config_parms{callerid2_name},$config_parms{callerid2_port},$config_parms{callerid2_type});
     {
         $cid_item->add($cid_interface2);
     }    # the brace brackets keep mh from pulling this line out of the loop
@@ -62,8 +54,7 @@ $PhoneKillTimer = new Timer;
 
 # These objects will enable cid logging and announcing
 $cid_log = new CID_Log($cid_item);    # Enables logging
-$cid_server =
-  new CID_Server($cid_item);   # Enables YAC, Acid, and xAP/xPL callerid clients
+$cid_server = new CID_Server($cid_item);   # Enables YAC, Acid, and xAP/xPL callerid clients
 
 # Add one of these for each YAC client:  http://www.sunflowerhead.com/software/yac
 #$cid_client1 = new CID_Server_YAC('localhost');
@@ -74,8 +65,7 @@ $cid_announce = new CID_Announce( $cid_item, 'Call from $format1' );
 #$cid_announce  = new CID_Announce($cid_item, 'Call from $first $last');
 
 # Setup commands we can use to run tests without the modem
-$cid_interface_test = new Voice_Cmd(
-    'Test callerid [0,1,2,3,4,5,6,7,8,9,offhook,UKknown,UK unknown]');
+$cid_interface_test = new Voice_Cmd('Test callerid [0,1,2,3,4,5,6,7,8,9,offhook,UKknown,UK unknown]');
 if ( defined( $state = state_now $cid_interface_test) ) {
     set_test $cid_interface1 'RING' if $state == 0;
     set_test $cid_interface1

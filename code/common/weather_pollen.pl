@@ -58,9 +58,7 @@ $v_read_pollen_forecast = new Voice_Cmd('Read pollen forecast');
 $v_read_pollen_forecast->set_info(
     "Reads out the previously fetched pollen forecast.");
 
-$p_pollen_forecast = new Process_Item(
-    "get_url http://www.wunderground.com/DisplayPollen.asp?Zipcode=$config_parms{zip_code} $pollen_file"
-);
+$p_pollen_forecast = new Process_Item("get_url http://www.wunderground.com/DisplayPollen.asp?Zipcode=$config_parms{zip_code} $pollen_file");
 
 &parse_pollen_forecast if ( ($Reload) && ( -e $pollen_file ) );
 

@@ -45,10 +45,8 @@ my $f_lingo_reboot_html =
 # noloop=stop
 
 $v_check_lingo_router = new Voice_Cmd('Check Lingo router');
-$p_check_lingo_router = new Process_Item(
-    "get_url -quiet \"$lingo_status_url\" \"$f_lingo_status_html\"");
-$p_reboot_lingo_router = new Process_Item(
-    "get_url -quiet \"$lingo_reboot_url\" \"$f_lingo_reboot_html\"");
+$p_check_lingo_router = new Process_Item("get_url -quiet \"$lingo_status_url\" \"$f_lingo_status_html\"");
+$p_reboot_lingo_router = new Process_Item("get_url -quiet \"$lingo_reboot_url\" \"$f_lingo_reboot_html\"");
 
 # Run on the 3rd minute of every 5 minute block (or when requested by
 # the voice command)

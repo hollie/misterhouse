@@ -272,9 +272,7 @@ my (
 
 if ($Reload) {
     $cd_drive_in_use    = 0;
-    $get_cdinfo_process = new Process_Item(
-        "$config_parms{mp3Rip_cdinfo} > $config_parms{mp3Rip_work_dir}/cd-info.curr"
-    );
+    $get_cdinfo_process = new Process_Item("$config_parms{mp3Rip_cdinfo} > $config_parms{mp3Rip_work_dir}/cd-info.curr");
     $cddbp = new CDDB;
     print_log "mp3Rip: cddbids still being processed: $Save{'mp3Rip_pending'}"
       if $main::Debug{mp3Rip};

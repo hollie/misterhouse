@@ -29,8 +29,7 @@ my %tvmap = qw(
 
 $TV = new IR_Item 'TV', '', 'ncpuxa', \%tvmap;
 
-$v_tv_control = new Voice_Cmd(
-    "tv [power,on,off,mute,vol+,vol-,ch+,ch-,video1,video2,video3,last,13]");
+$v_tv_control = new Voice_Cmd("tv [power,on,off,mute,vol+,vol-,ch+,ch-,video1,video2,video3,last,13]");
 
 if ( $state = said $v_tv_control) {
     print_log "Setting TV to $state";

@@ -69,19 +69,14 @@ if ( $config_parms{Earthquake_Count} ) {
     $Earthquake_Count = $config_parms{Earthquake_Count};
 }
 
-$f_earthquakes_cal_html =
-  new File_Item("$config_parms{data_dir}/web/earthquakes_cal.html");
-$f_earthquakes_cal_gif =
-  new File_Item("$config_parms{data_dir}/web/earthquakes_cal.gif");
+$f_earthquakes_cal_html = new File_Item("$config_parms{data_dir}/web/earthquakes_cal.html");
+$f_earthquakes_cal_gif = new File_Item("$config_parms{data_dir}/web/earthquakes_cal.gif");
 
 my $image;
 $p_earthquakes_image_cal = new Process_Item;
-$p_earthquakes_cal       = new Process_Item(
-    "get_url http://quake.wr.usgs.gov/recenteqs/Quakes/quakes0.htm "
-      . $f_earthquakes_cal_html->name );
+$p_earthquakes_cal       = new Process_Item("get_url http://quake.wr.usgs.gov/recenteqs/Quakes/quakes0.htm " . $f_earthquakes_cal_html->name );
 
-$v_earthquakes_cal =
-  new Voice_Cmd('[Get,Show,Read,Clear] recent California earthquakes');
+$v_earthquakes_cal = new Voice_Cmd('[Get,Show,Read,Clear] recent California earthquakes');
 $v_earthquakes_cal->set_info(
     'Display recent California earthquake information');
 $v_earthquakes_cal->set_authority('anyone');

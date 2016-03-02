@@ -32,9 +32,7 @@ sub set_alsaplayer_in_use_notify {
     $in_use_notify = $_[0];
 }
 
-$v_mp3_control_cmd = new Voice_Cmd(
-    "Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off]"
-);
+$v_mp3_control_cmd = new Voice_Cmd("Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off]");
 my $state;
 mp3_control($state) if $state = said $v_mp3_control_cmd;
 

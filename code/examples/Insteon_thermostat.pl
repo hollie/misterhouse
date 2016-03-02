@@ -1,8 +1,6 @@
 # Category=HVAC
 
-$v_test_thermostat = new Voice_Cmd(
-    "Send Thermostat cmd [poll_mode,mode_off,mode_heat,mode_cool,mode_auto,mode_pgm_heat,mode_pgm_cool,mode_pgm_auto,fan_on,fan_auto,poll_temp,poll_setpoint]"
-);
+$v_test_thermostat = new Voice_Cmd("Send Thermostat cmd [poll_mode,mode_off,mode_heat,mode_cool,mode_auto,mode_pgm_heat,mode_pgm_cool,mode_pgm_auto,fan_on,fan_auto,poll_temp,poll_setpoint]");
 
 # Create the Object in user code:
 #use Insteon_Thermostat;

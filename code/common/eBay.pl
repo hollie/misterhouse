@@ -42,53 +42,40 @@ eBay_feedback_nag=1
 $v_check_ebay = new Voice_Cmd('Check eBay');
 $v_check_ebay->set_info('Checks current eBay status');
 
-$f_ebay_login1_headers =
-  new File_Item "$config_parms{data_dir}/web/ebay_login1.headers";
-$p_ebay_login1 = new Process_Item(
-    qq[get_url -header "$f_ebay_login1_headers->{file}" "https://signin.ebay.com/ws2/eBayISAPI.dll?SignIn" "/dev/null" ]
-);
+$f_ebay_login1_headers = new File_Item "$config_parms{data_dir}/web/ebay_login1.headers";
+$p_ebay_login1 = new Process_Item(qq[get_url -header "$f_ebay_login1_headers->{file}" "https://signin.ebay.com/ws2/eBayISAPI.dll?SignIn" "/dev/null" ]);
 
-$f_ebay_login2_html =
-  new File_Item "$config_parms{data_dir}/web/ebay_login2.html";
-$f_ebay_login2_headers =
-  new File_Item "$config_parms{data_dir}/web/ebay_login2.headers";
+$f_ebay_login2_html = new File_Item "$config_parms{data_dir}/web/ebay_login2.html";
+$f_ebay_login2_headers = new File_Item "$config_parms{data_dir}/web/ebay_login2.headers";
 my $url_ebay_login2 = 'https://signin.ebay.com/ws/eBayISAPI.dll?UsingSSL=1';
 $p_ebay_login2 = new Process_Item;
 
-$f_ebay_watching =
-  new File_Item "$config_parms{data_dir}/web/ebay_watching.html";
-my $url_ebay_watching =
-  'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayWatching&ssPageName=STRK:ME:LNLK';
+$f_ebay_watching = new File_Item "$config_parms{data_dir}/web/ebay_watching.html";
+my $url_ebay_watching = 'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayWatching&ssPageName=STRK:ME:LNLK';
 $p_ebay_watching = new Process_Item;
 
 $f_ebay_bidding = new File_Item "$config_parms{data_dir}/web/ebay_bidding.html";
-my $url_ebay_bidding =
-  'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayBidding&ssPageName=STRK:ME:LNLK';
+my $url_ebay_bidding = 'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayBidding&ssPageName=STRK:ME:LNLK';
 $p_ebay_bidding = new Process_Item;
 
 $f_ebay_won = new File_Item "$config_parms{data_dir}/web/ebay_won.html";
-my $url_ebay_won =
-  'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayWon&ssPageName=STRK:ME:LNLK';
+my $url_ebay_won = 'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayWon&ssPageName=STRK:ME:LNLK';
 $p_ebay_won = new Process_Item;
 
 $f_ebay_selling = new File_Item "$config_parms{data_dir}/web/ebay_selling.html";
-my $url_ebay_selling =
-  'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBaySelling&ssPageName=STRK:ME:LNLK';
+my $url_ebay_selling = 'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBaySelling&ssPageName=STRK:ME:LNLK';
 $p_ebay_selling = new Process_Item;
 
 $f_ebay_sold = new File_Item "$config_parms{data_dir}/web/ebay_sold.html";
-my $url_ebay_sold =
-  'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBaySold&ssPageName=STRK:ME:LNLK';
+my $url_ebay_sold = 'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBaySold&ssPageName=STRK:ME:LNLK';
 $p_ebay_sold = new Process_Item;
 
 $f_ebay_unsold = new File_Item "$config_parms{data_dir}/web/ebay_unsold.html";
-my $url_ebay_unsold =
-  'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayUnsold&ssPageName=STRK:ME:LNLK';
+my $url_ebay_unsold = 'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayUnsold&ssPageName=STRK:ME:LNLK';
 $p_ebay_unsold = new Process_Item;
 
 $f_ebay_lost = new File_Item "$config_parms{data_dir}/web/ebay_lost.html";
-my $url_ebay_lost =
-  'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayLost&ssPageName=STRK:ME:LNLK';
+my $url_ebay_lost = 'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayLost&ssPageName=STRK:ME:LNLK';
 $p_ebay_lost = new Process_Item;
 
 my $ebay_cookies;

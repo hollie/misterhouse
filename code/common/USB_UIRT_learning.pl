@@ -37,8 +37,7 @@ if ($Reload) {
     $ofa_html = &ofa_html;
 }
 
-$usb_uirt_test = new Voice_Cmd(
-    "usb_uirt debug [version,raw,oldraw,uir,get config,learn,dump codes]");
+$usb_uirt_test = new Voice_Cmd("usb_uirt debug [version,raw,oldraw,uir,get config,learn,dump codes]");
 
 if ( my $state = said $usb_uirt_test) {
     USB_UIRT::get_version()    if $state eq 'version';

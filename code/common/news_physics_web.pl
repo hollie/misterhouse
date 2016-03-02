@@ -7,8 +7,7 @@
 my $f_physics_web      = "$config_parms{data_dir}/web/physics_web.txt";
 my $f_physics_web_html = "$config_parms{data_dir}/web/physics_web.html";
 
-$p_physics_web = new Process_Item(
-    "get_url http://physicsweb.org/archive/news $f_physics_web_html");
+$p_physics_web = new Process_Item("get_url http://physicsweb.org/archive/news $f_physics_web_html");
 $v_physics_web = new Voice_Cmd('[Get,Read] physics web');
 $v_physics_web->set_authority('anyone');
 

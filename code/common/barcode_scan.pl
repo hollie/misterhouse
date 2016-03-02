@@ -32,9 +32,7 @@ $barcode_mode->set_states(
 );
 $barcode_mode->set_authority('anyone');
 
-$v_barcode_mode = new Voice_Cmd(
-    'Change barcode scan to [entry,add inventory,delete inventory,query inventory,clear inventory] mode'
-);
+$v_barcode_mode = new Voice_Cmd('Change barcode scan to [entry,add inventory,delete inventory,query inventory,clear inventory] mode');
 $v_barcode_mode->set_info(
     'Controls what you want to do with barcode scans.  Web will create urls, inventory updates a database'
 );

@@ -37,8 +37,7 @@ if ($Reload) {
     $ofa_html = &ofa_html;
 }
 
-$uirt2_test = new Voice_Cmd(
-    "uirt2 debug [version,raw,uir,struct,gpio,replay,learn,dump codes]");
+$uirt2_test = new Voice_Cmd("uirt2 debug [version,raw,uir,struct,gpio,replay,learn,dump codes]");
 
 if ( my $state = said $uirt2_test) {
     UIRT2::get_version()    if $state eq 'version';

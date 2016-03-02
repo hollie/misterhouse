@@ -10,8 +10,7 @@ my $f_top10_html = "$config_parms{data_dir}/web/top10_list.html";
 
 #noloop=stop
 
-$p_top10_list = new Process_Item(
-    "get_url http://www.cbs.com/latenight/lateshow/top_ten/ $f_top10_html");
+$p_top10_list = new Process_Item("get_url http://www.cbs.com/latenight/lateshow/top_ten/ $f_top10_html");
 
 # *** Split these up for security (allow anyone to read)
 

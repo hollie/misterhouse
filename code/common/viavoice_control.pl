@@ -10,17 +10,9 @@ $v_viavoice_hello = new Voice_Cmd("[hi there,how are you]");
 $v_viavoice_hello->set_info('A dummy little test command');
 
 # Create the viavoice control phrases
-$v_viavoice_awake = new Voice_Cmd(
-    $config_parms{viavoice_awake_phrase},
-    $config_parms{viavoice_awake_response},
-    0, 'mh_activate'
-);
-$v_viavoice_asleep = new Voice_Cmd(
-    $config_parms{viavoice_asleep_phrase},
-    $config_parms{viavoice_asleep_response}
-);
-$v_viavoice_off = new Voice_Cmd( $config_parms{viavoice_off_phrase},
-    'you want the microphone off', 1 );
+$v_viavoice_awake = new Voice_Cmd($config_parms{viavoice_awake_phrase},$config_parms{viavoice_awake_response},0, 'mh_activate');
+$v_viavoice_asleep = new Voice_Cmd($config_parms{viavoice_asleep_phrase},$config_parms{viavoice_asleep_response});
+$v_viavoice_off = new Voice_Cmd( $config_parms{viavoice_off_phrase},'you want the microphone off', 1 );
 
 # Monitor the Tk button
 my ( $tk_vr_mode, $tk_vr_mode_prev );

@@ -7,9 +7,7 @@ my $f_onthisday       = "$config_parms{data_dir}/web/onthisday.txt";
 my $f_onthisday_html  = "$config_parms{data_dir}/web/onthisday.html";
 my $f_onthisday_html2 = "$config_parms{data_dir}/web/onthisday_pruned.html";
 
-$p_onthisday = new Process_Item(
-    "get_url http://www.nytimes.com/learning/general/onthisday/index.html $f_onthisday_html"
-);
+$p_onthisday = new Process_Item("get_url http://www.nytimes.com/learning/general/onthisday/index.html $f_onthisday_html");
 $v_onthisday = new Voice_Cmd('[Get,Show,Check] on this day');
 $v_onthisday->set_info('Get or display the daily calendar facts');
 $v_onthisday->set_authority('anyone');

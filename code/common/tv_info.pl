@@ -5,17 +5,11 @@
 
 $f_tv_file = new File_Item("$config_parms{data_dir}/tv_info1.txt");
 
-$p_tv_info = new Process_Item(
-    qq[get_tv_info -times all -keys "$config_parms{favorite_tv_shows}" -keyfile $config_parms{favorite_tv_shows_file} -title_only -early_am 0+6 -outfile2 $config_parms{data_dir}/web/tv_info3.txt]
-);
+$p_tv_info = new Process_Item(qq[get_tv_info -times all -keys "$config_parms{favorite_tv_shows}" -keyfile $config_parms{favorite_tv_shows_file} -title_only -early_am 0+6 -outfile2 $config_parms{data_dir}/web/tv_info3.txt]);
 
 $v_tv_results = new Voice_Cmd( 'What are the tv search results', 0 );
-$v_tv_movies1 = new Voice_Cmd(
-    "What TV movies are on channel [$config_parms{favorite_tv_channels}] tonight",
-    0
-);
-$v_tv_movies2 =
-  new Voice_Cmd( 'What TV movies are on at [6pm,7pm,8pm,9pm] tonight', 0 );
+$v_tv_movies1 = new Voice_Cmd("What TV movies are on channel [$config_parms{favorite_tv_channels}] tonight", 0 );
+$v_tv_movies2 = new Voice_Cmd( 'What TV movies are on at [6pm,7pm,8pm,9pm] tonight', 0 );
 $v_tv_movies1->set_info(
     'Looks for TV shows that are 2-3 hours in length from 6 to 10 pm, on channels:',
     0
@@ -25,9 +19,7 @@ $v_tv_movies2->set_info(
     0
 );
 
-$v_tv_shows1 = new Voice_Cmd(
-    "What TV shows are on channel [$config_parms{favorite_tv_channels}] tonight"
-);
+$v_tv_shows1 = new Voice_Cmd("What TV shows are on channel [$config_parms{favorite_tv_channels}] tonight");
 $v_tv_shows2 = new Voice_Cmd('What TV shows of interest are on today');
 $v_tv_shows1->set_info(
     "Lists all shows on from 6 to 10 pm tonight on channels:$config_parms{favorite_tv_channels}"
