@@ -40,8 +40,7 @@ if ( expired $timer_speed_check) {
 
 my $speed_benchmark_count = 0;
 
-$v_speed_benchmark =
-  new Voice_Cmd '[Start a by name,Start a by speed,Stop the] speed benchmark';
+$v_speed_benchmark = new Voice_Cmd '[Start a by name,Start a by speed,Stop the] speed benchmark';
 $v_speed_benchmark->set_info(
     'This will suspend normal mh while it benchmarks each code member individually. It can take few minutes.'
 );

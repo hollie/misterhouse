@@ -95,14 +95,12 @@ my %proxy_by_room = (
     bedroom    => 'bedroom'
 );
 
-$test_voice_proxy = new Voice_Cmd
-  'Test proxy speak to [all,livingroom,jim,sharon,kitchen,bedroom]';
+$test_voice_proxy = new Voice_Cmd 'Test proxy speak to [all,livingroom,jim,sharon,kitchen,bedroom]';
 $test_voice_proxy->tie_event(
     'speak "rooms=$state we are the borg,, you will be assimilated,, resistance is few tile"'
 );
 
-$test_play_proxy = new Voice_Cmd
-  'Test proxy play to [all,livingroom,jim,sharon,kitchen,bedroom]';
+$test_play_proxy = new Voice_Cmd 'Test proxy play to [all,livingroom,jim,sharon,kitchen,bedroom]';
 $test_play_proxy->tie_event(
     'play (rooms=> "$state", time => 60, volume => 80, file => "chimes/west30.wav")'
 );
@@ -170,8 +168,7 @@ if ( $New_Minute and $Debug{'proxy'} ) {
 
 # Proxy Server Section
 
-$proxy_server =
-  new Socket_Item( undef, undef, 'server_proxy', undef, undef, undef, "\035" );
+$proxy_server = new Socket_Item( undef, undef, 'server_proxy', undef, undef, undef, "\035" );
 
 # Allow for proxy regstration to the main mh (optional)
 # If you want this, add these mh.ini parms: mh_proxyreg_port, mh_server, and proxy_name

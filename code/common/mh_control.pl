@@ -555,8 +555,7 @@ if ($ControlX10::CM11::BACKLOG) {
 }
 
 # Repeat last spoken
-$v_repeat_last_spoken =
-  new Voice_Cmd '{Repeat your last message, What did you say}', '';
+$v_repeat_last_spoken = new Voice_Cmd '{Repeat your last message, What did you say}', '';
 $v_repeat_last_spoken->tie_event('&handle_repeat_last_spoken_state()'); # noloop
 
 sub handle_repeat_last_spoken_state() {

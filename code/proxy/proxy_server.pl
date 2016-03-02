@@ -22,8 +22,7 @@ See 'Using distributed MisterHouse proxies' in mh/docs/mh.*  for more info.
 
 =cut
 
-$proxy_server =
-  new Socket_Item( undef, undef, 'server_proxy', undef, undef, undef, "\035" );
+$proxy_server = new Socket_Item( undef, undef, 'server_proxy', undef, undef, undef, "\035" );
 
 #print '.';                      # A heartbeat
 
