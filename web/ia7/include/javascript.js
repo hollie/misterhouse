@@ -558,9 +558,25 @@ var getButtonColor = function (state) {
 	} else if (state == "motion" || state == "closed" || state == "armed" || state == "wet" || state == "fault" || state == "down" || state == "offline" || state == "locked") {
 		 color = "danger";
 	} else if (state == undefined || state == "unknown" ) {
-		 color = "info";
-	} else if (state == "low" || state == "med" || state.indexOf('%') >= 0 || state == "light") { 
+		 color = "purple";
+	} else if (state == "low" || state == "med" || state.indexOf('%') >= 0 || state == "light" || state == "heating" || state == "heat") { 
 		 color = "warning";
+	} else if (state == "cooling" || state == "cool") {
+		 color = "info";
+	}
+	if (json_store.ia7_config.state_colors[state] !== undefined) {
+		color = "purple";
+		if (json_store.ia7_config.state_colors[state] == "green") {
+			color = "success";
+		} else if (json_store.ia7_config.state_colors[state] == "red") {
+			color = "danger";
+		} else if (json_store.ia7_config.state_colors[state] == "blue") {
+			color = "info";
+		} else if (json_store.ia7_config.state_colors[state] == "orange") {
+			color = "warning";
+		} else if (json_store.ia7_config.state_colors[state] == "default") {
+			color = "default";
+		}
 	}
 	return color;
 };

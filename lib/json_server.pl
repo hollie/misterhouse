@@ -1300,9 +1300,9 @@ sub config_checker {
   	}
 
  
-	foreach $key (sort check_numerically keys %collections) {
-		$output .= "$key: $collections{$key}{name}:$collections{$key}{link}$collections{$key}{external}$collections{$key}{iframe}:$collections{$key}{comment}:$collections{$key}{mode}:$collections{$key}{children}";  
-   	}
+	#foreach $key (sort check_numerically keys %collections) {
+	#	$output .= "$key: $collections{$key}{name}:$collections{$key}{link}$collections{$key}{external}$collections{$key}{iframe}:$collections{$key}{comment}:$collections{$key}{mode}:$collections{$key}{children}";  
+   	#}
   
 	my ($row, $show_row, $bracket_errors, $comma_errors1, $comma_errors2, %brackets, $curly, $square);
 	$curly = 'closed';
@@ -1343,14 +1343,12 @@ sub config_checker {
   		$row ++;
 	}
 
-	$output .= "Possible bracket errors:\n$bracket_errors Repeated brackets at the beginning and end are not errors.)\n" if $bracket_errors;
+	$output .= "Possible bracket errors:\n$bracket_errors\n" if $bracket_errors;
 	$output .= "The following lines should possibly have a comma at the end:\n$comma_errors1\n" if $comma_errors1;
 	$output .= "The following lines should possibly not have a comma at the end:\n$comma_errors2\n" if $comma_errors2;
 
 	$output .= "There are $brackets{open_square} '[' and $brackets{close_square} ']'.\n";
 	$output .= "There are $brackets{open_curly} '{' and $brackets{close_curly} '}'.\n";
-
-	$output .= "Documentation for creating customized links is here:\n'$Pgm_Root/docs/mh.html#customizing_the_web_interface' target=_blank>$Pgm_Root/docs/mh.html#customizing_the_web_interface";
 
 	print_log $output;
 }
