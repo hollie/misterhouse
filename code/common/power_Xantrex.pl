@@ -85,10 +85,8 @@ if ( $data = said $xangt30inv ) {
             $ROM_XVer       = $3;
             $ROM_PVer       = $4;
             $ResponseParsed = 1;
-            print_log
-              "XanGT3.0 ROM Versions: B=$ROM_BVer, M=$ROM_MVer, X=$ROM_XVer, P=$ROM_PVer.";
-            speak
-              "XanGT3.0 ROM Versions: B=$ROM_BVer, M=$ROM_MVer, X=$ROM_XVer, P=$ROM_PVer.";
+            print_log "XanGT3.0 ROM Versions: B=$ROM_BVer, M=$ROM_MVer, X=$ROM_XVer, P=$ROM_PVer.";
+            speak "XanGT3.0 ROM Versions: B=$ROM_BVer, M=$ROM_MVer, X=$ROM_XVer, P=$ROM_PVer.";
         }
     }
 
@@ -98,10 +96,8 @@ if ( $data = said $xangt30inv ) {
             $idn_X_No       = $2;
             $idn_SerNo      = $3;
             $ResponseParsed = 1;
-            print_log
-              "XanGT3.0 IDs: Model=$idn_ModelNo, X=$idn_X_No, Serial=$idn_SerNo.";
-            speak
-              "XanGT3.0 IDs: Model=$idn_ModelNo, X=$idn_X_No, Serial=$idn_SerNo.";
+            print_log "XanGT3.0 IDs: Model=$idn_ModelNo, X=$idn_X_No, Serial=$idn_SerNo.";
+            speak "XanGT3.0 IDs: Model=$idn_ModelNo, X=$idn_X_No, Serial=$idn_SerNo.";
         }
     }
 
@@ -174,10 +170,8 @@ if ( $data = said $xangt30inv ) {
             $MEASIN_Current = $2;
             $MEASIN_Power   = $3;
             $ResponseParsed = 1;
-            print_log
-              "XanGT3.0 MEASIN voltage=$MEASIN_Voltage V, current=$MEASIN_Current A, power=$MEASIN_Power W.";
-            speak
-              "XanGT3.0 MEASIN voltage=$MEASIN_Voltage V, current=$MEASIN_Current A, power=$MEASIN_Power W.";
+            print_log "XanGT3.0 MEASIN voltage=$MEASIN_Voltage V, current=$MEASIN_Current A, power=$MEASIN_Power W.";
+            speak "XanGT3.0 MEASIN voltage=$MEASIN_Voltage V, current=$MEASIN_Current A, power=$MEASIN_Power W.";
         }
     }
 
@@ -201,24 +195,19 @@ if ( $data = said $xangt30inv ) {
             $MPPTSTAT_TD_param = $2;
             $MPPTSTAT_PL_param = $3;
             $ResponseParsed    = 1;
-            print_log
-              "XanGT3.0 MPPTSTAT (peak power) voltage=$MPPTSTAT_Voltage, TD=$MPPTSTAT_TD_param, PL=$MPPTSTAT_PL_param.";
-            speak
-              "XanGT3.0 MPPTSTAT (peak power) voltage=$MPPTSTAT_Voltage, TD=$MPPTSTAT_TD_param, PL=$MPPTSTAT_PL_param.";
+            print_log "XanGT3.0 MPPTSTAT (peak power) voltage=$MPPTSTAT_Voltage, TD=$MPPTSTAT_TD_param, PL=$MPPTSTAT_PL_param.";
+            speak "XanGT3.0 MPPTSTAT (peak power) voltage=$MPPTSTAT_Voltage, TD=$MPPTSTAT_TD_param, PL=$MPPTSTAT_PL_param.";
         }
     }
 
     if ( $command eq "POWSEQ" ) {
-        if ( $data =~ /^ST:([^ ]+) STS:([^ ]+ [^ ]+ [^ ]+ [^ ]+) FA:([^ ]+)$/ )
-        {
+        if ( $data =~ /^ST:([^ ]+) STS:([^ ]+ [^ ]+ [^ ]+ [^ ]+) FA:([^ ]+)$/ ) {
             $POWSEQ_ST_param  = $1;
             $POWSEQ_STS_param = $2;
             $POWSEQ_FA_param  = $3;
             $ResponseParsed   = 1;
-            print_log
-              "XanGT3.0 POWSEQ ST=$POWSEQ_ST_param, STS=$POWSEQ_STS_param, FA=$POWSEQ_FA_param.";
-            speak
-              "XanGT3.0 POWSEQ ST=$POWSEQ_ST_param, STS=$POWSEQ_STS_param, FA=$POWSEQ_FA_param.";
+            print_log "XanGT3.0 POWSEQ ST=$POWSEQ_ST_param, STS=$POWSEQ_STS_param, FA=$POWSEQ_FA_param.";
+            speak "XanGT3.0 POWSEQ ST=$POWSEQ_ST_param, STS=$POWSEQ_STS_param, FA=$POWSEQ_FA_param.";
         }
     }
 
@@ -237,8 +226,7 @@ if ( $data = said $xangt30inv ) {
             $ResponseParsed     = 1;
             print_log
               "XanGT3.0 unit power=$MEASENGY_UnitPower W, daily total=$MEASENGY_UnitTotal kWh, life=$MEASENGY_UnitLife kWh.";
-            speak
-              "XanGT3.0 unit power=$MEASENGY_UnitPower W, daily total=$MEASENGY_UnitTotal kWh, life=$MEASENGY_UnitLife kWh.";
+            speak "XanGT3.0 unit power=$MEASENGY_UnitPower W, daily total=$MEASENGY_UnitTotal kWh, life=$MEASENGY_UnitLife kWh.";
         }
     }
 
@@ -254,18 +242,14 @@ if ( $data = said $xangt30inv ) {
             $MEASTEMP_HeatsinkTemp_degC = $1;
             $MEASTEMP_HeatsinkTemp_degF = $2;
             $ResponseParsed             = 1;
-            print_log
-              "XanGT3.0 heatsink temp=$MEASTEMP_HeatsinkTemp_degF degF ($MEASTEMP_HeatsinkTemp_degC degC).";
-            speak
-              "XanGT3.0 heatsink temp=$MEASTEMP_HeatsinkTemp_degF degF ($MEASTEMP_HeatsinkTemp_degC degC).";
+            print_log "XanGT3.0 heatsink temp=$MEASTEMP_HeatsinkTemp_degF degF ($MEASTEMP_HeatsinkTemp_degC degC).";
+            speak "XanGT3.0 heatsink temp=$MEASTEMP_HeatsinkTemp_degF degF ($MEASTEMP_HeatsinkTemp_degC degC).";
         }
     }
 
     if ( $ResponseParsed != 1 ) {
-        print_log
-          "XanGT3.0 serial input parsing error: command=$command data=$data";
-        speak
-          "XanGT3.0 serial input parsing error: command=$command data=$data";
+        print_log "XanGT3.0 serial input parsing error: command=$command data=$data";
+        speak "XanGT3.0 serial input parsing error: command=$command data=$data";
     }
 }
 

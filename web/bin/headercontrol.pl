@@ -17,8 +17,7 @@ if ( $function eq 'func=save_header_control_list' ) {
     &save_header_control_list(@parms);
 }
 
-my $phone_dir =
-  "$config_parms{data_dir}/headerallow.tab";    # Avoid redefined sub msgs
+my $phone_dir = "$config_parms{data_dir}/headerallow.tab";                  # Avoid redefined sub msgs
 my $form_type = &html_form_select( 'type', 0, 'True', 'True', 'False', );
 return &headercontrol_list();
 my $GuestValueTrue;
@@ -39,8 +38,7 @@ sub headercontrol_list {
     my $html_calls;
     my @calls = &read_headercontrol_list;
     for my $r (@calls) {
-        my ( $HeaderName, $family, $guest ) =
-          $r =~ /Name=(.*) Family=(.*) Guest=(.*)/;
+        my ( $HeaderName, $family, $guest ) = $r =~ /Name=(.*) Family=(.*) Guest=(.*)/;
 
         #print "$HeaderName, $family, $guest\n";
         if ( $Authorized eq 'admin' ) {
@@ -131,8 +129,7 @@ sub save_header_control_list {
 
             #print_log "counter is $counter:$writedata";
             #now we need to write this to the file
-            my ( $HeaderToWrite, $FamilyValue, $junk, $GuestValue ) =
-              $writedata =~ /(.*)=(true|false)(.*)=(true|false)/i;
+            my ( $HeaderToWrite, $FamilyValue, $junk, $GuestValue ) = $writedata =~ /(.*)=(true|false)(.*)=(true|false)/i;
 
             #print_log "Header:$HeaderToWrite, $FamilyValue, $GuestValue";
             my $WritingData = "$HeaderToWrite\t$FamilyValue\t$GuestValue";
@@ -194,8 +191,7 @@ sub read_headercontrol_list {
         #ok, we have the number and name is filled with the rest, lets break up name a little
 
         #print_log "HeaderName;$HeaderName, Family;$family, Guest;$guest\n";
-        push @header,
-          sprintf( "Name=%s Family=%s Guest=%s", $HeaderName, $family, $guest );
+        push @header, sprintf( "Name=%s Family=%s Guest=%s", $HeaderName, $family, $guest );
 
     }
     close MYFILE;

@@ -2,9 +2,7 @@
 
 # Some simple events to debug new HomeBase subroutines
 
-$v_homebase_test = new Voice_Cmd(
-    'Test homebase [read_time,set_time,read_log,clear_log,read_flags,read_variables]'
-);
+$v_homebase_test = new Voice_Cmd( 'Test homebase [read_time,set_time,read_log,clear_log,read_flags,read_variables]' );
 
 # Put your flag names here
 my @hb_flag_names = (
@@ -21,9 +19,8 @@ my %hb_flag_values;
 
 # Put your variable names here
 my @hb_var_names = (
-    'Rain Lately',     'empty',    'Front Lamp Dim', 'HVAC MSB',
-    'HVAC LSB',        'In_Temp',  'Out_Temp',       'Humidity',
-    'Wind_Speed',      'Wind_Avg', 'Rain_Today',     'House Timer',
+    'Rain Lately',     'empty',    'Front Lamp Dim', 'HVAC MSB', 'HVAC LSB',   'In_Temp',
+    'Out_Temp',        'Humidity', 'Wind_Speed',     'Wind_Avg', 'Rain_Today', 'House Timer',
     'House Timer Set', 'Doorbell Press'
 );
 my %hb_var_values;
@@ -54,8 +51,7 @@ if ( $state = said $v_homebase_test) {
         my $count = @log;
         print "Homebase event log: $count records\n";
         for my $data (@log) {
-            &logit( "$Pgm_Root/data/logs/HomeBase.$Year_Month_Now.log",
-                $data . "\n", 2 );
+            &logit( "$Pgm_Root/data/logs/HomeBase.$Year_Month_Now.log", $data . "\n", 2 );
         }
     }
     elsif ( $state eq 'clear_log' ) {

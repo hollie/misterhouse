@@ -12,16 +12,14 @@ $v_reset_x10_states->set_info(
 
 if ($Reload) {
     my $command = 'state_now $Power_Supply =~ /restored/i';
-    &trigger_set( $command, "run_voice_cmd('Restore all X10 items')",
-        'NoExpire', 'restore x10 items' )
+    &trigger_set( $command, "run_voice_cmd('Restore all X10 items')", 'NoExpire', 'restore x10 items' )
       unless &trigger_get('restore x10 items');
 }
 
 # Events
 
 if ( said $v_reset_x10_states) {
-    $v_reset_x10_states->respond(
-        "Restoring all X10 items to previous states...");
+    $v_reset_x10_states->respond("Restoring all X10 items to previous states...");
     my ( $object_name, $object, $state, $level );
 
     # Use this if you have a Group called PFL with the list of items you wanted restored

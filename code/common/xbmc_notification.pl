@@ -30,9 +30,7 @@ sub display_xbmcosd {
     my ( $title, $text ) = @_;
 
     unless ( $config_parms{xbmc_notify_address} ) {
-        print_log(
-            "xbmc_notify_address has not been set in mh.ini, Unable to notify XBMC."
-        );
+        print_log( "xbmc_notify_address has not been set in mh.ini, Unable to notify XBMC." );
         return;
     }
 

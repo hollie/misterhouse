@@ -25,8 +25,7 @@ if ($Reload) {
     $versalink_url = "http://$versalink_host/atmstat.htm";
     set $p_get_versalink "get_url -quiet $versalink_url $f_versalink";
     &create_versalink_rrd($Time) unless -e $RRD;
-    $Included_HTML{'Internet'} .=
-      qq(<h3>Versalink Throughput<p><img src='sub;?graph_versalink_rrd()'><p>\n\n\n);
+    $Included_HTML{'Internet'} .= qq(<h3>Versalink Throughput<p><img src='sub;?graph_versalink_rrd()'><p>\n\n\n);
 }
 
 if (new_minute) {
@@ -90,10 +89,9 @@ sub create_versalink_rrd {
     RRDs::create $RRD,
       '-b', $_[0], '-s', 60,
       "DS:inbytes:COUNTER:300:U:U",
-      "DS:outbytes:COUNTER:300:U:U",
-      'RRA:AVERAGE:0.5:1:801',    # details for 6 hours (agregate 1 minute)
+      "DS:outbytes:COUNTER:300:U:U", 'RRA:AVERAGE:0.5:1:801',    # details for 6 hours (agregate 1 minute)
 
-      'RRA:MIN:0.5:2:801',        # 1 day (agregate 2 minutes)
+      'RRA:MIN:0.5:2:801',                                       # 1 day (agregate 2 minutes)
       'RRA:AVERAGE:0.5:2:801', 'RRA:MAX:0.5:2:801',;
 }
 
@@ -104,7 +102,7 @@ sub update_versalink_rrd {
     my ( $time, @data ) = @_;
 
     print "DATA INSERT : time = $time data = @data\n" if $debug;
-    RRDs::update $RRD, "$time:" . join ':', @data;    # add current data
+    RRDs::update $RRD, "$time:" . join ':', @data;               # add current data
 
     return if $err = RRDs::error and $err =~ /min.*one second step/;
     warn "$err\n" if $err;
@@ -117,16 +115,11 @@ sub graph_versalink_rrd {
     $seconds = 3600 unless $seconds;
     my $ago = $Time - $seconds;
     my ( $graph, $x, $y ) = RRDs::graph(
-        "$config_parms{data_dir}/versalink.png",
-        "--start=$ago",
-        "--end=$Time",
-        "--vertical-label=kb/s",
-        "DEF:inbytes=$RRD:inbytes:AVERAGE",
-        "CDEF:realinbytes=inbytes,8,*,1000,/",
-        "LINE1:realinbytes#FF0000:In traffic",
-        "DEF:outbytes=$RRD:outbytes:AVERAGE",
-        "CDEF:realoutbytes=outbytes,8,*,1000,/",
-        "LINE2:realoutbytes#00FF00:Out traffic",
+        "$config_parms{data_dir}/versalink.png", "--start=$ago",
+        "--end=$Time",                           "--vertical-label=kb/s",
+        "DEF:inbytes=$RRD:inbytes:AVERAGE",      "CDEF:realinbytes=inbytes,8,*,1000,/",
+        "LINE1:realinbytes#FF0000:In traffic",   "DEF:outbytes=$RRD:outbytes:AVERAGE",
+        "CDEF:realoutbytes=outbytes,8,*,1000,/", "LINE2:realoutbytes#00FF00:Out traffic",
     );
     return file_read "$config_parms{data_dir}/versalink.png";
 }

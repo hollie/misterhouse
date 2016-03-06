@@ -45,9 +45,7 @@ sub new {
     my %commands;
     my $doIt;
     my $type = uc $main::config_parms{ $portname . "_type" };
-    &main::serial_port_create( $portname,
-        $main::config_parms{ $portname . "_port" },
-        9600, 'none', 'raw' );
+    &main::serial_port_create( $portname, $main::config_parms{ $portname . "_port" }, 9600, 'none', 'raw' );
     if ( $main::Serial_Ports{$portname}{object} ) {
         push( @DSS_Ports, $portname );
     }

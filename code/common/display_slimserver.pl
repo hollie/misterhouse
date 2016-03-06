@@ -58,8 +58,7 @@ sub slimserver_display {
         for my $player ( split ',', $config_parms{slimserver_players} ) {
             $player =~ s/^\s*(.*)\s*$/$1/;
             &xAP::send( 'xPL', "slimdev-slimserv.$player",
-                'osd.basic' =>
-                  { command => 'write', text => $text, delay => $duration } );
+                'osd.basic' => { command => 'write', text => $text, delay => $duration } );
         }
     }
     else {

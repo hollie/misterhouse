@@ -41,16 +41,14 @@ undef $picturesnames;
 %picturesfiles = ();
 ( $picturesnames, %picturesfiles ) = &pictures_files;
 
-use vars '@tk_photos';  # This will be persistent across passes and code reloads
+use vars '@tk_photos';    # This will be persistent across passes and code reloads
 
 # noloop=stop
 
 # Build and search an Video database.
 # Build the pictures database
 $v_pictures_build_list = new Voice_Cmd '[Build,Load] the pictures database', '';
-$v_pictures_build_list->set_info(
-    "Builds/loads an pictures database for these directories: $config_parms{pictures_playlist_dir}"
-);
+$v_pictures_build_list->set_info( "Builds/loads an pictures database for these directories: $config_parms{pictures_playlist_dir}" );
 
 $p_pictures_build_list = new Process_Item;
 
@@ -129,8 +127,7 @@ sub pictures_files {
     return $picturesnames1, %picturesfiles1;
 }
 
-$v_pictures_playlist1 =
-  new Voice_Cmd("Set house picture player to file [$picturesnames]");
+$v_pictures_playlist1 = new Voice_Cmd("Set house picture player to file [$picturesnames]");
 set_icon $v_pictures_playlist1 'playlist';
 
 if ( $state = said $v_pictures_playlist1 ) {

@@ -133,9 +133,8 @@ $device->parity("none");
 $device->stopbits(1);
 $device->dtr_active(1) or warn "Could not set dtr_active(1)";
 $device->handshake("none");
-$device->read_char_time(0);    # don't wait for each character
-$device->read_const_time(RX_BLOCKTIME)
-  ;    # wait RX_BLOCKTIME (ms) per unfulfilled "read" call
+$device->read_char_time(0);                # don't wait for each character
+$device->read_const_time(RX_BLOCKTIME);    # wait RX_BLOCKTIME (ms) per unfulfilled "read" call
 $device->write_settings || die "Could not set up port\n";
 print "Done setting port parameters\n";
 
@@ -165,9 +164,7 @@ while ( !$ctlc ) {
         #Check to see if an entire message was received
         if ( plmValidMessage($RxMessage) ) {
             print "PLM=>" . unpack( 'H*', $RxMessage ) . "\n";
-            print Insteon::MessageDecoder::plm_decode(
-                unpack( 'H*', $RxMessage ) )
-              . "\n";
+            print Insteon::MessageDecoder::plm_decode( unpack( 'H*', $RxMessage ) ) . "\n";
             $RxMessage = '';
             $RxTimeout = RX_TIMEOUT;
         }
@@ -180,8 +177,7 @@ while ( !$ctlc ) {
     if ( $RxTimeout == 0 ) {
         print("RX Timeout; command not parsed\n");
         print( "Dumping:  " . unpack( 'H*', $RxMessage ) . "\n" );
-        print Insteon::MessageDecoder::plm_decode( unpack( 'H*', $RxMessage ) )
-          . "\n";
+        print Insteon::MessageDecoder::plm_decode( unpack( 'H*', $RxMessage ) ) . "\n";
 
         $RxMessage = '';
         $RxTimeout = RX_TIMEOUT;
@@ -192,7 +188,7 @@ while ( !$ctlc ) {
     #  but print a new line for visual separation
     my $key;
     while ( defined( $key = ReadKey(-1) ) ) {
-        if ( ( $key eq "\n" or $key eq "\r" ) and $TxMessage ne '' ) {   # enter
+        if ( ( $key eq "\n" or $key eq "\r" ) and $TxMessage ne '' ) {    # enter
             $TxMessage = insertChecksum($TxMessage)
               if ( !$parms->{'nochecksum'} );
             print "\nPLM<=" . $TxMessage . "\n";
@@ -234,7 +230,7 @@ sub plmValidMessage {
         '58' => 3,
         '60' => 9,
         '61' => 6,
-        '62' => 23,  # could get 9 or 23 (Standard or Extended Message received)
+        '62' => 23,    # could get 9 or 23 (Standard or Extended Message received)
         '63' => 5,
         '64' => 5,
         '65' => 3,

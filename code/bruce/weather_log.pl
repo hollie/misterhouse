@@ -3,11 +3,9 @@
 #@ Logs weather data
 
 # Use Generic_Item so we can save between reloads/restarts
-my @weather_vars =
-  qw(TempIndoor TempOutdoor WindChill HumidIndoor HumidOutdoor WindAvgSpeed sun_sensor);
+my @weather_vars = qw(TempIndoor TempOutdoor WindChill HumidIndoor HumidOutdoor WindAvgSpeed sun_sensor);
 $weather_stats = new Generic_Item;
-$weather_stats->restore_data( 'count',
-    ( map { $_ . '_min', $_ . '_max', $_ . '_avg' } @weather_vars ) )
+$weather_stats->restore_data( 'count', ( map { $_ . '_min', $_ . '_max', $_ . '_avg' } @weather_vars ) )
   if $Reload;
 
 # Log data and keep stats

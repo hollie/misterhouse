@@ -29,8 +29,7 @@ my %tvmap = qw(
 
 $TV = new IR_Item 'TV', '', 'ncpuxa', \%tvmap;
 
-$v_tv_control = new Voice_Cmd(
-    "tv [power,on,off,mute,vol+,vol-,ch+,ch-,video1,video2,video3,last,13]");
+$v_tv_control = new Voice_Cmd("tv [power,on,off,mute,vol+,vol-,ch+,ch-,video1,video2,video3,last,13]");
 
 if ( $state = said $v_tv_control) {
     print_log "Setting TV to $state";
@@ -99,8 +98,7 @@ my %vcrmap = qw(
 
 $VCR = new IR_Item 'VCR', '', 'ncpuxa', \%vcrmap;
 
-$v_vcr_control =
-  new Voice_Cmd("vcr [power,on,off,ch+,ch-,record,play,pause,stop,ff,rew]");
+$v_vcr_control = new Voice_Cmd("vcr [power,on,off,ch+,ch-,record,play,pause,stop,ff,rew]");
 
 if ( $state = said $v_vcr_control) {
     print_log "Setting VCR to $state";
@@ -132,8 +130,7 @@ my %cdmap = qw(
 
 $CD = new IR_Item 'CD', '', 'ncpuxa', \%cdmap;
 
-$v_cd_control =
-  new Voice_Cmd("cd [power,on,off,play,stop,track+,track-,disc+,disc-,pause]");
+$v_cd_control = new Voice_Cmd("cd [power,on,off,play,stop,track+,track-,disc+,disc-,pause]");
 
 if ( $state = said $v_cd_control) {
     print_log "Setting CD to $state";

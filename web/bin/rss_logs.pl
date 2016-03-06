@@ -53,8 +53,7 @@ my ( $log, $article ) = @ARGV;
 use vars '%rss_logs_data';
 
 if ($article) {
-    return &html_page( "RSS $log article $article",
-        "Log: $log<br>Article: $article<br>$rss_logs_data{$log}{$article}" );
+    return &html_page( "RSS $log article $article", "Log: $log<br>Article: $article<br>$rss_logs_data{$log}{$article}" );
 }
 else {
     return &rss_log($log);
@@ -70,9 +69,7 @@ sub rss_log {
     $config_parms{rss_maxitems} = 100 unless $config_parms{rss_maxitems};
     $config_parms{rss_image} = "http://misterhouse.sourceforge.net/mh_logo.gif"
       unless $config_parms{rss_image};
-    $config_parms{rss_image} =
-        "http://$config_parms{http_server}"
-      . ":$config_parms{http_port}/ia5/images/mhlogo.gif"
+    $config_parms{rss_image} = "http://$config_parms{http_server}" . ":$config_parms{http_port}/ia5/images/mhlogo.gif"
       if $config_parms{http_server}
       and $config_parms{http_port}
       and not $config_parms{rss_image};
@@ -100,8 +97,7 @@ sub rss_log {
 
     # still working on the link for each item. can we follow this particular item for more detail?
     # maybe hook up phone number entry -> address book lookup, etc. obviously TODO
-    my $rss_link =
-      "http://$config_parms{http_server}:$config_parms{http_port}/bin/rss_logs.pl?$log&";
+    my $rss_link = "http://$config_parms{http_server}:$config_parms{http_port}/bin/rss_logs.pl?$log&";
 
     print "\tparsing $log log\n" if $Debug{rss};
     my $article = 0;
@@ -114,8 +110,7 @@ sub rss_log {
         # Create rss item from each line in log
         for my $r (@calls) {
             $article++;
-            my ( $time_date, $num, $name, $line, $type ) =
-              $r =~ /date=(.+) number=(.+) name=(.+) line=(.*) type=(.*)/;
+            my ( $time_date, $num, $name, $line, $type ) = $r =~ /date=(.+) number=(.+) name=(.+) line=(.*) type=(.*)/;
             ( $time_date, $num, $name ) = $r =~ /(.+\d+:\d+:\d+) (\S+) (.+)/
               unless $name;
             next unless $num;
@@ -124,11 +119,10 @@ sub rss_log {
 
             #           print "db t=$time_date t2=$time_date2 t3=$time_date3\n";
             $rss->add_item(
-                title   => $time_date,
-                link    => $rss_link . $article,
-                pubDate => $time_date3,
-                description =>
-                  "Incoming call from $num ($name). line=$line type=$type."
+                title       => $time_date,
+                link        => $rss_link . $article,
+                pubDate     => $time_date3,
+                description => "Incoming call from $num ($name). line=$line type=$type."
             );
             $rss_logs_data{$log}{$article} = $r;
             last if $article >= $config_parms{rss_maxitems};
@@ -136,9 +130,7 @@ sub rss_log {
     }
     else {
         # Reverse logdata to show newest items first
-        for
-          my $line ( reverse file_read "$config_parms{data_dir}/logs/$log.log" )
-        {
+        for my $line ( reverse file_read "$config_parms{data_dir}/logs/$log.log" ) {
             next unless $line;
             $article++;
             my ( $time_date, $data ) = $line =~ /(.+ [AP]M) (.+)$/;

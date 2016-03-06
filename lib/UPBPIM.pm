@@ -334,8 +334,7 @@ sub _parse_data {
             #UPB No Acknowledgement
             elsif ( uc( substr( $data, 1, 1 ) ) eq 'N' ) {
                 $$self{xmit_in_progress} = 0;
-                &::print_log(
-                    "$self->object_name: Reports device does not respond");
+                &::print_log("$self->object_name: Reports device does not respond");
                 pop( @{ $$self{command_stack} } );
                 select( undef, undef, undef, .15 );
                 $self->process_command_stack();

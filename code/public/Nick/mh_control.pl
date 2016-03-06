@@ -19,16 +19,13 @@ if ( said $v_uptime) {
     my $uptime_computer = &time_diff( $Time_Boot_time, (get_tickcount) / 1000 );
 
     #   speak("I was started on $Time_Startup\n");
-    speak(
-        "I was started $uptime_pgm ago. The computer was booted $uptime_computer ago."
-    );
+    speak( "I was started $uptime_pgm ago. The computer was booted $uptime_computer ago." );
 }
 
 $v_reboot = new Voice_Cmd("Reboot the computer");
 if ( said $v_reboot and $OS_win ) {
     speak("The house computer will reboot in 5 minutes.");
-    Win32::InitiateSystemShutdown( 'HOUSE', 'Rebooting in 5 minutes',
-        300, 1, 1 );
+    Win32::InitiateSystemShutdown( 'HOUSE', 'Rebooting in 5 minutes', 300, 1, 1 );
 }
 
 # Another way might be to run the following:
@@ -143,8 +140,7 @@ if ( said $v_list_serial_Items) {
             $states .= "$$object{id_by_state}{$state}=$state, ";
         }
         $results .= sprintf( "ID:%-5s File:%-15s Object:%-15s states: %s\n",
-            $first_state, $object->{filename}, $object->{object_name},
-            $states );
+            $first_state, $object->{filename}, $object->{object_name}, $states );
     }
     display $results, 60, 'Serial Items', 'fixed';
 }

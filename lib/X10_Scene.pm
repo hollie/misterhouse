@@ -163,14 +163,11 @@ sub add {
                 &::print_log( "The x10 object ("
                       . $obj->{x10_id}
                       . ") is not a member of "
-                      . "the switchlinc family and cannot be added to this scene!"
-                );
+                      . "the switchlinc family and cannot be added to this scene!" );
             }
         }
         else {
-            &::print_log( "Unable to add object to scene "
-                  . $self->{object_name}
-                  . " because it does not have an x10 address" );
+            &::print_log( "Unable to add object to scene " . $self->{object_name} . " because it does not have an x10 address" );
         }
     }
 }
@@ -192,8 +189,7 @@ sub remove_member {
                 last if $member;
             }
             else {
-                &::print_log(
-                    "Unable to add object to scene " . $self->{object_name} );
+                &::print_log( "Unable to add object to scene " . $self->{object_name} );
             }
         }
     }
@@ -246,15 +242,13 @@ sub enroll {
                       . " during enroll with ramp_rate: "
                       . $$self{members}{$x10_obj_ref}{ramp_rate} . "\n"
                       if $main::Debug{x10_scene};
-                    $x10_obj->set( $$self{members}{$x10_obj_ref}{ramp_rate},
-                        $self );
-                    $x10_obj->set( 'set scene ramp rate', $self );
+                    $x10_obj->set( $$self{members}{$x10_obj_ref}{ramp_rate}, $self );
+                    $x10_obj->set( 'set scene ramp rate',                    $self );
                     $$self{scene_item}->set('manual');
                 }
             }
             else {
-                &::print_log(
-                    "Unable to add object to scene " . $self->{object_name} );
+                &::print_log( "Unable to add object to scene " . $self->{object_name} );
             }
         }
     }
@@ -270,17 +264,12 @@ sub resume {
             my $original_state = $$self{members}{$x10_obj_ref}{original_state};
             if ( ref $x10_obj and defined $original_state ) {
                 $x10_obj->set( $original_state, $self );
-                print "[x10_scene] Restore object ("
-                  . $x10_obj->{object_name}
-                  . ") state to scene "
-                  . $self->{object_name} . "\n"
+                print "[x10_scene] Restore object (" . $x10_obj->{object_name} . ") state to scene " . $self->{object_name} . "\n"
                   if $main::Debug{x10_scene};
             }
             else {
                 my $obj_name = ($x10_obj) ? $x10_obj->{object_name} : 'unknown';
-                print
-                  "[x10_scene] Unable to restore object ($obj_name) state to scene ("
-                  . $self->{object_name} . ")\n"
+                print "[x10_scene] Unable to restore object ($obj_name) state to scene (" . $self->{object_name} . ")\n"
                   if $main::Debug{x10_scene};
             }
         }
@@ -298,8 +287,7 @@ sub set {
            $p_setby eq $$self{scene_item}
         && $p_setby->can('get_set_by')
         && (   ( ref $p_setby->get_set_by )
-            or
-            ( $p_setby->get_set_by eq "scene [" . $self->{object_name} . "]" ) )
+            or ( $p_setby->get_set_by eq "scene [" . $self->{object_name} . "]" ) )
       )
     {
         $is_cascade = 1;
@@ -319,8 +307,7 @@ sub set {
                       $x10_obj->state;
 
                     # sync the value for the on_level to the x10 object (as it's not communicated)
-                    $x10_obj->set_receive(
-                        $$self{members}{$x10_obj_ref}{on_level}, $self );
+                    $x10_obj->set_receive( $$self{members}{$x10_obj_ref}{on_level}, $self );
                     print "[x10_scene] Setting "
                       . $x10_obj->{object_name} . " to "
                       . $$self{members}{$x10_obj_ref}{on_level}
@@ -329,9 +316,7 @@ sub set {
                       if $main::Debug{x10_scene};
                 }
                 else {
-                    print "[x10_scene] Unable to maintain scene ("
-                      . $self->{object_name}
-                      . ") state for object\n"
+                    print "[x10_scene] Unable to maintain scene (" . $self->{object_name} . ") state for object\n"
                       if $main::Debug{x10_scene};
                 }
             }
@@ -352,9 +337,7 @@ sub set {
                       if $main::Debug{x10_scene};
                 }
                 else {
-                    print "[x10_scene] Unable to maintain scene ("
-                      . $self->{object_name}
-                      . ") state for object\n"
+                    print "[x10_scene] Unable to maintain scene (" . $self->{object_name} . ") state for object\n"
                       if $main::Debug{x10_scene};
                 }
             }
@@ -364,41 +347,30 @@ sub set {
         # create a "special" setby name as the tied_items in the main loop would otherwise
         # prohibit using $self if the passed $p_setby is not an object; if it is an object
         # then preserve as the setby chain needs to be maintained
-        my $m_setby =
-          ( ref $p_setby ) ? $p_setby : "scene [" . $self->{object_name} . "]";
+        my $m_setby = ( ref $p_setby ) ? $p_setby : "scene [" . $self->{object_name} . "]";
         if ( $p_state eq 'on' ) {
             $$self{scene_item}->set( 'on', $m_setby );
-            print "[x10_scene] Setting scene ("
-              . $self->{object_name}
-              . ") on\n"
+            print "[x10_scene] Setting scene (" . $self->{object_name} . ") on\n"
               if $main::Debug{x10_scene};
         }
         elsif ( $p_state eq 'off' ) {
             $$self{scene_item}->set( 'off', $m_setby );
-            print "[x10_scene] Setting scene ("
-              . $self->{object_name}
-              . ") off\n"
+            print "[x10_scene] Setting scene (" . $self->{object_name} . ") off\n"
               if $main::Debug{x10_scene};
         }
         elsif ( $p_state eq 'brighten' ) {
             $$self{scene_item}->set( 'brighten', $m_setby );
-            print "[x10_scene] Setting scene ("
-              . $self->{object_name}
-              . ") brighten\n"
+            print "[x10_scene] Setting scene (" . $self->{object_name} . ") brighten\n"
               if $main::Debug{x10_scene};
         }
         elsif ( $p_state eq 'dim' ) {
             $$self{scene_item}->set( 'dim', $m_setby );
-            print "[x10_scene] Setting scene ("
-              . $self->{object_name}
-              . ") dim\n"
+            print "[x10_scene] Setting scene (" . $self->{object_name} . ") dim\n"
               if $main::Debug{x10_scene};
         }
         elsif ( $p_state eq 'resume' ) {
             $self->resume();
-            print "[x10_scene] Setting scene ("
-              . $self->{object_name}
-              . ") resume\n"
+            print "[x10_scene] Setting scene (" . $self->{object_name} . ") resume\n"
               if $main::Debug{x10_scene};
         }
         elsif ( $p_state eq 'manual' ) {

@@ -100,8 +100,7 @@ sub new {
     $self->{data}                 = undef;
     $self->{child_object}         = undef;
     $self->{config}->{cache_time} = 5;
-    $self->{config}->{cache_time} =
-      $::config_params{OpenSprinkler_config_cache_time}
+    $self->{config}->{cache_time} = $::config_params{OpenSprinkler_config_cache_time}
       if defined $::config_params{OpenSprinkler_config_cache_time};
     $self->{config}->{tz}           = $::config_params{time_zone};
     $self->{config}->{poll_seconds} = 10;
@@ -142,11 +141,8 @@ sub _init {
 
     if ($isSuccessResponse1) {
         if ($osp) {
-            main::print_log(
-                "[OpenSprinkler] OpenSprinkler found (v$osp->{hwv} / $osp->{fwv})"
-            );
-            my ( $isSuccessResponse2, $stations ) =
-              $self->_get_JSON_data('station_info');
+            main::print_log( "[OpenSprinkler] OpenSprinkler found (v$osp->{hwv} / $osp->{fwv})" );
+            my ( $isSuccessResponse2, $stations ) = $self->_get_JSON_data('station_info');
             for my $index ( 0 .. $#{ $stations->{snames} } ) {
 
                 #print "$index: $stations->{snames}[$index]\n";
@@ -180,22 +176,19 @@ sub _init {
                 $self->set( $self->{data}->{info}->{state}, 'poll' );
             }
             else {
-                main::print_log(
-                    "[OpenSprinkler] Problem retrieving initial data");
+                main::print_log("[OpenSprinkler] Problem retrieving initial data");
                 $self->{active} = 0;
                 return ('1');
             }
         }
         else {
-            main::print_log(
-                "[OpenSprinkler] Unknown device " . $self->{host} );
+            main::print_log( "[OpenSprinkler] Unknown device " . $self->{host} );
             $self->{active} = 0;
             return ('1');
         }
     }
     else {
-        main::print_log(
-            "[OpenSprinkler] Error. Unable to connect to " . $self->{host} );
+        main::print_log( "[OpenSprinkler] Error. Unable to connect to " . $self->{host} );
         $self->{active} = 0;
         return ('1');
     }
@@ -204,12 +197,10 @@ sub _init {
 sub poll {
     my ($self) = @_;
     main::print_log("[OpenSprinkler] Polling initiated") if ( $self->{debug} );
-    my ( $isSuccessResponse1, $vars )    = $self->_get_JSON_data('get_vars');
-    my ( $isSuccessResponse2, $options ) = $self->_get_JSON_data('get_options');
-    my ( $isSuccessResponse3, $stations ) =
-      $self->_get_JSON_data('get_stations');
-    my ( $isSuccessResponse4, $programs ) =
-      $self->_get_JSON_data('get_programs');
+    my ( $isSuccessResponse1, $vars )     = $self->_get_JSON_data('get_vars');
+    my ( $isSuccessResponse2, $options )  = $self->_get_JSON_data('get_options');
+    my ( $isSuccessResponse3, $stations ) = $self->_get_JSON_data('get_stations');
+    my ( $isSuccessResponse4, $programs ) = $self->_get_JSON_data('get_programs');
     if (    $isSuccessResponse1
         and $isSuccessResponse2
         and $isSuccessResponse3
@@ -236,8 +227,7 @@ sub poll {
         }
         for my $index ( 0 .. $#{ $programs->{pd} } ) {
             my $name = $programs->{pd}[$index][5];
-            print
-              "$index [flag=$programs->{pd}[$index][0]] [osname=$programs->{pd}[$index][5]] [name=$name]\n"
+            print "$index [flag=$programs->{pd}[$index][0]] [osname=$programs->{pd}[$index][5]] [name=$name]\n"
               if ( $self->{debug} );
             $self->{data}->{programs}->{$name}->{status} =
               ( $programs->{pd}[$index][0] % 2 == 1 )
@@ -259,8 +249,7 @@ sub poll {
         #print Dumper $self;
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{child_object}->{comm}->state() ne "online" ) {
-                main::print_log
-                  "[OpenSprinkler] Communication Tracking object found. Updating to online..."
+                main::print_log "[OpenSprinkler] Communication Tracking object found. Updating to online..."
                   if ( $self->{loglevel} );
                 $self->{child_object}->{comm}->set( "online", 'poll' );
             }
@@ -268,13 +257,11 @@ sub poll {
         return ('1');
     }
     else {
-        main::print_log( "[OpenSprinkler] Problem retrieving poll data from "
-              . $self->{host} );
+        main::print_log( "[OpenSprinkler] Problem retrieving poll data from " . $self->{host} );
         $self->{data}->{retry}++;
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{child_object}->{comm}->state() ne "offline" ) {
-                main::print_log
-                  "[OpenSprinkler] Communication Tracking object found. Updating to offline..."
+                main::print_log "[OpenSprinkler] Communication Tracking object found. Updating to offline..."
                   if ( $self->{loglevel} );
                 $self->{child_object}->{comm}->set( "offline", 'poll' );
             }
@@ -295,8 +282,7 @@ sub _get_JSON_data {
     $cmd = "" unless ($cmd);
     print "Opening http://$host/$rest{$mode}?pw=$password$cmd...\n"
       if ( $self->{debug} );
-    my $request =
-      HTTP::Request->new( GET => "http://$host/$rest{$mode}?pw=$password$cmd" );
+    my $request = HTTP::Request->new( GET => "http://$host/$rest{$mode}?pw=$password$cmd" );
 
     # Violate RFC 2396 by forcing broken query string. Opensprinkler expectes [ and ] in URL
     #${$request->uri} =~ s/%5B/[/;
@@ -311,13 +297,10 @@ sub _get_JSON_data {
     print 'Response code: ' . $responseCode . "\n" if $self->{debug};
     my $isSuccessResponse = $responseCode < 400;
     if ( !$isSuccessResponse ) {
-        main::print_log(
-            "[OpenSprinkler] Warning, failed to get data. Response code $responseCode"
-        );
+        main::print_log( "[OpenSprinkler] Warning, failed to get data. Response code $responseCode" );
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{child_object}->{comm}->state() ne "offline" ) {
-                main::print_log
-                  "[OpenSprinkler] Communication Tracking object found. Updating to offline..."
+                main::print_log "[OpenSprinkler] Communication Tracking object found. Updating to offline..."
                   if ( $self->{loglevel} );
                 $self->{child_object}->{comm}->set( "offline", 'poll' );
             }
@@ -327,8 +310,7 @@ sub _get_JSON_data {
     else {
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{child_object}->{comm}->state() ne "online" ) {
-                main::print_log
-                  "[OpenSprinkler] Communication Tracking object found. Updating to online..."
+                main::print_log "[OpenSprinkler] Communication Tracking object found. Updating to online..."
                   if ( $self->{loglevel} );
                 $self->{child_object}->{comm}->set( "online", 'poll' );
             }
@@ -336,8 +318,7 @@ sub _get_JSON_data {
     }
 
     return ( $isSuccessResponse, '1' )
-      if ( $cmd eq "&rbt=1" )
-      ; #kludge, reboot kills the OSP, so we don't get a return code, just always return success
+      if ( $cmd eq "&rbt=1" );    #kludge, reboot kills the OSP, so we don't get a return code, just always return success
 
     my $response;
     eval { $response = JSON::XS->new->decode( $responseObj->content ); };
@@ -357,28 +338,23 @@ sub _push_JSON_data {
 
     unless ( $self->{updating} ) {
         $self->{updating} = 1;
-        my ( $isSuccessResponse, $response ) =
-          $self->_get_JSON_data( $mode, $cmd );
+        my ( $isSuccessResponse, $response ) = $self->_get_JSON_data( $mode, $cmd );
         $self->{updating} = 0;
         if ( defined $response->{"result"} ) {
             my $result_code = 9;
             $result_code = $response->{"result"}
               if ( defined $response->{"result"} );
-            main::print_log "[OpenSprinkler] JSON fetch operation result is "
-              . $result{$result_code} . "\n"
+            main::print_log "[OpenSprinkler] JSON fetch operation result is " . $result{$result_code} . "\n"
               if ( ( $self->{loglevel} ) or ( $result_code != 1 ) );
             return ( $isSuccessResponse, $result{$result_code} );
         }
         else {
-            main::print_log(
-                "[OpenSprinkler] Warning, unknown response from data push");
+            main::print_log("[OpenSprinkler] Warning, unknown response from data push");
             return ('0');
         }
     }
     else {
-        main::print_log(
-            "[OpenSprinkler] Warning, not pushing data due to operation in progress"
-        );
+        main::print_log( "[OpenSprinkler] Warning, not pushing data due to operation in progress" );
         return ('0');
     }
 }
@@ -411,22 +387,18 @@ sub _setflag {
 sub register {
     my ( $self, $object, $type, $id ) = @_;
     if ( lc $type eq "station" ) {
-        &main::print_log(
-            "[OpenSprinkler] Registering station $id child object");
+        &main::print_log("[OpenSprinkler] Registering station $id child object");
         $self->{child_object}->{station}->{$id} = $object;
         $object->set_label( $self->{data}->{stations}->[$id]->{name} );
     }
     elsif ( lc $type eq "program" ) {
         if ( defined $self->{data}->{programs}->{$id} ) {
-            &main::print_log(
-                "[OpenSprinkler] Registering program $id child object");
+            &main::print_log("[OpenSprinkler] Registering program $id child object");
             $self->{child_object}->{program}->{$id} = $object;
             $object->set_label($id);
         }
         else {
-            &main::print_log(
-                "[OpenSprinkler] WARNING: Program $id doesn't have a corresponding program on the Opensprinkler!"
-            );
+            &main::print_log( "[OpenSprinkler] WARNING: Program $id doesn't have a corresponding program on the Opensprinkler!" );
         }
     }
     else {
@@ -443,8 +415,7 @@ sub stop_timer {
         $self->{timer}->stop() if ( $self->{timer}->active() );
     }
     else {
-        main::print_log(
-            "[OpenSprinkler] Warning, stop_timer called but timer undefined");
+        main::print_log("[OpenSprinkler] Warning, stop_timer called but timer undefined");
     }
 }
 
@@ -452,12 +423,10 @@ sub start_timer {
     my ($self) = @_;
 
     if ( defined $self->{timer} ) {
-        $self->{timer}->set( $self->{config}->{poll_seconds},
-            sub { &OpenSprinkler::_poll_check($self) }, -1 );
+        $self->{timer}->set( $self->{config}->{poll_seconds}, sub { &OpenSprinkler::_poll_check($self) }, -1 );
     }
     else {
-        main::print_log(
-            "[OpenSprinkler] Warning, start_timer called but timer undefined");
+        main::print_log("[OpenSprinkler] Warning, start_timer called but timer undefined");
     }
 }
 
@@ -480,71 +449,43 @@ sub print_info {
           . $self->{data}->{options}->{hwv}
           . " with firmware "
           . $self->{data}->{options}->{fwv} );
-    main::print_log(
-        "[OpenSprinkler] *Mode is " . $self->{data}->{info}->{state} );
+    main::print_log( "[OpenSprinkler] *Mode is " . $self->{data}->{info}->{state} );
     main::print_log( "[OpenSprinkler] Time Zone is " . $self->get_tz() );
-    main::print_log( "[OpenSprinkler] NTP Sync "
-          . $state[ $self->{data}->{options}->{ntp} ] );
-    main::print_log( "[OpenSprinkler] Use DHCP "
-          . $state[ $self->{data}->{options}->{dhcp} ] );
-    main::print_log( "[OpenSprinkler] Number of expansion boards "
-          . $self->{data}->{options}->{ext} );
-    main::print_log( "[OpenSprinkler] Station delay time "
-          . $self->{data}->{options}->{sdt} );
-    main::print_log(
-        "[OpenSprinkler] Master station " . $self->{data}->{options}->{mas} );
-    main::print_log(
-        "[OpenSprinkler] master on time " . $self->{data}->{options}->{mton} );
-    main::print_log(
-        "[OpenSprinkler] master off time " . $self->{data}->{options}->{mtof} );
-    main::print_log( "[OpenSprinkler] Rain Sensor "
-          . $state[ $self->{data}->{options}->{urs} ] );
-    main::print_log(
-        "[OpenSprinkler] *Water Level " . $self->{data}->{info}->{waterlevel} );
-    main::print_log( "[OpenSprinkler] Password is "
-          . $pwenabled[ $self->{data}->{options}->{ipas} ] );
-    main::print_log(
-        "[OpenSprinkler] Device ID " . $self->{data}->{options}->{devid} )
+    main::print_log( "[OpenSprinkler] NTP Sync " . $state[ $self->{data}->{options}->{ntp} ] );
+    main::print_log( "[OpenSprinkler] Use DHCP " . $state[ $self->{data}->{options}->{dhcp} ] );
+    main::print_log( "[OpenSprinkler] Number of expansion boards " . $self->{data}->{options}->{ext} );
+    main::print_log( "[OpenSprinkler] Station delay time " . $self->{data}->{options}->{sdt} );
+    main::print_log( "[OpenSprinkler] Master station " . $self->{data}->{options}->{mas} );
+    main::print_log( "[OpenSprinkler] master on time " . $self->{data}->{options}->{mton} );
+    main::print_log( "[OpenSprinkler] master off time " . $self->{data}->{options}->{mtof} );
+    main::print_log( "[OpenSprinkler] Rain Sensor " . $state[ $self->{data}->{options}->{urs} ] );
+    main::print_log( "[OpenSprinkler] *Water Level " . $self->{data}->{info}->{waterlevel} );
+    main::print_log( "[OpenSprinkler] Password is " . $pwenabled[ $self->{data}->{options}->{ipas} ] );
+    main::print_log( "[OpenSprinkler] Device ID " . $self->{data}->{options}->{devid} )
       if defined( $self->{data}->{options}->{devid} );
-    main::print_log(
-        "[OpenSprinkler] LCD Contrast " . $self->{data}->{options}->{con} );
-    main::print_log(
-        "[OpenSprinkler] LCD Backlight " . $self->{data}->{options}->{lit} );
-    main::print_log(
-        "[OpenSprinkler] LCD Dimming " . $self->{data}->{options}->{dim} );
-    main::print_log(
-        "[OpenSprinkler] Relay Pulse Time " . $self->{data}->{options}->{rlp} )
+    main::print_log( "[OpenSprinkler] LCD Contrast " . $self->{data}->{options}->{con} );
+    main::print_log( "[OpenSprinkler] LCD Backlight " . $self->{data}->{options}->{lit} );
+    main::print_log( "[OpenSprinkler] LCD Dimming " . $self->{data}->{options}->{dim} );
+    main::print_log( "[OpenSprinkler] Relay Pulse Time " . $self->{data}->{options}->{rlp} )
       if defined( $self->{data}->{options}->{rlp} );
-    main::print_log( "[OpenSprinkler] *Weather adjustment Method "
-          . $self->{data}->{info}->{adjustment_method} );
-    main::print_log( "[OpenSprinkler] Logging "
-          . $enabled[ $self->{data}->{options}->{lg} ] );
-    main::print_log( "[OpenSprinkler] Zone expansion boards "
-          . $self->{data}->{options}->{dexp} );
-    main::print_log( "[OpenSprinkler] Max zone expansion boards "
-          . $self->{data}->{options}->{mexp} );
+    main::print_log( "[OpenSprinkler] *Weather adjustment Method " . $self->{data}->{info}->{adjustment_method} );
+    main::print_log( "[OpenSprinkler] Logging " . $enabled[ $self->{data}->{options}->{lg} ] );
+    main::print_log( "[OpenSprinkler] Zone expansion boards " . $self->{data}->{options}->{dexp} );
+    main::print_log( "[OpenSprinkler] Max zone expansion boards " . $self->{data}->{options}->{mexp} );
 
-    main::print_log( "[OpenSprinkler] Device Time "
-          . localtime( $self->{data}->{vars}->{devt} ) );
-    main::print_log( "[OpenSprinkler] Number of 8 station boards "
-          . $self->{data}->{vars}->{nbrd} );
-    main::print_log(
-        "[OpenSprinkler] Rain delay " . $self->{data}->{vars}->{rd} );
-    main::print_log( "[OpenSprinkler] *Rain sensor status "
-          . $self->{data}->{info}->{rain_sensor_status} );
-    main::print_log(
-        "[OpenSprinkler] Location " . $self->{data}->{vars}->{loc} );
-    main::print_log(
-        "[OpenSprinkler] Wunderground key " . $self->{data}->{vars}->{wtkey} );
+    main::print_log( "[OpenSprinkler] Device Time " . localtime( $self->{data}->{vars}->{devt} ) );
+    main::print_log( "[OpenSprinkler] Number of 8 station boards " . $self->{data}->{vars}->{nbrd} );
+    main::print_log( "[OpenSprinkler] Rain delay " . $self->{data}->{vars}->{rd} );
+    main::print_log( "[OpenSprinkler] *Rain sensor status " . $self->{data}->{info}->{rain_sensor_status} );
+    main::print_log( "[OpenSprinkler] Location " . $self->{data}->{vars}->{loc} );
+    main::print_log( "[OpenSprinkler] Wunderground key " . $self->{data}->{vars}->{wtkey} );
     main::print_log( "[OpenSprinkler] *Sun Rises at " . $self->get_sunrise() );
     main::print_log( "[OpenSprinkler] *Sun Sets at " . $self->get_sunset() );
 
     if ( defined $self->{data}->{programs} ) {
         main::print_log("[OpenSprinkler] Programs found:");
         for my $key ( keys %{ $self->{data}->{programs} } ) {
-            main::print_log( "[OpenSprinkler]\t"
-                  . $key . " is "
-                  . $self->{data}->{programs}->{$key}->{status} );
+            main::print_log( "[OpenSprinkler]\t" . $key . " is " . $self->{data}->{programs}->{$key}->{status} );
         }
     }
 }
@@ -560,8 +501,7 @@ sub process_data {
         next if ( $self->{data}->{stations}->[$index]->{status} eq "disabled" );
         my $previous = "init";
         $previous = $self->{previous}->{data}->{stations}->[$index]->{state}
-          if (
-            defined $self->{previous}->{data}->{stations}->[$index]->{state} );
+          if ( defined $self->{previous}->{data}->{stations}->[$index]->{state} );
         if ( $previous ne $self->{data}->{stations}->[$index]->{state} ) {
             main::print_log(
                 "[OpenSprinkler] Station $index $self->{data}->{stations}->[$index]->{name} changed from $previous to $self->{data}->{stations}->[$index]->{state}"
@@ -571,8 +511,7 @@ sub process_data {
             if ( defined $self->{child_object}->{station}->{$index} ) {
                 main::print_log "Child object found. Updating..."
                   if ( $self->{loglevel} );
-                $self->{child_object}->{station}->{$index}
-                  ->set( $self->{data}->{stations}->[$index]->{state}, 'poll' );
+                $self->{child_object}->{station}->{$index}->set( $self->{data}->{stations}->[$index]->{state}, 'poll' );
             }
         }
     }
@@ -580,35 +519,28 @@ sub process_data {
     for my $key ( keys %{ $self->{data}->{programs} } ) {
         my $previous = "init";
         $previous = $self->{previous}->{data}->{programs}->{$key}->{status}
-          if (
-            defined $self->{previous}->{data}->{programs}->{$key}->{status} );
+          if ( defined $self->{previous}->{data}->{programs}->{$key}->{status} );
         if ( $previous ne $self->{data}->{programs}->{$key}->{status} ) {
-            main::print_log(
-                "[OpenSprinkler] Program $key changed from $previous to $self->{data}->{programs}->{$key}->{status}"
-            ) if ( $self->{loglevel} );
+            main::print_log( "[OpenSprinkler] Program $key changed from $previous to $self->{data}->{programs}->{$key}->{status}" )
+              if ( $self->{loglevel} );
             $self->{previous}->{data}->{programs}->{$key}->{status} =
               $self->{data}->{programs}->{$key}->{status};
             if ( defined $self->{child_object}->{program}->{$key} ) {
                 main::print_log "Child object found. Updating..."
                   if ( $self->{loglevel} );
-                $self->{child_object}->{program}->{$key}
-                  ->set( $self->{data}->{programs}->{$key}->{status}, 'poll' );
+                $self->{child_object}->{program}->{$key}->set( $self->{data}->{programs}->{$key}->{status}, 'poll' );
             }
         }
     }
 
-    if ( $self->{previous}->{info}->{state} ne $self->{data}->{info}->{state} )
-    {
-        main::print_log(
-            "[OpenSprinkler] State changed from $self->{previous}->{info}->{state} to $self->{data}->{info}->{state}"
-        ) if ( $self->{loglevel} );
+    if ( $self->{previous}->{info}->{state} ne $self->{data}->{info}->{state} ) {
+        main::print_log( "[OpenSprinkler] State changed from $self->{previous}->{info}->{state} to $self->{data}->{info}->{state}" )
+          if ( $self->{loglevel} );
         $self->{previous}->{info}->{state} = $self->{data}->{info}->{state};
         $self->set( $self->{data}->{info}->{state}, 'poll' );
     }
 
-    if ( $self->{previous}->{info}->{waterlevel} !=
-        $self->{data}->{info}->{waterlevel} )
-    {
+    if ( $self->{previous}->{info}->{waterlevel} != $self->{data}->{info}->{waterlevel} ) {
         main::print_log(
             "[OpenSprinkler] Waterlevel changed from $self->{previous}->{info}->{waterlevel} to $self->{data}->{info}->{waterlevel}"
         ) if ( $self->{loglevel} );
@@ -617,14 +549,11 @@ sub process_data {
         if ( defined $self->{child_object}->{waterlevel} ) {
             main::print_log "Child object found. Updating..."
               if ( $self->{loglevel} );
-            $self->{child_object}->{waterlevel}
-              ->set( $self->{data}->{info}->{waterlevel}, 'poll' );
+            $self->{child_object}->{waterlevel}->set( $self->{data}->{info}->{waterlevel}, 'poll' );
         }
     }
 
-    if ( $self->{previous}->{info}->{rain_sensor_status} ne
-        $self->{data}->{info}->{rain_sensor_status} )
-    {
+    if ( $self->{previous}->{info}->{rain_sensor_status} ne $self->{data}->{info}->{rain_sensor_status} ) {
         main::print_log(
             "[OpenSprinkler] Rain Sensor changed from $self->{previous}->{info}->{rain_sensor_status} to $self->{data}->{info}->{rain_sensor_status}"
         ) if ( $self->{loglevel} );
@@ -633,32 +562,23 @@ sub process_data {
         if ( defined $self->{child_object}->{rain_sensor_status} ) {
             main::print_log "Child object found. Updating..."
               if ( $self->{loglevel} );
-            $self->{child_object}->{rain_sensor_status}
-              ->set( $self->{data}->{info}->{rain_sensor_status}, 'poll' );
+            $self->{child_object}->{rain_sensor_status}->set( $self->{data}->{info}->{rain_sensor_status}, 'poll' );
         }
     }
 
-    if (
-        $self->{previous}->{info}->{sunset} != $self->{data}->{info}->{sunset} )
-    {
-        main::print_log(
-            "[OpenSprinkler] Sunset changed to " . $self->get_sunset() )
+    if ( $self->{previous}->{info}->{sunset} != $self->{data}->{info}->{sunset} ) {
+        main::print_log( "[OpenSprinkler] Sunset changed to " . $self->get_sunset() )
           if ( $self->{loglevel} );
         $self->{previous}->{info}->{sunset} = $self->{data}->{info}->{sunset};
     }
 
-    if ( $self->{previous}->{info}->{sunrise} !=
-        $self->{data}->{info}->{sunrise} )
-    {
-        main::print_log(
-            "[OpenSprinkler] Sunrise changed to " . $self->get_sunrise() )
+    if ( $self->{previous}->{info}->{sunrise} != $self->{data}->{info}->{sunrise} ) {
+        main::print_log( "[OpenSprinkler] Sunrise changed to " . $self->get_sunrise() )
           if ( $self->{loglevel} );
         $self->{previous}->{info}->{sunrise} = $self->{data}->{info}->{sunrise};
     }
 
-    if ( $self->{previous}->{info}->{adjustment_method} ne
-        $self->{data}->{info}->{adjustment_method} )
-    {
+    if ( $self->{previous}->{info}->{adjustment_method} ne $self->{data}->{info}->{adjustment_method} ) {
         main::print_log(
             "[OpenSprinkler] Adjustment Method changed from $self->{previous}->{info}->{adjustment_method} to $self->{data}->{info}->{adjustment_method}"
         ) if ( $self->{loglevel} );
@@ -694,8 +614,7 @@ sub set_station {
     else {
         $cmd .= "&en=0";
     }
-    my ( $isSuccessResponse, $status ) =
-      $self->_push_JSON_data( 'test_station', $cmd );
+    my ( $isSuccessResponse, $status ) = $self->_push_JSON_data( 'test_station', $cmd );
     if ($isSuccessResponse) {
 
         #print "DB status=$status\n";
@@ -704,14 +623,12 @@ sub set_station {
             return (1);
         }
         else {
-            main::print_log(
-                "[OpenSprinkler] Error. Could not set station to $state");
+            main::print_log("[OpenSprinkler] Error. Could not set station to $state");
             return (0);
         }
     }
     else {
-        main::print_log(
-            "[OpenSprinkler] Error. Could not send data to OpenSprinkler");
+        main::print_log("[OpenSprinkler] Error. Could not send data to OpenSprinkler");
         return (0);
     }
 }
@@ -729,15 +646,13 @@ sub set_program {
     return unless ( defined $self->{data}->{programs}->{$name} );
     return if ( lc $state eq $self->{data}->{programs}->{$name}->{status} );
     my $cmd = "&pid=" . $self->{data}->{programs}->{$name}->{pid};
-    $cmd .= "&v=["
-      . _setflag( $self->{data}->{programs}->{$name}->{flag}, $state ) . ",";
+    $cmd .= "&v=[" . _setflag( $self->{data}->{programs}->{$name}->{flag}, $state ) . ",";
     $cmd .= $self->{data}->{programs}->{$name}->{data} . "]";
     $cmd .= "&name=" . _url_encode($name);
 
     #print "XXXX cmd=$cmd\n";
 
-    my ( $isSuccessResponse, $status ) =
-      $self->_push_JSON_data( 'set_program', $cmd );
+    my ( $isSuccessResponse, $status ) = $self->_push_JSON_data( 'set_program', $cmd );
     if ($isSuccessResponse) {
 
         #print "DB status=$status\n";
@@ -746,14 +661,12 @@ sub set_program {
             return (1);
         }
         else {
-            main::print_log(
-                "[OpenSprinkler] Error. Could not set program to $state");
+            main::print_log("[OpenSprinkler] Error. Could not set program to $state");
             return (0);
         }
     }
     else {
-        main::print_log(
-            "[OpenSprinkler] Error. Could not send data to OpenSprinkler");
+        main::print_log("[OpenSprinkler] Error. Could not send data to OpenSprinkler");
         return (0);
     }
 }
@@ -800,8 +713,7 @@ sub reboot {
     my ($self) = @_;
 
     my $cmd = "&rbt=1";
-    my ( $isSuccessResponse, $status ) =
-      $self->_get_JSON_data( 'set_vars', $cmd );
+    my ( $isSuccessResponse, $status ) = $self->_get_JSON_data( 'set_vars', $cmd );
 
     return ($status);
 }
@@ -810,8 +722,7 @@ sub reset {
     my ($self) = @_;
 
     my $cmd = "&rsn=1";
-    my ( $isSuccessResponse, $status ) =
-      $self->_push_JSON_data( 'set_vars', $cmd );
+    my ( $isSuccessResponse, $status ) = $self->_push_JSON_data( 'set_vars', $cmd );
 
     return ($status);
 }
@@ -832,8 +743,7 @@ sub set_rain_delay {
     my ( $self, $hours ) = @_;
 
     my $cmd = "&rd=$hours";
-    my ( $isSuccessResponse, $status ) =
-      $self->_push_JSON_data( 'set_vars', $cmd );
+    my ( $isSuccessResponse, $status ) = $self->_push_JSON_data( 'set_vars', $cmd );
 
     return ($status);
 }
@@ -861,23 +771,19 @@ sub set {
 
         my $cmd = "&en=" . $en;
 
-        my ( $isSuccessResponse, $status ) =
-          $self->_get_JSON_data( 'set_vars', $cmd );
+        my ( $isSuccessResponse, $status ) = $self->_get_JSON_data( 'set_vars', $cmd );
         if ($isSuccessResponse) {
             if ( $status eq "success" ) {
                 $self->poll;
                 return (1);
             }
             else {
-                main::print_log(
-                    "[OpenSprinkler] Error. Could not set state to $p_state. Status is $status"
-                );
+                main::print_log( "[OpenSprinkler] Error. Could not set state to $p_state. Status is $status" );
                 return (0);
             }
         }
         else {
-            main::print_log(
-                "[OpenSprinkler] Error. Could not send data to OpenSprinkler");
+            main::print_log("[OpenSprinkler] Error. Could not send data to OpenSprinkler");
             return (0);
         }
     }
@@ -896,7 +802,7 @@ sub new {
     $$self{master_object} = $object;
     $$self{station}       = $number;
     push( @{ $$self{states} }, 'on', 'off' );
-    $$self{on_timeout} = 3600;    #default to an hour for 'on'
+    $$self{on_timeout} = 3600;                              #default to an hour for 'on'
     $$self{on_timeout} = $on_timeout * 60 if $on_timeout;
     $object->register( $self, 'station', $number );
     $self->set( $object->get_station($number), 'poll' );

@@ -110,10 +110,7 @@ for my $item ( sort @objects ) {
 
 #$html = "<html><body>\n<base target ='output'>\n" .
 if ($html_refrate) {
-    $htm_hdr =
-        "<html><head><meta HTTP-EQUIV=\"refresh\" CONTENT=\""
-      . $html_refrate
-      . ";\"><\/head><body>\n";
+    $htm_hdr = "<html><head><meta HTTP-EQUIV=\"refresh\" CONTENT=\"" . $html_refrate . ";\"><\/head><body>\n";
 }
 else {
     $htm_hdr = "<html><body>\n";

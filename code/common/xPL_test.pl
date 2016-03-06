@@ -28,10 +28,8 @@ $xpl_monitor2->tie_event('print_log "xpl CLOCK sourced data: $state"');
 # Note how $state is used to flag the field that state will correlate to.
 #
 $xpl_speak1_v = new Voice_Cmd 'Test speech to an xpl client [1,2]';
-$xpl_speak1 =
-  new xPL_Item( 'tonyt-tts.voice1', 'tts.basic' => { speech => '$state' } );
-$xpl_speak2 = new xPL_Item( 'tonyt-ttsagent.agent1',
-    'tts.basic' => { speech => '$state' } );
+$xpl_speak1   = new xPL_Item( 'tonyt-tts.voice1', 'tts.basic' => { speech => '$state' } );
+$xpl_speak2   = new xPL_Item( 'tonyt-ttsagent.agent1', 'tts.basic' => { speech => '$state' } );
 set $xpl_speak1 "xpl client says the time is $Time_Now"
   if state_now $xpl_speak1_v == 1;
 set $xpl_speak2 "Hi, I'm an agent.   Today is $Date_Now"
@@ -40,16 +38,13 @@ set $xpl_speak2 "Hi, I'm an agent.   Today is $Date_Now"
 #
 # Test X10 data. Note:  Not yet tested with any X10 clients yet
 #
-$outside_light_xpl =
-  new xPL_Item( 'ACME-LAMP.outside', 'lamp.basic' => { action => '$state' } );
-$outside_light_xpl->tie_event(
-    'print_log "xpl says outside light was set to $state"');
+$outside_light_xpl = new xPL_Item( 'ACME-LAMP.outside', 'lamp.basic' => { action => '$state' } );
+$outside_light_xpl->tie_event('print_log "xpl says outside light was set to $state"');
 
 #
 # Test the Tony's nifty RIO xPL client
 #
-$rio_kitchen =
-  new xPL_Item( 'tonyt-rio.unit100', 'rio.basic' => { sel => '$state' } );
+$rio_kitchen = new xPL_Item( 'tonyt-rio.unit100', 'rio.basic' => { sel => '$state' } );
 $rio_kitchen = new xPL_Rio('tonyt-rio.unit100');
 
 my $rio_states = join ',', @{ $$rio_kitchen{states} };
@@ -71,8 +66,7 @@ if ( defined( $state = said $xpl_test) ) {
 
     set $outside_light_xpl TOGGLE if $state == 1;
 
-    &xAP::send( 'xPL', 'ACME-LAMP.LIVINGROOM',
-        'lamp.basic' => { action => 'on' } )
+    &xAP::send( 'xPL', 'ACME-LAMP.LIVINGROOM', 'lamp.basic' => { action => 'on' } )
       if $state == 2;
 
     &xAP::send( 'xPL', 'tonyt-rio.unit100', 'rio.basic' => { sel => 'skip' } )
@@ -101,7 +95,6 @@ sub xpl_speak {
       if $parms{volume};
 
     for my $room (@rooms) {
-        &xAP::send( 'xPL', "tonyt-tts.$room",
-            'tts.basic' => { speech => $parms{text} } );
+        &xAP::send( 'xPL', "tonyt-tts.$room", 'tts.basic' => { speech => $parms{text} } );
     }
 }

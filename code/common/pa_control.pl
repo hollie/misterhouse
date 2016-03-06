@@ -61,8 +61,7 @@ if ($Reload) {
 if ( said $v_pa_test) {
     my $state = $v_pa_test->{state};
     $v_pa_test->respond('app=pa Testing PA...');
-    speak
-      "nolog=1 rooms=all mode=unmuted volume=80 Hello. This is a PA system test.";
+    speak "nolog=1 rooms=all mode=unmuted volume=80 Hello. This is a PA system test.";
 
     #speak "nolog=1 rooms=downstairs mode=unmuted volume=100 Hi!";
 }
@@ -95,9 +94,7 @@ sub pa_parms_stub {
         my %pa_zones = $pactrl->get_pa_zones();
 
         if ( defined $pa_zones{audrey} && $pa_zones{audrey} ne '' ) {
-            print_log( "PA: audrey zone detected, hooking via web_hook. ("
-                  . $pa_zones{audrey}
-                  . ")" )
+            print_log( "PA: audrey zone detected, hooking via web_hook. (" . $pa_zones{audrey} . ")" )
               if $Debug{pa};
             push( @{ $parms->{web_hook} }, \&pa_web_hook );
         }
@@ -109,14 +106,11 @@ sub pa_parms_stub {
         #MH is already speaking, and other PA zones are already active. Delay speech.
         if ( $main::Debug{voice} ) {
             $parms->{clash_retry} = 0 unless $parms->{clash_retry};
-            &print_log(
-                "PA SPEECH CLASH($parms->{clash_retry}): Delaying speech call for "
-                  . $parms->{text}
-                  . "\n" )
+            &print_log( "PA SPEECH CLASH($parms->{clash_retry}): Delaying speech call for " . $parms->{text} . "\n" )
               unless $parms->{clash_retry} lt 1;
             $parms->{clash_retry}++;    #To track how many loops are made
         }
-        $parms->{nolog} = 1;    #To stop MH from logging the speech again
+        $parms->{nolog} = 1;            #To stop MH from logging the speech again
 
         my $parmstxt;
         my ( $pkey, $pval );
@@ -128,7 +122,7 @@ sub pa_parms_stub {
           if $main::Debug{voice} && $parms->{clash_retry} eq 0;
         &run_after_delay( $pa_clash_delay, "speak($parmstxt)" );
 
-        $parms->{no_speak} = 1;    #To stop MH from speaking this time around
+        $parms->{no_speak} = 1;         #To stop MH from speaking this time around
         return;
     }
     if ( $parms->{clash_retry} ) {

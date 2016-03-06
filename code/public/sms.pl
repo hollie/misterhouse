@@ -43,12 +43,10 @@ my ( $gsm_mode, $gsm_message, $gsm_header );
 
 $timer_waitforanswer = new Timer;    # Timer that Waits for an Answer
 
-$gsm =
-  new Serial_Item( 'AT&FE1V1+CMGF=1;+CNMI=2,1,0,0,0', 'init', 'serial_gsm' )
-  ;                                  # GV-enabled phone's TE mode
+$gsm = new Serial_Item( 'AT&FE1V1+CMGF=1;+CNMI=2,1,0,0,0', 'init', 'serial_gsm' );    # GV-enabled phone's TE mode
 if ($Reload) {
     $gsm_mode = "init";
-    set $gsm 'init';                 # Initialize MODEM
+    set $gsm 'init';                                                                  # Initialize MODEM
 
     #    &wait_ok;
     #    print_log "GSM has been Initialized...";
@@ -84,7 +82,7 @@ if ( $state = state_now $sms_mh) {
 $v_sms_list = new Voice_Cmd('List SMS Messages');
 if ( said $v_sms_list) {
     $gsm_mode = "list";
-    set $gsm "AT+CMGL=\"REC UNREAD\"\r";   # GV-substituted =4 with "REC UNREAD"
+    set $gsm "AT+CMGL=\"REC UNREAD\"\r";    # GV-substituted =4 with "REC UNREAD"
     print_log "Reading SMS List" if $main::config_parms{debug} eq 'sms';
 }
 
@@ -98,8 +96,7 @@ sub read_all {
         elsif ( $gsm_in =~ /^OK/ and $gsm_mode eq "init" ) {
             print_log "GSM has been Initialized";
             $gsm_mode = "";
-            run_voice_cmd("List SMS Messages")
-              ;    # Read any pending messages at init
+            run_voice_cmd("List SMS Messages");    # Read any pending messages at init
         }
         elsif ( $gsm_in =~ /^OK/ and $gsm_mode eq "send" ) {
             print_log "SMS Message Sent (OK)"
@@ -118,9 +115,8 @@ sub read_all {
             $gsm_in =~ s/^\+CMGS: //g;
             print_log "SMS Message $gsm_in sent";
         }
-        elsif ( $gsm_in =~ /^\+CMTI/ ) {    # New message received
-            run_voice_cmd("List SMS Messages")
-              ;                             # Read any pending messages at init
+        elsif ( $gsm_in =~ /^\+CMTI/ ) {                           # New message received
+            run_voice_cmd("List SMS Messages");                    # Read any pending messages at init
         }
         elsif ( $gsm_in =~ /^\+CMGL/ ) {
             print_log "SMS Message Recieved: $gsm_in"
@@ -158,32 +154,29 @@ sub action_sms {
     print_log "SMS from $name: $message";
 
     #	if ($message =~ /^mh /i and $name =~ /Roger|Anna|MisterHouse/) {    # GV-Deleted
-    if ( $message =~ /^mh /i and $name =~ /Julie|Kostas|MisterHouse/ )
-    {    # GV-Added my numbers
+    if ( $message =~ /^mh /i and $name =~ /Julie|Kostas|MisterHouse/ ) {    # GV-Added my numbers
         $message =~ s/^mh //ig;
         print_log "SMS Command to mh received: $message";
         if ( $message eq "1" ) {
 
             # 			set $living_corner_light ON;    		# GV-deleted
-            print_log
-              "Received ON (1) Command";    # GV-added (your command(s) here)
+            print_log "Received ON (1) Command";                            # GV-added (your command(s) here)
         }
         elsif ( $message eq "2" ) {
 
             # 			set $living_corner_light OFF;  	 	# GV-deleted
-            print_log
-              "Received OFF (0) Command";    # GV-added (your command(s) here)
+            print_log "Received OFF (0) Command";                           # GV-added (your command(s) here)
         }
         elsif ( $message eq "T" ) {
-            print_log "Received TEST (T) Command"; # GV-added an auto-reply test
-            send_sms( $sms_from, "TEST OK" );      # GV-added an auto-reply test
+            print_log "Received TEST (T) Command";                          # GV-added an auto-reply test
+            send_sms( $sms_from, "TEST OK" );                               # GV-added an auto-reply test
         }
         else {
             print_log "SMS Command to mh received in Error";
         }
     }
     set $gsm "AT+CMGD=$sms_nbr\r";
-    print_log "deleting msg $sms_nbr";             #   GV-added
+    print_log "deleting msg $sms_nbr";                                      #   GV-added
 
     # 	print "AT+CMGD=$sms_nbr\n";
 }
@@ -191,10 +184,10 @@ sub action_sms {
 sub get_gsm {
     my ($number) = @_;
     my $name;
-    if ( $number eq "+391234567890" ) {            # GV-my numbers
+    if ( $number eq "+391234567890" ) {                                     # GV-my numbers
         $name = "Kostas";
     }
-    elsif ( $number eq "+393456789012" ) {         # GV-my numbers
+    elsif ( $number eq "+393456789012" ) {                                  # GV-my numbers
         $name = "Julie";
     }
     elsif ( $number eq "+391703809627" ) {

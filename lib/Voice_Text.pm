@@ -8,8 +8,7 @@ use LWP::UserAgent;
 use LWP::ConnCache;
 
 use vars '$VTxt_version';
-my ( @VTxt, $VTxt_stream1, $VTxt_stream2, %VTxt_cards, $VTxt_festival,
-    $VTxt_mac );
+my ( @VTxt, $VTxt_stream1, $VTxt_stream2, %VTxt_cards, $VTxt_festival, $VTxt_mac );
 my ( $save_mute_esd, $save_change_volume, %pronouncable );
 my ( %voice_names, @voice_names, $voice_names_index, $VTxt_pid, $web_index );
 
@@ -34,17 +33,13 @@ sub init {
         and $main::config_parms{festival_host}
       )
     {
-        my $festival_address =
-          "$main::config_parms{festival_host}:$main::config_parms{festival_port}";
+        my $festival_address = "$main::config_parms{festival_host}:$main::config_parms{festival_port}";
         print " - creating festival TTS socket on $festival_address\n";
-        $VTxt_festival =
-          new Socket_Item( undef, undef, $festival_address, 'festival', 'tcp',
-            'raw' );
+        $VTxt_festival = new Socket_Item( undef, undef, $festival_address, 'festival', 'tcp', 'raw' );
     }
 
     if ( $main::config_parms{voice_text} =~ /ms/i and $main::OS_win ) {
-        print
-          " - creating MS TTS object for voice_text=$main::config_parms{voice_text} ...\n";
+        print " - creating MS TTS object for voice_text=$main::config_parms{voice_text} ...\n";
 
         # Test and default to the new SDK 5 SAPI
         $VTxt_version = lc $main::config_parms{voice_text};
@@ -62,9 +57,7 @@ sub init {
                         print " - sound card $i: $des\n";
                         if ( $main::config_parms{voice_text_cards} ) {
                             my $flag = 0;
-                            for my $card ( split ',',
-                                $main::config_parms{voice_text_cards} )
-                            {
+                            for my $card ( split ',', $main::config_parms{voice_text_cards} ) {
                                 if ( $i eq $card or $des =~ /$card/i ) {
                                     $flag = 1;
                                     $VTxt_cards{$card} = $i;
@@ -85,27 +78,18 @@ sub init {
                     print " - WARN: no sound card outputs are available\n";
                 }
                 $VTxt[0] = $VTxt[1]
-                  unless $VTxt[0]
-                  ;    # Default to the first card if specified one not found
+                  unless $VTxt[0];    # Default to the first card if specified one not found
 
                 # Create an object for to_file calls
                 $VTxt_stream1 = Win32::OLE->new('Sapi.SpVoice');
                 $VTxt_stream1 = undef
-                  unless defined
-                  $VTxt_stream1->GetVoices;    # undef it if now voices exist
+                  unless defined $VTxt_stream1->GetVoices;    # undef it if now voices exist
                 if ( defined $VTxt_stream1 ) {
-                    for (
-                        my $VoiceCnt = 0;
-                        $VoiceCnt < $VTxt_stream1->GetVoices->Count();
-                        $VoiceCnt++
-                      )
-                    {
-                        my $desc = $VTxt_stream1->GetVoices->Item($VoiceCnt)
-                          ->GetDescription;
+                    for ( my $VoiceCnt = 0; $VoiceCnt < $VTxt_stream1->GetVoices->Count(); $VoiceCnt++ ) {
+                        my $desc = $VTxt_stream1->GetVoices->Item($VoiceCnt)->GetDescription;
                         print " -- available voice: $desc\n";
                     }
-                    &set_voice( $main::config_parms{speak_voice},
-                        undef, undef, $VTxt_stream1 )
+                    &set_voice( $main::config_parms{speak_voice}, undef, undef, $VTxt_stream1 )
                       if $main::config_parms{speak_voice};
                 }
 
@@ -118,8 +102,7 @@ sub init {
         if ( $VTxt_version eq 'msv4' ) {
             $VTxt[0] = Win32::OLE->new('Speech.VoiceText');
             unless ( $VTxt[0] ) {
-                print "\n\nError, could not create ms Speech TTS object.  ",
-                  Win32::OLE->LastError(), "\n\n";
+                print "\n\nError, could not create ms Speech TTS object.  ", Win32::OLE->LastError(), "\n\n";
                 return;
             }
 
@@ -165,8 +148,7 @@ sub speak_text {
     if ( $parms{address} ) {
         my @address = split ',', $parms{address};
         delete $parms{address};
-        $parms{to_file} =
-          "$main::config_parms{html_alias_cache}/speak_address.$main::Second.wav";
+        $parms{to_file} = "$main::config_parms{html_alias_cache}/speak_address.$main::Second.wav";
 
         &speak_text(%parms);
 
@@ -174,8 +156,7 @@ sub speak_text {
         for my $address (@address) {
             my $address_code = $config_parms{voice_text_address_code};
             $address_code =~ s|\$address|$address|;
-            $address_code =~
-              s|\$url|http://$Info{IPAddress_local}:$config_parms{http_port}/cache/speak_address.$main::Second.wav|;
+            $address_code =~ s|\$url|http://$Info{IPAddress_local}:$config_parms{http_port}/cache/speak_address.$main::Second.wav|;
             print "Voice_text running address code: $address_code\n"
               if $main::Debug{voice};
             eval $address_code;
@@ -234,10 +215,8 @@ sub speak_text {
     if ( $speak_engine =~ /NaturalVoiceWine/i ) {
         my $wine_path = $main::config_parms{wine_path};
         $wine_path = 'wine' unless -e $wine_path;
-        my $nv_path = $main::config_parms{voice_text_naturalvoice}
-          ;    # DOS path to NatVox stuff
-        $speak_pgm =
-          "$wine_path '$nv_path/bin/ttsstandaloneplayer.exe' -- -data '$nv_path/data' -xml";
+        my $nv_path = $main::config_parms{voice_text_naturalvoice};    # DOS path to NatVox stuff
+        $speak_pgm = "$wine_path '$nv_path/bin/ttsstandaloneplayer.exe' -- -data '$nv_path/data' -xml";
     }
     elsif ( $speak_engine =~ /NaturalVoice/i ) {
         my $path = $main::config_parms{voice_text_naturalvoice};
@@ -287,8 +266,7 @@ sub speak_text {
 
     # Allow for a percentage volume number - Steve Switzer 1/19/2003
     my $mh_volume = state $main::mh_volume if $main::mh_volume;
-    print
-      "Voice_Text volume=$parms{volume}, mh_volume=$mh_volume vc=$vtxt_card\n"
+    print "Voice_Text volume=$parms{volume}, mh_volume=$mh_volume vc=$vtxt_card\n"
       if $main::Debug{voice};
     if ( $parms{volume} =~ /(\d+)\%$/ ) {
         $parms{volume} = int( $mh_volume * $1 / 100 );
@@ -306,8 +284,7 @@ sub speak_text {
 
     $parms{text} = &set_rate( $parms{rate}, $parms{text}, $vtxt_card )
       if $parms{rate};    # Allow for slow,normal,fast,wpm:###
-    $parms{text} =
-      &set_voice( $parms{voice}, $parms{text}, $speak_engine, $vtxt_card )
+    $parms{text} = &set_voice( $parms{voice}, $parms{text}, $speak_engine, $vtxt_card )
       if $parms{voice};
     $parms{text} = &set_volume( $parms{volume}, $parms{text}, $vtxt_card )
       if $parms{volume};
@@ -332,10 +309,8 @@ sub speak_text {
         if ( $VTxt_festival and not active $VTxt_festival) {
             if ( start $VTxt_festival) {
                 if ( $main::config_parms{festival_init_cmds} ) {
-                    print
-                      "Data sent to festival: $main::config_parms{festival_init_cmds}\n";
-                    set $VTxt_festival
-                      qq[$main::config_parms{festival_init_cmds}];
+                    print "Data sent to festival: $main::config_parms{festival_init_cmds}\n";
+                    set $VTxt_festival qq[$main::config_parms{festival_init_cmds}];
                 }
             }
         }
@@ -350,16 +325,12 @@ sub speak_text {
             # Change from relative to absolute path
             $parms{to_file} = "$main::Pgm_Path/$1"
               if $parms{to_file} =~ /^\.\/(.+)/;
-            $parms{text} =
-              qq[(utt.save.wave (utt.synth (Utterance Text "$parms{text}")) "$parms{to_file}" "riff")];
+            $parms{text} = qq[(utt.save.wave (utt.synth (Utterance Text "$parms{text}")) "$parms{to_file}" "riff")];
 
             # Use the festival server
             if ( $VTxt_festival and active $VTxt_festival) {
-                $parms{text} =~
-                  s/<\/?speaker.*?>//ig;    # Server does not do sable
-                &main::print_log(
-                    "Voice_text TTS:  Festival saving to file via server: $parms{to_file}\n"
-                ) if $main::Debug{voice};
+                $parms{text} =~ s/<\/?speaker.*?>//ig;    # Server does not do sable
+                &main::print_log( "Voice_text TTS:  Festival saving to file via server: $parms{to_file}\n" ) if $main::Debug{voice};
                 set $VTxt_festival $parms{text};
 
                 my $fork = 1 if $parms{async};
@@ -369,8 +340,7 @@ sub speak_text {
 
                     # we are the parent
                     if ( $fork and $pid ) {
-                        return
-                          ; # nothing else to do, the child is looking after the rest of the work
+                        return;                           # nothing else to do, the child is looking after the rest of the work
                     }
                 }
 
@@ -406,8 +376,7 @@ sub speak_text {
             else {
                 my $file = "$main::config_parms{data_dir}/mh_temp.festival.txt";
                 &main::file_write( $file, $parms{text} );
-                &main::print_log(
-                    "Voice_text TTS: Festival saving to file: $file\n")
+                &main::print_log("Voice_text TTS: Festival saving to file: $file\n")
                   if $main::Debug{voice};
                 my $fork = $parms{async};
                 if ($fork) {
@@ -463,13 +432,10 @@ sub speak_text {
                 }
                 $text = qq[<SABLE> $text </SABLE>];
             }
-            my $random =
-              int rand 1000;   # Use random file name so we can talk 2+ at once.
-            my $file =
-              "$main::config_parms{data_dir}/mh_temp.festival.$random.sable";
+            my $random = int rand 1000;    # Use random file name so we can talk 2+ at once.
+            my $file = "$main::config_parms{data_dir}/mh_temp.festival.$random.sable";
             &main::file_write( $file, $text );
-            print
-              "Voice_text TTS: $main::config_parms{voice_text_festival} --tts $file\n"
+            print "Voice_text TTS: $main::config_parms{voice_text_festival} --tts $file\n"
               if $main::Debug{voice};
             my $fork = $parms{async};
             if ($fork) {
@@ -477,12 +443,10 @@ sub speak_text {
 
                 # we are the parnet
                 if ( $fork and $pid ) {
-                    return;    # the child will look after the real work
+                    return;                # the child will look after the real work
                 }
             }
-            system(
-                "($main::config_parms{voice_text_festival} --tts $file ; rm $file) &"
-            );
+            system( "($main::config_parms{voice_text_festival} --tts $file ; rm $file) &" );
 
             # Send voice text to waiting web clients
             &web_hook_callback(%parms);
@@ -541,8 +505,7 @@ sub speak_text {
         $ua->conn_cache( LWP::ConnCache->new() );
         $ua->timeout(10);
 
-        my $random =
-          int rand 1000;    # Use random file name so we can talk 2+ at once.
+        my $random = int rand 1000;    # Use random file name so we can talk 2+ at once.
 
         # If being forced to file, use the filename being forced, otherwise, use a random temp file.
         my $out_file =
@@ -551,17 +514,15 @@ sub speak_text {
           : "$main::config_parms{data_dir}/mh_temp.google-$random.wav";
 
         # The temp file to store google's MP3 as
-        my $google_file =
-          "$main::config_parms{data_dir}/mh_temp.google-$random.mp3";
+        my $google_file = "$main::config_parms{data_dir}/mh_temp.google-$random.mp3";
 
         # Make the request, store the result in the google temp file
         my $language =
           ( $main::config_parms{language} )
           ? lc( $main::config_parms{language} )
           : "en";
-        my $ua_request = HTTP::Request->new(
-            'GET' => "http://translate.google.com/translate_tts?tl=$language&q="
-              . qq[ $parms{text} ] );
+        my $ua_request =
+          HTTP::Request->new( 'GET' => "http://translate.google.com/translate_tts?tl=$language&q=" . qq[ $parms{text} ] );
         my $ua_response = $ua->request( $ua_request, $google_file );
 
         # Log the failure
@@ -575,8 +536,7 @@ sub speak_text {
           ( $main::config_parms{sound_converter} )
           ? $main::config_parms{sound_converter}
           : "ffmpeg";
-        system( $sound_converter, '-v', 'panic', '-i', $google_file,
-            $out_file );
+        system( $sound_converter, '-v', 'panic', '-i', $google_file, $out_file );
         unlink($google_file);
 
         # Play the wav file, clean up only if we are not being forced to file
@@ -587,8 +547,7 @@ sub speak_text {
     elsif ($speak_pgm) {
         my $fork = 1
           unless $parms{to_file}
-          and !$parms{async}
-          ;    # Must wait for to_file requests, so http requests work
+          and !$parms{async};    # Must wait for to_file requests, so http requests work
 
         my $pid = fork if $fork;
 
@@ -628,29 +587,22 @@ sub speak_text {
             $speak_pgm_arg .= " -play $parms{play} " if $parms{play};
 
             if ( $speak_engine =~ /vv_tts/i ) {
-                $speak_pgm_arg .=
-                  " -engine " . $main::config_parms{vv_tts_engine}
+                $speak_pgm_arg .= " -engine " . $main::config_parms{vv_tts_engine}
                   if $main::config_parms{vv_tts_engine};
-                $speak_pgm_arg .=
-                  " -prescript " . $main::config_parms{vv_tts_prescript}
+                $speak_pgm_arg .= " -prescript " . $main::config_parms{vv_tts_prescript}
                   if $main::config_parms{vv_tts_prescript};
-                $speak_pgm_arg .=
-                  " -postscript " . $main::config_parms{vv_tts_postscript}
+                $speak_pgm_arg .= " -postscript " . $main::config_parms{vv_tts_postscript}
                   if $main::config_parms{vv_tts_postscript};
-                $speak_pgm_arg .=
-                  " -playcmd " . $main::config_parms{vv_tts_playcmd}
+                $speak_pgm_arg .= " -playcmd " . $main::config_parms{vv_tts_playcmd}
                   if $main::config_parms{vv_tts_playcmd};
-                $speak_pgm_arg .=
-                  " -default_sound " . $main::config_parms{vv_tts_default_sound}
+                $speak_pgm_arg .= " -default_sound " . $main::config_parms{vv_tts_default_sound}
                   if $main::config_parms{vv_tts_default_sound};
-                $speak_pgm_arg .=
-                  " -default_volume " . $main::config_parms{sound_volume}
+                $speak_pgm_arg .= " -default_volume " . $main::config_parms{sound_volume}
                   if $main::config_parms{sound_volume};
                 if (    $main::config_parms{vv_tts_pa_control}
                     and $main::config_parms{xcmd_file} )
                 {
-                    $speak_pgm_arg .= ' -pa_control -xcmd_file '
-                      . $main::config_parms{xcmd_file};
+                    $speak_pgm_arg .= ' -pa_control -xcmd_file ' . $main::config_parms{xcmd_file};
                     if ( $parms{rooms} ) {
                         $speak_pgm_arg .= ' -rooms ' . $parms{rooms};
                     }
@@ -673,8 +625,7 @@ sub speak_text {
                 $speak_pgm_arg .= ' -voice_volume ' . $parms{voice_volume}
                   if $parms{voice_volume};
                 $parms{voice} = ''
-                  unless $parms{voice} =~
-                  /^\d+$/;    # -voice supports numbers only
+                  unless $parms{voice} =~ /^\d+$/;    # -voice supports numbers only
                 $speak_pgm_arg .= ' -voice ' . "'$parms{voice}'"
                   if $parms{voice};
                 $speak_pgm_arg .= ' -to_file ' . $parms{to_file}
@@ -765,8 +716,7 @@ sub speak_text {
                   if $parms{to_file};
             }
 
-            print
-              "Voice_text TTS: f=$fork stdin=$speak_pgm_use_stdin p=$speak_pgm a=$speak_pgm_arg to_file=$parms{to_file}\n"
+            print "Voice_text TTS: f=$fork stdin=$speak_pgm_use_stdin p=$speak_pgm a=$speak_pgm_arg to_file=$parms{to_file}\n"
               if $main::Debug{voice};
 
             if ($speak_pgm_use_stdin) {
@@ -870,9 +820,8 @@ sub speak_text {
                     elsif ( $pid == 0 ) {
 
                         # we are the child process
-                        $VTxt_stream2 = Win32::OLE->new('Sapi.SpFileStream');
-                        $VTxt_stream2->{Format}->{Type} =
-                          22;    # see table above for constant defs
+                        $VTxt_stream2                   = Win32::OLE->new('Sapi.SpFileStream');
+                        $VTxt_stream2->{Format}->{Type} = 22;                                    # see table above for constant defs
                         $VTxt_stream2->{Format}->{Type} = $parms{compression}
                           if $parms{compression} =~ /^\d+$/;
                         $VTxt_stream2->{Format}->{Type} = 20
@@ -881,8 +830,7 @@ sub speak_text {
                           if $parms{compression} eq 'high';
                         $VTxt_stream2->Open( $parms{to_file}, 3, 0 );
                         $VTxt_stream1->{AudioOutputStream} = $VTxt_stream2;
-                        $VTxt_stream1->Speak( $parms{text}, 8 )
-                          ;      # Flags: 8=XML (no async, so we can close)
+                        $VTxt_stream1->Speak( $parms{text}, 8 );    # Flags: 8=XML (no async, so we can close)
                         $VTxt_stream2->Close;
 
                         # at this point, the file _should_ be ready for Audrey
@@ -902,9 +850,8 @@ sub speak_text {
                 }
                 else {
                     if ($VTxt_stream1) {
-                        $VTxt_stream2 = Win32::OLE->new('Sapi.SpFileStream');
-                        $VTxt_stream2->{Format}->{Type} =
-                          22;    # see table above for constant defs
+                        $VTxt_stream2                   = Win32::OLE->new('Sapi.SpFileStream');
+                        $VTxt_stream2->{Format}->{Type} = 22;                                    # see table above for constant defs
                         $VTxt_stream2->{Format}->{Type} = $parms{compression}
                           if $parms{compression} =~ /^\d+$/;
                         $VTxt_stream2->{Format}->{Type} = 20
@@ -912,15 +859,12 @@ sub speak_text {
                         $VTxt_stream2->{Format}->{Type} = 66
                           if $parms{compression} eq 'high';
                         $VTxt_stream2->Open( $parms{to_file}, 3, 0 );
-                        $VTxt_stream1->SetProperty( 'AudioOutputStream',
-                            $VTxt_stream2 );
+                        $VTxt_stream1->SetProperty( 'AudioOutputStream', $VTxt_stream2 );
                         if ( $parms{async} ) {
-                            $VTxt_stream1->Speak( $parms{text}, 1 + 8 )
-                              ;    # Flags: 1=async 8=XML
+                            $VTxt_stream1->Speak( $parms{text}, 1 + 8 );                         # Flags: 1=async 8=XML
                         }
                         else {
-                            $VTxt_stream1->Speak( $parms{text}, 8 )
-                              ;    # Flags: 8=XML (no async, so we can close)
+                            $VTxt_stream1->Speak( $parms{text}, 8 );    # Flags: 8=XML (no async, so we can close)
                             $VTxt_stream2->Close;
                             undef $VTxt_stream2;
 
@@ -929,8 +873,7 @@ sub speak_text {
                         }
                     }
                     else {
-                        &main::print_log(
-                            "WARN: no file could be produced for audrey.");
+                        &main::print_log("WARN: no file could be produced for audrey.");
                     }
                 }
             }
@@ -939,8 +882,7 @@ sub speak_text {
                 unless ($vtxt_card
                     and $vtxt_card->Speak( $parms{text}, 1 + 8 ) )
                 {
-                    print "Voice_Text error: parms=@_\n"
-                      ;    #  error=" .  Win32::OLE->LastError() . "\n";
+                    print "Voice_Text error: parms=@_\n";    #  error=" .  Win32::OLE->LastError() . "\n";
                 }
             }
         }
@@ -948,9 +890,7 @@ sub speak_text {
         # Older engine
         else {
             if ( $parms{to_file} ) {
-                &main::print_log(
-                    "speak -to_file not supported with tts engine msv4.  Text=$parms{text}"
-                );
+                &main::print_log( "speak -to_file not supported with tts engine msv4.  Text=$parms{text}" );
                 return;
             }
 
@@ -1005,7 +945,7 @@ sub speak_text {
 sub is_speaking {
     my ($card) = @_;
     $card = 0 unless $card;
-    $card = $VTxt_cards{$card} if $VTxt_cards{$card}; # Allow for text card name
+    $card = $VTxt_cards{$card} if $VTxt_cards{$card};    # Allow for text card name
 
     # Allow for a check of all cards
     if ( lc $card eq 'any' ) {
@@ -1106,8 +1046,7 @@ sub read_parms {
     {
         my ( $phonemes, $word, $cnt );
         open( WORDS, $pronouncable_list_file )
-          or print
-          "\nError, could not find the pronouncable word file $pronouncable_list_file: $!\n";
+          or print "\nError, could not find the pronouncable word file $pronouncable_list_file: $!\n";
         undef %pronouncable;
         while (<WORDS>) {
             next if /^\#/;
@@ -1258,8 +1197,7 @@ sub set_voice {
         $text = '';
         for my $word (@words) {
             $voice_names_index = 1 if ++$voice_names_index > @voice_names;
-            $text .=
-              "<voice required='Name=$voice_names[$voice_names_index-1]'>$word</voice> ";
+            $text .= "<voice required='Name=$voice_names[$voice_names_index-1]'>$word</voice> ";
         }
         return $text . '.';    # Add . or last word is not spoken??
     }

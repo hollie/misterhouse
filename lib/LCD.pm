@@ -53,8 +53,7 @@ sub new {
     $$self{timer} = new main::Timer;
 
     if ( $type eq 'lcdproc' ) {
-        $$self{object} =
-          new main::Socket_Item( undef, undef, $port, 'lcdproc' );
+        $$self{object} = new main::Socket_Item( undef, undef, $port, 'lcdproc' );
     }
 
     # lcdserial is Ian Davidson's code for talking to his custom

@@ -112,7 +112,7 @@ sub set {
     return
       unless ( $$self{m_active} or $p_state eq 'start' or $p_state eq 'on' );
 
-    if ( $p_setby ne $$self{m_outputTimer} )  #keep timer states out of the loop
+    if ( $p_setby ne $$self{m_outputTimer} )    #keep timer states out of the loop
     {
         $self->SUPER::set($p_state);
     }
@@ -122,7 +122,7 @@ sub set {
             $self->sequence_item();
         }
     }
-    else                                      #process any request
+    else                                        #process any request
     {
         if ( $p_state =~ /^[0-9]+/ and $$self{m_active} ) {
             $self->select_item($p_state);
@@ -168,12 +168,11 @@ sub select_menu {
     if ( $$self{m_menuCurrent} =~ /^states/ ) {
         my $l_menuPrevious = ${ $$self{m_menuList} }[ $$self{m_menuDepth} - 1 ];
         my $l_itemPrevious = ${ $$self{m_itemList} }[ $$self{m_menuDepth} - 1 ];
-        my $item = ${ $$menus{$l_menuPrevious}{items} }[ $l_itemPrevious - 1 ];
+        my $item           = ${ $$menus{$l_menuPrevious}{items} }[ $l_itemPrevious - 1 ];
 
         #		&::print_log("POP:$$self{m_menuDepth},$l_menuPrevious: $l_itemPrevious : $$item{A}: $$item{Dstates}");
         if ( $$item{A} and $$item{Dstates} ) {
-            $self->set_states_for_next_pass(
-                "MENU:$$item{Dprefix}command$$item{Dsuffix}");
+            $self->set_states_for_next_pass("MENU:$$item{Dprefix}command$$item{Dsuffix}");
         }
     }
     else {
@@ -215,9 +214,7 @@ sub select_item {
               ${ $$self{m_menuList} }[ $$self{m_menuDepth} - 1 ];
 
             #			&::print_log("MenuPreve: $l_menuPrevious");
-            my $response =
-              &::menu_run( $$self{m_menugroup}, $l_menuPrevious,
-                $l_itemPrevious, $l_item, "l" );
+            my $response = &::menu_run( $$self{m_menugroup}, $l_menuPrevious, $l_itemPrevious, $l_item, "l" );
             if ($response) {
                 $self->set_states_for_next_pass("RESPONSE:$response");
             }
@@ -228,9 +225,7 @@ sub select_item {
             my $l_item = $$self{m_itemCurrent} - 1;
 
             #			&::menu_run("$$self{m_menugroup},$$self{m_menuCurrent},$l_item,$$item{D},l");
-            my $response =
-              &::menu_run( $$self{m_menugroup}, $$self{m_menuCurrent}, $l_item,
-                undef, "l" );
+            my $response = &::menu_run( $$self{m_menugroup}, $$self{m_menuCurrent}, $l_item, undef, "l" );
             if ($response) {
                 $self->set_states_for_next_pass("RESPONSE:$response");
             }
@@ -240,9 +235,7 @@ sub select_item {
     {
         #		&::print_log("RRun Item:$$self{m_menucurrent} : $p_item");
         my $l_item = $$self{m_itemCurrent} - 1;
-        my $response =
-          &::menu_run( $$self{m_menugroup}, $$self{m_menuCurrent}, $l_item,
-            undef, "l" );
+        my $response = &::menu_run( $$self{m_menugroup}, $$self{m_menuCurrent}, $l_item, undef, "l" );
         if ($response) {
             $self->set_states_for_next_pass("RESPONSE:$response");
         }
@@ -340,8 +333,7 @@ sub item_delay {
     if ( $$self{m_outputDelay} == 0 ) {
 
         # if delay is set to 0 there should be something in here to immediately call back.
-        $self->set( 'off', $$self{m_outputTimer} )
-          ;    # might be recursive somehow though?
+        $self->set( 'off', $$self{m_outputTimer} );    # might be recursive somehow though?
     }
     elsif ( $$self{m_outputDelay} == -1 ) {
 

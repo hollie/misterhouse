@@ -76,8 +76,7 @@ $sseffect .= "('show', data, { ";
 if ( $captions ne '0' ) {
     $sseffect .= "captions: true, ";
 }
-$sseffect .=
-  "controller: true, delay: ${time}000, duration: 1000, height: $height, hu: '$config_parms{photo_dirs}', ";
+$sseffect .= "controller: true, delay: ${time}000, duration: 1000, height: $height, hu: '$config_parms{photo_dirs}', ";
 if ( $thumbs ne '0' ) {
     $sseffect .= "thumbnails: true, ";
 }

@@ -50,8 +50,7 @@ sub handle {
 
     my $results = '';
 
-    my $length =
-      $headers->{'Content-Length'} || $headers->{'Content-length'} || 0;
+    my $length = $headers->{'Content-Length'} || $headers->{'Content-length'} || 0;
 
     if ( !$length ) {
         $self->response( HTTP::Response->new(411) )    # LENGTH REQUIRED
@@ -59,7 +58,7 @@ sub handle {
     elsif ( defined $SOAP::Constants::MAX_CONTENT_SIZE
         && $length > $SOAP::Constants::MAX_CONTENT_SIZE )
     {
-        $self->response( HTTP::Response->new(413) )   # REQUEST ENTITY TOO LARGE
+        $self->response( HTTP::Response->new(413) )    # REQUEST ENTITY TOO LARGE
     }
     else {
         # This appears to be broken.  MS .Net by default trys to use the HTTP 1.1 Continue header
@@ -72,21 +71,13 @@ sub handle {
 
         # stole this line from the http_server.pl file.  Just need to break the request down
         # I think SOAP will almost always be a POST request but better be sure
-        my ( $req_typ, $uri, $get_arg ) =
-          $headers->{'request'} =~ m|^(GET\|POST) (\/[^ \?]*)\??(\S+)? HTTP|;
+        my ( $req_typ, $uri, $get_arg ) = $headers->{'request'} =~ m|^(GET\|POST) (\/[^ \?]*)\??(\S+)? HTTP|;
 
         # Create  a new HTTP::Request to pass to the SOAP::Transport::HTTP::Server class
         $self->request(
             HTTP::Request->new(
                 $req_typ, $uri,
-                HTTP::Headers->new(
-                    map {
-                            (m/SOAPACTION/i)
-                          ? ('SOAPAction')
-                          : ($_) => $headers->{$_}
-                    } keys %$headers
-                ),
-                $content
+                HTTP::Headers->new( map { (m/SOAPACTION/i) ? ('SOAPAction') : ($_) => $headers->{$_} } keys %$headers ), $content
             )
         );
         $self->SOAP::Transport::HTTP::Server::handle;

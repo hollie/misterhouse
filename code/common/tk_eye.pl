@@ -16,8 +16,7 @@ if ($MW) {
 
     # I get "couldn't recognize data in image file" errors with .jpg files.  .gifs should be faster anyway
     #   $Tk_objects{eye_photo}->configure(-file => "$Pgm_Path/images/eye/eye" . ($eye_pos + 1) . ".jpg");
-    $Tk_objects{eye_photo}->configure(
-        -file => "$Pgm_Path/images/eye/eye" . ( $eye_pos + 1 ) . ".gif" );
+    $Tk_objects{eye_photo}->configure( -file => "$Pgm_Path/images/eye/eye" . ( $eye_pos + 1 ) . ".gif" );
 
     #$Tk_objects{eye} = '      ';
     #substr($Tk_objects{eye}, $eye_pos, 1) = '=';

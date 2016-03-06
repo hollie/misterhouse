@@ -19,10 +19,8 @@
 # appliance module ($LitterBox) and a sensor mounted inside the box ($Litterbox_Movement).
 
 # Adjust the following two values to your preference
-my $litter_timeout = 960
-  ; # Time the sensor must be inactive before a flush begins.  Currently 16 minutes.
-my $litter_cycle_timeout =
-  1980;    # LitterFree cycle time (wash and dry).  It's about 33 minutes.
+my $litter_timeout       = 960;     # Time the sensor must be inactive before a flush begins.  Currently 16 minutes.
+my $litter_cycle_timeout = 1980;    # LitterFree cycle time (wash and dry).  It's about 33 minutes.
 
 my $litterboxstate   = 'OFF';
 my $littercyclestate = 'OFF';

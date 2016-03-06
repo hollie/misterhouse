@@ -245,8 +245,7 @@ sub new {
 
     # If the crc was not given, lets calculate it
     if ( length $id == 14 ) {
-        $crc = Hardware::iButton::Connection::crc( 0,
-            split( //, pack( "b*", $raw_id ) ) );
+        $crc = Hardware::iButton::Connection::crc( 0, split( //, pack( "b*", $raw_id ) ) );
         $crc = pack 'C', $crc;
     }
     $raw_id .= unpack( 'b8', $crc );
@@ -262,7 +261,7 @@ sub new {
     $id = $self->id();             # Get the full id
     $objects_by_id{$id} = $self;
 
-    $$self{state} = '';    # Will only be listed on web page if state is defined
+    $$self{state} = '';            # Will only be listed on web page if state is defined
 
     if ( $self->model() eq 'DS2406' ) {
         push( @{ $$self{states} }, 'on', 'off' );
@@ -402,8 +401,7 @@ sub toggle_switch_2405 {
         $connection->mode("\xe3");         # COMMAND_MODE (is this correct?)
         $connection->send("\x55");         # This should toggle the switch
         $connection->read(3);              # How many bytes should I read here?
-        my $byte = unpack( "b", $connection->read(1) )
-          ;                                # This reads one more byte, I think.
+        my $byte = unpack( "b", $connection->read(1) );    # This reads one more byte, I think.
         print unpack( "b", $byte );
         $connection->reset;
 
@@ -423,10 +421,8 @@ sub read_temp {
     return unless $connections{ $self->{port} };
 
     if ( $connections{ $self->{port} } eq 'proxy' ) {
-        &main::proxy_send( $self->{port}, 'ibutton', 'read_temp',
-            $$self{object_name} );
-        return $self->{state}
-          ;    # This is the previous  temp, but better than nothing.
+        &main::proxy_send( $self->{port}, 'ibutton', 'read_temp', $$self{object_name} );
+        return $self->{state};    # This is the previous  temp, but better than nothing.
     }
 
     my $temp = $self->read_temperature_hires();
@@ -434,8 +430,7 @@ sub read_temp {
 
     my $temp_c = sprintf( "%3.2f", $temp );
     my $temp_f = sprintf( "%3.2f", &::convert_c2f($temp) );
-    my $temp_def =
-      ( $main::config_parms{weather_uom_temp} eq 'C' ) ? $temp_c : $temp_f;
+    my $temp_def = ( $main::config_parms{weather_uom_temp} eq 'C' ) ? $temp_c : $temp_f;
 
     set_receive $self $temp_def;
 
@@ -470,13 +465,7 @@ sub scan_report {
     my @ib_list = &iButton::scan( $family, $port );
     my $report;
     for my $ib (@ib_list) {
-        $report .=
-            "Device type:"
-          . $ib->family() . "  ID:"
-          . $ib->serial
-          . "  CRC:"
-          . $ib->crc . ": "
-          . $ib->model() . "\n";
+        $report .= "Device type:" . $ib->family() . "  ID:" . $ib->serial . "  CRC:" . $ib->crc . ": " . $ib->model() . "\n";
     }
     return $report;
 }
@@ -585,8 +574,7 @@ sub read_temp {
 
     my $temp_c = sprintf( "%3.2f", $temp );
     my $temp_f = sprintf( "%3.2f", &::convert_c2f($temp) );
-    my $temp_def =
-      ( $main::config_parms{weather_uom_temp} eq 'C' ) ? $temp_c : $temp_f;
+    my $temp_def = ( $main::config_parms{weather_uom_temp} eq 'C' ) ? $temp_c : $temp_f;
 
     $this->set_receive($temp_def);
 

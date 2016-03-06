@@ -16,8 +16,7 @@ $^W = 0;    # Avoid redefined sub msgs
 
 return &web_items_list();
 
-use vars '$web_item_file_name'
-  ;         # Avoid my, so we can keep the same name between web calls
+use vars '$web_item_file_name';    # Avoid my, so we can keep the same name between web calls
 my (@file_data);
 
 sub web_items_list {
@@ -27,8 +26,7 @@ sub web_items_list {
     $html = qq|
 <HTML><HEAD><TITLE>Items Menu</TITLE></HEAD><BODY>\n<a name='Top'></a>$html
 Use this page to review or update your .mht file.|;
-    $html .=
-      qq|<br><font color=red><b>Read-Only</b>: <a href="/bin/SET_PASSWORD">Login as admin</a> to edit</font>|
+    $html .= qq|<br><font color=red><b>Read-Only</b>: <a href="/bin/SET_PASSWORD">Login as admin</a> to edit</font>|
       unless $Authorized eq 'admin';
     $html .= qq|A backup is made and comments and record order are preserved.
 To update existing items, enter/change the field and hit Enter.|
@@ -63,10 +61,8 @@ function openparmhelp(parm1){
       if $ARGV[0] =~ /^file=(.+)$/;    # User selected another mht file
 
     # Create a form to pick which file
-    $html .=
-      "<table border><tr><form action=/bin/items.pl method=post><td>Which .mht file to edit?\n";
-    $html .= &html_form_select( 'file', 1, $web_item_file_name, @file_paths )
-      . "</td></form></tr>\n";
+    $html .= "<table border><tr><form action=/bin/items.pl method=post><td>Which .mht file to edit?\n";
+    $html .= &html_form_select( 'file', 1, $web_item_file_name, @file_paths ) . "</td></form></tr>\n";
 
     # Create form to add an item
     my $form_type = &html_form_select(
@@ -134,10 +130,8 @@ $form_type
     }
 
     # Add an index
-    $html .=
-      "<tr><td><a href=/bin/items.pl?file=$web_item_file_name>Refresh</a>\n";
-    $html .=
-      "&nbsp;&nbsp;<a href=/RUN;/bin/items.pl?Reload_code>ReLoad Code</a>&nbsp;\n";
+    $html .= "<tr><td><a href=/bin/items.pl?file=$web_item_file_name>Refresh</a>\n";
+    $html .= "&nbsp;&nbsp;<a href=/RUN;/bin/items.pl?Reload_code>ReLoad Code</a>&nbsp;\n";
     $html .= "<B>Item Index: <B>\n";
     for my $type ( sort keys %item_pos ) {
         $html .= "<a href='#$type'>$type</a>\n";
@@ -146,31 +140,30 @@ $form_type
 
     # Define fields by type
     my %headers = (
-        ANALOG_SENSOR =>
-          [ 'Identifier', 'Name', 'Conduit', 'Groups', 'Type', 'Tokens' ],
-        EIB1  => [ 'Address', 'Name', 'Groups', 'Mode' ],
-        EIB1G => [ 'Address', 'Name', 'Groups', 'Addresses' ],
-        EIB2  => [ 'Address', 'Name', 'Groups' ],
-        EIB5  => [qw(Address Name Groups Mode)],
-        EIB7    => [ 'Address', 'Name', 'Groups' ],
-        GENERIC => [qw(Name Groups)],
-        GROUP   => [qw(Name FloorPlan Groups)],
-        IBUTTON => [qw(ID Name Port Channel)],
-        SERIAL  => [qw(String Name Groups State Port)],
-        VOICE   => [qw(Item Phrase)],
-        X10A    => [qw(Address Name Groups Interface)],
-        X10I                  => [qw(Address Name Groups Interface Options)],
-        X10SL                 => [qw(Address Name Groups Interface Options)],
-        X10MS                 => [qw(Address Name Groups Type)],
-        X106BUTTON            => [qw(Address Name)],
-        UPBPIM                => [qw(Name NetworkID Password Address)],
-        UPBD                  => [qw(Name Interface NetworkID Address Groups)],
-        UPBL                  => [qw(Name Interface NetworkID Address Groups)],
-        INSTEON_PLM           => [qw(Name)],
-        INSTEON_LAMPLINC      => [qw(Address Name Groups)],
-        INSTEON_BULBLINC      => [qw(Address Name Groups)],
-        INSTEON_APPLIANCELINC => [qw(Address Name Groups)],
-        INSTEON_SWITCHLINC    => [qw(Address Name Groups)],
+        ANALOG_SENSOR => [ 'Identifier', 'Name', 'Conduit', 'Groups', 'Type', 'Tokens' ],
+        EIB1          => [ 'Address',    'Name', 'Groups',  'Mode' ],
+        EIB1G         => [ 'Address',    'Name', 'Groups',  'Addresses' ],
+        EIB2          => [ 'Address',    'Name', 'Groups' ],
+        EIB5          => [qw(Address Name Groups Mode)],
+        EIB7                    => [ 'Address', 'Name', 'Groups' ],
+        GENERIC                 => [qw(Name Groups)],
+        GROUP                   => [qw(Name FloorPlan Groups)],
+        IBUTTON                 => [qw(ID Name Port Channel)],
+        SERIAL                  => [qw(String Name Groups State Port)],
+        VOICE                   => [qw(Item Phrase)],
+        X10A                    => [qw(Address Name Groups Interface)],
+        X10I                    => [qw(Address Name Groups Interface Options)],
+        X10SL                   => [qw(Address Name Groups Interface Options)],
+        X10MS                   => [qw(Address Name Groups Type)],
+        X106BUTTON              => [qw(Address Name)],
+        UPBPIM                  => [qw(Name NetworkID Password Address)],
+        UPBD                    => [qw(Name Interface NetworkID Address Groups)],
+        UPBL                    => [qw(Name Interface NetworkID Address Groups)],
+        INSTEON_PLM             => [qw(Name)],
+        INSTEON_LAMPLINC        => [qw(Address Name Groups)],
+        INSTEON_BULBLINC        => [qw(Address Name Groups)],
+        INSTEON_APPLIANCELINC   => [qw(Address Name Groups)],
+        INSTEON_SWITCHLINC      => [qw(Address Name Groups)],
         INSTEON_SWITCHLINCRELAY => [qw(Address Name Groups)],
         INSTEON_KEYPADLINC      => [qw(Address Name Groups)],
         INSTEON_KEYPADLINCRELAY => [qw(Address Name Groups)],
@@ -194,8 +187,7 @@ $form_type
 
         $html .= "<tr>";
         for my $header ( '', 'Type', @headers ) {
-            $html .=
-              qq[<td><a href="javascript:openparmhelp('$header')">$header</a></td>];
+            $html .= qq[<td><a href="javascript:openparmhelp('$header')">$header</a></td>];
 
             #           $html .= "<td>$header</td> ";
         }
@@ -209,16 +201,12 @@ $form_type
             $html .= "<td>";
             $html .= "<a href=/SUB;/bin/items.pl?web_item_copy($pos)>Copy</a>"
               if $Authorized eq 'admin';
-            $html .=
-              "    <a href=/SUB;/bin/items.pl?web_item_delete($pos)>Delete</a>"
+            $html .= "    <a href=/SUB;/bin/items.pl?web_item_delete($pos)>Delete</a>"
               if $Authorized eq 'admin';
             $html .= "</td> ";
             $html .= "<td>$item_info[0]</td> ";
             for my $field ( 1 .. $headers - 1 ) {
-                $html .= &html_form_input_set_func(
-                    'web_item_set_field', "/bin/items.pl",
-                    "$pos,$field",        $item_info[$field]
-                );
+                $html .= &html_form_input_set_func( 'web_item_set_field', "/bin/items.pl", "$pos,$field", $item_info[$field] );
             }
             $html .= "</tr>\n";
         }
@@ -324,8 +312,7 @@ sub web_item_add {
     $other2 =~ s/,$//;
 
     # write out new record to mht file
-    $file_data[@file_data] = sprintf( "%-20s%-20s%-20s%-20s%-20s%s",
-        $type, $address, $name, $group, $other1, $other2 );
+    $file_data[@file_data] = sprintf( "%-20s%-20s%-20s%-20s%-20s%s", $type, $address, $name, $group, $other1, $other2 );
     &mht_item_file_write( $web_item_file_name, \@file_data );
 
     return 0;
@@ -342,19 +329,15 @@ sub web_item_help {
         Groups    => 'List of groups the item belongs to, seperated by |',
         Interface => 'The X10 Interface to use (e.g. CM17, CM11)',
         X10_Type  => 'The type of X10 device (e.g. LM14 or preset)',
-        String =>
-          'The serial characters to match (e.g. XA1A1 to match 2 A1 button pushes)',
-        State => 'The state name to correlate to this items serial String',
-        Port  => 'Which port to look for the serial data on',
-        ID =>
-          'Ibutton ID:  type|serial|crc  crc is optional.  type=01 (1990) type=10 (1820)',
-        Channel => 'When using a switch, choose channel A or B',
-        Item    => 'Item name to tie this voice command to',
-        Phrase  => 'Voice_Cmd Text',
-        Mode =>
-          '\'R\' (readable): generate read request to learn current state at initialization',
-        Options =>
-          'List the device options separated by | (e.g. preset, resume=80)',
+        String    => 'The serial characters to match (e.g. XA1A1 to match 2 A1 button pushes)',
+        State     => 'The state name to correlate to this items serial String',
+        Port      => 'Which port to look for the serial data on',
+        ID        => 'Ibutton ID:  type|serial|crc  crc is optional.  type=01 (1990) type=10 (1820)',
+        Channel   => 'When using a switch, choose channel A or B',
+        Item      => 'Item name to tie this voice command to',
+        Phrase    => 'Voice_Cmd Text',
+        Mode      => '\'R\' (readable): generate read request to learn current state at initialization',
+        Options   => 'List the device options separated by | (e.g. preset, resume=80)',
         FloorPlan => 'Floor Plan location',
         Other     => 'Other stuff :)'
     );

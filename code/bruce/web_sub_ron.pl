@@ -3,8 +3,7 @@
 
 # Write today's calender (UNIX) facts.
 if ($New_Day) {
-    run
-      qq[calendar -A 1 -f /usr/share/calendar/calendar.world >$config_parms{html_dir}/ia5/calendar/calendar.txt];
+    run qq[calendar -A 1 -f /usr/share/calendar/calendar.world >$config_parms{html_dir}/ia5/calendar/calendar.txt];
     return;
 }
 
@@ -24,16 +23,14 @@ sub deskgrab {
         "$config_parms{html_dir}/ia5/cameras/captures/desk_tmp.jpg",
         "$config_parms{html_dir}/ia5/cameras/captures/desk_latest.jpg"
     );
-    run
-      qq[/mh/bin_my/cqcam -q 100 -32+ -j -x 320 -y 240 >$config_parms{html_dir}/ia5/cameras/captures/desk_tmp.jpg];
+    run qq[/mh/bin_my/cqcam -q 100 -32+ -j -x 320 -y 240 >$config_parms{html_dir}/ia5/cameras/captures/desk_tmp.jpg];
     return;
 }
 
 # Save a small fortune cookie every hour
 # for use on menu.shtml.
 if ( $New_Hour and !$OS_win ) {
-    run
-      qq[/usr/games/fortune -s >$config_parms{html_dir}/ia5/house/fortune.txt];
+    run qq[/usr/games/fortune -s >$config_parms{html_dir}/ia5/house/fortune.txt];
     return;
 }
 

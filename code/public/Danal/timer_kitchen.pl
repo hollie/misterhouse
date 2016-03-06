@@ -24,8 +24,7 @@ if ( $state = said $v_list_timer) {
     $result .= &plural( $temp, "minute" ) . " left on Lower Oven timer\n"
       if ( $temp != 0 );
     $temp = minutes_remaining $timer_RFBurn;
-    $result .=
-      &plural( $temp, "minute" ) . " left on Right Front Burner timer\n"
+    $result .= &plural( $temp, "minute" ) . " left on Right Front Burner timer\n"
       if ( $temp != 0 );
     $temp = minutes_remaining $timer_LFBurn;
     $result .= &plural( $temp, "minute" ) . " left on Left Front Burner timer\n"
@@ -66,30 +65,18 @@ if ( $state = said $v_can_timer) {
 
 my %timer_reminder_intervals = map { $_, 1 } ( 1, 5, 10, 20, 30, 60 );
 
-$v_UpOven_timer = new Voice_Cmd(
-    'Set Upper Oven Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes'
-);
-$v_LwOven_timer = new Voice_Cmd(
-    'Set Lower Oven Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes'
-);
-$v_RFBurn_timer = new Voice_Cmd(
-    'Set Right Front Burner Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes'
-);
-$v_LFBurn_timer = new Voice_Cmd(
-    'Set Left Front Burner Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes'
-);
-$v_RRBurn_timer = new Voice_Cmd(
-    'Set Right Rear Burner Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes'
-);
-$v_LRBurn_timer = new Voice_Cmd(
-    'Set Left Rear Burner Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes'
-);
-$v_EXTim1_timer = new Voice_Cmd(
-    'Set Extra Timer 1 for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes'
-);
-$v_EXTim2_timer = new Voice_Cmd(
-    'Set Extra Timer 2 for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes'
-);
+$v_UpOven_timer = new Voice_Cmd( 'Set Upper Oven Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes' );
+$v_LwOven_timer = new Voice_Cmd( 'Set Lower Oven Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes' );
+$v_RFBurn_timer =
+  new Voice_Cmd( 'Set Right Front Burner Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes' );
+$v_LFBurn_timer =
+  new Voice_Cmd( 'Set Left Front Burner Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes' );
+$v_RRBurn_timer =
+  new Voice_Cmd( 'Set Right Rear Burner Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes' );
+$v_LRBurn_timer =
+  new Voice_Cmd( 'Set Left Rear Burner Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes' );
+$v_EXTim1_timer = new Voice_Cmd( 'Set Extra Timer 1 for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes' );
+$v_EXTim2_timer = new Voice_Cmd( 'Set Extra Timer 2 for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes' );
 
 set_order $v_UpOven_timer '03';
 set_order $v_LwOven_timer '04';

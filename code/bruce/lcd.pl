@@ -50,8 +50,7 @@ print "LCD key1: $state.\n" if defined( $state = said_key $lcd1);
 
 # Allow for manual start/stop of lcd menu
 $v_lcdproc_control = new Voice_Cmd '[Start,Stop] the lcdproc client';
-$v_lcdproc_control->set_info(
-    'Connects to the lcdproc server, used to display LCD data.');
+$v_lcdproc_control->set_info('Connects to the lcdproc server, used to display LCD data.');
 run_voice_cmd 'Start the lcdproc client' if time_now '11 pm';    # Daily restart
 
 if ( $state = said $v_lcdproc_control) {
@@ -60,8 +59,7 @@ if ( $state = said $v_lcdproc_control) {
 
 if ( $Save{phone_callerid_data} ne $Save{phone_callerid_data_prev} ) {
     $Save{phone_callerid_data} =~ s/phone_call.wav,//g;
-    set $lcd1 &time_date_stamp( 6, $Time ) . ' ' . &time_date_stamp( 8, $Time ),
-      split "\n", $Save{phone_callerid_data};
+    set $lcd1 &time_date_stamp( 6, $Time ) . ' ' . &time_date_stamp( 8, $Time ), split "\n", $Save{phone_callerid_data};
     $Save{phone_callerid_data_prev} = $Save{phone_callerid_data};
 }
 

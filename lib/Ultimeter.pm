@@ -51,9 +51,7 @@ package Ultimeter;
 @Ultimeter::ISA = ('Serial_Item');
 
 sub serial_startup {
-    &main::serial_port_create( 'Ultimeter',
-        $main::config_parms{Ultimeter_serial_port},
-        2400, 'none' );
+    &main::serial_port_create( 'Ultimeter', $main::config_parms{Ultimeter_serial_port}, 2400, 'none' );
 
     #Start complete record mode
     $main::Serial_Ports{Ultimeter}{object}->write(">K\n");
@@ -315,8 +313,7 @@ sub update_weather {
         $v   = substr( $data, 144, 4 );
         $vv  = hex($v);
         $vvv = $vv / 10.0;
-        $main::Weather{YesterdayBarometerLow} =
-          sprintf( "%.2f", $vvv * .02953 );
+        $main::Weather{YesterdayBarometerLow} = sprintf( "%.2f", $vvv * .02953 );
 
         #37 Yesterday's Low Barometer Time
         $v                                        = substr( $data, 148, 4 );
@@ -416,8 +413,7 @@ sub update_weather {
         $v = substr( $data, 204, 4 );
         $vv = hex($v);
         if ( $main::Weather{CurrentOutdoorHumidity} ne "N/A" ) {
-            $main::Weather{YesterdayOutdoorLowHumidityTime} =
-              &ultimeter_time($vv);
+            $main::Weather{YesterdayOutdoorLowHumidityTime} = &ultimeter_time($vv);
         }
         else {
             $main::Weather{YesterdayOutdoorLowHumidityTime} = "N/A";
@@ -448,8 +444,7 @@ sub update_weather {
         $v = substr( $data, 216, 4 );
         $vv = hex($v);
         if ( $main::Weather{CurrentOutdoorHumidity} ne "N/A" ) {
-            $main::Weather{LongtermOutdoorLowHumidityTime} =
-              &ultimeter_time($vv);
+            $main::Weather{LongtermOutdoorLowHumidityTime} = &ultimeter_time($vv);
         }
         else {
             $main::Weather{LongtermOutdoorLowHumidityTime} = "N/A";
@@ -491,8 +486,7 @@ sub update_weather {
         $v = substr( $data, 232, 4 );
         $vv = hex($v);
         if ( $main::Weather{CurrentIndoorHumidity} ne "N/A" ) {
-            $main::Weather{YesterdayIndoorLowHumidityTime} =
-              &ultimeter_time($vv);
+            $main::Weather{YesterdayIndoorLowHumidityTime} = &ultimeter_time($vv);
         }
         else {
             $main::Weather{YesterdayIndoorLowHumidityTime} = "N/A";
@@ -523,8 +517,7 @@ sub update_weather {
         $v = substr( $data, 244, 4 );
         $vv = hex($v);
         if ( $main::Weather{CurrentIndoorHumidity} ne "N/A" ) {
-            $main::Weather{LongtermIndoorLowHumidityTime} =
-              &ultimeter_time($vv);
+            $main::Weather{LongtermIndoorLowHumidityTime} = &ultimeter_time($vv);
         }
         else {
             $main::Weather{LongtermIndoorLowHumidityTime} = "N/A";
@@ -634,8 +627,7 @@ sub update_weather {
         $v   = substr( $data, 320, 4 );
         $vv  = hex($v);
         $vvv = $vv / 10.0;
-        $main::Weather{YesterdayBarometerHigh} =
-          sprintf( "%.2f", $vvv * .02953 );
+        $main::Weather{YesterdayBarometerHigh} = sprintf( "%.2f", $vvv * .02953 );
 
         #81 Yesterday's High Barometer Time
         $v                                         = substr( $data, 324, 4 );
@@ -651,8 +643,7 @@ sub update_weather {
         $v   = substr( $data, 332, 4 );
         $vv  = hex($v);
         $vvv = $vv / 10.0;
-        $main::Weather{LongtermBarometerHigh} =
-          sprintf( "%.2f", $vvv * .02953 );
+        $main::Weather{LongtermBarometerHigh} = sprintf( "%.2f", $vvv * .02953 );
 
         #84 Long Term High Barometer Time
         $v                                        = substr( $data, 336, 4 );
@@ -726,8 +717,7 @@ sub update_weather {
         $v = substr( $data, 380, 4 );
         $vv = hex($v);
         if ( $main::Weather{CurrentOutdoorHumidity} ne "N/A" ) {
-            $main::Weather{YesterdayOutdoorHighHumidityTime} =
-              &ultimeter_time($vv);
+            $main::Weather{YesterdayOutdoorHighHumidityTime} = &ultimeter_time($vv);
         }
         else {
             $main::Weather{YesterdayOutdoorHighHumidityTime} = "N/A";
@@ -758,8 +748,7 @@ sub update_weather {
         $v = substr( $data, 392, 4 );
         $vv = hex($v);
         if ( $main::Weather{CurrentOutdoorHumidity} ne "N/A" ) {
-            $main::Weather{LongtermOutdoorHighHumidityTime} =
-              &ultimeter_time($vv);
+            $main::Weather{LongtermOutdoorHighHumidityTime} = &ultimeter_time($vv);
         }
         else {
             $main::Weather{LongtermOutdoorHighHumidityTime} = "N/A";
@@ -801,8 +790,7 @@ sub update_weather {
         $v = substr( $data, 408, 4 );
         $vv = hex($v);
         if ( $main::Weather{CurrentIndoorHumidity} ne "N/A" ) {
-            $main::Weather{YesterdayIndoorHighHumidityTime} =
-              &ultimeter_time($vv);
+            $main::Weather{YesterdayIndoorHighHumidityTime} = &ultimeter_time($vv);
         }
         else {
             $main::Weather{YesterdayIndoorHighHumidityTime} = "N/A";
@@ -833,8 +821,7 @@ sub update_weather {
         $v = substr( $data, 420, 4 );
         $vv = hex($v);
         if ( $main::Weather{CurrentIndoorHumidity} ne "N/A" ) {
-            $main::Weather{LongtermIndoorHighHumidityTime} =
-              &ultimeter_time($vv);
+            $main::Weather{LongtermIndoorHighHumidityTime} = &ultimeter_time($vv);
         }
         else {
             $main::Weather{LongtermIndoorHighHumidityTime} = "N/A";

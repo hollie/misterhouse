@@ -20,7 +20,7 @@
 =cut
 
 use JSON::PP ()
-  ; # Do not import any functions as it could conflict with the JSON imported functions from other locations in the code
+  ;    # Do not import any functions as it could conflict with the JSON imported functions from other locations in the code
 
 # noloop=start
 my $mhdl_url  = "https://api.github.com/repos/hollie/misterhouse/tags";
@@ -70,9 +70,7 @@ sub calc_age {
     return
         "$weeks week"
       . ( ( $weeks == 1 ) ? '' : 's' )
-      . (
-        ( !$days ) ? '' : ( " and $days day" . ( ( $days == 1 ) ? '' : 's' ) ) )
-      . " ago";
+      . ( ( !$days ) ? '' : ( " and $days day" . ( ( $days == 1 ) ? '' : 's' ) ) ) . " ago";
 }
 
 if ( said $v_version) {
@@ -87,15 +85,12 @@ if ( said $v_version) {
         and ( $maj !~ m/^develop-ref/ )
       )
     {
-        respond(
-            "app=control I am version $version_str and $Save{mhdl_maj}.$Save{mhdl_min} was released "
+        respond("app=control I am version $version_str and $Save{mhdl_maj}.$Save{mhdl_min} was released "
               . &calc_age( $Save{mhdl_date} )
               . '.' );
     }
     elsif ( $maj =~ m/^develop-ref/ ) {
-        respond(
-            "app=control You are running the development branch, it has no version releases."
-        );
+        respond( "app=control You are running the development branch, it has no version releases." );
     }
     else {
         respond("app=control I am version $version_str.");
@@ -112,8 +107,7 @@ if ( said $v_mhdl_page) {
         start $p_mhdl_page;
     }
     else {
-        $msg =
-          "app=control Unable to check version while disconnected from the Internet";
+        $msg = "app=control Unable to check version while disconnected from the Internet";
     }
 
     $v_mhdl_page->respond("app=control $msg");
@@ -123,7 +117,7 @@ if ( done_now $p_mhdl_page) {
     my @html = file_read($mhdl_file);
     print_log("Download page retrieved");
     my $json = JSON::PP::decode_json(@html)
-      ; # Use the PP version of the call as otherwise this function fails at least on OS X 10.9.4 with Perl 5.18.2
+      ;    # Use the PP version of the call as otherwise this function fails at least on OS X 10.9.4 with Perl 5.18.2
     my ( $mhdl_date_url, $maj, $min );
     foreach ( @{$json} ) {
         next unless $_->{name} =~ m/^v(\d+)\.(\d+)/;
@@ -138,13 +132,11 @@ if ( done_now $p_mhdl_page) {
     if (&net_connect_check) {
         $msg = 'Checking version date...';
         print_log("Retrieving download date page");
-        set $p_mhdl_date_page
-          "get_url -quiet \"$mhdl_date_url\" \"$mhdl_date_file\"";
+        set $p_mhdl_date_page "get_url -quiet \"$mhdl_date_url\" \"$mhdl_date_file\"";
         start $p_mhdl_date_page;
     }
     else {
-        $msg =
-          "app=control Unable to check version date while disconnected from the Internet";
+        $msg = "app=control Unable to check version date while disconnected from the Internet";
     }
     respond("app=control $msg");
 }
@@ -159,8 +151,7 @@ if ( done_now $p_mhdl_date_page) {
         if (
             (
                    ( $Save{mhdl_maj} > $maj )
-                or
-                ( ( $Save{mhdl_maj} == $maj ) and ( $Save{mhdl_min} > $min ) )
+                or ( ( $Save{mhdl_maj} == $maj ) and ( $Save{mhdl_min} > $min ) )
             )
             and ( $maj !~ m/^develop-ref/ )
           )
@@ -170,9 +161,7 @@ if ( done_now $p_mhdl_date_page) {
                   . &calc_age( $Save{mhdl_date} . '.' ) );
         }
         elsif ( $maj =~ m/^develop-ref/ ) {
-            respond(
-                "connected=0 app=control You are running the development branch, it has no version releases."
-            );
+            respond( "connected=0 app=control You are running the development branch, it has no version releases." );
         }
         else {
             # Voice command is only code to start this process, so check its set_by
@@ -188,8 +177,7 @@ if ($Reload) {
         &trigger_set(
             "state_now \$net_connect eq 'connected'",
             "run_voice_cmd 'Check Misterhouse version'",
-            'NoExpire',
-            'get MH version'
+            'NoExpire', 'get MH version'
         ) unless &trigger_get('get MH version');
     }
     else {

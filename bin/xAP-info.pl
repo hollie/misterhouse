@@ -96,8 +96,7 @@ $astman->disconnect;
 sub newexten_callback {
     my (%params) = @_;
 
-    xap_extension( $params{'Extension'}, $params{'Context'},
-        $params{'Channel'} );
+    xap_extension( $params{'Extension'}, $params{'Context'}, $params{'Channel'} );
     default_callback(@_);
 
 }
@@ -160,8 +159,7 @@ sub xap_extension {
     $response = $response . "Outgoing.CallComplete\n";
     $response = $response . "{\n";
     $response = $response . "Phone=" . $p_number . "\n";
-    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
-      localtime(time);
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime(time);
     $year += 1900;
     $mon  += 1;
     $mon  = sprintf( "%02d", $mon );
@@ -169,15 +167,7 @@ sub xap_extension {
     $hour = sprintf( "%02d", $hour );
     $min  = sprintf( "%02d", $min );
     $sec  = sprintf( "%02d", $sec );
-    $response =
-        $response
-      . "DateTime="
-      . $year
-      . $mon
-      . $mday
-      . $hour
-      . $min
-      . $sec . "\n";
+    $response = $response . "DateTime=" . $year . $mon . $mday . $hour . $min . $sec . "\n";
     $response = $response . "Duration=00:00:00\n";
     $response = $response . "Context=" . $p_context . "\n";
     $response = $response . "Line=" . $p_line . "\n";
@@ -208,8 +198,7 @@ sub xap_cid {
     $response = $response . "{\n";
     $response = $response . "Type=" . "Voice" . "\n";
     $response = $response . "Phone=" . $p_number . "\n";
-    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
-      localtime(time);
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime(time);
     $year += 1900;
     $mon  += 1;
     $mon  = sprintf( "%02d", $mon );
@@ -217,15 +206,7 @@ sub xap_cid {
     $hour = sprintf( "%02d", $hour );
     $min  = sprintf( "%02d", $min );
     $sec  = sprintf( "%02d", $sec );
-    $response =
-        $response
-      . "DateTime="
-      . $year
-      . $mon
-      . $mday
-      . $hour
-      . $min
-      . $sec . "\n";
+    $response = $response . "DateTime=" . $year . $mon . $mday . $hour . $min . $sec . "\n";
     $response = $response . "RNNumber=" . $l_reason . "\n";
     $response = $response . "Name=" . $p_name . "\n";
     $response = $response . "Line=" . $p_line . "\n";
