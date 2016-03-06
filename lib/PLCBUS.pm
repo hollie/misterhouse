@@ -1428,11 +1428,11 @@ if set to '0' or omitted, no logfile is created.
 =head2 SAMPLE .MHT FILE
 
     Format = A
-    # PLCBUS_TYPE,   address,  name,                groups                       scenes
+    # PLCBUS_TYPE,   address,  name,                groups                       default|scenes
+    PLCBUS_Scene,    O2,       TestScene
     PLCBUS_2026G,    B2,       StandardLamp,        Property|livingroom(10;10),  O2:30@2|B2:100@0
     PLCBUS_2263DAU,  B4,       StaircaseLightning,  Property|staircase(5;20),    O2:70@4|B4:85@1
     PLCBUS_2026G,    B5,       TvLamp,              Property|livingroom(20;20),
-    PLCBUS_Scene,    O2,       TestScene
 
 =head2 CATEGORY PLCBUS
 
@@ -1507,31 +1507,76 @@ L<http://www.plc-bus.info/downloads.php?cat=2> (you need to be logged in)
 Now start playing with your new toys. But not too much, cause your 1141 and/or
 your phase couple may get annoyed :-(
 
-=head1 SETTING UP A SCENE
+=head1 SCENE DEFINITION
 
-All modules that shall belong to a scene address have to be turned on and in
+All modules that shall belong to a scene address have to be turned on and be in
 their desired brightness state. All others have to be in off state, otherwise
-they will belong to your new scene address.
-Then you send the command to programm the scene adress into the devices:
+they will belong to your new scene.
 
-    echo E3,screnes_addr_setup,2,0 > /tmp/plcbuscommands
+To setup a new scene,  add a PLCBUS_Scene item to your mht file and configure
+your pclbus devices to be a part of the the scene.
+A scene member definition consists of the scene address, the brightness level
+and faderate for the scene. The format is 'SceneAddress:Brightness@Faderate',
+multiple sceneadresses are seperated with '|'. If a scene definition contains the
+address of the item itself, this is used as the default setting for the item.
 
-now all on modules are part of the E3 screen and should turn on/off if you do
+    Format = A
+    # PLCBUS_TYPE,   address,  name,                groups                       default|scenes
+    PLCBUS_Scene,    O2,       TestScene
+    PLCBUS_2026G,    B2,       StandardLamp,        Property|livingroom(10;10),  O2:30@2|B2:100@0
+    PLCBUS_2263DAU,  B4,       StaircaseLightning,  Property|staircase(5;20),    O2:70@4|B4:85@1
 
-    echo E3,off > /tmp/plcbuscommands 
+StandardLamp TestScene O2 with a brightnesslevel of 30 and a faderate of 2s. Its 
+defaulte setting is 100% brightness, no fade.
 
+=head2 SETTING UP A SCENE
 
-    xxxxxxxxxxxxxxxxxxxxx
+To program a scene all the members of the scene have to be in the desired state.
+Scene items provide you with the needed commands to achieve this.
 
-you can name the scene and add it to a group 
-    PLCBUS_Scene,   E3,     stairs,     my_lights
+Before you start make sure there is nothing changing the states of your lights.
 
-to tel mh about the sceene append all the scenes a modul is a part of to 
-the mht file
-    PLCBUS_2026G,    C7,       newTestLamp, PLCBUS_C, E3|D4
+=head3 Program Scene
 
-you can name the scene and add it to a group 
-    PLCBUS_Scene,   E3,     stairs,     my_lights
+To program the scene you have to set the following states on the scene object
+
+=over 4
+
+=item 1. C<prepare_program>
+
+this tries to turn every plcbus item off; then sends presetdim command to all
+members of the scene. You have to wait for all lights to complete the configured
+brightness 
+
+=item 2. C<program>
+
+this command sends the actual scene address to all devices in 'on' state. The
+lights will blink if the where not already member of the scene 
+
+=item 3. C<set_members_default>
+
+This will send presetdim with the default levels to all members of a scene,
+otherwise the next 'on' command will use the levels of the programed scene.
+
+=back
+
+=head3 Delete Scene
+
+=over 4
+
+=item 1. C<prepare_delete>:
+
+turns all off; then sends scene 'on' command; wait for all members to turn on
+
+=item 2. C<delete>
+
+deletes the scene address from the modules; Lights will blink if the receive the
+delete command.
+
+=back
+
+If a scene is turned on, all members will enter the 'on' state. If any of the
+scene members is turned off, the scene will also change to 'off'.
 
 =head1 AUTHOR
 
