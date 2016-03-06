@@ -467,6 +467,20 @@ sub read_table_A {
         ( $name, $grouplist, @other ) = @item_info;
         $object = "Occupancy_Monitor( $other)";
     }
+    elsif($type eq "DSC") {
+        require 'dsc.pm';
+        ($name, $grouplist, @other) = @item_info;
+        # $grouplist translates to $type in the new object definition call
+        $object = "DSC('$name', '$grouplist')";
+    }
+    elsif($type eq "DSC_PARTITION") {
+        ($name, $object, $address, $other, $grouplist, @other) = @item_info;
+        $object = "DSC::Partition(\$$object, '$address')";
+    }
+    elsif($type eq "DSC_ZONE") {
+        ($name, $object, $address, $other, $grouplist, @other) = @item_info;
+        $object = "DSC::Zone(\$$object, '$address', '$other')";
+    }
     elsif ( $type eq "MUSICA" ) {
         require 'Musica.pm';
         ( $name, $grouplist, @other ) = @item_info;
