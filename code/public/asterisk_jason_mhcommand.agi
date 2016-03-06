@@ -145,7 +145,6 @@ sub send_voice {
 
     #	$response = $response .	"\nport=" . $port ;
     $response = $response . "\n}\n";
-    $response =
-      $response . $XAP_CLASS . "\n{\ncommand=" . $p_command . "\n" . "}\n";
+    $response = $response . $XAP_CLASS . "\n{\ncommand=" . $p_command . "\n" . "}\n";
     return $response;
 }

@@ -46,16 +46,15 @@ sub new {
 
     bless $self, $class;
 
-    &main::print_log(
-        "creating ChangeWaiter object for socket $socket and sub $sub")
+    &main::print_log("creating ChangeWaiter object for socket $socket and sub $sub")
       if $main::Debug{ajax};
 
     $sub =~ s/^/&main::/;
     ${ $$self{waitingSocket} } = $socket;
     ${ $$self{expireTime} }    = time() + 60;
-    ${ $$self{changed} } = 0;    # Flag if at least on state is changed
-    ${ $$self{event} } = "&ChangeChecker::setWaiterToChanged ('$self')";
-    ${ $$self{sub} }   = $sub;
+    ${ $$self{changed} }       = 0;                                                # Flag if at least on state is changed
+    ${ $$self{event} }         = "&ChangeChecker::setWaiterToChanged ('$self')";
+    ${ $$self{sub} }           = $sub;
 
     return $self;
 }
@@ -77,22 +76,18 @@ sub checkForUpdate {
     my ($self) = @_;
 
     if ( ${ $$self{expireTime} } < time() ) {
-        &main::print_log(
-            "checkForUpdate waiter for sub ${$$self{sub}} timed out, closing socket"
-        ) if $main::Debug{ajax};
+        &main::print_log( "checkForUpdate waiter for sub ${$$self{sub}} timed out, closing socket" ) if $main::Debug{ajax};
 
         # Sending a status code makes it easier to distinish No Content from a lost
         # connection on the client end.
-        &::print_socket_fork( ${ $$self{waitingSocket} },
-            "HTTP/1.0 204 No Content\n\n" );
+        &::print_socket_fork( ${ $$self{waitingSocket} }, "HTTP/1.0 204 No Content\n\n" );
         ${ $$self{waitingSocket} }->close;
         return 1;
     }
 
     my $xml = eval ${ $$self{sub} };
     if ($@) {
-        &main::print_log(
-            "checkForUpdate syntax error in sub ${$$self{sub}}\n\t$@")
+        &main::print_log("checkForUpdate syntax error in sub ${$$self{sub}}\n\t$@")
           if $main::Debug{ajax};
         return 1;
     }

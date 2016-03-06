@@ -9,17 +9,14 @@ my %code_members_off;
 
 if ($Reload) {
     for my $member ( split ',', $Save{code_members_off} ) {
-        print_log
-          "Member $member has been disabled.  Re-enable with 'toggle code member $member'";
+        print_log "Member $member has been disabled.  Re-enable with 'toggle code member $member'";
         $code_members_off{$member}++;
         $Run_Members{$member} = 0;
     }
 }
 
-$v_toggle_run_members =
-  new Voice_Cmd "[Disable,Enable,List status of] all code files";
-$v_toggle_run_members->set_info(
-    'Use this for debug.  Turns all code files on or off');
+$v_toggle_run_members = new Voice_Cmd "[Disable,Enable,List status of] all code files";
+$v_toggle_run_members->set_info('Use this for debug.  Turns all code files on or off');
 
 if ( $state = said $v_toggle_run_members) {
     print_log "$state all code members";
@@ -66,10 +63,8 @@ if ( my $member = said $v_toggle_run_member) {
 # Allow for disabling each member for a period of time
 my ( @disable_members, $disable_member, $disable_member_time );
 
-$disable_code =
-  new Voice_Cmd 'Disable code test [.01,.1,.3,.6,1,10,60,300] minutes';
-$disable_code->set_info(
-    'Use this to debug problems by sequentially turning off code files');
+$disable_code = new Voice_Cmd 'Disable code test [.01,.1,.3,.6,1,10,60,300] minutes';
+$disable_code->set_info('Use this to debug problems by sequentially turning off code files');
 $disable_code_timer = new Timer;
 
 if ( $state = said $disable_code) {

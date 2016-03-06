@@ -30,12 +30,10 @@ sub web_trigger_list {
     my $html = &html_header('Triggers Menu');
 
     my $form_trigger = &html_form_select( 'trigger1', 0, 'time_now', '',
-        qw(time_now time_cron time_random new_second new_minute new_hour $New_Hour $New_Day $New_Week $New_Month $New_Year)
-    );
+        qw(time_now time_cron time_random new_second new_minute new_hour $New_Hour $New_Day $New_Week $New_Month $New_Year) );
 
     my $form_code = &html_form_select( 'code1', 0, 'speak', '',
-        qw(speak play display print_log set run run_voice_cmd net_im_send net_mail_send get)
-    );
+        qw(speak play display print_log set run run_voice_cmd net_im_send net_mail_send get) );
 
     $html = qq|
 <HTML>
@@ -101,17 +99,14 @@ $form_code
       )
     {
 
-        my ( $trigger, $code, $type, $triggered, $trigger_error, $code_error )
-          = trigger_get($name);
+        my ( $trigger, $code, $type, $triggered, $trigger_error, $code_error ) = trigger_get($name);
 
         if ( $type_prev ne $type ) {
             $html .= "</table>\n" if $type_prev;
             $type_prev = $type;
-            $html .=
-              "<p><B>$type:</B> (<a name='$type' href='#Top'>back to top</a>)\n";
+            $html .= "<p><B>$type:</B> (<a name='$type' href='#Top'>back to top</a>)\n";
             $html .= qq|<table class="EditTrigger" border width="100%">\n|;
-            $html .=
-              "<tr><th></th><th>Name</th><th>Trigger Event</th><th>Action Code</th><th>Type</th><th>Last Run</th></tr>\n";
+            $html .= "<tr><th></th><th>Name</th><th>Trigger Event</th><th>Action Code</th><th>Type</th><th>Last Run</th></tr>\n";
         }
 
         my $name2 = $name;
@@ -121,25 +116,16 @@ $form_code
         $code =~ s/"/&quot;/g;
 
         $html .= "<td>";
-        $html .=
-          "<a href=/SUB;/bin/triggers.pl?trigger_copy('$name2')>Copy</a>\n";
-        $html .=
-          "    <a href=/SUB;/bin/triggers.pl?trigger_delete('$name2')>Delete</a>\n";
-        $html .=
-          "    <a href=/SUB;/bin/triggers.pl?trigger_run('$name2')>Run</a></td>\n";
+        $html .= "<a href=/SUB;/bin/triggers.pl?trigger_copy('$name2')>Copy</a>\n";
+        $html .= "    <a href=/SUB;/bin/triggers.pl?trigger_delete('$name2')>Delete</a>\n";
+        $html .= "    <a href=/SUB;/bin/triggers.pl?trigger_run('$name2')>Run</a></td>\n";
 
-        $html .=
-          &html_form_input_set_func( 'trigger_rename', '/bin/triggers.pl',
-            $name, $name );
+        $html .= &html_form_input_set_func( 'trigger_rename', '/bin/triggers.pl', $name, $name );
         $html .= qq|<span class="error">\n| if $trigger_error;
-        $html .=
-          &html_form_input_set_func( 'trigger_set_trigger', '/bin/triggers.pl',
-            $name, $trigger );
+        $html .= &html_form_input_set_func( 'trigger_set_trigger', '/bin/triggers.pl', $name, $trigger );
         $html .= "</span>\n" if $trigger_error;
         $html .= qq|<span class="error">\n| if $code_error;
-        $html .=
-          &html_form_input_set_func( 'trigger_set_code', '/bin/triggers.pl',
-            $name, $code );
+        $html .= &html_form_input_set_func( 'trigger_set_code', '/bin/triggers.pl', $name, $code );
         $html .= "</span>\n" if $code_error;
         $html .=
           &html_form_select_set_func( 'trigger_set_type', '/bin/triggers.pl',
@@ -153,11 +139,9 @@ $form_code
 
         $html .= "</tr>\n\n";
 
-        $html .=
-          qq|<tr class="error">\n\n<td colspan=7>Trigger Event Error: $trigger_error</td></tr>\n|
+        $html .= qq|<tr class="error">\n\n<td colspan=7>Trigger Event Error: $trigger_error</td></tr>\n|
           if $trigger_error;
-        $html .=
-          qq|<tr class="error">\n\n<td colspan=7>Action Code Error: $code_error</td></tr>\n|
+        $html .= qq|<tr class="error">\n\n<td colspan=7>Action Code Error: $code_error</td></tr>\n|
           if $code_error;
     }
     $html .= "</table>\n";
@@ -199,13 +183,10 @@ sub web_trigger_add {
 
     # Create form
     else {
-        my $html =
-          "Add a trigger:<form action='/bin/triggers.pl?add' method=post>\n";
+        my $html = "Add a trigger:<form action='/bin/triggers.pl?add' method=post>\n";
         $html .= qq|<br>Name   <input type=input name=name    value="Test">\n|;
-        $html .=
-          qq|<br>Trigger<input type=input name=trigger value="time_now '12 pm'">\n|;
-        $html .=
-          qq|<br>Event  <input type=input name=code    value="speak 'hi'">\n|;
+        $html .= qq|<br>Trigger<input type=input name=trigger value="time_now '12 pm'">\n|;
+        $html .= qq|<br>Event  <input type=input name=code    value="speak 'hi'">\n|;
         $html .= qq|<br>Type <select name='type'>
 <option value='OneShot' selected>OneShot</option>
 <option value='NoExpire'>NoExpire</option>

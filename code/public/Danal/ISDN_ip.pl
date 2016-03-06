@@ -21,13 +21,10 @@
 my $f_ISDN_addr = "$config_parms{data_dir}/web/ISDN_addr.txt";
 my $f_ISDN_html = "$config_parms{data_dir}/web/ISDN_addr.html";
 
-$p_ISDN_addr =
-  new Process_Item("get_url http://lanmodem/stat3.htm $f_ISDN_html");
+$p_ISDN_addr = new Process_Item("get_url http://lanmodem/stat3.htm $f_ISDN_html");
 
-$v_ISDN_addr =
-  new Voice_Cmd('[Get,Read,Show] the 3Com ISDN Lan Modem Internet IP address');
-$v_ISDN_addr->set_info(
-    "The IP address of the other end of the call; our public IP");
+$v_ISDN_addr = new Voice_Cmd('[Get,Read,Show] the 3Com ISDN Lan Modem Internet IP address');
+$v_ISDN_addr->set_info("The IP address of the other end of the call; our public IP");
 
 speak($f_ISDN_addr)   if said $v_ISDN_addr eq 'Read';
 display($f_ISDN_addr) if said $v_ISDN_addr eq 'Show';

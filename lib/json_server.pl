@@ -170,15 +170,11 @@ sub json_get {
 
         eval {
             my $json_collections = file_read($collection_file);
-            $json_data{'collections'} = decode_json($json_collections)
-              ;    #HP, wrap this in eval to prevent MH crashes
+            $json_data{'collections'} = decode_json($json_collections);    #HP, wrap this in eval to prevent MH crashes
         };
         if ($@) {
-            print_log
-              "Json_Server.pl: WARNING: decode_json failed for collection.json. Please check this file!";
-            $json_data{'collections'} =
-              decode_json('{ "0" : { "name" : "error" } }')
-              ;    #write a blank collection
+            print_log "Json_Server.pl: WARNING: decode_json failed for collection.json. Please check this file!";
+            $json_data{'collections'} = decode_json('{ "0" : { "name" : "error" } }');    #write a blank collection
 
         }
     }
@@ -193,15 +189,11 @@ sub json_get {
 
         eval {
             my $prefs = file_read($prefs_file);
-            $json_data{'ia7_config'} =
-              decode_json($prefs);  #HP, wrap this in eval to prevent MH crashes
+            $json_data{'ia7_config'} = decode_json($prefs);    #HP, wrap this in eval to prevent MH crashes
         };
         if ($@) {
-            print_log
-              "Json_Server.pl: WARNING: decode_json failed for ia7_config.json. Please check this file!";
-            $json_data{'ia7_config'} =
-              decode_json('{ "prefs" : { "status" : "error" } }')
-              ;                     #write a blank collection
+            print_log "Json_Server.pl: WARNING: decode_json failed for ia7_config.json. Please check this file!";
+            $json_data{'ia7_config'} = decode_json('{ "prefs" : { "status" : "error" } }');    #write a blank collection
 
         }
     }
@@ -216,12 +208,10 @@ sub json_get {
 
         eval {
             my $prefs = file_read($prefs_file);
-            $json_data{'rrd_config'} =
-              decode_json($prefs);  #HP, wrap this in eval to prevent MH crashes
+            $json_data{'rrd_config'} = decode_json($prefs);    #HP, wrap this in eval to prevent MH crashes
         };
         if ($@) {
-            print_log
-              "Json_Server.pl: WARNING: decode_json failed for ia7_rrd_config.json. Please check this file!";
+            print_log "Json_Server.pl: WARNING: decode_json failed for ia7_rrd_config.json. Please check this file!";
         }
     }
 
@@ -247,8 +237,8 @@ sub json_get {
         my $celsius  = 0;
         my $arg_time = 0;
         $arg_time = int( $args{time}[0] ) if ( defined int( $args{time}[0] ) );
-        $celsius = 1 if ( $config_parms{weather_uom_temp} eq 'C' );
-        $celsius = 1
+        $celsius  = 1                     if ( $config_parms{weather_uom_temp} eq 'C' );
+        $celsius  = 1
           if ( lc $json_data{'rrd_config'}->{'prefs'}->{'uom'} eq "celsius" );
         my %data;
         my $end = "now";
@@ -263,14 +253,8 @@ sub json_get {
             if ( defined $args{group}[0] ) {
                 @{ $args{ds} } = ();    #override any DSs specified in the URL
                 for my $dsg ( keys %{ $json_data{'rrd_config'}->{'ds'} } ) {
-                    if (
-                        defined $json_data{'rrd_config'}->{'ds'}->{$dsg}
-                        ->{'group'} )
-                    {
-                        foreach my $group ( split /,/,
-                            $json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'}
-                          )
-                        {
+                    if ( defined $json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'} ) {
+                        foreach my $group ( split /,/, $json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'} ) {
                             push @{ $args{ds} }, $dsg
                               if ( lc $group ) eq ( lc $args{group}[0] );
                         }
@@ -284,48 +268,31 @@ sub json_get {
                 #if it doesn't exist as a ds then skip
                 my $cf = $default_cf;
                 $cf = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'cf'}
-                  if (
-                    defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'cf'} );
+                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'cf'} );
                 push @defs,   "DEF:$ds=$path/$rrd_file:$ds:$cf";
                 push @xports, "XPORT:$ds";
-                $dataset[$index]->{'label'} =
-                  $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'}
-                  if (
-                    defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'}
-                  );
-                $dataset[$index]->{'color'} =
-                  $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'}
-                  if (
-                    defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'}
-                  );
-                if (
-                    lc $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} eq
-                    "bar" )
-                {
+                $dataset[$index]->{'label'} = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'}
+                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'} );
+                $dataset[$index]->{'color'} = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'}
+                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'} );
+                if ( lc $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} eq "bar" ) {
                     $dataset[$index]->{'bars'}->{'show'}      = "true";
                     $dataset[$index]->{'bars'}->{'fill'}      = "0";
                     $dataset[$index]->{'bars'}->{'lineWidth'} = 0;
 
                     #$dataset[$index]->{'bars'}->{'barWidth'} = 8 * 60 * 60 * 1000;  #calculate barwidth based on data range
                     #TODO - bar width on data range
-                    $dataset[$index]->{'bars'}->{'fillColor'}->{'colors'}[0]
-                      ->{'opacity'} = 0.3;
-                    $dataset[$index]->{'bars'}->{'fillColor'}->{'colors'}[1]
-                      ->{'opacity'} = 0.3;
-                    $dataset[$index]->{'yaxis'} = 2;
+                    $dataset[$index]->{'bars'}->{'fillColor'}->{'colors'}[0]->{'opacity'} = 0.3;
+                    $dataset[$index]->{'bars'}->{'fillColor'}->{'colors'}[1]->{'opacity'} = 0.3;
+                    $dataset[$index]->{'yaxis'}                                           = 2;
                 }
                 else {
                     $dataset[$index]->{'lines'}->{'show'} = "true";
                 }
-                $round[$index] =
-                  $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'}
-                  if (
-                    defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'}
-                  );
-                $type[$index] =
-                  $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'}
-                  if (
-                    defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} );
+                $round[$index] = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'}
+                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'} );
+                $type[$index] = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'}
+                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} );
                 $index++;
             }
 
@@ -342,20 +309,18 @@ sub json_get {
             foreach my $line (@lines) {
 
                 #print "line=$line\n";
-                my ($step) = $line =~ /\<step\>(\d+)\<\/step\>/
-                  ;    #this is the width for any bar charts
+                my ($step) = $line =~ /\<step\>(\d+)\<\/step\>/;    #this is the width for any bar charts
                 if ($step) {
                     for my $i ( 0 .. $#dataset ) {
-                        $dataset[$i]->{'bars'}->{'barWidth'} =
-                          int($step) * 1000
+                        $dataset[$i]->{'bars'}->{'barWidth'} = int($step) * 1000
                           if ( defined $dataset[$i]->{'bars'} );
                     }
                 }
                 my ($time) = $line =~ /\<row\>\<t\>(\d*)\<\/t\>/;
-                $time = $time * 1000;    #javascript is in milliseconds
+                $time = $time * 1000;                               #javascript is in milliseconds
 
                 #print "time=$time, $arg_time\n";
-                next if ( $arg_time > int($time) );    #only return new items
+                next if ( $arg_time > int($time) );                 #only return new items
                 my (@values) = $line =~ /\<v\>(-?[e.+-\d]*|NaN)\<\/v\>/g;
                 if ($time) {
 
@@ -369,14 +334,12 @@ sub json_get {
                         $value1 = ( $value1 - 32 ) * ( 5 / 9 )
                           if (  ($celsius)
                             and ( lc $type[$index] eq "temperature" ) );
-                        $value1 =
-                          sprintf( "%." . $round[$index] . "f", $value1 )
+                        $value1 = sprintf( "%." . $round[$index] . "f", $value1 )
                           if ( defined $round[$index] );
 
                         #print "value1=$value1";
                         $value1 =~ s/\.0*$//
-                          unless ( $value1 == 0 )
-                          ;    #remove unneccessary trailing decimals
+                          unless ( $value1 == 0 );    #remove unneccessary trailing decimals
                         $value1 = "null" if ( lc $value1 eq "nan" );
 
                         #print "value1=$value1\n";
@@ -422,9 +385,7 @@ sub json_get {
                 my $o = &get_object_by_name($name);
                 print_log "json: object name=$name ref=" . ref $o
                   if $Debug{json};
-                if ( my $data =
-                    &json_object_detail( $o, \%args, \%fields, $parent_table ) )
-                {
+                if ( my $data = &json_object_detail( $o, \%args, \%fields, $parent_table ) ) {
                     $json_data{objects}{$name} = $data;
                 }
             }
@@ -449,9 +410,7 @@ sub json_get {
                 $name =~ s/\$|\%|\&|\@//g;
                 print_log "json: object name=$name ref=" . ref $o
                   if $Debug{json};
-                if ( my $data =
-                    &json_object_detail( $o, \%args, \%fields, $parent_table ) )
-                {
+                if ( my $data = &json_object_detail( $o, \%args, \%fields, $parent_table ) ) {
                     $json_data{objects}{$name} = $data;
                 }
             }
@@ -501,8 +460,7 @@ sub json_get {
             next unless $key =~ /.+::$/;
             next if $key eq 'main::';
             my $iref = ${$ref}{$key};
-            my ( $k, $r ) =
-              &json_walk_var( $iref, $key, qw( SCALAR ARRAY HASH CODE ) );
+            my ( $k, $r ) = &json_walk_var( $iref, $key, qw( SCALAR ARRAY HASH CODE ) );
             $json_data{packages}{$k} = $r if $k ne "";
         }
 
@@ -627,9 +585,8 @@ sub json_get {
         {
             #Only return messages since time
             @log = ::print_speaklog_since( $args{time}[0] );
-            push @log, ''
-              ; #TODO HP - Kludge, the javascript seems to want an extra line in the array for some reason
-                #print "db/json: " . join(", ",@log) . "\n";
+            push @log, '';    #TODO HP - Kludge, the javascript seems to want an extra line in the array for some reason
+                              #print "db/json: " . join(", ",@log) . "\n";
         }
         elsif ( !$args{time} ) {
             @log = ::print_speaklog_since();
@@ -675,7 +632,7 @@ sub json_get {
     my $json_raw = JSON->new->allow_nonref;
 
     # Translate special characters
-    $json_raw->canonical(1); #Order the data so that objects show alphabetically
+    $json_raw->canonical(1);    #Order the data so that objects show alphabetically
     $json_raw = $json_raw->pretty->encode( \%json );
     return &json_page($json_raw);
 
@@ -689,8 +646,7 @@ sub json_get_sub_element {
     $error_path .= $path . "/";
     if ( ref $json_ref eq 'HASH' && exists $json_ref->{$path} ) {
         if ( scalar( @{$element_ref} ) > 0 ) {
-            return json_get_sub_element( $element_ref, $json_ref->{$path},
-                $error_path );
+            return json_get_sub_element( $element_ref, $json_ref->{$path}, $error_path );
         }
         else {
             #This is the end of the line
@@ -811,8 +767,7 @@ sub build_parent_table {
         my $group = &get_object_by_name($group_name);
         $group_name =~ s/\$|\%|\&|\@//g;
         unless ( defined $group ) {
-            print_log
-              "json: build_parent_table, group_name $group_name doesn't have an object?"
+            print_log "json: build_parent_table, group_name $group_name doesn't have an object?"
               if $Debug{json};
             next;
         }
@@ -846,8 +801,8 @@ sub json_object_detail {
     if ( $args{time} && $args{time}[0] > 0 ) {
 
         # Idle times are only reported in seconds
-        my $request_time = int( $args{time}[0] / 1000 );    # Convert to seconds
-        my $current_time = int( ::get_tickcount() / 1000 ); # Convert to seconds
+        my $request_time = int( $args{time}[0] / 1000 );       # Convert to seconds
+        my $current_time = int( ::get_tickcount() / 1000 );    # Convert to seconds
 
         if ( !( $object->can('get_idle_time') ) ) {
 
@@ -928,11 +883,8 @@ sub json_object_detail {
             ## can add linked items too.
             if ( ref($object) eq 'Group' ) {
                 $value = [];
-                my @tmp
-                  ; ## pull all the members into a temp array that can be sorted
-                for my $obj_name (
-                    &list_objects_by_group( $object->get_object_name, 1 ) )
-                {
+                my @tmp;    ## pull all the members into a temp array that can be sorted
+                for my $obj_name ( &list_objects_by_group( $object->get_object_name, 1 ) ) {
                     $obj_name =~ s/\$|\%|\&|\@//g;
 
                     #push (@{$value}, $obj_name);
@@ -953,8 +905,7 @@ sub json_object_detail {
             print_log "json: object_dets f $f ev $value" if $Debug{json};
         }
         elsif ( $f eq 'html' and $object->can('get_type') ) {
-            $value = "<!\[CDATA\["
-              . &html_item_state( $object, $object->get_type ) . "\]\]>";
+            $value = "<!\[CDATA\[" . &html_item_state( $object, $object->get_type ) . "\]\]>";
             print_log "json: object_dets f $f" if $Debug{json};
         }
         else {
@@ -987,7 +938,7 @@ sub filter_object {
         next if ( lc($f) eq 'fields' );
         next if ( lc($f) eq 'long_poll' );
         next
-          if ( lc($f) eq 'items' ); #HP, we should already have parsed the items
+          if ( lc($f) eq 'items' );    #HP, we should already have parsed the items
         next if ( $f eq '' );
         if ( $$object{$f} ) {
             for my $test_val ( @{ $args{$f} } ) {
@@ -1066,9 +1017,7 @@ eof
         my $url = "/sub?json($r)";
         $html .= "<h2>$r</h2>\n<p><a href='$url'>$url</a></p>\n<ul>\n";
         foreach my $opt ( sort keys %args ) {
-            if ( $args{$opt}{applyto} eq 'all' or grep /^$r$/,
-                split /\|/, $args{$opt}{applyto} )
-            {
+            if ( $args{$opt}{applyto} eq 'all' or grep /^$r$/, split /\|/, $args{$opt}{applyto} ) {
                 $url = "/sub?json($r,$opt";
                 if ( defined $args{$opt}{example} ) {
                     foreach ( split /\|/, $args{$opt}{example} ) {
@@ -1230,9 +1179,7 @@ sub json_table_fetch_data {
     my @data;
     eval( @data = &{ $json_table{$key}{hook} }( $posx, $records ) );
     if ($@) {
-        print_log "Json_Server.pl: WARNING: fetch data failed for "
-          . $key . " "
-          . $json_table{$key}{hook} . "!";
+        print_log "Json_Server.pl: WARNING: fetch data failed for " . $key . " " . $json_table{$key}{hook} . "!";
         return 0;
     }
     my $l = &json_get_table_length($key) + 1;

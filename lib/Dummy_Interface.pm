@@ -40,10 +40,7 @@ sub new {
 
     $self->firstWarning();
 
-    $self->warning(
-        "Creating dummy interface for id=$id, state=$state and interface=$interface.",
-        1
-    );
+    $self->warning( "Creating dummy interface for id=$id, state=$state and interface=$interface.", 1 );
     return $self;
 }
 

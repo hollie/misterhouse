@@ -14,9 +14,8 @@ if ( expired $t_test_timer) {
 }
 
 # This shows a count up timer
-$test_timer = new Timer;
-$test_timerv =
-  new Voice_Cmd '[start,stop,restart,pause,resume,query] the stopwatch timer';
+$test_timer  = new Timer;
+$test_timerv = new Voice_Cmd '[start,stop,restart,pause,resume,query] the stopwatch timer';
 
 if ( $state = said $test_timerv) {
     start $test_timer   if $state eq 'start';

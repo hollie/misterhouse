@@ -28,12 +28,10 @@
 =cut
 
 $v_iButton_connect = new Voice_Cmd "[Connect,Disconnect] to the iButton bus";
-$v_iButton_connect->set_info(
-    'Use this to free up the serial port or test the iButton start/stop calls');
+$v_iButton_connect->set_info('Use this to free up the serial port or test the iButton start/stop calls');
 
 $v_iButton_list = new Voice_Cmd "List all the iButton buttons";
-$v_iButton_list->set_info(
-    'Lists the family and ID codes of all the buttons on the bus');
+$v_iButton_list->set_info('Lists the family and ID codes of all the buttons on the bus');
 $v_iButton_list->set_authority('anyone');
 
 if ( said $v_iButton_connect) {
@@ -43,8 +41,7 @@ if ( said $v_iButton_connect) {
         $v_iButton_connect->respond('app=error iButton bus is not configured.');
     }
     else {
-        $v_iButton_connect->respond(
-            "app=ibutton $state" . 'ing to iButton bus...' );
+        $v_iButton_connect->respond( "app=ibutton $state" . 'ing to iButton bus...' );
 
         if ( $state eq 'Connect' ) {
             print_log "&iButton::connect($config_parms{iButton_serial_port})";
@@ -62,8 +59,7 @@ if ( said $v_iButton_list) {
     my $results = &iButton::scan_report();
     $v_iButton_list->respond( "List of iButtons:\n" . $results ) if $results;
     if ( $config_parms{iButton_2_serial_port} ) {
-        $results =
-          &iButton::scan_report( undef, $config_parms{iButton_2_serial_port} );
+        $results = &iButton::scan_report( undef, $config_parms{iButton_2_serial_port} );
         $v_iButton_list->respond( "List of iButtons:\n" . $results )
           if $results;
     }

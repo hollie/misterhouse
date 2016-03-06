@@ -1,8 +1,7 @@
 # Category=Wakeup
 
 &tk_entry( 'Wakeup Time', \$Save{wakeup_time} );
-&tk_radiobutton( 'Wakeup Time', \$Save{wakeup_time},
-    [ '6 am', '6:15 am', '6:30 am', '6:45 am', '8 am', ' ' ] );
+&tk_radiobutton( 'Wakeup Time', \$Save{wakeup_time}, [ '6 am', '6:15 am', '6:30 am', '6:45 am', '8 am', ' ' ] );
 
 $v_wakeup_nick = new Voice_Cmd('Wakeup Nick');
 

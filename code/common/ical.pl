@@ -79,11 +79,8 @@ if ( not $st ) {
 # it was read ?
 if (
     $New_Minute
-    and (
-        not $calendar
-        or DateTime::compare( DateTime->from_epoch( epoch => $st->mtime ),
-            $calendar->{readAt} ) > 0
-    )
+    and ( not $calendar
+        or DateTime::compare( DateTime->from_epoch( epoch => $st->mtime ), $calendar->{readAt} ) > 0 )
   )
 {
     print_log "Need to reload calendar !";
@@ -113,12 +110,7 @@ if ( $New_Minute and $calendar ) {
         my $wanted_state = OFF;
 
         my $spanSet = DateTime::SpanSet->from_spans( spans => $spans );
-        if (
-            $spanSet->contains(
-                DateTime->now( time_zone => $config_parms{dt_time_zone} )
-            )
-          )
-        {
+        if ( $spanSet->contains( DateTime->now( time_zone => $config_parms{dt_time_zone} ) ) ) {
             $wanted_state = ON;
         }
         if ($wanted_state) {

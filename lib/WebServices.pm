@@ -57,8 +57,7 @@ sub SetItemState {
     $item =~ s/\$//;
     $item = '$main::' . $item;
 
-    my $eval_cmd =
-      qq[($item and ref($item) ne '' and ref($item) ne 'SCALAR' and $item->can('set')) ?
+    my $eval_cmd = qq[($item and ref($item) ne '' and ref($item) ne 'SCALAR' and $item->can('set')) ?
 		           ($item->set("$state", 'SOAP')) : ($item = "$state")];
 
     eval $eval_cmd;

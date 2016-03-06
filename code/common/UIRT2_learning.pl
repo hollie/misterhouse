@@ -23,8 +23,7 @@ $config_parms{uirt2_module} $config_parms{uirt2_port} $config_parms{uirt2_baudra
 
 =cut
 
-my ( @devices, @functions, $prev_device, $current_device, $current_function,
-    $ofa_html );
+my ( @devices, @functions, $prev_device, $current_device, $current_function, $ofa_html );
 use vars '$uirt2_function_pcode';
 
 use UIRT2;
@@ -32,13 +31,11 @@ use IR_Utils;
 
 if ($Reload) {
     &IR_Utils::init_ir_utils;
-    $Included_HTML{'IR'} =
-      '<!--#include code="&uirt2_update_html"-->' . "\n\n\n";
+    $Included_HTML{'IR'} = '<!--#include code="&uirt2_update_html"-->' . "\n\n\n";
     $ofa_html = &ofa_html;
 }
 
-$uirt2_test = new Voice_Cmd(
-    "uirt2 debug [version,raw,uir,struct,gpio,replay,learn,dump codes]");
+$uirt2_test = new Voice_Cmd("uirt2 debug [version,raw,uir,struct,gpio,replay,learn,dump codes]");
 
 if ( my $state = said $uirt2_test) {
     UIRT2::get_version()    if $state eq 'version';
@@ -115,12 +112,9 @@ sub uirt2_update_html {
           . $_
           . "&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp\n";
     }
-    my ( $frequency, $repeat, $code1, $code2 ) =
-      UIRT2::get_ir_code( $current_device, $current_function );
+    my ( $frequency, $repeat, $code1, $code2 ) = UIRT2::get_ir_code( $current_device, $current_function );
     my $pronto;
-    ($pronto) =
-      UIRT2::raw_to_pronto(
-        UIRT2::struct_to_raw( $frequency, $repeat, $code1, $code2 ) );
+    ($pronto) = UIRT2::raw_to_pronto( UIRT2::struct_to_raw( $frequency, $repeat, $code1, $code2 ) );
     $html .= '
       </select></td>
       <td valign=top>
@@ -141,8 +135,7 @@ sub uirt2_update_html {
       . ( $frequency == 38 ? ' checked' : '' ) . '>38
       <input type="radio" value="40" name=$uirt2_function_frequency'
       . ( $frequency == 40 ? ' checked' : '' ) . '>40 kHz 
-      &nbsp&nbsp&nbsp Repeat <input value="' . $repeat
-      . '" size="5" name=$uirt2_function_repeat>
+      &nbsp&nbsp&nbsp Repeat <input value="' . $repeat . '" size="5" name=$uirt2_function_repeat>
       &nbsp&nbsp&nbsp <input type=submit value="Modify" name=$uirt2_function_modify><br>
 	Generate from Protocol Spec<br>
       Protocol <select name="$uirt2_gen_protocol">
@@ -179,8 +172,7 @@ sub uirt2_update_html {
     my $raw = UIRT2::last_learned();
     $html .= '
       Last learned raw code (for debugging)<br>
-      <textarea name=$uirt2_function_raw Rows=8 COLS=100 wrap="hard">' . $raw
-      . '</textarea>  
+      <textarea name=$uirt2_function_raw Rows=8 COLS=100 wrap="hard">' . $raw . '</textarea>  
       ' if $raw;
     $html .= '
       <a target="control" href="SUB;referer?uirt2_update_html()">Refresh</a><br>
@@ -254,9 +246,9 @@ if ( state_now $uirt2_function_learn) {
     $current_device = $device                  if $device;
     my $func = state $uirt2_function_list;
     my $function;
-    $function = $functions[$func]             if $func =~ /\d+/;
-    $function = uc state $uirt2_function_text if state $uirt2_function_text;
-    $current_function = $function if $function;
+    $function         = $functions[$func]             if $func =~ /\d+/;
+    $function         = uc state $uirt2_function_text if state $uirt2_function_text;
+    $current_function = $function                     if $function;
     my $frequency = state $uirt2_function_frequency;
     my $repeat    = 1;
     print_log "Learning device $device function $function";
@@ -304,21 +296,14 @@ if ( state_now $uirt2_function_import) {
     my $device = $current_device;
     my $func   = state $uirt2_function_list;
     my $function;
-    $function = $functions[$func]             if $func =~ /\d+/;
-    $function = uc state $uirt2_function_text if state $uirt2_function_text;
-    $current_function = $function if $function;
+    $function         = $functions[$func]             if $func =~ /\d+/;
+    $function         = uc state $uirt2_function_text if state $uirt2_function_text;
+    $current_function = $function                     if $function;
     my $repeat = 1;
 
     #	my $pcode = state $uirt2_function_pcode;
-    print_log
-      "Importing device $device function $function pronto $uirt2_function_pcode";
-    UIRT2::set_ir_code(
-        $device,
-        $function,
-        UIRT2::raw_to_struct(
-            UIRT2::pronto_to_raw( $uirt2_function_pcode, $repeat )
-        )
-    );
+    print_log "Importing device $device function $function pronto $uirt2_function_pcode";
+    UIRT2::set_ir_code( $device, $function, UIRT2::raw_to_struct( UIRT2::pronto_to_raw( $uirt2_function_pcode, $repeat ) ) );
 }
 
 if ( state_now $uirt2_function_new) {
@@ -332,8 +317,7 @@ if ( state_now $uirt2_function_new) {
     $funcnew = uc state $uirt2_function_text if state $uirt2_function_text;
     $current_function = $funcnew if $funcnew;
     print_log "Creating device $device function $funcnew";
-    UIRT2::set_ir_code( $device, $funcnew, $frequency, $repeat, $code1,
-        $code2 );
+    UIRT2::set_ir_code( $device, $funcnew, $frequency, $repeat, $code1, $code2 );
 }
 
 if ( state_now $uirt2_function_modify) {
@@ -345,8 +329,7 @@ if ( state_now $uirt2_function_modify) {
     my $repeat    = state $uirt2_function_repeat;
     $repeat = 1 unless $repeat =~ /^\d+$/;
     print_log "Modlfying device $device function $function";
-    UIRT2::set_ir_code( $device, $function, $frequency, $repeat, $code1,
-        $code2 );
+    UIRT2::set_ir_code( $device, $function, $frequency, $repeat, $code1, $code2 );
 }
 
 $uirt2_gen_protocol = new Generic_Item;
@@ -361,17 +344,8 @@ if ( state_now $uirt2_gen_commit) {
     my $gen_device   = state $uirt2_gen_device;
     my $gen_function = state $uirt2_gen_function;
     print_log "Generating device $device function $function";
-    UIRT2::set_ir_code(
-        $device,
-        $function,
-        UIRT2::raw_to_struct(
-            UIRT2::pronto_to_raw(
-                &IR_Utils::generate_pronto(
-                    $gen_protocol, $gen_device, $gen_function
-                )
-            )
-        )
-    );
+    UIRT2::set_ir_code( $device, $function,
+        UIRT2::raw_to_struct( UIRT2::pronto_to_raw( &IR_Utils::generate_pronto( $gen_protocol, $gen_device, $gen_function ) ) ) );
 }
 
 $uirt2_dvc_file = new Generic_Item;
@@ -383,9 +357,7 @@ if ( state_now $uirt2_dvc_commit) {
     my ( $device, $repeat, %prontos ) = &IR_Utils::read_dvc_file($dvc_file);
     print_log "Generating device $device from DVC file $dvc_file";
     foreach my $function ( keys %prontos ) {
-        UIRT2::set_ir_code( $device, $function,
-            UIRT2::raw_to_struct( UIRT2::pronto_to_raw( $prontos{$function} ) )
-        );
+        UIRT2::set_ir_code( $device, $function, UIRT2::raw_to_struct( UIRT2::pronto_to_raw( $prontos{$function} ) ) );
     }
 }
 
@@ -399,14 +371,8 @@ sub ofa_html {
         $list .= "<br>\n\t$mfgs "    if $mfgs ne $mfgs_prev;
         $list .= ", "                if $mfgs eq $mfgs_prev;
         $list .=
-            "<a target='control' href=" . '"'
-          . "SUB;referer?uirt2_add_ofa_device('$mfgs $sub','$type','$code')"
-          . '"'
-          . ">$code</a>";
-        $list .=
-            " [<a target='speech' href=" . '"'
-          . "SUB;send_ofa_key('$type','$code','POWER')" . '"'
-          . ">test</a>]";
+          "<a target='control' href=" . '"' . "SUB;referer?uirt2_add_ofa_device('$mfgs $sub','$type','$code')" . '"' . ">$code</a>";
+        $list .= " [<a target='speech' href=" . '"' . "SUB;send_ofa_key('$type','$code','POWER')" . '"' . ">test</a>]";
         $sub_prev  = "$sub$;$type";
         $mfgs_prev = $mfgs;
     }
@@ -421,8 +387,7 @@ sub uirt2_add_ofa_device {
     print_log "Adding device $device_name $type $code";
     my ( $repeat, %prontos ) = &IR_Utils::generate_ofa_device( $type, $code );
     while ( my ( $key, $pronto ) = each %prontos ) {
-        UIRT2::set_ir_code( $device_name, $key,
-            UIRT2::raw_to_struct( UIRT2::pronto_to_raw( $pronto, $repeat ) ) );
+        UIRT2::set_ir_code( $device_name, $key, UIRT2::raw_to_struct( UIRT2::pronto_to_raw( $pronto, $repeat ) ) );
     }
     $current_device   = uc $device_name;
     $current_function = '';
@@ -434,12 +399,9 @@ sub send_ofa_key {
     my $key  = shift;
     my %keys = &IR_Utils::get_ofa_keys( $type, $code );
     my $efc  = $keys{$key};
-    my ( $protocol, $device, $function ) =
-      &IR_Utils::get_function( $type, $code, $efc );
-    print
-      "$type $code $key protocol $protocol efc $efc device $device function $function\n";
-    my ( $pronto, $repeat ) =
-      &IR_Utils::generate_pronto( uc $protocol, $device, $function );
+    my ( $protocol, $device, $function ) = &IR_Utils::get_function( $type, $code, $efc );
+    print "$type $code $key protocol $protocol efc $efc device $device function $function\n";
+    my ( $pronto, $repeat ) = &IR_Utils::generate_pronto( uc $protocol, $device, $function );
     UIRT2::transmit_pronto( $pronto, $repeat );
 }
 
@@ -449,9 +411,7 @@ sub dump_codes {
     my @functions = UIRT2::list_functions($current_device)
       if $current_device ne '';
     foreach ( sort @functions ) {
-        my ($pronto) =
-          UIRT2::raw_to_pronto(
-            UIRT2::struct_to_raw( UIRT2::get_ir_code( $current_device, $_ ) ) );
+        my ($pronto) = UIRT2::raw_to_pronto( UIRT2::struct_to_raw( UIRT2::get_ir_code( $current_device, $_ ) ) );
         print "$_ = $pronto\n\n";
     }
 }

@@ -8,8 +8,7 @@ my ( $DownloadedWindDirection, $DownloadedBarometer, $DownloadedWindSpeed,
 my ( $DownloadedRainTotal, $DownloadedRainRate );
 my ( $DownDay, $DownHour, $DownMinute );
 
-if ( state $enable_transmit eq 'yes' and time_cron('6,15,21,36,45,51 * * * *') )
-{
+if ( state $enable_transmit eq 'yes' and time_cron('6,15,21,36,45,51 * * * *') ) {
     run_voice_cmd "Send Faribault Airport Weather";
 }
 

@@ -52,14 +52,13 @@ use vars qw( @ISA $VERSION @EXPORT );
 $VERSION = 1.00;
 @ISA     = qw(Exporter);
 
-@EXPORT =
-  qw( PORT_SL0 PORT_SL1 PORT_SL2 PORT_SL3 PORT_IR PORT_PAR PORT_SER PORT_SYS decodeIR );
+@EXPORT = qw( PORT_SL0 PORT_SL1 PORT_SL2 PORT_SL3 PORT_IR PORT_PAR PORT_SER PORT_SYS decodeIR );
 
 $Slinke::SLINKE_NUMPORTS = 8;
 $Slinke::SLINKE_CLK      = 20.0e6;
 $Slinke::PORT_IR_MAXML   = 15;
 $Slinke::IRSKEWADJUST    = -100e-6;
-$Slinke::MAXDATABLOCK    = 30;     # largest block the slinke can handle at once
+$Slinke::MAXDATABLOCK    = 30;        # largest block the slinke can handle at once
 
 %Slinke::PORTS = (
     PORT_SL0 => 0,
@@ -258,16 +257,15 @@ foreach my $i ( keys %Slinke::RESPONSES ) {
 
 # Error codes
 %Slinke::ERRORS = (
-    RSP_RX_ERROR     => [ "Receive Error",                                  0 ],
-    RSP_TX_TIMEOUT   => [ "Transmit Timeout Error - critical, will resume", 1 ],
-    RSP_CMD_ILLEGAL  => [ "Illegal Command - critical, will resume",        1 ],
-    RSP_IRFS_ILLEGAL => [ "Illegal Sample Period",                          0 ],
-    RSP_SERIALIN_OVERFLOW => [ "Receive overflow - critical, will resume", 1 ],
-    RSP_SERIALIN_OVERRUN  => [ "Receive overrun - critical, will resume",  1 ],
-    RSP_SERIALIN_FRAMEERROR =>
-      [ "Receive framing error - critical, will resume", 1 ],
-    RSP_BAUD_ILLEGAL => [ "Illegal Baud Rate",   0 ],
-    RSP_SEEPROMWRERR => [ "SEEPROM Write Error", 0 ],
+    RSP_RX_ERROR            => [ "Receive Error",                                  0 ],
+    RSP_TX_TIMEOUT          => [ "Transmit Timeout Error - critical, will resume", 1 ],
+    RSP_CMD_ILLEGAL         => [ "Illegal Command - critical, will resume",        1 ],
+    RSP_IRFS_ILLEGAL        => [ "Illegal Sample Period",                          0 ],
+    RSP_SERIALIN_OVERFLOW   => [ "Receive overflow - critical, will resume",       1 ],
+    RSP_SERIALIN_OVERRUN    => [ "Receive overrun - critical, will resume",        1 ],
+    RSP_SERIALIN_FRAMEERROR => [ "Receive framing error - critical, will resume",  1 ],
+    RSP_BAUD_ILLEGAL        => [ "Illegal Baud Rate",                              0 ],
+    RSP_SEEPROMWRERR        => [ "SEEPROM Write Error",                            0 ],
 );
 
 =item C<new>
@@ -334,9 +332,7 @@ sub new {
                 $self->{SERIALPORT}->close;
             }
             if ( !$args{DEVICE} ) {
-                die(    "Can't find a Slink-e on any of the following: "
-                      . join( " ", @portsToTry )
-                      . "\n" );
+                die( "Can't find a Slink-e on any of the following: " . join( " ", @portsToTry ) . "\n" );
             }
         }
     }
@@ -454,8 +450,7 @@ sub receive {
                     $finished = 1;
                 }
                 elsif ( $this->{VERSION} < 2.0 ) {
-                    my $str = $this->cleanupRLC(
-                        substr( $this->{PORTDATA}{$device}, 0, -1 ) );
+                    my $str = $this->cleanupRLC( substr( $this->{PORTDATA}{$device}, 0, -1 ) );
                     my @t = split / /, $str;
                     push @{ $this->{RECEIVED} },
                       {
@@ -476,8 +471,7 @@ sub receive {
 
                 ( $count, $rch ) = $this->{SERIALPORT}->read($datalen);
                 if ( $count != $datalen ) {
-                    warn
-                      "read of $device unsuccessful - read $count expected $datalen\n";
+                    warn "read of $device unsuccessful - read $count expected $datalen\n";
                     return undef;
                 }
                 if ( $device eq "PORT_IR" ) {
@@ -505,8 +499,7 @@ sub receive {
         }
 
         if ( !exists $Slinke::RESPONSEMAPS{$device} ) {
-            warn( __PACKAGE__
-                  . " package does not handle device '$device' yet\n" );
+            warn( __PACKAGE__ . " package does not handle device '$device' yet\n" );
             $this->{SERIALPORT}->input();
             return undef;
         }
@@ -537,8 +530,7 @@ sub receive {
         }
 
         if ( exists $Slinke::ERRORS{$response} ) {
-            warn
-              "ERROR $response on $device: $Slinke::ERRORS{ $response }->[0]\n";
+            warn "ERROR $response on $device: $Slinke::ERRORS{ $response }->[0]\n";
             if ( $Slinke::ERRORS{$response}->[1] ) {
                 $this->resume();
             }
@@ -552,9 +544,7 @@ sub receive {
                 $response = "0x" . uc( sprintf( "%02x", $response ) );
             }
 
-            warn( __PACKAGE__
-                  . " package does not handle response '$response' on device '$device' yet\n"
-            );
+            warn( __PACKAGE__ . " package does not handle response '$response' on device '$device' yet\n" );
             $this->{SERIALPORT}->input();
             return undef;
         }
@@ -637,12 +627,10 @@ sub int8ToRLC {
             if ( $oldsign != 33 ) {
 
                 # write out num first
-                $num = -$num if $sign == 0x80;  # use sign to indicate 0 periods
+                $num = -$num if $sign == 0x80;    # use sign to indicate 0 periods
 
-                $numtime =
-                  $num * $this->{IRSAMPLEPERIOD} + $Slinke::IRSKEWADJUST;
-                $numstr .=
-                  sprintf( "%.1lf ", $numtime * 1e6 ); # convert to microseconds
+                $numtime = $num * $this->{IRSAMPLEPERIOD} + $Slinke::IRSKEWADJUST;
+                $numstr .= sprintf( "%.1lf ", $numtime * 1e6 );    # convert to microseconds
                 $signallen += abs($numtime);
             }
 
@@ -987,8 +975,7 @@ sub setIRSamplingPeriod {
         $sampleRate *= 1e6;
         $minper     *= 1e6;
 
-        warn
-          "$sampleRate is too short of a sampling period ($minper is the shortest at this baud rate)\n";
+        warn "$sampleRate is too short of a sampling period ($minper is the shortest at this baud rate)\n";
         return undef;
     }
 
@@ -996,8 +983,7 @@ sub setIRSamplingPeriod {
     if ( $sampleRate > $maxper ) {
         $sampleRate *= 1e6;
         $maxper     *= 1e6;
-        warn
-          "$sampleRate is too long of a sampling period ($maxper is the longest)\n";
+        warn "$sampleRate is too long of a sampling period ($maxper is the longest)\n";
         return undef;
     }
 
@@ -1087,14 +1073,12 @@ sub setIRCarrier {
         my $count = $Slinke::SLINKE_CLK / 4.0 / $frequency;
         if ( $count == 0 ) {
             my $max = $Slinke::SLINKE_CLK / 4.0;
-            warn
-              "$frequency is too high of a carrier frequency ($max is the max)\n";
+            warn "$frequency is too high of a carrier frequency ($max is the max)\n";
             return undef;
         }
         elsif ( $count > 8 * 256 ) {
             my $min = $Slinke::SLINKE_CLK / 4.0 / 8.0 / 256.0;
-            warn
-              "$frequency is too low of a carrier frequency ($min is the minimum)\n";
+            warn "$frequency is too low of a carrier frequency ($min is the minimum)\n";
             return undef;
         }
 
@@ -1195,8 +1179,7 @@ sub setIRTimeoutPeriod {
     }
 
     if ( $period > 65536 ) {
-        warn
-          "$period sample periods is too long of a timeout period (65536 periods is the longest)\n";
+        warn "$period sample periods is too long of a timeout period (65536 periods is the longest)\n";
         return undef;
     }
 
@@ -1269,14 +1252,12 @@ sub setIRMinimumLength {
     my $length = shift;
 
     if ( $length < 0 ) {
-        warn
-          "$length is too short of a minimum message length (0 is the shortest)\n";
+        warn "$length is too short of a minimum message length (0 is the shortest)\n";
         return undef;
     }
 
     if ( $length > $Slinke::PORT_IR_MAXML ) {
-        warn
-          "$length is too long of a minimum message length ($Slinke::PORT_IR_MAXML is the longest)\n";
+        warn "$length is too long of a minimum message length ($Slinke::PORT_IR_MAXML is the longest)\n";
         return undef;
     }
 
@@ -1313,8 +1294,7 @@ sub requestIRTransmitPorts {
     my $this = shift;
 
     if ( $this->{VERSION} < 2.0 ) {
-        warn
-          "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
+        warn "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
         return undef;
     }
 
@@ -1337,8 +1317,7 @@ sub setIRTransmitPorts {
     my $port = shift;
 
     if ( $this->{VERSION} < 2.0 ) {
-        warn
-          "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
+        warn "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
         return undef;
     }
 
@@ -1377,8 +1356,7 @@ sub requestIRPolarity {
     my $this = shift;
 
     if ( $this->{VERSION} < 2.0 ) {
-        warn
-          "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
+        warn "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
         return undef;
     }
 
@@ -1409,8 +1387,7 @@ sub setIRPolarity {
     my $port = shift;
 
     if ( $this->{VERSION} < 2.0 ) {
-        warn
-          "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
+        warn "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
         return undef;
     }
 
@@ -1454,8 +1431,7 @@ sub requestIRReceivePorts {
     my $this = shift;
 
     if ( $this->{VERSION} < 2.0 ) {
-        warn
-          "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
+        warn "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
         return undef;
     }
 
@@ -1482,8 +1458,7 @@ sub setIRReceivePorts {
     my $port = shift;
 
     if ( $this->{VERSION} < 2.0 ) {
-        warn
-          "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
+        warn "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
         return undef;
     }
 
@@ -1533,8 +1508,7 @@ sub requestIRRoutingTable {
     my $this = shift;
 
     if ( $this->{VERSION} < 2.0 ) {
-        warn
-          "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
+        warn "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
         return undef;
     }
 
@@ -1578,8 +1552,7 @@ sub setIRRoutingTable {
     my @data = @_;
 
     if ( $this->{VERSION} < 2.0 ) {
-        warn
-          "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
+        warn "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
         return undef;
     }
 
@@ -1590,14 +1563,12 @@ sub setIRRoutingTable {
             my $count = int( $Slinke::SLINKE_CLK / 4.0 / $freq );
             if ( !$count ) {
                 my $max = $Slinke::SLINKE_CLK / 4.0;
-                warn
-                  "$freq is too high of a carrier frequency ($max is the max)\n";
+                warn "$freq is too high of a carrier frequency ($max is the max)\n";
                 return undef;
             }
             elsif ( $count >= 256 ) {
                 my $min = $Slinke::SLINKE_CLK / 4.0 / 256.0;
-                warn
-                  "$freq is too low of a carrier frequency ($min is the minimum)\n";
+                warn "$freq is too low of a carrier frequency ($min is the minimum)\n";
                 return undef;
             }
 
@@ -1726,8 +1697,7 @@ sub setHandshaking {
     my $handshaking = shift;
 
     if ( $handshaking < 0 || $handshaking > 3 ) {
-        warn
-          "$handshaking is not a valid port (0-0x03 is the acceptable range)\n";
+        warn "$handshaking is not a valid port (0-0x03 is the acceptable range)\n";
         return undef;
     }
 
@@ -1790,8 +1760,7 @@ sub setDirection {
     my $direction = shift;
 
     if ( $direction < 0 || $direction > 255 ) {
-        warn
-          "$direction is not a valid direction setting (0-0xFF is the acceptable range)\n";
+        warn "$direction is not a valid direction setting (0-0xFF is the acceptable range)\n";
         return undef;
     }
 
@@ -1926,8 +1895,7 @@ sub sendData {
         && $args{PORT} ne "PORT_SL3"
         && $args{PORT} ne "PORT_PAR" )
     {
-        warn
-          "PORT must be one of either: PORT_SL0, PORT_SL1, PORT_SL2, PORT_SL3 or PORT_PAR\n";
+        warn "PORT must be one of either: PORT_SL0, PORT_SL1, PORT_SL2, PORT_SL3 or PORT_PAR\n";
         return undef;
     }
 
@@ -1984,8 +1952,7 @@ sub txrx {
     }
 
     if ( defined $expectedResponse ) {
-        my ( $device, $response, $data ) = $this->receive(
-            EXPECTINPUT => ( $expectedResponse eq "RSP_EQBAUD" ? 0 : 1 ) );
+        my ( $device, $response, $data ) = $this->receive( EXPECTINPUT => ( $expectedResponse eq "RSP_EQBAUD" ? 0 : 1 ) );
 
         if ( $expectedResponse ne $response ) {
             my $str;
@@ -2048,8 +2015,7 @@ sub loadDefaults {
     my $this = shift;
 
     if ( $this->{VERSION} < 2.0 ) {
-        warn
-          "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
+        warn "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
         return undef;
     }
 
@@ -2074,8 +2040,7 @@ sub saveDefaults {
     my $this = shift;
 
     if ( $this->{VERSION} < 2.0 ) {
-        warn
-          "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
+        warn "Current Slink-e version is $this->{VERSION} (need 2.0 or greater)\n";
         return undef;
     }
 

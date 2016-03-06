@@ -51,9 +51,7 @@ my $SP_UDP_Init = pack( 'n*', @SP_UDP );
 #Define the IP and UPD port for siteplayer #1
 #this is to allow sending data TO siteplayer
 my $siteplayer1_address = '192.168.0.60:26482';
-$to_siteplayer1 =
-  new Socket_Item( undef, undef, $siteplayer1_address, 'siteplay', 'udp',
-    'rawout' );
+$to_siteplayer1 = new Socket_Item( undef, undef, $siteplayer1_address, 'siteplay', 'udp', 'rawout' );
 
 # Check for data FROM siteplayer #1
 # Add this  mh.private.ini, so the server is created on startup:

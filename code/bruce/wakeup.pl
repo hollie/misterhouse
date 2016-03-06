@@ -98,11 +98,8 @@ if (
         $Save{sleeping_nick} = 0;
 
         #       $Save{sleeping_zack} = 0;
-        speak
-          "rooms=bedroom mode=unmute Good morning Parents.  It is now $Time_Now on $Date_Now_Speakable.";
-        speak "rooms=bedroom mode=unmute The outside temperature is "
-          . round( $Weather{TempOutdoor} )
-          . " degrees";
+        speak "rooms=bedroom mode=unmute Good morning Parents.  It is now $Time_Now on $Date_Now_Speakable.";
+        speak "rooms=bedroom mode=unmute The outside temperature is " . round( $Weather{TempOutdoor} ) . " degrees";
 
         run_voice_cmd 'Check for school closing';
 

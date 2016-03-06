@@ -138,8 +138,7 @@ sub mp3_get_playlist_pos {
     return -1 unless ref $ref;
     foreach ( @{$ref} ) {
         $i++;
-        print_log
-          "Alsaplayer::mp3_get_playlist_pos(): Checking $currsong against $_";
+        print_log "Alsaplayer::mp3_get_playlist_pos(): Checking $currsong against $_";
         if ( $_ eq $player->get_path() ) {
             print_log "Alsaplayer::mp3_get_playlist_pos(): Returning $i";
             return $i;

@@ -143,8 +143,7 @@ This method is called internally whenever a property (instance variable) is chan
 
 sub property_changed {
     my ( $self, $property, $new_value, $old_value ) = @_;
-    print "s=$self: property_changed: $property ='$new_value' (was"
-      . " '$old_value')\n"
+    print "s=$self: property_changed: $property ='$new_value' (was" . " '$old_value')\n"
       if $::Debug{store};
 }
 
@@ -229,7 +228,7 @@ sub set_with_timer {
     # Reuse timer for this object if it exists
     $$self{timer} = &Timer::new() unless $$self{timer};
     my $object = $self->{object_name};
-    my $action = "set $object '$state_change', $object"; # Set set_by to itself?
+    my $action = "set $object '$state_change', $object";    # Set set_by to itself?
     &Timer::set( $$self{timer}, $time, $action );
 }
 
@@ -269,8 +268,7 @@ sub _set_process {
         else {
             $state = ( $state_current eq 'on' ) ? 'off' : 'on';
         }
-        &main::print_log( "Toggling $self->{object_name} from $state_current "
-              . "to $state" );
+        &main::print_log( "Toggling $self->{object_name} from $state_current " . "to $state" );
     }
 
     # Respond_Target is write-only from here (and its use for speech chimes
@@ -289,9 +287,7 @@ sub _set_process {
             return if $self->$setcall( $substate, $set_by, $respond ) == -1;
         }
         elsif ( $self->can('default_setstate') ) {
-            my $test =
-              $self->default_setstate( $primarystate, $substate,
-                $set_by, $respond );
+            my $test = $self->default_setstate( $primarystate, $substate, $set_by, $respond );
             return if $test and $test == -1;
         }
         elsif ( $self->can('default_setrawstate') ) {
@@ -303,8 +299,7 @@ sub _set_process {
     # Allow for default setstate methods
     else {
         if ( $self->can('default_setstate') ) {
-            my $test =
-              $self->default_setstate( $state, undef, $set_by, $respond );
+            my $test = $self->default_setstate( $state, undef, $set_by, $respond );
             return if $test and $test == -1;
         }
         elsif ( $self->can('default_setrawstate') ) {
@@ -390,9 +385,7 @@ Returns true when the object has had no state changes since the specified time. 
 
 sub time_idle {
     my ( $self, $idle_spec ) = @_;
-    if ( my ( $idle_time, $idle_type, $idle_state ) =
-        $idle_spec =~ /^(\d+)\s*(D|H|M|S)*\w*\s*(\S*)/i )
-    {
+    if ( my ( $idle_time, $idle_type, $idle_state ) = $idle_spec =~ /^(\d+)\s*(D|H|M|S)*\w*\s*(\S*)/i ) {
         my $state = $self->state();
         if ( $idle_state eq undef or $idle_state eq $state ) {
             my $scale = 1;
@@ -423,29 +416,22 @@ sub restore_string {
       if defined $state;
     $restore_string .= $self->{object_name} . "->{count} = q~$self->{count}~;\n"
       if $self->{count};
-    $restore_string .=
-      $self->{object_name} . "->{set_time} =" . " q~$self->{set_time}~;\n"
+    $restore_string .= $self->{object_name} . "->{set_time} =" . " q~$self->{set_time}~;\n"
       if $self->{set_time};
     $restore_string .= $self->{object_name} . "->{states_casesensitive} = 1;\n"
       if $self->{states_casesensitive};
 
-    if ( $self->{state_log}
-        and my $state_log = join $;, @{ $self->{state_log} } )
-    {
+    if ( $self->{state_log} and my $state_log = join $;, @{ $self->{state_log} } ) {
         $state_log =~ s/\n/ /g;    # Avoid new-lines on restored vars
         $state_log =~ s/~/\\~/g;
 
-        $restore_string .= '@{'
-          . $self->{object_name}
-          . "->{state_log}} ="
-          . " split(\$;, q~$state_log~);";
+        $restore_string .= '@{' . $self->{object_name} . "->{state_log}} =" . " split(\$;, q~$state_log~);";
     }
 
     # Allow for dynamicaly/user defined save data
     for my $restore_var ( @{ $$self{restore_data} } ) {
         my $restore_value = $self->{$restore_var};
-        $restore_string .=
-          $self->{object_name} . "->{$restore_var} =" . " q~$restore_value~;\n"
+        $restore_string .= $self->{object_name} . "->{$restore_var} =" . " q~$restore_value~;\n"
           if defined $restore_value;
     }
 
@@ -477,8 +463,7 @@ sub hidden {
         $self->{hidden} = $flag;
     }
     else {    # Return it, but this currently only will work on $Reload.
-        return $self->{hidden}
-          ; # HP - really, no reason why this can't be a read-only method any time?
+        return $self->{hidden};    # HP - really, no reason why this can't be a read-only method any time?
     }
 }
 
@@ -625,13 +610,8 @@ sub respond {
     }
 
     $set_by = &main::set_by_to_target( $set_by, 1 );
-    my $automation = (
-            !$set_by
-          or $set_by =~ /usercode/i
-          or $set_by =~ /unknown/i
-          or $set_by =~ /time/i
-          or $set_by eq 'status'
-    );
+    my $automation =
+      ( !$set_by or $set_by =~ /usercode/i or $set_by =~ /unknown/i or $set_by =~ /time/i or $set_by eq 'status' );
 
     # cancel automation (regardless) if an explicit target is set
     $automation = 0 if $parms{target} or $object->{target};
@@ -1130,11 +1110,7 @@ sub set_state_log {
     $state       = '' unless defined $state;
     $set_by_name = '' unless defined $set_by_name;
     $target      = '' unless defined $target;
-    unshift(
-        @{ $$self{state_log} },
-        "$main::Time_Date $state set_by=$set_by_name"
-          . ( ($target) ? "target=$target" : '' )
-      )
+    unshift( @{ $$self{state_log} }, "$main::Time_Date $state set_by=$set_by_name" . ( ($target) ? "target=$target" : '' ) )
       if defined($state)
       or ( ref $self ) eq 'Voice_Cmd';
     pop @{ $$self{state_log} }
@@ -1161,7 +1137,7 @@ sub reset_states2 {
     $ref->{target}        = $target;
     $ref->{legacy_target} = &main::set_by_to_target($set_by)
       unless $ref->{target}
-      ; # just for old code and will be phased out along with old respond calls (done for speed in said and state_now methods)
+      ;    # just for old code and will be phased out along with old respond calls (done for speed in said and state_now methods)
 
     if (
            ( defined $state  and !defined $ref->{state_prev} )
@@ -1415,9 +1391,8 @@ sub set_web_style {
     my %valid_styles = map { $_ => 1 } qw( dropdown radio url );
 
     if ( !$valid_styles{ lc($style) } ) {
-        &main::print_log( "Invalid style ($style) passed to set_web_style.  "
-              . "Valid choices are: "
-              . join( ", ", sort keys %valid_styles ) );
+        &main::print_log(
+            "Invalid style ($style) passed to set_web_style.  " . "Valid choices are: " . join( ", ", sort keys %valid_styles ) );
         return;
     }
 
@@ -1567,12 +1542,8 @@ sub android_xml {
 
     # Add tags name, state, and optional state_log
     my @f = qw( name );
-    if (
-        (
-            ( defined $self->{states} ) && ( scalar( @{ $$self{states} } ) > 0 )
-        )
-        || ( defined $self->state() )
-      )
+    if (   ( ( defined $self->{states} ) && ( scalar( @{ $$self{states} } ) > 0 ) )
+        || ( defined $self->state() ) )
     {
         push @f, qw ( state );
     }
@@ -1612,9 +1583,7 @@ sub android_xml {
             push( @states, @{ $$self{states} } ) if defined $self->{states};
             my $numStates = scalar(@states);
             my $state     = $self->state();
-            &::print_log(
-                "android_xml: numStates: $numStates state: $state states: @states"
-            ) if $::Debug{android};
+            &::print_log( "android_xml: numStates: $numStates state: $state states: @states" ) if $::Debug{android};
             if (   ( $numStates eq 0 )
                 && ( defined $state )
                 && ( length($state) < 20 ) )
@@ -1631,8 +1600,7 @@ sub android_xml {
             foreach (@states) {
                 $_ = 'undef' unless defined $_;
                 if ( $_ eq $value ) {
-                    $attributes->{value} =
-                      encode_entities( $value, "\200-\377&<>" );
+                    $attributes->{value} = encode_entities( $value, "\200-\377&<>" );
                 }
             }
             $xml_objects .= $self->android_xml_tag( $prefix, $f, $attributes );
@@ -1641,9 +1609,7 @@ sub android_xml {
                 $_     = 'undef' unless defined $_;
                 $value = $_;
                 $value = encode_entities( $value, "\200-\377&<>" );
-                $xml_objects .=
-                  $self->android_xml_tag( $prefix, "value", $attributes,
-                    $value );
+                $xml_objects .= $self->android_xml_tag( $prefix, "value", $attributes, $value );
             }
             $prefix = '  ' x $depth;
             $xml_objects .= $prefix . "</$f>\n";
@@ -1657,9 +1623,7 @@ sub android_xml {
                 $_     = 'undef' unless defined $_;
                 $value = $_;
                 $value = encode_entities( $value, "\200-\377&<>" );
-                $xml_objects .=
-                  $self->android_xml_tag( $prefix, "value", $attributes,
-                    $value );
+                $xml_objects .= $self->android_xml_tag( $prefix, "value", $attributes, $value );
             }
             $prefix = '  ' x $depth;
             $xml_objects .= $prefix . "</$f>\n";
@@ -1667,13 +1631,11 @@ sub android_xml {
         elsif ( $f eq "name" ) {
             my $name = "";
             $name = $self->{object_name} if defined $self->{object_name};
-            $xml_objects .=
-              $self->android_xml_tag( $prefix, $f, $attributes, $name );
+            $xml_objects .= $self->android_xml_tag( $prefix, $f, $attributes, $name );
         }
         else {
             $value = "" unless defined $value;
-            $xml_objects .=
-              $self->android_xml_tag( $prefix, $f, $attributes, $value );
+            $xml_objects .= $self->android_xml_tag( $prefix, $f, $attributes, $value );
         }
     }
     return $xml_objects;

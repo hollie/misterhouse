@@ -54,9 +54,8 @@ my $f_mos_forecast_station = "KCLT";
 
 $v_mos_forecast = new Voice_Cmd 'get mos forecast';
 
-$p_mos_forecast = new Process_Item(
-    "get_url http://www.nws.noaa.gov/cgi-bin/mos/getmav.pl?sta=$f_mos_forecast_station $f_mos_forecast"
-);
+$p_mos_forecast =
+  new Process_Item( "get_url http://www.nws.noaa.gov/cgi-bin/mos/getmav.pl?sta=$f_mos_forecast_station $f_mos_forecast" );
 
 my @mos_forecast;
 
@@ -222,8 +221,7 @@ if ( done_now $p_mos_forecast) {
         }
         $l_prevHour = $l_time[$i];
         #### Morning
-        if ( $l_time[$i] > $l_startMorning and $l_time[$i] <= $l_endMorning )
-        {    #morning forecast
+        if ( $l_time[$i] > $l_startMorning and $l_time[$i] <= $l_endMorning ) {    #morning forecast
             my $values = {};
             $$values{hour}          = $l_time[$i];
             $$values{day}           = $l_dayOffset;
@@ -334,9 +332,7 @@ sub mos_brief_text_forecast {
         #		$l_message.="," . @mos_forecast[$i]->{hour} . ":";
         $l_message .= ",";
         $l_message .= @mos_forecast[$i]->{temperature} . "F";
-        $l_message .= ""
-          . ( @mos_forecast[$i]->{precip} ) . "%"
-          . @mos_forecast[$i]->{precip_type};
+        $l_message .= "" . ( @mos_forecast[$i]->{precip} ) . "%" . @mos_forecast[$i]->{precip_type};
     }
     return $l_message;
 }

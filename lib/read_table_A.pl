@@ -15,8 +15,7 @@ use strict;
 
 #print_log "Using read_table_A.pl";
 
-my ( %groups, %objects, %packages, %addresses, %scene_build_controllers,
-    %scene_build_responders );
+my ( %groups, %objects, %packages, %addresses, %scene_build_controllers, %scene_build_responders );
 
 sub read_table_init_A {
 
@@ -40,10 +39,9 @@ sub read_table_A {
     $record =~ s/\s*#.*$//;
 
     my (
-        $code,      $address,    $name,      $object,
-        $grouplist, $comparison, $limit,     @other,
-        $other,     $vcommand,   $occupancy, $network,
-        $password,  $interface,  $additional_code
+        $code,       $address, $name,     $object,    $grouplist,
+        $comparison, $limit,   @other,    $other,     $vcommand,
+        $occupancy,  $network, $password, $interface, $additional_code
     );
     my (@item_info) = split( ',\s*', $record );
     my $type = uc shift @item_info;
@@ -67,33 +65,32 @@ sub read_table_A {
     # -[ UPB ]----------------------------------------------------------
     elsif ( $type eq "UPBPIM" ) {
         require 'UPBPIM.pm';
-        ( $name, $network, $password, $address, $grouplist, @other ) =
-          @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        ( $name, $network, $password, $address, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );               # Quote data
         $object = "UPBPIM('UPBPIM', $network,$password,$address)";
     }
     elsif ( $type eq "UPBD" ) {
         require 'UPB_Device.pm';
         ( $name, $object, $network, $address, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );               # Quote data
         $object = "UPB_Device(\$$object, $network,$address)";
     }
     elsif ( $type eq "UPBL" ) {
         require 'UPB_Link.pm';
         ( $name, $object, $network, $address, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );               # Quote data
         $object = "UPB_Link(\$$object, $network,$address)";
     }
     elsif ( $type eq "UPBRAIN8" ) {
         require 'UPB_Rain8.pm';
         ( $name, $object, $network, $address, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );               # Quote data
         $object = "UPB_Rain8(\$$object, $network,$address)";
     }
     elsif ( $type eq "UPBT" ) {
         require 'UPB_Thermostat.pm';
         ( $name, $object, $network, $address, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );               # Quote data
         $object = "UPB_Thermostat(\$$object, $network,$address)";
     }
 
@@ -101,71 +98,46 @@ sub read_table_A {
     elsif ( $type eq "INSTEON_PLM" ) {
         require Insteon_PLM;
         ( $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );               # Quote data
         $object = "Insteon_PLM('Insteon_PLM',$other)";
     }
     elsif ( $type eq "INSTEON_LAMPLINC" ) {
         require Insteon::Lighting;
-        if (
-            validate_def(
-                $type, 2, [ 'insteon_address', 'name' ], \@item_info
-            )
-          )
-        {
+        if ( validate_def( $type, 2, [ 'insteon_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+            $other = join ', ', ( map { "'$_'" } @other );           # Quote data
             $object = "Insteon::LampLinc(\'$address\',$other)";
         }
     }
     elsif ( $type eq "INSTEON_BULBLINC" ) {
         require Insteon::Lighting;
-        if (
-            validate_def(
-                $type, 2, [ 'insteon_address', 'name' ], \@item_info
-            )
-          )
-        {
+        if ( validate_def( $type, 2, [ 'insteon_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );        # Quote data
+            $other = join ', ', ( map { "'$_'" } @other );           # Quote data
             $object = "Insteon::BulbLinc(\'$address\',$other)";
         }
     }
     elsif ( $type eq "INSTEON_APPLIANCELINC" ) {
         require Insteon::Lighting;
-        if (
-            validate_def(
-                $type, 2, [ 'insteon_address', 'name' ], \@item_info
-            )
-          )
-        {
+        if ( validate_def( $type, 2, [ 'insteon_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+            $other = join ', ', ( map { "'$_'" } @other );             # Quote data
             $object = "Insteon::ApplianceLinc(\'$address\',$other)";
         }
     }
     elsif ( $type eq "INSTEON_SWITCHLINC" ) {
         require Insteon::Lighting;
-        if (
-            validate_def(
-                $type, 2, [ 'insteon_address', 'name' ], \@item_info
-            )
-          )
-        {
+        if ( validate_def( $type, 2, [ 'insteon_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+            $other = join ', ', ( map { "'$_'" } @other );             # Quote data
             $object = "Insteon::SwitchLinc(\'$address\',$other)";
         }
     }
     elsif ( $type eq "INSTEON_SWITCHLINCRELAY" ) {
         require Insteon::Lighting;
-        if (
-            validate_def(
-                $type, 2, [ 'insteon_address', 'name' ], \@item_info
-            )
-          )
-        {
+        if ( validate_def( $type, 2, [ 'insteon_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+            $other = join ', ', ( map { "'$_'" } @other );               # Quote data
             $object = "Insteon::SwitchLincRelay(\'$address\',$other)";
         }
     }
@@ -173,17 +145,13 @@ sub read_table_A {
         require Insteon::Lighting;
         if (
             validate_def(
-                $type, 2,
-                [
-                    qr/^[[:xdigit:]]{2}\.[[:xdigit:]]{2}\.[[:xdigit:]]{2}:[[:xdigit:]]{2}$/,
-                    'name'
-                ],
+                $type, 2, [ qr/^[[:xdigit:]]{2}\.[[:xdigit:]]{2}\.[[:xdigit:]]{2}:[[:xdigit:]]{2}$/, 'name' ],
                 \@item_info
             )
           )
         {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+            $other = join ', ', ( map { "'$_'" } @other );           # Quote data
             $object = "Insteon::KeyPadLinc(\'$address\', $other)";
         }
     }
@@ -191,105 +159,94 @@ sub read_table_A {
         require Insteon::Lighting;
         if (
             validate_def(
-                $type, 2,
-                [
-                    qr/^[[:xdigit:]]{2}\.[[:xdigit:]]{2}\.[[:xdigit:]]{2}:[[:xdigit:]]{2}$/,
-                    'name'
-                ],
+                $type, 2, [ qr/^[[:xdigit:]]{2}\.[[:xdigit:]]{2}\.[[:xdigit:]]{2}:[[:xdigit:]]{2}$/, 'name' ],
                 \@item_info
             )
           )
         {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+            $other = join ', ', ( map { "'$_'" } @other );                # Quote data
             $object = "Insteon::KeyPadLincRelay(\'$address\', $other)";
         }
     }
     elsif ( $type eq "INSTEON_REMOTELINC" ) {
         require Insteon::Controller;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );                    # Quote data
         $object = "Insteon::RemoteLinc(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_MOTIONSENSOR" ) {
         require Insteon::Security;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );             # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );                    # Quote data
         $object = "Insteon::MotionSensor(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_TRIGGERLINC" ) {
         require Insteon::Security;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );             # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );                    # Quote data
         $object = "Insteon::TriggerLinc(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_IOLINC" ) {
         require Insteon::IOLinc;
-        if (
-            validate_def(
-                $type, 2, [ 'insteon_address', 'name' ], \@item_info
-            )
-          )
-        {
+        if ( validate_def( $type, 2, [ 'insteon_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );         # Quote data
+            $other = join ', ', ( map { "'$_'" } @other );                # Quote data
             $object = "Insteon::IOLinc(\'$address\', $other)";
         }
     }
     elsif ( $type eq "INSTEON_FANLINC" ) {
         require Insteon::Lighting;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );             # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );                    # Quote data
         $object = "Insteon::FanLinc(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_ICONTROLLER" ) {
         require Insteon::BaseInsteon;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );             # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );                    # Quote data
         my ( $deviceid, $groupid ) = $address =~ /(\S+):(\S+)/;
         if ($groupid) {
-            $object =
-              "Insteon::InterfaceController(\'00.00.00:$groupid\', $other)";
+            $object = "Insteon::InterfaceController(\'00.00.00:$groupid\', $other)";
         }
         else {
-            $object =
-              "Insteon::InterfaceController(\'00.00.00:$address\', $other)";
+            $object = "Insteon::InterfaceController(\'00.00.00:$address\', $other)";
         }
     }
     elsif ( $type eq 'IPLT' or $type eq 'INSTEON_THERMOSTAT' ) {
         require Insteon::Thermostat;
         ( $address, $name, $grouplist, $object, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );                    # Quote data
         $object = "Insteon::Thermostat(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_IRRIGATION" ) {
         require Insteon::Irrigation;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );                    # Quote data
         $object = "Insteon::Irrigation(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_SYNCHROLINC" ) {
         require Insteon::Energy;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );            # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );                    # Quote data
         $object = "Insteon::SynchroLinc(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_IMETER" ) {
         require Insteon::Energy;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );            # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );                    # Quote data
         $object = "Insteon::iMeter(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_MICROSWITCH" ) {
         require Insteon::Lighting;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );            # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );                    # Quote data
         $object = "Insteon::MicroSwitch(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_MICROSWITCHRELAY" ) {
         require Insteon::Lighting;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );                    # Quote data
         $object = "Insteon::MicroSwitchRelay(\'$address\', $other)";
     }
 
@@ -297,46 +254,42 @@ sub read_table_A {
     elsif ( $type eq 'FROG' ) {
         require 'FroggyRita.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );                    # Quote data
         $object = "FroggyRita('$address', $other)";
     }
     elsif ( $type eq "X10A" ) {
-        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) )
-        {
+        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+            $other = join ', ', ( map { "'$_'" } @other );                # Quote data
             $object = "X10_Appliance('$address', $other)";
         }
     }
     elsif ( $type eq "X10I" ) {
-        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) )
-        {
+        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+            $other = join ', ', ( map { "'$_'" } @other );                # Quote data
             $object = "X10_Item('$address', $other)";
         }
     }
     elsif ( $type eq "X10TR" ) {
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );                    # Quote data
         $object = "X10_Transmitter('$address', $other)";
     }
     elsif ( $type eq "X10O" ) {
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );                    # Quote data
         $object = "X10_Ote('$address', $other)";
     }
     elsif ( $type eq "X10SL" ) {
-        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) )
-        {
+        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
             $other = join ', ', ( map { "'$_'" } @other );
             $object = "X10_Switchlinc('$address', $other)";
         }
     }
     elsif ( $type eq "X10AL" ) {
-        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) )
-        {
+        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
             $other = join ', ', ( map { "'$_'" } @other );
             $object = "X10_Appliancelinc('$address', $other)";
@@ -348,8 +301,7 @@ sub read_table_A {
         $object = "X10_Keypadlinc('$address', $other)";
     }
     elsif ( $type eq "X10LL" ) {
-        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) )
-        {
+        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
             $other = join ', ', ( map { "'$_'" } @other );
             $object = "X10_Lamplinc('$address', $other)";
@@ -381,8 +333,7 @@ sub read_table_A {
         $object = "RCS_Item('$address', $other)";
     }
     elsif ( $type eq "X10MS" ) {
-        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) )
-        {
+        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
             $other = join ', ', ( map { "'$_'" } @other );          # Quote data
             $object = "X10_Sensor('$address', '$name', $other)";
@@ -394,9 +345,8 @@ sub read_table_A {
         $object = "RF_Item('$address', '$name', $other)";
     }
     elsif ( $type eq "COMPOOL" ) {
-        ( $address, $name, $grouplist ) = @item_info;
-        ( $address, $comparison, $limit ) =
-          $address =~ /\s*(\w+)\s*(\<|\>|\=)*\s*(\d*)/;
+        ( $address, $name,       $grouplist ) = @item_info;
+        ( $address, $comparison, $limit )     = $address =~ /\s*(\w+)\s*(\<|\>|\=)*\s*(\d*)/;
         $object = "Compool_Item('$address', '$comparison', '$limit')"
           if $comparison ne undef;
         $object = "Compool_Item('$address')" if $comparison eq undef;
@@ -597,12 +547,11 @@ sub read_table_A {
         if ( !( $vcommand =~ /.*\[.*/ ) ) {
             $vcommand .= " [ON,OFF]";
         }
-        $code .= sprintf "\nmy \$v_%s_state;\n", $name;
-        $code .= sprintf "\$v_%s = new Voice_Cmd(\"%s\");\n", $name, $vcommand;
-        $code .= sprintf "if (\$v_%s_state = said \$v_%s) {\n", $name, $name;
-        $code .= sprintf "  set \$%s \$v_%s_state;\n", $name, $name;
-        $code .= sprintf "  respond \"Turning %s \$v_%s_state\";\n",
-          $fixedname, $name;
+        $code .= sprintf "\nmy \$v_%s_state;\n",                     $name;
+        $code .= sprintf "\$v_%s = new Voice_Cmd(\"%s\");\n",        $name, $vcommand;
+        $code .= sprintf "if (\$v_%s_state = said \$v_%s) {\n",      $name, $name;
+        $code .= sprintf "  set \$%s \$v_%s_state;\n",               $name, $name;
+        $code .= sprintf "  respond \"Turning %s \$v_%s_state\";\n", $fixedname, $name;
         $code .= sprintf "}\n";
         return $code;
     }
@@ -646,7 +595,7 @@ sub read_table_A {
         else {
             $object = "Sensor_Zone('$address')";
         }
-        if ( !$packages{caddx}++ ) {    # first time for this object type?
+        if ( !$packages{caddx}++ ) {                      # first time for this object type?
             $code .= "use caddx;\n";
         }
     }
@@ -668,9 +617,8 @@ sub read_table_A {
         ( $address, $name, $grouplist, $serial, $pa_type, @other ) = @item_info;
         $pa_type = 'wdio' unless $pa_type;
 
-        if ( !$packages{PAobj}++ ) {    # first time for this object type?
-            $code .=
-              "my (%pa_weeder_max_port,%pa_zone_types,%pa_zone_type_by_zone);\n";
+        if ( !$packages{PAobj}++ ) {                      # first time for this object type?
+            $code .= "my (%pa_weeder_max_port,%pa_zone_types,%pa_zone_type_by_zone);\n";
         }
 
         $code .=
@@ -689,64 +637,47 @@ sub read_table_A {
             # AHB / ALB  or DBH / DBL
             $address =~ s/^(\S)(\S)$/$1H$2/;    # if $pa_type eq 'wdio';
             $address = "D$address" if $pa_type eq 'wdio_old';
-            $code .= sprintf "\$%-35s = new Serial_Item('%s','on','%s');\n",
-              $name . '_obj', $address, $serial;
+            $code .= sprintf "\$%-35s = new Serial_Item('%s','on','%s');\n", $name . '_obj', $address, $serial;
 
             $address =~ s/^(\S{1,2})H(\S)$/$1L$2/;
-            $code .= sprintf "\$%-35s -> add ('%s','off');\n", $name . '_obj',
-              $address;
+            $code .= sprintf "\$%-35s -> add ('%s','off');\n", $name . '_obj', $address;
 
             $object = '';
         }
         elsif ( lc $pa_type eq 'object' ) {
             if ( $name =~ /^pa_pa_/i ) {
-                print
-                  "\nObject name \"$name\" starts with \"pa_\". This will cause conflicts. Ignoring entry";
+                print "\nObject name \"$name\" starts with \"pa_\". This will cause conflicts. Ignoring entry";
             }
             else {
-                $code .= sprintf "\$%-35s -> tie_items(\$%s,'off','off');\n",
-                  $name, $address;
-                $code .= sprintf "\$%-35s -> tie_items(\$%s,'on','on');\n",
-                  $name, $address;
+                $code .= sprintf "\$%-35s -> tie_items(\$%s,'off','off');\n", $name, $address;
+                $code .= sprintf "\$%-35s -> tie_items(\$%s,'on','on');\n",   $name, $address;
             }
         }
         elsif ( lc $pa_type eq 'audrey' ) {
             require 'Audrey_Play.pm';
-            $code .= sprintf "\$%-35s = new Audrey_Play('%s');\n",
-              $name . '_obj', $address;
+            $code .= sprintf "\$%-35s = new Audrey_Play('%s');\n", $name . '_obj', $address;
             $code .= sprintf "\$%-35s -> hidden(1);\n", $name . '_obj';
         }
         elsif ( lc $pa_type eq 'x10' ) {
             $other = join ', ', ( map { "'$_'" } @other );    # Quote data
-            $code .= sprintf "\$%-35s = new X10_Appliance('%s','%s');\n",
-              $name . '_obj', $address, $serial;
+            $code .= sprintf "\$%-35s = new X10_Appliance('%s','%s');\n", $name . '_obj', $address, $serial;
             $code .= sprintf "\$%-35s -> hidden(1);\n", $name . '_obj';
-            $code .= sprintf "\$%-35s -> tie_items(\$%s,'off','off');\n",
-              $name, $name . '_obj';
-            $code .= sprintf "\$%-35s -> tie_items(\$%s,'on','on');\n", $name,
-              $name . '_obj';
+            $code .= sprintf "\$%-35s -> tie_items(\$%s,'off','off');\n", $name, $name . '_obj';
+            $code .= sprintf "\$%-35s -> tie_items(\$%s,'on','on');\n",   $name, $name . '_obj';
         }
         elsif ( lc $pa_type eq 'xap' ) {
-            $code .= sprintf "\$%-35s = new xAP_Item('%s');\n", $name . '_obj',
-              $address;
-            $code .= sprintf "\$%-35s -> hidden(1);\n", $name . '_obj';
-            $code .= sprintf "\$%-35s -> target_address('%s');\n",
-              $name . '_obj', $address;
-            $code .= sprintf "\$%-35s -> class_name('%s');\n", $name . '_obj',
-              $serial;
-            $code .= sprintf "\$%-35s -> tie_items(\$%s,'on','on');\n", $name,
-              $name . '_obj';
+            $code .= sprintf "\$%-35s = new xAP_Item('%s');\n",    $name . '_obj', $address;
+            $code .= sprintf "\$%-35s -> hidden(1);\n",            $name . '_obj';
+            $code .= sprintf "\$%-35s -> target_address('%s');\n", $name . '_obj', $address;
+            $code .= sprintf "\$%-35s -> class_name('%s');\n",     $name . '_obj', $serial;
+            $code .= sprintf "\$%-35s -> tie_items(\$%s,'on','on');\n", $name, $name . '_obj';
         }
         elsif ( lc $pa_type eq 'xpl' ) {
-            $code .= sprintf "\$%-35s = new xPL_Item('%s');\n", $name . '_obj',
-              $address;
-            $code .= sprintf "\$%-35s -> hidden(1);\n", $name . '_obj';
-            $code .= sprintf "\$%-35s -> target_address('%s');\n",
-              $name . '_obj', $address;
-            $code .= sprintf "\$%-35s -> class_name('%s');\n", $name . '_obj',
-              $serial;
-            $code .= sprintf "\$%-35s -> tie_items(\$%s,'on','on');\n", $name,
-              $name . '_obj';
+            $code .= sprintf "\$%-35s = new xPL_Item('%s');\n",    $name . '_obj', $address;
+            $code .= sprintf "\$%-35s -> hidden(1);\n",            $name . '_obj';
+            $code .= sprintf "\$%-35s -> target_address('%s');\n", $name . '_obj', $address;
+            $code .= sprintf "\$%-35s -> class_name('%s');\n",     $name . '_obj', $serial;
+            $code .= sprintf "\$%-35s -> tie_items(\$%s,'on','on');\n", $name, $name . '_obj';
         }
         elsif ( lc $pa_type eq 'aviosys' ) {
             my $aviosysref = {
@@ -771,10 +702,8 @@ sub read_table_A {
                     '8' => ']'
                 }
             };
-            $code .= sprintf "\$%-35s = new Serial_Item('%s','on','%s');\n",
-              $name . '_obj', $aviosysref->{'on'}{$address}, $serial;
-            $code .= sprintf "\$%-35s -> add ('%s','off');\n", $name . '_obj',
-              $aviosysref->{'off'}{$address};
+            $code .= sprintf "\$%-35s = new Serial_Item('%s','on','%s');\n", $name . '_obj', $aviosysref->{'on'}{$address}, $serial;
+            $code .= sprintf "\$%-35s -> add ('%s','off');\n", $name . '_obj', $aviosysref->{'off'}{$address};
         }
         elsif ( lc $pa_type eq 'amixer' ) {
 
@@ -795,11 +724,10 @@ sub read_table_A {
         my $monitor_name;
         ( $address, $name, $monitor_name, $grouplist, @other ) = @item_info;
         $other = join ', ', ( map { "'$_'" } @other );    # Quote data
-        if ( !$packages{ZoneMinder_xAP}++ ) { # first time for this object type?
+        if ( !$packages{ZoneMinder_xAP}++ ) {             # first time for this object type?
             $code .= "use ZoneMinder_xAP;\n";
         }
-        $code .= sprintf "\n\$%-35s = new ZM_ZoneItem('%s');\n", $name,
-          $address;
+        $code .= sprintf "\n\$%-35s = new ZM_ZoneItem('%s');\n", $name, $address;
         if ( $objects{$monitor_name} ) {
             $code .= sprintf "\$%-35s -> add(\$%s);\n", $monitor_name, $name;
         }
@@ -814,17 +742,16 @@ sub read_table_A {
         else {
             $object = "ZM_MonitorItem('$address')";
         }
-        if ( !$packages{ZoneMinder_xAP}++ ) { # first time for this object type?
+        if ( !$packages{ZoneMinder_xAP}++ ) {             # first time for this object type?
             $code .= "use ZoneMinder_xAP;\n";
         }
     }
     elsif ( $type eq "ANALOG_SENSOR" ) {
-        my $xc_name;                          #xap conduit
+        my $xc_name;                                      #xap conduit
         my $sensor_type;
 
         #ANALOG_SENSOR, xap source, object name, xap conduit name, groups, xap sensor type, tokens...
-        if ( !$packages{AnalogSensor_Item}++ )
-        {                                     # first time for this object type?
+        if ( !$packages{AnalogSensor_Item}++ ) {          # first time for this object type?
             $code .= "use AnalogSensor_Item;\n";
         }
         $address = shift @item_info;
@@ -834,15 +761,14 @@ sub read_table_A {
             $xc_name = $address;
             ( $name, $grouplist, @other ) = @item_info;
             $other = join ', ', ( map { "'$_'" } @other );    # Quote data
-            $code .= sprintf "\n\$%-35s = new AnalogSensor_Item(\$%s, %s);\n",
-              $name, $xc_name, $other;
+            $code .= sprintf "\n\$%-35s = new AnalogSensor_Item(\$%s, %s);\n", $name, $xc_name, $other;
         }
         else {
             ( $name, $xc_name, $grouplist, $sensor_type, @other ) = @item_info;
             $other = join ', ', ( map { "'$_'" } @other );    # Quote data
             if ( lc $name eq 'auto' ) {                       #new
                 $name = $xc_name . "_" . $sensor_type . "_" . $address;
-                $name =~ s/\./_/g;    #strip out all the periods from xap names
+                $name =~ s/\./_/g;                            #strip out all the periods from xap names
             }
             $code .=
               sprintf "\n\$%-35s = new AnalogSensor_Item('%s', '%s', %s);\n",
@@ -854,12 +780,11 @@ sub read_table_A {
         $object = '';
     }
     elsif ( $type eq "ANALOG_SENSOR_R" ) {
-        my $xc_name;                  #xap conduit
+        my $xc_name;                                          #xap conduit
         my $sensor_type;
 
         #ANALOG_SENSOR_R, xap source, object name, xap conduit name, groups, xap sensor type, tokens...
-        if ( !$packages{AnalogSensor_Item}++ )
-        {                             # first time for this object type?
+        if ( !$packages{AnalogSensor_Item}++ ) {              # first time for this object type?
             $code .= "use AnalogSensor_Item;\n";
         }
         $address = shift @item_info;
@@ -878,12 +803,9 @@ sub read_table_A {
             $other = join ', ', ( map { "'$_'" } @other );    # Quote data
             if ( lc $name eq 'auto' ) {                       #new
                 $name = $xc_name . "_" . $sensor_type . "_" . $address;
-                $name =~ s/\./_/g;    #strip out all the periods from xap names
+                $name =~ s/\./_/g;                            #strip out all the periods from xap names
             }
-            $code .=
-              sprintf
-              "\n\$%-35s = new AnalogRangeSensor_Item('%s', '%s', %s);\n",
-              $name, $address, $sensor_type, $other;
+            $code .= sprintf "\n\$%-35s = new AnalogRangeSensor_Item('%s', '%s', %s);\n", $name, $address, $sensor_type, $other;
             if ( $objects{$xc_name} ) {
                 $code .= sprintf "\$%-35s -> add(\$%s);\n", $xc_name, $name;
             }
@@ -896,8 +818,7 @@ sub read_table_A {
         #ANALOG_SENSOR, xap source, object name, xap conduit name, groups, xap sensor type, tokens...
         ( $sensor_name, $name, $grouplist, @other ) = @item_info;
         $other = join ', ', ( map { "'$_'" } @other );    # Quote data
-        if ( !$packages{AnalogSensor_Item}++ )
-        {    # first time for this object type?
+        if ( !$packages{AnalogSensor_Item}++ ) {          # first time for this object type?
             $code .= "use AnalogSensor_Item;\n";
         }
 
@@ -920,7 +841,7 @@ sub read_table_A {
         else {
             $object = "OneWire_xAP('$address')";
         }
-        if ( !$packages{OneWire_xAP}++ ) {    # first time for this object type?
+        if ( !$packages{OneWire_xAP}++ ) {                # first time for this object type?
             $code .= "use OneWire_xAP;\n";
         }
     }
@@ -930,7 +851,7 @@ sub read_table_A {
         #SDX, xap instance, object name, psixc server name
         ( $address, $name, $server, $grouplist, @other ) = @item_info;
         $other = join ', ', ( map { "'$_'" } @other );    # Quote data
-        if ( !$packages{SysDiag_xAP}++ ) {    # first time for this object type?
+        if ( !$packages{SysDiag_xAP}++ ) {                # first time for this object type?
             $code .= "use SysDiag_xAP;\n";
         }
         if ($other) {
@@ -949,7 +870,7 @@ sub read_table_A {
         else {
             $object = "BSC_Item('$address')";
         }
-        if ( !$packages{BSC}++ ) {    # first time for this object type?
+        if ( !$packages{BSC}++ ) {                        # first time for this object type?
             $code .= "use BSC;\n";
         }
     }
@@ -962,7 +883,7 @@ sub read_table_A {
         else {
             $object = "xPL_Sensor('$address')";
         }
-        if ( !$packages{xPL_Items}++ ) {    # first time for this object type?
+        if ( !$packages{xPL_Items}++ ) {                  # first time for this object type?
             $code .= "use xPL_Items;\n";
         }
     }
@@ -975,7 +896,7 @@ sub read_table_A {
         else {
             $object = "xPL_UPS('$address')";
         }
-        if ( !$packages{xPL_Items}++ ) {    # first time for this object type?
+        if ( !$packages{xPL_Items}++ ) {                  # first time for this object type?
             $code .= "use xPL_Items;\n";
         }
     }
@@ -988,7 +909,7 @@ sub read_table_A {
         else {
             $object = "xPL_X10Security('$address')";
         }
-        if ( !$packages{xPL_Items}++ ) {    # first time for this object type?
+        if ( !$packages{xPL_Items}++ ) {                  # first time for this object type?
             $code .= "use xPL_Items;\n";
         }
     }
@@ -1001,7 +922,7 @@ sub read_table_A {
         else {
             $object = "xPL_X10Basic('$address')";
         }
-        if ( !$packages{xPL_X10Basic}++ ) {    # first time for this objecttype?
+        if ( !$packages{xPL_X10Basic}++ ) {               # first time for this objecttype?
             $code .= "use xPL_X10Basic;\n";
         }
     }
@@ -1014,7 +935,7 @@ sub read_table_A {
         else {
             $object = "xPL_IrrigationGateway('$address')";
         }
-        if ( !$packages{xPL_Irrigation}++ ) { # first time for this object type?
+        if ( !$packages{xPL_Irrigation}++ ) {             # first time for this object type?
             $code .= "use xPL_Irrigation;\n";
         }
     }
@@ -1027,7 +948,7 @@ sub read_table_A {
         else {
             $object = "xPL_IrrigationValve('$address',\$$object)";
         }
-        if ( !$packages{xPL_Irrigation}++ ) { # first time for this object type?
+        if ( !$packages{xPL_Irrigation}++ ) {             # first time for this object type?
             $code .= "use xPL_Irrigation;\n";
         }
     }
@@ -1040,7 +961,7 @@ sub read_table_A {
         else {
             $object = "xPL_IrrigationQueue('$address',\$$object)";
         }
-        if ( !$packages{xPL_Irrigation}++ ) { # first time for this object type?
+        if ( !$packages{xPL_Irrigation}++ ) {             # first time for this object type?
             $code .= "use xPL_Irrigation;\n";
         }
     }
@@ -1053,7 +974,7 @@ sub read_table_A {
         else {
             $object = "xPL_LightGateway('$address')";
         }
-        if ( !$packages{xPL_Lighting}++ ) {   # first time for this object type?
+        if ( !$packages{xPL_Lighting}++ ) {               # first time for this object type?
             $code .= "use xPL_Lighting;\n";
         }
     }
@@ -1066,7 +987,7 @@ sub read_table_A {
         else {
             $object = "xPL_Light('$address',\$$object)";
         }
-        if ( !$packages{xPL_Lighting}++ ) {   # first time for this object type?
+        if ( !$packages{xPL_Lighting}++ ) {               # first time for this object type?
             $code .= "use xPL_Lighting;\n";
         }
     }
@@ -1079,7 +1000,7 @@ sub read_table_A {
         else {
             $object = "xPL_PlugwiseGateway('$address')";
         }
-        if ( !$packages{xPL_Plugwise}++ ) {   # first time for this object type?
+        if ( !$packages{xPL_Plugwise}++ ) {               # first time for this object type?
             $code .= "use xPL_Plugwise;\n";
         }
     }
@@ -1092,7 +1013,7 @@ sub read_table_A {
         else {
             $object = "xPL_Plugwise('$address',\$$object)";
         }
-        if ( !$packages{xPL_Plugwise}++ ) {   # first time for this object type?
+        if ( !$packages{xPL_Plugwise}++ ) {               # first time for this object type?
             $code .= "use xPL_Plugwise;\n";
         }
     }
@@ -1105,7 +1026,7 @@ sub read_table_A {
         else {
             $object = "xPL_Squeezebox('$address')";
         }
-        if ( !$packages{xPL_Squeezebox}++ ) { # first time for this object type?
+        if ( !$packages{xPL_Squeezebox}++ ) {             # first time for this object type?
             $code .= "use xPL_Squeezebox;\n";
         }
     }
@@ -1118,7 +1039,7 @@ sub read_table_A {
         else {
             $object = "xPL_SecurityGateway('$address')";
         }
-        if ( !$packages{xPL_Security}++ ) {   # first time for this object type?
+        if ( !$packages{xPL_Security}++ ) {               # first time for this object type?
             $code .= "use xPL_Security;\n";
         }
     }
@@ -1131,7 +1052,7 @@ sub read_table_A {
         else {
             $object = "xPL_Zone('$address',\$$object)";
         }
-        if ( !$packages{xPL_Security}++ ) {   # first time for this object type?
+        if ( !$packages{xPL_Security}++ ) {               # first time for this object type?
             $code .= "use xPL_Security;\n";
         }
     }
@@ -1144,7 +1065,7 @@ sub read_table_A {
         else {
             $object = "xPL_Area('$address',\$$object)";
         }
-        if ( !$packages{xPL_Security}++ ) {   # first time for this object type?
+        if ( !$packages{xPL_Security}++ ) {               # first time for this object type?
             $code .= "use xPL_Security;\n";
         }
     }
@@ -1157,7 +1078,7 @@ sub read_table_A {
         else {
             $object = "X10SL_Scene('$address')";
         }
-        if ( !$packages{X10_Scene}++ ) {    # first time for this object type?
+        if ( !$packages{X10_Scene}++ ) {                  # first time for this object type?
             $code .= "use X10_Scene;\n";
         }
     }
@@ -1170,7 +1091,7 @@ sub read_table_A {
         else {
             $object = "Scene()";
         }
-        if ( !$packages{Scene}++ ) {    # first time for this object type?
+        if ( !$packages{Scene}++ ) {                      # first time for this object type?
             $code .= "use Scene;\n";
         }
     }
@@ -1178,18 +1099,16 @@ sub read_table_A {
         my ( $scene_name, $on_level, $ramp_rate );
         ( $name, $scene_name, $on_level, $ramp_rate ) = @item_info;
         $other = join ', ', ( map { "'$_'" } @other );    # Quote data
-        if ( !$packages{X10_Scene}++ ) {    # first time for this object type?
+        if ( !$packages{X10_Scene}++ ) {                  # first time for this object type?
             $code .= "use X10_Scene;\n";
         }
         if ( ( $objects{$scene_name} ) and ( $objects{$name} ) ) {
             if ($on_level) {
                 if ($ramp_rate) {
-                    $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
-                      $scene_name, $name, $on_level, $ramp_rate;
+                    $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n", $scene_name, $name, $on_level, $ramp_rate;
                 }
                 else {
-                    $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n",
-                      $scene_name, $name, $on_level;
+                    $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", $scene_name, $name, $on_level;
                 }
             }
             else {
@@ -1200,42 +1119,30 @@ sub read_table_A {
     }
     elsif ( $type eq "SCENE_MEMBER" ) {
         my ( $scene_name, $on_level, $ramp_rate );
-        if (
-            validate_def(
-                $type, 2,
-                [ 'name', 'name', 'insteon_on_level', 'insteon_ramp_rate' ],
-                \@item_info
-            )
-          )
-        {
+        if ( validate_def( $type, 2, [ 'name', 'name', 'insteon_on_level', 'insteon_ramp_rate' ], \@item_info ) ) {
             ( $name, $scene_name, $on_level, $ramp_rate ) = @item_info;
             $other = join ', ', ( map { "'$_'" } @other );    # Quote data
 
-            if ( !$packages{Scene}++ ) {    # first time for this object type?
+            if ( !$packages{Scene}++ ) {                      # first time for this object type?
                 $code .= "use Scene;\n";
             }
             if ( ( $objects{$scene_name} ) and ( $objects{$name} ) ) {
                 if ($on_level) {
                     if ($ramp_rate) {
-                        $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
-                          $scene_name, $name, $on_level, $ramp_rate;
+                        $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n", $scene_name, $name, $on_level, $ramp_rate;
                     }
                     else {
-                        $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n",
-                          $scene_name, $name, $on_level;
+                        $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", $scene_name, $name, $on_level;
                     }
                 }
                 else {
-                    $code .= sprintf "\$%-35s -> add(\$%s);\n", $scene_name,
-                      $name;
+                    $code .= sprintf "\$%-35s -> add(\$%s);\n", $scene_name, $name;
                 }
             }
             else {
-                print
-                  "\nThere is no object called $scene_name defined.  Ignoring SCENE_MEMBER entry.\n"
+                print "\nThere is no object called $scene_name defined.  Ignoring SCENE_MEMBER entry.\n"
                   unless $objects{$scene_name};
-                print
-                  "\nThere is no object called $name defined.  Ignoring SCENE_MEMBER entry.\n"
+                print "\nThere is no object called $name defined.  Ignoring SCENE_MEMBER entry.\n"
                   unless $objects{$name};
             }
             $object = '';
@@ -1244,25 +1151,15 @@ sub read_table_A {
     elsif ( $type eq "SCENE_BUILD" ) {
 
         #SCENE_BUILD, scene_name, scene_member, is_controller?, is_responder?, onlevel, ramprate
-        my ( $scene_member, $is_scene_controller, $is_scene_responder,
-            $on_level, $ramp_rate );
+        my ( $scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate );
         if (
             validate_def(
-                $type, 2,
-                [
-                    'name',             'name',
-                    'boolean',          'boolean',
-                    'insteon_on_level', 'insteon_ramp_rate'
-                ],
-                \@item_info
+                $type, 2, [ 'name', 'name', 'boolean', 'boolean', 'insteon_on_level', 'insteon_ramp_rate' ], \@item_info
             )
           )
         {
 
-            (
-                $name, $scene_member, $is_scene_controller,
-                $is_scene_responder, $on_level, $ramp_rate
-            ) = @item_info;
+            ( $name, $scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate ) = @item_info;
 
             if ( !$packages{Scene}++ ) {    # first time for this object type?
                 $code .= "use Scene;\n";
@@ -1271,8 +1168,7 @@ sub read_table_A {
                 $scene_build_controllers{$name}{$scene_member} = "1";
             }
             if ($is_scene_responder) {
-                $scene_build_responders{$name}{$scene_member} =
-                  "$on_level,$ramp_rate";
+                $scene_build_responders{$name}{$scene_member} = "$on_level,$ramp_rate";
             }
             $object = '';
         }
@@ -1286,7 +1182,7 @@ sub read_table_A {
         else {
             $object = "Philips_Hue('$address')";
         }
-        if ( !$packages{Philips_Hue}++ ) {    # first time for this object type?
+        if ( !$packages{Philips_Hue}++ ) {                # first time for this object type?
             $code .= "use Philips_Hue;\n";
         }
     }
@@ -1299,7 +1195,7 @@ sub read_table_A {
         else {
             $object = "Philips_Lux('$address')";
         }
-        if ( !$packages{Philips_Hue}++ ) {    # first time for this object type?
+        if ( !$packages{Philips_Hue}++ ) {                # first time for this object type?
             $code .= "use Philips_Hue;\n";
         }
     }
@@ -1315,63 +1211,56 @@ sub read_table_A {
     elsif ( $type eq "AD2_DOOR_ITEM" ) {
         require AD2;
         my ( $instance, $expander, $relay, $wireless, $zone, $partition );
-        ( $name, $instance, $zone, $partition, $address, $grouplist, @other ) =
-          @item_info;
+        ( $name, $instance, $zone, $partition, $address, $grouplist, @other ) = @item_info;
         $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         my ( $map, $address ) = split( '=', $address );
         $expander = $address if ( uc($map) eq "EXP" );
         $relay    = $address if ( uc($map) eq "REL" );
         $wireless = $address if ( uc($map) eq "RFX" );
-        $object =
-          "AD2_Item('door','$instance','$zone','$partition','$expander','$relay','$wireless','$other')";
+        $object = "AD2_Item('door','$instance','$zone','$partition','$expander','$relay','$wireless','$other')";
     }
     elsif ( $type eq "AD2_MOTION_ITEM" ) {
         require AD2;
         my ( $instance, $expander, $relay, $wireless, $zone, $partition );
-        ( $name, $instance, $zone, $partition, $address, $grouplist, @other ) =
-          @item_info;
+        ( $name, $instance, $zone, $partition, $address, $grouplist, @other ) = @item_info;
         $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         my ( $map, $address ) = split( '=', $address );
         $expander = $address if ( uc($map) eq "EXP" );
         $relay    = $address if ( uc($map) eq "REL" );
         $wireless = $address if ( uc($map) eq "RFX" );
-        $object =
-          "AD2_Item('motion','$instance','$zone','$partition','$expander','$relay','$wireless','$other')";
+        $object = "AD2_Item('motion','$instance','$zone','$partition','$expander','$relay','$wireless','$other')";
     }
     elsif ( $type eq "AD2_GENERIC_ITEM" ) {
         require AD2;
         my ( $instance, $expander, $relay, $wireless, $zone, $partition );
-        ( $name, $instance, $zone, $partition, $address, $grouplist, @other ) =
-          @item_info;
+        ( $name, $instance, $zone, $partition, $address, $grouplist, @other ) = @item_info;
         $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         my ( $map, $address ) = split( '=', $address );
         $expander = $address if ( uc($map) eq "EXP" );
         $relay    = $address if ( uc($map) eq "REL" );
         $wireless = $address if ( uc($map) eq "RFX" );
-        $object =
-          "AD2_Item('','$instance','$zone','$partition','$expander','$relay','$wireless','$other')";
+        $object = "AD2_Item('','$instance','$zone','$partition','$expander','$relay','$wireless','$other')";
     }
     elsif ( $type eq "AD2_PARTITION" ) {
         require AD2;
         my ( $instance, $number );
-        ( $name, $instance, $number, $address, $grouplist, @other ) =
-          @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        ( $name, $instance, $number, $address, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );                          # Quote data
         $object = "AD2_Partition('$instance','$number','$address','$other')";
     }
-   elsif($type eq "AD2_OUTPUT") {
+    elsif ( $type eq "AD2_OUTPUT" ) {
         require AD2;
-        my ($instance,$output);
-        ($name, $instance, $output, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        my ( $instance, $output );
+        ( $name, $instance, $output, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );                          # Quote data
         $object = "AD2_Output('$instance','$output','$other')";
     }
+
     #-------------- End AD2 Objects -------------
     elsif ( $type =~ /PLCBUS_.*/ ) {
         require PLCBUS;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        ( $object, $grouplist, $additional_code ) =
-          PLCBUS->generate_code( $type, @item_info );
+        ( $object, $grouplist, $additional_code ) = PLCBUS->generate_code( $type, @item_info );
     }
     else {
         print "\nUnrecognized .mht entry: $record\n";
@@ -1395,8 +1284,7 @@ sub read_table_A {
         }
 
         if ( $name eq $group ) {
-            &::print_log(
-                "mht object and group name are the same: $name  Bad idea!");
+            &::print_log("mht object and group name are the same: $name  Bad idea!");
         }
         else {
             # Allow for floorplan data:  Bedroom(5,15)|Lights
@@ -1439,15 +1327,11 @@ sub read_table_finish_A {
 
         #Loop through the controller hash
         if ( exists $scene_build_controllers{$scene} ) {
-            foreach my $scene_controller (
-                keys %{ $scene_build_controllers{$scene} } )
-            {
+            foreach my $scene_controller ( keys %{ $scene_build_controllers{$scene} } ) {
                 if ( $objects{$scene_controller} ) {
 
                     #Make a link to each responder in the responder hash
-                    while ( my ( $scene_responder, $responder_data ) =
-                        each( %{ $scene_build_responders{$scene} } ) )
-                    {
+                    while ( my ( $scene_responder, $responder_data ) = each( %{ $scene_build_responders{$scene} } ) ) {
                         my ( $on_level, $ramp_rate ) =
                           split( ',', $responder_data );
 
@@ -1456,9 +1340,7 @@ sub read_table_finish_A {
                         {
                             if ($on_level) {
                                 if ($ramp_rate) {
-                                    $code .=
-                                      sprintf
-                                      "\$%-35s -> add(\$%s,'%s','%s');\n",
+                                    $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
                                       $scene_controller, $scene_responder,
                                       $on_level,         $ramp_rate;
                                 }
@@ -1470,8 +1352,7 @@ sub read_table_finish_A {
                                 }
                             }
                             else {
-                                $code .= sprintf "\$%-35s -> add(\$%s);\n",
-                                  $scene_controller, $scene_responder;
+                                $code .= sprintf "\$%-35s -> add(\$%s);\n", $scene_controller, $scene_responder;
                             }
                         }
                     }
@@ -1479,14 +1360,12 @@ sub read_table_finish_A {
                 }
                 else {
                     ::print_log( "[Read_Table_A] ERROR: There is no object "
-                          . "called $scene_controller defined.  Ignoring SCENE_BUILD entry."
-                    );
+                          . "called $scene_controller defined.  Ignoring SCENE_BUILD entry." );
                 }
             }
         }
         else {
-            ::print_log( "[Read_Table_A] ERROR: There is no controller "
-                  . "defined for $scene.  Ignoring SCENE_BUILD entry." );
+            ::print_log( "[Read_Table_A] ERROR: There is no controller " . "defined for $scene.  Ignoring SCENE_BUILD entry." );
         }
     }
     return $code;
@@ -1504,9 +1383,8 @@ sub read_table_finish_A {
 # #Global validation routine:
 sub validate_def {
     my ( $type, $req_count, $req_array, $passed_values ) = @_;
-    my $paramNum = 0;
-    my $paramCount =
-      scalar @{$passed_values};    # Number of parameters passed on the item
+    my $paramNum   = 0;
+    my $paramCount = scalar @{$passed_values};    # Number of parameters passed on the item
     foreach my $param_type ( @{$req_array} ) {
 
         if ( defined $$passed_values[$paramNum]
@@ -1517,14 +1395,12 @@ sub validate_def {
                     ::print_log(
                         "[Read_Table_A] ERROR: $_[0]: $$passed_values[0], failed to match $param_type:  Found \"$$passed_values[$paramNum]\", Definition skipped."
                     );
-                    ::print_log( "[Read_table-A]        $_[0], "
-                          . join( ', ', @$passed_values ) );
+                    ::print_log( "[Read_table-A]        $_[0], " . join( ', ', @$passed_values ) );
                     return 0;
                 }
             }
             elsif ( $param_type eq 'boolean' ) {
-                ::print_log(
-                    "Error item $paramNum in definition, should be 0 or 1")
+                ::print_log("Error item $paramNum in definition, should be 0 or 1")
                   unless ( $$passed_values[$paramNum] =~ /^(0|1)$/ );
             }
             elsif ( $param_type eq 'name' ) {
@@ -1532,8 +1408,7 @@ sub validate_def {
                     ::print_log(
                         "[Read_Table_A] ERROR: $_[0]: $$passed_values[0], can only use characters A-z and _  Found \"$$passed_values[$paramNum]\", Definition skipped."
                     );
-                    ::print_log( "[Read_table-A]        $_[0], "
-                          . join( ', ', @$passed_values ) );
+                    ::print_log( "[Read_table-A]        $_[0], " . join( ', ', @$passed_values ) );
                     return 0;
                 }
             }
@@ -1554,33 +1429,27 @@ sub validate_def {
                     && $1 >= 0 );
             }
             elsif ( $param_type eq 'insteon_address' ) {
-                my ( $x1, $x2, $x3 ) = $$passed_values[$paramNum] =~
-                  m/^([A-F0-9]{2})\.([A-F0-9]{2})\.([A-F0-9]{2})$/i;
+                my ( $x1, $x2, $x3 ) = $$passed_values[$paramNum] =~ m/^([A-F0-9]{2})\.([A-F0-9]{2})\.([A-F0-9]{2})$/i;
                 unless ( $x1 && $x2 && $x3 ) {
                     ::print_log(
                         "[Read_Table_A] ERROR: $_[0]: $$passed_values[0] Insteon Address should be xx.xx.xx, got \"$$passed_values[$paramNum]\" "
                     );
-                    ::print_log( "[Read_table-A]        $_[0], "
-                          . join( ', ', @$passed_values ) );
+                    ::print_log( "[Read_table-A]        $_[0], " . join( ', ', @$passed_values ) );
                     return 0;
                 }
             }
             elsif ( $param_type eq 'x10_address' ) {
-                my ( $ha, $da ) =
-                  $$passed_values[$paramNum] =~ m/^([A-P])([0-9]{1,2})$/i;
+                my ( $ha, $da ) = $$passed_values[$paramNum] =~ m/^([A-P])([0-9]{1,2})$/i;
                 unless ( $ha && $da && $da < 17 ) {
                     ::print_log(
                         "[Read_Table_A] ERROR: $_[0]: $$passed_values[0] X10 Address should be 2-3 characters,  House code A-P, Device 1-16, got \"$$passed_values[$paramNum]\", Definition skipped."
                     );
-                    ::print_log( "[Read_table-A]        $_[0], "
-                          . join( ', ', @$passed_values ) );
+                    ::print_log( "[Read_table-A]        $_[0], " . join( ', ', @$passed_values ) );
                     return 0;
                 }
             }
             else {
-                ::print_log(
-                    "[Read_Table_A] WARNING: Unknown validation type: $param_type"
-                );
+                ::print_log( "[Read_Table_A] WARNING: Unknown validation type: $param_type" );
             }
         }
         else {
@@ -1589,8 +1458,7 @@ sub validate_def {
                 ::print_log(
                     "[Read_table-A] ERROR: $_[0]  $req_count parameters are required in the definition, $pc parameters found: definition skipped."
                 );
-                ::print_log( "[Read_table-A]        $_[0], "
-                      . join( ', ', @$passed_values ) );
+                ::print_log( "[Read_table-A]        $_[0], " . join( ', ', @$passed_values ) );
                 return 0;
             }
         }

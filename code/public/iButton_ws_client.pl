@@ -40,8 +40,7 @@ $ibws = new Socket_Item( undef, undef, 'localhost:8888', 'ibws', 'tcp', 'raw' );
 $ibws_v = new Voice_Cmd "[Start,Stop,Speak] the ibutton weather station client";
 $ibws_v->set_info('Connects to the ibutton weather station server');
 
-my @weather_vars =
-  qw(TempOutdoor TempOutdoorHigh TempOutdoorLow WindSpeed WindSpeedPeak WindSpeedHigh WindDir WindDirAvg
+my @weather_vars = qw(TempOutdoor TempOutdoorHigh TempOutdoorLow WindSpeed WindSpeedPeak WindSpeedHigh WindDir WindDirAvg
   RainRate RainToday RainWeek RainMonth);
 
 my $freezing = new Weather_Item 'TempOutdoor', '<', 32;

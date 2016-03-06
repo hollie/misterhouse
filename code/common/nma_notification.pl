@@ -18,8 +18,7 @@ my $nma_api_key = $config_parms{nma_api_key};
 
 # Notify the on startup / restart
 if ($Startup) {
-    print_log( "System Restarted, Notifying NMA -- using api key: ",
-        $nma_api_key );
+    print_log( "System Restarted, Notifying NMA -- using api key: ", $nma_api_key );
     nma_notify_b( "$nma_api_key", "Misterhouse has been restarted" );
 }
 

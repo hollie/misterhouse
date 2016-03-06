@@ -46,9 +46,7 @@ sub read_reject_call_list {
         $type  = 'general' unless $type;
 
         #	    print_log "Number;$number, Name;$name, Sound;$sound, Type;$type\n";
-        push @calls,
-          sprintf( "number=%-12s name=%s sound=%s type=%s",
-            $number, $name, $sound, $type );
+        push @calls, sprintf( "number=%-12s name=%s sound=%s type=%s", $number, $name, $sound, $type );
 
     }
     close MYFILE;
