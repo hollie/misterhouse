@@ -429,13 +429,16 @@ sub http_process_request {
 
     # Prompt for password (SET_PASSWORD) and allow for UNSET_PASSWORD
     if ( $get_req =~ /SET_PASSWORD$/ ) {
+    	my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
+
         if ( $config_parms{password_menu} eq 'html' ) {
+            my $html = &html_authorized;
             if ( $get_req =~ /^\/UNSET_PASSWORD$/ ) {
                 $Authorized = 0;
                 $Cookie .= "Set-Cookie: password=xyz ; ; path=/;\n";
+                $html .= "<meta name='unset' content='true'>";
             }
-            my $html = &html_authorized;
-            $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
+            $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n" unless (lc $mode eq "ia7");
             $html .= &html_password('') . '<br>';
             print $socket &html_page( undef, $html, undef, undef, undef,
                 undef );
@@ -443,6 +446,7 @@ sub http_process_request {
         else {
             my $html = &html_authorized;
             $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
+			$html .= "<br>set_password else Referrer: $Http{Referer}\n";   
 
             #           $html .= &html_reload_link('/', 'Refresh Main Page');   # Does not force reload?
             my ( $name, $name_short ) = &net_domain_name('http');
@@ -470,14 +474,15 @@ sub http_process_request {
 
     # Process the html password form
     elsif ( $get_req =~ /\/SET_PASSWORD_FORM$/ ) {
+        my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
         my ($password) = $get_arg =~ /password=(\S+)/;
         my ($html);
         my ( $name, $name_short )       = &net_domain_name('http');
         my ( $user, $password_crypted ) = &password_check2($password);
         $Authorized = $user if $password_crypted;
         $html .= &html_authorized;
+        $html .= "REMOVEME = get_arg = " . $get_arg . "<br>\n";
         $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
-
         #       $html .= &html_reload_link('/', 'Refresh Main Page');
         $html .= &html_password('');
         if ($password_crypted) {
@@ -505,7 +510,9 @@ sub http_process_request {
 
             #           &speak("app=admin Password NOT set by $name_short");
         }
+
         print $socket &html_page( undef, $html );
+
         return;
     }
 
@@ -791,24 +798,42 @@ sub http_process_request {
 sub html_password {
     my ($menu) = @_;
     $menu = $config_parms{password_menu} unless $menu;
+    my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
 
     #   return $html_unauthorized unless $Authorized;
 
     my $html;
     if ( $menu eq 'html' ) {
-        $html =
-          qq[<BODY onLoad="self.focus();document.pw.password.focus(); top.frames[0].location.reload()">\n];
+#    	if (lc $mode eq "ia7") {
+#        	$html = qq[<FORM name=pw action="SET_PASSWORD_FORM" method="post">\n];
+#        	$html .= qq[<b>Password:</b><INPUT size=10 name='password' type='password'></FORM>\n];
+#        	#$html .= qq[<div class="modal-footer">];
+#        	$html .= qq[<INPUT id=pw type=submit value='Submit Password'>\n]; #</div>\n];#
+#			$html .= qq[<script>\$("#pw").click(function(e){\n];
+#			$html .= qq[e.preventDefault();];
+#        	$html .= qq[\$.ajax({\n];
+#           $html .= qq[type: "POST",];
+#           $html .= qq[url: "/SET_PASSWORD_FORM",];
+#           $html .= qq[data: \$(this).serialize(),];
+#           $html .= qq[success: function(data){];
+#           $html .= qq[    console.log(data);]; 
+#           $html .= qq[}];
+#           $html .= qq[})];
+#           $html .= qq[})];
+#           $html .= qq[</script>];
+#
+#    	} else {
+        	$html = qq[<BODY onLoad="self.focus();document.pw.password.focus(); top.frames[0].location.reload()">\n] unless (lc $mode eq "ia7");
 
-        #       $html .= qq[<BASE TARGET='_top'>\n];
-        $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="post">\n];
+        	#       $html .= qq[<BASE TARGET='_top'>\n];
+        	$html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="post">\n];
 
-        #       $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="get">\n]; ... get not secure from browser history list!!
-        #       $html .= qq[<h3>Password:<INPUT size=10 name='password' type='password'></h3>\n</FORM>\n];
-        $html .=
-          qq[<b>Password:</b><INPUT size=10 name='password' type='password'>\n];
-        $html .= qq[<INPUT type=submit value='Submit Password'>\n</FORM>\n];
-        $html .=
-          qq[<P> This form is used for logging into MisterHouse.<br> For administration please see the documentation of <a href="http://misterhouse.net/mh.html"> set_password </a></P>\n];
+        	#       $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="get">\n]; ... get not secure from browser history list!!
+        	#       $html .= qq[<h3>Password:<INPUT size=10 name='password' type='password'></h3>\n</FORM>\n];
+        	$html .= qq[<b>Password:</b><INPUT size=10 name='password' type='password'>\n];
+        	$html .= qq[<INPUT type=submit value='Submit Password'>\n</FORM>\n];
+        	$html .= qq[<P> This form is used for logging into MisterHouse.<br> For administration please see the documentation of <a href="http://misterhouse.net/mh.html"> set_password </a></P>\n];
+#		}
     }
     else {
         $html = qq[HTTP/1.0 401 Unauthorized\n];
@@ -820,13 +845,20 @@ sub html_password {
 }
 
 sub html_authorized {
+	my $html = "Status: <b>";
     if ($Authorized) {
-        return
-          "Status: <b><a href=UNSET_PASSWORD>Logged In as $Authorized</a></b><br>";
+        $html .= "<a href=UNSET_PASSWORD>";
+        $html .= "Logged In as $Authorized";
+        $html .= "</a>";
+        $html .= "</b><br>";
     }
     else {
-        return "Status: <b><a href=SET_PASSWORD>Not Logged In</a></b><br>";
+        $html .= "<a href=SET_PASSWORD>";
+        $html .= "Not Logged In";
+        $html .= "</a>";
+        $html .= "</b><br>";
     }
+    return $html;
 }
 
 sub html_unauthorized {
