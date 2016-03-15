@@ -804,25 +804,6 @@ sub html_password {
 
     my $html;
     if ( $menu eq 'html' ) {
-#    	if (lc $mode eq "ia7") {
-#        	$html = qq[<FORM name=pw action="SET_PASSWORD_FORM" method="post">\n];
-#        	$html .= qq[<b>Password:</b><INPUT size=10 name='password' type='password'></FORM>\n];
-#        	#$html .= qq[<div class="modal-footer">];
-#        	$html .= qq[<INPUT id=pw type=submit value='Submit Password'>\n]; #</div>\n];#
-#			$html .= qq[<script>\$("#pw").click(function(e){\n];
-#			$html .= qq[e.preventDefault();];
-#        	$html .= qq[\$.ajax({\n];
-#           $html .= qq[type: "POST",];
-#           $html .= qq[url: "/SET_PASSWORD_FORM",];
-#           $html .= qq[data: \$(this).serialize(),];
-#           $html .= qq[success: function(data){];
-#           $html .= qq[    console.log(data);]; 
-#           $html .= qq[}];
-#           $html .= qq[})];
-#           $html .= qq[})];
-#           $html .= qq[</script>];
-#
-#    	} else {
         	$html = qq[<BODY onLoad="self.focus();document.pw.password.focus(); top.frames[0].location.reload()">\n] unless (lc $mode eq "ia7");
 
         	#       $html .= qq[<BASE TARGET='_top'>\n];

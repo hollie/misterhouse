@@ -198,6 +198,9 @@ function changePage (){
 		else if (path.indexOf('vars') === 0){
 			loadVars();
 		}
+		else if (path.indexOf('prefs') === 0){
+			loadPrefs();
+		}		
 		else if(URLHash._request == 'page'){
 			var link = URLHash.link.replace(/\?+.*/,''); //HP for some reason, this often has the first arg with no value, ie ?bob
 			var args = HashPathArgs(URLHash);
@@ -211,6 +214,17 @@ function changePage (){
 				data = data.replace(/<title[^>]*>((\r|\n|.)*?)<\/title[^>]*>/img, ''); //Remove title
 				data = data.replace(/<meta[^>]*>/img, ''); //Remove meta refresh
 				data = data.replace(/<base[^>]*>/img, ''); //Remove base target tags
+				if (link == "/bin/code_select.pl" || link == "/bin/code_unselect.pl") { //fix links in the code select / unselect modules
+					var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
+					//console.log("code_select found "+coll_key);
+					//data = data.replace(/href=\/bin\/browse.pl(.*)>(.*?)>/img,'href=/ia7/#_request=page&link=/bin/browse.pl$1&'+coll_key+',>');
+					data = data.replace(/href=\/bin\/browse.pl(.*?)>/img, function (path,r1) {
+						return 'href=/ia7/#_request=page&link=/bin/browse.pl'+r1+'&'+coll_key+',>';
+					});
+					//console.log(data);			
+				}
+				data = data.replace(/href="\/bin\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function
+				data = data.replace(/href="\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function 
 				$('#list_content').html("<div id='buffer_page' class='row top-buffer'>");
 				$('#buffer_page').append("<div id='row_page' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 				$('#row_page').html(data);
@@ -274,6 +288,10 @@ function changePage (){
 			}
 		}
 	}
+}
+
+function loadPrefs (){ //show ia7 prefs
+
 }
 
 function loadVars (){ //variables list
@@ -830,23 +848,20 @@ var loadCollection = function(collection_keys) {
 	if (json_store.collections[700].user !== undefined) {
 		console.log ("user found "+json_store.collections[700].user+".");
    		if (json_store.collections[700].user == "0") {
-    		json_store.collections[700].link = "/SET_PASSWORD";
     		json_store.collections[700].name = "Log in";
     		json_store.collections[700].icon = "fa-lock";
     		authorized = false;
    			$(".fa-gear").css("color", "red");
    		} else {
-    		json_store.collections[700].link = "/UNSET_PASSWORD?user="+json_store.collections[700].user;
     		json_store.collections[700].name = "Log out "+json_store.collections[700].user+"...";
     		json_store.collections[700].icon = "fa-unlock";   		   		
     		authorized = true;
     		$(".fa-gear").css("color", "green");
    		}
   	}
-////////////////////
 	for (var i = 0; i < entity_sort.length; i++){
 		var collection = entity_sort[i];
-		console.log ("col="+collection);
+		//console.log ("col="+collection);
 		if (!(collection in json_store.collections)) continue;
 		console.log ("starting");
 
@@ -1712,6 +1727,73 @@ var create_state_modal = function(entity) {
 		});
 }	
 
+var authorize_modal = function(user) {
+
+	//alert(user);
+	var changed = "false";
+	var af = "";
+	var html = '<div class="form-group">';
+	if (user !== "0") html += "<span id='currentuser'>Currently logged in as "+user+"<br><br></span>";
+    html += '<label for="login-password">Password</label>';
+    html += '<input type="password" class="form-control" name="password" id="password" placeholder="Password">';
+  	html += '</div>';
+  	html += '<b><span id="pwstatus" style="color:red"></span></b>';
+
+//create footer buttons
+	$('#loginModal').find('.modal-footer').html('<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>');  
+
+	if (user == "0") {			
+		$('#loginModal').find('.modal-footer').prepend('<button type="submit" value="logon" class="btn btn-default btn-login-login">Logon');      	
+	} else {  	
+		$('#loginModal').find('.modal-footer').prepend('<button type="submit" value="logon" class="btn btn-default btn-login-login">Change User</button>');      	
+		$('#loginModal').find('.modal-footer').prepend('<button type="button" class="btn btn-default btn-login-logoff">Logoff</button>');      	
+	}
+	$('#loginModal').find('.modal-body').html(html);
+	$('#loginModal').modal({
+		show: true
+	});	
+	$('#loginModal').on('shown.bs.modal', function () {
+		if (user == "0") $('#password').focus();
+	});
+	$('#loginModal').on('hide.bs.modal', function () {
+        if (changed == "true") location.reload();
+    });
+	$('.btn-login-logoff').click( function () {
+		$.get ("/UNSET_PASSWORD");
+		console.log("in logoff");
+		location.reload();
+		$('#loginModal').modal('hide');
+	});	
+	$('#LoginModalpw').submit( function (e) {
+		e.preventDefault();
+		//console.log("Custom submit function");
+		$.ajax({
+			type: "POST",
+			url: "/SET_PASSWORD_FORM",
+			data: $(this).serialize(),
+			success: function(data){
+				console.log(data) 
+				var status=data.match(/\<b\>(.*)\<\/b\>/gm);
+				//console.log("match="+status[2]); //3rd match is password status
+				if (status[2] == "<b>Password was incorrect</b>") {
+					//alert("Password was incorrect");
+					$('#loginModal').find('#pwstatus').html("Password was incorrect");
+					$("#loginModal").find('#password').val('');
+					if (user !== "0") {
+						user = "0";
+						authorized = "false";
+						changed = "true";
+						$("#currentuser").html("");
+						//location.reload();
+					}	
+				} else {
+					location.reload();
+					$('#loginModal').modal('hide');
+				}
+			}
+		});
+	});							
+}
 
 //Outputs the list of triggers
 var trigger = function() {
@@ -1904,7 +1986,7 @@ $(document).ready(function() {
 				}
 				//Check to see if this is the login button
 				if (json_store.collections[collection].user !== undefined) {
-					opt_entity_html += "<a link-type='collection' user='"+json_store.collections[collection].user+"' modal='"+link+"' class='btn btn-default btn-lg btn-block btn-list btn-login-modal' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
+					opt_entity_html += "<a link-type='collection' user='"+json_store.collections[collection].user+"' class='btn btn-default btn-lg btn-block btn-list btn-login-modal' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 				} else {	
 					opt_entity_html += "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 				}
@@ -1913,94 +1995,27 @@ $(document).ready(function() {
 		$('#optionsModal').find('.modal-body').append(opt_entity_html);	
 		$('.btn-login-modal').click( function () {
 			$('#optionsModal').modal('hide');			
-			var url = $(this).attr('modal');
-			var x = url.indexOf("link=");
-			var y = url.indexOf("&_collection_key");
-			url = url.substring(x+5, y);
 			var user = $(this).attr('user')
-			//alert("login-model. opening x="+x+" y="+y+" user="+user+" url="+url);
-			var html;
-			if (user == "0") {
-				//html = '<form name=pw action="SET_PASSWORD_FORM" method="post">';
-				html = '<div class="form-group">';
-    			html += '<label for="login-password">Password</label>';
-    			//html += '<INPUT size=10 name="password" type="password">';
-       			html += '<input type="password" class="form-control" name="password" id="password" placeholder="Password">';
-//        		html += '<button type="submit" value="logon" class="btn btn-default btn-login-login">Logon</button>';
-  				html += '</div>';
-			//	html += '</form>';
-//prepend button to logon
-				$('#loginModal').find('.modal-footer').prepend('<button type="submit" value="logon" class="btn btn-default btn-login-login">Logon');      	
-
-//if user = 0, then no user, need to log in, present text form and action = login
-// login button submits password, gets text back.
-// if successful, show Status: logged in as ...user... remove action button, and reload main page.
-// if unsuccessful, display error text and #1 text form.
-
-			} else {
-//				html = '<form name=pw action="SET_PASSWORD_FORM" method="post">';
-				html = "Current User = "+user+"<br>";				
-				html += '<div class="form-group">';
-    			html += '<label for="login-password">Password</label>';
-    			html += 'Password:</b><INPUT size=10 name="password" type="password">';
-        		html += '<INPUT type=submit value="Submit Password">';
-    			//html += '<input type="password" class="form-control" name="password" id="password" placeholder="Password">';
-  				html += '</div>';
-//				html += '</form>';
-// prepend button to change user and logoff	
-				$('#loginModal').find('.modal-footer').prepend('<button type="button" class="btn btn-default btn-login-logoff" data-dismiss="modal">Logoff</button>');      	
-				$('#loginModal').find('.modal-footer').prepend('<button type="submit" class="btn btn-default btn-login-login" data-dismiss="modal">Change User</button>');      	
-			
-
-//if user != 0, then a user. present the username and change action to logoff
-//if close than do nothing. If logoff then unset password 
-//this might need to be a subroutine so it can be called from other programs.
-			}
-			$('#loginModal').find('.modal-body').html(html);
-			$('#loginModal').modal({
-				show: true
-			});	
-			$('.btn-login-logoff').click( function () {
-				$.get ("/UNSET_PASSWORD");
-				location.reload();
-				$('#loginModal').modal('hide');
-			});	
-			$('#LoginModalpw').submit( function (e) {
-			    e.preventDefault();
-			    console.log("Custom submit function");
-				$.ajax({
-					type: "POST",
-					url: "/SET_PASSWORD_FORM",
-					data: $(this).serialize(),
-					success: function(data){
-						console.log(data) 
-						var status=data.match(/\<b\>(.*)\<\/b\>/gm);
-						console.log("match="+status[2]); //3rd match is password status
-						if (status[2] == "<b>Password was incorrect</b>") {
-							alert("Password was incorrect");
-						} else {
-							location.reload();
-							$('#loginModal').modal('hide');
-						}
-					}
-				});
-			});							
-//			$.get( url, function(data) {
-//				var start = data.toLowerCase().indexOf('<body>') + 6;
-//				var end = data.toLowerCase().indexOf('</body>');
-//				$('#loginModal').find('.modal-body').html(data.substring(start, end));
-//				$('#loginModal').modal({
-//					show: true
-//				});
-//				//$('#lastResponse').on('hidden.bs.modal', function () {
-//				//	if (reload == "true") location.reload();
-//				//});
-//			});
+			authorize_modal(user);
 		});						
 		$('#optionsModal').find('.btn-list').click(function (){
 			$('#optionsModal').modal('hide');
 		});
 	});
+	
+	$('#mhresponse').click( function (e) {
+		e.preventDefault();
+		$form = $(this);
+		console.log("MHResponse Custom submit function "+ form.attr('action'));
+		//$.ajax({
+		//	type: "POST",
+		//	url: "/SET_PASSWORD_FORM",
+		//	data: $(this).serialize(),
+		//	success: function(data){
+		//		console.log(data) 
+		//		}
+		//	});
+	});		
 });
 
 //
