@@ -123,7 +123,7 @@ use HTTP::Request::Common qw(POST);
 use JSON::XS;
 use Data::Dumper;
 use URI::Escape;
-
+use Storable 'dclone';
 
 # Notes:
 #
@@ -227,6 +227,7 @@ sub _check_auth {
           ####
 
           # The basic details should be populated now so we can start to poll
+          $self->convert_to_ids( $$self{monitor} );
           $$self{ready} = 1;
           my $action = sub { $self->_poll() };
           $$self{polling_timer}->set($$self{poll_interval}, $action);
@@ -384,12 +385,21 @@ sub _get_settings {
        main::print_log( "[Ecobee]: Settings response looks good." );
        # We just asked for the settings this time
        foreach my $device (@{$thermoparams->{thermostatList}}) {
+           # Save the previous settings
+           $$self{prev_data}{devices}{$device->{identifier}}{settings} = $$self{data}{devices}{$device->{identifier}}{settings};
+
            foreach my $key (keys %{$device->{settings}}) {
               if ($device->{settings}{$key} ne $$self{data}{devices}{$device->{identifier}}{settings}{$key}) {
                  main::print_log( "[Ecobee]: settings parameter " . $key . " has changed from " . $$self{data}{devices}{$device->{identifier}}{settings}{$key} . " to " . $device->{settings}{$key});
               }
               $$self{data}{devices}{$device->{identifier}}{settings}{$key} = $device->{settings}{$key};
            }
+           # Compare the old with the new
+           #$self->compare_data( $$self{data}{devices}{$device->{identifier}}{settings}, $$self{prev_data}{devices}{$device->{identifier}}{settings}, $$self{monitor}{settings} );
+
+           # Save the previous events
+           $$self{prev_data}{devices}{$device->{identifier}}{eventsHash} = $$self{data}{devices}{$device->{identifier}}{eventsHash};
+
            # create a temporary hash to compare current and previous events
            my %temp_events;
            foreach my $index (@{$device->{events}}) {
@@ -409,6 +419,8 @@ sub _get_settings {
                 delete $$self{data}{devices}{$device->{identifier}}{eventsHash}{$key};
              }
            }
+           # Compare the old with the new
+           #$self->compare_data( $$self{data}{devices}{$device->{identifier}}{eventsHash}, $$self{prev_data}{devices}{$device->{identifier}}{eventsHash}, $$self{monitor}{eventsHash} );
        }
     } else {
        main::print_log( "[Ecobee]: Uh, oh... Something went wrong with the settings request" );
@@ -436,6 +448,8 @@ sub _get_alerts {
        main::print_log( "[Ecobee]: Alerts response looks good." );
        # We just asked for the settings this time
        foreach my $device (@{$thermoparams->{thermostatList}}) {
+           # Save the previous alerts
+           $$self{prev_data}{devices}{$device->{identifier}}{alertsHash} = dclone $$self{data}{devices}{$device->{identifier}}{alertsHash};
            # Look for events that have been acked and are no longer in the array
            foreach my $key (keys %{$$self{data}{devices}{$device->{identifier}}{alertsHash}}) {
               my $matched = 0;
@@ -459,6 +473,8 @@ sub _get_alerts {
                  $$self{data}{devices}{$device->{identifier}}{alertsHash}{$index->{acknowledgeRef}} = $index;
               }
            }
+           # Compare the old with the new
+           #$self->compare_data( $$self{data}{devices}{$device->{identifier}}{alertsHash}, $$self{prev_data}{devices}{$device->{identifier}}{alertsHash}, $$self{monitor}{alertsHash} );
        }
     } else {
        main::print_log( "[Ecobee]: Uh, oh... Something went wrong with the alerts request" );
@@ -512,7 +528,10 @@ sub _get_runtime_with_sensors {
        '?format=json&body=' . uri_escape($json_body), $headers);
     if ($isSuccessResponse1) {
        main::print_log( "[Ecobee]: Runtime response looks good." );
-       foreach my $device (@{$thermoparams->{thermostatList}}) {
+
+           foreach my $device (@{$thermoparams->{thermostatList}}) {
+           # Save the previous runtime
+           $$self{prev_data}{devices}{$device->{identifier}}{runtime} = dclone $$self{data}{devices}{$device->{identifier}}{runtime};
            # we need to inspect the runtime and remoteSensors
            foreach my $key (keys %{$device->{runtime}}) {
               if ($device->{runtime}{$key} ne $$self{data}{devices}{$device->{identifier}}{runtime}{$key}) {
@@ -520,6 +539,16 @@ sub _get_runtime_with_sensors {
               }
               $$self{data}{devices}{$device->{identifier}}{runtime}{$key} = $device->{runtime}{$key};
            }
+           # Compare the old with the new
+           main::print_log( "[Ecobee]: runtime monitor -pre-");
+           print "*** Object *** \n";
+           print Data::Dumper::Dumper( \$self->{monitor});
+           print "*** Object *** \n";
+           #$self->compare_data( $$self{data}{devices}{$device->{identifier}}{runtime}, $$self{prev_data}{devices}{$device->{identifier}}{runtime}, $$self{monitor}{$device->{identifier}}{runtime} );
+           $self->compare_data( $$self{data}{devices}{$device->{identifier}}{runtime}, $$self{prev_data}{devices}{$device->{identifier}}{runtime}, $$self{monitor}{$device->{identifier}} );
+
+           # Save the previous remoteSensorsHash
+           $$self{prev_data}{devices}{$device->{identifier}}{remoteSensorsHash} = dclone $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash};
            foreach my $index (@{$device->{remoteSensors}}) {
               # Since this is an array, the sensor order can vary. We need to save these into hashes so they can be indexed by ID
               $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{id} = $index->{id};
@@ -542,6 +571,8 @@ sub _get_runtime_with_sensors {
                  }
                  $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{capability}{$capability->{id}}{value} = $capability->{value};
               }
+              # Compare the old with the new, but we need to handle this differently since it is nested (a child of a child)
+              # $self->compare_data( $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}, $$self{prev_data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}, $$self{monitor}{remoteSensorsHash} );
            }
            main::print_log( "[Ecobee]: " . $$self{data}{devices}{$device->{identifier}}{name} . " ID is " . $$self{data}{devices}{$device->{identifier}}{identifier} );
        }
@@ -647,6 +678,8 @@ sub _thermostat_summary {
           my @values = split(':',$device);
           # we probably need to notify something if one of these changes
           if (defined $$self{data}{devices}{$values[0]}{status}) {
+             # Save the previous status
+             $$self{prev_data}{devices}{$values[0]}{status} = dclone $$self{data}{devices}{$values[0]}{status};
              # This isn't our first run, so see if something has changed
              my $matched;
              for my $stat (keys %default_status) {
@@ -662,15 +695,17 @@ sub _thermostat_summary {
                       }
                    }
                    if ((!$matched) && ($$self{data}{devices}{$values[0]}{status}{$stat} == 1)) {
-                      main::print_log( "[Ecobee]: Status $stat has changed from on to off" );
+                      main::print_log( "[Ecobee]: C1 Status $stat has changed from on to off" );
                    } 
                 } else {
                    if ($$self{data}{devices}{$values[0]}{status}{$stat} != 0) {
                       $$self{data}{devices}{$values[0]}{status}{$stat} = 0;
-                      main::print_log( "[Ecobee]: Status $stat has changed from on to off" );
+                      main::print_log( "[Ecobee]: C2 Status $stat has changed from on to off" );
                    }
                 }
-             }
+             }  
+             # Compare the old with the new. This may not work as-is. We also need to consider the initial value.
+             #$self->compare_data( $$self{data}{devices}{$values[0]}{status}, $$self{prev_data}{devices}{$values[0]}{status}, $$self{monitor}{status} );
           } else {
              $$self{data}{devices}{$values[0]}{status} = \%default_status;
              if (scalar @values > 1) {
@@ -765,36 +800,73 @@ Used to register actions to be run if a specific value changes.
 
 sub register {
     my ( $self, $parent, $value, $action ) = @_;
+    main::print_log( "[Ecobee]: interface registering value $value");
     push( @{ $$self{register} }, [ $parent, $value, $action ] );
 }
 
 
-# Walk through the JSON hash and looks for changes from previous json hash if a
+# Walk through the data hash and looks for changes from previous hash if a
 # change is found, looks for children to notify and notifies them.
 
-# This needs to be enhanced a bit from the original Nest version as we are dealing
+# This needs to be enhanced a bit from the original Nest version as we are also dealing
 # with remote sensors that have the same set of properties that are associated with 
 # the same thermostat and the parameter names are not globally unique. As such, the 
-# monitor hash structure will be provided as a delimited string that must be parsed 
-# to get to the same key,value pair for comparison.
+# monitor hash structure will be provided as a nested hash that is traversed with the 
+# data hash. Unlike the Nest, different data comes in at different times and would false 
+# trigger if run at the top level of the data hash each time as it would compare previously 
+# evaluated data each run
 
-sub compare_json {
-    my ( $self, $json, $prev_json, $monitor_hash ) = @_;
-    while ( my ( $key, $value ) = each %{$json} ) {
+sub compare_data {
+    my ( $self, $data, $prev_data, $monitor_hash ) = @_;
+    main::print_log( "[Ecobee]: starting execution within compare_data()");
+    while ( my ( $key, $value ) = each %{$data} ) {
         # Use empty hash reference is it doesn't exist
         my $prev_value = {};
-        $prev_value = $$prev_json{$key} if exists $$prev_json{$key};
-        my $monitior_value = {};
-        $monitior_value = $$monitor_hash{$key} if exists $$monitor_hash{$key};
-        if ( 'HASH' eq ref $value ) {
-            $self->compare_json( $value, $prev_value, $monitior_value );
+        $prev_value = $$prev_data{$key} if exists $$prev_data{$key};
+        my $monitor_value = {};
+        $monitor_value = $$monitor_hash{$key} if exists $$monitor_hash{$key};
+        if ($key eq "actualTemperature") {
+            main::print_log( "[Ecobee]: --AT-- I am evaluating key $key, value $value, prev_value $prev_value ref monitor_value " . ref $monitor_value );
+            main::print_log( "[Ecobee]: --AT2-- monitor_value = $monitor_value");
         }
-        elsif ( $value ne $prev_value && ref $monitior_value eq 'ARRAY' ) {
-            for my $action ( @{$monitior_value} ) {
+        if ( ref $value eq 'HASH') {
+            $self->compare_data( $value, $prev_value, $monitor_value );
+        }
+        elsif ( ($value ne $prev_value) && (ref $monitor_value eq 'ARRAY') ) {
+            for my $action ( @{$monitor_value} ) {
+                main::print_log( "[Ecobee]: I am running action for key $key, value $value");
                 &$action( $key, $value );
             }
         }
     }
+}
+
+# Converts the names in the register hash to IDs, and then puts them into
+# the monitor hash.
+sub convert_to_ids {
+    my ($self) = @_;
+    for my $array_ref ( @{ $$self{register} } ) {
+        my ( $parent, $value, $action ) = @{$array_ref};
+        $self->debug( "Ecobee Initial data load convert_to_ids " . $value );
+        my $device_id = $parent->device_id();
+        if ( $$parent{type} eq 'sensor') {
+            push(
+                @{
+                    $$self{monitor}{$device_id}{ $parent->sensor_id() }{$value}
+                },
+                $action
+            );
+        }
+        else {
+            push(
+                @{
+                    $$self{monitor}{$device_id}{$value}
+                },
+                $action
+            );
+        }
+    }
+    delete $$self{register};
 }
 
 
@@ -1076,6 +1148,7 @@ sub new {
     $$self{parent}    = $parent;
     $$self{parent}    = $self if ( $$self{parent} eq '' );
     while ( my ( $monitor_value, $action ) = each %{$monitor_hash} ) {
+        main::print_log( "[Ecobee]: new Ecobee_Generic registering monitor_value $monitor_value");
         my $action = sub { $self->data_changed(@_); } if $action eq '';
         $$self{interface}->register( $$self{parent}, $monitor_value, $action );
     }
@@ -1135,6 +1208,31 @@ sub device_id {
     }
     $self->debug(
         "ERROR, no device by the name " . $$parent{name} . " was found." );
+    return 0;
+}
+
+
+=item C<sensor_id()>
+
+Returns the sensor_id of an object.
+
+=cut
+
+sub sensor_id {
+    my ($self) = @_;
+    my $type_hash;
+    my $parent = $$self{parent};
+    for my $device_id ( keys %{$$self{interface}{data}{devices}} ) {
+        if ( $$parent{name} eq $$self{interface}{data}{devices}{$device_id}{name} ) {
+            foreach my $sensor_id ( keys %{$$self{interface}{data}{devices}{$device_id}{remoteSensorsHash}} ) {
+                if ($$parent{sensor_name} eq $$self{interface}{data}{devices}{$device_id}{remoteSensorsHash}{$sensor_id}{name}) {
+                    return $sensor_id;
+                }
+            }
+        }
+    }
+    $self->debug(
+        "ERROR, no sensor by the name " . $$parent{sensor_name} . " was found on device " . $$parent{name} . "." );
     return 0;
 }
 
@@ -1216,8 +1314,9 @@ Creates a new Ecobee_Generic.
 
 sub new {
     my ( $class, $name, $interface ) = @_;
-    my $monitor_value = "ambient_temperature_"; # This will not work as-is
-    my $self = new Ecobee_Generic( $interface, '', { $monitor_value => '' } );
+    #my $monitor_value;
+    #my $self = new Ecobee_Generic( $interface, '', {$monitor_value->{runtime}{actualTemperature} => ''} );
+    my $self = new Ecobee_Generic( $interface, '', {"actualTemperature" => ''} );
     bless $self, $class;
     $$self{class}   = 'devices',
       $$self{type}  = 'thermostats',
@@ -1240,4 +1339,22 @@ sub get_temp {
 }
 
 
-1;
+=back
+
+=head1 AUTHOR
+
+Brian Rudy
+
+=head1 SEE ALSO
+
+https://www.ecobee.com/developers/
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
