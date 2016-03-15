@@ -228,6 +228,25 @@ function changePage (){
 				$('#list_content').html("<div id='buffer_page' class='row top-buffer'>");
 				$('#buffer_page').append("<div id='row_page' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 				$('#row_page').html(data);
+				$('#mhresponse').click( function (e) {
+					e.preventDefault();
+					var form = $(this);
+					console.log("MHResponse Custom submit function "+ form.attr('action'));
+					$.ajax({
+						type: "POST",
+						url: form.attr('action'),
+						data: $(this).serialize(),
+						success: function(data){
+							console.log(data)
+							var start = data.toLowerCase().indexOf('<body>') + 6;
+							var end = data.toLowerCase().indexOf('</body>');
+							$('#lastResponse').find('.modal-body').html(data.substring(start, end));
+							$('#lastResponse').modal({
+								show: true
+							});
+						}
+					});
+				});	
 			});
 		}
 		else if(path.indexOf('print_log') === 0){
