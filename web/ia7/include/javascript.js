@@ -199,6 +199,7 @@ function changePage (){
 			loadVars();
 		}
 		else if (path.indexOf('prefs') === 0){
+			console.log("loadprefs()");
 			loadPrefs();
 		}		
 		else if(URLHash._request == 'page'){
@@ -216,19 +217,42 @@ function changePage (){
 				data = data.replace(/<base[^>]*>/img, ''); //Remove base target tags
 				if (link == "/bin/code_select.pl" || link == "/bin/code_unselect.pl") { //fix links in the code select / unselect modules
 					var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
-					//console.log("code_select found "+coll_key);
-					//data = data.replace(/href=\/bin\/browse.pl(.*)>(.*?)>/img,'href=/ia7/#_request=page&link=/bin/browse.pl$1&'+coll_key+',>');
 					data = data.replace(/href=\/bin\/browse.pl(.*?)>/img, function (path,r1) {
 						return 'href=/ia7/#_request=page&link=/bin/browse.pl'+r1+'&'+coll_key+',>';
 					});
-					//console.log(data);			
 				}
+				if (link == "/ia5/news/main.shtml") { //fix links in the email module 1
+					var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
+					data = data.replace(/<a href='\/email\/latest.html'>Latest emails<\/a>/img,'');
+					data = data.replace(/href=\/email\/(.*?)>/img, function (path,r1) {
+						return 'href=/ia7/#_request=page&link=/email/'+r1+'&'+coll_key+',>';
+					});
+					data = data.replace(/<a href=\"SET;&dir_index\(.*?\)\">(.*?)<\/a>/img, function (path,r1,r2) {
+						return r1;
+					});
+					data = data.replace(/href='RUN;\/ia5\/news\/main.shtml\?Check_for_e_mail'/img, 'class="btn-voice-cmd" voice_cmd="Check_for_e_mail"');				
+				}
+				if (link.indexOf('/email/') === 0) { //fix links in the email module 2
+					var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
+					data = data.replace(/<a href='#top'>Previous<\/a>.*?<br>/img, '');
+					data = data.replace(/<a name='.*?' href='#top'>Back to Index<\/a>.*?<b>/img,'<b>');
+					data = data.replace(/href='#\d+'/img,'');
+				}
+				if (link.indexOf('/comics/') === 0) { //fix links in the comics module
+					var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))				
+					data = data.replace(/<a href="(.*?)">(.*?)<\/a>/img,function (path,r1,r2) {
+						return '<a href=/ia7/#_request=page&link=/comics/'+r1+'&'+coll_key+',>'+r2+'</a>';
+					});	
+					data = data.replace(/<img src="(.*?)"/img,function (path,r1) {
+						return '<img src="/comics/'+r1+'"';
+					});							
+				}			
 				data = data.replace(/href="\/bin\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function
 				data = data.replace(/href="\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function 
 				$('#list_content').html("<div id='buffer_page' class='row top-buffer'>");
 				$('#buffer_page').append("<div id='row_page' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 				$('#row_page').html(data);
-				$('#mhresponse').click( function (e) {
+				$('#mhresponse').click( function (e) { //allow for forms with id=mhresponse to show data returned in modal
 					e.preventDefault();
 					var form = $(this);
 					console.log("MHResponse Custom submit function "+ form.attr('action'));
@@ -246,7 +270,20 @@ function changePage (){
 							});
 						}
 					});
-				});	
+				});
+				$(".btn-voice-cmd").click( function () {
+					var voice_cmd = $(this).attr('voice_cmd');
+					var url = '/RUN;last_response?select_cmd=' + voice_cmd;
+					console.log("voice_cmd="+url);
+					$.get( url, function(data) {
+						var start = data.toLowerCase().indexOf('<body>') + 6;
+						var end = data.toLowerCase().indexOf('</body>');
+						$('#lastResponse').find('.modal-body').html(data.substring(start, end));
+						$('#lastResponse').modal({
+							show: true
+						});
+					});
+				});				
 			});
 		}
 		else if(path.indexOf('print_log') === 0){
@@ -309,12 +346,61 @@ function changePage (){
 	}
 }
 
-function loadPrefs (){ //show ia7 prefs
+function loadPrefs (){ //show ia7 prefs, args ia7_prefs, ia7_rrd_prefs if no arg then both
+
+//	if (getJSONDataByPath("ia7_config") === undefined){
+//		// Load all the specific preferences
+//		$.ajax({
+//			type: "GET",
+//			url: "/json/ia7_config",
+//			dataType: "json",
+//			success: function( json ) {
+//				JSONStore(json);
+//				loadPrefs();
+//			}
+//		});
+//	}
+	$('#list_content').html("<div id='prefs_table' class='row top-buffer'>");
+	$('#prefs_table').append("<div id='prtable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
+	var html = "<table class='table table-curved'><thead><tr>";
+	var config_name="ia7_config.json";
+	html += "<th>"+ config_name + "</th></tr></thead><tbody>";
+	
+	console.log("in prefs="+json_store.ia7_config.length);
+	for (var i in json_store.ia7_config){
+		if ( typeof json_store.ia7_config[i] === 'object') {
+			//console.log("i "+i+":");
+			html += "<tr class='info'><td><b>"+ i + "</b></td></tr>";
+			for (var j in json_store.ia7_config[i]) {
+				if ( typeof json_store.ia7_config[i][j] === 'object') {
+					//console.log("j      "+j+":");
+					html += "<tr class='info'><td style='padding-left:40px'>"+ j + "</td></tr>";
+
+					for (var k in json_store.ia7_config[i][j]){
+						//console.log("k             "+k+" = "+json_store.ia7_config[i][j][k]);
+						 html += "<tr><td style='padding-left:80px'>"+k+" = "+json_store.ia7_config[i][j][k]+"</td></tr>";
+					}
+				//html +="<tr>";
+				} else {
+					//console.log("j      "+j+" = "+json_store.ia7_config[i][j]);
+					html += "<tr><td style='padding-left:40px'>"+j+" = "+json_store.ia7_config[i][j]+"</td></tr>"
+				}
+			}
+			//html +="<tr>";
+		} else {
+			//console.log("i "+i+" : "+json_store.ia7_config[i]);
+			//html += "<th>"+ String(json_store.ia7_config[i]) + "</th></tr></thead><tbody>";
+		}	
+	}
+
+	html += "</tbody></table></div>";
+	$('#prtable').html(html);
 
 }
 
 function loadVars (){ //variables list
 	var URLHash = URLToHash();
+	console.log(loadVars);
 	$.ajax({
 		type: "GET",
 		url: "/json/"+HashtoJSONArgs(URLHash),
