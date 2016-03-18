@@ -227,7 +227,7 @@ sub _check_auth {
           ####
 
           # The basic details should be populated now so we can start to poll
-          $self->convert_to_ids( $$self{monitor} );
+          $self->populate_monitor_hash( $$self{monitor} );
           $$self{ready} = 1;
           my $action = sub { $self->_poll() };
           $$self{polling_timer}->set($$self{poll_interval}, $action);
@@ -540,12 +540,11 @@ sub _get_runtime_with_sensors {
               $$self{data}{devices}{$device->{identifier}}{runtime}{$key} = $device->{runtime}{$key};
            }
            # Compare the old with the new
-           main::print_log( "[Ecobee]: runtime monitor -pre-");
-           print "*** Object *** \n";
-           print Data::Dumper::Dumper( \$self->{monitor});
-           print "*** Object *** \n";
-           #$self->compare_data( $$self{data}{devices}{$device->{identifier}}{runtime}, $$self{prev_data}{devices}{$device->{identifier}}{runtime}, $$self{monitor}{$device->{identifier}}{runtime} );
-           $self->compare_data( $$self{data}{devices}{$device->{identifier}}{runtime}, $$self{prev_data}{devices}{$device->{identifier}}{runtime}, $$self{monitor}{$device->{identifier}} );
+           #main::print_log( "[Ecobee]: runtime monitor -pre-");
+           #print "*** Object *** \n";
+           #print Data::Dumper::Dumper( \$self->{monitor});
+           #print "*** Object *** \n";
+           $self->compare_data( $$self{data}{devices}{$device->{identifier}}{runtime}, $$self{prev_data}{devices}{$device->{identifier}}{runtime}, $$self{monitor}{$device->{identifier}}{runtime} );
 
            # Save the previous remoteSensorsHash
            $$self{prev_data}{devices}{$device->{identifier}}{remoteSensorsHash} = dclone $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash};
@@ -786,22 +785,22 @@ sub _get_JSON_data {
 }
 
 
-=item C<register($parent, $value, $action)>
+=item C<register($parent, $value)>
 
 Used to register actions to be run if a specific value changes.
 
     $parent   - The parent object on which the value should be monitored 
                 (thermostat, remote sensor, group)
-    $value    - The parameter to monitor for changes
-    $action   - A Code Reference to run when the value changes.  The code reference
+    $value    - The nested hash to monitor for changes. The assigned value is a 
+                Code Reference to run when the value changes.  The code reference
                 will be passed two arguments, the parameter name and value.
 
 =cut
 
 sub register {
-    my ( $self, $parent, $value, $action ) = @_;
-    main::print_log( "[Ecobee]: interface registering value $value");
-    push( @{ $$self{register} }, [ $parent, $value, $action ] );
+    my ( $self, $parent, $value ) = @_;
+    #main::print_log( "[Ecobee]: interface registering value $value");
+    push( @{ $$self{register} }, [ $parent, $value ] );
 }
 
 
@@ -825,10 +824,10 @@ sub compare_data {
         $prev_value = $$prev_data{$key} if exists $$prev_data{$key};
         my $monitor_value = {};
         $monitor_value = $$monitor_hash{$key} if exists $$monitor_hash{$key};
-        if ($key eq "actualTemperature") {
-            main::print_log( "[Ecobee]: --AT-- I am evaluating key $key, value $value, prev_value $prev_value ref monitor_value " . ref $monitor_value );
-            main::print_log( "[Ecobee]: --AT2-- monitor_value = $monitor_value");
-        }
+        #if ($key eq "actualTemperature") {
+        #    main::print_log( "[Ecobee]: --AT-- I am evaluating key $key, value $value, prev_value $prev_value ref monitor_value " . ref $monitor_value );
+        #    main::print_log( "[Ecobee]: --AT2-- monitor_value = $monitor_value");
+        #}
         if ( ref $value eq 'HASH') {
             $self->compare_data( $value, $prev_value, $monitor_value );
         }
@@ -841,32 +840,44 @@ sub compare_data {
     }
 }
 
-# Converts the names in the register hash to IDs, and then puts them into
-# the monitor hash.
-sub convert_to_ids {
+# Populate the monitor_hash with device IDs and monitor values in the register for each device 
+sub populate_monitor_hash {
     my ($self) = @_;
     for my $array_ref ( @{ $$self{register} } ) {
-        my ( $parent, $value, $action ) = @{$array_ref};
-        $self->debug( "Ecobee Initial data load convert_to_ids " . $value );
+        my ( $parent, $value ) = @{$array_ref};
+        #print "***value***\n";
+        #print Data::Dumper::Dumper( \$value);
+        #print "***value***\n";
+        #$self->debug( "Ecobee Initial data load convert_to_ids " . $value );
         my $device_id = $parent->device_id();
         if ( $$parent{type} eq 'sensor') {
-            push(
-                @{
-                    $$self{monitor}{$device_id}{ $parent->sensor_id() }{$value}
-                },
-                $action
-            );
+            my $sensor_id = $parent->sensor_id();
+            $$self{monitor}{$device_id}{$sensor_id} = $self->_merge($value, $$self{monitor}{$device_id}{$sensor_id});
         }
         else {
-            push(
-                @{
-                    $$self{monitor}{$device_id}{$value}
-                },
-                $action
-            );
+            $$self{monitor}{$device_id} = $self->_merge($value, $$self{monitor}{$device_id});
         }
     }
     delete $$self{register};
+}
+
+
+# Merge the source into the dest. This is used to populate the monitor hash.
+sub _merge {
+    my ($self,$source,$dest) = @_;
+    for my $key (keys %{$source}) {
+        if ('ARRAY' eq ref $dest->{$key}) {
+            $self->debug( "Ecobee: adding array element " . $source->{$key} );
+            push @{$dest->{$key}}, $source->{$key};
+        } elsif ('HASH' eq ref $dest->{$key}) {
+            $self->debug( "Ecobee: merging $key");
+            $self->_merge($source->{$key},$dest->{$key});
+        } else {
+            $self->debug( "Ecobee: assigning value " . $source->{$key} . " to key " .  $key);
+            $dest->{$key} = $source->{$key};
+        }
+    }
+    return $dest;
 }
 
 
@@ -1147,14 +1158,32 @@ sub new {
     $$self{interface} = $interface;
     $$self{parent}    = $parent;
     $$self{parent}    = $self if ( $$self{parent} eq '' );
-    while ( my ( $monitor_value, $action ) = each %{$monitor_hash} ) {
-        main::print_log( "[Ecobee]: new Ecobee_Generic registering monitor_value $monitor_value");
-        my $action = sub { $self->data_changed(@_); } if $action eq '';
-        $$self{interface}->register( $$self{parent}, $monitor_value, $action );
-    }
+
+    my $monitor_value = $self->_delve($monitor_hash);
+    $$self{interface}->register( $$self{parent}, $monitor_value);
     return $self;
 }
 
+
+=item C<_delve()>
+
+Internal function to help populate the monitor_hash with action functions
+
+=cut
+
+sub _delve {
+    my ( $self, $datahash) = @_;
+    while (my ($key, $value) = each %{$datahash}) {
+        if (ref $value eq 'HASH') {
+            # We need to go deeper
+            $self->_delve($datahash->{$key});
+        } else {
+            $value = [sub { $self->data_changed(@_); }] if $value eq '';
+            $datahash->{$key} = $value;
+        }
+    }
+    return $datahash;
+}
 
 =item C<data_changed()>
 
@@ -1314,9 +1343,9 @@ Creates a new Ecobee_Generic.
 
 sub new {
     my ( $class, $name, $interface ) = @_;
-    #my $monitor_value;
-    #my $self = new Ecobee_Generic( $interface, '', {$monitor_value->{runtime}{actualTemperature} => ''} );
-    my $self = new Ecobee_Generic( $interface, '', {"actualTemperature" => ''} );
+    my $monitor_value;
+    $monitor_value->{runtime}{actualTemperature} = '';
+    my $self = new Ecobee_Generic( $interface, '', $monitor_value );
     bless $self, $class;
     $$self{class}   = 'devices',
       $$self{type}  = 'thermostats',
