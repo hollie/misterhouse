@@ -45,6 +45,7 @@ Create an Ecobee instance in the .mht file, or is user code:
   CODE, require Ecobee; #noloop
   CODE, $ecobee = new Ecobee_Interface(); #noloop
   CODE, $ecobee_thermo = new Ecobee_Thermostat('First floor', $ecobee); #noloop
+  CODE, $thermo_humid = new Ecobee_Thermo_Humidity($ecobee_thermo); #noloop
 
 Explanations of the parameters is contained below in the documentation for each
 module.
@@ -540,10 +541,10 @@ sub _get_runtime_with_sensors {
               $$self{data}{devices}{$device->{identifier}}{runtime}{$key} = $device->{runtime}{$key};
            }
            # Compare the old with the new
-           #main::print_log( "[Ecobee]: runtime monitor -pre-");
-           #print "*** Object *** \n";
-           #print Data::Dumper::Dumper( \$self->{monitor});
-           #print "*** Object *** \n";
+           main::print_log( "[Ecobee]: runtime monitor -pre-");
+           print "*** Object *** \n";
+           print Data::Dumper::Dumper( \$self->{monitor});
+           print "*** Object *** \n";
            $self->compare_data( $$self{data}{devices}{$device->{identifier}}{runtime}, $$self{prev_data}{devices}{$device->{identifier}}{runtime}, $$self{monitor}{$device->{identifier}}{runtime} );
 
            # Save the previous remoteSensorsHash
@@ -867,13 +868,13 @@ sub _merge {
     my ($self,$source,$dest) = @_;
     for my $key (keys %{$source}) {
         if ('ARRAY' eq ref $dest->{$key}) {
-            $self->debug( "Ecobee: adding array element " . $source->{$key} );
+            #$self->debug( "Ecobee: adding array element " . $source->{$key} );
             push @{$dest->{$key}}, $source->{$key};
         } elsif ('HASH' eq ref $dest->{$key}) {
-            $self->debug( "Ecobee: merging $key");
+            #$self->debug( "Ecobee: merging $key");
             $self->_merge($source->{$key},$dest->{$key});
         } else {
-            $self->debug( "Ecobee: assigning value " . $source->{$key} . " to key " .  $key);
+            #$self->debug( "Ecobee: assigning value " . $source->{$key} . " to key " .  $key);
             $dest->{$key} = $source->{$key};
         }
     }
@@ -1368,11 +1369,54 @@ sub get_temp {
 }
 
 
+package Ecobee_Thermo_Humidity;
+
+=head1 B<Ecobee_Thermo_Humidity>
+
+=head2 SYNOPSIS
+
+This is a very high level module for viewing with the Ecobee Thermostat Humidity value (actualHumidity)
+This type of object is often referred to as a child device.  It displays the
+current humidity.  The object inherits all of the C<Generic_Item> methods, 
+including c<state>, c<state_now>, c<tie_event>.
+
+=head2 CONFIGURATION
+
+.mht file:
+
+  CODE, $thermo_humid = new Ecobee_Thermo_Humidity($ecobee_thermo); #noloop
+
+The only argument required is the thermostat object.
+
+=head2 INHERITS
+
+C<Ecobee_Generic>
+
+=cut
+
+
+use strict;
+
+@Ecobee_Thermo_Humidity::ISA = ('Ecobee_Generic');
+
+sub new {
+    my ( $class, $parent ) = @_;
+    my $monitor_value;
+    $monitor_value->{runtime}{actualHumidity} = '';
+    my $self = new Ecobee_Generic( $$parent{interface}, $parent, $monitor_value );
+    bless $self, $class;
+    return $self;
+}
+
+
+
+
 =back
 
 =head1 AUTHOR
 
 Brian Rudy
+Originally based on Nest.pm by Kevin Robert Keegan
 
 =head1 SEE ALSO
 
