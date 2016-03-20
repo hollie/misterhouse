@@ -1373,6 +1373,15 @@ sub read_table_A {
         ( $object, $grouplist, $additional_code ) =
           PLCBUS->generate_code( $type, @item_info );
     }
+	elsif ($type eq "WINK"){
+		($address, $name, $grouplist, @other) = @item_info;
+		$other = join ', ', (map {"'$_'"} @other); # Quote data
+		$object = "Wink('$address',$other)";
+		if( ! $packages{Wink}++ ) {   # first time for this object type?
+			$code .= "use Wink;\n";
+			&::MainLoop_pre_add_hook( \&Wink::GetDevicesAndStatus, 1 );
+			}
+	}    
     else {
         print "\nUnrecognized .mht entry: $record\n";
         return;
