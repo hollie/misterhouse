@@ -199,8 +199,9 @@ function changePage (){
 			loadVars();
 		}
 		else if (path.indexOf('prefs') === 0){
-			console.log("loadprefs()");
-			loadPrefs();
+			var pref_name = path.replace(/\prefs\/?/,'');
+			console.log("loadprefs() "+pref_name);
+			loadPrefs(pref_name);
 		}		
 		else if(URLHash._request == 'page'){
 			var link = URLHash.link.replace(/\?+.*/,''); //HP for some reason, this often has the first arg with no value, ie ?bob
@@ -346,44 +347,46 @@ function changePage (){
 	}
 }
 
-function loadPrefs (){ //show ia7 prefs, args ia7_prefs, ia7_rrd_prefs if no arg then both
+function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_prefs if no arg then both
 
-//	if (getJSONDataByPath("ia7_config") === undefined){
-//		// Load all the specific preferences
-//		$.ajax({
-//			type: "GET",
-//			url: "/json/ia7_config",
-//			dataType: "json",
-//			success: function( json ) {
-//				JSONStore(json);
-//				loadPrefs();
-//			}
-//		});
-//	}
 	$('#list_content').html("<div id='prefs_table' class='row top-buffer'>");
 	$('#prefs_table').append("<div id='prtable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
 	var html = "<table class='table table-curved'><thead><tr>";
-	var config_name="ia7_config.json";
-	html += "<th>"+ config_name + "</th></tr></thead><tbody>";
-	
-	console.log("in prefs="+json_store.ia7_config.length);
-	for (var i in json_store.ia7_config){
-		if ( typeof json_store.ia7_config[i] === 'object') {
-			//console.log("i "+i+":");
+	var config_data;
+	if (config_name === undefined || config_name === '')  config_name="ia7";
+	if (config_name == "ia7") {
+		config_data = json_store.ia7_config;
+	} else if (config_name == "ia7_rrd") {
+		$.ajax({
+			type: "GET",
+			async: false,  //async is always better, but since this is the only point of the sub, it's OK
+			url: "/json/rrd_config",
+			dataType: "json",
+			success: function( json ) {
+				config_data = json.data;
+			}
+		});
+	}		
+	html += "<th>"+ config_name + "_config.json </th></tr></thead><tbody>";
+	console.log(config_data);
+	console.log("in prefs="+config_data.length);
+	for (var i in config_data){
+		if ( typeof config_data[i] === 'object') {
+			console.log("i "+i+":");
 			html += "<tr class='info'><td><b>"+ i + "</b></td></tr>";
-			for (var j in json_store.ia7_config[i]) {
-				if ( typeof json_store.ia7_config[i][j] === 'object') {
+			for (var j in config_data[i]) {
+				if ( typeof config_data[i][j] === 'object') {
 					//console.log("j      "+j+":");
 					html += "<tr class='info'><td style='padding-left:40px'>"+ j + "</td></tr>";
 
-					for (var k in json_store.ia7_config[i][j]){
+					for (var k in config_data[i][j]){
 						//console.log("k             "+k+" = "+json_store.ia7_config[i][j][k]);
-						 html += "<tr><td style='padding-left:80px'>"+k+" = "+json_store.ia7_config[i][j][k]+"</td></tr>";
+						 html += "<tr><td style='padding-left:80px'>"+k+" = "+config_data[i][j][k]+"</td></tr>";
 					}
 				//html +="<tr>";
 				} else {
 					//console.log("j      "+j+" = "+json_store.ia7_config[i][j]);
-					html += "<tr><td style='padding-left:40px'>"+j+" = "+json_store.ia7_config[i][j]+"</td></tr>"
+					html += "<tr><td style='padding-left:40px'>"+j+" = "+config_data[i][j]+"</td></tr>"
 				}
 			}
 			//html +="<tr>";
@@ -1092,6 +1095,19 @@ function buildLink (link, collection_keys){
 	}
 	link += "_collection_key="+ collection_keys;
 	return link;
+}
+
+//Called froms static pages. Grabs collection key from URL to modify static href="/ia7" links
+function fixIA7Nav() {
+
+	var url = $(location).attr('href');
+	var collid = url.split("_collection_key=");
+	console.log("fixing nav..."+url+" "+collid[1]);
+	$('a').each(function() {
+		if ($(this).attr('href').match("^/ia7/")) {
+  			this.href += '&_collection_key='+collid[1]+',';
+  		}
+	});
 }
 
 //Outputs a constantly updating print log
