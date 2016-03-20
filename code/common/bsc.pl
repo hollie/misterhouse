@@ -33,6 +33,11 @@ use BSC;
 # bsc_info_interval = 10
 # bsc_prefer_abstract = 0
 
+my $bsc_x10_device;
+my $bsc_abstract_device;
+my $bsc_presence_device;
+my $bsc_info_timer;
+
 my $bsc_info_interval = $::config_parms{bsc_info_interval};
 $bsc_info_interval = 10
   if !$bsc_info_interval;    # send out BSC info messages every 10 minutes
