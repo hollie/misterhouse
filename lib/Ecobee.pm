@@ -46,6 +46,7 @@ Create an Ecobee instance in the .mht file, or is user code:
   CODE, $ecobee = new Ecobee_Interface(); #noloop
   CODE, $ecobee_thermo = new Ecobee_Thermostat('First floor', $ecobee); #noloop
   CODE, $thermo_humid = new Ecobee_Thermo_Humidity($ecobee_thermo); #noloop
+  CODE, $thermo_hvac_status = new Ecobee_Thermo_HVAC_Status($ecobee_thermo); #noloop
 
 Explanations of the parameters is contained below in the documentation for each
 module.
@@ -675,7 +676,48 @@ sub _thermostat_summary {
               'compHotWater' => 0, 
               'auxHotWater'  => 0
           );
+          my $status_bit_LUT = {
+              'heatPump'      => 0x0001,
+              'heatPump2'     => 0x0002,
+              'heatPump3'     => 0x0004,
+              'compCool1'     => 0x0008,
+              'compCool2'     => 0x0010,
+              'auxHeat1'      => 0x0020,
+              'auxHeat2'      => 0x0040,
+              'auxHeat3'      => 0x0080,
+              'fan'           => 0x0100,
+              'humidifier'    => 0x0200,
+              'dehumidifier'  => 0x0400,
+              'ventilator'    => 0x0800,
+              'economizer'    => 0x1000,
+              'compHotWater'  => 0x2000,
+              'auxHotWater'   => 0x4000
+          };
           my @values = split(':',$device);
+
+          # populate the status vector
+          my $statusvec = 0x0000;
+          foreach my $index (1..$#values) {
+             $statusvec |= $status_bit_LUT->{$values[$index]};
+          }
+          if (exists $$self{data}{devices}{$values[0]}{statusvec}{status}) {
+              $$self{prev_data}{devices}{$values[0]}{statusvec} = dclone $$self{data}{devices}{$values[0]}{statusvec};
+              # Since state_now doesn't fire for values of 0, we need to create this artificial "all off" state
+              if ($statusvec == 0) {
+                  $$self{data}{devices}{$values[0]}{statusvec}{status} = 0x8000;
+              } else {
+                  $$self{data}{devices}{$values[0]}{statusvec}{status} = $statusvec;
+              }
+              $self->compare_data( $$self{data}{devices}{$values[0]}{statusvec}, $$self{prev_data}{devices}{$values[0]}{statusvec}, $$self{monitor}{$values[0]}{statusvec} );
+          } else {
+              # Since state_now doesn't fire for values of 0, we need to create this artificial "all off" state
+              if ($statusvec == 0) {
+                  $$self{data}{devices}{$values[0]}{statusvec}{status} = 0x8000;
+              } else {
+                  $$self{data}{devices}{$values[0]}{statusvec}{status} = $statusvec;
+              }
+          }
+
           # we probably need to notify something if one of these changes
           if (defined $$self{data}{devices}{$values[0]}{status}) {
              # Save the previous status
@@ -687,9 +729,9 @@ sub _thermostat_summary {
                    $matched = 0;
                    foreach my $index (1..$#values) {
                       if ($values[$index] eq $stat) {
+                         $matched = 1;
                          if ($$self{data}{devices}{$values[0]}{status}{$values[$index]} == 0) {
                             $$self{data}{devices}{$values[0]}{status}{$values[$index]} = 1;
-                            $matched = 1;
                             main::print_log( "[Ecobee]: Status $stat has changed from off to on" );
                          }
                       }
@@ -1408,6 +1450,45 @@ sub new {
     return $self;
 }
 
+
+package Ecobee_Thermo_HVAC_Status;
+
+=head1 B<Ecobee_Thermo_HVAC_Status>
+
+=head2 SYNOPSIS
+
+This is a very high level module for viewing the Ecobee Thermostat operating status (state).
+This type of object is often referred to as a child device.  It displays the
+current status (fan, auxHeat1, ventilator, etc) as a vector (bitfield) to convey all the 
+status data as a single state value.  The object inherits all of the C<Generic_Item> methods, 
+including c<state>, c<state_now>, c<tie_event>.
+
+=head2 CONFIGURATION
+
+.mht file:
+
+  CODE, $thermo_hvac_status = new Ecobee_Thermo_HVAC_Status($ecobee_thermo); #noloop
+
+The only argument required is the thermostat object.
+
+=head2 INHERITS
+
+C<Ecobee_Generic>
+
+=cut
+
+use strict;
+
+@Ecobee_Thermo_HVAC_Status::ISA = ('Ecobee_Generic');
+
+sub new {
+    my ( $class, $parent ) = @_;
+    my $monitor_value;
+    $monitor_value->{statusvec}{status} = '';
+    my $self = new Ecobee_Generic( $$parent{interface}, $parent, $monitor_value );
+    bless $self, $class;
+    return $self;
+}
 
 
 
