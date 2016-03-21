@@ -626,7 +626,6 @@ sub _check_external_plcbus_command_file() {
     my $filename = $::config_parms{plcbus_command_file};
     return unless $filename;
     return unless $::New_Second;
-    return unless $::New_Second;
 
     # Note: Check for non-zero size, not -e.  Zero length files cause a loop!
     return unless ( -s $filename );
