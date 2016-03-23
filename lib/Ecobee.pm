@@ -47,6 +47,7 @@ Create an Ecobee instance in the .mht file, or is user code:
   CODE, $ecobee_thermo = new Ecobee_Thermostat('First floor', $ecobee); #noloop
   CODE, $thermo_humid = new Ecobee_Thermo_Humidity($ecobee_thermo); #noloop
   CODE, $thermo_hvac_status = new Ecobee_Thermo_HVAC_Status($ecobee_thermo); #noloop
+  CODE, $thermo_mode = new Ecobee_Thermo_Mode($ecobee_thermo); #noloop
 
 Explanations of the parameters is contained below in the documentation for each
 module.
@@ -388,7 +389,7 @@ sub _get_settings {
        # We just asked for the settings this time
        foreach my $device (@{$thermoparams->{thermostatList}}) {
            # Save the previous settings
-           $$self{prev_data}{devices}{$device->{identifier}}{settings} = $$self{data}{devices}{$device->{identifier}}{settings};
+           $$self{prev_data}{devices}{$device->{identifier}}{settings} = dclone $$self{data}{devices}{$device->{identifier}}{settings};
 
            foreach my $key (keys %{$device->{settings}}) {
               if ($device->{settings}{$key} ne $$self{data}{devices}{$device->{identifier}}{settings}{$key}) {
@@ -397,7 +398,7 @@ sub _get_settings {
               $$self{data}{devices}{$device->{identifier}}{settings}{$key} = $device->{settings}{$key};
            }
            # Compare the old with the new
-           #$self->compare_data( $$self{data}{devices}{$device->{identifier}}{settings}, $$self{prev_data}{devices}{$device->{identifier}}{settings}, $$self{monitor}{settings} );
+           $self->compare_data( $$self{data}{devices}{$device->{identifier}}{settings}, $$self{prev_data}{devices}{$device->{identifier}}{settings}, $$self{monitor}{$device->{identifier}}{settings} );
 
            # Save the previous events
            $$self{prev_data}{devices}{$device->{identifier}}{eventsHash} = $$self{data}{devices}{$device->{identifier}}{eventsHash};
@@ -776,7 +777,7 @@ sub _poll {
 
 #------------------------------------------------------------------------------------
 sub _get_JSON_data {
-    my ( $self, $type, $endpoint, $args, $headers) = @_;
+    my ( $self, $type, $endpoint, $args, $headers, $content) = @_;
 
     my $ua = new LWP::UserAgent();
     $ua->timeout( $$self{timeout} );
@@ -784,6 +785,7 @@ sub _get_JSON_data {
     my $url = $$self{url};
 
     my $request = HTTP::Request->new( $type, $url . $rest{$endpoint} . $args, $headers );
+    $request->content($content) if defined $content;
     main::print_log( "[Ecobee]: Full request ->" . $request->as_string . "<-") if $$self{debug};
 
     my $responseObj = $ua->request($request);
@@ -1410,6 +1412,46 @@ sub get_temp {
     return $runtime->{actualTemperature};
 }
 
+=item C<set_hvac_mode($state, $p_setby, $p_response)>
+
+Sets the mode to $state, must be [heat,auxHeatOnly,cool,auto,off]
+
+=cut
+
+sub set_hvac_mode {
+    my ( $self, $state, $p_setby, $p_response ) = @_;
+    main::print_log( "[Ecobee]: Attempting to set the thermostat mode to $state" );
+    $$self{interface}{polling_timer}->pause;
+    $state = lc($state);
+    if (   $state ne 'heat'
+        && $state ne 'auxHeatOnly'
+        && $state ne 'cool'
+        && $state ne 'auto'
+        && $state ne 'off' )
+    {
+        $self->debug(
+            "set_hvac_mode must be one of: heat, auxHeatOnly, cool, auto, or off. Not $state."
+        );
+        return;
+    }
+    $$self{state_pending}{hvacMode} = [ $p_setby, $p_response ];
+    # Send the new mode to the API
+    my $headers = HTTP::Headers->new(
+        'Content-Type' => 'text/json',
+        'Authorization' => 'Bearer ' . $$self{interface}{access_token}
+        );
+    # Note: this will change all thermostats on the account to this mode. The selection needs to be more specific to control just one.
+    my $json_body = '{"selection":{"selectionType":"registered","selectionMatch":""},"thermostat":{"settings":{"hvacMode":"' . $state . '"}}}'; 
+    #my $json_body = '{"selection":{"selectionType":"thermostats","selectionMatch":"' . $self->device_id . '"},"thermostat":{"settings":{"hvacMode":"' . $state . '"}}}'; 
+    my ($isSuccessResponse1, $modeparams) = $$self{interface}->_get_JSON_data("POST", "thermostat", "?format=json", $headers, $json_body);
+    if ($isSuccessResponse1) {
+       main::print_log( "[Ecobee]: Mode change response looks good" );
+    } else {
+        main::print_log( "[Ecobee]: Uh, oh... Something went wrong with the mode change request" );
+    }
+    $$self{interface}{polling_timer}->resume;
+}
+
 
 package Ecobee_Thermo_Humidity;
 
@@ -1488,6 +1530,54 @@ sub new {
     my $self = new Ecobee_Generic( $$parent{interface}, $parent, $monitor_value );
     bless $self, $class;
     return $self;
+}
+
+
+package Ecobee_Thermo_Mode;
+
+=head1 B<Ecobee_Thermo_Mode>
+
+=head2 SYNOPSIS
+
+This is a very high level module for interacting with the Ecobee Thermostat Mode.
+This type of object is often referred to as a child device.  It displays the
+mode of the thermostat and allows for setting the modes.  The object inherits
+all of the C<Generic_Item> methods, including c<set>, c<state>, c<state_now>, 
+c<tie_event>.
+
+=head2 CONFIGURATION
+
+.mht file:
+
+  CODE, $thermo_mode = new Ecobee_Thermo_Mode($ecobee_thermo); #noloop
+
+The only argument required is the thermostat object.
+
+=head2 INHERITS
+
+C<Ecobee_Generic>
+
+=cut
+
+use strict;
+
+@Ecobee_Thermo_Mode::ISA = ('Ecobee_Generic');
+
+sub new {
+    my ( $class, $parent ) = @_;
+    my $monitor_value;
+    $monitor_value->{settings}{hvacMode} = '';
+    my $self =
+      new Ecobee_Generic( $$parent{interface}, $parent, $monitor_value );
+    $$self{states} = [ 'heat', 'auxHeatOnly', 'cool', 'auto', 'off' ];
+    bless $self, $class;
+    return $self;
+}
+
+sub set {
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
+    $self->debug( "Setting $p_state, $p_setby, $p_response", $info );
+    $$self{parent}->set_hvac_mode( $p_state, $p_setby, $p_response );
 }
 
 
