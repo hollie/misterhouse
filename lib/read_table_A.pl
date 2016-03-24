@@ -64,6 +64,25 @@ sub read_table_A {
         $object = "ZWave_Appliance_Item('$address', $other)";
     }
 
+    # -[ Clipsal CBus ]-------------------------------------------------
+    elsif ( $type eq "CBUS_CGATE" ) {
+        require Clipsal_CBus;
+        ( $name, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $object = "Clipsal_CBus::CGate('Clipsal_CBus_Cgate',$other)";
+    }
+    elsif ( $type eq "CBUS_GROUP" ) {
+        require Clipsal_CBus::Group;
+        ( $address, $name, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $object = "Clipsal_CBus::Group('$address','$name',$other)";
+    }
+    elsif ( $type eq "CBUS_UNIT" ) {
+        require Clipsal_CBus::Unit;
+        ( $address, $name, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $object = "Clipsal_CBus::Unit('$address','$name',$other)";
+    }
     # -[ UPB ]----------------------------------------------------------
     elsif ( $type eq "UPBPIM" ) {
         require 'UPBPIM.pm';
