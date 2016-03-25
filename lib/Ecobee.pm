@@ -48,6 +48,7 @@ Create an Ecobee instance in the .mht file, or is user code:
   CODE, $thermo_humid = new Ecobee_Thermo_Humidity($ecobee_thermo); #noloop
   CODE, $thermo_hvac_status = new Ecobee_Thermo_HVAC_Status($ecobee_thermo); #noloop
   CODE, $thermo_mode = new Ecobee_Thermo_Mode($ecobee_thermo); #noloop
+  CODE, $thermo_climate = new Ecobee_Thermo_Climate($ecobee_thermo); #noloop
 
 Explanations of the parameters is contained below in the documentation for each
 module.
@@ -321,7 +322,7 @@ sub _list_thermostats {
         'Content-Type' => 'text/json',
         'Authorization' => 'Bearer ' . $$self{access_token}
         );
-    my $json_body = '{"selection":{"selectionType":"registered","selectionMatch":"","includeAlerts":"true","includeSettings":"true","includeEvents":"true","includeRuntime":"true","includeSensors":"true"}}';
+    my $json_body = '{"selection":{"selectionType":"registered","selectionMatch":"","includeAlerts":"true","includeSettings":"true","includeEvents":"true","includeRuntime":"true","includeSensors":"true","includeProgram":"true"}}';
     my ($isSuccessResponse1, $thermoparams) = $self->_get_JSON_data("GET", "thermostat", 
        '?format=json&body=' . uri_escape($json_body), $headers);
     if ($isSuccessResponse1) {
@@ -359,6 +360,9 @@ sub _list_thermostats {
            foreach my $index (@{$device->{events}}) {
               $$self{data}{devices}{$device->{identifier}}{eventsHash}{$index->{type} . "-" . $index->{name} . "-" . $index->{holdClimateRef}} = $index;
            }
+           # Save the program information as well. Note: the schedule and climate info are stored in arrays. Since we need to use this same format to 
+           # modify a schedule or climate, they will be retained in this format
+           $$self{data}{devices}{$device->{identifier}}{program} = $device->{program};
 
            main::print_log( "[Ecobee]: " . $$self{data}{devices}{$device->{identifier}}{name} . " ID is " . $$self{data}{devices}{$device->{identifier}}{identifier} );
        }
@@ -370,18 +374,18 @@ sub _list_thermostats {
 
 =item C<_get_settings()>
 
-Gets the current settings
+Gets the current settings, events and program
 
 =cut
 
 sub _get_settings {
     my ($self) = @_;
-    main::print_log( "[Ecobee]: Getting settings and events..." );
+    main::print_log( "[Ecobee]: Getting settings, events and programs..." );
     my $headers = HTTP::Headers->new(
         'Content-Type' => 'text/json',
         'Authorization' => 'Bearer ' . $$self{access_token}
         );
-    my $json_body = '{"selection":{"selectionType":"registered","selectionMatch":"","includeSettings":"true","includeEvents":"true"}}';
+    my $json_body = '{"selection":{"selectionType":"registered","selectionMatch":"","includeSettings":"true","includeEvents":"true","includeProgram":"true"}}';
     my ($isSuccessResponse1, $thermoparams) = $self->_get_JSON_data("GET", "thermostat",
        '?format=json&body=' . uri_escape($json_body), $headers);
     if ($isSuccessResponse1) {
@@ -423,7 +427,16 @@ sub _get_settings {
              }
            }
            # Compare the old with the new
-           #$self->compare_data( $$self{data}{devices}{$device->{identifier}}{eventsHash}, $$self{prev_data}{devices}{$device->{identifier}}{eventsHash}, $$self{monitor}{eventsHash} );
+           #$self->compare_data( $$self{data}{devices}{$device->{identifier}}{eventsHash}, $$self{prev_data}{devices}{$device->{identifier}}{eventsHash}, $$self{monitor}{$device->{identifier}}{eventsHash} );
+
+           # Save the previous program data
+           $$self{prev_data}{devices}{$device->{identifier}}{program} = dclone $$self{data}{devices}{$device->{identifier}}{program};
+          
+           # Save the new program data
+           $$self{data}{devices}{$device->{identifier}}{program} = $device->{program};
+
+           # Compare the old with the new
+           $self->compare_data( $$self{data}{devices}{$device->{identifier}}{program}, $$self{prev_data}{devices}{$device->{identifier}}{program}, $$self{monitor}{$device->{identifier}}{program} );
        }
     } else {
        main::print_log( "[Ecobee]: Uh, oh... Something went wrong with the settings request" );
@@ -1441,8 +1454,9 @@ sub set_hvac_mode {
         'Authorization' => 'Bearer ' . $$self{interface}{access_token}
         );
     # Note: this will change all thermostats on the account to this mode. The selection needs to be more specific to control just one.
-    my $json_body = '{"selection":{"selectionType":"registered","selectionMatch":""},"thermostat":{"settings":{"hvacMode":"' . $state . '"}}}'; 
-    #my $json_body = '{"selection":{"selectionType":"thermostats","selectionMatch":"' . $self->device_id . '"},"thermostat":{"settings":{"hvacMode":"' . $state . '"}}}'; 
+    #my $json_body = '{"selection":{"selectionType":"registered","selectionMatch":""},"thermostat":{"settings":{"hvacMode":"' . $state . '"}}}'; 
+    # Note: This will only change the specific device (or devices if more than one is given in CSV format)
+    my $json_body = '{"selection":{"selectionType":"thermostats","selectionMatch":"' . $self->device_id . '"},"thermostat":{"settings":{"hvacMode":"' . $state . '"}}}'; 
     my ($isSuccessResponse1, $modeparams) = $$self{interface}->_get_JSON_data("POST", "thermostat", "?format=json", $headers, $json_body);
     if ($isSuccessResponse1) {
        main::print_log( "[Ecobee]: Mode change response looks good" );
@@ -1567,8 +1581,7 @@ sub new {
     my ( $class, $parent ) = @_;
     my $monitor_value;
     $monitor_value->{settings}{hvacMode} = '';
-    my $self =
-      new Ecobee_Generic( $$parent{interface}, $parent, $monitor_value );
+    my $self = new Ecobee_Generic( $$parent{interface}, $parent, $monitor_value );
     $$self{states} = [ 'heat', 'auxHeatOnly', 'cool', 'auto', 'off' ];
     bless $self, $class;
     return $self;
@@ -1580,6 +1593,44 @@ sub set {
     $$self{parent}->set_hvac_mode( $p_state, $p_setby, $p_response );
 }
 
+
+package Ecobee_Thermo_Climate;
+
+=head1 B<Ecobee_Thermo_Climate>
+
+=head2 SYNOPSIS
+
+This is a very high level module for interacting with the Ecobee Thermostat Climate.
+This type of object is often referred to as a child device.  It displays the
+climate value of the thermostat.  The object inherits all of the C<Generic_Item> 
+methods, including c<set>, c<state>, c<state_now>, c<tie_event>.
+
+=head2 CONFIGURATION
+
+.mht file:
+
+  CODE, $thermo_climate = new Ecobee_Thermo_Climate($ecobee_thermo); #noloop
+
+The only argument required is the thermostat object.
+
+=head2 INHERITS
+
+C<Ecobee_Generic>
+
+=cut
+
+use strict;
+
+@Ecobee_Thermo_Climate::ISA = ('Ecobee_Generic');
+
+sub new {
+    my ( $class, $parent ) = @_;
+    my $monitor_value;
+    $monitor_value->{program}{currentClimateRef} = '';
+    my $self = new Ecobee_Generic( $$parent{interface}, $parent, $monitor_value );
+    bless $self, $class;
+    return $self;
+}
 
 
 =back
