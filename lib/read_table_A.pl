@@ -67,6 +67,7 @@ sub read_table_A {
     # -[ Clipsal CBus ]-------------------------------------------------
     elsif ( $type eq "CBUS_CGATE" ) {
         require Clipsal_CBus;
+        require Clipsal_CBus::CGate;
         ( $name, $grouplist, @other ) = @item_info;
         $other = join ', ', ( map { "'$_'" } @other );              # Quote data
         $object = "Clipsal_CBus::CGate('Clipsal_CBus_Cgate',$other)";
