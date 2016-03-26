@@ -3,21 +3,18 @@ package Clipsal_CBus::Group;
 use strict;
 use Clipsal_CBus;
 
+#log levels
+my $warn    = 1;
+my $notice  = 2;
+my $info    = 3;
+my $debug   = 4;
+my $trace   = 5;
+
 @Clipsal_CBus::Group::ISA = ('Generic_Item', 'Clipsal_CBus');
 
 =item C<new()>
  
  Instantiates a new CBus group object.
- 
- $cbus_Guest_Bedroom_Cupboard_Light = new Generic_Item;
- $cbus_Guest_Bedroom_Cupboard_Light -> set_label('Guest Bedroom Cupboard Light');
- $cbus_Guest_Bedroom_Cupboard_Light -> set_states(split ',','on,off,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%');
- 
- $v_cbus_Guest_Bedroom_Cupboard_Light = new Voice_Cmd 'Guest Bedroom Cupboard Light [on,off,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%]';
- $v_cbus_Guest_Bedroom_Cupboard_Light -> set_info ('Item Guest Bedroom Cupboard Light');
- tie_items $v_cbus_Guest_Bedroom_Cupboard_Light  $cbus_Guest_Bedroom_Cupboard_Light;
- tie_event $cbus_Guest_Bedroom_Cupboard_Light
- 'cbus_set("//HOME/254/56/9", $state, $cbus_Guest_Bedroom_Cupboard_Light->{set_by})';
  
 =cut
 
@@ -30,7 +27,7 @@ sub new {
     my $object_name = "\$". $name;
     my $object_name_v = $object_name . '_v';
     
-    &::print_log ("[Clipsal CBus] New group object $object_name at $address");
+    &::print_log("[Clipsal CBus] New group object $object_name at $address");
     
     $self->set_states(split ',','on,off,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%');
     $self->set_label($label);
@@ -76,19 +73,19 @@ sub set {
     my $address = $$self{address};
     my $speed = $$self{ramp_speed};
     
-    &::print_log ("[Clipsal CBus] set() $cbus_label set to state $state by $set_by");
+    $self->debug("$cbus_label set to state $state by $set_by", $info);
     
     if ( $set_by =~ /cbus/ ) {
         
         # This was a Recursive set, we are ignoring
-        &::print_log ("[Clipsal CBus] set() by CBus - no CBus update required");
+        $self->debug("set() by CBus - no CBus update required", $debug);
         return;
     }
     
     if ( $set_by =~ /MisterHouseSync/ ) {
         
         # This was a Recursive set, we are ignoring
-        &::print_log ("[Clipsal CBus] set() by MisterHouse sync - no CBus update required");
+        $self->debug("set() by MisterHouse sync - no CBus update required", $debug);
         return;
     }
     
@@ -108,13 +105,13 @@ sub set {
         
     }
     else {
-        &::print_log ("[Clipsal CBus] unknown level \'$state\' passed to set()");
+        $self->debug("unknown level \'$state\' passed to set()", $warn);
         return;
     }
     
 
     my $cmd_log_string = "RAMP $cbus_label set $state, speed=$speed";
-    &::print_log ("[Clipsal CBus] $cmd_log_string");
+    $self->debug("$cmd_log_string", $debug);
     
     my $ramp_command = "[MisterHouse-$Clipsal_CBus::Command_Counter] RAMP $address $state $speed\n";
     $Clipsal_CBus::Talker->set($ramp_command);
