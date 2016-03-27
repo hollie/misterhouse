@@ -40,11 +40,6 @@ sub new {
     $Clipsal_CBus::Groups{$address}{label} = $label;
     $Clipsal_CBus::Groups{$address}{note} = "Added at object creation";
     
-    eval "$object_name_v = new Voice_Cmd '$label [on,off,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%]';";
-    eval "$object_name_v->set_info('$label');";
-    eval "tie_items $object_name_v $object_name;";
-    eval "tie_event $object_name '$object_name->set(\"$address\", \$state, \$object_name->{set_by})';";
-    
     return $self;
 }
 
@@ -138,12 +133,8 @@ sub get_voice_cmds {
     my ($self) = @_;
     my %voice_cmds = (
     
-    
-    
-    #The Sync Links routine really resides in BaseController, maybe move this
-    #ther
-    'set on' => $self->get_object_name . '->cbus_set( 100 , ' . $self->get_object_name . '->{set_by})',
-    'set off' => $self->get_object_name . '->cbus_set( 0 , ' . $self->get_object_name . '->{set_by})'
+    'set on' => $self->get_object_name . '->set( 100 , "Voice Command")',
+    'set off' => $self->get_object_name . '->set( 0 , "Voice Command")'
     );
     
     return \%voice_cmds;

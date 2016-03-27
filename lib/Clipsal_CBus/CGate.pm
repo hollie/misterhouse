@@ -1,5 +1,5 @@
 
-=head1 B<Clipsal CBus>
+=head1 B<Clipsal CGate>
 
 =head2 SYNOPSIS
 
@@ -37,6 +37,8 @@ sub new {
     my $self = new Generic_Item();
     
     $$self{project} = $::config_parms{cbus_project_name};
+    $$self{cbus_mht_filename} = $::config_parms{code_dir} . "/" . $::config_parms{cbus_mht_file};
+
     $$self{session_id}                  = undef;
     $$self{cbus_units_config}           = undef;
     $$self{cbus_got_tree_list}          = undef;
@@ -46,28 +48,23 @@ sub new {
     $$self{cbus_scanning_cgate}         = undef;
     $$self{cbus_scan_last_addr_seen}    = undef;
     $$self{network_state}               = undef;
-    $$self{addr_not_sync_ref} => {};
-    $$self{cmd_list}  => {};
-    $$self{cbus_net_list} => {};
-    $$self{CBus_Sync} = new Generic_Item();
-    $$self{sync_in_progress} = 0;
-    $$self{DELAY_CHECK_SYNC}       = 10;
-    $$self{cbus_group_idx} = undef;
-    $$self{cbus_unit_idx} = undef;
+    $$self{addr_not_sync_ref}           => {};
+    $$self{cmd_list}                    => {};
+    $$self{cbus_net_list}               => {};
+    $$self{CBus_Sync}                   = new Generic_Item();
+    $$self{sync_in_progress}            = 0;
+    $$self{DELAY_CHECK_SYNC}            = 10;
+    $$self{cbus_group_idx}              = undef;
+    $$self{cbus_unit_idx}               = undef;
     
-    $$self{last_mon_state} = "un-initialised";
-    $$self{last_talk_state} = "un-initialised";
-    $$self{request_cgate_scan} = 0;
-    
-    # Set the CBus definitiions file
-    $$self{cbus_mht_filename} = $::config_parms{code_dir} . "/" . $::config_parms{cbus_mht_file};
-    #$self->debug("mht file will be output to: $$self{cbus_mht_filename}", 2);
+    $$self{last_mon_state}              = "un-initialised";
+    $$self{last_talk_state}             = "un-initialised";
+    $$self{request_cgate_scan}          = 0;
     
     bless $self, $class;
 
     $self->monitor_start();
     $self->talker_start();
-    $self->scan_cgate();
     
     # Add hooks to the main loop to check the monitor and talker sockets for data on each pass.
     &::MainLoop_pre_add_hook( sub { $self->monitor_check(); }, 'persistent' );
@@ -232,8 +229,6 @@ sub write_mht_file {
     my $count = 0;
     $self->debug("Writing MHT file $$self{cbus_mht_filename}", $notice);
     
-    print Dumper \%Clipsal_CBus::Groups;
-    
     open( CF, ">$$self{cbus_mht_filename}" )
     or $self->debug("write_mht_file() Could not open $$self{cbus_mht_filename}: $!", $warn);
     
@@ -258,8 +253,6 @@ sub write_mht_file {
         print CF "CBUS_GROUP, $address, $name, All_CBus, $label\n";
 
     }
-    
-    print Dumper \%Clipsal_CBus::Units;
     
     print CF "\n";
     print CF "# CBus Unit addresses.\n";
@@ -304,12 +297,12 @@ sub monitor_start {
     # Start the CBus listener (monitor)
     
     if ($Clipsal_CBus::Monitor->active() ) {
-        $self->debug("Monitor already running, skipping start", $info);
+        $self->debug("Monitor already running, skipping start", $notice);
     }
     else {
         $$self{monitor_retry} = 0;
         if ( $Clipsal_CBus::Monitor->start() ) {
-            $self->debug("Monitor started", $info);
+            $self->debug("Monitor started", $notice);
         }
         else {
             speak("C-Bus Monitor failed to start");
@@ -635,7 +628,7 @@ sub talker_check {
             $msg_code = $2;
         }
         
-        $self->debug("Talker message: $talker_msg", $debug);
+        $self->debug("Talker received: $talker_msg", $debug);
         
         ###### Message code 320: Tree information. Returned from the tree command.
         
@@ -647,7 +640,7 @@ sub talker_check {
                     }
                     elsif ( $talker_msg =~ /(\/\/.+\/\d+\/p\/\d+).+type=(.+) app/ ) {
                         
-                        # CGate is listing CBus "devices" (input and output)
+                        # CGate is listing CBus "units" (input and output)
                         $self->debug("Talker scanned addr=$1 is type $2", $debug);
                         
                         # Store unit on a list for later scanning of details
@@ -659,7 +652,7 @@ sub talker_check {
                 else {
                     # CGate is listing CBus "groups"
                     if ( $talker_msg =~ /end/ ) {
-                        $self->debug("Talker end of CBus scan data, got tree list", $notice) if $::Debug{cbus};
+                        $self->debug("Talker end of CBus scan data, got tree list", $notice);
                         $$self{cbus_got_tree_list} = 1;
                     }
                     elsif ( $talker_msg =~ /(\/\/.+\/\d+\/\d+\/\d+).+level=(\d+)/ ) {
@@ -783,7 +776,7 @@ sub talker_check {
             
         }
         elsif ( $msg_code == 201 ) {
-            $self->debug("Talker Comms established - $talker_msg", $info);
+            $self->debug("Talker Comms established - $talker_msg", $notice);
             
             # Newly started comms, therefore find the networks available
             # then we will wait until CGate has sync'ed with the network
@@ -793,7 +786,13 @@ sub talker_check {
             if ( not defined $$self{project} ) {
                 $self->debug("Talker ***ERROR*** Set \$cbus_project_name in mh.ini", $warn);
             }
+            elsif ( keys %Clipsal_CBus::Groups == 0 ) {
+                #we have no pre-defined CBus group objects loaded into the hash, so kick off a scan
+                $self->debug("Talker - no existing CBus Group objects", $warn);
+                $self->scan_cgate();
+            }
             else {
+                # initial a sync
                 $Clipsal_CBus::Talker->set ("project load $$self{project}");
                 $Clipsal_CBus::Talker->set ("project use $$self{project}");
                 $Clipsal_CBus::Talker->set ("project start $$self{project}");
@@ -902,6 +901,100 @@ sub talker_check {
 
     
 }
+
+=head1 AUTHOR
+ 
+ Copyright 2002: Richard Morgan, omegaATbigpondDOTnetDOTau
+ Copyright 2008: Andrew McCallum, Mandoon Technologies, andyATmandoonDOTcomDOTau
+ Copyright 2016: Jon Whitear, jonATwhitearDOTorg
+ 
+=head1 VERSION HOSTORY
+ 
+ 03-12-2001
+ Modified to support c-gate 1.5
+ 23-06-2002
+ Monitor: Source name now works, and shows 'MH' is source 0
+ 05-07-2002
+ Modified for cbus_dat.csv input file support
+ Added groups and set_info support
+ 06-07-2002
+ Minor changes to support new cbus_builder
+ Modified to support global %cbus_data hash
+ removed make_cbus_file(), replaced with cbus_builder.pl
+ 11-07-2002
+ Added announce flag to cbus_dat.csv, and conditional speak flag $announce
+ 19-09-2002
+ Fixed bug in cbus_set() that prevented dimming numeric % set values
+ being accepted.  Dimming now works.
+ 21-09-2002
+ Modified cbus_groups and cbus_catagories to read from input file
+ rather than hard coded
+ Put in config item cbus_category_prefix
+ Comments in input file now allowed
+ Fixed some other minor things
+ 22-09-2002 V2.0
+ Collapsed cbus_talker.pl, cbus_builder.pl and cbus_monitor.pl
+ into one new file, cbus.pl.  Now issued as V2.0.
+ 
+ V2.1    Fixed up some menu uglies.
+ Improved coding in monitor loop
+ Fixed up code labels, docs etc
+ 
+ V2.2    Changed all speak() calls to say 'C-Bus' rather than 'CBus', so the diction is correct
+ 
+ V2.2.1  Fixed minor bug in cbus monitor start voice command
+ 
+ V2.2.2  Implemented;
+ oneshot device type
+ cbus_oneshot_log config param
+ 
+ V2.2.3  Made the dump_cbus_data format pretty HTML tables
+ 
+ V3.0    2008-02-04
+ Fixed to work with C-Gate Version: v2.6.1 (build 2236)
+ Latest version as of June 2008
+ Now reports the name of the source unit that modified a group level.
+ Added ability to scan CGate for groups and output to config file.
+ *** Configuration only requires running Builder to scan cgate and
+ *** build XML file, then commanding MH to "reload code". Job Done.
+ *** Customisation if wanted can be done through the config file.
+ Changed config file to XML format.
+ Builder command auto scans CGate if no config file exists.
+ Fixed interpretation of dimming commands.
+ PROD is the default state. In PROD, no option to stop comms.
+ Changed DEV to DEBUG for commonality.
+ Monitor and Talker attempt to always run unless in DEBUG state.
+ 
+ V3.0.1	2013-11-22
+ Fixed to work with C-Gate Version: v2.9.7 (build 2569), which returns
+ cbus addresses in the form NETWORK/APPLICATION/GROUP rather than
+ //PROJECT/NETWORK/APPLICATION/GROUP.
+ Add logging to aid debugging cbus_builder
+ Contributed by Jon Whitear <jonATwhitearDOTorg>
+ 
+ V3.0.2  2013-11-25
+ Add support for both formats of return code, i.e. NETWORK/APPLICATION/GROUP
+ and //PROJECT/NETWORK/APPLICATION/GROUP.
+ 
+ V3.0.3	2013-11-28
+ Test debug flag for logging statements.
+ 
+ V4.0    2016-03-25
+ Refactor cbus.pl into Clipsal_CBus.pm, CGate.pm, Group.pm, and Unit.pm, and
+ make CBus support more MisterHouse "native".
+ 
+=head1 LICENSE
+ 
+ This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+ 
+ This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License along with this program; if not, write to the
+ Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ 
+=cut
 
 1;
 
