@@ -119,7 +119,6 @@ function getJSONDataByPath (path){
 	return returnJSON;
 }
 
-
 //Called anytime the page changes
 function changePage (){
 	var URLHash = URLToHash();
@@ -216,12 +215,31 @@ function changePage (){
 				data = data.replace(/<title[^>]*>((\r|\n|.)*?)<\/title[^>]*>/img, ''); //Remove title
 				data = data.replace(/<meta[^>]*>/img, ''); //Remove meta refresh
 				data = data.replace(/<base[^>]*>/img, ''); //Remove base target tags
+				
 				if (link == "/bin/code_select.pl" || link == "/bin/code_unselect.pl") { //fix links in the code select / unselect modules
 					var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
 					data = data.replace(/href=\/bin\/browse.pl(.*?)>/img, function (path,r1) {
 						return 'href=/ia7/#_request=page&link=/bin/browse.pl'+r1+'&'+coll_key+',>';
 					});
+					data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
+					data = data.replace(/Category Index:/img,'');
+					data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
 				}
+				if (link == "/bin/items.pl") {
+					data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
+					data = data.replace(/Item Index:/img,'');
+					data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
+				}				
+				if (link == "/bin/triggers.pl") { //fix links in the triggers modules
+					//var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
+					//data = data.replace(/href=\/bin\/triggers.pl/img, 'href=/ia7/#_request=page&link=/bin/triggers.pl&'+coll_key);
+					data = data.replace(/href=\/bin\/triggers.pl/img, 'onclick="location.reload()"');
+					data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
+					data = data.replace(/Trigger Index:/img,'');
+					data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
+//
+					data = data.replace(/onChange=\'form.submit\(\)\'/img,'onChange=\'this\.form\.submit\(\)\'');
+				}				
 				if (link == "/ia5/news/main.shtml") { //fix links in the email module 1
 					var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
 					data = data.replace(/<a href='\/email\/latest.html'>Latest emails<\/a>/img,'');
@@ -253,7 +271,7 @@ function changePage (){
 				$('#list_content').html("<div id='buffer_page' class='row top-buffer'>");
 				$('#buffer_page').append("<div id='row_page' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 				$('#row_page').html(data);
-				$('#mhresponse').click( function (e) { //allow for forms with id=mhresponse to show data returned in modal
+				$('#mhresponse').submit( function (e) { //allow for forms with id=mhresponse to show data returned in modal
 					e.preventDefault();
 					var form = $(this);
 					console.log("MHResponse Custom submit function "+ form.attr('action'));
@@ -265,13 +283,36 @@ function changePage (){
 							console.log(data)
 							var start = data.toLowerCase().indexOf('<body>') + 6;
 							var end = data.toLowerCase().indexOf('</body>');
-							$('#lastResponse').find('.modal-body').html(data.substring(start, end));
-							$('#lastResponse').modal({
-								show: true
-							});
+							if (form.attr('action') === "/bin/triggers.pl?add") {
+								location.reload();
+							} else {
+								$('#lastResponse').find('.modal-body').html(data.substring(start, end));
+								$('#lastResponse').modal({
+									show: true
+								});
+							}
 						}
 					});
 				});
+	 			$('#mhresponse').change(function() {
+     				$('#mhresponse').submit();
+ 				});			
+				$('#mhexec a').click( function (e) {
+					e.preventDefault();
+					var url = $(this).attr('href');
+					url = url.replace(/;(.*?)\?/,'?');
+//					console.log("MHExec " + url);
+					$.get( url, function(data) {
+//						var start = data.toLowerCase().indexOf('<body>') + 6;
+//						var end = data.toLowerCase().indexOf('</body>');
+//						$('#lastResponse').find('.modal-body').html(data.substring(start, end));
+//						$('#lastResponse').modal({
+//							show: true
+//						});
+					});
+					location.reload();
+				});
+//TODO is this needed?
 				$(".btn-voice-cmd").click( function () {
 					var voice_cmd = $(this).attr('voice_cmd');
 					var url = '/RUN;last_response?select_cmd=' + voice_cmd;
@@ -284,7 +325,8 @@ function changePage (){
 							show: true
 						});
 					});
-				});				
+				});	
+//			
 			});
 		}
 		else if(path.indexOf('print_log') === 0){
@@ -2124,6 +2166,7 @@ $(document).ready(function() {
 		});
 	});
 	
+//TODO remove me?	
 	$('#mhresponse').click( function (e) {
 		e.preventDefault();
 		$form = $(this);

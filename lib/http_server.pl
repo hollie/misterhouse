@@ -1578,6 +1578,7 @@ sub html_error_log {
 # These html_form functions are used by mh/web/bin/*.pl scrips
 sub html_form_input_set_func {
     my ( $func, $resp, $var1, $var2 ) = @_;
+    my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
     my $html .= qq|<form action='/bin/set_func.pl' method=post><td>\n|;
     $html    .= qq|<input name='func' value="$func"  type='hidden'>\n|;
     $html    .= qq|<input name='resp' value="$resp"  type='hidden'>\n|;
@@ -1620,7 +1621,10 @@ sub html_form_select {
 
 sub html_form_select_set_func {
     my ( $func, $resp, $var1, $default, @values ) = @_;
-    my $form .= qq|<form action='/bin/set_func.pl' method=post><td>\n|;
+    my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
+    my $id = "";
+    $id = "id='mhresponse'" if ($mode eq 'ia7');
+    my $form .= qq|<form action='/bin/set_func.pl' $id method=post><td>\n|;
     $form    .= qq|<input name='func' value="$func"  type='hidden'>\n|;
     $form    .= qq|<input name='resp' value="$resp"  type='hidden'>\n|;
     $form    .= qq|<input name='var1' value="$var1"  type='hidden'>\n|;

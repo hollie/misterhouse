@@ -64,7 +64,7 @@ function openparmhelp(parm1){
 
     # Create a form to pick which file
     $html .=
-      "<table border><tr><form action=/bin/items.pl method=post><td>Which .mht file to edit?\n";
+      "<table border width='100%'><tr><form action=/bin/items.pl method=post><td>Which .mht file to edit?\n";
     $html .= &html_form_select( 'file', 1, $web_item_file_name, @file_paths )
       . "</td></form></tr>\n";
 
@@ -122,7 +122,7 @@ $form_type
         # Do not list comments
         unless ( $record =~ /^\s*\#/
             or $record =~ /^\s*$/
-            or $record =~ /^Format *=/ )
+            or $record =~ /^Format *=/i )
         {
             $record =~ s/#.*//;    # Ignore comments
             $record =~ s/,? *$//;
@@ -179,6 +179,7 @@ $form_type
         INSTEON_TRIGGERLINC     => [qw(Address Name Groups)],
         INSTEON_ICONTROLLER     => [qw(Address Name Groups)],
         SCENE_MEMBER            => [qw(MemberName LinkName OnLevel RampRate)],
+        CODE					=> [qw(Code)],
         default                 => [qw(Address Name Groups Other)]
     );
 
@@ -187,11 +188,12 @@ $form_type
 
         my @headers =
           ( $headers{$type} ) ? @{ $headers{$type} } : @{ $headers{default} };
-        my $headers = 1 + @headers;
+        my $headers = 2 + @headers;
 
-        $html .= "<table border><tr><td colspan=$headers><B>$type</B>\n";
+        $html .= "<br><table border width='100%' id='mhexec'><tr><td colspan=$headers><B>$type</B>\n";
         $html .= "(<a name='$type' href='#Top'>back to top</a>)</td></tr>\n";
-
+		$headers--;
+		
         $html .= "<tr>";
         for my $header ( '', 'Type', @headers ) {
             $html .=
@@ -356,6 +358,7 @@ sub web_item_help {
         Options =>
           'List the device options separated by | (e.g. preset, resume=80)',
         FloorPlan => 'Floor Plan location',
+        Code	  => 'Perl code executed at startup',
         Other     => 'Other stuff :)'
     );
 

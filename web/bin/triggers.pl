@@ -12,6 +12,7 @@ use strict;
 $^W = 0;    # Avoid redefined sub msgs
 
 my ( $function, @parms ) = @ARGV;
+my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
 
 #print "dbx a=@ARGV.\n";
 
@@ -61,7 +62,7 @@ need to put a semicolon at the end.  If you don't want to run one of the automat
 triggers, change the type to "Disabled".  If you delete it, the trigger will be recreated the next  
 time Misterhouse is restarted.   
 
-<form action='/bin/triggers.pl?add' method=post>
+<form action='/bin/triggers.pl?add' id='mhresponse' method=post>
 <input type=input name=name     size=10 value="Test">
 $form_trigger
 <input type=input name=trigger2 size=18 value="12 pm">
@@ -109,7 +110,7 @@ $form_code
             $type_prev = $type;
             $html .=
               "<p><B>$type:</B> (<a name='$type' href='#Top'>back to top</a>)\n";
-            $html .= qq|<table class="EditTrigger" border width="100%">\n|;
+            $html .= qq|<table class="EditTrigger" id="mhexec" border width="100%">\n|;
             $html .=
               "<tr><th></th><th>Name</th><th>Trigger Event</th><th>Action Code</th><th>Type</th><th>Last Run</th></tr>\n";
         }
@@ -149,6 +150,8 @@ $form_code
             my $triggered_date = &time_date_stamp( 7, $triggered )
               if $triggered;
             $html .= "<td>$triggered_date</td>\n";
+        } else {
+        	$html .= "<td></td>\n";	#put in a blank cell.
         }
 
         $html .= "</tr>\n\n";
@@ -200,7 +203,7 @@ sub web_trigger_add {
     # Create form
     else {
         my $html =
-          "Add a trigger:<form action='/bin/triggers.pl?add' method=post>\n";
+          "Add a trigger:<form action='/bin/triggers.pl?add' id='mhresponse' method=post>\n";
         $html .= qq|<br>Name   <input type=input name=name    value="Test">\n|;
         $html .=
           qq|<br>Trigger<input type=input name=trigger value="time_now '12 pm'">\n|;
