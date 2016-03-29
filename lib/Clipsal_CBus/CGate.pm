@@ -315,7 +315,7 @@ sub monitor_stop {
     
     # Stop the CBus listener (monitor)
     
-    return if not $$self{monitor}->active();
+    return if not $Clipsal_CBus::Monitor->active();
     $self->debug("Monitor stopping", $notice);
     $Clipsal_CBus::Monitor->stop();
 }
@@ -325,7 +325,7 @@ sub monitor_status {
     
     # Return the status of the CBus listener (monitor)
     
-    if ( $$self{monitor}->active() ) {
+    if ( $$Clipsal_CBus::Monitor->active() ) {
         $self->debug("Monitor is active. Last event: $$self{last_mon_state}", $notice);
         speak("C-Bus Monitor is active. Last event was $$self{last_mon_state}");
     }
@@ -563,7 +563,7 @@ sub talker_stop {
     # Stops the CBus command driver (Talker)
     
     #set $Clipsal_CBus_CGate::CBus_Sync OFF;
-    return if not $$self{talker}->active();
+    return if not $Clipsal_CBus::Talker->active();
     $self->debug("Talker stopping", $notice);
     $Clipsal_CBus::Talker->stop();
 }
