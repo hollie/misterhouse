@@ -315,9 +315,19 @@ sub monitor_stop {
     
     # Stop the CBus listener (monitor)
     
-    return if not $Clipsal_CBus::Monitor->active();
-    $self->debug("Monitor stopping", $notice);
-    $Clipsal_CBus::Monitor->stop();
+    if (not $Clipsal_CBus::Monitor->active() ) {
+        $self->debug("Monitor isn't active, skipping stop", $notice);
+    }
+    else {
+        #$$self{monitor_retry} = 0;
+        if ( $Clipsal_CBus::Monitor->stop() ) {
+            $self->debug("Monitor stopped", $notice);
+        }
+        else {
+            speak("C-Bus Monitor failed to stop");
+            $self->debug("Monitor failed to stop", $warn);
+        }
+    }
 }
 
 sub monitor_status {
@@ -325,7 +335,7 @@ sub monitor_status {
     
     # Return the status of the CBus listener (monitor)
     
-    if ( $$Clipsal_CBus::Monitor->active() ) {
+    if ( $Clipsal_CBus::Monitor->active() ) {
         $self->debug("Monitor is active. Last event: $$self{last_mon_state}", $notice);
         speak("C-Bus Monitor is active. Last event was $$self{last_mon_state}");
     }
@@ -540,7 +550,7 @@ sub talker_start {
     # Starts the CBus command driver (Talker)
     
     if ( $Clipsal_CBus::Talker->active() ) {
-        $self->debug("Talker already running, skipping start", $info);
+        $self->debug("Talker already running, skipping start", $notice);
         &::speak("C-Bus talker is already running");
         
     }
@@ -562,10 +572,21 @@ sub talker_stop {
     
     # Stops the CBus command driver (Talker)
     
-    #set $Clipsal_CBus_CGate::CBus_Sync OFF;
-    return if not $Clipsal_CBus::Talker->active();
-    $self->debug("Talker stopping", $notice);
-    $Clipsal_CBus::Talker->stop();
+    if ( not $Clipsal_CBus::Talker->active() ) {
+        $self->debug("Talker isn't active, skipping stop", $notice);
+        &::speak("C-Bus talker isn't active");
+        
+    }
+    else {
+        #set $Clipsal_CBus_CGate::CBus_Sync = "OFF";
+        if ( $Clipsal_CBus::Talker->stop() ) {
+            $self->debug("Talker stopped", $notice);
+        }
+        else {
+            &::speak("C-Bus Talker failed to stop");
+            $self->debug("Talker failed to stop", $warn);
+        }
+    }
 }
 
 sub talker_status {
