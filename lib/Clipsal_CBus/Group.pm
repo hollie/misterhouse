@@ -100,7 +100,7 @@ sub set {
         
     }
     else {
-        $self->debug("unknown level \'$state\' passed to set()", $warn);
+        $self->debug("invalid level \'$state\' passed to set()", $warn);
         return;
     }
     

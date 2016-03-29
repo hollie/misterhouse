@@ -15,7 +15,6 @@ package Clipsal_CBus::CGate;
 
 use strict;
 use Clipsal_CBus;
-use Data::Dumper qw(Dumper);
 
 #log levels
 my $warn    = 1;
@@ -340,7 +339,7 @@ sub monitor_check {
     my ($self) = @_;
     
     # Monitor Voice Command / Menu processing
-    if ( my $data = $Clipsal_CBus::Monitor_v->said() ) {
+    if ( my $data = $::CBus_Monitor_v->said() ) {
         if ( $data eq 'Start' ) {
             $Clipsal_CBus::Monitor->start();
             
@@ -485,26 +484,21 @@ sub monitor_check {
         #}
         
         if ( $source eq 'MisterHouse via Session ID') {
-            
             # This is a Reflected mesg, we will ignore
             $self->debug("Monitor ignoring reflected message from $source", $debug);
         }
         elsif ( $source eq 'MisterHouse via Command ID') {
-            
             # This is a Reflected mesg, we will ignore
             $self->debug("Monitor ignoring reflected message from $source", $debug);
         }
         elsif ( not defined $cbus_label ) {
             $self->debug("Monitor UNKNOWN Address $cg_addr $state_speak by $source", $debug);
-            
         }
         else {
             # The source is a CBus unit, CGate, Toolkit, or some other software. Trigger an object set().
             $self->debug("Monitor $cbus_label ramping $ramping by $source", $debug) if ($ramping);
             
             $self->cbus_update($cg_addr, $cbus_state, 'cbus');
-            
-            #cbus_update( $cg_addr, $cbus_state, 'cbus' );
             
             #if ( $cbus_def->{group}{$cg_addr}{type} eq 'oneshot' ) {
             #    if ( $config_parms{cbus_log_oneshot} ) {
@@ -595,7 +589,7 @@ sub talker_check {
     my ($self) = @_;
     
     # Talker Voice Command / Menu processing
-    if ( my $data = $Clipsal_CBus::Talker_v->said() ) {
+    if ( my $data = $::CBus_Talker_v->said() ) {
         if ( $data eq 'Start' ) {
             $Clipsal_CBus::Talker->start();
             
@@ -815,7 +809,7 @@ sub talker_check {
                 my $cmd_num = $1;
                 my $cmd     = $self->{cmd_list}{$cmd_num};
                 if ( $cmd ne "" ) {
-                    $self->debug("Talker  Trying command again - $cmd", $info);
+                    $self->debug("Talker  Trying command again - $cmd", $warn);
                     $Clipsal_CBus::Talker->set ($cmd);
                     $self->{cmd_list}{$cmd_num} = "";
                 }
@@ -904,9 +898,9 @@ sub talker_check {
 
 =head1 AUTHOR
  
- Copyright 2002: Richard Morgan, omegaATbigpondDOTnetDOTau
- Copyright 2008: Andrew McCallum, Mandoon Technologies, andyATmandoonDOTcomDOTau
- Copyright 2016: Jon Whitear, jonATwhitearDOTorg
+ Richard Morgan, omegaATbigpondDOTnetDOTau
+ Andrew McCallum, Mandoon Technologies, andyATmandoonDOTcomDOTau
+ Jon Whitear, jonATwhitearDOTorg
  
 =head1 VERSION HOSTORY
  

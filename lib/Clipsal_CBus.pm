@@ -52,14 +52,19 @@ reflect any updates from the actual CBus.
 
 Remember, the CBus is interactive, it can receive as well as issue commands.
 
-So, you must always use the $object in your code, as it has it's own set() method. Notice how the last 'set_by'
+So, you should always use the $object in your code, as it has it's own set() method. Notice how the last 'set_by'
 directive was also passed, this is to ensure that we do not create endless message loops.
 When the set() sub is called the actual CBus device is set to that state
-assuming it was not the CBus that actually initiated this set in the first place.
+assuming it was not the CBus that actually initiated this set in the first place. For example, in user code,
+you might use something like this:-
+ 
+ if (time_now "$Time_Sunset") {
+    speak "I just turned the entry light on at $Time_Now";
+    $Front_Entrance_Light->set('on','user code');
+ }
 
-CGate itself repeats all commands received, back to MH via
-the CBus monitor. Therefore MH listens for these commands and then sets the appropriate
-$object, but this is ignored if MH was in fact the source of the set.
+CGate itself repeats all commands received back to MH via the CBus monitor. Therefore MH listens for these 
+commands and then sets the appropriate $object, but this is ignored if MH was in fact the source of the set.
 
 When MH starts up, the cbus code will automatically attempt to sync MH to the current
 state of CGate. CGate of course, will reflect the physical state of the CBus network.
@@ -82,8 +87,6 @@ package Clipsal_CBus;
 
 use strict;
 
-# Set up the groups hash of hashes, a key-value hash, CBus group address is the key.
-
 %Clipsal_CBus::Groups = ();
 %Clipsal_CBus::Units = ();
 $Clipsal_CBus::Command_Counter = 0;
@@ -91,12 +94,6 @@ $Clipsal_CBus::Command_Counter_Max = 100;
 
 $Clipsal_CBus::Talker = new Socket_Item( undef, undef, $::config_parms{cgate_talk_address} );
 $Clipsal_CBus::Monitor = new Socket_Item( undef, undef, $::config_parms{cgate_mon_address} );
-
-$Clipsal_CBus::Talker_v  = new Voice_Cmd("cbus talker [Start,Stop,Status,Scan]");
-$Clipsal_CBus::Monitor_v  = new Voice_Cmd("cbus monitor [Start,Stop,Status]");
-
-::store_object_data( $Clipsal_CBus::Talker_v, 'Voice_Cmd', 'Clipsal CBus', 'Clipsal_CBus_commands' );
-::store_object_data( $Clipsal_CBus::Monitor_v, 'Voice_Cmd', 'Clipsal CBus', 'Clipsal_CBus_commands' );
 
 =head2 FUNCTIONS
  
@@ -174,16 +171,32 @@ sub generate_voice_commands {
     
     #Evaluate the resulting object generating string
     package main;
+    
     eval $object_string;
     print_log ("Error in cbus_item_commands: $@\n") if $@;
+
+    use vars '$CBus_Talker_v';
+    $CBus_Talker_v = new Voice_Cmd("cbus talker [Start,Stop,Status,Scan]");
+    &main::register_object_by_name('$CBus_Talker_v',$CBus_Talker_v);
+    $CBus_Talker_v->{category} = "Clipsal CBus";
+    $CBus_Talker_v->{filename} = "Clipsal_CBus_commands";
+    $CBus_Talker_v->{object_name} = '$CBus_Talker_v';
+    
+    use vars '$CBus_Monitor_v';
+    $CBus_Monitor_v = new Voice_Cmd("cbus monitor [Start,Stop,Status]");
+    &main::register_object_by_name('$CBus_Monitor_v',$CBus_Monitor_v);
+    $CBus_Monitor_v->{category} = "Clipsal CBus";
+    $CBus_Monitor_v->{filename} = "Clipsal_CBus_commands";
+    $CBus_Monitor_v->{object_name} = '$CBus_Monitor_v';
+    
     package Clipsal_CBus;
 }
 
 =head1 AUTHOR
  
-Copyright 2002: Richard Morgan, omegaATbigpondDOTnetDOTau
-Copyright 2008: Andrew McCallum, Mandoon Technologies, andyATmandoonDOTcomDOTau
-Copyright 2016: Jon Whitear, jonATwhitearDOTorg
+Richard Morgan, omegaATbigpondDOTnetDOTau
+Andrew McCallum, Mandoon Technologies, andyATmandoonDOTcomDOTau
+Jon Whitear, jonATwhitearDOTorg
  
 =head1 VERSION HOSTORY
  
@@ -257,7 +270,7 @@ V3.0.3	2013-11-28
         Test debug flag for logging statements.
  
 V4.0    2016-03-25
-        Refactor cbus.pl into Clipsal_CBus.pm, CGate.pm, Group.pm, and Unit.pm, to 
+        Refactor cbus.pl into Clipsal_CBus.pm, CGate.pm, Group.pm, and Unit.pm, and
         make CBus support more MisterHouse "native".
  
 =head1 LICENSE
