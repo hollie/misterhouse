@@ -341,15 +341,15 @@ sub monitor_check {
     # Monitor Voice Command / Menu processing
     if ( my $data = $::CBus_Monitor_v->said() ) {
         if ( $data eq 'Start' ) {
-            $Clipsal_CBus::Monitor->start();
+            $self->monitor_start();
             
         }
         elsif ( $data eq 'Stop' ) {
-            $Clipsal_CBus::Monitor->stop();
+            $self->monitor_stop();
             
         }
         elsif ( $data eq 'Status' ) {
-            $Clipsal_CBus::Monitor->status();
+            $self->monitor_status();
 
         }
         else {
@@ -591,15 +591,15 @@ sub talker_check {
     # Talker Voice Command / Menu processing
     if ( my $data = $::CBus_Talker_v->said() ) {
         if ( $data eq 'Start' ) {
-            $Clipsal_CBus::Talker->start();
+            $self->talker_start();
             
         }
         elsif ( $data eq 'Stop' ) {
-            $Clipsal_CBus::Talker->stop();
+            $self->talker_stop();
             
         }
         elsif ( $data eq 'Status' ) {
-            $Clipsal_CBus::Talker->status();
+            $self->talker_status();
             
         }
         elsif ( $data eq 'Scan' ) {
