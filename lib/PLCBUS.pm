@@ -1905,6 +1905,52 @@ package PLCBUS_2026;
 package PLCBUS_2263;
 @PLCBUS_2263::ISA = ('PLCBUS_LightItem');
 
+package PLCBUS_2268;
+@PLCBUS_2268::ISA = ('PLCBUS_Item');
+sub new {
+    my $class = shift;
+    my $self = $class->SUPER::new(@_);
+    $self->set_states(qw |on off|);
+    return $self;
+}
+
+package PLCBUS_Shutter;
+@PLCBUS_Shutter::ISA = ('PLCBUS_Item');
+sub new {
+    my $class = shift;
+    my $self = $class->SUPER::new(@_);
+    $self->set_states(qw |up down|);
+    return $self;
+}
+sub set{
+    my ( $self, $new_state, $setby, $respond ) = @_;
+    my $home = $self->{home};
+    my $unit = $self->{unit};
+    my $new_cmd = $new_state;
+    if ($new_state eq 'up'){
+        $new_cmd = 'on';
+    }
+    if ($new_state eq 'down'){
+        $new_cmd = 'off';
+    }
+
+    PLCBUS_Item::set($self, $new_cmd, $setby, $respond);
+}
+
+sub _set{
+    my ( $self, $new_state, $setby, $respond ) = @_;
+    my $new_cmd = $new_state;
+    if ($new_state eq 'on'){
+        $new_cmd = 'up';
+    }
+    if ($new_state eq 'off'){
+        $new_cmd = 'donw';
+    }
+
+    PLCBUS_Item::_set($self, $new_cmd, $setby, $respond);
+
+}
+
 package PLCBUS_Scene;
 @PLCBUS_Scene::ISA = ('PLCBUS_Item');
 use Data::Dumper qw(Dumper);
