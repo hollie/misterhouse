@@ -90,6 +90,30 @@ changing certain parameters on the thermostat.
 
 =cut
 
+
+# Notes:
+#
+# As of 1/31/2016 some API examples using cURL incorrectly show the authorize and token 
+# endpoints as https://api.ecobee.com/1/authorize and https://api.ecobee.com/1/token. 
+# However, these are actually https://api.ecobee.com/authorize and https://api.ecobee.com/token.
+# Other endpoints are versioned and appear to work correctly.
+
+#todo
+#
+# -Child items that are registered for state changes are currently only updated after the 
+#  state changes post-initialization, and are are left at a default value on startup until 
+#  this happens
+#
+# -Add support for creating and cancelling holds
+#
+# -Add home/away child item.
+#
+# -Add support for creating and cancelling vacations
+#
+# -Add support for creating/deleting/modifying climate settings
+#
+
+
 package Ecobee;
 
 # Used solely to provide a consistent logging feature
@@ -128,17 +152,6 @@ use JSON::XS;
 use Data::Dumper;
 use URI::Escape;
 use Storable 'dclone';
-
-# Notes:
-#
-# As of 1/31/2016 some API examples using cURL incorrectly show the authorize and token 
-# endpoints as https://api.ecobee.com/1/authorize and https://api.ecobee.com/1/token. 
-# However, these are actually https://api.ecobee.com/authorize and https://api.ecobee.com/token.
-# Other endpoints are versioned and appear to work correctly.
-
-#todo
-#
-
 
 # -------------------- START OF SUBROUTINES --------------------
 # --------------------------------------------------------------
