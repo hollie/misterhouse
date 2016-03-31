@@ -721,11 +721,16 @@ sub _thermostat_summary {
               'auxHotWater'   => 0x4000
           };
           my @values = split(':',$device);
+          my @states;
 
           # populate the status vector
           my $statusvec = 0x0000;
-          foreach my $index (1..$#values) {
-             $statusvec |= $status_bit_LUT->{$values[$index]};
+          if (scalar @values > 1) {
+              @states = split(',',$values[1]);
+              foreach my $index (0..$#states) {
+                  $statusvec |= $status_bit_LUT->{$states[$index]};
+                  main::print_log( "[Ecobee]: Statusvec=$statusvec, key=" . $states[$index] . ", LUT=" . $status_bit_LUT->{$states[$index]});
+              }
           }
           if (exists $$self{data}{devices}{$values[0]}{statusvec}{status}) {
               $$self{prev_data}{devices}{$values[0]}{statusvec} = dclone $$self{data}{devices}{$values[0]}{statusvec};
@@ -754,11 +759,11 @@ sub _thermostat_summary {
              for my $stat (keys %default_status) {
                 if (scalar @values > 1) {
                    $matched = 0;
-                   foreach my $index (1..$#values) {
-                      if ($values[$index] eq $stat) {
+                   foreach my $index (0..$#states) {
+                      if ($states[$index] eq $stat) {
                          $matched = 1;
-                         if ($$self{data}{devices}{$values[0]}{status}{$values[$index]} == 0) {
-                            $$self{data}{devices}{$values[0]}{status}{$values[$index]} = 1;
+                         if ($$self{data}{devices}{$values[0]}{status}{$states[$index]} == 0) {
+                            $$self{data}{devices}{$values[0]}{status}{$states[$index]} = 1;
                             main::print_log( "[Ecobee]: Status $stat has changed from off to on" );
                          }
                       }
@@ -778,8 +783,8 @@ sub _thermostat_summary {
           } else {
              $$self{data}{devices}{$values[0]}{status} = \%default_status;
              if (scalar @values > 1) {
-                 foreach my $index (1..$#values) {
-                    $$self{data}{devices}{$values[0]}{status}{$values[$index]} = 1;
+                 foreach my $index (0..$#states) {
+                    $$self{data}{devices}{$values[0]}{status}{$states[$index]} = 1;
                  }
              }
           }
