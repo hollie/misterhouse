@@ -112,7 +112,7 @@ changing certain parameters on the thermostat.
 #
 # -Add support for creating/deleting/modifying climate settings
 #
-
+# -Reduce logging verbosity and use consistant logging format
 
 package Ecobee;
 
@@ -371,7 +371,11 @@ sub _list_thermostats {
            }
            # We also need to get the Events (provided as a JSON array, but does not contain a unique ID so we have to create our own to make this a hash)
            foreach my $index (@{$device->{events}}) {
-              $$self{data}{devices}{$device->{identifier}}{eventsHash}{$index->{type} . "-" . $index->{name} . "-" . $index->{holdClimateRef}} = $index;
+              if (exists $index->{holdClimateRef}) {
+                  $$self{data}{devices}{$device->{identifier}}{eventsHash}{$index->{type} . "-" . $index->{name} . "-" . $index->{holdClimateRef}} = $index;
+              } else {
+                  $$self{data}{devices}{$device->{identifier}}{eventsHash}{$index->{type} . "-" . $index->{name}} = $index;
+              }
            }
            # Save the program information as well. Note: the schedule and climate info are stored in arrays. Since we need to use this same format to 
            # modify a schedule or climate, they will be retained in this format
@@ -423,7 +427,11 @@ sub _get_settings {
            # create a temporary hash to compare current and previous events
            my %temp_events;
            foreach my $index (@{$device->{events}}) {
-              $temp_events{$index->{type} . "-" . $index->{name} . "-" . $index->{holdClimateRef}} = $index;
+              if (exists $index->{holdClimateRef}) {
+                  $temp_events{$index->{type} . "-" . $index->{name} . "-" . $index->{holdClimateRef}} = $index;
+              } else {
+                  $temp_events{$index->{type} . "-" . $index->{name}} = $index;
+              }
            }
            # Look for new events
            foreach my $key (keys %temp_events) {
@@ -900,10 +908,6 @@ sub compare_data {
         $prev_value = $$prev_data{$key} if exists $$prev_data{$key};
         my $monitor_value = {};
         $monitor_value = $$monitor_hash{$key} if exists $$monitor_hash{$key};
-        #if ($key eq "actualTemperature") {
-        #    main::print_log( "[Ecobee]: --AT-- I am evaluating key $key, value $value, prev_value $prev_value ref monitor_value " . ref $monitor_value );
-        #    main::print_log( "[Ecobee]: --AT2-- monitor_value = $monitor_value");
-        #}
         if ( ref $value eq 'HASH') {
             $self->compare_data( $value, $prev_value, $monitor_value );
         }
@@ -921,10 +925,6 @@ sub populate_monitor_hash {
     my ($self) = @_;
     for my $array_ref ( @{ $$self{register} } ) {
         my ( $parent, $value ) = @{$array_ref};
-        #print "***value***\n";
-        #print Data::Dumper::Dumper( \$value);
-        #print "***value***\n";
-        #$self->debug( "Ecobee Initial data load convert_to_ids " . $value );
         my $device_id = $parent->device_id();
         if ( $$parent{type} eq 'sensor') {
             my $sensor_id = $parent->sensor_id();
@@ -943,13 +943,10 @@ sub _merge {
     my ($self,$source,$dest) = @_;
     for my $key (keys %{$source}) {
         if ('ARRAY' eq ref $dest->{$key}) {
-            #$self->debug( "Ecobee: adding array element " . $source->{$key} );
             push @{$dest->{$key}}, $source->{$key};
         } elsif ('HASH' eq ref $dest->{$key}) {
-            #$self->debug( "Ecobee: merging $key");
             $self->_merge($source->{$key},$dest->{$key});
         } else {
-            #$self->debug( "Ecobee: assigning value " . $source->{$key} . " to key " .  $key);
             $dest->{$key} = $source->{$key};
         }
     }
@@ -1443,6 +1440,24 @@ sub get_temp {
     return $runtime->{actualTemperature};
 }
 
+
+=item C<get_events()>
+
+Returns the current events.
+
+=cut
+
+sub get_events {
+    my ($self) = @_;
+    my $eventshash = $self->get_value( "eventsHash"); # This returns a hashref with all the events (including holds)
+    if (scalar keys %{$eventshash} > 0) {
+        return $eventshash;
+    } else {
+        return;
+    }
+}
+
+
 =item C<set_hvac_mode($state, $p_setby, $p_response)>
 
 Sets the mode to $state, must be [heat,auxHeatOnly,cool,auto,off]
@@ -1477,9 +1492,75 @@ sub set_hvac_mode {
     my $json_body = '{"selection":{"selectionType":"thermostats","selectionMatch":"' . $self->device_id . '"},"thermostat":{"settings":{"hvacMode":"' . $state . '"}}}'; 
     my ($isSuccessResponse1, $modeparams) = $$self{interface}->_get_JSON_data("POST", "thermostat", "?format=json", $headers, $json_body);
     if ($isSuccessResponse1) {
-       main::print_log( "[Ecobee]: Mode change response looks good" );
+        main::print_log( "[Ecobee]: Mode change response looks good" );
     } else {
         main::print_log( "[Ecobee]: Uh, oh... Something went wrong with the mode change request" );
+    }
+    $$self{interface}{polling_timer}->resume;
+}
+
+
+=item C<set_hold($state, $p_setby, $p_response)>
+
+Sets a hold for the properties defined in $state. $state format can be either a temperature hold or a 
+climate hold. Temperature holds are in the format temperature_<holdType>_<heatHoldTemp>_<coolHoldTemp> and 
+climate holds are in the format climate_<holdType>_<holdClimateRef>
+
+=cut
+
+sub set_hold {
+    my ( $self, $state, $p_setby, $p_response ) = @_;
+    main::print_log( "[Ecobee]: Attempting to set a thermostat hold to $state" );
+    my @s_params = split('_', $state);
+    my $json_body;
+    if (($s_params[0] eq 'climate') && (scalar @s_params == 3)) {
+        # climate hold
+        $json_body = '{"selection":{"selectionType":"thermostats","selectionMatch":"' . $self->device_id . '"},"functions": [{"type":"setHold","params":{"holdType":"' . $s_params[1] . '","holdClimateRef":' . $s_params[2] . '}}]}';
+    } elsif (($s_params[0] eq 'temperature') && (scalar @s_params == 4)) {
+        # temperature hold
+        $json_body = '{"selection":{"selectionType":"thermostats","selectionMatch":"' . $self->device_id . '"},"functions": [{"type":"setHold","params":{"holdType":"' . $s_params[1] . '","heatHoldTemp":' . $s_params[2] . ',"coolHoldTemp":' . $s_params[3] . '}}]}';
+    } else {
+        # format is wrong
+        $self->debug("set_hold state \"$state\" is invalid");
+        return;
+    }
+
+    $$self{state_pending}{hold} = [ $p_setby, $p_response ];
+    $$self{interface}{polling_timer}->pause;
+    my $headers = HTTP::Headers->new(
+        'Content-Type' => 'text/json',
+        'Authorization' => 'Bearer ' . $$self{interface}{access_token}
+        );
+    my ($isSuccessResponse1, $holdparams) = $$self{interface}->_get_JSON_data("POST", "thermostat", "?format=json", $headers, $json_body);
+    if ($isSuccessResponse1) {
+        main::print_log( "[Ecobee]: Set hold response looks good" );
+    } else {
+        main::print_log( "[Ecobee]: Uh, oh... Something went wrong with the set hold request" );
+    }
+    $$self{interface}{polling_timer}->resume;
+}
+
+
+=item C<clear_hold()>
+
+Clears the current thermostat hold.
+
+=cut
+
+sub clear_hold {
+    my ($self) = @_;
+    main::print_log( "[Ecobee]: Attempting to clear thermostat hold" );
+    $$self{interface}{polling_timer}->pause;
+    my $headers = HTTP::Headers->new(
+        'Content-Type' => 'text/json',
+        'Authorization' => 'Bearer ' . $$self{interface}{access_token}
+        );
+    my $json_body = '{"selection":{"selectionType":"thermostats","selectionMatch":"' . $self->device_id . '"},"functions": [{"type":"resumeProgram","params":{"resumeAll":false}}]}';
+    my ($isSuccessResponse1, $holdparams) = $$self{interface}->_get_JSON_data("POST", "thermostat", "?format=json", $headers, $json_body);
+    if ($isSuccessResponse1) {
+        main::print_log( "[Ecobee]: Clear hold response looks good" );
+    } else {
+        main::print_log( "[Ecobee]: Uh, oh... Something went wrong with the clear hold request" );
     }
     $$self{interface}{polling_timer}->resume;
 }
