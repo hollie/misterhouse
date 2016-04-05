@@ -218,14 +218,14 @@ my %cmd_to_hex = (
         cmd               => 0x1A,
         flags             => 0x00,
         data              => 1,
-        description       => "Report the Signal Stren gth. *",
+        description       => "Report the Signal Strength. *",
         expected_response => undef,
     },
     report_noise_strength => {
         cmd               => 0x1B,
         flags             => 0x00,
         data              => 1,
-        description       => "Report the Noise Str ength. *",
+        description       => "Report the Noise Strength. *",
         expected_response => undef,
     },
     get_all_id_pulse => {
@@ -807,20 +807,38 @@ sub _check_current_command() {
     }
 
     my $delete_cmd = 0;
+    my $retry_cmd = 0;
     if ( $self->_is_current_command_complete() ) {
         $delete_cmd = 1;
     }
     elsif ( $self->_has_current_command_timeout() ) {
         $delete_cmd = 1;
+        if (!$self->{current_cmd}->{retry}
+            || $self->{current_cmd}->{retry} lt 2){
+            $retry_cmd = 1;
+            $self->{current_cmd}->{retry}++;
+            _log("Requeuing after timeout. Retry=". $self->{current_cmd}->{retry});
+        }
+        else{
+            _log("Retries exceeded. Won't requeue.");
+        }
     }
 
     if ($delete_cmd) {
+        my $cmd = $self->{current_cmd};
         $self->{current_cmd} = undef;
+        if ($retry_cmd){
+            if(grep {$_->{home} == $cmd->{home} &&  $_->{unit} == $cmd->{unit} } @{$self->{command_queue}}) {
+                _log("Won't requeue. Queue already contains new command for $cmd->{home}$cmd->{unit}.");
+            }
+            else{
+                $self->queue_command($cmd);
+            }
+        }
         return 1;
     }
 
     return 0;
-
 }
 
 sub _can_transmit() {
