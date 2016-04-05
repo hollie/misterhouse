@@ -304,7 +304,6 @@ sub monitor_start {
             $self->debug("Monitor started", $notice);
         }
         else {
-            speak("C-Bus Monitor failed to start");
             $self->debug("Monitor failed to start", $warn);
         }
     }
@@ -324,7 +323,6 @@ sub monitor_stop {
             $self->debug("Monitor stopped", $notice);
         }
         else {
-            speak("C-Bus Monitor failed to stop");
             $self->debug("Monitor failed to stop", $warn);
         }
     }
@@ -337,11 +335,9 @@ sub monitor_status {
     
     if ( $Clipsal_CBus::Monitor->active() ) {
         $self->debug("Monitor is active. Last event: $$self{last_mon_state}", $notice);
-        speak("C-Bus Monitor is active. Last event was $$self{last_mon_state}");
     }
     else {
         $self->debug("Monitor is NOT running", $notice);
-        speak("C-Bus Monitor is not running");
     }
 }
 
@@ -350,15 +346,7 @@ sub monitor_check {
     
     # Monitor Voice Command / Menu processing
     if ( my $data = $::CBus_Monitor_v->said() ) {
-        if ( $data eq 'Start' ) {
-            $self->monitor_start();
-            
-        }
-        elsif ( $data eq 'Stop' ) {
-            $self->monitor_stop();
-            
-        }
-        elsif ( $data eq 'Status' ) {
+        if ( $data eq 'Status' ) {
             $self->monitor_status();
 
         }
@@ -551,8 +539,6 @@ sub talker_start {
     
     if ( $Clipsal_CBus::Talker->active() ) {
         $self->debug("Talker already running, skipping start", $notice);
-        &::speak("C-Bus talker is already running");
-        
     }
     else {
         #set $Clipsal_CBus_CGate::CBus_Sync = "OFF";
@@ -561,7 +547,6 @@ sub talker_start {
             $self->debug("Talker started", $notice);
         }
         else {
-            &::speak("C-Bus Talker failed to start");
             $self->debug("Talker failed to start", $notice);
         }
     }
@@ -574,8 +559,6 @@ sub talker_stop {
     
     if ( not $Clipsal_CBus::Talker->active() ) {
         $self->debug("Talker isn't active, skipping stop", $notice);
-        &::speak("C-Bus talker isn't active");
-        
     }
     else {
         #set $Clipsal_CBus_CGate::CBus_Sync = "OFF";
@@ -583,7 +566,6 @@ sub talker_stop {
             $self->debug("Talker stopped", $notice);
         }
         else {
-            &::speak("C-Bus Talker failed to stop");
             $self->debug("Talker failed to stop", $warn);
         }
     }
@@ -597,12 +579,9 @@ sub talker_status {
     if ( $Clipsal_CBus::Talker->active() ) {
         $self->debug("Talker is active.", $notice);
         $self->debug("Last command sent was: $$self{last_talk_state}", $notice);
-        &::speak(  "C-Bus Talker is active. "
-        . "Last command sent was $$self{last_talk_state}" );
     }
     else {
         $self->debug("Talker is not running", $notice);
-        &::speak("C-Bus Talker is not running");
     }
 }
 
@@ -611,15 +590,7 @@ sub talker_check {
     
     # Talker Voice Command / Menu processing
     if ( my $data = $::CBus_Talker_v->said() ) {
-        if ( $data eq 'Start' ) {
-            $self->talker_start();
-            
-        }
-        elsif ( $data eq 'Stop' ) {
-            $self->talker_stop();
-            
-        }
-        elsif ( $data eq 'Status' ) {
+        if ( $data eq 'Status' ) {
             $self->talker_status();
             
         }

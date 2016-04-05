@@ -129,7 +129,7 @@ sub debug {
 =item C<generate_voice_commands ()>
  
 Generates voice commands correspnding to the CBus group objects. When a new CGate object is instantiated, it
-add's a post reload hook into &main to run this function.
+adds a post reload hook into &main to run this function.
  
 =cut
 
@@ -176,14 +176,14 @@ sub generate_voice_commands {
     print_log ("Error in cbus_item_commands: $@\n") if $@;
 
     use vars '$CBus_Talker_v';
-    $CBus_Talker_v = new Voice_Cmd("cbus talker [Start,Stop,Status,Scan]");
+    $CBus_Talker_v = new Voice_Cmd("cbus talker [Status,Scan]");
     &main::register_object_by_name('$CBus_Talker_v',$CBus_Talker_v);
     $CBus_Talker_v->{category} = "Clipsal CBus";
     $CBus_Talker_v->{filename} = "Clipsal_CBus_commands";
     $CBus_Talker_v->{object_name} = '$CBus_Talker_v';
     
     use vars '$CBus_Monitor_v';
-    $CBus_Monitor_v = new Voice_Cmd("cbus monitor [Start,Stop,Status]");
+    $CBus_Monitor_v = new Voice_Cmd("cbus monitor [Status]");
     &main::register_object_by_name('$CBus_Monitor_v',$CBus_Monitor_v);
     $CBus_Monitor_v->{category} = "Clipsal CBus";
     $CBus_Monitor_v->{filename} = "Clipsal_CBus_commands";
