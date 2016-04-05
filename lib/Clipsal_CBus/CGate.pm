@@ -55,9 +55,6 @@ sub new {
     $$self{DELAY_CHECK_SYNC}            = 10;
     $$self{cbus_group_idx}              = undef;
     $$self{cbus_unit_idx}               = undef;
-    
-    $$self{last_mon_state}              = "un-initialised";
-    $$self{last_talk_state}             = "un-initialised";
     $$self{request_cgate_scan}          = 0;
     
     bless $self, $class;
@@ -271,7 +268,6 @@ sub write_mht_file {
     or $self->debug("write_mht_file() Could not close $$self{cbus_mht_filename}: $!", $warn);
     
     $self->debug("write_mht_file() Completed CBus build to $$self{cbus_mht_filename}", $notice);
-
     
 }
 
@@ -334,7 +330,7 @@ sub monitor_status {
     # Return the status of the CBus listener (monitor)
     
     if ( $Clipsal_CBus::Monitor->active() ) {
-        $self->debug("Monitor is active. Last event: $$self{last_mon_state}", $notice);
+        $self->debug("Monitor is active.", $notice);
     }
     else {
         $self->debug("Monitor is NOT running", $notice);
@@ -468,18 +464,6 @@ sub monitor_check {
         }
         
         my $cbus_label = $Clipsal_CBus::Groups{$cg_addr}{label};
-        my $speak_name = "dummy speak name";    #$$self{cbus_def}->{group}{$cg_addr}{speak_name};
-        my $announce   = "dummy announce";      #$$self{cbus_def}->{group}{$cg_addr}{announce};
-        
-        #$cbus_label = $$self{cbus_def}->{group}{$cg_addr}{name} if not defined $cbus_label;
-        #$speak_name = $$self{cbus_def}->{group}{$cg_addr}{name} if not defined $speak_name;
-        $announce = 0 if not defined $announce;
-        
-        $$self{last_mon_state} = "$speak_name $state_speak";
-        
-        #if ( ( state $v_cbus_speak eq ON ) && ($announce) ) {
-        #    speak($last_mon_state);
-        #}
         
         if ( $source eq 'MisterHouse via Session ID') {
             # This is a Reflected mesg, we will ignore
@@ -497,19 +481,6 @@ sub monitor_check {
             $self->debug("Monitor $cbus_label ramping $ramping by $source", $debug) if ($ramping);
             
             $self->cbus_update($cg_addr, $cbus_state, 'cbus');
-            
-            #if ( $cbus_def->{group}{$cg_addr}{type} eq 'oneshot' ) {
-            #    if ( $config_parms{cbus_log_oneshot} ) {
-            #        ### FIXME RichardM to test
-            #        # Device is a one-shot and logging is on
-            #        print_log "CBus: ONESHOT device $cbus_label "
-            #        . "set $state_speak by $source";
-            #    }
-                
-            #}
-            #else {
-            #    $self->debug("CBus: $cbus_label $state_speak by \"$source\"");
-            #}
         }
     }
     
@@ -578,7 +549,6 @@ sub talker_status {
     
     if ( $Clipsal_CBus::Talker->active() ) {
         $self->debug("Talker is active.", $notice);
-        $self->debug("Last command sent was: $$self{last_talk_state}", $notice);
     }
     else {
         $self->debug("Talker is not running", $notice);
