@@ -22,7 +22,7 @@ This module adds support for Clipsal CBus automation systems, and is a refactor 
 ***
 ******* IMPORTANT *******
 
-=head3 How Cgate integrates with MH
+=head3 How CGate integrates with MH
 
 All CBus objects (i.e. the CGate interface, groups and units) are defined in a standard mht
 file. Misterhouse creates objects from the mht file at $Reload, and subsequently creates corresponding voice command
@@ -87,13 +87,15 @@ package Clipsal_CBus;
 
 use strict;
 
-%Clipsal_CBus::Groups = ();
-%Clipsal_CBus::Units = ();
-$Clipsal_CBus::Command_Counter = 0;
+%Clipsal_CBus::Groups              = ();
+%Clipsal_CBus::Units               = ();
+$Clipsal_CBus::Command_Counter     = 0;
 $Clipsal_CBus::Command_Counter_Max = 100;
 
-$Clipsal_CBus::Talker = new Socket_Item( undef, undef, $::config_parms{cgate_talk_address} );
-$Clipsal_CBus::Monitor = new Socket_Item( undef, undef, $::config_parms{cgate_mon_address} );
+$Clipsal_CBus::Talker =
+  new Socket_Item( undef, undef, $::config_parms{cgate_talk_address} );
+$Clipsal_CBus::Monitor =
+  new Socket_Item( undef, undef, $::config_parms{cgate_mon_address} );
 
 =head2 FUNCTIONS
  
@@ -106,11 +108,11 @@ Provides a standard logging function for the CBus packages.
 =cut
 
 #log levels
-my $warn    = 1;
-my $notice  = 2;
-my $info    = 3;
-my $debug   = 4;
-my $trace   = 5;
+my $warn   = 1;
+my $notice = 2;
+my $info   = 3;
+my $debug  = 4;
+my $trace  = 5;
 
 &::print_log("[Clipsal CBus] CBus logging at level $::Debug{cbus}");
 
@@ -121,7 +123,7 @@ sub debug {
     my @caller = caller(0);
     if ( $::Debug{cbus} >= $level || $level == 0 ) {
         $line = " at line " . $caller[2]
-        if $::Debug{cbus} >= $trace;
+          if $::Debug{cbus} >= $trace;
         &::print_log( "[" . $caller[0] . "] " . $message . $line );
     }
 }
@@ -134,61 +136,63 @@ adds a post reload hook into &main to run this function.
 =cut
 
 sub generate_voice_commands {
-    
-    &::print_log("[Clipsal CBus] Generating Voice commands for all CBus group objects");
-    
+
+    &::print_log(
+        "[Clipsal CBus] Generating Voice commands for all CBus group objects");
+
     my $object_string;
     for my $object (&main::list_all_objects) {
         next unless ref $object;
         next unless $object->isa('Clipsal_CBus::Group');
-        
+
         #get object name to use as part of variable in voice command
         my $object_name   = $object->get_object_name;
         my $object_name_v = $object_name . '_v';
         $object_string .= "use vars '${object_name}_v';\n";
         my $command = $object->{label};
-        
+
         #Get list of all voice commands from the object
         my $voice_cmds = $object->get_voice_cmds();
-        
+
         #Initialize the voice command with all of the possible device commands
         $object_string .= "$object_name_v  = new Voice_Cmd '$command ["
-        . join( ",", sort keys %$voice_cmds ) . "]';\n";
-        
+          . join( ",", sort keys %$voice_cmds ) . "]';\n";
+
         #Tie the proper routine to each voice command
         foreach ( keys %$voice_cmds ) {
             $object_string .=
-            "$object_name_v -> tie_event('"
-            . $voice_cmds->{$_}
-            . "', '$_');\n\n";
+                "$object_name_v -> tie_event('"
+              . $voice_cmds->{$_}
+              . "', '$_');\n\n";
         }
-        
+
         #Add this object to the list of CBus Voice Commands on the Web Interface
-        $object_string .=
-        ::store_object_data( $object_name_v, 'Voice_Cmd', 'Clipsal CBus',
-        'Clipsal_CBus_commands' );
+        $object_string .= ::store_object_data(
+            $object_name_v, 'Voice_Cmd',
+            'Clipsal CBus', 'Clipsal_CBus_commands'
+        );
     }
-    
+
     #Evaluate the resulting object generating string
     package main;
-    
+
     eval $object_string;
-    print_log ("Error in cbus_item_commands: $@\n") if $@;
+    print_log("Error in cbus_item_commands: $@\n") if $@;
 
     use vars '$CBus_Talker_v';
     $CBus_Talker_v = new Voice_Cmd("cbus talker [Status,Scan]");
-    &main::register_object_by_name('$CBus_Talker_v',$CBus_Talker_v);
-    $CBus_Talker_v->{category} = "Clipsal CBus";
-    $CBus_Talker_v->{filename} = "Clipsal_CBus_commands";
+    &main::register_object_by_name( '$CBus_Talker_v', $CBus_Talker_v );
+    $CBus_Talker_v->{category}    = "Clipsal CBus";
+    $CBus_Talker_v->{filename}    = "Clipsal_CBus_commands";
     $CBus_Talker_v->{object_name} = '$CBus_Talker_v';
-    
+
     use vars '$CBus_Monitor_v';
     $CBus_Monitor_v = new Voice_Cmd("cbus monitor [Status]");
-    &main::register_object_by_name('$CBus_Monitor_v',$CBus_Monitor_v);
-    $CBus_Monitor_v->{category} = "Clipsal CBus";
-    $CBus_Monitor_v->{filename} = "Clipsal_CBus_commands";
+    &main::register_object_by_name( '$CBus_Monitor_v', $CBus_Monitor_v );
+    $CBus_Monitor_v->{category}    = "Clipsal CBus";
+    $CBus_Monitor_v->{filename}    = "Clipsal_CBus_commands";
     $CBus_Monitor_v->{object_name} = '$CBus_Monitor_v';
-    
+
     package Clipsal_CBus;
 }
 
