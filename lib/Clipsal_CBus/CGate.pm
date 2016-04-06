@@ -3,11 +3,12 @@
 
 =head2 SYNOPSIS
 
-Clipsal_CBus.pm - support for Clipsal CBus
+CGate.pm - support for the Clipsal  CGate interface.
 
 =head2 DESCRIPTION
 
-This module adds support for ...
+This module adds support for the Clispal CGtae interface. It is largely derived from the
+original CBus support available in cbus.pl. See Clipsal_CBus.pm for detailed usage notes.
 
 =cut
 
@@ -231,7 +232,7 @@ sub write_mht_file {
     print CF "# Example CBus mht file auto-generated on $::Date_Now at $::Time_Now.\n";
     print CF "\n";
     print CF "# This file will be overwritten - do not edit. Instead, copy this file to \n";
-    print CF "# (for example) cbus.mht and edit as required. Note the format as follows: yada.\n";
+    print CF "# (for example) cbus.mht and edit as required.\n";
     print CF "\n";
     print CF "Format = A\n";
     print CF "\n";
@@ -344,7 +345,6 @@ sub monitor_check {
     if ( my $data = $::CBus_Monitor_v->said() ) {
         if ( $data eq 'Status' ) {
             $self->monitor_status();
-
         }
         else {
             $self->debug("Monitor: command $data is not implemented", $warn);
@@ -357,7 +357,6 @@ sub monitor_check {
 
         my @cg = split / /, $monitor_msg;
         my $cg_code = $cg[1];
-        my $state_speak;
         
         unless ( $cg_code == 730 ) {    # only code 730 are of interest
             $self->debug("Monitor ignoring uninteresting message type $cg_code", $debug);
@@ -381,7 +380,6 @@ sub monitor_check {
         
         # Determine SOURCE of the command
         my $could_be_ramp_starting = 1;
-        
         
         if ( $cg_sessionId =~ /$$self{session_id}/ ) {
             # Monitor message includes the current Misterhouse CBus session ID, so the message is
@@ -426,6 +424,7 @@ sub monitor_check {
         
         # Determine what level is being reported
         my $ramping;
+        my $state_speak;
         $cg_ramptime =~ s/ramptime=//i;
         
         ### if ($could_be_ramp_starting and $cg_ramptime > 0) {
@@ -479,7 +478,6 @@ sub monitor_check {
         else {
             # The source is a CBus unit, CGate, Toolkit, or some other software. Trigger an object set().
             $self->debug("Monitor $cbus_label ramping $ramping by $source", $debug) if ($ramping);
-            
             $self->cbus_update($cg_addr, $cbus_state, 'cbus');
         }
     }
@@ -585,78 +583,42 @@ sub talker_check {
         }
         
         $self->debug("Talker received: $talker_msg", $debug);
+    
+        ###### Message code 200: Completed successfully
         
-        ###### Message code 320: Tree information. Returned from the tree command.
+        if ( $msg_code == 200 ) {
+            $self->debug("Talker Cmd OK - $talker_msg", $debug);
+        }
         
-        if ( $msg_code == 320 ) {
-            if ( not $$self{cbus_got_tree_list} ) {
-                if ( not $$self{cbus_units_config} ) {
-                    if ( $talker_msg =~ /Applications/ ) {
-                        $$self{cbus_units_config} = 1;
-                    }
-                    elsif ( $talker_msg =~ /(\/\/.+\/\d+\/p\/\d+).+type=(.+) app/ ) {
-                        
-                        # CGate is listing CBus "units" (input and output)
-                        $self->debug("Talker scanned addr=$1 is type $2", $debug);
-                        
-                        # Store unit on a list for later scanning of details
-                        push ( @{ $$self{cbus_unit_list}}, $1);
-                        
-                    }
-                    
-                }
-                else {
-                    # CGate is listing CBus "groups"
-                    if ( $talker_msg =~ /end/ ) {
-                        $self->debug("Talker end of CBus scan data, got tree list", $notice);
-                        $$self{cbus_got_tree_list} = 1;
-                    }
-                    elsif ( $talker_msg =~ /(\/\/.+\/\d+\/\d+\/\d+).+level=(\d+)/ ) {
-                        $self->debug("Talker scanned group=$1 at level $2", $info);
-                        
-                        # Store group on a list for later scanning of details
-                        push ( @{ $$self{cbus_group_list}}, $1);
-                    }
-                }
+        ###### Message code 201: Service ready
+        
+        elsif ( $msg_code == 201 ) {
+            $self->debug("Talker Comms established - $talker_msg", $notice);
+            
+            # Newly started comms, therefore find the networks available
+            # then we will wait until CGate has sync'ed with the network
+            $$self{request_cgate_scan} = 0;
+            $Clipsal_CBus::Talker->set ("session_id");
+            
+            if ( not defined $$self{project} ) {
+                $self->debug("Talker ***ERROR*** Set \$cbus_project_name in mh.ini", $warn);
             }
-            
-            ###### Message code 342: DBGet response (not documented in CGate Server Guide 1.0.)
-            
-        }
-        elsif ( $msg_code == 342 ) {
-            if ($$self{cbus_scanning_cgate}) {
-                
-                $self->debug("Talker message 342 response data: $talker_msg", $debug);
-                
-                if ( $talker_msg =~ /\d+\s+(\d+\/[a-z\d]+\/\d+)\/TagName=(.+)/ ) {
-                    
-                    #response matched against "new" format, i.e. network/app/group
-                    my ( $addr, $name ) = ( $1, $2 );
-                    $addr = "//$$self{project}/$addr";
-                    
-                    $$self{cbus_scan_last_addr_seen} = $addr;
-                    
-                    # $name =~ s/ /_/g;  Change spaces, depends on user usage...
-                    $self->add_address_to_hash( $addr, $name );
-                    
-                }
-                elsif ( $talker_msg =~ /(\/\/.+\/\d+\/[a-z\d]+\/\d+)\/TagName=(.+)/ )
-                {
-                    #response matched against "old" format, i.e. //project/network/app/group
-                    my ( $addr, $name ) = ( $1, $2 );
-                    
-                    $$self{cbus_scan_last_addr_seen} = $addr;
-                    
-                    # $name =~ s/ /_/g;  Change spaces, depends on user usage...
-                    $self->add_address_to_hash( $addr, $name );
-                    
-                }
-                $self->debug("Talker end message", $notice) ;
+            elsif ( keys %Clipsal_CBus::Groups == 0 ) {
+                #we have no pre-defined CBus group objects loaded into the hash, so kick off a scan
+                $self->debug("Talker - no existing CBus Group objects. Initiating Scan.", $warn);
+                $self->scan_cgate();
             }
-            
-            ###### Message code 300: Object information, for example: 300 1/56/1: level=200
-            
+            else {
+                # initial a sync
+                $Clipsal_CBus::Talker->set ("project load $$self{project}");
+                $Clipsal_CBus::Talker->set ("project use $$self{project}");
+                $Clipsal_CBus::Talker->set ("project start $$self{project}");
+                $Clipsal_CBus::Talker->set ("get cbus networks");
+            }
         }
+        
+        ###### Message code 300: Object information, for example: 300 1/56/1: level=200
+        
         elsif ( $msg_code == 300 ) {
             
             if ( $talker_msg =~ /(sessionID=.+)/ ) {
@@ -684,7 +646,7 @@ sub talker_check {
                     if ($$self{request_cgate_scan}) {
                         # This state request was part of scanning startup
                         $self->debug("This state request was part of scanning startup", $debug);
-
+                        
                         $$self{cbus_scanning_cgate} = 1;    # Set scanning flag
                         $$self{request_cgate_scan}  = 0;
                     }
@@ -716,55 +678,92 @@ sub talker_check {
                 
                 delete $self->{addr_not_sync}>{$addr};    # Remove from not sync'ed list
                 my $name = $Clipsal_CBus::Groups{$addr}{name};
-                $self->debug("Talker $name ($addr) is $cbus_state", $info) if $cbus_state ne 'OFF';
+                $self->debug("Talker $name ($addr) is $cbus_state", $info) if $cbus_state ne 'off';
             }
             else {
                 $self->debug("Talker UNEXPECTED 300 msg \"$talker_msg\"", $info);
             }
             
-            ###### Message code 200: Completed successfully
-            
         }
-        elsif ( $msg_code == 200 ) {
-            $self->debug("Talker Cmd OK - $talker_msg", $debug);
-            
-            ###### Message code 201: Service ready
-            
+        
+        ###### Message code 320: Tree information. Returned from the tree command.
+        
+        elsif ( $msg_code == 320 ) {
+            if ( not $$self{cbus_got_tree_list} ) {
+                if ( not $$self{cbus_units_config} ) {
+                    if ( $talker_msg =~ /Applications/ ) {
+                        $$self{cbus_units_config} = 1;
+                    }
+                    elsif ( $talker_msg =~ /(\/\/.+\/\d+\/p\/\d+).+type=(.+) app/ ) {
+                        
+                        # CGate is listing CBus "units" (input and output)
+                        $self->debug("Talker scanned addr=$1 is type $2", $debug);
+                        
+                        # Store unit on a list for later scanning of details
+                        push ( @{ $$self{cbus_unit_list}}, $1);
+                        
+                    }
+                    
+                }
+                else {
+                    # CGate is listing CBus "groups"
+                    if ( $talker_msg =~ /end/ ) {
+                        $self->debug("Talker end of CBus scan data, got tree list", $notice);
+                        $$self{cbus_got_tree_list} = 1;
+                    }
+                    elsif ( $talker_msg =~ /(\/\/.+\/\d+\/\d+\/\d+).+level=(\d+)/ ) {
+                        $self->debug("Talker scanned group=$1 at level $2", $info);
+                        
+                        # Store group on a list for later scanning of details
+                        push ( @{ $$self{cbus_group_list}}, $1);
+                    }
+                }
+            }
         }
-        elsif ( $msg_code == 201 ) {
-            $self->debug("Talker Comms established - $talker_msg", $notice);
-            
-            # Newly started comms, therefore find the networks available
-            # then we will wait until CGate has sync'ed with the network
-            $$self{request_cgate_scan} = 0;
-            $Clipsal_CBus::Talker->set ("session_id");
-            
-            if ( not defined $$self{project} ) {
-                $self->debug("Talker ***ERROR*** Set \$cbus_project_name in mh.ini", $warn);
+        
+        ###### Message code 342: DBGet response (not documented in CGate Server Guide 1.0.)
+        
+        elsif ( $msg_code == 342 ) {
+            if ($$self{cbus_scanning_cgate}) {
+                
+                $self->debug("Talker message 342 response data: $talker_msg", $debug);
+                
+                if ( $talker_msg =~ /\d+\s+(\d+\/[a-z\d]+\/\d+)\/TagName=(.+)/ ) {
+                    
+                    #response matched against "new" format, i.e. network/app/group
+                    my ( $addr, $name ) = ( $1, $2 );
+                    $addr = "//$$self{project}/$addr";
+                    
+                    $$self{cbus_scan_last_addr_seen} = $addr;
+                    
+                    # $name =~ s/ /_/g;  Change spaces, depends on user usage...
+                    $self->add_address_to_hash( $addr, $name );
+                    
+                }
+                elsif ( $talker_msg =~ /(\/\/.+\/\d+\/[a-z\d]+\/\d+)\/TagName=(.+)/ )
+                {
+                    #response matched against "old" format, i.e. //project/network/app/group
+                    my ( $addr, $name ) = ( $1, $2 );
+                    
+                    $$self{cbus_scan_last_addr_seen} = $addr;
+                    
+                    # $name =~ s/ /_/g;  Change spaces, depends on user usage...
+                    $self->add_address_to_hash( $addr, $name );
+                    
+                }
+                $self->debug("Talker end message", $info) ;
             }
-            elsif ( keys %Clipsal_CBus::Groups == 0 ) {
-                #we have no pre-defined CBus group objects loaded into the hash, so kick off a scan
-                $self->debug("Talker - no existing CBus Group objects", $warn);
-                $self->scan_cgate();
-            }
-            else {
-                # initial a sync
-                $Clipsal_CBus::Talker->set ("project load $$self{project}");
-                $Clipsal_CBus::Talker->set ("project use $$self{project}");
-                $Clipsal_CBus::Talker->set ("project start $$self{project}");
-                $Clipsal_CBus::Talker->set ("get cbus networks");
-            }
-            
-            ###### Message code 401: Bad object or device ID
-            
         }
+
+        ###### Message code 401: Bad object or device ID
+
         elsif ( $msg_code == 401 ) {
             $self->debug("Talker $talker_msg", $info);
-            
-            ###### Message code 408: Indicates that a SET, GET or other method
-            ###### failed for a given object
-            
         }
+        
+        ###### Message code 408: Indicates that a SET, GET or other method
+        ###### failed for a given object
+        
         elsif ( $msg_code == 408 ) {
             $self->debug("Talker **** Failed Cmd - $talker_msg", $warn);
             if ( $msg_id =~ /\[MisterHouse(\d+)\]/ ) {
@@ -779,10 +778,10 @@ sub talker_check {
                     $self->debug("Talker 2nd failure - abandoning command", $warn);
                 }
             }
-            
-            ###### Message code unhandled
-            
         }
+        
+        ###### Message code unhandled
+        
         else {
             $self->debug("Talker Cmd port - UNHANDLED: $talker_msg", $warn);
         }
@@ -791,10 +790,11 @@ sub talker_check {
     #
     # Control scanning of the CGate configuration
     #
-    if ( $$self{cbus_scanning_cgate} ) {        # i've removed $self->{cbus_talker}->active() and
-        $self->debug("Talker scanning cgate", $notice);
+    if ( $$self{cbus_scanning_cgate} ) {
+        $self->debug("Talker scanning cgate", $trace);
+        
         if ( not $$self{cbus_scanning_tree} ) {
-            if ( my $network = pop @{ $$self{cbus_net_list} } ) { #pop @{ $$self{cbus_net_list} }
+            if ( my $network = pop @{ $$self{cbus_net_list} } ) {
                 
                 # Cleanup from any previous scan and initialise flags/counters
                 $$self{cbus_units_config}  = 0;

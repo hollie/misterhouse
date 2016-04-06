@@ -1,3 +1,23 @@
+
+=head1 B<Clipsal CBus Group>
+ 
+=head2 SYNOPSIS
+ 
+Group.pm - support for Clipsal CBus output groups.
+ 
+=head2 DESCRIPTION
+ 
+This module is a child of Clispal_CBus. It provides a MisterHouse object
+that corresponds to a CBus output group, with a set() method that overides
+that inherited from it's GenericItem parent.
+ 
+Note that there is no provision for an output group to have a "relay" type
+behaviour (i.e. states "on" and "off" only) as output groups can be mapped
+to multiple CBus output unit channels, which may include dimmer and/or relay
+channels.
+ 
+=cut
+
 package Clipsal_CBus::Group;
 
 use strict;
@@ -51,11 +71,14 @@ sub new {
  Depending on the source of the set() call, one or both of these actions may not be required. Scenarios are as follows:
  
  1) A CBus group is set to a new value by a CBus unit (e.g. a switch). This is seen by the CBus monitor, and the source
-    of set_by is passed as "cbus".
+    of set_by is passed as "cbus". The CBus monitor calls set(), which reflects the new $state in the MH object.
  
- (optional) set_by overrides the defeult set_by value.
+ 2) A MH object is set by the web interface or user code (or other MH function), by calling the objects set() method. 
+    The set() method sets the MH object $state, and sends the corresponding CBus command to the CBus Talker socket.
  
- (optional) respond overrides the defeult respond value.
+ (optional) set_by overrides the default set_by value.
+ 
+ (optional) respond overrides the default respond value.
  
 =cut
 
@@ -110,8 +133,6 @@ sub set {
     
     my $ramp_command = "[MisterHouse-$Clipsal_CBus::Command_Counter] RAMP $address $state $speed\n";
     $Clipsal_CBus::Talker->set($ramp_command);
-    #$last_talk_state = "Ramp unit $addr to level $level, speed $speed";
-    #$cmd_list[$cmd_counter] = $ramp_command;
     $Clipsal_CBus::Command_Counter = 0 if ( ++$Clipsal_CBus::Command_Counter > $Clipsal_CBus::Command_Counter_Max );
 }
 
@@ -124,7 +145,7 @@ sub set {
  Higher classes which inherit this object may add to this list of voice commands by
  redefining this routine while inheriting this routine using the SUPER function.
  
- This routine is called by L<Insteon::generate_voice_commands> to generate the
+ This routine is called by L<Clipsal_CBus::generate_voice_commands> to generate the
  necessary voice commands.
  
 =cut
@@ -139,5 +160,29 @@ sub get_voice_cmds {
     
     return \%voice_cmds;
 }
+
+=head1 AUTHOR
+ 
+ This code is based on the original cbus.pl implementation by:
+ 
+ Richard Morgan, omegaATbigpondDOTnetDOTau
+ Andrew McCallum, Mandoon Technologies, andyATmandoonDOTcomDOTau
+ 
+ It was refactored to make it more MisterHouse "native" by:
+ 
+ Jon Whitear, jonATwhitearDOTorg
+
+=head1 LICENSE
+ 
+ This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+ 
+ This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License along with this program; if not, write to the
+ Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ 
+=cut
 
 1;
