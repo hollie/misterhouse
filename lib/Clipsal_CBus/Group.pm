@@ -24,13 +24,13 @@ use strict;
 use Clipsal_CBus;
 
 #log levels
-my $warn    = 1;
-my $notice  = 2;
-my $info    = 3;
-my $debug   = 4;
-my $trace   = 5;
+my $warn   = 1;
+my $notice = 2;
+my $info   = 3;
+my $debug  = 4;
+my $trace  = 5;
 
-@Clipsal_CBus::Group::ISA = ('Generic_Item', 'Clipsal_CBus');
+@Clipsal_CBus::Group::ISA = ( 'Generic_Item', 'Clipsal_CBus' );
 
 =item C<new()>
  
@@ -41,25 +41,26 @@ my $trace   = 5;
 sub new {
     my ( $class, $address, $name, $label ) = @_;
     my $self = new Generic_Item();
-    
+
     bless $self, $class;
-    
-    my $object_name = "\$". $name;
+
+    my $object_name   = "\$" . $name;
     my $object_name_v = $object_name . '_v';
-    
+
     &::print_log("[Clipsal CBus] New group object $object_name at $address");
-    
-    $self->set_states(split ',','on,off,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%');
+
+    $self->set_states( split ',',
+        'on,off,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%' );
     $self->set_label($label);
     $$self{ramp_speed} = $::config_parms{cbus_ramp_speed};
-    $$self{address} = $address;
+    $$self{address}    = $address;
 
     #Add this object to the CBus object hash.
     $Clipsal_CBus::Groups{$address}{object_name} = $object_name;
-    $Clipsal_CBus::Groups{$address}{name} = $name;
-    $Clipsal_CBus::Groups{$address}{label} = $label;
-    $Clipsal_CBus::Groups{$address}{note} = "Added at object creation";
-    
+    $Clipsal_CBus::Groups{$address}{name}        = $name;
+    $Clipsal_CBus::Groups{$address}{label}       = $label;
+    $Clipsal_CBus::Groups{$address}{note}        = "Added at object creation";
+
     return $self;
 }
 
@@ -84,58 +85,61 @@ sub new {
 
 sub set {
     my ( $self, $state, $set_by, $respond ) = &Generic_Item::_set_process(@_);
-    &Generic_Item::set_states_for_next_pass( $self, $state, $set_by, $respond ) if $self;
-    
+    &Generic_Item::set_states_for_next_pass( $self, $state, $set_by, $respond )
+      if $self;
+
     my $orig_state = $state;
     my $cbus_label = $self->{label};
-    my $address = $$self{address};
-    my $speed = $$self{ramp_speed};
-    
-    $self->debug("$cbus_label set to state $state by $set_by", $info);
-    
+    my $address    = $$self{address};
+    my $speed      = $$self{ramp_speed};
+
+    $self->debug( "$cbus_label set to state $state by $set_by", $info );
+
     if ( $set_by =~ /cbus/ ) {
-        
+
         # This was a Recursive set, we are ignoring
-        $self->debug("set() by CBus - no CBus update required", $debug);
+        $self->debug( "set() by CBus - no CBus update required", $debug );
         return;
     }
-    
+
     if ( $set_by =~ /MisterHouseSync/ ) {
-        
+
         # This was a Recursive set, we are ignoring
-        $self->debug("set() by MisterHouse sync - no CBus update required", $debug);
+        $self->debug( "set() by MisterHouse sync - no CBus update required",
+            $debug );
         return;
     }
-    
+
     # Get rid of any % signs in the $Level value
     $state =~ s/%//g;
-    
+
     if ( ( $state =~ /on/ ) || ( $state =~ /ON/ ) ) {
         $state = 255;
-        
+
     }
     elsif ( ( $state eq /off/ ) || ( $state eq /OFF/ ) ) {
         $state = 0;
-        
+
     }
     elsif ( ( $state <= 100 ) && ( $state >= 0 ) ) {
         $state = int( $state / 100.0 * 255.0 );
-        
+
     }
     else {
-        $self->debug("invalid level \'$state\' passed to set()", $warn);
+        $self->debug( "invalid level \'$state\' passed to set()", $warn );
         return;
     }
-    
 
     my $cmd_log_string = "RAMP $cbus_label set $state, speed=$speed";
-    $self->debug("$cmd_log_string", $debug);
-    
-    my $ramp_command = "[MisterHouse-$Clipsal_CBus::Command_Counter] RAMP $address $state $speed\n";
-    $Clipsal_CBus::Talker->set($ramp_command);
-    $Clipsal_CBus::Command_Counter = 0 if ( ++$Clipsal_CBus::Command_Counter > $Clipsal_CBus::Command_Counter_Max );
-}
+    $self->debug( "$cmd_log_string", $debug );
 
+    my $ramp_command =
+      "[MisterHouse-$Clipsal_CBus::Command_Counter] RAMP $address $state $speed\n";
+    $Clipsal_CBus::Talker->set($ramp_command);
+    $Clipsal_CBus::Command_Counter = 0
+      if (
+        ++$Clipsal_CBus::Command_Counter > $Clipsal_CBus::Command_Counter_Max );
+}
 
 =item C<get_voice_cmds>
  
@@ -153,11 +157,11 @@ sub set {
 sub get_voice_cmds {
     my ($self) = @_;
     my %voice_cmds = (
-    
-    'set on' => $self->get_object_name . '->set( 100 , "Voice Command")',
-    'set off' => $self->get_object_name . '->set( 0 , "Voice Command")'
+
+        'set on'  => $self->get_object_name . '->set( 100 , "Voice Command")',
+        'set off' => $self->get_object_name . '->set( 0 , "Voice Command")'
     );
-    
+
     return \%voice_cmds;
 }
 
