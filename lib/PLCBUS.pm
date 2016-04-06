@@ -828,7 +828,7 @@ sub _check_current_command() {
         my $cmd = $self->{current_cmd};
         $self->{current_cmd} = undef;
         if ($retry_cmd){
-            if(grep {$_->{home} == $cmd->{home} &&  $_->{unit} == $cmd->{unit} } @{$self->{command_queue}}) {
+            if(grep {$_->{home} eq $cmd->{home} &&  $_->{unit} == $cmd->{unit} } @{$self->{command_queue}}) {
                 _log("Won't requeue. Queue already contains new command for $cmd->{home}$cmd->{unit}.");
             }
             else{
@@ -1235,6 +1235,9 @@ sub generate_code(@) {
     }
     elsif ( $type =~ /^PLCBUS_Scene.*/i ) {
         $object = "PLCBUS_Scene('$name', '$home','$unit', '$grouplist')";
+    }
+    elsif ( $type =~ /^PLCBUS_Shutter.*/i ) {
+        $object = "PLCBUS_Shutter('$name', '$home','$unit', '$grouplist')";
     }
     elsif ( $type =~ /^PLCBUS.*/i ) {
         _log(
@@ -1937,36 +1940,36 @@ package PLCBUS_Shutter;
 sub new {
     my $class = shift;
     my $self = $class->SUPER::new(@_);
-    $self->set_states(qw |up down|);
+    $self->set_states(qw |up down status_req|);
     return $self;
 }
+
 sub set{
-    my ( $self, $new_state, $setby, $respond ) = @_;
+    my ( $self, $state, $setby, $respond ) = @_;
     my $home = $self->{home};
     my $unit = $self->{unit};
-    my $new_cmd = $new_state;
-    if ($new_state eq 'up'){
-        $new_cmd = 'on';
+    my $new_state = $state;
+    if ($state eq 'up'){
+        $new_state = 'off';
     }
-    if ($new_state eq 'down'){
-        $new_cmd = 'off';
+    if ($state eq 'down'){
+        $new_state = 'on';
     }
 
-    PLCBUS_Item::set($self, $new_cmd, $setby, $respond);
+    PLCBUS_Item::set($self, $new_state, $setby, $respond);
 }
 
 sub _set{
-    my ( $self, $new_state, $setby, $respond ) = @_;
-    my $new_cmd = $new_state;
-    if ($new_state eq 'on'){
-        $new_cmd = 'up';
+    my ( $self, $state, $setby, $respond ) = @_;
+    my $new_state = $state;
+    if ($state eq 'on'){
+        $new_state = 'down';
     }
-    if ($new_state eq 'off'){
-        $new_cmd = 'donw';
+    elsif ($state eq 'off'){
+        $new_state = 'up';
     }
 
-    PLCBUS_Item::_set($self, $new_cmd, $setby, $respond);
-
+    PLCBUS_Item::_set($self, $new_state, $setby, $respond);
 }
 
 package PLCBUS_Scene;
