@@ -97,6 +97,8 @@ $Clipsal_CBus::Talker =
 $Clipsal_CBus::Monitor =
   new Socket_Item( undef, undef, $::config_parms{cgate_mon_address} );
 
+$Clipsal_CBus::Talker_last_sent = "N/A";
+
 =head2 FUNCTIONS
  
 =over

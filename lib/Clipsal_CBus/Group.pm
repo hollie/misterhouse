@@ -136,7 +136,8 @@ sub set {
     my $ramp_command =
       "[MisterHouse-$Clipsal_CBus::Command_Counter] RAMP $address $state $speed\n";
     $Clipsal_CBus::Talker->set($ramp_command);
-    $Clipsal_CBus::Command_Counter = 0
+    $Clipsal_CBus::Talker_last_sent = $ramp_command;
+    $Clipsal_CBus::Command_Counter  = 0
       if (
         ++$Clipsal_CBus::Command_Counter > $Clipsal_CBus::Command_Counter_Max );
 }

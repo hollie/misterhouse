@@ -52,6 +52,7 @@ sub new {
     $$self{addr_not_sync_ref} => {};
     $$self{cmd_list}          => {};
     $$self{cbus_net_list}     => {};
+    $$self{cbus_app_list}     => {};
     $$self{CBus_Sync}          = new Generic_Item();
     $$self{sync_in_progress}   = 0;
     $$self{DELAY_CHECK_SYNC}   = 10;
@@ -92,14 +93,20 @@ sub scan_cgate {
 
     if ( defined $$self{project} ) {
         $Clipsal_CBus::Talker->set( "project load " . $$self{project} );
+        $Clipsal_CBus::Talker_last_sent = "project load " . $$self{project};
+
         $Clipsal_CBus::Talker->set( "project use " . $$self{project} );
+        $Clipsal_CBus::Talker_last_sent = "project use " . $$self{project};
+
         $self->debug( "scan_cgate() Command - project start $$self{project}",
             $notice );
         $Clipsal_CBus::Talker->set( "project start " . $$self{project} );
+        $Clipsal_CBus::Talker_last_sent = "project start " . $$self{project};
     }
 
     $$self{request_cgate_scan} = 1;
     $Clipsal_CBus::Talker->set("get cbus networks");
+    $Clipsal_CBus::Talker_last_sent = "get cbus networks";
 
 }
 
@@ -215,6 +222,9 @@ sub attempt_level_sync {
                 next;
             }
             $Clipsal_CBus::Talker->set("[MisterHouse $addr] get $addr level");
+            $Clipsal_CBus::Talker_last_sent =
+              "[MisterHouse $addr] get $addr level";
+
         }
 
         &::eval_with_timer( '$CGATE->attempt_level_sync()',
@@ -638,6 +648,7 @@ sub talker_check {
             # then we will wait until CGate has sync'ed with the network
             $$self{request_cgate_scan} = 0;
             $Clipsal_CBus::Talker->set("session_id");
+            $Clipsal_CBus::Talker_last_sent = "session_id";
 
             if ( not defined $$self{project} ) {
                 $self->debug(
@@ -656,9 +667,18 @@ sub talker_check {
             else {
                 # initial a sync
                 $Clipsal_CBus::Talker->set("project load $$self{project}");
+                $Clipsal_CBus::Talker_last_sent =
+                  "project load $$self{project}";
+
                 $Clipsal_CBus::Talker->set("project use $$self{project}");
+                $Clipsal_CBus::Talker_last_sent = "project use $$self{project}";
+
                 $Clipsal_CBus::Talker->set("project start $$self{project}");
+                $Clipsal_CBus::Talker_last_sent =
+                  "project start $$self{project}";
+
                 $Clipsal_CBus::Talker->set("get cbus networks");
+                $Clipsal_CBus::Talker_last_sent = "get cbus networks";
             }
         }
 
@@ -684,6 +704,8 @@ sub talker_check {
                 );
                 $Clipsal_CBus::Talker->set(
                     "get " . $self->{cbus_net_list}[0] . " state" );
+                $Clipsal_CBus::Talker_last_sent =
+                  "get " . $self->{cbus_net_list}[0] . " state";
 
             }
             elsif ( $talker_msg =~ /state=(.+)/ ) {
@@ -692,14 +714,17 @@ sub talker_check {
                 if ( $network_state ne "ok" ) {
                     $Clipsal_CBus::Talker->set(
                         "get " . $self->{cbus_net_list}[0] . " state" );
+                    $Clipsal_CBus::Talker_last_sent =
+                      "get " . $self->{cbus_net_list}[0] . " state";
                 }
                 else {
                     if ( $$self{request_cgate_scan} ) {
 
                         # This state request was part of scanning startup
                         $self->debug(
-                            "This state request was part of scanning startup",
-                            $debug );
+                            "Talker state request was part of scanning startup",
+                            $debug
+                        );
 
                         $$self{cbus_scanning_cgate} = 1;    # Set scanning flag
                         $$self{request_cgate_scan}  = 0;
@@ -746,12 +771,15 @@ sub talker_check {
 
         }
 
-        ###### Message code 320: Tree information. Returned from the tree command.
+        ###### Message code 320: Tree information. Returned from the tree command, which returns a list of units
+        ###### followed by a list of groups, ordered by application.
 
         elsif ( $msg_code == 320 ) {
             if ( not $$self{cbus_got_tree_list} ) {
                 if ( not $$self{cbus_units_config} ) {
                     if ( $talker_msg =~ /Applications/ ) {
+
+                        #we've started listing applications and groups
                         $$self{cbus_units_config} = 1;
                     }
                     elsif (
@@ -771,13 +799,28 @@ sub talker_check {
                 else {
                     # CGate is listing CBus "groups"
                     if ( $talker_msg =~ /end/ ) {
+
+                        #we've finished scanning the tree
                         $self->debug(
                             "Talker end of CBus scan data, got tree list",
                             $notice );
                         $$self{cbus_got_tree_list} = 1;
                     }
                     elsif (
-                        $talker_msg =~ /(\/\/.+\/\d+\/\d+\/\d+).+level=(\d+)/ )
+                        #this is an applcation response, e.g. 320 Application 56 ($38) [lighting]
+                        $talker_msg =~ /Application (\d+).+\[(.+)\]/
+                      )
+                    {
+                        $self->debug( "Talker found application $1 of type $2",
+                            $notice );
+
+                        # Store application on a list
+                        $$self{cbus_app_list}{$1}{type} = $2;
+                    }
+                    elsif (
+                        #this is a group response, e.g. 320 //HOME/254/56/0 ($0) level=0 state=ok units=2,12
+                        $talker_msg =~ /(\/\/.+\/\d+\/\d+\/\d+).+level=(\d+)/
+                      )
                     {
                         $self->debug( "Talker scanned group=$1 at level $2",
                             $info );
@@ -837,13 +880,18 @@ sub talker_check {
 
         elsif ( $msg_code == 408 ) {
             $self->debug( "Talker **** Failed Cmd - $talker_msg", $warn );
-            if ( $msg_id =~ /\[MisterHouse(\d+)\]/ ) {
+            $self->debug(
+                "Talker last sent command = $Clipsal_CBus::Talker_last_sent",
+                $warn );
+
+            if ( $msg_id =~ /\[MisterHouse-(\d+)\]/ ) {
                 my $cmd_num = $1;
                 my $cmd     = $self->{cmd_list}{$cmd_num};
                 if ( $cmd ne "" ) {
                     $self->debug( "Talker  Trying command again - $cmd",
                         $warn );
                     $Clipsal_CBus::Talker->set($cmd);
+                    $Clipsal_CBus::Talker_last_sent = $cmd;
                     $self->{cmd_list}{$cmd_num} = "";
                 }
                 else {
@@ -881,7 +929,9 @@ sub talker_check {
                 # Request from CGate a list of addresses on network
                 $network = "//$$self{project}/$network";
                 $self->debug( "Talker scanning network $network", $notice );
+                $self->debug( "Talker sent: tree $network",       $debug );
                 $Clipsal_CBus::Talker->set("tree $network");
+                $Clipsal_CBus::Talker_last_sent = "tree $network";
 
                 $$self{cbus_scanning_tree} = 1;
 
@@ -901,12 +951,14 @@ sub talker_check {
                 my $group = $$self{cbus_group_list}[ $$self{cbus_group_idx}++ ];
                 $self->debug( "Talker dbget group $group", $info );
                 $Clipsal_CBus::Talker->set("dbget $group/TagName");
+                $Clipsal_CBus::Talker_last_sent = "dbget $group/TagName";
 
             }
             elsif ( $$self{cbus_unit_idx} < @{ $$self{cbus_unit_list} } ) {
                 my $unit = $$self{cbus_unit_list}[ $$self{cbus_unit_idx}++ ];
                 $self->debug( "Talker dbget unit $unit", $info );
                 $Clipsal_CBus::Talker->set("dbget $unit/TagName");
+                $Clipsal_CBus::Talker_last_sent = "dbget $unit/TagName";
 
             }
             else {
