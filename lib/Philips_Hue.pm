@@ -144,9 +144,9 @@ sub default_setstate {
     my $cmnd = ( $state =~ /^off/i ) ? 'off' : 'on';
     $cmnd = $state if ( $state =~ /\%/ );
 
-    return -1
-      if ( $self->state eq $state )
-      ;    # Don't propagate state unless it has changed.
+    #return -1
+    #  if ( $self->state eq $state )
+    #  ;    # Don't propagate state unless it has changed.
 
     ::print_log( 'hue',
         "Request " . $self->get_object_name . " turn " . $cmnd );
