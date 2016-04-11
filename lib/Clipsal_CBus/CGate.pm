@@ -203,7 +203,7 @@ sub attempt_level_sync {
     $self->debug( "attempt_level_sync() count=" . @count, $info );
 
     if ( not %{ $$self{addr_not_sync} } ) {
-        $self->debug("Sync to CGate complete");
+        $self->debug( "Sync to CGate complete", $notice );
         $$self{CBus_Sync}->set('on');
         $$self{sync_in_progress} = 0;
 
