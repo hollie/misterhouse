@@ -11,10 +11,10 @@ CBUS_CGATE,   CGATE
 
 # CBus trigger group addresses.
 
-CBUS_GROUP, //HOME/254/202/1, 	Kitchen_Trigger_Group, 				All_CBus, 						Kitchen Trigger Group
-CBUS_GROUP, //HOME/254/202/2, 	Bed_2_Fan_Speed, 					All_CBus|Bed_2, 				Bed 2 Fan Speed
-CBUS_GROUP, //HOME/254/202/4, 	Bed_3_Fan_Speed, 					All_CBus|Bed_3, 				Bed 3 Fan Speed
-CBUS_GROUP, //HOME/254/202/5, 	Master_Bed_Fan_Speed, 				All_CBus|Master_Bed, 			Master Bed Fan Speed
+CBUS_TRIGGER, //HOME/254/202/1, 	Kitchen_Trigger_Group, 				All_CBus, 						Kitchen Trigger Group
+CBUS_TRIGGER, //HOME/254/202/2, 	Bed_2_Fan_Speed, 					All_CBus|Bed_2, 				Bed 2 Fan Speed
+CBUS_TRIGGER, //HOME/254/202/4, 	Bed_3_Fan_Speed, 					All_CBus|Bed_3, 				Bed 3 Fan Speed
+CBUS_TRIGGER, //HOME/254/202/5, 	Master_Bed_Fan_Speed, 				All_CBus|Master_Bed, 			Master Bed Fan Speed
 
 # CBus "lighting" group addresses.
 
