@@ -242,7 +242,7 @@ sub cbus_update {
         "cbus_update triggering set() for object $object_name with state $cbus_state",
         $debug
     );
-    $self->debug( "cbus_update set() command: $set_command", $debug );
+    $self->debug( "cbus_update set() command: $set_command", $trace );
 
     package main;
     eval $set_command;
@@ -262,11 +262,10 @@ sub write_mht_file {
         "write_mht_file() Could not open $$self{cbus_mht_filename}: $!",
         $warn );
 
-    print CF
-      "# Example CBus mht file auto-generated on $::Date_Now at $::Time_Now.\n";
+    print CF "# CBus mht file auto-generated on $::Date_Now at $::Time_Now.\n";
     print CF "\n";
     print CF
-      "# This file will be overwritten - do not edit. Instead, copy this file to \n";
+      "# This file may be overwritten - do not edit. Instead, copy this file to \n";
     print CF "# (for example) cbus.mht and edit as required.\n";
     print CF "\n";
     print CF "Format = A\n";
@@ -275,10 +274,31 @@ sub write_mht_file {
     print CF "\n";
     print CF "CBUS_CGATE,   CGATE\n";
     print CF "\n";
-    print CF "# CBus group addresses.\n";
+
+    print CF "# CBus trigger group addresses.\n";
     print CF "\n";
 
     foreach my $address ( sort keys %Clipsal_CBus::Groups ) {
+        if ( $address =~ /\/\d+\/(\d+)\/\d+/ ) {
+            my $application = $1;
+            next if not $application == 202;
+        }
+
+        my $name  = $Clipsal_CBus::Groups{$address}{name};
+        my $label = $Clipsal_CBus::Groups{$address}{label};
+
+        print CF "CBUS_TRIGGER, $address, $name, All_CBus, $label\n";
+    }
+
+    print CF "\n";
+    print CF "# CBus lighting group addresses.\n";
+    print CF "\n";
+
+    foreach my $address ( sort keys %Clipsal_CBus::Groups ) {
+        if ( $address =~ /\/\d+\/(\d+)\/\d+/ ) {
+            my $application = $1;
+            next if not $application == 56;
+        }
         my $name  = $Clipsal_CBus::Groups{$address}{name};
         my $label = $Clipsal_CBus::Groups{$address}{label};
 
@@ -458,10 +478,10 @@ sub monitor_check {
         }
         else {
             # the source was a CBus unit.
-            $source = "unit: $Clipsal_CBus::Units{$source}{name}";
+            $source = "cbus unit: $Clipsal_CBus::Units{$source}{name}";
         }
 
-        $self->debug("Monitor source is $source");
+        $self->debug( "Monitor source is $source", $debug );
 
         # Determine what level is being reported
         my $ramping;
@@ -529,7 +549,7 @@ sub monitor_check {
             $self->debug( "Monitor $cbus_label ramping $ramping by $source",
                 $debug )
               if ($ramping);
-            $self->cbus_update( $cg_addr, $cbus_state, 'cbus' );
+            $self->cbus_update( $cg_addr, $cbus_state, $source );
         }
     }
 
@@ -912,8 +932,6 @@ sub talker_check {
     # Control scanning of the CGate configuration
     #
     if ( $$self{cbus_scanning_cgate} ) {
-        $self->debug( "Talker scanning cgate", $trace );
-
         if ( not $$self{cbus_scanning_tree} ) {
             if ( my $network = pop @{ $$self{cbus_net_list} } ) {
 
