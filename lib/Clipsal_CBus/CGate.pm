@@ -495,15 +495,19 @@ sub monitor_check {
             # The group has started ramping
             if ( $level == 255 ) {
                 $cbus_state  = 'on';
-                $ramping     = 'UP';
+                $ramping     = 'UP/ON';
                 $state_speak = 'ramping UP';
             }
-            else {
+            elsif ( $level == 0 ) {
                 $cbus_state  = 'off';
-                $ramping     = 'DOWN';
+                $ramping     = 'DOWN/OFF';
                 $state_speak = 'ramping DOWN';
             }
-
+            else {
+                my $plevel = $level / 255 * 100;
+                $ramping = 'UP/DOWN';
+                $cbus_state = sprintf( "%.0f%%", $plevel );
+            }
         }
         else {
             if ( $level == 255 ) {
