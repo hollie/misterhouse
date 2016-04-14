@@ -64,6 +64,33 @@ sub read_table_A {
         $object = "ZWave_Appliance_Item('$address', $other)";
     }
 
+    # -[ Clipsal CBus ]-------------------------------------------------
+    elsif ( $type eq "CBUS_CGATE" ) {
+        require Clipsal_CBus;
+        require Clipsal_CBus::CGate;
+        ( $name, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+        $object = "Clipsal_CBus::CGate('Clipsal_CBus_Cgate',$other)";
+    }
+    elsif ( $type eq "CBUS_GROUP" ) {
+        require Clipsal_CBus::Group;
+        ( $address, $name, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $object = "Clipsal_CBus::Group('$address','$name',$other)";
+    }
+    elsif ( $type eq "CBUS_TRIGGER" ) {
+        require Clipsal_CBus::TriggerGroup;
+        ( $address, $name, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $object = "Clipsal_CBus::TriggerGroup('$address','$name',$other)";
+    }
+    elsif ( $type eq "CBUS_UNIT" ) {
+        require Clipsal_CBus::Unit;
+        ( $address, $name, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $object = "Clipsal_CBus::Unit('$address','$name',$other)";
+    }
+
     # -[ UPB ]----------------------------------------------------------
     elsif ( $type eq "UPBPIM" ) {
         require 'UPBPIM.pm';
@@ -1373,13 +1400,14 @@ sub read_table_A {
         $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         $object = "AD2_Partition('$instance','$number','$address','$other')";
     }
-   elsif($type eq "AD2_OUTPUT") {
+    elsif ( $type eq "AD2_OUTPUT" ) {
         require AD2;
-        my ($instance,$output);
-        ($name, $instance, $output, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        my ( $instance, $output );
+        ( $name, $instance, $output, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );            # Quote data
         $object = "AD2_Output('$instance','$output','$other')";
     }
+
     #-------------- End AD2 Objects -------------
     elsif ( $type =~ /PLCBUS_.*/ ) {
         require PLCBUS;
