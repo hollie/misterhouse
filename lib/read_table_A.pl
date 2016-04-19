@@ -263,6 +263,48 @@ sub read_table_A {
             $object = "Insteon::IOLinc(\'$address\', $other)";
         }
     }
+    elsif($type eq "INSTEON_EZIO8SA") {
+        require Insteon::EZIO8SA;
+        if (
+            validate_def(
+                $type, 2,
+                [
+                    qr/^[[:xdigit:]]{2}\.[[:xdigit:]]{2}\.[[:xdigit:]]{2}:[[:xdigit:]]{2}$/,
+                    'name'
+                ],
+                \@item_info
+            )
+           )
+        {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
+            $object = "Insteon::EZIO8SA(\'$address\', $other)";
+        }
+    }
+    elsif($type eq "INSTEON_EZIO8SA_RELAY") {
+        require Insteon::EZIO8SA;
+        ($address, $object, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::EZIO8SA_relay($address, $object, $other)";
+    }
+    elsif($type eq "INSTEON_EZIO8SA_INPUT") {
+        require Insteon::Lighting;
+        if (
+            validate_def(
+                $type, 2,
+                [
+                    qr/^[[:xdigit:]]{2}\.[[:xdigit:]]{2}\.[[:xdigit:]]{2}:[[:xdigit:]]{2}$/,
+                    'name'
+                ],
+                \@item_info
+            )
+           )
+        {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
+            $object = "Insteon::SwitchLincRelay(\'$address\',$other)";
+        }
+    }
     elsif ( $type eq "INSTEON_FANLINC" ) {
         require Insteon::Lighting;
         ( $address, $name, $grouplist, @other ) = @item_info;
