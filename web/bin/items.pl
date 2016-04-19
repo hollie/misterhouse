@@ -99,17 +99,17 @@ function openparmhelp(parm1){
 
     #form action='/bin/items.pl?add' method=post>
     $html .= qq|<tr>
-<form action='/bin/set_func.pl' method=post><td>
+<td><form action='/bin/set_func.pl' method=post>
 <input type=submit value='Create'>
 <input name='func' value="web_item_add"  type='hidden'>
 <input name='resp' value="/bin/items.pl" type='hidden'>
 $form_type
-<input type=input name=address  size=10 value='A1'>
-<input type=input name=name     size=10 value='Test_light'>
-<input type=input name=group    size=10 value=''>
-<input type=input name=other1   size=10 value=''>
-<input type=input name=other2   size=10 value=''>
-<td></form><tr>
+<input type=text name=address  size=10 value='A1'>
+<input type=text name=name     size=10 value='Test_light'>
+<input type=text name=group    size=10 value=''>
+<input type=text name=other1   size=10 value=''>
+<input type=text name=other2   size=10 value=''>
+</form></td></tr>
 | if $Authorized eq 'admin';
 
     # Parse table data
@@ -328,6 +328,8 @@ sub web_item_add {
     # write out new record to mht file
     $file_data[@file_data] = sprintf( "%-20s%-20s%-20s%-20s%-20s%s",
         $type, $address, $name, $group, $other1, $other2 );
+        
+    &main::print_log("DB: in webitem, $type, $address, $name, $group, $other1, $other2");
     &mht_item_file_write( $web_item_file_name, \@file_data );
 
     return 0;

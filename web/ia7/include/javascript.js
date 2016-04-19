@@ -183,6 +183,8 @@ function changePage (){
 		});
 	} 
 	else {
+		// Check for authorize
+		authDetails();
 		// Clear Options Entity by Default
 		$("#toolButton").attr('entity', '');
 		
@@ -211,122 +213,11 @@ function changePage (){
 			}
 
 			$.get(link, function( data ) {
-				data = data.replace(/<link[^>]*>/img, ''); //Remove stylesheets
-				data = data.replace(/<title[^>]*>((\r|\n|.)*?)<\/title[^>]*>/img, ''); //Remove title
-				data = data.replace(/<meta[^>]*>/img, ''); //Remove meta refresh
-				data = data.replace(/<base[^>]*>/img, ''); //Remove base target tags
 				
-				if (link == "/bin/code_select.pl" || link == "/bin/code_unselect.pl") { //fix links in the code select / unselect modules
-					var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
-					data = data.replace(/href=\/bin\/browse.pl(.*?)>/img, function (path,r1) {
-						return 'href=/ia7/#_request=page&link=/bin/browse.pl'+r1+'&'+coll_key+',>';
-					});
-					data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
-					data = data.replace(/Category Index:/img,'');
-					data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
-				}
-				if (link == "/bin/items.pl") {
-					data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
-					data = data.replace(/Item Index:/img,'');
-					data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
-				}				
-				if (link == "/bin/triggers.pl") { //fix links in the triggers modules
-					//var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
-					//data = data.replace(/href=\/bin\/triggers.pl/img, 'href=/ia7/#_request=page&link=/bin/triggers.pl&'+coll_key);
-					data = data.replace(/href=\/bin\/triggers.pl/img, 'onclick="location.reload()"');
-					data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
-					data = data.replace(/Trigger Index:/img,'');
-					data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
-//
-					data = data.replace(/onChange=\'form.submit\(\)\'/img,'onChange=\'this\.form\.submit\(\)\'');
-				}				
-				if (link == "/ia5/news/main.shtml") { //fix links in the email module 1
-					var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
-					data = data.replace(/<a href='\/email\/latest.html'>Latest emails<\/a>/img,'');
-					data = data.replace(/href=\/email\/(.*?)>/img, function (path,r1) {
-						return 'href=/ia7/#_request=page&link=/email/'+r1+'&'+coll_key+',>';
-					});
-					data = data.replace(/<a href=\"SET;&dir_index\(.*?\)\">(.*?)<\/a>/img, function (path,r1,r2) {
-						return r1;
-					});
-					data = data.replace(/href='RUN;\/ia5\/news\/main.shtml\?Check_for_e_mail'/img, 'class="btn-voice-cmd" voice_cmd="Check_for_e_mail"');				
-				}
-				if (link.indexOf('/email/') === 0) { //fix links in the email module 2
-					var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
-					data = data.replace(/<a href='#top'>Previous<\/a>.*?<br>/img, '');
-					data = data.replace(/<a name='.*?' href='#top'>Back to Index<\/a>.*?<b>/img,'<b>');
-					data = data.replace(/href='#\d+'/img,'');
-				}
-				if (link.indexOf('/comics/') === 0) { //fix links in the comics module
-					var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))				
-					data = data.replace(/<a href="(.*?)">(.*?)<\/a>/img,function (path,r1,r2) {
-						return '<a href=/ia7/#_request=page&link=/comics/'+r1+'&'+coll_key+',>'+r2+'</a>';
-					});	
-					data = data.replace(/<img src="(.*?)"/img,function (path,r1) {
-						return '<img src="/comics/'+r1+'"';
-					});							
-				}			
-				data = data.replace(/href="\/bin\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function
-				data = data.replace(/href="\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function 
 				$('#list_content').html("<div id='buffer_page' class='row top-buffer'>");
 				$('#buffer_page').append("<div id='row_page' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-				$('#row_page').html(data);
-				$('#mhresponse').submit( function (e) { //allow for forms with id=mhresponse to show data returned in modal
-					e.preventDefault();
-					var form = $(this);
-					console.log("MHResponse Custom submit function "+ form.attr('action'));
-					$.ajax({
-						type: "POST",
-						url: form.attr('action'),
-						data: $(this).serialize(),
-						success: function(data){
-							console.log(data)
-							var start = data.toLowerCase().indexOf('<body>') + 6;
-							var end = data.toLowerCase().indexOf('</body>');
-							if (form.attr('action') === "/bin/triggers.pl?add") {
-								location.reload();
-							} else {
-								$('#lastResponse').find('.modal-body').html(data.substring(start, end));
-								$('#lastResponse').modal({
-									show: true
-								});
-							}
-						}
-					});
-				});
-	 			$('#mhresponse').change(function() {
-     				$('#mhresponse').submit();
- 				});			
-				$('#mhexec a').click( function (e) {
-					e.preventDefault();
-					var url = $(this).attr('href');
-					url = url.replace(/;(.*?)\?/,'?');
-//					console.log("MHExec " + url);
-					$.get( url, function(data) {
-//						var start = data.toLowerCase().indexOf('<body>') + 6;
-//						var end = data.toLowerCase().indexOf('</body>');
-//						$('#lastResponse').find('.modal-body').html(data.substring(start, end));
-//						$('#lastResponse').modal({
-//							show: true
-//						});
-					});
-					location.reload();
-				});
-//TODO is this needed?
-				$(".btn-voice-cmd").click( function () {
-					var voice_cmd = $(this).attr('voice_cmd');
-					var url = '/RUN;last_response?select_cmd=' + voice_cmd;
-					console.log("voice_cmd="+url);
-					$.get( url, function(data) {
-						var start = data.toLowerCase().indexOf('<body>') + 6;
-						var end = data.toLowerCase().indexOf('</body>');
-						$('#lastResponse').find('.modal-body').html(data.substring(start, end));
-						$('#lastResponse').modal({
-							show: true
-						});
-					});
-				});	
-//			
+				parseLinkData(link,data); //remove css & fix up Mr.House setup stuff
+		
 			});
 		}
 		else if(path.indexOf('print_log') === 0){
@@ -443,9 +334,155 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 
 }
 
+function parseLinkData (link,data) {
+
+	data = data.replace(/<link[^>]*>/img, ''); //Remove stylesheets
+	data = data.replace(/<title[^>]*>((\r|\n|.)*?)<\/title[^>]*>/img, ''); //Remove title
+	data = data.replace(/<meta[^>]*>/img, ''); //Remove meta refresh
+	data = data.replace(/<base[^>]*>/img, ''); //Remove base target tags
+				
+	if (link == "/bin/code_select.pl" || link == "/bin/code_unselect.pl") { //fix links in the code select / unselect modules
+		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
+		data = data.replace(/href=\/bin\/browse.pl(.*?)>/img, function (path,r1) {
+			return 'href=/ia7/#_request=page&link=/bin/browse.pl'+r1+'&'+coll_key+',>';
+		});
+		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
+		data = data.replace(/Category Index:/img,'');
+		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
+		}
+	if (link == "/bin/items.pl") {
+		console.log("items data="+data);
+		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))		
+		data = data.replace(/href=\/bin\/items.pl/img, 'onclick="changePage()"');		
+		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
+		data = data.replace(/Item Index:/img,'');
+		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
+		data = data.replace(/input name='resp' value="\/bin\/items.pl"/img, 'input name=\'resp\' value=\"/ia7/#_request=page&link=/bin/items.pl&'+coll_key+'\"');
+		
+	}
+	if (link == "/bin/iniedit.pl") {
+		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))	
+		data = data.replace(/<input type=submit name=\"Switch\" value=\"Switch\">/img, '');	
+		data = data.replace(/<input type=submit name=\"Reset Values\" value=\"Reset Values\">/img,'');
+		data = data.replace(/<a href=\"\/bin\/iniedit.pl\">Back<\/a>/img,'<a onclick=\"changePage()\">Back<\/a>');
+	
+		//replace the back button with a reload
+	}	
+	if (link == "/bin/triggers.pl") { //fix links in the triggers modules
+		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
+		//data = data.replace(/href=\/bin\/triggers.pl/img, 'href=/ia7/#_request=page&link=/bin/triggers.pl&'+coll_key);
+		data = data.replace(/href=\/bin\/triggers.pl/img, 'onclick="changePage()"');
+		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
+		data = data.replace(/Trigger Index:/img,'');
+		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
+		//data = data.replace(/onChange=\'form.submit\(\)\'/img,'onChange=\'this\.form\.submit\(\)\'');
+		data = data.replace(/input name='resp' value="\/bin\/triggers.pl"/img, 'input name=\'resp\' value=\"/ia7/#_request=page&link=/bin/triggers.pl&'+coll_key+'\"');
+		//console.log(data);
+	}				
+	if (link == "/ia5/news/main.shtml") { //fix links in the email module 1
+		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
+		data = data.replace(/<a href='\/email\/latest.html'>Latest emails<\/a>/img,'');
+		data = data.replace(/href=\/email\/(.*?)>/img, function (path,r1) {
+			return 'href=/ia7/#_request=page&link=/email/'+r1+'&'+coll_key+',>';
+		});
+		data = data.replace(/<a href=\"SET;&dir_index\(.*?\)\">(.*?)<\/a>/img, function (path,r1,r2) {
+			return r1;
+		});
+		data = data.replace(/href='RUN;\/ia5\/news\/main.shtml\?Check_for_e_mail'/img, 'class="btn-voice-cmd" voice_cmd="Check_for_e_mail"');				
+	}
+	if (link.indexOf('/email/') === 0) { //fix links in the email module 2
+		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
+		data = data.replace(/<a href='#top'>Previous<\/a>.*?<br>/img, '');
+		data = data.replace(/<a name='.*?' href='#top'>Back to Index<\/a>.*?<b>/img,'<b>');
+		data = data.replace(/href='#\d+'/img,'');
+	}
+	if (link.indexOf('/comics/') === 0) { //fix links in the comics module
+		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))				
+		data = data.replace(/<a href="(.*?)">(.*?)<\/a>/img,function (path,r1,r2) {
+			return '<a href=/ia7/#_request=page&link=/comics/'+r1+'&'+coll_key+',>'+r2+'</a>';
+		});	
+		data = data.replace(/<img src="(.*?)"/img,function (path,r1) {
+			return '<img src="/comics/'+r1+'"';
+		});							
+	}			
+	data = data.replace(/href="\/bin\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function
+	data = data.replace(/href="\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function 
+//TODO clean up this regex?
+	data = data.replace(/href=SET_PASSWORD/img,'onclick=\'authorize_modal("0")\''); //Special case, setup Mr.House without being logged in 
+
+
+	$('#row_page').html(data);
+	$('#mhresponse').submit( function (e) { //allow for forms with id=mhresponse to show data returned in modal
+		e.preventDefault();
+		var form = $(this);
+        var btn = $(this).find("input[type=submit]:focus" );
+        var form_data = $(this).serializeArray();
+  		if (btn.attr('name') !== undefined) {
+  			form_data.push({name : btn.attr('name'), value : btn.attr('value')});
+  		}		
+		console.log("MHResponse Custom submit function "+ form.attr('action'));
+ 		console.log( $(this).serializeArray() );
+  		console.log( "btn: "+btn.attr('name')+"="+btn.attr('value'));
+//  		if (btn.attr('value') !== undefined) {
+//  			console.log("executing data!");
+// unless the btn attribute has a name, then don't push the data (prevent text fields
+			$.ajax({
+				type: "POST",
+				url: form.attr('action'),
+				data: form_data,
+				success: function(data){
+					console.log(data)
+					data = data.replace(/<link[^>]*>/img, ''); //Remove stylesheets
+					data = data.replace(/<title[^>]*>((\r|\n|.)*?)<\/title[^>]*>/img, ''); //Remove title
+					data = data.replace(/<meta[^>]*>/img, ''); //Remove meta refresh
+					data = data.replace(/<base[^>]*>/img, ''); //Remove base target tags
+
+					var start = data.toLowerCase().indexOf('<body>') + 6;
+					var end = data.toLowerCase().indexOf('</body>');
+
+					if (form.attr('action') === "/bin/triggers.pl?add" && ! data.match(/Not authorized to make updates/))  {
+						//location.reload();
+						changePage();
+					} else if (form.attr('action') === "/bin/iniedit.pl") {
+//						var pdata = parseLinkData("/bin/iniedit.pl",data);
+						parseLinkData("/bin/iniedit.pl",data);
+//						$('#row_page').html(pdata);
+//TODO parse data							 
+					} else {
+						$('#lastResponse').find('.modal-body').html(data.substring(start, end));
+						$('#lastResponse').modal({
+							show: true
+						});
+					}
+				}
+			});
+//		}
+	});
+	$('#mhresponse :input:not(:text)').change(function() {
+//TODO - don't submit when a text field changes
+	console.log("in input not text");
+		$('#mhresponse').submit();
+ 	});			
+	$('#mhexec a').click( function (e) {
+		e.preventDefault();
+		var url = $(this).attr('href');
+		url = url.replace(/;(.*?)\?/,'?');
+//		console.log("MHExec " + url);
+		$.get( url, function(data) {
+//			var start = data.toLowerCase().indexOf('<body>') + 6;
+//			var end = data.toLowerCase().indexOf('</body>');
+//			$('#lastResponse').find('.modal-body').html(data.substring(start, end));
+//			$('#lastResponse').modal({
+//				show: true
+//			});
+		});
+		changePage();
+	});
+}
+
+
 function loadVars (){ //variables list
 	var URLHash = URLToHash();
-	console.log(loadVars);
 	$.ajax({
 		type: "GET",
 		url: "/json/"+HashtoJSONArgs(URLHash),
@@ -983,6 +1020,29 @@ var updateStaticPage = function(link,time) {
 	});  
 }
 
+function authDetails() {
+	if (json_store.collections[700] == undefined) {
+		alert("Warning, Collection ID 700: Authorize, is not defined in your collections.json!");
+	} else {
+		if (json_store.collections[700].user !== undefined) {
+//			console.log ("user found "+json_store.collections[700].user+".");
+   			if (json_store.collections[700].user == "0") {
+    			json_store.collections[700].name = "Log in";
+    			json_store.collections[700].icon = "fa-lock";
+    			authorized = false;
+   				$(".fa-gear").css("color", "red");
+   			} else {
+    			json_store.collections[700].name = "Log out "+json_store.collections[700].user+"...";
+    			json_store.collections[700].icon = "fa-unlock";   		   		
+    			authorized = true;
+    			$(".fa-gear").css("color", "green");
+    			if (json_store.collections[700].user == "admin") {
+        			$(".fa-gear").css("color", "purple");
+				}
+   			}
+   		}
+   	}
+}
 	
 //Prints all of the navigation items for Ia7
 var loadCollection = function(collection_keys) {
@@ -995,25 +1055,17 @@ var loadCollection = function(collection_keys) {
 	if (entity_sort.length <= 0){
 		entity_arr.push("Childless Collection");
 	}
-	if (json_store.collections[700].user !== undefined) {
-		console.log ("user found "+json_store.collections[700].user+".");
-   		if (json_store.collections[700].user == "0") {
-    		json_store.collections[700].name = "Log in";
-    		json_store.collections[700].icon = "fa-lock";
-    		authorized = false;
-   			$(".fa-gear").css("color", "red");
-   		} else {
-    		json_store.collections[700].name = "Log out "+json_store.collections[700].user+"...";
-    		json_store.collections[700].icon = "fa-unlock";   		   		
-    		authorized = true;
-    		$(".fa-gear").css("color", "green");
-   		}
-  	}
+//	if (json_store.collections[700] == undefined) {
+//		alert("Warning, Collection ID 700: Authorize, is not defined in your collections.json!");
+//	} else {
+//		authDetails();
+//	}
+
 	for (var i = 0; i < entity_sort.length; i++){
 		var collection = entity_sort[i];
-		//console.log ("col="+collection);
+//		console.log ("col="+collection);
 		if (!(collection in json_store.collections)) continue;
-		console.log ("starting");
+//		console.log ("starting");
 
 		var link = json_store.collections[collection].link;
 		var icon = json_store.collections[collection].icon;
@@ -2149,6 +2201,9 @@ $(document).ready(function() {
 				}
 				//Check to see if this is the login button
 				if (json_store.collections[collection].user !== undefined) {
+//					if (name == undefined) {
+//						authDetails();
+//					} 
 					opt_entity_html += "<a link-type='collection' user='"+json_store.collections[collection].user+"' class='btn btn-default btn-lg btn-block btn-list btn-login-modal' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 				} else {	
 					opt_entity_html += "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";

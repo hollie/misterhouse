@@ -1579,7 +1579,9 @@ sub html_error_log {
 sub html_form_input_set_func {
     my ( $func, $resp, $var1, $var2 ) = @_;
     my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
-    my $html .= qq|<form action='/bin/set_func.pl' method=post><td>\n|;
+    my $id = "";
+    #$id = "id='mhresponse'" if ($mode eq 'ia7');
+    my $html .= qq|<td><form action='/bin/set_func.pl' $id method=post>\n|;
     $html    .= qq|<input name='func' value="$func"  type='hidden'>\n|;
     $html    .= qq|<input name='resp' value="$resp"  type='hidden'>\n|;
     $html    .= qq|<input name='var1' value="$var1"  type='hidden'>\n|;
@@ -1587,18 +1589,21 @@ sub html_form_input_set_func {
     $size = 10 if $size < 10;
     $size = 30 if $size > 30;
     $html .= qq|<input name='var2' value="$var2" size=$size>\n|;
-    $html .= qq|</td></form>\n|;
+    $html .= qq|</form></td>\n|;
     return $html;
 }
 
 sub html_form_input_set_var {
     my ( $var, $resp, $default ) = @_;
     $default = HTML::Entities::encode($default);
-    my $html .= qq|<form action='/bin/set_var.pl' method=post><td>\n|;
+    my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
+    my $id = "";
+    #$id = "id='mhresponse'" if ($mode eq 'ia7');    
+    my $html .= qq|<td><form action='/bin/set_var.pl' $id method=post>\n|;
     $html    .= qq|<input name='var'   value="$var"   type='hidden'>\n|;
     $html    .= qq|<input name='resp'  value="$resp"  type='hidden'>\n|;
     $html    .= qq|<input name='value' value="$default" size=30>\n|;
-    $html    .= qq|</td></form>\n|;
+    $html    .= qq|</form></td>\n|;
     return $html;
 }
 
@@ -1623,8 +1628,9 @@ sub html_form_select_set_func {
     my ( $func, $resp, $var1, $default, @values ) = @_;
     my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
     my $id = "";
-    $id = "id='mhresponse'" if ($mode eq 'ia7');
-    my $form .= qq|<form action='/bin/set_func.pl' $id method=post><td>\n|;
+    #$id = "id='mhresponse'" if ($mode eq 'ia7');
+#    my $form .= qq|<td><form action='/bin/set_func.pl' $id method=post>\n|;
+    my $form .= qq|<td><form action='/bin/set_func.pl' $id method=post>\n|;
     $form    .= qq|<input name='func' value="$func"  type='hidden'>\n|;
     $form    .= qq|<input name='resp' value="$resp"  type='hidden'>\n|;
     $form    .= qq|<input name='var1' value="$var1"  type='hidden'>\n|;
@@ -1637,16 +1643,20 @@ sub html_form_select_set_func {
         $form .= qq|<option value='$option' $selected>$value</option>\n|;
     }
     $form .= "</select></td></form>\n";
+#    $form .= "</select></td></form>\n";
     return $form;
 }
 
 sub html_form_select_set_var {
     my ( $var, $default, @values ) = @_;
-    my $html = "<form action=/bin/set_var.pl method=post><td>\n";
+    my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
+    my $id = "";
+    #$id = "id='mhresponse'" if ($mode eq 'ia7');    
+    my $html = "<td><form action=/bin/set_var.pl $id method=post>\n";
     $html .= qq|<input type='hidden' name='var'  value="$var">\n|;
     $html .= qq|<input type='hidden' name='resp' value='/bin/triggers.pl'>\n|;
     $html .=
-      &html_form_select( 'value', 1, $default, @values ) . "</td></form>\n";
+      &html_form_select( 'value', 1, $default, @values ) . "</form></td>\n";
     return $html;
 }
 

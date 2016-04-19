@@ -63,11 +63,11 @@ triggers, change the type to "Disabled".  If you delete it, the trigger will be 
 time Misterhouse is restarted.   
 
 <form action='/bin/triggers.pl?add' id='mhresponse' method=post>
-<input type=input name=name     size=10 value="Test">
+<input type=text name=name     size=10 value="Test">
 $form_trigger
-<input type=input name=trigger2 size=18 value="12 pm">
+<input type=text name=trigger2 size=18 value="12 pm">
 $form_code
-<input type=input name=code2    size=30 value="hi">
+<input type=text name=code2    size=30 value="hi">
 <select name='type'>
 <option value='OneShot' selected>OneShot</option>
 <option value='NoExpire'>NoExpire</option>
