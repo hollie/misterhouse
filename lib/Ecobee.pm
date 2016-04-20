@@ -104,10 +104,6 @@ changing certain parameters on the thermostat.
 #  state changes post-initialization, and are are left at a default value on startup until 
 #  this happens
 #
-# -Add support for creating and cancelling holds
-#
-# -Add home/away child item.
-#
 # -Add support for creating and cancelling vacations
 #
 # -Add support for creating/deleting/modifying climate settings
@@ -377,6 +373,11 @@ sub _list_thermostats {
                   $$self{data}{devices}{$device->{identifier}}{eventsHash}{$index->{type} . "-" . $index->{name}} = $index;
               }
            }
+           # set to empty so we don't crash on dclone
+           if (scalar @{$device->{events}} == 0) {
+               my $non_event = {'none' => {'holdClimateRef' => 'none'}};
+               $$self{data}{devices}{$device->{identifier}}{eventsHash} = $non_event;
+           }
            # Save the program information as well. Note: the schedule and climate info are stored in arrays. Since we need to use this same format to 
            # modify a schedule or climate, they will be retained in this format
            $$self{data}{devices}{$device->{identifier}}{program} = $device->{program};
@@ -422,39 +423,53 @@ sub _get_settings {
            $self->compare_data( $$self{data}{devices}{$device->{identifier}}{settings}, $$self{prev_data}{devices}{$device->{identifier}}{settings}, $$self{monitor}{$device->{identifier}}{settings} );
 
            # Save the previous events
-           $$self{prev_data}{devices}{$device->{identifier}}{eventsHash} = $$self{data}{devices}{$device->{identifier}}{eventsHash};
+           $$self{prev_data}{devices}{$device->{identifier}}{eventsHash} = dclone $$self{data}{devices}{$device->{identifier}}{eventsHash};
 
            # create a temporary hash to compare current and previous events
-           my %temp_events;
+           my $temp_events;
            foreach my $index (@{$device->{events}}) {
               if (exists $index->{holdClimateRef}) {
-                  $temp_events{$index->{type} . "-" . $index->{name} . "-" . $index->{holdClimateRef}} = $index;
+                  $temp_events->{$index->{type} . "-" . $index->{name} . "-" . $index->{holdClimateRef}} = $index;
               } else {
-                  $temp_events{$index->{type} . "-" . $index->{name}} = $index;
+                  $temp_events->{$index->{type} . "-" . $index->{name}} = $index;
               }
            }
            # Look for new events
-           foreach my $key (keys %temp_events) {
+           foreach my $key (keys %{$temp_events}) {
               unless (defined $$self{data}{devices}{$device->{identifier}}{eventsHash}{$key}) {
                  main::print_log( "[Ecobee]: New event added: $key" );
-                 $$self{data}{devices}{$device->{identifier}}{eventsHash}{$key} = \$temp_events{$key};
+                 $$self{data}{devices}{$device->{identifier}}{eventsHash}{$key} = $temp_events->{$key};
+                 if (exists $$self{data}{devices}{$device->{identifier}}{eventsHash}{'none'}) {
+                     # delete the none event if there is a real one
+                     delete $$self{data}{devices}{$device->{identifier}}{eventsHash}{'none'};
+                 }
               }
            }
            # Look for deleted events
            foreach my $key (keys %{$$self{data}{devices}{$device->{identifier}}{eventsHash}}) {
-             unless (defined $temp_events{$key}) {
+             unless (defined $temp_events->{$key} || ($key eq 'none')) {
                 main::print_log( "[Ecobee]: Event deleted: $key" );
                 delete $$self{data}{devices}{$device->{identifier}}{eventsHash}{$key};
              }
            }
+           # set to null so we don't crash on dclone
+           if (scalar @{$device->{events}} == 0) {
+               my $non_event = {'none' => {'holdClimateRef' => 'none'}};
+               $$self{data}{devices}{$device->{identifier}}{eventsHash} = $non_event;
+           }
+
            # Compare the old with the new
-           #$self->compare_data( $$self{data}{devices}{$device->{identifier}}{eventsHash}, $$self{prev_data}{devices}{$device->{identifier}}{eventsHash}, $$self{monitor}{$device->{identifier}}{eventsHash} );
+           $self->compare_data( $$self{data}{devices}{$device->{identifier}}{eventsHash}, $$self{prev_data}{devices}{$device->{identifier}}{eventsHash}, $$self{monitor}{$device->{identifier}}{eventsHash} );
 
            # Save the previous program data
            $$self{prev_data}{devices}{$device->{identifier}}{program} = dclone $$self{data}{devices}{$device->{identifier}}{program};
           
            # Save the new program data
            $$self{data}{devices}{$device->{identifier}}{program} = $device->{program};
+
+           if ($$self{data}{devices}{$device->{identifier}}{program}{currentClimateRef} ne $$self{prev_data}{devices}{$device->{identifier}}{program}{currentClimateRef}) {
+              main::print_log( "[Ecobee]: currentClimateRef has changed from " . $$self{prev_data}{devices}{$device->{identifier}}{program}{currentClimateRef} . " to " . $$self{data}{devices}{$device->{identifier}}{program}{currentClimateRef} );
+           }
 
            # Compare the old with the new
            $self->compare_data( $$self{data}{devices}{$device->{identifier}}{program}, $$self{prev_data}{devices}{$device->{identifier}}{program}, $$self{monitor}{$device->{identifier}}{program} );
@@ -908,6 +923,7 @@ sub compare_data {
         $prev_value = $$prev_data{$key} if exists $$prev_data{$key};
         my $monitor_value = {};
         $monitor_value = $$monitor_hash{$key} if exists $$monitor_hash{$key};
+        #main::print_log( "[Ecobee]: key is $key, value is $value, prev_value is $prev_value, monitor_value is $monitor_value");
         if ( ref $value eq 'HASH') {
             $self->compare_data( $value, $prev_value, $monitor_value );
         }
@@ -1269,7 +1285,7 @@ More sophisticated children can hijack this method to do more complex tasks.
 sub data_changed {
     my ( $self, $value_name, $new_value ) = @_;
     my ( $setby, $response );
-    $self->debug( "Data changed called $value_name, $new_value", $info );
+    $self->debug( "Data changed called $value_name, $new_value");
     if ( defined $$self{parent}{state_pending}{$value_name} ) {
         ( $setby, $response ) = @{ $$self{parent}{state_pending}{$value_name} };
         delete $$self{parent}{state_pending}{$value_name};
@@ -1456,6 +1472,19 @@ sub get_events {
         return;
     }
 }
+
+=item C<get_programs()>
+
+Returns the current programs.
+
+=cut
+
+sub get_programs {
+    my ($self) = @_;
+    my $programs = $self->get_value("program"); # This returns a hashref with all the programs
+    return $programs;
+}
+
 
 
 =item C<set_hvac_mode($state, $p_setby, $p_response)>
@@ -1701,8 +1730,9 @@ package Ecobee_Thermo_Climate;
 
 This is a very high level module for interacting with the Ecobee Thermostat Climate.
 This type of object is often referred to as a child device.  It displays the
-climate value of the thermostat.  The object inherits all of the C<Generic_Item> 
-methods, including c<set>, c<state>, c<state_now>, c<tie_event>.
+climate value of the thermostat either by the active schedule, or by the ClimateRef
+of an overriding hold.  The object inherits all of the C<Generic_Item> 
+methods, including c<state>, c<state_now>, c<tie_event>.
 
 =head2 CONFIGURATION
 
@@ -1726,9 +1756,42 @@ sub new {
     my ( $class, $parent ) = @_;
     my $monitor_value;
     $monitor_value->{program}{currentClimateRef} = '';
+    $monitor_value->{eventsHash}{'hold-auto-home'}{holdClimateRef} = '';
+    $monitor_value->{eventsHash}{'hold-auto-away'}{holdClimateRef} = '';
+    $monitor_value->{eventsHash}{'none'}{holdClimateRef} = '';
     my $self = new Ecobee_Generic( $$parent{interface}, $parent, $monitor_value );
     bless $self, $class;
     return $self;
+}
+
+# Holds with a holdClimateRef override the value in currentClimateRef 
+sub data_changed {
+    my ( $self, $value_name, $new_value ) = @_;
+    $self->debug( "Data changed called $value_name, $new_value");
+    my $state = '';
+    if ($value_name eq 'holdClimateRef') {
+        if ($new_value eq 'none') {
+            # A hold ws cleared, so we need to set the value back to the currentClimateRef
+            my $programs = $$self{parent}->get_programs;
+            $state = $programs->{currentClimateRef};
+        } else {
+            $state = $new_value;
+        }
+    } else {
+        # We need to check if there are any active holds with a holdClimateRef before changing the state
+        my $events = $$self{parent}->get_events;
+        if (!exists $events->{'none'}) {
+            main::print_log( "[Ecobee]: Not setting the state to $new_value because there is still an active hold" );
+            return;
+        } else {
+            $state = $new_value;
+        }
+    }
+    if ($self->{state} ne $state) {
+        $self->set_receive($state, $$self{parent}{interface});
+    } else {
+        $self->debug( "Not setting the state to $state because that is already the current value" );
+    }
 }
 
 
