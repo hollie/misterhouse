@@ -11,6 +11,7 @@ Configure the required pushover settings in your mh.private.ini file:
 
   Pushover_token = <API token from Pushover.net registration> 
   Pushover_user =  <User or Group ID from Pushover.net registraton>
+  Pushover_device = <Default device or device list to sedn notifications to. List is comma-separated>
   Pushover_priority = [-1 | 0 | 1 | 2]  Default message priority,  defaults to 0.
   Pushover_html = [ 0 | 1 ]  Support HTML messages, see https://pushover.net/api#html. Defaults to 0.
   Pushover_title = "MisterHouse" Default title for messages if none provided 
@@ -132,7 +133,7 @@ sub new {
     $self->{html}     = 0;    # Default html off
 
     # Merge the mh.private.ini defaults into the object
-    foreach (qw( token user priority html title server retry expire speak disable)) {
+    foreach (qw( token user priority html title device server retry expire speak disable)) {
         $self->{$_} = $params->{$_};
         $self->{$_} = $::config_parms{"Pushover_$_"} unless defined $self->{$_};
     }
@@ -169,12 +170,13 @@ information for the notification.  The list is not exclusive.  Additional parame
 in the POST to Pushover.net.  This allows support of any API parameter as defined at https://pushover.net/api
 
   $push->notify("Some urgent message", {  priority => 2,            # Message priority,  -1, 0, 1, 2
-            html     => 1,            # HTML formatting of message 0-off, 1-on ... see https://pushover.net/api#html
-            retry    => 60,           # Retry priority 2 notification every 60 seconds
-					  expire   => 3600,         # Give up if not ack of priority 2 notify after 1 hour
-					  title    => "Some title", # Override title of message
-					  token    => "xxxx...",    # Override the API Token - probably not useful
-					  user     => "xxxx...",    # Override the target user/group
+            html     => 1,              # HTML formatting of message 0-off, 1-on ... see https://pushover.net/api#html
+            retry    => 60,             # Retry priority 2 notification every 60 seconds
+					  expire   => 3600,           # Give up if not ack of priority 2 notify after 1 hour
+					  title    => "Some title",   # Override title of message
+            device   => "nexus5,iphone" # Device or device-list 
+					  token    => "xxxx...",      # Override the API Token - probably not useful
+					  user     => "xxxx...",      # Override the target user/group
 				       });
 
 Notify will record the last message sent along with a timestamp.   If the duplicate message is sent within
@@ -217,7 +219,7 @@ sub notify {
     }
 
     # Merge in the message defaults, They can be overridden
-    foreach (qw( token user priority html title url url_title sound retry expire )) {
+    foreach (qw( token user priority html title device url url_title sound retry expire )) {
         next unless ( defined $self->{$_} );
         $callparms->{$_} = $self->{$_} unless defined $callparms->{$_};
     }
@@ -232,6 +234,11 @@ sub notify {
         $callparms->{expire} = 86400 if ( $callparms->{expire} > 86400 );
     }
 
+    # remove html if off
+    if ( $callparms->{html} != 1 ) {
+      delete $callparms->{html};
+    }
+    
     &::print_log(
         "[Pushover] Notify parameters: " . Data::Dumper::Dumper( \$callparms ) )
       if TRACE;
@@ -364,7 +371,7 @@ George Clark
 =head2 MODIFICATIONS
 
 2016/04/29 Marc  mhcoder@nowheremail.com
-           Added html support on API call
+           Added html and device support on API call
 
 =head2 SEE ALSO
 
