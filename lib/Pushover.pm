@@ -12,6 +12,7 @@ Configure the required pushover settings in your mh.private.ini file:
   Pushover_token = <API token from Pushover.net registration> 
   Pushover_user =  <User or Group ID from Pushover.net registraton>
   Pushover_priority = [-1 | 0 | 1 | 2]  Default message priority,  defaults to 0.
+  Pushover_html = [ 0 | 1 ]  Support HTML messages, see https://pushover.net/api#html. Defaults to 0.
   Pushover_title = "MisterHouse" Default title for messages if none provided 
   Pushover_disable = 1  Disable notifications.  Messages will still be logged
 
@@ -38,6 +39,9 @@ provided on the message send.  They will be merged with and override the default
 values provided on initialization.   See the method documentation for below more details.
 
   $push->notify( "Some important message", { title => 'Security Alert', priority => 2 });
+
+Or with HTML formmatting   
+  $push->notify( "Some <b>important</b> message", { title => 'Security Alert', priority => 2, html => 1 });
 
 =head2 DESCRIPTION
 
@@ -90,7 +94,8 @@ Creates a new Pushover object. The parameter hash is optional.  Defaults will be
 B<This must be excluded from the primary misterhouse loop, or the acknowledgment checking and duplicate message rate limiting will be lost>
 
   my $push = Pushover->new( {   priority  => 0,            # Set default Message priority,  -1, 0, 1, 2
-  				retry     => 60,           # Set default retry priority 2 notification every 60 seconds
+        html      => 1,            # Support HTML formatting of message ...see https://pushover.net/api#html
+  			retry     => 60,           # Set default retry priority 2 notification every 60 seconds
 				expire    => 3600,         # Set default expration of the retry timer 
 				title     => "Some title", # Set default title for messages
 			 	token     => "xxxx...",    # Set the API Token 
@@ -122,11 +127,12 @@ sub new {
     $params = {} unless defined $params;
 
     my $self = {};
-    $self->{priority} = 0;    # Priority zero - honor quite times
-    $self->{speak}    = 1;    # Speak notifications and acknowledgments
+    $self->{priority} = 0;    # Priority zero - honour quite times
+    $self->{speak}    = 1;    # Speak notifications and acknowledgements
+    $self->{html}     = 0;    # Default html off
 
     # Merge the mh.private.ini defaults into the object
-    foreach (qw( token user priority title server retry expire speak disable)) {
+    foreach (qw( token user priority html title server retry expire speak disable)) {
         $self->{$_} = $params->{$_};
         $self->{$_} = $::config_parms{"Pushover_$_"} unless defined $self->{$_};
     }
@@ -163,7 +169,8 @@ information for the notification.  The list is not exclusive.  Additional parame
 in the POST to Pushover.net.  This allows support of any API parameter as defined at https://pushover.net/api
 
   $push->notify("Some urgent message", {  priority => 2,            # Message priority,  -1, 0, 1, 2
-  				          retry    => 60,           # Retry priority 2 notification every 60 seconds
+            html     => 1,            # HTML formatting of message 0-off, 1-on ... see https://pushover.net/api#html
+            retry    => 60,           # Retry priority 2 notification every 60 seconds
 					  expire   => 3600,         # Give up if not ack of priority 2 notify after 1 hour
 					  title    => "Some title", # Override title of message
 					  token    => "xxxx...",    # Override the API Token - probably not useful
@@ -210,7 +217,7 @@ sub notify {
     }
 
     # Merge in the message defaults, They can be overridden
-    foreach (qw( token user priority title url url_title sound retry expire )) {
+    foreach (qw( token user priority html title url url_title sound retry expire )) {
         next unless ( defined $self->{$_} );
         $callparms->{$_} = $self->{$_} unless defined $callparms->{$_};
     }
@@ -354,6 +361,11 @@ sub _checkReceipt {
 
 George Clark
 
+=head2 MODIFICATIONS
+
+2016/04/29 Marc  mhcoder@nowheremail.com
+           Added html support on API call
+
 =head2 SEE ALSO
 
 http://Pushover.net/
@@ -367,4 +379,5 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =cut
+
 
