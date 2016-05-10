@@ -1476,9 +1476,16 @@ the misterhouse log for the result of those commands.
 
 There are 3 special voice command states '1_phase', '3-phase' and
 'use_mh_ini_phase_mode' to use a specific phase mode for one unit. This command
-is stored per unit, and is also restored between misterhouse restarts.
-'use_mh_ini_phase_mode' deletes the setting and the phase mode specified in
+is stored per unit, and is also restored between misterhouse restarts. But won't
+survive a reboot. Another way to permanently override the phase setting is to
+add the item either to the group onephase or threephase to override the mh.ini
+setting 'use_mh_ini_phase_mode' deletes the setting and the phase mode specified in
 mh.ini is used.
+Phase to use is determined in the following order:
+    * use value set from voice command
+    * if not set check if its part of a phase specific group
+    * the the mh ini setting is used
+    * if mh.ini setting is not set the default 1 Phase is used
 
 =head1 SETTING UP A NEW PLCBUS MODULE
 
@@ -1883,6 +1890,14 @@ sub _get_phase_mode {
     if ( $self->{phase_override} ) {
         $mode = $self->{phase_override};
         $self->_logd("using module specific phase mode '$mode'");
+    }
+    elsif ($self->{groups} &&  $self->{groups} =~ /onephase/i){
+        $mode = 1;
+        $self->_logd("is part of onephase group using mode '$mode'");
+    }
+    elsif ($self->{groups} &&  $self->{groups} =~ /threephase/i){
+        $mode = 3;
+        $self->_logd("is part of threephase group using mode '$mode'");
     }
     else {
         $mode = $::config_parms{plcbus_phase_mode};
