@@ -5,7 +5,8 @@ use warnings;
 
 use LWP::UserAgent;
 use HTTP::Request::Common qw(POST);
-use JSON::XS;
+#use JSON::XS;
+use JSON qw(decode_json);
 use Data::Dumper;
 
 # OpenSprinkler - MH Module for the opensprinker irrigation system. www.opensprinkler.com
@@ -62,6 +63,7 @@ use Data::Dumper;
 
 # v1.0 release
 # v1.1 (May 2016) - added ability to change program runtimes
+# v1.11 (May 2016) - removed JSON::XS dependancy
 
 @OpenSprinkler::ISA = ('Generic_Item');
 
@@ -342,7 +344,8 @@ sub _get_JSON_data {
       ; #kludge, reboot kills the OSP, so we don't get a return code, just always return success
 
     my $response;
-    eval { $response = JSON::XS->new->decode( $responseObj->content ); };
+#    eval { $response = JSON::XS->new->decode( $responseObj->content ); };
+    eval { $response = decode_json( $responseObj->content ); };
 
     # catch crashes:
     if ($@) {
