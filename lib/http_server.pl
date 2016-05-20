@@ -1639,7 +1639,7 @@ sub html_file {
         print "db web file cache check: f=$file t=$time2/$time3\n"
           if $main::Debug{http3};
         if ( $time3 <= $time2 ) {
-            return "HTTP/1.0 304 Not Modified\nServer: MisterHouse\n";
+            return "HTTP/1.0 304 Not Modified\nServer: MisterHouse\n\n";
         }
     }
 

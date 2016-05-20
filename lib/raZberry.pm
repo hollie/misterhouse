@@ -11,6 +11,8 @@ In user code:
     $family_room_fan      = new raZberry_dimmer($razberry_controller,'2','force_update');
     $family_room_blind	  = new raZberry_blind($razberry_controller,'3');
     $front_lock			  = new raZberry_blind($razberry_controller,'4');
+    $front_door           = new raZberry_door($razberry_controller,'5');
+    $toilet_window        = new raZberry_window($razberry_controller,'6');
 
 So far only raZberry_dimmer, raZberry_lock and raZberry_blind are working child objects
 
@@ -362,11 +364,9 @@ sub _get_JSON_data {
             if ( defined $self->{child_object}->{comm} ) {
                 if ( $self->{status} eq "online" ) {
                     $self->{status} = "offline";
-                    main::print_log
-                      "Communication Tracking object found. Updating from "
+                    &main::print_log("Communication Tracking object found. Updating from "
                       . $self->{child_object}->{comm}->state()
-                      . " to offline..."
-                      if ( $self->{loglevel} );
+                      . " to offline...") if ( $self->{loglevel} );
                     $self->{child_object}->{comm}->set( "offline", 'poll' );
                 }
             }
@@ -375,11 +375,9 @@ sub _get_JSON_data {
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{status} eq "offline" ) {
                 $self->{status} = "online";
-                main::print_log
-                  "Communication Tracking object found. Updating from "
+                main::print_log( "Communication Tracking object found. Updating from "
                   . $self->{child_object}->{comm}->state()
-                  . " to online..."
-                  if ( $self->{loglevel} );
+                  . " to online...") if ( $self->{loglevel} );
                 $self->{child_object}->{comm}->set( "online", 'poll' );
             }
         }
@@ -913,6 +911,108 @@ sub set {
     if ( $p_setby eq 'poll' ) {
         $self->SUPER::set($p_state);
     }
+}
+
+package raZberry_binary_sensor;
+@raZberry_binary_sensor::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object, $devid, $options ) = @_;
+
+    my $self = {};
+    bless $self, $class;
+    push( @{ $$self{states} }, 'on', 'off');
+
+    $$self{master_object} = $object;
+    $devid = $devid . "-0-48-1";
+    $$self{devid} = $devid;
+    $object->register( $self, $devid, $options );
+
+    #$self->set($object->get_dev_status,$devid,'poll');
+    $self->{level} = "";
+    $self->{debug} = $object->{debug};
+    return $self;
+
+}
+
+sub z_log {
+    my $self = shift;
+    my $who = ref ($self) . " (" . $self->{devid}.")";
+    main::print_log("[$who] @_");
+}
+
+
+sub level {
+    my ($self) = @_;
+
+    return ( $self->{level} );
+}
+
+
+sub ping {
+    my ($self) = @_;
+
+    $$self{master_object}->ping_dev( $$self{devid} );
+}
+
+sub isfailed {
+    my ($self) = @_;
+
+    $$self{master_object}->isfailed_dev( $$self{devid} );
+}
+
+package raZberry_openclose;
+@raZberry_openclose::ISA = ('raZberry_binary_sensor');
+
+sub new {
+    my ( $class, $object, $devid, $options ) = @_;
+
+    my $self = $class->SUPER::new($object, $devid, $options);
+    $$self{states} =  ();
+    push( @{ $$self{states} }, 'open', 'closed');
+    return $self;
+}
+
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
+
+    if ( $p_setby eq 'poll' ) {
+        $self->{level} = $p_state;
+        my $n_state;
+        if ( $p_state eq "on" ) {
+            $n_state = "open";
+        }
+        else {
+            $n_state = "closed";
+        }
+        $self->z_log("Setting value to $n_state. Level is " . $self->{level} ) if ( $self->{debug} );
+        $self->SUPER::set($n_state);
+    }
+    else {
+        $self->z_log("Error. Can not set state $p_state for sensors");
+    }
+}
+
+package raZberry_door;
+@raZberry_door::ISA = ('raZberry_openclose');
+sub new {
+    my ( $class, $object, $devid, $options ) = @_;
+
+    my $self =$class->SUPER::new($object, $devid, $options);
+    $self->set_fp_icon_set('door2');
+    $self->z_log("created...");
+    return $self;
+}
+
+package raZberry_window;
+@raZberry_window::ISA = ('raZberry_openclose');
+sub new {
+    my ( $class, $object, $devid, $options ) = @_;
+
+    my $self =$class->SUPER::new($object, $devid, $options);
+    $self->set_fp_icon_set('window');
+    $self->z_log("created...");
+    return $self;
 }
 
 1;
