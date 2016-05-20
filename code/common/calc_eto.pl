@@ -303,7 +303,7 @@ sub findwuLocation {
             }
         }
 
-        my $chk = $data->{RESULTS}->[0]->{tz};
+        $chk = $data->{RESULTS}->[0]->{tz};
         if ($chk) {
             $tzone = $chk;
         } else {
@@ -436,7 +436,7 @@ sub getConditionsData {
     my $cWeather = "";
     $cWeather = safe_float($conditions->{$current->{weather}}, 5);
 
-    unless (defined $cWeather) {
+    unless (defined $conditions->{$current->{weather}}) {
 	# check if any of the chkcond words exist in the $current-{weather}
 
 		my $badcond = 0;
@@ -470,7 +470,7 @@ sub getConditionsData {
     # help reduce excess watering, without stopping water when little rain is forecast.
 
     $nowater = 0;
-    my $whynot = '';
+    $whynot = '';
 
         # Its precipitating
 #HP TODO - this triggered on 'Clear'?
@@ -522,7 +522,7 @@ sub sun_block {
                     $cloudCover = safe_float($conditions->{$wuData->{history}->{observations}->[$period]->{conds}}, 5) / 10;
                     unless (defined $cloudCover) {
                    		$cloudCover = 10;
-                        print_log '[calc_eto] INFO Condition not found ' . $wuData->{history}->{observations}->[$period]->{conds};
+                        print_log '[calc_eto] INFO Sun Block Condition not found ' . $wuData->{history}->{observations}->[$period]->{conds};
                     }
                 }
             }
@@ -961,6 +961,10 @@ print "pl2 [e_tmin=$e_tmin e_tmax=$e_tmax sd=$sd sha=$sha dl_hours=$dl_hours irl
         $Ra = $etrad;
         print_log "[calc_eto] WARNING Not enough data to complete calculations" unless ($Ra);
     }
+
+	$msg = "[calc_eto] RESULTS Sun hours today: $sun_hours";  # tomorrow+2 days forecast rain
+	print_log $msg;
+	$msg_string .= $msg . "\n";
 
 
     my $ea = &eto::ea_from_tdew($tdew);
