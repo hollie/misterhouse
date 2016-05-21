@@ -1317,7 +1317,7 @@ sub read_table_A {
 	} 
     elsif ( $type eq "RAZBERRY_COMM" ) {
     	my ($controller);
-     	($controller, $name, $grouplist ) = @item_info;
+     	($name, $controller, $grouplist ) = @item_info;
      	$object = "raZberry_comm(\$" . $controller . ")";
 
 	}
