@@ -1313,17 +1313,15 @@ sub read_table_A {
         else {
      		$object = "raZberry('$address')";
         }   
-        $code .= "use RaZberry;\n";
+        $code .= "use raZberry;\n";
 	} 
     elsif ( $type eq "RAZBERRY_COMM" ) {
-    	require raZberry;
     	my ($controller);
      	($controller, $name, $grouplist ) = @item_info;
      	$object = "raZberry_comm(\$" . $controller . ")";
 
 	}
     elsif ( $type eq "RAZBERRY_DIMMER" ) {
-    	require raZberry;
     	my ($devid, $controller);
      	($devid, $name, $grouplist, $controller, @other ) = @item_info;
      	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
@@ -1335,7 +1333,6 @@ sub read_table_A {
         }    
 	}
     elsif ( $type eq "RAZBERRY_BLIND" ) {
-    	require raZberry;
     	my ($devid, $controller);
      	($devid, $name, $grouplist, $controller, @other ) = @item_info;
      	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
@@ -1347,39 +1344,36 @@ sub read_table_A {
         }    
 	}
     elsif ( $type eq "RAZBERRY_LOCK" ) {
-    	require raZberry;
     	my ($devid, $controller);
      	($devid, $name, $grouplist, $controller, @other ) = @item_info;
      	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
         if ($other) {
-     		$object = "raZberry_lock('$controller','$devid','$other')";
+     		$object = "raZberry_lock(\$" . $controller . ",'$devid','$other')";
         }
         else {
-     		$object = "raZberry_lock('$controller','$devid')";
+     		$object = "raZberry_lock(\$" . $controller . ",'$devid')";
         }    
 	}	
     elsif ( $type eq "RAZBERRY_THERMOSTAT" ) {
-    	require raZberry;
     	my ($devid, $controller);
      	($devid, $name, $grouplist, $controller, @other ) = @item_info;
      	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
         if ($other) {
-     		$object = "raZberry_thermostat('$controller','$devid','$other')";
+     		$object = "raZberry_thermostat(\$" . $controller . ",'$devid','$other')";
         }
         else {
-     		$object = "raZberry_thermostat('$controller','$devid')";
+     		$object = "raZberry_thermostat(\$" . $controller . ",'$devid')";
         }    
 	}	
     elsif ( $type eq "RAZBERRY_TEMP_SENSOR" ) {
-    	require raZberry;
     	my ($devid, $controller);
      	($devid, $name, $grouplist, $controller, @other ) = @item_info;
      	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
         if ($other) {
-     		$object = "raZberry_temp_sensor('$controller','$devid','$other')";
+     		$object = "raZberry_temp_sensor(\$" . $controller . ",'$devid','$other')";
         }
         else {
-     		$object = "raZberry_temp_sensor('$controller','$devid')";
+     		$object = "raZberry_temp_sensor(\$" . $controller . ",'$devid')";
         }    
 	}
     #-------------- End of RaZberry Objects -----------------

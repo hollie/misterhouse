@@ -22,13 +22,13 @@ raZberry_<child>(<controller>,<device id>,<options>)
 
 In items.mht:
 
-RAZBERRY_CONTROLLER		$name,		ip_address, options
-RAZBERRY_COMM			$name,		$controller
-RAZBERRY_DIMMER			$name,		$controller, device_id, $options
-RAZBERRY_BLIND			$name,		$controller, device_id, $options
-RAZBERRY_LOCK			$name,		$controller, device_id, $options
-RAZBERRY_THERMOSTAT		$name,		$controller, device_id, $options
-RAZBERRY_TEMP_SENSOR	$name,		$controller, device_id, $options 
+RAZBERRY_CONTROLLER		$name,		ip_address, $group,	$options
+RAZBERRY_COMM			$name,		$controller, $group,
+RAZBERRY_DIMMER			device_id,	$name,	$group,		$controller, $options
+RAZBERRY_BLIND			device_id,	$name,	$group,		$controller, $options
+RAZBERRY_LOCK			device_id,	$name,	$group,		$controller, $options
+RAZBERRY_THERMOSTAT		device_id,	$name,	$group,		$controller, $options
+RAZBERRY_TEMP_SENSOR	device_id,	$name,	$group,		$controller, $options
     
 =head2 DESCRIPTION
 
@@ -167,6 +167,7 @@ sub new {
 
     $self->{timer} = new Timer;
     $self->start_timer;
+    &main::print_log("[raZberry] Controller initialized.");
     return $self;
 }
 
@@ -971,7 +972,7 @@ sub new {
 
     my $self = {};
     bless $self, $class;
-    if (lc $deg eq "f") {
+    if ((defined $deg) and (lc $deg eq "f")) {
     	push(@{ $$self{states} },60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80);
     	$self->{units} = "F";
     	$self->{min_temp} = 58;
