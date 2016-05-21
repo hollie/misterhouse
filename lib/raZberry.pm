@@ -13,8 +13,12 @@ In user code:
     $front_lock			  = new raZberry_lock($razberry_controller,'4');
     $thermostat			  = new raZberry_thermostat($razberry_controller,'5');
     $temp_sensor		  = new raZberry_temp_sensor($razberry_controller,'5');
+	$door_sensor		  = new raZberry_binary_sensor($razberry_controller,'7');
 
-So far only raZberry_dimmer, raZberry_lock and raZberry_blind, raZberry_thermostat are working child objects
+There are also two sub binary_sensor objects. They are just the binary sesnor with the
+IA7 floorplan iconset set.
+- raZberry_window
+- raZberry_door
 
 raZberry(<ip address>,<poll time>);
 raZberry_<child>(<controller>,<device id>,<options>)
@@ -22,27 +26,27 @@ raZberry_<child>(<controller>,<device id>,<options>)
 
 In items.mht:
 
-RAZBERRY_CONTROLLER		$name,		ip_address, $group,	$options
-RAZBERRY_COMM			$name,		$controller, $group,
-RAZBERRY_DIMMER			device_id,	$name,	$group,		$controller, $options
-RAZBERRY_BLIND			device_id,	$name,	$group,		$controller, $options
-RAZBERRY_LOCK			device_id,	$name,	$group,		$controller, $options
-RAZBERRY_THERMOSTAT		device_id,	$name,	$group,		$controller, $options
-RAZBERRY_TEMP_SENSOR	device_id,	$name,	$group,		$controller, $options
+RAZBERRY_CONTROLLER		name,		ip_address, group,		$options
+RAZBERRY_DIMMER			device_id,	name,		group,		$controller, 	options
+RAZBERRY_BLIND			device_id,	name,		group,		$controller, 	options
+RAZBERRY_LOCK			device_id,	name,		group,		$controller, 	options
+RAZBERRY_THERMOSTAT		device_id,	name,		group,		$controller, 	options
+RAZBERRY_TEMP_SENSOR	device_id,	name,		group,		$controller, 	options
+RAZBERRY_BINARY_SENSOR,	device_id,	name,		group,		$controller,	options
     
 =head2 DESCRIPTION
 
 
-=head3 LINKING ZWAVE devices
+=head3 INCLUDING ZWAVE devices
 
-Devices need to first linked inside the razberry using the included web interface.
+Devices need to first included inside the razberry zwave network using the included web interface.
 
 =head3 STATE REPORTED IN MisterHouse
 
 The Razberry is polled on a regular basis in order to update local objects. By default, 
 the razberry is polled every 5 seconds.
 
-Update for local control use the 'nifler' plug in. This saves getting the local device
+Update for local control use the 'niffler' plug in. This saves forcing a local device
 status every poll.
 
 =head3 SENSOR STATE CHILD OBJECT

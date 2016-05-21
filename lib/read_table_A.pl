@@ -1376,6 +1376,17 @@ sub read_table_A {
      		$object = "raZberry_temp_sensor(\$" . $controller . ",'$devid')";
         }    
 	}
+    elsif ( $type eq "RAZBERRY_BINARY_SENSOR" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_binary_sensor(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_binary_sensor(\$" . $controller . ",'$devid')";
+        }    
+	}	
     #-------------- End of RaZberry Objects -----------------
 			
     #-------------- AD2 Objects -----------------
