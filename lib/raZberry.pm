@@ -1,5 +1,5 @@
 
-=head1 B<raZberry> v1.4
+=head1 B<raZberry> v1.4.1
 
 =head2 SYNOPSIS
 
@@ -15,10 +15,6 @@ In user code:
     $temp_sensor		  = new raZberry_temp_sensor($razberry_controller,'5');
 	$door_sensor		  = new raZberry_binary_sensor($razberry_controller,'7');
 
-There are also two sub binary_sensor objects. They are just the binary sesnor with the
-IA7 floorplan iconset set.
-- raZberry_window
-- raZberry_door
 
 raZberry(<ip address>,<poll time>);
 raZberry_<child>(<controller>,<device id>,<options>)
@@ -26,14 +22,20 @@ raZberry_<child>(<controller>,<device id>,<options>)
 
 In items.mht:
 
-RAZBERRY_CONTROLLER		name,		ip_address, group,		$options
-RAZBERRY_DIMMER			device_id,	name,		group,		$controller, 	options
-RAZBERRY_BLIND			device_id,	name,		group,		$controller, 	options
-RAZBERRY_LOCK			device_id,	name,		group,		$controller, 	options
-RAZBERRY_THERMOSTAT		device_id,	name,		group,		$controller, 	options
-RAZBERRY_TEMP_SENSOR	device_id,	name,		group,		$controller, 	options
-RAZBERRY_BINARY_SENSOR,	device_id,	name,		group,		$controller,	options
-    
+RAZBERRY_CONTROLLER		controller_name, ip_address, group,	options
+RAZBERRY_DIMMER			device_id,		 name,		 group,	controller_name, options
+RAZBERRY_BLIND			device_id,		 name,		 group,	controller_name, options
+RAZBERRY_LOCK			device_id,		 name,		 group,	controller_name, options
+RAZBERRY_THERMOSTAT		device_id,		 name,		 group,	controller_name, options
+RAZBERRY_TEMP_SENSOR	device_id,		 name,		 group,	controller_name, options
+RAZBERRY_BINARY_SENSOR,	device_id,		 name,		 group,	controller_name, options
+
+for example:
+
+RAZBERRY_CONTROLLER,	10.0.1.1, razberry_controller,	zwave
+RAZBERRY_BLIND,			4, 	      main_blinds, 			HVAC|zwave, razberry_controller
+
+
 =head2 DESCRIPTION
 
 
@@ -641,7 +643,7 @@ sub new {
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
-    if ( $p_setby eq 'poll' ) {
+    if ( defined $p_setby && $p_setby eq 'poll' ) {
         $self->{level} = $p_state;
         my $n_state;
         if ( $p_state == 0 ) {
@@ -1123,6 +1125,7 @@ sub new {
 
     $$self{master_object} = $object;
     $devid = $devid . "-0-48-1";
+    $$self{type} = "Binary Sensor";
     $$self{devid} = $devid;
     $object->register( $self, $devid, $options );
 
@@ -1139,7 +1142,6 @@ sub level {
     return ( $self->{level} );
 }
 
-
 sub ping {
     my ($self) = @_;
 
@@ -1150,6 +1152,10 @@ sub isfailed {
     my ($self) = @_;
 
     $$self{master_object}->isfailed_dev( $$self{devid} );
+}
+
+sub update_data {
+	my ($self,$data) = @_;
 }
 
 package raZberry_openclose;
@@ -1182,26 +1188,6 @@ sub set {
     else {
         main::print_log("[raZberry] ERROR Can not set state $p_state for openclose");
     }
-}
-
-package raZberry_door;
-@raZberry_door::ISA = ('raZberry_openclose');
-sub new {
-    my ( $class, $object, $devid, $options ) = @_;
-
-    my $self = $class->SUPER::new($object, $devid, $options);
-    $self->set_fp_icon_set('door2');
-    return $self;
-}
-
-package raZberry_window;
-@raZberry_window::ISA = ('raZberry_openclose');
-sub new {
-    my ( $class, $object, $devid, $options ) = @_;
-
-    my $self =$class->SUPER::new($object, $devid, $options);
-    $self->set_fp_icon_set('window');
-    return $self;
 }
 
 1;
