@@ -1332,6 +1332,17 @@ sub read_table_A {
      		$object = "raZberry_dimmer(\$" . $controller . ",'$devid')";
         }    
 	}
+    elsif ( $type eq "RAZBERRY_SWITCH" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_switch(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_switch(\$" . $controller . ",'$devid')";
+        }    
+	}	
     elsif ( $type eq "RAZBERRY_BLIND" ) {
     	my ($devid, $controller);
      	($devid, $name, $grouplist, $controller, @other ) = @item_info;

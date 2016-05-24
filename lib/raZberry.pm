@@ -1,19 +1,20 @@
 
-=head1 B<raZberry> v1.4.1
+=head1 B<raZberry> v1.5
 
 =head2 SYNOPSIS
 
 In user code:
 
     use raZberry;
-    $razberry_controller  = new raZberry('192.168.0.100');
+    $razberry_controller  = new raZberry('10.0.1.1');
     $razberry_comm		  = new raZberry_comm($razberry_controller);
-    $family_room_fan      = new raZberry_dimmer($razberry_controller,'2','force_update');
-    $family_room_blind	  = new raZberry_blind($razberry_controller,'3');
+    $room_fan      		  = new raZberry_dimmer($razberry_controller,'2','force_update');
+    $room_blind	  		  = new raZberry_blind($razberry_controller,'3');
     $front_lock			  = new raZberry_lock($razberry_controller,'4');
     $thermostat			  = new raZberry_thermostat($razberry_controller,'5');
     $temp_sensor		  = new raZberry_temp_sensor($razberry_controller,'5');
 	$door_sensor		  = new raZberry_binary_sensor($razberry_controller,'7');
+	$garage_light		  = new raZberry_switch($razberry_controller,'6');
 
 
 raZberry(<ip address>,<poll time>);
@@ -22,13 +23,14 @@ raZberry_<child>(<controller>,<device id>,<options>)
 
 In items.mht:
 
-RAZBERRY_CONTROLLER		controller_name, ip_address, group,	options
-RAZBERRY_DIMMER			device_id,		 name,		 group,	controller_name, options
-RAZBERRY_BLIND			device_id,		 name,		 group,	controller_name, options
-RAZBERRY_LOCK			device_id,		 name,		 group,	controller_name, options
-RAZBERRY_THERMOSTAT		device_id,		 name,		 group,	controller_name, options
-RAZBERRY_TEMP_SENSOR	device_id,		 name,		 group,	controller_name, options
-RAZBERRY_BINARY_SENSOR,	device_id,		 name,		 group,	controller_name, options
+RAZBERRY_CONTROLLER,	ip_address, controller_name, group,	options
+RAZBERRY_DIMMER,		device_id,	name,		 	 group,	controller_name, options
+RAZBERRY_SWITCH,		device_id,	name,		 	 group,	controller_name, options
+RAZBERRY_BLIND,			device_id,	name,		 	 group,	controller_name, options
+RAZBERRY_LOCK,			device_id,	name,		 	 group,	controller_name, options
+RAZBERRY_THERMOSTAT,	device_id,	name,		 	 group,	controller_name, options
+RAZBERRY_TEMP_SENSOR,	device_id,	name,		 	 group,	controller_name, options
+RAZBERRY_BINARY_SENSOR,	device_id,	name,		 	 group,	controller_name, options
 
 for example:
 
@@ -588,6 +590,77 @@ sub set {
         else {
             main::print_log(
                 "[raZberry_dimmer] Error. Unknown set state $p_state");
+        }
+    }
+}
+
+sub level {
+    my ($self) = @_;
+
+    return ( $self->{level} );
+}
+
+sub ping {
+    my ($self) = @_;
+
+    $$self{master_object}->ping_dev( $$self{devid} );
+}
+
+sub isfailed {
+    my ($self) = @_;
+
+    $$self{master_object}->isfailed_dev( $$self{devid} );
+}
+
+sub update_data {
+	my ($self,$data) = @_;
+}
+
+package raZberry_switch;
+
+@raZberry_switch::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object, $devid, $options ) = @_;
+
+    my $self = {};
+    bless $self, $class;
+    push(@{ $$self{states} }, 'off', 'on', );
+
+    $$self{master_object} = $object;
+    $devid = $devid . $zway_suffix unless ( $devid =~ m/-\d+-\d+$/ );
+    $$self{devid} = $devid;
+    $$self{type} = "Switch";
+    $object->register( $self, $devid, $options );
+
+    #$self->set($object->get_dev_status,$devid,'poll');
+    $self->{level} = "";
+    $self->{debug} = $object->{debug};
+    return $self;
+
+}
+
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
+
+    if ( $p_setby eq 'poll' ) {
+        if (lc $p_state == "on" ) {
+            $self->{level} = 100;
+        }
+        elsif (lc $p_state == "off" ) {
+            $self->{level} = 100;
+        }
+ 
+        main::print_log("[raZberry_switch] Setting value to $n_state. Level is " . $self->{level} ) if ( $self->{debug} );
+        $self->SUPER::set($p_state);
+    }
+    else {
+        if ( ( lc $p_state eq "off" ) or ( lc $p_state eq "on" ) ) {
+            $$self{master_object}->set_dev( $$self{devid}, $p_state );
+        }
+        else {
+            main::print_log(
+                "[raZberry_switch] Error. Unknown set state $p_state");
         }
     }
 }
