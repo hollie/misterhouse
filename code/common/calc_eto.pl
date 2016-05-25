@@ -566,7 +566,7 @@ sub mmFromLogs {
 			
     my $nStations = scalar( @{$_1mmProg->{mmTime}} );
 
-	my @ydur = (0) x $nStations;
+	my @ydur = (-1) x $nStations;
 	my @ymm = (-1) x $nStations;    
 
     my @yET = (0,0); # Yesterday's Evap (evapotranspiration, moisture losses mm/day)
@@ -1050,6 +1050,11 @@ print "pl4 [delta_es=$delta_es atmospres=$atmospres psy=$psy]\n" if ($debug);
 
     my $stationID = $wuData->{current_observation}->{station_id};
 	$msg = '[calc_eto] RESULTS Weather Station ID:  ' . $stationID; 
+	print_log $msg;
+	$msg_string .= $msg . "\n";
+
+    my $updateTime	 = $wuData->{current_observation}->{observation_time};
+	$msg = '[calc_eto] RESULTS Weather data ' . $updateTime; 
 	print_log $msg;
 	$msg_string .= $msg . "\n";
 
