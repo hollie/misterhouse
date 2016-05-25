@@ -1,5 +1,5 @@
 
-=head1 B<raZberry> v1.5
+=head1 B<raZberry> v1.5.1
 
 =head2 SYNOPSIS
 
@@ -651,7 +651,7 @@ sub set {
             $self->{level} = 100;
         }
  
-        main::print_log("[raZberry_switch] Setting value to $n_state. Level is " . $self->{level} ) if ( $self->{debug} );
+        main::print_log("[raZberry_switch] Setting value to $p_state. Level is " . $self->{level} ) if ( $self->{debug} );
         $self->SUPER::set($p_state);
     }
     else {
