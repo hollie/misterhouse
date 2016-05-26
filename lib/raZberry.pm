@@ -648,7 +648,7 @@ sub set {
             $self->{level} = 100;
         }
         elsif (lc $p_state eq "off" ) {
-            $self->{level} = 100;
+            $self->{level} = 0;
         }
  
         main::print_log("[raZberry_switch] Setting value to $p_state. Level is " . $self->{level} ) if ( $self->{debug} );
