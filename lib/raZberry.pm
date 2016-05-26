@@ -627,8 +627,8 @@ sub new {
     bless $self, $class;
     push(@{ $$self{states} }, 'off', 'on', );
 
-    $$self{master_object} = $object;
-    $devid = $devid . $zway_suffix unless ( $devid =~ m/-\d+-\d+$/ );
+    $$self{master_object} = $object;    
+    $devid = $devid . "-0-37" unless ( $devid =~ m/-\d+-\d+$/ );
     $$self{devid} = $devid;
     $$self{type} = "Switch";
     $object->register( $self, $devid, $options );
@@ -644,10 +644,10 @@ sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
     if ( $p_setby eq 'poll' ) {
-        if (lc $p_state == "on" ) {
+        if (lc $p_state eq "on" ) {
             $self->{level} = 100;
         }
-        elsif (lc $p_state == "off" ) {
+        elsif (lc $p_state eq "off" ) {
             $self->{level} = 100;
         }
  
