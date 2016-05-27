@@ -476,7 +476,7 @@ sub getConditionsData {
 #HP TODO - this triggered on 'Clear'?
     if ($cWeather == 10 and lc $current->{weather} ne 'overcast') {
         $nowater = 1;
-        $whynot .= 'precip (' . $current->{weather} . ') ';
+        $whynot .= 'precipitation (' . $current->{weather} . ') ';
     }
 
         # Too windy
@@ -488,7 +488,7 @@ sub getConditionsData {
         # Too cold
     if ($cTemp < 4.5 or $pLowTemp < 1) {
         $nowater = 1;
-        $whynot .= 'cold (current ' . round($cTemp, 2) . ' C/ predicted ' . round($pLowTemp,2) . ' C) ';
+        $whynot .= 'cold (current ' . round($cTemp, 2) . ' C / predicted ' . round($pLowTemp,2) . ' C) ';
     }
 
     $cmm += $pmm * $pCoR if ($pCoR);    
@@ -752,7 +752,9 @@ sub writeResults {
 #HP - ok, this is explained by the opensprinker setup, a program can have up to 4 runtimes
 #HP - useful to avoid grass saturation. So if really dry and needs lots of moisture, then run
 #HP - multiple programs
-
+#HP - also set the number of times to water to 0 if $noWater is set. 
+	$times = 0 if ($noWater);
+	
     my @startTime  = (-1) x 4;
     my @availTimes = ( $sun->{rise} - sum( @runTime) / 60, 
                        $sun->{rise} + 60, 
