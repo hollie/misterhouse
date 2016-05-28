@@ -34,11 +34,18 @@ if ($Startup) {
                 if ($@) {
             		print_log "[IA7_Collection_Updater] : WARNING: decode_json failed for $file. Please check this file!";
         		} else {
-        			$json_data->{700}->{user} = '$Authorized' if ($version < 1.2); #IA7 v1.2 required change
+        			if ($version < 1.2) { #IA7 v1.2 required change
+        				$json_data->{700}->{user} = '$Authorized' unless (defined $json_data->{700}->{user});
+        				my $found = 0;
+        				foreach my $i (@{$json_data->{500}->{children}})	{
+        					$found = 1 if ($i == 700);
+        				}
+        				push (@{$json_data->{500}->{children}},700) unless ($found);
+        			}
         			my $json_newdata = to_json($json_data, {utf8 => 1, pretty => 1});
-        			print $json_newdata;
         			my $backup_file = $file . ".v" . $version . ".backup";
         			file_write($backup_file,$file_data);
+          			print_log "[IA7_Collection_Updater] : Saved backup " . $file . ".v" . $version . ".backup";     			
         			file_write($file,$json_newdata);
         		}
         	}
