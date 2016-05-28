@@ -329,7 +329,7 @@ sub web_item_add {
     $file_data[@file_data] = sprintf( "%-20s%-20s%-20s%-20s%-20s%s",
         $type, $address, $name, $group, $other1, $other2 );
         
-    &main::print_log("DB: in webitem, $type, $address, $name, $group, $other1, $other2");
+    #&main::print_log("DB: in webitem, $type, $address, $name, $group, $other1, $other2");
     &mht_item_file_write( $web_item_file_name, \@file_data );
 
     return 0;
