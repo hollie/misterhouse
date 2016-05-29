@@ -771,7 +771,8 @@ var getButtonColor = function (state) {
 	} else if (state == "cooling" || state == "cool") {
 		 color = "info";
 	}
-	if (json_store.ia7_config.state_colors[state] !== undefined) {
+	if (json_store.ia7_config.state_colors !== undefined
+            && json_store.ia7_config.state_colors[state] !== undefined) {
 		color = "purple";
 		if (json_store.ia7_config.state_colors[state] == "green") {
 			color = "success";
