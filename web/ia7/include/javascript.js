@@ -597,7 +597,7 @@ var loadList = function() {
 					// This is not an entity, likely a value of the root obj
 					continue;
 				}
-				if (json_store.objects[entity].hidden != undefined){
+				if (json_store.objects[entity].hidden !== undefined){
 					// This is an entity with the hidden property, so skip it
 					continue;
 				}
@@ -733,7 +733,8 @@ var loadList = function() {
                          for (var i = 0; i < json_store.objects[entity].states.length; i++){
                          	if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
                          	possible_states++;
-                         	if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i]
+				if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i];
+
                          	}
 						if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
 						url= '/SET;none?select_item='+entity+'&select_state='+new_state;
@@ -1614,197 +1615,563 @@ var graph_rrd = function(start,group,time) {
 	});
 };
 
-var floorplan = function(group,time) {
-	var URLHash = URLToHash();
-	var baseimg_width;
-	if (typeof time === 'undefined'){
-  		$('#list_content').html("<div id='floorplan' class='row top-buffer'>");
-  		$('#floorplan').append("<div id='graphic' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-  		time = 0;
-  		$('#graphic').prepend('<center><img id="fp_graphic" width="" src="/ia7/graphics/floorplan-'+group+'.png" /></center>');
-  		baseimg_width = $(window).width();
-    	if (baseimg_width > 990) baseimg_width = 800;
-    	$('#fp_graphic').attr("width",baseimg_width+"px");
-  	}
-  	
- 	if (updateSocket !== undefined && updateSocket.readyState != 4){
-  		// Only allow one update thread to run at once
-  		updateSocket.abort();
- 	} 
-	//resize window if changed
-	window.onresize = function(){
-    	baseimg_width = $(window).width();
-   		if (baseimg_width > 990) baseimg_width = 800;
-    	$('#fp_graphic').attr("width",baseimg_width+"px");
-    	// update the location of all the objects...
-    	$(".floorplan_item").each(function(index) {
-    		var classstr = $(this).attr("class");
-    		var coords = classstr.split(/coords=/)[1];
-    		var fp_location = coords.split(/x/);
-    		var location = get_fp_location(fp_location,0);
-    		$(this).attr("style",location);
-			//iphone scale
-			var baseimg_width = $(window).width();
-			if (baseimg_width < 500) {
-      			$(this).attr('src',$(this).attr('src').replace('48.png','32.png'))
-			} else {
-			    $(this).attr('src',$(this).attr('src').replace('32.png','48.png'))
-			}
+/////////////// Floorplan //////////////////////////////////////////////////////////
+var fp_display_width=0; // updated by fp_resize_floorplan_image
+var fp_display_height=0; // updated by fp_resize_floorplan_image
+var fp_scale = 100; // updated by fp_reposition_entities
+var fp_grabbed_entity = null; // store item for drag & drop
+var fp_icon_select_item_id = null; // store item id on right click for icon set selection
 
-		});
-	}
-
- 	var path_str = "/objects";  
- 	var arg_str = "parents="+group+"&fields=fp_location,state,states,state_log,fp_icons,fp_icon_set,img,link,label,type&long_poll=true&time="+time;
-
- 	updateSocket = $.ajax({
-  		type: "GET",
-  		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
-  		dataType: "json",
-  		success: function( json, statusText, jqXHR ) {
-   			var requestTime = time;
-    		if (jqXHR.status == 200) {
-     			JSONStore(json);
-     			for (var entity in json.data) {
-					for (var i=0 ; i < json.data[entity].fp_location.length-1; i=i+2){ //allow for multiple graphics
-    					var location = get_fp_location(json.data[entity].fp_location,i);
-    					var popover = 0;
-    					if ((json.data[entity].type == "FPCamera_Item") ||
-    						(json_store.ia7_config.prefs.fp_state_popovers == "yes")) popover = 1 
-    					var popover_html = "";
-    					if (popover) popover_html = 'data-toggle="popover" data-trigger="focus" tabindex="0"' 
-    					
-   						var image = get_fp_image(json.data[entity]);
-      					if ($('#entity_'+entity+'_'+i).length > 0) {
-      						$('#entity_'+entity+'_'+i).attr('src',"/ia7/graphics/"+image);
-      					} else {				   					
-							$('#graphic').append('<img '+popover_html+' id="entity_'+entity+'_'+i+'" class="entity='+entity+'_'+i+' floorplan_item coords='+json.data[entity].fp_location[i]+'x'+json.data[entity].fp_location[i+1]+'" style="'+location+'" src="/ia7/graphics/'+image+'" />');
-						}
-						// create unique popovers for Camera items
-						if (json.data[entity].type == "FPCamera_Item") {
-							var name = entity;
-							if (json.data[entity].label !== undefined) name = json.data[entity].label
-							var a_start = "";
-							var a_end = "";
-							if (json.data[entity].link !== undefined) {
-								a_start = '<a href="'+json.data[entity].link+'">'
-								a_end = '</a>';
-							}
-							$('[data-toggle="popover"]').popover({
-								placement : 'auto bottom', //placement of the popover. also can use top, bottom, left or right
-      							title : name, 
-      							html: 'true', //needed to show html of course
-      							content : '<div id="popOverBox">'+a_start+'<img src="'+json.data[entity].img+'" width="251" height="201" />'+a_end+'</div>'
-							});
-						} else {
-							if (popover) {								
-								
-								$('[data-toggle="popover"]').popover({
-									placement : 'auto bottom', //placement of the popover. also can use top, bottom, left or right
-      								title : function() {
-      									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
-      									var name = fp_entity;
-										if (json_store.objects[fp_entity].label !== undefined) name = json_store.objects[fp_entity].label;								
-      									return name+" - "+json_store.objects[fp_entity].state;
-      									}, 
-      								html: 'true', //needed to show html of course
-      								content : function() {
-      									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
-										var po_states = json_store.objects[fp_entity].states;
-										var html = '<div id="popOverBox">';
-										// HP need to have at least 2 states to be a controllable object...
-										if (po_states.length > 1) {
-											html = '<div class="btn-group stategrp0 btn-block">';
-											var buttons = 0;
-											var stategrp = 0;
-											for (var i = 0; i < po_states.length; i++){
-												if (filterSubstate(po_states[i]) == 1) {
-													continue 
-												} else {
-													buttons++ 
-												//}
-												if (buttons > 2) {
-													stategrp++;
-													html += "</div><div class='btn-group btn-block stategrp"+stategrp+"'>";
-													buttons = 1;
-												}
-										
-												var color = getButtonColor(po_states[i])
-//TODO disabled override
-												var disabled = ""
-												if (po_states[i] == json_store.objects[fp_entity].state) {
-													disabled = "disabled";
-												}
-												html += "<button class='btn col-sm-6 col-xs-6 btn-"+color+" "+disabled+"'"
-												var url= '/SET;none?select_item='+fp_entity+'&select_state='+po_states[i];
-												html += ' onclick="$.get('
-												html += "'"+url+"')"
-												html += '">'+po_states[i]+'</button>';
-											}
-										}
-									}
-									html += "</div></div>"
-									return html
-								}
-
-								});
-							} else {
-								$('#entity_'+entity+'_'+i).click( function () {
-									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
-									create_state_modal(fp_entity);
-								});	
-							}
-							$('#entity_'+entity+'_'+i).mayTriggerLongClicks().on( 'longClick', function() {		
-									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
-									create_state_modal(fp_entity);
-							});	
-						}
- 					}
- 				}
-    			requestTime = json.meta.time;
-   			 }
-   			if (jqXHR.status == 200 || jqXHR.status == 204) {
-    		//Call update again, if page is still here
-    		//KRK best way to handle this is likely to check the URL hash
-    			if ($('#floorplan').length !== 0){
-     				//If the floorplan page is still active request more data
-     				floorplan(group,requestTime);
-    			}
-    		}
-   		}  
- 	});
+var noDragDrop = function() {
+    return false;
 };
 
-//have to figure out height, and the jumps at 991 and 1200
-var get_fp_location = function(item,index) {
-	var baseimg_width = $(window).width();
-	//var baseimg_height = $(window).height() - 60;
-	var baseimg_height = $('#fp_graphic').height();	
-	var tmargin = 0;
-	var lmargin = 0;
-  	if (baseimg_width > 990) {
-  		lmargin = (baseimg_width - 980) / 2;
-  		tmargin = 20;
-  		if (baseimg_width > 1200) {
-  			lmargin = (baseimg_width - 1180) / 2;
-  		}
-  		baseimg_width = 800;
+var fp_getOrCreateIcon = function (json, entity, i, coords, show_pos){
+    var popover = 0;
+    if ((json.data[entity].type === "FPCamera_Item") || (json_store.ia7_config.prefs.fp_state_popovers === "yes"))
+        popover = 1;
 
-  	}
-  	var location = "position: absolute; ";
-  	var top = parseInt((baseimg_height * item[index] / 100)+tmargin);
-  	var left = parseInt((baseimg_width * item[index+1] / 100)+lmargin);
-  	location += "top: "+top+"px;";
-  	location += "left: "+left+"px";
-  	return location;
-}
+    var popover_html = "";
+    if (popover)
+        popover_html = 'data-toggle="popover" data-trigger="focus" tabindex="0"';
 
+    var entityId = 'entity_'+entity+'_'+i;
+    if ($('#' + entityId).length === 0) {
+        var html = '<span style="display: inline-block">'  + // this span somehow magically make resizing the icons work
+                '<a title="'+entity+'"><img '+popover_html+' ' +
+                'id="'+entityId+'"' +
+                'class="entity='+entityId+' floorplan_item coords='+coords+'" '+
+                '"></img></a>'+
+                '</span>';
+        if (coords !== ""){
+            $('#graphic').append(html);
+        }
+        else {
+            $('#fp_positionless_items').append(html);
+        }
+    }
+    var E = $('#'+entityId);
+    E.bind("dragstart", noDragDrop);
+    var image = get_fp_image(json.data[entity]);
+    E.attr('src',"/ia7/graphics/"+image);
+    if (show_pos)
+        E.css("border","1px solid black");
+
+    return E;
+};
+
+var fp_resize_floorplan_image = function(){
+    var floor_width = $("#fp_graphic").width();
+    $("#fp_graphic").attr("width", "1px");
+
+    fp_display_width = $("#graphic").width();
+    console.log("FP: resize "+ floor_width + " => " + fp_display_width);
+    $('#fp_graphic').attr("width",fp_display_width+"px");
+    fp_display_height = $("#fp_graphic").height();
+};
+
+var fp_reposition_entities = function(){
+    var t0 = performance.now();
+    var offset = $("#fp_graphic").offset();
+    var width = fp_display_width;
+    var hight = fp_display_height;
+    var onePercentWidthInPx = width/100;
+    var onePercentHeightInPx = hight/100;
+    var fp_get_offset_from_location = function(item) {
+        var y = item[0];
+        var x = item[1];
+        var newy = offset.top +  y * onePercentHeightInPx;
+        var newx = offset.left +  x * onePercentWidthInPx;
+        return {
+            "top": newy,
+            "left": newx
+        };
+    };
+    var nwidth = $("#fp_graphic").get(0).naturalWidth;
+    fp_scale = Math.round( width/nwidth * 100);
+
+    // update the location of all the objects...
+    $(".floorplan_item").each(function(index) {
+        var classstr = $(this).attr("class");
+        var coords = classstr.split(/coords=/)[1];
+        $(this).width(fp_scale + "%");
+
+        if (coords.length === 0){
+            return;
+        }
+        var fp_location = coords.split(/x/);
+        var fp_offset =  fp_get_offset_from_location(fp_location);
+
+        // this seems to make the repositioning slow
+        // ~ 300+ms on my nexus7 firefox-beta vs <100ms with this code commented out
+        // var baseimg_width = $("#fp_graphic").width();
+        // if (baseimg_width < 500) {
+        //     $(this).attr('src',$(this).attr('src').replace('48.png','32.png'));
+        // } else {
+        //     $(this).attr('src',$(this).attr('src').replace('32.png','48.png'));
+        // }
+
+        var adjust = $(this).width()/2;
+        var fp_off_center = {
+            "top":  fp_offset.top - adjust,
+            "left": fp_offset.left - adjust
+        };
+        fp_set_pos($(this).attr('id'), fp_off_center);
+    });
+
+	$('.icon_select img').each(function(){
+        $(this).width(fp_scale + "%");
+	});
+    var t1 = performance.now();
+    console.log("FP: reposition and scale: " +Math.round(t1 - t0) + "ms ");
+};
+
+var fp_set_pos = function(id, offset){
+    var item =  $('#' + id);
+    // do not move the span, this make the popup to narrow somehow
+    // item.closest("span").offset(offset);
+    item.offset(offset);
+};
+
+var fp_is_point_on_fp = function (p){
+    var offset = $("#fp_graphic").offset();
+    var width = $("#fp_graphic").width();
+    var height = $("#fp_graphic").height();
+    if (p.top < offset.top)
+        return false;
+    if (p.top > offset.top + height)
+        return false;
+    if (p.left < offset.left)
+        return false;
+    if (p.left > offset.left + width)
+        return false;
+
+    return true;
+};
+
+var floorplan = function(group,time) {
+    var URLHash = URLToHash();
+    var baseimg_width;
+    if (typeof time === 'undefined'){
+        //var window_width = $(window).width();
+        $('#list_content').html("<div id='floorplan' class='row top-buffer'>");
+        if (URLHash.show_pos){
+            // add elememnts to show current position on floorplan
+            $('#floorplan').append("<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'><ol>" +
+                    "<li>grab icon and drop it on apropriate position on the flooplan</li>" +
+                    "<li>right click item to select another iconset</li>"+
+                    "<li>to remove the item from the perl code drop it besides the fp background image</li>"+
+                    "<li>repeat 1/2/3 for all items you'd like to change</li>"+
+                    "<li>copy the generated perl code into your usercode file</li>" +
+                    "</ol>" +
+                    "<center>y,x = <span id='debug_pos'></span>" +
+                    "</center></div>");
+        }
+        $('#floorplan').append("<div id='graphic' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+        time = 0;
+        $('#graphic').prepend('<center><img id="fp_graphic" border="1"  /></center>');
+        if (URLHash.show_pos){
+            $('#fp_graphic').css("border","1px solid black");
+            $('#list_content').append("<div id='fp_positionless_items' />");
+            $('#list_content').append("<pre id='fp_pos_perl_code' />");
+        }
+        $('#fp_graphic').bind("load", function () {
+            console.log("FP: background loaded.");
+            fp_resize_floorplan_image();
+            floorplan(group, time);
+        });
+        $('#fp_graphic').attr("src", '/ia7/graphics/floorplan-'+group+'.png');
+        return;
+    }
+
+    if (updateSocket !== undefined && updateSocket.readyState !== 4){
+        // Only allow one update thread to run at once
+        updateSocket.abort();
+    }
+
+    if (URLHash.show_pos){
+        // update positon
+
+        $(document).mousemove(function(e){
+            var offset = $("#fp_graphic").offset();
+            var width = $("#fp_graphic").width();
+            var hight = $("#fp_graphic").height();
+            var  l = e.pageX - offset.left;
+            var  t = e.pageY - offset.top;
+
+            //var pos =   Math.round((t/hight) *100) +"," + Math.round((l/width)*100);
+            var pos =  (t/hight) *100 +"," + (l/width)*100;
+            //console.log("floorplanpos: " + pos );
+            $('#debug_pos').text(pos);
+            if (fp_grabbed_entity !== null){
+                //var itemCenterOffset = Math.round(fp_grabbed_entity.width/2);
+                var itemCenterOffset = fp_grabbed_entity.width/2;
+                var newPos = {
+                    "top": e.pageY - itemCenterOffset,
+                    "left": e.pageX - itemCenterOffset
+                };
+                fp_set_pos(fp_grabbed_entity.id, newPos);
+                //console.log(fp_grabbed_entity.id +" pos: " +newPos.top + " x " + newPos.left);
+                //fp_grabbed_entity.class.replace("coords=.*", "coords="+pos);
+            }
+        });
+
+        $(window).mousedown(function(e){
+            if (e.which === 1 && e.target.id.indexOf("entity_") >= 0){
+                fp_grabbed_entity = e.target;
+                e.stopPropagation();
+                return true;
+            }
+        });
+
+        $(window).mouseup(function(e){
+            if (fp_grabbed_entity === null)
+                return;
+
+            set_set_coordinates_from_offset(fp_grabbed_entity.id);
+            fp_reposition_entities();
+            fp_grabbed_entity = null;
+        });
+
+    }
+
+    var set_set_coordinates_from_offset = function (id)
+    {
+        var E = $('#'+id);
+        var offsetE = E.offset();
+        offsetE.top += E.width()/2;
+        offsetE.left += E.width()/2;
+        var offsetP = $("#fp_graphic").offset();
+        var width = fp_display_width;
+        var hight = fp_display_height;
+        var onePercentWidthInPx = width/100;
+        var onePercentHeightInPx = hight/100;
+
+        var newy =  (offsetE.top - offsetP.top) / onePercentHeightInPx;
+        var newx =  (offsetE.left - offsetP.left) / onePercentWidthInPx;
+        var coords = newy+"x"+newx;
+        var name = id.match(/entity_(.*)_(\d)+$/)[1];
+        var codeLines = $("#fp_pos_perl_code").text().split('\n');
+        var newCode = "";
+        if (fp_is_point_on_fp(offsetE) === false){
+            E.attr("class", "entity="+id+" floorplan_item coords=");
+            E.attr("src", "/ia7/graphics/fp_unknown_info_48.png");
+            for (var i = 0; i< codeLines.length; i++)
+            {
+                var line = codeLines[i];
+                if (line.startsWith("$"+name) === false && line !== "")
+                {
+                    newCode += line + "\n";
+                }
+            }
+        }
+        else{
+            E.attr("class", "entity="+id+" floorplan_item coords="+coords);
+            var coordIdx = id.match(/entity_(.*)_(\d)+$/)[2];
+
+            var itemUpdated = false;
+            for (var i = 0; i< codeLines.length; i++)
+            {
+                var line = codeLines[i];
+                if (line.startsWith("$"+name+"->set_fp_location"))
+                {
+                    var m = line.match(/.*\((.*)\).*/);
+                    oldCoords = m[1].split(",");
+                    oldCoords[+coordIdx] = newy;
+                    oldCoords[+coordIdx+1] = newx;
+                    var newline = "$" + name + "->set_fp_location("+ oldCoords.join(",") + ");\n";
+                    newCode += newline;
+                    itemUpdated = true;
+                }
+                else if (line !== "")
+                {
+                    newCode += line + "\n";
+                }
+            }
+            if (itemUpdated === false)
+            {
+                var newline = "$" + name + "->set_fp_location("+ newy +","+ newx + ");\n";
+                newCode += newline;
+            }
+        }
+        newCode = newCode.split('\n').sort().join('\n');
+        $("#fp_pos_perl_code").text(newCode);
+    };
+
+    // reposition on window size change
+    window.onresize = function(){
+        if ($('#floorplan').length === 0)
+        {
+            window.onresize = null;
+            return;
+        }
+
+        console.log("FP: window resized");
+        fp_resize_floorplan_image();
+        fp_reposition_entities();
+    };
+
+    var path_str = "/objects";
+    var fields = "fields=fp_location,state,states,fp_icons,fp_icon_set,img,link,label,type";
+    if (json_store.ia7_config.prefs.state_log_show === "yes")
+        fields += ",state_log";
+
+    var arg_str = "parents="+group+"&"+fields+"&long_poll=true&time="+time;
+
+    updateSocket = $.ajax({
+        type: "GET",
+        url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+        dataType: "json",
+        error: function(xhr, textStatus, errorThrown){
+            //   console.log('FP: request failed: "' + textStatus + '" "'+JSON.stringify(errorThrown, undefined,2)+'"');
+        },
+        success: function( json, statusText, jqXHR ) {
+            //  console.log('FP: request succeeded: "' + statusText + '" "'+JSON.stringify(jqXHR, undefined,2)+'"');
+            var requestTime = time;
+            if (jqXHR.status === 200) {
+                var t0 = performance.now();
+                JSONStore(json);
+                for (var entity in json.data) {
+                    if (URLHash.show_pos && requestTime === 0){
+                        perl_pos_coords = "";
+                    }
+                    for (var i=0 ; i < json.data[entity].fp_location.length-1; i=i+2){ //allow for multiple graphics
+                        var popover = 0;
+                        if ((json.data[entity].type === "FPCamera_Item") || (json_store.ia7_config.prefs.fp_state_popovers === "yes"))
+                            popover = 1;
+
+                        if (URLHash.show_pos && requestTime === 0){
+                            if (perl_pos_coords.length !== 0){
+                                perl_pos_coords += ", ";
+                            }
+                            perl_pos_coords += "" + json.data[entity].fp_location[i]+','+json.data[entity].fp_location[i+1];
+                        }
+
+                        var coords= json.data[entity].fp_location[i]+'x'+json.data[entity].fp_location[i+1];
+                        var E = fp_getOrCreateIcon(json, entity, i, coords, URLHash.show_pos);
+
+                        if (URLHash.show_pos === undefined)
+                        {
+                            // create unique popovers for Camera items
+                            if (json.data[entity].type === "FPCamera_Item") {
+                                var name = entity;
+                                if (json.data[entity].label !== undefined)
+                                    name = json.data[entity].label;
+
+                                var a_start = "";
+                                var a_end = "";
+                                if (json.data[entity].link !== undefined) {
+                                    a_start = '<a href="'+json.data[entity].link+'">';
+                                    a_end = '</a>';
+                                }
+
+                                $('[data-toggle="popover"]').popover({
+                                    placement : 'auto bottom', //placement of the popover. also can use top, bottom, left or right
+                                    title : name,
+                                    html: 'true', //needed to show html of course
+                                    content : '<div id="popOverBox">'+a_start+'<img src="'+json.data[entity].img+'" width="251" height="201" />'+a_end+'</div>'
+                                });
+                            } else {
+                                if (popover) {
+
+                                    $('[data-toggle="popover"]').popover({
+                                        placement : 'auto bottom', //placement of the popover. also can use top, bottom, left or right
+                                        title : function() {
+                                            var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+                                            var name = fp_entity;
+                                            if (json_store.objects[fp_entity].label !== undefined) name = json_store.objects[fp_entity].label;
+                                            var ackt = E.offset();
+                                            return name+ " - "+json_store.objects[fp_entity].state;
+                                        },
+                                        html: 'true', //needed to show html of course
+                                        content : function() {
+                                            var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+                                            var po_states = json_store.objects[fp_entity].states;
+                                            var html = '<div id="popOverBox">';
+                                            // HP need to have at least 2 states to be a controllable object...
+                                            if (po_states.length > 1) {
+                                                html = '<div class="btn-group stategrp0 btn-block">';
+                                                var buttons = 0;
+                                                var stategrp = 0;
+                                                for (var i = 0; i < po_states.length; i++){
+                                                    if (filterSubstate(po_states[i]) !== 1) {
+                                                        buttons++;
+                                                        if (buttons > 2) {
+                                                            stategrp++;
+                                                            html += "</div><div class='btn-group btn-block stategrp"+stategrp+"'>";
+                                                            buttons = 1;
+                                                        }
+
+                                                        var color = getButtonColor(po_states[i]);
+                                                        //TODO disabled override
+                                                        var disabled = "";
+                                                        if (po_states[i] === json_store.objects[fp_entity].state) {
+                                                            disabled = "disabled";
+                                                        }
+                                                        html += "<button class='btn col-sm-6 col-xs-6 btn-"+color+" "+disabled+"'";
+                                                        var url= '/SET;none?select_item='+fp_entity+'&select_state='+po_states[i];
+                                                        html += ' onclick="$.get(';
+                                                        html += "'"+url+"')";
+                                                        html += '">'+po_states[i]+'</button>';
+                                                    }
+                                                }
+                                                html += "</div></div>";
+                                                //console.log("html="+html)
+                                            }
+                                            return html;
+                                        }
+                                    });
+                                } else {
+                                    E.click( function () {
+                                        //var fp_entity = $(this).attr("id").split(/entity_/)[1]; //
+                                        var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+                                        //alert("entity="+fp_entity);
+                                        create_state_modal(fp_entity);
+                                    });
+                                }
+                                E.mayTriggerLongClicks().on( 'longClick', function() {
+                                    var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+                                    create_state_modal(fp_entity);
+                                });
+                            }
+                        }
+                    }
+
+                    if (URLHash.show_pos && requestTime === 0){
+                        if (perl_pos_coords.length===0)
+                        {
+                            fp_getOrCreateIcon(json, entity, 0, "", URLHash.show_pos);
+                        }
+                        else{
+                            var oldCode = $('#fp_pos_perl_code').text();
+                            if (oldCode.length !== 0)
+                                oldCode += "\n";
+
+                            var perl_pos_code = "";
+                            var iconset = json.data[entity].fp_icon_set;
+                            if (iconset !== undefined){
+                                perl_pos_code += '$' + entity + '->set_fp_icon_set("';
+                                perl_pos_code += iconset + '");\n';
+                            }
+                            perl_pos_code += "$" + entity + "->set_fp_location(";
+                            perl_pos_code += perl_pos_coords + ");";
+                            perl_pos_code = oldCode  + perl_pos_code;
+                            perl_pos_code = perl_pos_code.split('\n').sort().join('\n');
+                            $('#fp_pos_perl_code').text(perl_pos_code);
+                        }
+                    }
+                }
+                fp_reposition_entities();
+                if (requestTime === 0 && URLHash.show_pos){
+                    $('#list_content').append("<p>&nbsp;</p>");
+                    $.ajax({
+                        type: "GET",
+                        url: "/LONG_POLL?json('GET','fp_icon_sets','px=48')",
+                        dataType: "json",
+                        error: function(xhr, textStatus, errorThrown){
+                            console.log('FP: request iconsets failed: "' + textStatus + '" "'+JSON.stringify(errorThrown, undefined,2)+'"');
+                        },
+                        success: function( json, statusText, jqXHR ) {
+                            console.log('FP: request iconsets: "' + statusText + '" "'+JSON.stringify(jqXHR, undefined,2)+'"');
+                            var requestTime = time;
+                            if (jqXHR.status === 200) {
+                                var iconlist = '<ul class="icon_select" style="display:none;z-index:1000;position:absolute;overflow:hidden;border:1px solid #CCC; background: #FFF; border-radius: 5px; padding: 0;">\n';
+                                var pathlist = jqXHR.responseJSON.data;
+                                for (var i = 0; i < pathlist.length; i++){
+                                    var path = pathlist[i];
+                                    iconlist += "<il  style='float:left;padding:1px;cursor:pointer;list-style-type:none;transition:all .3s ease;'>";
+                                    iconlist += "<img src='"+path+"' size='"+fp_scale+"%'/></il>\n";
+                                }
+                                iconlist += "<il  style='float:left;padding:1px;cursor:pointer;list-style-type:none;transition:all .3s ease;'>";
+                                iconlist += "</ul>\n";
+                                $('#list_content').append(iconlist);
+
+                                // Trigger action when the contexmenu is about to be shown
+                                $(".floorplan_item").bind("contextmenu", function (event) {
+
+                                    event.preventDefault();
+
+                                    fp_icon_select_item_id = $(this).attr('id');
+                                    $(".icon_select").finish().toggle(100);
+                                    $(".icon_select").offset({
+                                        top: event.pageY,
+                                        left: event.pageX
+                                    });
+                                });
+
+
+                                // If the document is clicked somewhere
+                                $(document).bind("mousedown", function (e) {
+                                    if ($(e.target).parents(".icon_select").length === 0) {
+                                        $(".icon_select").hide(100);
+                                        fp_icon_select_item_id = null;
+                                    }
+                                });
+
+
+                                // If the menu element is clicked
+                                $(".icon_select img").click(function(){
+                                    var img = $(this).attr("src");
+                                    $('#'+fp_icon_select_item_id).attr('src', img);
+                                    var name = fp_icon_select_item_id.match(/entity_(.*)_(\d)+$/)[1];
+
+                                    var codeLines = $("#fp_pos_perl_code").text().split('\n');
+                                    var newCode = "";
+
+                                    var icon_set_name = img.match(/.*fp_(.*)_(.*)_48.png/)[1];
+                                    var itemUpdated = false;
+                                    for (var i = 0; i< codeLines.length; i++)
+                                    {
+                                        var line = codeLines[i];
+                                        if (line.startsWith("$"+name+"->set_fp_icon_set"))
+                                        {
+                                            var newline = "$" + name + '->set_fp_icon_set("'+ icon_set_name+ '");\n';
+                                            newCode += newline;
+                                            itemUpdated = true;
+                                        }
+                                        else if (line !== "")
+                                        {
+                                            newCode += line + "\n";
+                                        }
+                                    }
+                                    if (itemUpdated === false)
+                                    {
+                                        var newline = "$" + name + '->set_fp_icon_set("'+ icon_set_name +'");\n';
+                                        newCode += newline;
+                                    }
+                                    newCode = newCode.split('\n').sort().join('\n');
+                                    $("#fp_pos_perl_code").text(newCode);
+                                    $(".icon_select").hide(100);
+                                    fp_icon_select_item_id = null;
+                                });
+                            }
+                        }
+                    });
+                }
+                requestTime = json.meta.time;
+                var t1 = performance.now();
+                console.log("FP: long poll " +Math.round(t1 - t0) + "ms");
+            }
+            if (jqXHR.status === 200 || jqXHR.status === 204) {
+                //Call update again, if page is still here
+                //KRK best way to handle this is likely to check the URL hash
+                if ($('#floorplan').length !== 0){
+                    //If the floorplan page is still active request more data
+                    // and we are not editing the fp
+                    if (URLHash.show_pos ===  undefined)
+                        floorplan(group,requestTime);
+                }
+            }
+        }
+    });
+};
 var get_fp_image = function(item,size,orientation) {
   	var image_name;
-  	var image_color = getButtonColor(item.state)
+	var image_color = getButtonColor(item.state);
 	var baseimg_width = $(window).width();
-  	var image_size = "48"
-  	if (baseimg_width < 500) image_size = "32" // iphone scaling
+	var image_size = "48";
+  //	if (baseimg_width < 500) image_size = "32" // iphone scaling
+  	//kvar image_size = "32"
  	if (item.fp_icons !== undefined) {
  		if (item.fp_icons[item.state] !== undefined) return item.fp_icons[item.state];
  	}
@@ -1812,35 +2179,35 @@ var get_fp_image = function(item,size,orientation) {
   		return "fp_"+item.fp_icon_set+"_"+image_color+"_"+image_size+".png";
  	} 	
  	//	if item.fp_icons.return item.fp_icons[state];
-  	if(item.type == "Light_Item" || item.type == "Fan_Light" ||
-    		item.type == "Insteon_Device" || item.type == "UPB_Link" ||
-    		item.type == "Insteon::SwitchLinc" || item.type == "Insteon::SwitchLincRelay" ||    
-    		item.type == "Insteon::KeyPadLinc" ||   		    				
-    		item.type == "EIB_Item" || item.type == "EIB1_Item" ||
-    		item.type == "EIB2_Item" || item.type == "EIO_Item" ||
-    		item.type == "UIO_Item" || item.type == "X10_Item" ||    		
-    		item.type == "xPL_Plugwise" || item.type == "X10_Appliance") {
+	if(item.type === "Light_Item" || item.type === "Fan_Light" ||
+		item.type === "Insteon_Device" || item.type === "UPB_Link" ||
+		item.type === "Insteon::SwitchLinc" || item.type === "Insteon::SwitchLincRelay" ||
+		item.type === "Insteon::KeyPadLinc" ||
+		item.type === "EIB_Item" || item.type === "EIB1_Item" ||
+		item.type === "EIB2_Item" || item.type === "EIO_Item" ||
+		item.type === "UIO_Item" || item.type === "X10_Item" ||
+		item.type === "xPL_Plugwise" || item.type === "X10_Appliance") {
 
   			return "fp_light_"+image_color+"_"+image_size+".png";
   	}
   	
-  	if(item.type == "Motion_Item" || item.type == "X10_Sensor" ||
-    		item.type == "Insteon::MotionSensor" ) {
+	if(item.type === "Motion_Item" || item.type === "X10_Sensor" ||
+		item.type === "Insteon::MotionSensor" ) {
   			return "fp_motion_"+image_color+"_"+image_size+".png";
 
   	}
   	
-  	if(item.type == "Door_Item" || item.type == "Insteon::IOLinc_door") {
+	if(item.type === "Door_Item" || item.type === "Insteon::IOLinc_door") {
   			return "fp_door_"+image_color+"_"+image_size+".png";
 
   	}  	
 
-  	if(item.type == "FPCamera_Item" ) {
+	if(item.type === "FPCamera_Item" ) {
  			return "fp_camera_default_"+image_size+".png";
  		}
   	
   	return "fp_unknown_info_"+image_size+".png";
-}
+};
 
 var create_img_popover = function(entity) {
 }
