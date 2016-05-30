@@ -626,6 +626,14 @@ sub json_get {
         }
     }
 
+    if ( $path[0] eq 'fp_icon_sets' ){
+        my $p = "../web/ia7/graphics/*default_".$args{px}[0].".png";
+        my @icons = glob($p);
+        s/^..\/web// for @icons;
+        $json_data{'icon_sets'} = [];
+        push( @{ $json_data{'fp_icon_sets'} }, @icons);
+    }
+
     # List speak phrases
     if ( $path[0] eq 'print_speaklog' || $path[0] eq '' ) {
         my ( @log, @tmp );
