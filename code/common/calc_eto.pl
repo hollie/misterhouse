@@ -715,7 +715,7 @@ sub writeResults {
 		for (my $x = 0; $x < scalar (@runTime); $x++) {
 			for (my $y = 0; $y < $times; $y++) {
 				my $delim = "";
-				$delim = ", " unless $x == 0; 
+				$delim = ", " unless (($x == 0) and ($y == 0)); 
 				$logData .= $delim . "[$pid, $x, " . $runTime[$x] . "]";
 			}
 		}
