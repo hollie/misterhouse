@@ -1386,7 +1386,103 @@ sub read_table_A {
             $code .= "use Philips_Hue;\n";
         }
     }
+    #-------------- RaZberry Objects -----------------
+    elsif ( $type eq "RAZBERRY_CONTROLLER" ) {
+     	($address, $name, $grouplist, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry('$address','$other')";
+        }
+        else {
+     		$object = "raZberry('$address')";
+        }   
+        $code .= "use raZberry;\n";
+	} 
+    elsif ( $type eq "RAZBERRY_COMM" ) {
+    	my ($controller);
+     	($name, $controller, $grouplist ) = @item_info;
+     	$object = "raZberry_comm(\$" . $controller . ")";
 
+	}
+    elsif ( $type eq "RAZBERRY_DIMMER" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_dimmer(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_dimmer(\$" . $controller . ",'$devid')";
+        }    
+	}
+    elsif ( $type eq "RAZBERRY_SWITCH" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_switch(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_switch(\$" . $controller . ",'$devid')";
+        }    
+	}	
+    elsif ( $type eq "RAZBERRY_BLIND" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_blind(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_blind(\$" . $controller . ",'$devid')";
+        }    
+	}
+    elsif ( $type eq "RAZBERRY_LOCK" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_lock(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_lock(\$" . $controller . ",'$devid')";
+        }    
+	}	
+    elsif ( $type eq "RAZBERRY_THERMOSTAT" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_thermostat(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_thermostat(\$" . $controller . ",'$devid')";
+        }    
+	}	
+    elsif ( $type eq "RAZBERRY_TEMP_SENSOR" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_temp_sensor(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_temp_sensor(\$" . $controller . ",'$devid')";
+        }    
+	}
+    elsif ( $type eq "RAZBERRY_BINARY_SENSOR" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_binary_sensor(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_binary_sensor(\$" . $controller . ",'$devid')";
+        }    
+	}	
+    #-------------- End of RaZberry Objects -----------------
+			
     #-------------- AD2 Objects -----------------
     elsif ( $type eq "AD2_INTERFACE" ) {
         require AD2;
