@@ -1,7 +1,8 @@
 # Category = Irrigation
 
-# May 2016
-# v1.1
+# June 2016
+# v1.2
+# - Added in minimum time calculation
 
 #@ This module allows MisterHouse to calculate daily EvapoTranspiration based on a 
 #@ Data feed from Weatherunderground (WU). To use it you need to sign up for a weatherundeground key
@@ -92,7 +93,7 @@ my $eto_ready;
 
 if ($Startup or $Reload) {
 	$eto_ready = 1;
-	print_log "[calc_eto] Startup. Checking Data Directories...";
+	print_log "[calc_eto] v1.2 Startup. Checking Configuration...";
 	mkdir "$eto_data_dir" unless ( -d "$eto_data_dir" );
 	mkdir "$eto_data_dir/ET" unless ( -d "$eto_data_dir/ET" );
 	mkdir "$eto_data_dir/logs" unless ( -d "$eto_data_dir/logs" );
@@ -126,7 +127,12 @@ if ($Startup or $Reload) {
 	} else {
 		print_log "[calc_eto] WARNING! no sprinkler system defined!";
 	}
-	print_log "[calc_eto] Will email results to $config_parms{eto_email}" if (defined $config_parms{eto_email});
+	if ($eto_ready) {
+		print_log "[calc_eto] Configuration good. ETo Calcuations Ready";
+		print_log "[calc_eto] Will email results to $config_parms{eto_email}" if (defined $config_parms{eto_email});	
+	} else {
+		print_log "[calc_eto] ERROR! ETo configuration problem. ETo will not calcuate";
+	}
 }
 
 if ((said $v_get_eto) or ($New_Minute and ($Time_Now eq $eto_calc_time))) {
@@ -135,7 +141,7 @@ if ((said $v_get_eto) or ($New_Minute and ($Time_Now eq $eto_calc_time))) {
 		$eto_retries_today = 0;
 		start $p_wu_forecast;
 	} else {
-		print_log "[calc_eto] ERROR! configuration incorrect. Will not calculate"
+		print_log "[calc_eto] ERROR! ETo configuration problem. ETo will not calcuate";
 	}
 }
 
@@ -687,8 +693,9 @@ sub writeResults {
             my $aET = safe_float($ET[$data_1mm->{crop}[$x]] - $todayRain - @$ymm[$x] - $tadjust); # tadjust is global ?
             my $pretimes = $times;
 #HP TODO This will determine if a 2nd, 3rd or 4th time is required.
-			$times = 1 if (($aET / $minRunm) > 1); #if the minium threshold is met, then run at least once.
+			$times = 1 if (($aET / $minRunmm) > 1); #if the minium threshold is met, then run at least once.
             $times = int(max ( min( $aET / $maxRunmm, 4), $times)); # int(.999999) = 0
+            print "[calc_eto] DB: times=$times aET=$aET minRunm=$minRunmm maxRunm=$maxRunmm\n"; #if ($debug);
             print "E:   aET[$x] = $aET (" . $aET / $maxRunmm . ") // mm/Day\n" if ($debug);
             print "E:   times = $times (max " .max (min ( $aET / $maxRunmm,4),$times) . "/min " . min($aET/$maxRunmm,4) ." max(min(". $aET / $maxRunmm . ", 4), $pretimes))\n" if ($debug);
                 #
