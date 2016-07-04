@@ -1,5 +1,4 @@
-// v1.1
-// /SET_PASSWORD and /UNSET_PASSWORD need to be fixed, ideally a modal.
+// v1.2
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -13,6 +12,7 @@ var speech_banner;
 var audio_init;
 var audioElement = document.getElementById('sound_element');
 var authorized = "false";
+var developer = false;
 
 var ctx; //audio context
 var buf; //audio buffer
@@ -144,6 +144,7 @@ function changePage (){
   			$("#sound_element").attr("controls", "controls");  //Show audio Controls
   		}
 		if (json_store.ia7_config.prefs.substate_percentages === undefined) json_store.ia7_config.prefs.substate_percentages = 20;
+		if (json_store.ia7_config.prefs.developer !== undefined) developer = json_store.ia7_config.prefs.developer;
 		// First time loading, set the default speech notifications
 		if (speech_sound === undefined) {
 			if ((json_store.ia7_config.prefs.speech_default !== undefined) && (json_store.ia7_config.prefs.speech_default.search("audio") >= 0 )) {
@@ -619,8 +620,8 @@ var loadList = function() {
 						button_html += '<div class="leadcontainer">';
 						button_html += '<button type="button" class="btn btn-default dropdown-lead btn-lg btn-list btn-voice-cmd navbutton-padding">'+button_text_start + "<u>" + options[0] + "</u>" + button_text_end+'</button>';
 						button_html += '</div>';
-						button_html += '<button type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown navbutton-padding" data-toggle="dropdown">';
-						button_html += '<span class="caret"></span>';
+						button_html += '<button type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown navbutton-padding" data-toggle="dropdown">';						
+						button_html += '<span class="caret dropdown-caret"></span>';
 						button_html += '<span class="sr-only">Toggle Dropdown</span>';
 						button_html += '</button>';
 						button_html += '<ul class="dropdown-menu dropdown-voice-cmd" role="menu">';
@@ -1756,7 +1757,7 @@ var floorplan = function(group,time) {
     if (typeof time === 'undefined'){
         //var window_width = $(window).width();
         $('#list_content').html("<div id='floorplan' class='row top-buffer'>");
-        if (URLHash.show_pos){
+        if (developer){
             // add elememnts to show current position on floorplan
             $('#floorplan').append("<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'><ol>" +
                     "<li>grab icon and drop it on apropriate position on the flooplan</li>" +
@@ -1781,7 +1782,9 @@ var floorplan = function(group,time) {
             fp_resize_floorplan_image();
             floorplan(group, time);
         });
-        $('#fp_graphic').attr("src", '/ia7/graphics/floorplan-'+group+'.png');
+        var base_img_dir = '/ia7/graphics/floorplan';
+		if (json_store.ia7_config.prefs.floorplan_basedir !== undefined) base_img_dir = json_store.ia7_config.prefs.floorplan_basedir;
+        $('#fp_graphic').attr("src", base_img_dir+'-'+group+'.png');
         return;
     }
 
@@ -1790,7 +1793,7 @@ var floorplan = function(group,time) {
         updateSocket.abort();
     }
 
-    if (URLHash.show_pos){
+    if (developer){
         // update positon
 
         $(document).mousemove(function(e){
@@ -2476,6 +2479,8 @@ $(document).ready(function() {
 		$('#optionsModal').find('.modal-body').html('<div class="btn-group btn-block" data-toggle="buttons"></div>');
 		var simple_active = "active";
 		var simple_checked = "checked";
+		var develop_active = "";
+		var develop_checked = "";
 		var advanced_active = "";
 		var advanced_checked = ""
 		if (display_mode == "advanced") {
@@ -2483,12 +2488,30 @@ $(document).ready(function() {
 			simple_checked = "";
 			advanced_active = "active";
 			advanced_checked = "checked"
+			develop_active = "";
+			develop_checked = "";
 		}
+		if (display_mode == "advanced" && developer == true)  {
+			simple_active = "";
+			simple_checked = "";
+			advanced_active = "";
+			advanced_checked = ""
+			develop_active = "active";
+			developed_checked = "checked"
+		}		
 		
-		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-6 col-sm-6 "+simple_active+"'><input type='radio' name='mhmode2' id='simple' autocomplete='off'"+simple_checked+">simple</label>");
-		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-6 col-sm-6 "+advanced_active+"'><input type='radio' name='mhmode2' id='advanced' autocomplete='off'"+advanced_checked+">advanced</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-4 col-sm-4 "+simple_active+"'><input type='radio' name='mhmode2' id='simple' autocomplete='off'"+simple_checked+">simple</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-4 col-sm-4 "+advanced_active+"'><input type='radio' name='mhmode2' id='advanced' autocomplete='off'"+advanced_checked+">expert</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-4 col-sm-4 "+develop_active+"'><input type='radio' name='mhmode2' id='developer' autocomplete='off'"+develop_checked+">developer</label>");
+
 		$('.mhmode').on('click', function(){
-			display_mode = $(this).find('input').attr('id');	
+			if ($(this).find('input').attr('id') == "developer") {
+				display_mode = "advanced";
+				developer = true;
+			} else {
+				display_mode = $(this).find('input').attr('id');
+				developer = false;
+			}	
 			changePage();
   		});
   		

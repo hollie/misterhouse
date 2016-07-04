@@ -164,6 +164,9 @@
 	.mobile-alert {
 			margin-top:-22px !important;
 	}
+	.dropdown-caret {
+			margin-left:-5px !important;
+	}
 	</style>
 </head>
 <body>
