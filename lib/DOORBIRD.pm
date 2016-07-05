@@ -9,6 +9,9 @@
 Module for interfacing with the Doorbird line of IP Doorbells.  Monitors events
 sent by the doorbell such as doorbell button push, motion, built in door relay trigger.
 
+For more info about Doorbird doorbells see: https://www.doorbird.com/ 
+For more info about the Doorbird open LAN API see: https://www.doorbird.com/api
+
 =head2 CONFIGURATION
 
 At minimum, you must define the Interface and one of the following objects
