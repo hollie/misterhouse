@@ -2,7 +2,8 @@
 
 =head2 SYNOPSIS
 
----Example Code and Usage---
+Doorbird module 
+written by Wayne Gatlin <wayne@razorcla.ws>
 
 =head2 DESCRIPTION
 
