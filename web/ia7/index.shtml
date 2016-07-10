@@ -26,6 +26,7 @@
 	
 	<!--Bootstrap-->
 	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="/ia7/include/bootstrap-custom-button.3.3.5.css">
 	<link rel="stylesheet" href="/ia7/include/bootstrap.3.3.5.min.css">
 	
 	<!-- Optional theme -->
@@ -37,6 +38,10 @@
 	<!-- bootstrap editable -->
 	<link href="/ia7/include/bootstrap3-editable.1.5.0.css" rel="stylesheet"/>
     <script src="/ia7/include/bootstrap3-editable.1.5.0.min.js"></script>
+
+	<!-- Nicer Dialog Boxes -->
+	<link href="/ia7/include/jquery.alerts.css" rel="stylesheet"/>	
+    <script src="/ia7/include/jquery.alerts.js"></script>
 	
 	<!-- A custom jquery UI script to enable sortable items -->
 	<!-- <script src="include/jquery-ui-1.11.1.custom.min.js"></script> -->
@@ -132,7 +137,7 @@
 	}	
 	.rrd-period-dropdown
 	{
-		margin-left:55px;
+		margin-left:45px;
 	}
 	.rrd-legend-class
 	{	
@@ -149,6 +154,18 @@
     	min-width:200px;
     	float:left;
     	margin-left:-10px;
+	}
+	.alerts {
+  		position: absolute;
+  		top: 3px;
+  		left: 17px;
+  		right: 17px;
+	}
+	.mobile-alert {
+			margin-top:-22px !important;
+	}
+	.dropdown-caret {
+			margin-left:-5px !important;
 	}
 	</style>
 </head>
@@ -167,19 +184,26 @@
 		  </h3>
 		<ol id='nav' class="breadcrumb">
 		</ol>
+			<div id="alert-area"></div>
+
 	</div>
+
 </div>
 
 <div id="list_content">
 </div>
 <div class='row top-buffer'>
+
         <div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
-                <div class='col-sm-12 col-center'>
+                <div id="footer_stuff" class='col-sm-12 col-center'>
                         <!-- Put Footer Stuff Here -->
                         <!--#include file="/bin/tagline.pl"--><br>
                         <!--#include file="/bin/uptime.pl"-->&nbsp;&nbsp;<!--#include file="$config_parms{web_href_counter}"-->
                 </div>
-        </d
+                <div id="sound_stuff" class='col-sm-12 col-center'>                
+                		<audio id="sound_element" name="sound_element" preload="auto"><source id="sound_element2" name="sound_element2"></audio>
+                </div>
+        </div>
 <!-- Voice Command Modal -->
 <div class="modal fade" id="lastResponse" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -233,5 +257,23 @@
     </div><!-- /.modal-content -->
   </div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
-
+<!-- Login Box Modal -->
+<div class="modal fade" id="loginModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog login-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title" id="myModalLabel">Authorize</h4>
+      </div>
+      <form name="pw" action="SET_PASSWORD_FORM" id="LoginModalpw" method="POST">
+        <div class="modal-body">
+    	</div>
+        <div class="modal-footer">
+        </div>
+      </form>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+<div id="dialog-confirm" title="Notification">
+</div>
 </body></html>
