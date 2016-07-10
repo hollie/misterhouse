@@ -45,6 +45,7 @@ use HTML::Entities;    # So we can encode characters like <>& etc
 use JSON qw(decode_json);
 use IO::Compress::Gzip qw(gzip);
 use vars qw(%json_table);
+my @json_notifications = ();    #noloop
 
 sub json {
     my ( $request_type, $path_str, $arguments, $body ) = @_;
@@ -170,8 +171,9 @@ sub json_get {
 
         eval {
             my $json_collections = file_read($collection_file);
-            $json_data{'collections'} = decode_json($json_collections)
-              ;    #HP, wrap this in eval to prevent MH crashes
+            $json_collections =~ s/\$config_parms\{(.+?)\}/$config_parms{$1}/gs;
+     		$json_collections =~ s/\$Authorized/$Authorized/gs; # needed for including current "Authorize" status
+            $json_data{'collections'} = decode_json($json_collections);    #HP, wrap this in eval to prevent MH crashes
         };
         if ($@) {
             print_log
@@ -179,7 +181,7 @@ sub json_get {
             $json_data{'collections'} =
               decode_json('{ "0" : { "name" : "error" } }')
               ;    #write a blank collection
-
+            config_checker($collection_file);
         }
     }
 
@@ -202,7 +204,29 @@ sub json_get {
             $json_data{'ia7_config'} =
               decode_json('{ "prefs" : { "status" : "error" } }')
               ;                     #write a blank collection
+        	config_checker($prefs_file);
+        }
 
+        # Look at the client ip overrides, and replace any pref key with the client_ip specific item
+        if (
+            defined $json_data{'ia7_config'}->{clients}
+            ->{ $Http{Client_address} } )
+        {
+            print_log
+              "Json_Server.pl: Client override section for $Http{Client_address} found";
+            for my $key (
+                keys $json_data{'ia7_config'}->{clients}
+                ->{ $Http{Client_address} } )
+            {
+                print_log
+                  "Json_Server.pl: Client key=$key, value = $json_data{'ia7_config'}->{clients}->{$Http{Client_address}}->{$key}";
+                print_log
+                  "Json_Server.pl: Master value = $json_data{'ia7_config'}->{prefs}->{$key}";
+                $json_data{'ia7_config'}->{prefs}->{$key} =
+                  $json_data{'ia7_config'}->{clients}
+                  ->{ $Http{Client_address} }->{$key};
+            }
+            delete $json_data{'ia7_config'}->{clients};
         }
     }
 
@@ -236,6 +260,11 @@ sub json_get {
         my $default_cf = "AVERAGE";
         $default_cf = $json_data{'rrd_config'}->{'prefs'}->{'default_cf'}
           if ( defined $json_data{'rrd_config'}->{'prefs'}->{'default_cf'} );
+        my $default_timestamp = "true";
+        $default_timestamp =
+          $json_data{'rrd_config'}->{'prefs'}->{'get_last_update'}
+          if (
+            defined $json_data{'rrd_config'}->{'prefs'}->{'get_last_update'} );
 
         my @dss      = ();
         my @defs     = ();
@@ -246,6 +275,7 @@ sub json_get {
         my @type     = ();
         my $celsius  = 0;
         my $arg_time = 0;
+        my $xml_info;
         $arg_time = int( $args{time}[0] ) if ( defined int( $args{time}[0] ) );
         $celsius = 1 if ( $config_parms{weather_uom_temp} eq 'C' );
         $celsius = 1
@@ -330,13 +360,10 @@ sub json_get {
             }
 
             push @defs, @xports;
-
-            #print "defs=" . join (',',@defs) . "\n";
-            #print "start=$start end=$end\n";
-
             my $rrd = RRDTool::Rawish->new( rrdfile => "$path/$rrd_file" );
             my $xml =
               $rrd->xport( [@defs], { '--start' => $start, '--end' => $end, } );
+            $xml_info = $rrd->info if ( $default_timestamp eq "true" );
             my @lines = split /\n/, $xml;
 
             foreach my $line (@lines) {
@@ -353,40 +380,23 @@ sub json_get {
                 }
                 my ($time) = $line =~ /\<row\>\<t\>(\d*)\<\/t\>/;
                 $time = $time * 1000;    #javascript is in milliseconds
-
-                #print "time=$time, $arg_time\n";
                 next if ( $arg_time > int($time) );    #only return new items
                 my (@values) = $line =~ /\<v\>(-?[e.+-\d]*|NaN)\<\/v\>/g;
                 if ($time) {
-
-                    #print "line=$line\n";
-                    #print "[$time";
                     my $index = 0;
                     foreach my $value (@values) {
                         my $value1 = sprintf( "%.10g", $value );
-
-                        #print "index=$index,value=$value,value1=$value1,";
                         $value1 = ( $value1 - 32 ) * ( 5 / 9 )
                           if (  ($celsius)
                             and ( lc $type[$index] eq "temperature" ) );
                         $value1 =
                           sprintf( "%." . $round[$index] . "f", $value1 )
                           if ( defined $round[$index] );
-
-                        #print "value1=$value1";
                         $value1 =~ s/\.0*$//
                           unless ( $value1 == 0 )
                           ;    #remove unneccessary trailing decimals
                         $value1 = "null" if ( lc $value1 eq "nan" );
-
-                        #print "value1=$value1\n";
-                        #my @array = ();
-                        #$array[0] = $time;
-                        #$array[1] = $value1;
-                        ##push @{$dataset[$index]->{data}},"$time,$value1"; ###Need to get a 2d array here####***
                         push @{ $dataset[$index]->{data} }, [ $time, $value1 ];
-
-                        #push @{$dataset[$index]->{data}},@array;
                         $index++;
                     }
                 }
@@ -397,11 +407,9 @@ sub json_get {
           if ( defined $json_data{'rrd_config'}->{'options'} );
         $data{'periods'} = $json_data{'rrd_config'}->{'periods'}
           if ( defined $json_data{'rrd_config'}->{'periods'} );
-
-        #$json_data{'rrd'} = \@dataset;
+        $data{'last_update'} = $xml_info->{'last_update'} * 1000
+          if ( defined $xml_info->{'last_update'} );
         $json_data{'rrd'} = \%data;
-
-        #print Dumper %data;
     }
 
     # List objects
@@ -533,11 +541,30 @@ sub json_get {
         $json_data{vars} = \%json_vars;
     }
 
+    if ( $path[0] eq 'notifications' ) {
+
+        for my $i ( 0 .. $#json_notifications ) {
+            my $n_time = int( $json_notifications[$i]{time} );
+            my $x      = $args{time}[0]
+              ; #Weird, does nothing, but notifications doesn't work if removed...
+            if (    ($n_time)
+                and
+                ( ( defined $args{time} && int( $args{time}[0] ) < $n_time ) ) )
+            {
+                push(
+                    @{ $json_data{'notifications'} },
+                    $json_notifications[$i]
+                );
+            }
+            else {
+                #if older than X minutes, then remove the array values to keep things tidy
+            }
+        }
+    }
+
     if ( $path[0] eq 'table_data' ) {
         if ( $args{var} ) {
             my $length = $#{ $json_table{ $args{var}[0] }->{data} } + 1;
-
-            #print "json_db: length = $length start=" . $args{start}[0] . " records=" . $args{records}[0] . "\n";
 
             #need to check if vars and keys exist
 
@@ -549,30 +576,13 @@ sub json_get {
               if ( defined $json_table{ $args{var}[0] }{page} );
             $records = $args{records}[0] if ( $args{records}[0] );
 
-            #		if ($length < ($start + $records)) {
-            #			print "db: will have to request data, $length, $start, $records\n";
-            #			print "&" . $json_table{$args{var}[0]}{hook} . "($start,$records)\n";
-            #			my $hook = 	$json_table{$args{var}[0]}{hook} . "($start,$records)";
-            #
-            #		#eval (&get_inbound_data($start,$records));
-            #			eval ("&$hook");
-            #			if ($@) {
-            #	  			print_log "Json_Server.pl: WARNING: fetch data failed for " . $args{var}[0] . " " . $json_table{$args{var}[0]}{hook} . "!";
-            #			} else {
-            #	  			$page++ if (scalar @{$json_table{$args{var}[0]}->{data}} > $json_table{$args{var}[0]}{page_size});
-            #			}
-            #			#$json_table{$args{var}[0]}{page} = $page;
-            #		}
-            #if requesting data beyond what's available, fetch it.
-            #test bad table
-            #remove data from hash
-            my $jt_time = int( $json_table{ $args{var}[0] }{time} );
+            # TODO: At some point have a hook that pulls in more data into the table if it's missing
+            #  ie read a file
 
-            #print "arg time = " . int($args{time}[0]) . " table time = " .$jt_time . "\n";
+            my $jt_time = int( $json_table{ $args{var}[0] }{time} );
             if (   ( $args{time} && int( $args{time}[0] ) < $jt_time )
                 or ( !$args{time} ) )
             {
-                #$json_data->{'table_data'} = $json_table{$args{var}[0]};
                 #need to copy all the data since we can adjust starts and records
 
                 $json_data{'table_data'}{exist} =
@@ -593,8 +603,6 @@ sub json_get {
                   if ( $args{records}[0] );
                 $json_data{'table_data'}{records} =
                   scalar @{ $json_data{'table_data'}->{data} };
-
-                #print "db=$json_data{'table_data'}{records}\n";
             }
         }
     }
@@ -618,6 +626,14 @@ sub json_get {
         }
     }
 
+    if ( $path[0] eq 'fp_icon_sets' ){
+        my $p = "../web/ia7/graphics/*default_".$args{px}[0].".png";
+        my @icons = glob($p);
+        s/^..\/web// for @icons;
+        $json_data{'icon_sets'} = [];
+        push( @{ $json_data{'fp_icon_sets'} }, @icons);
+    }
+
     # List speak phrases
     if ( $path[0] eq 'print_speaklog' || $path[0] eq '' ) {
         my ( @log, @tmp );
@@ -629,7 +645,6 @@ sub json_get {
             @log = ::print_speaklog_since( $args{time}[0] );
             push @log, ''
               ; #TODO HP - Kludge, the javascript seems to want an extra line in the array for some reason
-                #print "db/json: " . join(", ",@log) . "\n";
         }
         elsif ( !$args{time} ) {
             @log = ::print_speaklog_since();
@@ -657,20 +672,16 @@ sub json_get {
     # Insert Data or Error Message
     if ($output_ref) {
         $json{data} = $output_ref;
-
-        #	   foreach my $key (sort (keys(%{$output_ref}))) {
-        #	   print "db:key = $key\n";
-        #  		 $json{data}{$key} = $output_ref->{$key};
-        #		}
     }
     else {
         $json{error}{msg} = 'No data, or path does not exist.';
     }
 
     #Insert Meta Data fields
-    $json{meta}{time} = $output_time;
-    $json{meta}{path} = \@path;
-    $json{meta}{args} = \%args;
+    $json{meta}{time}      = $output_time;
+    $json{meta}{path}      = \@path;
+    $json{meta}{args}      = \%args;
+    $json{meta}{client_ip} = $Http{Client_address};
 
     my $json_raw = JSON->new->allow_nonref;
 
@@ -1021,6 +1032,8 @@ sub filter_object {
 sub json_page {
     my ($json_raw) = @_;
     my $json;
+
+    #utf8::encode( $json_raw ); #may need to wrap gzip in an eval and encode it if errors develop. It crashes if a < is in the text
     gzip \$json_raw => \$json;
     my $output = "HTTP/1.0 200 OK\r\n";
     $output .= "Server: MisterHouse\r\n";
@@ -1252,6 +1265,104 @@ sub json_table_fetch_data {
 sub json_table_purge_data {
     my ( $key, $posx, $records ) = @_;
 }
+
+sub json_notification {
+    my ( $type, $data ) = @_;
+    $data->{type} = $type;
+    $data->{time} = &::get_tickcount;
+    for my $i ( 0 .. $#json_notifications ) {
+
+        #clean up any old notifications, or empty entries (ie less than 5 seconds old)
+        my $n_time = int( $json_notifications[$i]{time} );
+        if (   ( &get_tickcount > $n_time + 5000 )
+            or ( !defined $json_notifications[$i]{time} ) )
+        {
+            splice @json_notifications, $i, 1;
+        }
+    }
+    push @json_notifications, $data;
+}
+
+sub config_checker { 
+	my ($file) = @_;
+	
+	my (%collections, $key, $output, $temp);
+	my @data = file_read($file);
+
+
+	foreach my $row (@data) {
+  		$key = $1 if $row =~ /\"(\d+?)\" \:/;
+  		$row =~ /\"(.+?)\" \: \"(.+?)\"/ ;
+  		$collections{$key}{$1} = $2 if $1;  
+  	}
+
+	foreach my $row (@data) {
+  		$key = $1 if $row =~ /\"(\d+?)\" \:/;
+  		if ($row =~ /(\d+?)(\,|\n)/) {
+			my $sub_key = $1;
+    		my $comma = $2;
+    		$collections{$key}{children} .= "\t$1: " ;  
+			$collections{$key}{children} .= "$collections{$sub_key}{name}";
+			$collections{$key}{children} .= "\n";
+		}
+  	}
+
+ 
+	#foreach $key (sort check_numerically keys %collections) {
+	#	$output .= "$key: $collections{$key}{name}:$collections{$key}{link}$collections{$key}{external}$collections{$key}{iframe}:$collections{$key}{comment}:$collections{$key}{mode}:$collections{$key}{children}";  
+   	#}
+  
+	my ($row, $show_row, $bracket_errors, $comma_errors1, $comma_errors2, %brackets, $curly, $square);
+	$curly = 'closed';
+	$square = 'closed';
+
+	while ($row < @data) {
+  		$show_row = $row + 1;
+  		$data[$row] =~ s/\s+$//; # remove trailing spaces
+  		if ($data[$row] =~ /\{/ and $data[$row] !~ /iframe|external/) {
+    		$brackets{open_curly} ++;
+    		$bracket_errors .= "Repeated open curly bracket in line $show_row: '$data[$row]'\n" if $curly and $curly eq 'open';
+    		$curly = 'open';
+    	}
+  		if ($data[$row] =~ /\}/ and $data[$row] !~ /iframe|external/) {
+    		$brackets{close_curly} ++;
+    		$bracket_errors .= "Repeated close curly bracket in line $show_row: '$data[$row]'\n" if $curly eq 'closed';
+    		$curly = 'closed';
+  		}
+  		if ($data[$row] =~ /\[/) {
+    		$brackets{open_square} ++;
+    		$bracket_errors .= "Repeated open square bracket in line $show_row: '$data[$row]'\n" if $square eq 'open';
+    		$square = 'open';
+  		}
+  		if ($data[$row] =~ /\]/) {
+    		$brackets{close_square} ++;
+    		$bracket_errors .= "Repeated close square bracket in line $show_row: '$data[$row]'\n" if $square eq 'closed';
+    		$square = 'closed';
+  		}
+  
+  		$comma_errors1 .= $row + 1 . ": '$data[$row]'\n" if $data[$row] !~ /\, *$/ 
+     		and $data[$row + 1] !~ /(\}|\])/ 
+     		and $data[$row] !~ /\: (\{|\[)/ 
+     		and $data[$row] !~ /^\{/ 
+     		and $data[$row] !~ /\}$/;
+
+  		$comma_errors2 .= $row + 1 . ": '$data[$row]'\n" if $data[$row] =~ /\,/ and $data[$row + 1] =~ /(\}|\])\,/; 
+
+  		$row ++;
+	}
+
+	$output .= "Possible bracket errors:\n$bracket_errors\n" if $bracket_errors;
+	$output .= "The following lines should possibly have a comma at the end:\n$comma_errors1\n" if $comma_errors1;
+	$output .= "The following lines should possibly not have a comma at the end:\n$comma_errors2\n" if $comma_errors2;
+
+	$output .= "There are $brackets{open_square} '[' and $brackets{close_square} ']'.\n";
+	$output .= "There are $brackets{open_curly} '{' and $brackets{close_curly} '}'.\n";
+
+	print_log $output;
+}
+
+sub check_numerically { $a <=> $b }
+
 
 return 1;    # Make require happy
 

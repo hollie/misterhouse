@@ -9,6 +9,8 @@ use strict;
 use Text::ParseWords;
 require 'http_utils.pl';
 
+#use Data::Dumper;
+#$main::Debug{http} = 4;
 #no warnings 'uninitialized';   # These seem to always show up.  Dang, will not work with 5.0
 
 use vars
@@ -182,13 +184,23 @@ sub http_process_request {
     unless ($header) {
 
         # Ignore empty requests, like from 'check the http server' command
-        print "http: Error, not header request.  header=$temp\n"
+        print "http: Error, not header request.  header=[$temp]\n"
           if $main::Debug{http} and $temp;
+        my ( $type, $file ) = ( $temp =~ /^(\S*)\s(.*)\sHTTP/ );
+        print "t=[$type] f=[$file]\n" if $main::Debug{http2};
+        if ( $type eq "HEAD" ) {
+            print "yes\n";
+            print $socket &mime_header( $file, 1, 4592100 );
+        }
         return;
     }
 
     $Socket_Ports{http}{data_record} = $header;
+    print "http: Header = $header\n" if $main::Debug{http};
 
+    #print Dumper %Http if $main::Debug{http};
+    print "http: Range Header $Http{Range} encountered for $header"
+      if ( defined $Http{Range} );
     $Http{loop} =
       $Loop_Count;    # Track which pass we last processes a web request
     $Http{request} = $header;
@@ -417,13 +429,16 @@ sub http_process_request {
 
     # Prompt for password (SET_PASSWORD) and allow for UNSET_PASSWORD
     if ( $get_req =~ /SET_PASSWORD$/ ) {
+    	my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
+
         if ( $config_parms{password_menu} eq 'html' ) {
+            my $html = &html_authorized;
             if ( $get_req =~ /^\/UNSET_PASSWORD$/ ) {
                 $Authorized = 0;
                 $Cookie .= "Set-Cookie: password=xyz ; ; path=/;\n";
+                $html .= "<meta name='unset' content='true'>";
             }
-            my $html = &html_authorized;
-            $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
+            $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n" unless (lc $mode eq "ia7");
             $html .= &html_password('') . '<br>';
             print $socket &html_page( undef, $html, undef, undef, undef,
                 undef );
@@ -431,6 +446,7 @@ sub http_process_request {
         else {
             my $html = &html_authorized;
             $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
+			$html .= "<br>set_password else Referrer: $Http{Referer}\n";   
 
             #           $html .= &html_reload_link('/', 'Refresh Main Page');   # Does not force reload?
             my ( $name, $name_short ) = &net_domain_name('http');
@@ -458,14 +474,15 @@ sub http_process_request {
 
     # Process the html password form
     elsif ( $get_req =~ /\/SET_PASSWORD_FORM$/ ) {
+        my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
         my ($password) = $get_arg =~ /password=(\S+)/;
         my ($html);
         my ( $name, $name_short )       = &net_domain_name('http');
         my ( $user, $password_crypted ) = &password_check2($password);
         $Authorized = $user if $password_crypted;
         $html .= &html_authorized;
+        $html .= "REMOVEME = get_arg = " . $get_arg . "<br>\n";
         $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
-
         #       $html .= &html_reload_link('/', 'Refresh Main Page');
         $html .= &html_password('');
         if ($password_crypted) {
@@ -493,7 +510,9 @@ sub http_process_request {
 
             #           &speak("app=admin Password NOT set by $name_short");
         }
+
         print $socket &html_page( undef, $html );
+
         return;
     }
 
@@ -779,24 +798,23 @@ sub http_process_request {
 sub html_password {
     my ($menu) = @_;
     $menu = $config_parms{password_menu} unless $menu;
+    my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
 
     #   return $html_unauthorized unless $Authorized;
 
     my $html;
     if ( $menu eq 'html' ) {
-        $html =
-          qq[<BODY onLoad="self.focus();document.pw.password.focus(); top.frames[0].location.reload()">\n];
+        	$html = qq[<BODY onLoad="self.focus();document.pw.password.focus(); top.frames[0].location.reload()">\n] unless (lc $mode eq "ia7");
 
-        #       $html .= qq[<BASE TARGET='_top'>\n];
-        $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="post">\n];
+        	#       $html .= qq[<BASE TARGET='_top'>\n];
+        	$html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="post">\n];
 
-        #       $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="get">\n]; ... get not secure from browser history list!!
-        #       $html .= qq[<h3>Password:<INPUT size=10 name='password' type='password'></h3>\n</FORM>\n];
-        $html .=
-          qq[<b>Password:</b><INPUT size=10 name='password' type='password'>\n];
-        $html .= qq[<INPUT type=submit value='Submit Password'>\n</FORM>\n];
-        $html .=
-          qq[<P> This form is used for logging into MisterHouse.<br> For administration please see the documentation of <a href="http://misterhouse.net/mh.html"> set_password </a></P>\n];
+        	#       $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="get">\n]; ... get not secure from browser history list!!
+        	#       $html .= qq[<h3>Password:<INPUT size=10 name='password' type='password'></h3>\n</FORM>\n];
+        	$html .= qq[<b>Password:</b><INPUT size=10 name='password' type='password'>\n];
+        	$html .= qq[<INPUT type=submit value='Submit Password'>\n</FORM>\n];
+        	$html .= qq[<P> This form is used for logging into MisterHouse.<br> For administration please see the documentation of <a href="http://misterhouse.net/mh.html"> set_password </a></P>\n];
+#		}
     }
     else {
         $html = qq[HTTP/1.0 401 Unauthorized\n];
@@ -808,13 +826,20 @@ sub html_password {
 }
 
 sub html_authorized {
+	my $html = "Status: <b>";
     if ($Authorized) {
-        return
-          "Status: <b><a href=UNSET_PASSWORD>Logged In as $Authorized</a></b><br>";
+        $html .= "<a href=UNSET_PASSWORD>";
+        $html .= "Logged In as $Authorized";
+        $html .= "</a>";
+        $html .= "</b><br>";
     }
     else {
-        return "Status: <b><a href=SET_PASSWORD>Not Logged In</a></b><br>";
+        $html .= "<a href=SET_PASSWORD>";
+        $html .= "Not Logged In";
+        $html .= "</a>";
+        $html .= "</b><br>";
     }
+    return $html;
 }
 
 sub html_unauthorized {
@@ -1082,7 +1107,7 @@ sub html_sub {
     }
 
     # Allow for &sub1 and &sub1(args)
-    if (   ( ( $sub_name, $sub_arg ) = $data =~ /\&([^\&]+?)\((.*)\)$/ )
+    if (   ( ( $sub_name, $sub_arg ) = $data =~ /^\&(\S+?)\((.*)\)$/ )
         or ( ($sub_name) = $data =~ /^\&(\S+)$/ ) )
     {
         $sub_arg = '' unless defined $sub_arg;    # Avoid uninit warninng
@@ -1155,8 +1180,8 @@ sub html_response {
             #           $leave_socket_open_action = "&speak_log_last(1)"; # Only show the last spoken text
             #           $leave_socket_open_action = "&Voice_Text::last_spoken(1)"; # Only show the last spoken text
         }
-        elsif ( $h_response =~ /^https?:\S+$/i or $h_response =~ /^reff?erer/i )
-        {
+        elsif ( $h_response =~ /^http:\S+$/i or $h_response =~ /^reff?erer/i ) {
+
             # Allow to use just the base part of the referer
             #  - some browsers (audrey) do not return full referer url :(
             #    so allow for referer(url)...
@@ -1553,7 +1578,10 @@ sub html_error_log {
 # These html_form functions are used by mh/web/bin/*.pl scrips
 sub html_form_input_set_func {
     my ( $func, $resp, $var1, $var2 ) = @_;
-    my $html .= qq|<form action='/bin/set_func.pl' method=post><td>\n|;
+    my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
+    my $id = "";
+    #$id = "id='mhresponse'" if ($mode eq 'ia7');
+    my $html .= qq|<td><form action='/bin/set_func.pl' $id method=post>\n|;
     $html    .= qq|<input name='func' value="$func"  type='hidden'>\n|;
     $html    .= qq|<input name='resp' value="$resp"  type='hidden'>\n|;
     $html    .= qq|<input name='var1' value="$var1"  type='hidden'>\n|;
@@ -1561,18 +1589,21 @@ sub html_form_input_set_func {
     $size = 10 if $size < 10;
     $size = 30 if $size > 30;
     $html .= qq|<input name='var2' value="$var2" size=$size>\n|;
-    $html .= qq|</td></form>\n|;
+    $html .= qq|</form></td>\n|;
     return $html;
 }
 
 sub html_form_input_set_var {
     my ( $var, $resp, $default ) = @_;
     $default = HTML::Entities::encode($default);
-    my $html .= qq|<form action='/bin/set_var.pl' method=post><td>\n|;
+    my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
+    my $id = "";
+    #$id = "id='mhresponse'" if ($mode eq 'ia7');    
+    my $html .= qq|<td><form action='/bin/set_var.pl' $id method=post>\n|;
     $html    .= qq|<input name='var'   value="$var"   type='hidden'>\n|;
     $html    .= qq|<input name='resp'  value="$resp"  type='hidden'>\n|;
     $html    .= qq|<input name='value' value="$default" size=30>\n|;
-    $html    .= qq|</td></form>\n|;
+    $html    .= qq|</form></td>\n|;
     return $html;
 }
 
@@ -1595,7 +1626,11 @@ sub html_form_select {
 
 sub html_form_select_set_func {
     my ( $func, $resp, $var1, $default, @values ) = @_;
-    my $form .= qq|<form action='/bin/set_func.pl' method=post><td>\n|;
+    my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
+    my $id = "";
+    #$id = "id='mhresponse'" if ($mode eq 'ia7');
+#    my $form .= qq|<td><form action='/bin/set_func.pl' $id method=post>\n|;
+    my $form .= qq|<td><form action='/bin/set_func.pl' $id method=post>\n|;
     $form    .= qq|<input name='func' value="$func"  type='hidden'>\n|;
     $form    .= qq|<input name='resp' value="$resp"  type='hidden'>\n|;
     $form    .= qq|<input name='var1' value="$var1"  type='hidden'>\n|;
@@ -1608,16 +1643,20 @@ sub html_form_select_set_func {
         $form .= qq|<option value='$option' $selected>$value</option>\n|;
     }
     $form .= "</select></td></form>\n";
+#    $form .= "</select></td></form>\n";
     return $form;
 }
 
 sub html_form_select_set_var {
     my ( $var, $default, @values ) = @_;
-    my $html = "<form action=/bin/set_var.pl method=post><td>\n";
+    my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
+    my $id = "";
+    #$id = "id='mhresponse'" if ($mode eq 'ia7');    
+    my $html = "<td><form action=/bin/set_var.pl $id method=post>\n";
     $html .= qq|<input type='hidden' name='var'  value="$var">\n|;
     $html .= qq|<input type='hidden' name='resp' value='/bin/triggers.pl'>\n|;
     $html .=
-      &html_form_select( 'value', 1, $default, @values ) . "</td></form>\n";
+      &html_form_select( 'value', 1, $default, @values ) . "</form></td>\n";
     return $html;
 }
 
@@ -1627,8 +1666,10 @@ sub html_file {
 
     # Do not cach shtml files
     my ($cache) = ( $file =~ /\.shtm?l?$/ or $file =~ /\.vxml?$/ ) ? 0 : 1;
+    ($cache) = ( defined $Http{Range} ) ? 0 : 1;
 
-    # Return right away if the file has not changed
+    # Return right away if the file has not changed, don't return a cache entry if there is
+    # a http Range header though...
     #http:   header key=If-Modified-Since value=Sat, 27 Mar 2004 02:49:29 GMT; length=1685.
     if (    $cache
         and $Http{'If-Modified-Since'}
@@ -1637,7 +1678,7 @@ sub html_file {
         my $time2 = &str2time($1);
         my $time3 = ( stat($file) )[9];
         print "db web file cache check: f=$file t=$time2/$time3\n"
-          if $main::Debug{http3};
+          if $main::Debug{http};
         if ( $time3 <= $time2 ) {
             return "HTTP/1.0 304 Not Modified\nServer: MisterHouse\n\n";
         }
@@ -1651,6 +1692,8 @@ sub html_file {
         close HTML;
         return;
     }
+
+    print "http: processing file\n" if $main::Debug{http};
 
     # Allow for 'server side include' directives
     #  <!--#include file="whatever"-->
@@ -1671,6 +1714,7 @@ sub html_file {
     # Note: These differ from classic .cgi in that they return
     #       the results, rather than print them to stdout.
     elsif ( $file =~ /\.(pl|cgi)$/ ) {
+        print "Processing perl or CGI file: $file\n" if $main::Debug{http};
         my $code = join( '', <HTML> );
 
         # Check if authorized
@@ -1714,6 +1758,7 @@ sub html_file {
         #       print "Http_server  .pl file results:$html.\n" if $main::Debug{http};
     }
     else {
+        print "http: Reading file: $file\n" if $main::Debug{http};
         binmode HTML;
 
         #       my $data = join '', <HTML>;
@@ -1723,7 +1768,22 @@ sub html_file {
             local $/ = undef;
             $data = join( '', <HTML> );
         }
-        $html = &mime_header( $file, 1, length $data ) unless $no_header;
+        my $full_length = length $data;
+
+        # yes, this is somewhat inefficient to read in the whole file only to then
+        # take a subset of the requested bytes. There are more effective means however
+        # since this is only in place to stream wav speak files to safari clients, it
+        # minimizes the overall change to http_server.
+        if ( defined $Http{Range} ) {
+            my ( $start, $end ) = $Http{Range} =~ /bytes=(\d*)-(\d*)/;
+            $end = ( length $data ) - $start if ( $end eq "" );
+            print "http:start=$start end=$end\n" if ( $main::Debug{http} );
+            my $tmpdata = substr $data, $start, $end;
+            $data = $tmpdata;
+        }
+        $html =
+          &mime_header( $file, 1, length $data, $Http{Range}, $full_length )
+          unless $no_header;
         $html .= $data;
     }
     close HTML;
@@ -1894,7 +1954,7 @@ sub html_cgi {
 }
 
 sub mime_header {
-    my ( $file_or_type, $cache, $length ) = @_;
+    my ( $file_or_type, $cache, $length, $range, $full_length ) = @_;
 
     # Allow for passing filename or filetype
     my ( $mime, $date );
@@ -1911,8 +1971,9 @@ sub mime_header {
     }
 
     #   print "dbx2 m=$mime f=$file_or_type\n";
-
-    my $header = "HTTP/1.0 200 OK\nServer: MisterHouse\nContent-type: $mime\n";
+    my $code = "HTTP/1.0 200 OK";
+    $code = "HTTP/1.1 206 Partial Content" if $range;
+    my $header = "$code\nServer: MisterHouse\nContent-Type: $mime\n";
 
     #   $header .= ($cache) ? "Cache-Control: max-age=1000000\n" : "Cache-Control: no-cache\n";
     if ($cache) {
@@ -1924,6 +1985,25 @@ sub mime_header {
 
     # Allow for a length header, as this allows for faster 'persistant' connections
     $header .= "Content-Length: $length\n" if $length;
+
+    #(my $range_bytes) = $range =~ /bytes=(.*)/;
+    my ( $start, $end ) = $range =~ /bytes=(\d*)-(\d*)/;
+    $end = ($full_length) - $start - 1 if ( $end eq "" );
+
+    #$header .= "Content-Range: bytes " . $range_bytes . "/" . $full_length . "\n" if $range_bytes;
+    #print "http: Server responds: bytes " . $range_bytes . "/" . $full_length . "\n" if $range_bytes;
+    $header .=
+      "Content-Range: bytes " . $start . "-" . $end . "/" . $full_length . "\n"
+      if $range;
+    print "http: Server responds: HTTP/1.1 206; bytes "
+      . $start . "-"
+      . $end . "/"
+      . $full_length . "\n"
+      if $range;
+
+    $header .= "Accept-Ranges: bytes\n";
+
+    print "returned header = $header\n" if ( $main::Debug{http} );
 
     return $header . "\n";
 
@@ -3104,10 +3184,16 @@ sub print_socket_fork {
             }
         }
         else {
+            my $keep_alive = 0;
+            $keep_alive = 1
+              if (  ( defined $Http{Connection} )
+                and ( $Http{Connection} eq "keep-alive" ) );
             &print_socket_fork_unix( $socket, $html );
         }
     }
     else {
+        print "http: printing with regular socket l=$length s=$socket\n"
+          if $main::Debug{http};
         print $socket $html;
     }
 }
