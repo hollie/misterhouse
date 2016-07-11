@@ -1,0 +1,3 @@
+language: perl
+install: true
+script: cd mh ; ./mh -code_dir ../code/test
