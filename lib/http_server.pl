@@ -56,6 +56,12 @@ my %mime_types = (
     'wmlsc' => 'application/vnd.wap.wmlscriptc',
     'wrl'   => 'x-world/x-vrml',
     'json'  => 'application/json',
+    'svg'  => 'image/svg+xml',
+    'otf'  => 'application/font-sfnt',
+    'ttf' => 'application/font-sfnt',
+    'woff'   => 'application/font-woff',
+    'woff2'  => 'application/font-woff2',
+    'eot'  => 'application/vnd.ms-fontobject',
 );
 
 my ( %http_dirs, %html_icons, $html_info_overlib, %password_protect_dirs,
