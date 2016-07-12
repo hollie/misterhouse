@@ -3717,7 +3717,7 @@ sub exit_pgm {
         print "Bye Bye\n";
 
         #       exit 1;
-        POSIX::_exit(1);     # MUCH faster ... but no DESTROY or END called.
+        POSIX::_exit(0);     # MUCH faster ... but no DESTROY or END called.
     }
 }
 
