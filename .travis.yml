@@ -1,0 +1,3 @@
+language: perl
+install: true
+script: cd bin ; ./mh -tk 0 -code_dir ../code/test
