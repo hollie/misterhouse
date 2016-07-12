@@ -3705,7 +3705,7 @@ sub exit_pgm {
         $sock->close() if $sock;
     }
 
-    # Use exit code 1 to mean we exited on purpose ... anything else
+    # Use exit code 0 to mean we exited on purpose ... anything else
     # we can use in mh_loop to mean accidental exit, 'better restart'
     if ($restart) {
         &print_log("Restarting mh");
