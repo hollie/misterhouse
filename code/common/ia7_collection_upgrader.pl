@@ -1,6 +1,6 @@
 # Category = IA7
 
-#@ IA7 v1.2 : This is a helper utility that can find and update collections.json files 
+#@ IA7 Collection Updater v1.3 : This is a helper utility that can find and update collections.json files 
 #@  if any structural changes are required.
 #@
 #@  v1.2 - add in new login system id 700
@@ -35,14 +35,14 @@ if ($Startup) {
         			}
         			push (@{$json_data->{500}->{children}},700) unless ($found);
         			$json_data->{meta}->{version} = "1.2";
-       				print_log "[IA7_Collection_Updater] : Checking $file to version $ia7_coll_current_ver";
+       				print_log "[IA7_Collection_Updater] : Updating $file to version 1.2";
        				$updated = 1; 			
         		}
         		if ($updated) {
         			my $json_newdata = to_json($json_data, {utf8 => 1, pretty => 1});
-        			my $backup_file = $file . ".v" . $version . ".backup";
+        			my $backup_file = $file . ".t" . int( ::get_tickcount() / 1000 ) . ".backup";
         			file_write($backup_file,$file_data);
-          			print_log "[IA7_Collection_Updater] : Saved backup " . $file . ".v" . $version . ".backup";     			
+          			print_log "[IA7_Collection_Updater] : Saved backup " . $file . ".t" . int( ::get_tickcount() / 1000 ) . ".backup";     			
         			file_write($file,$json_newdata);
         		}
         	}

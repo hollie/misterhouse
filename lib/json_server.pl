@@ -38,6 +38,8 @@ B<NONE>
 
 =cut
 
+#NOTE: Removed sort from line 454 for optimization.
+
 use strict;
 
 use RRDTool::Rawish;
@@ -215,8 +217,8 @@ sub json_get {
             print_log
               "Json_Server.pl: Client override section for $Http{Client_address} found";
             for my $key (
-                keys $json_data{'ia7_config'}->{clients}
-                ->{ $Http{Client_address} } )
+                keys %{$json_data{'ia7_config'}->{clients}
+                ->{ $Http{Client_address} }} )
             {
                 print_log
                   "Json_Server.pl: Client key=$key, value = $json_data{'ia7_config'}->{clients}->{$Http{Client_address}}->{$key}";
@@ -450,7 +452,8 @@ sub json_get {
                     push @objects, &list_objects_by_type($object_type);
                 }
             }
-            foreach my $o ( map { &get_object_by_name($_) } sort @objects ) {
+#            foreach my $o ( map { &get_object_by_name($_) } sort @objects ) {
+            foreach my $o ( map { &get_object_by_name($_) } @objects ) {
                 next unless $o;
                 my $name = $o;
                 $name = $o->{object_name};
@@ -1033,7 +1036,7 @@ sub json_page {
     my ($json_raw) = @_;
     my $json;
 
-    #utf8::encode( $json_raw ); #may need to wrap gzip in an eval and encode it if errors develop. It crashes if a < is in the text
+##    utf8::encode( $json_raw ); #may need to wrap gzip in an eval and encode it if errors develop. It crashes if a < is in the text
     gzip \$json_raw => \$json;
     my $output = "HTTP/1.0 200 OK\r\n";
     $output .= "Server: MisterHouse\r\n";
@@ -1041,6 +1044,7 @@ sub json_page {
     $output .= "Content-Encoding: gzip\r\n";
     $output .= "\r\n";
     $output .= $json;
+##    $output .= $json_raw;
 
     return $output;
 }
