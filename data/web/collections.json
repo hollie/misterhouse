@@ -395,7 +395,6 @@
   "28" : {
      "link" : "/bin/set_parm_tv_provider.pl",
      "name" : "Setup TV Provider",
-     "mode" : "advanced",     
      "icon" : "fa-desktop"
   },
   "5" : {
@@ -488,7 +487,6 @@
   "26" : {
      "link" : "/ia5/house/irman.shtml",
      "name" : "Program IRMAN",
-     "mode" : "advanced",     
      "icon" : "fa-rss"
   },
   "57" : {
@@ -709,7 +707,6 @@
   "27" : {
      "icon" : "fa-wrench",
      "name" : "Header Control",
-     "mode" : "advanced",     
      "link" : "/bin/headercontrol.pl"
   },
   "78" : {
@@ -720,7 +717,7 @@
   "102" : {
      "name" : "Picture Frame",
      "icon" : "fa-desktop",
-     "external" : "$config_parms{html_dir}/misc/photos.shtml"
+     "external" : "http://home.krkeegan.com:8081/misc/photos.shtml"
   },
   "105" : {
      "link" : "/ia5/calendar/main.shtml",
@@ -775,12 +772,14 @@
      "icon" : "fa-home",
      "name" : "Gear Settings",
      "children" : [
-       700
+       501
 
      ]
    },
-   "700" : {
-     "user" : "$Authorized"
+   "501" : {
+     "link" : "/UNSET_PASSWORD?user=admin",
+     "name" : "Authorize",
+     "icon" : "fa-lock"
   },
    "600" : {
      "link" : "/ia7/#path=/objects&parents=ia7_status_items",

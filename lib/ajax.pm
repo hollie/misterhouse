@@ -101,10 +101,7 @@ sub checkForUpdate {
         &main::print_log("checkForUpdate sub ${$$self{sub}} returned $xml")
           if $main::Debug{ajax};
         &::print_socket_fork( ${ $$self{waitingSocket} }, $xml );
-        &main::print_log( "Closing Socket " . ${ $$self{waitingSocket} } )
-          if $main::Debug{ajax};
-        ${ $$self{waitingSocket} }->shutdown(2)
-          ; #Changed this from close() to shutdown(2). In some cases, the parent port wasn't being closed -- ie. speech events
+        ${ $$self{waitingSocket} }->close;
         ${ $$self{changed} } = 1;
     }
     else {
