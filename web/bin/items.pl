@@ -64,7 +64,7 @@ function openparmhelp(parm1){
 
     # Create a form to pick which file
     $html .=
-      "<table border width='100%'><tr><form action=/bin/items.pl method=post><td>Which .mht file to edit?\n";
+      "<table border><tr><form action=/bin/items.pl method=post><td>Which .mht file to edit?\n";
     $html .= &html_form_select( 'file', 1, $web_item_file_name, @file_paths )
       . "</td></form></tr>\n";
 
@@ -99,17 +99,17 @@ function openparmhelp(parm1){
 
     #form action='/bin/items.pl?add' method=post>
     $html .= qq|<tr>
-<td><form action='/bin/set_func.pl' method=post>
+<form action='/bin/set_func.pl' method=post><td>
 <input type=submit value='Create'>
 <input name='func' value="web_item_add"  type='hidden'>
 <input name='resp' value="/bin/items.pl" type='hidden'>
 $form_type
-<input type=text name=address  size=10 value='A1'>
-<input type=text name=name     size=10 value='Test_light'>
-<input type=text name=group    size=10 value=''>
-<input type=text name=other1   size=10 value=''>
-<input type=text name=other2   size=10 value=''>
-</form></td></tr>
+<input type=input name=address  size=10 value='A1'>
+<input type=input name=name     size=10 value='Test_light'>
+<input type=input name=group    size=10 value=''>
+<input type=input name=other1   size=10 value=''>
+<input type=input name=other2   size=10 value=''>
+<td></form><tr>
 | if $Authorized eq 'admin';
 
     # Parse table data
@@ -122,7 +122,7 @@ $form_type
         # Do not list comments
         unless ( $record =~ /^\s*\#/
             or $record =~ /^\s*$/
-            or $record =~ /^Format *=/i )
+            or $record =~ /^Format *=/ )
         {
             $record =~ s/#.*//;    # Ignore comments
             $record =~ s/,? *$//;
@@ -179,7 +179,6 @@ $form_type
         INSTEON_TRIGGERLINC     => [qw(Address Name Groups)],
         INSTEON_ICONTROLLER     => [qw(Address Name Groups)],
         SCENE_MEMBER            => [qw(MemberName LinkName OnLevel RampRate)],
-        CODE					=> [qw(Code)],
         default                 => [qw(Address Name Groups Other)]
     );
 
@@ -188,12 +187,11 @@ $form_type
 
         my @headers =
           ( $headers{$type} ) ? @{ $headers{$type} } : @{ $headers{default} };
-        my $headers = 2 + @headers;
+        my $headers = 1 + @headers;
 
-        $html .= "<br><table border width='100%' id='mhexec'><tr><td colspan=$headers><B>$type</B>\n";
+        $html .= "<table border><tr><td colspan=$headers><B>$type</B>\n";
         $html .= "(<a name='$type' href='#Top'>back to top</a>)</td></tr>\n";
-		$headers--;
-		
+
         $html .= "<tr>";
         for my $header ( '', 'Type', @headers ) {
             $html .=
@@ -328,8 +326,6 @@ sub web_item_add {
     # write out new record to mht file
     $file_data[@file_data] = sprintf( "%-20s%-20s%-20s%-20s%-20s%s",
         $type, $address, $name, $group, $other1, $other2 );
-        
-    #&main::print_log("DB: in webitem, $type, $address, $name, $group, $other1, $other2");
     &mht_item_file_write( $web_item_file_name, \@file_data );
 
     return 0;
@@ -360,7 +356,6 @@ sub web_item_help {
         Options =>
           'List the device options separated by | (e.g. preset, resume=80)',
         FloorPlan => 'Floor Plan location',
-        Code	  => 'Perl code executed at startup',
         Other     => 'Other stuff :)'
     );
 
