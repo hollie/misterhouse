@@ -1689,9 +1689,29 @@ var fp_reposition_entities = function(){
             "left": newx
         };
     };
-    var nwidth = $("#fp_graphic").get(0).naturalWidth;
-    fp_scale = Math.round( width/nwidth * 100);
+//    var nwidth = $("#fp_graphic").get(0).naturalWidth;
+//    var nwidth = $("#fp_graphic").width();
+    var nwidth;
+//There are 2 sizing jumps in bootstrap.min.css one at 992 and another at 1200
+//Scale icons if less than 991
+//1-991
+//@992 = 821 (171)
+//@993 = 822
+//@995 = 824
+//@994 = 828   (166)
+//@1100 = 991 (109)
+//@1200 = 790
+    if (width < 992) {
+    	nwidth = 992;
+    } else if (width < 1200) {
+    	nwidth = 822;
+    } else {
+    	nwidth = 790;
+    }
 
+    fp_scale = Math.round( width/nwidth * 100);
+    
+	console.log("width="+width+" nwidth="+nwidth+" scale="+fp_scale);
     // update the location of all the objects...
     $(".floorplan_item").each(function(index) {
         var classstr = $(this).attr("class");
