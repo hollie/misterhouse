@@ -156,7 +156,7 @@ if ($ia7_keys) {
 my ($command)    = $objCGI->param('vsCOM') || "";
 my ($idNum)      = $objCGI->param('vsID')  || "";
 my ($scriptName) = $ENV{'SCRIPT_NAME'}     || "contacts.pl";
-$scriptName = $ia7_prefix . "/organizer/contacts.pl" if ( $web_mode eq "IA7" );
+$scriptName = $ia7_prefix . "/organizer/tasks.pl" if ( $web_mode eq "IA7" );
 my ($filePath) = $ENV{"CWD"} . "/" . $fileName;
 $filePath = "$config_parms{organizer_dir}/$fileName";
 my ($activePage)    = $objCGI->param('vsAP')          || "1";

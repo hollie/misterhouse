@@ -7,9 +7,7 @@
      "fp_icon_size" : "32",
      "fp_state_popovers" : "yes",
      "substate_percentages" : "20",
-     "disable_current_state" : "yes",
-     "notifications" : "yes",
-     "speech_default" : "banner"
+     "disable_current_state" : "yes"
   },
   "objects" : {
   	  "example_object" : {
