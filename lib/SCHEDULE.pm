@@ -65,7 +65,7 @@ Used to associate child objects with the interface.
 =cut
 
 sub register {
-   my ($self, $object, $child, $start, $stop) = @_;
+   my ($self, $object, $child, $state1, $state2) = @_;
     if ($object->isa('SCHEDULE_Generic')) {
       ::print_log("Registering a SCHEDULE Child Object type SCHEDULE_Generic" );
           push @{$self->{generic_object}}, $object;
@@ -240,7 +240,7 @@ undef $$self{override_mode_object};
 
 
 sub WinterMode {
-return 1;  # temp for testing
+#return 1;  # temp for testing
 my ($self) = @_;
     print_log("[THERMO] - DEBUG --- IN WINTERMODE") if ($config_parms{"thermo_schedule"} eq 'debug');
    if ($::Weather{'Forecast Tonight'} =~ /lows in the ([\w ]+) (\d+)/i) {
@@ -265,16 +265,16 @@ package SCHEDULE_Generic;
 
 sub new
 {
-   my ($class, $parent, $child, $start, $stop) = @_;
+   my ($class, $parent, $child, $state1, $state2) = @_;
    my $self = new Generic_Item();
    bless $self, $class;
    $$self{parent} = $parent;
    $$self{child} = $child;
-   $$self{start} = $start;
-   $$self{stop} = $stop;
-   $parent->register($self,$child,$start,$stop);
-   if (defined($start)) {
-    @{$$self{states}} = ($start,$stop);
+   $$self{1} = $state1;
+   $$self{2} = $state2;
+   $parent->register($self,$child,$state1,$state2);
+   if (defined($state1)) {
+    @{$$self{states}} = ($state1,$state2);
    } else {
     @{$$self{states}} = @{$$child{states}};
    }
