@@ -44,7 +44,7 @@ sub set_schedule {
 
 sub get_schedule{
    my ($self) = @_;
-   return @{$self->{'schedule'}} if (defined(@{$self->{'schedule'}}));
+   return \@{$self->{'schedule'}} if (defined(@{$self->{'schedule'}}));
 }
 
 sub am_i_active_object{
