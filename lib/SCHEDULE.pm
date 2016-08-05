@@ -19,27 +19,37 @@ sub set {
          $self->SUPER::set($p_state,$p_setby,1);
         }
 
-sub set_schedule {
-         my ($self, $type, $p_state) = @_;
-         $$self{'schedule'}{'type'} = lc($type);
-         my @cals;
-         #$self{'type'} = 'calendar';
+#sub set_schedule {
+#         my ($self, $type, $p_state) = @_;
+#         $$self{'schedule'}{'type'} = lc($type);
+#         my @cals;
+#         #$self{'type'} = 'calendar';
          #$self{'schedule'}{'7'}{'28'}{'20'}{'41'}{'action'} = 'start';
          #$self{'schedule'}{'7'}{'28'}{'20'}{'42'}{'action'} = 'stop';
-          if ($p_state =~ /-/) { @cals = split /-/, $p_state }
-          else { @cals = ($p_state) }
-          foreach my $values (@cals) {
-           my @calvals = split /,/, $values;
-            $$self{'schedule'}{$calvals[1]}{$calvals[2]}{$calvals[3]}{$calvals[4]}{'action'} = lc($calvals[0]) if ($type eq 'calendar');
-            $$self{'schedule'}{lc($calvals[1])}{$calvals[2]}{$calvals[3]}{'action'}  = lc($calvals[0]) if ($type eq 'daily');
-            $$self{'schedule'}{lc($calvals[1])}{$calvals[2]}{$calvals[3]}{'action'}  = lc($calvals[0]) if ($type eq 'wdwe');
-            $$self{'schedule'}{$calvals[1]}{$calvals[2]}{'action'} = lc($calvals[0]) if ($type eq 'time');
-          }
- }
+#          if ($p_state =~ /-/) { @cals = split /-/, $p_state }
+#          else { @cals = ($p_state) }
+#          foreach my $values (@cals) {
+#           my @calvals = split /,/, $values;
+#            $$self{'schedule'}{$calvals[1]}{$calvals[2]}{$calvals[3]}{$calvals[4]}{'action'} = lc($calvals[0]) if ($type eq 'calendar');
+#            $$self{'schedule'}{lc($calvals[1])}{$calvals[2]}{$calvals[3]}{'action'}  = lc($calvals[0]) if ($type eq 'daily');
+#            $$self{'schedule'}{lc($calvals[1])}{$calvals[2]}{$calvals[3]}{'action'}  = lc($calvals[0]) if ($type eq 'wdwe');
+#            $$self{'schedule'}{$calvals[1]}{$calvals[2]}{'action'} = lc($calvals[0]) if ($type eq 'time');
+#          }
+# }
 
- 
+sub set_schedule {
+    my ($self, $entry) = @_;
+    push @{$self->{'schedule'}}, $entry if (defined($entry));
+}
+
+sub get_schedule{
+   my ($self) = @_;
+   return @{$self->{'schedule'}} if (defined(@{$self->{'schedule'}}));
+}
+
 sub am_i_active_object{
   my ($self,$instance) = @_;
+  unless (defined($instance)) { return 1 } 
   ::print_log("[SCHEDULE] - am_i_active_object - active object: ".$Interfaces{$instance}->get_object_name." check object: ".$self->get_object_name) if (defined($Interfaces{$instance}));
   if (defined($Interfaces{$instance})) {
      if ($Interfaces{$instance}->get_object_name eq $self->get_object_name) { return 1 }
@@ -57,6 +67,7 @@ sub _set_instance_active_object{
    my ($self, $instance) = @_;
    $Interfaces{$instance} = $self;
 }
+
 
 =item C<register()>
 
@@ -83,36 +94,55 @@ sub register {
 
 
 
+#sub check_date {
+# my ($self,$object) = @_;
+# my $occupied_state = ($$self{occupied}->state_now) if (defined($$self{occupied})); 
+# if ($occupied_state) { $self->ChangeACSetpoint if (($self->am_i_active_object($$self{instance})) && (lc(state $self) eq 'on')) }
+  
+# if ($::New_Minute) {
+#  ::print_log("[SCHEDULE] Checking schedule for ". $self->get_object_name." Sate is ". (state $self) . " Child object is ". $object->get_object_name);
+#   if (lc(state $self) eq 'on') {
+#     my $Week;
+#     if ($::Weekday) { $Week = 'weekday' } elsif ($::Weekend) { $Week = 'weekend' }
+#     if (($$self{'schedule'}{'type'} eq 'calendar') &&
+#        (defined(my $action = $$self{'schedule'}{$::Month}{$::Mday}{$::Hour}{$::Minute}{'action'}))) {
+#	      &set_action($self,$object,$action);
+#       }
+#      elsif (($$self{'schedule'}{'type'} eq 'daily') &&
+#          (defined(my $action = $$self{'schedule'}{lc($::Day)}{$::Hour}{$::Minute}{'action'}))) {
+#	      &set_action($self,$object,$action);
+#       }
+#      elsif (($$self{'schedule'}{'type'} eq 'wdwe') &&
+#          (defined(my $action = $$self{'schedule'}{$Week}{$::Hour}{$::Minute}{'action'}))) {
+#	      &set_action($self,$object,$action);
+#       }
+#      elsif (($$self{'schedule'}{'type'} eq 'time') &&
+#          (defined(my $action = $$self{'schedule'}{$::Hour}{$::Minute}{'action'}))) {
+#	      &set_action($self,$object,$action);
+#       }
+#    }
+#
+#  }
+#}
+
+
 sub check_date {
  my ($self,$object) = @_;
- my $occupied_state = ($$self{occupied}->state_now) if (defined($$self{occupied})); 
- if ($occupied_state) { $self->ChangeACSetpoint if ($self->am_i_active_object($$self{instance})) }
-  
+ my $occupied_state = ($$self{occupied}->state_now) if (defined($$self{occupied}));
+ if ($occupied_state) { $self->ChangeACSetpoint if (($self->am_i_active_object($$self{instance})) && (lc(state $self) eq 'on')) }
+
  if ($::New_Minute) {
   ::print_log("[SCHEDULE] Checking schedule for ". $self->get_object_name." Sate is ". (state $self) . " Child object is ". $object->get_object_name);
    if (lc(state $self) eq 'on') {
-     my $Week;
-     if ($::Weekday) { $Week = 'weekday' } elsif ($::Weekend) { $Week = 'weekend' }
-     if (($$self{'schedule'}{'type'} eq 'calendar') &&
-        (defined(my $action = $$self{'schedule'}{$::Month}{$::Mday}{$::Hour}{$::Minute}{'action'}))) {
-	      &set_action($self,$object,$action);
-       }
-      elsif (($$self{'schedule'}{'type'} eq 'daily') &&
-          (defined(my $action = $$self{'schedule'}{lc($::Day)}{$::Hour}{$::Minute}{'action'}))) {
-	      &set_action($self,$object,$action);
-       }
-      elsif (($$self{'schedule'}{'type'} eq 'wdwe') &&
-          (defined(my $action = $$self{'schedule'}{$Week}{$::Hour}{$::Minute}{'action'}))) {
-	      &set_action($self,$object,$action);
-       }
-      elsif (($$self{'schedule'}{'type'} eq 'time') &&
-          (defined(my $action = $$self{'schedule'}{$::Hour}{$::Minute}{'action'}))) {
-	      &set_action($self,$object,$action);
-       }
+    foreach my $values (@{$self->{'schedule'}}) {
+       my @calvals = split /,/, $values;
+         if (&::time_cron($calvals[1])) { &set_action($self,$object,$calvals[0]) } 
+       } 
     }
 
   }
 }
+
 
 sub setACSetpoint {
   my ($self,$object) = @_;
@@ -135,11 +165,12 @@ sub set_action {
     my ($self,$object,$action) = @_;
       if ($object->isa('SCHEDULE_Generic')) {
          ::print_log("[SCHEDULE] Setting ".$object->{child}->get_object_name." state to ".$object->{$action});
+         $self->_set_instance_active_object($$self{instance}) if (defined($$self{instance}));
 	 $object->{child}->SUPER::set($object->{$action},$self->get_object_name,1);
       }
          elsif ($object->isa('SCHEDULE_Temp')) {
          ::print_log("[SCHEDULE] set_action -  Temp object: ".$object->get_object_name." Parent object: ".$self->get_object_name);
-         $self->_set_instance_active_object($$self{instance});
+         $self->_set_instance_active_object($$self{instance}) if (defined($$self{instance}));
          #&reset_timer($self);
          $self->ChangeACSetpoint;
       }
@@ -191,7 +222,7 @@ print_log("[THERMO] - DEBUG --- in ChangeACSetpoint") if ($config_parms{"thermo_
 	   $occ_state = $$self{override_mode_occ_state} if defined($$self{occ_state});
 	   $object = $$self{override_mode_object} if defined($$self{override_mode_object});
     }
-		&main::print_log("[THERMO] - INFO - ChangeACSetpoint - " . $occupied_state ." ". $object->get_object_name ." state match:  $occ_state");
+	&main::print_log("[THERMO] - INFO - ChangeACSetpoint - " . $occupied_state ." ". $object->get_object_name ." state match:  $occ_state");
        if ((defined($$self{occupied})) && ($$self{occupied}->state eq $occ_state)) {
 	    &main::print_log("[THERMO] - INFO - ChangeACSetpoint - occ state match ". $object->get_object_name ." setpoints, you are now $occ_state");
            if ($$self{thermo_timer}->expired) {
