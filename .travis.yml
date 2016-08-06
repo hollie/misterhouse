@@ -1,9 +1,7 @@
 language: perl
 
-matrix:
-    include:
-        - os: linux
-        - os: osx
+os: 
+    - linux
 
 dist: trusty
 
