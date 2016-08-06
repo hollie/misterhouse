@@ -3,18 +3,15 @@ language: perl
 matrix:
     include:
         - os: linux
-	  dist: trusty
-	  perl: 5.24
-	- os: linux
-	  perl:
-  		- "5.24"
-  		- "5.22"
-  		- "5.20"
-  		- "5.18"
-  		- "5.16"
-  		- "5.14"
-  		- "5.08"
-	- os: osx
+        - os: osx
+
+dist: trusty
+
+perl:
+    - "5.24"
+    - "5.18"
+    - "5.16"
+    - "5.08"
 
 install: true
 
