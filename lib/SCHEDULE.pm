@@ -44,7 +44,7 @@ sub set_schedule {
 
 sub get_schedule{
    my ($self) = @_;
-   return \@{$self->{'schedule'}} if (defined(@{$self->{'schedule'}}));
+   return \@{$self->{'schedule'}} if (@{$self->{'schedule'}});
 }
 
 sub am_i_active_object{
@@ -66,6 +66,13 @@ sub get_instance_active_object{
 sub _set_instance_active_object{
    my ($self, $instance) = @_;
    $Interfaces{$instance} = $self;
+}
+
+
+sub get_objects_for_instance {
+   my ($self) = @_;
+   my $instance = $$self{instance};
+   return \@{$Shedule_objects{$instance}} if defined($instance);
 }
 
 
@@ -282,7 +289,7 @@ my ($self) = @_;
            ##if the value we got from the weather script is equal
             #or lower than our defined value, return the defined winter mode
        if ($fc <= ($$self{winter_mode_temp})) {
-         print_log("[THERMO] - DEBUG --- IN WINTERMODE  ---- M1 --- LOWS -- $fc -- $$self{winter_mode_temp}") if ($config_parms{"thermo_schedule"} eq 'debug');
+         ::print_log("[THERMO] - DEBUG --- IN WINTERMODE  ---- M1 --- LOWS -- $fc -- $$self{winter_mode_temp}") if ($config_parms{"thermo_schedule"} eq 'debug');
          return 1;
        }
      return 0;
@@ -296,19 +303,14 @@ package SCHEDULE_Generic;
 
 sub new
 {
-   my ($class, $parent, $child, $state1, $state2) = @_;
+   my $class = @_[0];
    my $self = new Generic_Item();
    bless $self, $class;
-   $$self{parent} = $parent;
-   $$self{child} = $child;
-   $$self{1} = $state1;
-   $$self{2} = $state2;
-   $parent->register($self,$child,$state1,$state2);
-   if (defined($state1)) {
-    @{$$self{states}} = ($state1,$state2);
-   } else {
-    @{$$self{states}} = @{$$child{states}};
-   }
+   $$self{parent} = @_[1];
+   $$self{child} = @_[2];
+   $$self{state_count} = ((scalar @_) - 3);
+   for my $i (3..(scalar @_)) { if (defined @_[$i]) { $$self{$i-3}=@_[$i]; push (@{$$self{states}}, @_[$i]); } }
+   $$self{parent}->register($self,$child);
    return $self;
 }
 
