@@ -552,7 +552,7 @@ var loadList = function() {
 	var button_text = '';
 	var button_html = '';
 	var entity_arr = [];
-	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text";
+	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule";
 	$.ajax({
 		type: "GET",
 		url: "/json/"+HashtoJSONArgs(URLHash),
@@ -761,6 +761,7 @@ var loadList = function() {
 
 var getButtonColor = function (state) {
 	var color = "default";
+	if (state !== undefined) state = state.toLowerCase();
 	if (state == "on" || state == "open" || state == "disarmed" || state == "unarmed" || state == "ready" || state == "dry" || state == "up" || state == "100%" || state == "online" || state == "unlocked") {
 		 color = "success";
 	} else if (state == "motion" || state == "closed" || state == "armed" || state == "wet" || state == "fault" || state == "down" || state == "offline" || state == "locked") {
@@ -801,7 +802,7 @@ var filterSubstate = function (state) {
          filter = 1
         }
     }
-    
+	if (state !== undefined) state = state.toLowerCase();    
     if (state == "manual" ||
     	state == "double on" ||
     	state == "double off" ||
@@ -2315,6 +2316,59 @@ var create_state_modal = function(entity) {
 			//remove states from anything that doesn't have more than 1 state
 			$('#control').find('.states').find('.btn-group').remove();
 		}
+// Unique Schedule Data here
+		$('#control').find('.modal-body').find('.sched_control').remove();	
+		$('#control').find('.modal-footer').find('.sched_submit').remove();	
+
+		if (json_store.objects[entity].schedule !== undefined) {
+			$('#control').find('.modal-body').append("<div class='sched_control'><h4>Schedule Control</h4>");
+			console.log("Schedule object found "+ json_store.objects[entity].schedule);
+			for (var i = 0; i < json_store.objects[entity].schedule.length; i++){
+//For now, don't add complexity of parsing the entire cron string, 
+//Format, index,minute,hour,day of month(ignore),month(ignore),day of week (1-5=weekday, 6-7=weekend [This is wrong, should be 0,6])
+				var index = json_store.objects[entity].schedule[i].substring(0,json_store.objects[entity].schedule[i].indexOf(','));
+				var cron = json_store.objects[entity].schedule[i].substring(json_store.objects[entity].schedule[i].indexOf(',')+1,json_store.objects[entity].schedule[i].length);
+				//console.log("index="+index+" cron="+cron);
+				$('#control').find('.sched_control').append("<div class='schedule"+i+"' id='"+i+"' value='"+cron+"'>"+index+"</div><span style='display:none' id='"+index+"' class='mhsched sched"+i+"value'></span>");	
+				$('.schedule'+i).jqCron({
+					enabled_minute: true,
+					multiple_dom: true,
+					multiple_month: false,
+					multiple_mins: true,
+					multiple_dow: true,
+					multiple_time_hours: true,
+					multiple_time_minutes: true,
+					default_period: 'week',
+					default_value : cron,
+					no_reset_button: true,
+					bind_to: $('.sched'+i+'value'),
+		        	bind_method: {
+            			set: function($element, value) {
+                			$element.html(value);
+           				 	}	
+           			},		
+					lang: 'en'
+				});			
+			}
+		$('#control').find('.modal-footer').prepend('<button class="btn btn-default btn-login-login sched_submit">Submit</button>');      	
+			
+		} else {
+//			$('#control').find('.modal-footer').remove();
+		}	
+		$('.sched_submit').on('click', function(){
+			//url= '/SUBSET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
+			//for each jqCron item get the values and stringify them.
+			var string = "";
+			$('.mhsched').each(function(index,value) {
+				console.log(index + "," + $( this ).attr("id") + "," + $( this ).text() + ",");
+				string += $( this ).attr("id") + ',"' + $( this ).text() + '",';
+			});
+			var url="/SUB?web_update_schedule"+encodeURI("("+$(this).parents('.control-dialog').attr("entity")+","+string+")");
+			alert(url);
+			$.get(url);
+
+		});
+//
 		if (json_store.ia7_config.prefs.state_log_show !== "no") {
 			//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
 			// could load all log items, and only unhide the last 4 -- maybe later

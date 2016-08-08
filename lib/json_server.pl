@@ -884,7 +884,7 @@ sub json_object_detail {
     my %json_objects;
     my %json_complete_object;
     my @f = qw( category filename measurement rf_id set_by members
-      state states state_log type label sort_order groups hidden parents
+      state states state_log type label sort_order groups hidden parents schedule
       idle_time text html seconds_remaining fp_location fp_icons fp_icon_set img link level);
 
     # Build list of fields based on those requested.

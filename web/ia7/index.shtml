@@ -54,9 +54,14 @@
 	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.selection.min.js"></script>
 	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.resize.min.js"></script>
 	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.time.min.js"></script>
+
+	<!-- jqCon libraries for displaying cron data -->
+	<link rel="stylesheet" href="/ia7/include/jqCron.css">	
+	<script language="javascript" type="text/javascript" src="/ia7/include/jqCron.js"></script>
+	<script language="javascript" type="text/javascript" src="/ia7/include/jqCron.en.js"></script>
 	
 	
-	<!-- ia7 JS File-->
+	<!-- Misterhouse ia7 System JS File-->
 	<script src="/ia7/include/javascript.js"></script>
 	
 	<style type="text/css">
@@ -236,6 +241,8 @@
         <div class="states">
         </div>
       </div>
+      <div class="modal-footer">
+		</div>      
     </div><!-- /.modal-content -->
   </div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
