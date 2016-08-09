@@ -2345,19 +2345,27 @@ var create_state_modal = function(entity) {
 		        	bind_method: {
             			set: function($element, value) {
                 			$element.html(value);
+                			$('.sched_submit').removeClass('disabled');  
+                			$('.sched_submit').removeClass('btn-default');  
+                			$('.sched_submit').addClass('btn-success');              			      			
            				 	}	
            			},		
 					lang: 'en'
 				});			
 			}
-		$('#control').find('.modal-footer').prepend('<button class="btn btn-default btn-login-login sched_submit">Submit</button>');      	
+		$('#control').find('.modal-footer').prepend('<button class="btn btn-default disabled sched_submit">Submit</button>');      	
 			
+		} 
+		console.log('sched length=' + $('.sched_control').length);
+		
+		if ($('.sched_control').length == 0) { //no schedule data so no button needed.
+			$('#control').find('.modal-footer').hide();
 		} else {
-//			$('#control').find('.modal-footer').remove();
-		}	
+			$('#control').find('.modal-footer').show();
+		}
 		$('.sched_submit').on('click', function(){
-			//url= '/SUBSET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
 			//for each jqCron item get the values and stringify them.
+			if ($(this).hasClass("disabled")) return;
 			var string = "";
 			$('.mhsched').each(function(index,value) {
 				console.log(index + "," + $( this ).attr("id") + "," + $( this ).text() + ",");
