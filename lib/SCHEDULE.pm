@@ -9,6 +9,12 @@ sub new
    $$self{instance} = $instance;
    bless $self, $class;
    @{$$self{states}} = ('ON','OFF');
+   $self->restore_data('active_object', 'active_action', 'schedule_count');
+    #for my $index (1..$self->{'schedule_count'}) {
+    for my $index (1..10) {
+      $self->restore_data('schedule_'.$index);
+     }
+   sleep 1;
    return $self;
 }
 
@@ -39,11 +45,22 @@ sub set {
 
 sub set_schedule {
     my ($self, $entry) = @_;
-    push @{$self->{'schedule'}}, $entry if (defined($entry));
+    my $index = (split /,/, $entry)[0];
+    $[ = 1;
+    #@{$self->{'schedule'}}[$index] = $entry if (defined($entry));
+    if ($index > $self->{'schedule_count'}) { $self->{'schedule_count'} = $index } 
+    $self->{'schedule_'.$index} = $entry if (defined($entry));
+    $self->{'schedule_set_flag'} = 1;
 }
+
 
 sub get_schedule{
    my ($self) = @_;
+     for my $index (1..$self->{'schedule_count'}) {
+        #::print_log("[SCHEDULE] - index - ".$index . " entry - ". $self->{'schedule_'.$index});
+        $[ = 1;
+        @{$self->{'schedule'}}[$index] = $self->{'schedule_'.$index} if (defined($self->{'schedule_'.$index}));
+      }
    return \@{$self->{'schedule'}} if (@{$self->{'schedule'}});
 }
 
@@ -53,19 +70,32 @@ sub am_i_active_object{
   ::print_log("[SCHEDULE] - am_i_active_object - active object: ".$Interfaces{$instance}->get_object_name." check object: ".$self->get_object_name) if (defined($Interfaces{$instance}));
   if (defined($Interfaces{$instance})) {
      if ($Interfaces{$instance}->get_object_name eq $self->get_object_name) { return 1 }
-     else { return 0 } 
+     else { $self->{'active_object'} = 0; return 0; }
+  } elsif ($self->{'active_object'}) { #This is for a restart to get the saved active object.
+     my $action = $self->{'active_action'} if defined($self->{'active_action'});
+     $self->_set_instance_active_object($$self{instance},$action); 
+     return 1;
   } else { return 0 }
 }
  
 sub get_instance_active_object{
    my ($instance) = @_;
-   return $Interfaces{$instance};
+   return $Interfaces{$instance} if defined($instance);
+}
+
+
+sub get_instance_active_action{
+   my ($instance) = @_;
+   return $Interfaces{$instance}{'action'} if defined($instance);
 }
 
 
 sub _set_instance_active_object{
-   my ($self, $instance) = @_;
-   $Interfaces{$instance} = $self;
+   my ($self, $instance, $action) = @_;
+   $self->{'active_object'} = 1;
+   $self->{'active_action'} = $action if defined($action);
+   $Interfaces{$instance} = $self if defined($instance);
+   $Interfaces{$instance}{'action'} = $action if defined($action);
 }
 
 
@@ -135,14 +165,51 @@ sub register {
 
 sub check_date {
  my ($self,$object) = @_;
+# if ($Startup||$Reload) {
+  #$self->restore_data('active_object','active_action','schedule_count');
+  #$self->_set_instance_active_object($$self{instance},$$self{active_action}) if (defined($$self{instance}) && $$self{active_object});
+  # for my $index (1..$self->{'schedule_count'}) {
+  #   $self->restore_data('schedule_'.$index) unless($self->{'schedule_set_flag'});
+  # }
+# }
+
+# unless(defined($self->get_instance_active_object)) {
+#  $self->_set_instance_active_object($$self{instance},$$self{active_action}) if (defined($$self{instance}) && $$self{active_object});
+# }   
+
+#  $self->restore_data('active_object') unless(defined($self->{'active_object'}));
+#  $self->restore_data('active_action') unless(defined($self->{'active_action'}));
+#  $self->restore_data('schedule_count') unless(defined($self->{'schedule_count'}));
+ # unless($self->{'schedule_set_flag'}) { 
+#    for my $index (1..$self->{'schedule_count'}) {
+#      $self->restore_data('schedule_'.$index) unless(defined($self->{'schedule_'.$index}));
+#     }
+ #  }
+
+
+# if ($::New_Minute) {
+#      ::print_log("[SCHEDULE] - active object ". $self->{'active_object'} ) if (defined($self->{'active_object'}));
+#   ::print_log("[SCHEDULE] - active_action ". $self->{'active_action'} ) if (defined($self->{'active_action'}));
+#   ::print_log("[SCHEDULE] - schedule_count ". $self->{'schedule_count'} ) if (defined($self->{'schedule_count'}));
+#
+#     for my $index (1..$self->{'schedule_count'}) {
+#   #    $self->set_schedule('schedule_'.$index);
+#       ::print_log("[SCHEDULE] - restored schedule ".$self->{'schedule_'.$index} ." for ".$self->get_object_name);
+#      }
+#      #::print_log("[SCHEDULE] - restored active object ". $self->get_object_name ) if (($self->am_i_active_object($$self{instance}));
+# }
+
+
  my $occupied_state = ($$self{occupied}->state_now) if (defined($$self{occupied}));
  if ($occupied_state) { $self->ChangeACSetpoint if (($self->am_i_active_object($$self{instance})) && (lc(state $self) eq 'on')) }
 
  if ($::New_Minute) {
+  $self->am_i_active_object($$self{instance}) if (defined($$self{instance}));;
   ::print_log("[SCHEDULE] Checking schedule for ". $self->get_object_name." Sate is ". (state $self) . " Child object is ". $object->get_object_name);
    if (lc(state $self) eq 'on') {
-    foreach my $values (@{$self->{'schedule'}}) {
-       my @calvals = split /,/, $values;
+    #foreach my $values (@{$self->{'schedule'}}) {
+    for my $index (1..$self->{'schedule_count'}) {
+       my @calvals = split /,/, $self->{'schedule_'.$index};
          if (&::time_cron($calvals[1])) { &set_action($self,$object,$calvals[0]) } 
        } 
     }
@@ -172,13 +239,12 @@ sub set_action {
     my ($self,$object,$action) = @_;
       if ($object->isa('SCHEDULE_Generic')) {
          ::print_log("[SCHEDULE] Setting ".$object->{child}->get_object_name." state to ".$object->{$action});
-         $self->_set_instance_active_object($$self{instance}) if (defined($$self{instance}));
+         $self->_set_instance_active_object($$self{instance},$action) if (defined($$self{instance}));
 	 $object->{child}->SUPER::set($object->{$action},$self->get_object_name,1);
       }
          elsif ($object->isa('SCHEDULE_Temp')) {
          ::print_log("[SCHEDULE] set_action -  Temp object: ".$object->get_object_name." Parent object: ".$self->get_object_name);
          $self->_set_instance_active_object($$self{instance}) if (defined($$self{instance}));
-         #&reset_timer($self);
          $self->ChangeACSetpoint;
       }
 }
@@ -215,6 +281,7 @@ sub set_vacation {
 sub ChangeACSetpoint {
 my ($self,$object) = @_;
 unless ($self->am_i_active_object($$self{instance})) { return 0 }
+my $action = $self->get_instance_active_action($$self{instance});
 my $occ_setback_object = $$self{occ_setback_object};
 my $occ_setback_state = $$self{occ_setback_state};
 my $occ_state = $$self{occ_state};
