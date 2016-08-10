@@ -16,9 +16,9 @@ if ($main::Startup) {
 
 	my $ia7_coll_current_ver = 1.2;
 
-	my @collection_files = ("$Pgm_Root/data/web/collections.json",
-        					"$config_parms{data_dir}/web/collections.json",
-       						"$config_parms{ia7_data_dir}/collections.json");      							
+	my @collection_files = ("$main::Pgm_Root/data/web/collections.json",
+        					"$main::config_parms{data_dir}/web/collections.json",
+       						"$main::config_parms{ia7_data_dir}/collections.json");      							
     for my $file (@collection_files) {
        	if (-e $file) {
        		&main::print_log("[IA7_Collection_Updater] : Checking $file to current version $ia7_coll_current_ver");
