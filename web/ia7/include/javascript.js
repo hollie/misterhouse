@@ -1803,9 +1803,9 @@ var floorplan = function(group,time) {
             fp_resize_floorplan_image();
             floorplan(group, time);
         });
-        var base_img_dir = '/ia7/graphics/floorplan';
-		if (json_store.ia7_config.prefs.floorplan_basedir !== undefined) base_img_dir = json_store.ia7_config.prefs.floorplan_basedir;
-        $('#fp_graphic').attr("src", base_img_dir+'-'+group+'.png');
+        var base_img_dir = '/ia7/graphics';
+		if (json_store.ia7_config.prefs.floorplan_baseimg_dir !== undefined) base_img_dir = json_store.ia7_config.prefs.floorplan_baseimg_dir;
+        $('#fp_graphic').attr("src", base_img_dir+'/floorplan-'+group+'.png');
         return;
     }
 
