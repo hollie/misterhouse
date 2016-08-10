@@ -2330,6 +2330,8 @@ var create_state_modal = function(entity) {
 				var cron = json_store.objects[entity].schedule[i].substring(json_store.objects[entity].schedule[i].indexOf(',')+1,json_store.objects[entity].schedule[i].length);
 				//console.log("index="+index+" cron="+cron);
 				$('#control').find('.sched_control').append("<div class='schedule"+i+"' id='"+i+"' value='"+cron+"'>"+index+"</div><span style='display:none' id='"+index+"' class='mhsched sched"+i+"value'></span>");	
+//				$('#control').find('.sched_control').append("<div class='input-group'><div class='input-group-btn'><button type='button' class='btn btn-default'><i class='fa fa-refresh'></i></button></div><button type='button' class='btn btn-default'>Day of Week</button><button type='button' class='btn btn-default'>Hour</button><button type='button' class='btn btn-default'>Minute</button></div></div>");				
+				$('#control').find('.sched_control').append("<div class='input-group'><span class='input-group-addon' id='s_index'>"+index+"</span><div class='input-group-btn'><button type='button' class='btn btn-default'><i class='fa fa-refresh'></i></button><button type='button' class='btn btn-default'>Day of Week</button><button type='button' class='btn btn-default'>Hour</button><button type='button' class='btn btn-default'>Minute</button></div></div>");				
 				$('.schedule'+i).jqCron({
 					enabled_minute: true,
 					multiple_dom: true,
@@ -2341,6 +2343,8 @@ var create_state_modal = function(entity) {
 					default_period: 'week',
 					default_value : cron,
 					no_reset_button: true,
+					numeric_zero_pad: true,
+					label: index,
 					bind_to: $('.sched'+i+'value'),
 		        	bind_method: {
             			set: function($element, value) {
@@ -2371,7 +2375,7 @@ var create_state_modal = function(entity) {
 				console.log(index + "," + $( this ).attr("id") + "," + $( this ).text() + ",");
 				string += $( this ).attr("id") + ',"' + $( this ).text() + '",';
 			});
-			var url="/SUB?web_update_schedule"+encodeURI("("+$(this).parents('.control-dialog').attr("entity")+","+string+")");
+			var url="/SUB?ia7_update_schedule"+encodeURI("("+$(this).parents('.control-dialog').attr("entity")+","+string+")");
 			alert(url);
 			$.get(url);
 
