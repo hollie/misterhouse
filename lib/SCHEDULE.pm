@@ -14,7 +14,6 @@ sub new
     for my $index (1..10) {
       $self->restore_data('schedule_'.$index);
      }
-   sleep 1;
    return $self;
 }
 
@@ -44,9 +43,9 @@ sub set {
 # }
 
 sub set_schedule {
-    my ($self, $entry) = @_;
-    my $index = (split /,/, $entry)[0];
-    $[ = 1;
+    my ($self,$index,$entry) = @_;
+    #my $index = (split /,/, $entry)[0];
+    #$[ = 1;
     #@{$self->{'schedule'}}[$index] = $entry if (defined($entry));
     if ($index > $self->{'schedule_count'}) { $self->{'schedule_count'} = $index } 
     $self->{'schedule_'.$index} = $entry if (defined($entry));
@@ -56,9 +55,10 @@ sub set_schedule {
 
 sub get_schedule{
    my ($self) = @_;
+    @{$self->{'schedule'}}[0] = '0 0 5 1 1';;
      for my $index (1..$self->{'schedule_count'}) {
         #::print_log("[SCHEDULE] - index - ".$index . " entry - ". $self->{'schedule_'.$index});
-        $[ = 1;
+        #$[ = 1;
         @{$self->{'schedule'}}[$index] = $self->{'schedule_'.$index} if (defined($self->{'schedule_'.$index}));
       }
    return \@{$self->{'schedule'}} if (@{$self->{'schedule'}});
@@ -209,8 +209,9 @@ sub check_date {
    if (lc(state $self) eq 'on') {
     #foreach my $values (@{$self->{'schedule'}}) {
     for my $index (1..$self->{'schedule_count'}) {
-       my @calvals = split /,/, $self->{'schedule_'.$index};
-         if (&::time_cron($calvals[1])) { &set_action($self,$object,$calvals[0]) } 
+       #my @calvals = split /,/, $self->{'schedule_'.$index};
+        # if (&::time_cron($calvals[1])) { &set_action($self,$object,$calvals[0]) } 
+         if (&::time_cron($self->{'schedule_'.$index})) { &set_action($self,$object,$index) }
        } 
     }
 
