@@ -2321,17 +2321,11 @@ var create_state_modal = function(entity) {
 		$('#control').find('.modal-footer').find('.sched_submit').remove();	
 
 		if (json_store.objects[entity].schedule !== undefined) {
-			$('#control').find('.modal-body').append("<div class='sched_control'><h4>Schedule Control</h4>");
-			console.log("Schedule object found "+ json_store.objects[entity].schedule);
-			for (var i = 0; i < json_store.objects[entity].schedule.length; i++){
-//For now, don't add complexity of parsing the entire cron string, 
-//Format, index,minute,hour,day of month(ignore),month(ignore),day of week (1-5=weekday, 6-7=weekend [This is wrong, should be 0,6])
-				var index = json_store.objects[entity].schedule[i].substring(0,json_store.objects[entity].schedule[i].indexOf(','));
-				var cron = json_store.objects[entity].schedule[i].substring(json_store.objects[entity].schedule[i].indexOf(',')+1,json_store.objects[entity].schedule[i].length);
-				//console.log("index="+index+" cron="+cron);
-				$('#control').find('.sched_control').append("<div class='schedule"+i+"' id='"+i+"' value='"+cron+"'>"+index+"</div><span style='display:none' id='"+index+"' class='mhsched sched"+i+"value'></span>");	
-//				$('#control').find('.sched_control').append("<div class='input-group'><div class='input-group-btn'><button type='button' class='btn btn-default'><i class='fa fa-refresh'></i></button></div><button type='button' class='btn btn-default'>Day of Week</button><button type='button' class='btn btn-default'>Hour</button><button type='button' class='btn btn-default'>Minute</button></div></div>");				
-				$('#control').find('.sched_control').append("<div class='input-group'><span class='input-group-addon' id='s_index'>"+index+"</span><div class='input-group-btn'><button type='button' class='btn btn-default'><i class='fa fa-refresh'></i></button><button type='button' class='btn btn-default'>Day of Week</button><button type='button' class='btn btn-default'>Hour</button><button type='button' class='btn btn-default'>Minute</button></div></div>");				
+		
+			var add_schedule = function(index,label,cron) {
+				$('#control').find('.sched_control').append("<div class='schedule"+i+"' id='"+i+"' value='"+cron+"'></div><span style='display:none' id='"+index+"' class='mhsched sched"+i+"value'></span>");	
+//				$('#control').find('.sched_control').append("<div class='input-group'><span class='input-group-addon' id='s_index'>"+index+"</span><div class='input-group-btn'><button type='button' class='btn btn-default'><i class='fa fa-refresh'></i></button><button type='button' class='btn btn-default'>Day of Week</button><button type='button' class='btn btn-default'>Hour</button><button type='button' class='btn btn-default'>Minute</button></div></div>");				
+
 				$('.schedule'+i).jqCron({
 					enabled_minute: true,
 					multiple_dom: true,
@@ -2355,8 +2349,31 @@ var create_state_modal = function(entity) {
            				 	}	
            			},		
 					lang: 'en'
-				});			
+				});	
+				$('#control').find('.schedule'+i).append("<button type='button' id='schedule"+i+"' class='btn btn-default btn-danger schedrm'><i class='fa fa-minus'></i></button>");		
+				$('.schedrm').on('click', function(){
+					var sched_id = $( this ).attr("id")
+					$('.'+sched_id).remove();
+					$('.'+sched_id).find('.schedrm').remove();
+//remove the schedule and the hidden value.
+//updates all the existing indexes?
+//label should be editable then?
+				});
 			}
+
+			$('#control').find('.modal-body').append("<div class='sched_control'><h4>Schedule Control</h4>");
+			console.log("Schedule object found "+ json_store.objects[entity].schedule);
+			for (var i = 0; i < json_store.objects[entity].schedule.length; i++){
+//For now, don't add complexity of parsing the entire cron string, 
+//Format, index,minute,hour,day of month(ignore),month(ignore),day of week (1-5=weekday, 6-7=weekend [This is wrong, should be 0,6])
+				var sched_label = json_store.objects[entity].schedule[i].substring(0,json_store.objects[entity].schedule[i].indexOf(','));
+				var sched_cron = json_store.objects[entity].schedule[i].substring(json_store.objects[entity].schedule[i].indexOf(',')+1,json_store.objects[entity].schedule[i].length);
+				//console.log("index="+index+" cron="+cron);
+				add_schedule(i,sched_label,sched_cron);
+					
+			}
+		$('#control').find('.sched_control').append("<button type='button' class='btn btn-default btn-success schedadd'><i class='fa fa-plus'></i></button>");				
+			
 		$('#control').find('.modal-footer').prepend('<button class="btn btn-default disabled sched_submit">Submit</button>');      	
 			
 		} 
@@ -2367,6 +2384,13 @@ var create_state_modal = function(entity) {
 		} else {
 			$('#control').find('.modal-footer').show();
 		}
+
+		$('.schedadd').on('click', function(){
+			//alert('add new schedule');
+			add_schedule(i++,'new','0 0 0 0 0');
+
+		});
+		
 		$('.sched_submit').on('click', function(){
 			//for each jqCron item get the values and stringify them.
 			if ($(this).hasClass("disabled")) return;
@@ -2378,6 +2402,9 @@ var create_state_modal = function(entity) {
 			var url="/SUB?ia7_update_schedule"+encodeURI("("+$(this).parents('.control-dialog').attr("entity")+","+string+")");
 			alert(url);
 			$.get(url);
+            $('.sched_submit').addClass('disabled');  
+            $('.sched_submit').removeClass('btn-success');  
+            $('.sched_submit').addClass('btn-default');   			
 
 		});
 //

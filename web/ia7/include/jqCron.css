@@ -16,7 +16,7 @@
 	cursor: pointer;
 	border-radius: 3px;
 	border: 1px solid #ddd;
-	margin: 0 0.2em;
+	margin:  0.2em;
 	padding: 0 0.5em;
 }
 .jqCron-container.disable .jqCron-cross:hover,

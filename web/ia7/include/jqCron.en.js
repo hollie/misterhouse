@@ -7,9 +7,12 @@
  * file that was distributed with this source code.
  */
 
+//empty should be label
+//name_* should be recycle icon
+
 jqCronDefaultSettings.texts.en = {
-	empty: 'every',
-	empty_minutes: 'every',
+	empty: 'every1',
+	empty_minutes: 'every2',
 	empty_time_hours: 'every hour',
 	empty_time_minutes: 'every minute',
 	empty_day_of_week: 'every day of the week',
@@ -21,7 +24,7 @@ jqCronDefaultSettings.texts.en = {
 	name_week: 'week',
 	name_month: 'month',
 	name_year: 'year',
-	text_period: 'Every <b />',
+	text_period: 'Every3 <b />',
 	text_mins: ' at <b /> minute(s) past the hour',
 	text_time: ' at <b />:<b />',
 	text_dow: ' on <b />',
@@ -31,6 +34,7 @@ jqCronDefaultSettings.texts.en = {
 	error2: 'Bad number of elements',
 	error3: 'The jquery_element should be set into jqCron settings',
 	error4: 'Unrecognized expression',
+	weekdays_short: ['M','Tu','W','Th','F','Sa','Su'],
 	weekdays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
 	months: ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
 };
