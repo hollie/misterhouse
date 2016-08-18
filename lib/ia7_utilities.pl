@@ -5,11 +5,20 @@ use Data::Dumper;
 sub main::ia7_update_schedule {
 	my ($object,@schedules) = @_;
 	
-	&main::print_log("updating Schedule for object $object");
+	&main::print_log("Updating Schedule for object $object");	
 	my $obj = &main::get_object_by_name($object);
-	&main::print_log (Data::Dumper->Dump($obj->get_schedule));
-	&main::print_log (join('|',@schedules));
+    my $s=0;
+    my $index;
+    for (my $entry = 0; $entry < scalar (@schedules); $entry=$entry+2) {
+    	#unless($entry) { next }
+    	&main::print_log("entry=" . $entry . " index=" . $schedules[$entry] . " cron=" . $schedules[$entry+1]);	
+
+        $obj->set_schedule("$schedules[$entry],$schedules[$entry+1]");
+    }
+#	&main::print_log (Data::Dumper->Dump($obj->get_schedule));
+#	&main::print_log (join('|',@schedules));
 }
+
 
 
 if ($main::Startup) {
