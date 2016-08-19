@@ -163,14 +163,14 @@ var jqCronDefaultSettings = {
 		var _self         = this;
 		var _$elt         = this;
 		var _$obj         = $('<span class="jqCron-container"></span>');
-		var _$blocks      = $('<div class="input-group"><div class="input-group-btn"><span class="jqCron-blocks"></span>');
+		var _$blocks      = $('<div class="input-group"><span class="jqCron-blocks"></span>');
 		var _$blockPERIOD = $('<span class="jqCron-period"></span>');
-		var _$blockDOM    = $('<button class="btn btn-default jqCron-dom"></button>');
-		var _$blockMONTH  = $('<button class="jqCron-month"></button>');
-		var _$blockMINS   = $('<button class="jqCron-mins"></button>');
-		var _$blockDOW    = $('<button class="jqCron-dow"></button>');
-		var _$blockTIME   = $('<button class="jqCron-time"></button>');
-		var _$cross       = $('<button class="jqCron-cross">&#10008;</button>');
+		var _$blockDOM    = $('<div class="input-group-addon jqCron-dom"></div>');
+		var _$blockMONTH  = $('<div class="input-group-addon jqCron-month"></div>');
+		var _$blockMINS   = $('<div class="input-group-addon jqCron-mins"></div>');
+		var _$blockDOW    = $('<div class="input-group-addon jqCron-dow"></div>');
+		var _$blockTIME   = $('<div class="input-group-addon jqCron-time"></div>');
+		var _$cross       = $('<div class="input-group-addon jqCron-cross">&#10008;</div>');
 		var _selectors    = [];
 		var _selectorPeriod, _selectorMins, _selectorTimeH, _selectorTimeM, _selectorDow, _selectorDom, _selectorMonth;
 
@@ -531,7 +531,7 @@ console.log('key='+key+' text='+text);
 	function jqCronSelector(_cron, _$block, _multiple, _type){
 		var _self      = this;
 		var _$list     = $('<ul class="jqCron-selector-list"></ul>');
-		var _$title    = $('<button class="btn btn-default jqCron-selector-title"></button>');
+		var _$title    = $('<button class="input-group-button btn btn-default jqCron-selector-title"></button>');
 
 //HP
 //		var _$selector = $('<button class="jqCron-selector"></button>'); //HP dropdowns

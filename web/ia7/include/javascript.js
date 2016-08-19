@@ -2350,7 +2350,7 @@ var create_state_modal = function(entity) {
            			},		
 					lang: 'en'
 				});	
-				$('#control').find('.schedule'+index).append("<button type='button' id='schedule"+index+"' class='btn btn-default btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button>");		
+				$('#control').find('.schedule'+index).find('.input-group').append("<div class='input-group-addon'><button type='button' id='schedule"+index+"' class='btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></div>");		
 				$('.schedrm').on('click', function(){
 					var sched_id = $( this ).attr("id")
 					$('.'+sched_id).remove();

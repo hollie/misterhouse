@@ -16,8 +16,7 @@
 	cursor: pointer;
 	border-radius: 3px;
 	border: 1px solid #ddd;
-	margin:  0.2em;
-	padding: 0 0.5em;
+
 }
 .jqCron-container.disable .jqCron-cross:hover,
 .jqCron-container.disable .jqCron-selector-title:hover,
@@ -48,6 +47,8 @@
 	position: absolute;
 	top: 1.5em;
 	z-index: 1;
+	white-space: normal !important;
+	
 }
 .jqCron-selector-list li {
 	-webkit-box-sizing: border-box;
