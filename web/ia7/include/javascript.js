@@ -2322,9 +2322,11 @@ var create_state_modal = function(entity) {
 
 		if (json_store.objects[entity].schedule !== undefined) {
 		
-			var add_schedule = function(index,label,cron) {
-				$('#control').find('.sched_control').append("<div class='schedule"+index+" cron_entry' id='"+index+"' value='"+cron+"'></div><span style='display:none' id='"+index+"' class='mhsched schedule"+index+"value'></span>");	
-//				$('#control').find('.sched_control').append("<div class='input-group'><span class='input-group-addon' id='s_index'>"+index+"</span><div class='input-group-btn'><button type='button' class='btn btn-default'><i class='fa fa-refresh'></i></button><button type='button' class='btn btn-default'>Day of Week</button><button type='button' class='btn btn-default'>Hour</button><button type='button' class='btn btn-default'>Minute</button></div></div>");				
+			var add_schedule = function(index,cron,label) {
+				if (cron === null) return;
+				$('#control').find('.sched_control').append("<div class='schedule"+index+"x2 cron_entry' id='"+index+"' value='"+cron+"'></div><span style='display:none' id='"+index+"' label='"+label+"' class='mhsched schedule"+index+"value'></span>");	
+//				$('#control').find('.sched_control').append("<div class='schedule"+index+"x cron_entryx input-group' value='"+cron+"'><span class='input-group-addon' id='s_index'>"+index+"</span><span class='input-group-addon'><button type='button' class='btn btn-default'><i class='fa fa-refresh'></i></button><button type='button' class='btn btn-default'>Day of Week</button><button type='button' class='btn btn-default'>Hour</button><button type='button' class='btn btn-default'>Minute</button></div></div>");				
+				$('#control').find('.sched_control').append("<div class='schedule"+index+"entry cron_entryx input-group' value='"+cron+"' style='margin-bottom: 5px'><span class='input-group-addon index' value='"+index+"'>"+label+"</span><span class='schedule"+index+" input-group-addon' style='width: 35px'></span><span class='input-group-addon'><button type='button' id='schedule"+index+"' class='btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></span></div>");				
 
 				$('.schedule'+index).jqCron({
 					enabled_minute: true,
@@ -2350,11 +2352,11 @@ var create_state_modal = function(entity) {
            			},		
 					lang: 'en'
 				});	
-				$('#control').find('.schedule'+index).find('.input-group').append("<div class='input-group-addon'><button type='button' id='schedule"+index+"' class='btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></div>");		
+				$('#control').find('.schedule'+index).find('.input-group').append("<span class='input-group-addon'><button type='button' id='schedule"+index+"' class='btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></span>");		
 				$('.schedrm').on('click', function(){
 					var sched_id = $( this ).attr("id")
-					$('.'+sched_id).remove();
-					$('.'+sched_id).find('.schedrm').remove();
+					$('.'+sched_id+'entry').remove();
+//					$('.'+sched_id).find('.schedrm').remove();
 					$('.'+sched_id+'value').remove();
 	                $('.sched_submit').removeClass('disabled');  
                 	$('.sched_submit').removeClass('btn-default');  
@@ -2372,13 +2374,16 @@ var create_state_modal = function(entity) {
 			console.log("Schedule object found "+ json_store.objects[entity].schedule);
 			$('#control').find('.sched_control').append("<button type='button' class='btn btn-default btn-success btn-xs schedadd'><i class='fa fa-plus'></i></button>");				
 			
-			for (var i = 0; i < json_store.objects[entity].schedule.length; i++){
+			for (var i = 1; i < json_store.objects[entity].schedule.length; i++){
 //For now, don't add complexity of parsing the entire cron string, 
 //Format, index,minute,hour,day of month(ignore),month(ignore),day of week (1-5=weekday, 6-7=weekend [This is wrong, should be 0,6])
-				var sched_label = json_store.objects[entity].schedule[i].substring(0,json_store.objects[entity].schedule[i].indexOf(','));
-				var sched_cron = json_store.objects[entity].schedule[i].substring(json_store.objects[entity].schedule[i].indexOf(',')+1,json_store.objects[entity].schedule[i].length);
-				//console.log("index="+index+" cron="+cron);
-				add_schedule(i+1,sched_label,sched_cron);	
+//				var sched_label = json_store.objects[entity].schedule[i].substring(0,json_store.objects[entity].schedule[i].indexOf(','));
+//				var sched_cron = json_store.objects[entity].schedule[i].substring(json_store.objects[entity].schedule[i].indexOf(',')+1,json_store.objects[entity].schedule[i].length);
+				var sched_index = json_store.objects[entity].schedule[i][0];
+				var sched_cron = json_store.objects[entity].schedule[i][1];
+				var sched_label = json_store.objects[entity].schedule[i][2];
+				console.log("add_schedule index="+sched_index+" cron="+sched_cron+" label="+sched_label);
+				add_schedule(sched_index,sched_cron,sched_label);	
 			}
 			
 		$('#control').find('.modal-footer').prepend('<button class="btn btn-default disabled sched_submit">Submit</button>');      	
@@ -2397,7 +2402,7 @@ var create_state_modal = function(entity) {
 			var newid = Number($('.cron_entry:last').attr("id"))+1;
 			if (isNaN(newid)) newid=1;
 			console.log("index should be "+newid);
-			add_schedule(newid,'new','0 0 0 0 0');
+			add_schedule(newid,'0 0 * * 1-7',newid);
             $('.sched_submit').removeClass('disabled');  
             $('.sched_submit').removeClass('btn-default');  
             $('.sched_submit').addClass('btn-success'); 
@@ -2408,8 +2413,9 @@ var create_state_modal = function(entity) {
 			var string = "";
 			$('.mhsched').each(function(index,value) {
 				console.log(index + "," + $( this ).attr("id") + "," + $( this ).text() + ",");
-				string += $( this ).attr("id") + ',"' + $( this ).text() + '",';
+				string += $( this ).attr("id") + ',"' + $( this ).text() + '",' + $( this ).attr("label") + ',';
 			});
+			string = string.replace(/,\s*$/, ""); //remove the last comma
 			var url="/SUB?ia7_update_schedule"+encodeURI("("+$(this).parents('.control-dialog').attr("entity")+","+string+")");
 			alert(url);
 			$.get(url);
