@@ -54,22 +54,32 @@ sub set_schedule {
 
 
 sub get_schedule{
-   my ($self) = @_;
-   my @schedule;
+ my ($self,$label_only) = @_;
+ my @schedule;
+ my $count;
+ my $object = @{$self->{generic_object}}[0] if (@{$self->{generic_object}}[0]);
+  if ($label_only) {
+         if (defined($object->{state_count})) { $count = $object->{state_count}; }
+	 else {  $count = 7;}
+	 for my $index (1..$count) {
+    	   if (defined($object->{$index})) { $schedule[$index] = $object->{$index}; } 
+           else { $schedule[$index] = $index; }
+	 }
+   return \@schedule;
+  }
+     if ((defined($object->{state_count})) && ($object->{state_count} > $self->{'schedule_count'})) { $count = $object->{state_count} }
+     else { $count = $self->{'schedule_count'} } 
+ 
      $schedule[0][0] = 0;
      $schedule[0][1] = '0 0 5 1 1';
      $schedule[0][2] = 0;
-     for my $index (1..$self->{'schedule_count'}) {
+     for my $index (1..$count) {
         #::print_log("[SCHEDULE] - index - ".$index . " entry - ". $self->{'schedule_'.$index});
         #$[ = 1;
-		my $object = @{$self->{generic_object}}[0] if (@{$self->{generic_object}}[0]);
                 $schedule[$index][0] = $index;
                 $schedule[$index][1] = $self->{'schedule_'.$index};
-		if (defined($object->{$index})) { 
-                  $schedule[$index][2] = $object->{$index};
-		} else { 
-		  $schedule[$index][2] = $index;
-		}
+		if (defined($object->{$index})) { $schedule[$index][2] = $object->{$index}; } 
+		else { $schedule[$index][2] = $index; }
       }
    return \@schedule;
 }
@@ -385,7 +395,7 @@ sub new
    bless $self, $class;
    $$self{parent} = @_[1];
    $$self{child} = @_[2];
-   $$self{state_count} = ((scalar @_) - 2);
+   $$self{state_count} = ((scalar @_) - 3);
    my @states;
    for my $i (3..(scalar @_)) { if (defined @_[$i]) { $self->{$i-2}=@_[$i]; push (@states, @_[$i]); } }
    @{$$self{states}} = @states;
@@ -414,6 +424,7 @@ sub new
    $$self{HorC} = $HorC;
    $$self{child} = $child;
    $$self{sub} = $sub;
+   $$self{state_count} = 7;
    @{$$self{states}} = ('up','down');
    $parent->register($self,$HorC);
    return $self;
