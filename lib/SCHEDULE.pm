@@ -55,13 +55,23 @@ sub set_schedule {
 
 sub get_schedule{
    my ($self) = @_;
-    @{$self->{'schedule'}}[0] = '0 0 5 1 1';;
+   my @schedule;
+     $schedule[0][0] = 0;
+     $schedule[0][1] = '0 0 5 1 1';
+     $schedule[0][2] = 0;
      for my $index (1..$self->{'schedule_count'}) {
         #::print_log("[SCHEDULE] - index - ".$index . " entry - ". $self->{'schedule_'.$index});
         #$[ = 1;
-        @{$self->{'schedule'}}[$index] = $self->{'schedule_'.$index} if (defined($self->{'schedule_'.$index}));
+		my $object = @{$self->{generic_object}}[0] if (@{$self->{generic_object}}[0]);
+                $schedule[$index][0] = $index;
+                $schedule[$index][1] = $self->{'schedule_'.$index};
+		if (defined($object->{$index})) { 
+                  $schedule[$index][2] = $object->{$index};
+		} else { 
+		  $schedule[$index][2] = $index;
+		}
       }
-   return \@{$self->{'schedule'}} if (@{$self->{'schedule'}});
+   return \@schedule;
 }
 
 sub am_i_active_object{
@@ -233,7 +243,6 @@ sub setACSetpoint {
 
   ::print_log("[SCHEDULE] running ".$cool_temp_control->get_object_name."->".$cool_temp_control_sub."(".$cool_sp.")");
   ::print_log("[SCHEDULE] running ".$heat_temp_control->get_object_name."->".$heat_temp_control_sub."(".$heat_sp.")");
-  #&::change_setpoints($cool,$heat);
 }
 
 sub set_action {
@@ -376,8 +385,10 @@ sub new
    bless $self, $class;
    $$self{parent} = @_[1];
    $$self{child} = @_[2];
-   $$self{state_count} = ((scalar @_) - 3);
-   for my $i (3..(scalar @_)) { if (defined @_[$i]) { $$self{$i-3}=@_[$i]; push (@{$$self{states}}, @_[$i]); } }
+   $$self{state_count} = ((scalar @_) - 2);
+   my @states;
+   for my $i (3..(scalar @_)) { if (defined @_[$i]) { $self->{$i-2}=@_[$i]; push (@states, @_[$i]); } }
+   @{$$self{states}} = @states;
    $$self{parent}->register($self,$child);
    return $self;
 }
@@ -405,16 +416,10 @@ sub new
    $$self{sub} = $sub;
    @{$$self{states}} = ('up','down');
    $parent->register($self,$HorC);
-   #@{$$self{states}} = (60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80);
    return $self;
 }
 
 
-
-#sub set {
-#    my ($self, $p_state, $p_setby, $p_response) = @_;
-#    $self->SUPER::set($p_state,$p_setby,1);
-#}
 
 sub set {
     my ($self, $p_state, $p_setby, $p_response) = @_;
