@@ -172,6 +172,32 @@
 	.dropdown-caret {
 			margin-left:-5px !important;
 	}
+
+	.schedule_row {
+			margin-bottom: 5px !important;
+	}
+
+	.sched_label {
+			border-top-right-radius: 0px !important;
+			border-bottom-right-radius: 0px !important;	
+	}
+
+	.sched_cron {
+			border: 1px solid #ccc !important;
+			border-top-right-radius: 4px !important;
+			border-bottom-right-radius: 4px !important;
+    		background-color: #e3e3e3 !important;
+    		padding-right: 0px !important;
+    		padding-left: 0px !important;
+    		margin-left: -18px !important;
+    		vertical-align: middle !important;
+    		min-height: 34px !important;
+	}
+
+	.sched_rmbutton {
+	    	vertical-align: middle !important;
+	}
+	
 	</style>
 </head>
 <body>

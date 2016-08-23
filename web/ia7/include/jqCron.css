@@ -8,12 +8,11 @@
  * file that was distributed with this source code.
  */
 .cron-entry2 {
-	margin: 10px !important; 
+/*	margin: 10px !important;  */
 }
 
 .jqCron-addon {
-	vertical-align: initial !important;
-	
+/*	vertical-align: initial !important; */
 }
  
 .jqCron-selector {
@@ -56,7 +55,7 @@
 	position: absolute;
 	top: 1.5em;
 	z-index: 1;
-    white-space: normal !important;
+/*    white-space: normal !important; */
 	
 }
 .jqCron-selector-list li {
