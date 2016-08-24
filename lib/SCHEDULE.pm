@@ -45,16 +45,22 @@ sub set {
 
 sub set_schedule {
     my ($self,$index,$entry,$label) = @_;
-    #my $index = (split /,/, $entry)[0];
-    #$[ = 1;
-    #@{$self->{'schedule'}}[$index] = $entry if (defined($entry));
     ::print_log("[SCHEDULE] - set_schedule - Index " . $index . " Schedule: ". $entry ." Label ". $label); 
     if ($index > $self->{'schedule_count'}) { $self->{'schedule_count'} = $index } 
     $self->{'schedule_'.$index} = $entry if (defined($entry));
-    undef $self->{'schedule_'.$index} unless ($entry);
     $self->{'schedule_label_'.$index} = $label if (defined($label));
+    unless ($entry) {
+	undef $self->{'schedule_label_'.$index};
+	undef $self->{'schedule_'.$index};
+    }
     $self->{set_time} = $main::Time;
 }
+
+
+sub delete_schedule {
+    my ($self,$index) = @_;
+    $self->set_schedule($index);
+}	
 
 
 sub get_schedule{
