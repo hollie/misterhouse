@@ -13,6 +13,7 @@ sub new
     #for my $index (1..$self->{'schedule_count'}) {
     for my $index (1..10) {
       $self->restore_data('schedule_'.$index);
+      $self->restore_data('schedule_label_'.$index);
      }
    return $self;
 }
@@ -43,13 +44,16 @@ sub set {
 # }
 
 sub set_schedule {
-    my ($self,$index,$entry) = @_;
+    my ($self,$index,$entry,$label) = @_;
     #my $index = (split /,/, $entry)[0];
     #$[ = 1;
     #@{$self->{'schedule'}}[$index] = $entry if (defined($entry));
+    ::print_log("[SCHEDULE] - set_schedule - Index " . $index . " Schedule: ". $entry ." Label ". $label); 
     if ($index > $self->{'schedule_count'}) { $self->{'schedule_count'} = $index } 
     $self->{'schedule_'.$index} = $entry if (defined($entry));
-    $self->{'schedule_set_flag'} = 1;
+    undef $self->{'schedule_'.$index} unless ($entry);
+    $self->{'schedule_label_'.$index} = $label if (defined($label));
+    $self->{set_time} = $main::Time;
 }
 
 
@@ -70,17 +74,16 @@ sub get_schedule{
      if ((defined($object->{state_count})) && ($object->{state_count} > $self->{'schedule_count'})) { $count = $object->{state_count} }
      else { $count = $self->{'schedule_count'} } 
  
-     $schedule[0][0] = 0;
-     $schedule[0][1] = '0 0 5 1 1';
-     $schedule[0][2] = 0;
+     $schedule[0][0] = 0; #Index
+     $schedule[0][1] = '0 0 5 1 1'; #schedule
+     $schedule[0][2] = 0; #Label
      for my $index (1..$count) {
-        #::print_log("[SCHEDULE] - index - ".$index . " entry - ". $self->{'schedule_'.$index});
-        #$[ = 1;
-                $schedule[$index][0] = $index;
-                $schedule[$index][1] = $self->{'schedule_'.$index};
-		if (defined($object->{$index})) { $schedule[$index][2] = $object->{$index}; } 
-		else { $schedule[$index][2] = $index; }
-      }
+        $schedule[$index][0] = $index;
+        $schedule[$index][1] = $self->{'schedule_'.$index}; 
+	if ((defined($self->{'schedule_label_'.$index})) && ($self->{'schedule_label_'.$index} ne $index)) { $schedule[$index][2] = $self->{'schedule_label_'.$index} } 
+        elsif (defined($object->{$index})) { $schedule[$index][2] = $object->{$index}; } 
+	else { $schedule[$index][2] = $index; }
+     }
    return \@schedule;
 }
 
