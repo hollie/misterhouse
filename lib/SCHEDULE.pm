@@ -73,15 +73,14 @@ sub get_schedule{
       $count = $object->{state_count};
       if ($count eq 0) {
 	@states = $object->{child}->get_states; 
-	unshift @states, 0;
+	#unshift @states, 0;
       } else { 
-	$states[0] = 0;
 	for my $index (1..$count) {
-	 $states[$index] = $object->{$index};
+	 $states[$index-1] = $object->{$index};
         }
       }
    }
-  else { $states[0]=0 }
+  else { $states[0]=undef }
 
      #if ((defined($object->{state_count})) && ($object->{state_count} > $self->{'schedule_count'})) { $count = $object->{state_count} }
      #else { $count = $self->{'schedule_count'} } 
