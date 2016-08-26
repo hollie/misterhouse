@@ -2322,15 +2322,21 @@ var create_state_modal = function(entity) {
 
 		if (json_store.objects[entity].schedule !== undefined) {
 		
-			var add_schedule = function(index,cron,label) {
+			var add_schedule = function(index,cron,label,state_sets) {
 				if (cron === null) return;
 				if (label == undefined) label = index;
+				var sched_label_html = "<div class='col-md-3 sched_label' value='"+cron+"'><input type='text' class='form-control index sched"+index+"label' id='"+index+"' value='"+label+"'></div>"
+				if (state_sets[0] !== null) {
+					console.log("State sets detected ["+state_sets+"]");
+					sched_label_html = "<div class='col-md-3 sched_label'><button type='button' class='col-md-3 btn btn-default dropdown-toggle index sched"+index+"label' style='width: 100%;'>"+label+"<span class='caret'></span></div>"
+				}
+				var sched_row_html = "<div class='row schedule_row schedule"+index+"entry'>"+sched_label_html+"<div id='"+index+"' class='schedule"+index+" sched_cron col-md-8 cron-data'></div><div class='sched_rmbutton col-md-1 sched"+index+"+button'><button type='button' id='schedule"+index+"' class='pull-left btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></div></div>"
 				$('#control').find('.sched_control').append("<div class='cron_entry' id='"+index+"' value='"+cron+"'><span style='display:none' id='"+index+"' label='"+label+"' class='mhsched schedule"+index+"value'></span></div>");	
 //				$('#control').find('.sched_control').append("<div class='schedule"+index+"x cron_entryx input-group' value='"+cron+"'><span class='input-group-addon' id='s_index'>"+index+"</span><span class='input-group-addon'><button type='button' class='btn btn-default'><i class='fa fa-refresh'></i></button><button type='button' class='btn btn-default'>Day of Week</button><button type='button' class='btn btn-default'>Hour</button><button type='button' class='btn btn-default'>Minute</button></div></div>");				
 //				$('#control').find('.sched_control').append("<div class='schedule"+index+"entry cron_entryx input-group' value='"+cron+"' style='margin-bottom: 5px'><span class='input-group-addon index' value='"+index+"'>"+label+"</span><span class='schedule"+index+" input-group-addon cron-data' style='width: 35px; white-space: nowrap'></span><span class='input-group-addon'><button type='button' id='schedule"+index+"' class='btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></span></div>");				
 //				$('#control').find('.sched_control').append("<div class='schedule"+index+"entry cron_entryx input-group' value='"+cron+"' style='margin-bottom: 5px'><input type='text' class='form-control index' id='"+index+"' value='"+label+"'></span><span class='schedule"+index+" input-group-addon cron-data'></span><span class='input-group-addon'><button type='button' id='schedule"+index+"' class='btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></span></div>");				
-				$('#control').find('.sched_control').append("<div class='row row-eq-height schedule_row schedule"+index+"entry'><div class='col-md-3 sched_label' value='"+cron+"'><input type='text' class='form-control index' id='"+index+"' value='"+label+"'></div><div class='schedule"+index+" sched_cron col-md-8 cron-data'></div><div class='sched_rmbutton col-md-1'><button type='button' id='schedule"+index+"' class='pull-left btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></div></div>");				
-
+//				$('#control').find('.sched_control').append("<div class='row schedule_row schedule"+index+"entry'><div class='col-md-3 sched_label' value='"+cron+"'><input type='text' class='form-control index sched"+index+"label' id='"+index+"' value='"+label+"'></div><div id='"+index+"' class='schedule"+index+" sched_cron col-md-8 cron-data'></div><div class='sched_rmbutton col-md-1 sched"+index+"+button'><button type='button' id='schedule"+index+"' class='pull-left btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></div></div>");				
+				$('#control').find('.sched_control').append(sched_row_html);
 
 				$('.schedule'+index).jqCron({
 					enabled_minute: true,
@@ -2363,6 +2369,12 @@ var create_state_modal = function(entity) {
                 	$('.sched_submit').removeClass('btn-default');  
                 	$('.sched_submit').addClass('btn-success'); 					
 				});
+				// So that the label and cron cell row heights line up
+				$('.cron-data').resize(function() {
+					console.log('cron text has changed '+$(this).attr("id")+" "+$(this).height());
+		    		$(".sched"+$(this).attr("id")+"label").height($(this).height()-12);  		
+				});
+
 				$('#control').find('.schedule'+index).find('.schedule_row').append("<span class='input-group-addon'><button type='button' id='schedule"+index+"' class='btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></span>");		
 				$('.schedrm').on('click', function(){
 					var sched_id = $( this ).attr("id")
@@ -2377,44 +2389,29 @@ var create_state_modal = function(entity) {
 //updates all the existing indexes?
 //label should be editable then?
 				});
-
-				
+	
 			}
 
 			$('#control').find('.modal-body').append("<div class='sched_control'><span><h4>Schedule Control<button type='button' class='pull-right btn btn-success btn-xs schedadd'><i class='fa fa-plus'></i></button></h4></span>");
 			console.log("Schedule object found "+ json_store.objects[entity].schedule);
 //			$('#control').find('.sched_control').append("<button type='button' class='btn btn-default btn-success btn-xs schedadd'><i class='fa fa-plus'></i></button>");				
-			
+			var sched_states = json_store.objects[entity].schedule[0][3];
+//			if (json_store.objects[entity].schedule[0][3] !== undefined) console.log("sched3="+json_store.objects[entity].schedule[0][3]);
 			for (var i = 1; i < json_store.objects[entity].schedule.length; i++){
-//For now, don't add complexity of parsing the entire cron string, 
-//Format, index,minute,hour,day of month(ignore),month(ignore),day of week (1-5=weekday, 6-7=weekend [This is wrong, should be 0,6])
-//				var sched_label = json_store.objects[entity].schedule[i].substring(0,json_store.objects[entity].schedule[i].indexOf(','));
-//				var sched_cron = json_store.objects[entity].schedule[i].substring(json_store.objects[entity].schedule[i].indexOf(',')+1,json_store.objects[entity].schedule[i].length);
 				var sched_index = json_store.objects[entity].schedule[i][0];
 				var sched_cron = json_store.objects[entity].schedule[i][1];
 				var sched_label = json_store.objects[entity].schedule[i][2];
-				console.log("add_schedule index="+sched_index+" cron="+sched_cron+" label="+sched_label);
-				add_schedule(sched_index,sched_cron,sched_label);	
+				console.log("add_schedule index="+sched_index+" cron="+sched_cron+" label="+sched_label+" state_set="+sched_states);
+				add_schedule(sched_index,sched_cron,sched_label,sched_states);	
 			}
-//        $('.schedadd').appendTo('.sched_control');
 			
-		$('#control').find('.modal-footer').prepend('<button class="btn btn-default disabled sched_submit">Submit</button>');      	
-			
-		} 
-		console.log('sched length=' + $('.sched_control').length);
-		
-		if ($('.sched_control').length == 0) { //no schedule data so no button needed.
-			$('#control').find('.modal-footer').hide();
-		} else {
-			$('#control').find('.modal-footer').show();
-		}
+			$('#control').find('.modal-footer').prepend('<button class="btn btn-default disabled sched_submit">Submit</button>');      	
 
 		$('.schedadd').on('click', function(){
-			//alert('add new schedule');
 			var newid = Number($('.cron_entry:last').attr("id"))+1;
 			if (isNaN(newid)) newid=1;
-			console.log("index should be "+newid);
-			add_schedule(newid,'0 0 * * 1-7',newid);
+			console.log("add new schedule, index should be "+newid+" states are"+sched_states);
+			add_schedule(newid,'0 0 * * 1-7',newid,sched_states);
             $('.sched_submit').removeClass('disabled');  
             $('.sched_submit').removeClass('btn-default');  
             $('.sched_submit').addClass('btn-success'); 
@@ -2435,8 +2432,28 @@ var create_state_modal = function(entity) {
             $('.sched_submit').removeClass('btn-success');  
             $('.sched_submit').addClass('btn-default');   			
 
-		});
-//
+		});			
+		//only show the controls in advanced ot developer mode
+		if 	(display_mode == "simple") {
+			$('.sched_submit').hide();
+			$('.schedrm').hide();
+			$('.schedadd').hide();
+			$('#control').find('.modal-footer').hide();			
+		} 
+
+
+		} 
+
+		
+		//no schedule data so no button needed.	
+		if ($('.sched_control').length == 0) { 
+			$('#control').find('.modal-footer').hide();
+		} else {
+			$('#control').find('.modal-footer').show();
+		}
+
+
+
 		if (json_store.ia7_config.prefs.state_log_show !== "no") {
 			//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
 			// could load all log items, and only unhide the last 4 -- maybe later

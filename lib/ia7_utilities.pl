@@ -25,7 +25,7 @@ sub main::ia7_update_schedule {
         		$j++;
         	} else { #delete schedule
         		&main::print_log("deleting schedule " . $i );
-        		$obj->set_schedule($i,undef,$i);
+        		$obj->set_schedule($i);
         	}
         }
     }

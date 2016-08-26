@@ -13,6 +13,7 @@ sub new
     #for my $index (1..$self->{'schedule_count'}) {
     for my $index (1..10) {
       $self->restore_data('schedule_'.$index);
+      $self->restore_data('schedule_label_'.$index);
      }
    return $self;
 }
@@ -44,44 +45,58 @@ sub set {
 
 sub set_schedule {
     my ($self,$index,$entry,$label) = @_;
-    #my $index = (split /,/, $entry)[0];
-    #$[ = 1;
-    #@{$self->{'schedule'}}[$index] = $entry if (defined($entry));
+    ::print_log("[SCHEDULE] - set_schedule - Index " . $index . " Schedule: ". $entry ." Label ". $label); 
     if ($index > $self->{'schedule_count'}) { $self->{'schedule_count'} = $index } 
     $self->{'schedule_'.$index} = $entry if (defined($entry));
-    $self->{'schedule_set_flag'} = 1;
+    $self->{'schedule_label_'.$index} = $label if (defined($label));
+    unless ($entry) {
+	undef $self->{'schedule_label_'.$index};
+	undef $self->{'schedule_'.$index};
+    }
     $self->{set_time} = $main::Time;
 }
 
 
+sub delete_schedule {
+    my ($self,$index) = @_;
+    $self->set_schedule($index);
+}	
+
+
 sub get_schedule{
- my ($self,$label_only) = @_;
+ my ($self) = @_;
  my @schedule;
  my $count;
+ my @states;
  my $object = @{$self->{generic_object}}[0] if (@{$self->{generic_object}}[0]);
-  if ($label_only) {
-         if (defined($object->{state_count})) { $count = $object->{state_count}; }
-	 else {  $count = 7;}
-	 for my $index (1..$count) {
-    	   if (defined($object->{$index})) { $schedule[$index] = $object->{$index}; } 
-           else { $schedule[$index] = $index; }
-	 }
-   return \@schedule;
-  }
-     if ((defined($object->{state_count})) && ($object->{state_count} > $self->{'schedule_count'})) { $count = $object->{state_count} }
-     else { $count = $self->{'schedule_count'} } 
- 
-     $schedule[0][0] = 0;
-     $schedule[0][1] = '0 0 5 1 1';
-     $schedule[0][2] = 0;
-     for my $index (1..$count) {
-        #::print_log("[SCHEDULE] - index - ".$index . " entry - ". $self->{'schedule_'.$index});
-        #$[ = 1;
-                $schedule[$index][0] = $index;
-                $schedule[$index][1] = $self->{'schedule_'.$index};
-		if (defined($object->{$index})) { $schedule[$index][2] = $object->{$index}; } 
-		else { $schedule[$index][2] = $index; }
+  if (defined($object->{state_count})) {
+      $count = $object->{state_count};
+      if ($count eq 0) {
+	@states = $object->{child}->get_states; 
+	#unshift @states, 0;
+      } else { 
+	for my $index (1..$count) {
+	 $states[$index-1] = $object->{$index};
+        }
       }
+   }
+  else { $states[0]=undef }
+
+     #if ((defined($object->{state_count})) && ($object->{state_count} > $self->{'schedule_count'})) { $count = $object->{state_count} }
+     #else { $count = $self->{'schedule_count'} } 
+     $count = $self->{'schedule_count'};
+     $schedule[0][0] = 0; #Index
+     $schedule[0][1] = '0 0 5 1 1'; #schedule
+     $schedule[0][2] = 0; #Label
+     $schedule[0][3] = \@states;
+     for my $index (1..$count) {
+        $schedule[$index][0] = $index;
+        $schedule[$index][1] = $self->{'schedule_'.$index}; 
+	if (defined($self->{'schedule_label_'.$index}) ) { $schedule[$index][2] = $self->{'schedule_label_'.$index} } 
+        #elsif (defined($object->{$index})) { $schedule[$index][2] = $object->{$index}; } 
+	else { $schedule[$index][2] = $index; }
+	#$schedule[$index][3] = \@states;
+     }
    return \@schedule;
 }
 
@@ -186,41 +201,7 @@ sub register {
 
 sub check_date {
  my ($self,$object) = @_;
-# if ($Startup||$Reload) {
-  #$self->restore_data('active_object','active_action','schedule_count');
-  #$self->_set_instance_active_object($$self{instance},$$self{active_action}) if (defined($$self{instance}) && $$self{active_object});
-  # for my $index (1..$self->{'schedule_count'}) {
-  #   $self->restore_data('schedule_'.$index) unless($self->{'schedule_set_flag'});
-  # }
-# }
-
-# unless(defined($self->get_instance_active_object)) {
-#  $self->_set_instance_active_object($$self{instance},$$self{active_action}) if (defined($$self{instance}) && $$self{active_object});
-# }   
-
-#  $self->restore_data('active_object') unless(defined($self->{'active_object'}));
-#  $self->restore_data('active_action') unless(defined($self->{'active_action'}));
-#  $self->restore_data('schedule_count') unless(defined($self->{'schedule_count'}));
- # unless($self->{'schedule_set_flag'}) { 
-#    for my $index (1..$self->{'schedule_count'}) {
-#      $self->restore_data('schedule_'.$index) unless(defined($self->{'schedule_'.$index}));
-#     }
- #  }
-
-
-# if ($::New_Minute) {
-#      ::print_log("[SCHEDULE] - active object ". $self->{'active_object'} ) if (defined($self->{'active_object'}));
-#   ::print_log("[SCHEDULE] - active_action ". $self->{'active_action'} ) if (defined($self->{'active_action'}));
-#   ::print_log("[SCHEDULE] - schedule_count ". $self->{'schedule_count'} ) if (defined($self->{'schedule_count'}));
-#
-#     for my $index (1..$self->{'schedule_count'}) {
-#   #    $self->set_schedule('schedule_'.$index);
-#       ::print_log("[SCHEDULE] - restored schedule ".$self->{'schedule_'.$index} ." for ".$self->get_object_name);
-#      }
-#      #::print_log("[SCHEDULE] - restored active object ". $self->get_object_name ) if (($self->am_i_active_object($$self{instance}));
-# }
-
-
+ if ($::Startup or $::Reload) { $self->{'reloaded'} = 1 }  
  my $occupied_state = ($$self{occupied}->state_now) if (defined($$self{occupied}));
  if ($occupied_state) { $self->ChangeACSetpoint if (($self->am_i_active_object($$self{instance})) && (lc(state $self) eq 'on')) }
 
@@ -257,11 +238,11 @@ sub setACSetpoint {
 }
 
 sub set_action {
-    my ($self,$object,$action) = @_;
+    my ($self,$object,$index) = @_;
       if ($object->isa('SCHEDULE_Generic')) {
-         ::print_log("[SCHEDULE] Setting ".$object->{child}->get_object_name." state to ".$object->{$action});
-         $self->_set_instance_active_object($$self{instance},$action) if (defined($$self{instance}));
-	 $object->{child}->SUPER::set($object->{$action},$self->get_object_name,1);
+         ::print_log("[SCHEDULE] Setting ".$object->{child}->get_object_name." state to ".$self->{'schedule_label_'.$index});
+         $self->_set_instance_active_object($$self{instance},$index) if (defined($$self{instance}));
+	 $object->{child}->SUPER::set($self->{'schedule_label_'.$index},$self->get_object_name,1);
       }
          elsif ($object->isa('SCHEDULE_Temp')) {
          ::print_log("[SCHEDULE] set_action -  Temp object: ".$object->get_object_name." Parent object: ".$self->get_object_name);
@@ -399,7 +380,7 @@ sub new
    $$self{state_count} = ((scalar @_) - 3);
    my @states;
    for my $i (3..(scalar @_)) { if (defined @_[$i]) { $self->{$i-2}=@_[$i]; push (@states, @_[$i]); } }
-   @{$$self{states}} = @states;
+   @{$$self{states}} = @states if (defined @states);
    $$self{parent}->register($self,$child);
    return $self;
 }
