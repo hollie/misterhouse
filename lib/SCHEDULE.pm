@@ -380,7 +380,7 @@ sub new
    $$self{state_count} = ((scalar @_) - 3);
    my @states;
    for my $i (3..(scalar @_)) { if (defined @_[$i]) { $self->{$i-2}=@_[$i]; push (@states, @_[$i]); } }
-   @{$$self{states}} = @states if (defined @states);
+   @{$$self{states}} = @states if (@states);
    $$self{parent}->register($self,$child);
    return $self;
 }
