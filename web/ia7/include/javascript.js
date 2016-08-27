@@ -2328,7 +2328,14 @@ var create_state_modal = function(entity) {
 				var sched_label_html = "<div class='col-md-3 sched_label' value='"+cron+"'><input type='text' class='form-control index sched"+index+"label' id='"+index+"' value='"+label+"'></div>"
 				if (state_sets[0] !== null) {
 					console.log("State sets detected ["+state_sets+"]");
-					sched_label_html = "<div class='col-md-3 sched_label'><button type='button' class='col-md-3 btn btn-default dropdown-toggle index sched"+index+"label' style='width: 100%;'>"+label+"<span class='caret'></span></div>"
+					var display_label = label
+					if (display_label.length > 7) display_label = display_label.substring(0,6)+"..";
+					sched_label_html = "<div class='col-md-3 sched_label dropdown'><button type='button' class='btn btn-default btn-list-dropdown dropdown-toggle sched_dropdown sched"+index+"label' id='"+index+"' value='"+label+"' style='width: 100%;' data-target='#' data-toggle='dropdown'>"+display_label+"</button><ul class='dropdown-menu'>";					
+//					sched_label_html = "<div class='btn-group'><button type='button' class='btn btn-default btn-list-dropdown dropdown-toggle' data-target='#' data-toggle='dropdown'>"+label+"<span class='caret'></span></button><div class='dropdown-menu'>";
+					for (var i = 0; i < state_sets.length; i++){
+					    sched_label_html += "<li><a href='javascript: void(0)'id='"+index+"'>"+state_sets[i]+"</a></li>";
+					}
+					sched_label_html += "</ul></div>";
 				}
 				var sched_row_html = "<div class='row schedule_row schedule"+index+"entry'>"+sched_label_html+"<div id='"+index+"' class='schedule"+index+" sched_cron col-md-8 cron-data'></div><div class='sched_rmbutton col-md-1 sched"+index+"+button'><button type='button' id='schedule"+index+"' class='pull-left btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></div></div>"
 				$('#control').find('.sched_control').append("<div class='cron_entry' id='"+index+"' value='"+cron+"'><span style='display:none' id='"+index+"' label='"+label+"' class='mhsched schedule"+index+"value'></span></div>");	
@@ -2374,7 +2381,17 @@ var create_state_modal = function(entity) {
 					console.log('cron text has changed '+$(this).attr("id")+" "+$(this).height());
 		    		$(".sched"+$(this).attr("id")+"label").height($(this).height()-12);  		
 				});
-
+				$('.dropdown-menu li a').on('click',function() {
+					console.log('dropdown');
+					$('.schedule'+$(this).attr("id")+'value').attr("label",$(this).text());	
+					var display_label = $(this).text();
+					if (display_label.length > 7) display_label = display_label.substring(0,6)+"..";
+				    $(".sched"+$(this).attr("id")+"label").text(display_label);
+				    $(".sched"+$(this).attr("id")+"label").val($(this).text());
+            		$('.sched_submit').removeClass('disabled');  
+            		$('.sched_submit').removeClass('btn-default');  
+            		$('.sched_submit').addClass('btn-success');				    
+				});
 				$('#control').find('.schedule'+index).find('.schedule_row').append("<span class='input-group-addon'><button type='button' id='schedule"+index+"' class='btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></span>");		
 				$('.schedrm').on('click', function(){
 					var sched_id = $( this ).attr("id")
@@ -2410,8 +2427,10 @@ var create_state_modal = function(entity) {
 		$('.schedadd').on('click', function(){
 			var newid = Number($('.cron_entry:last').attr("id"))+1;
 			if (isNaN(newid)) newid=1;
+			var newlabel = newid;
+			if (sched_states[0] !== null) newlabel=sched_states[0];
 			console.log("add new schedule, index should be "+newid+" states are"+sched_states);
-			add_schedule(newid,'0 0 * * 1-7',newid,sched_states);
+			add_schedule(newid,'0 0 * * 1-7',newlabel,sched_states);
             $('.sched_submit').removeClass('disabled');  
             $('.sched_submit').removeClass('btn-default');  
             $('.sched_submit').addClass('btn-success'); 
