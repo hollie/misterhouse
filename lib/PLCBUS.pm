@@ -218,14 +218,14 @@ my %cmd_to_hex = (
         cmd               => 0x1A,
         flags             => 0x00,
         data              => 1,
-        description       => "Report the Signal Stren gth. *",
+        description       => "Report the Signal Strength. *",
         expected_response => undef,
     },
     report_noise_strength => {
         cmd               => 0x1B,
         flags             => 0x00,
         data              => 1,
-        description       => "Report the Noise Str ength. *",
+        description       => "Report the Noise Strength. *",
         expected_response => undef,
     },
     get_all_id_pulse => {
@@ -807,20 +807,38 @@ sub _check_current_command() {
     }
 
     my $delete_cmd = 0;
+    my $retry_cmd = 0;
     if ( $self->_is_current_command_complete() ) {
         $delete_cmd = 1;
     }
     elsif ( $self->_has_current_command_timeout() ) {
         $delete_cmd = 1;
+        if (!$self->{current_cmd}->{retry}
+            || $self->{current_cmd}->{retry} lt 2){
+            $retry_cmd = 1;
+            $self->{current_cmd}->{retry}++;
+            _log("Requeuing after timeout. Retry=". $self->{current_cmd}->{retry});
+        }
+        else{
+            _log("Retries exceeded. Won't requeue.");
+        }
     }
 
     if ($delete_cmd) {
+        my $cmd = $self->{current_cmd};
         $self->{current_cmd} = undef;
+        if ($retry_cmd){
+            if(grep {$_->{home} eq $cmd->{home} &&  $_->{unit} == $cmd->{unit} } @{$self->{command_queue}}) {
+                _log("Won't requeue. Queue already contains new command for $cmd->{home}$cmd->{unit}.");
+            }
+            else{
+                $self->queue_command($cmd);
+            }
+        }
         return 1;
     }
 
     return 0;
-
 }
 
 sub _can_transmit() {
@@ -1218,6 +1236,9 @@ sub generate_code(@) {
     elsif ( $type =~ /^PLCBUS_Scene.*/i ) {
         $object = "PLCBUS_Scene('$name', '$home','$unit', '$grouplist')";
     }
+    elsif ( $type =~ /^PLCBUS_Shutter.*/i ) {
+        $object = "PLCBUS_Shutter('$name', '$home','$unit', '$grouplist')";
+    }
     elsif ( $type =~ /^PLCBUS.*/i ) {
         _log(
             "Unknown PLCBUS device type '$type'. Creating generic PLCBUS item");
@@ -1455,9 +1476,16 @@ the misterhouse log for the result of those commands.
 
 There are 3 special voice command states '1_phase', '3-phase' and
 'use_mh_ini_phase_mode' to use a specific phase mode for one unit. This command
-is stored per unit, and is also restored between misterhouse restarts.
-'use_mh_ini_phase_mode' deletes the setting and the phase mode specified in
+is stored per unit, and is also restored between misterhouse restarts. But won't
+survive a reboot. Another way to permanently override the phase setting is to
+add the item either to the group onephase or threephase to override the mh.ini
+setting 'use_mh_ini_phase_mode' deletes the setting and the phase mode specified in
 mh.ini is used.
+Phase to use is determined in the following order:
+    * use value set from voice command
+    * if not set check if its part of a phase specific group
+    * the the mh ini setting is used
+    * if mh.ini setting is not set the default 1 Phase is used
 
 =head1 SETTING UP A NEW PLCBUS MODULE
 
@@ -1863,6 +1891,14 @@ sub _get_phase_mode {
         $mode = $self->{phase_override};
         $self->_logd("using module specific phase mode '$mode'");
     }
+    elsif ($self->{groups} &&  $self->{groups} =~ /onephase/i){
+        $mode = 1;
+        $self->_logd("is part of onephase group using mode '$mode'");
+    }
+    elsif ($self->{groups} &&  $self->{groups} =~ /threephase/i){
+        $mode = 3;
+        $self->_logd("is part of threephase group using mode '$mode'");
+    }
     else {
         $mode = $::config_parms{plcbus_phase_mode};
         if ( !$mode ) {
@@ -1904,6 +1940,52 @@ package PLCBUS_2026;
 
 package PLCBUS_2263;
 @PLCBUS_2263::ISA = ('PLCBUS_LightItem');
+
+package PLCBUS_2268;
+@PLCBUS_2268::ISA = ('PLCBUS_Item');
+sub new {
+    my $class = shift;
+    my $self = $class->SUPER::new(@_);
+    $self->set_states(qw |on off|);
+    return $self;
+}
+
+package PLCBUS_Shutter;
+@PLCBUS_Shutter::ISA = ('PLCBUS_Item');
+sub new {
+    my $class = shift;
+    my $self = $class->SUPER::new(@_);
+    $self->set_states(qw |up down status_req|);
+    return $self;
+}
+
+sub set{
+    my ( $self, $state, $setby, $respond ) = @_;
+    my $home = $self->{home};
+    my $unit = $self->{unit};
+    my $new_state = $state;
+    if ($state eq 'up'){
+        $new_state = 'off';
+    }
+    if ($state eq 'down'){
+        $new_state = 'on';
+    }
+
+    PLCBUS_Item::set($self, $new_state, $setby, $respond);
+}
+
+sub _set{
+    my ( $self, $state, $setby, $respond ) = @_;
+    my $new_state = $state;
+    if ($state eq 'on'){
+        $new_state = 'down';
+    }
+    elsif ($state eq 'off'){
+        $new_state = 'up';
+    }
+
+    PLCBUS_Item::_set($self, $new_state, $setby, $respond);
+}
 
 package PLCBUS_Scene;
 @PLCBUS_Scene::ISA = ('PLCBUS_Item');
