@@ -7,12 +7,14 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-.cron-entry2 {
-/*	margin: 10px !important;  */
+.cron-data {
 }
 
 .jqCron-addon {
-/*	vertical-align: initial !important; */
+}
+ 
+.jqCron-container {
+
 }
  
 .jqCron-selector {

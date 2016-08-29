@@ -1,5 +1,6 @@
 use strict;
-
+#hp 1133
+# data/object_logs/<object>/YYYY/MM.log
 package Generic_Item_Hash;
 
 require Tie::Hash;
@@ -1130,6 +1131,9 @@ sub set_state_log {
     $state       = '' unless defined $state;
     $set_by_name = '' unless defined $set_by_name;
     $target      = '' unless defined $target;
+#
+	$self->logger($state,$set_by_name,$target) if ($self->{logger_enable});
+	     
     unshift(
         @{ $$self{state_log} },
         "$main::Time_Date $state set_by=$set_by_name"
@@ -1144,6 +1148,25 @@ sub set_state_log {
     return ( $set_by, $target );
 }
 
+=item C<logger()>
+
+TODO
+
+=cut
+sub logger {
+	my ($self,$state,$set_by_name,$target) = @_;
+	my $object_name = $self->{object_name};
+	$object_name =~ s/^\$//;
+	my $tickcount = int(&::get_tickcount() * 1000); #log in milliseconds
+	#create directory structure if it doesn't exist
+	mkdir ($::config_parms{data_dir} . "/object_logs") unless (-d $::config_parms{data_dir} . "/object_logs");
+	mkdir ($::config_parms{data_dir} . "/object_logs/" . $object_name) unless (-d $::config_parms{data_dir} . "/object_logs/" . $object_name);
+	mkdir ($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year) unless (-d $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year);
+	mkdir ($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month) unless (-d $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month);
+	#write the data to the log; time, ticks (milliseconds), object, state, set_by, target
+	&::logit ($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month . "/" . $::Mday . ".log", "$main::Time_Date,$tickcount,$object_name,$state,$set_by_name," . ( ($target) ? "$target" : '') ."\n",0);
+}
+	
 =item C<reset_states2()>
 
 TODO
@@ -1243,6 +1266,54 @@ sub xPL_enable {
     my ( $self, $enable ) = @_;
     $self->{xpl_enable} = $enable;
 }
+
+=item C<logger_enable()>
+
+TODO.  Can only be run at startup or reload.
+
+=cut
+
+sub logger_enable {
+    return unless $main::Reload;
+    my ( $self, $enable ) = @_;
+    $self->{logger_enable} = $enable;
+}
+
+=item C<get_logger_status()>
+
+Returns 1 if logger is enabled on the object. Otherwise 0.
+
+=cut
+
+sub get_logger_status {
+    my ( $self, $enable ) = @_;
+    return ($self->{logger_enable} ? 1 : 0);
+}
+
+=item C<get_logger_data(epoch,days back)>
+
+Returns logged data at date, back days number of days
+Date format is epoch 
+=cut
+
+sub get_logger_data {
+    my ( $self, $epoch, $days ) = @_;
+	$days = 0 unless (defined $days);
+	my $object_name = $self->{object_name};
+	$object_name =~ s/^\$//;
+	my $data = "";
+	for (my $i = 0; $i < $days; $i++) {
+		my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($epoch);
+#		print "Checking " . $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . "\n";		
+#		print "Reading " . $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . "\n" if ( -e	$::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . ".log");
+		$data .= ::file_read($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . ".log") if ( -e	$::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . ".log");
+		$epoch = $epoch - (60*60*24);
+	}
+
+	return $data;
+}
+
+
 
 =item C<tie_event(code, state, log_msg)>
 
