@@ -9,7 +9,7 @@ sub new
    $$self{instance} = $instance;
    bless $self, $class;
    @{$$self{states}} = ('ON','OFF');
-   $self->restore_data('active_object', 'active_action', 'schedule_count');
+   $self->restore_data('active_object', 'active_action', 'schedule_count','schedule_once_flag');
     #for my $index (1..$self->{'schedule_count'}) {
     for my $index (1..10) {
       $self->restore_data('schedule_'.$index);
@@ -53,13 +53,33 @@ sub set_schedule {
 	undef $self->{'schedule_label_'.$index};
 	undef $self->{'schedule_'.$index};
     }
-    $self->{set_time} = $main::Time;
+    $self->{set_time} = $::Time;
 }
 
+sub set_schedule_once {
+    my ($self,$index,$entry,$label) = @_;
+    unless ($self->{'schedule_once_flag'} eq 1) {
+	$self->{set_timer} = ::Timer::new(); 
+	$self->{'schedule_once_flag'} = 1;
+	$self->{set_timer}->set(10, sub {
+            $self->set_schedule($index,$entry,$label);
+        });
+    }
+}
 
 sub delete_schedule {
     my ($self,$index) = @_;
     $self->set_schedule($index);
+}
+
+sub reset_schedule {
+    my ($self) = @_;
+    my $count = $self->{'schedule_count'};
+     for my $index (1..$count) {
+       $self->set_schedule($index);
+     }
+  $self->{'schedule_count'} = 0;
+  $self->{set_time} = $::Time;
 }	
 
 
@@ -73,7 +93,6 @@ sub get_schedule{
       $count = $object->{state_count};
       if ($count eq 0) {
 	@states = $object->{child}->get_states; 
-	#unshift @states, 0;
       } else { 
 	for my $index (1..$count) {
 	 $states[$index-1] = $object->{$index};
@@ -82,20 +101,18 @@ sub get_schedule{
    }
   else { $states[0]=undef }
 
-     #if ((defined($object->{state_count})) && ($object->{state_count} > $self->{'schedule_count'})) { $count = $object->{state_count} }
-     #else { $count = $self->{'schedule_count'} } 
      $count = $self->{'schedule_count'};
      $schedule[0][0] = 0; #Index
      $schedule[0][1] = '0 0 5 1 1'; #schedule
      $schedule[0][2] = 0; #Label
      $schedule[0][3] = \@states;
      for my $index (1..$count) {
-        $schedule[$index][0] = $index;
-        $schedule[$index][1] = $self->{'schedule_'.$index}; 
-	if (defined($self->{'schedule_label_'.$index}) ) { $schedule[$index][2] = $self->{'schedule_label_'.$index} } 
-        #elsif (defined($object->{$index})) { $schedule[$index][2] = $object->{$index}; } 
-	else { $schedule[$index][2] = $index; }
-	#$schedule[$index][3] = \@states;
+	if (defined($self->{'schedule_'.$index})) {
+           $schedule[$index][0] = $index;
+           $schedule[$index][1] = $self->{'schedule_'.$index}; 
+	   if (defined($self->{'schedule_label_'.$index}) ) { $schedule[$index][2] = $self->{'schedule_label_'.$index} } 
+	   else { $schedule[$index][2] = $index; }
+	}
      }
    return \@schedule;
 }
@@ -167,38 +184,6 @@ sub register {
 
 
 
-#sub check_date {
-# my ($self,$object) = @_;
-# my $occupied_state = ($$self{occupied}->state_now) if (defined($$self{occupied})); 
-# if ($occupied_state) { $self->ChangeACSetpoint if (($self->am_i_active_object($$self{instance})) && (lc(state $self) eq 'on')) }
-  
-# if ($::New_Minute) {
-#  ::print_log("[SCHEDULE] Checking schedule for ". $self->get_object_name." Sate is ". (state $self) . " Child object is ". $object->get_object_name);
-#   if (lc(state $self) eq 'on') {
-#     my $Week;
-#     if ($::Weekday) { $Week = 'weekday' } elsif ($::Weekend) { $Week = 'weekend' }
-#     if (($$self{'schedule'}{'type'} eq 'calendar') &&
-#        (defined(my $action = $$self{'schedule'}{$::Month}{$::Mday}{$::Hour}{$::Minute}{'action'}))) {
-#	      &set_action($self,$object,$action);
-#       }
-#      elsif (($$self{'schedule'}{'type'} eq 'daily') &&
-#          (defined(my $action = $$self{'schedule'}{lc($::Day)}{$::Hour}{$::Minute}{'action'}))) {
-#	      &set_action($self,$object,$action);
-#       }
-#      elsif (($$self{'schedule'}{'type'} eq 'wdwe') &&
-#          (defined(my $action = $$self{'schedule'}{$Week}{$::Hour}{$::Minute}{'action'}))) {
-#	      &set_action($self,$object,$action);
-#       }
-#      elsif (($$self{'schedule'}{'type'} eq 'time') &&
-#          (defined(my $action = $$self{'schedule'}{$::Hour}{$::Minute}{'action'}))) {
-#	      &set_action($self,$object,$action);
-#       }
-#    }
-#
-#  }
-#}
-
-
 sub check_date {
  my ($self,$object) = @_;
  if ($::Startup or $::Reload) { $self->{'reloaded'} = 1 }  
@@ -209,11 +194,10 @@ sub check_date {
   $self->am_i_active_object($$self{instance}) if (defined($$self{instance}));;
   ::print_log("[SCHEDULE] Checking schedule for ". $self->get_object_name." Sate is ". (state $self) . " Child object is ". $object->get_object_name);
    if (lc(state $self) eq 'on') {
-    #foreach my $values (@{$self->{'schedule'}}) {
     for my $index (1..$self->{'schedule_count'}) {
-       #my @calvals = split /,/, $self->{'schedule_'.$index};
-        # if (&::time_cron($calvals[1])) { &set_action($self,$object,$calvals[0]) } 
-         if (&::time_cron($self->{'schedule_'.$index})) { &set_action($self,$object,$index) }
+	 if (defined($self->{'schedule_'.$index})) {
+           if (&::time_cron($self->{'schedule_'.$index})) { &set_action($self,$object,$index) }
+	 }
        } 
     }
 
