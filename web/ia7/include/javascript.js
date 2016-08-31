@@ -238,7 +238,11 @@ function changePage (){
 		else if(path.indexOf('rrd') === 0){
 			var path_arg = path.split('?');
 			graph_rrd(path_arg[1],path_arg[2]);
-		}		
+		}
+		else if(path.indexOf('history') === 0){
+			var path_arg = path.split('?');
+			graph_history(path_arg[1],"x",path_arg[2]);
+		}					
 		else if(URLHash._request == 'trigger'){
 			trigger();
 		}
@@ -1618,6 +1622,166 @@ var graph_rrd = function(start,group,time) {
 	});
 };
 
+var graph_history = function(items,start,days,time) {
+
+	var URLHash = URLToHash();
+	if (typeof time === 'undefined'){
+		$('#list_content').html("<div id='top-graph' class='row top-buffer'>");
+		$('#top-graph').append("<div id='hist-periods' class='row'>");		
+		$('#top-graph').append("<div id='hist-graph' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
+		$('#top-graph').append("<div id='hist-legend' class='rrd-legend-class'><br>");
+
+		time = 0;
+	}
+		
+	URLHash.time = time;
+	URLHash.long_poll = 'true';
+	if (updateSocket !== undefined && updateSocket.readyState != 4){
+		// Only allow one update thread to run at once
+		updateSocket.abort();
+	}	
+	var path_str = "/history"  
+	//var arg_str = "start="+start+"&group="+group+"&long_poll=true&time="+time;
+	//var arg_str = "start="+start+"&group="+group+"&time="+time;
+	arg_str = "&items="+items+"&days="+days+"&time="+time;
+	updateSocket = $.ajax({
+		type: "GET",
+		//url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+		url: "/json"+path_str+"?"+arg_str,		
+		dataType: "json",
+		success: function( json, statusText, jqXHR ) {
+			var requestTime = time;
+			if (jqXHR.status == 200) {
+				JSONStore(json);
+				// HP should probably use jquery, but couldn't get sequencing right.
+				// HP jquery would allow selected values to be replaced in the future.
+
+				if (json.data.data !== undefined) {  //If no data, at least show the header and an error
+//TODO
+				}	
+				var dropdown_html = '<div class="dropdown"><button class="btn btn-default history-period-dropdown" data-target="#" type="button" data-toggle="dropdown">';
+				var dropdown_html_list = '<li><a href="javascript: void(0)" id="test1">1234</a></li>';
+				var dropdown_current = "Unknown  ";
+
+				dropdown_html += dropdown_current+'<span class="caret"></span></button><ul class="dropdown-menu">';
+				dropdown_html += dropdown_html_list;
+				dropdown_html += '</ul></div>';
+				
+				$('#hist-periods').append(dropdown_html);
+
+
+				//sort the legend
+				json.data.data.sort(function(a, b){
+    				if(a.label < b.label) return -1;
+    				if(a.label > b.label) return 1;
+    				return 0;
+				})
+
+					// put the selection list on the side.
+				for (var i = 0; i < json.data.data.length; i++){
+					var legli = $('<li style="list-style:none;"/>').appendTo('#hist-legend');
+					$('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
+					$('<label>', {
+						class: "rrd-legend-class",
+						text: json.data.data[i].label,
+				    	'for': json.data.data[i].label
+						}).appendTo(legli);
+				}
+ 
+				function plotAccordingToChoices() {
+    				var data = [];
+
+    				$('#hist-legend').find("input:checked").each(function() {
+        				var key = this.name;
+        				for (var i = 0; i < json.data.data.length; i++) {
+            				if (json.data.data[i].label == key) {
+                				data.push(json.data.data[i]);
+                			return true;
+           		 			}
+       		 			}
+    				});
+    				$.plot($("#hist-graph"), data, json.data.options);
+    				$('.legend').hide();	
+				}
+		
+				window.onresize = function(){
+    				var base_width = $(window).width();
+   					//if (base_width > 990) base_width = 990;
+   					// styling changes @992, so then add a 30 right and left margin
+   					var graph_width = base_width - 200; //give some room for the legend
+					if (base_width < 701) {
+						//put legend below graph
+						graph_width=base_width; // - 10;
+					} 
+    				$('#hist-graph').css("width",graph_width+"px");
+    				$('#hist-graph').text(''); 
+    				$('#hist-graph').show(); //check
+    				plotAccordingToChoices();
+
+				}
+
+				var previousPoint = null;
+
+				$("#hist-graph").bind("plothover", function(event, pos, item) {
+    				$("#x").text(pos.x.toFixed(2));
+    				$("#y").text(pos.y.toFixed(2));
+    				if (item) {
+        				if (previousPoint != item.datapoint) {
+            			previousPoint = item.datapoint;
+            			$("#tooltip").remove();
+            			var x = item.datapoint[0].toFixed(2),
+                		y = item.datapoint[1].toFixed(2);
+						var date = new Date(parseInt(x));
+						var date_str = date.toString(); //split("GMT")[0];
+						var nice_date = date_str.split(" GMT")[0];
+            			showTooltip(item.pageX, item.pageY, item.series.label + " " + y + "<br>" + nice_date);
+        				}
+    				} else {
+        				$("#tooltip").remove();
+        				previousPoint = null;
+    				}
+				});
+
+				function showTooltip(x, y, contents) {
+    				$('<div id="tooltip">' + contents + '</div>').css({
+        				position: 'absolute',
+        				display: 'none',
+        				top: y + 5,
+        				left: x + 15,
+        				border: '1px solid #fdd',
+        				padding: '2px',
+        				backgroundColor: '#fee',
+        				opacity: 0.80
+    				}).appendTo("body").fadeIn(200);
+				}
+
+				window.onresize(); // get all settings based on current window size
+				plotAccordingToChoices();
+
+				$('#hist-legend').find("input").change(plotAccordingToChoices);		
+
+				$('.legendColorBox > div > div').each(function(i){
+					var color = $(this).css("border-left-color");
+    				$('#hist-legend').find("li").eq(i).prepend('<span style="width:4px;height:4px;border: 0px;background: '+color+';">&nbsp;&nbsp;&nbsp;</span>&nbsp');
+					});
+				requestTime = json.meta.time;
+
+			}
+			if (jqXHR.status == 200 || jqXHR.status == 204) {
+				//Call update again, if page is still here
+				//KRK best way to handle this is likely to check the URL hash
+				if ($('#top-graph').length !== 0){
+//TODO live updates
+					//If the graph  page is still active request more data
+//					graph_rrd(start,group,requestTime);
+				}
+			}		
+		}
+	});
+};
+
+
+
 /////////////// Floorplan //////////////////////////////////////////////////////////
 var fp_display_width=0; // updated by fp_resize_floorplan_image
 var fp_display_height=0; // updated by fp_resize_floorplan_image
@@ -2397,10 +2561,12 @@ var create_state_modal = function(entity) {
 
 			$('#control').find('.modal-body').append("<div class='sched_control'><span><h4>Schedule Control<button type='button' class='pull-right btn btn-success btn-xs schedadd'><i class='fa fa-plus'></i></button></h4></span>");
 			var sched_states = json_store.objects[entity].schedule[0][3];
+			console.log("schedule.length="+json_store.objects[entity].schedule.length);
 			for (var i = 1; i < json_store.objects[entity].schedule.length; i++){
 				var sched_index = json_store.objects[entity].schedule[i][0];
 				var sched_cron = json_store.objects[entity].schedule[i][1];
 				var sched_label = json_store.objects[entity].schedule[i][2];
+				console.log("si="+sched_index+",sc="+sched_cron+",sl="+sched_label+",ss="+sched_states);	
 				add_schedule(sched_index,sched_cron,sched_label,sched_states);	
 			}
 			
@@ -2426,7 +2592,7 @@ var create_state_modal = function(entity) {
 				});
 				string = string.replace(/,\s*$/, ""); //remove the last comma
 				var url="/SUB?ia7_update_schedule"+encodeURI("("+$(this).parents('.control-dialog').attr("entity")+","+string+")");
-//				alert(url);
+				alert(url);
 				$.get(url);
             	$('.sched_submit').addClass('disabled');  
             	$('.sched_submit').removeClass('btn-success');  
@@ -2454,7 +2620,11 @@ var create_state_modal = function(entity) {
 			// could load all log items, and only unhide the last 4 -- maybe later
 			$('#control').find('.modal-body').find('.obj_log').remove();
 			var object_log_header = "<div class='obj_log'><h4>Object Log";
-			if (json_store.objects[entity].logger_status == "1") object_log_header += " logger";
+			if (json_store.objects[entity].logger_status == "1") {
+//TODO get the nav and add it to the link
+				var link = "/ia7/#path=/history?app1?5";
+				object_log_header += "<a href='"+link+"' class='pull-right btn btn-success btn-xs logger_data'><i class='fa fa-line-chart'></i></a>";
+			}
 			object_log_header += "</h4>"
 //			$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
 			$('#control').find('.modal-body').append(object_log_header);
@@ -2467,6 +2637,9 @@ var create_state_modal = function(entity) {
 		$('.mhstatemode').on('click', function(){
 			$('#control').find('.states').find('.btn').removeClass('hidden');
 			$('#control').find('.mh_set_by').removeClass('hidden');
+		});
+		$('.logger_data').on('click',function() {
+			$('#control').modal('hide');
 		});
 }	
 

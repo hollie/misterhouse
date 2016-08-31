@@ -425,13 +425,13 @@ sub json_get {
         					 'enable' => 100,
         					 'enabled' => 100,
         					 'online' => 100,
-        					 'off' => 0,
-        					 'close' => 0,
-        					 'closed' => 0,
-        					 'still' => 0,
-        					 'disable' => 0,
-        					 'disabled' => 0,
-        					 'offline' => 0,
+        					 'off' => -100,
+        					 'close' => -100,
+        					 'closed' => -100,
+        					 'still' => -100,
+        					 'disable' => -100,
+        					 'disabled' => -100,
+        					 'offline' => -100,
         					 'dim' => 50,
         					 );
         	my $unknown_value = 40;
@@ -445,6 +445,7 @@ sub json_get {
         	$days = $args{days}[0] if (defined $args{days}[0]);        	
             foreach my $name ( @{ $args{items} } ) {
             	my $o = &get_object_by_name($name);
+            	next unless (defined $o);
  				next unless $o->get_logger_status();
  				my $label = $o->set_label();
  				$label = $name unless (defined $label);
@@ -468,7 +469,7 @@ sub json_get {
             			}
             		}
                     $states{$value} = $state;
- 					push @{$dataset[$index]->{data}}, [ $time2, $value ];
+ 					push @{$dataset[$index]->{data}}, [ int($time2), int($value) ];
  				}
                 push @{$dataset[$index]->{label}}, $label;
 				$index++;
@@ -478,7 +479,12 @@ sub json_get {
 		for my $j (sort keys %states) {
     			push @yaxticks, [ $j, $states{$j} ];
     	}
-  		$data{'yaxis'}->{'ticks'}  = \@yaxticks; #\%states;
+  		$data{'options'}->{'yaxis'}->{'ticks'}  = \@yaxticks; #\%states;
+  		$data{'options'}->{'legend'}->{'show'} = "true";
+  		$data{'options'}->{'xaxis'}->{'mode'} = "time";
+  		$data{'options'}->{'points'}->{'show'} = "true";
+  		$data{'options'}->{'xaxis'}->{'timezone'} = "browser";
+  		$data{'options'}->{'grid'}->{'hoverable'} = "true";
         $data{'data'}    = \@dataset;
         $json_data{'history'} = \%data;
  		}

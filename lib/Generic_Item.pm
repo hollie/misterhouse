@@ -1157,7 +1157,7 @@ sub logger {
 	my ($self,$state,$set_by_name,$target) = @_;
 	my $object_name = $self->{object_name};
 	$object_name =~ s/^\$//;
-	my $tickcount = int(&::get_tickcount() * 1000); #log in milliseconds
+	my $tickcount = int(&::get_tickcount()); #log in milliseconds
 	#create directory structure if it doesn't exist
 	mkdir ($::config_parms{data_dir} . "/object_logs") unless (-d $::config_parms{data_dir} . "/object_logs");
 	mkdir ($::config_parms{data_dir} . "/object_logs/" . $object_name) unless (-d $::config_parms{data_dir} . "/object_logs/" . $object_name);
@@ -1302,12 +1302,13 @@ sub get_logger_data {
 	my $object_name = $self->{object_name};
 	$object_name =~ s/^\$//;
 	my $data = "";
+	$epoch = $epoch - ($days * 60 * 60 * 24);
 	for (my $i = 0; $i < $days; $i++) {
 		my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($epoch);
 #		print "Checking " . $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . "\n";		
 #		print "Reading " . $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . "\n" if ( -e	$::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . ".log");
 		$data .= ::file_read($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . ".log") if ( -e	$::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . ".log");
-		$epoch = $epoch - (60*60*24);
+		$epoch = $epoch + (60*60*24);
 	}
 
 	return $data;

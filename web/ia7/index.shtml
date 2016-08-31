@@ -152,7 +152,7 @@
 	{
 		margin-left: 10px;
 	}
-	#rrd-graph
+	#rrd-graph, #hist-graph
 	{
     	width:700px;
     	height:500px;
