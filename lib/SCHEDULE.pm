@@ -12,8 +12,7 @@ sub new
    $self->restore_data('active_object', 'active_action', 'schedule_count','schedule_once_flag');
     #for my $index (1..$self->{'schedule_count'}) {
     for my $index (1..10) {
-      $self->restore_data('schedule_'.$index);
-      $self->restore_data('schedule_label_'.$index);
+      $self->restore_data('schedule_'.$index, 'schedule_label_'.$index, 'schedule_once_'.$index);
      }
    return $self;
 }
@@ -25,23 +24,6 @@ sub set {
          $self->SUPER::set($p_state,$p_setby,1);
         }
 
-#sub set_schedule {
-#         my ($self, $type, $p_state) = @_;
-#         $$self{'schedule'}{'type'} = lc($type);
-#         my @cals;
-#         #$self{'type'} = 'calendar';
-         #$self{'schedule'}{'7'}{'28'}{'20'}{'41'}{'action'} = 'start';
-         #$self{'schedule'}{'7'}{'28'}{'20'}{'42'}{'action'} = 'stop';
-#          if ($p_state =~ /-/) { @cals = split /-/, $p_state }
-#          else { @cals = ($p_state) }
-#          foreach my $values (@cals) {
-#           my @calvals = split /,/, $values;
-#            $$self{'schedule'}{$calvals[1]}{$calvals[2]}{$calvals[3]}{$calvals[4]}{'action'} = lc($calvals[0]) if ($type eq 'calendar');
-#            $$self{'schedule'}{lc($calvals[1])}{$calvals[2]}{$calvals[3]}{'action'}  = lc($calvals[0]) if ($type eq 'daily');
-#            $$self{'schedule'}{lc($calvals[1])}{$calvals[2]}{$calvals[3]}{'action'}  = lc($calvals[0]) if ($type eq 'wdwe');
-#            $$self{'schedule'}{$calvals[1]}{$calvals[2]}{'action'} = lc($calvals[0]) if ($type eq 'time');
-#          }
-# }
 
 sub set_schedule {
     my ($self,$index,$entry,$label) = @_;
@@ -58,12 +40,16 @@ sub set_schedule {
 
 sub set_schedule_once {
     my ($self,$index,$entry,$label) = @_;
-    unless ($self->{'schedule_once_flag'} eq 1) {
-	$self->{set_timer} = ::Timer::new(); 
-	$self->{'schedule_once_flag'} = 1;
-	$self->{set_timer}->set(10, sub {
-            $self->set_schedule($index,$entry,$label);
-        });
+    unless ($self->{'schedule_once_'.$index}) {
+        if ((defined($self->{'set_timer_'.$index})) && ($self->{'set_timer_'.$index}->expired)) {
+           $self->{'schedule_once_'.$index} = 1;
+           $self->set_schedule($index,$entry,$label);
+        } else {
+	   $self->{'set_timer_'.$index} = ::Timer::new(); 
+	   $self->{'set_timer_'.$index}->set(10, sub {
+             $self->set_schedule_once($index,$entry,$label);
+          });
+	}
     }
 }
 
@@ -79,6 +65,7 @@ sub reset_schedule {
        $self->set_schedule($index);
      }
   $self->{'schedule_count'} = 0;
+  undef $self->{'schedule_once_flag'};
   $self->{set_time} = $::Time;
 }	
 
@@ -107,12 +94,10 @@ sub get_schedule{
      $schedule[0][2] = 0; #Label
      $schedule[0][3] = \@states;
      for my $index (1..$count) {
-	if (defined($self->{'schedule_'.$index})) {
            $schedule[$index][0] = $index;
            $schedule[$index][1] = $self->{'schedule_'.$index}; 
 	   if (defined($self->{'schedule_label_'.$index}) ) { $schedule[$index][2] = $self->{'schedule_label_'.$index} } 
-	   else { $schedule[$index][2] = $index; }
-	}
+	   else { $schedule[$index][2] = $index if (defined($object->{'schedule_'.$index})); }
      }
    return \@schedule;
 }
