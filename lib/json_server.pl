@@ -414,6 +414,76 @@ sub json_get {
         $json_data{'rrd'} = \%data;
     }
 
+    # List object history
+    if ( $path[0] eq 'history') {
+
+        if ( $args{items} && $args{items}[0] ne "" ) {
+        	my %statemaps = ('on' => 100,
+        					 'open' => 100,
+        					 'opened' => 100,
+        					 'motion' => 100,
+        					 'enable' => 100,
+        					 'enabled' => 100,
+        					 'online' => 100,
+        					 'off' => 0,
+        					 'close' => 0,
+        					 'closed' => 0,
+        					 'still' => 0,
+        					 'disable' => 0,
+        					 'disabled' => 0,
+        					 'offline' => 0,
+        					 'dim' => 50,
+        					 );
+        	my $unknown_value = 40;
+        	my @dataset = ();
+        	my %states;
+            my %data;
+        	my $index = 0;
+        	my $start = time;
+        	$start = $args{start}[0] if (defined $args{start}[0]);
+        	my $days = 1;
+        	$days = $args{days}[0] if (defined $args{days}[0]);        	
+            foreach my $name ( @{ $args{items} } ) {
+            	my $o = &get_object_by_name($name);
+ 				next unless $o->get_logger_status();
+ 				my $label = $o->set_label();
+ 				$label = $name unless (defined $label);
+ 	 			print ("db history name=$name label=$label\n");			
+ 				my $logger_data = $o->get_logger_data($start,$days);
+ 				print ("db data=$logger_data\n");
+ 				#Have to create a separate array with states, 100 is on/up/open/opened/motion/enable(d)/online, 0 is off
+ 				#alert if any anomolus states are detected
+             	my @lines = split /\n/, $logger_data;
+            	foreach my $line (@lines) {	
+            		my $value;
+            		my ($time1,$time2,$obj,$state,$setby,$target) = split ",",$line;
+            		if (defined $statemaps{$state}) {
+            			$value = $statemaps{$state};
+            		} else {
+            			if ($state =~ /(\d+)\%/) {
+            				$value = $_;
+            			} else { 
+            				&main::print_log("json_server.pl: WARNING. object history state $state not found in mapping");
+            				$value = $unknown_value++;
+            			}
+            		}
+                    $states{$value} = $state;
+ 					push @{$dataset[$index]->{data}}, [ $time2, $value ];
+ 				}
+                push @{$dataset[$index]->{label}}, $label;
+				$index++;
+ 			}
+ 		#flot expects to see an array
+		my @yaxticks = ();
+		for my $j (sort keys %states) {
+    			push @yaxticks, [ $j, $states{$j} ];
+    	}
+  		$data{'yaxis'}->{'ticks'}  = \@yaxticks; #\%states;
+        $data{'data'}    = \@dataset;
+        $json_data{'history'} = \%data;
+ 		}
+ 	}	
+
     # List objects
     if ( $path[0] eq 'objects' || $path[0] eq '' ) {
         $json_data{objects} = {};

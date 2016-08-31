@@ -11,35 +11,11 @@ sub main::ia7_update_schedule {
     my $s=0;
     my $index;
     my @curr_schedule = $obj->get_schedule;
-#get the index of the last entry
-	if (scalar (@schedules) < 3) { #all schedules have been deleted
-        $obj->set_schedule(1,,);
-	} else {
-		my $last_schedule = $schedules[scalar(@schedules) - 3]; #get the index of the last schedule submitted
-		&main::print_log("last_schedule=$last_schedule");
-		my $j = 1;
-		for (my $i = 1; $i <= $last_schedule; $i++) {
-			&main::print_log("i=$i, j=$j, index=" . $schedules[$j*3 - 3] . " cron=" . $schedules[$j*3 - 2] . " label=" . $schedules[$j*3 -1]);
-			if ($i == $schedules[$j*3 - 3]) {
-        		$obj->set_schedule($schedules[$j*3 - 3],$schedules[$j*3 - 2],$schedules[$j*3 -1]);
-        		$j++;
-        	} else { #delete schedule
-        		&main::print_log("deleting schedule " . $i );
-        		$obj->delete_schedule($i);
-        	}
-        }
-    }
-				
-	    
-#    for (my $entry = 0; $entry < scalar (@schedules); $entry=$entry+3) {
-#    	#unless($entry) { next }
-#    	&main::print_log("entry=" . $entry . " index=" . $schedules[$entry] . " cron=" . $schedules[$entry+1] . " label=" . $schedules[$entry+2]);	
-#    	&main::print_log("entry=" . $entry . " cindex=" . $scurr_schedule[$entry] . " cron=" . $schedules[$entry+1] . " label=" . $schedules[$entry+2]);	#
-#		if 
-#        $obj->set_schedule($schedules[$entry],$schedules[$entry+1],$schedules[$entry+2]);
-#    }
-#	&main::print_log (Data::Dumper->Dump($obj->get_schedule));
-	&main::print_log (join('|',@schedules));
+    $obj->reset_schedule();
+    for (my $i = 1; $i <= (scalar(@schedules)/3); $i++) {
+    	&main::print_log("Adding Schedule (id=" . $schedules[$i*3 - 3] . " cron=" . $schedules[$i*3 - 2] . " label=" . $schedules[$i*3 -1] . ")");
+        $obj->set_schedule($schedules[$i*3 - 3],$schedules[$i*3 - 2],$schedules[$i*3 -1]);
+    }    	
 }
 
 

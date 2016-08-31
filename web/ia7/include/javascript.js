@@ -2335,7 +2335,7 @@ var create_state_modal = function(entity) {
 					}
 					sched_label_html += "</ul></div>";
 				}
-				var sched_row_html = "<div class='row schedule_row schedule"+index+"entry'>"+sched_label_html+"<div id='"+index+"' class='schedule"+index+" sched_cron col-md-8 cron-data'></div><div class='sched_rmbutton col-md-1 sched"+index+"+button'><button type='button' id='schedule"+index+"' class='pull-left btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></div></div>"
+				var sched_row_html = "<div class='row schedule_row schedule"+index+"entry'>"+sched_label_html+"<div id='"+index+"' class='schedule"+index+" sched_cron col-md-8 cron-data'></div><div class='sched_rmbutton col-md-1 sched"+index+"button'><button type='button' id='schedule"+index+"' class='pull-left btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></div></div>"
 				$('#control').find('.sched_control').append("<div class='cron_entry' id='"+index+"' value='"+cron+"'><span style='display:none' id='"+index+"' label='"+label+"' class='mhsched schedule"+index+"value'></span></div>");	
 				$('#control').find('.sched_control').append(sched_row_html);
 
@@ -2371,7 +2371,6 @@ var create_state_modal = function(entity) {
 				});
 				// So that the label and cron cell row heights line up
 				$('.cron-data').resize(function() {
-					console.log('cron text has changed '+$(this).attr("id")+" "+$(this).height());
 		    		$(".sched"+$(this).attr("id")+"label").height($(this).height()-12);  		
 				});
 				$('.dropdown-menu li a').on('click',function() {
@@ -2427,6 +2426,7 @@ var create_state_modal = function(entity) {
 				});
 				string = string.replace(/,\s*$/, ""); //remove the last comma
 				var url="/SUB?ia7_update_schedule"+encodeURI("("+$(this).parents('.control-dialog').attr("entity")+","+string+")");
+//				alert(url);
 				$.get(url);
             	$('.sched_submit').addClass('disabled');  
             	$('.sched_submit').removeClass('btn-success');  
