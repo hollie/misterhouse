@@ -1,4 +1,4 @@
-// v1.2
+// v1.3
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -251,6 +251,7 @@ function changePage (){
 		}
 		//update the breadcrumb: 
 		// Weird end-case, The Group from browse items is broken with parents on the URL
+		// Also have to change parents to type if the ending collection_keys are $<name>,
 		$('#nav').html('');
 		var collection_keys_arr = URLHash._collection_key;
 		if (collection_keys_arr === undefined) collection_keys_arr = '0';
@@ -263,7 +264,8 @@ function changePage (){
 				//group objects can be browsed recursively.  Possibly use different
 				//prefix if other recursively browsable formats are later added
 				nav_name = collection_keys_arr[i].replace("$", '');
-				nav_link = '#path=/objects&parents='+nav_name;
+				nav_link = '#path=/objects&parents='+nav_name;				
+				if (collection_keys_arr.length > 2 && collection_keys_arr[collection_keys_arr.length-2].substring(0,1) == "$") nav_link = '#path=/objects&type='+nav_name; 
 				if (nav_name == "Group") nav_link = '#path=objects&type=Group'; //Hardcode this use case
 				if (json_store.objects[nav_name].label !== undefined) nav_name = (json_store.objects[nav_name].label);
 
@@ -465,21 +467,14 @@ function parseLinkData (link,data) {
 	});
 	$('#mhresponse :input:not(:text)').change(function() {
 //TODO - don't submit when a text field changes
-	console.log("in input not text");
+//	console.log("in input not text");
 		$('#mhresponse').submit();
  	});			
 	$('#mhexec a').click( function (e) {
 		e.preventDefault();
 		var url = $(this).attr('href');
 		url = url.replace(/;(.*?)\?/,'?');
-//		console.log("MHExec " + url);
 		$.get( url, function(data) {
-//			var start = data.toLowerCase().indexOf('<body>') + 6;
-//			var end = data.toLowerCase().indexOf('</body>');
-//			$('#lastResponse').find('.modal-body').html(data.substring(start, end));
-//			$('#lastResponse').modal({
-//				show: true
-//			});
 		});
 		changePage();
 	});
@@ -1659,7 +1654,7 @@ var graph_history = function(items,start,days,time) {
 				if (json.data.data !== undefined) {  //If no data, at least show the header and an error
 //TODO
 				}	
-				var dropdown_html = '<div class="dropdown"><button class="btn btn-default history-period-dropdown" data-target="#" type="button" data-toggle="dropdown">';
+				var dropdown_html = '<div class="dropdown"><button class="btn btn-default hist-period-dropdown" data-target="#" type="button" data-toggle="dropdown">';
 				var dropdown_html_list = '<li><a href="javascript: void(0)" id="test1">1234</a></li>';
 				var dropdown_current = "Unknown  ";
 
@@ -2621,8 +2616,8 @@ var create_state_modal = function(entity) {
 			$('#control').find('.modal-body').find('.obj_log').remove();
 			var object_log_header = "<div class='obj_log'><h4>Object Log";
 			if (json_store.objects[entity].logger_status == "1") {
-//TODO get the nav and add it to the link
-				var link = "/ia7/#path=/history?app1?5";
+				var collid = $(location).attr('href').split("_collection_key=");
+				var link = "/ia7/#path=/history?"+entity+"?1&_collection_key="+collid[1]+",";
 				object_log_header += "<a href='"+link+"' class='pull-right btn btn-success btn-xs logger_data'><i class='fa fa-line-chart'></i></a>";
 			}
 			object_log_header += "</h4>"
@@ -2640,6 +2635,7 @@ var create_state_modal = function(entity) {
 		});
 		$('.logger_data').on('click',function() {
 			$('#control').modal('hide');
+			console.log('url='+$(location).attr('href'));
 		});
 }	
 

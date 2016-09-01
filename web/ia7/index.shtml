@@ -88,7 +88,7 @@
       outline: none !important;
 	}
 	
-	@media (min-width: 450px){
+	@media (min-width: 450px) {
 		.control-dialog {
 			width: 400px;
 		}
@@ -96,7 +96,7 @@
 	.col-center {
 		text-align: center;
 	}
-	.dropdown-lead{
+	.dropdown-lead {
 		width: 100%;
 	}
 	.leadcontainer {
@@ -104,7 +104,7 @@
 		position: absolute;
 		right: 30px;
 	}
-	.dropdown-toggle{
+	.dropdown-toggle {
 		width: 30px;
 		box-sizing: border-box;
 	}
@@ -135,31 +135,36 @@
 	.toolbar-right-end {
 		margin-right: 15px;
 	}	
-	.icon-larger:before 
-	{
+	.icon-larger:before {
   		font-size: 46px;
   		margin-left: -10px;
 	}	
-	.rrd-period-dropdown
-	{
+	.rrd-period-dropdown {
 		margin-left:45px;
 	}
-	.rrd-legend-class
-	{	
+	.rrd-legend-class, .hist-legend-class {	
     	margin-left:10px;
 	}
-	#top-graph
-	{
+	#top-graph {
 		margin-left: 10px;
 	}
-	#rrd-graph, #hist-graph
-	{
+	#rrd-graph {
     	width:700px;
     	height:500px;
     	min-width:200px;
     	float:left;
     	margin-left:-10px;
 	}
+	.hist-period-dropdown {
+		margin-left:70px;
+	}
+	#hist-graph {
+	    width:700px;
+    	height:500px;
+    	min-width:200px;
+    	float:left;
+    	margin-left:50px;
+    }
 	.alerts {
   		position: absolute;
   		top: 3px;
@@ -172,16 +177,13 @@
 	.dropdown-caret {
 		margin-left:-5px !important;
 	}
-
 	.schedule_row {
 		margin-bottom: 5px !important;
 	}
-
 	.sched_label {
 		border-top-right-radius: 0px !important;
 		border-bottom-right-radius: 0px !important;	
 	}
-
 	.sched_cron {
 		border: 1px solid #ccc !important;
 		border-top-right-radius: 4px !important;
@@ -193,11 +195,9 @@
     	vertical-align: middle !important;
     	min-height: 34px !important;
 	}
-
 	.sched_rmbutton {
 	    vertical-align: middle !important;
 	}
-	
 	.sched-dropdown-menu {
 		margin-left: 14px !important;	
 	}
