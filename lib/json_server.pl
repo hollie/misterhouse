@@ -449,11 +449,11 @@ sub json_get {
  				next unless $o->get_logger_status();
  				my $label = $o->set_label();
  				$label = $name unless (defined $label);
- 	 			print ("db history name=$name label=$label\n");			
+ 	 			#print ("db history name=$name label=$label\n");			
  				my $logger_data = $o->get_logger_data($start,$days);
- 				print ("db data=$logger_data\n");
- 				#Have to create a separate array with states, 100 is on/up/open/opened/motion/enable(d)/online, 0 is off
- 				#alert if any anomolus states are detected
+ 				#print ("db data=$logger_data\n");
+ 				#Have to create a separate array with states, 100 is on/up/open/opened/motion/enable(d)/online, -100 is off
+ 				#alert if any anomalous states are detected
              	my @lines = split /\n/, $logger_data;
             	foreach my $line (@lines) {	
             		my $value;

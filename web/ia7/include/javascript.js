@@ -1636,9 +1636,9 @@ var graph_history = function(items,start,days,time) {
 		updateSocket.abort();
 	}	
 	var path_str = "/history"  
-	//var arg_str = "start="+start+"&group="+group+"&long_poll=true&time="+time;
-	//var arg_str = "start="+start+"&group="+group+"&time="+time;
 	arg_str = "&items="+items+"&days="+days+"&time="+time;
+	if (start !== undefined) arg_str += "&start="+start;
+console.log("arg_str="+arg_str);
 	updateSocket = $.ajax({
 		type: "GET",
 		//url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
@@ -1654,7 +1654,11 @@ var graph_history = function(items,start,days,time) {
 				if (json.data.data !== undefined) {  //If no data, at least show the header and an error
 //TODO
 				}	
-				if (start == undefined) start = new Date().getTime();
+				if (start == undefined) {
+					start = new Date().getTime();
+				} else {
+					start = start * 1000; //js works in ms
+				}
 				if (days == undefined) days = 0;
 				var end = start - (days * 24 * 60 * 60 * 1000);
 				var start_date = new Date(start);
@@ -1664,14 +1668,25 @@ var graph_history = function(items,start,days,time) {
 				var start_value = (start_date.getMonth() + 1)+"/"+start_date.getDate()+"/"+start_date.getFullYear();
 				var end_value = (end_date.getMonth() + 1)+"/"+end_date.getDate()+"/"+end_date.getFullYear();
 								
-				var datepicker_html = '<div class="input-group input-daterange">';
-    			datepicker_html += '<input type="text" class="form-control" value="'+start_value+'">';
+				var datepicker_html = '<div class="input-group input-daterange" id="datepicker">';
+    			datepicker_html += '<input type="text" class="form-control hist_end" value="'+end_value+'">';
     			datepicker_html += '<span class="input-group-addon">to</span>';
-   				datepicker_html += '<input type="text" class="form-control" value="'+end_value+'">';
+   				datepicker_html += '<input type="text" class="form-control hist_start" value="'+start_value+'">';
    				datepicker_html += '<span class="input-group-btn"><button type="button" class="btn btn-default update_history">Update</button></span></div>';
 				$('#hist-periods').append('<div id="row0" class="hist-datepicker col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">'+datepicker_html+'</div>');
-				$('.input-daterange input').each(function() {
-    				$(this).datepicker();
+				//$('.input-daterange input').each(function() {
+    			//	$(this).datepicker();
+				//});
+				$('#datepicker').datepicker();
+				
+				$('.update_history').click(function() {
+					console.log ("start="+$('.hist_start').val()+" end="+$('.hist_end').val());
+					var new_start = new Date($('.hist_start').val()).getTime();
+					var new_end = new Date($('.hist_end').val()).getTime();
+					var end_days = (new_start - new_end) / (24 * 60 * 60 * 1000)
+					new_start = new_start / 1000;
+					console.log("starte="+new_start+" ende="+new_end+" days="+end_days);
+					graph_history(items,new_start,end_days);
 				});
 				//sort the legend
 				json.data.data.sort(function(a, b){
@@ -1703,6 +1718,12 @@ var graph_history = function(items,start,days,time) {
            		 			}
        		 			}
     				});
+    				json.data.options.grid.borderWidth = 0
+    				//	borderWidth:0, 
+    				//	labelMargin:0, 
+    				//	axisMargin:0, 
+    				//	minBorderMargin:0
+    				//};
     				$.plot($("#hist-graph"), data, json.data.options);
     				$('.legend').hide();	
 				}
@@ -2595,11 +2616,12 @@ var create_state_modal = function(entity) {
 				});
 				string = string.replace(/,\s*$/, ""); //remove the last comma
 				var url="/SUB?ia7_update_schedule"+encodeURI("("+$(this).parents('.control-dialog').attr("entity")+","+string+")");
-				alert(url);
+				console.log("url="+url);
 				$.get(url);
             	$('.sched_submit').addClass('disabled');  
             	$('.sched_submit').removeClass('btn-success');  
             	$('.sched_submit').addClass('btn-default');  
+            	//emtpy the array since the long_poll should get the updated schedules.
             	json_store.objects[entity].schedule.length = 0; 			
 			});			
 			//hide the schedule controls if in simple mode
