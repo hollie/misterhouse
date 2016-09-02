@@ -241,7 +241,7 @@ function changePage (){
 		}
 		else if(path.indexOf('history') === 0){
 			var path_arg = path.split('?');
-			graph_history(path_arg[1],"x",path_arg[2]);
+			graph_history(path_arg[1],undefined,path_arg[2]);
 		}					
 		else if(URLHash._request == 'trigger'){
 			trigger();
@@ -1654,17 +1654,25 @@ var graph_history = function(items,start,days,time) {
 				if (json.data.data !== undefined) {  //If no data, at least show the header and an error
 //TODO
 				}	
-				var dropdown_html = '<div class="dropdown"><button class="btn btn-default hist-period-dropdown" data-target="#" type="button" data-toggle="dropdown">';
-				var dropdown_html_list = '<li><a href="javascript: void(0)" id="test1">1234</a></li>';
-				var dropdown_current = "Unknown  ";
-
-				dropdown_html += dropdown_current+'<span class="caret"></span></button><ul class="dropdown-menu">';
-				dropdown_html += dropdown_html_list;
-				dropdown_html += '</ul></div>';
+				if (start == undefined) start = new Date().getTime();
+				if (days == undefined) days = 0;
+				var end = start - (days * 24 * 60 * 60 * 1000);
+				var start_date = new Date(start);
+				var end_date = new Date(end);
 				
-				$('#hist-periods').append(dropdown_html);
-
-
+				console.log("start="+start+" days="+days+" end="+end);
+				var start_value = (start_date.getMonth() + 1)+"/"+start_date.getDate()+"/"+start_date.getFullYear();
+				var end_value = (end_date.getMonth() + 1)+"/"+end_date.getDate()+"/"+end_date.getFullYear();
+								
+				var datepicker_html = '<div class="input-group input-daterange">';
+    			datepicker_html += '<input type="text" class="form-control" value="'+start_value+'">';
+    			datepicker_html += '<span class="input-group-addon">to</span>';
+   				datepicker_html += '<input type="text" class="form-control" value="'+end_value+'">';
+   				datepicker_html += '<span class="input-group-btn"><button type="button" class="btn btn-default update_history">Update</button></span></div>';
+				$('#hist-periods').append('<div id="row0" class="hist-datepicker col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">'+datepicker_html+'</div>');
+				$('.input-daterange input').each(function() {
+    				$(this).datepicker();
+				});
 				//sort the legend
 				json.data.data.sort(function(a, b){
     				if(a.label < b.label) return -1;
@@ -2591,7 +2599,8 @@ var create_state_modal = function(entity) {
 				$.get(url);
             	$('.sched_submit').addClass('disabled');  
             	$('.sched_submit').removeClass('btn-success');  
-            	$('.sched_submit').addClass('btn-default');   			
+            	$('.sched_submit').addClass('btn-default');  
+            	json_store.objects[entity].schedule.length = 0; 			
 			});			
 			//hide the schedule controls if in simple mode
 			if 	(display_mode == "simple") {

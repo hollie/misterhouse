@@ -60,6 +60,9 @@
 	<script language="javascript" type="text/javascript" src="/ia7/include/jqCron.js"></script>
 	<script language="javascript" type="text/javascript" src="/ia7/include/jqCron.en.js"></script>
 	
+	<!-- bootstrap datepicker -->
+	<link href="/ia7/include/bootstrap-datepicker3.standalone.min.css" rel="stylesheet"/>	
+    <script src="/ia7/include/bootstrap-datepicker.min.js"></script>
 	
 	<!-- Misterhouse ia7 System JS File-->
 	<script src="/ia7/include/javascript.js"></script>
@@ -155,8 +158,8 @@
     	float:left;
     	margin-left:-10px;
 	}
-	.hist-period-dropdown {
-		margin-left:70px;
+	.hist-datepicker {
+		padding-right:40px;
 	}
 	#hist-graph {
 	    width:700px;
