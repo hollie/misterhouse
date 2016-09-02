@@ -93,12 +93,32 @@ sub get_schedule{
      $schedule[0][1] = '0 0 5 1 1'; #schedule
      $schedule[0][2] = 0; #Label
      $schedule[0][3] = \@states;
-     for my $index (1..$count) {
-           $schedule[$index][0] = $index;
-           $schedule[$index][1] = $self->{'schedule_'.$index}; 
-	   if (defined($self->{'schedule_label_'.$index}) ) { $schedule[$index][2] = $self->{'schedule_label_'.$index} } 
-	   else { $schedule[$index][2] = $index if (defined($object->{'schedule_'.$index})); }
-     }
+     my $nullcount = 0;
+      for my $index (1..$count) {
+         unless(defined($self->{'schedule_'.$index})) { 
+   	     $nullcount++; 
+   	     $self->{'schedule_label_'.$index} = undef; 
+   	     $self->{'schedule_once_'.$index} = undef; 
+   	     next; 
+   	  }
+         if (defined($self->{'schedule_'.$index})) { 
+   	      $self->{'schedule_'.($index-$nullcount)} = $self->{'schedule_'.$index};
+   	      $self->{'schedule_label_'.($index-$nullcount)} = $self->{'schedule_label_'.$index};
+   	      $self->{'schedule_once_'.($index-$nullcount)} = $self->{'schedule_once_'.$index};
+   	      $schedule[($index-$nullcount)][0] = ($index-$nullcount);
+   	      $schedule[($index-$nullcount)][1] = $self->{'schedule_'.$index};
+   		
+   	      if (defined($self->{'schedule_label_'.$index}) ) { $schedule[($index-$nullcount)][2] = $self->{'schedule_label_'.$index} }
+   	      else { $schedule[($index-$nullcount)][2] = ($index-$nullcount) }
+   		
+   	       unless (($index-$nullcount) eq $index) {
+   		  $self->{'schedule_'.$index} = undef; 
+   		  $self->{'schedule_label_'.$index} = undef; 
+   		  $self->{'schedule_once_'.$index} = undef; 
+   	        }
+   	  }
+   }
+   $self->{'schedule_count'} = scalar @schedule;
    return \@schedule;
 }
 
