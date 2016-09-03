@@ -16,6 +16,11 @@
 .jqCron-container {
 
 }
+.sched_cron {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
  
 .jqCron-selector {
 	position: relative;
@@ -27,6 +32,7 @@
 	border: 1px solid #ddd;
 	margin: 0 0.2em;
 	padding: 0 0.5em;
+	
 }
 .jqCron-container.disable .jqCron-cross:hover,
 .jqCron-container.disable .jqCron-selector-title:hover,
