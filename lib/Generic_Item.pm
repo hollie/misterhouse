@@ -133,6 +133,7 @@ sub new {
     $$self{state_now}     = undef;
     $$self{state_changed} = undef;
     $self->restore_data('sort_order');
+    $self->{logger_enable} = $main::config_parms{logger_enable} if (defined $main::config_parms{logger_enable});
     return $self;
 }
 
@@ -1269,14 +1270,24 @@ sub xPL_enable {
 
 =item C<logger_enable()>
 
-TODO.  Can only be run at startup or reload.
+Will start logging state changes to a historical log file
 
 =cut
 
 sub logger_enable {
-    return unless $main::Reload;
     my ( $self, $enable ) = @_;
-    $self->{logger_enable} = $enable;
+    $self->{logger_enable} = 1;
+}
+
+=item C<logger_disable()>
+
+Will stop logging state changes to a historical log file
+
+=cut
+
+sub logger_disable {
+    my ( $self, $enable ) = @_;
+    $self->{logger_enable} = 0;
 }
 
 =item C<get_logger_status()>
