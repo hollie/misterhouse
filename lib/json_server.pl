@@ -441,7 +441,7 @@ sub json_get {
         	my $index = 0;
         	my $start = time;
         	$start = $args{start}[0] if (defined $args{start}[0]);
-        	my $days = 1;
+        	my $days = 0;
         	$days = $args{days}[0] if (defined $args{days}[0]);        	
             foreach my $name ( @{ $args{items} } ) {
             	my $o = &get_object_by_name($name);
@@ -449,10 +449,9 @@ sub json_get {
  				next unless $o->get_logger_status();
  				my $label = $o->set_label();
  				$label = $name unless (defined $label);
- 	 			#print ("db history name=$name label=$label\n");			
+ 	 			print ("db history name=$name label=$label\n");			
  				my $logger_data = $o->get_logger_data($start,$days);
- 				#print ("db data=$logger_data\n");
- 				#Have to create a separate array with states, 100 is on/up/open/opened/motion/enable(d)/online, -100 is off
+ 				print ("db data=$logger_data\n");
  				#alert if any anomalous states are detected
              	my @lines = split /\n/, $logger_data;
             	foreach my $line (@lines) {	

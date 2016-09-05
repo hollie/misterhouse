@@ -168,6 +168,7 @@
     	float:left;
     	margin-left:50px;
     }
+ 
 	.alerts {
   		position: absolute;
   		top: 3px;
