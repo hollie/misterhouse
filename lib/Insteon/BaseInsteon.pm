@@ -130,7 +130,9 @@ sub new {
     $$self{default_hop_count} = 0;
     $$self{timeout_factor}    = 1.0;
     $$self{is_deaf}           = 0;
-
+    $$self{logger_enable} 	  = $main::config_parms{object_logger_enable} if (defined $main::config_parms{object_logger_enable});
+    $$self{logger_mintime} 	  = 1;
+    $$self{logger_updatetime} = 0;
     &Insteon::add($self);
     return $self;
 }

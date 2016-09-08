@@ -133,7 +133,10 @@ sub new {
     $$self{state_now}     = undef;
     $$self{state_changed} = undef;
     $self->restore_data('sort_order');
-    $self->{logger_enable} = $main::config_parms{logger_enable} if (defined $main::config_parms{logger_enable});
+    $self->{logger_enable} = $main::config_parms{object_logger_enable} if (defined $main::config_parms{object_logger_enable});
+    $self->{logger_mintime} = 1;
+    $self->{logger_updatetime} = 0;
+
     return $self;
 }
 
@@ -1158,7 +1161,11 @@ sub logger {
 	my ($self,$state,$set_by_name,$target) = @_;
 	my $object_name = $self->{object_name};
 	$object_name =~ s/^\$//;
+	return if ($object_name eq "");
+	return if ($state eq "");
 	my $tickcount = int(&::get_tickcount()); #log in milliseconds
+	return if ($tickcount <  ($self->{logger_updatetime} + $self->{logger_mintime}));
+
 	#create directory structure if it doesn't exist
 	mkdir ($::config_parms{data_dir} . "/object_logs") unless (-d $::config_parms{data_dir} . "/object_logs");
 	mkdir ($::config_parms{data_dir} . "/object_logs/" . $object_name) unless (-d $::config_parms{data_dir} . "/object_logs/" . $object_name);
@@ -1166,6 +1173,7 @@ sub logger {
 	mkdir ($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month) unless (-d $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month);
 	#write the data to the log; time, ticks (milliseconds), object, state, set_by, target
 	&::logit ($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month . "/" . $::Mday . ".log", "$main::Time_Date,$tickcount,$object_name,$state,$set_by_name," . ( ($target) ? "$target" : '') ."\n",0);
+	$self->{logger_updatetime} = $tickcount;
 }
 	
 =item C<reset_states2()>
@@ -1276,7 +1284,11 @@ Will start logging state changes to a historical log file
 
 sub logger_enable {
     my ( $self, $enable ) = @_;
-    $self->{logger_enable} = 1;
+    if ($self->isa('Group') and (defined $main::config_parms{object_logger_group})) {
+    	$self->{logger_enable} = $main::config_parms{object_logger_group};
+    } else {
+    	$self->{logger_enable} = 1;
+    }
 }
 
 =item C<logger_disable()>
@@ -1288,6 +1300,17 @@ Will stop logging state changes to a historical log file
 sub logger_disable {
     my ( $self, $enable ) = @_;
     $self->{logger_enable} = 0;
+}
+
+=item C<logger_mintime()>
+
+Set the minimum number of seconds to log updates. Useful to 'throttle' noisey objects such as AD2 motion sensors
+
+=cut
+
+sub logger_mintime {
+    my ( $self, $mintime ) = @_;
+    $self->{logger_mintime} = $mintime;
 }
 
 =item C<get_logger_status()>
