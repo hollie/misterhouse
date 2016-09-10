@@ -9,7 +9,7 @@ sub new
    $$self{instance} = $instance;
    bless $self, $class;
    @{$$self{states}} = ('ON','OFF');
-   $self->restore_data('active_object', 'active_action', 'schedule_count','schedule_once_flag');
+   $self->restore_data('active_object', 'active_action', 'schedule_count');
     #for my $index (1..$self->{'schedule_count'}) {
     for my $index (1..10) {
       $self->restore_data('schedule_'.$index, 'schedule_label_'.$index, 'schedule_once_'.$index);
@@ -31,16 +31,20 @@ sub set_schedule {
     if ($index > $self->{'schedule_count'}) { $self->{'schedule_count'} = $index } 
     $self->{'schedule_'.$index} = $entry if (defined($entry));
     $self->{'schedule_label_'.$index} = $label if (defined($label));
+    if (defined($self->{'schedule_'.$index})) { # the UI deletes all entries and adds them back which sets this flag to 2.
+                $self->{'schedule_once_'.$index} = 1 if ($self->{'schedule_once_'.$index} eq 2); # We only want real deleted entries set to 2, so set to 1.
+    }
     unless ($entry) {
 	undef $self->{'schedule_label_'.$index};
 	undef $self->{'schedule_'.$index};
+	$self->{'schedule_once_'.$index} = 2 if ($self->{'schedule_once_'.$index});
     }
     $self->{set_time} = $::Time;
 }
 
 sub set_schedule_once {
     my ($self,$index,$entry,$label) = @_;
-    unless ($self->{'schedule_once_'.$index}) {
+    unless ($self->{'schedule_once_'.$index} eq 1) {
         if ((defined($self->{'set_timer_'.$index})) && ($self->{'set_timer_'.$index}->expired)) {
            $self->{'schedule_once_'.$index} = 1;
            $self->set_schedule($index,$entry,$label);
@@ -65,7 +69,6 @@ sub reset_schedule {
        $self->set_schedule($index);
      }
   $self->{'schedule_count'} = 0;
-  undef $self->{'schedule_once_flag'};
   $self->{set_time} = $::Time;
 }	
 
@@ -96,19 +99,30 @@ sub get_schedule{
      my $nullcount = 0;
       for my $index (1..$count) {
          unless(defined($self->{'schedule_'.$index})) { 
-   	     $nullcount++; 
-   	     $self->{'schedule_label_'.$index} = undef; 
-   	     $self->{'schedule_once_'.$index} = undef; 
-   	     next; 
+	     if ($self->{'schedule_once_'.$index}) {
+                $self->{'schedule_once_'.$index} = 2;
+                $self->{'schedule_label_'.$index} = undef;
+	      } else { 
+                $nullcount++;
+                $self->{'schedule_label_'.$index} = undef;
+		$self->{'schedule_once_'.$index} = undef;
+                next;
+	      }
    	  }
-         if (defined($self->{'schedule_'.$index})) { 
+
+         if (defined($self->{'schedule_'.$index})) { # the UI deletes all entries and adds them back which sets this flag to 2.
+		$self->{'schedule_once_'.$index} = 1 if ($self->{'schedule_once_'.$index} eq 2); # We only want real deleted entries set to 2, so set to 1.
+	  }
+		
+         if ((defined($self->{'schedule_'.$index})) || ($self->{'schedule_once_'.$index} eq 2)) { 
    	      $self->{'schedule_'.($index-$nullcount)} = $self->{'schedule_'.$index};
    	      $self->{'schedule_label_'.($index-$nullcount)} = $self->{'schedule_label_'.$index};
    	      $self->{'schedule_once_'.($index-$nullcount)} = $self->{'schedule_once_'.$index};
    	      $schedule[($index-$nullcount)][0] = ($index-$nullcount);
-   	      $schedule[($index-$nullcount)][1] = $self->{'schedule_'.$index};
+	      if ($self->{'schedule_once_'.$index} eq 2) { $schedule[($index-$nullcount)][1] = undef }
+	      else { $schedule[($index-$nullcount)][1] = $self->{'schedule_'.$index} }
    		
-   	      if (defined($self->{'schedule_label_'.$index}) ) { $schedule[($index-$nullcount)][2] = $self->{'schedule_label_'.$index} }
+   	      if (defined($self->{'schedule_label_'.$index}) ) { $schedule[($index-$nullcount-$schoncecnt)][2] = $self->{'schedule_label_'.$index} }
    	      else { $schedule[($index-$nullcount)][2] = ($index-$nullcount) }
    		
    	       unless (($index-$nullcount) eq $index) {
