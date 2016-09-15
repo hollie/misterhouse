@@ -1817,7 +1817,7 @@ var noDragDrop = function() {
     return false;
 };
 
-var fp_getOrCreateIcon = function (json, entity, i, coords, show_pos){
+var fp_getOrCreateIcon = function (json, entity, i, coords){
     var popover = 0;
     if ((json.data[entity].type === "FPCamera_Item") || (json_store.ia7_config.prefs.fp_state_popovers === "yes"))
         popover = 1;
@@ -1845,7 +1845,7 @@ var fp_getOrCreateIcon = function (json, entity, i, coords, show_pos){
     E.bind("dragstart", noDragDrop);
     var image = get_fp_image(json.data[entity]);
     E.attr('src',"/ia7/graphics/"+image);
-    if (show_pos)
+    if (developer)
         E.css("border","1px solid black");
 
     return E;
@@ -1981,7 +1981,7 @@ var floorplan = function(group,time) {
         $('#floorplan').append("<div id='graphic' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
         time = 0;
         $('#graphic').prepend('<center><img id="fp_graphic" border="1"  /></center>');
-        if (URLHash.show_pos){
+        if (developer){
             $('#fp_graphic').css("border","1px solid black");
             $('#list_content').append("<div id='fp_positionless_items' />");
             $('#list_content').append("<pre id='fp_pos_perl_code' />");
@@ -2145,7 +2145,7 @@ var floorplan = function(group,time) {
                 var t0 = performance.now();
                 JSONStore(json);
                 for (var entity in json.data) {
-                    if (URLHash.show_pos && requestTime === 0){
+                    if (developer && requestTime === 0){
                         perl_pos_coords = "";
                     }
                     for (var i=0 ; i < json.data[entity].fp_location.length-1; i=i+2){ //allow for multiple graphics
@@ -2153,7 +2153,7 @@ var floorplan = function(group,time) {
                         if ((json.data[entity].type === "FPCamera_Item") || (json_store.ia7_config.prefs.fp_state_popovers === "yes"))
                             popover = 1;
 
-                        if (URLHash.show_pos && requestTime === 0){
+                        if (developer && requestTime === 0){
                             if (perl_pos_coords.length !== 0){
                                 perl_pos_coords += ", ";
                             }
@@ -2161,9 +2161,9 @@ var floorplan = function(group,time) {
                         }
 
                         var coords= json.data[entity].fp_location[i]+'x'+json.data[entity].fp_location[i+1];
-                        var E = fp_getOrCreateIcon(json, entity, i, coords, URLHash.show_pos);
+                        var E = fp_getOrCreateIcon(json, entity, i, coords, developer);
 
-                        if (URLHash.show_pos === undefined)
+                        if (developer === false)
                         {
                             // create unique popovers for Camera items
                             if (json.data[entity].type === "FPCamera_Item") {
@@ -2250,10 +2250,10 @@ var floorplan = function(group,time) {
                         }
                     }
 
-                    if (URLHash.show_pos && requestTime === 0){
+                    if (developer && requestTime === 0){
                         if (perl_pos_coords.length===0)
                         {
-                            fp_getOrCreateIcon(json, entity, 0, "", URLHash.show_pos);
+                            fp_getOrCreateIcon(json, entity, 0, "");
                         }
                         else{
                             var oldCode = $('#fp_pos_perl_code').text();
@@ -2275,7 +2275,7 @@ var floorplan = function(group,time) {
                     }
                 }
                 fp_reposition_entities();
-                if (requestTime === 0 && URLHash.show_pos){
+                if (requestTime === 0 && developer){
                     $('#list_content').append("<p>&nbsp;</p>");
                     $.ajax({
                         type: "GET",
@@ -2371,7 +2371,7 @@ var floorplan = function(group,time) {
                 if ($('#floorplan').length !== 0){
                     //If the floorplan page is still active request more data
                     // and we are not editing the fp
-                    if (URLHash.show_pos ===  undefined)
+                    if (developer ===  false)
                         floorplan(group,requestTime);
                 }
             }
