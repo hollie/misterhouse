@@ -35,8 +35,7 @@ if ( $country eq 'canada' ) {
       . $station;
 }
 else {
-    $url = "http://weather.noaa.gov/cgi-bin/mgetmetar.pl?Submit=SUBMIT&cccc="
-      . $station;
+    $url = "http://aviationweather.gov/adds/metars/?station_ids=$station&chk_metars=on";
 }
 
 my $weather_metar_file = $config_parms{data_dir} . '/web/weather_metar.html';
