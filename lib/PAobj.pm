@@ -727,16 +727,10 @@ sub new {
     if ( lc $paz_type eq 'amixer' ) {
 
         #Headphone:0:L
-<<<<<<< HEAD
-        my ($mixer,$mixernum,$channel) = split(':',$self->{address});
-        &::print_log("$mixer / $mixernum / $channel");
-        $self->{mixer} = "$mixer";
-        $self->{mixer} .= ",$mixernum" if $mixernum;
-=======
         my ( $mixer, $mixernum, $channel ) = split( ':', $self->{address} );
         &main::print_log("$mixer / $mixernum / $channel");
-        $self->{mixer} = "$mixer,$mixernum";
->>>>>>> hollie/master
+        $self->{mixer} = "$mixer";
+        $self->{mixer} .= ",$mixernum" if $mixernum;
         $self->{mixerchan} = lc $channel if $channel;
     }
 
