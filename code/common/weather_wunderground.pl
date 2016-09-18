@@ -50,6 +50,7 @@ if ($Reload) {
 	$wunderground_apikey=$config_parms{wunderground_apikey};
 	$wunderground_stationid='' unless $wunderground_stationid;
 	$wunderground_getweather_file=$config_parms{data_dir}.'/web/weather_wunderground_getweather.xml';
+
 	if($config_parms{wunderground_apikey} eq '') {
 		print_log("[WUnderground] ERROR: wunderground_apikey is not defined in mh.private.ini.");
 	} else {
