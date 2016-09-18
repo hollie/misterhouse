@@ -1,3 +1,4 @@
+
 =head1 B<Insteon::RemoteLinc>
 
 =head2 SYNOPSIS
@@ -41,7 +42,8 @@ must first be put into "awake mode."
 =head2 INHERITS
 
 L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>, 
+L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>,
+L<Insteon::Insteon::MultigroupDevice|Insteon::BaseInsteon/Insteon::Insteon::MultigroupDevice>
 
 =head2 METHODS
 
@@ -54,12 +56,13 @@ package Insteon::RemoteLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::RemoteLinc::ISA = ('Insteon::BaseDevice','Insteon::DeviceController');
+@Insteon::RemoteLinc::ISA =
+  ( 'Insteon::DimmableLight', 'Insteon::MultigroupDevice' );
 
 my %message_types = (
-	%Insteon::BaseDevice::message_types,
-	bright => 0x15,
-	dim => 0x16
+    %Insteon::BaseDevice::message_types,
+    bright => 0x15,
+    dim    => 0x16
 );
 
 =item C<new()>
@@ -68,20 +71,19 @@ Instantiates a new object.
 
 =cut
 
-sub new
-{
-	my ($class,$p_deviceid,$p_interface) = @_;
+sub new {
+    my ( $class, $p_deviceid, $p_interface ) = @_;
 
-	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
-        $$self{message_types} = \%message_types;
-	if ($self->is_root){
-		$self->restore_data('battery_timer', 'last_battery_time');
-		$$self{queue_timer} = new Timer;
-	}
-	bless $self,$class;
-	$$self{is_responder} = 0;
-	$$self{is_deaf} = 1;
-	return $self;
+    my $self = new Insteon::BaseDevice( $p_deviceid, $p_interface );
+    $$self{message_types} = \%message_types;
+    if ( $self->is_root ) {
+        $self->restore_data( 'battery_timer', 'last_battery_time' );
+        $$self{queue_timer} = new Timer;
+    }
+    bless $self, $class;
+    $$self{is_responder} = 0;
+    $$self{is_deaf}      = 1;
+    return $self;
 }
 
 =item C<set_awake_time([0-255 seconds])>
@@ -100,14 +102,15 @@ without causing adverse battery drain.
 =cut
 
 sub set_awake_time {
-	my ($self, $awake) = @_;
-	$awake = sprintf("%02x", $awake);
-	my $root = $self->get_root();
-	my $extra = '000102' . $awake . '0000000000000000000000';
-	$$root{_ext_set_get_action} = "set";
-	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
-	$root->_send_cmd($message);
-	return;
+    my ( $self, $awake ) = @_;
+    $awake = sprintf( "%02x", $awake );
+    my $root  = $self->get_root();
+    my $extra = '000102' . $awake . '0000000000000000000000';
+    $$root{_ext_set_get_action} = "set";
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $root,
+        'extended_set_get', $extra );
+    $root->_send_cmd($message);
+    return;
 }
 
 =item C<get_extended_info()>
@@ -125,16 +128,17 @@ expired.
 =cut
 
 sub get_extended_info {
-	my ($self,$no_retry) = @_;
-	my $root = $self->get_root();
-	my $extra = '000100000000000000000000000000';
-	$$root{_ext_set_get_action} = "get";
-	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
-	if ($no_retry){
-		$message->retry_count(1);
-	}
-	$root->_send_cmd($message);
-	return;
+    my ( $self, $no_retry ) = @_;
+    my $root  = $self->get_root();
+    my $extra = '000100000000000000000000000000';
+    $$root{_ext_set_get_action} = "get";
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $root,
+        'extended_set_get', $extra );
+    if ($no_retry) {
+        $message->retry_count(1);
+    }
+    $root->_send_cmd($message);
+    return;
 }
 
 =item C<set_battery_timer([minutes])>
@@ -153,12 +157,13 @@ This setting will be saved between MisterHouse reboots.
 =cut
 
 sub set_battery_timer {
-	my ($self, $minutes) = @_;
-	my $root = $self->get_root();
-	$$root{battery_timer} = sprintf("%u", $minutes);
-	::print_log("[Insteon::RemoteLinc] Set battery timer to ".
-		$$root{battery_timer}." minutes");
-	return;
+    my ( $self, $minutes ) = @_;
+    my $root = $self->get_root();
+    $$root{battery_timer} = sprintf( "%u", $minutes );
+    ::print_log( "[Insteon::RemoteLinc] Set battery timer to "
+          . $$root{battery_timer}
+          . " minutes" );
+    return;
 }
 
 =item C<_is_battery_time_expired()>
@@ -168,13 +173,15 @@ Returns true if the battery timer has expired, else returns false.
 =cut
 
 sub _is_battery_time_expired {
-	my ($self) = @_;
-	my $root = $self->get_root();
-	if ($$root{battery_timer} > 0 && 
-		(time - $$root{last_battery_time}) > ($$root{battery_timer} * 60)) {
-		return 1;
-	}
-	return 0;
+    my ($self) = @_;
+    my $root = $self->get_root();
+    if ( $$root{battery_timer} > 0
+        && ( time - $$root{last_battery_time} ) >
+        ( $$root{battery_timer} * 60 ) )
+    {
+        return 1;
+    }
+    return 0;
 }
 
 =item C<_process_message()>
@@ -187,60 +194,106 @@ Also checks the battery timer and sends a battery request if needed.
 =cut
 
 sub _process_message {
-	my ($self,$p_setby,%msg) = @_;
-	my $clear_message = 0;
-	my $root = $self->get_root();
-	if ($root->_is_battery_time_expired){
-		#Queue an get_extended_info request
-		if ($$root{queue_timer}->active){
-			$$root{queue_timer}->restart();
-		}
-		else {
-			$$root{queue_timer}->set(3, '$root->get_extended_info(1)');
-		}
-	}
-	my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
-	my $ack_setby = (ref $$self{m_status_request_pending}) ? $$self{m_status_request_pending} : $p_setby;
-	if ($msg{is_ack} && $self->_is_info_request($pending_cmd,$ack_setby,%msg)) {
-		$clear_message = 1;
-		$$self{m_status_request_pending} = 0;
-		$self->_process_command_stack(%msg);
-	}
-	elsif ($msg{command} eq "extended_set_get" && $msg{is_ack}){
-		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		#If this was a get request don't clear until data packet received
-		main::print_log("[Insteon::RemoteLinc] Extended Set/Get ACK Received for " . $self->get_object_name) if $main::Debug{insteon};
-		if ($$self{_ext_set_get_action} eq 'set'){
-			main::print_log("[Insteon::RemoteLinc] Clearing active message") if $main::Debug{insteon};
-			$clear_message = 1;
-			$$self{_ext_set_get_action} = undef;
-			$self->_process_command_stack(%msg);	
-		}
-	}
-	elsif ($msg{command} eq "extended_set_get" && $msg{is_extended}) {
-		if (substr($msg{extra},0,6) eq "000001") {
-			$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-			#D10 = Battery;
-			my $voltage = (hex(substr($msg{extra}, 20, 2))/50);
-			main::print_log("[Insteon::RemoteLinc] The battery level ".
-				"for device ". $self->get_object_name . " is: ".
-				$voltage . " of 3.70 volts.");
-			$$root{last_battery_time} = time;
-			if (ref $$root{battery_object} && $$root{battery_object}->can('set_receive'))
-			{
-				$$root{battery_object}->set_receive($voltage, $root);
-			}
-			$clear_message = 1;
-			$self->_process_command_stack(%msg);
-		} else {
-			main::print_log("[Insteon::RemoteLinc] WARN: Corrupt Extended "
-				."Set/Get Data Received for ". $self->get_object_name) if $main::Debug{insteon};
-		}
-	}
-	else {
-		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
-	}
-	return $clear_message;
+    my ( $self, $p_setby, %msg ) = @_;
+    my $clear_message = 0;
+    my $root          = $self->get_root();
+    if ( $root->_is_battery_time_expired ) {
+
+        #Queue an get_extended_info request
+        if ( $$root{queue_timer}->active ) {
+            $$root{queue_timer}->restart();
+        }
+        else {
+            $$root{queue_timer}->set( 3, '$root->get_extended_info(1)' );
+        }
+    }
+    my $pending_cmd =
+      ( $$self{_prior_msg} ) ? $$self{_prior_msg}->command : $msg{command};
+    my $ack_setby =
+      ( ref $$self{m_status_request_pending} )
+      ? $$self{m_status_request_pending}
+      : $p_setby;
+    if (   $msg{is_ack}
+        && $self->_is_info_request( $pending_cmd, $ack_setby, %msg ) )
+    {
+        $clear_message = 1;
+        $$self{m_status_request_pending} = 0;
+        $self->_process_command_stack(%msg);
+    }
+    elsif ( $msg{command} eq "extended_set_get" && $msg{is_ack} ) {
+        $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
+
+        #If this was a get request don't clear until data packet received
+        main::print_log(
+            "[Insteon::RemoteLinc] Extended Set/Get ACK Received for "
+              . $self->get_object_name )
+          if $self->debuglevel( 1, 'insteon' );
+        if ( $$self{_ext_set_get_action} eq 'set' ) {
+            main::print_log("[Insteon::RemoteLinc] Clearing active message")
+              if $self->debuglevel( 1, 'insteon' );
+            $clear_message = 1;
+            $$self{_ext_set_get_action} = undef;
+            $self->_process_command_stack(%msg);
+        }
+    }
+    elsif ( $msg{command} eq "extended_set_get" && $msg{is_extended} ) {
+        if ( substr( $msg{extra}, 0, 6 ) eq "000001" ) {
+            $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
+
+            #D10 = Battery;
+            my $voltage = ( hex( substr( $msg{extra}, 20, 2 ) ) / 50 );
+            main::print_log( "[Insteon::RemoteLinc] The battery level "
+                  . "for device "
+                  . $self->get_object_name . " is: "
+                  . $voltage
+                  . " of 3.70 volts." );
+            $$root{last_battery_time} = time;
+            if ( ref $$root{battery_object}
+                && $$root{battery_object}->can('set_receive') )
+            {
+                $$root{battery_object}->set_receive( $voltage, $root );
+            }
+            $clear_message = 1;
+            $self->_process_command_stack(%msg);
+        }
+        else {
+            main::print_log( "[Insteon::RemoteLinc] WARN: Corrupt Extended "
+                  . "Set/Get Data Received for "
+                  . $self->get_object_name )
+              if $self->debuglevel( 1, 'insteon' );
+        }
+    }
+    else {
+        $clear_message = $self->SUPER::_process_message( $p_setby, %msg );
+    }
+    return $clear_message;
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds {
+    my ($self)      = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds  = ( %{ $self->SUPER::get_voice_cmds } );
+    if ( $self->is_root ) {
+        %voice_cmds = (
+            %voice_cmds,
+            'sync all device links'       => "$object_name->sync_all_links()",
+            'AUDIT sync all device links' => "$object_name->sync_all_links(1)"
+        );
+    }
+    return \%voice_cmds;
 }
 
 =back
@@ -307,12 +360,12 @@ Instantiates a new object.
 =cut
 
 sub new {
-	my ($class, $parent) = @_;
-	my $self = new Generic_Item();
-	my $root = $parent->get_root();
-	bless $self, $class;
-	$$root{battery_object} = $self;
-	return $self;
+    my ( $class, $parent ) = @_;
+    my $self = new Generic_Item();
+    my $root = $parent->get_root();
+    bless $self, $class;
+    $$root{battery_object} = $self;
+    return $self;
 }
 
 =item C<set_receive()>
@@ -323,8 +376,8 @@ device accordingly.
 =cut
 
 sub set_receive {
-	my ($self, $p_state) = @_;
-	$self->SUPER::set($p_state);
+    my ( $self, $p_state ) = @_;
+    $self->SUPER::set($p_state);
 }
 
 =back
@@ -342,4 +395,5 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =cut
+
 1

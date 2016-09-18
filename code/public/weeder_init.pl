@@ -29,9 +29,11 @@
 #
 #########################################################################
 
-$v_init_weeder=     new Voice_Cmd("Initialize the Weeder ports");
-$v_init_weeder->    set_info('This will initialize the weeder digital
-ports.  Automatically done on startup');
+$v_init_weeder = new Voice_Cmd("Initialize the Weeder ports");
+$v_init_weeder->set_info(
+    'This will initialize the weeder digital
+ports.  Automatically done on startup'
+);
 
 # This seems to be extraneous?
 set $v_init_weeder 1 if $Startup;
@@ -43,37 +45,36 @@ set $v_init_weeder 1 if $Startup;
 #########################################################################
 
 # Init each bit on the weeder board
-if (said $v_init_weeder or $Startup) {
-    for my $ref ($WeedA_InC_DownFoyer_Motion,
-              $WeedA_InD_Office_Motion,
-              $WeedA_InE_Garage_Motion,
-              $WeedA_InF_Car_Sensor,
-              $WeedA_OutG_RearBell,
-              $WeedA_InH_Pool_Mo,
-              $WeedA_InI_Pantry_Door,
-              $WeedA_OutJ_Garage_DoorN) {
+if ( said $v_init_weeder or $Startup ) {
+    for my $ref (
+        $WeedA_InC_DownFoyer_Motion, $WeedA_InD_Office_Motion,
+        $WeedA_InE_Garage_Motion,    $WeedA_InF_Car_Sensor,
+        $WeedA_OutG_RearBell,        $WeedA_InH_Pool_Mo,
+        $WeedA_InI_Pantry_Door,      $WeedA_OutJ_Garage_DoorN
+      )
+    {
         set $ref 'init';
 
-# The init routines fail without this delay.  The newer weeders(model WTDIO-M??)
-# echo back the commands it gets.
-#
-# According to Terry Weeder of weedtech.com, These boards have to send the
-# response before they will accept another command.  Apparently the even newer
-# versions of the -M will allow you to disable this echo.
-#
-# So, delay 25ms
-        select(undef, undef, undef, 0.025);
+        # The init routines fail without this delay.  The newer weeders(model WTDIO-M??)
+        # echo back the commands it gets.
+        #
+        # According to Terry Weeder of weedtech.com, These boards have to send the
+        # response before they will accept another command.  Apparently the even newer
+        # versions of the -M will allow you to disable this echo.
+        #
+        # So, delay 25ms
+        select( undef, undef, undef, 0.025 );
     }
 
-    for my $ref ($WeedA_InC_DownFoyer_Motion,
-              $WeedA_InD_Office_Motion,
-              $WeedA_InE_Garage_Motion,
-              $WeedA_InF_Car_Sensor,
-              $WeedA_InH_Pool_Mo,
-              $WeedA_InI_Pantry_Door) {
+    for my $ref (
+        $WeedA_InC_DownFoyer_Motion, $WeedA_InD_Office_Motion,
+        $WeedA_InE_Garage_Motion,    $WeedA_InF_Car_Sensor,
+        $WeedA_InH_Pool_Mo,          $WeedA_InI_Pantry_Door
+      )
+    {
         set $ref 'read';
 
-# This routine fails without this delay.
-        select(undef, undef, undef, 0.025);
+        # This routine fails without this delay.
+        select( undef, undef, undef, 0.025 );
     }
 }

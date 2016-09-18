@@ -24,10 +24,10 @@
 # are usually playing with Mister House at 3am.... did I mention getting
 # a hobby? ;-)
 
-if (time_now '3:00AM')
-	{print_log "It's time to restart MisterHouse!";
-	run_voice_cmd 'Restart Mister House';
-	}
+if ( time_now '3:00AM' ) {
+    print_log "It's time to restart MisterHouse!";
+    run_voice_cmd 'Restart Mister House';
+}
 
 # Note - naturally to get the most from this you need to have Mister House
 # set to restart automatically. You can do this with a batch file in dos/win

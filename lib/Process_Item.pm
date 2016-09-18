@@ -1,3 +1,4 @@
+
 =head1 B<Process_Item>
 
 =head2 SYNOPSIS
@@ -50,16 +51,16 @@ use strict;
 
 package Process_Item;
 
-my (@active_processes, @done_processes);
+my ( @active_processes, @done_processes );
 
 =item C<new('program1 arguments', 'program2 arguments', ...)>
 
 =cut
 
 sub new {
-    my ($class, @cmds) = @_;
+    my ( $class, @cmds ) = @_;
     my $self = {};
-    &set($self, @cmds) if @cmds;  # Optional.  Can be specified later with set.
+    &set( $self, @cmds ) if @cmds; # Optional.  Can be specified later with set.
     bless $self, $class;
     return $self;
 }
@@ -68,10 +69,10 @@ sub new {
 
 =cut
 
-                                # Allow for multiple, serially executed, commands
+# Allow for multiple, serially executed, commands
 sub set {
-    my ($self, @cmds) = @_;
-    @{$$self{cmds}} = @cmds;
+    my ( $self, @cmds ) = @_;
+    @{ $$self{cmds} } = @cmds;
 }
 
 =item C<set_timeout($timeout)>
@@ -81,7 +82,7 @@ sub set {
 =cut
 
 sub set_timeout {
-    my ($self, $timeout) = @_;
+    my ( $self, $timeout ) = @_;
     $$self{timeout} = $timeout;
 }
 
@@ -91,9 +92,9 @@ Program STDOUT errata goes to $output_file
 
 =cut
 
-                                # Allow for process STDOUT to go to a file
+# Allow for process STDOUT to go to a file
 sub set_output {
-    my ($self, $file) = @_;
+    my ( $self, $file ) = @_;
     $$self{output} = $file;
 }
 
@@ -103,14 +104,14 @@ Program STDERR errata goes to $errlog_file
 
 =cut
 
-                                # Allow for process STDERR to go to a file
+# Allow for process STDERR to go to a file
 sub set_errlog {
-    my ($self, $file) = @_;
+    my ( $self, $file ) = @_;
     $$self{errlog} = $file;
 }
 
 sub set_killsig {
-    my ($self, $killsig) = @_;
+    my ( $self, $killsig ) = @_;
     $$self{killsig} = $killsig;
 }
 
@@ -121,42 +122,63 @@ If you specify more than one program, they are run sequentially.  done_now retur
 =cut
 
 sub add {
-    my ($self, @cmds) = @_;
-    push @{$$self{cmds}}, @cmds;
-    print "\ndb add @cmds=@cmds.  total=@{$$self{cmds}}\n" if $main::Debug{process};
+    my ( $self, @cmds ) = @_;
+    push @{ $$self{cmds} }, @cmds;
+    print "\ndb add @cmds=@cmds.  total=@{$$self{cmds}}\n"
+      if $main::Debug{process};
 }
 
-                                # This is called by mh on exit to save persistant data
+# This is called by mh on exit to save persistant data
 sub restore_string {
     my ($self) = @_;
 
-    return '' if $main::OS_win; # we don't currently have a method to restore
-    							# Process_Item state in Windows
+    return '' if $main::OS_win;    # we don't currently have a method to restore
+                                   # Process_Item state in Windows
 
     my $restore_string = '';
 
-    if ($self->{cmds} and my $cmds = join($;, @{$self->{cmds}})) {
-        $cmds =~ s/\n/ /g; # Avoid new-lines on restored vars
+    if ( $self->{cmds} and my $cmds = join( $;, @{ $self->{cmds} } ) ) {
+        $cmds =~ s/\n/ /g;         # Avoid new-lines on restored vars
         $cmds =~ s/~/\\~/g;
-        $restore_string .= '@{' . $self->{object_name} . "->{cmds}} = split(\$;, q~$cmds~) if (!exists(" . $self->{object_name} . "->{cmds}));";
+        $restore_string .= '@{'
+          . $self->{object_name}
+          . "->{cmds}} = split(\$;, q~$cmds~) if (!exists("
+          . $self->{object_name}
+          . "->{cmds}));";
     }
-    $restore_string .= $self->{object_name} . "->{cmd_index} = q~$self->{cmd_index}~;\n" if $self->{cmd_index};
-    $restore_string .= $self->{object_name} . "->{timeout} = q~$self->{timeout}~;\n"     if $self->{timeout};
-    $restore_string .= $self->{object_name} . "->{output} = q~$self->{output}~;\n"       if $self->{output};
-    $restore_string .= $self->{object_name} . "->{errlog} = q~$self->{errlog}~;\n"       if $self->{errlog};
-    $restore_string .= $self->{object_name} . "->{killsig} = q~$self->{killsig}~;\n"     if $self->{killsig};
-    $restore_string .= $self->{object_name} . "->{started} = q~$self->{started}~;\n"     if $self->{started};
-    $restore_string .= $self->{object_name} . "->{pid} = q~$self->{pid}~;\n"             if $self->{pid};
-    $restore_string .= $self->{object_name} . "->restore_active();\n"                    if $self->{pid};
+    $restore_string .=
+      $self->{object_name} . "->{cmd_index} = q~$self->{cmd_index}~;\n"
+      if $self->{cmd_index};
+    $restore_string .=
+      $self->{object_name} . "->{timeout} = q~$self->{timeout}~;\n"
+      if $self->{timeout};
+    $restore_string .=
+      $self->{object_name} . "->{output} = q~$self->{output}~;\n"
+      if $self->{output};
+    $restore_string .=
+      $self->{object_name} . "->{errlog} = q~$self->{errlog}~;\n"
+      if $self->{errlog};
+    $restore_string .=
+      $self->{object_name} . "->{killsig} = q~$self->{killsig}~;\n"
+      if $self->{killsig};
+    $restore_string .=
+      $self->{object_name} . "->{started} = q~$self->{started}~;\n"
+      if $self->{started};
+    $restore_string .= $self->{object_name} . "->{pid} = q~$self->{pid}~;\n"
+      if $self->{pid};
+    $restore_string .= $self->{object_name} . "->restore_active();\n"
+      if $self->{pid};
     return $restore_string;
 }
 
 sub get_set_by {
     return $_[0]->{set_by};
 }
+
 sub set_target {
     $_[0]->{target} = $_[1];
 }
+
 sub get_target {
     return $_[0]->{target};
 }
@@ -168,128 +190,153 @@ Starts the process with optional program arguements
 =cut
 
 sub start {
-    my ($self, $cmd_override) = @_;
+    my ( $self, $cmd_override ) = @_;
     $$self{cmd_index} = 0;
-    &start_next($self, $cmd_override);
-    $$self{target} = $main::Respond_Target if $main::Respond_Target; # Pass default target along
-#   print "\ndb start total=@{$$self{cmds}}\n";
+    &start_next( $self, $cmd_override );
+    $$self{target} = $main::Respond_Target
+      if $main::Respond_Target;    # Pass default target along
+
+    #   print "\ndb start total=@{$$self{cmds}}\n";
 }
 
 sub start_next {
-    my ($self, $cmd_override) = @_;
+    my ( $self, $cmd_override ) = @_;
 
-    my ($cmd) = @{$$self{cmds}}[$$self{cmd_index}];
+    my ($cmd) = @{ $$self{cmds} }[ $$self{cmd_index} ];
     $$self{cmd_index}++;
 
     $cmd = $cmd_override if $cmd_override;
 
-                                # If $cmd starts with &, assume it is an internal function
-                                # that requires an eval.  perl abends fails with the new win32 fork :(
-    my $type = (substr($cmd, 0, 1) eq '&') ? 'eval' : 'external';
+    # If $cmd starts with &, assume it is an internal function
+    # that requires an eval.  perl abends fails with the new win32 fork :(
+    my $type = ( substr( $cmd, 0, 1 ) eq '&' ) ? 'eval' : 'external';
 
-    my ($cmd_path, $cmd_args);
+    my ( $cmd_path, $cmd_args );
 
-    if ($type eq 'eval') {
-        if ($main::OS_win and ($ENV{sourceExe} or &Win32::BuildNumber() < 600)) {
-            my $msg = "Sorry, {Process_Item eval fork only supported with windows perl build 5.6 or later.\n   cmd=$cmd";
-            print "$msg\n";
+    if ( $type eq 'eval' ) {
+        if ($main::OS_win) {
+            my $msg =
+              "Sorry, Process_Item eval fork only supported with linux.\n   cmd=$cmd";
             &main::print_log($msg);
             return;
         }
     }
     else {
-        ($cmd_path, $cmd_args) = &main::find_pgm_path($cmd); # From handy_utilities
+        ( $cmd_path, $cmd_args ) =
+          &main::find_pgm_path($cmd);    # From handy_utilities
         $cmd = "$cmd_path $cmd_args";
     }
 
-    my ($cflag, $pid);
-                                # Check to see if we have a previous 'start' to this object
-                                # has not finished yet.
-    if ($pid = $$self{pid}) {
-        print "Warning, a previous 'start' on this process has not finished yet\n";
-#        print "  The process will not be restarted:  cmd=$cmd\n";
-#        return;
+    my ( $cflag, $pid );
+
+    # Check to see if we have a previous 'start' to this object
+    # has not finished yet.
+    if ( $pid = $$self{pid} ) {
+        print
+          "Warning, a previous 'start' on this process has not finished yet\n";
+
+        #        print "  The process will not be restarted:  cmd=$cmd\n";
+        #        return;
         print "Killing unfinished process id $pid\n";
         &stop($self);
     }
 
-    print "Process start: cmd_path=$cmd_path cmd=$cmd\n" if $main::Debug{process};
+    print "Process start: cmd_path=$cmd_path cmd=$cmd\n"
+      if $main::Debug{process};
 
-                                # Store STDOUT to a file
-    if ($$self{output}) {
-        open( STDOUT_REAL, ">&STDOUT" )        or print "Process_Item Warning, can not backup STDOUT: $!\n";
-        open( STDOUT,      ">$$self{output}" ) or print "Process_Item Warning, can not open output file $$self{output}: $!\n";
-        print STDOUT_REAL '';   # To avoid the "used only once" perl -w warning
+    # Store STDOUT to a file
+    if ( $$self{output} ) {
+        open( STDOUT_REAL, ">&STDOUT" )
+          or print "Process_Item Warning, can not backup STDOUT: $!\n";
+        open( STDOUT, ">$$self{output}" )
+          or print
+          "Process_Item Warning, can not open output file $$self{output}: $!\n";
+        print STDOUT_REAL '';    # To avoid the "used only once" perl -w warning
     }
 
-                                # Store STDERR to a file
-    if ($$self{errlog}) {
-        open( STDERR_REAL, ">&STDERR" )        or print "Process_Item Warning, can not backup STDERR: $!\n";
-        open( STDERR,      ">$$self{errlog}" ) or print "Process_Item Warning, can not open errlog file $$self{errlog}: $!\n";
-        print STDERR_REAL '';   # To avoid the "used only once" perl -w warning
+    # Store STDERR to a file
+    if ( $$self{errlog} ) {
+        open( STDERR_REAL, ">&STDERR" )
+          or print "Process_Item Warning, can not backup STDERR: $!\n";
+        open( STDERR, ">$$self{errlog}" )
+          or print
+          "Process_Item Warning, can not open errlog file $$self{errlog}: $!\n";
+        print STDERR_REAL '';    # To avoid the "used only once" perl -w warning
     }
 
-    if ($main::OS_win and $type ne 'eval') {
-                                # A blank cflag will result in stdout to mh window.
-                                # Also, this runs beter, without as much problem with 'out ov env space' problems.
-                                # Also, with DETACH, console window is generated and it does not close, so 'done' does not work.
-                                #  ... unless we run with command /c pgm
-                                # But, with a blank cflag, we can not Kill hung processes on exit :(
-                                # UNLESS we run our process with perl, rather then command.com (perl get_url instead of get_url.bat)
-                                # So, we make sure that cmd_path is not a bat file (done in find_pgm_path above)
-                                # This also enables set_output to work ok (with a bat file that call perl, it comes up empty).
-                                # Got all that :)
-#       use Win32::Process;
-#       $cflag = CREATE_NEW_CONSOLE;
-#       $cflag = DETACHED_PROCESS || CREATE_NEW_CONSOLE;
-#       $cflag = DETACHED_PROCESS;
-#       $cflag = NORMAL_PRIORITY_CLASS;
-        $cflag = 0;             # Avoid uninit warnings
+    if ( $main::OS_win and $type ne 'eval' ) {
 
-        &Win32::Process::Create($pid, $cmd_path, $cmd, 0, $cflag , '.') or
-            warn "Process_Item Warning, start Process error: cmd_path=$cmd_path\n -  cmd=$cmd   error=", Win32::FormatMessage( Win32::GetLastError() ), "\n";
+        # A blank cflag will result in stdout to mh window.
+        # Also, this runs beter, without as much problem with 'out ov env space' problems.
+        # Also, with DETACH, console window is generated and it does not close, so 'done' does not work.
+        #  ... unless we run with command /c pgm
+        # But, with a blank cflag, we can not Kill hung processes on exit :(
+        # UNLESS we run our process with perl, rather then command.com (perl get_url instead of get_url.bat)
+        # So, we make sure that cmd_path is not a bat file (done in find_pgm_path above)
+        # This also enables set_output to work ok (with a bat file that call perl, it comes up empty).
+        # Got all that :)
+        #       use Win32::Process;
+        #       $cflag = CREATE_NEW_CONSOLE;
+        #       $cflag = DETACHED_PROCESS || CREATE_NEW_CONSOLE;
+        #       $cflag = DETACHED_PROCESS;
+        #       $cflag = NORMAL_PRIORITY_CLASS;
+        $cflag = 0;    # Avoid uninit warnings
+
+        &Win32::Process::Create( $pid, $cmd_path, $cmd, 0, $cflag, '.' )
+          or warn
+          "Process_Item Warning, start Process error: cmd_path=$cmd_path\n -  cmd=$cmd   error=",
+          Win32::FormatMessage( Win32::GetLastError() ), "\n";
 
         open( STDOUT, ">&STDOUT_REAL" ) if $$self{output};
         open( STDERR, ">&STDERR_REAL" ) if $$self{errlog};
 
         $$self{pid} = $pid;
-#       $pid->Wait(10000) if $run_mode eq 'inline'; # Wait for process
+
+        #       $pid->Wait(10000) if $run_mode eq 'inline'; # Wait for process
     }
     else {
         $pid = fork;
         if ($pid) {
-            print "Process start: parent pid=$pid type=$type cmd=$cmd\n" if $main::Debug{process};
+            print "Process start: parent pid=$pid type=$type cmd=$cmd\n"
+              if $main::Debug{process};
             open( STDOUT, ">&STDOUT_REAL" ) if $$self{output};
             open( STDERR, ">&STDERR_REAL" ) if $$self{errlog};
             $$self{pid} = $pid;
         }
-        elsif (defined $pid) {
-            print "Process start: child type=$type cmd=$cmd\n" if $main::Debug{process};
-            if ($type eq 'eval') {
-                package main;   # Had to do this to get the 'speak' function recognized without having to &main::speak() it
+        elsif ( defined $pid ) {
+            print "Process start: child type=$type cmd=$cmd\n"
+              if $main::Debug{process};
+            if ( $type eq 'eval' ) {
+
+                package main
+                  ; # Had to do this to get the 'speak' function recognized without having to &main::speak() it
                 eval $cmd;
                 print "Process Eval results: $@\n";
-                                # Exit with a do nothing exec, rather than exit.
-                                # If we call exit, objects DESTROY methods get called and might
-                                # mess up the parent process (e.g. CM11 Serial_Port objects
-                                # have a DESTROY method that will close the port
-                                # which will then revert to its pre-mh values).
-                                # exec '' errors with 'do nothing exec failed' and the child
-                                # never dies, so use /bin/true.
-#               exit;
-#               exec '';
-#               exec '/bin/true';
+
+                # Exit with a do nothing exec, rather than exit.
+                # If we call exit, objects DESTROY methods get called and might
+                # mess up the parent process (e.g. CM11 Serial_Port objects
+                # have a DESTROY method that will close the port
+                # which will then revert to its pre-mh values).
+                # exec '' errors with 'do nothing exec failed' and the child
+                # never dies, so use /bin/true.
+                #               exit;
+                #               exec '';
+                #               exec '/bin/true';
                 exec 'true';
                 die "do nothing exec failed: $!";
             }
             else {
                 # check if nice_level defined and if so, use it
                 my $nice_level = $self->nice_level;
-                if (defined $nice_level) {
-                   print "Process start: adjusting nice level to: $nice_level\n" if $main::Debug{process};
-                   exec "nice --adjustment=$nice_level $cmd_path $cmd_args";
-                } else {
-                   exec "$cmd_path $cmd_args";
+                if ( defined $nice_level ) {
+                    print
+                      "Process start: adjusting nice level to: $nice_level\n"
+                      if $main::Debug{process};
+                    exec "nice --adjustment=$nice_level $cmd_path $cmd_args";
+                }
+                else {
+                    exec "$cmd_path $cmd_args";
                 }
             }
             die "Error in start Process exec for cmd=$cmd\n";
@@ -298,7 +345,7 @@ sub start_next {
             print "Error in start Process fork for cmd=$cmd\n";
         }
     }
-    push(@active_processes, $self);
+    push( @active_processes, $self );
     $$self{started} = time;
     $$self{runtime} = 0;
     undef $$self{timed_out};
@@ -307,7 +354,7 @@ sub start_next {
 
 sub restore_active {
     my ($self) = @_;
-    push(@active_processes, $self);
+    push( @active_processes, $self );
 }
 
 =item C<done>
@@ -318,7 +365,7 @@ Returns the time (seconds since epoch) that the process finished.  If the proces
 
 sub done {
     my ($self) = @_;
-    return ($$self{pid}) ? 0 : 1;
+    return ( $$self{pid} ) ? 0 : 1;
 }
 
 =item C<pid>
@@ -340,7 +387,7 @@ Returns the time when the process timed out.  done_now will still trigger for a 
 
 sub timed_out {
     my ($self) = @_;
-    return ($$self{timed_out}) ? 1 : 0;
+    return ( $$self{timed_out} ) ? 1 : 0;
 }
 
 sub runtime {
@@ -359,12 +406,12 @@ sub done_now {
     return $_[0]->{done_now};
 }
 
-                                # Check for processes that just finished
+# Check for processes that just finished
 sub harvest {
 
-                                # Unset done_now flag from previous pass
+    # Unset done_now flag from previous pass
     my $process;
-    while ($process = shift @done_processes) {
+    while ( $process = shift @done_processes ) {
         undef $$process{done_now};
     }
 
@@ -372,37 +419,48 @@ sub harvest {
     my $time = time;
     for $process (@active_processes) {
         my $pid = $$process{pid};
-        next unless $pid;       # In case somehow we already harvested his pid
-                                # Check if process is done or timed out
-        if (defined $$process{timeout} and $time > ($$process{timeout} + $$process{started})) {
-            print "Process timed out process=$$process{object_name} pid=$pid cmd=@{$$process{cmds}} timeout=$$process{timeout}\n" if $main::Debug{process};
+        next unless $pid;    # In case somehow we already harvested his pid
+                             # Check if process is done or timed out
+        if ( defined $$process{timeout}
+            and $time > ( $$process{timeout} + $$process{started} ) )
+        {
+            print
+              "Process timed out process=$$process{object_name} pid=$pid cmd=@{$$process{cmds}} timeout=$$process{timeout}\n"
+              if $main::Debug{process};
             $$process{timed_out} = $time;
             $process->stop();
         }
         $$process{runtime} = time - $$process{started};
-                                # For linux, we need to look in /proc/"pid" since if the process was started before the
-                                # last restart of misterhouse.  If the process was started before the last hard restart,
-                                # the process will not be a waiting child of misterhouse and will only appear in /proc.
-        if (($main::OS_win and $pid->Wait(0)) or
-            (!$main::OS_win and waitpid($pid, 1) and !(-e "/proc/$pid") ) or
-            ($$process{timed_out})) {
-                                # Mark as done or start the next cmd?
-            if ($$process{cmd_index} < @{$$process{cmds}}) {
-                print "Process starting next cmd process=$$process{object_name} pid=$pid index=$$process{cmd_index}\n" if $main::Debug{process};
+
+        # For linux, we need to look in /proc/"pid" since if the process was started before the
+        # last restart of misterhouse.  If the process was started before the last hard restart,
+        # the process will not be a waiting child of misterhouse and will only appear in /proc.
+        if (   ( $main::OS_win and $pid->Wait(0) )
+            or
+            ( !$main::OS_win and waitpid( $pid, 1 ) and !( -e "/proc/$pid" ) )
+            or ( $$process{timed_out} ) )
+        {
+            # Mark as done or start the next cmd?
+            if ( $$process{cmd_index} < @{ $$process{cmds} } ) {
+                print
+                  "Process starting next cmd process=$$process{object_name} pid=$pid index=$$process{cmd_index}\n"
+                  if $main::Debug{process};
                 delete $$process{pid};
                 &start_next($process);
             }
             else {
-                push(@done_processes, $process);
+                push( @done_processes, $process );
                 $$process{done_now}++;
                 $$process{done} = $time;
                 delete $$process{pid};
                 delete $$process{started};
-                print "Process done_now process=$$process{object_name} pid=$pid to=$$process{timed_out} cmd=@{$$process{cmds}}\n" if $main::Debug{process};
+                print
+                  "Process done_now process=$$process{object_name} pid=$pid to=$$process{timed_out} cmd=@{$$process{cmds}}\n"
+                  if $main::Debug{process};
             }
         }
         else {
-            push(@active_processes2, $process);
+            push( @active_processes2, $process );
         }
     }
     @active_processes = @active_processes2;
@@ -415,36 +473,42 @@ Stops the process. If called as a stand alone function (not as an object method)
 =cut
 
 sub stop {
-    my @process_list  = @_;
-                                # If none specified, kill em all!
+    my @process_list = @_;
+
+    # If none specified, kill em all!
     @process_list = @active_processes unless @process_list;
 
     for my $process (@process_list) {
-        next if ref $process eq 'SCALAR'; # In case a non ref was passed in
+        next if ref $process eq 'SCALAR';    # In case a non ref was passed in
         my $pid = $$process{pid};
         next unless $pid;
         $$process{runtime} = time - $$process{started};
         delete $$process{pid};
         delete $$process{started};
-        print "\nKilling unfinished process id $pid for $process cmd @{$$process{cmds}}\n" if $main::Debug{process};
+        print
+          "\nKilling unfinished process id $pid for $process cmd @{$$process{cmds}}\n"
+          if $main::Debug{process};
         if ($main::OS_win) {
-#           $pid->Suspend() or print "Warning 1, stop Process error:", Win32::FormatMessage( Win32::GetLastError() ), "\n";
-#           $pid->Resume() or print "Warning 1a, stop Process error:", Win32::FormatMessage( Win32::GetLastError() ), "\n";
-#           $pid->Wait(2) or print "Warning 1b, stop Process error:", Win32::FormatMessage( Win32::GetLastError() ), "\n";
-            $pid->Kill(1) or print "Warning 2, stop Process error:", Win32::FormatMessage( Win32::GetLastError() ), "\n";
+
+            #           $pid->Suspend() or print "Warning 1, stop Process error:", Win32::FormatMessage( Win32::GetLastError() ), "\n";
+            #           $pid->Resume() or print "Warning 1a, stop Process error:", Win32::FormatMessage( Win32::GetLastError() ), "\n";
+            #           $pid->Wait(2) or print "Warning 1b, stop Process error:", Win32::FormatMessage( Win32::GetLastError() ), "\n";
+            $pid->Kill(1)
+              or print "Warning 2, stop Process error:",
+              Win32::FormatMessage( Win32::GetLastError() ), "\n";
         }
         else {
-	    if (defined $$process{killsig}) {
-              kill $$process{killsig}, $pid;
-  	    }
+            if ( defined $$process{killsig} ) {
+                kill $$process{killsig}, $pid;
+            }
             else {
-              kill 9, $pid;
-  	    }
+                kill 9, $pid;
+            }
         }
     }
 }
 
-                                # Not implemented yet
+# Not implemented yet
 sub results {
     my ($self) = @_;
 }
@@ -456,15 +520,27 @@ Support for setting "nice" level; only useful for *nix
 =cut
 
 sub nice_level {
-    my ($self, $nice_level) = @_;
+    my ( $self, $nice_level ) = @_;
     $$self{nice_level} = $nice_level if defined $nice_level;
-    if (defined $$self{nice_level}) {
-       return $$self{nice_level};
-    } elsif (defined $main::config_parms{process_nice_level}) {
-       return $main::config_parms{process_nice_level};
-    } else {
-       return undef;
+    if ( defined $$self{nice_level} ) {
+        return $$self{nice_level};
     }
+    elsif ( defined $main::config_parms{process_nice_level} ) {
+        return $main::config_parms{process_nice_level};
+    }
+    else {
+        return undef;
+    }
+}
+
+=item C<get_type()>
+
+Returns the class (or type, in Misterhouse terminology) of this item.
+
+=cut
+
+sub get_type {
+    return ref $_[0];
 }
 
 #
@@ -562,7 +638,6 @@ sub nice_level {
 #
 
 1;
-
 
 =back
 

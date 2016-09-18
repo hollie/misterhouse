@@ -10,6 +10,13 @@
 @rem  etc, on each pass of the loop until there are not more args,
 @rem  then program continues from START
 
+@rem CD into bin directory (where this script lives) so the mh.startup
+@rem  file will be deleted correctly by mh when exiting normally.  
+@rem  mh will only unlink the mh.startup file if it is in bin. This is
+@rem  consistent with mhl on linux
+cd %~p0
+
+
 set pgmargs=
 set noloop=0
 :GETARGS

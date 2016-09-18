@@ -3,7 +3,7 @@
 # $Revision$
 # $Date$
 
-my $html='';
+my $html = '';
 
 $html .= qq[
 <html>

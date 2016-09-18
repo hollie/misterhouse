@@ -1,3 +1,4 @@
+
 =head1 B<my_lib>
 
 =head2 SYNOPSIS
@@ -85,55 +86,56 @@ use Config;
 
 my $archname = $Config{'archname'};
 
-@ORIG_INC = @INC;	# take a handy copy of 'original' value
-
+@ORIG_INC = @INC;    # take a handy copy of 'original' value
 
 sub import {
     shift;
-    foreach (reverse @_) {
-	## Ignore this if not defined.
-	next unless defined($_);
-	if ($_ eq '') {
-	    require Carp;
-	    Carp::carp("Empty compile time value given to use lib");
-							# at foo.pl line ...
-	}
-	if (-e && ! -d _) {
-	    require Carp;
-	    Carp::carp("Parameter to use lib must be directory, not file");
-	}
-	unshift(@INC, $_);
-	# Put a corresponding archlib directory infront of $_ if it
-	# looks like $_ has an archlib directory below it.
-	if (-d "$_/$archname") {
-	    unshift(@INC, "$_/$archname")    if -d "$_/$archname/auto";
-	    unshift(@INC, "$_/$archname/$]") if -d "$_/$archname/$]/auto";
-	}
+    foreach ( reverse @_ ) {
+        ## Ignore this if not defined.
+        next unless defined($_);
+        if ( $_ eq '' ) {
+            require Carp;
+            Carp::carp("Empty compile time value given to use lib");
+
+            # at foo.pl line ...
+        }
+        if ( -e && !-d _ ) {
+            require Carp;
+            Carp::carp("Parameter to use lib must be directory, not file");
+        }
+        unshift( @INC, $_ );
+
+        # Put a corresponding archlib directory infront of $_ if it
+        # looks like $_ has an archlib directory below it.
+        if ( -d "$_/$archname" ) {
+            unshift( @INC, "$_/$archname" )    if -d "$_/$archname/auto";
+            unshift( @INC, "$_/$archname/$]" ) if -d "$_/$archname/$]/auto";
+        }
     }
 }
-
 
 sub unimport {
     shift;
     my $mode = shift if $_[0] =~ m/^:[A-Z]+/;
 
     my %names;
-    foreach(@_) {
-	++$names{$_};
-	++$names{"$_/$archname"} if -d "$_/$archname/auto";
+    foreach (@_) {
+        ++$names{$_};
+        ++$names{"$_/$archname"} if -d "$_/$archname/auto";
     }
 
-    if ($mode and $mode eq ':ALL') {
-	# Remove ALL instances of each named directory.
-	@INC = grep { !exists $names{$_} } @INC;
-    } else {
-	# Remove INITIAL instance(s) of each named directory.
-	@INC = grep { --$names{$_} < 0   } @INC;
+    if ( $mode and $mode eq ':ALL' ) {
+
+        # Remove ALL instances of each named directory.
+        @INC = grep { !exists $names{$_} } @INC;
+    }
+    else {
+        # Remove INITIAL instance(s) of each named directory.
+        @INC = grep { --$names{$_} < 0 } @INC;
     }
 }
 
 1;
-
 
 =back
 

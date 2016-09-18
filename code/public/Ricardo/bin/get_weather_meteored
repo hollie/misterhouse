@@ -22,23 +22,31 @@
 
 use strict;
 
-my ($Pgm_Path, $Pgm_Name);
+my ( $Pgm_Path, $Pgm_Name );
+
 BEGIN {
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
-my ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+my ($Version) =
+  q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
 
 #print "Command: $Pgm_Name @ARGV\n";
 #print "Version: $Version\n";
 
 use Getopt::Long;
 my %parms;
-if (!&GetOptions(\%parms, "reget", "h", "help", "v", "debug", "city:s", "zone:s", "state:s", "file=s", "no_log") or
-    @ARGV or
-    ($parms{h} or $parms{help})) {
-    print<<eof;
+if (
+    !&GetOptions(
+        \%parms,  "reget",  "h",       "help",   "v", "debug",
+        "city:s", "zone:s", "state:s", "file=s", "no_log"
+    )
+    or @ARGV
+    or ( $parms{h} or $parms{help} )
+  )
+{
+    print <<eof;
 
 $Pgm_Name gets weather info
 
@@ -66,58 +74,64 @@ Usage:
 
 eof
     exit;
-  }
+}
 
-my ($conditions, $forecast, %data);
+my ( $conditions, $forecast, %data );
 my %config_parms;
-
 
 use vars qw(%Weather @Weather_Forecast);
 
 my $caller = caller;
-my $return_flag = ($caller and $caller ne 'main') ? 1 : 0;
+my $return_flag = ( $caller and $caller ne 'main' ) ? 1 : 0;
 
 #use my_lib "$Pgm_Path/../lib/site"; # See note in lib/mh_perl2exe.pl for lib -> my_lib explaination
-BEGIN { eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'" } # Use BEGIN eval to keep perl2exe happy
+BEGIN {
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";
+}    # Use BEGIN eval to keep perl2exe happy
 
-require 'handy_utilities.pl';       # For read_mh_opts funcion
-&main::read_mh_opts(\%config_parms, $Pgm_Path);
+require 'handy_utilities.pl';    # For read_mh_opts funcion
+&main::read_mh_opts( \%config_parms, $Pgm_Path );
 
 use HTML::TableExtract;
 use Date::Parse;
 use Date::Format;
 
 #set madrid (Retiro) as default
-$parms{city}  = $config_parms{weather_meteored_city} unless $parms{city};
-$parms{city}  = 'LEMD'                               unless $parms{city};
+$parms{city} = $config_parms{weather_meteored_city} unless $parms{city};
+$parms{city} = 'LEMD' unless $parms{city};
 
 my $WeatherURL;
-$WeatherURL = 'http://www.meteored.com/situacion_actual/hw3.php?icao=' . $parms{city};
+$WeatherURL =
+  'http://www.meteored.com/situacion_actual/hw3.php?icao=' . $parms{city};
 
-my $f_weather_html = "$config_parms{data_dir}/../web/ia5/outside/weather_local.html";
+my $f_weather_html =
+  "$config_parms{data_dir}/../web/ia5/outside/weather_local.html";
 my $f_weather_data = "$config_parms{data_dir}/weather_data";
 my $f_weather_temp = "$config_parms{data_dir}/weather_temp";
 
-my $debug = 1 if ($parms{debug});
+my $debug = 1 if ( $parms{debug} );
 
 ###############
 # get weather #
 ###############
 
-    get_url_ua($WeatherURL, $f_weather_html);
-    my $html = &file_read($f_weather_html);
-    $html =~ s|<html>|<html>\n<BASE href='http://www.meteored.com/situacion_actual/'>|i;
-    $html =~ s/<\/head>.*?<\!-- METAR METAR/<\/head>\n<\!-- METAR METAR/is;
-    $html =~ s/END ZONE ROWS----------- \/\/-->.*?$/END ZONE ROWS----------- \/\/-->\n/is;
+get_url_ua( $WeatherURL, $f_weather_html );
+my $html = &file_read($f_weather_html);
+$html =~
+  s|<html>|<html>\n<BASE href='http://www.meteored.com/situacion_actual/'>|i;
+$html =~ s/<\/head>.*?<\!-- METAR METAR/<\/head>\n<\!-- METAR METAR/is;
+$html =~
+  s/END ZONE ROWS----------- \/\/-->.*?$/END ZONE ROWS----------- \/\/-->\n/is;
+
 #    print "HTML:\n$html\n" if $debug;
-    &file_write($f_weather_html, $html);
+&file_write( $f_weather_html, $html );
 
 #################
 # parse weather #
 #################
 
-    print "parsing weather data from $f_weather_html\n" if $parms{v};
-    &parse_weather_meteored($f_weather_html);
+print "parsing weather data from $f_weather_html\n" if $parms{v};
+&parse_weather_meteored($f_weather_html);
 
 ################
 # save weather #
@@ -134,34 +148,35 @@ exit(0);
 
 # from get_url
 sub get_url_ua {
-    my $url = shift;
+    my $url  = shift;
     my $file = shift;
 
     use LWP::UserAgent;
 
     my $ua = new LWP::UserAgent;
-    $config_parms{proxy} = $ENV{HTTP_PROXY}           unless $config_parms{proxy};
-    $ua -> proxy(['http', 'ftp'] => $config_parms{proxy}) if $config_parms{proxy};
+    $config_parms{proxy} = $ENV{HTTP_PROXY} unless $config_parms{proxy};
+    $ua->proxy( [ 'http', 'ftp' ] => $config_parms{proxy} )
+      if $config_parms{proxy};
 
-    $ua->timeout([120]);         # Time out after 60 seconds 
-    $ua->env_proxy(); 
+    $ua->timeout( [120] );    # Time out after 60 seconds
+    $ua->env_proxy();
 
-    my $request = new HTTP::Request('GET', $url);
+    my $request = new HTTP::Request( 'GET', $url );
     my $response;
 
-    print "Retrieving (with ua) $url into $file ...\n" unless $config_parms{quiet};
-    if ($file eq '/dev/null') {
+    print "Retrieving (with ua) $url into $file ...\n"
+      unless $config_parms{quiet};
+    if ( $file eq '/dev/null' ) {
         $response = $ua->simple_request($request);
     }
     else {
-        $response = $ua->simple_request($request, $file);
+        $response = $ua->simple_request( $request, $file );
     }
 
-    if ($response->is_error()) {
+    if ( $response->is_error() ) {
         printf "error: %s\n", $response->status_line;
     }
 }
-
 
 # There is an HTML weather page on disk. Parse the weather data out of it and
 # save the results in a file so that the parent MH process can read them back
@@ -172,10 +187,10 @@ sub parse_weather_meteored {
     my $html = &file_read($file);
     my $tmp;
 
-    %Weather = ();
+    %Weather          = ();
     @Weather_Forecast = ();
 
-print STDERR $html if ($debug);
+    print STDERR $html if ($debug);
 
     # find the start of the actual data
     $html =~ s/.*BEGIN CURRENT CONDITIONS//s;
@@ -195,93 +210,98 @@ print STDERR $html if ($debug);
     $html =~ s/<\/font>//gs;
     $html =~ s/\&\#176;/\º/gs;
 
+    print STDERR $html if ($debug);
 
-print STDERR $html if ($debug);
-
-    ($html =~ m/\<td valign="top" colspan="2" align="center"><font size="2">([^<]+)/i) &&
-	($Weather{Conditions} = $1);
-print STDERR "Conditions|$Weather{Conditions}|\n" if ($debug);
+    ( $html =~
+          m/\<td valign="top" colspan="2" align="center"><font size="2">([^<]+)/i
+    ) && ( $Weather{Conditions} = $1 );
+    print STDERR "Conditions|$Weather{Conditions}|\n" if ($debug);
 
     $html =~ s/<.*?>//gs;
-#    $html =~ s/\n//gs;
-    
-    ($html =~ m/Temperatura\:\s*(\-?\d+)º/i) &&
-        ($Weather{TempOutdoor} = $1);
-print STDERR "TempOutdoor|$Weather{TempOutdoor}|\n" if ($debug);
 
-    ($html =~ m/Humedad:\s*(\d+)\%/i) &&
-        ($Weather{HumidOutdoor} = $1);
-print STDERR "HumidOutdoor|$Weather{HumidOutdoor}|\n" if ($debug);
+    #    $html =~ s/\n//gs;
 
-    if ($html =~ m/var cad=\"(\w*)\s+(\d+)\s+MPH/i) {
-	my $direc = $1;
-	my $wind = $2;
-	$Weather{WindAvg} = $Weather{WindAvgSpeed} = $Weather{WindGustSpeed} = int($wind * 1.609344 + 0.5);
-	$Weather{WindGustDir} = &convert_to_degrees($direc);
-	$Weather{WindAvgDir} = &convert_to_degrees($direc);
-	$Weather{Wind} = "$direc $Weather{WindAvg} km/h";
-print STDERR "Wind|$Weather{Wind}|, " if ($debug);
-print STDERR "WindGustDir|$Weather{WindGustDir}|, " if ($debug);
-print STDERR "WindAvgDir|$Weather{WindAvgDir}|, " if ($debug);
-print STDERR "WindAvgSpeed|$Weather{WindAvgSpeed}|, " if ($debug);
-print STDERR "WindAvg|$Weather{WindAvg}|\n" if ($debug);
+    ( $html =~ m/Temperatura\:\s*(\-?\d+)º/i )
+      && ( $Weather{TempOutdoor} = $1 );
+    print STDERR "TempOutdoor|$Weather{TempOutdoor}|\n" if ($debug);
+
+    ( $html =~ m/Humedad:\s*(\d+)\%/i )
+      && ( $Weather{HumidOutdoor} = $1 );
+    print STDERR "HumidOutdoor|$Weather{HumidOutdoor}|\n" if ($debug);
+
+    if ( $html =~ m/var cad=\"(\w*)\s+(\d+)\s+MPH/i ) {
+        my $direc = $1;
+        my $wind  = $2;
+        $Weather{WindAvg} = $Weather{WindAvgSpeed} = $Weather{WindGustSpeed} =
+          int( $wind * 1.609344 + 0.5 );
+        $Weather{WindGustDir} = &convert_to_degrees($direc);
+        $Weather{WindAvgDir}  = &convert_to_degrees($direc);
+        $Weather{Wind}        = "$direc $Weather{WindAvg} km/h";
+        print STDERR "Wind|$Weather{Wind}|, "                 if ($debug);
+        print STDERR "WindGustDir|$Weather{WindGustDir}|, "   if ($debug);
+        print STDERR "WindAvgDir|$Weather{WindAvgDir}|, "     if ($debug);
+        print STDERR "WindAvgSpeed|$Weather{WindAvgSpeed}|, " if ($debug);
+        print STDERR "WindAvg|$Weather{WindAvg}|\n"           if ($debug);
     }
 
-    ($html =~ m/Presi&oacute;n:\s*(\d+)\s+mb\./i) &&
-        ($Weather{Barom} = $1);
-print STDERR "Barom|$Weather{Barom}|\n" if ($debug);
+    ( $html =~ m/Presi&oacute;n:\s*(\d+)\s+mb\./i )
+      && ( $Weather{Barom} = $1 );
+    print STDERR "Barom|$Weather{Barom}|\n" if ($debug);
 
-    ($html =~ m/Punto de roc\&iacute;o:\s*(\-?\d+)/i) &&
-	($Weather{DewOutdoor} = $1);
-print STDERR "DewOutdoor|$Weather{DewOutdoor}|\n" if ($debug);
+    ( $html =~ m/Punto de roc\&iacute;o:\s*(\-?\d+)/i )
+      && ( $Weather{DewOutdoor} = $1 );
+    print STDERR "DewOutdoor|$Weather{DewOutdoor}|\n" if ($debug);
 
-    ($html =~ m/&Iacute;ndice de calor:\s*(\-?\d+)/i) &&
-	($Weather{WindChill} = $1);
+    ( $html =~ m/&Iacute;ndice de calor:\s*(\-?\d+)/i )
+      && ( $Weather{WindChill} = $1 );
     my $WindChillHot;
-    ($html =~ m/Aire Fr\&iacute;o:\s*(\-?\d+)/i) &&
-	($WindChillHot = $1);
-    $Weather{WindChill} = $WindChillHot if ($WindChillHot > $Weather{TempOutdoor});
-print STDERR "WindChill|$Weather{WindChill}|\n" if ($debug);
+    ( $html =~ m/Aire Fr\&iacute;o:\s*(\-?\d+)/i )
+      && ( $WindChillHot = $1 );
+    $Weather{WindChill} = $WindChillHot
+      if ( $WindChillHot > $Weather{TempOutdoor} );
+    print STDERR "WindChill|$Weather{WindChill}|\n" if ($debug);
 
 ### GET FORECAST
-    
-    my $forecast = $html;
-#    @Weather_Forecast = @forecast;
-}
 
+    my $forecast = $html;
+
+    #    @Weather_Forecast = @forecast;
+}
 
 sub save_weather_sp {
     my $file = shift;
 
     # save the data for import by parent
-    my ($key, $perl, $line);
-    
+    my ( $key, $perl, $line );
+
     $perl = '%Weather=(' . "\n";
-    foreach $key (keys(%Weather)) {
-	# cleanup the text
-	my $data = $Weather{$key};
-	$data =~ s/\s*(\xb0|&deg;)\s*[C]*//g;
+    foreach $key ( keys(%Weather) ) {
 
-	$data =~ s/\s*%\s*//g;
-#	$data =~ s;\s*km/h\s*;;g;
-	$data =~ s/\s*kPa\s*//g;
-	$data =~ s/\s*º\s*//g;
+        # cleanup the text
+        my $data = $Weather{$key};
+        $data =~ s/\s*(\xb0|&deg;)\s*[C]*//g;
 
-	$perl .= '    ' . $key . ' => ' . "'" . $data . "',\n";
+        $data =~ s/\s*%\s*//g;
+
+        #	$data =~ s;\s*km/h\s*;;g;
+        $data =~ s/\s*kPa\s*//g;
+        $data =~ s/\s*º\s*//g;
+
+        $perl .= '    ' . $key . ' => ' . "'" . $data . "',\n";
     }
     $perl .= ');' . "\n";
 
     $perl .= '@Weather_Forecast=(';
-    for (my $i = 0; $i <= $#Weather_Forecast; $i += 4) { 
-	$perl .= "\n    '" . $Weather_Forecast[$i] . "',";
-	$perl .= "    '" . $Weather_Forecast[$i+1] . "',";
-	$perl .= "    '" . $Weather_Forecast[$i+2] . "',";
-	$perl .= "    '" . $Weather_Forecast[$i+3] . "',";
+    for ( my $i = 0; $i <= $#Weather_Forecast; $i += 4 ) {
+        $perl .= "\n    '" . $Weather_Forecast[$i] . "',";
+        $perl .= "    '" . $Weather_Forecast[ $i + 1 ] . "',";
+        $perl .= "    '" . $Weather_Forecast[ $i + 2 ] . "',";
+        $perl .= "    '" . $Weather_Forecast[ $i + 3 ] . "',";
     }
-    $perl =~ s/,$//; # remove trailing comma
+    $perl =~ s/,$//;    # remove trailing comma
     $perl .= "\n" . ');' . "\n";
 
-    main::file_write($file, $perl);
+    main::file_write( $file, $perl );
 }
 
 # convert text wind direction to degrees.
@@ -289,29 +309,28 @@ sub convert_to_degrees {
     my $text = shift;
     my $dir;
 
-    ($text eq 'N')   && ($dir = 0);
-    ($text eq 'NNE') && ($dir = 22);
-    ($text eq 'NE')  && ($dir = 45);
-    ($text eq 'ENE') && ($dir = 67);
+    ( $text eq 'N' )   && ( $dir = 0 );
+    ( $text eq 'NNE' ) && ( $dir = 22 );
+    ( $text eq 'NE' )  && ( $dir = 45 );
+    ( $text eq 'ENE' ) && ( $dir = 67 );
 
-    ($text eq 'E')   && ($dir = 90);
-    ($text eq 'ESE') && ($dir = 112);
-    ($text eq 'SE')  && ($dir = 135);
-    ($text eq 'SSE') && ($dir = 157);
+    ( $text eq 'E' )   && ( $dir = 90 );
+    ( $text eq 'ESE' ) && ( $dir = 112 );
+    ( $text eq 'SE' )  && ( $dir = 135 );
+    ( $text eq 'SSE' ) && ( $dir = 157 );
 
-    ($text eq 'S')   && ($dir = 180);
-    ($text eq 'SSW') && ($dir = 202);
-    ($text eq 'SW')  && ($dir = 225);
-    ($text eq 'WSW') && ($dir = 247);
+    ( $text eq 'S' )   && ( $dir = 180 );
+    ( $text eq 'SSW' ) && ( $dir = 202 );
+    ( $text eq 'SW' )  && ( $dir = 225 );
+    ( $text eq 'WSW' ) && ( $dir = 247 );
 
-    ($text eq 'W')   && ($dir = 270);
-    ($text eq 'WNW') && ($dir = 292);
-    ($text eq 'NW')  && ($dir = 315);
-    ($text eq 'NNW') && ($dir = 337);
+    ( $text eq 'W' )   && ( $dir = 270 );
+    ( $text eq 'WNW' ) && ( $dir = 292 );
+    ( $text eq 'NW' )  && ( $dir = 315 );
+    ( $text eq 'NNW' ) && ( $dir = 337 );
 
     return $dir;
 }
-
 
 ###### v1.1	21/03/05
 #Solved error in wind speed parse (eliminated search for \" after MPH)

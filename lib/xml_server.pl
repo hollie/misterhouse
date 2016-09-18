@@ -275,6 +275,52 @@ sub xml {
         $xml .= "  </vars>\n";
     }
 
+    # List print_log phrases
+    if ( $request{print_log} ) {
+        $xml .= "  <print_log>\n";
+        my $time = ::print_log_current_time();
+        $xml .= "    <time>$time</time>\n";
+        my @log;
+        $xml .= "    <text>\n";
+        if ( $options{time}{active} ) {
+            @log = ::print_log_since( $options{time}{members}[0] );
+        }
+        else {
+            @log = ::print_log_since();
+        }
+        my $value = \@log;
+        $value = encode_entities( $value, "\200-\377&<>" );
+        foreach (@$value) {
+            $_ = 'undef' unless defined $_;
+            $xml .= "      <value>$_</value>\n";
+        }
+        $xml .= "    </text>\n";
+        $xml .= "  </print_log>\n";
+    }
+
+    # List speak phrases
+    if ( $request{print_speaklog} ) {
+        $xml .= "  <print_speaklog>\n";
+        my $time = ::print_speaklog_current_time();
+        $xml .= "    <time>$time</time>\n";
+        my @log;
+        $xml .= "    <text>\n";
+        if ( $options{time}{active} ) {
+            @log = ::print_speaklog_since( $options{time}{members}[0] );
+        }
+        else {
+            @log = ::print_speaklog_since();
+        }
+        my $value = \@log;
+        $value = encode_entities( $value, "\200-\377&<>" );
+        foreach (@$value) {
+            $_ = 'undef' unless defined $_;
+            $xml .= "      <value>$_</value>\n";
+        }
+        $xml .= "    </text>\n";
+        $xml .= "  </print_speaklog>\n";
+    }
+
     # List hash values
     foreach my $hash (
         qw( config_parms Menus photos Save Socket_Ports triggers
@@ -303,7 +349,7 @@ sub xml {
     $xml = encode_entities( $xml, "\200-\377&" );
     $options{xsl}{members}[0] = ''
       if exists $options{xsl}
-          and not defined $options{xsl}{members}[0];
+      and not defined $options{xsl}{members}[0];
     return &xml_page( $xml, $options{xsl}{members}[0] );
 }
 
@@ -333,9 +379,9 @@ sub walk_var {
     }
 
     my ( $iref, $iname );
-    for ( my $i = $indent ; $i-- ; $i > 0 ) { $xml_vars .= '  ' }
+    for ( my $i = $indent; $i--; $i > 0 ) { $xml_vars .= '  ' }
     $xml_vars .= "<var>\n";
-    for ( my $i = $indent + 1 ; $i-- ; $i > 0 ) { $xml_vars .= '  ' }
+    for ( my $i = $indent + 1; $i--; $i > 0 ) { $xml_vars .= '  ' }
     $name = encode_entities($name);
 
     if ( $type eq '' ) {
@@ -381,7 +427,7 @@ sub walk_var {
         $xml_vars .= "<name>\&$name</name>\n";
     }
 
-    for ( my $i = $indent ; $i-- ; $i > 0 ) { $xml_vars .= '  ' }
+    for ( my $i = $indent; $i--; $i > 0 ) { $xml_vars .= '  ' }
     $xml_vars .= "</var>\n";
 
     return $xml_vars;

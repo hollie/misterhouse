@@ -1,0 +1,41 @@
+# This file is an example MHT file for the Clipsal CBus module. 
+# Note that you should generate your own by defining only the 
+# CGate object, and letting MisterHouse generate the others. This
+# example is provided purely to show the format.
+
+Format = A
+
+#TYPE, 		Address, 			Name, 								GroupList, 						Other
+
+CBUS_CGATE,   CGATE
+
+# CBus trigger group addresses.
+
+CBUS_TRIGGER, //HOME/254/202/1, 	Kitchen_Trigger_Group, 				All_CBus, 						Kitchen Trigger Group
+CBUS_TRIGGER, //HOME/254/202/2, 	Bed_2_Fan_Speed, 					All_CBus|Bed_2, 				Bed 2 Fan Speed
+CBUS_TRIGGER, //HOME/254/202/4, 	Bed_3_Fan_Speed, 					All_CBus|Bed_3, 				Bed 3 Fan Speed
+CBUS_TRIGGER, //HOME/254/202/5, 	Master_Bed_Fan_Speed, 				All_CBus|Master_Bed, 			Master Bed Fan Speed
+
+# CBus "lighting" group addresses.
+
+CBUS_GROUP, //HOME/254/56/0, 	Study_Light, 						All_CBus|Study, 				Study Light
+CBUS_GROUP, //HOME/254/56/1, 	Front_Entrance_Light, 				All_CBus|Lounge|Stairway, 		Front Entrance Light
+CBUS_GROUP, //HOME/254/56/2, 	Outside_Front_Lights, 				All_CBus|Outside, 				Outside Front Lights
+CBUS_GROUP, //HOME/254/56/3, 	Kitchen_Downlights, 				All_CBus|Kitchen, 				Kitchen Downlights
+CBUS_GROUP, //HOME/254/56/4, 	Master_Bed_Fan, 					All_CBus|Master_Bed, 			Master Bed Fan
+CBUS_GROUP, //HOME/254/56/5, 	Downstairs_Hallway_Spotlight, 		All_CBus|Kitchen|Lounge, 		Downstairs Hallway Spotlight
+CBUS_GROUP, //HOME/254/56/6, 	Downstairs_Bathroom_Heatlamp_1, 	All_CBus|Downstairs_Bathroom, 	Downstairs Bathroom Heatlamp 1
+CBUS_GROUP, //HOME/254/56/7, 	Downstairs_Bathroom_Heatlamp_2, 	All_CBus|Downstairs_Bathroom, 	Downstairs Bathroom Heatlamp 2
+CBUS_GROUP, //HOME/254/56/8, 	Downstairs_Bathroom_Fan, 			All_CBus|Downstairs_Bathroom, 	Downstairs Bathroom Fan
+CBUS_GROUP, //HOME/254/56/9, 	Guest_Bedroom_Cupboard_Light, 		All_CBus|Guest_Bedroom, 		Guest Bedroom Cupboard Light
+
+# CBus Unit addresses.
+
+CBUS_UNIT, 	0, 					USB_PC_Interface, 
+CBUS_UNIT, 	3, 					Downstairs_Relay_1, 
+CBUS_UNIT, 	4, 					Upstairs_Relay_1, 
+CBUS_UNIT, 	5, 					Upstairs_Dimmer_1, 
+CBUS_UNIT, 	6, 					Upstairs_Hallway_Sensor, 
+CBUS_UNIT, 	7, 					Bed_3_Switch, 
+CBUS_UNIT, 	8, 					Bed_2_Switch, 
+CBUS_UNIT, 	9, 					Master_Bed_Switch, 

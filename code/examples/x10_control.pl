@@ -1,6 +1,6 @@
 
-# This is an example of how to create a Voice_Cmd 
-# control for all X10 items. 
+# This is an example of how to create a Voice_Cmd
+# control for all X10 items.
 
 my $list_x10_items = join ',', &list_objects_by_type('X10_Item');
 $list_x10_on  = new Voice_Cmd "X10 Turn on  [$list_x10_items]";

@@ -16,30 +16,36 @@
 #
 # This code will load calendar items found in a icalendar formated calendar
 # file. icalendar, runs on UNIX/Linux systems and comes with most if not
-# all Linux distributions. 
+# all Linux distributions.
 #---------------------------------------------------------------------------
 
 #use Date::Parse;
 use strict;
-my($Pgm_Path, $Pgm_Name, $Version);
+my ( $Pgm_Path, $Pgm_Name, $Version );
+
 BEGIN {
-    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.*)\.?/;
+    ($Version) =
+      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    eval
+      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
 }
 
 use Getopt::Long;
 my (%parms);
-if (!&GetOptions(\%parms,
-		 "calendar_file=s",
-                 "quiet",
-                 "debug",
-                 "pl_file=s",
-                 "date=s", "days=s",
-                 "h", "help") or
-    @ARGV > 0 or $parms{h} or $parms{help}) { 
-    print<<eof;
+if (
+    !&GetOptions(
+        \%parms,     "calendar_file=s", "quiet",  "debug",
+        "pl_file=s", "date=s",          "days=s", "h",
+        "help"
+    )
+    or @ARGV > 0
+    or $parms{h}
+    or $parms{help}
+  )
+{
+    print <<eof;
    
 $Pgm_Name reads an icalendar calendar file and optionally 
 creates a mh code file to implement calendar events.
@@ -77,129 +83,147 @@ creates a mh code file to implement calendar events.
     $Pgm_Name 
 
 eof
-  exit;
+    exit;
 }
 
-my($ical_cmd);                     # Globals
+my ($ical_cmd);    # Globals
 
 &setup;
 &find_items;
 
 sub setup {
 
-    require 'handy_utilities.pl'; # For misc. functions (e.g. time/date stamp routines)
+    require 'handy_utilities.pl'
+      ;            # For misc. functions (e.g. time/date stamp routines)
 
-                                # Setup the defaults
-    $parms{date} = &time_date_stamp(11) unless $parms{date}; # Returns mm/dd/yy
+    # Setup the defaults
+    $parms{date} = &time_date_stamp(11) unless $parms{date};  # Returns mm/dd/yy
     $parms{days} = 0 unless $parms{days};
-    $parms{date_end} = &time_date_stamp(11, time + 3600*24*$parms{days});
+    $parms{date_end} = &time_date_stamp( 11, time + 3600 * 24 * $parms{days} );
 
     $ical_cmd = "ical -list ";
-    $ical_cmd .= " -calendar $parms{calendar}" 	if $parms{calendar};
-    $ical_cmd .= " -date $parms{date}"		if $parms{date};
-    $ical_cmd .= " -show +$parms{days}";   #always want days otherwise it will default to 1.
+    $ical_cmd .= " -calendar $parms{calendar}" if $parms{calendar};
+    $ical_cmd .= " -date $parms{date}"         if $parms{date};
+    $ical_cmd .=
+      " -show +$parms{days}";  #always want days otherwise it will default to 1.
 
-    print "$Pgm_Name: Searching calendar: Start: $parms{date}  Stop: $parms{date_end}\n\n" unless $parms{quiet};
+    print
+      "$Pgm_Name: Searching calendar: Start: $parms{date}  Stop: $parms{date_end}\n\n"
+      unless $parms{quiet};
 
-    open (PL, ">$parms{pl_file}") or die "Error, could not open PL_File $parms{pl_file} for output: $!\n" if $parms{pl_file};
+    open( PL, ">$parms{pl_file}" )
+      or die "Error, could not open PL_File $parms{pl_file} for output: $!\n"
+      if $parms{pl_file};
 }
 
 sub find_items {
 
-# --------------------------------------------------------------------------------	
-# example output from ical -list
-#
-#	Monday November 6, 2000
-#	 * 9:00pm to 9:30pm
-#	   Test of ical event
-#	 * 10:00pm to 10:30pm
-#	   Test of ical event #2
-#	
-#	Tuesday November 7, 2000
-#	 * to do item with no time
-#	 * 12:00pm to 12:30pm
-#	   Test event on 11/7 at 12:00pm
-# --------------------------------------------------------------------------------	
+    # --------------------------------------------------------------------------------
+    # example output from ical -list
+    #
+    #	Monday November 6, 2000
+    #	 * 9:00pm to 9:30pm
+    #	   Test of ical event
+    #	 * 10:00pm to 10:30pm
+    #	   Test of ical event #2
+    #
+    #	Tuesday November 7, 2000
+    #	 * to do item with no time
+    #	 * 12:00pm to 12:30pm
+    #	   Test event on 11/7 at 12:00pm
+    # --------------------------------------------------------------------------------
     print "$Pgm_Name: ical_cmd = $ical_cmd\n" unless $parms{quiet};
-    if (!open(CAL,"$ical_cmd | ")) {
-		if ($parms{calendar_file}) {
-			print "$Pgm_Name: ERROR: unable to open $parms{calendar_file}\n";
-	  	} else {
-			print "$Pgm_Name: ERROR: unable to open \$HOME/.calendar\n";
-		}
-		exit;
+    if ( !open( CAL, "$ical_cmd | " ) ) {
+        if ( $parms{calendar_file} ) {
+            print "$Pgm_Name: ERROR: unable to open $parms{calendar_file}\n";
+        }
+        else {
+            print "$Pgm_Name: ERROR: unable to open \$HOME/.calendar\n";
+        }
+        exit;
     }
 
-    my $subject = "";
+    my $subject    = "";
     my $event_date = "";
-    my $start = "";
-    my $end = "";
-    sub parse_event {
-	    my $start_datetime = $event_date . " " . $start;
-	    my $end_datetime = $event_date . " " . $end;
-	    $subject =~ s/\s+/ /g;
-	    printf ("start=%15s end=%15s   subject=%s\n\n", $start_datetime, $end_datetime, $subject) unless $parms{quiet};
+    my $start      = "";
+    my $end        = "";
 
-            if (my($channel, $show) = $subject =~ /^ *vcr +(\d+) +(.+)/i) {
-                &create_vcr_event($start_datetime, $end_datetime, $channel, $show);
-            }
-            &create_other_event($start_datetime, $subject) unless !$start and !$subject;
-	    $subject=$start="";
+    sub parse_event {
+        my $start_datetime = $event_date . " " . $start;
+        my $end_datetime   = $event_date . " " . $end;
+        $subject =~ s/\s+/ /g;
+        printf( "start=%15s end=%15s   subject=%s\n\n",
+            $start_datetime, $end_datetime, $subject )
+          unless $parms{quiet};
+
+        if ( my ( $channel, $show ) = $subject =~ /^ *vcr +(\d+) +(.+)/i ) {
+            &create_vcr_event( $start_datetime, $end_datetime, $channel,
+                $show );
+        }
+        &create_other_event( $start_datetime, $subject )
+          unless !$start and !$subject;
+        $subject = $start = "";
     }
 
     LINE: foreach (<CAL>) {
-	chomp;
-	if (/^$/) {		# blank lines indicate end of event 
-	    &parse_event;
-	    next LINE;
-	}
-	if (/^[A-Z]/) {		# dates always start first column, nothing else does, i hope.
-		s/,//g;
-		my ($event_wday, $event_month, $event_day, $event_year) = split '\s+';
-		my $longedate = str2time($event_month . " " . $event_day . " " . $event_year);
-		$event_date = &time_date_stamp(11, $longedate);
-	    	next LINE;
-	}
-	if (/^ \*/) {		# times always start second column preceeded by an asterick.
-				# all day events with no time are also here. 
-	    	&parse_event if $subject; 	
+        chomp;
+        if (/^$/) {    # blank lines indicate end of event
+            &parse_event;
+            next LINE;
+        }
+        if (/^[A-Z]/)
+        {    # dates always start first column, nothing else does, i hope.
+            s/,//g;
+            my ( $event_wday, $event_month, $event_day, $event_year ) =
+              split '\s+';
+            my $longedate =
+              str2time( $event_month . " " . $event_day . " " . $event_year );
+            $event_date = &time_date_stamp( 11, $longedate );
+            next LINE;
+        }
+        if (/^ \*/)
+        {    # times always start second column preceeded by an asterick.
+                # all day events with no time are also here.
+            &parse_event if $subject;
 
-		s/^ \*//g;	# get rid of that stupid asterick.
+            s/^ \*//g;    # get rid of that stupid asterick.
 
-		if (/:\d\d[ap]m/i) {		# got a timed event
-			s/to //g;
-			($start, $end) = split ' ';
-			$start =~ s/pm/ PM/g;
-			$start =~ s/am/ AM/g;
-			$end =~ s/pm/ PM/g;
-			$end =~ s/am/ AM/g;
-		} else {			# got a all day event
-			$start = "12:00 PM";
-			$subject .= $_;		
-		}
-    		next LINE;
-	}
-	$subject .= $_;		# subject is the only line left.
+            if (/:\d\d[ap]m/i) {    # got a timed event
+                s/to //g;
+                ( $start, $end ) = split ' ';
+                $start =~ s/pm/ PM/g;
+                $start =~ s/am/ AM/g;
+                $end =~ s/pm/ PM/g;
+                $end =~ s/am/ AM/g;
+            }
+            else {                  # got a all day event
+                $start = "12:00 PM";
+                $subject .= $_;
+            }
+            next LINE;
+        }
+        $subject .= $_;             # subject is the only line left.
     }
     &parse_event;
     close(CAL);
 }
-	
+
 sub create_vcr_event {
-    my ($start, $end, $channel, $show) = @_;
-    
+    my ( $start, $end, $channel, $show ) = @_;
+
     my $channel_commified;
-    if (length($channel) == 1) {
+    if ( length($channel) == 1 ) {
         $channel_commified = "0,$channel";
     }
     else {
-        $channel_commified = substr($channel,0,1) . "," . substr($channel,1,1);
+        $channel_commified =
+          substr( $channel, 0, 1 ) . "," . substr( $channel, 1, 1 );
     }
-    
+
     print "VCR on channel $channel from $start to $end\n" unless $parms{quiet};
 
-    if ($parms{pl_file}) {
-        my $string =<<eof;
+    if ( $parms{pl_file} ) {
+        my $string = <<eof;
 if (time_now '$start - 00:02') {
    speak "\$Time_Now. VCR recording will be started in 2 minutes for $show on channel $channel";
 }
@@ -217,16 +241,16 @@ eof
 }
 
 sub create_other_event {
-    my ($start, $subject) = @_;
+    my ( $start, $subject ) = @_;
 
-                                # If no time is specified, pick a default ... not midnight :)
-    unless ($start =~ /:/) {
+    # If no time is specified, pick a default ... not midnight :)
+    unless ( $start =~ /:/ ) {
         $subject = "Today is $subject";
-        $start  .= " 12:00 PM";
+        $start .= " 12:00 PM";
     }
 
-                                # If it is a command, run it, otherwise speak it.
-    my $string =<<eof;
+    # If it is a command, run it, otherwise speak it.
+    my $string = <<eof;
 if (time_now '$start') {
    if (run_voice_cmd q[$subject]) {
       print_log q[Running calendar command: $subject];

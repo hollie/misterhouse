@@ -1,28 +1,46 @@
+
+=begin comment
+
+!!Note that if you change the format or layout of this page you must also 
+modify the code/common/mh_release.pl file to search the new format!!
+
+=end comment
+
 =head1 Download Misterhouse
 
-=head1 Current 
+=head1 Current Stable
 
-B<Version 2.200> - released on 03/02/2012
+B<Version 3.0> - released on 06/20/2013
 
 =over
 
-=item * For Linux, Windows and MacOS: L<https://github.com/hollie/misterhouse/archive/stable.zip>
+=item Linux, Windows and MacOS
 
-=item * The Windows only compiled version of Misterhouse is sadly no longer supported.
+L<https://api.github.com/repos/hollie/misterhouse/zipball/v3.0>
 
-=item * Between formal releases, you can pick up the latest updates from: L<https://github.com/hollie/misterhouse> (not recommended for beginners!)
+The Windows only compiled version of Misterhouse is sadly no longer supported.
 
-=item * A large (30MB) zip of optional files (mainly sound files) is here: L<http://misterhouse.sf.net/misterhouse_misc.zip>
+Between formal releases, you can pick up the latest updates from: L<https://github.com/hollie/misterhouse> (not recommended for beginners!)
+
+A large (30MB) zip of optional files (mainly sound files) is here: L<http://misterhouse.sf.net/misterhouse_misc.zip>
 
 =back
 
 =head1 Previous Stable
 
-B<Version 2.105> - released on 12/01/2008
+B<Version 2.200> - released on 03/02/2012
 
 =over
 
-=item * L<http://prdownloads.sourceforge.net/misterhouse/misterhouse_src_2105.zip>
+=item * 
+
+=begin HTML
+
+<strong>
+<a href='https://api.github.com/repos/hollie/misterhouse/zipball/v2.200' target='_blank'>https://api.github.com/repos/hollie/misterhouse/zipball/v2.200</a>
+</strong>
+
+=end HTML
 
 =back
 
@@ -30,7 +48,17 @@ B<Version 2.105> - released on 12/01/2008
 
 =over
 
-=item * You can get older versions from Sourceforge (not recommended): L<http://sourceforge.net/project/showfiles.php?group_id=1365&package_id=1347>
+=item * You can get older versions from Sourceforge (not recommended): 
+
+=begin HTML
+
+<strong>
+<a href='http://sourceforge.net/project/showfiles.php?group_id=1365&package_id=1347' target='_blank'>
+http://sourceforge.net/project/showfiles.php?group_id=1365&package_id=1347
+</a>
+</strong>
+
+=end HTML
 
 =back
 

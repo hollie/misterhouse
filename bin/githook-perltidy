@@ -1,0 +1,495 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use Carp qw/croak/;
+use File::Slurp;
+use File::Basename;
+use File::Spec::Functions qw/catfile catdir updir/;
+use Perl::Tidy;
+
+#use Pod::Tidy;
+use Time::Piece;
+use constant POST_HOOK_FILE => '.githook-perltidy';
+
+my $self = basename($0);
+
+# Allow script to be run from any directory
+if ( $0 =~ /(\\|\/)/ ) {
+    my ( $Pgm_Path, $Pgm_Name ) = $0 =~ /^(.*)[\\\/]([^.]+)/;
+    chdir $Pgm_Path;
+}
+chdir "..";
+$self = "bin/$self";
+
+sub usage {
+    die "usage: $self COMMAND
+
+Valid values for COMMAND include:
+    install [MAKE ARGS]       Install pre-commit and post-commit hooks
+    pre-commit [MAKE ARGS]    Run perltidy, podtidy and (optionally) tests
+    post-commit               Merge non-indexed changes after commit
+";
+}
+
+sub run {
+    print '    ' . join( ' ', map { defined $_ ? $_ : '*UNDEF*' } @_ ) . "\n";
+    system("@_") == 0 or croak "@_ failed: $?";
+}
+
+sub get_perltidyrc {
+    my $rc;
+    if ( $ENV{GIT_DIR} ) {
+        $rc = catfile( $ENV{GIT_DIR}, updir(), 'bin/.perltidyrc' );
+    }
+    else {
+        $rc = 'bin/.perltidyrc';
+    }
+    my $null = "/dev/null";
+    $null = "NUL" if $^O eq "MSWin32";
+    if ( system("git ls-files --error-unmatch $rc > $null 2>&1") != 0 ) {
+        die "$self: You have no .perltidyrc in your repository.\n";
+    }
+    return $rc;
+}
+
+sub have_podtidy_opts {
+    my $rc;
+    if ( $ENV{GIT_DIR} ) {
+        $rc = catfile( $ENV{GIT_DIR}, updir(), '.podtidy-opts' );
+    }
+    else {
+        $rc = '.podtidy-opts';
+    }
+
+    return -e $rc;
+}
+
+sub get_podtidy_opts {
+    my $rc;
+    if ( $ENV{GIT_DIR} ) {
+        $rc = catfile( $ENV{GIT_DIR}, updir(), '.podtidy-opts' );
+    }
+    else {
+        $rc = '.podtidy-opts';
+    }
+
+    if ( -e $rc
+        && system("git ls-files --error-unmatch $rc > /dev/null 2>&1") != 0 )
+    {
+        die "$self: .podtidy-opts is not in your repository.\n";
+    }
+
+    my %opts;
+
+    if ( -e $rc ) {
+        foreach my $line ( read_file($rc) ) {
+            chomp $line;
+            $line =~ s/^--//;
+            my ( $opt, $arg ) = split / /, $line;
+            $opts{$opt} = $arg;
+        }
+    }
+
+    return %opts;
+}
+
+my $stashed   = 0;
+my $success   = 0;
+my $partial   = 0;
+my @perlfiles = ();
+my %partial   = ();
+
+my $command = shift @ARGV || usage();
+
+if ( $command eq 'install' ) {
+
+    get_perltidyrc();
+
+    my $hooks_dir = catdir( '.git', 'hooks' );
+    if ( !-d $hooks_dir ) {
+        die "Directory not found: $hooks_dir\n";
+    }
+
+    my $pre_file = catfile( $hooks_dir, 'pre-commit' );
+    if ( -e $pre_file or -l $pre_file ) {
+        die "File/link exists: $pre_file\n";
+    }
+
+    my $post_file = catfile( $hooks_dir, 'post-commit' );
+    if ( -e $post_file or -l $post_file ) {
+        die "File/link exists: $post_file\n";
+    }
+
+    write_file( $pre_file, "#!/bin/sh\n$self pre-commit @ARGV\n" );
+    chmod 0755, $pre_file || warn "chmod: $!";
+    print "$self: $pre_file\n";
+
+    write_file( $post_file, "#!/bin/sh\n$self post-commit\n" );
+    chmod 0755, $post_file || warn "chmod: $!";
+    print "$self: $post_file\n";
+
+}
+elsif ( $command eq 'pre-commit' ) {
+
+    my $rc = get_perltidyrc();
+
+    open( my $fh, '-|', 'git status --porcelain' ) || die "open: $!";
+
+    while ( my $line = <$fh> ) {
+        chomp $line;
+        next unless $line =~ m/^(.)(.) (.*)/;
+
+        my ( $index, $wtree, $file ) = ( $1, $2, $3 );
+        $partial++ if $wtree eq 'M';
+        next unless ( $index eq 'A' or $index eq 'M' );
+
+        if ( $file !~ m/\.(pl|pod|pm|t)$/i ) {
+            open( my $fh2, '<', $file ) || die "open $file: $!";
+            my $possible = <$fh2> || next;
+
+            #        warn $possible;
+            next unless $possible =~ m/^#!.*perl\W/;
+        }
+
+        push( @perlfiles, $file );
+        $partial{$file} = $file . '|' . ( $wtree eq 'M' ? 1 : 0 );
+    }
+
+    exit 0 unless @perlfiles;
+
+    print "$self pre-commit:\n    # saving non-indexed changes and tidying\n";
+
+    run(
+        qw/git stash save --quiet --keep-index /,
+        $self . ' ' . localtime->datetime
+    );
+    $stashed = 1;
+
+    run(qw/git checkout-index -a /);
+
+    my $have_podtidy_opts = have_podtidy_opts();
+    warn "Skipping podtidy calls: no .podtidy-opts file"
+      unless $have_podtidy_opts;
+
+    foreach my $file (@perlfiles) {
+        if ($have_podtidy_opts) {
+            print "podtidy $file\n";
+
+            Pod::Tidy::tidy_files(
+                files     => [$file],
+                recursive => 0,
+                verbose   => 0,
+                inplace   => 1,
+                nobackup  => 1,
+                columns   => 72,
+                get_podtidy_opts(),
+            );
+        }
+
+        unlink $file . '~';
+
+        unless ( $file =~ m/\.pod$/i ) {
+            unlink $file . '.ERR';
+
+            print "perltidy $file\n";
+            Perl::Tidy::perltidy(
+                argv => [ '--profile=' . $rc, qw/-nst -b -bext=.bak/, $file ],
+            );
+
+            unlink $file . '.bak';
+            if ( -e $file . '.ERR' ) {
+                die read_file( $file . '.ERR' );
+            }
+        }
+    }
+
+    my @MAKE_ARGS = @ARGV;
+    if ( exists $ENV{PERLTIDY_MAKE} ) {
+        if ( $ENV{PERLTIDY_MAKE} eq '' ) {
+            @MAKE_ARGS = ();
+        }
+        else {
+            @MAKE_ARGS = split ' ', $ENV{PERLTIDY_MAKE};
+        }
+    }
+
+    if (@MAKE_ARGS) {
+
+        # Stop the git that is calling this pre-commit script from
+        # interfering with any possible git calls in Makefile.PL or any
+        # test code
+        local %ENV = %ENV;
+        delete $ENV{$_} for grep( /^GIT_/, keys %ENV );
+
+        if ( -e 'Makefile.PL' ) {
+            run(qw/perl Makefile.PL/) if grep( /^Makefile.PL$/i, @perlfiles );
+            run(qw/perl Makefile.PL/) unless -f 'Makefile';
+        }
+        elsif ( -e 'Build.PL' ) {
+            run(qw/perl Build.PL/) if grep( /^Build.PL$/i, @perlfiles );
+            run(qw/perl Build.PL/) unless -f 'Makefile';
+        }
+
+        run( qw/make/, $ENV{PERLTIDY_MAKE} ? $ENV{PERLTIDY_MAKE} : @ARGV );
+    }
+
+    run( qw/git add /, @perlfiles );
+
+    $success = 1;
+
+}
+elsif ( $command eq 'post-commit' ) {
+
+    if ( -e POST_HOOK_FILE ) {
+        my $rc = get_perltidyrc();
+        @perlfiles = map { chomp; $_ } read_file(POST_HOOK_FILE);
+
+        print "$self post-commit:\n",
+          "    # tidying and re-applying your non-indexed changes.\n";
+
+        my $branch = qx/git branch --contains HEAD/;
+        chomp $branch;
+
+        if ( $branch !~ s/^\*\s+(.*)$/$1/ ) {
+            run(qw/git stash pop --quiet/);
+            die "$self: could not determine current branch!\n";
+        }
+
+        run(qw/git reset/);
+        run( qw/git checkout -q/, $branch . '^' );
+        run(qw/git stash pop --quiet/);
+
+        my $have_podtidy_opts = have_podtidy_opts();
+        warn "Skipping podtidy calls: no .podtidy-opts file"
+          unless $have_podtidy_opts;
+
+        foreach my $try (@perlfiles) {
+            my ( $file, $partial ) = split( /\|/, $try );
+
+            if ($partial) {
+                if ($have_podtidy_opts) {
+                    print "podtidy $file\n";
+                    Pod::Tidy::tidy_files(
+                        files     => [$file],
+                        recursive => 0,
+                        verbose   => 0,
+                        inplace   => 1,
+                        nobackup  => 1,
+                        columns   => 72,
+                        get_podtidy_opts(),
+                    );
+                    unlink $file . '~';
+                }
+
+                unless ( $file =~ m/\.pod$/i ) {
+                    unlink $file . '.ERR';
+
+                    print "perltidy $file\n";
+                    Perl::Tidy::perltidy( argv =>
+                          [ '--profile=' . $rc, qw/-nst -b -bext=.bak/, $file ],
+                    );
+
+                    unlink $file . '.bak';
+                    if ( -e $file . '.ERR' ) {
+                        die read_file( $file . '.ERR' );
+                    }
+                }
+            }
+            else {
+                run( qw/git checkout/, $file );
+            }
+        }
+
+        run(qw/git stash save --quiet/);
+        run( qw/git checkout -q/, $branch );
+        run(qw/git stash pop --quiet/);
+    }
+
+}
+else {
+    usage();
+}
+
+exit 0;
+
+END {
+
+    # Save our exit status as the system calls in run() will change it
+    my $exit = $?;
+    unlink POST_HOOK_FILE;
+    if ( defined $command && $command eq 'pre-commit' ) {
+        if ($success) {
+            if ($partial) {
+                print "    # writing '"
+                  . POST_HOOK_FILE
+                  . "' for post-commit hook\n";
+                write_file( POST_HOOK_FILE, join( "\n", values %partial ) );
+            }
+            else {
+                run(qw/git stash drop -q/);
+            }
+        }
+        elsif ($stashed) {
+            print STDERR "\n$self: pre-commit FAIL! Restoring...\n";
+            run(qw/git reset --hard/);
+            run(qw/git stash pop --quiet --index/);
+        }
+    }
+    $? = $exit;
+}
+
+__END__
+
+=head1 NAME
+
+githook-perltidy - run perltidy and podtidy before Git commits
+
+=head1 VERSION
+
+0.10.2.
+
+=head1 SYNOPSIS
+
+Make sure everyone uses the same tidy options across your project:
+
+    $ perltidy -b -w -dop | grep -v dump-options > .perltidyrc
+    $ echo '--columns 72' > .podtidy-opts
+    $ git add .perltidyrc .podtidy-opts
+    $ git commit
+
+Install the pre-commit and post-commit hooks:
+
+    $ githook-perltidy install
+
+=head1 DESCRIPTION
+
+B<githook-perltidy> is a script that can be invoked by Git pre-commit
+and post-commit hooks to run L<perltidy> and L<podtidy> on Perl and POD
+files (and optionally run L<make>(1) targets), ensuring that your
+project's code is always cleanly committed.
+
+This script is is efficient: it only modifies Perl and POD files that
+are being committed and not every file in your repository. It also
+tries its hardest to be safe: the index and working tree are stashed
+away beforehand, and restored in the event of failure.
+
+There are three types of action this script will take as determed by
+the first argument:
+
+=over 4
+
+=item install [MAKE ARGS]
+
+Should be run from the command-line in the top-level directory of your
+repository. Writes F<pre-commit> and F<post-commit> files in the
+F<$GIT_DIR/hooks/> directory. Any MAKE ARGS given will be added to the
+C<githook-perltidy pre-commit> call.
+
+This command will fail if there is no .perltidyrc file in the
+repository, if the hooks directory isn't found, or if either of the
+hook files already exist.
+
+=item pre-commit [MAKE ARGS]
+
+Called from a Git pre-commit hook.  Backs up your index and working
+tree into a Git stash. Runs L<perltidy> on any Perl files in the Git
+index using the F<.perltidyrc>. If F<.podtidy-opts> exists then
+L<podtidy> will also be run on any POD files in the Git index,
+otherwise a warning is issued.
+
+If any MAKE ARGS are given they will be passed to a L<make> call.  This
+way you can ensure that your code passes a C<make test> or C<make
+disttest> check before each commit.  If the PERLTIDY_MAKE environment
+variable exists it will I<override> any arguments. Setting
+PERLTIDY_MAKE="" will skip the make call entirely.
+
+Failure of any of the above will result in a hard reset and the saved
+stash popped (I.e. re-applied and deleted). The commit will be stopped.
+On success the index is updated with the tidied files and the commit is
+allowed to proceed.  In the event that your index was an interactive or
+patched version of your working tree, the stash will be kept for the
+post-commit hook. Otherwise it will be dropped.
+
+This command will fail if there is no .perltidyrc file in the
+repository.
+
+=item post-commit
+
+Called from a Git post-commit hook to re-apply stashed (but not
+indexed) changes. In the event that your index was an interactive or
+patched version of your working tree, the post-commit command does the
+following:
+
+=over
+
+=item * checks out the I<previous> commit
+
+=item * pops the stash saved by the pre-commit command
+
+=item * tidies the files that were stashed
+
+=item * saves a new stash with the completely tidied files
+
+=item * checks out the I<latest> commit
+
+=item * pops the stash with the tidied files
+
+=back
+
+=back
+
+=head1 CAVEATS
+
+There are two ways in which B<githook-perltidy> behaviour may affect
+your existing workflow. Firstly if you are accustomed to commiting
+changes to files which are still open in your editor, your editor may
+complain that the underlying file has changed on disk. Possibily your
+editor doesn't even detect the change and your next write will not be
+'tidy'.
+
+Secondly, aborting a commit with an empty commit message or via a later
+command in the pre-commit hook will still result in changed (tidied)
+files on disk and in the index.
+
+=head1 FILES
+
+=over
+
+=item F<.perltidyrc>
+
+Perltidy command options file.
+
+=item F<.podtidy-opts>
+
+Podtidy command options file. This is githook-perltidy specific.
+
+=item F<.githook-perltidy>
+
+A temporary file used to communicate between the pre-commit and
+post-commit calls.
+
+=back
+
+=head1 SUPPORT
+
+This tool is managed via github:
+
+    https://github.com/mlawren/githook-perltidy
+
+=head1 SEE ALSO
+
+L<githooks>(5), L<perltidy>(1), L<podtidy>(1)
+
+=head1 AUTHOR
+
+Mark Lawrence E<lt>nomad@null.netE<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2011-2012 Mark Lawrence <nomad@null.net>
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+

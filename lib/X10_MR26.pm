@@ -43,14 +43,18 @@ use X10_RF;
 @X10_MR26::ISA = ('Generic_Item');
 
 sub startup {
-    $main::config_parms{"MR26_break"} = pack('C', 0xad);
-#   &main::serial_port_create('MR26', $main::config_parms{MR26_port}, 9600, 'none', 'raw');
-    &main::serial_port_create('MR26', $main::config_parms{MR26_port}, 9600, 'none');
-                                # Add hook only if serial port was created ok
-    &::MainLoop_pre_add_hook(  \&X10_MR26::check_for_data, 1 ) if $main::Serial_Ports{MR26}{object};
+    $main::config_parms{"MR26_break"} = pack( 'C', 0xad );
+
+    #   &main::serial_port_create('MR26', $main::config_parms{MR26_port}, 9600, 'none', 'raw');
+    &main::serial_port_create( 'MR26', $main::config_parms{MR26_port},
+        9600, 'none' );
+
+    # Add hook only if serial port was created ok
+    &::MainLoop_pre_add_hook( \&X10_MR26::check_for_data, 1 )
+      if $main::Serial_Ports{MR26}{object};
 }
 
-my ($prev_data, $prev_time, $prev_loop, $prev_done);
+my ( $prev_data, $prev_time, $prev_loop, $prev_done );
 $prev_data = $prev_time = $prev_done = 0;
 
 sub check_for_data {
@@ -58,32 +62,37 @@ sub check_for_data {
 
     # Sending commands to another device on the same serial port may have dropped
     # the DTR signal, so let the MR-26 know we're ready to recieve data again
-    $main::Serial_Ports{MR26}{object}->dtr_active(1);
+    $main::Serial_Ports{MR26}{object}->dtr_active(1)
+      or warn "Could not set dtr_active(1)";
 
     &main::check_for_generic_serial_data('MR26');
     my $data = $main::Serial_Ports{MR26}{data_record};
     $main::Serial_Ports{MR26}{data_record} = undef;
+
     #&main::main::print_log("MR26 entered read loop data\n") if (&main::main::new_second(10));
     return unless $data;
     &main::main::print_log("MR26 got data") if $main::Debug{mr26};
-                                # Data gets sent multiple times
-                                #  - Check time and loop count.  If mh paused (e.g. sending ir data)
-                                #    then we better also check loop count.
-                                #  - Process data only on the 2nd occurance, to avoid noise
-    my $time = &main::get_tickcount;
+
+    # Data gets sent multiple times
+    #  - Check time and loop count.  If mh paused (e.g. sending ir data)
+    #    then we better also check loop count.
+    #  - Process data only on the 2nd occurance, to avoid noise
+    my $time        = &main::get_tickcount;
     my $repeat_time = $main::config_parms{MR26_multireceive_delay} or 400;
-    my $repeat_data = ($data eq $prev_data) && ($time < $prev_time + $repeat_time or $main::Loop_Count < $prev_loop + 7);
+    my $repeat_data = ( $data eq $prev_data )
+      && ( $time < $prev_time + $repeat_time
+        or $main::Loop_Count < $prev_loop + 7 );
     return if $repeat_data and $prev_done;
     &main::main::print_log("MR26 data is not dupe") if $main::Debug{mr26};
     $prev_data = $data;
     $prev_time = $time;
     $prev_loop = $main::Loop_Count;
-    unless ($repeat_data) {     # UnSet flag and wait for 2nd occurance
-	$prev_done = 0;
-	return;
-    }
-    $prev_done = 1;             # Set flag and process data
 
+    unless ($repeat_data) {    # UnSet flag and wait for 2nd occurance
+        $prev_done = 0;
+        return;
+    }
+    $prev_done = 1;            # Set flag and process data
 
     my $hex = unpack "H*", $data;
     print "MR26 raw data: $hex\n" if $main::Debug{mr26};
@@ -96,24 +105,25 @@ sub check_for_data {
     # We can't just eliminate sending the extra two bytes because the
     # decode_rf_bytes routine is capable of handling security data which
     # does need unique data in byte four.
-    my(@bytes);
-    if (($bytes[0], $bytes[2]) = $data =~ /^\xd5\xaa(.)(.)$/) {
+    my (@bytes);
+    if ( ( $bytes[0], $bytes[2] ) = $data =~ /^\xd5\xaa(.)(.)$/ ) {
 
-	my $state = X10_RF::decode_rf_bytes('MR26', @bytes);
+        my $state = X10_RF::decode_rf_bytes( 'MR26', @bytes );
 
-	# If we got a bad checksum, throw out the rest of the data in the
-	# buffer since we probably have a corrupt data stream.
-	$main::Serial_Ports{MR26}{data_record} = undef if $state eq 'BADCHECKSUM';
+        # If we got a bad checksum, throw out the rest of the data in the
+        # buffer since we probably have a corrupt data stream.
+        $main::Serial_Ports{MR26}{data_record} = undef
+          if $state eq 'BADCHECKSUM';
 
-    } else {
-
-	# We weren't able to parse our four bytes of data for some reason,
-	# throw out the rest of the data in the buffer since we probably have a
-	# corrupt data stream.
-	print "MR26: Unparsed data: $hex\n";
-	$main::Serial_Ports{MR26}{data_record} = undef;
     }
+    else {
 
+        # We weren't able to parse our four bytes of data for some reason,
+        # throw out the rest of the data in the buffer since we probably have a
+        # corrupt data stream.
+        print "MR26: Unparsed data: $hex\n";
+        $main::Serial_Ports{MR26}{data_record} = undef;
+    }
 
 }
 

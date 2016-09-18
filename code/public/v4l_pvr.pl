@@ -60,175 +60,199 @@ Problems:
 
 =cut
 
-
 my $video_dir = "$config_parms{data_dir}/videos";
-my $outfile1 = "$config_parms{data_dir}/pvr_info1.txt";
-my $outfile2 = "$config_parms{data_dir}/pvr_info2.txt";
-my $dbm_file ="$config_parms{data_dir}/pvr_recorded.dbm";
+my $outfile1  = "$config_parms{data_dir}/pvr_info1.txt";
+my $outfile2  = "$config_parms{data_dir}/pvr_info2.txt";
+my $dbm_file  = "$config_parms{data_dir}/pvr_recorded.dbm";
+
 #my $logfile = "$config_parms{data_dir}/pvr_logfile.txt";
 my $logfile = "/dev/null";
-my $record_opts = 'divx4rec -N 32 -d /dev/dsp -v /dev/video0 -mixsrc /dev/mixer:line -mixvol /dev/mixer:line:0 ' .
-    '-vq 25 -vg 10 -vb 3600 -w 384 -h 288 -norm NTSC -input Television ';
+my $record_opts =
+  'divx4rec -N 32 -d /dev/dsp -v /dev/video0 -mixsrc /dev/mixer:line -mixvol /dev/mixer:line:0 '
+  . '-vq 25 -vg 10 -vb 3600 -w 384 -h 288 -norm NTSC -input Television ';
 
-$v_livetv = new Voice_Cmd 'Live TV [on,off,mute,volume down,volume up,channel down,channel up,' .
-    'record half hour,record hour,record 2 hours,2,11,31,38,41,44,46,54,64]';
-$v_pvr = new Voice_Cmd 'PVR [pause,quit,volume down,volume up,skip 10 seconds,skip minute,skip 10 minutes,' .
-    'back 10 seconds,back minute,back 10 minutes,cancel recording,debug]';
-$t_pvr = new Timer;
-$p_pvr = new Process_Item;
+$v_livetv =
+  new Voice_Cmd
+  'Live TV [on,off,mute,volume down,volume up,channel down,channel up,'
+  . 'record half hour,record hour,record 2 hours,2,11,31,38,41,44,46,54,64]';
+$v_pvr =
+  new Voice_Cmd
+  'PVR [pause,quit,volume down,volume up,skip 10 seconds,skip minute,skip 10 minutes,'
+  . 'back 10 seconds,back minute,back 10 minutes,cancel recording,debug]';
+$t_pvr      = new Timer;
+$p_pvr      = new Process_Item;
 $f_pvr_file = new File_Item $outfile1;
-my ($db, %RECORDED, $state, $line, $pre, $filename, $key, $seconds, $frames);
+my ( $db, %RECORDED, $state, $line, $pre, $filename, $key, $seconds, $frames );
 
 if ($Reload) {
     $v_livetv->set_icon('nostat.gif');
     $v_pvr->set_icon('nostat.gif');
     $p_pvr->set_errlog($logfile);
-    $record_opts = "$config_parms{pvr_record_opts}" if "$config_parms{pvr_record_opts}";
-    $video_dir = "$config_parms{pvr_video_dir}" if "$config_parms{pvr_video_dir}";
+    $record_opts = "$config_parms{pvr_record_opts}"
+      if "$config_parms{pvr_record_opts}";
+    $video_dir = "$config_parms{pvr_video_dir}"
+      if "$config_parms{pvr_video_dir}";
     mkdir "$video_dir", 0777 unless -d "$video_dir";
-    $db = tie (%RECORDED,  'DB_File', $dbm_file,  O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file: $!";
+    $db = tie( %RECORDED, 'DB_File', $dbm_file, O_RDWR | O_CREAT, 0666 )
+      or print "\nError, can not open dbm file $dbm_file: $!";
     update_html();
 }
 
-if ($state = said $v_livetv) {
+if ( $state = said $v_livetv) {
     $key = "";
-    if ($state eq 'on') {
+    if ( $state eq 'on' ) {
+
         #Audio::Mixer::set_cval('line', 40);
         system 'aumix -d /dev/mixer -l 100';
         run "killall xawtv; xawtv -f -display :0 setnorm ntsc";
-        set $TV 'on'; set $AMP 'on'; set $TV 'video1'; set $AMP 'vcr';
+        set $TV 'on';
+        set $AMP 'on';
+        set $TV 'video1';
+        set $AMP 'vcr';
     }
-    elsif ($state =~ /^\d+$/) {
+    elsif ( $state =~ /^\d+$/ ) {
         $key = "setchannel $state";
-    }		
-    elsif ($state =~ /^record/) {
-        $seconds = 60 * 30 if $state eq 'record half hour';
-        $seconds = 60 * 60 if $state eq 'record hour';
+    }
+    elsif ( $state =~ /^record/ ) {
+        $seconds = 60 * 30  if $state eq 'record half hour';
+        $seconds = 60 * 60  if $state eq 'record hour';
         $seconds = 60 * 120 if $state eq 'record 2 hours';
         run "killall xawtv";
         my $title = time_date_stamp(3);
-        pvr_record($title,0,$seconds);
+        pvr_record( $title, 0, $seconds );
     }
-    elsif ($state eq 'volume down') {
+    elsif ( $state eq 'volume down' ) {
+
         #change_vol('vol', '-7');
         set $AMP 'vol-';
     }
-    elsif ($state eq 'volume up') {			
+    elsif ( $state eq 'volume up' ) {
+
         #change_vol('vol', '7');
         set $AMP 'vol+';
     }
-    elsif ($state eq 'off') {$key = 'quit'}
-    elsif ($state eq 'mute') {$key = 'volume mute'}
-    elsif ($state eq 'channel down') {$key = 'setchannel prev'}
-    elsif ($state eq 'channel up') {$key = 'setchannel next'}
+    elsif ( $state eq 'off' )          { $key = 'quit' }
+    elsif ( $state eq 'mute' )         { $key = 'volume mute' }
+    elsif ( $state eq 'channel down' ) { $key = 'setchannel prev' }
+    elsif ( $state eq 'channel up' )   { $key = 'setchannel next' }
     run "xawtv-remote -d :0 $key" if $key;
 }
 
-$quit_timer = new Timer; 
+$quit_timer = new Timer;
 
-if ($state = said $v_pvr) {
+if ( $state = said $v_pvr) {
     $key = "";
-    if ($state eq 'pause') {$key = 'p'}
-    elsif ($state eq 'quit') {
-        if (active $quit_timer) {
-            set $TV 'off'; set $AMP 'off'; 
+    if ( $state eq 'pause' ) { $key = 'p' }
+    elsif ( $state eq 'quit' ) {
+        if ( active $quit_timer) {
+            set $TV 'off';
+            set $AMP 'off';
         }
         set $quit_timer 5;
         $key = 'q';
     }
-    elsif ($state eq 'volume down') {
+    elsif ( $state eq 'volume down' ) {
+
         #change_vol('vol', '-7');
         set $AMP 'vol-';
     }
-    elsif ($state eq 'volume up') {
+    elsif ( $state eq 'volume up' ) {
+
         #change_vol('vol', '7');
         set $AMP 'vol+';
     }
-    elsif ($state eq 'cancel recording') {
+    elsif ( $state eq 'cancel recording' ) {
         stop $p_pvr;
-        update_html(); 
+        update_html();
     }
-    elsif ($state eq 'debug') {
-        foreach (sort keys %RECORDED) {
+    elsif ( $state eq 'debug' ) {
+        foreach ( sort keys %RECORDED ) {
             print "$_\n";
-        } 
+        }
     }
-    elsif ($state eq 'skip 10 seconds') {$key = "\ctRight\ct"}
-    elsif ($state eq 'skip minute') {$key = "\ctUp\ct"}
-    elsif ($state eq 'skip 10 minutes') {$key = "\ctPrior\ct"}
-    elsif ($state eq 'back 10 seconds') {$key = "\ctLeft\ct"}
-    elsif ($state eq 'back minute') {$key = "\ctDown\ct"}
-    elsif ($state eq 'back 10 minutes') {$key = "\ctNext\ct"}
+    elsif ( $state eq 'skip 10 seconds' ) { $key = "\ctRight\ct" }
+    elsif ( $state eq 'skip minute' )     { $key = "\ctUp\ct" }
+    elsif ( $state eq 'skip 10 minutes' ) { $key = "\ctPrior\ct" }
+    elsif ( $state eq 'back 10 seconds' ) { $key = "\ctLeft\ct" }
+    elsif ( $state eq 'back minute' )     { $key = "\ctDown\ct" }
+    elsif ( $state eq 'back 10 minutes' ) { $key = "\ctNext\ct" }
     run "echo $key | a2x" if $key;
 }
 
-                                # Check for favorite shows every 1/2 hour
-if (time_cron('0,30 * * * *') and $Save{pvr_shows}) {
-    my ($min, $hour, $mday, $mon) = (localtime(time))[1,2,3,4];
+# Check for favorite shows every 1/2 hour
+if ( time_cron('0,30 * * * *') and $Save{pvr_shows} ) {
+    my ( $min, $hour, $mday, $mon ) = ( localtime(time) )[ 1, 2, 3, 4 ];
     $mon++;
-    run qq[get_tv_info -times $hour:$min -dates $mon/$mday -keys "$Save{pvr_shows}" -outfile1 $outfile1 -outfile2 $outfile2 -title_only];
+    run
+      qq[get_tv_info -times $hour:$min -dates $mon/$mday -keys "$Save{pvr_shows}" -outfile1 $outfile1 -outfile2 $outfile2 -title_only];
     set_watch $f_pvr_file;
 }
 
 #Found 5 TV shows.                             5/17
 
-
-#1.  A Pup Named scooby-Doo: Horror of the Haunted Hairpiece.  TOON Channel 30.  From 12:00 PM till 12:30 PM.  
+#1.  A Pup Named scooby-Doo: Horror of the Haunted Hairpiece.  TOON Channel 30.  From 12:00 PM till 12:30 PM.
 #(Children's) TVG CC
 
-if ($state = changed $f_pvr_file) {
+if ( $state = changed $f_pvr_file) {
     pvr_check();
 }
 
 sub pvr_check {
-    my $summary = read_head $f_pvr_file 6;
+    my $summary      = read_head $f_pvr_file 6;
     my ($show_count) = $summary =~ /Found (\d+)/;
-    my @data = read_all $f_pvr_file;
-    shift @data;            # Drop summary;
+    my @data         = read_all $f_pvr_file;
+    shift @data;    # Drop summary;
     foreach $line (@data) {
         $line =~ s/[,()']//g;
-        if (my ($title, $channel, $start, $end) = 
-          $line =~ /^\d+\.\s+(.+)\.\s+\S+\s+Channel (\d+).+From ([0-9: APM]+) till ([0-9: APM]+)\./) {
-            my $diff = my_time_diff($start, $end);
+        if ( my ( $title, $channel, $start, $end ) =
+            $line =~
+            /^\d+\.\s+(.+)\.\s+\S+\s+Channel (\d+).+From ([0-9: APM]+) till ([0-9: APM]+)\./
+          )
+        {
+            my $diff = my_time_diff( $start, $end );
             my $has_subtitle = $title =~ s/: +/-/g;
             if ($has_subtitle) {
-                if ($RECORDED{$title}) {
+                if ( $RECORDED{$title} ) {
                     print "$title has already been recorded, skipping \n";
-                    next; 
+                    next;
                 }
             }
             else {
                 $title .= '_' . time_date_stamp 6;
             }
-            my $ret = pvr_record($title, $channel, $diff);
-            $RECORDED{$title} = $Time if $ret == 0 and $has_subtitle; 
+            my $ret = pvr_record( $title, $channel, $diff );
+            $RECORDED{$title} = $Time if $ret == 0 and $has_subtitle;
             print "RECORDED: ret $ret has $has_subtitle title $title \n";
-            $db->sync; 
-            return if $ret == 0 or $ret == 1;            # recording started okay or another is in process
+            $db->sync;
+            return
+              if $ret == 0
+              or $ret == 1;    # recording started okay or another is in process
         }
     }
 }
 
 sub pvr_record {
-    my ($title, $chan, $duration) = @_;
+    my ( $title, $chan, $duration ) = @_;
     $title =~ s/ /_/g;
     $title =~ tr/',.;*$?!#//d;
     $title =~ s/\//-/g;
     $title =~ s/&/and/g;
     my $frames = $duration * 30;
-    if (-e "$video_dir/$title.avi")  {
+    if ( -e "$video_dir/$title.avi" ) {
         print_log "$title already exists, skipping\n";
-        return 4; 
+        return 4;
     }
-    if (! done $p_pvr)  {
-        my $remaining = minutes_remaining $t_pvr; 
-        if ($remaining < 2) {
-            print_log "Stopping previous recording with $remaining minutes remaining\n";
-            stop $p_pvr; 
+    if ( !done $p_pvr) {
+        my $remaining = minutes_remaining $t_pvr;
+        if ( $remaining < 2 ) {
+            print_log
+              "Stopping previous recording with $remaining minutes remaining\n";
+            stop $p_pvr;
         }
         else {
-            print_log "Cannot record $title due to previous recording with $remaining minutes remaining\n";
-            return 1; 
+            print_log
+              "Cannot record $title due to previous recording with $remaining minutes remaining\n";
+            return 1;
         }
     }
     print_log "Recording - $title - channel $chan for $duration seconds.\n";
@@ -239,6 +263,7 @@ sub pvr_record {
     else {
         $pre = "echo";
     }
+
     #Audio::Mixer::set_cval('line', 0);
     #Audio::Mixer::set_cval('rec', 20);
     #system 'aumix -d /dev/mixer -l 10 -l R';
@@ -246,29 +271,29 @@ sub pvr_record {
     start $p_pvr if done $p_pvr;
     $filename = "$title.avi";
     set $t_pvr $duration;
-    update_html(); 
+    update_html();
     return 0;
 }
 
-if (done_now $p_pvr) {
-    update_html(); 
+if ( done_now $p_pvr) {
+    update_html();
 }
 
 sub my_time_diff {
-    my ($s,$e) = @_;
-    my ($sh,$sm,undef,$sp) = $s =~ /(\d+):(\d+)( (.M))?/;
-    my ($eh,$em,undef,$ep) = $e =~ /(\d+):(\d+)( (.M))?/;
+    my ( $s, $e ) = @_;
+    my ( $sh, $sm, undef, $sp ) = $s =~ /(\d+):(\d+)( (.M))?/;
+    my ( $eh, $em, undef, $ep ) = $e =~ /(\d+):(\d+)( (.M))?/;
     $sh = 0 if $sh == 12 and $sp;
     $eh = 0 if $eh == 12 and $ep;
     $sh += 12 if $sp eq 'PM';
     $eh += 12 if $ep eq 'PM';
     $eh += 24 if $sp eq 'PM' and $ep eq 'AM';
-    return 60 * (($eh * 60 + $em) - ($sh * 60 + $sm));
+    return 60 * ( ( $eh * 60 + $em ) - ( $sh * 60 + $sm ) );
 }
 
 sub update_html {
     opendir VIDS, $video_dir;
-    my @list = grep {! /^\./ && -f "$video_dir/$_" } readdir VIDS;
+    my @list = grep { !/^\./ && -f "$video_dir/$_" } readdir VIDS;
     closedir VIDS;
     $Included_HTML{PVR} = '<HEAD>
 
@@ -312,21 +337,32 @@ function checkKey() {
 
 <table border=0 cellspacing=0 cellpadding=8><tr><td rowspan=2 valign=top>
       <b>Previously recorded videos</b><spacer height=20><br>';
-    foreach (sort @list) {
+    foreach ( sort @list ) {
         my $file = $_;
         my $link = $_;
         $link =~ s/ /%20/g;
-        $Included_HTML{PVR} .= '<a target="control" href="SUB;referer?delete_video(' . $link . ')">Delete</a>&nbsp&nbsp' .
-          '<a href="SUB;play_video(' . $link . ')">' . $file . '</a><br>';
+        $Included_HTML{PVR} .=
+            '<a target="control" href="SUB;referer?delete_video('
+          . $link
+          . ')">Delete</a>&nbsp&nbsp'
+          . '<a href="SUB;play_video('
+          . $link . ')">'
+          . $file
+          . '</a><br>';
     }
     $Included_HTML{PVR} .= 'none' unless @list;
     $Included_HTML{PVR} .= '</td><td valign=top>
       <b>Shows to record automatically</b><spacer height=20><br>
       <table border=0 cellspacing=2 cellpadding=0><tr><td rowspan=2>
-      <form action="SET;referer" target="control" name=fm><select name="$pvr_list" size="15">' . "\n";
+      <form action="SET;referer" target="control" name=fm><select name="$pvr_list" size="15">'
+      . "\n";
     my $i = 0;
-    foreach (split ',', $Save{pvr_shows}) {
-         $Included_HTML{PVR} .= '<option value="' . $i++ . '">' . $_ . "&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp\n";
+    foreach ( split ',', $Save{pvr_shows} ) {
+        $Included_HTML{PVR} .=
+            '<option value="'
+          . $i++ . '">'
+          . $_
+          . "&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp\n";
     }
     $Included_HTML{PVR} .= '</select></td><td valign=top>
       <input type=image name=$pvr_up src=/graphics/up.gif width=16 height=16 border=0 alt="Up" vspace=2>
@@ -347,34 +383,34 @@ $pvr_up_x = new Generic_Item;
 $pvr_up_y = new Generic_Item;
 $pvr_dn_x = new Generic_Item;
 $pvr_dn_y = new Generic_Item;
-$pvr_x_x = new Generic_Item;
-$pvr_x_y = new Generic_Item;
-$pvr_add = new Generic_Item;
+$pvr_x_x  = new Generic_Item;
+$pvr_x_y  = new Generic_Item;
+$pvr_add  = new Generic_Item;
 $pvr_text = new Generic_Item;
 
-if (state_now $pvr_up_x =~ /\d/) {
+if ( state_now $pvr_up_x =~ /\d/ ) {
     my $show = state $pvr_list;
     return unless $show;
     my @shows = split ',', $Save{pvr_shows};
     my $tmp = $shows[$show];
-    $shows[$show] = $shows[$show - 1];
-    $shows[$show - 1] = $tmp;
+    $shows[$show] = $shows[ $show - 1 ];
+    $shows[ $show - 1 ] = $tmp;
     $Save{pvr_shows} = join ',', (@shows);
     update_html();
 }
 
-if (state_now $pvr_dn_x =~ /\d/) {
+if ( state_now $pvr_dn_x =~ /\d/ ) {
     my $show = state $pvr_list;
     my @shows = split ',', $Save{pvr_shows};
     return if $show > @shows;
     my $tmp = $shows[$show];
-    $shows[$show] = $shows[$show + 1];
-    $shows[$show + 1] = $tmp;
+    $shows[$show] = $shows[ $show + 1 ];
+    $shows[ $show + 1 ] = $tmp;
     $Save{pvr_shows} = join ',', (@shows);
     update_html();
 }
 
-if (state_now $pvr_x_x =~ /\d/) {
+if ( state_now $pvr_x_x =~ /\d/ ) {
     my $show = state $pvr_list;
     my @shows = split ',', $Save{pvr_shows};
     splice @shows, $show, 1;
@@ -382,7 +418,7 @@ if (state_now $pvr_x_x =~ /\d/) {
     update_html();
 }
 
-if (state_now $pvr_add) {
+if ( state_now $pvr_add) {
     my $show = state $pvr_text;
     return unless $show;
     $Save{pvr_shows} .= ',' . $show;
@@ -392,11 +428,17 @@ if (state_now $pvr_add) {
 sub play_video {
     my $file = shift;
     print_log "Playing $file\n";
+
     #Audio::Mixer::set_cval('pcm', 80);
     system 'aumix -d /dev/mixer -l 0 -w 80 -v 100';
-#    run "killall -s 9 mplayer; killall xawtv; mplayer -fs -ao oss:/dev/dsp1 -quiet '$video_dir/$file'";
-    run "killall -s 9 mplayer; killall xawtv; mplayer -fs -ao oss:/dev/dsp -quiet -idx '$video_dir/$file'";
-    set $TV 'on'; set $AMP 'on'; set $TV 'video1'; set $AMP 'vcr';
+
+    #    run "killall -s 9 mplayer; killall xawtv; mplayer -fs -ao oss:/dev/dsp1 -quiet '$video_dir/$file'";
+    run
+      "killall -s 9 mplayer; killall xawtv; mplayer -fs -ao oss:/dev/dsp -quiet -idx '$video_dir/$file'";
+    set $TV 'on';
+    set $AMP 'on';
+    set $TV 'video1';
+    set $AMP 'vcr';
 }
 
 sub delete_video {
@@ -407,10 +449,10 @@ sub delete_video {
 }
 
 sub change_vol {
-    my ($ctrl, $change) = @_;
-    my @vol = Audio::Mixer::get_cval($ctrl);
-    my $volume_previous = ($vol[0] + $vol[1]) / 2;
-    Audio::Mixer::set_cval($ctrl, $volume_previous + $change);
+    my ( $ctrl, $change ) = @_;
+    my @vol             = Audio::Mixer::get_cval($ctrl);
+    my $volume_previous = ( $vol[0] + $vol[1] ) / 2;
+    Audio::Mixer::set_cval( $ctrl, $volume_previous + $change );
 }
 
 sub disk_space {
@@ -419,30 +461,32 @@ sub disk_space {
     $line = <DF>;
     close DF;
     my ($kb) = $line =~ /^\S+\s+\S+\s+\S+\s+(\S+)/;
-    return sprintf("%.1F GB", $kb / 1024 ** 2) if $kb > 1024 ** 2;
-    return sprintf("%.1F MB", $kb / 1024) if $kb > 1024;
-    return sprintf("%.1F KB", $kb);
+    return sprintf( "%.1F GB", $kb / 1024**2 ) if $kb > 1024**2;
+    return sprintf( "%.1F MB", $kb / 1024 )    if $kb > 1024;
+    return sprintf( "%.1F KB", $kb );
 }
 
 sub pvr_stat {
     return 'Idle' if done $p_pvr;
-    return "Recording $filename with " . $t_pvr->minutes_remaining . " minutes remaining";
+    return
+        "Recording $filename with "
+      . $t_pvr->minutes_remaining
+      . " minutes remaining";
 }
-
 
 # The rest of this code is taken from tv_grid.pl
 
-
-                                # Note: This $tv_grid is a special name, used by the get_tv_grid program.  
-                                #       Do not change it.
+# Note: This $tv_grid is a special name, used by the get_tv_grid program.
+#       Do not change it.
 $tv_grid = new Generic_Item();
 
-                                # This item will be set whenever someone clicks on the 'set the vcr' link on the tv web page
-if (my $data = state_now $tv_grid) {
+# This item will be set whenever someone clicks on the 'set the vcr' link on the tv web page
+if ( my $data = state_now $tv_grid) {
 
-                                # http://house:8080/SET?$tv_grid?channel_2_from_7:00_to_8:00
+    # http://house:8080/SET?$tv_grid?channel_2_from_7:00_to_8:00
 
-    my($channel, $start, $stop, $date, $show_name) = $data =~ /(\d+) from (\S+) to (\S+) on (\S+) for (.*)/;
+    my ( $channel, $start, $stop, $date, $show_name ) =
+      $data =~ /(\d+) from (\S+) to (\S+) on (\S+) for (.*)/;
 
     unless ($start) {
         my $msg = "Bad tv_grid time: $data";
@@ -455,62 +499,75 @@ if (my $data = state_now $tv_grid) {
     $show_name .= '_' . time_date_stamp 6 unless $has_subtitle;
     $show_name =~ s/&/and/g;
     $show_name =~ s/[\'\,\.\;\*\$\?\!\#\/]//g;
-    my $msg = "Scheduling recording of $show_name.  Channel $channel from $start to $stop on $date.";
+    my $msg =
+      "Scheduling recording of $show_name.  Channel $channel from $start to $stop on $date.";
     speak $msg;
     print_log $msg;
 
-    &trigger_set("time_now '$date $start'",
-                 "pvr_record('$show_name', $channel, my_time_diff('$start', '$stop'))");
+    &trigger_set( "time_now '$date $start'",
+        "pvr_record('$show_name', $channel, my_time_diff('$start', '$stop'))" );
 
 }
 
-                                # This is what downloads tv data.  This needs to be forked/detatched, as it can take a while
-$v_get_tv_grid_data1 = new  Voice_Cmd('[Get,reget,redo] tv grid data for today');
-$v_get_tv_grid_data7 = new  Voice_Cmd('[Get,reget,redo] tv grid data for the next week');
-$v_get_tv_grid_data1-> set_icon('nostat.gif');
-$v_get_tv_grid_data1-> set_info('Updates the TV database with.  reget will reget html, redo re-uses.  Get will only reget or redo if the data is old.');
-$v_get_tv_grid_data7-> set_icon('nostat.gif');
-$v_get_tv_grid_data7-> set_info('Updates the TV database with.  reget will reget html, redo re-uses.  Get will only reget or redo if the data is old.');
-if ($state = said  $v_get_tv_grid_data1 or $state = said  $v_get_tv_grid_data7) {
+# This is what downloads tv data.  This needs to be forked/detatched, as it can take a while
+$v_get_tv_grid_data1 = new Voice_Cmd('[Get,reget,redo] tv grid data for today');
+$v_get_tv_grid_data7 =
+  new Voice_Cmd('[Get,reget,redo] tv grid data for the next week');
+$v_get_tv_grid_data1->set_icon('nostat.gif');
+$v_get_tv_grid_data1->set_info(
+    'Updates the TV database with.  reget will reget html, redo re-uses.  Get will only reget or redo if the data is old.'
+);
+$v_get_tv_grid_data7->set_icon('nostat.gif');
+$v_get_tv_grid_data7->set_info(
+    'Updates the TV database with.  reget will reget html, redo re-uses.  Get will only reget or redo if the data is old.'
+);
+if ( $state = said $v_get_tv_grid_data1 or $state = said $v_get_tv_grid_data7) {
+
     if (&net_connect_check) {
-        my $days = (said $v_get_tv_grid_data7) ? 7 : 1;
-        $state = ($state eq 'Get') ? '' : "-$state";
+        my $days = ( said $v_get_tv_grid_data7) ? 7 : 1;
+        $state = ( $state eq 'Get' ) ? '' : "-$state";
 
-                                # Call with -db sat to use sat_* parms instead of tv_* parms
+        # Call with -db sat to use sat_* parms instead of tv_* parms
         my $pgm = "get_tv_grid -db tv $state -days $days ";
-#        my $pgm = "get_tv_grid -preserveraw -debug -db tv $state -hour 12";
 
-                                # Allow data to be stored wherever the alias points to
+        #        my $pgm = "get_tv_grid -preserveraw -debug -db tv $state -hour 12";
+
+        # Allow data to be stored wherever the alias points to
         my $tvdir = "$config_parms{html_dir}/tv";
         $tvdir = &html_alias('tv') if &html_alias('tv');
         $pgm .= qq[ -outdir "$tvdir"] if $tvdir;
 
-                                # If we have set the net_mail_send_account, send default web page via email
+        # If we have set the net_mail_send_account, send default web page via email
         my $mail_account = $config_parms{net_mail_send_account};
-        my $mail_server  = $main::config_parms{"net_mail_${mail_account}_server_send"};
-        my $mail_to      = $main::config_parms{"net_mail_${mail_account}_address"};
-        if ($mail_to and $mail_server and $main::config_parms{"tv_email_grids"}) {
+        my $mail_server =
+          $main::config_parms{"net_mail_${mail_account}_server_send"};
+        my $mail_to = $main::config_parms{"net_mail_${mail_account}_address"};
+        if (    $mail_to
+            and $mail_server
+            and $main::config_parms{"tv_email_grids"} )
+        {
             $pgm .= " -mail_to $mail_to -mail_server $mail_server ";
-            $pgm .= " -mail_baseref $config_parms{http_server}:$config_parms{http_port} ";
+            $pgm .=
+              " -mail_baseref $config_parms{http_server}:$config_parms{http_port} ";
         }
 
         run $pgm;
         print_log "TV grid update started";
     }
     else {
-	    speak "Sorry, you must be logged onto the net";
+        speak "Sorry, you must be logged onto the net";
     }
 }
 
-                                # Set the default page to the current time
-                                # Check it a few minutes prior to the hour
+# Set the default page to the current time
+# Check it a few minutes prior to the hour
 #f (time_cron "0 $config_parms{tv_hours} * * *") {
-if (time_cron "50 * * * *") {
-    my ($hour, $mday) = (localtime(time + 600))[2,3];
+if ( time_cron "50 * * * *" ) {
+    my ( $hour, $mday ) = ( localtime( time + 600 ) )[ 2, 3 ];
     my $tvfile = sprintf "%02d_%02d.html", $mday, $hour;
     my $tvdir = "$config_parms{html_dir}/tv";
     $tvdir = &html_alias('tv') if &html_alias('tv');
-    if ( -e  "$tvdir/$tvfile" ) {
+    if ( -e "$tvdir/$tvfile" ) {
         print_log "Updating TV index page with $tvfile";
         copy "$tvdir/$tvfile", "$tvdir/index.html";
     }
