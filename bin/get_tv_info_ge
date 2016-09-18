@@ -16,25 +16,44 @@
 #---------------------------------------------------------------------------
 
 use strict;
-my($Pgm_Path, $Pgm_Name, $Version);
-BEGIN {
-    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+my ( $Pgm_Path, $Pgm_Name, $Version );
 
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.*)\.?/;
+BEGIN {
+    ($Version) =
+      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    eval
+      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
 }
 
 my %parms;
 use Getopt::Long;
-if (!&GetOptions(\%parms, "h", "help", "db=s", "name=s",
-                 "channels=s", "keep=s", "dates=s", "times=s", "lengths=s", "keys=s", "keyfile=s", 'title_only', 
-                 'increment=s', "outfile1=s", "outfile2=s", "early_am=s", "started=s",
-                 "debug", "quiet","table","genre=s") or @ARGV or 
-    !($parms{channels} or $parms{keep} or $parms{dates} or $parms{times} or $parms{lengths} or 
-      $parms{keys} or $parms{keyfile} or $parms{early_am}) or
-    ($parms{h} or $parms{help})) {
-    print<<eof;
+if (
+    !&GetOptions(
+        \%parms,      "h",           "help",       "db=s",
+        "name=s",     "channels=s",  "keep=s",     "dates=s",
+        "times=s",    "lengths=s",   "keys=s",     "keyfile=s",
+        'title_only', 'increment=s', "outfile1=s", "outfile2=s",
+        "early_am=s", "started=s",   "debug",      "quiet",
+        "table",      "genre=s"
+    )
+    or @ARGV
+    or !(
+           $parms{channels}
+        or $parms{keep}
+        or $parms{dates}
+        or $parms{times}
+        or $parms{lengths}
+        or $parms{keys}
+        or $parms{keyfile}
+        or $parms{early_am}
+    )
+    or ( $parms{h} or $parms{help} )
+  )
+{
+    print <<eof;
 
 $Pgm_Name returns info about tv programs that match the requested parms.
 It uses a database created by the get_tv_grid program.
@@ -98,130 +117,140 @@ See mh/code/bruce/tv_info.pl for examples on how to use this from mh.
 
 eof
 
-  exit;
+    exit;
 }
 
-                                # Globals
-my (@channels, @dates, @times, @early_am, @lengths, @keys, %DBM, %DBM2, %DBM3, $match_cnt, $match_list1, $match_list2,$match_list3,
-    $date_today, $time_now, $min_begin, $min_now, $symbol);
+# Globals
+my (
+    @channels,    @dates,       @times,       @early_am,   @lengths,
+    @keys,        %DBM,         %DBM2,        %DBM3,       $match_cnt,
+    $match_list1, $match_list2, $match_list3, $date_today, $time_now,
+    $min_begin,   $min_now,     $symbol
+);
 my %config_parms;
 
 &setup;
 &find_match;
 print "\nFound $match_cnt $parms{name} programmes from ", @channels + 0,
-    " channels. Detailed results are in $parms{outfile2}\n" unless $parms{quiet};
+  " channels. Detailed results are in $parms{outfile2}\n"
+  unless $parms{quiet};
 print $match_list1 if $match_cnt < 10;
 
 sub find_match {
     my @tv_list;
-    my $SELECT="";
+    my $SELECT = "";
     $match_cnt = 0;
 
-#    my @db_keys = %DBM;
-#    my $db_count = @db_keys;
-#    print "db count=$db_count\n";
+    #    my @db_keys = %DBM;
+    #    my $db_count = @db_keys;
+    #    print "db count=$db_count\n";
 
+    $match_list3 .= "<table bgcolor=\"lightgrey\">";
+    $match_list3 .= "<form action='/bin/tv_search.pl'  target='output'>";
+    $match_list3 .= "<tr>";
+    $match_list3 .= "<td>";
+    $match_list3 .= "<SELECT name=\"times\" >";
+    $match_list3 .= "<option value=\"\" SELECTED><-- Time -->";
+    $match_list3 .= "<option value=\"00:01-02:00\"$SELECT>00:00-02:00";
+    my $myStart1 = 2;
+    my $myEnd    = 2;
+    while ( $myStart1 <= 23 ) {
+        my $myStart = $myStart1;
+        $myEnd   = $myStart + 2;
+        $myStart = "0" . $myStart if ( $myStart < 10 );
+        $myEnd   = "0" . $myEnd if ( $myEnd < 10 );
+        $myEnd   = "24" if ( $myEnd > 24 );
+        $SELECT = " SELECTED" if ( $parms{times} =~ /$myStart:/gi && !$SELECT );
+        $match_list3 .=
+          "<option value=\"$myStart:00-$myEnd:00\"$SELECT>$myStart:00-$myEnd:00";
+        $SELECT = " " if ( $SELECT eq " SELECTED" );
+        $myStart1++;
+    }
+    $match_list3 .= "</SELECT>";
+    $match_list3 .= "</td>";
+    $match_list3 .= "<td>";
+    $match_list3 .= "<SELECT name=\"dates\" >";
+    $match_list3 .= "<option value=\"\" SELECTED><-- today -->";
+    my $myStart1 = -1;
+    while ( $myStart1 <= 7 ) {
+        my ( $mday, $mon ) = ( localtime( time + 86400 * $myStart1 ) )[ 3, 4 ];
+        $mon++;
+        $match_list3 .= "<option value=\"$mon/$mday\">$mon/$mday";
+        $myStart1++;
+    }
+    $match_list3 .= "</SELECT>";
+    $match_list3 .= "</td>";
+    $match_list3 .= "<td>";
+    $match_list3 .= "<SELECT name=\"channels\" >";
+    $match_list3 .= "<option value=\"\" ><-- channel -->";
+    $match_list3 .=
+      "<option value=\"$config_parms{tv_my_favorites_channels}\" SELECTED>favoriten";
+    my @Mychannels = sort { $a <=> $b } keys %DBM2;
+    $SELECT = "";
 
-	$match_list3 .="<table bgcolor=\"lightgrey\">";
-	$match_list3 .="<form action='/bin/tv_search.pl'  target='output'>";
-	$match_list3 .="<tr>";
-	$match_list3 .="<td>";
-	$match_list3 .="<SELECT name=\"times\" >";
-	$match_list3 .="<option value=\"\" SELECTED><-- Time -->";
-	$match_list3 .="<option value=\"00:01-02:00\"$SELECT>00:00-02:00";
-	my $myStart1=2;
-	my $myEnd=2;
-	while ($myStart1<=23)
-	{
-		my $myStart=$myStart1;
-		$myEnd=$myStart+2;
-		$myStart ="0".$myStart if ( $myStart < 10 );
-		$myEnd =  "0".$myEnd   if ( $myEnd < 10   );
-		$myEnd = "24" if ( $myEnd > 24);
-		$SELECT =" SELECTED" if ($parms{times} =~ /$myStart:/gi && !$SELECT);
-		$match_list3 .="<option value=\"$myStart:00-$myEnd:00\"$SELECT>$myStart:00-$myEnd:00";
-		$SELECT=" " if ($SELECT eq " SELECTED");
-		$myStart1++;
-	}
-	$match_list3 .="</SELECT>";
-	$match_list3 .="</td>";
-	$match_list3 .="<td>";
-	$match_list3 .="<SELECT name=\"dates\" >";
-	$match_list3 .="<option value=\"\" SELECTED><-- today -->";
-	my $myStart1=-1;
-	while ($myStart1<=7)
-	{
-		my ($mday, $mon) = (localtime(time + 86400*$myStart1))[3,4];
-		$mon++;
-		$match_list3 .="<option value=\"$mon/$mday\">$mon/$mday";
-		$myStart1++;
-	}
-	$match_list3 .="</SELECT>";
-	$match_list3 .="</td>";
-	$match_list3 .="<td>";
-	$match_list3 .="<SELECT name=\"channels\" >";
-	$match_list3 .="<option value=\"\" ><-- channel -->";
-	$match_list3 .="<option value=\"$config_parms{tv_my_favorites_channels}\" SELECTED>favoriten";
-	my @Mychannels = sort{$a <=> $b} keys %DBM2;
-	$SELECT="";
-        for my $channel_number (@Mychannels)
-	{
-#		$SELECT =" SELECTED" if (".".$parms{channels}."." =~ /\.$channel_number\./gi && !$SELECT);
-		$match_list3 .="<option value=\"$channel_number\"$SELECT>$DBM2{$channel_number}";
-		$SELECT=" " if ($SELECT eq " SELECTED");
-	}
-	$match_list3 .="</SELECT>";
-	$match_list3 .="</td>";
+    for my $channel_number (@Mychannels) {
 
-	$match_list3 .="<td>";
-	$match_list3 .="<SELECT name=\"genre\" >";
-	$match_list3 .="<option value=\"\" SELECTED><-- genre -->";
-	my @Mygenre = sort{$a <=> $b} keys %DBM3;
-	$SELECT="";
-        for my $genre ( sort @Mygenre)
-	{
-		$match_list3 .="<option value=\"$genre\"$SELECT>$DBM3{$genre}";
-	}
-	$match_list3 .="</SELECT>";
-	$match_list3 .="<input type=\"image\" src=/tv-stations/1_go.gif>";
-	$match_list3 .="</td>";
-	$match_list3 .="</tr>";
+        #		$SELECT =" SELECTED" if (".".$parms{channels}."." =~ /\.$channel_number\./gi && !$SELECT);
+        $match_list3 .=
+          "<option value=\"$channel_number\"$SELECT>$DBM2{$channel_number}";
+        $SELECT = " " if ( $SELECT eq " SELECTED" );
+    }
+    $match_list3 .= "</SELECT>";
+    $match_list3 .= "</td>";
 
-	$match_list3 .="<tr>";
-	$match_list3 .="<td colspan=3><font size=1 color=\"black\">Keyword:</font><input align='left' size='25' name='search'></td>";
-	$match_list3 .="</tr>";
+    $match_list3 .= "<td>";
+    $match_list3 .= "<SELECT name=\"genre\" >";
+    $match_list3 .= "<option value=\"\" SELECTED><-- genre -->";
+    my @Mygenre = sort { $a <=> $b } keys %DBM3;
+    $SELECT = "";
+    for my $genre ( sort @Mygenre ) {
+        $match_list3 .= "<option value=\"$genre\"$SELECT>$DBM3{$genre}";
+    }
+    $match_list3 .= "</SELECT>";
+    $match_list3 .= "<input type=\"image\" src=/tv-stations/1_go.gif>";
+    $match_list3 .= "</td>";
+    $match_list3 .= "</tr>";
 
+    $match_list3 .= "<tr>";
+    $match_list3 .=
+      "<td colspan=3><font size=1 color=\"black\">Keyword:</font><input align='left' size='25' name='search'></td>";
+    $match_list3 .= "</tr>";
 
-    $match_list3 .="</tr>";
-    $match_list3 .="</form>";
-    $match_list3 .="</table>";
-    $match_list3 .="<table bgcolor=\"lightgrey\">";
+    $match_list3 .= "</tr>";
+    $match_list3 .= "</form>";
+    $match_list3 .= "</table>";
+    $match_list3 .= "<table bgcolor=\"lightgrey\">";
 
-    push(@keys,$parms{genre}) if ( $parms{genre} );
-#    push(@keys,"Magazin");
+    push( @keys, $parms{genre} ) if ( $parms{genre} );
+
+    #    push(@keys,"Magazin");
     for my $pgm_date (@dates) {
         for my $time_start (@times) {
             for my $channel_number (@channels) {
-                my $db_key = join($;, $channel_number, $pgm_date, $time_start);
+                my $db_key =
+                  join( $;, $channel_number, $pgm_date, $time_start );
                 print "key=$db_key.\n" if $parms{debug};
-                if (my $db_data = $DBM{$db_key}) {
-                	print "db_data=$db_data\n" if $parms{debug};
-                               # Drop HTML tags
-                    $db_data = HTML::FormatText->new(lm => 0, rm => 500)->format(HTML::TreeBuilder->new()->parse($db_data));
+                if ( my $db_data = $DBM{$db_key} ) {
+                    print "db_data=$db_data\n" if $parms{debug};
 
-                    my($time_end, $pgm_name, $pgm_desc ,$pgm_genre, $pgm_link) = split($;, $db_data);
+                    # Drop HTML tags
+                    $db_data = HTML::FormatText->new( lm => 0, rm => 500 )
+                      ->format( HTML::TreeBuilder->new()->parse($db_data) );
+
+                    my ( $time_end, $pgm_name, $pgm_desc, $pgm_genre,
+                        $pgm_link ) = split( $;, $db_data );
 
                     my $min_start   = &hour_to_min($time_start);
                     my $min_end     = &hour_to_min($time_end);
                     my $time_start2 = &hour24_to_ampm($time_start);
                     my $time_end2   = &hour24_to_ampm($time_end);
 
-                    my $pgm_length = ($min_end - $min_start)/60;
+                    my $pgm_length = ( $min_end - $min_start ) / 60;
 
-                    my ($match_length, $match_key);
+                    my ( $match_length, $match_key );
 
                     for my $length (@lengths) {
-                        if ($length == $pgm_length) {
+                        if ( $length == $pgm_length ) {
                             $match_length = 1;
                             last;
                         }
@@ -230,363 +259,419 @@ sub find_match {
                     print "name=$pgm_name\n" if $parms{debug};
 
                     for my $key (@keys) {
-                                # Ignore comment lines in key-file
-                        next if ($key =~ /\#/ or $key !~ /\w/);
-                                # added .?\b to match whole words and plurals only
-                                # Make upper case keywords case-sensitive
-# \b$key.?\b
-# In the end I found \bword\b was too limited, as it was necessary to list both 
-# Egypt and Egyptian.
-# What I do now is to add an (invisible) space after a word in the key_list if I do not 
-# want part of a word to be matched, ie 'lion[SPACE]' to prevent matching with 'Lionel'.
-# I can also now edit the key_lists with Notepad from inside mh.
-# I have added case-sensitive upper-case in $pgm_desc.
-                        if ( $pgm_name    =~ /\b$key/i or
-                           ( $pgm_desc    =~ /\b$key/i and !$parms{title_only}) or
-                           ( $parms{genre}=~ /\'$pgm_genre\'/i and $parms{genre}) 
-                           ) 
-		        {
+
+                        # Ignore comment lines in key-file
+                        next if ( $key =~ /\#/ or $key !~ /\w/ );
+
+                        # added .?\b to match whole words and plurals only
+                        # Make upper case keywords case-sensitive
+                        # \b$key.?\b
+                        # In the end I found \bword\b was too limited, as it was necessary to list both
+                        # Egypt and Egyptian.
+                        # What I do now is to add an (invisible) space after a word in the key_list if I do not
+                        # want part of a word to be matched, ie 'lion[SPACE]' to prevent matching with 'Lionel'.
+                        # I can also now edit the key_lists with Notepad from inside mh.
+                        # I have added case-sensitive upper-case in $pgm_desc.
+                        if (
+                            $pgm_name =~ /\b$key/i
+                            or
+                            ( $pgm_desc =~ /\b$key/i and !$parms{title_only} )
+                            or (    $parms{genre} =~ /\'$pgm_genre\'/i
+                                and $parms{genre} )
+                          )
+                        {
                             $match_key = 1;
                             print "$key ";
-# The next 2 lines highlight the selected key-word(s), using the selected symbol in mh.ini
+
+                            # The next 2 lines highlight the selected key-word(s), using the selected symbol in mh.ini
                             $pgm_desc =~ s/$key/$symbol$symbol$key$symbol/gi;
                             $pgm_name =~ s/$key/$symbol$symbol$key$symbol/gi;
-                    
+
                             last;
                         }
                     }
 
+                    # Check if show has ended
+                    # First, convert times to 30 hour clock (6 am to 6am instead of midnight to midnight)
+                    $min_now = $min_now + 24 * 60 if ( $min_now < 6 * 60 );
+                    $min_end = $min_end + 24 * 60 if ( $min_end < 6 * 60 );
+                    $min_begin = $min_begin + 24 * 60
+                      if ( $min_begin < 6 * 60 );
 
-                                # Check if show has ended
-                                # First, convert times to 30 hour clock (6 am to 6am instead of midnight to midnight)
-                    $min_now = $min_now + 24 * 60 if ($min_now < 6 * 60);
-                    $min_end = $min_end + 24 * 60 if ($min_end < 6 * 60);
-                    $min_begin = $min_begin + 24 * 60 if ($min_begin < 6 * 60);
-
-                    my $show_ended = 1 if ($min_end < $min_begin or $min_end < $min_now);
-                    unless 	(@lengths and !$match_length or
-                             ($show_ended and !$parms{all}) or
-                             @keys    and !$match_key) {
+                    my $show_ended = 1
+                      if ( $min_end < $min_begin or $min_end < $min_now );
+                    unless ( @lengths and !$match_length
+                        or ( $show_ended and !$parms{all} )
+                        or @keys and !$match_key )
+                    {
                         my $channel_name = $DBM2{$channel_number};
-                        if ($parms{debug}) {
+                        if ( $parms{debug} ) {
                             print "\nFound a match:\n";
                             print "  Channel: $channel_number $channel_name\n";
-                            print "     Time: $pgm_date $time_start2 -> $time_end2\n";
+                            print
+                              "     Time: $pgm_date $time_start2 -> $time_end2\n";
                             print "   Length: $pgm_length hour\n";
                             print "    Title: $pgm_name\n";
                             print "     Desc: $pgm_desc\n";
                         }
-                        
+
                         $match_cnt++;
 
-			my $channelGif=$channel_name;
-			   $channelGif =~ s/ //g;     # Drop extra spaces
+                        my $channelGif = $channel_name;
+                        $channelGif =~ s/ //g;    # Drop extra spaces
 
-#                        my $watch_link = " <a href='SET?\$TV?$channel_name'><img src=/tv-stations/".$channelGif.".gif width=16 height=16 border=0></a>";
-                        my $watch_link = " <a href='SET?\$TV?$channel_name'><img src=/tv-stations/".$channelGif.".gif border=0></a>";
+                        #                        my $watch_link = " <a href='SET?\$TV?$channel_name'><img src=/tv-stations/".$channelGif.".gif width=16 height=16 border=0></a>";
+                        my $watch_link =
+                          " <a href='SET?\$TV?$channel_name'><img src=/tv-stations/"
+                          . $channelGif
+                          . ".gif border=0></a>";
                         $watch_link =~ s/CH/Channel+/;
-                                # Set VCR data
+
+                        # Set VCR data
                         my $vcr_date = $pgm_date;
                         $vcr_date =~ s/\//_/;
 
-                                # Adjust date if starting after midnight (this will be wrong on the first day of the month: 31 + 1 = 1 not 32)
-                        if ($min_start < 6 * 60) {
+                        # Adjust date if starting after midnight (this will be wrong on the first day of the month: 31 + 1 = 1 not 32)
+                        if ( $min_start < 6 * 60 ) {
                             $vcr_date =~ /(.+)_(.+)/;
-                            $vcr_date = $1."_".eval{$2 + 1};
+                            $vcr_date = $1 . "_" . eval { $2 + 1 };
                         }
-                                # Add 5 minutes to end of vcr recording time in case program starts late
-                                #  - skip for now ... back-to-back recordings would get messed up
-                        my $vcr_time_end = &min_to_hour(&hour_to_min($time_end) + 5);
 
+                        # Add 5 minutes to end of vcr recording time in case program starts late
+                        #  - skip for now ... back-to-back recordings would get messed up
+                        my $vcr_time_end =
+                          &min_to_hour( &hour_to_min($time_end) + 5 );
 
-
-                        my $vcr_link = " <a href=../bin/vcr.pl?$channel_number&$vcr_date&$time_start&$time_end target='control'><img src=/graphics/vcr.gif width=20 height=16 border=0></a>";
+                        my $vcr_link =
+                          " <a href=../bin/vcr.pl?$channel_number&$vcr_date&$time_start&$time_end target='control'><img src=/graphics/vcr.gif width=20 height=16 border=0></a>";
                         $vcr_link =~ s/://g;
-                        $pgm_name =~ s/\*+//g; # Change **show name** => show name
-                        $pgm_name =~ s/[\\\$\^]//g;  # Remove regular expression chars introduced above
-                        my $temp = "\n$match_cnt.  $pgm_name.  $channel_name Channel $channel_number.  ";
+                        $pgm_name =~
+                          s/\*+//g;    # Change **show name** => show name
+                        $pgm_name =~ s/[\\\$\^]//g
+                          ;   # Remove regular expression chars introduced above
+                        my $temp =
+                          "\n$match_cnt.  $pgm_name.  $channel_name Channel $channel_number.  ";
 
-                        my $temp2 = "\n$match_cnt.  $pgm_name.  $channel_name Channel $channel_number.  ";
-			if ( length($pgm_link) >5)
-			{
-				$pgm_link =~ s/\n//gi;
-				$pgm_link =~ s/\r//gi;
-	                        $temp2 = "\n$match_cnt.  ".'<a href="'.$pgm_link.'">'. $pgm_name .'</a>' ."  $channel_name Channel $channel_number.  ";
-			}
+                        my $temp2 =
+                          "\n$match_cnt.  $pgm_name.  $channel_name Channel $channel_number.  ";
+                        if ( length($pgm_link) > 5 ) {
+                            $pgm_link =~ s/\n//gi;
+                            $pgm_link =~ s/\r//gi;
+                            $temp2 =
+                                "\n$match_cnt.  "
+                              . '<a href="'
+                              . $pgm_link . '">'
+                              . $pgm_name . '</a>'
+                              . "  $channel_name Channel $channel_number.  ";
+                        }
 
                         my $print_date = $pgm_date;
 
-                        $print_date =~ s/(.+)\/(.+)/$2\/$1/g if ($config_parms{date_format} =~ "ddmmyy");
+                        $print_date =~ s/(.+)\/(.+)/$2\/$1/g
+                          if ( $config_parms{date_format} =~ "ddmmyy" );
 
-
-                        $temp .= "On $print_date.  " if (@dates > 1 or $pgm_date ne $date_today);
+                        $temp .= "On $print_date.  "
+                          if ( @dates > 1 or $pgm_date ne $date_today );
 
                         $temp .= "From $time_start2 till $time_end2.\n";
                         $match_list1 .= $temp;
-                        $match_list1 =~ s/\(.+\)\.//g; 
-                        $match_list1 =~ s/CH/Channel /g if ($config_parms{country} eq "UK"); 
+                        $match_list1 =~ s/\(.+\)\.//g;
+                        $match_list1 =~ s/CH/Channel /g
+                          if ( $config_parms{country} eq "UK" );
                         chomp $temp;
 ##
 
-			if ( $parms{table} )
-			{
-				$match_list3 .="<TR>";
-				$match_list3 .="<td align=left><font size=3 color=\"black\"><b>";
-				$match_list3 .="<a href=/bin/tv_search.pl?time=$time_start-".&min_to_hour((&hour_to_min($time_start)+60)).">";
-				$match_list3 .="$time_start";
-				$match_list3 .="</a>";
-				$match_list3 .="</b></font></td>";
-				$match_list3 .="<td align=right><font size=2 color=\"black\">";
-				$match_list3 .="<a href=/bin/tv_search.pl?channel=$channel_number>";
-				$match_list3 .="$channel_number";
-				$match_list3 .="</a>";
-				$match_list3 .="</font></td>";
+                        if ( $parms{table} ) {
+                            $match_list3 .= "<TR>";
+                            $match_list3 .=
+                              "<td align=left><font size=3 color=\"black\"><b>";
+                            $match_list3 .=
+                              "<a href=/bin/tv_search.pl?time=$time_start-"
+                              . &min_to_hour(
+                                ( &hour_to_min($time_start) + 60 ) )
+                              . ">";
+                            $match_list3 .= "$time_start";
+                            $match_list3 .= "</a>";
+                            $match_list3 .= "</b></font></td>";
+                            $match_list3 .=
+                              "<td align=right><font size=2 color=\"black\">";
+                            $match_list3 .=
+                              "<a href=/bin/tv_search.pl?channel=$channel_number>";
+                            $match_list3 .= "$channel_number";
+                            $match_list3 .= "</a>";
+                            $match_list3 .= "</font></td>";
 
-				if ( length($pgm_link) >5)
-				{
-					$pgm_link =~ s/\n//gi;
-					$pgm_link =~ s/\r//gi;
-					$match_list3 .="<td align=left><font size=2 color=\"black\"><b>$pgm_name &nbsp;<a href=\"$pgm_link\"><img src=/tv-stations/1_info.gif border=0></a></b></font></td>";
-				}
-				else
-				{
-					$match_list3 .="<td align=left><font size=2 color=\"black\"><b>$pgm_name</b></font></td>";
-				}
+                            if ( length($pgm_link) > 5 ) {
+                                $pgm_link =~ s/\n//gi;
+                                $pgm_link =~ s/\r//gi;
+                                $match_list3 .=
+                                  "<td align=left><font size=2 color=\"black\"><b>$pgm_name &nbsp;<a href=\"$pgm_link\"><img src=/tv-stations/1_info.gif border=0></a></b></font></td>";
+                            }
+                            else {
+                                $match_list3 .=
+                                  "<td align=left><font size=2 color=\"black\"><b>$pgm_name</b></font></td>";
+                            }
 
-				$match_list3 .="<td align=right><font size=2 color=\"black\"><b>$pgm_genre&nbsp;$vcr_link</b></font></td>";
-				$match_list3 .="<td align=right><font size=2 color=\"black\"><b>$watch_link</b></font></td>";
-				$match_list3 .="</TR>";
-				$match_list3 .="<TR>";
-				$match_list3 .="<td align=right><font size=2 color=\"black\">";
-				$match_list3 .="<a href=/bin/tv_search.pl?time=$time_end-".&min_to_hour((&hour_to_min($time_end)+120)).">";
-				$match_list3 .="$time_end";
-				$match_list3 .="</a>";
-				$match_list3 .="</b></font></td>";
-				$match_list3 .="<td ></td>";
-				$match_list3 .="<td align=left colspan=3 bgcolor=\"lightyellow\"><font size=2 color=\"black\">$pgm_desc</font></td>";
-				$match_list3 .="</TR>";
-			}
-			else
-			{
-	                        $match_list2 .= $temp2 . $vcr_link. $watch_link. "\n$pgm_desc";
-			}
+                            $match_list3 .=
+                              "<td align=right><font size=2 color=\"black\"><b>$pgm_genre&nbsp;$vcr_link</b></font></td>";
+                            $match_list3 .=
+                              "<td align=right><font size=2 color=\"black\"><b>$watch_link</b></font></td>";
+                            $match_list3 .= "</TR>";
+                            $match_list3 .= "<TR>";
+                            $match_list3 .=
+                              "<td align=right><font size=2 color=\"black\">";
+                            $match_list3 .=
+                              "<a href=/bin/tv_search.pl?time=$time_end-"
+                              . &min_to_hour(
+                                ( &hour_to_min($time_end) + 120 ) )
+                              . ">";
+                            $match_list3 .= "$time_end";
+                            $match_list3 .= "</a>";
+                            $match_list3 .= "</b></font></td>";
+                            $match_list3 .= "<td ></td>";
+                            $match_list3 .=
+                              "<td align=left colspan=3 bgcolor=\"lightyellow\"><font size=2 color=\"black\">$pgm_desc</font></td>";
+                            $match_list3 .= "</TR>";
+                        }
+                        else {
+                            $match_list2 .=
+                              $temp2 . $vcr_link . $watch_link . "\n$pgm_desc";
+                        }
                     }
                 }
 
             }
         }
 
-        my $divider = "           ______________________________________________________________              \n";
+        my $divider =
+          "           ______________________________________________________________              \n";
         $match_list2 .= $divider;
-	$match_list3 .="</table>";
+        $match_list3 .= "</table>";
     }
 
-
-                                # Do this as quick a possible, so we can use File_Item watch in mh
-    open (OUT1, ">$parms{outfile1}") or die "Error, could not open output file $parms{outfile1}: $!\n";
-    open (OUT2, ">$parms{outfile2}") or die "Error, could not open output file $parms{outfile2}: $!\n";
+    # Do this as quick a possible, so we can use File_Item watch in mh
+    open( OUT1, ">$parms{outfile1}" )
+      or die "Error, could not open output file $parms{outfile1}: $!\n";
+    open( OUT2, ">$parms{outfile2}" )
+      or die "Error, could not open output file $parms{outfile2}: $!\n";
     my $print_date = time_date_stamp(15);
-    if ($parms{dates} ne $print_date) {
-       $print_date = $parms{dates};
-                                # Convert to UK date format
-       $print_date =~ s/(.+)\/(.+)\-(.+)\/(.+)/$2\/$1\-$4\/$3/g if ($config_parms{date_format} =~ "ddmmyy" and length($print_date) > 5);
-       $print_date =~ s/(.+)\/(.+)/$2\/$1/g if ($config_parms{date_format} =~ "ddmmyy" and length($print_date) < 6);
-    } 
+    if ( $parms{dates} ne $print_date ) {
+        $print_date = $parms{dates};
+
+        # Convert to UK date format
+        $print_date =~ s/(.+)\/(.+)\-(.+)\/(.+)/$2\/$1\-$4\/$3/g
+          if ( $config_parms{date_format} =~ "ddmmyy"
+            and length($print_date) > 5 );
+        $print_date =~ s/(.+)\/(.+)/$2\/$1/g
+          if ( $config_parms{date_format} =~ "ddmmyy"
+            and length($print_date) < 6 );
+    }
     print OUT1 "Found $match_cnt $parms{name} shows.\n$match_list1";
 
-#    It's a bit tidier like this (I can't actually see the bottom two lines without the CRs)
-    print OUT2 "Found $match_cnt $parms{name} shows.                             $print_date\n\n$match_list2";
+    #    It's a bit tidier like this (I can't actually see the bottom two lines without the CRs)
+    print OUT2
+      "Found $match_cnt $parms{name} shows.                             $print_date\n\n$match_list2";
     print OUT2 "\n \n \n \n \n \n \n";
 
     close OUT1;
     close OUT2;
 
-                                # generate .html output
-    $match_list2 = file_read($parms{outfile2});
-	my $html = $match_list2;
-	$match_list2 =~ s/<a href.+?>.+?<\/a>//gsi;
-	file_write($parms{outfile2}, $match_list2);
+    # generate .html output
+    $match_list2 = file_read( $parms{outfile2} );
+    my $html = $match_list2;
+    $match_list2 =~ s/<a href.+?>.+?<\/a>//gsi;
+    file_write( $parms{outfile2}, $match_list2 );
 
     $html =~ s/\n/<BR>/gs;
     $html =~ s/<BR> //gs;
-                                # The next 2 lines highlight the selected key-word(s)
+
+    # The next 2 lines highlight the selected key-word(s)
     $html =~ s/\Q$symbol\E\Q$symbol\E/<B>/g;
     $html =~ s/\Q$symbol\E/<\/B>/g;
     $html =~ s/   /&nbsp;&nbsp;&nbsp;/g;
     my $header = "<HTML><HEAD>\n";
     $header .= "<meta http-equiv='Pragma' content='no-cache'>\n";
-	$header .= "<TITLE>TV selections</TITLE>\n";
-	$header .= "<link rel=STYLESHEET href=/default.css type=text/css>\n</HEAD>\n<BODY BGCOLOR=white>";
-	$header .= "<FONT FACE=Arial SIZE=2>\n";
+    $header .= "<TITLE>TV selections</TITLE>\n";
+    $header .=
+      "<link rel=STYLESHEET href=/default.css type=text/css>\n</HEAD>\n<BODY BGCOLOR=white>";
+    $header .= "<FONT FACE=Arial SIZE=2>\n";
 
-    $html = $header. $html."</FONT>\n</BODY></HTML>";
-    if ( $parms{table} )
-    {
-	    $html = $header. $match_list3."</FONT>\n</BODY></HTML>";
+    $html = $header . $html . "</FONT>\n</BODY></HTML>";
+    if ( $parms{table} ) {
+        $html = $header . $match_list3 . "</FONT>\n</BODY></HTML>";
     }
 
-    file_write("$config_parms{data_dir}/$parms{db}_info2.html", $html);
+    file_write( "$config_parms{data_dir}/$parms{db}_info2.html", $html );
 
-
-#    for my $key (keys %DBM) {
-#        next unless $key =~ /^12$;/;
-#        print "db key =$key\n value=$DBM{$key}\n";
-#    }
+    #    for my $key (keys %DBM) {
+    #        next unless $key =~ /^12$;/;
+    #        print "db key =$key\n value=$DBM{$key}\n";
+    #    }
 }
 
 sub setup {
-    require 'handy_utilities.pl';       # For read_mh_opts funcion
-    &main::read_mh_opts(\%config_parms, $Pgm_Path);
+    require 'handy_utilities.pl';    # For read_mh_opts funcion
+    &main::read_mh_opts( \%config_parms, $Pgm_Path );
 
-                                # These are needed to drop HTML tag data
+    # These are needed to drop HTML tag data
     use HTML::FormatText;
     use HTML::Parse;
 
-
-    $parms{db}    = "tv" unless $parms{db};
+    $parms{db} = "tv" unless $parms{db};
     my $dbm_file  = "$config_parms{data_dir}/$parms{db}_programs.dbm";
     my $dbm_file2 = "$config_parms{data_dir}/$parms{db}_channels.dbm";
     my $dbm_file3 = "$config_parms{data_dir}/$parms{db}_genre.dbm";
     print "Using dbm file $dbm_file\n" unless $parms{quiet};
-    $symbol  = $config_parms{tv_key_symbol};
+    $symbol = $config_parms{tv_key_symbol};
 
     use Fcntl;
     use DB_File;
-    tie (%DBM,  'DB_File', $dbm_file,  O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file: $!";
-    tie (%DBM2, 'DB_File', $dbm_file2, O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file2: $!";
-    tie (%DBM3, 'DB_File', $dbm_file3, O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file3: $!";
+    tie( %DBM, 'DB_File', $dbm_file, O_RDWR | O_CREAT, 0666 )
+      or print "\nError, can not open dbm file $dbm_file: $!";
+    tie( %DBM2, 'DB_File', $dbm_file2, O_RDWR | O_CREAT, 0666 )
+      or print "\nError, can not open dbm file $dbm_file2: $!";
+    tie( %DBM3, 'DB_File', $dbm_file3, O_RDWR | O_CREAT, 0666 )
+      or print "\nError, can not open dbm file $dbm_file3: $!";
 
-    my ($day, $month, $year) = (localtime(time))[3,4,5];
-    $date_today = sprintf("%s/%02d", ++$month, $day);
-    $time_now = (localtime)[2].":".(localtime)[1];
+    my ( $day, $month, $year ) = ( localtime(time) )[ 3, 4, 5 ];
+    $date_today = sprintf( "%s/%02d", ++$month, $day );
+    $time_now = (localtime)[2] . ":" . (localtime)[1];
     $min_now = &hour_to_min($time_now);
 
-    $parms{name}     = 'TV'    	     unless $parms{name};
-    $parms{times}    = '18:30-23:30'    unless $parms{times};
-    $parms{increment}= 5             unless $parms{increment};
-    $parms{all}      = "all"         if lc($parms{times}) eq 'all';
-    $parms{times}    = '0+23.99'     if lc($parms{times}) eq 'all';
-    $parms{dates}    = $date_today   unless $parms{dates};
+    $parms{name}      = 'TV'          unless $parms{name};
+    $parms{times}     = '18:30-23:30' unless $parms{times};
+    $parms{increment} = 5             unless $parms{increment};
+    $parms{all}   = "all"     if lc( $parms{times} ) eq 'all';
+    $parms{times} = '0+23.99' if lc( $parms{times} ) eq 'all';
+    $parms{dates} = $date_today unless $parms{dates};
 
-                                # Allow for +increment format
-    if (my ($date_start, $days) = $parms{dates} =~ /(\S*)\+(\d+)/) {
+    # Allow for +increment format
+    if ( my ( $date_start, $days ) = $parms{dates} =~ /(\S*)\+(\d+)/ ) {
         $date_start = $date_today unless $date_start;
-        $parms{dates} = "$date_start-". &increment_date($date_start, $days);
+        $parms{dates} = "$date_start-" . &increment_date( $date_start, $days );
     }
-    if (my ($time_start, $hours) = $parms{times} =~ /(\S*)\+(\S+)/) {
+    if ( my ( $time_start, $hours ) = $parms{times} =~ /(\S*)\+(\S+)/ ) {
         $time_start = '6pm' unless defined $time_start;
-        my $time_stop = $hours * 60 + &hour_to_min(&ampm_to_hour24($time_start));
+        my $time_stop =
+          $hours * 60 + &hour_to_min( &ampm_to_hour24($time_start) );
         $time_stop = &min_to_hour($time_stop);
         $parms{times} = "$time_start-$time_stop";
     }
-    if (my ($early_start, $hours) = $parms{early_am} =~ /(\S*)\+(\S+)/) {
+    if ( my ( $early_start, $hours ) = $parms{early_am} =~ /(\S*)\+(\S+)/ ) {
         $early_start = '0:00am' unless defined $early_start;
-        my $early_stop = $hours * 60 + &hour_to_min(&ampm_to_hour24($early_start));
+        my $early_stop =
+          $hours * 60 + &hour_to_min( &ampm_to_hour24($early_start) );
         $early_stop = &min_to_hour($early_stop);
         $parms{early_am} = "$early_start-$early_stop";
     }
-    if (my ($channel_start, $adder) = $parms{channels} =~ /(\S*)\+(\S+)/) {
+    if ( my ( $channel_start, $adder ) = $parms{channels} =~ /(\S*)\+(\S+)/ ) {
         $channel_start = 1 unless defined $channel_start;
-        $parms{channels} = "$channel_start-" . ($channel_start + $adder);
+        $parms{channels} = "$channel_start-" . ( $channel_start + $adder );
     }
-    if (my ($length_start, $adder) = $parms{lengths} =~ /(\S*)\+(\S+)/) {
+    if ( my ( $length_start, $adder ) = $parms{lengths} =~ /(\S*)\+(\S+)/ ) {
         $length_start = 0 unless $length_start;
-        $parms{lengths} = "$length_start-" . ($length_start + $adder);
+        $parms{lengths} = "$length_start-" . ( $length_start + $adder );
     }
-        
-    $parms{channels} = $parms{keep} if $parms{keep};
-    @channels = split_parm($parms{channels}, 'channels');
-    @dates    = split_parm($parms{dates}, 'dates');
-    @times    = split_parm($parms{times}, 'times');
-    @early_am = split_parm($parms{early_am}, 'early_am');
-    push @times, @early_am;
-    $min_begin = &hour_to_min(@times[0]);
- 
-    @lengths  = split_parm($parms{lengths}, 'lengths');
 
-    if ($parms{keyfile} and -f "$config_parms{data_dir}/$parms{keyfile}") {
+    $parms{channels} = $parms{keep} if $parms{keep};
+    @channels = split_parm( $parms{channels}, 'channels' );
+    @dates    = split_parm( $parms{dates},    'dates' );
+    @times    = split_parm( $parms{times},    'times' );
+    @early_am = split_parm( $parms{early_am}, 'early_am' );
+    push @times, @early_am;
+    $min_begin = &hour_to_min( @times[0] );
+
+    @lengths = split_parm( $parms{lengths}, 'lengths' );
+
+    if ( $parms{keyfile} and -f "$config_parms{data_dir}/$parms{keyfile}" ) {
         @keys = file_read("$config_parms{data_dir}/$parms{keyfile}");
     }
     else {
-        @keys = split(/ ?,/,  $parms{keys});
+        @keys = split( / ?,/, $parms{keys} );
     }
     @keys = grep s/^ *//, @keys;
-    @keys = grep !/^\#/,  @keys;  # Delete commented out records
+    @keys = grep !/^\#/,  @keys;    # Delete commented out records
 
-#   print "keys  = $parms{keys}\n";
-#   print "times = $parms{times}\n";
+    #   print "keys  = $parms{keys}\n";
+    #   print "times = $parms{times}\n";
 
-
-                                # Sort @times, but keep 0->5:59 after 23:59
-#   @times = sort {&hour_to_min(&ampm_to_hour24($a)) <=> &hour_to_min(&ampm_to_hour24($b))} @times;
-  	@times = sort {
-        my $t1 = &hour_to_min(&ampm_to_hour24($a));
-        my $t2 = &hour_to_min(&ampm_to_hour24($b));
+    # Sort @times, but keep 0->5:59 after 23:59
+    #   @times = sort {&hour_to_min(&ampm_to_hour24($a)) <=> &hour_to_min(&ampm_to_hour24($b))} @times;
+    @times = sort {
+        my $t1 = &hour_to_min( &ampm_to_hour24($a) );
+        my $t2 = &hour_to_min( &ampm_to_hour24($b) );
         $t2 >= 360 and $t1 < 360 or $t1 <=> $t2;
     } @times;
 
-    @channels = sort{$a <=> $b} keys %DBM2 if !@channels or $channels[0] eq 'all';
+    @channels = sort { $a <=> $b } keys %DBM2
+      if !@channels
+      or $channels[0] eq 'all';
 
-    $parms{outfile1} = "$config_parms{data_dir}/$parms{db}_info1.txt" unless $parms{outfile1};
-    $parms{outfile2} = "$config_parms{data_dir}/$parms{db}_info2.txt" unless $parms{outfile2};
+    $parms{outfile1} = "$config_parms{data_dir}/$parms{db}_info1.txt"
+      unless $parms{outfile1};
+    $parms{outfile2} = "$config_parms{data_dir}/$parms{db}_info2.txt"
+      unless $parms{outfile2};
 
-    print "\nSearching for:\n  channels: @channels\n  times: @times\n  " .
-        "lengths: @lengths\n  dates: @dates\n  keys: @keys\n\n" unless $parms{quiet};
+    print "\nSearching for:\n  channels: @channels\n  times: @times\n  "
+      . "lengths: @lengths\n  dates: @dates\n  keys: @keys\n\n"
+      unless $parms{quiet};
 
 }
 
-                                # Allow for ranges in parms (e.g. -channels 2-12  -time 5 PM-9pm)
+# Allow for ranges in parms (e.g. -channels 2-12  -time 5 PM-9pm)
 sub split_parm {
-    my ($parm, $type) = @_;
-    my ($i, $j, $low, $high, @parms);
-    for $i (split(',', $parm)) {
-        if ($i =~ /-/) {
-            ($low, $high) = split('-', $i);
-            if ($type eq 'channels') {
-                for $j ($low .. $high) {
-                    push(@parms, $j);
+    my ( $parm, $type ) = @_;
+    my ( $i, $j, $low, $high, @parms );
+    for $i ( split( ',', $parm ) ) {
+        if ( $i =~ /-/ ) {
+            ( $low, $high ) = split( '-', $i );
+            if ( $type eq 'channels' ) {
+                for $j ( $low .. $high ) {
+                    push( @parms, $j );
                 }
             }
-            elsif ($type eq 'lengths') {
-                for ($j = $low; $j <= $high; $j += .5) {
-                    push(@parms, $j);
+            elsif ( $type eq 'lengths' ) {
+                for ( $j = $low; $j <= $high; $j += .5 ) {
+                    push( @parms, $j );
                 }
             }
-            elsif ($type eq 'times' or $type eq 'early_am') {
+            elsif ( $type eq 'times' or $type eq 'early_am' ) {
                 $low  = &ampm_to_hour24($low);
                 $high = &ampm_to_hour24($high);
-#               $min_begin = &hour_to_min($low) if ($type eq 'times');
-                my ($high_hour, $high_min) = split ':', $high;
+
+                #               $min_begin = &hour_to_min($low) if ($type eq 'times');
+                my ( $high_hour, $high_min ) = split ':', $high;
                 print "db h=$high_hour m=$high_min\n" if $parms{debug};
                 $low -= 4 if lc $parms{started} eq 'yes' and !$parms{all};
                 $low = 6 if $low < 6 and $high > 6;
-                $low = 0 if ($low > $high or $low < 0);
+                $low = 0 if ( $low > $high or $low < 0 );
                 $low .= ':00' unless $low =~ /:/;
-                push(@parms, $j=$low);
+                push( @parms, $j = $low );
                 my $loop_count = 0;
+
                 while (1) {
                     print "db time low=$low high=$high j=$j\n" if $parms{debug};
-                    my ($hour, $min) = $j =~ /(\d+):?(\d*)/;
+                    my ( $hour, $min ) = $j =~ /(\d+):?(\d*)/;
                     $min = '00' unless defined $min;
                     $min += $parms{increment};
                     last if $j >= $high_hour and $min >= $high_min;
-                    if ($min >= 60) {
+                    if ( $min >= 60 ) {
                         $min = '00';
                         $hour++;
                         $hour = 0 if $hour > 23;
                     }
                     $j = sprintf "%d:%02d", $hour, $min;
-                    push(@parms, $j);
+                    push( @parms, $j );
                 }
             }
-            elsif ($type eq 'dates') {
+            elsif ( $type eq 'dates' ) {
                 $low  = &format_date($low);
                 $high = &format_date($high);
-                push(@parms, $low);
+                push( @parms, $low );
                 my $loop_count = 0;
                 while (1) {
-                    $low = &increment_date($low, 1);
-                    push(@parms, $low);
+                    $low = &increment_date( $low, 1 );
+                    push( @parms, $low );
                     last if $low eq $high or ++$loop_count > 365;
                 }
             }
@@ -594,43 +679,45 @@ sub split_parm {
         else {
             $i = &ampm_to_hour24($i) if $type eq 'times';
             $i = &format_date($i)    if $type eq 'dates';
-            push(@parms, $i);
+            push( @parms, $i );
         }
     }
     return @parms;
 }
 
-
 sub increment_date {
-    use HTTP::Date;                             # For str2time
-    my ($date, $days) = @_;
-    my ($month, $day) = split('/', $date);
-    my @dateholder = localtime();               # Get the current year
-    $dateholder[5] += 1900;                     # Adjust it to the correct value
-    my $timeinsec = str2time("$dateholder[5]-$month-$day");  
-    $timeinsec += $days * 24 * 60 * 60;         # Add the offest (adjusted to seconds)
-    @dateholder = localtime( $timeinsec );      # Get the new day/month back
-    return sprintf("%s/%02d", $dateholder[4]+1, $dateholder[3]);
+    use HTTP::Date;    # For str2time
+    my ( $date, $days ) = @_;
+    my ( $month, $day ) = split( '/', $date );
+    my @dateholder = localtime();    # Get the current year
+    $dateholder[5] += 1900;          # Adjust it to the correct value
+    my $timeinsec = str2time("$dateholder[5]-$month-$day");
+    $timeinsec += $days * 24 * 60 * 60;   # Add the offest (adjusted to seconds)
+    @dateholder = localtime($timeinsec);  # Get the new day/month back
+    return sprintf( "%s/%02d", $dateholder[4] + 1, $dateholder[3] );
 }
+
 sub format_date {
-    my ($month, $day) = @_[0] =~ /0?(\d+)\/(\d+)/; # Drop leading 0 from month
-    return sprintf("%s/%02d", $month, $day); # Add leading 0 to day
+    my ( $month, $day ) = @_[0] =~ /0?(\d+)\/(\d+)/; # Drop leading 0 from month
+    return sprintf( "%s/%02d", $month, $day );       # Add leading 0 to day
 }
+
 sub min_to_hour {
     my ($min) = @_;
-    my $hour = int($min / 60);
+    my $hour = int( $min / 60 );
     $min = $min - $hour * 60;
-    return sprintf("%d:%02d", $hour, $min);
+    return sprintf( "%d:%02d", $hour, $min );
 }
+
 sub hour_to_min {
-    my ($hour, $min) = split(':', @_[0]);
+    my ( $hour, $min ) = split( ':', @_[0] );
     return $hour * 60 + $min;
 }
 
 sub hour24_to_ampm {
-    my ($hour, $min) = split(':', @_[0]);
-    if ($hour >= 12) {
-        $hour -= 12 if ($hour > 12 );
+    my ( $hour, $min ) = split( ':', @_[0] );
+    if ( $hour >= 12 ) {
+        $hour -= 12 if ( $hour > 12 );
         return ($hour) . ":$min PM";
     }
     else {
@@ -639,8 +726,8 @@ sub hour24_to_ampm {
 }
 
 sub ampm_to_hour24 {
-    my ($hour, $min, $ampm) = @_[0] =~ /(\d+):?(\d*) *(\S*)/;
-    $hour += 12 if uc($ampm) eq 'PM' and $hour  < 12;
+    my ( $hour, $min, $ampm ) = @_[0] =~ /(\d+):?(\d*) *(\S*)/;
+    $hour += 12 if uc($ampm) eq 'PM' and $hour < 12;
     $hour -= 12 if uc($ampm) eq 'AM' and $hour == 12;
     $min = "00" unless $min;
     $hour .= ":$min";
@@ -683,17 +770,17 @@ sub ampm_to_hour24 {
 # - 2.43 release
 #
 # January 2001:
-# revised to add hypertext links for setting VCR, 
-# highlighting selected key-word, 
+# revised to add hypertext links for setting VCR,
+# highlighting selected key-word,
 # and early AM searching
-# debugged searching for shows in progress and UK dates 
-# changed plural and upper-case recognition 
+# debugged searching for shows in progress and UK dates
+# changed plural and upper-case recognition
 #
-# November 2000: 
-# revised to include processing of key-lists in files, 
+# November 2000:
+# revised to include processing of key-lists in files,
 # case-sensitive searches for words starting with upper-case,
 # searches for whole words only, plus plurals,
-# 5 minute start increments, 
+# 5 minute start increments,
 # shows in progress, .html output
 #
 # Revision 1.11  2000/08/06 21:56:43  winter

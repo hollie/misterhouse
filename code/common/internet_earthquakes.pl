@@ -6,7 +6,7 @@
 #@ need to have your latitude and longitude parameters set properly.<BR>
 #@<BR>
 #@ If you want to customize your magnitude thresholds, set a variable
-#@ like this in your ini file.  You can specify any number of distance, 
+#@ like this in your ini file.  You can specify any number of distance,
 #@ magnitude pairs:<BR>
 #@     Earthquake_Magnitudes = 99999 5.5 3000 3.5 100 0<BR>
 #@<BR>
@@ -17,18 +17,17 @@
 #@     Earthquake_Count = 2<BR>
 #@<BR>
 #@ Finally, this script creates a listing of earthquakes with the most recent
-#@ on top.  The page is linked into the web UI under Weather / Earthquakes.  
-#@ The default is to list all of the earthquakes, more than 2000.  However, 
-#@ you can set the following parameter to filter that list using the same 
+#@ on top.  The page is linked into the web UI under Weather / Earthquakes.
+#@ The default is to list all of the earthquakes, more than 2000.  However,
+#@ you can set the following parameter to filter that list using the same
 #@ Earthquakes_Magnitudes thresholds used for speech.<BR>
 #@     Earthquake_Display = filtered | all<BR>
 #@<BR>
 #@ You might also set get_url=useragent in your ini file.  This parameter
-#@ will permit get_url to timeout if there is a problem retrieving a 
-#@ file over the internet; otherwise the process might hang indefinitely.  
-#@ This affects all code that retrieves URLs so make sure you system is 
+#@ will permit get_url to timeout if there is a problem retrieving a
+#@ file over the internet; otherwise the process might hang indefinitely.
+#@ This affects all code that retrieves URLs so make sure you system is
 #@ still working after setting this parameter.
-
 
 # $Revision$
 # $Date$
@@ -88,147 +87,192 @@ http://localhost:8080/bin/dbmedit.cgi?file=earthquakes.dbm&columns=gmt%2Clat%2Cl
 
 # Add earthquake image to Informational category web page
 if ($Reload) {
-    $Included_HTML{'Informational'} .= qq(<h3>Latest Earthquake<p><img src='/data/web/earthquakes.gif?<!--#include code="int(100000*rand)"-->'><p>\n\n\n);
+    $Included_HTML{'Informational'} .=
+      qq(<h3>Latest Earthquake<p><img src='/data/web/earthquakes.gif?<!--#include code="int(100000*rand)"-->'><p>\n\n\n);
 }
 
-#The variables below are used by the get_earthquakes script called below 
-#as a background Process_Item.  These empty references cause the .ini parms 
+#The variables below are used by the get_earthquakes script called below
+#as a background Process_Item.  These empty references cause the .ini parms
 #to show up in the code activation screens.
-#TODO - modify the code activation screens so that they can be 
-#explicitly "told" about an .ini parm using some form of perl comment  
+#TODO - modify the code activation screens so that they can be
+#explicitly "told" about an .ini parm using some form of perl comment
 my $dummy = $config_parms{Earthquake_Magnitudes};
 $dummy = $config_parms{Earthquake_Display};
 $dummy = $config_parms{latitude};
 $dummy = $config_parms{longitude};
 
-
 #TODO - Why doesn't the .ini file just say kilometers if user wants kilometers?
-my $Earthquake_Units = lc($config_parms{Earthquake_Units});
-$Earthquake_Units='miles' unless $Earthquake_Units;
-my $Earthquake_Unit_Name = 'miles';     #default to miles
-if ($Earthquake_Units eq 'metric') {
-	$Earthquake_Unit_Name = 'kilometers';
-} elsif ($Earthquake_Units eq 'kilometers') {
-	$Earthquake_Unit_Name = 'kilometers';
+my $Earthquake_Units = lc( $config_parms{Earthquake_Units} );
+$Earthquake_Units = 'miles' unless $Earthquake_Units;
+my $Earthquake_Unit_Name = 'miles';    #default to miles
+if ( $Earthquake_Units eq 'metric' ) {
+    $Earthquake_Unit_Name = 'kilometers';
 }
+elsif ( $Earthquake_Units eq 'kilometers' ) {
+    $Earthquake_Unit_Name = 'kilometers';
+}
+
 # Maximum number of quakes to speak
 my $Earthquake_Count = 5;
-if ($config_parms{Earthquake_Count}) {
-  $Earthquake_Count = $config_parms{Earthquake_Count};
+if ( $config_parms{Earthquake_Count} ) {
+    $Earthquake_Count = $config_parms{Earthquake_Count};
 }
 
 my $speech;
 my $f_earthquakes_dbm = "$config_parms{data_dir}/web/earthquakes.dbm";
-my $get_cmd = "get_earthquakes" . ($Debug{earthquakes} ? ' -v' : '');
+my $get_cmd = "get_earthquakes" . ( $Debug{earthquakes} ? ' -v' : '' );
 $p_earthquakes = new Process_Item($get_cmd);
-$v_earthquakes =  new  Voice_Cmd('[Get,Read,Clear] recent earthquakes');
-$v_earthquakes -> set_info('Display recent earthquake information');
-$v_earthquakes -> set_authority('anyone');
+$v_earthquakes = new Voice_Cmd('[Get,Read,Clear] recent earthquakes');
+$v_earthquakes->set_info('Display recent earthquake information');
+$v_earthquakes->set_authority('anyone');
 
 $state = said $v_earthquakes;
 
 if ( $state eq 'Get' ) {
-  if (&net_connect_check) {
-    if( !$p_earthquakes->done()) {
-      $v_earthquakes->respond("app=earthquakes Can not get earthquakes. Get earthquakes is already running...");
-    } else {
-      start $p_earthquakes;
-      $v_earthquakes->respond("app=earthquakes Checking for recent earthquakes...");
+    if (&net_connect_check) {
+        if ( !$p_earthquakes->done() ) {
+            $v_earthquakes->respond(
+                "app=earthquakes Can not get earthquakes. Get earthquakes is already running..."
+            );
+        }
+        else {
+            start $p_earthquakes;
+            $v_earthquakes->respond(
+                "app=earthquakes Checking for recent earthquakes...");
+        }
     }
-  }
 }
 elsif ( $state eq 'Clear' ) {
-  if( !$p_earthquakes->done()) {
-    $v_earthquakes->respond("app=earthquakes Can not clear earthquakes. Get earthquakes is running...");
-  } else {
-    $v_earthquakes->respond("app=earthquakes Clearing recent earthquakes ...");
-    unlink $f_earthquakes_dbm;
-    delete $Save{quakes};  #Delete the old save var if it exists
-  }
+    if ( !$p_earthquakes->done() ) {
+        $v_earthquakes->respond(
+            "app=earthquakes Can not clear earthquakes. Get earthquakes is running..."
+        );
+    }
+    else {
+        $v_earthquakes->respond(
+            "app=earthquakes Clearing recent earthquakes ...");
+        unlink $f_earthquakes_dbm;
+        delete $Save{quakes};    #Delete the old save var if it exists
+    }
 }
 elsif ( $state eq 'Read' ) {
-  if ($speech = earthquake_read('all', $f_earthquakes_dbm, $Earthquake_Count, $Earthquake_Unit_Name)) {
-    $v_earthquakes->respond("app=earthquakes $speech");
-  } else {
-    $v_earthquakes->respond('app=earthquakes No recent earthquakes to report.');
-  }
+    if (
+        $speech = earthquake_read(
+            'all',             $f_earthquakes_dbm,
+            $Earthquake_Count, $Earthquake_Unit_Name
+        )
+      )
+    {
+        $v_earthquakes->respond("app=earthquakes $speech");
+    }
+    else {
+        $v_earthquakes->respond(
+            'app=earthquakes No recent earthquakes to report.');
+    }
 }
 
-if (done_now $p_earthquakes) {
-  if( $speech = earthquake_read('new', $f_earthquakes_dbm, $Earthquake_Count, $Earthquake_Unit_Name)) {
-    $v_earthquakes->respond("app=earthquakes connected=0 important=1 $speech");
-  }
+if ( done_now $p_earthquakes) {
+    if (
+        $speech = earthquake_read(
+            'new',             $f_earthquakes_dbm,
+            $Earthquake_Count, $Earthquake_Unit_Name
+        )
+      )
+    {
+        $v_earthquakes->respond(
+            "app=earthquakes connected=0 important=1 $speech");
+    }
 }
-
 
 sub earthquake_read {
-  my ($scope, $f_dbm, $countMax) = @_;
-  
-  my $speech = '';
-  
-  my %DBM;
-  if(!tie( %DBM, 'DB_File', $f_dbm, O_RDWR|O_CREAT, 0666)) {
-    print_log( "internet_earthquake: Can not open dbm file $f_dbm: $!");
-    return $speech;
-  }
-  
-  my @keysSpeak;
-  my @dbmEvent;
-  if( $scope eq 'all') {
-    @keysSpeak = grep {@dbmEvent=split($;, $DBM{$_}); $dbmEvent[8]} keys(%DBM);
-  } else {
-    @keysSpeak = grep {@dbmEvent=split($;, $DBM{$_}); $dbmEvent[8]&&!$dbmEvent[9]} keys(%DBM);
-  }
-  #  0   1   2    3      4        5      6         7       8     9
-  #[gmt,lat,lon,depth,magnitude,source,location,distance,speak,spoken]
-  
-  my $key;
-  my $count = 0;
-  print_log( "internet_earthquakes: Found " . scalar(@keysSpeak) . " quakes to speak") if $Debug{earthquakes};
-  foreach $key (@keysSpeak) {
-    @dbmEvent = split($;, $DBM{$key});
-    
-    #Only speak countMax but mark them all spoken
-    if( $count < $countMax ) {
+    my ( $scope, $f_dbm, $countMax ) = @_;
 
-      #Create the speech for matching items
-      my $qloca = lc($dbmEvent[6]);
-      $qloca =~ s/\b(\w)/uc($1)/eg;
-      $speech .= &calc_earthquake_age($dbmEvent[0]) 
-          . " a magnitude " . $dbmEvent[4] . " earthquake occurred "
-          . $dbmEvent[7] . " $Earthquake_Unit_Name away " 
-          . (($qloca =~ /^near/i)?'':'near ') . "$qloca. ";
+    my $speech = '';
+
+    my %DBM;
+    if ( !tie( %DBM, 'DB_File', $f_dbm, O_RDWR | O_CREAT, 0666 ) ) {
+        print_log("internet_earthquake: Can not open dbm file $f_dbm: $!");
+        return $speech;
     }
-    
-    #Update the spoken flag
-    $dbmEvent[9] = 1;
-    $DBM{$key} = join( $;, @dbmEvent );
-    
-    $count++;
-  }
 
-  untie %DBM;
-  return $speech;
+    my @keysSpeak;
+    my @dbmEvent;
+    if ( $scope eq 'all' ) {
+        @keysSpeak =
+          grep { @dbmEvent = split( $;, $DBM{$_} ); $dbmEvent[8] } keys(%DBM);
+    }
+    else {
+        @keysSpeak = grep {
+            @dbmEvent = split( $;, $DBM{$_} );
+            $dbmEvent[8]
+              && !$dbmEvent[9]
+        } keys(%DBM);
+    }
+
+    #  0   1   2    3      4        5      6         7       8     9
+    #[gmt,lat,lon,depth,magnitude,source,location,distance,speak,spoken]
+
+    my $key;
+    my $count = 0;
+    print_log( "internet_earthquakes: Found "
+          . scalar(@keysSpeak)
+          . " quakes to speak" )
+      if $Debug{earthquakes};
+    foreach $key (@keysSpeak) {
+        @dbmEvent = split( $;, $DBM{$key} );
+
+        #Only speak countMax but mark them all spoken
+        if ( $count < $countMax ) {
+
+            #Create the speech for matching items
+            my $qloca = lc( $dbmEvent[6] );
+            $qloca =~ s/\b(\w)/uc($1)/eg;
+            $speech .=
+                &calc_earthquake_age( $dbmEvent[0] )
+              . " a magnitude "
+              . $dbmEvent[4]
+              . " earthquake occurred "
+              . $dbmEvent[7]
+              . " $Earthquake_Unit_Name away "
+              . ( ( $qloca =~ /^near/i ) ? '' : 'near ' )
+              . "$qloca. ";
+        }
+
+        #Update the spoken flag
+        $dbmEvent[9] = 1;
+        $DBM{$key} = join( $;, @dbmEvent );
+
+        $count++;
+    }
+
+    untie %DBM;
+    return $speech;
 }
 
-
 sub calc_earthquake_age {
+
     #Get the time sent in. This is UTC epoc seconds
     my $qtimeUTC = shift;
-	# print ("UTC:" . $qtimeUTC . "\n");
+
+    # print ("UTC:" . $qtimeUTC . "\n");
 
     #Split it - these are now local time, not UTC
-    my ($qseco,$qminu,$qhour,$qdate,$qmnth,$qyear) = localtime($qtimeUTC);
+    my ( $qseco, $qminu, $qhour, $qdate, $qmnth, $qyear ) =
+      localtime($qtimeUTC);
     $qmnth += 1;
+
     #Merge it again - this is now local time, not UTC
-    my $qtime = timelocal($qseco,$qminu,$qhour,$qdate,$qmnth-1,$qyear);
+    my $qtime = timelocal( $qseco, $qminu, $qhour, $qdate, $qmnth - 1, $qyear );
     return time_date_stamp( 23, $qtime );
 }
 
-
 # lets allow the user to control via triggers
 # noloop=start
-&trigger_set('$New_Hour and net_connect_check', 
-  "run_voice_cmd 'Get recent earthquakes'", 'NoExpire', 'get earthquakes')
-  unless &trigger_get('get earthquakes');
+&trigger_set(
+    '$New_Hour and net_connect_check',
+    "run_voice_cmd 'Get recent earthquakes'",
+    'NoExpire',
+    'get earthquakes'
+) unless &trigger_get('get earthquakes');
+
 # noloop=stop

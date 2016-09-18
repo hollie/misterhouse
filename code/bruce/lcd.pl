@@ -3,7 +3,7 @@
 #@ This code is used to display data to a LCD display (e.g. 4x20).
 #@ An optional keypad can be used to walk through menus and select
 #@ commands to run or data to display.
- 
+
 =begin comment
 
  The LCD object uses menus created by menu.pl (which also creates
@@ -29,36 +29,49 @@
 
 =cut
 
+# The numeric entries are for using computer keyboard arrows
+my %lcd_keymap1 = (
+    N => 'up',
+    I => 'down',
+    M => 'left',
+    H => 'right',
+    F => 'exit',
+    K => 'enter',
+    L => 'left',
+    G => 'right'
+);
 
-                                # The numeric entries are for using computer keyboard arrows
-my %lcd_keymap1 = ( N => 'up', I => 'down', M => 'left', H => 'right', F => 'exit', K => 'enter', L => 'left', G => 'right');
+#                  type           port            size   menu_group    keymap
+$lcd1 = new LCD 'lcdproc', '192.168.0.5:13666', '4x20', 'test', \%lcd_keymap1;
 
-#                  type           port            size   menu_group    keymap 
-$lcd1 = new LCD  'lcdproc', '192.168.0.5:13666', '4x20', 'test', \%lcd_keymap1;
+print "LCD key1: $state.\n" if defined( $state = said_key $lcd1);
 
-print "LCD key1: $state.\n" if defined($state = said_key $lcd1);
 #print "LCD key2: $Keyboard\n" if defined $Keyboard;
 
-                                # Allow for manual start/stop of lcd menu
-$v_lcdproc_control = new  Voice_Cmd '[Start,Stop] the lcdproc client';
-$v_lcdproc_control-> set_info('Connects to the lcdproc server, used to display LCD data.');
-run_voice_cmd 'Start the lcdproc client' if time_now '11 pm'; # Daily restart
+# Allow for manual start/stop of lcd menu
+$v_lcdproc_control = new Voice_Cmd '[Start,Stop] the lcdproc client';
+$v_lcdproc_control->set_info(
+    'Connects to the lcdproc server, used to display LCD data.');
+run_voice_cmd 'Start the lcdproc client' if time_now '11 pm';    # Daily restart
 
-if ($state = said $v_lcdproc_control) {
-    ($state eq 'Start') ? start $lcd1 : stop $lcd1;
+if ( $state = said $v_lcdproc_control) {
+    ( $state eq 'Start' ) ? start $lcd1 : stop $lcd1;
 }
 
-if ($Save{phone_callerid_data} ne $Save{phone_callerid_data_prev}) {
+if ( $Save{phone_callerid_data} ne $Save{phone_callerid_data_prev} ) {
     $Save{phone_callerid_data} =~ s/phone_call.wav,//g;
-    set $lcd1 &time_date_stamp(6, $Time) . ' ' . &time_date_stamp(8, $Time), split "\n", $Save{phone_callerid_data};
+    set $lcd1 &time_date_stamp( 6, $Time ) . ' ' . &time_date_stamp( 8, $Time ),
+      split "\n", $Save{phone_callerid_data};
     $Save{phone_callerid_data_prev} = $Save{phone_callerid_data};
 }
-                                # Display default display screen if the lcd keypad is not in use
-if (new_second 10 and inactive $lcd1) {
-    set $lcd1 
-#       substr(&time_date_stamp(14, $Time), 0, 18),
-        &time_date_stamp(6, $Time) . ' ' . &time_date_stamp(8, $Time),
-        $Weather{Summary_Short},
-        $Save{phone_callerid_data},
-        $Save{email_flag};
+
+# Display default display screen if the lcd keypad is not in use
+if ( new_second 10 and inactive $lcd1) {
+    set $lcd1
+
+      #       substr(&time_date_stamp(14, $Time), 0, 18),
+      &time_date_stamp( 6, $Time ) . ' ' . &time_date_stamp( 8, $Time ),
+      $Weather{Summary_Short},
+      $Save{phone_callerid_data},
+      $Save{email_flag};
 }

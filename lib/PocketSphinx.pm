@@ -1,3 +1,4 @@
+
 =head1 B<PocketSphinx_Control>
 
 =head2 SYNOPSIS
@@ -47,54 +48,66 @@ use Timer;
 use File::Compare;
 
 my $PocketSphinx_state;
-my $p_sphinx = undef;
+my $p_sphinx       = undef;
 my $s_pocketsphinx = undef;
 
-my $sentence_file   = "$main::config_parms{data_dir}/pocketsphinx/current.sent";
-my $lm_file         = "$main::config_parms{data_dir}/pocketsphinx/current.lm.DMP";
-my $lm_log_file     = "$main::config_parms{data_dir}/pocketsphinx/build_lm.log";
-my $hmm_file        = "/usr/local/share/pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k";
-my $awake_time      = 300;
+my $sentence_file = "$main::config_parms{data_dir}/pocketsphinx/current.sent";
+my $lm_file       = "$main::config_parms{data_dir}/pocketsphinx/current.lm.DMP";
+my $lm_log_file   = "$main::config_parms{data_dir}/pocketsphinx/build_lm.log";
+my $hmm_file   = "/usr/local/share/pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k";
+my $awake_time = 300;
 
 sub startup {
-   if (not defined $s_pocketsphinx and exists $main::config_parms{server_pocketsphinx_port}) {
-      &main::print_log ("PocketSphinx_Control:: initializing") if $main::Debug{pocketsphinx};
+    if ( not defined $s_pocketsphinx
+        and exists $main::config_parms{server_pocketsphinx_port} )
+    {
+        &main::print_log("PocketSphinx_Control:: initializing")
+          if $main::Debug{pocketsphinx};
 
-      # Setup VR mode
-      $main::config_parms{voice_cmd} = "pocketsphinx";
+        # Setup VR mode
+        $main::config_parms{voice_cmd} = "pocketsphinx";
 
-      # Create a socket for the external VR program to communicate to
-      $s_pocketsphinx = new Socket_Item(undef, undef, 'server_pocketsphinx');
+        # Create a socket for the external VR program to communicate to
+        $s_pocketsphinx =
+          new Socket_Item( undef, undef, 'server_pocketsphinx' );
 
-      # Setup our callback to get voice commands from the socket
-      Voice_Cmd::init_pocketsphinx (\&said);
-      #$main::Debug{pocketsphinx} = 1;
-      #$main::Debug{process} = 1;
-      #$main::Debug{voice} = 1;
+        # Setup our callback to get voice commands from the socket
+        Voice_Cmd::init_pocketsphinx( \&said );
 
-      # we need to killall the pocketsphinx processes until I figure out how to get
-      # store_object_data working for library modules.
-      # system ("killall pocketsphinx");
+        #$main::Debug{pocketsphinx} = 1;
+        #$main::Debug{process} = 1;
+        #$main::Debug{voice} = 1;
 
-      # Create some classes we need
-      $p_sphinx = new Process_Item;
-      my $friendly_name = "PocketSphinx_Control_p_sphinx";
-      &main::store_object_data($p_sphinx, 'Process_Item', $friendly_name, $friendly_name);
-      $PocketSphinx_state = "idle";
+        # we need to killall the pocketsphinx processes until I figure out how to get
+        # store_object_data working for library modules.
+        # system ("killall pocketsphinx");
 
-      # Now build the language models from the various voice commands.
-      stop $p_sphinx;
-      mkdir ("$main::config_parms{data_dir}/pocketsphinx", 0777) unless -d "$main::config_parms{data_dir}/pocketsphinx";
+        # Create some classes we need
+        $p_sphinx = new Process_Item;
+        my $friendly_name = "PocketSphinx_Control_p_sphinx";
+        &main::store_object_data( $p_sphinx, 'Process_Item', $friendly_name,
+            $friendly_name );
+        $PocketSphinx_state = "idle";
 
-      # Insure we have all the files we need, if so, start the process
-      $hmm_file = "$main::config_parms{pocketsphinx_hmm}"     if exists $main::config_parms{pocketsphinx_hmm};
-      if (!-e $hmm_file) {
-        &main::print_log ("PocketSphinx_Control:: ERROR: file: $hmm_file MISSING!!");
-      } else {
-        &::MainLoop_pre_add_hook(\&PocketSphinx_Control::state_machine, 'persistent');
-        &::Reload_pre_add_hook(\&PocketSphinx_Control::restart, 'persistent');
-      }
-   }
+        # Now build the language models from the various voice commands.
+        stop $p_sphinx;
+        mkdir( "$main::config_parms{data_dir}/pocketsphinx", 0777 )
+          unless -d "$main::config_parms{data_dir}/pocketsphinx";
+
+        # Insure we have all the files we need, if so, start the process
+        $hmm_file = "$main::config_parms{pocketsphinx_hmm}"
+          if exists $main::config_parms{pocketsphinx_hmm};
+        if ( !-e $hmm_file ) {
+            &main::print_log(
+                "PocketSphinx_Control:: ERROR: file: $hmm_file MISSING!!");
+        }
+        else {
+            &::MainLoop_pre_add_hook( \&PocketSphinx_Control::state_machine,
+                'persistent' );
+            &::Reload_pre_add_hook( \&PocketSphinx_Control::restart,
+                'persistent' );
+        }
+    }
 }
 
 =item C<_trim>
@@ -117,7 +130,7 @@ Shut down the process before we restart
 =cut
 
 sub restart {
-    $p_sphinx->stop( );
+    $p_sphinx->stop();
 }
 
 =item C<said>
@@ -127,56 +140,70 @@ Check for any new voice command from external pocketsphinx client(s)
 =cut
 
 sub said {
-  my $text;
-  if (my $tmp = said $s_pocketsphinx) {
-    &main::print_log ("PocketSphinx_Control:: said: $tmp") if $main::Debug{pocketsphinx};
-    # search for awake phrase
-    if ($main::Save{vr_mode} eq "asleep") {
-      foreach ( split(/,/,$main::config_parms{pocketsphinx_awake_phrase}) ) {
-        my $token = $_;
-        #strip leading/trailing white space
-        $token =~ s/^\s+//;
-        $token =~ s/\s+$//;
-        $token =~ s/[\{\}]//;
-        $token = lc($token);
-        if ($tmp eq $token) {
-          $text = $tmp;
+    my $text;
+    if ( my $tmp = said $s_pocketsphinx) {
+        &main::print_log("PocketSphinx_Control:: said: $tmp")
+          if $main::Debug{pocketsphinx};
+
+        # search for awake phrase
+        if ( $main::Save{vr_mode} eq "asleep" ) {
+            foreach (
+                split( /,/, $main::config_parms{pocketsphinx_awake_phrase} ) )
+            {
+                my $token = $_;
+
+                #strip leading/trailing white space
+                $token =~ s/^\s+//;
+                $token =~ s/\s+$//;
+                $token =~ s/[\{\}]//;
+                $token = lc($token);
+                if ( $tmp eq $token ) {
+                    $text = $tmp;
+                }
+                &main::print_log(
+                    "PocketSphinx_Control:: tmp: $tmp text: $text token: $token"
+                ) if $main::Debug{pocketsphinx};
+            }
         }
-        &main::print_log ("PocketSphinx_Control:: tmp: $tmp text: $text token: $token") if $main::Debug{pocketsphinx};
-      }
-    } else {
-      $text = $tmp;
+        else {
+            $text = $tmp;
+        }
     }
-  }
-  return $text;
+    return $text;
 }
 
 sub state_machine {
-  my ($self) = @_;
-  if ($main::Startup or $main::Reload or ($PocketSphinx_state eq "reset")) {
-    &build_sentence_file($sentence_file);
-    $PocketSphinx_state = "build_lm";
-    &main::print_log ("PocketSphinx_Control:: build_lm") if $main::Debug{pocketsphinx};
-    set_errlog $p_sphinx "$main::config_parms{data_dir}/pocketsphinx/build_lm.stderr";
-    set_output $p_sphinx "$main::config_parms{data_dir}/pocketsphinx/build_lm.stdout";
-    my $pgm_root = "/usr/local/bin";
-    if ($self->{continuous} =~ /(\S+)\/pocketsphinx/) {
-	$pgm_root = $1;
+    my ($self) = @_;
+    if ( $main::Startup or $main::Reload or ( $PocketSphinx_state eq "reset" ) )
+    {
+        &build_sentence_file($sentence_file);
+        $PocketSphinx_state = "build_lm";
+        &main::print_log("PocketSphinx_Control:: build_lm")
+          if $main::Debug{pocketsphinx};
+        set_errlog $p_sphinx
+          "$main::config_parms{data_dir}/pocketsphinx/build_lm.stderr";
+        set_output $p_sphinx
+          "$main::config_parms{data_dir}/pocketsphinx/build_lm.stdout";
+        my $pgm_root = "/usr/local/bin";
+        if ( $self->{continuous} =~ /(\S+)\/pocketsphinx/ ) {
+            $pgm_root = $1;
+        }
+        my $data_root = "$main::config_parms{data_dir}/pocketsphinx/current";
+        set $p_sphinx
+          "&PocketSphinx_Control::build_lm ('$pgm_root','$data_root','$lm_log_file')";
+        start $p_sphinx;
     }
-    my $data_root = "$main::config_parms{data_dir}/pocketsphinx/current";
-    set $p_sphinx "&PocketSphinx_Control::build_lm ('$pgm_root','$data_root','$lm_log_file')";
-    start $p_sphinx;
-  }
 
-  # wait for build_lm to complete
-  if ($PocketSphinx_state eq "build_lm") {
-    if (done $p_sphinx) {
-      &main::print_log ("PocketSphinx_Control:: run_sphinx") if $main::Debug{pocketsphinx};
-      $PocketSphinx_state = "run_sphinx";
-      set_errlog $p_sphinx "";
-      set_output $p_sphinx "";
+    # wait for build_lm to complete
+    if ( $PocketSphinx_state eq "build_lm" ) {
+        if ( done $p_sphinx) {
+            &main::print_log("PocketSphinx_Control:: run_sphinx")
+              if $main::Debug{pocketsphinx};
+            $PocketSphinx_state = "run_sphinx";
+            set_errlog $p_sphinx "";
+            set_output $p_sphinx "";
+        }
     }
-  }
 }
 
 sub get_state {
@@ -196,19 +223,19 @@ BUILD SENTENCE FILE
 =cut
 
 sub build_sentence_file {
-  my ($sentence_file) = @_;
-  #first write the sentence file
-  open(OUTPUT,">$sentence_file");
-  my @phrase_array = &Voice_Cmd::voice_items('mh','no_category');
-  @phrase_array = sort(@phrase_array);
-  foreach my $cmd (@phrase_array) {
-    chomp $cmd;
-    $cmd = lc($cmd);
-    print OUTPUT "<s> $cmd </s>\n";
-  }
-  close OUTPUT;
-}
+    my ($sentence_file) = @_;
 
+    #first write the sentence file
+    open( OUTPUT, ">$sentence_file" );
+    my @phrase_array = &Voice_Cmd::voice_items( 'mh', 'no_category' );
+    @phrase_array = sort(@phrase_array);
+    foreach my $cmd (@phrase_array) {
+        chomp $cmd;
+        $cmd = lc($cmd);
+        print OUTPUT "<s> $cmd </s>\n";
+    }
+    close OUTPUT;
+}
 
 =item C<build_lm>
 
@@ -259,35 +286,41 @@ words that are not in your vocabulary file.
 
 sub build_lm {
 
-  # input parameters
-  # quick_lm -s <sentence_file> [-w <word_file>] [-d discount]\n"); }
-  my ($pgm_root,$data_root,$logfile) = @_;
+    # input parameters
+    # quick_lm -s <sentence_file> [-w <word_file>] [-d discount]\n"); }
+    my ( $pgm_root, $data_root, $logfile ) = @_;
 
-  my $binary = "$pgm_root/sphinx_lm_convert";
-  if (! -e $binary) {
-      &main::print_log ("PocketSphinx Control:: ERROR: file: $binary MISSING!!");
-      &main::print_log ("PocketSphinx Control:: Did you forget to install the Cmuclmtk?");
-  }
+    my $binary = "$pgm_root/sphinx_lm_convert";
+    if ( !-e $binary ) {
+        &main::print_log(
+            "PocketSphinx Control:: ERROR: file: $binary MISSING!!");
+        &main::print_log(
+            "PocketSphinx Control:: Did you forget to install the Cmuclmtk?");
+    }
 
-  open(LOG,">$logfile");
+    open( LOG, ">$logfile" );
 
-  my $cmd = "$pgm_root/text2wfreq < $data_root.sent | $pgm_root/wfreq2vocab > $data_root.vocab";
-  print LOG "$cmd\n";
-  system $cmd;
+    my $cmd =
+      "$pgm_root/text2wfreq < $data_root.sent | $pgm_root/wfreq2vocab > $data_root.vocab";
+    print LOG "$cmd\n";
+    system $cmd;
 
-  $cmd = "$pgm_root/text2idngram -vocab $data_root.vocab -idngram $data_root.idngram < $data_root.sent";
-  print LOG "$cmd\n";
-  system $cmd;
+    $cmd =
+      "$pgm_root/text2idngram -vocab $data_root.vocab -idngram $data_root.idngram < $data_root.sent";
+    print LOG "$cmd\n";
+    system $cmd;
 
-  $cmd = "$pgm_root/idngram2lm -vocab_type 0 -idngram $data_root.idngram -vocab $data_root.vocab -arpa $data_root.arpa";
-  print LOG "$cmd\n";
-  system $cmd;
+    $cmd =
+      "$pgm_root/idngram2lm -vocab_type 0 -idngram $data_root.idngram -vocab $data_root.vocab -arpa $data_root.arpa";
+    print LOG "$cmd\n";
+    system $cmd;
 
-  $cmd = "$pgm_root/sphinx_lm_convert -i $data_root.arpa -o $data_root.lm.DMP";
-  print LOG "$cmd\n";
-  system $cmd;
+    $cmd =
+      "$pgm_root/sphinx_lm_convert -i $data_root.arpa -o $data_root.lm.DMP";
+    print LOG "$cmd\n";
+    system $cmd;
 
-  close (LOG);
+    close(LOG);
 
 }
 
@@ -347,10 +380,6 @@ You should have received a copy of the GNU General Public License along with thi
 
 =cut
 
-
-
-
-
 =head1 B<PocketSphinx_Listner>
 
 =head2 SYNOPSIS
@@ -381,73 +410,86 @@ Constructor
 
 =cut
 
-sub new
-{
-   my ($class, $device,$sample_rate,$listening,$speak) = @_;
-   my $self = {};
-   bless $self,$class;
+sub new {
+    my ( $class, $device, $sample_rate, $listening, $speak ) = @_;
+    my $self = {};
+    bless $self, $class;
 
-   &main::print_log ("PocketSphinx_Listener:: initialization $device") if $main::Debug{pocketsphinx};
+    &main::print_log("PocketSphinx_Listener:: initialization $device")
+      if $main::Debug{pocketsphinx};
 
-   # default the device if not defined
-   if (not defined $device) {
-     $device = "default";
-     $device = "$main::config_parms{pocketsphinx_dev}"         if exists $main::config_parms{pocketsphinx_dev};
-   }
+    # default the device if not defined
+    if ( not defined $device ) {
+        $device = "default";
+        $device = "$main::config_parms{pocketsphinx_dev}"
+          if exists $main::config_parms{pocketsphinx_dev};
+    }
 
-   # default the sample_rate if not defined
-   if (not defined $sample_rate) {
-     $sample_rate = 16000;
-     $sample_rate = "$main::config_parms{pocketsphinx_sample_rate}" if exists $main::config_parms{pocketsphinx_sample_rate};
-   }
+    # default the sample_rate if not defined
+    if ( not defined $sample_rate ) {
+        $sample_rate = 16000;
+        $sample_rate = "$main::config_parms{pocketsphinx_sample_rate}"
+          if exists $main::config_parms{pocketsphinx_sample_rate};
+    }
 
-   # load device and sample_rate parameters if available
-   $self->{device} = $device;
-   $self->{sample_rate} = $sample_rate;
+    # load device and sample_rate parameters if available
+    $self->{device}      = $device;
+    $self->{sample_rate} = $sample_rate;
 
-   # do we want to start listening upon startup?  we default to true
-   if (defined $listening) {
-     $self->{listening} = $listening;
-   } else {
-     $self->{listening} = 1;
-   }
+    # do we want to start listening upon startup?  we default to true
+    if ( defined $listening ) {
+        $self->{listening} = $listening;
+    }
+    else {
+        $self->{listening} = 1;
+    }
 
-   # do we want to speak when ready to accepts commands?  we default to false
-   if (defined $speak) {
-     $self->{speak} = $speak;
-   } else {
-     $self->{speak} = 0;
-   }
+    # do we want to speak when ready to accepts commands?  we default to false
+    if ( defined $speak ) {
+        $self->{speak} = $speak;
+    }
+    else {
+        $self->{speak} = 0;
+    }
 
-   # create some necessary classes
-   $self->{p_sphinx} = new Process_Item;
-   my $friendly_name = "PocketSphinx_Listener_p_sphinx_$device";
-   &main::store_object_data($self->{p_sphinx}, 'Process_Item', $friendly_name, $friendly_name);
-   $self->{t_crash_timer} = new Timer;
-   $self->{t_speak_timer} = new Timer;
+    # create some necessary classes
+    $self->{p_sphinx} = new Process_Item;
+    my $friendly_name = "PocketSphinx_Listener_p_sphinx_$device";
+    &main::store_object_data( $self->{p_sphinx}, 'Process_Item',
+        $friendly_name, $friendly_name );
+    $self->{t_crash_timer} = new Timer;
+    $self->{t_speak_timer} = new Timer;
 
-   # file names from the Control portion
-   $self->{log_file}        = "$main::config_parms{data_dir}/pocketsphinx/pocketsphinx";
-   $self->{sentence_file}   = "$main::config_parms{data_dir}/pocketsphinx/current.sent";
-   $self->{lm_file}         = "$main::config_parms{data_dir}/pocketsphinx/current.lm.DMP";
+    # file names from the Control portion
+    $self->{log_file} =
+      "$main::config_parms{data_dir}/pocketsphinx/pocketsphinx";
+    $self->{sentence_file} =
+      "$main::config_parms{data_dir}/pocketsphinx/current.sent";
+    $self->{lm_file} =
+      "$main::config_parms{data_dir}/pocketsphinx/current.lm.DMP";
 
-   # run parameters
-   $self->{hmm_file}    = "/usr/local/share/pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k";
-   $self->{continuous}  = "/usr/local/bin/pocketsphinx_continuous";
-   $self->{host}        = "localhost";
-   $self->{port}        = 3235;
-   $self->{hmm_file}    = "$main::config_parms{pocketsphinx_hmm}"         if exists $main::config_parms{pocketsphinx_hmm};
-   $self->{continuous}  = "$main::config_parms{pocketsphinx_continuous}"  if exists $main::config_parms{pocketsphinx_continuous};
-   $self->{port}        = "$main::config_parms{server_pocketsphinx_port}" if exists $main::config_parms{server_pocketsphinx_port};
+    # run parameters
+    $self->{hmm_file} =
+      "/usr/local/share/pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k";
+    $self->{continuous} = "/usr/local/bin/pocketsphinx_continuous";
+    $self->{host}       = "localhost";
+    $self->{port}       = 3235;
+    $self->{hmm_file}   = "$main::config_parms{pocketsphinx_hmm}"
+      if exists $main::config_parms{pocketsphinx_hmm};
+    $self->{continuous} = "$main::config_parms{pocketsphinx_continuous}"
+      if exists $main::config_parms{pocketsphinx_continuous};
+    $self->{port} = "$main::config_parms{server_pocketsphinx_port}"
+      if exists $main::config_parms{server_pocketsphinx_port};
 
-   # runtime maintenance
-   $self->{disabled} = 0;
-   $self->{crash_cnt} = 0;
-   &::MainLoop_pre_add_hook(\&PocketSphinx_Listener::state_machine,undef,$self);
-   &::Reload_pre_add_hook(\&PocketSphinx_Listener::restart,undef,$self);
-   &::Speak_parms_add_hook(\&PocketSphinx_Listener::speak, 0);
+    # runtime maintenance
+    $self->{disabled}  = 0;
+    $self->{crash_cnt} = 0;
+    &::MainLoop_pre_add_hook( \&PocketSphinx_Listener::state_machine,
+        undef, $self );
+    &::Reload_pre_add_hook( \&PocketSphinx_Listener::restart, undef, $self );
+    &::Speak_parms_add_hook( \&PocketSphinx_Listener::speak, 0 );
 
-   return $self;
+    return $self;
 }
 
 =item C<set_hmm_file>
@@ -457,13 +499,13 @@ Set functions
 =cut
 
 sub set_hmm_file {
-   my ($self,$file) = @_;
-   $self->{hmm_file} = $file if -e $file;
+    my ( $self, $file ) = @_;
+    $self->{hmm_file} = $file if -e $file;
 }
 
 sub set_sample_rate {
-   my ($self,$sample_rate) = @_;
-   $self->{sample_rate} = $sample_rate;
+    my ( $self, $sample_rate ) = @_;
+    $self->{sample_rate} = $sample_rate;
 }
 
 =item C<_trim>
@@ -489,13 +531,16 @@ information.
 =cut
 
 sub restore_string {
-    &main::print_log ("PocketSphinx_Listener:: restore_string called") if $main::Debug{pocketsphinx};
-    my ($self) = @_;
+    &main::print_log("PocketSphinx_Listener:: restore_string called")
+      if $main::Debug{pocketsphinx};
+    my ($self)         = @_;
     my $restore_string = '';
-    my $restore_data = &_trim( $self->{p_sphinx}->restore_string( ) );
+    my $restore_data   = &_trim( $self->{p_sphinx}->restore_string() );
     $restore_data =~ s/\->/\$self\->{p_sphinx}\->/g;
-    $restore_string .= $self->{object_name} . "->{restore_data} = q#$restore_data#;\n";
-    $restore_string .= $self->{object_name} . "->restore();\n" if $self->{p_sphinx}->pid( );
+    $restore_string .=
+      $self->{object_name} . "->{restore_data} = q#$restore_data#;\n";
+    $restore_string .= $self->{object_name} . "->restore();\n"
+      if $self->{p_sphinx}->pid();
     return $restore_string;
 }
 
@@ -510,10 +555,13 @@ object.
 sub restore {
     my ($self) = @_;
     my $restore_data = $self->{restore_data};
-    &main::print_log ("PocketSphinx_Listener:: restore_string: $restore_data") if $main::Debug{pocketsphinx};
+    &main::print_log("PocketSphinx_Listener:: restore_string: $restore_data")
+      if $main::Debug{pocketsphinx};
     eval $restore_data;
-    &main::print_log ("PocketSphinx_Listener:: restore: Error in Persistent data restore: $@\n") if $@;
-    $self->{p_sphinx}->stop( );
+    &main::print_log(
+        "PocketSphinx_Listener:: restore: Error in Persistent data restore: $@\n"
+    ) if $@;
+    $self->{p_sphinx}->stop();
 }
 
 =item C<restart>
@@ -524,7 +572,7 @@ Shut down the process before we restart
 
 sub restart {
     my ($self) = @_;
-    $self->{p_sphinx}->stop( );
+    $self->{p_sphinx}->stop();
 }
 
 =item C<speak>
@@ -534,24 +582,27 @@ Update speak parameters based upon context
 =cut
 
 sub speak {
-    my ($self,$parms_ref) = @_;
-    &main::print_log ("PocketSphinx_Listener::speak called!!") if $main::Debug{pocketsphinx};
+    my ( $self, $parms_ref ) = @_;
+    &main::print_log("PocketSphinx_Listener::speak called!!")
+      if $main::Debug{pocketsphinx};
     my @rooms = split ',', lc $parms_ref->{rooms};
     foreach my $room (@rooms) {
-      &main::print_log ("PocketSphinx_Listener::speak room: $room\n");
+        &main::print_log("PocketSphinx_Listener::speak room: $room\n");
     }
-    if (exists $self->{speak_room} ) {
-      if ( !$self->{t_crash_timer}->active( ) ) {
-	delete $self->{speak_room};
-      } else {
-        push @rooms, $self->{speak_room};
-        $parms_ref->{rooms} = join ",",@rooms;
-        my @rooms = split ',', lc $parms_ref->{rooms};
-        foreach my $room (@rooms) {
-          &main::print_log ("PocketSphinx_Listener::speak room: $room\n") if $main::Debug{pocketsphinx};
+    if ( exists $self->{speak_room} ) {
+        if ( !$self->{t_crash_timer}->active() ) {
+            delete $self->{speak_room};
         }
-        $self->{t_speak_timer}->set(60);
-      }
+        else {
+            push @rooms, $self->{speak_room};
+            $parms_ref->{rooms} = join ",", @rooms;
+            my @rooms = split ',', lc $parms_ref->{rooms};
+            foreach my $room (@rooms) {
+                &main::print_log("PocketSphinx_Listener::speak room: $room\n")
+                  if $main::Debug{pocketsphinx};
+            }
+            $self->{t_speak_timer}->set(60);
+        }
     }
 }
 
@@ -562,12 +613,12 @@ Define the speaking room
 =cut
 
 sub set_speak_room {
-    my ($self,$room) = @_;
+    my ( $self, $room ) = @_;
     $self->{speak_room} = $room;
-    &main::print_log ("PocketSphinx_Listener::set_speak_room room: $room\n") if $main::Debug{pocketsphinx};
+    &main::print_log("PocketSphinx_Listener::set_speak_room room: $room\n")
+      if $main::Debug{pocketsphinx};
     $self->{t_speak_timer}->set(60);
 }
-
 
 =item C<start_listner>
 
@@ -576,9 +627,10 @@ Allow the listener to startup on the next pass of the state_machine maintenance 
 =cut
 
 sub start_listener {
-  my ($self) = @_;
-  $self->{listening} = 1;
-  &main::print_log ("PocketSphinx_Listener:: start_listener $self->{device}") if $main::Debug{pocketsphinx};
+    my ($self) = @_;
+    $self->{listening} = 1;
+    &main::print_log("PocketSphinx_Listener:: start_listener $self->{device}")
+      if $main::Debug{pocketsphinx};
 }
 
 =item C<stop_listner>
@@ -588,10 +640,11 @@ Stop any active listener program currently running
 =cut
 
 sub stop_listener {
-  my ($self) = @_;
-  $self->{p_sphinx}->stop( ) if (!$self->{p_sphinx}->done( ));
-  $self->{listening} = 0;
-  &main::print_log ("PocketSphinx_Listener:: stop_listener $self->{device}") if $main::Debug{pocketsphinx};
+    my ($self) = @_;
+    $self->{p_sphinx}->stop() if ( !$self->{p_sphinx}->done() );
+    $self->{listening} = 0;
+    &main::print_log("PocketSphinx_Listener:: stop_listener $self->{device}")
+      if $main::Debug{pocketsphinx};
 }
 
 =item C<state_machine>
@@ -603,51 +656,68 @@ a count of restarts to avoid thrashing since the crashes could be caused by bad 
 =cut
 
 sub state_machine {
-  my ($self) = @_;
-  # check to see of the pocketsphinx VR program has completed, check for short crashes (something is wrong)
-  if ($self->{p_sphinx}->done_now( ) ) {
-    &main::print_log ("PocketSphinx_Listener:: process_done: $self->{device}") if $main::Debug{pocketsphinx};
-    if (&PocketSphinx_Control::get_state( ) eq 'run_sphinx') {
-      my $runtime = $self->{p_sphinx}->runtime( );
-      if ($runtime < 60) {
-        $self->{crash_cnt}++;
-        $self->{t_crash_timer}->set(60);
-        if ($self->{crash_cnt} > 10) {
-          &main::print_log ("PocketSphinx_Listener:: $self->{device} ERROR: disabled because the pocketsphinx_continuous program exited too quickly ($runtime) ... check $self->{log_file}_$self->{device}.stderr");
-          $self->{disabled} = 1;
-        }
-      } else {
-        $self->{crash_cnt} = 0;
-      }
-    }
-  }
+    my ($self) = @_;
 
-  # keep the pocketsphinx voice recognition program running externally
-  if (&PocketSphinx_Control::get_state( ) eq "run_sphinx") {
-    if ($self->{p_sphinx}->done( ) && !$self->{disabled} && $self->{listening} && !$self->{t_crash_timer}->active( ) ) {
-      &main::print_log ("PocketSphinx_Listener:: run_sphinx $self->{device}") if $main::Debug{pocketsphinx};
-      $self->{p_sphinx}->set_errlog("$self->{log_file}_$self->{device}.stderr");
-      $self->{p_sphinx}->set_output("$self->{log_file}_$self->{device}.stdout");
-      $self->{p_sphinx}->set_killsig("TERM");
-      my $command = join " ",
-                    "pocketsphinx ",
-                    "-host $self->{host}",
-                    "-port $self->{port}",
-                    "-log_file $self->{log_file}",
-                    "-sent_file $self->{sentence_file}",
-                    "-lm_file $self->{lm_file}",
-                    "-hmm_file $self->{hmm_file}",
-                    "-program $self->{continuous}",
-                    "-device $self->{device}",
-                    "-sample $self->{sample_rate}";
-      &main::print_log ("PocketSphinx_Listener:: $self->{device} $command") if $main::Debug{pocketsphinx};
-      $self->{p_sphinx}->set($command);
-      $self->{p_sphinx}->start( );
-      if ($self->{speak}) {
-        &main::speak ("voice recognition system is now available and ready");
-      }
+    # check to see of the pocketsphinx VR program has completed, check for short crashes (something is wrong)
+    if ( $self->{p_sphinx}->done_now() ) {
+        &main::print_log(
+            "PocketSphinx_Listener:: process_done: $self->{device}")
+          if $main::Debug{pocketsphinx};
+        if ( &PocketSphinx_Control::get_state() eq 'run_sphinx' ) {
+            my $runtime = $self->{p_sphinx}->runtime();
+            if ( $runtime < 60 ) {
+                $self->{crash_cnt}++;
+                $self->{t_crash_timer}->set(60);
+                if ( $self->{crash_cnt} > 10 ) {
+                    &main::print_log(
+                        "PocketSphinx_Listener:: $self->{device} ERROR: disabled because the pocketsphinx_continuous program exited too quickly ($runtime) ... check $self->{log_file}_$self->{device}.stderr"
+                    );
+                    $self->{disabled} = 1;
+                }
+            }
+            else {
+                $self->{crash_cnt} = 0;
+            }
+        }
     }
-  }
+
+    # keep the pocketsphinx voice recognition program running externally
+    if ( &PocketSphinx_Control::get_state() eq "run_sphinx" ) {
+        if (   $self->{p_sphinx}->done()
+            && !$self->{disabled}
+            && $self->{listening}
+            && !$self->{t_crash_timer}->active() )
+        {
+            &main::print_log(
+                "PocketSphinx_Listener:: run_sphinx $self->{device}")
+              if $main::Debug{pocketsphinx};
+            $self->{p_sphinx}
+              ->set_errlog("$self->{log_file}_$self->{device}.stderr");
+            $self->{p_sphinx}
+              ->set_output("$self->{log_file}_$self->{device}.stdout");
+            $self->{p_sphinx}->set_killsig("TERM");
+            my $command = join " ",
+              "pocketsphinx ",
+              "-host $self->{host}",
+              "-port $self->{port}",
+              "-log_file $self->{log_file}",
+              "-sent_file $self->{sentence_file}",
+              "-lm_file $self->{lm_file}",
+              "-hmm_file $self->{hmm_file}",
+              "-program $self->{continuous}",
+              "-device $self->{device}",
+              "-sample $self->{sample_rate}";
+            &main::print_log("PocketSphinx_Listener:: $self->{device} $command")
+              if $main::Debug{pocketsphinx};
+            $self->{p_sphinx}->set($command);
+            $self->{p_sphinx}->start();
+
+            if ( $self->{speak} ) {
+                &main::speak(
+                    "voice recognition system is now available and ready");
+            }
+        }
+    }
 }
 
 1;

@@ -13,27 +13,29 @@
 
 # 10_rf_receiver  = new X10_MR26;
 # 10_rf_receiver  = new X10_W800;
-$X10_rf_receiver  = new X10_RF_Receiver;   # Works for both the MR26 and W800
+$X10_rf_receiver = new X10_RF_Receiver;    # Works for both the MR26 and W800
 
 #noloop=start
-    my $hc = $config_parms{x10_relay_hc};
-    $hc = 'ALL' unless $hc;
-    print_log "x10_rf_relay will relay these housecodes: $hc";
+my $hc = $config_parms{x10_relay_hc};
+$hc = 'ALL' unless $hc;
+print_log "x10_rf_relay will relay these housecodes: $hc";
+
 #noloop=stop
 
-                                # You may want to limit this to not relay busy motion detectors
+# You may want to limit this to not relay busy motion detectors
 $X10_transmitter = new X10_Item;
 $X10_transmitter->{states_casesensitive} = 0;
 
-if (state_now $X10_rf_receiver) {
+if ( state_now $X10_rf_receiver) {
     my $state = $X10_rf_receiver->{state};
     print_log "X10 RF data: $state" if $config_parms{x10_errata} >= 3;
-    if ($state =~ /^X/i) {
-	    my $hc = $config_parms{x10_relay_hc};
-	    $hc = '.' unless $hc;
-	    if ($state =~ /^X$hc/i) {
-        	print_log "Relaying X10 RF data: $state" if $config_parms{x10_errata} >= 3;
-	        set $X10_transmitter $state;
-	    }
+    if ( $state =~ /^X/i ) {
+        my $hc = $config_parms{x10_relay_hc};
+        $hc = '.' unless $hc;
+        if ( $state =~ /^X$hc/i ) {
+            print_log "Relaying X10 RF data: $state"
+              if $config_parms{x10_errata} >= 3;
+            set $X10_transmitter $state;
+        }
     }
 }

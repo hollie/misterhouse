@@ -100,19 +100,22 @@ to the array so I had to compensate for that where it occurred.
 # - fix a problem with wind data
 # =============================================================================
 =cut
-my ($wmr968_port, %skip);
+
+my ( $wmr968_port, %skip );
 
 sub startup {
-    $wmr968_port = new  Serial_Item(undef, undef, 'serial_wmr968');
-    &::MainLoop_pre_add_hook(\&Weather_wmr968::update_wmr968_weather, 1 );
-    %skip = map {$_, 1} split(',', $main::config_parms{serial_wmr968_skip}) if $main::config_parms{serial_wmr968_skip};
+    $wmr968_port = new Serial_Item( undef, undef, 'serial_wmr968' );
+    &::MainLoop_pre_add_hook( \&Weather_wmr968::update_wmr968_weather, 1 );
+    %skip = map { $_, 1 } split( ',', $main::config_parms{serial_wmr968_skip} )
+      if $main::config_parms{serial_wmr968_skip};
 }
 
 sub update_wmr968_weather {
     return unless my $data = said $wmr968_port;
+
     # Process data, and reset incomplete data not processed this pass
     my $debug = 1 if $main::Debug{weather};
-    my $remainder = &read_wmr968($data, \%main::Weather, $debug);
+    my $remainder = &read_wmr968( $data, \%main::Weather, $debug );
     set_data $wmr968_port $remainder if $remainder;
     &main::weather_updated;
 }
@@ -125,76 +128,87 @@ sub update_wmr968_weather {
 
 # tv changed table to reflect wmr968 values
 # wx_datatype : data type, nb byte, function
-my %wx_datatype = (0x0 => ['wind',    11, \&wx_wind],
-                   0x1 => ['rain',    16, \&wx_rain],
-                   0x2 => ['temp',     9, \&wx_spare],
-                   0x3 => ['temp',     9, \&wx_outside],
-                   0x4 => ['temp',     7, \&wx_spare],
-                   0x5 => ['inside',  13, \&wx_inside],
-                   0x6 => ['inside',  14,  \&wx_inside],
-                   0xe => ['seq',      5,  \&wx_seq],
-                   0xf => ['date',     9,  \&wx_time]);
+my %wx_datatype = (
+    0x0 => [ 'wind',   11, \&wx_wind ],
+    0x1 => [ 'rain',   16, \&wx_rain ],
+    0x2 => [ 'temp',   9,  \&wx_spare ],
+    0x3 => [ 'temp',   9,  \&wx_outside ],
+    0x4 => [ 'temp',   7,  \&wx_spare ],
+    0x5 => [ 'inside', 13, \&wx_inside ],
+    0x6 => [ 'inside', 14, \&wx_inside ],
+    0xe => [ 'seq',    5,  \&wx_seq ],
+    0xf => [ 'date',   9,  \&wx_time ]
+);
 
 sub read_wmr968 {
-    my ($data, $wptr, $debug) = @_;
+    my ( $data, $wptr, $debug ) = @_;
 
-    my @data = unpack('C*', $data);
+    my @data = unpack( 'C*', $data );
     print "Data read : #@data#\n" if $debug;
 
     # Test if we have headers and device type, if not return what is left for next pass
-    if (@data < 3) {
-        printf("     Not enough data, length<3, return data for next pass\n") if $debug;
-        return pack('C*', @data);
-	}
+    if ( @data < 3 ) {
+        printf("     Not enough data, length<3, return data for next pass\n")
+          if $debug;
+        return pack( 'C*', @data );
+    }
 
     while (@data) {
-        my $group = $data[2];  # tv changed from 0
-        my $dtp = $wx_datatype{$group};
+        my $group = $data[2];               # tv changed from 0
+        my $dtp   = $wx_datatype{$group};
 
         # Check for valid datatype
         unless ($dtp) {
             my $length = @data;
-            printf("     Bad weather data = group(%x) length($length)\n", $group);
+            printf( "     Bad weather data = group(%x) length($length)\n",
+                $group );
             return;
         }
+
         # If we don't have enough data, return what is left for next pass
-        if ($$dtp[1] > @data) {
-            printf("     Not enough data, return data for next pass\n") if $debug;
-            return pack('C*', @data);
+        if ( $$dtp[1] > @data ) {
+            printf("     Not enough data, return data for next pass\n")
+              if $debug;
+            return pack( 'C*', @data );
         }
 
         # Pull out the number of bytes needed for this data type
-        my @data2 = splice(@data, 0, $$dtp[1]);
+        my @data2 = splice( @data, 0, $$dtp[1] );
 
         # Get the checksum (last byte)
         my $checksum1 = pop @data2;
-	# Control the checksum
+
+        # Control the checksum
         my $checksum2 = 0;
-	# Sum of the data send (include header)
+
+        # Sum of the data send (include header)
         for (@data2) {
             $checksum2 += $_;
         }
-	# Control only the lower byte (lower 8 bits of the sum)
+
+        # Control only the lower byte (lower 8 bits of the sum)
         $checksum2 &= 0xff;
-        if ($checksum1 != $checksum2) {
-            print "     Warning, bad wmr968 type=$$dtp[0] checksum: cs1=$checksum1 cs2=$checksum2\n";
+        if ( $checksum1 != $checksum2 ) {
+            print
+              "     Warning, bad wmr968 type=$$dtp[0] checksum: cs1=$checksum1 cs2=$checksum2\n";
             print "     data2 is @data2\ndata is @data\ngroup is $group\n\n";
             next;
         }
 
         # Process the data
-        &{$$dtp[2]}($wptr, $debug, @data2);
+        &{ $$dtp[2] }( $wptr, $debug, @data2 );
     }
 }
 
 sub wx_temp2 {
-    my ($n1, $n2) = @_;
-    my $temp   =  sprintf('%x%02x', 0x07 & $n2, $n1);
-    substr($temp, 2, 0) = '.';
+    my ( $n1, $n2 ) = @_;
+    my $temp = sprintf( '%x%02x', 0x07 & $n2, $n1 );
+    substr( $temp, 2, 0 ) = '.';
     $temp *= -1 if 0x80 & $n2;
     $temp = &main::convert_c2f($temp);
     return $temp;
 }
+
 #=============================================================================
 # DECODE DATA TYPE RAIN GAUGE
 # Byte	Nibble	Bit	Meaning
@@ -218,51 +232,70 @@ sub wx_temp2 {
 #  12   DD		Total start date year
 #=============================================================================
 sub wx_rain {
-    my ($wptr, $debug, @data) = @_;
+    my ( $wptr, $debug, @data ) = @_;
 
-    unless ($skip{RainRateOver}) {
-	$$wptr{RainRateOver} = (($data[3] & 0x10)>>4) ? 1 : 0;
+    unless ( $skip{RainRateOver} ) {
+        $$wptr{RainRateOver} = ( ( $data[3] & 0x10 ) >> 4 ) ? 1 : 0;
     }
-    unless ($skip{RainTotalOver}) {
-	$$wptr{RainTotalOver} = (($data[3] & 0x20)>>5) ? 1 : 0;
+    unless ( $skip{RainTotalOver} ) {
+        $$wptr{RainTotalOver} = ( ( $data[3] & 0x20 ) >> 5 ) ? 1 : 0;
     }
-    unless ($skip{BatRain}) {
-	$$wptr{BatRain} = (($data[3] & 0x40)>>6) ? 0 : 1;
+    unless ( $skip{BatRain} ) {
+        $$wptr{BatRain} = ( ( $data[3] & 0x40 ) >> 6 ) ? 0 : 1;
     }
-    unless ($skip{RainYestOver}) {
-	$$wptr{RainYestOver} = (($data[3] & 0x80)>>7) ? 1 : 0;
+    unless ( $skip{RainYestOver} ) {
+        $$wptr{RainYestOver} = ( ( $data[3] & 0x80 ) >> 7 ) ? 1 : 0;
     }
-    unless ($skip{RainRate}) {
-		$$wptr{RainRate}=sprintf('%u', 0x0f & $data[5])*100 + sprintf('%u', (0xf0 & $data[4])>>4)*10
-				+ sprintf('%u', 0x0f & $data[4]);
-    	$$wptr{RainRate}=&main::convert_mm2in($$wptr{RainRate}) if $main::config_parms{weather_uom_rainrate} eq 'in/hr';
+    unless ( $skip{RainRate} ) {
+        $$wptr{RainRate} =
+          sprintf( '%u', 0x0f & $data[5] ) * 100 +
+          sprintf( '%u', ( 0xf0 & $data[4] ) >> 4 ) * 10 +
+          sprintf( '%u', 0x0f & $data[4] );
+        $$wptr{RainRate} = &main::convert_mm2in( $$wptr{RainRate} )
+          if $main::config_parms{weather_uom_rainrate} eq 'in/hr';
     }
-    unless ($skip{RainTotal}) {
-	$$wptr{RainTotal}=sprintf('%u', (0xf0 & $data[7])>>4)*1000 + sprintf('%u', 0x0f & $data[7])*100
-			     + sprintf('%u', (0xf0 & $data[6])>>4)*10 + sprintf('%u', 0x0f & $data[6])
-			     + sprintf('%u', (0xf0 & $data[5])>>4)*0.1;
+    unless ( $skip{RainTotal} ) {
+        $$wptr{RainTotal} =
+          sprintf( '%u', ( 0xf0 & $data[7] ) >> 4 ) * 1000 +
+          sprintf( '%u', 0x0f & $data[7] ) * 100 +
+          sprintf( '%u', ( 0xf0 & $data[6] ) >> 4 ) * 10 +
+          sprintf( '%u', 0x0f & $data[6] ) +
+          sprintf( '%u', ( 0xf0 & $data[5] ) >> 4 ) * 0.1;
 
-    	$$wptr{RainTotal}=&main::convert_mm2in($$wptr{RainTotal}) if $main::config_parms{weather_uom_rain} eq 'in';
+        $$wptr{RainTotal} = &main::convert_mm2in( $$wptr{RainTotal} )
+          if $main::config_parms{weather_uom_rain} eq 'in';
     }
-    unless ($skip{RainYest}) {
-    	$$wptr{RainYest} = sprintf('%u', (0xf0 & $data[9])>>4)*1000 + sprintf('%u', 0x0f & $data[9])*100
-			      + sprintf('%u', (0xf0 & $data[8])>>4)*10 + sprintf('%u', 0x0f & $data[8]);
-    	$$wptr{RainYest}=&main::convert_mm2in($$wptr{RainYest}) if $main::config_parms{weather_uom_rain} eq 'in';
+    unless ( $skip{RainYest} ) {
+        $$wptr{RainYest} =
+          sprintf( '%u', ( 0xf0 & $data[9] ) >> 4 ) * 1000 +
+          sprintf( '%u', 0x0f & $data[9] ) * 100 +
+          sprintf( '%u', ( 0xf0 & $data[8] ) >> 4 ) * 10 +
+          sprintf( '%u', 0x0f & $data[8] );
+        $$wptr{RainYest} = &main::convert_mm2in( $$wptr{RainYest} )
+          if $main::config_parms{weather_uom_rain} eq 'in';
     }
-    unless ($skip{RainTotalStartDate}) {
-	$$wptr{RainTotalStartDate}=sprintf("%02x%02x%02x%02x%02x",$data[14],$data[13],$data[12],$data[11],$data[10]);
+    unless ( $skip{RainTotalStartDate} ) {
+        $$wptr{RainTotalStartDate} = sprintf( "%02x%02x%02x%02x%02x",
+            $data[14], $data[13], $data[12], $data[11], $data[10] );
     }
 
-    print "** RAIN GAUGE : $main::Time_Date\n" if $debug;
-    print "       BatRain         ($$wptr{BatRain})\n" if $debug;
-    print "       RainRateOver    ($$wptr{RainRateOver})\n" if $debug;
+    print "** RAIN GAUGE : $main::Time_Date\n"               if $debug;
+    print "       BatRain         ($$wptr{BatRain})\n"       if $debug;
+    print "       RainRateOver    ($$wptr{RainRateOver})\n"  if $debug;
     print "       RainTotalOver   ($$wptr{RainTotalOver})\n" if $debug;
-    print "       YesterdayOver   ($$wptr{RainYestOver})\n" if $debug;
-    print "       RainRate        ($$wptr{RainRate} $main::config_parms{weather_uom_rainrate})\n" if $debug;
-    print "       RainTotal       ($$wptr{RainTotal} $main::config_parms{weather_uom_rain})\n" if $debug;
-    print "       RainYesterday   ($$wptr{RainYest} $main::config_parms{weather_uom_rain})\n" if $debug;
+    print "       YesterdayOver   ($$wptr{RainYestOver})\n"  if $debug;
+    print
+      "       RainRate        ($$wptr{RainRate} $main::config_parms{weather_uom_rainrate})\n"
+      if $debug;
+    print
+      "       RainTotal       ($$wptr{RainTotal} $main::config_parms{weather_uom_rain})\n"
+      if $debug;
+    print
+      "       RainYesterday   ($$wptr{RainYest} $main::config_parms{weather_uom_rain})\n"
+      if $debug;
     print "       RainTotalStartDate ($$wptr{RainTotalStartDate})\n" if $debug;
 }
+
 #=============================================================================
 # DECODE DATA TYPE ANEMOMETER
 # Byte	Nibble	Bit	Meaning
@@ -285,55 +318,76 @@ sub wx_rain {
 #  7	DD		Wind chill
 #=============================================================================
 sub wx_wind {
-    my ($wptr, $debug, @data) = @_;
+    my ( $wptr, $debug, @data ) = @_;
 
-    unless ($skip{WindGustOver}) {
-	$$wptr{WindGustOver} = (($data[3] & 0x10)>>4) ? 1 : 0;
+    unless ( $skip{WindGustOver} ) {
+        $$wptr{WindGustOver} = ( ( $data[3] & 0x10 ) >> 4 ) ? 1 : 0;
     }
-    unless ($skip{WindAvgOver}) {
-	$$wptr{WindAvgOver} = (($data[3] & 0x20)>>5) ? 1 : 0;
+    unless ( $skip{WindAvgOver} ) {
+        $$wptr{WindAvgOver} = ( ( $data[3] & 0x20 ) >> 5 ) ? 1 : 0;
     }
-    unless ($skip{BatWind}) {
-	$$wptr{BatWind} = (($data[3] & 0x40)>>6) ? 0 : 1;
+    unless ( $skip{BatWind} ) {
+        $$wptr{BatWind} = ( ( $data[3] & 0x40 ) >> 6 ) ? 0 : 1;
     }
-    unless ($skip{WindGustSpeed}) {
-        $$wptr{WindGustSpeed}=sprintf('%u',(0xf0 & $data[6])>>4)*10 + sprintf('%u',0x0f & $data[6])
-				+ sprintf('%u',(0xf0 & $data[5])>>4)*0.1;
-		$$wptr{WindGustSpeed}=sprintf('%.0f',&main::convert_mps2kph($$wptr{WindGustSpeed})) if $main::config_parms{weather_uom_wind} eq 'kph';
-		$$wptr{WindGustSpeed}=sprintf('%.0f',&main::convert_mps2mph($$wptr{WindGustSpeed})) if $main::config_parms{weather_uom_wind} eq 'mph';
-        $$wptr{WindGustDir}=sprintf('%u', 0x0f & $data[5])*100 + sprintf('%u', (0xf0 & $data[4])>>4)*10
-	 	 		+ sprintf('%u', 0x0f & $data[4]);
-	 	$$wptr{WindAvgDir}=$$wptr{WindGustDir};
+    unless ( $skip{WindGustSpeed} ) {
+        $$wptr{WindGustSpeed} =
+          sprintf( '%u', ( 0xf0 & $data[6] ) >> 4 ) * 10 +
+          sprintf( '%u', 0x0f & $data[6] ) +
+          sprintf( '%u', ( 0xf0 & $data[5] ) >> 4 ) * 0.1;
+        $$wptr{WindGustSpeed} =
+          sprintf( '%.0f', &main::convert_mps2kph( $$wptr{WindGustSpeed} ) )
+          if $main::config_parms{weather_uom_wind} eq 'kph';
+        $$wptr{WindGustSpeed} =
+          sprintf( '%.0f', &main::convert_mps2mph( $$wptr{WindGustSpeed} ) )
+          if $main::config_parms{weather_uom_wind} eq 'mph';
+        $$wptr{WindGustDir} =
+          sprintf( '%u', 0x0f & $data[5] ) * 100 +
+          sprintf( '%u', ( 0xf0 & $data[4] ) >> 4 ) * 10 +
+          sprintf( '%u', 0x0f & $data[4] );
+        $$wptr{WindAvgDir} = $$wptr{WindGustDir};
     }
-    unless ($skip{WindAvgSpeed}) {
-        $$wptr{WindAvgSpeed}=sprintf('%u', 0x0f & $data[8])*10 + sprintf('%u', (0xf0 & $data[7])>>4)
-	 	 		+ sprintf('%u', 0x0f & $data[7])*0.1;
-		$$wptr{WindAvgSpeed}=sprintf('%.0f',&main::convert_mps2kph($$wptr{WindAvgSpeed})) if $main::config_parms{weather_uom_wind} eq 'kph';
-		$$wptr{WindAvgSpeed}=sprintf('%.0f',&main::convert_mps2mph($$wptr{WindAvgSpeed})) if $main::config_parms{weather_uom_wind} eq 'mph';
-		$$wptr{WindAvgSpeed}=sprintf('%.0f',$$wptr{WindAvgSpeed});
+    unless ( $skip{WindAvgSpeed} ) {
+        $$wptr{WindAvgSpeed} =
+          sprintf( '%u', 0x0f & $data[8] ) * 10 +
+          sprintf( '%u', ( 0xf0 & $data[7] ) >> 4 ) +
+          sprintf( '%u', 0x0f & $data[7] ) * 0.1;
+        $$wptr{WindAvgSpeed} =
+          sprintf( '%.0f', &main::convert_mps2kph( $$wptr{WindAvgSpeed} ) )
+          if $main::config_parms{weather_uom_wind} eq 'kph';
+        $$wptr{WindAvgSpeed} =
+          sprintf( '%.0f', &main::convert_mps2mph( $$wptr{WindAvgSpeed} ) )
+          if $main::config_parms{weather_uom_wind} eq 'mph';
+        $$wptr{WindAvgSpeed} = sprintf( '%.0f', $$wptr{WindAvgSpeed} );
     }
-    unless ($skip{WindChill}) {
-    # currently commented out as generally accepted windchill formula has changed since product was released
-    # Weather_Common will calculate it for us anyway
-#        $$wptr{WindChill} = sprintf('%x', $data[9]);
-#        $$wptr{WindChill} *= -1 if 0x80 & $data[8];
-#        $$wptr{WindChill} = &main::convert_c2f($$wptr{WindChill}) if $main::config_parms{weather_uom_temp} eq 'F';
-#
-#        $$wptr{WindChillNoData} = (0x20 & $data[8])?1:0;
-#        $$wptr{WindChillOver} = (0x40 & $data[8])?1:0;
+    unless ( $skip{WindChill} ) {
+
+        # currently commented out as generally accepted windchill formula has changed since product was released
+        # Weather_Common will calculate it for us anyway
+        #        $$wptr{WindChill} = sprintf('%x', $data[9]);
+        #        $$wptr{WindChill} *= -1 if 0x80 & $data[8];
+        #        $$wptr{WindChill} = &main::convert_c2f($$wptr{WindChill}) if $main::config_parms{weather_uom_temp} eq 'F';
+        #
+        #        $$wptr{WindChillNoData} = (0x20 & $data[8])?1:0;
+        #        $$wptr{WindChillOver} = (0x40 & $data[8])?1:0;
     }
 
-    print "** ANEMOMETER : $main::Time_Date\n" if $debug;
-    print "       BatWind         ($$wptr{BatWind})\n" if $debug;
+    print "** ANEMOMETER : $main::Time_Date\n"              if $debug;
+    print "       BatWind         ($$wptr{BatWind})\n"      if $debug;
     print "       WindGustOver    ($$wptr{WindGustOver})\n" if $debug;
-    print "       WindAvgOver     ($$wptr{WindAvgOver})\n" if $debug;
-    print "       WindGustSpeed   ($$wptr{WindGustSpeed} $main::config_parms{weather_uom_wind})\n" if $debug;
+    print "       WindAvgOver     ($$wptr{WindAvgOver})\n"  if $debug;
+    print
+      "       WindGustSpeed   ($$wptr{WindGustSpeed} $main::config_parms{weather_uom_wind})\n"
+      if $debug;
     print "       WindGustDir     ($$wptr{WindGustDir})\n" if $debug;
-    print "       WindAvgSpeed    ($$wptr{WindAvgSpeed} $main::config_parms{weather_uom_wind})\n" if $debug;
-#    print "       WindChill       ($$wptr{WindChill})\n" if $debug;
-#    print "       WindChillNoData ($$wptr{WindChillNoData})\n" if $debug;
-#    print "       WindChillOver   ($$wptr{WindChillOver})\n" if $debug;
+    print
+      "       WindAvgSpeed    ($$wptr{WindAvgSpeed} $main::config_parms{weather_uom_wind})\n"
+      if $debug;
+
+    #    print "       WindChill       ($$wptr{WindChill})\n" if $debug;
+    #    print "       WindChillNoData ($$wptr{WindChillNoData})\n" if $debug;
+    #    print "       WindChillOver   ($$wptr{WindChillOver})\n" if $debug;
 }
+
 #=============================================================================
 # DECODE DATA TYPE CLOCK
 # This hits once an hour or when new RF clock time is being received.
@@ -350,18 +404,22 @@ sub wx_wind {
 #  5	DD	  	Date Year
 #=============================================================================
 sub wx_time {
-    my ($wptr, $debug, @data) = @_;
+    my ( $wptr, $debug, @data ) = @_;
 
     #$$wptr{BatMain} = "Please check" if 0x80 & @data[3];
-    $$wptr{BatMain} = (($data[3] & 0x80)>>7) ? 0 : 1;
+    $$wptr{BatMain} = ( ( $data[3] & 0x80 ) >> 7 ) ? 0 : 1;
 
-    $$wptr{DateMain}=sprintf("%x%x%x%x%u%u",$data[7],$data[6],$data[5],$data[4],
-	    	($data[3] & 0x70)>>4, $data[3] & 0x0F) if $debug;
+    $$wptr{DateMain} = sprintf( "%x%x%x%x%u%u",
+        $data[7], $data[6], $data[5], $data[4],
+        ( $data[3] & 0x70 ) >> 4,
+        $data[3] & 0x0F )
+      if $debug;
 
-    print "** MAIN UNIT - CLOCK : $main::Time_Date\n" if $debug;
-    print "       BatMain         ($$wptr{BatMain})\n" if $debug;
+    print "** MAIN UNIT - CLOCK : $main::Time_Date\n"   if $debug;
+    print "       BatMain         ($$wptr{BatMain})\n"  if $debug;
     print "       DateMain        ($$wptr{DateMain})\n" if $debug;
 }
+
 #=============================================================================
 # BARO-THERMO-HYGROMETER
 #Byte	Nibble	Bit	Meaning
@@ -386,61 +444,79 @@ sub wx_time {
 #			bp from byte 6 to get sea level pressure.
 #=============================================================================
 sub wx_inside {
-my $xb = "";
-my ($wptr, $debug, @data) = @_;
-my %eval = (0xc0 => "Sunny",
-            0x60 => "Partly Cloudy",
-            0x30 => "Rain",
-            0x20 => "Cloudy",
-            );
+    my $xb = "";
+    my ( $wptr, $debug, @data ) = @_;
+    my %eval = (
+        0xc0 => "Sunny",
+        0x60 => "Partly Cloudy",
+        0x30 => "Rain",
+        0x20 => "Cloudy",
+    );
 
-$$wptr{BatIndoor} = (($data[3] & 0x40)>>6) ? 0 : 1;
+    $$wptr{BatIndoor} = ( ( $data[3] & 0x40 ) >> 6 ) ? 0 : 1;
 
-unless ($skip{TempIndoor}) {
-        $$wptr{TempIndoor}=sprintf('%u',(0x0f & $data[4]))*0.1 + sprintf('%u',(0xf0 & $data[4])>>4)*1
-				+ sprintf('%u',(0x0f & $data[5]))*10 + sprintf('%u',(0x30 & $data[5])>>4)*100;
+    unless ( $skip{TempIndoor} ) {
+        $$wptr{TempIndoor} =
+          sprintf( '%u', ( 0x0f & $data[4] ) ) * 0.1 +
+          sprintf( '%u', ( 0xf0 & $data[4] ) >> 4 ) * 1 +
+          sprintf( '%u', ( 0x0f & $data[5] ) ) * 10 +
+          sprintf( '%u', ( 0x30 & $data[5] ) >> 4 ) * 100;
         $$wptr{TempIndoor} *= -1 if 0x80 & $data[5];
-	$$wptr{TempIndoor} = &main::convert_c2f($$wptr{TempIndoor}) if $main::config_parms{weather_uom_temp} eq 'F';
-	#Over/Under
-	$$wptr{TempIndoorOverUnder} = ((($data[5] & 0x40)>>6)?1:0)*((0x80 & $data[5])?-1:1);
+        $$wptr{TempIndoor} = &main::convert_c2f( $$wptr{TempIndoor} )
+          if $main::config_parms{weather_uom_temp} eq 'F';
+
+        #Over/Under
+        $$wptr{TempIndoorOverUnder} =
+          ( ( ( $data[5] & 0x40 ) >> 6 ) ? 1  : 0 ) *
+          ( ( 0x80 & $data[5] )          ? -1 : 1 );
     }
-$$wptr{DewIndoorUnder} = ($data[3] & 0x10)>>4;
+    $$wptr{DewIndoorUnder} = ( $data[3] & 0x10 ) >> 4;
 
-unless ($skip{HumidIndoor}) {
-      $$wptr{HumidIndoor}=sprintf('%u',(0x0f & $data[6]))*1 + sprintf('%u',(0xf0 & $data[6])>>4)*10;
+    unless ( $skip{HumidIndoor} ) {
+        $$wptr{HumidIndoor} =
+          sprintf( '%u', ( 0x0f & $data[6] ) ) * 1 +
+          sprintf( '%u', ( 0xf0 & $data[6] ) >> 4 ) * 10;
+    }
+    unless ( $skip{DewIndoor} ) {
+        $$wptr{DewIndoor} =
+          sprintf( '%u', ( 0x0f & $data[7] ) ) * 1 +
+          sprintf( '%u', ( 0xf0 & $data[7] ) >> 4 ) * 10;
+        $$wptr{DewIndoor} = &main::convert_c2f( $$wptr{DewIndoor} )
+          if $main::config_parms{weather_uom_temp} eq 'F';
+    }
+
+    $$wptr{WxTendency} = &wx_f968;
+
+    unless ( $skip{Barom} ) {
+        $xb = &wx_b968;
+        $$wptr{Barom} = sprintf( '%.2f', ( $xb + 600 ) );
+
+        $$wptr{BaromSea} =
+          &main::convert_local_barom_to_sea_mb( $$wptr{Barom} );
+        if ( $main::config_parms{weather_uom_baro} eq 'in' ) {
+            grep { $_ = &main::convert_mb2in($_); }
+              ( $$wptr{Barom}, $$wptr{BaromSea} );
+        }
+    }
+
+    print "** BARO-THERMO-HYGROMETER : $main::Time_Date\n" if $debug;
+    print "       Device type     ($data[2])\n"            if $debug;
+    print "       BatIndoor       ($$wptr{BatIndoor})\n"   if $debug;
+    print
+      "       TempIndoor      ($$wptr{TempIndoor} $main::config_parms{weather_uom_temp})\n"
+      if $debug;
+    print "       TempIndoorOverUnder ($$wptr{TempIndoorOverUnder})\n"
+      if $debug;
+    print "       HumidIndoor     ($$wptr{HumidIndoor})\n" if $debug;
+    print
+      "       DewIndoor       ($$wptr{DewIndoor} $main::config_parms{weather_uom_temp})\n"
+      if $debug;
+    print "       DewIndoorUnder  ($$wptr{DewIndoorUnder})\n" if $debug;
+    print "       WxTendency      ($$wptr{WxTendency})\n"     if $debug;
+    print "       Barom           ($$wptr{Barom})\n"          if $debug;
+    print "       BaromSea        ($$wptr{BaromSea})\n"       if $debug;
 }
-unless ($skip{DewIndoor}) {
-      $$wptr{DewIndoor}=sprintf('%u',(0x0f & $data[7]))*1 + sprintf('%u',(0xf0 & $data[7])>>4)*10;
-	$$wptr{DewIndoor} = &main::convert_c2f($$wptr{DewIndoor}) if $main::config_parms{weather_uom_temp} eq 'F';
-}
 
-$$wptr{WxTendency} = &wx_f968;
-
-unless ($skip{Barom}) {
-   $xb = &wx_b968;
-   $$wptr{Barom} = sprintf('%.2f',($xb + 600));
-
-	$$wptr{BaromSea} = &main::convert_local_barom_to_sea_mb($$wptr{Barom});
-	if ($main::config_parms{weather_uom_baro} eq 'in') {
-		grep {$_=&main::convert_mb2in($_);} (
-			$$wptr{Barom},
-			$$wptr{BaromSea}
-		);
-	}
-}
-
-print "** BARO-THERMO-HYGROMETER : $main::Time_Date\n" if $debug;
-print "       Device type     ($data[2])\n" if $debug;
-print "       BatIndoor       ($$wptr{BatIndoor})\n" if $debug;
-print "       TempIndoor      ($$wptr{TempIndoor} $main::config_parms{weather_uom_temp})\n" if $debug;
-print "       TempIndoorOverUnder ($$wptr{TempIndoorOverUnder})\n" if $debug;
-print "       HumidIndoor     ($$wptr{HumidIndoor})\n" if $debug;
-print "       DewIndoor       ($$wptr{DewIndoor} $main::config_parms{weather_uom_temp})\n" if $debug;
-print "       DewIndoorUnder  ($$wptr{DewIndoorUnder})\n" if $debug;
-print "       WxTendency      ($$wptr{WxTendency})\n" if $debug;
-print "       Barom           ($$wptr{Barom})\n" if $debug;
-print "       BaromSea        ($$wptr{BaromSea})\n" if $debug;
-}
 #=============================================================================
 # THERMO HYGRO THERMO-HYGROMETER (OUTSIDE)
 # Byte	Nibble	Bit	Meaning
@@ -457,40 +533,59 @@ print "       BaromSea        ($$wptr{BaromSea})\n" if $debug;
 #  5	DD		Dew point, ab of ab Celsius
 #=============================================================================
 sub wx_outside {
-my ($wptr, $debug, @data) = @_;
+    my ( $wptr, $debug, @data ) = @_;
 
-$$wptr{BatOutdoor} = (($data[3] & 0x40)>>6) ? 0 : 1;
+    $$wptr{BatOutdoor} = ( ( $data[3] & 0x40 ) >> 6 ) ? 0 : 1;
 
-unless ($skip{TempOutdoor}) {
-        $$wptr{TempOutdoor}=sprintf('%u',(0x0f & $data[4]))*0.1 + sprintf('%u',(0xf0 & $data[4])>>4)*1
-				+ sprintf('%u',(0x0f & $data[5]))*10 + sprintf('%u',(0x30 & $data[5])>>4)*100;
+    unless ( $skip{TempOutdoor} ) {
+        $$wptr{TempOutdoor} =
+          sprintf( '%u', ( 0x0f & $data[4] ) ) * 0.1 +
+          sprintf( '%u', ( 0xf0 & $data[4] ) >> 4 ) * 1 +
+          sprintf( '%u', ( 0x0f & $data[5] ) ) * 10 +
+          sprintf( '%u', ( 0x30 & $data[5] ) >> 4 ) * 100;
         $$wptr{TempOutdoor} *= -1 if 0x80 & $data[5];
-	$$wptr{TempOutdoor} = &main::convert_c2f($$wptr{TempOutdoor}) if $main::config_parms{weather_uom_temp} eq 'F';
-	#Over/Under
-	$$wptr{TempOutdoorOverUnder} = ((($data[5] & 0x40)>>6)?1:0)*((0x80 & $data[5])?-1:1);
+        $$wptr{TempOutdoor} = &main::convert_c2f( $$wptr{TempOutdoor} )
+          if $main::config_parms{weather_uom_temp} eq 'F';
+
+        #Over/Under
+        $$wptr{TempOutdoorOverUnder} =
+          ( ( ( $data[5] & 0x40 ) >> 6 ) ? 1  : 0 ) *
+          ( ( 0x80 & $data[5] )          ? -1 : 1 );
     }
-$$wptr{DewOutdoorUnder} = ($data[3] & 0x10)>>4;
+    $$wptr{DewOutdoorUnder} = ( $data[3] & 0x10 ) >> 4;
 
-unless ($skip{HumidOutdoor}) {
-      $$wptr{HumidOutdoor}=sprintf('%u',(0x0f & $data[6]))*1 + sprintf('%u',(0xf0 & $data[6])>>4)*10;
-      # Let Weather_Common know that we 'directly' measured humidity
-      $$wptr{HumidOutdoorMeasured}=1;
-}
-unless ($skip{DewOutdoor}) {
-	if (!$$wptr{DewOutdoorUnder})  {
-      $$wptr{DewOutdoor}=sprintf('%u',(0x0f & $data[7]))*1 + sprintf('%u',(0xf0 & $data[7])>>4)*10;
-	$$wptr{DewOutdoor} = &main::convert_c2f($$wptr{DewOutdoor}) if $main::config_parms{weather_uom_temp} eq 'F';
-	}
-}
-print "** THERMO-HYGROMETER : $main::Time_Date\n" if $debug;
-print "       BatOutdoor       ($$wptr{BatOutdoor})\n" if $debug;
-print "       TempOutdoor      ($$wptr{TempOutdoor} $main::config_parms{weather_uom_temp})\n" if $debug;
-print "       TempOutdoorOverUnder ($$wptr{TempOutdoorOverUnder})\n" if $debug;
-print "       HumidOutdoor     ($$wptr{HumidOutdoor})\n" if $debug;
-print "       DewOutdoor       ($$wptr{DewOutdoor} $main::config_parms{weather_uom_temp})\n" if $debug;
-print "       DewOutdoorUnder  ($$wptr{DewOutdoorUnder})\n" if $debug;
+    unless ( $skip{HumidOutdoor} ) {
+        $$wptr{HumidOutdoor} =
+          sprintf( '%u', ( 0x0f & $data[6] ) ) * 1 +
+          sprintf( '%u', ( 0xf0 & $data[6] ) >> 4 ) * 10;
+
+        # Let Weather_Common know that we 'directly' measured humidity
+        $$wptr{HumidOutdoorMeasured} = 1;
+    }
+    unless ( $skip{DewOutdoor} ) {
+        if ( !$$wptr{DewOutdoorUnder} ) {
+            $$wptr{DewOutdoor} =
+              sprintf( '%u', ( 0x0f & $data[7] ) ) * 1 +
+              sprintf( '%u', ( 0xf0 & $data[7] ) >> 4 ) * 10;
+            $$wptr{DewOutdoor} = &main::convert_c2f( $$wptr{DewOutdoor} )
+              if $main::config_parms{weather_uom_temp} eq 'F';
+        }
+    }
+    print "** THERMO-HYGROMETER : $main::Time_Date\n"      if $debug;
+    print "       BatOutdoor       ($$wptr{BatOutdoor})\n" if $debug;
+    print
+      "       TempOutdoor      ($$wptr{TempOutdoor} $main::config_parms{weather_uom_temp})\n"
+      if $debug;
+    print "       TempOutdoorOverUnder ($$wptr{TempOutdoorOverUnder})\n"
+      if $debug;
+    print "       HumidOutdoor     ($$wptr{HumidOutdoor})\n" if $debug;
+    print
+      "       DewOutdoor       ($$wptr{DewOutdoor} $main::config_parms{weather_uom_temp})\n"
+      if $debug;
+    print "       DewOutdoorUnder  ($$wptr{DewOutdoorUnder})\n" if $debug;
 
 }
+
 #=============================================================================
 # THERMO HYGRO EXTRA SENSOR
 # OR
@@ -511,45 +606,71 @@ print "       DewOutdoorUnder  ($$wptr{DewOutdoorUnder})\n" if $debug;
 #  5	DD		Dew point, ab of ab Celsius
 #=============================================================================
 sub wx_spare {
-my ($wptr, $debug, @data, $copy) = @_;
+    my ( $wptr, $debug, @data, $copy ) = @_;
 
-$$wptr{"ChannelSpare"} = ($data[3] & 0x0F)==4 ? 3 : ($data[3] & 0x0F);
-$copy = $$wptr{"ChannelSpare"};
+    $$wptr{"ChannelSpare"} = ( $data[3] & 0x0F ) == 4 ? 3 : ( $data[3] & 0x0F );
+    $copy = $$wptr{"ChannelSpare"};
 
-$$wptr{"BatSpare$copy"} = (($data[3] & 0x40)>>6) ? 0 : 1;
+    $$wptr{"BatSpare$copy"} = ( ( $data[3] & 0x40 ) >> 6 ) ? 0 : 1;
 
-unless ($skip{"TempSpare$copy"}) {
-        $$wptr{"TempSpare$copy"}=sprintf('%u',(0x0f & $data[4]))*0.1 + sprintf('%u',(0xf0 & $data[4])>>4)*1
-				+ sprintf('%u',(0x0f & $data[5]))*10 + sprintf('%u',(0x30 & $data[5])>>4)*100;
+    unless ( $skip{"TempSpare$copy"} ) {
+        $$wptr{"TempSpare$copy"} =
+          sprintf( '%u', ( 0x0f & $data[4] ) ) * 0.1 +
+          sprintf( '%u', ( 0xf0 & $data[4] ) >> 4 ) * 1 +
+          sprintf( '%u', ( 0x0f & $data[5] ) ) * 10 +
+          sprintf( '%u', ( 0x30 & $data[5] ) >> 4 ) * 100;
         $$wptr{"TempSpare$copy"} *= -1 if 0x80 & $data[5];
-	$$wptr{"TempSpare$copy"} = &main::convert_c2f($$wptr{"TempSpare$copy"}) if $main::config_parms{weather_uom_temp} eq 'F';
+        $$wptr{"TempSpare$copy"} =
+          &main::convert_c2f( $$wptr{"TempSpare$copy"} )
+          if $main::config_parms{weather_uom_temp} eq 'F';
 
-	#Over/Under
-	$$wptr{"TempSpareOverUnder$copy"} = ((($data[5] & 0x40)>>6)?1:0)*((0x80 & $data[5])?-1:1);
+        #Over/Under
+        $$wptr{"TempSpareOverUnder$copy"} =
+          ( ( ( $data[5] & 0x40 ) >> 6 ) ? 1  : 0 ) *
+          ( ( 0x80 & $data[5] )          ? -1 : 1 );
     }
 
-# Get Dew & Humid if thermo-hygro
-if ($data[2] == 2) {
-   $$wptr{"DewSpareUnder$copy"} = ($data[3] & 0x10)>>4;
+    # Get Dew & Humid if thermo-hygro
+    if ( $data[2] == 2 ) {
+        $$wptr{"DewSpareUnder$copy"} = ( $data[3] & 0x10 ) >> 4;
 
-   unless ($skip{"HumidSpare$copy"}) {
-        $$wptr{"HumidSpare$copy"}=sprintf('%u',(0x0f & $data[6]))*1 + sprintf('%u',(0xf0 & $data[6])>>4)*10;
-   }
-   unless ($skip{"DewSpare$copy"}) {
-        $$wptr{"DewSpare$copy"}=sprintf('%u',(0x0f & $data[7]))*1 + sprintf('%u',(0xf0 & $data[7])>>4)*10;
-	$$wptr{"DewSpare$copy"} = &main::convert_c2f($$wptr{"DewSpare$copy"}) if $main::config_parms{weather_uom_temp} eq 'F';
-   }
- }
-print "** EXTRA THERMO(ONLY/HYGROMETER) #$copy : $main::Time_Date\n" if $debug;
-print "       Device type     ($data[2])\n" if $debug;
-print "       ChannelSpare    ($$wptr{ChannelSpare})\n" if $debug;
-print "       BatSpare$copy       (".$$wptr{"BatSpare$copy"}.")\n" if $debug;
-print "       TempSpare$copy      (" . $$wptr{"TempSpare$copy"} . " $main::config_parms{weather_uom_temp})\n" if $debug;
-print "       TempSpareOverUnder$copy (".$$wptr{"TempSpareOverUnder$copy"}.")\n" if $debug;
-print "       HumidSpare$copy     (".$$wptr{"HumidSpare$copy"}.")\n" if $debug;
-print "       DewSpare$copy       (" . $$wptr{"DewSpare$copy"} . " $main::config_parms{weather_uom_temp})\n" if $debug;
-print "       DewSpareUnder$copy  (".$$wptr{"DewSpareUnder$copy"}.")\n" if $debug;
+        unless ( $skip{"HumidSpare$copy"} ) {
+            $$wptr{"HumidSpare$copy"} =
+              sprintf( '%u', ( 0x0f & $data[6] ) ) * 1 +
+              sprintf( '%u', ( 0xf0 & $data[6] ) >> 4 ) * 10;
+        }
+        unless ( $skip{"DewSpare$copy"} ) {
+            $$wptr{"DewSpare$copy"} =
+              sprintf( '%u', ( 0x0f & $data[7] ) ) * 1 +
+              sprintf( '%u', ( 0xf0 & $data[7] ) >> 4 ) * 10;
+            $$wptr{"DewSpare$copy"} =
+              &main::convert_c2f( $$wptr{"DewSpare$copy"} )
+              if $main::config_parms{weather_uom_temp} eq 'F';
+        }
+    }
+    print "** EXTRA THERMO(ONLY/HYGROMETER) #$copy : $main::Time_Date\n"
+      if $debug;
+    print "       Device type     ($data[2])\n"             if $debug;
+    print "       ChannelSpare    ($$wptr{ChannelSpare})\n" if $debug;
+    print "       BatSpare$copy       (" . $$wptr{"BatSpare$copy"} . ")\n"
+      if $debug;
+    print "       TempSpare$copy      ("
+      . $$wptr{"TempSpare$copy"}
+      . " $main::config_parms{weather_uom_temp})\n"
+      if $debug;
+    print "       TempSpareOverUnder$copy ("
+      . $$wptr{"TempSpareOverUnder$copy"} . ")\n"
+      if $debug;
+    print "       HumidSpare$copy     (" . $$wptr{"HumidSpare$copy"} . ")\n"
+      if $debug;
+    print "       DewSpare$copy       ("
+      . $$wptr{"DewSpare$copy"}
+      . " $main::config_parms{weather_uom_temp})\n"
+      if $debug;
+    print "       DewSpareUnder$copy  (" . $$wptr{"DewSpareUnder$copy"} . ")\n"
+      if $debug;
 }
+
 #=============================================================================
 # DECODE DATA TYPE MINUTE
 # not really sure what a "sequence" is but here is where it is handled -
@@ -564,36 +685,39 @@ print "       DewSpareUnder$copy  (".$$wptr{"DewSpareUnder$copy"}.")\n" if $debu
 #  1	Bx	 7	Batt. low
 #=============================================================================
 sub wx_seq {
-    my ($wptr, $debug, @data) = @_;
+    my ( $wptr, $debug, @data ) = @_;
 
-    $$wptr{BatMain} = (($data[3] & 0x80)>>7) ? 0 : 1;
-    $$wptr{MinuteMain}=sprintf("%u%u",($data[3] & 0x70)>>4,$data[3] & 0x0F) if $debug;
+    $$wptr{BatMain} = ( ( $data[3] & 0x80 ) >> 7 ) ? 0 : 1;
+    $$wptr{MinuteMain} =
+      sprintf( "%u%u", ( $data[3] & 0x70 ) >> 4, $data[3] & 0x0F )
+      if $debug;
 
-    print "** MAIN UNIT - MINUTE : $main::Time_Date\n" if $debug;
-    print "       BatMain         ($$wptr{BatMain})\n" if $debug;
+    print "** MAIN UNIT - MINUTE : $main::Time_Date\n"    if $debug;
+    print "       BatMain         ($$wptr{BatMain})\n"    if $debug;
     print "       MinuteMain      ($$wptr{MinuteMain})\n" if $debug;
 }
 
 # barometer processed
-sub wx_b968{
-my (@data) = @_;
-my $b968 = $data[10];
-my $b968h = 0x03 & $data[11];
-$b968h = sprintf('%x%x',$b968h,$b968);
-$b968h = hex($b968h);
-$b968h = $b968h;
-return $b968h;
+sub wx_b968 {
+    my (@data) = @_;
+    my $b968   = $data[10];
+    my $b968h  = 0x03 & $data[11];
+    $b968h = sprintf( '%x%x', $b968h, $b968 );
+    $b968h = hex($b968h);
+    $b968h = $b968h;
+    return $b968h;
 }
 
 sub wx_f968 {
-my (@data) = @_;
-my $f968 = $data[11];
-my %eval = (0xc0 => "Sunny",
-            0x60 => "Partly Cloudy",
-            0x30 => "Rain",
-            0x20 => "Cloudy",
-            );
-$f968 &= 0xf0;
-$f968 = $eval{( 0xf0 & $f968)};
-return $f968;
+    my (@data) = @_;
+    my $f968   = $data[11];
+    my %eval   = (
+        0xc0 => "Sunny",
+        0x60 => "Partly Cloudy",
+        0x30 => "Rain",
+        0x20 => "Cloudy",
+    );
+    $f968 &= 0xf0;
+    $f968 = $eval{ ( 0xf0 & $f968 ) };
+    return $f968;
 }

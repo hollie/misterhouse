@@ -39,38 +39,41 @@ use strict;
 use File::Find;
 use Getopt::Long;
 
-                                # Changes defaults if specified on command line
+# Changes defaults if specified on command line
 my $help;
-&help if (!GetOptions('help' => \$help) or $help);
+&help if ( !GetOptions( 'help' => \$help ) or $help );
 
 #y $size = '20%';
 my $size = '160x120';
+
 #my $size = '80x60';
-my $dir  = '.';
+my $dir = '.';
 print "Resizing $dir to $size\n";
 system "image_resize --dir $dir --size $size --prefix icon -b 0 -r 0";
 
-                                # Recurses, starting from within the current directory, 
+# Recurses, starting from within the current directory,
 my $prefix = 'icon';
-my $html = "<h2>Index of $dir</h2><table><tr>\n";
+my $html   = "<h2>Index of $dir</h2><table><tr>\n";
 
 print "\nReading dirs\n";
-find(\&get_img, $dir);
+find( \&get_img, $dir );
 
 my $count;
+
 sub get_img() {
     my ($file) = $_;
-    if (-f $file) {
-        my ($root, $ext) = $file =~ /(.+)\.(.+)/;
+    if ( -f $file ) {
+        my ( $root, $ext ) = $file =~ /(.+)\.(.+)/;
         return unless $ext and $ext =~ /(jpg|gif)/i;
         return if $root =~ /^${prefix}_/;
         my $file_icon = "${prefix}_$root.$ext";
-        $html .= qq[<td>$file<br><a href="$file"><img src="$file_icon"></a></td>\n];
+        $html .=
+          qq[<td>$file<br><a href="$file"><img src="$file_icon"></a></td>\n];
         $html .= qq[</tr><tr>\n] unless ++$count % 4;
     }
 }
 $html .= "</tr></table>\n";
-open (HTML, ">index.html");
+open( HTML, ">index.html" );
 print HTML $html;
 close HTML;
 

@@ -1,3 +1,4 @@
+
 =begin comment
 
 Controls the Inline video scan doubler:
@@ -73,8 +74,12 @@ package InLine;
 @InLine::ISA = ('Serial_Item');
 
 sub serial_startup {
-    &main::serial_port_create('InLine', $main::config_parms{InLine_serial_port}, $main::config_parms{InLine_baudrate}, 'none');
-    &::MainLoop_pre_add_hook(  \&InLine::check_for_data, 1 );
+    &main::serial_port_create(
+        'InLine',
+        $main::config_parms{InLine_serial_port},
+        $main::config_parms{InLine_baudrate}, 'none'
+    );
+    &::MainLoop_pre_add_hook( \&InLine::check_for_data, 1 );
     &::print_log("InLine Serial Port Initialized");
 }
 
@@ -83,27 +88,27 @@ sub check_for_data {
 }
 
 sub channel {
-    my ($self, $state) = @_;
-    &Generic_Item::set_states_for_next_pass($self, $state);
+    my ( $self, $state ) = @_;
+    &Generic_Item::set_states_for_next_pass( $self, $state );
     my $serial_data;
-	
-    $serial_data="[CH".$state."]";
+
+    $serial_data = "[CH" . $state . "]";
 
     print "Setting InLine to channel $state\n";
     $main::Serial_Ports{InLine}{object}->write($serial_data);
-    
 
 }
 
 sub input {
-    my ($self, $state) = @_;
-    &Generic_Item::set_states_for_next_pass($self, $state);
+    my ( $self, $state ) = @_;
+    &Generic_Item::set_states_for_next_pass( $self, $state );
     my $serial_data;
-	
-    if (lc($state) eq "svideo") {
-	$serial_data="[SVIDEO1]";
-    } elsif (lc($state) eq "composite") {
-	$serial_data="[SVIDEO0]";
+
+    if ( lc($state) eq "svideo" ) {
+        $serial_data = "[SVIDEO1]";
+    }
+    elsif ( lc($state) eq "composite" ) {
+        $serial_data = "[SVIDEO0]";
     }
     print "Setting InLine to input type $state\n";
     $main::Serial_Ports{InLine}{object}->write($serial_data);
@@ -111,132 +116,145 @@ sub input {
 }
 
 sub screen {
-    my ($self, $state) = @_;
-    &Generic_Item::set_states_for_next_pass($self, $state);
+    my ( $self, $state ) = @_;
+    &Generic_Item::set_states_for_next_pass( $self, $state );
     my $serial_data;
-    if (lc($state) eq "blank"){
-	$serial_data="[BLANK1]";
-    } elsif (lc($state) eq "unblank") {
-	$serial_data="[BLANK0]";
+    if ( lc($state) eq "blank" ) {
+        $serial_data = "[BLANK1]";
+    }
+    elsif ( lc($state) eq "unblank" ) {
+        $serial_data = "[BLANK0]";
     }
     print "Setting InLine screen $state\n";
     $main::Serial_Ports{InLine}{object}->write($serial_data);
 }
 
 sub panel {
-    my ($self, $state) = @_;
-    &Generic_Item::set_states_for_next_pass($self, $state);
+    my ( $self, $state ) = @_;
+    &Generic_Item::set_states_for_next_pass( $self, $state );
     my $serial_data;
-    if (lc($state) eq "enable"){
-	$serial_data="[FP1]";
-    } elsif (lc($state) eq "disable") {
-	$serial_data="[FP0]";
+    if ( lc($state) eq "enable" ) {
+        $serial_data = "[FP1]";
+    }
+    elsif ( lc($state) eq "disable" ) {
+        $serial_data = "[FP0]";
     }
     print "Setting InLine front panel to $state\n";
     $main::Serial_Ports{InLine}{object}->write($serial_data);
 }
 
 sub save {
-    my ($self, $state) = @_;
-    &Generic_Item::set_states_for_next_pass($self, $state);
+    my ( $self, $state ) = @_;
+    &Generic_Item::set_states_for_next_pass( $self, $state );
     my $serial_data;
-    $serial_data="[SAVE]";
+    $serial_data = "[SAVE]";
     print "Saving InLine Settings\n";
     $main::Serial_Ports{InLine}{object}->write($serial_data);
 }
 
 sub sharp {
-    my ($self, $state) = @_;
-    &Generic_Item::set_states_for_next_pass($self, $state);
+    my ( $self, $state ) = @_;
+    &Generic_Item::set_states_for_next_pass( $self, $state );
     my $serial_data;
-    if (lc($state) eq "increase"){
-	$serial_data="[SHP+]";
-    } elsif (lc($state) eq "decrease") {
-	$serial_data="[SHP-]";
-    } elsif (lc($state) eq "default") {
-	$serial_data="[SHP@]";
+    if ( lc($state) eq "increase" ) {
+        $serial_data = "[SHP+]";
+    }
+    elsif ( lc($state) eq "decrease" ) {
+        $serial_data = "[SHP-]";
+    }
+    elsif ( lc($state) eq "default" ) {
+        $serial_data = "[SHP@]";
     }
     print "Setting InLine sharp $state\n";
     $main::Serial_Ports{InLine}{object}->write($serial_data);
 }
 
 sub bright {
-    my ($self, $state) = @_;
-    &Generic_Item::set_states_for_next_pass($self, $state);
+    my ( $self, $state ) = @_;
+    &Generic_Item::set_states_for_next_pass( $self, $state );
     my $serial_data;
-    if (lc($state) eq "increase"){
-	$serial_data="[BRG+]";
-    } elsif (lc($state) eq "decrease") {
-	$serial_data="[BRG-]";
-    } elsif (lc($state) eq "default") {
-	$serial_data="[BRG@]";
+    if ( lc($state) eq "increase" ) {
+        $serial_data = "[BRG+]";
+    }
+    elsif ( lc($state) eq "decrease" ) {
+        $serial_data = "[BRG-]";
+    }
+    elsif ( lc($state) eq "default" ) {
+        $serial_data = "[BRG@]";
     }
     print "Setting InLine brightness $state\n";
     $main::Serial_Ports{InLine}{object}->write($serial_data);
 }
 
 sub hue {
-    my ($self, $state) = @_;
-    &Generic_Item::set_states_for_next_pass($self, $state);
+    my ( $self, $state ) = @_;
+    &Generic_Item::set_states_for_next_pass( $self, $state );
     my $serial_data;
-    if (lc($state) eq "increase"){
-	$serial_data="[HUE+]";
-    } elsif (lc($state) eq "decrease") {
-	$serial_data="[HUE-]";
-    } elsif (lc($state) eq "default") {
-	$serial_data="[HUE@]";
+    if ( lc($state) eq "increase" ) {
+        $serial_data = "[HUE+]";
+    }
+    elsif ( lc($state) eq "decrease" ) {
+        $serial_data = "[HUE-]";
+    }
+    elsif ( lc($state) eq "default" ) {
+        $serial_data = "[HUE@]";
     }
     print "Setting InLine hue $state\n";
     $main::Serial_Ports{InLine}{object}->write($serial_data);
 }
 
 sub contrast {
-    my ($self, $state) = @_;
-    &Generic_Item::set_states_for_next_pass($self, $state);
+    my ( $self, $state ) = @_;
+    &Generic_Item::set_states_for_next_pass( $self, $state );
     my $serial_data;
-    if (lc($state) eq "increase"){
-	$serial_data="[CON+]";
-    } elsif (lc($state) eq "decrease") {
-	$serial_data="[CON-]";
-    } elsif (lc($state) eq "default") {
-	$serial_data="[CON@]";
+    if ( lc($state) eq "increase" ) {
+        $serial_data = "[CON+]";
+    }
+    elsif ( lc($state) eq "decrease" ) {
+        $serial_data = "[CON-]";
+    }
+    elsif ( lc($state) eq "default" ) {
+        $serial_data = "[CON@]";
     }
     print "Setting InLine contrast $state\n";
     $main::Serial_Ports{InLine}{object}->write($serial_data);
 }
 
 sub saturation {
-    my ($self, $state) = @_;
-    &Generic_Item::set_states_for_next_pass($self, $state);
+    my ( $self, $state ) = @_;
+    &Generic_Item::set_states_for_next_pass( $self, $state );
     my $serial_data;
-    if (lc($state) eq "increase"){
-	$serial_data="[SAT+]";
-    } elsif (lc($state) eq "decrease") {
-	$serial_data="[SAT-]";
-    } elsif (lc($state) eq "default") {
-	$serial_data="[SAT@]";
+    if ( lc($state) eq "increase" ) {
+        $serial_data = "[SAT+]";
+    }
+    elsif ( lc($state) eq "decrease" ) {
+        $serial_data = "[SAT-]";
+    }
+    elsif ( lc($state) eq "default" ) {
+        $serial_data = "[SAT@]";
     }
     print "Setting InLine contrast $state\n";
     $main::Serial_Ports{InLine}{object}->write($serial_data);
 }
 
 sub scan {
-    my ($self, $state) = @_;
-    &Generic_Item::set_states_for_next_pass($self, $state);
+    my ( $self, $state ) = @_;
+    &Generic_Item::set_states_for_next_pass( $self, $state );
     my $serial_data;
-    if (lc($state) eq "single"){
-	$serial_data="[HSCAN0]";
-    } elsif (lc($state) eq "double") {
-	$serial_data="[HSCAN1]";
+    if ( lc($state) eq "single" ) {
+        $serial_data = "[HSCAN0]";
+    }
+    elsif ( lc($state) eq "double" ) {
+        $serial_data = "[HSCAN1]";
     }
     print "Setting InLine scan mode to $state\n";
     $main::Serial_Ports{InLine}{object}->write($serial_data);
 }
 
 sub message {
-    my ($self, $state) = @_;
-    &Generic_Item::set_states_for_next_pass($self, $state);
-    my $serial_data="[MSGL0101$state]";
+    my ( $self, $state ) = @_;
+    &Generic_Item::set_states_for_next_pass( $self, $state );
+    my $serial_data = "[MSGL0101$state]";
 
     print "Sending Message to inline\n";
     $main::Serial_Ports{InLine}{object}->write($serial_data);

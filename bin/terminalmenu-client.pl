@@ -1,5 +1,6 @@
 #!/usr/bin/perl 
 ##############################################################################
+
 =begin COMMENT
 
 FILE
@@ -75,6 +76,7 @@ LICENSE
     This free software is licensed under the terms of the GNU public license.
 
 =cut
+
 ##############################################################################
 
 use strict;
@@ -88,23 +90,22 @@ use Term::ANSIScreen;
 use constant BUFSIZE => 1024;
 
 # The following color values are exported by Term::ANSIScreen
-use vars qw( $ATTR_NORMAL $ATTR_INVERSE $FG_BLACK $FG_CYAN $FG_BLUE $FG_RED 
-    $FG_GREEN $FG_MAGENTA $FG_YELLOW $FG_WHITE $FG_LIGHTCYAN $FG_LIGHTBLUE 
-    $FG_LIGHTRED $FG_LIGHTGREEN $FG_LIGHTMAGENTA $FG_LIGHTYELLOW $FG_LIGHTWHITE 
-    $BG_BLACK $BG_CYAN $BG_BLUE $BG_RED $BG_GREEN $BG_MAGENTA $BG_YELLOW 
-    $BG_WHITE);
+use vars qw( $ATTR_NORMAL $ATTR_INVERSE $FG_BLACK $FG_CYAN $FG_BLUE $FG_RED
+  $FG_GREEN $FG_MAGENTA $FG_YELLOW $FG_WHITE $FG_LIGHTCYAN $FG_LIGHTBLUE
+  $FG_LIGHTRED $FG_LIGHTGREEN $FG_LIGHTMAGENTA $FG_LIGHTYELLOW $FG_LIGHTWHITE
+  $BG_BLACK $BG_CYAN $BG_BLUE $BG_RED $BG_GREEN $BG_MAGENTA $BG_YELLOW
+  $BG_WHITE);
 
-
-my $host = "127.0.0.1";
-my $port = 29974;
+my $host     = "127.0.0.1";
+my $port     = 29974;
 my $commands = undef;
-my $w = 0;
-my $h = 0;
+my $w        = 0;
+my $h        = 0;
 my $usecolor = 1;
 my $sendsize = 1;
-my $data = '';
+my $data     = '';
 my $terminal = undef;
-my $server = undef;
+my $server   = undef;
 my $select;
 my $debug = 0;
 
@@ -139,21 +140,21 @@ while (1) {
 # Processes command line arguments.
 ##############################################################################
 sub ParseCommandLine {
-    while (my $param = shift @ARGV) {
-        if ($param =~ m/^(-h|--help)$/) {
+    while ( my $param = shift @ARGV ) {
+        if ( $param =~ m/^(-h|--help)$/ ) {
             ShowUsage();
             exit;
         }
-        elsif ($param =~ m/^(-s|--server)$/) {
+        elsif ( $param =~ m/^(-s|--server)$/ ) {
             $host = GetValue($1);
         }
-        elsif ($param =~ m/^(-p|--port)$/) {
+        elsif ( $param =~ m/^(-p|--port)$/ ) {
             $port = GetValue($1);
         }
-        elsif ($param =~ m/^(-c|--command)$/) {
+        elsif ( $param =~ m/^(-c|--command)$/ ) {
             $commands = GetValue($1);
         }
-        elsif ($param =~ m/^(-d|--debug)$/) {
+        elsif ( $param =~ m/^(-d|--debug)$/ ) {
             $debug++;
         }
     }
@@ -162,19 +163,19 @@ sub ParseCommandLine {
 ##############################################################################
 # PrepareTerminal
 #
-# Just some housekeeping to make the terminal behave as we need. 
+# Just some housekeeping to make the terminal behave as we need.
 ##############################################################################
 sub PrepareTerminal {
-    
+
     # Open a terminal object through which we can perform settings on the
     # terminal we are running in
     $terminal = new Term::ANSIScreen;
-    
+
     # Make stdout not buffered
     my $old_fh = select(STDOUT);
     $| = 1;
     select($old_fh);
-    
+
     # Change to 'cbreak' mode (no echo, but CTRL+C still operational)
     ReadMode('cbreak');
 }
@@ -185,21 +186,22 @@ sub PrepareTerminal {
 # Opens a connection to the Misterhouse server port.
 ##############################################################################
 sub ConnectToServer {
+
     # Create a tcp connection to the specified host and port
     $server = IO::Socket::INET->new(
-        Proto     => "tcp",
-        PeerAddr  => $host,
-        PeerPort  => $port
+        Proto    => "tcp",
+        PeerAddr => $host,
+        PeerPort => $port
     );
     unless ($server) {
         print STDERR "Can't connect to port $port on $host: $!\n";
         exit;
     }
-    
+
     $server->autoflush(1);
-    
+
     $select = IO::Select->new($server);
-    
+
     print STDERR "[Connected to $host:$port]\n";
 }
 
@@ -213,16 +215,16 @@ sub ConnectToServer {
 ##############################################################################
 sub SendCommands {
     return unless defined $commands;
-    
-    foreach my $cmd (split(/,/, $commands)) {
+
+    foreach my $cmd ( split( /,/, $commands ) ) {
         $cmd =~ s/^\s+//;
         $cmd =~ s/\s+$//;
-        
-        if ($cmd =~ m/^SIZE\s+(\d+)\s+(\d+)\s*$/i) {
-            ($w, $h) = ($1, $2);
+
+        if ( $cmd =~ m/^SIZE\s+(\d+)\s+(\d+)\s*$/i ) {
+            ( $w, $h ) = ( $1, $2 );
             $sendsize = 0;
         }
-        
+
         print $server "$cmd\n";
     }
 }
@@ -234,16 +236,16 @@ sub SendCommands {
 ##############################################################################
 sub HandleTerminalResize {
     return unless $sendsize;
-    
-    my ($new_w, $new_h) = GetTerminalSize(*STDOUT);
-    if (defined $new_w and defined $new_h) {
-        if ($new_w != $w or $new_h != $h) {
+
+    my ( $new_w, $new_h ) = GetTerminalSize(*STDOUT);
+    if ( defined $new_w and defined $new_h ) {
+        if ( $new_w != $w or $new_h != $h ) {
             $w = $new_w;
             $h = $new_h;
             print $server "SIZE $w $h\n";
         }
     }
-}            
+}
 
 ##############################################################################
 # HandleServer
@@ -252,23 +254,23 @@ sub HandleTerminalResize {
 # they are processed immediately.
 ##############################################################################
 sub HandleServer {
-    foreach my $client ($select->can_read(0.1)) {
+    foreach my $client ( $select->can_read(0.1) ) {
         my $newdata = '';
-        
-        my $rv = $client->recv($newdata, BUFSIZE, 0);
+
+        my $rv = $client->recv( $newdata, BUFSIZE, 0 );
         $data .= $newdata;
-        
-        unless (defined($rv) && length $newdata) {
+
+        unless ( defined($rv) && length $newdata ) {
             close $server;
             exit;
         }
-        
-        while ($data =~ s/(.*)\n//) {
+
+        while ( $data =~ s/(.*)\n// ) {
             ParseServerCommand($1);
         }
-        
+
         # Flush the buffer if someone spams us with extra long lines...
-        $data = '' if (length($data) > BUFSIZE);
+        $data = '' if ( length($data) > BUFSIZE );
     }
 }
 
@@ -279,27 +281,27 @@ sub HandleServer {
 ##############################################################################
 sub HandleKeys {
     my $char;
-    while (defined ($char = GetChar()) ) {
-        if (ord($char) == 27 && defined ($char = GetChar()) ) {
-            if ($char eq '[' && defined ($char = GetChar()) ) {
+    while ( defined( $char = GetChar() ) ) {
+        if ( ord($char) == 27 && defined( $char = GetChar() ) ) {
+            if ( $char eq '[' && defined( $char = GetChar() ) ) {
                 my $ret = '';
                 $ret = 'UP'    if $char eq 'A';
                 $ret = 'DOWN'  if $char eq 'B';
                 $ret = 'RIGHT' if $char eq 'C';
                 $ret = 'LEFT'  if $char eq 'D';
-                while (defined ($char = GetChar()) ) {};
+                while ( defined( $char = GetChar() ) ) { }
                 $char = $ret;
             }
             else {
-                while (defined ($char = GetChar()) ) {};
+                while ( defined( $char = GetChar() ) ) { }
             }
         }
-        elsif (ord($char) == 10) {
+        elsif ( ord($char) == 10 ) {
             $char = "ENTER";
         }
-            
+
         $char =~ s/[^[:print:]]//g if defined $char;
-        if (defined $char) {
+        if ( defined $char ) {
             print $server "$char\n";
         }
     }
@@ -313,9 +315,9 @@ sub HandleKeys {
 ##############################################################################
 sub GetValue {
     my $param = shift;
-    
+
     my $value = shift @ARGV;
-    if (not defined $value) {
+    if ( not defined $value ) {
         print STDERR "\n*** ERROR: Missing parameter for $param\n\n";
         ShowUsage();
         exit;
@@ -330,40 +332,40 @@ sub GetValue {
 ##############################################################################
 sub ParseServerCommand {
     my ($cmd) = @_;
-    
+
     if ($debug) {
-        printc("$cmd\n", "");
+        printc( "$cmd\n", "" );
     }
-    elsif ($cmd =~ m/^getsize$/i) {
+    elsif ( $cmd =~ m/^getsize$/i ) {
         print $server "SIZE $w $h\n";
     }
-    elsif ($cmd =~ m/^clearscreen$/i) {
+    elsif ( $cmd =~ m/^clearscreen$/i ) {
         ClearScreen();
     }
-    elsif ($cmd =~ m/^cursorpos\s+(\d+)\s+(\d+)$/i) {
-        CursorPos($1, $2);
+    elsif ( $cmd =~ m/^cursorpos\s+(\d+)\s+(\d+)$/i ) {
+        CursorPos( $1, $2 );
     }
-    elsif ($cmd =~ m/^print\s+\"(.*?)\"\s+\"(.*?)\"$/i) {
-        printc($1, $2);
+    elsif ( $cmd =~ m/^print\s+\"(.*?)\"\s+\"(.*?)\"$/i ) {
+        printc( $1, $2 );
     }
-    elsif ($cmd =~ m/^newline$/i) {
-        printc("\n", "");
+    elsif ( $cmd =~ m/^newline$/i ) {
+        printc( "\n", "" );
     }
-    elsif ($cmd =~ m/^exit$/i) {
+    elsif ( $cmd =~ m/^exit$/i ) {
         print STDERR "\n";
         exit;
     }
 
-# Better ignore wrong commands than polluting the terminal.
-# Can be enabled any time during debugging...
-    
-#     else {
-#         print STDERR "\nUnknown command: \"$cmd\"\n";
-#     }
+    # Better ignore wrong commands than polluting the terminal.
+    # Can be enabled any time during debugging...
+
+    #     else {
+    #         print STDERR "\nUnknown command: \"$cmd\"\n";
+    #     }
 }
 
 ##############################################################################
-# GetChar 
+# GetChar
 #
 # Gets a key in nonblocking mode
 ##############################################################################
@@ -379,75 +381,82 @@ sub GetChar {
 sub ClearScreen {
     $terminal->Attr($main::FG_WHITE);
     $terminal->Cls();
-    $terminal->Cursor(0, 0);
+    $terminal->Cursor( 0, 0 );
 }
 
 ##############################################################################
-# CursorPos 
+# CursorPos
 #
-# Positions the cursor at x,y. 
+# Positions the cursor at x,y.
 ##############################################################################
 sub CursorPos {
-    my ($x, $y) = @_;
-    $terminal->Cursor($x, $y);
+    my ( $x, $y ) = @_;
+    $terminal->Cursor( $x, $y );
 }
 
 ##############################################################################
-# printc 
+# printc
 #
 # Prints a given string in color
 ##############################################################################
 sub printc {
-    my ($string, $color) = @_;
-    
-    if ($^O eq 'MSWin32') {
-        $terminal->Attr(color2attr($color));
-    } 
+    my ( $string, $color ) = @_;
+
+    if ( $^O eq 'MSWin32' ) {
+        $terminal->Attr( color2attr($color) );
+    }
     else {
         $terminal->Attr($FG_WHITE);
-        $terminal->Attr(color($color));
+        $terminal->Attr( color($color) );
     }
     $terminal->Write($string);
     $terminal->Display();
 }
 
 ##############################################################################
-# color2attr 
+# color2attr
 #
-# Converts a string conforming to the color specification of Term::ANSIColor 
+# Converts a string conforming to the color specification of Term::ANSIColor
 # into an attribute value understood by Win32::Console (which is indirectly
 # loaded by Term::ANSIScreen).
 # This is needed on Win32 platforms.
 ##############################################################################
 sub color2attr {
     my ($colorstring) = @_;
-    
+
     my $attr = $ATTR_NORMAL;
-    
+
     my $fgcolor = undef;
     my $bgcolor = undef;
     my $reverse = 0;
-    my $bold = 0;
-    
-    foreach my $element (split(/\s/, $colorstring)) {
-        $fgcolor = $1           if $element =~ m/^(black|cyan|blue|red|green|magenta|yellow|white)$/i;
-        $bgcolor = $1           if $element =~ m/^on_(black|cyan|blue|red|green|magenta|yellow|white)$/i;
-        $bold = 1               if $element =~ m/^bold$/i;
-        $reverse = 1            if $element =~ m/^reverse$/i; 
+    my $bold    = 0;
+
+    foreach my $element ( split( /\s/, $colorstring ) ) {
+        $fgcolor = $1
+          if $element =~ m/^(black|cyan|blue|red|green|magenta|yellow|white)$/i;
+        $bgcolor = $1
+          if $element =~
+          m/^on_(black|cyan|blue|red|green|magenta|yellow|white)$/i;
+        $bold    = 1 if $element =~ m/^bold$/i;
+        $reverse = 1 if $element =~ m/^reverse$/i;
     }
 
-    if (defined $fgcolor) {    
-        $attr = $FG_BLACK                                if $fgcolor =~ m/^black$/i;
-        $attr = ($bold ? $FG_LIGHTCYAN    : $FG_CYAN)    if $fgcolor =~ m/^cyan$/i;
-        $attr = ($bold ? $FG_LIGHTBLUE    : $FG_BLUE)    if $fgcolor =~ m/^blue$/i;
-        $attr = ($bold ? $FG_LIGHTRED     : $FG_RED)     if $fgcolor =~ m/^red$/i;
-        $attr = ($bold ? $FG_LIGHTGREEN   : $FG_GREEN)   if $fgcolor =~ m/^green$/i;
-        $attr = ($bold ? $FG_LIGHTMAGENTA : $FG_MAGENTA) if $fgcolor =~ m/^magenta$/i;
-        $attr = ($bold ? $FG_LIGHTYELLOW  : $FG_YELLOW)  if $fgcolor =~ m/^yellow$/i;
-        $attr = ($bold ? $FG_LIGHTWHITE   : $FG_WHITE)   if $fgcolor =~ m/^white/i;
+    if ( defined $fgcolor ) {
+        $attr = $FG_BLACK if $fgcolor =~ m/^black$/i;
+        $attr = ( $bold ? $FG_LIGHTCYAN : $FG_CYAN ) if $fgcolor =~ m/^cyan$/i;
+        $attr = ( $bold ? $FG_LIGHTBLUE : $FG_BLUE ) if $fgcolor =~ m/^blue$/i;
+        $attr = ( $bold ? $FG_LIGHTRED  : $FG_RED )  if $fgcolor =~ m/^red$/i;
+        $attr = ( $bold ? $FG_LIGHTGREEN : $FG_GREEN )
+          if $fgcolor =~ m/^green$/i;
+        $attr = ( $bold ? $FG_LIGHTMAGENTA : $FG_MAGENTA )
+          if $fgcolor =~ m/^magenta$/i;
+        $attr = ( $bold ? $FG_LIGHTYELLOW : $FG_YELLOW )
+          if $fgcolor =~ m/^yellow$/i;
+        $attr = ( $bold ? $FG_LIGHTWHITE : $FG_WHITE )
+          if $fgcolor =~ m/^white/i;
     }
-        
-    if (defined $bgcolor) {    
+
+    if ( defined $bgcolor ) {
         $attr += $BG_BLACK   if $bgcolor =~ m/^black$/i;
         $attr += $BG_CYAN    if $bgcolor =~ m/^cyan$/i;
         $attr += $BG_BLUE    if $bgcolor =~ m/^blue$/i;
@@ -459,8 +468,8 @@ sub color2attr {
     }
 
     $attr += $ATTR_INVERSE if ($reverse);
-        
-    return $attr;        
+
+    return $attr;
 }
 
 ##############################################################################

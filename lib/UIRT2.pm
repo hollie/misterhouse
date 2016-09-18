@@ -67,558 +67,632 @@ package UIRT2;
 
 @UIRT2::ISA = ('Serial_Item');
 
-my $prev = '';
+my $prev     = '';
 my $learning = 0;
-my $dbm_file ="$main::config_parms{data_dir}/uirt2_codes.dbm";
-my ($db, %DBM, @learned, $device, $function, $frequency, $repeat, @transmit_queue, @learn_queue, $transmit_timeout, $learn_timeout, $receive_timeout);
+my $dbm_file = "$main::config_parms{data_dir}/uirt2_codes.dbm";
+my (
+    $db,          %DBM,              @learned,       $device,
+    $function,    $frequency,        $repeat,        @transmit_queue,
+    @learn_queue, $transmit_timeout, $learn_timeout, $receive_timeout
+);
 
 sub startup {
-	my $baudrate = 115200;
-	my $port = 'COM1';
-	$baudrate = $main::config_parms{uirt2_baudrate} if $main::config_parms{uirt2_baudrate};
-	$port = $main::config_parms{uirt2_port} if $main::config_parms{uirt2_port};
-	&main::serial_port_create('UIRT2', $port, $baudrate, 'none', 'raw');
-	$db = tie (%DBM,  'DB_File', $dbm_file) or print "\nError, can not open dbm file $dbm_file: $!";
-	&::MainLoop_pre_add_hook(  \&UIRT2::check_for_data, 1 );
-	select undef, undef, undef, .05;
-	&main::check_for_generic_serial_data('UIRT2');
-	my $data = $main::Serial_Ports{UIRT2}{data};
-	$main::Serial_Ports{UIRT2}{data} = '';
-	get_version();
-	get_gpiocfgs();  
+    my $baudrate = 115200;
+    my $port     = 'COM1';
+    $baudrate = $main::config_parms{uirt2_baudrate}
+      if $main::config_parms{uirt2_baudrate};
+    $port = $main::config_parms{uirt2_port} if $main::config_parms{uirt2_port};
+    &main::serial_port_create( 'UIRT2', $port, $baudrate, 'none', 'raw' );
+    $db = tie( %DBM, 'DB_File', $dbm_file )
+      or print "\nError, can not open dbm file $dbm_file: $!";
+    &::MainLoop_pre_add_hook( \&UIRT2::check_for_data, 1 );
+    select undef, undef, undef, .05;
+    &main::check_for_generic_serial_data('UIRT2');
+    my $data = $main::Serial_Ports{UIRT2}{data};
+    $main::Serial_Ports{UIRT2}{data} = '';
+    get_version();
+    get_gpiocfgs();
 }
 
 sub check_for_data {
-	my ($self) = @_;
-	if ($learning and &main::get_tickcount - $learn_timeout > 0) {
-		save_code(); 
-	}
-	elsif (&main::get_tickcount - $receive_timeout > 0) {
-		$prev = '';
-	}
-	if(@transmit_queue) {
-		send_ir_code();
-	}
-	&main::check_for_generic_serial_data('UIRT2');
-	my $data = $main::Serial_Ports{UIRT2}{data};
-	$main::Serial_Ports{UIRT2}{data} = '';
-	return unless $data;
+    my ($self) = @_;
+    if ( $learning and &main::get_tickcount - $learn_timeout > 0 ) {
+        save_code();
+    }
+    elsif ( &main::get_tickcount - $receive_timeout > 0 ) {
+        $prev = '';
+    }
+    if (@transmit_queue) {
+        send_ir_code();
+    }
+    &main::check_for_generic_serial_data('UIRT2');
+    my $data = $main::Serial_Ports{UIRT2}{data};
+    $main::Serial_Ports{UIRT2}{data} = '';
+    return unless $data;
 
-	if($learning) {
-		process_raw($data);
-	}
-	else {
-		receive_code($data);
-	}
+    if ($learning) {
+        process_raw($data);
+    }
+    else {
+        receive_code($data);
+    }
 
 }
 
 sub receive_code {
-	my $data = shift; 
-	my @bytes = unpack 'C6', $data;
-	my $code = uc unpack 'H*', pack 'C*', @bytes; 
-	return if $code eq $prev;
-	$prev = $code;
-	$receive_timeout = &main::get_tickcount + 600;
-	
-	&main::main::print_log("UIRT2 Code: $code") if $main::Debug{UIRT2};
-	&main::process_serial_data($code);
+    my $data  = shift;
+    my @bytes = unpack 'C6', $data;
+    my $code  = uc unpack 'H*', pack 'C*', @bytes;
+    return if $code eq $prev;
+    $prev            = $code;
+    $receive_timeout = &main::get_tickcount + 600;
+
+    &main::main::print_log("UIRT2 Code: $code") if $main::Debug{UIRT2};
+    &main::process_serial_data($code);
 }
 
 sub learn_code {
-	$device = uc shift; 
-	$function = uc shift; 
-	$frequency = shift; 
-	$repeat = shift; 
-	return unless $device and $function;  
-	$DBM{"$device$;$function"} = 0;
-	set_moderaw();
-	$learning = 1;
-	$learn_timeout = &main::get_tickcount + 60000;
-	@learned = ();
+    $device    = uc shift;
+    $function  = uc shift;
+    $frequency = shift;
+    $repeat    = shift;
+    return unless $device and $function;
+    $DBM{"$device$;$function"} = 0;
+    set_moderaw();
+    $learning      = 1;
+    $learn_timeout = &main::get_tickcount + 60000;
+    @learned       = ();
 }
 
-sub save_code { 
-	set_modeuir();
-	$learning = 0;
-	unless (@learned) {
-		print "UIRT2: Learning function timed out\n";
-		return; 
-	}
-	my (@code1, @code2);
-	foreach my $code (@learned) {
-		if ((! @code1) or raw_match($code1[0], $code)) {
-			push @code1, $code; 
-		} 
-		elsif ((! @code2) or raw_match($code2[0], $code)) {
-			push @code2, $code;
-		}
-		else {
-			print "UIRT2: Learning error, received more than two different codes \n";
-		}
-	}			
-	set_ir_code($device, $function, 
-		raw_to_struct($frequency, $repeat, raw_average(@code1), raw_average(@code2)));
-	print "UIRT2: Saved device $device function $function \n";
+sub save_code {
+    set_modeuir();
+    $learning = 0;
+    unless (@learned) {
+        print "UIRT2: Learning function timed out\n";
+        return;
+    }
+    my ( @code1, @code2 );
+    foreach my $code (@learned) {
+        if ( ( !@code1 ) or raw_match( $code1[0], $code ) ) {
+            push @code1, $code;
+        }
+        elsif ( ( !@code2 ) or raw_match( $code2[0], $code ) ) {
+            push @code2, $code;
+        }
+        else {
+            print
+              "UIRT2: Learning error, received more than two different codes \n";
+        }
+    }
+    set_ir_code(
+        $device,
+        $function,
+        raw_to_struct(
+            $frequency, $repeat, raw_average(@code1), raw_average(@code2)
+        )
+    );
+    print "UIRT2: Saved device $device function $function \n";
 }
 
 sub raw_match {
-	my @bytes1 = unpack 'C*', pack 'H*', shift;
-	my @bytes2 = unpack 'C*', pack 'H*', shift;
-	return 0 unless @bytes1 == @bytes2;
-	shift @bytes1; shift @bytes1; 
-	shift @bytes2; shift @bytes2; 
-	my $i = 0;
-	foreach (@bytes1) {
-		return 0 if abs($_ - $bytes2[$i]) > 2;
-		$i++;
-	}
-	return 1; 
+    my @bytes1 = unpack 'C*', pack 'H*', shift;
+    my @bytes2 = unpack 'C*', pack 'H*', shift;
+    return 0 unless @bytes1 == @bytes2;
+    shift @bytes1;
+    shift @bytes1;
+    shift @bytes2;
+    shift @bytes2;
+    my $i = 0;
+
+    foreach (@bytes1) {
+        return 0 if abs( $_ - $bytes2[$i] ) > 2;
+        $i++;
+    }
+    return 1;
 }
 
 sub raw_average {
-	return unless my $i = @_;
-	return shift if $i == 1;
-	my @sums;
-	my ($interhi, $interlo);
-	foreach (@_) {
-		my @bytes = unpack 'C*', pack 'H*', $_;
-		$interhi = shift @bytes; $interlo = shift @bytes; 
-		my $j = 0;
-		foreach (@bytes) {
-			$sums[$j] += $_;
-			$j++;
-		}
-	}
-	map {$_ /= $i} @sums;
-	unshift @sums, $interlo;
-	unshift @sums, $interhi;
-	my $code = unpack 'H*', pack 'C*', @sums; 
-	return $code; 
+    return unless my $i = @_;
+    return shift if $i == 1;
+    my @sums;
+    my ( $interhi, $interlo );
+    foreach (@_) {
+        my @bytes = unpack 'C*', pack 'H*', $_;
+        $interhi = shift @bytes;
+        $interlo = shift @bytes;
+        my $j = 0;
+        foreach (@bytes) {
+            $sums[$j] += $_;
+            $j++;
+        }
+    }
+    map { $_ /= $i } @sums;
+    unshift @sums, $interlo;
+    unshift @sums, $interhi;
+    my $code = unpack 'H*', pack 'C*', @sums;
+    return $code;
 }
 
-sub set { 
-	$device = uc shift; 
-	$function = uc shift; 
-	return unless defined $device and defined $function;
-      push @transmit_queue, "$device$;$function";
+sub set {
+    $device   = uc shift;
+    $function = uc shift;
+    return unless defined $device and defined $function;
+    push @transmit_queue, "$device$;$function";
 }
 
-sub send_ir_code { 
-	print "$transmit_timeout  " . &main::get_tickcount . "\n" if $main::Debug{UIRT2};
-	return if &main::get_tickcount - $transmit_timeout < 0;
-	my $code = $DBM{shift @transmit_queue};
-	print("IR code not found\n"), return unless $code; 
-	if ($code =~ s/^R(.*)/$1/i) {
-		transmit_raw($code);
-	}
-	else {
-		transmit_struct($code);
-	}
+sub send_ir_code {
+    print "$transmit_timeout  " . &main::get_tickcount . "\n"
+      if $main::Debug{UIRT2};
+    return if &main::get_tickcount - $transmit_timeout < 0;
+    my $code = $DBM{ shift @transmit_queue };
+    print("IR code not found\n"), return unless $code;
+    if ( $code =~ s/^R(.*)/$1/i ) {
+        transmit_raw($code);
+    }
+    else {
+        transmit_struct($code);
+    }
 }
 
 sub process_raw {
-	my $data = shift; 
- 	my $pos = index $data, "\xFF"; 
-	print "Pos $pos\n"  if $main::Debug{UIRT2};
-	my ($code, $remainder);
-	$code = unpack 'H*', substr $data, 0, $pos + 1 if $pos != -1;
-	$remainder = substr $data, $pos + 1 unless $pos == -1 or $pos + 1 == length $data; 
-	$remainder = $data if $pos == -1; 
-	$main::Serial_Ports{UIRT2}{data} = $remainder;
-	print "UIRT2: rec length " . length($code) . " code $code\n" if $main::Debug{UIRT2};
-	return unless $pos > 4;
-	push @learned, $code;
-	$learn_timeout = &main::get_tickcount + 2000;
+    my $data = shift;
+    my $pos = index $data, "\xFF";
+    print "Pos $pos\n" if $main::Debug{UIRT2};
+    my ( $code, $remainder );
+    $code = unpack 'H*', substr $data, 0, $pos + 1 if $pos != -1;
+    $remainder = substr $data, $pos + 1
+      unless $pos == -1
+      or $pos + 1 == length $data;
+    $remainder = $data if $pos == -1;
+    $main::Serial_Ports{UIRT2}{data} = $remainder;
+    print "UIRT2: rec length " . length($code) . " code $code\n"
+      if $main::Debug{UIRT2};
+    return unless $pos > 4;
+    push @learned, $code;
+    $learn_timeout = &main::get_tickcount + 2000;
 }
 
 sub get_version {
-	uirt2_send(0x23);
-	my $ret = get_response(3);
-	printf "UIRT2 Protocol Version %d.%d\n", (unpack 'C*', $ret)[0,1];
+    uirt2_send(0x23);
+    my $ret = get_response(3);
+    printf "UIRT2 Protocol Version %d.%d\n", ( unpack 'C*', $ret )[ 0, 1 ];
 }
 
 sub set_moderaw {
-	$learning = 1;
-	@learned = ();
-	uirt2_send(0x21);
-	my $ret = get_response(1);
+    $learning = 1;
+    @learned  = ();
+    uirt2_send(0x21);
+    my $ret = get_response(1);
 }
 
 sub set_modeuir {
-	$learning = 0;
-	uirt2_send(0x20);
-	my $ret = get_response(1);
+    $learning = 0;
+    uirt2_send(0x20);
+    my $ret = get_response(1);
 }
 
 sub set_modestruct {
-	$learning = 0;
-	uirt2_send(0x22);
-	my $ret = get_response(1);
+    $learning = 0;
+    uirt2_send(0x22);
+    my $ret = get_response(1);
 }
 
 sub get_gpiocaps {
-	uirt2_send(0x30, 0x01);
-	my $ret = get_response(6);
-	printf "UIRT2 GPIO Capabilities: # Slots %d, A Mask 0x%02x, B Mask 0x%02x, C Mask 0x%02x, D Mask 0x%02x\n", unpack 'C5', $ret;
-	return unpack 'C5', $ret;
+    uirt2_send( 0x30, 0x01 );
+    my $ret = get_response(6);
+    printf
+      "UIRT2 GPIO Capabilities: # Slots %d, A Mask 0x%02x, B Mask 0x%02x, C Mask 0x%02x, D Mask 0x%02x\n",
+      unpack 'C5', $ret;
+    return unpack 'C5', $ret;
 }
 
 sub get_gpiocfgs {
-	foreach (0 .. (get_gpiocaps())[0] - 1) {
-		get_gpiocfg($_);
-	}
+    foreach ( 0 .. ( get_gpiocaps() )[0] - 1 ) {
+        get_gpiocfg($_);
+    }
 }
 
 sub get_gpiocfg {
-	uirt2_send(0x31, 0x02, $_);
-	my $ret = get_response(9);
-	my $uir = uc unpack 'H*', pack 'C*', unpack 'C6', $ret;
-	printf "UIRT2 GPIO Configuration for Slot %d: UIR String %s, Action 0x%02x, Duration %d\n", $_, $uir, unpack 'x6C2', $ret;
-	return $uir, unpack 'x6C2', $ret;
+    uirt2_send( 0x31, 0x02, $_ );
+    my $ret = get_response(9);
+    my $uir = uc unpack 'H*', pack 'C*', unpack 'C6', $ret;
+    printf
+      "UIRT2 GPIO Configuration for Slot %d: UIR String %s, Action 0x%02x, Duration %d\n",
+      $_, $uir, unpack 'x6C2', $ret;
+    return $uir, unpack 'x6C2', $ret;
 }
 
 sub get_response {
-	my $length = shift; 
-	return 0 if $main::Serial_Ports{UIRT2}{object} eq 'proxy';
-	select undef, undef, undef, .05;
-	my ($count, $ret) = $main::Serial_Ports{UIRT2}{object}->read($length);
-	my @bytes = unpack 'C*', $ret;
-	my $checksum = 0;
-	foreach (@bytes[0..$#bytes - 1]) {
-		$checksum += $_;
-	}
-	$checksum = ~$checksum;
-	$checksum++;
-	$checksum &= 0xff;
-	my $code = $bytes[$#bytes];
-	print "UIRT2 expected $length byte response, only got $count \n" unless $count == $length; 
-	if (($count > 1 and $code == $checksum) or $code == 0x20 or $code == 0x21) {
-		print "UIRT2 transmission successful\n" if $main::Debug{UIRT2};
-	}
-	elsif ($code == 0x80) {
-		print "UIRT2 transmission failed, checksum error\n";
-	}
-	elsif ($code == 0x81) {
-		print "UIRT2 transmission failed, command timeout\n";
-	}
-	elsif ($code == 0x82) {
-		print "UIRT2 transmission failed, command error\n";
-	}
-	else {
-		printf("UIRT2 transmission failed, returned 0x%X\n", $code);
-	}
-	return $ret;
+    my $length = shift;
+    return 0 if $main::Serial_Ports{UIRT2}{object} eq 'proxy';
+    select undef, undef, undef, .05;
+    my ( $count, $ret ) = $main::Serial_Ports{UIRT2}{object}->read($length);
+    my @bytes = unpack 'C*', $ret;
+    my $checksum = 0;
+    foreach ( @bytes[ 0 .. $#bytes - 1 ] ) {
+        $checksum += $_;
+    }
+    $checksum = ~$checksum;
+    $checksum++;
+    $checksum &= 0xff;
+    my $code = $bytes[$#bytes];
+    print "UIRT2 expected $length byte response, only got $count \n"
+      unless $count == $length;
+    if (   ( $count > 1 and $code == $checksum )
+        or $code == 0x20
+        or $code == 0x21 )
+    {
+        print "UIRT2 transmission successful\n" if $main::Debug{UIRT2};
+    }
+    elsif ( $code == 0x80 ) {
+        print "UIRT2 transmission failed, checksum error\n";
+    }
+    elsif ( $code == 0x81 ) {
+        print "UIRT2 transmission failed, command timeout\n";
+    }
+    elsif ( $code == 0x82 ) {
+        print "UIRT2 transmission failed, command error\n";
+    }
+    else {
+        printf( "UIRT2 transmission failed, returned 0x%X\n", $code );
+    }
+    return $ret;
 }
 
-sub transmit_raw { 
- 	my @bytes = unpack('C*', pack 'H*', shift);
-	$transmit_timeout = &main::get_tickcount + 500;
-#	my $t = 0.10;
-#	foreach (@bytes) {$t += $_} 
-	uirt2_send(0x36, $#bytes + 2, @bytes);
-	my $ret = get_response(1);
+sub transmit_raw {
+    my @bytes = unpack( 'C*', pack 'H*', shift );
+    $transmit_timeout = &main::get_tickcount + 500;
+
+    #	my $t = 0.10;
+    #	foreach (@bytes) {$t += $_}
+    uirt2_send( 0x36, $#bytes + 2, @bytes );
+    my $ret = get_response(1);
 }
 
-sub transmit_struct { 
- 	my @bytes = unpack('C*', pack 'H*', shift);
-	$transmit_timeout = &main::get_tickcount + 500;
-	uirt2_send(@bytes);
-	my $ret = get_response(1);
+sub transmit_struct {
+    my @bytes = unpack( 'C*', pack 'H*', shift );
+    $transmit_timeout = &main::get_tickcount + 500;
+    uirt2_send(@bytes);
+    my $ret = get_response(1);
 }
 
 sub transmit_pronto {
-	my $pronto = shift;
-	my $repeat = shift;
-	my ($frequency, $repeat, $code1, $code2) = (raw_to_struct(pronto_to_raw($pronto, $repeat)));
-	my $frequency_bits = 0;
-	$frequency_bits = 0x80 if $frequency < 39;
-	$frequency_bits = 0xc0 if $frequency < 37;
-	my $code; 
-	if ($code1 =~ /^R/i) {
-		$code = $code1 . (unpack 'H2', pack 'C', $repeat | $frequency_bits);
-	}
-	else {
-		$code = (unpack 'H2', pack 'C', ($code2 ? 0 : $repeat) | $frequency_bits) . $code1 if $code1;
-		$code .= (unpack 'H2', pack 'C', $repeat | $frequency_bits) . $code2 if $code2;
-	}
-	transmit_struct($code);
+    my $pronto = shift;
+    my $repeat = shift;
+    my ( $frequency, $repeat, $code1, $code2 ) =
+      ( raw_to_struct( pronto_to_raw( $pronto, $repeat ) ) );
+    my $frequency_bits = 0;
+    $frequency_bits = 0x80 if $frequency < 39;
+    $frequency_bits = 0xc0 if $frequency < 37;
+    my $code;
+    if ( $code1 =~ /^R/i ) {
+        $code = $code1 . ( unpack 'H2', pack 'C', $repeat | $frequency_bits );
+    }
+    else {
+        $code =
+          ( unpack 'H2', pack 'C', ( $code2 ? 0 : $repeat ) | $frequency_bits )
+          . $code1
+          if $code1;
+        $code .= ( unpack 'H2', pack 'C', $repeat | $frequency_bits ) . $code2
+          if $code2;
+    }
+    transmit_struct($code);
 }
 
 sub uirt2_send {
-	my @bytes = @_;
+    my @bytes = @_;
 
-	my $hex = '';
-	my $string = '';
-	my $checksum = 0;
-	foreach (@bytes) {
-		$hex .= sprintf '%02x', $_;
-		$string .= $_;
-		$checksum += $_;
-	}
-	$checksum = ~$checksum;
-	$checksum++;
-	$checksum &= 0xff;
-	push @bytes, $checksum;
-	$hex .= sprintf '%02x', $checksum;
-	print "UIRT2 sending $hex\n" if $main::Debug{UIRT2};
-	return if &main::proxy_send('UIRT2', 'uirt2_send', @bytes);
-	$main::Serial_Ports{UIRT2}{object}->write(pack 'C*', @bytes); 
+    my $hex      = '';
+    my $string   = '';
+    my $checksum = 0;
+    foreach (@bytes) {
+        $hex .= sprintf '%02x', $_;
+        $string .= $_;
+        $checksum += $_;
+    }
+    $checksum = ~$checksum;
+    $checksum++;
+    $checksum &= 0xff;
+    push @bytes, $checksum;
+    $hex .= sprintf '%02x', $checksum;
+    print "UIRT2 sending $hex\n" if $main::Debug{UIRT2};
+    return if &main::proxy_send( 'UIRT2', 'uirt2_send', @bytes );
+    $main::Serial_Ports{UIRT2}{object}->write( pack 'C*', @bytes );
 }
 
 sub raw_to_struct {
-	my $frequency = shift; 
-	my $repeat = shift; 
-	my $code1 = shift; 
-	my $code2 = shift; 
-	my $second = 0;
-	foreach ($code1, $code2) {
-		next unless $_;
-		my @bytes = unpack 'C*', pack 'H*', $_;
-		my @struct;
-		push @struct, (@bytes[0,1], @bytes - 4, @bytes[2,3]);
-		my $bits = '';
-		my %sums;
-		my $small_pulse = 255;
-		my $small_gap = 255;
-		my $big_pulse = 0;
-		my $big_gap = 0;
-		my $i = 0;
-		foreach (@bytes[4 .. $#bytes - 1]) {
-			($i & 1 ? $small_gap : $small_pulse) = $_ if $_ < ($i & 1 ? $small_gap : $small_pulse);
-			($i & 1 ? $big_gap : $big_pulse) = $_ if $_ > ($i & 1 ? $big_gap : $big_pulse);
-			$i++;
-		}
-		print "raw_to_struct code $_\nsmall_gap : $small_gap  small_pulse : $small_pulse big_gap : $big_gap  big_pulse : $big_pulse \n" if $main::Debug{UIRT2};
-		$i = 0;
-		foreach (@bytes[4 .. $#bytes - 1]) {
-			my $bit = ($_ > 1.5 * ($i & 1 ? $small_gap : $small_pulse)) ? '1' : '0';
-			$bits .= $bit;
-			push @{ $sums{ ($i & 1 ? ($bit ? 'off1' : 'off0') : ($bit ? 'on1' : 'on0')) }}, $_;
-			$i++;
-		}
-		foreach ('off0', 'off1', 'on0', 'on1') {
-			my $sum = 0;
-			foreach (@{ $sums{$_} }) {
-				$sum += $_;
-			}
-			push @struct, $sum ? ($sum / ($#{ $sums{$_} } + 1)) : 0;
-		}
-		push @struct, unpack('C*', pack(($second ? 'b96' : 'b128'), $bits));
-		$second++;
-		$_ = unpack 'H*', pack 'C*', @struct; 
-	}
-	return ($frequency, $repeat, $code1, $code2);
+    my $frequency = shift;
+    my $repeat    = shift;
+    my $code1     = shift;
+    my $code2     = shift;
+    my $second    = 0;
+    foreach ( $code1, $code2 ) {
+        next unless $_;
+        my @bytes = unpack 'C*', pack 'H*', $_;
+        my @struct;
+        push @struct, ( @bytes[ 0, 1 ], @bytes - 4, @bytes[ 2, 3 ] );
+        my $bits = '';
+        my %sums;
+        my $small_pulse = 255;
+        my $small_gap   = 255;
+        my $big_pulse   = 0;
+        my $big_gap     = 0;
+        my $i           = 0;
+
+        foreach ( @bytes[ 4 .. $#bytes - 1 ] ) {
+            ( $i & 1 ? $small_gap : $small_pulse ) = $_
+              if $_ < ( $i & 1 ? $small_gap : $small_pulse );
+            ( $i & 1 ? $big_gap : $big_pulse ) = $_
+              if $_ > ( $i & 1 ? $big_gap : $big_pulse );
+            $i++;
+        }
+        print
+          "raw_to_struct code $_\nsmall_gap : $small_gap  small_pulse : $small_pulse big_gap : $big_gap  big_pulse : $big_pulse \n"
+          if $main::Debug{UIRT2};
+        $i = 0;
+        foreach ( @bytes[ 4 .. $#bytes - 1 ] ) {
+            my $bit =
+              ( $_ > 1.5 * ( $i & 1 ? $small_gap : $small_pulse ) ) ? '1' : '0';
+            $bits .= $bit;
+            push @{
+                $sums{
+                    (
+                        $i & 1
+                        ? ( $bit ? 'off1' : 'off0' )
+                        : ( $bit ? 'on1' : 'on0' )
+                    )
+                }
+              },
+              $_;
+            $i++;
+        }
+        foreach ( 'off0', 'off1', 'on0', 'on1' ) {
+            my $sum = 0;
+            foreach ( @{ $sums{$_} } ) {
+                $sum += $_;
+            }
+            push @struct, $sum ? ( $sum / ( $#{ $sums{$_} } + 1 ) ) : 0;
+        }
+        push @struct,
+          unpack( 'C*', pack( ( $second ? 'b96' : 'b128' ), $bits ) );
+        $second++;
+        $_ = unpack 'H*', pack 'C*', @struct;
+    }
+    return ( $frequency, $repeat, $code1, $code2 );
 }
-	
+
 sub struct_to_raw {
-	my $frequency = shift; 
-	my $repeat = shift; 
-	my $code1 = shift; 
-	my $code2 = shift; 
-	return ($frequency, $repeat, $code1, $code2) if ($code1 =~ /^R/i);
-	foreach ($code1, $code2) {
-		next unless $_;
-		my @bytes = unpack 'C*', pack 'H*', $_;
-		my @raw;
-		push @raw, shift @bytes;
-		push @raw, shift @bytes;
-		my $length = shift @bytes; 
-		push @raw, shift @bytes;
-		push @raw, shift @bytes;
-		my $small_gap = shift @bytes;
-		my $big_gap = shift @bytes;
-		my $small_pulse = shift @bytes;
-		my $big_pulse = shift @bytes;
-		my $i = 0;
-		foreach (split '', unpack "b$length", pack 'C*', @bytes) {
-			$_ += 0;
-			push @raw, ($i % 2 ? ($_ ? $big_gap : $small_gap) : ($_ ? $big_pulse : $small_pulse));
-			$i++;
-		}
-		pop @raw unless @raw % 2;
-		push @raw, 0xff; 
-		$_ = unpack 'H*', pack 'C*', @raw; 
-	}
-	return ($frequency, $repeat, $code1, $code2);
+    my $frequency = shift;
+    my $repeat    = shift;
+    my $code1     = shift;
+    my $code2     = shift;
+    return ( $frequency, $repeat, $code1, $code2 ) if ( $code1 =~ /^R/i );
+    foreach ( $code1, $code2 ) {
+        next unless $_;
+        my @bytes = unpack 'C*', pack 'H*', $_;
+        my @raw;
+        push @raw, shift @bytes;
+        push @raw, shift @bytes;
+        my $length = shift @bytes;
+        push @raw, shift @bytes;
+        push @raw, shift @bytes;
+        my $small_gap   = shift @bytes;
+        my $big_gap     = shift @bytes;
+        my $small_pulse = shift @bytes;
+        my $big_pulse   = shift @bytes;
+        my $i           = 0;
+
+        foreach ( split '', unpack "b$length", pack 'C*', @bytes ) {
+            $_ += 0;
+            push @raw,
+              (
+                $i % 2
+                ? ( $_ ? $big_gap : $small_gap )
+                : ( $_ ? $big_pulse : $small_pulse )
+              );
+            $i++;
+        }
+        pop @raw unless @raw % 2;
+        push @raw, 0xff;
+        $_ = unpack 'H*', pack 'C*', @raw;
+    }
+    return ( $frequency, $repeat, $code1, $code2 );
 }
-	
+
 sub pronto_to_raw {
-	my $pronto = shift; 
-	my $repeat = shift;
-	$pronto =~ s/\s+/ /gs;
-	$pronto =~ s/[^0-9a-fA-F]//gs;
-	my @bytes = unpack 'n*', pack 'H*', $pronto;
-	my $kind = shift @bytes;
-	my $units = shift(@bytes) * .241246;
-	my $frequency = ($kind == 0 && $units != 0.0) ? round(1000.0/$units) : 0;
-	my $first = shift(@bytes) * 2;
-	my $second = shift(@bytes) * 2;	
-	map {$_ = round($_ * $units / 50)} @bytes;
-	print "pronto_to_raw $pronto First $first second $second frequency  " . $frequency . "\n"  if $main::Debug{UIRT2};
-	my ($code1, $code2);
-	$code1 = unpack 'H*', pack('C*', $bytes[$first - 1] >> 8, $bytes[$first - 1] & 0xff, 
-		@bytes[0 .. $first - 2], 0xff) if $first;
-	$code2 = unpack 'H*', pack('C*', $bytes[$first + $second - 1] >> 8, $bytes[$first + $second - 1] & 0xff, 
-		@bytes[$first .. $first + $second - 2], 0xff) if $second;
-	return ($frequency, $repeat, $code1, $code2);
+    my $pronto = shift;
+    my $repeat = shift;
+    $pronto =~ s/\s+/ /gs;
+    $pronto =~ s/[^0-9a-fA-F]//gs;
+    my @bytes = unpack 'n*', pack 'H*', $pronto;
+    my $kind  = shift @bytes;
+    my $units = shift(@bytes) * .241246;
+    my $frequency =
+      ( $kind == 0 && $units != 0.0 ) ? round( 1000.0 / $units ) : 0;
+    my $first  = shift(@bytes) * 2;
+    my $second = shift(@bytes) * 2;
+    map { $_ = round( $_ * $units / 50 ) } @bytes;
+    print "pronto_to_raw $pronto First $first second $second frequency  "
+      . $frequency . "\n"
+      if $main::Debug{UIRT2};
+    my ( $code1, $code2 );
+    $code1 = unpack 'H*',
+      pack( 'C*',
+        $bytes[ $first - 1 ] >> 8,
+        $bytes[ $first - 1 ] & 0xff,
+        @bytes[ 0 .. $first - 2 ], 0xff )
+      if $first;
+    $code2 = unpack 'H*',
+      pack( 'C*',
+        $bytes[ $first + $second - 1 ] >> 8,
+        $bytes[ $first + $second - 1 ] & 0xff,
+        @bytes[ $first .. $first + $second - 2 ], 0xff )
+      if $second;
+    return ( $frequency, $repeat, $code1, $code2 );
 }
 
 sub raw_to_pronto {
-	my $frequency = shift; 
-	my $repeat = shift; 
-	my $code1 = shift; 
-	my $code2 = shift; 
-	return unless $code1 or $code2; 
-	$code1 =~ s/^R//i;
-	my @bytes; 
-	push @bytes, 0;
-	my $units = 1000.0/$frequency;
-	push @bytes, round($units/.241246);
-	push @bytes, $code1 ? length($code1)/4 - 1 : 0;	
-	push @bytes, $code2 ? length($code2)/4 - 1 : 0;	
-	foreach ($code1, $code2) {
-		next unless $_;
-		my @raw = unpack 'C*', pack 'H*', $_;
-		my $inter = (shift @raw) * 256 + shift @raw; 
-		pop @raw; 
-		push @raw, $inter;
-		push @bytes, map {$_ = round($_ * 50 / $units)} @raw; 
-	}
-	my $code = join(" ", map { sprintf "%04x", $_ } @bytes); 
-	return ($code, $repeat);
+    my $frequency = shift;
+    my $repeat    = shift;
+    my $code1     = shift;
+    my $code2     = shift;
+    return unless $code1 or $code2;
+    $code1 =~ s/^R//i;
+    my @bytes;
+    push @bytes, 0;
+    my $units = 1000.0 / $frequency;
+    push @bytes, round( $units / .241246 );
+    push @bytes, $code1 ? length($code1) / 4 - 1 : 0;
+    push @bytes, $code2 ? length($code2) / 4 - 1 : 0;
+
+    foreach ( $code1, $code2 ) {
+        next unless $_;
+        my @raw = unpack 'C*', pack 'H*', $_;
+        my $inter = ( shift @raw ) * 256 + shift @raw;
+        pop @raw;
+        push @raw, $inter;
+        push @bytes, map { $_ = round( $_ * 50 / $units ) } @raw;
+    }
+    my $code = join( " ", map { sprintf "%04x", $_ } @bytes );
+    return ( $code, $repeat );
 }
 
 sub list_devices {
-	my @devices;
-	my $prev = '';
-	foreach (sort keys %DBM) {
-		my ($device) = split $;;
-		push @devices, $device unless $device eq $prev;
-		$prev = $device; 
-	}
-	return @devices;
+    my @devices;
+    my $prev = '';
+    foreach ( sort keys %DBM ) {
+        my ($device) = split $;;
+        push @devices, $device unless $device eq $prev;
+        $prev = $device;
+    }
+    return @devices;
 }
 
 sub list_functions {
-	my $dev = uc shift; 
-	my @functions;
-	foreach (sort keys %DBM) {
-		my ($device, $function) = split $;;
-		push @functions, $function if $device eq $dev and $function ne '_dummy_';
-	}
-	return @functions;
+    my $dev = uc shift;
+    my @functions;
+    foreach ( sort keys %DBM ) {
+        my ( $device, $function ) = split $;;
+        push @functions, $function
+          if $device eq $dev and $function ne '_dummy_';
+    }
+    return @functions;
 }
 
 sub add_device {
-	my $dev = uc shift; 
-	$DBM{"$dev$;_dummy_"} = 0;
-	$db->sync; 
+    my $dev = uc shift;
+    $DBM{"$dev$;_dummy_"} = 0;
+    $db->sync;
 }
 
 sub delete_device {
-	my $dev = shift; 
-	foreach (sort keys %DBM) {
-		my ($device, $function) = split $;;
-		delete $DBM{$_} if $device eq $dev;
-	}
-	$db->sync; 
+    my $dev = shift;
+    foreach ( sort keys %DBM ) {
+        my ( $device, $function ) = split $;;
+        delete $DBM{$_} if $device eq $dev;
+    }
+    $db->sync;
 }
 
 sub rename_device {
-	my $dev = shift; 
-	my $devnew = uc shift; 
-	return if $dev eq $devnew;
-	foreach (sort keys %DBM) {
-		my ($device, $function) = split $;;
-		$DBM{"$devnew$;$function"} = $DBM{$_} if $device eq $dev;
-		delete $DBM{$_} if $device eq $dev;
-	}
-	$db->sync; 
+    my $dev    = shift;
+    my $devnew = uc shift;
+    return if $dev eq $devnew;
+    foreach ( sort keys %DBM ) {
+        my ( $device, $function ) = split $;;
+        $DBM{"$devnew$;$function"} = $DBM{$_} if $device eq $dev;
+        delete $DBM{$_} if $device eq $dev;
+    }
+    $db->sync;
 }
 
 sub delete_function {
-	my $device = shift; 
-	my $function = shift; 
-	delete $DBM{"$device$;$function"};
-	$db->sync; 
+    my $device   = shift;
+    my $function = shift;
+    delete $DBM{"$device$;$function"};
+    $db->sync;
 }
 
 sub set_ir_code {
-	my $device = uc shift; 
-	my $function = uc shift; 
-	my $frequency = shift; 
-	my $repeat = shift; 
-	my $code1 = shift; 
-	my $code2 = shift; 
-	my $frequency_bits = 0;
-	$frequency_bits = 0x80 if $frequency < 39;
-	$frequency_bits = 0xc0 if $frequency < 37;
-	my $code; 
-	if ($code1 =~ /^R/i) {
-		$code = $code1 . (unpack 'H2', pack 'C', $repeat | $frequency_bits);
-	}
-	else {
-		$code = (unpack 'H2', pack 'C', ($code2 ? 0 : $repeat) | $frequency_bits) . $code1 if $code1;
-		$code .= (unpack 'H2', pack 'C', $repeat | $frequency_bits) . $code2 if $code2;
-	}
-	$DBM{"$device$;$function"} = $code;
-	$db->sync; 
+    my $device         = uc shift;
+    my $function       = uc shift;
+    my $frequency      = shift;
+    my $repeat         = shift;
+    my $code1          = shift;
+    my $code2          = shift;
+    my $frequency_bits = 0;
+    $frequency_bits = 0x80 if $frequency < 39;
+    $frequency_bits = 0xc0 if $frequency < 37;
+    my $code;
+
+    if ( $code1 =~ /^R/i ) {
+        $code = $code1 . ( unpack 'H2', pack 'C', $repeat | $frequency_bits );
+    }
+    else {
+        $code =
+          ( unpack 'H2', pack 'C', ( $code2 ? 0 : $repeat ) | $frequency_bits )
+          . $code1
+          if $code1;
+        $code .= ( unpack 'H2', pack 'C', $repeat | $frequency_bits ) . $code2
+          if $code2;
+    }
+    $DBM{"$device$;$function"} = $code;
+    $db->sync;
 }
-	
+
 sub get_ir_string {
-	my $device = uc shift;
-	my $function = uc shift;
-	return $DBM{"$device$;$function"};
+    my $device   = uc shift;
+    my $function = uc shift;
+    return $DBM{"$device$;$function"};
 }
 
 sub get_ir_code {
-	my $device = uc shift; 
-	my $function = uc shift; 
-	my ($bits1, $code1, $bits2, $code2);
-	my $code = $DBM{"$device$;$function"};
-	if ($code =~ /^R/i) {
-		($code1, $bits1) = unpack 'a' . (length($code) - 2) . 'a2', $code;
-	}
-	else {
-		($bits1, $code1, $bits2, $code2) = unpack 'a2a50a2a42', $code;
-	}
-	$bits1 = unpack 'C', pack 'H2', $bits1;
-	$bits2 = unpack 'C', pack 'H2', $bits2;
-	my $repeat = $bits1 & 0x3f;
-	$repeat = $bits2 & 0x3f if $bits2;
-	$bits1 = $bits1 >> 6;
-	my $frequency = 40;
-	$frequency = 38 if $bits1 == 1 or $bits1 == 2;
-	$frequency = 36 if $bits1 == 3;
-	return ($frequency, $repeat, uc $code1, uc $code2);
+    my $device   = uc shift;
+    my $function = uc shift;
+    my ( $bits1, $code1, $bits2, $code2 );
+    my $code = $DBM{"$device$;$function"};
+    if ( $code =~ /^R/i ) {
+        ( $code1, $bits1 ) = unpack 'a' . ( length($code) - 2 ) . 'a2', $code;
+    }
+    else {
+        ( $bits1, $code1, $bits2, $code2 ) = unpack 'a2a50a2a42', $code;
+    }
+    $bits1 = unpack 'C', pack 'H2', $bits1;
+    $bits2 = unpack 'C', pack 'H2', $bits2;
+    my $repeat = $bits1 & 0x3f;
+    $repeat = $bits2 & 0x3f if $bits2;
+    $bits1 = $bits1 >> 6;
+    my $frequency = 40;
+    $frequency = 38 if $bits1 == 1 or $bits1 == 2;
+    $frequency = 36 if $bits1 == 3;
+    return ( $frequency, $repeat, uc $code1, uc $code2 );
 }
 
 sub rename_function {
-	my $device = uc shift; 
-	my $function = uc shift; 
-	my $funcnew = uc shift; 
-	return if $function eq $funcnew;
-	return unless $funcnew;
-	$DBM{"$device$;$funcnew"} = $DBM{"$device$;$function"};
-	delete $DBM{"$device$;$function"};
-	$db->sync; 
+    my $device   = uc shift;
+    my $function = uc shift;
+    my $funcnew  = uc shift;
+    return if $function eq $funcnew;
+    return unless $funcnew;
+    $DBM{"$device$;$funcnew"} = $DBM{"$device$;$function"};
+    delete $DBM{"$device$;$function"};
+    $db->sync;
 }
 
 sub is_learning {
-	return $learning; 
+    return $learning;
 }
 
 sub last_learned {
-	my $raw; 
-	foreach (@learned) {
-		$raw .= $_ . "\n";
-	}
-	return $raw; 
+    my $raw;
+    foreach (@learned) {
+        $raw .= $_ . "\n";
+    }
+    return $raw;
 }
 
 sub round {
-	return int shift() + .5;
+    return int shift() + .5;
 }
 
 1;

@@ -21,26 +21,26 @@ $charger_device  = new X10_Appliance 'B2';
 hidden $charger_device 1;
 my $charger_hours;
 
-if ($state = state_now $charger_command) {
-   if ($state eq ON) {
-     $charger_hours += 7;
-     if ($charger_hours <= 21) {
-     set_with_timer $charger_device ON, $charger_hours * 60 * 60;
-     speak "Battery charger has been set for $charger_hours hours";
-     }
-  }
-  if ($state eq OFF) {
-     set $charger_device OFF;
-     $charger_hours = 0;
-     speak 'Battery charger cycle has been cancelled';
-  }
+if ( $state = state_now $charger_command) {
+    if ( $state eq ON ) {
+        $charger_hours += 7;
+        if ( $charger_hours <= 21 ) {
+            set_with_timer $charger_device ON, $charger_hours * 60 * 60;
+            speak "Battery charger has been set for $charger_hours hours";
+        }
+    }
+    if ( $state eq OFF ) {
+        set $charger_device OFF;
+        $charger_hours = 0;
+        speak 'Battery charger cycle has been cancelled';
+    }
 }
 
 # extra bit needed to reset the hours and give a voice prompt
 
-if ($state = state_now $charger_device) {
-  if ($state eq OFF and $charger_hours > 0) {
-     $charger_hours = 0;
-     speak 'Battery charger cycle has ended';
-   }
+if ( $state = state_now $charger_device) {
+    if ( $state eq OFF and $charger_hours > 0 ) {
+        $charger_hours = 0;
+        speak 'Battery charger cycle has ended';
+    }
 }

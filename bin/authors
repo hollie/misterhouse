@@ -6,33 +6,35 @@ use strict;
 
 # Uses various flakey heuristics to pick out real names.
 
-my @bogus_first = qw(The Tk Bug Web Added Applied Button By Category Change Email Family Fixed Global Henriksen Linux Lan
-                     Memory More On Outlook Preset Radio Random Round Serial Unix Voice Windows Cue Dynamic Festival File Some
-                     ViaVoice SetWindowText Internet My Western Eastern Daylight Restart Call No Peet Rewrote Turtle
-                     Select Solid Edit Telephony Unit Weather Rio Red About Australian Caller Card
-		     Creative Device Digital Direct Evolution Extended External GHz Gentoo Home
-		     How Iridium Misterhouse Motorola Mythtv Password Server Song Charter Ogg European Another Media Moved Video VoIP
-             Intuitive Package Perl Scalable Southern
-		     );
-my @bogus_last  = qw(Homelink House Group Report Programs Aqualink WinTV CallerID Voices Video Faq
-		     Events Address Station Audio Hat MrHouse Clipsal
-		     Remotes Credit Type Inputs Tivo Robotics Codes Commands Celeron Linux Theatre To Flares
-		     GUIs Management Network Info Media Windows Serial Wireless Acid Bay Manager Users
-		     );
+my @bogus_first =
+  qw(The Tk Bug Web Added Applied Button By Category Change Email Family Fixed Global Henriksen Linux Lan
+  Memory More On Outlook Preset Radio Random Round Serial Unix Voice Windows Cue Dynamic Festival File Some
+  ViaVoice SetWindowText Internet My Western Eastern Daylight Restart Call No Peet Rewrote Turtle
+  Select Solid Edit Telephony Unit Weather Rio Red About Australian Caller Card
+  Creative Device Digital Direct Evolution Extended External GHz Gentoo Home
+  How Iridium Misterhouse Motorola Mythtv Password Server Song Charter Ogg European Another Media Moved Video VoIP
+  Intuitive Package Perl Scalable Southern
+);
+my @bogus_last =
+  qw(Homelink House Group Report Programs Aqualink WinTV CallerID Voices Video Faq
+  Events Address Station Audio Hat MrHouse Clipsal
+  Remotes Credit Type Inputs Tivo Robotics Codes Commands Celeron Linux Theatre To Flares
+  GUIs Management Network Info Media Windows Serial Wireless Acid Bay Manager Users
+);
 
 undef $/;
 my $f = <>;
 my %a;
-while ($f =~ /([A-Z][a-zA-Z\.\']+) ([A-Z][a-zA-Z\']+)[ \.\,]/gms) {
-    my ($first, $last) = ($1, $2);
-    next if $first =~ /^[A-Z]+$/;  # Not all uppercase
-    next if $last  =~ /^[A-Z]+$/;  # Not all uppercase
+while ( $f =~ /([A-Z][a-zA-Z\.\']+) ([A-Z][a-zA-Z\']+)[ \.\,]/gms ) {
+    my ( $first, $last ) = ( $1, $2 );
+    next if $first =~ /^[A-Z]+$/;           # Not all uppercase
+    next if $last =~ /^[A-Z]+$/;            # Not all uppercase
     next if grep /$first/i, @bogus_first;
-    next if grep /$last/i,  @bogus_last;
-    $first=~ s/\.$//;           # Drop the abrev .
+    next if grep /$last/i, @bogus_last;
+    $first =~ s/\.$//;                      # Drop the abrev .
     $last =~ s/\.$//;
-    $last =~ s/\'s$//;          # Drop the 's suffix
-    next if $first =~ s/\'s$//; # Ignore Xyz's did...
+    $last =~ s/\'s$//;                      # Drop the 's suffix
+    next if $first =~ s/\'s$//;             # Ignore Xyz's did...
     $a{"$first $last"}++;
 }
 
@@ -55,10 +57,11 @@ eof
 my $cnt = 0;
 $a{'Bruce Winter'} = '-999';
 print "<tr>\n";
-for my $a (sort {$a{$b} <=> $a{$a} or $a cmp $b} keys %a) {
-#   print "\t$a was mentioned $a{$a} times\n";
-#   print "<tr><td><b>$a</b></td><td>$a{$a}</td></tr>\n";
-    print "</tr><tr>\n"  unless $cnt % 4;
+for my $a ( sort { $a{$b} <=> $a{$a} or $a cmp $b } keys %a ) {
+
+    #   print "\t$a was mentioned $a{$a} times\n";
+    #   print "<tr><td><b>$a</b></td><td>$a{$a}</td></tr>\n";
+    print "</tr><tr>\n" unless $cnt % 4;
     print "<td><b>$a</b></td><td align='left'>$a{$a}</td>\n";
     $cnt++;
 }

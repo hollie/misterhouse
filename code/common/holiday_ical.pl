@@ -23,30 +23,35 @@ Date::Easter, Date::Manip, Date::ICal, Data::ICal, Data::ICal::Entry::Event
 
 =cut
 
-
 $p_holical = new Process_Item();
 
-$v_generate_holidays = new Voice_Cmd('Generate holiday information for [1,2,3,4] year(s)');
+$v_generate_holidays =
+  new Voice_Cmd('Generate holiday information for [1,2,3,4] year(s)');
 $v_generate_holidays->set_info('Generate ical compatible holiday information');
 $v_generate_holidays->set_authority('anyone');
 my $holiday_output_filename = $config_parms{holiday_ical_filename};
-$holiday_output_filename = "$Pgm_Root/web/holical.ics" if !$holiday_output_filename;
+$holiday_output_filename = "$Pgm_Root/web/holical.ics"
+  if !$holiday_output_filename;
 
+if (   ( said $v_generate_holidays)
+    or ($New_Year)
+    or ( ($Reload) and !( -e $holiday_output_filename ) ) )
+{
 
-if ((said $v_generate_holidays) or ($New_Year) or
-    (($Reload) and !(-e $holiday_output_filename))) {
+    print_log "MH_Holidays: Starting holiday generation process...";
+    my $options;
+    $options = "-n" if $config_parms{holiday_no_stats};
+    my $years;
+    $years = said $v_generate_holidays;
+    $years = "0" if !$years;
 
-	print_log "MH_Holidays: Starting holiday generation process...";
-	my $options;
-	$options = "-n" if $config_parms{holiday_no_stats};
-	my $years;
-	$years = said $v_generate_holidays;
-        $years = "0" if !$years;
-
-	if (-e $config_parms{holiday_definition_file}) {
-	  $p_holical->set("holical -y +$years $options -f $holiday_output_filename $config_parms{holiday_definition_file} ");
-	  start $p_holical;
-	} else {
-	  print_log "MH_Holidays: Error, cannot find holiday definition file!";
-	}
+    if ( -e $config_parms{holiday_definition_file} ) {
+        $p_holical->set(
+            "holical -y +$years $options -f $holiday_output_filename $config_parms{holiday_definition_file} "
+        );
+        start $p_holical;
+    }
+    else {
+        print_log "MH_Holidays: Error, cannot find holiday definition file!";
+    }
 }
