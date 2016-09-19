@@ -11,7 +11,10 @@ use Data::Dumper;
 # Venstar::Colortouch
 # $stat_upper        = new Venstar_Colortouch('192.168.0.100');
 #
+# $stat_upper_mode    = new Venstar_Colortouch_Mode($stat_upper);
 # $stat_upper_temp   = new Venstar_Colortouch_Temp($stat_upper);
+# $stat_upper_heat_sp = new Venstar_Colortouch_Heat_sp($stat_upper);
+# $stat_upper_cool_sp = new Venstar_Colortouch_Cool_sp($stat_upper);
 # $stat_upper_fan    = new Venstar_Colortouch_Fan($stat_upper);
 # $stat_upper_hum    = new Venstar_Colortouch_Humidity($stat_upper);
 # $stat_upper_hum_sp = new Venstar_Colortouch_Humidity_sp($stat_upper);
@@ -888,6 +891,12 @@ sub process_data {
               . "] Mode changed from $mode[$self->{previous}->{info}->{mode}] to $mode[$self->{data}->{info}->{mode}]"
         ) if ( $self->{loglevel} );
         $self->{previous}->{info}->{mode} = $self->{data}->{info}->{mode};
+        if ( defined $self->{child_object}->{mode} ) {
+            main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Mode Child object found. Updating..."
+              if ( $self->{loglevel} );
+            $self->{child_object}->{mode}
+              ->set( $mode[$self->{data}->{info}->{mode}] );
+        }
     }
 
     if ( $self->{previous}->{info}->{state} != $self->{data}->{info}->{state} )
@@ -972,6 +981,12 @@ sub process_data {
         ) if ( $self->{loglevel} );
         $self->{previous}->{info}->{heattemp} =
           $self->{data}->{info}->{heattemp};
+        if ( defined $self->{child_object}->{heat_sp} ) {
+            main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Heat Setpoint Child object found. Updating..."
+              if ( $self->{loglevel} );
+            $self->{child_object}->{heat_sp}
+              ->set( $self->{data}->{info}->{heattemp}, 'poll' );
+        }
     }
 
     if ( $self->{previous}->{info}->{heattempmin} !=
@@ -1005,6 +1020,12 @@ sub process_data {
         ) if ( $self->{loglevel} );
         $self->{previous}->{info}->{cooltemp} =
           $self->{data}->{info}->{cooltemp};
+        if ( defined $self->{child_object}->{cool_sp} ) {
+            main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Cooling Setpoint Child object found. Updating..."
+              if ( $self->{loglevel} );
+            $self->{child_object}->{cool_sp}
+              ->set( $self->{data}->{info}->{cooltemp}, 'poll' );
+        }
     }
 
     if ( $self->{previous}->{info}->{cooltempmin} !=
@@ -1739,6 +1760,114 @@ sub set {
 
     if ( $p_setby eq 'poll' ) {
         $self->SUPER::set($p_state);
+    }
+}
+
+package Venstar_Colortouch_Mode;
+
+@Venstar_Colortouch_Mode::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object ) = @_;
+
+    my $self = {};
+    bless $self, $class;
+
+    $$self{master_object} = $object;
+
+    $object->register( $self, 'mode' );
+    $self->set( $object->get_mode, 'poll' );
+    return $self;
+
+}
+
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
+
+    if ( $p_setby eq 'poll' ) {
+        $self->SUPER::set($p_state);
+    }
+    else {
+        if (  ( lc $p_state eq "cooling" ) or ( lc $p_state eq "heating" ) or ( lc $p_state eq "cool" ) or ( lc $p_state eq "heat" ) or ( lc $p_state eq "auto" ) or ( lc $p_state eq "off" ) ) {
+            $$self{master_object}->set_mode($p_state);
+        }
+        else {
+            main::print_log(
+                "[Venstar Colortouch Mode] Error. Unknown set state $p_state"
+            );
+        }
+    }
+}
+
+package Venstar_Colortouch_Heat_sp;
+
+@Venstar_Colortouch_Heat_sp::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object ) = @_;
+
+    my $self = {};
+    bless $self, $class;
+
+    $$self{master_object} = $object;
+
+    $object->register( $self, 'heat_sp' );
+    $self->set( $object->get_sp_heat, 'poll' );
+    return $self;
+
+}
+
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
+
+    if ( $p_setby eq 'poll' ) {
+        $self->SUPER::set($p_state);
+    }
+    else {
+        if ( ( $p_state >= 0 ) and ( $p_state <= 98 ) ) {
+            $$self{master_object}->set_heat_sp($p_state);
+        }
+        else {
+            main::print_log(
+                "[Venstar Colortouch Heat_SP] Error. Unknown set state $p_state"
+            );
+        }
+    }
+}
+
+package Venstar_Colortouch_Cool_sp;
+
+@Venstar_Colortouch_Cool_sp::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object ) = @_;
+
+    my $self = {};
+    bless $self, $class;
+
+    $$self{master_object} = $object;
+
+    $object->register( $self, 'cool_sp' );
+    $self->set( $object->get_sp_cool, 'poll' );
+    return $self;
+
+}
+
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
+
+    if ( $p_setby eq 'poll' ) {
+        $self->SUPER::set($p_state);
+    }
+    else {
+        if ( ( $p_state >= 0 ) and ( $p_state <= 98 ) ) {
+            $$self{master_object}->set_cool_sp($p_state);
+        }
+        else {
+            main::print_log(
+                "[Venstar Colortouch Cool_SP] Error. Unknown set state $p_state"
+            );
+        }
     }
 }
 
