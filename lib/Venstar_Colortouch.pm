@@ -59,7 +59,7 @@ $rest{control}  = "/control";
 $rest{settings} = "/settings";
 
 sub new {
-    my ( $class, $host, $poll ) = @_;
+    my ( $class, $host, $poll, $debug ) = @_;
     my $self = {};
     bless $self, $class;
     $self->{data}                 = undef;
@@ -77,7 +77,10 @@ sub new {
     $self->{updating}      = 0;
     $self->{data}->{retry} = 0;
     $self->{host}          = $host;
-    $self->{debug}         = 5;
+    $self->{debug}         = 0;
+    $self->{debug} = $debug if ($debug);
+    $self->{debug} = 0
+      if ( $self->{debug} < 0 );
     $self->{loglevel}      = 1;
     $self->{status}        = "";
     $self->{timeout}       = 15;      #300;
@@ -1310,6 +1313,11 @@ sub get_mode_humid {
 
 }
 
+sub get_debug {
+    my ($self) = @_;
+    return $self->{debug};
+}
+
 #------------
 # User control methods
 #tempunits=0&away=0&schedule=0&hum_setpoint=0&dehum_setpoint=0
@@ -1547,6 +1555,14 @@ sub set_fan {
 
 sub set_units {
 
+}
+
+
+sub set_debug {
+    my ( $self, $debug ) = @_;
+    $self->{debug} = $debug if ($debug);
+    $self->{debug} = 0
+      if ( $self->{debug} < 0 );
 }
 
 sub set {
