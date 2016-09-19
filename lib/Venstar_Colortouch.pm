@@ -15,7 +15,7 @@ use Data::Dumper;
 # $stat_upper_fan    = new Venstar_Colortouch_Fan($stat_upper);
 # $stat_upper_hum    = new Venstar_Colortouch_Humidity($stat_upper);
 # $stat_upper_hum_sp = new Venstar_Colortouch_Humidity_sp($stat_upper);
-# $stat_upper_sched  = new Venstar_Colortouch_Sched($stat_upper);
+# $stat_upper_sched  = new Venstar_Colortouch_Schedule($stat_upper);
 # $stat_upper_comm	 = new Venstar_Colortouch_Comm($stat_upper);
 
 # v1.1 - added in schedule and humidity control.
