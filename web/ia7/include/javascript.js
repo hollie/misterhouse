@@ -241,7 +241,7 @@ function changePage (){
 		}
 		else if(path.indexOf('history') === 0){
 			var path_arg = path.split('?');
-			graph_history(path_arg[1],undefined,path_arg[2]);
+			object_history(path_arg[1],undefined,path_arg[2]);
 		}					
 		else if(URLHash._request == 'trigger'){
 			trigger();
@@ -1617,7 +1617,7 @@ var graph_rrd = function(start,group,time) {
 	});
 };
 
-var graph_history = function(items,start,days,time) {
+var object_history = function(items,start,days,time) {
 
 	var URLHash = URLToHash();
 	if (typeof time === 'undefined'){
@@ -1636,7 +1636,7 @@ var graph_history = function(items,start,days,time) {
 		updateSocket.abort();
 	}	
 	var path_str = "/history"  
-	arg_str = "&items="+items+"&days="+days+"&time="+time;
+	arg_str = "&items="+items+"&days="+days+"&graph=1&time="+time;
 	if (start !== undefined) arg_str += "&start="+start;
 console.log("arg_str="+arg_str);
 	updateSocket = $.ajax({
@@ -1665,8 +1665,10 @@ console.log("arg_str="+arg_str);
 				var end_date = new Date(end);
 				
 				console.log("start="+start+" days="+days+" end="+end);
-				var start_value = (start_date.getMonth() + 1)+"/"+start_date.getDate()+"/"+start_date.getFullYear();
-				var end_value = (end_date.getMonth() + 1)+"/"+end_date.getDate()+"/"+end_date.getFullYear();
+//				var start_value = (start_date.getMonth() + 1)+"/"+start_date.getDate()+"/"+start_date.getFullYear();
+//				var end_value = (end_date.getMonth() + 1)+"/"+end_date.getDate()+"/"+end_date.getFullYear();
+				var start_value = start_date.getFullYear()+"-"+(start_date.getMonth() + 1)+"-"+start_date.getDate();
+				var end_value = end_date.getFullYear()+"-"+(end_date.getMonth() + 1)+"-"+end_date.getDate();
 								
 				var datepicker_html = '<div class="input-group input-daterange" id="datepicker">';
     			datepicker_html += '<input type="text" class="form-control hist_end" value="'+end_value+'">';
@@ -1677,7 +1679,9 @@ console.log("arg_str="+arg_str);
 				//$('.input-daterange input').each(function() {
     			//	$(this).datepicker();
 				//});
-				$('#datepicker').datepicker();
+				$('#datepicker').datepicker({
+					format: "yyyy-m-d"
+				});
 				
 				$('.update_history').click(function() {
 					console.log ("start="+$('.hist_start').val()+" end="+$('.hist_end').val());
@@ -1686,7 +1690,7 @@ console.log("arg_str="+arg_str);
 					var end_days = (new_start - new_end) / (24 * 60 * 60 * 1000)
 					new_start = new_start / 1000;
 					console.log("starte="+new_start+" ende="+new_end+" days="+end_days);
-					graph_history(items,new_start,end_days);
+					object_history(items,new_start,end_days);
 				});
 				//sort the legend
 				json.data.data.sort(function(a, b){
@@ -1718,12 +1722,11 @@ console.log("arg_str="+arg_str);
            		 			}
        		 			}
     				});
-    				json.data.options.grid.borderWidth = 0
-    				//	borderWidth:0, 
-    				//	labelMargin:0, 
-    				//	axisMargin:0, 
-    				//	minBorderMargin:0
-    				//};
+    				// take away the border so that it looks better and span the graph from start to end.
+    				json.data.options.grid.borderWidth = 0;
+    				json.data.options.xaxis.min = new Date($('.hist_start').val()).getTime();
+                	json.data.options.xaxis.max = new Date($('.hist_end').val()).getTime() + (24 * 60 * 60 * 1000);
+
     				$.plot($("#hist-graph"), data, json.data.options);
     				$('.legend').hide();	
 				}

@@ -75,9 +75,35 @@
 		/* Force table to not be like tables anymore */
 /*		#rtable table, thead, tbody, th, td, tr {   */
 
-		#rtable table thead tbody th td tr {   
-			display: block; 
+/*		#rtable table thead tbody th td tr {   */
+/*			display: block; 					*/
+/*		}										*/
+
+		#rtable table {
+			display: block;
 		}
+		
+		#rtable thead {
+			display: block;
+		}
+		
+		#rtable tbody {
+			display: block;
+		}	
+
+		#rtable th {
+			display: block;
+		}	
+			
+		#rtable td {
+			display: block;
+		}	
+
+		#rtable tr {
+			display: block;
+		}	
+
+								
 		
 		/* Hide table headers (but not display: none;, for accessibility) */
 		#rtable thead tr { 
