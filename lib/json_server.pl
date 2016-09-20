@@ -451,9 +451,7 @@ sub json_get {
  				next unless $o->get_logger_status();
  				my $label = $o->set_label();
  				$label = $name unless (defined $label);
- 	 			print ("db history name=$name label=$label\n");			
  				my $logger_data = $o->get_logger_data($start,$days);
- 				print ("db data=$logger_data\n");
  				#alert if any anomalous states are detected
              	my @lines = split /\n/, $logger_data;
             	foreach my $line (@lines) {	
@@ -473,7 +471,7 @@ sub json_get {
                     	$states{$value} = $state;
  						push @{$dataset[$index]->{data}}, [ int($time2), int($value) ];
  					} else {
- 						push @{$dataset[$index]->{data}}, [ int($time2), $state, $setby ];
+ 						push @dataset, [int($time2), $state, $setby];
 					} 						
  				}
                 push @{$dataset[$index]->{label}}, $label if ($graph);

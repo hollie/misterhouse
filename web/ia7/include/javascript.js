@@ -1620,12 +1620,19 @@ var graph_rrd = function(start,group,time) {
 var object_history = function(items,start,days,time) {
 
 	var URLHash = URLToHash();
+	var graph = 0;
+	if (developer) graph = 1;  //right now only show the graph if in developer mode
 	if (typeof time === 'undefined'){
-		$('#list_content').html("<div id='top-graph' class='row top-buffer'>");
-		$('#top-graph').append("<div id='hist-periods' class='row'>");		
-		$('#top-graph').append("<div id='hist-graph' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
-		$('#top-graph').append("<div id='hist-legend' class='rrd-legend-class'><br>");
-
+		if (graph) {
+			$('#list_content').html("<div id='top-graph' class='row top-buffer'>");
+			$('#top-graph').append("<div id='hist-periods' class='row'>");		
+			$('#top-graph').append("<div id='hist-graph' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
+			$('#top-graph').append("<div id='hist-legend' class='rrd-legend-class'><br>");
+		} else {
+			$('#list_content').html("<div id='display_table' class='row top-buffer'>");
+			$('#display_table').append("<div id='hist-periods' class='row'>");					
+			$('#display_table').append("<div id='rtable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
+		}
 		time = 0;
 	}
 		
@@ -1636,9 +1643,8 @@ var object_history = function(items,start,days,time) {
 		updateSocket.abort();
 	}	
 	var path_str = "/history"  
-	arg_str = "&items="+items+"&days="+days+"&graph=1&time="+time;
+	arg_str = "&items="+items+"&days="+days+"&graph="+graph+"&time="+time;
 	if (start !== undefined) arg_str += "&start="+start;
-console.log("arg_str="+arg_str);
 	updateSocket = $.ajax({
 		type: "GET",
 		//url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
@@ -1664,7 +1670,6 @@ console.log("arg_str="+arg_str);
 				var start_date = new Date(start);
 				var end_date = new Date(end);
 				
-				console.log("start="+start+" days="+days+" end="+end);
 //				var start_value = (start_date.getMonth() + 1)+"/"+start_date.getDate()+"/"+start_date.getFullYear();
 //				var end_value = (end_date.getMonth() + 1)+"/"+end_date.getDate()+"/"+end_date.getFullYear();
 				var start_value = start_date.getFullYear()+"-"+(start_date.getMonth() + 1)+"-"+start_date.getDate();
@@ -1689,119 +1694,135 @@ console.log("arg_str="+arg_str);
 					var new_end = new Date($('.hist_end').val()).getTime();
 					var end_days = (new_start - new_end) / (24 * 60 * 60 * 1000)
 					new_start = new_start / 1000;
-					console.log("starte="+new_start+" ende="+new_end+" days="+end_days);
 					object_history(items,new_start,end_days);
 				});
-				//sort the legend
-				json.data.data.sort(function(a, b){
-    				if(a.label < b.label) return -1;
-    				if(a.label > b.label) return 1;
-    				return 0;
-				})
-
+				// graphing view
+				if (graph) {
+					//sort the legend
+					json.data.data.sort(function(a, b){
+    					if(a.label < b.label) return -1;
+    					if(a.label > b.label) return 1;
+    					return 0;
+					})
+console.log("g1");
 					// put the selection list on the side.
-				for (var i = 0; i < json.data.data.length; i++){
-					var legli = $('<li style="list-style:none;"/>').appendTo('#hist-legend');
-					$('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
-					$('<label>', {
-						class: "rrd-legend-class",
-						text: json.data.data[i].label,
-				    	'for': json.data.data[i].label
-						}).appendTo(legli);
-				}
- 
-				function plotAccordingToChoices() {
-    				var data = [];
+					for (var i = 0; i < json.data.data.length; i++){
+						var legli = $('<li style="list-style:none;"/>').appendTo('#hist-legend');
+						$('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
+						$('<label>', {
+							class: "rrd-legend-class",
+							text: json.data.data[i].label,
+				    		'for': json.data.data[i].label
+							}).appendTo(legli);
+					}
+console.log("g2");
+					function plotAccordingToChoices() {
+    					var data = [];
 
-    				$('#hist-legend').find("input:checked").each(function() {
-        				var key = this.name;
-        				for (var i = 0; i < json.data.data.length; i++) {
-            				if (json.data.data[i].label == key) {
-                				data.push(json.data.data[i]);
-                			return true;
-           		 			}
-       		 			}
-    				});
-    				// take away the border so that it looks better and span the graph from start to end.
-    				json.data.options.grid.borderWidth = 0;
-    				json.data.options.xaxis.min = new Date($('.hist_start').val()).getTime();
-                	json.data.options.xaxis.max = new Date($('.hist_end').val()).getTime() + (24 * 60 * 60 * 1000);
+    					$('#hist-legend').find("input:checked").each(function() {
+        					var key = this.name;
+        					for (var i = 0; i < json.data.data.length; i++) {
+            					if (json.data.data[i].label == key) {
+                					data.push(json.data.data[i]);
+                				return true;
+           		 				}
+       		 				}
+    					});
+    					// take away the border so that it looks better and span the graph from start to end.
+    					json.data.options.grid.borderWidth = 0;
 
-    				$.plot($("#hist-graph"), data, json.data.options);
-    				$('.legend').hide();	
-				}
+//TODO fix time from new format - get it from the datepicker?
+    					json.data.options.xaxis.min = new Date($('.hist_end').val()).getTime();
+                		json.data.options.xaxis.max = new Date($('.hist_start').val()).getTime() + (24 * 60 * 60 * 1000);
+console.log("data="+JSON.stringify(data));
+console.log("xmin="+json.data.options.xaxis.min+" xmax="+json.data.options.xaxis.max);
+    					$.plot($("#hist-graph"), data, json.data.options);
+    					$('.legend').hide();	
+					}
 		
-				window.onresize = function(){
-    				var base_width = $(window).width();
-   					//if (base_width > 990) base_width = 990;
-   					// styling changes @992, so then add a 30 right and left margin
-   					var graph_width = base_width - 200; //give some room for the legend
-					if (base_width < 701) {
-						//put legend below graph
-						graph_width=base_width; // - 10;
-					} 
-    				$('#hist-graph').css("width",graph_width+"px");
-    				$('#hist-graph').text(''); 
-    				$('#hist-graph').show(); //check
-    				plotAccordingToChoices();
+					window.onresize = function(){
+    					var base_width = $(window).width();
+   						//if (base_width > 990) base_width = 990;
+   						// styling changes @992, so then add a 30 right and left margin
+   						var graph_width = base_width - 200; //give some room for the legend
+						if (base_width < 701) {
+							//put legend below graph
+							graph_width=base_width; // - 10;
+						} 
+    					$('#hist-graph').css("width",graph_width+"px");
+    					$('#hist-graph').text(''); 
+    					$('#hist-graph').show(); //check
+    					plotAccordingToChoices();
 
-				}
+					}
 
-				var previousPoint = null;
+					var previousPoint = null;
 
-				$("#hist-graph").bind("plothover", function(event, pos, item) {
-    				$("#x").text(pos.x.toFixed(2));
-    				$("#y").text(pos.y.toFixed(2));
-    				if (item) {
-        				if (previousPoint != item.datapoint) {
-            			previousPoint = item.datapoint;
-            			$("#tooltip").remove();
-            			var x = item.datapoint[0].toFixed(2),
-                		y = item.datapoint[1].toFixed(2);
-						var date = new Date(parseInt(x));
-						var date_str = date.toString(); //split("GMT")[0];
-						var nice_date = date_str.split(" GMT")[0];
-            			showTooltip(item.pageX, item.pageY, item.series.label + " " + y + "<br>" + nice_date);
-        				}
-    				} else {
-        				$("#tooltip").remove();
-        				previousPoint = null;
-    				}
-				});
-
-				function showTooltip(x, y, contents) {
-    				$('<div id="tooltip">' + contents + '</div>').css({
-        				position: 'absolute',
-        				display: 'none',
-        				top: y + 5,
-        				left: x + 15,
-        				border: '1px solid #fdd',
-        				padding: '2px',
-        				backgroundColor: '#fee',
-        				opacity: 0.80
-    				}).appendTo("body").fadeIn(200);
-				}
-
-				window.onresize(); // get all settings based on current window size
-				plotAccordingToChoices();
-
-				$('#hist-legend').find("input").change(plotAccordingToChoices);		
-
-				$('.legendColorBox > div > div').each(function(i){
-					var color = $(this).css("border-left-color");
-    				$('#hist-legend').find("li").eq(i).prepend('<span style="width:4px;height:4px;border: 0px;background: '+color+';">&nbsp;&nbsp;&nbsp;</span>&nbsp');
+					$("#hist-graph").bind("plothover", function(event, pos, item) {
+    					$("#x").text(pos.x.toFixed(2));
+    					$("#y").text(pos.y.toFixed(2));
+    					if (item) {
+        					if (previousPoint != item.datapoint) {
+            				previousPoint = item.datapoint;
+            				$("#tooltip").remove();
+            				var x = item.datapoint[0].toFixed(2),
+                			y = item.datapoint[1].toFixed(2);
+							var date = new Date(parseInt(x));
+							var date_str = date.toString(); //split("GMT")[0];
+							var nice_date = date_str.split(" GMT")[0];
+            				showTooltip(item.pageX, item.pageY, item.series.label + " " + y + "<br>" + nice_date);
+        					}
+    					} else {
+        					$("#tooltip").remove();
+        					previousPoint = null;
+    					}	
 					});
+
+					function showTooltip(x, y, contents) {
+    					$('<div id="tooltip">' + contents + '</div>').css({
+        					position: 'absolute',
+        					display: 'none',
+        					top: y + 5,
+        					left: x + 15,
+        					border: '1px solid #fdd',
+        					padding: '2px',
+        					backgroundColor: '#fee',
+        					opacity: 0.80
+    					}).appendTo("body").fadeIn(200);
+					}
+
+					window.onresize(); // get all settings based on current window size
+					plotAccordingToChoices();
+
+					$('#hist-legend').find("input").change(plotAccordingToChoices);		
+
+					$('.legendColorBox > div > div').each(function(i){
+						var color = $(this).css("border-left-color");
+    					$('#hist-legend').find("li").eq(i).prepend('<span style="width:4px;height:4px;border: 0px;background: '+color+';">&nbsp;&nbsp;&nbsp;</span>&nbsp');
+					});
+				} else {
+					var html = "<table class='table table-curved'><thead><tr>";
+					html += "<th>Time</th><th>State</th><th>Set By</th>";
+					html += "</tr></thead><tbody>";
+					if (json.data.data !== undefined) {  //If no data, at least show the header
+						for (var i = 0; i < json.data.data.length; i++){
+							html +="<tr>";
+					  		html += "<td data-title='Time'>"+new Date(json.data.data[i][0]).toUTCString()+"</td>";
+					  		html += "<td data-title='State'>"+String(json.data.data[i][1])+"</td>";
+					  		html += "<td data-title='Setby'>"+String(json.data.data[i][2])+"</td>";
+							html += "</tr>";
+						}
+					}
+					html += "</tbody></table></div>";
+					$('#rtable').html(html);
+				}	
 				requestTime = json.meta.time;
 
 			}
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
 				//Call update again, if page is still here
 				//KRK best way to handle this is likely to check the URL hash
-				if ($('#top-graph').length !== 0){
 //TODO live updates
-					//If the graph  page is still active request more data
-//					graph_rrd(start,group,requestTime);
-				}
 			}		
 		}
 	});
