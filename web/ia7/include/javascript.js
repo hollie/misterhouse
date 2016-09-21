@@ -1629,9 +1629,9 @@ var object_history = function(items,start,days,time) {
 			$('#top-graph').append("<div id='hist-graph' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
 			$('#top-graph').append("<div id='hist-legend' class='rrd-legend-class'><br>");
 		} else {
-			$('#list_content').html("<div id='display_table' class='row top-buffer'>");
-			$('#display_table').append("<div id='hist-periods' class='row'>");					
-			$('#display_table').append("<div id='rtable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
+			$('#list_content').html("<div id='hist-table' class='row top-buffer'>");
+			$('#hist-table').append("<div id='hist-periods' class='row'>");					
+			$('#hist-table').append("<div id='rtable' class='hist-table-margin col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
 		}
 		time = 0;
 	}
@@ -1704,7 +1704,6 @@ var object_history = function(items,start,days,time) {
     					if(a.label > b.label) return 1;
     					return 0;
 					})
-console.log("g1");
 					// put the selection list on the side.
 					for (var i = 0; i < json.data.data.length; i++){
 						var legli = $('<li style="list-style:none;"/>').appendTo('#hist-legend');
@@ -1715,7 +1714,6 @@ console.log("g1");
 				    		'for': json.data.data[i].label
 							}).appendTo(legli);
 					}
-console.log("g2");
 					function plotAccordingToChoices() {
     					var data = [];
 
@@ -1731,11 +1729,10 @@ console.log("g2");
     					// take away the border so that it looks better and span the graph from start to end.
     					json.data.options.grid.borderWidth = 0;
 
-//TODO fix time from new format - get it from the datepicker?
     					json.data.options.xaxis.min = new Date($('.hist_end').val()).getTime();
                 		json.data.options.xaxis.max = new Date($('.hist_start').val()).getTime() + (24 * 60 * 60 * 1000);
-console.log("data="+JSON.stringify(data));
-console.log("xmin="+json.data.options.xaxis.min+" xmax="+json.data.options.xaxis.max);
+//console.log("data="+JSON.stringify(data));
+//console.log("xmin="+json.data.options.xaxis.min+" xmax="+json.data.options.xaxis.max);
     					$.plot($("#hist-graph"), data, json.data.options);
     					$('.legend').hide();	
 					}

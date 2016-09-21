@@ -156,6 +156,12 @@
 	#top-graph {
 		margin-left: 10px;
 	}
+    #hist-table {
+    	margin-left: 10px;
+    }
+    .hist-table-margin {
+    	padding-right: 35px;
+    }	
 	#rrd-graph {
     	width:700px;
     	height:500px;
@@ -173,7 +179,6 @@
     	float:left;
     	margin-left:50px;
     }
- 
 	.alerts {
   		position: absolute;
   		top: 3px;
