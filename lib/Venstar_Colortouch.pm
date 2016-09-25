@@ -1,4 +1,5 @@
 package Venstar_Colortouch;
+# v1.4.1
 
 use strict;
 use warnings;
@@ -19,7 +20,7 @@ use Data::Dumper;
 # $stat_upper_hum     = new Venstar_Colortouch_Humidity($stat_upper);
 # $stat_upper_hum_sp  = new Venstar_Colortouch_Humidity_sp($stat_upper);
 # $stat_upper_sched   = new Venstar_Colortouch_Schedule($stat_upper);
-# $stat_upper_comm	 = new Venstar_Colortouch_Comm($stat_upper);
+# $stat_upper_comm	  = new Venstar_Colortouch_Comm($stat_upper);
 
 # v1.1 - added in schedule and humidity control.
 # v1.2 - added communication tracker object & timeout control
@@ -28,6 +29,7 @@ use Data::Dumper;
 #	"hum_setpoint": is the current humidity and
 #   "dehum_setpoint": is the humidity setpoint
 #	"hum" doesn't return anything anymore.
+# v1.4.1 - API v5, working schedule, humidity setpoints
 
 # Notes:
 #  - Best to use firmware at least 3.14 released Nov 2014. This fixes issues with both
@@ -40,8 +42,8 @@ use Data::Dumper;
 # - figure out timezone w/ DST
 # - changing heating/cooling setpoints for heating/cooling only stats does not need both setpoints
 # - add decimals for setpoints
-# # make the data poll non-blocking, turn off timer
-#
+# - make the data poll non-blocking, turn off timer
+
 # State can only be set by stat. Set mode will change the mode.
 
 @Venstar_Colortouch::ISA = ('Generic_Item');
@@ -286,13 +288,13 @@ sub _get_JSON_data {
               . $self->{data}->{name}
               . "] Warning, not fetching data due to operation in progress" );
         return ('0');
-
+	}
 }
 
 sub _push_JSON_data {
     my ( $self, $type, $params ) = @_;
 
-    my ( @fan, @fanstate, @modename, @statename, @schedule, @home );
+    my ( @fan, @fanstate, @modename, @statename, @schedule, @home, @schedulestat );
     $fan[0]        = "auto";
     $fan[1]        = "on";
     $fanstate[0]   = "off";
@@ -313,6 +315,10 @@ sub _push_JSON_data {
     $schedule[2]   = "evening (occupied3)";
     $schedule[3]   = "night (occupied4)";
     $schedule[255] = "inactive";
+    $schedulestat[0] = "off";
+    $schedulestat[1] = "on";
+
+#4.08, schedulepart is now the schedule type. schedule 0 is off, 
 
     my $cmd;
 
@@ -320,30 +326,29 @@ sub _push_JSON_data {
     $self->stop_timer;    #stop timer to prevent a clash of updates
     if ( $type eq 'settings' ) {
 
-        #tempunits=0&away=0&schedule=0&hum_setpoint=0&dehum_setpoint=0
-		# with v4.08 firmware, hum and dehum setpoints need to be at least 4 % points different
+		#for testing purposes, curl is:
+		#curl --data "tempunits=1&away=0&schedule=0&hum_setpoint=30&dehum_setpoint=35" http://ip/settings
 
-        my ( $isSuccessResponse, $thedata ) = $self->_get_setting_params;
-        my %info = %$thedata;
-        my %cinfo = %$thedata;
-        my @changearr;
+#       my ( $isSuccessResponse, $thedata ) = $self->_get_setting_params;
+#       my %info = %$thedata;
+#       my %cinfo = %$thedata;
+#       my @changearr;
+#
+#       while ($params =~ /(\w+)=(\d+)/g) {
+#           print "[Venstar Colortouch:"
+#             . $self->{data}->{name}
+#             . "] _push_JSON_data match: $1 = $2\n";
+#           $info{$1} = $2;
+#           if ($info{$1} ne $cinfo{$1}) {
+#               main::print_log( "[Venstar Colortouch:"
+#                 . $self->{data}->{name}
+#                 . "] Changing $1 from $cinfo{$1} to $info{$1}" );
+#               push(@changearr, "$1=$info{$1}");
+#           }
+#       }
 
-        while ($params =~ /(\w+)=(\d+)/g) {
-            print "[Venstar Colortouch:"
-              . $self->{data}->{name}
-              . "] _push_JSON_data match: $1 = $2\n";
-            $info{$1} = $2;
-            if ($info{$1} ne $cinfo{$1}) {
-                main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing $1 from $cinfo{$1} to $info{$1}" );
-                push(@changearr, "$1=$info{$1}");
-            }
-        }
-
-        $cmd = join ('&', @changearr);
-        main::print_log( "Sending Settings command $cmd to " . $self->{host} ) if $cmd
-          ;    # if $self->{debug};
+#        $cmd = join ('&', @changearr);
+#        main::print_log( "Sending Settings command $cmd to " . $self->{host} ) if $cmd;    # if $self->{debug};
 
         my ( $newunits, $newaway, $newholiday, $newsched, $newhumsp, $newdehumsp );
         my ($units) = $params =~ /tempunits=(\d+)/;
@@ -359,10 +364,9 @@ sub _push_JSON_data {
           ;               #need to add in dehumidifier stuff at some point
 		my $humidity_change = 0;
 
-        my ( $isSuccessResponse, $cunits, $caway, $choliday, $coverride, $coverridetime, $cforceunocc, $csched, $chum, $chumsp,
-            $cdehumsp )
-          = $self->_get_setting_params;
-
+        my ( $isSuccessResponse, $cunits, $caway, $csched, $chum, $chumsp, $cdehumsp ) = $self->_get_setting_params;
+#check why is this called twice?
+		my ($choliday,$coverride,$coverridetime,$cforceunocc);
         $units = $cunits if ( not defined $units );
         $units = 1 if ( ( $units eq "C" ) or ( $units eq "c" ) );
         $units = 0 if ( ( $units eq "F" ) or ( $units eq "f" ) );
@@ -374,8 +378,21 @@ sub _push_JSON_data {
         $forceunocc    = $cforceunocc    if ( not defined $forceunocc );
         $sched   = $csched   if ( not defined $sched );
         $hum     = $chum     if ( not defined $hum );
-        $humsp   = $chumsp   if ( not defined $humsp );
-        $dehumsp = $cdehumsp if ( not defined $dehumsp );
+        #v4.08, dehum_sp is humidify, and hum_sp is dehumidify.
+        if ($self->{api_ver} >=5) {
+        	$humsp = $cdehumsp if ( not defined $humsp );
+        } else {
+        	$humsp   = $chumsp   if ( not defined $humsp );
+        }
+        if ($self->{api_ver} >=5) {
+         	$dehumsp = $chumsp if ( not defined $dehumsp );       
+        } else {
+        	$dehumsp = $cdehumsp if ( not defined $dehumsp );
+        }
+print "venstar db: params = $params\n";
+print "units=$units, away=$away, sched=$sched, hum=$hum, humsp=$humsp, dehumsp=$dehumsp\n";
+print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp, cdehumsp=$cdehumsp\n";
+
 
         if ( $cunits ne $units ) {
             main::print_log( "[Venstar Colortouch:"
@@ -417,70 +434,57 @@ sub _push_JSON_data {
             $newaway = $caway;
         }
 
-        if ( $caway ne $away ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing Away from $caway to $away" );
-            $newaway = $away;
-        }
-        else {
-            $newaway = $caway;
-        }
-
-        if ( $caway ne $away ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing Away from $caway to $away" );
-            $newaway = $away;
-        }
-        else {
-            $newaway = $caway;
-        }
-
-
         if ( $csched ne $sched ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing Schedule from $schedule[$csched] to $schedule[$sched]"
-            );
+        	if ($self->{api_ver} >=5) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Schedule from $schedulestat[$csched] to $schedulestat[$sched]");
+			} else {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Schedule from $schedule[$csched] to $schedule[$sched]");
+			}
             $newsched = $sched;
         }
         else {
             $newsched = $csched;
         }
+        if ($self->{api_ver} >=5) {
+         	if ( $cdehumsp ne $humsp ) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Humidity Setpoint from $cdehumsp to $humsp\n" );
+            	$newhumsp = $humsp;
+            	$humidity_change = 1;
+        	} else {
+            	$newhumsp = $cdehumsp;
+        	}
 
-        if ( $chumsp ne $humsp ) {
-            print
-              "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-             	  . "] Changing Humidity Setpoint from $chumsp to $humsp\n";
-            $newhumsp = $humsp;
-            $humidity_change = 1;
-        }
-        else {
-            $newhumsp = $chumsp;
+        	if ( $chumsp ne $dehumsp ) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name}	. "] *Changing Dehumidity Setpoint from $chumsp to $dehumsp\n" );
+            	$newdehumsp = $dehumsp;
+        	} else {
+           	 	$newdehumsp = $chumsp;
+        	}
+        } else {
+        	if ( $chumsp ne $humsp ) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Humidity Setpoint from $chumsp to $humsp\n" );
+            	$newhumsp = $humsp;
+            	$humidity_change = 1;
+        	} else {
+            	$newhumsp = $chumsp;
+        	}
+
+        	if ( $cdehumsp ne $dehumsp ) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name}	. "] Changing Dehumidity Setpoint from $cdehumsp to $dehumsp\n" );
+            	$newdehumsp = $dehumsp;
+        	} else {
+           	 $newdehumsp = $cdehumsp;
+        	}
         }
 
-        if ( $cdehumsp ne $dehumsp ) {
-            print
-              "[Venstar Colortouch:"
-              	. $self->{data}->{name}
-              	. "] Changing (De)humidity Setpoint from $cdehumsp to $dehumsp\n";
-            $newdehumsp = $dehumsp;
-        }
-        else {
-            $newdehumsp = $cdehumsp;
-        }
-
-		# v4.08 needs 6 % point delta on humidity and dehumidity. 
-		# if humidify is more then dehumidify, then set dehumidify to 6 + humidity
-		$newdehumsp = $newhumsp + 6 if ((($newhumsp >= $newdehumsp) or (($newdehumsp - $newhumsp) < 6)));
+## to set v4.08, humidity to 32%, this is needed "tempunits=1&away=0&schedule=0&hum_setpoint=32&dehum_setpoint=38" 
+## so humidity setpoint hasn't changed?
 		if ($self->{api_ver} >=5) {
-        	$cmd = "tempunits=$newunits&away=$newaway&schedule=$newsched"; #&dehum_setpoint=$newhumsp&hum_setpoint=" . ($newhumsp + 1);	
-        	$cmd = "hum_setpoint=$newhumsp&dehum_setpoint=$newdehumsp" if ($humidity_change);
-		} else {
-        	$cmd = "tempunits=$newunits&away=$newaway&schedule=$newsched&hum_setpoint=$newhumsp&dehum_setpoint=$newdehumsp";
-        }
+			# v4.08 has changed humidification settings
+			# - need 6 % point delta on humidity and dehumidity. 
+			$newdehumsp = $newhumsp + 6 if ((($newhumsp >= $newdehumsp) or (($newdehumsp - $newhumsp) < 6)));
+		} 
+        $cmd = "tempunits=$newunits&away=$newaway&schedule=$newsched&hum_setpoint=$newhumsp&dehum_setpoint=$newdehumsp";        
         main::print_log( "Sending Settings command [$cmd] to " . $self->{host} ) if $self->{debug};
 
     }
@@ -677,9 +681,9 @@ sub _get_control_params {
 sub _get_setting_params {
     my ($self) = @_;
     my ( $isSuccessResponse, $info ) = $self->_get_JSON_data('info');
-    return ( $isSuccessResponse, $info); #->{tempunits}, $info->{away},
-#        $info->{schedule}, $info->{hum}, $info->{hum_setpoint},
-#        $info->{dehum_setpoint} );
+    return ( $isSuccessResponse, $info->{tempunits}, $info->{away},
+        $info->{schedule}, $info->{hum}, $info->{hum_setpoint},
+        $info->{dehum_setpoint} );
 }
 
 sub stop_timer {
