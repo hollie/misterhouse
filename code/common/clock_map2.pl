@@ -12,8 +12,7 @@ my $URL =
 my $MAPDIR    = "$Pgm_Root/web/newclock/maps";
 my $f_get_map = "$config_parms{data_dir}/earth_jpg.data";
 my $min_size = 20000;    #minimum size to test if a jpg has been downloaded
-$p_get_map = new Process_Item(
-    "get_url -quiet \"$URL\" $config_parms{data_dir}/earth_jpg.data");
+$p_get_map = new Process_Item("get_url -quiet \"$URL\" $config_parms{data_dir}/earth_jpg.data");
 
 # Update earth.jpg for each Hour, once a week
 

@@ -129,17 +129,10 @@ $v_audrey_top_light   = new Voice_Cmd("Audrey top light [on,off,blinking]");
 $v_audrey_mail_light  = new Voice_Cmd("Audrey mail light [on,off,blinking]");
 $v_audrey_both_lights = new Voice_Cmd("Audrey lights both [on,off,blinking]");
 $v_audrey_beeps      = new Voice_Cmd("Audrey beeps [enabled,disabled,stopped]");
-$v_audrey_sound_play = new Voice_Cmd(
-    "Play Audrey sound number [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]"
-);
-$v_audrey_volume = new Voice_Cmd(
-    "Set Audrey volume to [1,10,20,25,30,40,50,60,70,75,80,90,100]");
-$v_audrey_remote = new Voice_Cmd(
-    "Push Audrey Button [browser,address_book,date_book,audrey_options,power_button,turn_knob_left,push_knob,turn_knob_right,mail,tab,enter]"
-);
-$v_audrey_sound_play_by_name = new Voice_Cmd(
-    "Play Audrey sound [cancel,check,copy,cut,delete,help,major_high,menu_close,menu_open,minor_high,minor_low,paste,print,scroll_down,scroll_up,snapshot,warning,go_to_sleep,wake_up]"
-);
+$v_audrey_sound_play = new Voice_Cmd("Play Audrey sound number [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]");
+$v_audrey_volume = new Voice_Cmd("Set Audrey volume to [1,10,20,25,30,40,50,60,70,75,80,90,100]");
+$v_audrey_remote = new Voice_Cmd("Push Audrey Button [browser,address_book,date_book,audrey_options,power_button,turn_knob_left,push_knob,turn_knob_right,mail,tab,enter]");
+$v_audrey_sound_play_by_name = new Voice_Cmd("Play Audrey sound [cancel,check,copy,cut,delete,help,major_high,menu_close,menu_open,minor_high,minor_low,paste,print,scroll_down,scroll_up,snapshot,warning,go_to_sleep,wake_up]");
 
 if ( said $v_audrey_select) {
     my $state = $v_audrey_select->{state};

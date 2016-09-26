@@ -11,8 +11,7 @@
 my $client1_address = '192.168.0.2:8084';
 $client1 = new Socket_Item( undef, undef, $client1_address );
 
-$v_test_client1 = new Voice_Cmd(
-    "Run socket test: [display,speak,run,log,file,use mhsend command]");
+$v_test_client1 = new Voice_Cmd("Run socket test: [display,speak,run,log,file,use mhsend command]");
 
 if ( $state = said $v_test_client1) {
     print_log "Running client test $state";

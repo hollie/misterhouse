@@ -8,12 +8,7 @@
 #@ You can see a video of this code allowing my 2 robots to insult each other
 #@ at <a href=http://misterhouse.net/public/robot/>misterhouse.net/public/robot/</a>.
 
-$f_insult = new File_Item(
-    &file_default(
-        $config_parms{speak_insult_file},
-        "$config_parms{data_dir}/remarks/insults1.txt"
-    )
-);
+$f_insult = new File_Item(&file_default($config_parms{speak_insult_file},"$config_parms{data_dir}/remarks/insults1.txt"));
 
 $v_insult1 = new Voice_Cmd('Speak an insult');
 $v_insult1->set_authority('anyone');

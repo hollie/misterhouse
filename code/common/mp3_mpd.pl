@@ -62,12 +62,8 @@ if ( done_now $p_mp3_build_list) {
     print_log "MPD Database Updated";
 }
 
-$v_mp3_control_cmd = new Voice_Cmd(
-    "Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off,track]"
-);
-$v_mp3_vol_control = new Voice_Cmd(
-    "Set the house mp3 volume to [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]"
-);
+$v_mp3_control_cmd = new Voice_Cmd("Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off,track]");
+$v_mp3_vol_control = new Voice_Cmd("Set the house mp3 volume to [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]");
 $v_mpd_control = new Voice_Cmd("[Regenerate,Restart] MPD");
 
 my $state;

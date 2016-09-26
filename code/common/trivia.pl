@@ -8,9 +8,7 @@
 my $f_trivia_question = "$config_parms{data_dir}/trivia_question.txt";
 my $f_trivia_answer   = "$config_parms{data_dir}/trivia_answer.txt";
 
-$v_trivia_next = new Voice_Cmd(
-    'What is the [Current,next Science,next Entertainment,next Mixed,next Sports,next Random] trivia question'
-);
+$v_trivia_next = new Voice_Cmd('What is the [Current,next Science,next Entertainment,next Mixed,next Sports,next Random] trivia question');
 $v_trivia_answer = new Voice_Cmd('What is the trivia answer');
 
 $v_trivia_next->set_authority('anyone');

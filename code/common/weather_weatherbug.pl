@@ -118,9 +118,8 @@
             $weatherbug_url, 13, 0 )
           if ( $Debug{weatherbug} );
 
-        # Define the new process item that fetchs the RSS feed for the location
-        $p_weather_weatherbug_forecast = new Process_Item(
-            qq{get_url -quiet "$weatherbug_url" "$weatherbug_file"});
+# Define the new process item that fetchs the RSS feed for the location
+$p_weather_weatherbug_forecast = new Process_Item(qq{get_url -quiet "$weatherbug_url" "$weatherbug_file"});
 
         # Need to add a process to search for the citycode
         $weatherbug_url =
@@ -132,9 +131,8 @@
             $weatherbug_url, 13, 0 )
           if ( $Debug{weatherbug} );
 
-        # Define the new process item that fetchs the RSS feed for the location
-        $p_weather_weatherbug_citycode = new Process_Item(
-            qq{get_url -quiet "$weatherbug_url" "$weatherbug_file"});
+# Define the new process item that fetchs the RSS feed for the location
+$p_weather_weatherbug_citycode = new Process_Item(qq{get_url -quiet "$weatherbug_url" "$weatherbug_file"});
 
         # Need to add a process to get the live observations
         # use the lattitude and longitude form if they are available
@@ -171,13 +169,12 @@
             $weatherbug_url, 13, 0 )
           if ( $Debug{weatherbug} );
 
-        # Define the new process item that fetchs the RSS feed for the location
-        $p_weather_weatherbug_liveweather = new Process_Item(
-            qq{get_url -quiet "$weatherbug_url" "$weatherbug_obs_file"});
+# Define the new process item that fetchs the RSS feed for the location
+$p_weather_weatherbug_liveweather = new Process_Item(qq{get_url -quiet "$weatherbug_url" "$weatherbug_obs_file"});
 
-        # Define the voice commands that are used to get and process the RSS feed
-        my $weatherbug_states = 'getforecast,LiveWeather,getcitycode,debug';
-        $v_weatherbug = new Voice_Cmd("Weatherbug [$weatherbug_states]");
+# Define the voice commands that are used to get and process the RSS feed
+my $weatherbug_states = 'getforecast,LiveWeather,getcitycode,debug';
+$v_weatherbug = new Voice_Cmd("Weatherbug [$weatherbug_states]");
 
         # Define the lists of returned conditions by image code
         # Conditions from wxbug api definition

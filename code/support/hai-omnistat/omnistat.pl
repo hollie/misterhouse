@@ -68,22 +68,14 @@ foreach my $omnistat (@omnilist) {
     my $statidx = " ";
     $statidx = " $omniname[$omnistat]" if ( $#omnilist > 0 );
 
-    $v_omnistat_fan[$omnistat] =
-      new Voice_Cmd("Set$statidx Thermostat fan [on,auto,cycle]");
+    $v_omnistat_fan[$omnistat] = new Voice_Cmd("Set$statidx Thermostat fan [on,auto,cycle]");
     $v_omnistat_resume[$omnistat] = new Voice_Cmd("Resume $statidx Thermostat");
-    $v_omnistat_hold[$omnistat] =
-      new Voice_Cmd("Set$statidx Thermostat hold [on,off,vacation]");
-    $v_omnistat_mode[$omnistat] =
-      new Voice_Cmd("Set$statidx Thermostat mode [off,heat,cool,auto]");
-    $v_omnistat_cool_sp[$omnistat] =
-      new Voice_Cmd("Set$statidx Thermostat cool setpoint to [$temprange]");
-    $v_omnistat_heat_sp[$omnistat] =
-      new Voice_Cmd("Set$statidx Thermostat heat setpoint to [$temprange]");
-    $v_omnistat_setting[$omnistat] =
-      new Voice_Cmd("What is the$statidx thermostat set to");
-    $v_omnistat_background[$omnistat] = new Voice_Cmd(
-        "Set$statidx Thermostat background to [Blue,Green,Purple,Red,Orange,Yellow]"
-    );
+    $v_omnistat_hold[$omnistat] = new Voice_Cmd("Set$statidx Thermostat hold [on,off,vacation]");
+    $v_omnistat_mode[$omnistat] = new Voice_Cmd("Set$statidx Thermostat mode [off,heat,cool,auto]");
+    $v_omnistat_cool_sp[$omnistat] = new Voice_Cmd("Set$statidx Thermostat cool setpoint to [$temprange]");
+    $v_omnistat_heat_sp[$omnistat] = new Voice_Cmd("Set$statidx Thermostat heat setpoint to [$temprange]");
+    $v_omnistat_setting[$omnistat] = new Voice_Cmd("What is the$statidx thermostat set to");
+    $v_omnistat_background[$omnistat] = new Voice_Cmd("Set$statidx Thermostat background to [Blue,Green,Purple,Red,Orange,Yellow]");
 
     # With these, you can either send
     # 'Set Thermostat cool setpoint to 68'
