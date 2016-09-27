@@ -849,6 +849,7 @@ sub setup {
 
     #   require 'console_utils.pl';
     require 'http_server.pl';
+	require 'ia7_utilities.pl';
     require 'xml_server.pl';
     require 'menu_code.pl';
     require 'trigger_code.pl';

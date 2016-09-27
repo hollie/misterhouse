@@ -414,6 +414,87 @@ sub json_get {
         $json_data{'rrd'} = \%data;
     }
 
+    # List object history
+    if ( $path[0] eq 'history') {
+
+        if ( $args{items} && $args{items}[0] ne "" ) {
+        	my %statemaps = ('on' => 100,
+        					 'open' => 100,
+        					 'opened' => 100,
+        					 'motion' => 100,
+        					 'enable' => 100,
+        					 'enabled' => 100,
+        					 'online' => 100,
+        					 'off' => -100,
+        					 'close' => -100,
+        					 'closed' => -100,
+        					 'still' => -100,
+        					 'disable' => -100,
+        					 'disabled' => -100,
+        					 'offline' => -100,
+        					 'dim' => 50,
+        					 );
+        	my $unknown_value = 40;
+        	my @dataset = ();
+        	my %states;
+            my %data;
+        	my $index = 0;
+        	my $start = time;
+        	$start = $args{start}[0] if (defined $args{start}[0]);
+        	my $graph = 0;
+        	$graph = $args{graph}[0] if (defined $args{graph}[0]);
+        	my $days = 0;
+        	$days = $args{days}[0] if (defined $args{days}[0]);        	
+            foreach my $name ( @{ $args{items} } ) {
+            	my $o = &get_object_by_name($name);
+            	next unless (defined $o);
+ 				next unless $o->get_logger_status();
+ 				my $label = $o->set_label();
+ 				$label = $name unless (defined $label);
+ 				my $logger_data = $o->get_logger_data($start,$days);
+ 				#alert if any anomalous states are detected
+             	my @lines = split /\n/, $logger_data;
+            	foreach my $line (@lines) {	
+            		my $value;
+            		my ($time1,$time2,$obj,$state,$setby,$target) = split ",",$line;
+            		if ($graph) {
+            			if (defined $statemaps{$state}) {
+            				$value = $statemaps{$state};
+            			} else {
+            				if ($state =~ /(\d+)\%/) {
+            					$value = $_;
+            				} else { 
+            					&main::print_log("json_server.pl: WARNING. object history state $state not found in mapping");
+            					$value = $unknown_value++;
+            				}
+            			}          			
+                    	$states{$value} = $state;
+ 						push @{$dataset[$index]->{data}}, [ int($time2), int($value) ];
+ 					} else {
+ 						push @dataset, [int($time2), $state, $setby];
+					} 						
+ 				}
+                push @{$dataset[$index]->{label}}, $label if ($graph);
+				$index++;
+ 			}
+ 		if ($graph) {	
+ 			#flot expects to see an array
+			my @yaxticks = ();
+			for my $j (sort keys %states) {
+    			push @yaxticks, [ $j, $states{$j} ];
+    		}
+  			$data{'options'}->{'yaxis'}->{'ticks'}  = \@yaxticks; #\%states;
+  			$data{'options'}->{'legend'}->{'show'} = "true";
+  			$data{'options'}->{'xaxis'}->{'mode'} = "time";
+  			$data{'options'}->{'points'}->{'show'} = "true";
+  			$data{'options'}->{'xaxis'}->{'timezone'} = "browser";
+  			$data{'options'}->{'grid'}->{'hoverable'} = "true";
+  		}
+        $data{'data'}    = \@dataset;
+        $json_data{'history'} = \%data;
+ 		}
+ 	}	
+
     # List objects
     if ( $path[0] eq 'objects' || $path[0] eq '' ) {
         $json_data{objects} = {};
@@ -884,7 +965,7 @@ sub json_object_detail {
     my %json_objects;
     my %json_complete_object;
     my @f = qw( category filename measurement rf_id set_by members
-      state states state_log type label sort_order groups hidden parents
+      state states state_log type label sort_order groups hidden parents schedule logger_status
       idle_time text html seconds_remaining fp_location fp_icons fp_icon_set img link level);
 
     # Build list of fields based on those requested.
