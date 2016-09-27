@@ -1,5 +1,5 @@
 package Venstar_Colortouch;
-# v1.4.1
+# v2.0
 
 use strict;
 use warnings;
@@ -30,6 +30,7 @@ use Data::Dumper;
 #   "dehum_setpoint": is the humidity setpoint
 #	"hum" doesn't return anything anymore.
 # v1.4.1 - API v5, working schedule, humidity setpoints
+# v2.0 - Background process
 
 # Notes:
 #  - Best to use firmware at least 3.14 released Nov 2014. This fixes issues with both
@@ -65,31 +66,36 @@ sub new {
     my ( $class, $host, $poll, $debug ) = @_;
     my $self = {};
     bless $self, $class;
-    $self->{data}                 = undef;
-    $self->{api_ver} 			  = 0;
-    $self->{child_object}         = undef;
-    $self->{config}->{cache_time} = 30;      #TODO fix cache timeouts
-    $self->{config}->{cache_time} = $::config_params{venstar_config_cache_time}
-      if defined $::config_params{venstar_config_cache_time};
-    $self->{config}->{tz} =
-      $::config_params{time_zone}; #TODO Need to figure out DST for print runtimes
+    $self->{data}                 	= undef;
+    $self->{api_ver} 			  	= 0;
+    $self->{child_object}         	= undef;
+    $self->{config}->{cache_time} 	= 30;      #TODO fix cache timeouts
+    $self->{config}->{cache_time} 	= $::config_params{venstar_config_cache_time} if defined $::config_params{venstar_config_cache_time};
+    $self->{config}->{tz} 			=$::config_params{time_zone}; #TODO Need to figure out DST for print runtimes
     $self->{config}->{poll_seconds} = 60;
     $self->{config}->{poll_seconds} = $poll if ($poll);
-    $self->{config}->{poll_seconds} = 1
-      if ( $self->{config}->{poll_seconds} < 1 );
-    $self->{updating}      = 0;
-    $self->{data}->{retry} = 0;
-    $self->{host}          = $host;
-    $self->{debug}         = 0;
-    $self->{debug} = $debug if ($debug);
-    $self->{debug} = 0
-      if ( $self->{debug} < 0 );
-    $self->{loglevel}      = 1;
-    $self->{status}        = "";
-    $self->{timeout}       = 15;      #300;
-
+    $self->{config}->{poll_seconds} = 1 if ( $self->{config}->{poll_seconds} < 1 );
+    $self->{updating}      			= 0;
+    $self->{data}->{retry} 			= 0;
+    $self->{host}          			= $host;
+    $self->{debug}          		= 5;
+    $self->{debug} 					= $debug if ($debug);
+    $self->{debug} 					= 0	if ( $self->{debug} < 0 );
+    $self->{loglevel}      			= 1;
+    $self->{status}        			= "";
+    $self->{timeout}       			= 15;      #300;
+    $self->{background}				= 1;
+	$self->{max_poll_queue} 		= 3;   
+    if ($self->{background}) {
+    	@{$self->{command_queue}}		= ();
+   		$self->{poll_data_file} 		= "$::config_parms{data_dir}/venstar_poll_" . $self->{host} . ".data";
+   		unlink "$::config_parms{data_dir}/venstar_poll_" . $self->{host} . ".data";
+		$self->{poll_process} 			= new Process_Item;
+    	$self->{poll_process}->set_output($self->{poll_data_file});
+    	&::MainLoop_post_add_hook( \&Venstar_Colortouch::process_check, 0, $self );
+    }
+    $self->{timer} 					= new Timer;
     $self->_init;
-    $self->{timer} = new Timer;
     $self->start_timer;
     return $self;
 }
@@ -107,7 +113,7 @@ sub get_data {
 
     #main::print_log("[Venstar Colortouch] get_data initiated");
     $self->poll;
-    $self->process_data;
+    $self->process_data unless ($self->{background}); #for background tasks, data will be processed when process completed.
 }
 
 sub _init {
@@ -118,7 +124,7 @@ sub _init {
     $state[2] = "cooling";
     $state[3] = "lockout";
     $state[4] = "error";
-    my ( $isSuccessResponse1, $stat ) = $self->_get_JSON_data('api');
+    my ( $isSuccessResponse1, $stat ) = $self->_get_JSON_data('api',"direct");
 
     if ($isSuccessResponse1) {
 		$self->{api_ver} = $stat->{api_ver};		
@@ -127,63 +133,60 @@ sub _init {
 
             $self->{type} = $stat->{type};
 
-            main::print_log(
-                "[Venstar Colortouch] $stat->{type} Venstar ColorTouch found with api level $stat->{api_ver}"
-            );
-            if ( $self->poll() ) {
-                main::print_log( "[Venstar Colortouch:"
-                      . $self->{data}->{name}
-                      . "] Data Successfully Retrieved" );
+            main::print_log("[Venstar Colortouch] $stat->{type} Venstar ColorTouch found with api level $stat->{api_ver}");
+            if ( $self->poll("direct") ) {
+                main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Data Successfully Retrieved" );
                 $self->{active}                = 1;
                 $self->{previous}->{tempunits} = $self->{data}->{tempunits};
                 $self->{previous}->{name}      = $self->{data}->{name};
                 foreach my $key1 ( keys $self->{data}->{info} ) {
-                    $self->{previous}->{info}->{$key1} =
-                      $self->{data}->{info}->{$key1};
+                    $self->{previous}->{info}->{$key1} = $self->{data}->{info}->{$key1};
                 }
-                $self->{previous}->{sensors}->{sensors}[0]->{temp} =
-                  $self->{data}->{sensors}->{sensors}[0]->{temp};
-                $self->{previous}->{sensors}->{sensors}[0]->{hum} =
-                  $self->{data}->{sensors}->{sensors}[0]->{hum};
+                $self->{previous}->{sensors}->{sensors}[0]->{temp} = $self->{data}->{sensors}->{sensors}[0]->{temp};
+                $self->{previous}->{sensors}->{sensors}[0]->{hum} = $self->{data}->{sensors}->{sensors}[0]->{hum};
                 ## set states based on available mode
-                $self->set( $state[ $self->{data}->{info}->{state} ], 'poll' );
+### Strange, if this set is here, then the timer is not defined.
+                #print "db: set " . $state[ $self->{data}->{info}->{state} ] . "=" . $self->{data}->{info}->{state} . "\n";
+                #$self->set( $state[ $self->{data}->{info}->{state} ], 'poll' );
                 $self->print_info();
 
             }
             else {
-                main::print_log(
-                    "[Venstar Colortouch] Problem retrieving initial data");
+                main::print_log("[Venstar Colortouch] Problem retrieving initial data");
                 $self->{active} = 0;
                 return ('1');
             }
 
         }
         else {
-            main::print_log(
-                "[Venstar Colortouch] Unknown device " . $self->{host} );
+            main::print_log("[Venstar Colortouch] Unknown device " . $self->{host} );
             $self->{active} = 0;
             return ('1');
         }
 
     }
     else {
-        main::print_log( "[Venstar Colortouch] Error. Unable to connect to "
-              . $self->{host} );
+        main::print_log( "[Venstar Colortouch] Error. Unable to connect to " . $self->{host} );
         $self->{active} = 0;
         return ('1');
     }
 }
 
 sub poll {
-    my ($self) = @_;
+    my ($self,$method) = @_;
+    $method = "" unless (defined $method);
+	if (($self->{background}) and (lc $method ne "direct")) {
+    	main::print_log("[Venstar Colortouch] Background Polling initiated") if ( $self->{debug} );
+	} else {	
+    	main::print_log("[Venstar Colortouch] Direct Polling initiated") if ( $self->{debug} );
+	}
+	#spawn off info. 
+	#might had to add into the main loop to check if the object's data has changed.
+	#$self->{process_pid}->{{$self->{process}->pid} = "poll_info";
+    my ( $isSuccessResponse1, $info )    = $self->_get_JSON_data('info',$method);
+    my ( $isSuccessResponse2, $sensors ) = $self->_get_JSON_data('sensors',$method);
 
-    main::print_log("[Venstar Colortouch] Polling initiated")
-      if ( $self->{debug} );
-
-    my ( $isSuccessResponse1, $info )    = $self->_get_JSON_data('info');
-    my ( $isSuccessResponse2, $sensors ) = $self->_get_JSON_data('sensors');
-
-    if ( $isSuccessResponse1 and $isSuccessResponse2 ) {
+    if (( $isSuccessResponse1 and $isSuccessResponse2 ) and ((!$self->{background}) or (lc $method eq "direct"))) {
         $self->{data}->{tempunits} = $info->{tempunits};
         $self->{data}->{name}      = $info->{name};
         $self->{data}->{info}      = $info;
@@ -191,103 +194,139 @@ sub poll {
         $self->{data}->{timestamp} = time;
         $self->{data}->{retry}     = 0;
 
-        #if (defined $self->{child_object}->{comm}) {
-        #	if ($self->{child_object}->{comm}->state() ne "online") {
-        #       main::print_log "[Venstar Colortouch:". $self->{data}->{name} . "]] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to online..." if ($self->{loglevel});
-        #       $self->{child_object}->{comm}->set("online",'poll');
-        #   }
-        #}
         return ('1');
-
-        #} else {
-        #	main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Problem retrieving poll data from " . $self->{host});
-        #	$self->{data}->{retry}++;
-        #	if (defined $self->{child_object}->{comm}) {
-        #	   if ($self->{child_object}->{comm}->state() ne "offline") {
-        #	      main::print_log "[Venstar Colortouch:". $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ($self->{loglevel});
-        #	      $self->{child_object}->{comm}->set("offline",'poll');
-        #	   }
-        #   }
-        #	return ('0');
     }
 
 }
 
-#------------------------------------------------------------------------------------
-sub _get_JSON_data {
-    my ( $self, $mode ) = @_;
-
-    unless ( $self->{updating} ) {
-
-        $self->{updating} = 1;
-        my $ua = new LWP::UserAgent( keep_alive => 1 );
-        $ua->timeout( $self->{timeout} );
-
-        my $host = $self->{host};
-
-        my $request = HTTP::Request->new( POST => "http://$host/$rest{$mode}" );
-        $request->content_type("application/x-www-form-urlencoded");
-
-        my $responseObj = $ua->request($request);
-        print $responseObj->content . "\n--------------------\n"
-          if $self->{debug};
-
-        my $responseCode = $responseObj->code;
-        print 'Response code: ' . $responseCode . "\n" if $self->{debug};
-        my $isSuccessResponse = $responseCode < 400;
-        $self->{updating} = 0;
-        if ( !$isSuccessResponse ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Warning, failed to get data. Response code $responseCode"
-            );
-            if ( defined $self->{child_object}->{comm} ) {
-                if ( $self->{status} eq "online" ) {
-                    main::print_log "[Venstar Colortouch:"
-                      . $self->{data}->{name}
-                      . "] Communication Tracking object found. Updating from "
-                      . $self->{child_object}->{comm}->state()
-                      . " to offline..."
-                      if ( $self->{loglevel} );
-                    $self->{status} = "offline";
-                    $self->{child_object}->{comm}->set( "offline", 'poll' );
-                }
-            }
-            return ('0');
-        }
-        else {
-            if ( defined $self->{child_object}->{comm} ) {
-                if ( $self->{status} eq "offline" ) {
-                    main::print_log "[Venstar Colortouch:"
-                      . $self->{data}->{name}
-                      . "] Communication Tracking object found. Updating from "
-                      . $self->{child_object}->{comm}->state()
-                      . " to online..."
-                      if ( $self->{loglevel} );
-                    $self->{status} = "online";
-                    $self->{child_object}->{comm}->set( "online", 'poll' );
-                }
-            }
-        }
-        my $response;
-        eval { $response = JSON::XS->new->decode( $responseObj->content ); };
-
+sub process_check {
+	my ($self) = @_;
+	
+	return unless (defined $self->{poll_process});	
+	if ($self->{poll_process}->done_now()) {
+    	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Background, " . $self->{poll_process_mode} . " process completed") if ($self->{debug});
+	
+		my $file_data = &main::file_read($self->{poll_data_file});
+		#for some reason get_url adds garbage to the output. Clean out the characters before and after the json
+		my ($json_data) = $file_data =~ /({.*})/;
+		my $data;
+        eval { $data = JSON::XS->new->decode( $json_data ); };
         # catch crashes:
         if ($@) {
-            print "[Venstar Colortouch:"
-              . $self->{data}->{name}
-              . "] ERROR! JSON parser crashed! $@\n";
-            return ('0');
+            print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! JSON file parser crashed! $@\n";
+        } else {
+        	if (keys $data) {
+#        	if ($self->{poll_process_pid}->{$self->{poll_process}->pid()} eq "info") {
+# need to check for valid data
+        		if ($self->{poll_process_mode} eq "info") {
+        			$self->{data}->{tempunits} = $data->{tempunits};
+        			$self->{data}->{name}      = $data->{name};
+        			$self->{data}->{info}      = $data;
+        			$self->{data}->{timestamp} = time;        	        		
+        		} elsif ($self->{poll_process_mode} eq "sensors") {
+        			$self->{data}->{sensors}   = $data;
+        			$self->{data}->{timestamp} = time;    
+        		}
+        		$self->process_data();
+        	} else {
+            	print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! Returned data not structured! Not processing...";
+        	}
         }
-        else {
-            return ( $isSuccessResponse, $response );
-        }
-    }
-    else {
-        main::print_log( "[Venstar Colortouch:"
-              . $self->{data}->{name}
-              . "] Warning, not fetching data due to operation in progress" );
-        return ('0');
+        if (scalar @{$self->{command_queue}}) {        
+        	my $cmd_string = shift @{$self->{command_queue}};
+        	my ($mode,$cmd) = split/\|/,$cmd_string;
+			$self->{poll_process}->set($cmd);
+			$self->{poll_process}->start();			
+			$self->{poll_process_pid}->{$self->{poll_process}->pid()}=$mode; #capture the type of information requested in order to parse;
+			$self->{poll_process_mode} = $mode;			
+    		main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Command Queue " . $self->{poll_process}->pid() . " mode=$mode cmd=$cmd") if ($self->{debug});
+			
+		}	
+	}   	
+}
+
+#------------------------------------------------------------------------------------
+sub _get_JSON_data {
+    my ( $self, $mode, $method ) = @_;
+
+	if (($self->{background}) and (lc $method ne "direct")) {
+	
+		my $cmd = 'get_url "http://' . $self->{host} . "/$rest{$mode}" . '"';
+		if ($self->{poll_process}->done()) {
+			$self->{poll_process}->set($cmd);
+			$self->{poll_process}->start();			
+			$self->{poll_process_pid}->{$self->{poll_process}->pid()}=$mode; #capture the type of information requested in order to parse;
+			$self->{poll_process_mode} = $mode;
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Backgrounding " . $self->{poll_process}->pid() . " command $mode, $cmd") if ($self->{debug});		
+
+		} else {
+			if (scalar @{$self->{command_queue}} < $self->{max_poll_queue}) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Queue is " . scalar @{$self->{command_queue}} . ". Queing command $mode, $cmd") if ($self->{debug});
+				push @{$self->{command_queue}}, "$mode|$cmd";
+#TODO: queue shouldn't grow for polling. Since a poll is 2 queries, the queue should only be 3 items. Otherwise it will grow every poll
+# if there are device issues.	
+			} else {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] WARNING. Queue has grown past " . $self->{max_poll_queue} . ". Command discarded.");
+			}					
+		}
+	} else {
+    	unless ( $self->{updating} ) {
+
+        	$self->{updating} = 1;
+        	my $ua = new LWP::UserAgent( keep_alive => 1 );
+        	$ua->timeout( $self->{timeout} );
+
+        	my $host = $self->{host};
+
+        	my $request = HTTP::Request->new( POST => "http://$host/$rest{$mode}" );
+        	$request->content_type("application/x-www-form-urlencoded");
+
+        	my $responseObj = $ua->request($request);
+        	print $responseObj->content . "\n--------------------\n" if $self->{debug};
+
+        	my $responseCode = $responseObj->code;
+        	print 'Response code: ' . $responseCode . "\n" if $self->{debug};
+        	my $isSuccessResponse = $responseCode < 400;
+        	$self->{updating} = 0;
+        	if ( !$isSuccessResponse ) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Warning, failed to get data. Response code $responseCode");
+print "Venstar. status=" . $self->{status};
+if (defined $self->{child_object}->{comm}) {
+	print " Tracker defined\n";
+} else {
+	print " Tracker UNDEFINED\n";
+}    
+            	if ( defined $self->{child_object}->{comm} ) {
+                	if ( $self->{status} eq "online" ) {
+                    	main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ( $self->{loglevel} );
+                    	$self->{status} = "offline";
+                    	$self->{child_object}->{comm}->set( "offline", 'poll' );
+                	}
+            	}
+            	return ('0');
+        	} else {
+            	if ( defined $self->{child_object}->{comm} ) {
+                	if ( $self->{status} eq "offline" ) {
+                    	main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to online..." if ( $self->{loglevel} );
+                    	$self->{status} = "online";
+                    	$self->{child_object}->{comm}->set( "online", 'poll' );
+                	}
+            	}
+        	}
+        	my $response;
+        	eval { $response = JSON::XS->new->decode( $responseObj->content ); };
+
+        	# catch crashes:
+        	if ($@) {
+            	print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! JSON parser crashed! $@\n";
+            	return ('0');
+        	} else {
+            	return ( $isSuccessResponse, $response );
+        	}
+    	} else {
+        	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Warning, not fetching data due to operation in progress" );
+        	return ('0');
+		}
 	}
 }
 
@@ -365,7 +404,6 @@ sub _push_JSON_data {
 		my $humidity_change = 0;
 
         my ( $isSuccessResponse, $cunits, $caway, $csched, $chum, $chumsp, $cdehumsp ) = $self->_get_setting_params;
-#check why is this called twice?
 		my ($choliday,$coverride,$coverridetime,$cforceunocc);
         $units = $cunits if ( not defined $units );
         $units = 1 if ( ( $units eq "C" ) or ( $units eq "c" ) );
@@ -617,6 +655,12 @@ print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp,
         main::print_log( "[Venstar Colortouch:"
               . $self->{data}->{name}
               . "] Warning, failed to push data. Response code $responseCode" );
+print "Venstar. status=" . $self->{status};
+if (defined $self->{child_object}->{comm}) {
+	print " Tracker defined\n";
+} else {
+	print " Tracker UNDEFINED\n";
+}    
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{status} eq "online" ) {
                 main::print_log "[Venstar Colortouch:"
@@ -701,7 +745,7 @@ sub stop_timer {
 
 sub start_timer {
     my ($self) = @_;
-
+	print "db: timer has started\n";
     if ( defined $self->{timer} ) {
         $self->{timer}->set( $self->{config}->{poll_seconds},
             sub { &Venstar_Colortouch::_poll_check($self) }, -1 );
@@ -1863,9 +1907,11 @@ sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
     if ( $p_setby eq 'poll' ) {
+    	print "db: in super set\n";
         $self->SUPER::set($p_state);
     }
     else {
+    	print "db: in mode set\n";    
         $self->set_mode($p_state);
     }
 }
