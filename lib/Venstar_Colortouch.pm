@@ -9,7 +9,7 @@ use HTTP::Request::Common qw(POST);
 use JSON::XS;
 use Data::Dumper;
 
-# Venstar::Colortouch
+# Venstar::Colortouch Objects
 # $stat_upper         = new Venstar_Colortouch('192.168.0.100');
 #
 # $stat_upper_mode    = new Venstar_Colortouch_Mode($stat_upper);
@@ -22,6 +22,7 @@ use Data::Dumper;
 # $stat_upper_sched   = new Venstar_Colortouch_Schedule($stat_upper);
 # $stat_upper_comm	  = new Venstar_Colortouch_Comm($stat_upper);
 
+# Version History
 # v1.1 - added in schedule and humidity control.
 # v1.2 - added communication tracker object & timeout control
 # v1.3 - added check for timer defined
@@ -32,20 +33,26 @@ use Data::Dumper;
 # v1.4.1 - API v5, working schedule, humidity setpoints
 # v2.0 - Background process
 
-# Notes:
+# Notes
+#  - State can only be set by stat. Set mode will change the mode.
 #  - Best to use firmware at least 3.14 released Nov 2014. This fixes issues with both
 #    schedule and humidity/dehumidify control.
-#  - 4.08 is API5, seems to have better wifi, but humidity control is messed up.
+#  - 4.08 brings API5, and a workaround to a humidity bug.
 
-#todo
-# - temp setpoint bounds checking
+# Issues
+#2
 # - log runtimes. Maybe into a dbm file? log_runtimes method with destination.
 # - figure out timezone w/ DST
+#1
+# - temp setpoint bounds checking
 # - changing heating/cooling setpoints for heating/cooling only stats does not need both setpoints
+# - allow for a humidity value of 0
 # - add decimals for setpoints
-# - make the data poll non-blocking, turn off timer
-
-# State can only be set by stat. Set mode will change the mode.
+# - add in communication tracker for background requests
+# - verify command sets work both with existing poll data, and have a poll data gap. 
+# - verify that network issues don't escalate CPU usage (by _push_json_data being continually called)
+# - add in the commercial stat fields
+# - incorporate Steve's approach for more efficient detection of changed values.
 
 @Venstar_Colortouch::ISA = ('Generic_Item');
 
@@ -58,8 +65,8 @@ $rest{api}      = "";
 $rest{sensors}  = "query/sensors";
 $rest{runtimes} = "query/runtimes";
 $rest{alerts}   = "query/alerts";
-$rest{control}  = "/control";
-$rest{settings} = "/settings";
+$rest{control}  = "control";
+$rest{settings} = "settings";
 
 
 sub new {
@@ -69,10 +76,10 @@ sub new {
     $self->{data}                 	= undef;
     $self->{api_ver} 			  	= 0;
     $self->{child_object}         	= undef;
-    $self->{config}->{cache_time} 	= 30;      #TODO fix cache timeouts
+    $self->{config}->{cache_time} 	= 30;      #is this still necessary?
     $self->{config}->{cache_time} 	= $::config_params{venstar_config_cache_time} if defined $::config_params{venstar_config_cache_time};
-    $self->{config}->{tz} 			=$::config_params{time_zone}; #TODO Need to figure out DST for print runtimes
-    $self->{config}->{poll_seconds} = 60;
+    $self->{config}->{tz} 			= $::config_params{time_zone}; #TODO Need to figure out DST for print runtimes
+    $self->{config}->{poll_seconds} = 10;
     $self->{config}->{poll_seconds} = $poll if ($poll);
     $self->{config}->{poll_seconds} = 1 if ( $self->{config}->{poll_seconds} < 1 );
     $self->{updating}      			= 0;
@@ -85,13 +92,21 @@ sub new {
     $self->{status}        			= "";
     $self->{timeout}       			= 15;      #300;
     $self->{background}				= 1;
-	$self->{max_poll_queue} 		= 3;   
+	$self->{poll_data_timestamp} 	= 0;   
+	$self->{max_poll_queue} 		= 3;  
+	$self->{max_cmd_queue}			= 5; 
+	$self->{cmd_process_retry_limit}= 6;
     if ($self->{background}) {
-    	@{$self->{command_queue}}		= ();
+    	@{$self->{poll_queue}}		= ();
    		$self->{poll_data_file} 		= "$::config_parms{data_dir}/venstar_poll_" . $self->{host} . ".data";
    		unlink "$::config_parms{data_dir}/venstar_poll_" . $self->{host} . ".data";
 		$self->{poll_process} 			= new Process_Item;
     	$self->{poll_process}->set_output($self->{poll_data_file});
+    	@{$self->{cmd_queue}}		= ();
+   		$self->{cmd_data_file} 		= "$::config_parms{data_dir}/venstar_cmd_" . $self->{host} . ".data";
+   		unlink "$::config_parms{data_dir}/venstar_cmd_" . $self->{host} . ".data";
+		$self->{cmd_process} 			= new Process_Item;
+    	$self->{cmd_process}->set_output($self->{cmd_data_file});    	
     	&::MainLoop_post_add_hook( \&Venstar_Colortouch::process_check, 0, $self );
     }
     $self->{timer} 					= new Timer;
@@ -204,7 +219,7 @@ sub process_check {
 	
 	return unless (defined $self->{poll_process});	
 	if ($self->{poll_process}->done_now()) {
-    	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Background, " . $self->{poll_process_mode} . " process completed") if ($self->{debug});
+    	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Background poll " . $self->{poll_process_mode} . " process completed") if ($self->{debug});
 	
 		my $file_data = &main::file_read($self->{poll_data_file});
 		#for some reason get_url adds garbage to the output. Clean out the characters before and after the json
@@ -216,8 +231,7 @@ sub process_check {
             print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! JSON file parser crashed! $@\n";
         } else {
         	if (keys $data) {
-#        	if ($self->{poll_process_pid}->{$self->{poll_process}->pid()} eq "info") {
-# need to check for valid data
+				$self->{poll_data_timestamp} = time;
         		if ($self->{poll_process_mode} eq "info") {
         			$self->{data}->{tempunits} = $data->{tempunits};
         			$self->{data}->{name}      = $data->{name};
@@ -232,17 +246,57 @@ sub process_check {
             	print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! Returned data not structured! Not processing...";
         	}
         }
-        if (scalar @{$self->{command_queue}}) {        
-        	my $cmd_string = shift @{$self->{command_queue}};
+        if (scalar @{$self->{poll_queue}}) {        
+        	my $cmd_string = shift @{$self->{poll_queue}};
         	my ($mode,$cmd) = split/\|/,$cmd_string;
 			$self->{poll_process}->set($cmd);
 			$self->{poll_process}->start();			
 			$self->{poll_process_pid}->{$self->{poll_process}->pid()}=$mode; #capture the type of information requested in order to parse;
 			$self->{poll_process_mode} = $mode;			
-    		main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Command Queue " . $self->{poll_process}->pid() . " mode=$mode cmd=$cmd") if ($self->{debug});
+    		main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Poll Queue " . $self->{poll_process}->pid() . " mode=$mode cmd=$cmd") if ($self->{debug});
 			
 		}	
+	} 
+	return unless (defined $self->{cmd_process});	
+	if ($self->{cmd_process}->done_now()) {
+    	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Background Command " . $self->{poll_process_mode} . " process completed") if ($self->{debug});
+	
+		my $file_data = &main::file_read($self->{cmd_data_file});
+		#for some reason get_url adds garbage to the output. Clean out the characters before and after the json
+		my ($json_data) = $file_data =~ /({.*})/;
+		my $data;
+        eval { $data = JSON::XS->new->decode( $json_data ); };
+        # catch crashes:
+        if ($@) {
+            print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! JSON file parser crashed! $@\n";
+        } else {
+        	if (keys $data) {
+        		if ($data->{success} eq "true") {
+        			shift @{$self->{cmd_queue}}; #remove the command from queue since it was successful
+            		$self->{cmd_process_retry} = 0;            		
+        			$self->poll;
+        		} else {
+            		print "[Venstar Colortouch:" . $self->{data}->{name} . "] WARNING Issued command was unsuccessful (success=" . $data->{success} .") , retrying...";
+            		if ($self->{cmd_process_retry} > $self->{cmd_process_retry_limit}) {
+            			print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR Issued command max retries reached. Abandoning command attempt...";
+            			shift @{$self->{cmd_queue}};
+            			$self->{cmd_process_retry} = 0;            		
+					} else {
+						$self->{cmd_process_retry}++;       
+					}     		
+				}        		
+        	} else {
+            	print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! Returned data not structured! Not processing...";
+        	}
+        }
+        if (scalar @{$self->{cmd_queue}}) {        
+        	my $cmd = @{$self->{cmd_queue}}[0]; #grab the first command, but don't take it off.
+			$self->{poll_process}->set($cmd);
+			$self->{poll_process}->start();			
+    		main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Command Queue " . $self->{poll_process}->pid() . " cmd=$cmd") if ($self->{debug});
+		}	
 	}   	
+	  	
 }
 
 #------------------------------------------------------------------------------------
@@ -260,9 +314,9 @@ sub _get_JSON_data {
             main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Backgrounding " . $self->{poll_process}->pid() . " command $mode, $cmd") if ($self->{debug});		
 
 		} else {
-			if (scalar @{$self->{command_queue}} < $self->{max_poll_queue}) {
-            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Queue is " . scalar @{$self->{command_queue}} . ". Queing command $mode, $cmd") if ($self->{debug});
-				push @{$self->{command_queue}}, "$mode|$cmd";
+			if (scalar @{$self->{poll_queue}} < $self->{max_poll_queue}) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Queue is " . scalar @{$self->{poll_queue}} . ". Queing command $mode, $cmd") if ($self->{debug});
+				push @{$self->{poll_queue}}, "$mode|$cmd";
 #TODO: queue shouldn't grow for polling. Since a poll is 2 queries, the queue should only be 3 items. Otherwise it will grow every poll
 # if there are device issues.	
 			} else {
@@ -331,7 +385,7 @@ if (defined $self->{child_object}->{comm}) {
 }
 
 sub _push_JSON_data {
-    my ( $self, $type, $params ) = @_;
+    my ( $self, $type, $params, $method ) = @_;
 
     my ( @fan, @fanstate, @modename, @statename, @schedule, @home, @schedulestat );
     $fan[0]        = "auto";
@@ -360,9 +414,26 @@ sub _push_JSON_data {
 #4.08, schedulepart is now the schedule type. schedule 0 is off, 
 
     my $cmd;
+	$method = "" unless (defined $method);
+
+#For background tasks, we want up to date data, ie returned within the last poll period.
+#recursively calling the same subroutine might be a memory or performance hog, but need to effectively
+#'suspend' the data push until we get valid data.
+
+	if (($self->{background}) and (lc $method ne "direct")) {
+		if ($self->{poll_data_timestamp} + $self->{config}->{poll_seconds} < &main::tickcount()) {
+			$self->poll() if (scalar @{$self->{poll_queue}} < $self->{max_poll_queue}); #once max reached, no sense adding more
+			if ($self->{poll_data_timestamp} + 300 > &main::tickcount()) { #give up after 5 minutes of trying
+				$self->_push_json_data($type,$params);
+			} else {
+				return ('1');
+			}
+		}
+	}
+
 
     #print "VCT DB: $params\n";
-    $self->stop_timer;    #stop timer to prevent a clash of updates
+    $self->stop_timer unless ($self->{background});    #stop timer to prevent a clash of updates
     if ( $type eq 'settings' ) {
 
 		#for testing purposes, curl is:
@@ -399,12 +470,23 @@ sub _push_JSON_data {
         my ($sched) = $params =~ /schedule=(\d+)/;
         my $hum;
         my ($humsp)   = $params =~ /hum_setpoint=(\d+)/;
-        my ($dehumsp) = $params =~ /dehum_setpoint=(\d+)/
-          ;               #need to add in dehumidifier stuff at some point
+        my ($dehumsp) = $params =~ /dehum_setpoint=(\d+)/;               #need to add in dehumidifier stuff at some point
 		my $humidity_change = 0;
 
-        my ( $isSuccessResponse, $cunits, $caway, $csched, $chum, $chumsp, $cdehumsp ) = $self->_get_setting_params;
+        my ( $isSuccessResponse, $cunits, $caway, $csched, $chum, $chumsp, $cdehumsp );
 		my ($choliday,$coverride,$coverridetime,$cforceunocc);
+
+
+		if (($self->{background}) and (lc $method ne "direct")) {
+			$cunits = $self->{data}->{info}->{tempunits};
+			$caway = $self->{data}->{info}->{away};
+			$csched = $self->{data}->{info}->{schedule};
+			$chumsp = $self->{data}->{info}->{hum_setpoint};
+			$cdehumsp = $self->{data}->{info}->{dehum_setpoint};
+		} else {
+        	($isSuccessResponse, $cunits, $caway, $csched, $chum, $chumsp, $cdehumsp ) = $self->_get_setting_params;
+			#($choliday,$coverride,$coverridetime,$cforceunocc);
+		}
         $units = $cunits if ( not defined $units );
         $units = 1 if ( ( $units eq "C" ) or ( $units eq "c" ) );
         $units = 0 if ( ( $units eq "F" ) or ( $units eq "f" ) );
@@ -433,9 +515,7 @@ print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp,
 
 
         if ( $cunits ne $units ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing Units from $cunits to $units" );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Units from $cunits to $units" );
             $newunits = $units;
         }
         else {
@@ -443,9 +523,7 @@ print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp,
         }
 
         if ( $caway ne $away ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing Away from $home[$caway] to $home[$away]" );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Away from $home[$caway] to $home[$away]" );
             $newaway = $away;
         }
         else {
@@ -453,9 +531,7 @@ print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp,
         }
 
         if ( $choliday ne $holiday ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing Away from $choliday to $holiday" );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Away from $choliday to $holiday" );
             $newholiday = $holiday;
         }
         else {
@@ -463,9 +539,7 @@ print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp,
         }
 
         if ( $caway ne $away ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing Away from $caway to $away" );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Away from $caway to $away" );
             $newaway = $away;
         }
         else {
@@ -538,12 +612,22 @@ print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp,
         my ($heattemp) = $params =~ /heattemp=(\d+)/;    #need decimals
         my ($cooltemp) = $params =~ /cooltemp=(\d+)/;
 
-        my (
-            $isSuccessResponse, $cmode,     $cfan,
-            $cheattemp,         $ccooltemp, $setpointdelta,
-            $minheat,           $maxheat,   $mincool,
-            $maxcool
-        ) = $self->_get_control_params;
+        my ($isSuccessResponse, $cmode, $cfan, $cheattemp, $ccooltemp, $setpointdelta, $minheat, $maxheat, $mincool, $maxcool);
+        
+        if (($self->{background}) and (lc $method ne "direct")) {
+			$cmode = $self->{data}->{info}->{mode};
+			$cfan = $self->{data}->{info}->{fan};
+			$cheattemp = $self->{data}->{info}->{heattemp};
+			$ccooltemp = $self->{data}->{info}->{cooltemp};
+			$setpointdelta = $self->{data}->{info}->{setpointdelta};
+			$minheat = $self->{data}->{info}->{heattempmin};
+			$maxheat = $self->{data}->{info}->{heattempmax};
+			$mincool = $self->{data}->{info}->{cooltempmin};
+			$maxcool = $self->{data}->{info}->{cooltempmax};		
+						
+		} else {
+            ($isSuccessResponse, $cmode, $cfan, $cheattemp, $ccooltemp, $setpointdelta, $minheat, $maxheat, $mincool, $maxcool) = $self->_get_control_params;
+        }
 
         $mode     = $cmode     if ( not defined $mode );
         $fan      = $cfan      if ( not defined $fan );
@@ -636,25 +720,42 @@ print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp,
         return ( '1', 'error' );
     }
 
-    my $ua = new LWP::UserAgent( keep_alive => 1 );
-    $ua->timeout( $self->{timeout} );
+	if (($self->{background}) and (lc $method ne "direct")) {
+	
+		my $cmd = 'get_url -post "' .$cmd . '" "http://' . $self->{host} . "/$rest{$type}" . '"';
+		push @{$self->{cmd_queue}}, "$cmd";	
+		if ($self->{cmd_process}->done()) {
+			$self->{cmd_process}->set($cmd);
+			$self->{cmd_process}->start();
+			$self->{cmd_process_retry} = 0;			
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Backgrounding " . $self->{cmd_process}->pid() . " command $cmd") if ($self->{debug});		
 
-    my $host = $self->{host};
+		} else {
+			if (scalar @{$self->{cmd_queue}} < $self->{max_cmd_queue}) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Queue is " . scalar @{$self->{cmd_queue}} . ". Queing command $cmd") if ($self->{debug});
+			} else {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] WARNING. Queue has grown past " . $self->{max_cmd_queue} . ". Command discarded.");
+			}					
+		}
+	} else {
 
-    my $request = HTTP::Request->new( POST => "http://$host/$rest{$type}" );
-    $request->content_type("application/x-www-form-urlencoded");
-    $request->content($cmd) if $cmd;
+    	my $ua = new LWP::UserAgent( keep_alive => 1 );
+    	$ua->timeout( $self->{timeout} );
 
-    my $responseObj = $ua->request($request);
-    print $responseObj->content . "\n--------------------\n" if $self->{debug};
+    	my $host = $self->{host};
 
-    my $responseCode = $responseObj->code;
-    print 'Response code: ' . $responseCode . "\n" if $self->{debug};
-    my $isSuccessResponse = $responseCode < 400;
-    if ( !$isSuccessResponse ) {
-        main::print_log( "[Venstar Colortouch:"
-              . $self->{data}->{name}
-              . "] Warning, failed to push data. Response code $responseCode" );
+    	my $request = HTTP::Request->new( POST => "http://$host/$rest{$type}" );
+    	$request->content_type("application/x-www-form-urlencoded");
+    	$request->content($cmd) if $cmd;
+
+    	my $responseObj = $ua->request($request);
+    	print $responseObj->content . "\n--------------------\n" if $self->{debug};
+
+    	my $responseCode = $responseObj->code;
+    	print 'Response code: ' . $responseCode . "\n" if $self->{debug};
+    	my $isSuccessResponse = $responseCode < 400;
+    	if ( !$isSuccessResponse ) {
+        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Warning, failed to push data. Response code $responseCode" );
 print "Venstar. status=" . $self->{status};
 if (defined $self->{child_object}->{comm}) {
 	print " Tracker defined\n";
@@ -663,12 +764,7 @@ if (defined $self->{child_object}->{comm}) {
 }    
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{status} eq "online" ) {
-                main::print_log "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Communication Tracking object found. Updating from "
-                  . $self->{child_object}->{comm}->state()
-                  . " to offline..."
-                  if ( $self->{loglevel} );
+                main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ( $self->{loglevel} );
                 $self->{status} = "offline";
                 $self->{child_object}->{comm}->set( "offline", 'poll' );
             }
@@ -697,6 +793,7 @@ if (defined $self->{child_object}->{comm}) {
     $self->poll if ( $response eq "success" );
     $self->start_timer;
     return ( $isSuccessResponse, $response );
+    }
 }
 
 sub register {
@@ -724,7 +821,7 @@ sub _get_control_params {
 
 sub _get_setting_params {
     my ($self) = @_;
-    my ( $isSuccessResponse, $info ) = $self->_get_JSON_data('info');
+    my ( $isSuccessResponse, $info ) = $self->_get_JSON_data('info',"direct");
     return ( $isSuccessResponse, $info->{tempunits}, $info->{away},
         $info->{schedule}, $info->{hum}, $info->{hum_setpoint},
         $info->{dehum_setpoint} );
