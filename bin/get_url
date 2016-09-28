@@ -103,7 +103,7 @@ sub use_ua {
     $ua->proxy( [ 'http', 'ftp' ] => $config_parms{proxy} )
       if $config_parms{proxy};
 
-    $ua->timeout( [120] );            # Time out after 60 seconds
+    $ua->timeout(60);            # Time out after 60 seconds
     $ua->env_proxy();
     $ua->agent( $config_parms{get_url_ua} ) if $config_parms{get_url_ua};
 
