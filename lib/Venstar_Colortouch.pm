@@ -216,7 +216,7 @@ sub poll {
 
 sub process_check {
 	my ($self) = @_;
-	
+#Need to catch error 500's 403's and update communication tracker and success:false messages to write to log
 	return unless (defined $self->{poll_process});	
 	if ($self->{poll_process}->done_now()) {
     	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Background poll " . $self->{poll_process_mode} . " process completed") if ($self->{debug});
@@ -421,7 +421,7 @@ sub _push_JSON_data {
 #'suspend' the data push until we get valid data.
 
 	if (($self->{background}) and (lc $method ne "direct")) {
-		if ($self->{poll_data_timestamp} + $self->{config}->{poll_seconds} < &main::tickcount()) {
+		if ($self->{poll_data_timestamp} + $self->{config}->{poll_seconds} < &main::get_tickcount()) {
 			$self->poll() if (scalar @{$self->{poll_queue}} < $self->{max_poll_queue}); #once max reached, no sense adding more
 			if ($self->{poll_data_timestamp} + 300 > &main::tickcount()) { #give up after 5 minutes of trying
 				$self->_push_json_data($type,$params);
@@ -509,9 +509,9 @@ sub _push_JSON_data {
         } else {
         	$dehumsp = $cdehumsp if ( not defined $dehumsp );
         }
-print "venstar db: params = $params\n";
-print "units=$units, away=$away, sched=$sched, hum=$hum, humsp=$humsp, dehumsp=$dehumsp\n";
-print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp, cdehumsp=$cdehumsp\n";
+#print "venstar db: params = $params\n";
+#print "units=$units, away=$away, sched=$sched, humsp=$humsp, dehumsp=$dehumsp\n";
+#print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp, cdehumsp=$cdehumsp\n";
 
 
         if ( $cunits ne $units ) {
@@ -530,7 +530,7 @@ print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp,
             $newaway = $caway;
         }
 
-        if ( $choliday ne $holiday ) {
+        if ( ($self->{type} eq "commercial") and ($choliday ne $holiday) ) {
             main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Away from $choliday to $holiday" );
             $newholiday = $holiday;
         }
@@ -634,17 +634,9 @@ print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp,
         $heattemp = $cheattemp if ( !$heattemp );
         $cooltemp = $ccooltemp if ( !$cooltemp );
 
-        main::print_log(
-            "data1=$isSuccessResponse,$cmode,$cfan,$cheattemp,$ccooltemp,$setpointdelta"
-        ) if $self->{debug};    #TODO pass object to get debug
-        main::print_log("data2=$mode,$fan,$heattemp,$cooltemp")
-          if $self->{debug};    #TODO debug
 
         if ( $cmode ne $mode ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing mode from $modename[$cmode] to $modename[$mode]"
-            );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing mode from $modename[$cmode] to $modename[$mode]");
             $newmode = $mode;
         }
         else {
@@ -652,9 +644,7 @@ print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp,
         }
 
         if ( $cfan ne $fan ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing fan from $fan[$cfan] to $fan[$fan]" );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing fan from $fan[$cfan] to $fan[$fan]" );
             $newfan = $fan;
         }
         else {
@@ -662,9 +652,7 @@ print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp,
         }
 
         if ( $heattemp ne $cheattemp ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing heat setpoint from $cheattemp to $heattemp" );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing heat setpoint from $cheattemp to $heattemp" );
             $newheatsp = $heattemp;
         }
         else {
@@ -672,9 +660,7 @@ print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp,
         }
 
         if ( $cooltemp ne $ccooltemp ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing cool setpoint from $ccooltemp to $cooltemp" );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing cool setpoint from $ccooltemp to $cooltemp" );
             $newcoolsp = $cooltemp;
         }
         else {
@@ -682,35 +668,23 @@ print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp,
         }
 
         if ( ( $newcoolsp > $maxcool ) or ( $newcoolsp < $mincool ) ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Error: New cooling setpoint $newcoolsp out of bounds $mincool - $maxcool"
-            );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Error: New cooling setpoint $newcoolsp out of bounds $mincool - $maxcool");
             $newcoolsp = $ccooltemp;
         }
 
         if ( ( $newheatsp > $maxheat ) or ( $newheatsp < $minheat ) ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Error: New heating setpoint $newheatsp out of bounds $minheat - $maxheat"
-            );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Error: New heating setpoint $newheatsp out of bounds $minheat - $maxheat");
             $newheatsp = $cheattemp;
         }
 
         if ( ( $newheatsp - $newcoolsp ) > $setpointdelta ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Error: Cooling ($newcoolsp) and Heating ($newheatsp) setpoints need to be less than setpoint $setpointdelta"
-            );
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Not setting setpoints" );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Error: Cooling ($newcoolsp) and Heating ($newheatsp) setpoints need to be less than setpoint $setpointdelta");
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Not setting setpoints" );
             $newcoolsp = $ccooltemp;
             $newheatsp = $cheattemp;
         }
 
-        $cmd =
-          "mode=$newmode&fan=$newfan&heattemp=$newheatsp&cooltemp=$newcoolsp";
+        $cmd = "mode=$newmode&fan=$newfan&heattemp=$newheatsp&cooltemp=$newcoolsp";
         main::print_log( "Sending Control command $cmd to " . $self->{host} ) if $self->{debug};
 
     }
@@ -721,7 +695,8 @@ print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp,
     }
 
 	if (($self->{background}) and (lc $method ne "direct")) {
-	
+		$isSuccessResponse = 1; #set these to successful, since the process_data will indicate if a setting was unsuccessful.
+		$response = "success";	
 		my $cmd = 'get_url -post "' .$cmd . '" "http://' . $self->{host} . "/$rest{$type}" . '"';
 		push @{$self->{cmd_queue}}, "$cmd";	
 		if ($self->{cmd_process}->done()) {
@@ -792,8 +767,8 @@ if (defined $self->{child_object}->{comm}) {
     print "response=$response\n" if $self->{debug};
     $self->poll if ( $response eq "success" );
     $self->start_timer;
-    return ( $isSuccessResponse, $response );
     }
+    return ( $isSuccessResponse, $response );
 }
 
 sub register {
