@@ -1303,6 +1303,7 @@ sub read_table_A {
             $code .= "use Philips_Hue;\n";
         }
     }
+
     #-------------- RaZberry Objects -----------------
     elsif ( $type eq "RAZBERRY_CONTROLLER" ) {
      	($address, $name, $grouplist, @other ) = @item_info;
@@ -1398,8 +1399,20 @@ sub read_table_A {
      		$object = "raZberry_binary_sensor(\$" . $controller . ",'$devid')";
         }    
 	}	
+    elsif ( $type eq "RAZBERRY_BATTERY" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_battery(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_battery(\$" . $controller . ",'$devid')";
+        }    
+	}		
     #-------------- End of RaZberry Objects -----------------
-			
+
+
     #-------------- AD2 Objects -----------------
     elsif ( $type eq "AD2_INTERFACE" ) {
         require AD2;

@@ -1,20 +1,21 @@
 
-=head1 B<raZberry> v1.5.1
+=head1 B<raZberry> v1.6
 
 =head2 SYNOPSIS
 
 In user code:
-
-    use raZberry;
-    $razberry_controller  = new raZberry('10.0.1.1');
-    $razberry_comm		  = new raZberry_comm($razberry_controller);
-    $room_fan      		  = new raZberry_dimmer($razberry_controller,'2','force_update');
-    $room_blind	  		  = new raZberry_blind($razberry_controller,'3');
-    $front_lock			  = new raZberry_lock($razberry_controller,'4');
-    $thermostat			  = new raZberry_thermostat($razberry_controller,'5');
-    $temp_sensor		  = new raZberry_temp_sensor($razberry_controller,'5');
-	$door_sensor		  = new raZberry_binary_sensor($razberry_controller,'7');
-	$garage_light		  = new raZberry_switch($razberry_controller,'6');
+	
+    	use raZberry;
+    	$razberry_controller  	= new raZberry('10.0.1.1');
+    	$razberry_comm			= new raZberry_comm($razberry_controller);
+    	$room_fan      			= new raZberry_dimmer($razberry_controller,'2','force_update');
+    	$room_blind	  			= new raZberry_blind($razberry_controller,'3','digital');
+    	$front_lock				= new raZberry_lock($razberry_controller,'4');
+    	$thermostat				= new raZberry_thermostat($razberry_controller,'5');
+    	$temp_sensor			= new raZberry_temp_sensor($razberry_controller,'5');
+		$door_sensor			= new raZberry_binary_sensor($razberry_controller,'7');
+		$garage_light			= new raZberry_switch($razberry_controller,'6');
+		$remote_1				= new raZberry_battery($razberry_controller,12);
 
 
 raZberry(<ip address>,<poll time>);
@@ -35,7 +36,7 @@ RAZBERRY_BINARY_SENSOR,	device_id,	name,		 	 group,	controller_name, options
 for example:
 
 RAZBERRY_CONTROLLER,	10.0.1.1, razberry_controller,	zwave
-RAZBERRY_BLIND,			4, 	      main_blinds, 			HVAC|zwave, razberry_controller
+RAZBERRY_BLIND,			4, 	      main_blinds, 			HVAC|zwave, razberry_controller, battery
 
 
 =head2 DESCRIPTION
@@ -63,6 +64,11 @@ There is also a communication object to allow for alerting and monitoring of the
 razberry controller.
 
 =head2 NOTES
+v1.6
+- added in digital blinds, battery item (like a remote)
+
+v1.5
+- added in binary sensors
 
 v1.4
 - added in thermostat
@@ -112,9 +118,8 @@ use warnings;
 
 use LWP::UserAgent;
 use HTTP::Request::Common qw(POST);
-#use JSON::XS;
 use JSON qw(decode_json);
-use Data::Dumper;
+#use Data::Dumper;
 
 @raZberry::ISA = ('Generic_Item');
 
@@ -195,30 +200,27 @@ sub poll {
     }
 
     for my $dev ( keys %{ $self->{data}->{ping} } ) {
-        &main::print_log("[raZberry] Keep_alive: Pinging device $dev...")
-          ;    # if ($self->{debug});
-        &main::print_log("[raZberry] ping_dev $dev");    # if ($self->{debug});
+        &main::print_log("[raZberry] Keep_alive: Pinging device $dev...");    # if ($self->{debug});
+    	&main::print_log("[raZberry] ping_dev $dev");    # if ($self->{debug});
                                               #$self->ping_dev($dev);
     }
 
-    my ( $isSuccessResponse1, $devices ) =
-      _get_JSON_data( $self, 'devices', $cmd );
-    print Dumper $devices if ( $self->{debug} > 1 );
+    my ( $isSuccessResponse1, $devices ) = _get_JSON_data( $self, 'devices', $cmd );
+#    print Dumper $devices if ( $self->{debug} > 1 );
     if ($isSuccessResponse1) {
         $self->{lastupdate} = $devices->{data}->{updateTime};
         foreach my $item ( @{ $devices->{data}->{devices} } ) {
-            &main::print_log( "[raZberry] Found:"
-                  . $item->{id}
-                  . " with level "
-                  . $item->{metrics}->{level}
-                  . " and updated "
-                  . $item->{updateTime}
-                  . "." )
-              if ( $self->{debug} );
+            &main::print_log( "[raZberry] Found:" . $item->{id} . " with level " . $item->{metrics}->{level} . " and updated " . $item->{updateTime} . "." ) if ( $self->{debug} );
             my ($id) = ( split /_/, $item->{id} )[2];
 
-            #print "id=$id\n" if ($self->{debug} > 1);
-            $self->{data}->{devices}->{$id}->{level} = $item->{metrics}->{level};
+            print "id=$id\n" if ($self->{debug} > 1);
+            my $battery_dev = 0;
+            $battery_dev = 1 if ($id =~ m/-0-128$/);
+            if ($battery_dev) { #for a battery, set a different object
+            	$self->{data}->{devices}->{$id}->{battery_level} = $item->{metrics}->{level};
+            } else {
+            	$self->{data}->{devices}->{$id}->{level} = $item->{metrics}->{level};
+            }
             $self->{data}->{devices}->{$id}->{updateTime} = $item->{updateTime};
             $self->{data}->{devices}->{$id}->{devicetype} = $item->{deviceType};
             $self->{data}->{devices}->{$id}->{location}   = $item->{location};
@@ -232,13 +234,15 @@ sub poll {
             $self->{status} = "online";
 
             if ( defined $self->{child_object}->{$id} ) {
-                &main::print_log("[raZberry] Child object detected: Controller Level:["
-                      . $item->{metrics}->{level} . "] Child Level:["
-                      . $self->{child_object}->{$id}->level() . "]" ) if ( $self->{debug} > 1 );
-                $self->{child_object}->{$id}->set( $item->{metrics}->{level}, 'poll' ) if ( $self->{child_object}->{$id}->level() ne $item->{metrics}->{level} );
-                $self->{child_object}->{$id}->update_data ($self->{data}->{devices}->{$id}); #be able to push other data to objects for actions
+            	if ($battery_dev) {
+                	&main::print_log("[raZberry] Child object detected: Battery Level:[" . $item->{metrics}->{level} . "] Child Level:[" . $self->{child_object}->{$id}->battery_level() . "]" ) if ( $self->{debug} > 1 );
+                	$self->{child_object}->{$id}->update_data ($self->{data}->{devices}->{$id}); #be able to push other data to objects for actions
+				} else {
+                	&main::print_log("[raZberry] Child object detected: Controller Level:[" . $item->{metrics}->{level} . "] Child Level:[" . $self->{child_object}->{$id}->level() . "]" ) if ( $self->{debug} > 1 );
+                	$self->{child_object}->{$id}->set( $item->{metrics}->{level}, 'poll' ) if (( $self->{child_object}->{$id}->level() ne $item->{metrics}->{level} ) and !($id =~ m/-0-128$/));
+                	$self->{child_object}->{$id}->update_data ($self->{data}->{devices}->{$id}); #be able to push other data to objects for actions
+				}
             }
-
         }
     }
     else {
@@ -271,7 +275,7 @@ sub set_dev {
             return ('0');
         }
 
-        print Dumper $status if ( $self->{debug} > 1 );
+#        print Dumper $status if ( $self->{debug} > 1 );
     }
 
 }
@@ -358,19 +362,14 @@ sub _get_JSON_data {
         my $params = "";
         $params = $cmd if ($cmd);
         my $method = "ZAutomation/api/v1";
-        $method = "ZWaveAPI/Run"
-          if ( ( $mode eq "force_update" )
+        $method = "ZWaveAPI/Run" if ( ( $mode eq "force_update" )
             or ( $mode eq "ping" )
             or ( $mode eq "isfailed" )
             or ( $mode eq "usercode" )
             or ( $mode eq "usercode_data" ) );
-        &main::print_log(
-            "[raZberry] contacting http://$host:$port/$method/$rest{$mode}$params"
-        ) if ( $self->{debug} );
+        &main::print_log("[raZberry] contacting http://$host:$port/$method/$rest{$mode}$params") if ( $self->{debug} );
 
-        my $request =
-          HTTP::Request->new(
-            GET => "http://$host:$port/$method/$rest{$mode}$params" );
+        my $request = HTTP::Request->new( GET => "http://$host:$port/$method/$rest{$mode}$params" );
         $request->content_type("application/x-www-form-urlencoded");
 
         my $responseObj = $ua->request($request);
@@ -492,19 +491,19 @@ sub register {
     }
     else {
 #TODO
-        &main::print_log("[raZberry] Registering " . $object->{type} . " Device ID $dev to controller");
+	my $type = $object->{type};
+	$type = "Digital " . $type if ((defined $options) and ($options =~ m/digital/));
+        &main::print_log("[raZberry] Registering " . $type . " Device ID $dev to controller");
         $self->{child_object}->{$dev} = $object;
         if ( defined $options ) {
             if ( $options =~ m/force_update/ ) {
                 $self->{data}->{force_update}->{$dev} = 1;
-                &main::print_log(
-                    "[raZberry] Forcing Controller to contact Device $dev at each poll"
+                &main::print_log("[raZberry] Forcing Controller to contact Device $dev at each poll"
                 );
             }
             if ( $options =~ m/keep_alive/ ) {
                 $self->{data}->{ping}->{$dev} = 1;
-                &main::print_log(
-                    "[raZberry] Forcing Controller to ping Device $dev at each poll"
+                &main::print_log("[raZberry] Forcing Controller to ping Device $dev at each poll"
                 );
             }
         }
@@ -698,17 +697,37 @@ sub new {
 
     my $self = {};
     bless $self, $class;
-    push( @{ $$self{states} }, 'up', 'down', 'stop' );
 
     $$self{master_object} = $object;
+    my $devid_battery = $devid . "-0-128";
     $devid = $devid . $zway_suffix unless ( $devid =~ m/-\d+-\d+$/ );
     $$self{devid} = $devid;
     $$self{type} = "Blind";
     $object->register( $self, $devid, $options );
-
     #$self->set($object->get_dev_status,$devid,'poll');
     $self->{level} = "";
     $self->{debug} = $object->{debug};
+    $self->{digital} = 0; 
+    $self->{digital} = 1 if ((defined $options) and ($options =~ m/digital/i));
+    if ($self->{digital} ) {
+       push( @{ $$self{states} }, 'down', '10%','20%','30%','40%','50%','60%','70%','80%','90%','up' );
+    } else {
+       push( @{ $$self{states} }, 'down', 'stop', 'up' );
+    }	
+    $self->{battery} = 1 if ((defined $options) and ($options =~ m/battery/i));
+    if ($self->{battery} ) {    
+    	$$self{battery_level} = "";
+    	$$self{devid_battery} = $devid_battery;
+    	$$self{type} = "Blind.Battery";
+
+    	$object->register( $self, $devid_battery, $options );
+
+        $self->{battery_alert}        = 0;
+    	$self->{battery_poll_seconds} = 12 * 60 * 60;
+    	$self->{battery_timer}        = new Timer;
+    	$self->_battery_timer;
+	}
+    
     return $self;
 
 }
@@ -721,32 +740,43 @@ sub set {
         my $n_state;
         if ( $p_state == 0 ) {
             $n_state = "down";
-        }
-        elsif ( $p_state > 0 ) {
-            $n_state = "up";
-        }
+        } else {
+	    if ($self->{digital}) {
+			if ($p_state >= 99) {
+		   		$n_state = "up";
+			} else {
+		   		$n_state = "$p_state%";
+			}
+        } else {
+             $n_state = "up";
+	   	}
+    }
 
         # stop level?
-        main::print_log( "[raZberry_blind] Setting value to $n_state. Level is "
-              . $self->{level} )
-          if ( $self->{debug} );
-
-        $self->SUPER::set($n_state);
+    main::print_log( "[raZberry_blind] Setting value to $n_state. Level is " . $self->{level} )if ( $self->{debug} );
+    $self->SUPER::set($n_state);
     }
     else {
-        if (   ( lc $p_state eq "up" )
-            or ( lc $p_state eq "down" )
-            or ( lc $p_state eq "stop" ) )
-        {
+   	if ($self->{digital}) {
+        	if ( lc $p_state eq "down" )  {
+            	$$self{master_object}->set_dev( $$self{devid}, $p_state );
+            } 
+            elsif ( lc $p_state eq "up" )  {
+            	$$self{master_object}->set_dev( $$self{devid}, "level=100" );
+        	} 
+        	elsif (($p_state eq "100%") or ($p_state =~ m/^\d{1,2}\%$/)) {
+            	my ($n_state) = ($p_state =~ /(\d+)%/);
+            	$$self{master_object}->set_dev($$self{devid},"level=$n_state");
+            }
+        	else {
+            	main::print_log("[raZberry_blind] Error. Unknown set state $p_state");
+        	}
+    	} 
+    	elsif (( lc $p_state eq "up" ) or ( lc $p_state eq "down" ) or ( lc $p_state eq "stop" )) {
             $$self{master_object}->set_dev( $$self{devid}, $p_state );
-
-            #} elsif (($p_state eq "100%") or ($p_state =~ m/^\d{1,2}\%$/)) {
-            #		my ($n_state) = ($p_state =~ /(\d+)%/);
-            #	$$self{master_object}->set_dev($$self{devid},"level=$n_state");
         }
         else {
-            main::print_log(
-                "[raZberry_blind] Error. Unknown set state $p_state");
+            main::print_log("[raZberry_blind] Error. Unknown set state $p_state");
         }
     }
 }
@@ -771,6 +801,44 @@ sub isfailed {
 
 sub update_data {
 	my ($self,$data) = @_;
+	if (defined $data->{battery_level}) {
+    	&main::print_log( "[raZberry_blind] Setting battery value to " . $data->{battery_level} . ".") if ( $self->{debug} );	
+		$self->{battery_level} = $data->{battery_level};
+	}	
+}
+
+sub battery_check {
+    my ($self) = @_;
+    unless ($self->{battery}) {
+        main::print_log("[raZberry_blind] ERROR, battery option not defined on this object");
+        return;
+    }    
+    
+    if ( $self->{battery_level} eq "" ) {
+        main::print_log("[raZberry_blind] INFO Battery level currently undefined");
+        return;
+    }
+    main::print_log("[raZberry_blind] INFO Battery currently at " . $self->{battery_level} . "%" );
+    if ( ( $self->{battery_level} < 30 ) and ( $self->{battery_alert} == 0 ) ) {
+        $self->{battery_alert} = 1;
+        main::speak("Warning, Zwave blind battery has less than 30% charge");
+    }
+    else {
+        $self->{battery_alert} = 0;
+    }
+}
+
+sub _battery_timer {
+    my ($self) = @_;
+
+    $self->{battery_timer}->set( $self->{battery_poll_seconds},
+        sub { &raZberry_blind::battery_check($self) }, -1 );
+}
+
+sub battery_level {
+    my ($self) = @_;
+
+    return ( $self->{battery_level} );
 }
 
 package raZberry_lock;
@@ -778,7 +846,7 @@ package raZberry_lock;
 #only tested with Kwikset 914
 
 @raZberry_lock::ISA = ('Generic_Item');
-use Data::Dumper;
+#use Data::Dumper;
 
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
@@ -799,6 +867,7 @@ sub new {
 
     #$self->set($object->get_dev_status,$devid,'poll');
     $self->{level}                = "";
+    $self->{battery_level}		  = "";
     $self->{user_data_delay}      = 10;
     $self->{battery_alert}        = 0;
     $self->{battery_poll_seconds} = 12 * 60 * 60;
@@ -824,8 +893,8 @@ sub set {
     if ( $p_setby eq 'poll' ) {
         main::print_log( "[raZberry_lock] Setting value to $p_state: "
               . $map_states{$p_state}
-              . ". Level is "
-              . $self->{level} )
+              . ". Battery Level is "
+              . $self->{battery_level} )
           if ( $self->{debug} );
         if ( ( $p_state eq "open" ) or ( $p_state eq "close" ) ) {
             $self->SUPER::set( $map_states{$p_state} );
@@ -857,6 +926,12 @@ sub level {
     return ( $self->{level} );
 }
 
+sub battery_level {
+    my ($self) = @_;
+
+    return ( $self->{battery_level} );
+}
+
 sub ping {
     my ($self) = @_;
 
@@ -871,20 +946,22 @@ sub isfailed {
 
 sub update_data {
 	my ($self,$data) = @_;
+	if (defined $data->{battery_level}) {
+    	&main::print_log( "[raZberry_lock] Setting battery value to " . $data->{battery_level} . ".") if ( $self->{debug} );	
+		$self->{battery_level} = $data->{battery_level};
+	}
 }
 
 sub battery_check {
     my ($self) = @_;
-    if ( $self->{level} eq "" ) {
-        main::print_log(
-            "[raZberry_lock] INFO Battery level currently undefined");
+    if ( $self->{battery_level} eq "" ) {
+        &main::print_log("[raZberry_lock] INFO Battery level currently undefined");
         return;
     }
-    main::print_log(
-        "[raZberry_lock] INFO Battery currently at " . $self->{level} . "%" );
-    if ( ( $self->{level} < 30 ) and ( $self->{battery_alert} == 0 ) ) {
+    &main::print_log("[raZberry_lock] INFO Battery currently at " . $self->{battery_level} . "%" );
+    if ( ( $self->{battery_level} < 30 ) and ( $self->{battery_alert} == 0 ) ) {
         $self->{battery_alert} = 1;
-        main::speak("Warning, Zwave lock battery has less than 30% charge");
+        &main::speak("Warning, Zwave lock battery has less than 30% charge");
     }
     else {
         $self->{battery_alert} = 0;
@@ -1001,7 +1078,7 @@ sub _update_users {
         $self->{data}->{retry}++;
         return ('0');
     }
-    print Dumper $response if ( $self->{debug} > 1 );
+#    print Dumper $response if ( $self->{debug} > 1 );
     foreach my $key ( keys %{$response} ) {
         if ( $key =~ m/^[0-9]*$/ ) {    #a number, so a user code
             $self->{users}->{"$key"}->{status} =
@@ -1260,6 +1337,76 @@ sub set {
     }
     else {
         main::print_log("[raZberry] ERROR Can not set state $p_state for openclose");
+    }
+}
+
+package raZberry_battery;
+
+@raZberry_battery::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object, $devid, $options ) = @_;
+
+    my $self = {};
+    bless $self, $class;
+    push( @{ $$self{states} }, 'locked', 'unlocked' );
+
+    $$self{master_object} 		= $object;
+    $devid 						= $devid . "-0-128";
+    $$self{devid}         		= $devid;
+    $$self{type} 				= "Battery";    
+
+    $object->register( $self, $devid,         $options );
+
+    #$self->set($object->get_dev_status,$devid,'poll');
+    $self->{battery_level}        = "";
+    $self->{battery_alert}        = 0;
+    $self->{battery_poll_seconds} = 12 * 60 * 60;
+    $self->{battery_timer}        = new Timer;
+    $self->{debug}                = $object->{debug};
+#    $self->_battery_timer;
+    return $self;
+}
+
+sub battery_level {
+    my ($self) = @_;
+
+    return ( $self->{battery_level} );
+}
+
+sub ping {
+    my ($self) = @_;
+
+    $$self{master_object}->ping_dev( $$self{devid} );
+}
+
+sub isfailed {
+    my ($self) = @_;
+
+    $$self{master_object}->isfailed_dev( $$self{devid} );
+}
+
+sub update_data {
+	my ($self,$data) = @_;
+	
+	$self->{battery_level} = $data->{battery_level};
+    $self->SUPER::set($self->{battery_level});
+	
+}
+
+sub battery_check {
+    my ($self) = @_;
+    if ( $self->{battery_level} eq "" ) {
+        main::print_log("[raZberry_battery] INFO Battery level currently undefined");
+        return;
+    }
+    main::print_log("[raZberry_battery] INFO Battery currently at " . $self->{battery_level} . "%" );
+    if ( ( $self->{battery_level} < 30 ) and ( $self->{battery_alert} == 0 ) ) {
+        $self->{battery_alert} = 1;
+        main::speak("Warning, Zwave battery has less than 30% charge");
+    }
+    else {
+        $self->{battery_alert} = 0;
     }
 }
 
