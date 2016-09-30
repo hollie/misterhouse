@@ -64,6 +64,33 @@ sub read_table_A {
         $object = "ZWave_Appliance_Item('$address', $other)";
     }
 
+    # -[ Clipsal CBus ]-------------------------------------------------
+    elsif ( $type eq "CBUS_CGATE" ) {
+        require Clipsal_CBus;
+        require Clipsal_CBus::CGate;
+        ( $name, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+        $object = "Clipsal_CBus::CGate('Clipsal_CBus_Cgate',$other)";
+    }
+    elsif ( $type eq "CBUS_GROUP" ) {
+        require Clipsal_CBus::Group;
+        ( $address, $name, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $object = "Clipsal_CBus::Group('$address','$name',$other)";
+    }
+    elsif ( $type eq "CBUS_TRIGGER" ) {
+        require Clipsal_CBus::TriggerGroup;
+        ( $address, $name, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $object = "Clipsal_CBus::TriggerGroup('$address','$name',$other)";
+    }
+    elsif ( $type eq "CBUS_UNIT" ) {
+        require Clipsal_CBus::Unit;
+        ( $address, $name, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $object = "Clipsal_CBus::Unit('$address','$name',$other)";
+    }
+
     # -[ UPB ]----------------------------------------------------------
     elsif ( $type eq "UPBPIM" ) {
         require 'UPBPIM.pm';
@@ -234,6 +261,48 @@ sub read_table_A {
             ( $address, $name, $grouplist, @other ) = @item_info;
             $other = join ', ', ( map { "'$_'" } @other );         # Quote data
             $object = "Insteon::IOLinc(\'$address\', $other)";
+        }
+    }
+    elsif($type eq "INSTEON_EZIO8SA") {
+        require Insteon::EZIO8SA;
+        if (
+            validate_def(
+                $type, 2,
+                [
+                    qr/^[[:xdigit:]]{2}\.[[:xdigit:]]{2}\.[[:xdigit:]]{2}:[[:xdigit:]]{2}$/,
+                    'name'
+                ],
+                \@item_info
+            )
+           )
+        {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
+            $object = "Insteon::EZIO8SA(\'$address\', $other)";
+        }
+    }
+    elsif($type eq "INSTEON_EZIO8SA_RELAY") {
+        require Insteon::EZIO8SA;
+        ($address, $object, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::EZIO8SA_relay($address, $object, $other)";
+    }
+    elsif($type eq "INSTEON_EZIO8SA_INPUT") {
+        require Insteon::Lighting;
+        if (
+            validate_def(
+                $type, 2,
+                [
+                    qr/^[[:xdigit:]]{2}\.[[:xdigit:]]{2}\.[[:xdigit:]]{2}:[[:xdigit:]]{2}$/,
+                    'name'
+                ],
+                \@item_info
+            )
+           )
+        {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
+            $object = "Insteon::SwitchLincRelay(\'$address\',$other)";
         }
     }
     elsif ( $type eq "INSTEON_FANLINC" ) {
@@ -466,6 +535,20 @@ sub read_table_A {
         require 'Occupancy_Monitor.pm';
         ( $name, $grouplist, @other ) = @item_info;
         $object = "Occupancy_Monitor( $other)";
+    }
+    elsif($type eq "DSC") {
+        require 'dsc.pm';
+        ($name, $grouplist, @other) = @item_info;
+        # $grouplist translates to $type in the new object definition call
+        $object = "DSC('$name', '$grouplist')";
+    }
+    elsif($type eq "DSC_PARTITION") {
+        ($name, $object, $address, $other, $grouplist, @other) = @item_info;
+        $object = "DSC::Partition(\$$object, '$address')";
+    }
+    elsif($type eq "DSC_ZONE") {
+        ($name, $object, $address, $other, $grouplist, @other) = @item_info;
+        $object = "DSC::Zone(\$$object, '$address', '$other')";
     }
     elsif ( $type eq "MUSICA" ) {
         require 'Musica.pm';
@@ -1345,8 +1428,8 @@ sub read_table_A {
 	}	
     elsif ( $type eq "RAZBERRY_BLIND" ) {
     	my ($devid, $controller);
-     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
-     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+     	($devid, $name, $grouplist, $controller, $other ) = @item_info;
+     	#$other = join ', ', ( map { "'$_'" } @other );    # Quote data
         if ($other) {
      		$object = "raZberry_blind(\$" . $controller . ",'$devid','$other')";
         }
@@ -1398,6 +1481,17 @@ sub read_table_A {
      		$object = "raZberry_binary_sensor(\$" . $controller . ",'$devid')";
         }    
 	}	
+     elsif ( $type eq "RAZBERRY_BATTERY" ) {
+     	my ($devid, $controller);
+      	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+      	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+         if ($other) {
+      		$object = "raZberry_battery(\$" . $controller . ",'$devid','$other')";
+         }
+         else {
+      		$object = "raZberry_battery(\$" . $controller . ",'$devid')";
+         }    
+ 	}
     #-------------- End of RaZberry Objects -----------------
 			
     #-------------- AD2 Objects -----------------
@@ -1455,13 +1549,14 @@ sub read_table_A {
         $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         $object = "AD2_Partition('$instance','$number','$address','$other')";
     }
-   elsif($type eq "AD2_OUTPUT") {
+    elsif ( $type eq "AD2_OUTPUT" ) {
         require AD2;
-        my ($instance,$output);
-        ($name, $instance, $output, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        my ( $instance, $output );
+        ( $name, $instance, $output, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );            # Quote data
         $object = "AD2_Output('$instance','$output','$other')";
     }
+
     #-------------- End AD2 Objects -------------
     elsif ( $type =~ /PLCBUS_.*/ ) {
         require PLCBUS;
@@ -1469,6 +1564,15 @@ sub read_table_A {
         ( $object, $grouplist, $additional_code ) =
           PLCBUS->generate_code( $type, @item_info );
     }
+	elsif ($type eq "WINK"){
+		($address, $name, $grouplist, @other) = @item_info;
+		$other = join ', ', (map {"'$_'"} @other); # Quote data
+		$object = "Wink('$address',$other)";
+		if( ! $packages{Wink}++ ) {   # first time for this object type?
+			$code .= "use Wink;\n";
+			&::MainLoop_pre_add_hook( \&Wink::GetDevicesAndStatus, 1 );
+			}
+	}    
     else {
         print "\nUnrecognized .mht entry: $record\n";
         return;
