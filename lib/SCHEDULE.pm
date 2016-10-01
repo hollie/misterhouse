@@ -11,7 +11,7 @@ sub new
    @{$$self{states}} = ('ON','OFF');
    $self->restore_data('active_object', 'active_action', 'schedule_count');
     #for my $index (1..$self->{'schedule_count'}) {
-    for my $index (1..10) {
+    for my $index (1..20) {
       $self->restore_data('schedule_'.$index, 'schedule_label_'.$index, 'schedule_once_'.$index);
      }
    return $self;
