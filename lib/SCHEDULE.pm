@@ -185,14 +185,16 @@ Used to associate child objects with the interface.
 =cut
 
 sub register {
-   my ($self, $object, $child, $state1, $state2) = @_;
+   my ($self, $object, $child, $HorC) = @_;
+    $self->{schedule_object} = 1;
+    $object->{schedule_object} = 1;
+    $child->{schedule_object} = 1;
     if ($object->isa('SCHEDULE_Generic')) {
       ::print_log("Registering a SCHEDULE Child Object type SCHEDULE_Generic" );
           push @{$self->{generic_object}}, $object;
           ::MainLoop_pre_add_hook( sub {SCHEDULE::check_date($self,$object);}, 'persistent');
      }
    if ($object->isa('SCHEDULE_Temp')) {
-      my $HorC = $child;
       ::print_log("Registering a SCHEDULE Child Object type SCHEDULE_Temp" );
             $self->{temp_object}{$HorC} = $object;
 	    if ((defined($self->{temp_object}{'cool'})) && (defined($self->{temp_object}{'heat'}))) {
@@ -384,7 +386,7 @@ sub new
    my @states;
    for my $i (3..(scalar @_)) { if (defined @_[$i]) { $self->{$i-2}=@_[$i]; push (@states, @_[$i]); } }
    @{$$self{states}} = @states if (@states);
-   $$self{parent}->register($self,$child);
+   $$self{parent}->register($self,$$self{child});
    return $self;
 }
 
@@ -411,7 +413,7 @@ sub new
    $$self{sub} = $sub;
    $$self{state_count} = 7;
    @{$$self{states}} = ('up','down');
-   $parent->register($self,$HorC);
+   $parent->register($self,$child,$HorC);
    return $self;
 }
 
