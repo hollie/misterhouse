@@ -1933,7 +1933,7 @@ sub check_date {
     for my $index (1..$self->{'schedule_count'}) {
          if (defined($self->{'schedule_'.$index})) {
 		::print_log("[SCHEDULE] Checking time for ". $self->get_object_name. " schedule is " . $self->{'schedule_'.$index} ." time_cron return ". &main::time_cron($self->{'schedule_'.$index}));
-                if (&main::time_cron($self->{'schedule_'.$index})) {::print_log("[SCHEDULE] Cron match for ". $self->get_object_name); $self->set_action($self->{'schedule_label_'.$index}) }
+                if (&main::time_cron($self->{'schedule_'.$index})) { $self->set_action($self->{'schedule_label_'.$index}) }
          }
        }
   }
