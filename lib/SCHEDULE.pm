@@ -247,7 +247,10 @@ sub set_action {
       if ($object->isa('SCHEDULE_Generic')) {
          ::print_log("[SCHEDULE] Setting ".$object->{child}->get_object_name." state to ".$self->{'schedule_label_'.$index});
          $self->_set_instance_active_object($$self{instance},$index) if (defined($$self{instance}));
-	 $object->{child}->SUPER::set($self->{'schedule_label_'.$index},$self->get_object_name,1);
+	 my $sub = 'set';
+	 $sub = $$self{sub} if defined($$self{sub});
+	 #$object->{child}->SUPER::set($self->{'schedule_label_'.$index},$self->get_object_name,1);
+         $object->{child}->$sub($self->{'schedule_label_'.$index},$self->get_object_name,1);
       }
          elsif ($object->isa('SCHEDULE_Temp')) {
          ::print_log("[SCHEDULE] set_action -  Temp object: ".$object->get_object_name." Parent object: ".$self->get_object_name);
@@ -397,6 +400,11 @@ sub set {
     $self->SUPER::set($p_state,$p_setby,1);
 }
 
+sub set_sub {
+  my ($self, $sub) = @_;
+  $$self{sub} = $sub;
+}
+
 
 package SCHEDULE_Temp;
 @SCHEDULE_Temp::ISA = ('Generic_Item');
@@ -442,3 +450,7 @@ sub set {
        }
 }
 
+sub set_sub {
+  my ($self, $sub) = @_;
+  $$self{sub} = $sub;
+}

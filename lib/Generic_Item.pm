@@ -1944,7 +1944,15 @@ sub set_action {
     my ($self,$state) = @_;
 	 return if &main::check_for_tied_filters( $self, $state );
          $self->_set_schedule_active_state($state);
-         $self->set($state,'schedule',1);
+         my $sub = 'set';
+         $sub = $self->{sub} if defined($self->{sub});
+         $self->$sub($state,'schedule',1);
+}
+
+
+sub set_sub {
+  my ($self, $sub) = @_;
+  $self->{sub} = $sub;
 }
 
 
