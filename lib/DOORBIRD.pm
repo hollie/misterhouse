@@ -1,18 +1,10 @@
 =head1 B<DOORBIRD>
 
-=head2 SYNOPSIS
-
-Doorbird module 
-written by Wayne Gatlin <wayne@razorcla.ws>
 
 =head2 DESCRIPTION
 
 Module for interfacing with the Doorbird line of IP Doorbells.  Monitors events
 sent by the doorbell such as doorbell button push, motion, built in door relay trigger.
-
-For more info about Doorbird doorbells see: https://www.doorbird.com/
-For more info about the Doorbird open LAN API see: https://www.doorbird.com/api
-
 
 =head2 CONFIGURATION
 
@@ -22,21 +14,21 @@ for the display of these objects as separate items in the MH interface and allow
 users to interact directly with these objects using the basic Generic_Item
 functions such as tie_event.
 
-The DOORBIRD_Bell and DOORBIRD_Motion objects are for tracking the state of the 
-doorbell bell button and the doorbell built in motion detector and are not for 
-controlling the doorbell from MH. 
+The DOORBIRD_Bell and DOORBIRD_Motion objects are for tracking the state of the
+doorbell bell button and the doorbell built in motion detector and are not for
+controlling the doorbell from MH.
 
 The DOORBIRD_Relay object is for tracking the state of the built-in "door relay"
 in the doorbell and to control the door relay and the doorbell IR light. The relay
-is a standard dry contact relay that could be used for any purpose.   
+is a standard dry contact relay that could be used for any purpose.
 
-Misterhouse receives the states of each object from the doorbell by configuring the 
+Misterhouse receives the states of each object from the doorbell by configuring the
 doorbell to send an HTTP get to MH when an action is realized, this method allows MH
-to track the states even when they have been triggered by the android app. The 
-configuration of the doorbell happens when MH is started, so the doorbell must be 
+to track the states even when they have been triggered by the android app. The
+configuration of the doorbell happens when MH is started, so the doorbell must be
 On and accessible by MH when MH is started.
 
-=head3 Interface Configuration
+=head2 Interface Configuration
 
 mh.private.ini configuration:
 
@@ -44,50 +36,22 @@ In order to allow for multiple doorbells, instance names are used.
 the following are prefixed with the instance name (DOORBIRD).
 
 The IP of the misterhouse server:
-DOORBIRD_mh_ip=192.168.1.10
+	DOORBIRD_mh_ip=192.168.1.10
 
-Wherein the format for the definition is:
-<instance>_mh_ip=<mh server ip>
-
-
-The port of the misterhouse server web: 
-DOORBIRD_mh_port=8080
-
-Wherein the format for the definition is:
-<instance>_mh_port=<mh server port>
-
+The port of the misterhouse server web:
+	DOORBIRD_mh_port=8080
 
 The IP of the doorbell:
-DOORBIRD_doorbell_ip=192.168.1.50
-
-Wherein the format for the definition is:
-<instance>_doorbell_ip=<doorbird ip>
-
+	DOORBIRD_doorbell_ip=192.168.1.50
 
 The username for the doorbell:
-DOORBIRD_user=doorbirduser
-
-Wherein the format for the definition is:
-<instance>_user=<username>
-
+	DOORBIRD_user=doorbirduser
 
 The password for the doorbell:
-DOORBIRD_password=doorbirdpass
-
-Wherein the format for the definition is:
-<instance>_password=<password>
+	DOORBIRD_password=doorbirdpass
 
 
-Optional to enable debugging log:
-debug=doorbird
-
-Wherein the format for the definition is:
-debug=<instance>
-
-debug logs are stored in the <data_dir>/logs/
-
-
-=head4 Defining the Interface Object 
+=head2 Defining the Interface Object
 
 In addition to the above configuration, you must also define the interface
 object.  The object can be defined in the user code.
@@ -100,34 +64,34 @@ Wherein the format for the definition is:
 
    $DOORBIRD = new DOORBIRD(INSTANCE);
 
-=head4 Bell Object
+=head2 Bell Object
 
-$DOORBIRD_Bell = new DOORBIRD_Bell('DOORBIRD', 1);
+	$DOORBIRD_Bell = new DOORBIRD_Bell('DOORBIRD', 1);
 
 Wherein the format for the definition is:
-$DOORBIRD_Bell = new DOORBIRD_Bell(INSTANCE, ENABLECONFIG);
+	$DOORBIRD_Bell = new DOORBIRD_Bell(INSTANCE, ENABLECONFIG);
 
 States:
 ON
 OFF
 
-=head4 Motion Object
+=head2 Motion Object
 
-$DOORBIRD_Motion = new DOORBIRD_Motion('DOORBIRD', 1);
+	$DOORBIRD_Motion = new DOORBIRD_Motion('DOORBIRD', 1);
 
 Wherein the format for the definition is:
-$DOORBIRD_Motion = new DOORBIRD_Motion(INSTANCE, ENABLECONFIG);
+	$DOORBIRD_Motion = new DOORBIRD_Motion(INSTANCE, ENABLECONFIG);
 
 States:
 ON
 OFF
 
-=head4 Relay Object
+=head2 Relay Object
 
-$DOORBIRD_Relay = new DOORBIRD_Relay('DOORBIRD', 1);
+	$DOORBIRD_Relay = new DOORBIRD_Relay('DOORBIRD', 1);
 
 Wherein the format for the definition is:
-$DOORBIRD_Relay = new DOORBIRD_Relay(INSTANCE, ENABLECONFIG);
+	$DOORBIRD_Relay = new DOORBIRD_Relay(INSTANCE, ENABLECONFIG);
 
 States:
 ON
@@ -141,27 +105,27 @@ LIGHT_ON  (to enable the IR light on the door bell)
 
 An example mh.private.ini:
 
-DOORBIRD_mh_ip=192.168.1.10
-DOORBIRD_mh_port=8080
-DOORBIRD_doorbell_ip=192.168.1.50
-DOORBIRD_user=doorbirduser
-DOORBIRD_password=doorbirdpass
+	DOORBIRD_mh_ip=192.168.1.10
+	DOORBIRD_mh_port=8080
+	DOORBIRD_doorbell_ip=192.168.1.50
+	DOORBIRD_user=doorbirduser
+	DOORBIRD_password=doorbirdpass
 
 
 An example user code:
 
-#noloop=start
-use DOORBIRD;
-$DOORBIRD = new DOORBIRD('DOORBIRD');
-$DOORBIRD_Bell = new DOORBIRD_Bell('DOORBIRD', 1);
-$DOORBIRD_Motion = new DOORBIRD_Motion('DOORBIRD', 1);
-$DOORBIRD_Relay = new DOORBIRD_Relay('DOORBIRD', 1);
-#noloop=stop
+	#noloop=start
+	use DOORBIRD;
+	$DOORBIRD = new DOORBIRD('DOORBIRD');
+	$DOORBIRD_Bell = new DOORBIRD_Bell('DOORBIRD', 1);
+	$DOORBIRD_Motion = new DOORBIRD_Motion('DOORBIRD', 1);
+	$DOORBIRD_Relay = new DOORBIRD_Relay('DOORBIRD', 1);
+	#noloop=stop
 
-if ($state = state_changed $DOORBIRD_Motion) {
-    run_voice_cmd 'start cam 8' if ($state eq 'on');
-    run_voice_cmd 'stop cam 8' if ($state eq 'off');
-}
+	if ($state = state_changed $DOORBIRD_Motion) {
+    	 run_voice_cmd 'start cam 8' if ($state eq 'on');
+    	 run_voice_cmd 'stop cam 8' if ($state eq 'off');
+	}
 
 =head2 INHERITS
 
@@ -192,7 +156,7 @@ sub new {
    $$self{user} = $::config_parms{$instance.'_user'};
    $$self{password} = $::config_parms{$instance.'_password'};
    my $year_mon = &::time_date_stamp( 10, time );
-   $$self{log_file} = $::config_parms{'data_dir'}.'/logs/'.$instance.'_'.$year_mon.'.log';
+   $$self{log_file} = $::config_parms{'data_dir'}."/logs/DOORBIRD.$year_mon.log";
 
    bless $self, $class;
 
@@ -251,7 +215,7 @@ sub configure_bell {
   use LWP::UserAgent;
   my $ua = LWP::UserAgent->new();
   $ua->timeout($httptimeout);
- my $req = $ua->get('http://'.$$self{user}.':'.$$self{password}.'@'.$$self{doorbell_ip}.'/bha-api/notification.cgi?url=http://'.$$self{mh_ip}.':'.$$self{mh_port}.'/mh/set?$'.$class.'?ON&user=&password=&event='.$type.'&subscribe=1');
+ my $req = $ua->get('http://'.$$self{user}.':'.$$self{password}.'@'.$$self{doorbell_ip}.'/bha-api/notification.cgi?url=http://'.$$self{mh_ip}.':'.$$self{mh_port}.'/mh/set;no_response?$'.$class.'?ON&user=&password=&event='.$type.'&subscribe=1');
 }
 
 
@@ -260,23 +224,40 @@ sub send_command {
   use LWP::UserAgent;
   my $ua = LWP::UserAgent->new();
   $ua->timeout($httptimeout);
-  $self->debug_log("[DOORBIRD] Sent request /bha-api/$type.cgi",4);
+  ::print_log("[DOORBIRD] Sent request /bha-api/$type.cgi");
  my $req = $ua->get('http://'.$$self{user}.':'.$$self{password}.'@'.$$self{doorbell_ip}.'/bha-api/'.$type.'.cgi');
 }
 
 
-=item C<debug_log()>
+=back
 
-Used to log messages to the specific  log file.
+=head1 B<DOORBIRD_Bell>
+
+=head2 SYNOPSIS
+
+User code:
+
+    $DOORBIRD_Bell = new DOORBIRD_Bell('DOORBIRD', 1);
+
+     Wherein the format for the definition is:
+    $DOORBIRD_Bell = new DOORBIRD_Bell(INSTANCE, ENABLECONFIG);
+
+See C<new()> for a more detailed description of the arguments.
+
+
+=head2 DESCRIPTION
+
+ Tracks doorbell button pushes in MH. 
+
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
 
 =cut
-
-sub debug_log {
-   my ($self, $text, $level) = @_;
-   my $instance = $$self{instance};
-   ::logit( $$self{log_file}, $text) if $main::Debug{lc($instance)};
-}
-
 
 package DOORBIRD_Bell;
 @DOORBIRD_Bell::ISA = ('Generic_Item');
@@ -288,10 +269,10 @@ Instantiates a new object.
 $doorbell = The DOORBIRD of the doorbell that this zone is found on
 
 $config = If you want this module to configure the DOORBIRD doorbell
-          to post updates to MH, then this value should be a 1, else 0.
-                  If you disable auto configure (0), you must manually configure
-                  the doorbell using the API with the MH URL you want the doorbell
-                  to post to.
+to post updates to MH, then this value should be a 1, else 0.
+If you disable auto configure (0), you must manually configure
+the doorbell using the API with the MH URL you want the doorbell
+to post to.
 
 
 =cut
@@ -311,24 +292,56 @@ sub new
 sub set {
     my ($self, $p_state, $p_setby, $p_response) = @_;
         if ($p_state eq 'ON') {
-         $$self{doorbell}->debug_log("[DOORBIRD::Bell] Received request "
-           . $p_state ." for ". $self->get_object_name,1);
+         ::print_log("[DOORBIRD::Bell] Received request "
+           . $p_state ." for ". $self->get_object_name);
          $self->SUPER::set($p_state,$p_setby);
          $self->set_with_timer('TON', 2, 'TOFF')
         }
         if ($p_state eq 'TOFF') {
-         $$self{doorbell}->debug_log("[DOORBIRD::Bell] Received request OFF"
-            ." by timer for ". $self->get_object_name,1);
+         ::print_log("[DOORBIRD::Bell] Received request OFF"
+            ." by timer for ". $self->get_object_name);
          $self->SUPER::set('OFF','TIMER');
        }
         if ($p_state eq 'OFF') {
-         $$self{doorbell}->debug_log("[DOORBIRD::Bell] Received request "
-           . $p_state ." for ". $self->get_object_name,1);
+         ::print_log("[DOORBIRD::Bell] Received request "
+           . $p_state ." for ". $self->get_object_name);
          $self->SUPER::set('OFF','TIMER');
        }
 }
 
+=back
 
+=head1 B<DOORBIRD_Motion>
+
+=head2 SYNOPSIS
+
+User code:
+
+    $DOORBIRD_Motion = new DOORBIRD_Motion('DOORBIRD', 1);
+
+    Wherein the format for the definition is:
+    $DOORBIRD_Motion = new DOORBIRD_Motion(INSTANCE, ENABLECONFIG);
+
+    States:
+    ON
+    OFF
+
+See C<new()> for a more detailed description of the arguments.
+
+
+=head2 DESCRIPTION
+
+Tracks doorbell motion in MH. 
+
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 package DOORBIRD_Motion;
 @DOORBIRD_Motion::ISA = ('Generic_Item');
@@ -340,10 +353,10 @@ Instantiates a new object.
 $doorbell = The DOORBIRD doorbell that this motion sensor is found on
 
 $config = If you want this module to configure the DOORBIRD doorbell
-          to post updates to MH, then this value should be a 1, else 0.
-                  If you disable auto configure (0), you must manually configure
-                  the doorbell using the API with the MH URL you want the doorbell
-                  to post to.
+to post updates to MH, then this value should be a 1, else 0.
+If you disable auto configure (0), you must manually configure
+the doorbell using the API with the MH URL you want the doorbell
+to post to.
 
 
 =cut
@@ -363,25 +376,61 @@ sub new
 sub set {
     my ($self, $p_state, $p_setby, $p_response) = @_;
         if ($p_state eq 'ON') {
-         $$self{doorbell}->debug_log("[DOORBIRD::Motion] Received request "
+         ::print_log("[DOORBIRD::Motion] Received request "
            . $p_state ." for ". $self->get_object_name);
-         $self->SUPER::set($p_state,$p_setby,1);
+         $self->SUPER::set($p_state,$p_setby);
          $self->set_with_timer('TON', 20, 'TOFF')
         }
         if ($p_state eq 'TOFF') {
-         $$self{doorbell}->debug_log("[DOORBIRD::Motion] Received request OFF"
-            ." by timer for ". $self->get_object_name,1);
+         ::print_log("[DOORBIRD::Motion] Received request OFF"
+            ." by timer for ". $self->get_object_name);
          $self->SUPER::set('OFF','TIMER');
        }
         if ($p_state eq 'OFF') {
-         $$self{doorbell}->debug_log("[DOORBIRD::Motion] Received request "
-           . $p_state ." for ". $self->get_object_name,1);
+         ::print_log("[DOORBIRD::Motion] Received request "
+           . $p_state ." for ". $self->get_object_name);
          $self->SUPER::set('OFF','TIMER');
        }
 }
 
 
+=back
 
+=head1 B<DOORBIRD_Relay>
+
+=head2 SYNOPSIS
+
+User code:
+
+   $DOORBIRD_Relay = new DOORBIRD_Relay('DOORBIRD', 1);
+
+   Wherein the format for the definition is:
+   $DOORBIRD_Relay = new DOORBIRD_Relay(INSTANCE, ENABLECONFIG);
+
+States:
+ON
+OFF
+
+  Control States:
+  TOGGLE (to trigger the relay)
+  LIGHT_ON  (to enable the IR light on the door bell)
+
+See C<new()> for a more detailed description of the arguments.
+
+
+=head2 DESCRIPTION
+
+Tracks/controls doorbell relay in MH. 
+
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 package DOORBIRD_Relay;
 @DOORBIRD_Relay::ISA = ('Generic_Item');
@@ -393,10 +442,10 @@ Instantiates a new object.
 $doorbell = The DOORBIRD doorbell that this door relay is found on
 
 $config = If you want this module to configure the DOORBIRD doorbell
-          to post updates to MH, then this value should be a 1, else 0.
-                  If you disable auto configure (0), you must manually configure
-                  the doorbell using the API with the MH URL you want the doorbell
-                  to post to.
+to post updates to MH, then this value should be a 1, else 0.
+If you disable auto configure (0), you must manually configure
+the doorbell using the API with the MH URL you want the doorbell
+to post to.
 
 
 =cut
@@ -409,37 +458,59 @@ sub new
    $doorbell = DOORBIRD::get_object_by_instance($doorbell);
    $doorbell->register($self,$config,$class);
    $$self{doorbell} = $doorbell;
-   @{$$self{states}} = ('TOGGLE','LIGHT-ON');
+   @{$$self{states}} = ('TOGGLE','LIGHT_ON');
    return $self;
 }
 
 sub set {
     my ($self, $p_state, $p_setby, $p_response) = @_;
         if ($p_state eq 'ON') {
-         $$self{doorbell}->debug_log("[DOORBIRD::Relay] Received request "
-           . $p_state ." for ". $self->get_object_name,1);
+         ::print_log("[DOORBIRD::Relay] Received request "
+           . $p_state ." for ". $self->get_object_name);
          $self->SUPER::set($p_state,$p_setby);
          $self->set_with_timer('TON', 2, 'TOFF')
         }
         if ($p_state eq 'TOFF') {
-         $$self{doorbell}->debug_log("[DOORBIRD::Relay] Received request OFF"
-            ." by timer for ". $self->get_object_name,1);
+         ::print_log("[DOORBIRD::Relay] Received request OFF"
+            ." by timer for ". $self->get_object_name);
          $self->SUPER::set('OFF','TIMER');
        }
         if ($p_state eq 'OFF') {
-         $$self{doorbell}->debug_log("[DOORBIRD::Relay] Received request "
-           . $p_state ." for ". $self->get_object_name,1);
+         ::print_log("[DOORBIRD::Relay] Received request "
+           . $p_state ." for ". $self->get_object_name);
          $self->SUPER::set('OFF','TIMER');
        }
         if ($p_state eq 'TOGGLE') {
-         $$self{doorbell}->debug_log("[DOORBIRD::Relay] Received request "
-           . $p_state ." for ". $self->get_object_name,1);
-          $$self{doorbell}->send_command($object,'open-door',$class);
+         ::print_log("[DOORBIRD::Relay] Received request "
+           . $p_state ." for ". $self->get_object_name);
+          $$self{doorbell}->send_command($object,'open-door',$class)
        }
-        if ($p_state eq 'LIGHT-ON') {
-         $$self{doorbell}->debug_log("[DOORBIRD::Relay] Received request "
-           . $p_state ." for ". $self->get_object_name,1);
-         $$self{doorbell}->send_command($object,'light-on',$class);
+        if ($p_state eq 'LIGHT_ON') {
+         ::print_log("[DOORBIRD::Relay] Received request "
+           . $p_state ." for ". $self->get_object_name);
+         $self->send_command($object,'light-on',$class)
        }
 }
 
+
+=back
+
+=head2 INI PARAMETERS
+
+=head2 NOTES
+
+=head2 AUTHOR
+
+Wayne Gatlin <wayne@razorcla.ws>
+
+=head2 SEE ALSO
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut

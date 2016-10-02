@@ -1,3 +1,112 @@
+=head1 B<SCHEDULE>
+
+=head2 DESCRIPTION
+
+Module for scheduling state changes for objects in misterhouse via the web UI.
+This module is useful for scheduling for objects that do not inherit scheduleing
+from the Generic_Item or do not have the states that you need by default. 
+
+It is also very useful for thermostat scheduleing as the child object SCHEDULE_Temp
+is built exactly for that and allows the scheduled temp changes to be set in real time
+from the MH web UI.  
+
+=head2 CONFIGURATION
+
+At minimum, you must define the SCHEDULE and one of the following objects
+L<SCHEDULE_Temp> or L<SCHEDULE_Generic>.
+
+The SCHEDULE_Generic objects are for scheduling state changes for any object in misterhouse.
+You can make custom states to be listed in the MH web UI.
+See L<SCHEDULE_Generic>
+
+The SCHEDULE_Temp objects are for scheduling thermostat temp changes throughout the day. Its 
+linked to sets of object which hold the schedule temps and can be changed in the MH web UI
+in real time. It also has several overrides such as occupancy checking and outdoor temp. 
+See L<SCHEDULE_Temp>
+
+=head2 Interface Configuration
+
+This object has no mh.private.ini configuration.
+
+=head2 Defining the Interface Object
+
+The object must be defined in the user code.
+
+In user code:
+
+$Night = new SCHEDULE('THERMO1');
+
+Wherein the format for the definition is:
+
+   $Night = new SCHEDULE(INSTANCE);
+
+
+=head2 NOTES
+
+The instance is only needed when multiple schedule object are used together 
+for a thermostat schedule.
+
+
+An example user code for a SCHEDULE_Generic:
+
+	#noloop=start
+	use SCHEDULE;
+	$SCHEDULE_LIGHT1 = new SCHEDULE();
+	$SCHEDULE_SG_LIGHT1 = new SCHEDULE_Generic($SCHEDULE_LIGHT1,$light1,'on','off');  #The states (on and off in this example) are optional. 
+	$SCHEDULE2->set_schedule_default(1,'00 1 * * 1-5','off');  #Optionally sets 1st the default schedule. 
+	$SCHEDULE2->set_schedule_default(2,'00 5 * * 1-5','on');   #Optionally sets 2nd the default schedule. 
+	#noloop=stop
+
+	
+An example user code for a SCHEDULE_Temp:
+
+	#noloop=start
+	$Night = new SCHEDULE('THERMO1');
+	$Normal = new SCHEDULE('THERMO1');
+	$Conserve = new SCHEDULE('THERMO1');
+	$NightWinter = new SCHEDULE('THERMO1');
+
+	# $NormalCool/$NormalHeat have an UP and DOWN states to change the temp settings in the web interface and they are linked to the Normal schedule object above.
+	# $thermostat is the thermostat object that controls my Insteon thermostat, cool_setpoint and heat_setpoint are the subs that are used to set the thermostat setpoint.
+	$NormalCool = new SCHEDULE_Temp($Normal,'cool',$thermostat,'cool_setpoint');
+	$NormalHeat = new SCHEDULE_Temp($Normal,'heat',$thermostat,'heat_setpoint');
+
+	$NightCool = new SCHEDULE_Temp($Night,'cool',$thermostat,'cool_setpoint');
+	$NightHeat = new SCHEDULE_Temp($Night,'heat',$thermostat,'heat_setpoint');
+
+	$NightWCool = new SCHEDULE_Temp($NightWinter,'cool',$thermostat,'cool_setpoint');
+	$NightWHeat = new SCHEDULE_Temp($NightWinter,'heat',$thermostat,'heat_setpoint');
+
+	$ConserveCool = new SCHEDULE_Temp($Conserve,'cool',$thermostat,'cool_setpoint');
+	$ConserveHeat = new SCHEDULE_Temp($Conserve,'heat',$thermostat,'heat_setpoint');
+
+
+	# Occupancy Override (optional, I track occupancy by checking to see if my cell is connected to wifi)
+	# If the $mode_occupied state is home use the $Normal object temps (from $NormalCool/$NormalHeat), 
+	# if the $mode_occupied state changes to work change the temp settings to the $Conserve object temps (from $ConserveCool/$ConserveHeat)
+	$Normal->set_occpuancy('home','work',$Conserve); 
+	$Night->set_occpuancy('home','work',$Normal);
+	$Conserve->set_occpuancy('work','home',$Normal);
+
+	#Forcasted temps equal or below this (50) cause the $NightWinter temps to be used. Pulled from $Weather{Forecast Tonight}.
+	$Night->set_winter($NightWinter,'50');
+
+	# Vacation mode. During any active schedule, override the linked temps with the $Conserve temps.
+	$Normal->set_vacation($Conserve,'vacation');
+	$Night->set_vacation($Conserve,'vacation');
+	$Conserve->set_vacation($Conserve,'vacation');
+	#noloop=stop
+
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 package SCHEDULE;
 @SCHEDULE::ISA = ('Generic_Item');
 
@@ -27,7 +136,7 @@ sub set {
 
 sub set_schedule {
     my ($self,$index,$entry,$label) = @_;
-    ::print_log("[SCHEDULE] - set_schedule - Index " . $index . " Schedule: ". $entry ." Label ". $label); 
+    ::print_log("[SCHEDULE] - DEBUG - set_schedule - Index " . $index . " Schedule: ". $entry ." Label ". $label) if $main::Debug{'SCHEDULE'}; 
     if ($index > $self->{'schedule_count'}) { $self->{'schedule_count'} = $index } 
     $self->{'schedule_'.$index} = $entry if (defined($entry));
     $self->{'schedule_label_'.$index} = $label if (defined($label));
@@ -42,7 +151,8 @@ sub set_schedule {
     $self->{set_time} = $::Time;
 }
 
-sub set_schedule_once {
+
+sub set_schedule_default {
     my ($self,$index,$entry,$label) = @_;
     unless ($self->{'schedule_once_'.$index} eq 1) {
         if ((defined($self->{'set_timer_'.$index})) && ($self->{'set_timer_'.$index}->expired)) {
@@ -56,6 +166,7 @@ sub set_schedule_once {
 	}
     }
 }
+
 
 sub delete_schedule {
     my ($self,$index) = @_;
@@ -139,7 +250,7 @@ sub get_schedule{
 sub am_i_active_object{
   my ($self,$instance) = @_;
   unless (defined($instance)) { return 1 } 
-  ::print_log("[SCHEDULE] - am_i_active_object - active object: ".$Interfaces{$instance}->get_object_name." check object: ".$self->get_object_name) if (defined($Interfaces{$instance}));
+  ::print_log("[SCHEDULE] - DEBUG - am_i_active_object - current active object: ".$Interfaces{$instance}->get_object_name." checked object: ".$self->get_object_name) if (defined($Interfaces{$instance})) if $main::Debug{'SCHEDULE'};
   if (defined($Interfaces{$instance})) {
      if ($Interfaces{$instance}->get_object_name eq $self->get_object_name) { return 1 }
      else { $self->{'active_object'} = 0; return 0; }
@@ -209,11 +320,11 @@ sub check_date {
  my ($self,$object) = @_;
  if ($::Startup or $::Reload) { $self->{'reloaded'} = 1 }  
  my $occupied_state = ($$self{occupied}->state_now) if (defined($$self{occupied}));
- if ($occupied_state) { $self->ChangeACSetpoint if (($self->am_i_active_object($$self{instance})) && (lc(state $self) eq 'on')) }
+ if ($occupied_state) { $self->CheckOverRide if (($self->am_i_active_object($$self{instance})) && (lc(state $self) eq 'on')) }
 
  if ($::New_Minute) {
   $self->am_i_active_object($$self{instance}) if (defined($$self{instance}));;
-  ::print_log("[SCHEDULE] Checking schedule for ". $self->get_object_name." Sate is ". (state $self) . " Child object is ". $object->get_object_name);
+  ::print_log("[SCHEDULE] - DEBUG - Checking schedule for ". $self->get_object_name." State is ". (state $self) . " Child object is ". $object->get_object_name) if $main::Debug{'SCHEDULE'};
    if (lc(state $self) eq 'on') {
     for my $index (1..$self->{'schedule_count'}) {
 	 if (defined($self->{'schedule_'.$index})) {
@@ -235,27 +346,27 @@ sub setACSetpoint {
   my $heat_temp_control = $object->{temp_object}{'heat'}{child};
   my $heat_temp_control_sub = $object->{temp_object}{'heat'}{sub};
   $cool_temp_control->$cool_temp_control_sub($cool_sp);
-  $heat_temp_control->$heat_temp_control_sub($heat_sp);
-  
-
   ::print_log("[SCHEDULE] running ".$cool_temp_control->get_object_name."->".$cool_temp_control_sub."(".$cool_sp.")");
-  ::print_log("[SCHEDULE] running ".$heat_temp_control->get_object_name."->".$heat_temp_control_sub."(".$heat_sp.")");
+  $self->{'set_temp_timer'} = ::Timer::new();
+  $self->{'set_temp_timer'}->set '7', sub {
+    $heat_temp_control->$heat_temp_control_sub($heat_sp);
+    ::print_log("[SCHEDULE] running ".$heat_temp_control->get_object_name."->".$heat_temp_control_sub."(".$heat_sp.")");
+  }
 }
 
 sub set_action {
     my ($self,$object,$index) = @_;
       if ($object->isa('SCHEDULE_Generic')) {
-         ::print_log("[SCHEDULE] Setting ".$object->{child}->get_object_name." state to ".$self->{'schedule_label_'.$index});
+         my $sub = 'set';
+         $sub = $$self{sub} if defined($$self{sub});
+         ::print_log("[SCHEDULE] Running ".$object->{child}->get_object_name."->".$sub."(".$self->{'schedule_label_'.$index}.")");
          $self->_set_instance_active_object($$self{instance},$index) if (defined($$self{instance}));
-	 my $sub = 'set';
-	 $sub = $$self{sub} if defined($$self{sub});
-	 #$object->{child}->SUPER::set($self->{'schedule_label_'.$index},$self->get_object_name,1);
          $object->{child}->$sub($self->{'schedule_label_'.$index},$self->get_object_name,1);
       }
          elsif ($object->isa('SCHEDULE_Temp')) {
-         ::print_log("[SCHEDULE] set_action -  Temp object: ".$object->get_object_name." Parent object: ".$self->get_object_name);
+         ::print_log("[SCHEDULE] - DEBUG - set_action -  Temp object: ".$object->get_object_name." Parent object: ".$self->get_object_name) if $main::Debug{'SCHEDULE'};
          $self->_set_instance_active_object($$self{instance}) if (defined($$self{instance}));
-         $self->ChangeACSetpoint;
+         $self->CheckOverRide;
       }
 }
 
@@ -285,20 +396,20 @@ sub set_vacation {
   my ($self, $object, $state) = @_;
   $$self{vacation_mode_object} = $object;
   $$self{vacation_mode_state} = $state;
+  $self->set_occpuancy(undef,undef,undef) unless (defined $$self{occupied}); # Allows the use of vacation mode with out occpuancy
 }
 
  
-sub ChangeACSetpoint {
-my ($self,$object) = @_;
-unless ($self->am_i_active_object($$self{instance})) { return 0 }
-my $action = $self->get_instance_active_action($$self{instance});
-my $occ_setback_object = $$self{occ_setback_object};
-my $occ_setback_state = $$self{occ_setback_state};
-my $occ_state = $$self{occ_state};
-my $object = $self;
-my $occupied_state = ($$self{occupied}->state) if (defined($$self{occupied}));
+sub CheckOverRide {
+ my ($self,$object) = @_;
+ unless ($self->am_i_active_object($$self{instance})) { return 0 }
+ my $action = $self->get_instance_active_action($$self{instance});
+ my $occ_setback_object = $$self{occ_setback_object};
+ my $occ_setback_state = $$self{occ_setback_state};
+ my $occ_state = $$self{occ_state};
+ my $object = $self;
+ my $occupied_state = ($$self{occupied}->state) if (defined($$self{occupied}));
 
-print_log("[THERMO] - DEBUG --- in ChangeACSetpoint") if ($config_parms{"thermo_schedule"} eq 'debug');
 
     if (&OverRide($self)) {
 	   $occ_setback_object = $$self{override_mode_setback_object} if defined($$self{override_mode_setback_object});
@@ -306,24 +417,23 @@ print_log("[THERMO] - DEBUG --- in ChangeACSetpoint") if ($config_parms{"thermo_
 	   $occ_state = $$self{override_mode_occ_state} if defined($$self{occ_state});
 	   $object = $$self{override_mode_object} if defined($$self{override_mode_object});
     }
-	&main::print_log("[THERMO] - INFO - ChangeACSetpoint - " . $occupied_state ." ". $object->get_object_name ." state match:  $occ_state");
+       ::print_log("[SCHEDULE] - INFO - CheckOverRide - Current occupied state:" . $occupied_state ." ". $object->get_object_name ." state match:  $occ_state");
        if ((defined($$self{occupied})) && ($$self{occupied}->state eq $occ_state)) {
-	    &main::print_log("[THERMO] - INFO - ChangeACSetpoint - occ state match ". $object->get_object_name ." setpoints, you are now $occ_state");
            if ($$self{thermo_timer}->expired) {
-                &main::print_log("[THERMO] - INFO - setting ". $object->get_object_name ." setpoints, you are now $occ_state");
+                ::print_log("[SCHEDULE] - INFO - setting ". $object->get_object_name ." setpoints, you are now $occ_state");
                 $self->setACSetpoint($object);
             } else {  
                 $$self{thermo_timer}->set($$self{thermo_timer_delay}, sub {
-                   $self->ChangeACSetpoint;
+                   $self->CheckOverRide;
                 });
             }
        } elsif ((defined($$self{occupied})) && ($$self{occupied}->state eq $occ_setback_state)) {
            if ($$self{thermo_timer}->expired) {
-                &main::print_log("[THERMO] - INFO - setting setback ". $occ_setback_object->get_object_name ."setpoints, you are now $occ_setback_state");
+                ::print_log("[SCHEDULE] - INFO - setting setback ". $occ_setback_object->get_object_name ." setpoints, you are now $occ_setback_state");
                 $self->setACSetpoint($occ_setback_object);
             } else { 
                 $$self{thermo_timer}->set($$self{thermo_timer_delay_setback}, sub {
-                   $self->ChangeACSetpoint;
+                   $self->CheckOverRide;
                 });
             }
        } else {
@@ -339,14 +449,14 @@ undef $$self{override_mode_setback_object};
 undef $$self{override_mode_setback_state};
 undef $$self{override_mode_occ_state};
 undef $$self{override_mode_object};
-  print_log("[THERMO] - DEBUG --- IN OVERRIDE") if ($config_parms{"thermo_schedule"} eq 'debug');
-  if ($occupied_state eq 'vacation') {
-         print_log("[THERMO] - DEBUG --- IN OVERRIDE --- VACATION") if ($config_parms{"thermo_schedule"} eq 'debug');
+  print_log("[SCHEDULE] - DEBUG --- IN OVERRIDE") if $main::Debug{'SCHEDULE'};
+  if ( $occupied_state eq $$self{vacation_mode_state} ) {
+         	 ::print_log("[SCHEDULE] - DEBUG --- IN OVERRIDE --- VACATION") if $main::Debug{'SCHEDULE'};
 		 $$self{override_mode_setback_object} = $$self{vacation_mode_object}; # override the setpoint if in vacation mode
 		 $$self{override_mode_setback_state} = $$self{vacation_mode_state}; # override the setback state if in vacation mode
          return 1;
-  } elsif ($self->WinterMode) {
-        print_log("[THERMO] - DEBUG --- IN OVERRIDE --- WINTERMODE") if ($config_parms{"thermo_schedule"} eq 'debug');
+  } elsif ( $self->WinterMode ) {
+        	::print_log("[SCHEDULE] - DEBUG --- IN OVERRIDE --- WINTERMODE") if $main::Debug{'SCHEDULE'};
 		$$self{override_mode_object} = $$self{winter_mode_object}; # override the setpoint if forcast temp is below config
         return 1;
   }
@@ -357,22 +467,58 @@ undef $$self{override_mode_object};
 sub WinterMode {
 #return 1;  # temp for testing
 my ($self) = @_;
-    print_log("[THERMO] - DEBUG --- IN WINTERMODE") if ($config_parms{"thermo_schedule"} eq 'debug');
+    ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE") if $main::Debug{'SCHEDULE'};
    if ($::Weather{'Forecast Tonight'} =~ /lows in the ([\w ]+) (\d+)/i) {
-        print_log("[THERMO] - DEBUG --- IN WINTERMODE --- FORCAST --- $1 $2") if ($config_parms{"thermo_schedule"} eq 'debug');
+        ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE --- FORCAST --- $1 $2") if $main::Debug{'SCHEDULE'};
         my $fc = $2;
         if (lc($1) =~ /mid/) { $fc = $fc + 3 } # Translate low, mid, and upper to a value
         if (lc($1) =~ /up/) { $fc = $fc + 6 }
            ##if the value we got from the weather script is equal
             #or lower than our defined value, return the defined winter mode
        if ($fc <= ($$self{winter_mode_temp})) {
-         ::print_log("[THERMO] - DEBUG --- IN WINTERMODE  ---- M1 --- LOWS -- $fc -- $$self{winter_mode_temp}") if ($config_parms{"thermo_schedule"} eq 'debug');
+         ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE  ---- M1 --- LOWS -- $fc -- $$self{winter_mode_temp}") if $main::Debug{'SCHEDULE'};
          return 1;
        }
      return 0;
    }
  }
  
+=back
+
+=head1 B<SCHEDULE_Generic>
+
+=head2 SYNOPSIS
+
+User code:
+
+    $SCHEDULE_SG_LIGHT1 = new SCHEDULE_Generic($SCHEDULE_LIGHT1,$light1,'on','off'); 
+
+     Wherein the format for the definition is:
+    $SCHEDULE_SG_LIGHT1 = new SCHEDULE_Generic(MASTER_SCHEDULE_OBJECT,CONTROLLED_OBJECT,STATES);
+
+
+=head2 NOTES
+
+The master schedule object (SCHEDULE object) holds the scheduling data which is set using the MH web UI. 
+The SCHEDULE_Generic object links the master schedule object to the controlled object and optionally allows the 
+user to set custom states to be used in the schedules in the MH web.
+The controlled object can be any MH object such as a light.
+
+=head2 DESCRIPTION
+
+Links the master schedule object to the controlled object and optionally allows the user to set custom states 
+to be used in the schedules in the MH web.
+
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 
 package SCHEDULE_Generic;
 @SCHEDULE_Generic::ISA = ('Generic_Item');
@@ -400,10 +546,63 @@ sub set {
     $self->SUPER::set($p_state,$p_setby,1);
 }
 
+
+=item C<set_sub()>
+
+Allows the user to change the sub used to set the state of the controlled object. By default 'set' is used.
+
+User code:
+
+    $SCHEDULE_SG_LIGHT1->set_sub('set_cool')
+	
+	 Wherein the format for the definition is:
+	$SCHEDULE_SG_LIGHT1->set_sub(SUB)
+
+=cut
+
+
 sub set_sub {
   my ($self, $sub) = @_;
   $$self{sub} = $sub;
 }
+
+
+=back
+
+=head1 B<SCHEDULE_Temp>
+
+=head2 SYNOPSIS
+
+User code:
+
+    $NormalCool = new SCHEDULE_Temp($Normal,'cool',$thermostat,'cool_setpoint'); 
+
+     Wherein the format for the definition is:
+    $NormalCool = new SCHEDULE_Temp(MASTER_SCHEDULE_OBJECT,cool/heat,CONTROLLED_THERMOSTAT_OBJECT,SUB);
+
+
+=head2 NOTES
+
+The master schedule object (SCHEDULE object) holds the scheduling data which is set using the MH web UI. 
+The SCHEDULE_Temp object holds the temp setting for the schedule and links the master schedule object to 
+the controlled object.
+The controlled object is the thermostat object used to change your thermostat set points. 
+cool/heat is literally 'heat' or 'cool', you should have 1 SCHEDULE_Temp object set to 'cool' and 1 set to 'heat'.
+
+=head2 DESCRIPTION
+
+This object holds the temp setting and links the master schedule object to the controlled thermostat object, its also 
+where the user can easily change the temp settings for the schedule in the MH web UI.
+
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 
 package SCHEDULE_Temp;
@@ -450,7 +649,44 @@ sub set {
        }
 }
 
+
+=item C<set_sub()>
+
+Allows the user to change the sub used to set the state of the controlled object. By default 'set' is used.
+This can also be set in the SCHEDULE_Temp definition. 
+
+User code:
+
+	$NormalCool->set_sub('set_cool');
+
+	Wherein the format for the definition is:
+	$NormalCool->set_sub(SUB)
+
+=cut
+
+
 sub set_sub {
   my ($self, $sub) = @_;
   $$self{sub} = $sub;
 }
+
+
+=back
+
+=head2 NOTES
+
+=head2 AUTHOR
+
+Wayne Gatlin <wayne@razorcla.ws>
+
+=head2 SEE ALSO
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut

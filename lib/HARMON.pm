@@ -22,9 +22,9 @@ objects using the basic Generic_Item functions such as tie_event.
 There is a small difference in configuring the HARMON Interface for direct
 connections Serial or IP Connections (Ser2Sock).
 
-=head4 Direct Connections (USB or Serial)
 
-INI file:
+
+=head3 Direct Connections (USB or Serial) in INI file:
 
    HARMON_serial_port=/dev/ttyAMA0  @This is the serial device
    HARMON_baudrate=115200		  	@This must be 115200
@@ -32,41 +32,43 @@ INI file:
 Wherein the format for the parameter name is:
 
    HARMON_serial_port
-   HARMON_baudrate
-   
-=head4 IP Connections (Ser2Sock)
+   HARMON_baudrate  
 
-INI file:
 
-HARMON_server_ip=192.168.1.33 @IP address of the machine running ser2sock
-HARMON_server_port=36000 	  @Port configured in the ser2sock config
-HARMON_server_recon=10		  @Amount of time to wait before trying to reconnect
+=head3 IP Connections (Ser2Sock) in INI file:
+
+	HARMON_server_ip=192.168.1.33 @IP address of the machine running ser2sock
+	HARMON_server_port=36000 	  @Port configured in the ser2sock config
+	HARMON_server_recon=10		  @Amount of time to wait before trying to reconnect
 
 Wherein the format for the parameter name is:
 
-   HARMON-Prefix_server_ip
-   HARMON-Prefix_server_port
+	HARMON-Prefix_server_ip
+	HARMON-Prefix_server_port
 
-** In the ser2sock configuration you must enable "raw_device_mode = 1".
+**NOTE: In the ser2sock configuration you must enable "raw_device_mode = 1".
 
-=head4 Defining the Interface Object (All Connection Types)
+
+
+=head3 Defining the Interface Object (All Connection Types)
 
 In addition to the above configuration, you must also define the interface
 object.  The object can be defined in either an mht file or user code.
 
 In user code:
 
-   $HARMON = new HARMON('HARMON');
+	$HARMON = new HARMON('HARMON');
 
-Wherein the format for the definition is:
+	Wherein the format for the definition is:
 
-   $HARMON = new HARMON('HARMON');
+	$HARMON = new HARMON('HARMON');
+
 
 =head3 Power Configuration
 
 	$HARMON_POWER_Z1 = new HARMON_Power('HARMON', 1);
 
-Wherein the format for the definition is:
+	Wherein the format for the definition is:
 
 	<object_name> = new HARMON_Power(<receiver>, <zone_number>);
 
@@ -75,27 +77,25 @@ Wherein the format for the definition is:
 
 	$HARMON_VOLUME_Z1 = new HARMON_Volume('HARMON', 1);
 
-Wherein the format for the definition is:
+	Wherein the format for the definition is:
 
 	<object_name> = new HARMON_Volume(<receiver>, <zone_number>);
-
 
 
 =head3 Mute Configuration
 
 	$HARMON_MUTE_Z1 = new HARMON_Mute('HARMON', 1);
 
-Wherein the format for the definition is:
+	Wherein the format for the definition is:
 
 	<object_name> = new HARMON_Volume(<receiver>, <zone_number>);
-
 
 
 =head3 Input Configuration
 
 	$HARMON_INPUT_Z1 = new HARMON_Input('HARMON', 1);
 
-Wherein the format for the definition is:
+	Wherein the format for the definition is:
 
 	<object_name> = new HARMON_Volume(<receiver>, <zone_number>);
 
@@ -104,10 +104,11 @@ Wherein the format for the definition is:
 
 	$HARMON_CONTROL_Z1 = new HARMON_Control('HARMON', 1);
 
-Wherein the format for the definition is:
+	Wherein the format for the definition is:
 
 	<object_name> = new HARMON_Volume(<receiver>, <zone_number>);
 	
+
 =head2 TODO
 
 - Add the following commands and Acks:
@@ -116,8 +117,8 @@ Specification:
 Discrete Volume  
 
 When zone1 is on the Discrete volume command allows the user
-to enter a specific volume e.go. -63dB. When
-command received via RS232 –the AVR should
+to enter a specific volume eg: -63dB. When
+command received via RS232, the AVR should
 display the Volume OSD with the specified
 volume and adjust to that specified volume.
 50, 43, 53, 45, 4E, 44, 02, 04, 80, 70,
@@ -937,18 +938,18 @@ my %CmdAck = (
      if ($NewCmd =~ /(\w{20})(\w{20})/) { @NewCmds = ($1,$2) }
      else { push @NewCmds, $NewCmd } 
      foreach $NewCmd(@NewCmds) {
-	&main::print_log("[HARMON] - Hex $NewCmd - Lenght " . (length($NewCmd)) );
+	#&main::print_log("[HARMON] - Hex $NewCmd - Lenght " . (length($NewCmd)) );
        if ((length($NewCmd)) eq "20") {
              $AckMsg = ($CmdAck{"$NewCmd"});
              if ($AckMsg eq '') { $AckMsg = ($CmdAck{(substr ($NewCmd, 0, 18))});} # try stripping the checksum
              if ($AckMsg eq '') { $AckMsg = ($CmdAck{(substr ($NewCmd, 0, 16))});} # strip last 2 for vol caculations
-	     &main::print_log("[HARMON] - Ack $AckMsg - Hex $NewCmd ");
+	     #&main::print_log("[HARMON] - Ack $AckMsg - Hex $NewCmd ");
              $AckMsg = &GetAckMsg($AckMsg,$NewCmd) if &GetAckMsg($AckMsg,$NewCmd);
 	     my @AckMsgs;
 	     if ($AckMsg =~ /,/) { @AckMsgs = split(',', $AckMsg) }
 	     else { push @AckMsgs, $AckMsg  }
 	     foreach (@AckMsgs) {
-		  &main::print_log("[HARMON] - ACK MSG $_"); 
+		  #&main::print_log("[HARMON] - ACK MSG $_"); 
 		  if ( $_ =~ /^Z(\d)_(\w)_VOL_(.*)/ ) { $zone_num = $1; $msg = $3; }
                   elsif ( $_ =~ /^Z(\d)_(\w)_MUTE-(.*)/ ) { $zone_num = $1; $msg = $3; }
 		  elsif ( $_ =~ /^Z(\d)_(\w)_(.*)/ ) { $zone_num = $1; $msg = $3; } 
@@ -1032,7 +1033,7 @@ sub register {
 sub set {
    my ($self, $p_state, $p_setby, $p_response) = @_;
    my $instance = $$self{instance};
-   ::print_log("[HARMON] State: $p_state - Hex: $CmdMsg{$p_state}");
+   #::print_log("[HARMON] State: $p_state - Hex: $CmdMsg{$p_state}");
    my $cmd = ( exists $CmdMsg{$p_state} ) ? $CmdMsg{$p_state} : $p_state;
    $cmd = "504353454E440204$cmd";
    $cmd = pack('H*', $cmd);
@@ -1058,6 +1059,42 @@ sub set {
    return;
 }
 
+
+
+=back
+
+=head1 B<HARMON_Power>
+
+=head2 SYNOPSIS
+
+User code:
+
+
+        $HARMON_POWER_Z1 = new HARMON_Power('HARMON', 1);
+
+        Wherein the format for the definition is:
+
+        <object_name> = new HARMON_Power(<receiver>, <zone_number>);
+
+
+
+=head2 NOTES
+
+
+
+=head2 DESCRIPTION
+
+
+
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 
 package HARMON_Power;
@@ -1115,6 +1152,42 @@ sub set_receive {
 }
 
 
+=back
+
+=head1 B<HARMON_Volume>
+
+=head2 SYNOPSIS
+
+User code:
+
+
+        $HARMON_VOLUME_Z1 = new HARMON_Volume('HARMON', 1);
+
+        Wherein the format for the definition is:
+
+        <object_name> = new HARMON_Volume(<receiver>, <zone_number>);
+
+
+
+=head2 NOTES
+
+
+
+=head2 DESCRIPTION
+
+
+
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
+
 package HARMON_Volume;
 @HARMON_Volume::ISA = ('Generic_Item');
 
@@ -1165,6 +1238,42 @@ sub set_receive {
     return $self->SUPER::set($p_state, $p_setby, $p_response);
     ::print_log("[HARMON::power] set to $p_state");
 }
+
+
+=back
+
+=head1 B<HARMON_Mute>
+
+=head2 SYNOPSIS
+
+User code:
+
+
+        $HARMON_MUTE_Z1 = new HARMON_Mute('HARMON', 1);
+
+        Wherein the format for the definition is:
+
+        <object_name> = new HARMON_Volume(<receiver>, <zone_number>);
+
+
+
+=head2 NOTES
+
+
+
+=head2 DESCRIPTION
+
+
+
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 
 package HARMON_Mute;
@@ -1220,6 +1329,42 @@ sub set_receive {
 }
 
 
+=back
+
+=head1 B<HARMON_Input>
+
+=head2 SYNOPSIS
+
+User code:
+
+
+
+        $HARMON_INPUT_Z1 = new HARMON_Input('HARMON', 1);
+
+        Wherein the format for the definition is:
+
+        <object_name> = new HARMON_Volume(<receiver>, <zone_number>);
+
+
+
+=head2 NOTES
+
+
+
+=head2 DESCRIPTION
+
+
+
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 
 package HARMON_Input;
 @HARMON_Input::ISA = ('Generic_Item');
@@ -1268,6 +1413,43 @@ sub set_receive {
     ::print_log("[HARMON::power] set to $p_state");
 }
 
+
+=back
+
+=head1 B<HARMON_Control>
+
+=head2 SYNOPSIS
+
+User code:
+
+
+        $HARMON_CONTROL_Z1 = new HARMON_Control('HARMON', 1);
+
+        Wherein the format for the definition is:
+
+        <object_name> = new HARMON_Volume(<receiver>, <zone_number>);
+
+
+
+=head2 NOTES
+
+
+
+=head2 DESCRIPTION
+
+
+
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
+
 package HARMON_Control;
 @HARMON_Control::ISA = ('Generic_Item');
 
@@ -1309,3 +1491,23 @@ sub set {
                   $$self{receiver}->set($p_state);
                 }
  }
+
+=back
+
+=head2 NOTES
+
+=head2 AUTHOR
+
+Wayne Gatlin <wayne@razorcla.ws>
+
+=head2 SEE ALSO
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
