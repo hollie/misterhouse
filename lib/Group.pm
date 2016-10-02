@@ -58,6 +58,7 @@ sub new {
     my $self = new Generic_Item();
     $$self{members} = [];
     &add( $self, @items ) if @items;
+    $self->{logger_enable} = $main::config_parms{object_logger_group} if (defined $main::config_parms{object_logger_group});
     bless $self, $class;
     return $self;
 }

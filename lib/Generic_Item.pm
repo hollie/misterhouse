@@ -1,5 +1,6 @@
 use strict;
-
+#hp 1133
+# data/object_logs/<object>/YYYY/MM.log
 package Generic_Item_Hash;
 
 require Tie::Hash;
@@ -132,6 +133,10 @@ sub new {
     $$self{state_now}     = undef;
     $$self{state_changed} = undef;
     $self->restore_data('sort_order');
+    $self->{logger_enable} = $main::config_parms{object_logger_enable} if (defined $main::config_parms{object_logger_enable});
+    $self->{logger_mintime} = 1;
+    $self->{logger_updatetime} = 0;
+
     return $self;
 }
 
@@ -1130,6 +1135,9 @@ sub set_state_log {
     $state       = '' unless defined $state;
     $set_by_name = '' unless defined $set_by_name;
     $target      = '' unless defined $target;
+#
+	$self->logger($state,$set_by_name,$target) if ($self->{logger_enable});
+	     
     unshift(
         @{ $$self{state_log} },
         "$main::Time_Date $state set_by=$set_by_name"
@@ -1144,6 +1152,30 @@ sub set_state_log {
     return ( $set_by, $target );
 }
 
+=item C<logger()>
+
+TODO
+
+=cut
+sub logger {
+	my ($self,$state,$set_by_name,$target) = @_;
+	my $object_name = $self->{object_name};
+	$object_name =~ s/^\$//;
+	return if ($object_name eq "");
+	return if ($state eq "");
+	my $tickcount = int(&::get_tickcount()); #log in milliseconds
+	return if ($tickcount <  ($self->{logger_updatetime} + $self->{logger_mintime}));
+
+	#create directory structure if it doesn't exist
+	mkdir ($::config_parms{data_dir} . "/object_logs") unless (-d $::config_parms{data_dir} . "/object_logs");
+	mkdir ($::config_parms{data_dir} . "/object_logs/" . $object_name) unless (-d $::config_parms{data_dir} . "/object_logs/" . $object_name);
+	mkdir ($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year) unless (-d $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year);
+	mkdir ($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month) unless (-d $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month);
+	#write the data to the log; time, ticks (milliseconds), object, state, set_by, target
+	&::logit ($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month . "/" . $::Mday . ".log", "$main::Time_Date,$tickcount,$object_name,$state,$set_by_name," . ( ($target) ? "$target" : '') ."\n",0);
+	$self->{logger_updatetime} = $tickcount;
+}
+	
 =item C<reset_states2()>
 
 TODO
@@ -1243,6 +1275,82 @@ sub xPL_enable {
     my ( $self, $enable ) = @_;
     $self->{xpl_enable} = $enable;
 }
+
+=item C<logger_enable()>
+
+Will start logging state changes to a historical log file
+
+=cut
+
+sub logger_enable {
+    my ( $self, $enable ) = @_;
+    if ($self->isa('Group') and (defined $main::config_parms{object_logger_group})) {
+    	$self->{logger_enable} = $main::config_parms{object_logger_group};
+    } else {
+    	$self->{logger_enable} = 1;
+    }
+}
+
+=item C<logger_disable()>
+
+Will stop logging state changes to a historical log file
+
+=cut
+
+sub logger_disable {
+    my ( $self, $enable ) = @_;
+    $self->{logger_enable} = 0;
+}
+
+=item C<logger_mintime()>
+
+Set the minimum number of seconds to log updates. Useful to 'throttle' noisey objects such as AD2 motion sensors
+
+=cut
+
+sub logger_mintime {
+    my ( $self, $mintime ) = @_;
+    $self->{logger_mintime} = $mintime;
+}
+
+=item C<get_logger_status()>
+
+Returns 1 if logger is enabled on the object. Otherwise 0.
+
+=cut
+
+sub get_logger_status {
+    my ( $self, $enable ) = @_;
+    return ($self->{logger_enable} ? 1 : 0);
+}
+
+=item C<get_logger_data(epoch,days back)>
+
+Returns logged data at date, back days number of days
+Date format is epoch 
+=cut
+
+sub get_logger_data {
+    my ( $self, $epoch, $days ) = @_;
+	$days = 0 unless (defined $days);
+	my $object_name = $self->{object_name};
+	$object_name =~ s/^\$//;
+	my $data = "";
+	$epoch = $epoch - ($days * 60 * 60 * 24);
+	for (my $i = 0; $i <= $days; $i++) {
+		print "db i=$i, days=$days, epoch=$epoch\n";
+		my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($epoch + ($i * 60 * 60 * 24));
+		print "Epoch: $epoch is " . $mday . "/" . ($mon + 1) . "/" . ($year+1900) . "\n";
+		print "Checking " . $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . "\n";		
+		print "Reading " . $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . "\n" if ( -e	$::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . ".log");
+		$data .= ::file_read($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . ".log") if ( -e	$::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . ".log");
+#		$epoch = $epoch + (60*60*24);
+	}
+
+	return $data;
+}
+
+
 
 =item C<tie_event(code, state, log_msg)>
 
