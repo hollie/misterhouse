@@ -17,17 +17,6 @@ In user code:
 		$garage_light			= new raZberry_switch($razberry_controller,'6');
 		$remote_1				= new raZberry_battery($razberry_controller,12);
 
-<<<<<<< HEAD
-=======
-    use raZberry.pm;
-    $razberry_controller  = new raZberry('192.168.0.100',1);
-    $razberry_comm		  = new raZberry_comm($razberry_controller);
-    $family_room_fan      = new raZberry_dimmer($razberry_controller,'2','force_update');
-    $family_room_blind	  = new raZberry_blind($razberry_controller,'3');
-    $front_lock			  = new raZberry_blind($razberry_controller,'4');
-    $front_door           = new raZberry_door($razberry_controller,'5');
-    $toilet_window        = new raZberry_window($razberry_controller,'6');
->>>>>>> master
 
 raZberry(<ip address>,<poll time>);
 raZberry_<child>(<controller>,<device id>,<options>)
@@ -399,14 +388,11 @@ sub _get_JSON_data {
             if ( defined $self->{child_object}->{comm} ) {
                 if ( $self->{status} eq "online" ) {
                     $self->{status} = "offline";
-<<<<<<< HEAD
                     main::print_log
                       "[raZberry] Communication Tracking object found. Updating from "
-=======
-                    &main::print_log("Communication Tracking object found. Updating from "
->>>>>>> master
                       . $self->{child_object}->{comm}->state()
-                      . " to offline...") if ( $self->{loglevel} );
+                      . " to offline..."
+                      if ( $self->{loglevel} );
                     $self->{child_object}->{comm}->set( "offline", 'poll' );
                 }
             }
@@ -415,14 +401,11 @@ sub _get_JSON_data {
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{status} eq "offline" ) {
                 $self->{status} = "online";
-<<<<<<< HEAD
                 main::print_log
                   "[raZberry] Communication Tracking object found. Updating from "
-=======
-                main::print_log( "Communication Tracking object found. Updating from "
->>>>>>> master
                   . $self->{child_object}->{comm}->state()
-                  . " to online...") if ( $self->{loglevel} );
+                  . " to online..."
+                  if ( $self->{loglevel} );
                 $self->{child_object}->{comm}->set( "online", 'poll' );
             }
         }
@@ -1132,7 +1115,6 @@ sub set {
     }
 }
 
-<<<<<<< HEAD
 sub update_data {
 	my ($self,$data) = @_;
 }
@@ -1281,8 +1263,6 @@ sub update_data {
 	my ($self,$data) = @_;
 }
 
-=======
->>>>>>> master
 package raZberry_binary_sensor;
 @raZberry_binary_sensor::ISA = ('Generic_Item');
 
@@ -1291,18 +1271,11 @@ sub new {
 
     my $self = {};
     bless $self, $class;
-<<<<<<< HEAD
     #push( @{ $$self{states} }, 'on', 'off'); I'm not sure we should set the states here, since it's not a controlable item?
 
     $$self{master_object} = $object;
     $devid = $devid . "-0-48-1";
     $$self{type} = "Binary Sensor";
-=======
-    push( @{ $$self{states} }, 'on', 'off');
-
-    $$self{master_object} = $object;
-    $devid = $devid . "-0-48-1";
->>>>>>> master
     $$self{devid} = $devid;
     $object->register( $self, $devid, $options );
 
@@ -1313,26 +1286,12 @@ sub new {
 
 }
 
-<<<<<<< HEAD
-=======
-sub z_log {
-    my $self = shift;
-    my $who = ref ($self) . " (" . $self->{devid}.")";
-    main::print_log("[$who] @_");
-}
-
-
->>>>>>> master
 sub level {
     my ($self) = @_;
 
     return ( $self->{level} );
 }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> master
 sub ping {
     my ($self) = @_;
 
@@ -1345,13 +1304,10 @@ sub isfailed {
     $$self{master_object}->isfailed_dev( $$self{devid} );
 }
 
-<<<<<<< HEAD
 sub update_data {
 	my ($self,$data) = @_;
 }
 
-=======
->>>>>>> master
 package raZberry_openclose;
 @raZberry_openclose::ISA = ('raZberry_binary_sensor');
 
@@ -1359,13 +1315,8 @@ sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
     my $self = $class->SUPER::new($object, $devid, $options);
-<<<<<<< HEAD
     #$$self{states} =  ();
     #push( @{ $$self{states} }, 'open', 'closed');
-=======
-    $$self{states} =  ();
-    push( @{ $$self{states} }, 'open', 'closed');
->>>>>>> master
     return $self;
 }
 
@@ -1381,7 +1332,6 @@ sub set {
         else {
             $n_state = "closed";
         }
-<<<<<<< HEAD
         main::print_log("[raZberry] Setting openclose value to $n_state. Level is " . $self->{level} ) if ( $self->{debug} );
         $self->SUPER::set($n_state);
     }
@@ -1458,36 +1408,6 @@ sub battery_check {
     else {
         $self->{battery_alert} = 0;
     }
-=======
-        $self->z_log("Setting value to $n_state. Level is " . $self->{level} ) if ( $self->{debug} );
-        $self->SUPER::set($n_state);
-    }
-    else {
-        $self->z_log("Error. Can not set state $p_state for sensors");
-    }
-}
-
-package raZberry_door;
-@raZberry_door::ISA = ('raZberry_openclose');
-sub new {
-    my ( $class, $object, $devid, $options ) = @_;
-
-    my $self =$class->SUPER::new($object, $devid, $options);
-    $self->set_fp_icon_set('door2');
-    $self->z_log("created...");
-    return $self;
-}
-
-package raZberry_window;
-@raZberry_window::ISA = ('raZberry_openclose');
-sub new {
-    my ( $class, $object, $devid, $options ) = @_;
-
-    my $self =$class->SUPER::new($object, $devid, $options);
-    $self->set_fp_icon_set('window');
-    $self->z_log("created...");
-    return $self;
->>>>>>> master
 }
 
 1;
