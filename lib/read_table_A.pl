@@ -1386,7 +1386,165 @@ sub read_table_A {
             $code .= "use Philips_Hue;\n";
         }
     }
+    #-------------- RaZberry Objects -----------------
+    elsif ( $type eq "RAZBERRY_CONTROLLER" ) {
+     	($address, $name, $grouplist, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry('$address','$other')";
+        }
+        else {
+     		$object = "raZberry('$address')";
+        }   
+        $code .= "use raZberry;\n";
+	} 
+    elsif ( $type eq "RAZBERRY_COMM" ) {
+    	my ($controller);
+     	($name, $controller, $grouplist ) = @item_info;
+     	$object = "raZberry_comm(\$" . $controller . ")";
 
+	}
+    elsif ( $type eq "RAZBERRY_DIMMER" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_dimmer(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_dimmer(\$" . $controller . ",'$devid')";
+        }    
+	}
+    elsif ( $type eq "RAZBERRY_SWITCH" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_switch(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_switch(\$" . $controller . ",'$devid')";
+        }    
+	}	
+    elsif ( $type eq "RAZBERRY_BLIND" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, $other ) = @item_info;
+     	#$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_blind(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_blind(\$" . $controller . ",'$devid')";
+        }    
+	}
+    elsif ( $type eq "RAZBERRY_LOCK" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_lock(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_lock(\$" . $controller . ",'$devid')";
+        }    
+	}	
+    elsif ( $type eq "RAZBERRY_THERMOSTAT" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_thermostat(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_thermostat(\$" . $controller . ",'$devid')";
+        }    
+	}	
+    elsif ( $type eq "RAZBERRY_TEMP_SENSOR" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_temp_sensor(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_temp_sensor(\$" . $controller . ",'$devid')";
+        }    
+	}
+    elsif ( $type eq "RAZBERRY_BINARY_SENSOR" ) {
+    	my ($devid, $controller);
+     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+     		$object = "raZberry_binary_sensor(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+     		$object = "raZberry_binary_sensor(\$" . $controller . ",'$devid')";
+        }    
+	}	
+     elsif ( $type eq "RAZBERRY_BATTERY" ) {
+     	my ($devid, $controller);
+      	($devid, $name, $grouplist, $controller, @other ) = @item_info;
+      	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+         if ($other) {
+      		$object = "raZberry_battery(\$" . $controller . ",'$devid','$other')";
+         }
+         else {
+      		$object = "raZberry_battery(\$" . $controller . ",'$devid')";
+         }    
+ 	}
+    #-------------- End of RaZberry Objects -----------------
+
+    # -[ MySensors ]------------------------------------------------------
+    elsif ( $type eq "MYS_INTERFACE" ) {
+        require 'MySensors.pm';
+        my ( $gw_type, $long_name, $port );
+        ( $name, $long_name, $gw_type, $port, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );      # Quote data
+        $object = "MySensors::Interface('$gw_type', '$port', '$long_name', $other)";
+    }
+    elsif ( $type eq "MYS_NODE" ) {
+        require 'MySensors.pm';
+        my ( $parent, $long_name );
+        ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+        $object = "MySensors::Node($address, '$long_name', $parent, $other)";
+    }
+    elsif ( $type eq "MYS_BINARY" ) {
+        require 'MySensors.pm';
+        my ( $parent, $long_name );
+        ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+        $object = "MySensors::Binary($address, '$long_name', $parent, $other)";
+    }
+    elsif ( $type eq "MYS_DOOR" ) {
+        require 'MySensors.pm';
+        my ( $parent, $long_name );
+        ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+        $object = "MySensors::Door($address, '$long_name', $parent, $other)";
+    }
+    elsif ( $type eq "MYS_MOTION" ) {
+        require 'MySensors.pm';
+        my ( $parent, $long_name );
+        ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+        $object = "MySensors::Motion($address, '$long_name', $parent, $other)";
+    }
+    elsif ( $type eq "MYS_TEMPERATURE" ) {
+        require 'MySensors.pm';
+        my ( $parent, $long_name );
+        ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+        $object = "MySensors::Temperature($address, '$long_name', $parent, $other)";
+    }
+    elsif ( $type eq "MYS_HUMIDITY" ) {
+        require 'MySensors.pm';
+        my ( $parent, $long_name );
+        ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+       $object = "MySensors::Humidity($address, '$long_name', $parent, $other)";
+    }
+			
     #-------------- AD2 Objects -----------------
     elsif ( $type eq "AD2_INTERFACE" ) {
         require AD2;
@@ -1466,56 +1624,6 @@ sub read_table_A {
 			&::MainLoop_pre_add_hook( \&Wink::GetDevicesAndStatus, 1 );
 			}
 	}    
-    # -[ MySensors ]------------------------------------------------------
-    elsif ( $type eq "MYS_INTERFACE" ) {
-        require 'MySensors.pm';
-        my ( $gw_type, $long_name, $port );
-        ( $name, $long_name, $gw_type, $port, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );      # Quote data
-        $object = "MySensors::Interface('$gw_type', '$port', '$long_name', $other)";
-    }
-    elsif ( $type eq "MYS_NODE" ) {
-        require 'MySensors.pm';
-        my ( $parent, $long_name );
-        ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
-        $object = "MySensors::Node($address, '$long_name', $parent, $other)";
-    }
-    elsif ( $type eq "MYS_BINARY" ) {
-        require 'MySensors.pm';
-        my ( $parent, $long_name );
-        ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
-        $object = "MySensors::Binary($address, '$long_name', $parent, $other)";
-    }
-    elsif ( $type eq "MYS_DOOR" ) {
-        require 'MySensors.pm';
-        my ( $parent, $long_name );
-        ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
-        $object = "MySensors::Door($address, '$long_name', $parent, $other)";
-    }
-    elsif ( $type eq "MYS_MOTION" ) {
-        require 'MySensors.pm';
-        my ( $parent, $long_name );
-        ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
-        $object = "MySensors::Motion($address, '$long_name', $parent, $other)";
-    }
-    elsif ( $type eq "MYS_TEMPERATURE" ) {
-        require 'MySensors.pm';
-        my ( $parent, $long_name );
-        ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
-        $object = "MySensors::Temperature($address, '$long_name', $parent, $other)";
-    }
-    elsif ( $type eq "MYS_HUMIDITY" ) {
-        require 'MySensors.pm';
-        my ( $parent, $long_name );
-        ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
-        $object = "MySensors::Humidity($address, '$long_name', $parent, $other)";
-    }
     else {
         print "\nUnrecognized .mht entry: $record\n";
         return;
