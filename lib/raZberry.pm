@@ -688,7 +688,21 @@ sub update_data {
 
 package raZberry_blind;
 
-#only tested with Somfy ZRTSI module
+#tested with somfy zrtsi and somfy zwave blinds
+# To pair a somfy zwave blind:
+# https://www.youtube.com/watch?v=8mTF8uF7jnE
+# 1. Put the shade in pairing mode. Hold down motor button until flashes, green, then amber
+#    then the shade will jog.
+# 2. On the razberry start inclusion mode
+# 3. On the blind, press and hold the motor button until flashing green then let go
+# 4. The shade will jog, and then be included.
+# -------
+# Then add the zwave battery remotes as a secondary for local control.
+# 1. On the razberry start inclusion mode
+# 2. with a paperclip press and hold the button in the hole in the back until the remote lights flash
+# 3. At the blind, use the paperclip to do a 'quick tap' in the hole in the back of the remote. The light should flash
+# 4. On the blind, press and hold the motor button until flashing green then let go
+# 5. The shade will jog, and the remote will control the blind.
 
 @raZberry_blind::ISA = ('Generic_Item');
 
