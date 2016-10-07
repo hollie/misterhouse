@@ -1,5 +1,5 @@
 package Venstar_Colortouch;
-# v2.0
+# v2.0.3
 
 use strict;
 use warnings;
@@ -14,7 +14,7 @@ use Data::Dumper;
 #
 # $stat_upper_mode    = new Venstar_Colortouch_Mode($stat_upper);
 # $stat_upper_temp    = new Venstar_Colortouch_Temp($stat_upper);
-# $stat_upper_heat_sp = new Venstar_Colortouch_Heat_sp($stat_upper);
+# $stat_upper_heat_sp = new Venstar_Colortouch_Heat_sp($stat_upper,"F"); #F for Fahrenheit
 # $stat_upper_cool_sp = new Venstar_Colortouch_Cool_sp($stat_upper);
 # $stat_upper_fan     = new Venstar_Colortouch_Fan($stat_upper);
 # $stat_upper_hum     = new Venstar_Colortouch_Humidity($stat_upper);
@@ -44,10 +44,8 @@ use Data::Dumper;
 # - log runtimes. Maybe into a dbm file? log_runtimes method with destination.
 # - figure out timezone w/ DST
 #1
-# - temp setpoint bounds checking
-# - changing heating/cooling setpoints for heating/cooling only stats does not need both setpoints
-# - allow for a humidity value of 0
-# - add decimals for setpoints
+# - TEST temp setpoint bounds checking
+# - changing heating/cooling setpoints for heating/cooling only stats does not need both setpoints?
 # - add in communication tracker for background requests
 # - verify command sets work both with existing poll data, and have a poll data gap. 
 # - verify that network issues don't escalate CPU usage (by _push_json_data being continually called)
@@ -85,7 +83,7 @@ sub new {
     $self->{updating}      			= 0;
     $self->{data}->{retry} 			= 0;
     $self->{host}          			= $host;
-    $self->{debug}          		= 5;
+    $self->{debug}          		= 0;
     $self->{debug} 					= $debug if ($debug);
     $self->{debug} 					= 0	if ( $self->{debug} < 0 );
     $self->{loglevel}      			= 1;
@@ -219,31 +217,40 @@ sub process_check {
 #Need to catch error 500's 403's and update communication tracker and success:false messages to write to log
 	return unless (defined $self->{poll_process});	
 	if ($self->{poll_process}->done_now()) {
+		my $com_status = "online";
     	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Background poll " . $self->{poll_process_mode} . " process completed") if ($self->{debug});
 	
 		my $file_data = &main::file_read($self->{poll_data_file});
 		#for some reason get_url adds garbage to the output. Clean out the characters before and after the json
+		print "debug: file_data=$file_data\n" if ($self->{debug});
 		my ($json_data) = $file_data =~ /({.*})/;
+		print "debug: json_data=$json_data\n" if ($self->{debug});
+		unless ($file_data) {
+		    main::print_log("[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! no data returned by poll");
+			return;
+		}
 		my $data;
         eval { $data = JSON::XS->new->decode( $json_data ); };
         # catch crashes:
         if ($@) {
             print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! JSON file parser crashed! $@\n";
+            $com_status = "offline";
         } else {
         	if (keys $data) {
-				$self->{poll_data_timestamp} = time;
+				$self->{poll_data_timestamp} = &main::get_tickcount();
         		if ($self->{poll_process_mode} eq "info") {
         			$self->{data}->{tempunits} = $data->{tempunits};
         			$self->{data}->{name}      = $data->{name};
         			$self->{data}->{info}      = $data;
-        			$self->{data}->{timestamp} = time;        	        		
+        			$self->{data}->{timestamp} = &main::get_tickcount();        	        		
         		} elsif ($self->{poll_process_mode} eq "sensors") {
         			$self->{data}->{sensors}   = $data;
-        			$self->{data}->{timestamp} = time;    
+        			$self->{data}->{timestamp} = &main::get_tickcount();    
         		}
         		$self->process_data();
         	} else {
             	print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! Returned data not structured! Not processing...";
+            	$com_status = "offline";
         	}
         }
         if (scalar @{$self->{poll_queue}}) {        
@@ -255,13 +262,25 @@ sub process_check {
 			$self->{poll_process_mode} = $mode;			
     		main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Poll Queue " . $self->{poll_process}->pid() . " mode=$mode cmd=$cmd") if ($self->{debug});
 			
-		}	
+		}
+    	if ( defined $self->{child_object}->{comm} ) {
+        	if ( $self->{status} ne $com_status ) {
+            	main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
+            	$self->{status} = $com_status;
+            	$self->{child_object}->{comm}->set( $com_status, 'poll' );
+        	}
+   	 	}			
 	} 
 	return unless (defined $self->{cmd_process});	
 	if ($self->{cmd_process}->done_now()) {
+		my $com_status = "online";
     	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Background Command " . $self->{poll_process_mode} . " process completed") if ($self->{debug});
 	
 		my $file_data = &main::file_read($self->{cmd_data_file});
+		unless ($file_data) {
+		    main::print_log("[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! no data returned by command");
+			return;
+		}
 		#for some reason get_url adds garbage to the output. Clean out the characters before and after the json
 		my ($json_data) = $file_data =~ /({.*})/;
 		my $data;
@@ -269,6 +288,8 @@ sub process_check {
         # catch crashes:
         if ($@) {
             print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! JSON file parser crashed! $@\n";
+            $com_status = "offline";
+            
         } else {
         	if (keys $data) {
         		if ($data->{success} eq "true") {
@@ -280,13 +301,15 @@ sub process_check {
             		if ($self->{cmd_process_retry} > $self->{cmd_process_retry_limit}) {
             			print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR Issued command max retries reached. Abandoning command attempt...";
             			shift @{$self->{cmd_queue}};
-            			$self->{cmd_process_retry} = 0;            		
+            			$self->{cmd_process_retry} = 0; 
+            			$com_status = "offline";           		
 					} else {
 						$self->{cmd_process_retry}++;       
 					}     		
 				}        		
         	} else {
             	print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! Returned data not structured! Not processing...";
+            	$com_status = "offline";
         	}
         }
         if (scalar @{$self->{cmd_queue}}) {        
@@ -294,7 +317,14 @@ sub process_check {
 			$self->{poll_process}->set($cmd);
 			$self->{poll_process}->start();			
     		main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Command Queue " . $self->{poll_process}->pid() . " cmd=$cmd") if ($self->{debug});
-		}	
+		}
+		if ( defined $self->{child_object}->{comm} ) {
+        	if ( $self->{status} ne $com_status ) {
+            	main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
+            	$self->{status} = $com_status;
+            	$self->{child_object}->{comm}->set( $com_status, 'poll' );
+        	}
+   	 	}	
 	}   	
 	  	
 }
@@ -321,6 +351,13 @@ sub _get_JSON_data {
 # if there are device issues.	
 			} else {
             	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] WARNING. Queue has grown past " . $self->{max_poll_queue} . ". Command discarded.");
+    			if ( defined $self->{child_object}->{comm} ) {
+        			if ( $self->{status} ne "offline" ) {
+            			main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ( $self->{loglevel} );
+            			$self->{status} = "offline";
+            			$self->{child_object}->{comm}->set( "offline", 'poll' );
+        			}
+   	 			}	            	
 			}					
 		}
 	} else {
@@ -419,13 +456,15 @@ sub _push_JSON_data {
 #For background tasks, we want up to date data, ie returned within the last poll period.
 #recursively calling the same subroutine might be a memory or performance hog, but need to effectively
 #'suspend' the data push until we get valid data.
-
+	print "db: poll_timestamp=" . $self->{poll_data_timestamp} . " poll_seconds = " . $self->{config}->{poll_seconds} . " get_tickcount=" . &main::get_tickcount() . "\n" if ($self->{debug});
 	if (($self->{background}) and (lc $method ne "direct")) {
-		if ($self->{poll_data_timestamp} + $self->{config}->{poll_seconds} < &main::get_tickcount()) {
+		if (($self->{poll_data_timestamp} + ($self->{config}->{poll_seconds} * 1000)) < &main::get_tickcount()) {
 			$self->poll() if (scalar @{$self->{poll_queue}} < $self->{max_poll_queue}); #once max reached, no sense adding more
-			if ($self->{poll_data_timestamp} + 300 > &main::tickcount()) { #give up after 5 minutes of trying
+			if ($self->{poll_data_timestamp} + 300000 > &main::get_tickcount()) { #give up after 5 minutes of trying
+		        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] WARNING: retrying command attempt due to stale poll data!" );
 				$self->_push_json_data($type,$params);
 			} else {
+		        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR: Abandoning command attempt due to stale poll data!" );
 				return ('1');
 			}
 		}
@@ -609,8 +648,8 @@ sub _push_JSON_data {
         my ( $newmode, $newfan, $newcoolsp, $newheatsp );
         my ($mode)     = $params =~ /mode=(\d+)/;
         my ($fan)      = $params =~ /fan=(\d+)/;
-        my ($heattemp) = $params =~ /heattemp=(\d+)/;    #need decimals
-        my ($cooltemp) = $params =~ /cooltemp=(\d+)/;
+        my ($heattemp) = $params =~ /heattemp=(\d+\.?\d?)/;    #need decimals
+        my ($cooltemp) = $params =~ /cooltemp=(\d+\.?\d?)/;
 
         my ($isSuccessResponse, $cmode, $cfan, $cheattemp, $ccooltemp, $setpointdelta, $minheat, $maxheat, $mincool, $maxcool);
         
@@ -693,7 +732,8 @@ sub _push_JSON_data {
         main::print_log("Unknown mode!");
         return ( '1', 'error' );
     }
-
+	my $isSuccessResponse;
+	my $response;
 	if (($self->{background}) and (lc $method ne "direct")) {
 		$isSuccessResponse = 1; #set these to successful, since the process_data will indicate if a setting was unsuccessful.
 		$response = "success";	
@@ -728,7 +768,7 @@ sub _push_JSON_data {
 
     	my $responseCode = $responseObj->code;
     	print 'Response code: ' . $responseCode . "\n" if $self->{debug};
-    	my $isSuccessResponse = $responseCode < 400;
+    	$isSuccessResponse = $responseCode < 400;
     	if ( !$isSuccessResponse ) {
         main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Warning, failed to push data. Response code $responseCode" );
 print "Venstar. status=" . $self->{status};
@@ -758,12 +798,11 @@ if (defined $self->{child_object}->{comm}) {
                 $self->{child_object}->{comm}->set( "online", 'poll' );
             }
         }
+    #my $response = JSON::XS->new->decode ($responseObj->content);
+    ($response) = $responseObj->content =~ /\{\"(.*)\":/;
     }
 
-    #my $response = JSON::XS->new->decode ($responseObj->content);
-
     #print Dumper $response if $self->{debug};
-    my ($response) = $responseObj->content =~ /\{\"(.*)\":/;
     print "response=$response\n" if $self->{debug};
     $self->poll if ( $response eq "success" );
     $self->start_timer;
@@ -2105,6 +2144,8 @@ sub new {
     bless $self, $class;
 
     $$self{master_object} = $object;
+    push( @{ $$self{states} }, '0','5','10','15','20','25','30','35','40' );
+
 
     $object->register( $self, 'hum_sp' );
     $self->set( $object->get_sp_hum, 'poll' );
@@ -2232,12 +2273,21 @@ package Venstar_Colortouch_Heat_sp;
 @Venstar_Colortouch_Heat_sp::ISA = ('Generic_Item');
 
 sub new {
-    my ( $class, $object ) = @_;
+    my ( $class, $object, $scale ) = @_;
 
     my $self = {};
     bless $self, $class;
 
     $$self{master_object} = $object;
+    if (lc $scale eq "F") {
+    	push( @{ $$self{states} }, '65','66','67','68','69','70','71','72','73','74','75','76','77','78','79','80' );
+    	$self->{lower_limit} = 65;
+    	$self->{upper_limit} = 80;    	
+    } else {
+    	push( @{ $$self{states} }, '17','17.5','18','18.5','19','19.5','20','20.5','21','21.5','22','22.5','23','23.5','24','24.5','25','25.5','26' );  
+    	$self->{lower_limit} = 17;
+    	$self->{upper_limit} = 26;    	  
+    }
 
     $object->register( $self, 'heat_sp' );
     $self->set( $object->get_sp_heat, 'poll' );
@@ -2253,7 +2303,11 @@ sub set {
     }
     else {
         if ( ( $p_state >= 0 ) and ( $p_state <= 98 ) ) {
-            $$self{master_object}->set_heat_sp($p_state);
+            if (($p_state >= $self->{lower_limit}) and ($p_state <= $self->{upper_limit})) {
+        		$$self{master_object}->set_heat_sp($p_state);
+        	} else {
+             	main::print_log("[Venstar Colortouch Heat_SP] Error. $p_state out of limits (" . $self->{lower_limit} . " to " . $self->{upper_limit} . ")");       	
+        	}
         }
         else {
             main::print_log(
@@ -2268,12 +2322,21 @@ package Venstar_Colortouch_Cool_sp;
 @Venstar_Colortouch_Cool_sp::ISA = ('Generic_Item');
 
 sub new {
-    my ( $class, $object ) = @_;
+    my ( $class, $object, $scale ) = @_;
 
     my $self = {};
     bless $self, $class;
 
     $$self{master_object} = $object;
+    if (lc $scale eq "F") {
+    	push( @{ $$self{states} }, '58','59','60','61','62','63','64','65','66','67','68','69','70','71','72','73','74','75','76','77','78','79','80' );
+    	$self->{lower_limit} = 58;
+    	$self->{upper_limit} = 80;
+    } else {
+    	push( @{ $$self{states} }, '17','17.5','18','18.5','19','19.5','20','20.5','21','21.5','22','22.5','23','23.5','24','24.5','25','25.5','26' );    
+    	$self->{lower_limit} = 17;
+    	$self->{upper_limit} = 26;
+    }
 
     $object->register( $self, 'cool_sp' );
     $self->set( $object->get_sp_cool, 'poll' );
@@ -2289,12 +2352,14 @@ sub set {
     }
     else {
         if ( ( $p_state >= 0 ) and ( $p_state <= 98 ) ) {
-            $$self{master_object}->set_cool_sp($p_state);
+        	if (($p_state >= $self->{lower_limit}) and ($p_state <= $self->{upper_limit})) {
+            	$$self{master_object}->set_cool_sp($p_state);
+            } else {
+            	main::print_log("[Venstar Colortouch Cool_SP] Error. $p_state out of limits (" . $self->{lower_limit} . " to " . $self->{upper_limit} . ")");
+            }
         }
         else {
-            main::print_log(
-                "[Venstar Colortouch Cool_SP] Error. Unknown set state $p_state"
-            );
+            main::print_log("[Venstar Colortouch Cool_SP] Error. Unknown set state $p_state");
         }
     }
 }
