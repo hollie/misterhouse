@@ -118,7 +118,7 @@ sub new
    $$self{instance} = $instance;
    bless $self, $class;
    @{$$self{states}} = ('ON','OFF');
-   $self->restore_data('active_object', 'active_action', 'schedule_count','winter_mode_track_flag');
+   $self->restore_data('active_object', 'active_action', 'schedule_count');
     #for my $index (1..$self->{'schedule_count'}) {
     for my $index (1..20) {
       $self->restore_data('schedule_'.$index, 'schedule_label_'.$index, 'schedule_once_'.$index);
