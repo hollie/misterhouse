@@ -118,7 +118,7 @@ sub new
    $$self{instance} = $instance;
    bless $self, $class;
    @{$$self{states}} = ('ON','OFF');
-   $self->restore_data('active_object', 'active_action', 'schedule_count');
+   $self->restore_data('active_object', 'active_action', 'schedule_count','winter_mode_track_flag');
     #for my $index (1..$self->{'schedule_count'}) {
     for my $index (1..20) {
       $self->restore_data('schedule_'.$index, 'schedule_label_'.$index, 'schedule_once_'.$index);
@@ -136,7 +136,7 @@ sub set {
 
 sub set_schedule {
     my ($self,$index,$entry,$label) = @_;
-    ::print_log("[SCHEDULE] - DEBUG - set_schedule - Index " . $index . " Schedule: ". $entry ." Label ". $label) if $main::Debug{'SCHEDULE'}; 
+    ::print_log("[SCHEDULE] - DEBUG - set_schedule - Index " . $index . " Schedule: ". $entry ." Label ". $label) if $main::Debug{'schedule'}; 
     if ($index > $self->{'schedule_count'}) { $self->{'schedule_count'} = $index } 
     $self->{'schedule_'.$index} = $entry if (defined($entry));
     $self->{'schedule_label_'.$index} = $label if (defined($label));
@@ -250,7 +250,7 @@ sub get_schedule{
 sub am_i_active_object{
   my ($self,$instance) = @_;
   unless (defined($instance)) { return 1 } 
-  ::print_log("[SCHEDULE] - DEBUG - am_i_active_object - current active object: ".$Interfaces{$instance}->get_object_name." checked object: ".$self->get_object_name) if (defined($Interfaces{$instance})) if $main::Debug{'SCHEDULE'};
+  ::print_log("[SCHEDULE] - DEBUG - am_i_active_object - current active object: ".$Interfaces{$instance}->get_object_name." checked object: ".$self->get_object_name) if ( (defined($Interfaces{$instance})) && ($main::Debug{'schedule'}) );
   if (defined($Interfaces{$instance})) {
      if ($Interfaces{$instance}->get_object_name eq $self->get_object_name) { return 1 }
      else { $self->{'active_object'} = 0; return 0; }
@@ -318,13 +318,16 @@ sub register {
 
 sub check_date {
  my ($self,$object) = @_;
- if ($::Startup or $::Reload) { $self->{'reloaded'} = 1 }  
  my $occupied_state = ($$self{occupied}->state_now) if (defined($$self{occupied}));
+
  if ($occupied_state) { $self->CheckOverRide if (($self->am_i_active_object($$self{instance})) && (lc(state $self) eq 'on')) }
+ elsif ($$self{winter_mode_type} eq 'track') {
+   if ($self->CheckTempOutdoor) { $self->CheckOverRide('temp_track') if (($self->am_i_active_object($$self{instance})) && (lc(state $self) eq 'on')) }
+ }
 
  if ($::New_Minute) {
   $self->am_i_active_object($$self{instance}) if (defined($$self{instance}));;
-  ::print_log("[SCHEDULE] - DEBUG - Checking schedule for ". $self->get_object_name." State is ". (state $self) . " Child object is ". $object->get_object_name) if $main::Debug{'SCHEDULE'};
+  ::print_log("[SCHEDULE] - DEBUG - Checking schedule for ". $self->get_object_name." State is ". (state $self) . " Child object is ". $object->get_object_name) if $main::Debug{'schedule'};
    if (lc(state $self) eq 'on') {
     for my $index (1..$self->{'schedule_count'}) {
 	 if (defined($self->{'schedule_'.$index})) {
@@ -348,10 +351,10 @@ sub setACSetpoint {
   $cool_temp_control->$cool_temp_control_sub($cool_sp);
   ::print_log("[SCHEDULE] running ".$cool_temp_control->get_object_name."->".$cool_temp_control_sub."(".$cool_sp.")");
   $self->{'set_temp_timer'} = ::Timer::new();
-  $self->{'set_temp_timer'}->set '7', sub {
+  $self->{'set_temp_timer'}->set('7', sub {
     $heat_temp_control->$heat_temp_control_sub($heat_sp);
     ::print_log("[SCHEDULE] running ".$heat_temp_control->get_object_name."->".$heat_temp_control_sub."(".$heat_sp.")");
-  }
+  });
 }
 
 sub set_action {
@@ -364,8 +367,9 @@ sub set_action {
          $object->{child}->$sub($self->{'schedule_label_'.$index},$self->get_object_name,1);
       }
          elsif ($object->isa('SCHEDULE_Temp')) {
-         ::print_log("[SCHEDULE] - DEBUG - set_action -  Temp object: ".$object->get_object_name." Parent object: ".$self->get_object_name) if $main::Debug{'SCHEDULE'};
+         ::print_log("[SCHEDULE] - DEBUG - set_action -  Temp object: ".$object->get_object_name." Parent object: ".$self->get_object_name) if $main::Debug{'schedule'};
          $self->_set_instance_active_object($$self{instance}) if (defined($$self{instance}));
+	 $$self{winter_mode_track_flag} = 0; # reset the temp track flag because the schedule changed.
          $self->CheckOverRide;
       }
 }
@@ -386,9 +390,12 @@ sub set_occpuancy {
 
 
 sub set_winter {
-  my ($self, $object, $temp) = @_;
+  my ($self, $object, $temp, $type, $high) = @_;
   $$self{winter_mode_object} = $object;
-  $$self{winter_mode_temp} = $temp
+  $$self{winter_mode_temp} = $temp;
+  $$self{winter_mode_type} = lc($type); # night, day, now
+  $$self{winter_mode_type} = 'night' unless (defined $type);
+  $$self{winter_mode_temp_high} = $high;
 }
 
 
@@ -399,9 +406,14 @@ sub set_vacation {
   $self->set_occpuancy(undef,undef,undef) unless (defined $$self{occupied}); # Allows the use of vacation mode with out occpuancy
 }
 
+sub CheckTempOutdoor { 
+ unless ( defined($::Weather{'TempOutdoor'}) ) { return 0 }
+ unless ( defined($$self{LastTempOutdoor}) ) { $$self{LastTempOutdoor} = $::Weather{'TempOutdoor'}; return 0 }
+ if ( $$self{LastTempOutdoor} ne $::Weather{'TempOutdoor'} ) { $$self{LastTempOutdoor} = $::Weather{'TempOutdoor'}; return 1 }
+}
  
 sub CheckOverRide {
- my ($self,$object) = @_;
+ my ($self,$checktype) = @_;
  unless ($self->am_i_active_object($$self{instance})) { return 0 }
  my $action = $self->get_instance_active_action($$self{instance});
  my $occ_setback_object = $$self{occ_setback_object};
@@ -411,13 +423,17 @@ sub CheckOverRide {
  my $occupied_state = ($$self{occupied}->state) if (defined($$self{occupied}));
 
 
-    if (&OverRide($self)) {
+    if ( $self->OverRide ) {
 	   $occ_setback_object = $$self{override_mode_setback_object} if defined($$self{override_mode_setback_object});
 	   $occ_setback_state = $$self{override_mode_setback_state} if defined($$self{override_mode_setback_state});
-	   $occ_state = $$self{override_mode_occ_state} if defined($$self{occ_state});
+	   $occ_state = $$self{override_mode_occ_state} if defined($$self{override_mode_occ_state});
 	   $object = $$self{override_mode_object} if defined($$self{override_mode_object});
-    }
-       ::print_log("[SCHEDULE] - INFO - CheckOverRide - Current occupied state:" . $occupied_state ." ". $object->get_object_name ." state match:  $occ_state");
+    } 
+    elsif ($checktype eq 'temp_track') { return }
+    elsif ($$self{winter_mode_track_flag}) { $object = $$self{winter_mode_object} }  
+
+
+       ::print_log("[SCHEDULE] - INFO - CheckOverRide - Current occupied state:" . $occupied_state ." Current active object:". $object->get_object_name ." state to match: $occ_state");
        if ((defined($$self{occupied})) && ($$self{occupied}->state eq $occ_state)) {
            if ($$self{thermo_timer}->expired) {
                 ::print_log("[SCHEDULE] - INFO - setting ". $object->get_object_name ." setpoints, you are now $occ_state");
@@ -449,34 +465,77 @@ undef $$self{override_mode_setback_object};
 undef $$self{override_mode_setback_state};
 undef $$self{override_mode_occ_state};
 undef $$self{override_mode_object};
-  print_log("[SCHEDULE] - DEBUG --- IN OVERRIDE") if $main::Debug{'SCHEDULE'};
+  ::print_log("[SCHEDULE] - DEBUG --- IN OVERRIDE") if $main::Debug{'schedule'};
   if ( $occupied_state eq $$self{vacation_mode_state} ) {
-         	 ::print_log("[SCHEDULE] - DEBUG --- IN OVERRIDE --- VACATION") if $main::Debug{'SCHEDULE'};
-		 $$self{override_mode_setback_object} = $$self{vacation_mode_object}; # override the setpoint if in vacation mode
-		 $$self{override_mode_setback_state} = $$self{vacation_mode_state}; # override the setback state if in vacation mode
+          ::print_log("[SCHEDULE] - DEBUG --- IN OVERRIDE --- VACATION") if $main::Debug{'schedule'};
+	  $$self{override_mode_object} = $$self{vacation_mode_object}; # override the setpoint if in vacation mode
          return 1;
-  } elsif ( $self->WinterMode ) {
-        	::print_log("[SCHEDULE] - DEBUG --- IN OVERRIDE --- WINTERMODE") if $main::Debug{'SCHEDULE'};
-		$$self{override_mode_object} = $$self{winter_mode_object}; # override the setpoint if forcast temp is below config
-        return 1;
-  }
+  } elsif ( $self->WinterMode ) { return 1 }
  return 0;
 }
 
 
 sub WinterMode {
 #return 1;  # temp for testing
+#$::Weather{'Forecast Today'} = 'Sunny. Patchy fog in the morning. Highs in the lower 90s. East winds to 10 mph.';
 my ($self) = @_;
-    ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE") if $main::Debug{'SCHEDULE'};
-   if ($::Weather{'Forecast Tonight'} =~ /lows in the ([\w ]+) (\d+)/i) {
-        ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE --- FORCAST --- $1 $2") if $main::Debug{'SCHEDULE'};
+    ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE") if $main::Debug{'schedule'};
+   if ( ($$self{winter_mode_type} eq 'night') && ($::Weather{'Forecast Tonight'} =~ /lows in the ([\w ]+) (\d+)/i) ) {
+        ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE --- FORCAST --- $1 $2") if $main::Debug{'schedule'};
         my $fc = $2;
         if (lc($1) =~ /mid/) { $fc = $fc + 3 } # Translate low, mid, and upper to a value
         if (lc($1) =~ /up/) { $fc = $fc + 6 }
            ##if the value we got from the weather script is equal
             #or lower than our defined value, return the defined winter mode
        if ($fc <= ($$self{winter_mode_temp})) {
-         ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE  ---- M1 --- LOWS -- $fc -- $$self{winter_mode_temp}") if $main::Debug{'SCHEDULE'};
+         ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE  ---- M1 --- LOWS -- $fc -- $$self{winter_mode_temp}") if $main::Debug{'schedule'};
+         $$self{override_mode_object} = $$self{winter_mode_object}; # override the setpoint if forcast temp is below config
+         return 1;
+       }
+     return 0;
+   }
+   if ( ($$self{winter_mode_type} eq 'day') && 
+	(($::Weather{'Forecast Today'} =~ /Highs in the ([\w ]+) (\d+)/i) || 
+	 ($::Weather{'Forecast Today'} =~ /Highs ([\w ]+) (\d+)/i)) ) {
+        ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE --- FORCAST --- $1 $2") if $main::Debug{'schedule'};
+        my $fc = $2;
+        if (lc($1) =~ /around/) { $fc = $fc + 0 }
+        elsif (lc($1) =~ /low/) { $fc = $fc + 0 }
+        elsif (lc($1) =~ /mid/) { $fc = $fc + 3 } # Translate low, mid, and upper to a value
+        elsif (lc($1) =~ /up/) { $fc = $fc + 6 }
+        else  { ::print_log("[SCHEDULE] - NOTICE --- WINTERMODE --- Unknown forecast modifier: $1 -- full text: $::Weather{'Forecast Today'}") }
+           ##if the value we got from the weather script is equal
+            #or lower than our defined value, return the defined winter mode
+       if ($fc <= ($$self{winter_mode_temp})) {
+         ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE  ---- M1 --- LOWS -- $fc -- $$self{winter_mode_temp}") if $main::Debug{'schedule'};
+         $$self{override_mode_object} = $$self{winter_mode_object}; # override the setpoint if forcast temp is below config
+         return 1;
+       }
+     return 0;
+   }
+   if ( ($$self{winter_mode_type} eq 'now') && ($::Weather{'TempOutdoor'} =~ /(\d+)/i) ) {
+        ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE --- TEMP NOW --- $1") if $main::Debug{'schedule'};
+        my $fc = $1;
+       if ($fc <= ($$self{winter_mode_temp})) {
+         ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE  --- TEMP NOW -- $fc -- $$self{winter_mode_temp}") if $main::Debug{'schedule'};
+         $$self{override_mode_object} = $$self{winter_mode_object}; # override the setpoint if current temp is below config
+         return 1;
+       }
+     return 0;
+   }
+   if ( ($$self{winter_mode_type} eq 'track') && ($::Weather{'TempOutdoor'} =~ /(\d+)/i) ) {
+        ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE --- TEMP TRACK --- $1") if $main::Debug{'schedule'};
+        my $fc = $1;
+       if ( ($fc <= ($$self{winter_mode_temp})) && (not $$self{winter_mode_track_flag}) ) {
+	 $$self{winter_mode_track_flag} = 1;
+         ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE  --- TEMP TRACK -- TempOutdoor: $fc -- Config low: $$self{winter_mode_temp}") if $main::Debug{'schedule'};
+         $$self{override_mode_object} = $$self{winter_mode_object}; # override the setpoint if current temp is below config
+         return 1;
+       }
+       elsif ( ($fc > ($$self{winter_mode_temp_high})) && ($$self{winter_mode_track_flag}) ) {
+         $$self{winter_mode_track_flag} = 0;
+         ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE  --- TEMP TRACK -- TempOutdoor: $fc -- Config high: $$self{winter_mode_temp}") if $main::Debug{'schedule'};
+         $$self{override_mode_object} = $self; # set the setpoint back to normal if temp is higher than config
          return 1;
        }
      return 0;
