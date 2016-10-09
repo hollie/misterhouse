@@ -1929,6 +1929,7 @@ var fp_reposition_entities = function(){
     var fp_scale_percent = Math.round( fp_scale * 100);
     
 //	console.log("width="+width+" nwidth="+nwidth+" scale="+fp_scale_percent);
+
     // update the location of all the objects...
     $(".floorplan_item").each(function(index) {
         var classstr = $(this).attr("class");
@@ -1978,23 +1979,8 @@ var fp_set_pos = function(id, offset){
     var item =  $('#' + id);
     // do not move the span, this make the popup to narrow somehow
     // item.closest("span").offset(offset);
-//    var left11 = item.css("left");
-//    var left12 = item[0].style.left;
-//    var top11 = item.css("top");
-//    var top12 = item[0].style.top;    
-//    var before = item.offset();
-//    var init = false
-//    if (item.css("left") == "auto") {
- //   	console.log("auto found, fixing left property");
-//    	offset.left = 0 - fp_icon_image_size/2;
-//    }
     item.offset(offset);
-//    var after = item.offset();
-//    var left21 = item.css("left");
-//    var left22 = item[0].style.left;        
-//    console.log("offset.top="+offset.top+" offset.left="+offset.left+" before.top="+before.top+" before.left="+before.left+" after.top="+after.top+" after.left="+after.left);
-//	console.log("top11="+top11+" top12="+top12);
-//	console.log("left11="+left11+" left12="+left12+" left21="+left21+" left22="+left22);    
+
 };
 
 var fp_is_point_on_fp = function (p){
