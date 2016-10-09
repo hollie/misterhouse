@@ -1883,7 +1883,7 @@ var fp_resize_floorplan_image = function(){
     $("#fp_graphic").attr("width", "1px");
 
     fp_display_width = $("#graphic").width();
-    console.log("FP: resize "+ floor_width + " => " + fp_display_width);
+//    console.log("FP: resize "+ floor_width + " => " + fp_display_width);
     $('#fp_graphic').attr("width",fp_display_width+"px");
     fp_display_height = $("#fp_graphic").height();
 };
@@ -1891,7 +1891,7 @@ var fp_resize_floorplan_image = function(){
 var fp_reposition_entities = function(){
     var t0 = performance.now();
     var fp_graphic_offset = $("#fp_graphic").offset();
-    console.log("fp_graphic_offset: "+ JSON.stringify(fp_graphic_offset));
+//    console.log("fp_graphic_offset: "+ JSON.stringify(fp_graphic_offset));
     var width = fp_display_width;
     var hight = fp_display_height;
     var onePercentWidthInPx = width/100;
@@ -1928,7 +1928,7 @@ var fp_reposition_entities = function(){
     var fp_scale =  width/nwidth;
     var fp_scale_percent = Math.round( fp_scale * 100);
     
-	console.log("width="+width+" nwidth="+nwidth+" scale="+fp_scale_percent);
+//	console.log("width="+width+" nwidth="+nwidth+" scale="+fp_scale_percent);
     // update the location of all the objects...
     $(".floorplan_item").each(function(index) {
         var classstr = $(this).attr("class");
@@ -1940,7 +1940,7 @@ var fp_reposition_entities = function(){
         }
         var fp_location = coords.split(/x/);
         var fp_offset =  fp_get_offset_from_location(fp_location);
-		console.log("coords="+coords);       
+//		console.log("coords="+coords);       
 
         // this seems to make the repositioning slow
         // ~ 300+ms on my nexus7 firefox-beta vs <100ms with this code commented out
@@ -1952,7 +1952,7 @@ var fp_reposition_entities = function(){
         // }
         var element_id = $(this).attr('id');
         var adjust = fp_icon_image_size*fp_scale/2;
-		console.log("adjust="+adjust+" fp_offset.top="+fp_offset.top+" fp_offset.left="+fp_offset.left);       
+//		console.log("adjust="+adjust+" fp_offset.top="+fp_offset.top+" fp_offset.left="+fp_offset.left);       
         var fp_off_center = {
             "top":  fp_offset.top - adjust,
             "left": fp_offset.left - adjust
@@ -1961,33 +1961,40 @@ var fp_reposition_entities = function(){
     });
 
 	$('.icon_select img').each(function(){
-        $(this).width(fp_scale + "%");
+        $(this).width(fp_scale_percent + "%");
 	});
     var t1 = performance.now();
     console.log("FP: reposition and scale: " +Math.round(t1 - t0) + "ms ");
+};
+
+var fp_show_all_icons = function() {
+
+    $(".floorplan_item").each(function(index) {
+		$(this).show();
+	});
 };
 
 var fp_set_pos = function(id, offset){
     var item =  $('#' + id);
     // do not move the span, this make the popup to narrow somehow
     // item.closest("span").offset(offset);
-    var left11 = item.css("left");
-    var left12 = item[0].style.left;
-    var top11 = item.css("top");
-    var top12 = item[0].style.top;    
-    var before = item.offset();
-    var init = false
-    if (item.css("left") == "auto") {
-    	console.log("auto found, fixing left property");
-    	offset.left = 0 - fp_icon_image_size/2;
-    }
+//    var left11 = item.css("left");
+//    var left12 = item[0].style.left;
+//    var top11 = item.css("top");
+//    var top12 = item[0].style.top;    
+//    var before = item.offset();
+//    var init = false
+//    if (item.css("left") == "auto") {
+ //   	console.log("auto found, fixing left property");
+//    	offset.left = 0 - fp_icon_image_size/2;
+//    }
     item.offset(offset);
-    var after = item.offset();
-    var left21 = item.css("left");
-    var left22 = item[0].style.left;        
-    console.log("offset.top="+offset.top+" offset.left="+offset.left+" before.top="+before.top+" before.left="+before.left+" after.top="+after.top+" after.left="+after.left);
-	console.log("top11="+top11+" top12="+top12);
-	console.log("left11="+left11+" left12="+left12+" left21="+left21+" left22="+left22);    
+//    var after = item.offset();
+//    var left21 = item.css("left");
+//    var left22 = item[0].style.left;        
+//    console.log("offset.top="+offset.top+" offset.left="+offset.left+" before.top="+before.top+" before.left="+before.left+" after.top="+after.top+" after.left="+after.left);
+//	console.log("top11="+top11+" top12="+top12);
+//	console.log("left11="+left11+" left12="+left12+" left21="+left21+" left22="+left22);    
 };
 
 var fp_is_point_on_fp = function (p){
@@ -2033,7 +2040,7 @@ var floorplan = function(group,time) {
             $('#list_content').append("<pre id='fp_pos_perl_code' />");
         }
         $('#fp_graphic').bind("load", function () {
-            console.log("FP: background loaded.");
+//            console.log("FP: background loaded.");
             fp_resize_floorplan_image();
             floorplan(group, time);
         });
@@ -2165,7 +2172,7 @@ var floorplan = function(group,time) {
             return;
         }
 
-        console.log("FP: window resized");
+//        console.log("FP: window resized");
         fp_resize_floorplan_image();
         fp_reposition_entities();
     };
@@ -2328,10 +2335,10 @@ var floorplan = function(group,time) {
                         url: "/LONG_POLL?json('GET','fp_icon_sets','px=48')",
                         dataType: "json",
                         error: function(xhr, textStatus, errorThrown){
-                            console.log('FP: request iconsets failed: "' + textStatus + '" "'+JSON.stringify(errorThrown, undefined,2)+'"');
+//                            console.log('FP: request iconsets failed: "' + textStatus + '" "'+JSON.stringify(errorThrown, undefined,2)+'"');
                         },
                         success: function( json, statusText, jqXHR ) {
-                            console.log('FP: request iconsets: "' + statusText + '" "'+JSON.stringify(jqXHR, undefined,2)+'"');
+//                            console.log('FP: request iconsets: "' + statusText + '" "'+JSON.stringify(jqXHR, undefined,2)+'"');
                             var requestTime = time;
                             if (jqXHR.status === 200) {
                                 var iconlist = '<ul class="icon_select" style="display:none;z-index:1000;position:absolute;overflow:hidden;border:1px solid #CCC; background: #FFF; border-radius: 5px; padding: 0;">\n';
@@ -2409,7 +2416,7 @@ var floorplan = function(group,time) {
                 }
                 requestTime = json.meta.time;
                 var t1 = performance.now();
-                console.log("FP: long poll " +Math.round(t1 - t0) + "ms");
+//                console.log("FP: long poll " +Math.round(t1 - t0) + "ms");
             }
             if (jqXHR.status === 200 || jqXHR.status === 204) {
                 //Call update again, if page is still here
@@ -2421,6 +2428,15 @@ var floorplan = function(group,time) {
                         floorplan(group,requestTime);
                 }
             }
+            if (time === 0){
+                // hack to fix initial positions of the items
+                var wait = 50;
+                console.log("FP: calling  fp in  " +wait+ "ms");
+                setTimeout(function(){
+                    console.log("FP: calling fp after " +wait+ "ms");
+                    fp_reposition_entities();
+                }, wait);
+            }            
         }
     });
 };
