@@ -303,13 +303,15 @@ sub register {
     if ($object->isa('SCHEDULE_Generic')) {
       ::print_log("Registering a SCHEDULE Child Object type SCHEDULE_Generic" );
           push @{$self->{generic_object}}, $object;
-          ::MainLoop_pre_add_hook( sub {SCHEDULE::check_date($self,$object);}, 'persistent');
+          #::MainLoop_pre_add_hook( sub {SCHEDULE::check_date($self,$object);}, 'persistent');
+          ::MainLoop_pre_add_hook( sub {SCHEDULE::check_date($self,$object);});
      }
    if ($object->isa('SCHEDULE_Temp')) {
       ::print_log("Registering a SCHEDULE Child Object type SCHEDULE_Temp" );
             $self->{temp_object}{$HorC} = $object;
 	    if ((defined($self->{temp_object}{'cool'})) && (defined($self->{temp_object}{'heat'}))) {
-               	  ::MainLoop_pre_add_hook( sub {SCHEDULE::check_date($self,$self->{temp_object}{'cool'});}, 'persistent' );
+               	  #::MainLoop_pre_add_hook( sub {SCHEDULE::check_date($self,$self->{temp_object}{'cool'});}, 'persistent' );
+                  ::MainLoop_pre_add_hook( sub {SCHEDULE::check_date($self,$self->{temp_object}{'cool'});});
 	     }
    }
 }

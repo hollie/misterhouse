@@ -133,11 +133,15 @@ sub new {
     $$self{state_now}     = undef;
     $$self{state_changed} = undef;
     $self->restore_data('sort_order');
+    $self->{logger_enable} = $main::config_parms{object_logger_enable} if (defined $main::config_parms{object_logger_enable});
+    $self->{logger_mintime} = 1;
+    $self->{logger_updatetime} = 0;
     $self->restore_data('active_state', 'schedule_count');
        for my $index (1..20) {
           $self->restore_data('schedule_'.$index, 'schedule_label_'.$index, 'schedule_once_'.$index);
        }
     $self->_initialize_schedule;
+
     return $self;
 }
 
@@ -1162,7 +1166,11 @@ sub logger {
 	my ($self,$state,$set_by_name,$target) = @_;
 	my $object_name = $self->{object_name};
 	$object_name =~ s/^\$//;
+	return if ($object_name eq "");
+	return if ($state eq "");
 	my $tickcount = int(&::get_tickcount()); #log in milliseconds
+	return if ($tickcount <  ($self->{logger_updatetime} + $self->{logger_mintime}));
+
 	#create directory structure if it doesn't exist
 	mkdir ($::config_parms{data_dir} . "/object_logs") unless (-d $::config_parms{data_dir} . "/object_logs");
 	mkdir ($::config_parms{data_dir} . "/object_logs/" . $object_name) unless (-d $::config_parms{data_dir} . "/object_logs/" . $object_name);
@@ -1170,6 +1178,7 @@ sub logger {
 	mkdir ($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month) unless (-d $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month);
 	#write the data to the log; time, ticks (milliseconds), object, state, set_by, target
 	&::logit ($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month . "/" . $::Mday . ".log", "$main::Time_Date,$tickcount,$object_name,$state,$set_by_name," . ( ($target) ? "$target" : '') ."\n",0);
+	$self->{logger_updatetime} = $tickcount;
 }
 	
 =item C<reset_states2()>
@@ -1274,14 +1283,39 @@ sub xPL_enable {
 
 =item C<logger_enable()>
 
-TODO.  Can only be run at startup or reload.
+Will start logging state changes to a historical log file
 
 =cut
 
 sub logger_enable {
-    return unless $main::Reload;
     my ( $self, $enable ) = @_;
-    $self->{logger_enable} = $enable;
+    if ($self->isa('Group') and (defined $main::config_parms{object_logger_group})) {
+    	$self->{logger_enable} = $main::config_parms{object_logger_group};
+    } else {
+    	$self->{logger_enable} = 1;
+    }
+}
+
+=item C<logger_disable()>
+
+Will stop logging state changes to a historical log file
+
+=cut
+
+sub logger_disable {
+    my ( $self, $enable ) = @_;
+    $self->{logger_enable} = 0;
+}
+
+=item C<logger_mintime()>
+
+Set the minimum number of seconds to log updates. Useful to 'throttle' noisey objects such as AD2 motion sensors
+
+=cut
+
+sub logger_mintime {
+    my ( $self, $mintime ) = @_;
+    $self->{logger_mintime} = $mintime;
 }
 
 =item C<get_logger_status()>
@@ -1308,13 +1342,14 @@ sub get_logger_data {
 	$object_name =~ s/^\$//;
 	my $data = "";
 	$epoch = $epoch - ($days * 60 * 60 * 24);
-	for (my $i = 0; $i < $days; $i++) {
-		my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($epoch);
-		#print "Epoch: $epoch is $mday / " . ($mon + 1) . "/" . ($year+1900) . "\n";
-		#print "Checking " . $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . "\n";		
-		#print "Reading " . $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . "\n" if ( -e	$::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . ".log");
+	for (my $i = 0; $i <= $days; $i++) {
+		print "db i=$i, days=$days, epoch=$epoch\n";
+		my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($epoch + ($i * 60 * 60 * 24));
+		print "Epoch: $epoch is " . $mday . "/" . ($mon + 1) . "/" . ($year+1900) . "\n";
+		print "Checking " . $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . "\n";		
+		print "Reading " . $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . "\n" if ( -e	$::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . ".log");
 		$data .= ::file_read($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . ".log") if ( -e	$::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . ".log");
-		$epoch = $epoch + (60*60*24);
+#		$epoch = $epoch + (60*60*24);
 	}
 
 	return $data;
@@ -1795,7 +1830,7 @@ sub _initialize_schedule {
    if ($self->{'schedule_count'} > 1) {
        ::print_log("[SCHEDULE] Initialize schedule for ". $self->get_object_name." Schedule count is ".$self->{'schedule_count'});
        $self->{'check_date_handler'} = sub { Generic_Item::check_date($self); };
-       ::MainLoop_post_add_hook( $self->{'check_date_handler'}, 'persistent');
+       ::MainLoop_post_add_hook( $self->{'check_date_handler'});
    }
 });
 }
@@ -1813,7 +1848,8 @@ sub set_schedule {
     my ($self,$index,$entry,$label) = @_;
     unless ( defined($self->{'check_date_handler'}) ) { 
 	$self->{'check_date_handler'} = sub { Generic_Item::check_date($self); }; 
-        ::MainLoop_post_add_hook( $self->{'check_date_handler'}, 'persistent'); 
+        #::MainLoop_post_add_hook( $self->{'check_date_handler'}, 'persistent'); 
+        ::MainLoop_post_add_hook( $self->{'check_date_handler'});
     }
 
     if ($index > $self->{'schedule_count'}) { $self->{'schedule_count'} = $index; }
@@ -2128,3 +2164,4 @@ MA  02110-1301, USA.
 #}
 
 1;
+
