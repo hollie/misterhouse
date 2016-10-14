@@ -7,6 +7,9 @@
 # Copyright 2002: Richard Morgan  omegaATbigpondDOTnetDOT.au
 # Copyright 2008: Andrew McCallum, Mandoon Technologies andyATmandoonDOTcomDOTau
 #
+# IMPORTANT NOTICE - Clipsal CBus support is now provided by Clipsal_CBus.pm
+#
+#
 # $Id$
 #
 #   Ensure XML::Simple is installed:
@@ -98,6 +101,10 @@
 #	V3.0.3	 2013-11-28
 #			 Test debug flag for logging statements.
 #
+#   V4.0    2016-03-25
+#           Refactor cbus.pl to make CBus support more MisterHouse "native".
+#           See lib/Clipsal_CBus.pm for more information.
+#
 # How Cgate integrates with MH
 #
 #    All Cbus objects are defined in a standard XML file (cbus.xml), this file is
@@ -174,6 +181,8 @@
 ##############################################################################
 
 use XML::Simple qw(:strict);
+
+print_log "IMPORTANT NOTICE - Clipsal CBus support is now provided by Clipsal_CBus.pm"
 
 #
 # Define Defaults

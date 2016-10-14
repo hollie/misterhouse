@@ -737,8 +737,19 @@ sub speak_text {
                     $speak_pgm_arg .= qq[ -e 'set $parms{volume_reset}'];
                 }
             }
-            elsif ( $speak_engine =~ /(theta|swift)/i ) {
+            elsif ( $speak_engine eq 'swift' ) {
+                #<prosody pitch='X' rate='X'>
+                my $prosodyparms;
+                $prosodyparms .= " pitch='$parms{pitch}'" if $parms{pitch};
+                $prosodyparms .= " rate='$parms{rate}'" if $parms{rate};
+                $prosodyparms .= " volume='$parms{ttsvolume}'" if $parms{ttsvolume};
+                $parms{text} = '<prosody' . $prosodyparms . '>' . $parms{text} . '</prosody>' if $prosodyparms;
 
+                $speak_pgm_arg .= ' -n '     . "'$parms{voice}'"  if $parms{voice};
+                $speak_pgm_arg .= ' -o '   . $parms{to_file}    if $parms{to_file}; # Not working yet??
+                $speak_pgm_arg .= qq[ "$parms{text}"];
+            }
+            elsif ( $speak_engine eq 'theta' ) {
                 $speak_pgm_arg .= " -S $parms{pitch}" if $parms{pitch};
                 $speak_pgm_arg .= " -r $parms{rate}"  if $parms{rate};
                 if ( $speak_engine eq 'theta' ) {
