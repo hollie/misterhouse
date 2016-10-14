@@ -1803,13 +1803,15 @@ var object_history = function(items,start,days,time) {
     					$('#hist-legend').find("li").eq(i).prepend('<span style="width:4px;height:4px;border: 0px;background: '+color+';">&nbsp;&nbsp;&nbsp;</span>&nbsp');
 					});
 				} else {
+					// table
 					var html = "<table class='table table-curved'><thead><tr>";
 					html += "<th>Time</th><th>State</th><th>Set By</th>";
 					html += "</tr></thead><tbody>";
 					if (json.data.data !== undefined) {  //If no data, at least show the header
+						json.data.data.reverse();
 						for (var i = 0; i < json.data.data.length; i++){
 							html +="<tr>";
-					  		html += "<td data-title='Time'>"+new Date(json.data.data[i][0]).toUTCString()+"</td>";
+					  		html += "<td data-title='Time'>"+new Date(json.data.data[i][0]).toString().replace(/GMT-\d\d\d\d/,"")+"</td>";
 					  		html += "<td data-title='State'>"+String(json.data.data[i][1])+"</td>";
 					  		html += "<td data-title='Setby'>"+String(json.data.data[i][2])+"</td>";
 							html += "</tr>";
