@@ -1,6 +1,10 @@
 package Venstar_Colortouch;
+<<<<<<< HEAD
 # v2.0.11
 # background > 2 for polling
+=======
+# v2.0.3
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
 
 use strict;
 use warnings;
@@ -84,13 +88,21 @@ sub new {
     $self->{updating}      			= 0;
     $self->{data}->{retry} 			= 0;
     $self->{host}          			= $host;
+<<<<<<< HEAD
     $self->{debug}          		= 5;
+=======
+    $self->{debug}          		= 0;
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
     $self->{debug} 					= $debug if ($debug);
     $self->{debug} 					= 0	if ( $self->{debug} < 0 );
     $self->{loglevel}      			= 1;
     $self->{status}        			= "";
     $self->{timeout}       			= 15;      #300;
+<<<<<<< HEAD
     $self->{background}				= 1; #0 for direct, 1 for set commands, 2 for poll and set commands
+=======
+    $self->{background}				= 1;
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
 	$self->{poll_data_timestamp} 	= 0;   
 	$self->{max_poll_queue} 		= 3;  
 	$self->{max_cmd_queue}			= 5; 
@@ -127,7 +139,11 @@ sub get_data {
 
     main::print_log("[Venstar Colortouch] get_data initiated");
     $self->poll;
+<<<<<<< HEAD
     $self->process_data unless ($self->{background} > 1); #for background tasks, data will be processed when process completed.
+=======
+    $self->process_data unless ($self->{background}); #for background tasks, data will be processed when process completed.
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
 }
 
 sub _init {
@@ -189,7 +205,11 @@ sub _init {
 sub poll {
     my ($self,$method) = @_;
     $method = "" unless (defined $method);
+<<<<<<< HEAD
 	if (($self->{background} > 1) and (lc $method ne "direct")) {
+=======
+	if (($self->{background}) and (lc $method ne "direct")) {
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
     	main::print_log("[Venstar Colortouch] Background Polling initiated") if ( $self->{debug} );
 	} else {	
     	main::print_log("[Venstar Colortouch] Direct Polling initiated") if ( $self->{debug} );
@@ -200,8 +220,12 @@ sub poll {
     my ( $isSuccessResponse1, $info )    = $self->_get_JSON_data('info',$method);
     my ( $isSuccessResponse2, $sensors ) = $self->_get_JSON_data('sensors',$method);
 
+<<<<<<< HEAD
     if (( $isSuccessResponse1 and $isSuccessResponse2 ) and (($self->{background} < 2) or (lc $method eq "direct"))) {
 		$self->{poll_data_timestamp} = &main::get_tickcount();
+=======
+    if (( $isSuccessResponse1 and $isSuccessResponse2 ) and ((!$self->{background}) or (lc $method eq "direct"))) {
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
         $self->{data}->{tempunits} = $info->{tempunits};
         $self->{data}->{name}      = $info->{name};
         $self->{data}->{info}      = $info;
@@ -217,6 +241,7 @@ sub poll {
 sub process_check {
 	my ($self) = @_;
 #Need to catch error 500's 403's and update communication tracker and success:false messages to write to log
+<<<<<<< HEAD
 # as a safety measure, just check that the timer's active
     if ( defined $self->{timer} ) {
     	if ($self->{timer}->inactive()) {
@@ -227,6 +252,8 @@ sub process_check {
 #		main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! timer is not defined!");
 	}	
 #	$self->start_timer if ($self->{timer}->inactive());
+=======
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
 	return unless (defined $self->{poll_process});	
 	if ($self->{poll_process}->done_now()) {
 		my $com_status = "online";
@@ -286,7 +313,11 @@ sub process_check {
 	return unless (defined $self->{cmd_process});	
 	if ($self->{cmd_process}->done_now()) {
 		my $com_status = "online";
+<<<<<<< HEAD
     	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Background Command " . $self->{cmd_process_name} . " process completed") if ($self->{debug});
+=======
+    	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Background Command " . $self->{poll_process_mode} . " process completed") if ($self->{debug});
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
 	
 		my $file_data = &main::file_read($self->{cmd_data_file});
 		unless ($file_data) {
@@ -326,9 +357,15 @@ sub process_check {
         }
         if (scalar @{$self->{cmd_queue}}) {        
         	my $cmd = @{$self->{cmd_queue}}[0]; #grab the first command, but don't take it off.
+<<<<<<< HEAD
 			$self->{cmd_process}->set($cmd);
 			$self->{cmd_process}->start();			
     		main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Command Queue " . $self->{cmd_process}->pid() . " cmd=$cmd") if ($self->{debug});
+=======
+			$self->{poll_process}->set($cmd);
+			$self->{poll_process}->start();			
+    		main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Command Queue " . $self->{poll_process}->pid() . " cmd=$cmd") if ($self->{debug});
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
 		}
 		if ( defined $self->{child_object}->{comm} ) {
         	if ( $self->{status} ne $com_status ) {
@@ -345,7 +382,11 @@ sub process_check {
 sub _get_JSON_data {
     my ( $self, $mode, $method ) = @_;
 
+<<<<<<< HEAD
 	if (($self->{background} > 1) and (lc $method ne "direct")) {
+=======
+	if (($self->{background}) and (lc $method ne "direct")) {
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
 	
 		my $cmd = 'get_url "http://' . $self->{host} . "/$rest{$mode}" . '"';
 		if ($self->{poll_process}->done()) {
@@ -468,16 +509,25 @@ sub _push_JSON_data {
 #For background tasks, we want up to date data, ie returned within the last poll period.
 #recursively calling the same subroutine might be a memory or performance hog, but need to effectively
 #'suspend' the data push until we get valid data.
+<<<<<<< HEAD
 	print "venstar, command: poll_timestamp=" . $self->{poll_data_timestamp} . " poll_seconds = " . $self->{config}->{poll_seconds} . " get_tickcount=" . &main::get_tickcount() . "\n";# if ($self->{debug});
 	print "venstar, command: issuing poll due to old data\n" if (($self->{poll_data_timestamp} + ($self->{config}->{poll_seconds} * 1000)) < &main::get_tickcount());
 	print "venstar, command: retrying command\n" if ($self->{poll_data_timestamp} + 300000 > &main::get_tickcount());
 	
 	if (($self->{background} > 1) and (lc $method ne "direct")) {
+=======
+	print "db: poll_timestamp=" . $self->{poll_data_timestamp} . " poll_seconds = " . $self->{config}->{poll_seconds} . " get_tickcount=" . &main::get_tickcount() . "\n" if ($self->{debug});
+	if (($self->{background}) and (lc $method ne "direct")) {
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
 		if (($self->{poll_data_timestamp} + ($self->{config}->{poll_seconds} * 1000)) < &main::get_tickcount()) {
 			$self->poll() if (scalar @{$self->{poll_queue}} < $self->{max_poll_queue}); #once max reached, no sense adding more
 			if ($self->{poll_data_timestamp} + 300000 > &main::get_tickcount()) { #give up after 5 minutes of trying
 		        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] WARNING: retrying command attempt due to stale poll data!" );
+<<<<<<< HEAD
 				&Venstar_Colortouch::_push_json_data($self,$type,$params);
+=======
+				$self->_push_json_data($type,$params);
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
 			} else {
 		        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR: Abandoning command attempt due to stale poll data!" );
 				return ('1');
@@ -487,7 +537,11 @@ sub _push_JSON_data {
 
 
     #print "VCT DB: $params\n";
+<<<<<<< HEAD
     $self->stop_timer unless ($self->{background} > 1);    #stop timer to prevent a clash of updates
+=======
+    $self->stop_timer unless ($self->{background});    #stop timer to prevent a clash of updates
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
     if ( $type eq 'settings' ) {
 
 		#for testing purposes, curl is:
@@ -531,7 +585,11 @@ sub _push_JSON_data {
 		my ($choliday,$coverride,$coverridetime,$cforceunocc);
 
 
+<<<<<<< HEAD
 		if (($self->{background} > 1) and (lc $method ne "direct")) {
+=======
+		if (($self->{background}) and (lc $method ne "direct")) {
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
 			$cunits = $self->{data}->{info}->{tempunits};
 			$caway = $self->{data}->{info}->{away};
 			$csched = $self->{data}->{info}->{schedule};
@@ -668,7 +726,11 @@ sub _push_JSON_data {
 
         my ($isSuccessResponse, $cmode, $cfan, $cheattemp, $ccooltemp, $setpointdelta, $minheat, $maxheat, $mincool, $maxcool);
         
+<<<<<<< HEAD
         if (($self->{background} > 1) and (lc $method ne "direct")) {
+=======
+        if (($self->{background}) and (lc $method ne "direct")) {
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
 			$cmode = $self->{data}->{info}->{mode};
 			$cfan = $self->{data}->{info}->{fan};
 			$cheattemp = $self->{data}->{info}->{heattemp};
@@ -756,7 +818,10 @@ sub _push_JSON_data {
 		push @{$self->{cmd_queue}}, "$cmd";	
 		if ($self->{cmd_process}->done()) {
 			$self->{cmd_process}->set($cmd);
+<<<<<<< HEAD
 			$self->{cmd_process_name} = $cmd;
+=======
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
 			$self->{cmd_process}->start();
 			$self->{cmd_process_retry} = 0;			
             main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Backgrounding " . $self->{cmd_process}->pid() . " command $cmd") if ($self->{debug});		
@@ -817,6 +882,7 @@ if (defined $self->{child_object}->{comm}) {
     #my $response = JSON::XS->new->decode ($responseObj->content);
     ($response) = $responseObj->content =~ /\{\"(.*)\":/;
     }
+<<<<<<< HEAD
 	}
     #print Dumper $response if $self->{debug};
     print "response=$response\n" if $self->{debug};
@@ -828,6 +894,14 @@ if (defined $self->{child_object}->{comm}) {
 #    }
     $self->start_timer unless ($self->{background} > 1);
     
+=======
+
+    #print Dumper $response if $self->{debug};
+    print "response=$response\n" if $self->{debug};
+    $self->poll if ( $response eq "success" );
+    $self->start_timer;
+    }
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
     return ( $isSuccessResponse, $response );
 }
 
@@ -877,6 +951,10 @@ sub stop_timer {
 
 sub start_timer {
     my ($self) = @_;
+<<<<<<< HEAD
+=======
+	print "db: timer has started\n";
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
     if ( defined $self->{timer} ) {
         $self->{timer}->set( $self->{config}->{poll_seconds},
             sub { &Venstar_Colortouch::_poll_check($self) }, -1 );
@@ -1181,6 +1259,10 @@ sub process_data {
               ->set( $mode[$self->{data}->{info}->{mode}] );
         }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
     }
 
     if ( $self->{previous}->{info}->{state} != $self->{data}->{info}->{state} )
@@ -2062,9 +2144,11 @@ sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
     if ( $p_setby eq 'poll' ) {
+    	print "db: in super set\n";
         $self->SUPER::set($p_state);
     }
     else {
+    	print "db: in mode set\n";    
         $self->set_mode($p_state);
     }
 }
@@ -2321,7 +2405,11 @@ sub new {
     bless $self, $class;
 
     $$self{master_object} = $object;
+<<<<<<< HEAD
     if ((defined $scale) and (lc $scale eq "F")) {
+=======
+    if (lc $scale eq "F") {
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
     	push( @{ $$self{states} }, '65','66','67','68','69','70','71','72','73','74','75','76','77','78','79','80' );
     	$self->{lower_limit} = 65;
     	$self->{upper_limit} = 80;    	
@@ -2370,7 +2458,11 @@ sub new {
     bless $self, $class;
 
     $$self{master_object} = $object;
+<<<<<<< HEAD
     if ((defined $scale) and (lc $scale eq "F")) {
+=======
+    if (lc $scale eq "F") {
+>>>>>>> 13f9535f4edd56649d67488324a58ad0de2d0c33
     	push( @{ $$self{states} }, '58','59','60','61','62','63','64','65','66','67','68','69','70','71','72','73','74','75','76','77','78','79','80' );
     	$self->{lower_limit} = 58;
     	$self->{upper_limit} = 80;
