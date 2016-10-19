@@ -1,4 +1,6 @@
 package Venstar_Colortouch;
+# v2.0.11
+# background > 2 for polling
 
 use strict;
 use warnings;
@@ -8,16 +10,20 @@ use HTTP::Request::Common qw(POST);
 use JSON::XS;
 use Data::Dumper;
 
-# Venstar::Colortouch
-# $stat_upper        = new Venstar_Colortouch('192.168.0.100');
+# Venstar::Colortouch Objects
+# $stat_upper         = new Venstar_Colortouch('192.168.0.100');
 #
-# $stat_upper_temp   = new Venstar_Colortouch_Temp($stat_upper);
-# $stat_upper_fan    = new Venstar_Colortouch_Fan($stat_upper);
-# $stat_upper_hum    = new Venstar_Colortouch_Humidity($stat_upper);
-# $stat_upper_hum_sp = new Venstar_Colortouch_Humidity_sp($stat_upper);
-# $stat_upper_sched  = new Venstar_Colortouch_Sched($stat_upper);
-# $stat_upper_comm	 = new Venstar_Colortouch_Comm($stat_upper);
+# $stat_upper_mode    = new Venstar_Colortouch_Mode($stat_upper);
+# $stat_upper_temp    = new Venstar_Colortouch_Temp($stat_upper);
+# $stat_upper_heat_sp = new Venstar_Colortouch_Heat_sp($stat_upper,"F"); #F for Fahrenheit
+# $stat_upper_cool_sp = new Venstar_Colortouch_Cool_sp($stat_upper);
+# $stat_upper_fan     = new Venstar_Colortouch_Fan($stat_upper);
+# $stat_upper_hum     = new Venstar_Colortouch_Humidity($stat_upper);
+# $stat_upper_hum_sp  = new Venstar_Colortouch_Humidity_sp($stat_upper);
+# $stat_upper_sched   = new Venstar_Colortouch_Schedule($stat_upper);
+# $stat_upper_comm	  = new Venstar_Colortouch_Comm($stat_upper);
 
+# Version History
 # v1.1 - added in schedule and humidity control.
 # v1.2 - added communication tracker object & timeout control
 # v1.3 - added check for timer defined
@@ -25,21 +31,27 @@ use Data::Dumper;
 #	"hum_setpoint": is the current humidity and
 #   "dehum_setpoint": is the humidity setpoint
 #	"hum" doesn't return anything anymore.
+# v1.4.1 - API v5, working schedule, humidity setpoints
+# v2.0 - Background process
 
-# Notes:
+# Notes
+#  - State can only be set by stat. Set mode will change the mode.
 #  - Best to use firmware at least 3.14 released Nov 2014. This fixes issues with both
 #    schedule and humidity/dehumidify control.
-#  - 4.08 is API5, seems to have better wifi, but humidity control is messed up.
+#  - 4.08 brings API5, and a workaround to a humidity bug.
 
-#todo
-# - temp setpoint bounds checking
+# Issues
+#2
 # - log runtimes. Maybe into a dbm file? log_runtimes method with destination.
 # - figure out timezone w/ DST
-# - changing heating/cooling setpoints for heating/cooling only stats does not need both setpoints
-# - add decimals for setpoints
-# # make the data poll non-blocking, turn off timer
-#
-# State can only be set by stat. Set mode will change the mode.
+#1
+# - TEST temp setpoint bounds checking
+# - changing heating/cooling setpoints for heating/cooling only stats does not need both setpoints?
+# - add in communication tracker for background requests
+# - verify command sets work both with existing poll data, and have a poll data gap. 
+# - verify that network issues don't escalate CPU usage (by _push_json_data being continually called)
+# - add in the commercial stat fields
+# - incorporate Steve's approach for more efficient detection of changed values.
 
 @Venstar_Colortouch::ISA = ('Generic_Item');
 
@@ -52,35 +64,52 @@ $rest{api}      = "";
 $rest{sensors}  = "query/sensors";
 $rest{runtimes} = "query/runtimes";
 $rest{alerts}   = "query/alerts";
-$rest{control}  = "/control";
-$rest{settings} = "/settings";
+$rest{control}  = "control";
+$rest{settings} = "settings";
+
 
 sub new {
-    my ( $class, $host, $poll ) = @_;
+    my ( $class, $host, $poll, $debug ) = @_;
     my $self = {};
     bless $self, $class;
-    $self->{data}                 = undef;
-    $self->{api_ver} 			  = 0;
-    $self->{child_object}         = undef;
-    $self->{config}->{cache_time} = 30;      #TODO fix cache timeouts
-    $self->{config}->{cache_time} = $::config_params{venstar_config_cache_time}
-      if defined $::config_params{venstar_config_cache_time};
-    $self->{config}->{tz} =
-      $::config_params{time_zone}; #TODO Need to figure out DST for print runtimes
-    $self->{config}->{poll_seconds} = 60;
+    $self->{data}                 	= undef;
+    $self->{api_ver} 			  	= 0;
+    $self->{child_object}         	= undef;
+    $self->{config}->{cache_time} 	= 30;      #is this still necessary?
+    $self->{config}->{cache_time} 	= $::config_params{venstar_config_cache_time} if defined $::config_params{venstar_config_cache_time};
+    $self->{config}->{tz} 			= $::config_params{time_zone}; #TODO Need to figure out DST for print runtimes
+    $self->{config}->{poll_seconds} = 10;
     $self->{config}->{poll_seconds} = $poll if ($poll);
-    $self->{config}->{poll_seconds} = 1
-      if ( $self->{config}->{poll_seconds} < 1 );
-    $self->{updating}      = 0;
-    $self->{data}->{retry} = 0;
-    $self->{host}          = $host;
-    $self->{debug}         = 5;
-    $self->{loglevel}      = 1;
-    $self->{status}        = "";
-    $self->{timeout}       = 15;      #300;
-
+    $self->{config}->{poll_seconds} = 1 if ( $self->{config}->{poll_seconds} < 1 );
+    $self->{updating}      			= 0;
+    $self->{data}->{retry} 			= 0;
+    $self->{host}          			= $host;
+    $self->{debug}          		= 5;
+    $self->{debug} 					= $debug if ($debug);
+    $self->{debug} 					= 0	if ( $self->{debug} < 0 );
+    $self->{loglevel}      			= 1;
+    $self->{status}        			= "";
+    $self->{timeout}       			= 15;      #300;
+    $self->{background}				= 1; #0 for direct, 1 for set commands, 2 for poll and set commands
+	$self->{poll_data_timestamp} 	= 0;   
+	$self->{max_poll_queue} 		= 3;  
+	$self->{max_cmd_queue}			= 5; 
+	$self->{cmd_process_retry_limit}= 6;
+    if ($self->{background}) {
+    	@{$self->{poll_queue}}		= ();
+   		$self->{poll_data_file} 		= "$::config_parms{data_dir}/venstar_poll_" . $self->{host} . ".data";
+   		unlink "$::config_parms{data_dir}/venstar_poll_" . $self->{host} . ".data";
+		$self->{poll_process} 			= new Process_Item;
+    	$self->{poll_process}->set_output($self->{poll_data_file});
+    	@{$self->{cmd_queue}}		= ();
+   		$self->{cmd_data_file} 		= "$::config_parms{data_dir}/venstar_cmd_" . $self->{host} . ".data";
+   		unlink "$::config_parms{data_dir}/venstar_cmd_" . $self->{host} . ".data";
+		$self->{cmd_process} 			= new Process_Item;
+    	$self->{cmd_process}->set_output($self->{cmd_data_file});    	
+    	&::MainLoop_post_add_hook( \&Venstar_Colortouch::process_check, 0, $self );
+    }
+    $self->{timer} 					= new Timer;
     $self->_init;
-    $self->{timer} = new Timer;
     $self->start_timer;
     return $self;
 }
@@ -88,7 +117,7 @@ sub new {
 sub _poll_check {
     my ($self) = @_;
 
-    #main::print_log("[Venstar Colortouch] _poll_check initiated");
+    main::print_log("[Venstar Colortouch] _poll_check initiated");
     #main::run (sub {&Venstar_Colortouch::get_data($self)}); #spawn this off to run in the background
     $self->get_data();
 }
@@ -96,9 +125,9 @@ sub _poll_check {
 sub get_data {
     my ($self) = @_;
 
-    #main::print_log("[Venstar Colortouch] get_data initiated");
+    main::print_log("[Venstar Colortouch] get_data initiated");
     $self->poll;
-    $self->process_data;
+    $self->process_data unless ($self->{background} > 1); #for background tasks, data will be processed when process completed.
 }
 
 sub _init {
@@ -109,69 +138,70 @@ sub _init {
     $state[2] = "cooling";
     $state[3] = "lockout";
     $state[4] = "error";
-    my ( $isSuccessResponse1, $stat ) = $self->_get_JSON_data('api');
+    my ( $isSuccessResponse1, $stat ) = $self->_get_JSON_data('api',"direct");
 
     if ($isSuccessResponse1) {
 		$self->{api_ver} = $stat->{api_ver};		
-        if ( ( $self->{api_ver} > 3 ) and ( $stat->{type} eq "residential" ) ) {
 
-            main::print_log(
-                "[Venstar Colortouch] Residental Venstar ColorTouch found with api level $self->{api_ver}"
-            );
-            if ( $self->poll() ) {
-                main::print_log( "[Venstar Colortouch:"
-                      . $self->{data}->{name}
-                      . "] Data Successfully Retrieved" );
+        if ( ( $stat->{api_ver} > 3 ) and ( $stat->{type} eq "residential" or $stat->{type} eq "commercial" ) ) {
+
+            $self->{type} = $stat->{type};
+
+            main::print_log("[Venstar Colortouch] $stat->{type} Venstar ColorTouch found with api level $stat->{api_ver}");
+            if ( $self->poll("direct") ) {
+                main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Data Successfully Retrieved" );
                 $self->{active}                = 1;
                 $self->{previous}->{tempunits} = $self->{data}->{tempunits};
                 $self->{previous}->{name}      = $self->{data}->{name};
                 foreach my $key1 ( keys $self->{data}->{info} ) {
-                    $self->{previous}->{info}->{$key1} =
-                      $self->{data}->{info}->{$key1};
+                    $self->{previous}->{info}->{$key1} = $self->{data}->{info}->{$key1};
                 }
-                $self->{previous}->{sensors}->{sensors}[0]->{temp} =
-                  $self->{data}->{sensors}->{sensors}[0]->{temp};
-                $self->{previous}->{sensors}->{sensors}[0]->{hum} =
-                  $self->{data}->{sensors}->{sensors}[0]->{hum};
+                $self->{previous}->{sensors}->{sensors}[0]->{temp} = $self->{data}->{sensors}->{sensors}[0]->{temp};
+                $self->{previous}->{sensors}->{sensors}[0]->{hum} = $self->{data}->{sensors}->{sensors}[0]->{hum};
                 ## set states based on available mode
+### Strange, if this set is here, then the timer is not defined.
+                #print "db: set " . $state[ $self->{data}->{info}->{state} ] . "=" . $self->{data}->{info}->{state} . "\n";
+                #$self->set( $state[ $self->{data}->{info}->{state} ], 'poll' );
                 $self->print_info();
-                $self->set( $state[ $self->{data}->{info}->{state} ], 'poll' );
 
             }
             else {
-                main::print_log(
-                    "[Venstar Colortouch] Problem retrieving initial data");
+                main::print_log("[Venstar Colortouch] Problem retrieving initial data");
                 $self->{active} = 0;
                 return ('1');
             }
 
         }
         else {
-            main::print_log(
-                "[Venstar Colortouch] Unknown device " . $self->{host} );
+            main::print_log("[Venstar Colortouch] Unknown device " . $self->{host} );
             $self->{active} = 0;
             return ('1');
         }
 
     }
     else {
-        main::print_log( "[Venstar Colortouch] Error. Unable to connect to "
-              . $self->{host} );
+        main::print_log( "[Venstar Colortouch] Error. Unable to connect to " . $self->{host} );
         $self->{active} = 0;
         return ('1');
     }
 }
 
 sub poll {
-    my ($self) = @_;
+    my ($self,$method) = @_;
+    $method = "" unless (defined $method);
+	if (($self->{background} > 1) and (lc $method ne "direct")) {
+    	main::print_log("[Venstar Colortouch] Background Polling initiated") if ( $self->{debug} );
+	} else {	
+    	main::print_log("[Venstar Colortouch] Direct Polling initiated") if ( $self->{debug} );
+	}
+	#spawn off info. 
+	#might had to add into the main loop to check if the object's data has changed.
+	#$self->{process_pid}->{{$self->{process}->pid} = "poll_info";
+    my ( $isSuccessResponse1, $info )    = $self->_get_JSON_data('info',$method);
+    my ( $isSuccessResponse2, $sensors ) = $self->_get_JSON_data('sensors',$method);
 
-    main::print_log("[Venstar Colortouch] Polling initiated")
-      if ( $self->{debug} );
-
-    my ( $isSuccessResponse1, $info )    = $self->_get_JSON_data('info');
-    my ( $isSuccessResponse2, $sensors ) = $self->_get_JSON_data('sensors');
-
-    if ( $isSuccessResponse1 and $isSuccessResponse2 ) {
+    if (( $isSuccessResponse1 and $isSuccessResponse2 ) and (($self->{background} < 2) or (lc $method eq "direct"))) {
+		$self->{poll_data_timestamp} = &main::get_tickcount();
         $self->{data}->{tempunits} = $info->{tempunits};
         $self->{data}->{name}      = $info->{name};
         $self->{data}->{info}      = $info;
@@ -179,110 +209,234 @@ sub poll {
         $self->{data}->{timestamp} = time;
         $self->{data}->{retry}     = 0;
 
-        #if (defined $self->{child_object}->{comm}) {
-        #	if ($self->{child_object}->{comm}->state() ne "online") {
-        #       main::print_log "[Venstar Colortouch:". $self->{data}->{name} . "]] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to online..." if ($self->{loglevel});
-        #       $self->{child_object}->{comm}->set("online",'poll');
-        #   }
-        #}
         return ('1');
-
-        #} else {
-        #	main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Problem retrieving poll data from " . $self->{host});
-        #	$self->{data}->{retry}++;
-        #	if (defined $self->{child_object}->{comm}) {
-        #	   if ($self->{child_object}->{comm}->state() ne "offline") {
-        #	      main::print_log "[Venstar Colortouch:". $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ($self->{loglevel});
-        #	      $self->{child_object}->{comm}->set("offline",'poll');
-        #	   }
-        #   }
-        #	return ('0');
     }
 
+}
+
+sub process_check {
+	my ($self) = @_;
+#Need to catch error 500's 403's and update communication tracker and success:false messages to write to log
+# as a safety measure, just check that the timer's active
+    if ( defined $self->{timer} ) {
+    	if ($self->{timer}->inactive()) {
+			main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] INFO, timer is not active. ") if (($self->{debug}) or ($self->{loglevel} > 2));
+			#$self->start_timer();
+		}
+	} else {
+#		main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! timer is not defined!");
+	}	
+#	$self->start_timer if ($self->{timer}->inactive());
+	return unless (defined $self->{poll_process});	
+	if ($self->{poll_process}->done_now()) {
+		my $com_status = "online";
+    	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Background poll " . $self->{poll_process_mode} . " process completed") if ($self->{debug});
+	
+		my $file_data = &main::file_read($self->{poll_data_file});
+		#for some reason get_url adds garbage to the output. Clean out the characters before and after the json
+		print "debug: file_data=$file_data\n" if ($self->{debug});
+		my ($json_data) = $file_data =~ /({.*})/;
+		print "debug: json_data=$json_data\n" if ($self->{debug});
+		unless ($file_data) {
+		    main::print_log("[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! no data returned by poll");
+			return;
+		}
+		my $data;
+        eval { $data = JSON::XS->new->decode( $json_data ); };
+        # catch crashes:
+        if ($@) {
+            print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! JSON file parser crashed! $@\n";
+            $com_status = "offline";
+        } else {
+        	if (keys $data) {
+				$self->{poll_data_timestamp} = &main::get_tickcount();
+        		if ($self->{poll_process_mode} eq "info") {
+        			$self->{data}->{tempunits} = $data->{tempunits};
+        			$self->{data}->{name}      = $data->{name};
+        			$self->{data}->{info}      = $data;
+        			$self->{data}->{timestamp} = &main::get_tickcount();        	        		
+        		} elsif ($self->{poll_process_mode} eq "sensors") {
+        			$self->{data}->{sensors}   = $data;
+        			$self->{data}->{timestamp} = &main::get_tickcount();    
+        		}
+        		$self->process_data();
+        	} else {
+            	print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! Returned data not structured! Not processing...";
+            	$com_status = "offline";
+        	}
+        }
+        if (scalar @{$self->{poll_queue}}) {        
+        	my $cmd_string = shift @{$self->{poll_queue}};
+        	my ($mode,$cmd) = split/\|/,$cmd_string;
+			$self->{poll_process}->set($cmd);
+			$self->{poll_process}->start();			
+			$self->{poll_process_pid}->{$self->{poll_process}->pid()}=$mode; #capture the type of information requested in order to parse;
+			$self->{poll_process_mode} = $mode;			
+    		main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Poll Queue " . $self->{poll_process}->pid() . " mode=$mode cmd=$cmd") if ($self->{debug});
+			
+		}
+    	if ( defined $self->{child_object}->{comm} ) {
+        	if ( $self->{status} ne $com_status ) {
+            	main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
+            	$self->{status} = $com_status;
+            	$self->{child_object}->{comm}->set( $com_status, 'poll' );
+        	}
+   	 	}			
+	} 
+	return unless (defined $self->{cmd_process});	
+	if ($self->{cmd_process}->done_now()) {
+		my $com_status = "online";
+    	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Background Command " . $self->{cmd_process_name} . " process completed") if ($self->{debug});
+	
+		my $file_data = &main::file_read($self->{cmd_data_file});
+		unless ($file_data) {
+		    main::print_log("[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! no data returned by command");
+			return;
+		}
+		#for some reason get_url adds garbage to the output. Clean out the characters before and after the json
+		my ($json_data) = $file_data =~ /({.*})/;
+		my $data;
+        eval { $data = JSON::XS->new->decode( $json_data ); };
+        # catch crashes:
+        if ($@) {
+            print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! JSON file parser crashed! $@\n";
+            $com_status = "offline";
+            
+        } else {
+        	if (keys $data) {
+        		if ($data->{success} eq "true") {
+        			shift @{$self->{cmd_queue}}; #remove the command from queue since it was successful
+            		$self->{cmd_process_retry} = 0;            		
+        			$self->poll;
+        		} else {
+            		print "[Venstar Colortouch:" . $self->{data}->{name} . "] WARNING Issued command was unsuccessful (success=" . $data->{success} .") , retrying...";
+            		if ($self->{cmd_process_retry} > $self->{cmd_process_retry_limit}) {
+            			print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR Issued command max retries reached. Abandoning command attempt...";
+            			shift @{$self->{cmd_queue}};
+            			$self->{cmd_process_retry} = 0; 
+            			$com_status = "offline";           		
+					} else {
+						$self->{cmd_process_retry}++;       
+					}     		
+				}        		
+        	} else {
+            	print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! Returned data not structured! Not processing...";
+            	$com_status = "offline";
+        	}
+        }
+        if (scalar @{$self->{cmd_queue}}) {        
+        	my $cmd = @{$self->{cmd_queue}}[0]; #grab the first command, but don't take it off.
+			$self->{cmd_process}->set($cmd);
+			$self->{cmd_process}->start();			
+    		main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Command Queue " . $self->{cmd_process}->pid() . " cmd=$cmd") if ($self->{debug});
+		}
+		if ( defined $self->{child_object}->{comm} ) {
+        	if ( $self->{status} ne $com_status ) {
+            	main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
+            	$self->{status} = $com_status;
+            	$self->{child_object}->{comm}->set( $com_status, 'poll' );
+        	}
+   	 	}	
+	}   	
+	  	
 }
 
 #------------------------------------------------------------------------------------
 sub _get_JSON_data {
-    my ( $self, $mode ) = @_;
+    my ( $self, $mode, $method ) = @_;
 
-    unless ( $self->{updating} ) {
+	if (($self->{background} > 1) and (lc $method ne "direct")) {
+	
+		my $cmd = 'get_url "http://' . $self->{host} . "/$rest{$mode}" . '"';
+		if ($self->{poll_process}->done()) {
+			$self->{poll_process}->set($cmd);
+			$self->{poll_process}->start();			
+			$self->{poll_process_pid}->{$self->{poll_process}->pid()}=$mode; #capture the type of information requested in order to parse;
+			$self->{poll_process_mode} = $mode;
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Backgrounding " . $self->{poll_process}->pid() . " command $mode, $cmd") if ($self->{debug});		
 
-        $self->{updating} = 1;
-        my $ua = new LWP::UserAgent( keep_alive => 1 );
-        $ua->timeout( $self->{timeout} );
+		} else {
+			if (scalar @{$self->{poll_queue}} < $self->{max_poll_queue}) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Queue is " . scalar @{$self->{poll_queue}} . ". Queing command $mode, $cmd") if ($self->{debug});
+				push @{$self->{poll_queue}}, "$mode|$cmd";
+#TODO: queue shouldn't grow for polling. Since a poll is 2 queries, the queue should only be 3 items. Otherwise it will grow every poll
+# if there are device issues.	
+			} else {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] WARNING. Queue has grown past " . $self->{max_poll_queue} . ". Command discarded.");
+    			if ( defined $self->{child_object}->{comm} ) {
+        			if ( $self->{status} ne "offline" ) {
+            			main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ( $self->{loglevel} );
+            			$self->{status} = "offline";
+            			$self->{child_object}->{comm}->set( "offline", 'poll' );
+        			}
+   	 			}	            	
+			}					
+		}
+	} else {
+    	unless ( $self->{updating} ) {
 
-        my $host = $self->{host};
+        	$self->{updating} = 1;
+        	my $ua = new LWP::UserAgent( keep_alive => 1 );
+        	$ua->timeout( $self->{timeout} );
 
-        my $request = HTTP::Request->new( POST => "http://$host/$rest{$mode}" );
-        $request->content_type("application/x-www-form-urlencoded");
+        	my $host = $self->{host};
 
-        my $responseObj = $ua->request($request);
-        print $responseObj->content . "\n--------------------\n"
-          if $self->{debug};
+        	my $request = HTTP::Request->new( POST => "http://$host/$rest{$mode}" );
+        	$request->content_type("application/x-www-form-urlencoded");
 
-        my $responseCode = $responseObj->code;
-        print 'Response code: ' . $responseCode . "\n" if $self->{debug};
-        my $isSuccessResponse = $responseCode < 400;
-        $self->{updating} = 0;
-        if ( !$isSuccessResponse ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Warning, failed to get data. Response code $responseCode"
-            );
-            if ( defined $self->{child_object}->{comm} ) {
-                if ( $self->{status} eq "online" ) {
-                    main::print_log "[Venstar Colortouch:"
-                      . $self->{data}->{name}
-                      . "] Communication Tracking object found. Updating from "
-                      . $self->{child_object}->{comm}->state()
-                      . " to offline..."
-                      if ( $self->{loglevel} );
-                    $self->{status} = "offline";
-                    $self->{child_object}->{comm}->set( "offline", 'poll' );
-                }
-            }
-            return ('0');
-        }
-        else {
-            if ( defined $self->{child_object}->{comm} ) {
-                if ( $self->{status} eq "offline" ) {
-                    main::print_log "[Venstar Colortouch:"
-                      . $self->{data}->{name}
-                      . "] Communication Tracking object found. Updating from "
-                      . $self->{child_object}->{comm}->state()
-                      . " to online..."
-                      if ( $self->{loglevel} );
-                    $self->{status} = "online";
-                    $self->{child_object}->{comm}->set( "online", 'poll' );
-                }
-            }
-        }
-        my $response;
-        eval { $response = JSON::XS->new->decode( $responseObj->content ); };
+        	my $responseObj = $ua->request($request);
+        	print $responseObj->content . "\n--------------------\n" if $self->{debug};
 
-        # catch crashes:
-        if ($@) {
-            print "[Venstar Colortouch:"
-              . $self->{data}->{name}
-              . "] ERROR! JSON parser crashed! $@\n";
-            return ('0');
-        }
-        else {
-            return ( $isSuccessResponse, $response );
-        }
-    }
-    else {
-        main::print_log( "[Venstar Colortouch:"
-              . $self->{data}->{name}
-              . "] Warning, not fetching data due to operation in progress" );
-        return ('0');
-    }
+        	my $responseCode = $responseObj->code;
+        	print 'Response code: ' . $responseCode . "\n" if $self->{debug};
+        	my $isSuccessResponse = $responseCode < 400;
+        	$self->{updating} = 0;
+        	if ( !$isSuccessResponse ) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Warning, failed to get data. Response code $responseCode");
+print "Venstar. status=" . $self->{status};
+if (defined $self->{child_object}->{comm}) {
+	print " Tracker defined\n";
+} else {
+	print " Tracker UNDEFINED\n";
+}    
+            	if ( defined $self->{child_object}->{comm} ) {
+                	if ( $self->{status} eq "online" ) {
+                    	main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ( $self->{loglevel} );
+                    	$self->{status} = "offline";
+                    	$self->{child_object}->{comm}->set( "offline", 'poll' );
+                	}
+            	}
+            	return ('0');
+        	} else {
+            	if ( defined $self->{child_object}->{comm} ) {
+                	if ( $self->{status} eq "offline" ) {
+                    	main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to online..." if ( $self->{loglevel} );
+                    	$self->{status} = "online";
+                    	$self->{child_object}->{comm}->set( "online", 'poll' );
+                	}
+            	}
+        	}
+        	my $response;
+        	eval { $response = JSON::XS->new->decode( $responseObj->content ); };
+
+        	# catch crashes:
+        	if ($@) {
+            	print "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR! JSON parser crashed! $@\n";
+            	return ('0');
+        	} else {
+            	return ( $isSuccessResponse, $response );
+        	}
+    	} else {
+        	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Warning, not fetching data due to operation in progress" );
+        	return ('0');
+		}
+	}
 }
 
 sub _push_JSON_data {
-    my ( $self, $type, $params ) = @_;
+    my ( $self, $type, $params, $method ) = @_;
 
-    my ( @fan, @fanstate, @modename, @statename, @schedule, @home );
+    my ( @fan, @fanstate, @modename, @statename, @schedule, @home, @schedulestat );
     $fan[0]        = "auto";
     $fan[1]        = "on";
     $fanstate[0]   = "off";
@@ -303,43 +457,119 @@ sub _push_JSON_data {
     $schedule[2]   = "evening (occupied3)";
     $schedule[3]   = "night (occupied4)";
     $schedule[255] = "inactive";
+    $schedulestat[0] = "off";
+    $schedulestat[1] = "on";
+
+#4.08, schedulepart is now the schedule type. schedule 0 is off, 
 
     my $cmd;
+	$method = "" unless (defined $method);
+
+#For background tasks, we want up to date data, ie returned within the last poll period.
+#recursively calling the same subroutine might be a memory or performance hog, but need to effectively
+#'suspend' the data push until we get valid data.
+	print "venstar, command: poll_timestamp=" . $self->{poll_data_timestamp} . " poll_seconds = " . $self->{config}->{poll_seconds} . " get_tickcount=" . &main::get_tickcount() . "\n";# if ($self->{debug});
+	print "venstar, command: issuing poll due to old data\n" if (($self->{poll_data_timestamp} + ($self->{config}->{poll_seconds} * 1000)) < &main::get_tickcount());
+	print "venstar, command: retrying command\n" if ($self->{poll_data_timestamp} + 300000 > &main::get_tickcount());
+	
+	if (($self->{background} > 1) and (lc $method ne "direct")) {
+		if (($self->{poll_data_timestamp} + ($self->{config}->{poll_seconds} * 1000)) < &main::get_tickcount()) {
+			$self->poll() if (scalar @{$self->{poll_queue}} < $self->{max_poll_queue}); #once max reached, no sense adding more
+			if ($self->{poll_data_timestamp} + 300000 > &main::get_tickcount()) { #give up after 5 minutes of trying
+		        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] WARNING: retrying command attempt due to stale poll data!" );
+				&Venstar_Colortouch::_push_json_data($self,$type,$params);
+			} else {
+		        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] ERROR: Abandoning command attempt due to stale poll data!" );
+				return ('1');
+			}
+		}
+	}
+
 
     #print "VCT DB: $params\n";
-    $self->stop_timer;    #stop timer to prevent a clash of updates
+    $self->stop_timer unless ($self->{background} > 1);    #stop timer to prevent a clash of updates
     if ( $type eq 'settings' ) {
 
-        #tempunits=0&away=0&schedule=0&hum_setpoint=0&dehum_setpoint=0
-		# with v4.08 firmware, hum and dehum setpoints need to be at least 4 % points different
-		
-        my ( $newunits, $newaway, $newsched, $newhumsp, $newdehumsp );
+		#for testing purposes, curl is:
+		#curl --data "tempunits=1&away=0&schedule=0&hum_setpoint=30&dehum_setpoint=35" http://ip/settings
+
+#       my ( $isSuccessResponse, $thedata ) = $self->_get_setting_params;
+#       my %info = %$thedata;
+#       my %cinfo = %$thedata;
+#       my @changearr;
+#
+#       while ($params =~ /(\w+)=(\d+)/g) {
+#           print "[Venstar Colortouch:"
+#             . $self->{data}->{name}
+#             . "] _push_JSON_data match: $1 = $2\n";
+#           $info{$1} = $2;
+#           if ($info{$1} ne $cinfo{$1}) {
+#               main::print_log( "[Venstar Colortouch:"
+#                 . $self->{data}->{name}
+#                 . "] Changing $1 from $cinfo{$1} to $info{$1}" );
+#               push(@changearr, "$1=$info{$1}");
+#           }
+#       }
+
+#        $cmd = join ('&', @changearr);
+#        main::print_log( "Sending Settings command $cmd to " . $self->{host} ) if $cmd;    # if $self->{debug};
+
+        my ( $newunits, $newaway, $newholiday, $newsched, $newhumsp, $newdehumsp );
         my ($units) = $params =~ /tempunits=(\d+)/;
         my ($away)  = $params =~ /away=(\d+)/;
+        my ($holiday)  = $params =~ /holiday=(\d+)/;
+        my ($override)  = $params =~ /override=(\d+)/;
+        my ($overridetime)  = $params =~ /overridetime=(\d+)/;
+        my ($forceunocc)  = $params =~ /forceunocc=(\d+)/;
         my ($sched) = $params =~ /schedule=(\d+)/;
         my $hum;
         my ($humsp)   = $params =~ /hum_setpoint=(\d+)/;
-        my ($dehumsp) = $params =~ /dehum_setpoint=(\d+)/
-          ;               #need to add in dehumidifier stuff at some point
+        my ($dehumsp) = $params =~ /dehum_setpoint=(\d+)/;               #need to add in dehumidifier stuff at some point
 		my $humidity_change = 0;
-        my ( $isSuccessResponse, $cunits, $caway, $csched, $chum, $chumsp,
-            $cdehumsp )
-          = $self->_get_setting_params;
 
+        my ( $isSuccessResponse, $cunits, $caway, $csched, $chum, $chumsp, $cdehumsp );
+		my ($choliday,$coverride,$coverridetime,$cforceunocc);
+
+
+		if (($self->{background} > 1) and (lc $method ne "direct")) {
+			$cunits = $self->{data}->{info}->{tempunits};
+			$caway = $self->{data}->{info}->{away};
+			$csched = $self->{data}->{info}->{schedule};
+			$chumsp = $self->{data}->{info}->{hum_setpoint};
+			$cdehumsp = $self->{data}->{info}->{dehum_setpoint};
+		} else {
+        	($isSuccessResponse, $cunits, $caway, $csched, $chum, $chumsp, $cdehumsp ) = $self->_get_setting_params;
+			#($choliday,$coverride,$coverridetime,$cforceunocc);
+		}
         $units = $cunits if ( not defined $units );
         $units = 1 if ( ( $units eq "C" ) or ( $units eq "c" ) );
         $units = 0 if ( ( $units eq "F" ) or ( $units eq "f" ) );
 
         $away    = $caway    if ( not defined $away );
-       	$sched   = $csched   if ( not defined $sched );
+        $holiday    = $choliday    if ( not defined $holiday );
+        $override    = $coverride    if ( not defined $override );
+        $overridetime    = $coverridetime    if ( not defined $overridetime );
+        $forceunocc    = $cforceunocc    if ( not defined $forceunocc );
+        $sched   = $csched   if ( not defined $sched );
         $hum     = $chum     if ( not defined $hum );
-        $humsp   = $chumsp   if ( not defined $humsp );
-        $dehumsp = $cdehumsp if ( not defined $dehumsp );	
+        #v4.08, dehum_sp is humidify, and hum_sp is dehumidify.
+        if ($self->{api_ver} >=5) {
+        	$humsp = $cdehumsp if ( not defined $humsp );
+        } else {
+        	$humsp   = $chumsp   if ( not defined $humsp );
+        }
+        if ($self->{api_ver} >=5) {
+         	$dehumsp = $chumsp if ( not defined $dehumsp );       
+        } else {
+        	$dehumsp = $cdehumsp if ( not defined $dehumsp );
+        }
+#print "venstar db: params = $params\n";
+#print "units=$units, away=$away, sched=$sched, humsp=$humsp, dehumsp=$dehumsp\n";
+#print "cunits=$cunits, caway=$caway, csched=$csched, chum=$chum, chumsp=$chumsp, cdehumsp=$cdehumsp\n";
+
 
         if ( $cunits ne $units ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing Units from $cunits to $units" );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Units from $cunits to $units" );
             $newunits = $units;
         }
         else {
@@ -347,9 +577,23 @@ sub _push_JSON_data {
         }
 
         if ( $caway ne $away ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing Away from $home[$caway] to $home[$away]" );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Away from $home[$caway] to $home[$away]" );
+            $newaway = $away;
+        }
+        else {
+            $newaway = $caway;
+        }
+
+        if ( ($self->{type} eq "commercial") and ($choliday ne $holiday) ) {
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Away from $choliday to $holiday" );
+            $newholiday = $holiday;
+        }
+        else {
+            $newholiday = $choliday;
+        }
+
+        if ( $caway ne $away ) {
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Away from $caway to $away" );
             $newaway = $away;
         }
         else {
@@ -357,48 +601,56 @@ sub _push_JSON_data {
         }
 
         if ( $csched ne $sched ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing Schedule from $schedule[$csched] to $schedule[$sched]"
-            );
+        	if ($self->{api_ver} >=5) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Schedule from $schedulestat[$csched] to $schedulestat[$sched]");
+			} else {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Schedule from $schedule[$csched] to $schedule[$sched]");
+			}
             $newsched = $sched;
         }
         else {
             $newsched = $csched;
         }
+        if ($self->{api_ver} >=5) {
+         	if ( $cdehumsp ne $humsp ) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Humidity Setpoint from $cdehumsp to $humsp\n" );
+            	$newhumsp = $humsp;
+            	$humidity_change = 1;
+        	} else {
+            	$newhumsp = $cdehumsp;
+        	}
 
-        if ( $chumsp ne $humsp ) {
-            print
-              "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-             	  . "] Changing Humidity Setpoint from $chumsp to $humsp\n";
-            $newhumsp = $humsp;
-            $humidity_change = 1;
-        }
-        else {
-            $newhumsp = $chumsp;
+        	if ( $chumsp ne $dehumsp ) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name}	. "] *Changing Dehumidity Setpoint from $chumsp to $dehumsp\n" );
+            	$newdehumsp = $dehumsp;
+        	} else {
+           	 	$newdehumsp = $chumsp;
+        	}
+        } else {
+        	if ( $chumsp ne $humsp ) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing Humidity Setpoint from $chumsp to $humsp\n" );
+            	$newhumsp = $humsp;
+            	$humidity_change = 1;
+        	} else {
+            	$newhumsp = $chumsp;
+        	}
+
+        	if ( $cdehumsp ne $dehumsp ) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name}	. "] Changing Dehumidity Setpoint from $cdehumsp to $dehumsp\n" );
+            	$newdehumsp = $dehumsp;
+        	} else {
+           	 $newdehumsp = $cdehumsp;
+        	}
         }
 
-        if ( $cdehumsp ne $dehumsp ) {
-            print
-              "[Venstar Colortouch:"
-              	. $self->{data}->{name}
-              	. "] Changing (De)humidity Setpoint from $cdehumsp to $dehumsp\n";
-            $newdehumsp = $dehumsp;
-        }
-        else {
-            $newdehumsp = $cdehumsp;
-        }
-
-		# v4.08 needs 6 % point delta on humidity and dehumidity. 
-		# if humidify is more then dehumidify, then set dehumidify to 6 + humidity
-		$newdehumsp = $newhumsp + 6 if ((($newhumsp >= $newdehumsp) or (($newdehumsp - $newhumsp) < 6)));
+## to set v4.08, humidity to 32%, this is needed "tempunits=1&away=0&schedule=0&hum_setpoint=32&dehum_setpoint=38" 
+## so humidity setpoint hasn't changed?
 		if ($self->{api_ver} >=5) {
-        	$cmd = "tempunits=$newunits&away=$newaway&schedule=$newsched"; #&dehum_setpoint=$newhumsp&hum_setpoint=" . ($newhumsp + 1);	
-        	$cmd = "hum_setpoint=$newhumsp&dehum_setpoint=$newdehumsp" if ($humidity_change);
-		} else {
-        	$cmd = "tempunits=$newunits&away=$newaway&schedule=$newsched&hum_setpoint=$newhumsp&dehum_setpoint=$newdehumsp";
-        }
+			# v4.08 has changed humidification settings
+			# - need 6 % point delta on humidity and dehumidity. 
+			$newdehumsp = $newhumsp + 6 if ((($newhumsp >= $newdehumsp) or (($newdehumsp - $newhumsp) < 6)));
+		} 
+        $cmd = "tempunits=$newunits&away=$newaway&schedule=$newsched&hum_setpoint=$newhumsp&dehum_setpoint=$newdehumsp";        
         main::print_log( "Sending Settings command [$cmd] to " . $self->{host} ) if $self->{debug};
 
     }
@@ -411,32 +663,34 @@ sub _push_JSON_data {
         my ( $newmode, $newfan, $newcoolsp, $newheatsp );
         my ($mode)     = $params =~ /mode=(\d+)/;
         my ($fan)      = $params =~ /fan=(\d+)/;
-        my ($heattemp) = $params =~ /heattemp=(\d+)/;    #need decimals
-        my ($cooltemp) = $params =~ /cooltemp=(\d+)/;
+        my ($heattemp) = $params =~ /heattemp=(\d+\.?\d?)/;    #need decimals
+        my ($cooltemp) = $params =~ /cooltemp=(\d+\.?\d?)/;
 
-        my (
-            $isSuccessResponse, $cmode,     $cfan,
-            $cheattemp,         $ccooltemp, $setpointdelta,
-            $minheat,           $maxheat,   $mincool,
-            $maxcool
-        ) = $self->_get_control_params;
+        my ($isSuccessResponse, $cmode, $cfan, $cheattemp, $ccooltemp, $setpointdelta, $minheat, $maxheat, $mincool, $maxcool);
+        
+        if (($self->{background} > 1) and (lc $method ne "direct")) {
+			$cmode = $self->{data}->{info}->{mode};
+			$cfan = $self->{data}->{info}->{fan};
+			$cheattemp = $self->{data}->{info}->{heattemp};
+			$ccooltemp = $self->{data}->{info}->{cooltemp};
+			$setpointdelta = $self->{data}->{info}->{setpointdelta};
+			$minheat = $self->{data}->{info}->{heattempmin};
+			$maxheat = $self->{data}->{info}->{heattempmax};
+			$mincool = $self->{data}->{info}->{cooltempmin};
+			$maxcool = $self->{data}->{info}->{cooltempmax};		
+						
+		} else {
+            ($isSuccessResponse, $cmode, $cfan, $cheattemp, $ccooltemp, $setpointdelta, $minheat, $maxheat, $mincool, $maxcool) = $self->_get_control_params;
+        }
 
         $mode     = $cmode     if ( not defined $mode );
         $fan      = $cfan      if ( not defined $fan );
         $heattemp = $cheattemp if ( !$heattemp );
         $cooltemp = $ccooltemp if ( !$cooltemp );
 
-        main::print_log(
-            "data1=$isSuccessResponse,$cmode,$cfan,$cheattemp,$ccooltemp,$setpointdelta"
-        ) if $self->{debug};    #TODO pass object to get debug
-        main::print_log("data2=$mode,$fan,$heattemp,$cooltemp")
-          if $self->{debug};    #TODO debug
 
         if ( $cmode ne $mode ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing mode from $modename[$cmode] to $modename[$mode]"
-            );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing mode from $modename[$cmode] to $modename[$mode]");
             $newmode = $mode;
         }
         else {
@@ -444,9 +698,7 @@ sub _push_JSON_data {
         }
 
         if ( $cfan ne $fan ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing fan from $fanstate[$cfan] to $fanstate[$fan]" );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing fan from $fan[$cfan] to $fan[$fan]" );
             $newfan = $fan;
         }
         else {
@@ -454,9 +706,7 @@ sub _push_JSON_data {
         }
 
         if ( $heattemp ne $cheattemp ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing heat setpoint from $cheattemp to $heattemp" );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing heat setpoint from $cheattemp to $heattemp" );
             $newheatsp = $heattemp;
         }
         else {
@@ -464,9 +714,7 @@ sub _push_JSON_data {
         }
 
         if ( $cooltemp ne $ccooltemp ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Changing cool setpoint from $ccooltemp to $cooltemp" );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Changing cool setpoint from $ccooltemp to $cooltemp" );
             $newcoolsp = $cooltemp;
         }
         else {
@@ -474,35 +722,23 @@ sub _push_JSON_data {
         }
 
         if ( ( $newcoolsp > $maxcool ) or ( $newcoolsp < $mincool ) ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Error: New cooling setpoint $newcoolsp out of bounds $mincool - $maxcool"
-            );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Error: New cooling setpoint $newcoolsp out of bounds $mincool - $maxcool");
             $newcoolsp = $ccooltemp;
         }
 
         if ( ( $newheatsp > $maxheat ) or ( $newheatsp < $minheat ) ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Error: New heating setpoint $newheatsp out of bounds $minheat - $maxheat"
-            );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Error: New heating setpoint $newheatsp out of bounds $minheat - $maxheat");
             $newheatsp = $cheattemp;
         }
 
         if ( ( $newheatsp - $newcoolsp ) > $setpointdelta ) {
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Error: Cooling ($newcoolsp) and Heating ($newheatsp) setpoints need to be less than setpoint $setpointdelta"
-            );
-            main::print_log( "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Not setting setpoints" );
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Error: Cooling ($newcoolsp) and Heating ($newheatsp) setpoints need to be less than setpoint $setpointdelta");
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Not setting setpoints" );
             $newcoolsp = $ccooltemp;
             $newheatsp = $cheattemp;
         }
 
-        $cmd =
-          "mode=$newmode&fan=$newfan&heattemp=$newheatsp&cooltemp=$newcoolsp";
+        $cmd = "mode=$newmode&fan=$newfan&heattemp=$newheatsp&cooltemp=$newcoolsp";
         main::print_log( "Sending Control command $cmd to " . $self->{host} ) if $self->{debug};
 
     }
@@ -511,34 +747,55 @@ sub _push_JSON_data {
         main::print_log("Unknown mode!");
         return ( '1', 'error' );
     }
+	my $isSuccessResponse;
+	my $response;
+	if (($self->{background}) and (lc $method ne "direct")) {
+		$isSuccessResponse = 1; #set these to successful, since the process_data will indicate if a setting was unsuccessful.
+		$response = "success";	
+		my $cmd = 'get_url -post "' .$cmd . '" "http://' . $self->{host} . "/$rest{$type}" . '"';
+		push @{$self->{cmd_queue}}, "$cmd";	
+		if ($self->{cmd_process}->done()) {
+			$self->{cmd_process}->set($cmd);
+			$self->{cmd_process_name} = $cmd;
+			$self->{cmd_process}->start();
+			$self->{cmd_process_retry} = 0;			
+            main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Backgrounding " . $self->{cmd_process}->pid() . " command $cmd") if ($self->{debug});		
 
-    my $ua = new LWP::UserAgent( keep_alive => 1 );
-    $ua->timeout( $self->{timeout} );
+		} else {
+			if (scalar @{$self->{cmd_queue}} < $self->{max_cmd_queue}) {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Queue is " . scalar @{$self->{cmd_queue}} . ". Queing command $cmd") if ($self->{debug});
+			} else {
+            	main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] WARNING. Queue has grown past " . $self->{max_cmd_queue} . ". Command discarded.");
+			}					
+		}
+	} else {
 
-    my $host = $self->{host};
+    	my $ua = new LWP::UserAgent( keep_alive => 1 );
+    	$ua->timeout( $self->{timeout} );
 
-    my $request = HTTP::Request->new( POST => "http://$host/$rest{$type}" );
-    $request->content_type("application/x-www-form-urlencoded");
-    $request->content($cmd) if $cmd;
+    	my $host = $self->{host};
 
-    my $responseObj = $ua->request($request);
-    print $responseObj->content . "\n--------------------\n" if $self->{debug};
+    	my $request = HTTP::Request->new( POST => "http://$host/$rest{$type}" );
+    	$request->content_type("application/x-www-form-urlencoded");
+    	$request->content($cmd) if $cmd;
 
-    my $responseCode = $responseObj->code;
-    print 'Response code: ' . $responseCode . "\n" if $self->{debug};
-    my $isSuccessResponse = $responseCode < 400;
-    if ( !$isSuccessResponse ) {
-        main::print_log( "[Venstar Colortouch:"
-              . $self->{data}->{name}
-              . "] Warning, failed to push data. Response code $responseCode" );
+    	my $responseObj = $ua->request($request);
+    	print $responseObj->content . "\n--------------------\n" if $self->{debug};
+
+    	my $responseCode = $responseObj->code;
+    	print 'Response code: ' . $responseCode . "\n" if $self->{debug};
+    	$isSuccessResponse = $responseCode < 400;
+    	if ( !$isSuccessResponse ) {
+        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Warning, failed to push data. Response code $responseCode" );
+print "Venstar. status=" . $self->{status};
+if (defined $self->{child_object}->{comm}) {
+	print " Tracker defined\n";
+} else {
+	print " Tracker UNDEFINED\n";
+}    
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{status} eq "online" ) {
-                main::print_log "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] Communication Tracking object found. Updating from "
-                  . $self->{child_object}->{comm}->state()
-                  . " to offline..."
-                  if ( $self->{loglevel} );
+                main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ( $self->{loglevel} );
                 $self->{status} = "offline";
                 $self->{child_object}->{comm}->set( "offline", 'poll' );
             }
@@ -557,15 +814,20 @@ sub _push_JSON_data {
                 $self->{child_object}->{comm}->set( "online", 'poll' );
             }
         }
-    }
-
     #my $response = JSON::XS->new->decode ($responseObj->content);
-
+    ($response) = $responseObj->content =~ /\{\"(.*)\":/;
+    }
+	}
     #print Dumper $response if $self->{debug};
-    my ($response) = $responseObj->content =~ /\{\"(.*)\":/;
     print "response=$response\n" if $self->{debug};
-    $self->poll if ( $response eq "success" );
-    $self->start_timer;
+    
+# remove this poll since the stat pauses after being set?
+#    if ( $response eq "success" ) {
+#    	$self->poll();
+#    	$self->process_data() unless ($self->{background} >1);
+#    }
+    $self->start_timer unless ($self->{background} > 1);
+    
     return ( $isSuccessResponse, $response );
 }
 
@@ -594,7 +856,7 @@ sub _get_control_params {
 
 sub _get_setting_params {
     my ($self) = @_;
-    my ( $isSuccessResponse, $info ) = $self->_get_JSON_data('info');
+    my ( $isSuccessResponse, $info ) = $self->_get_JSON_data('info',"direct");
     return ( $isSuccessResponse, $info->{tempunits}, $info->{away},
         $info->{schedule}, $info->{hum}, $info->{hum_setpoint},
         $info->{dehum_setpoint} );
@@ -615,7 +877,6 @@ sub stop_timer {
 
 sub start_timer {
     my ($self) = @_;
-
     if ( defined $self->{timer} ) {
         $self->{timer}->set( $self->{config}->{poll_seconds},
             sub { &Venstar_Colortouch::_poll_check($self) }, -1 );
@@ -625,6 +886,19 @@ sub start_timer {
               . $self->{data}->{name}
               . "] Warning, start_timer called but timer undefined" );
     }
+}
+
+sub background_enable {
+    my ($self,$level) = @_;
+    $level = 1 unless (defined $level);
+	$self->{background} = $level;
+	main::print_log("[Venstar Colortouch:" . $self->{data}->{name} . "] Background mode enabled (level " . $level . ")");
+}
+
+sub background_disable {
+    my ($self) = @_;
+	$self->{background} = 0;
+	main::print_log("[Venstar Colortouch:" . $self->{data}->{name} . "] Background mode disabled. Now in direct mode.");
 }
 
 sub print_info {
@@ -671,6 +945,16 @@ sub print_info {
           . $self->{data}->{name} . " is "
           . $type
           . " Thermostat with API level " . $self->{api_ver} );
+
+	if ($self->{background}) {
+		if ($self->{background} > 1) {
+			main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Background mode enabled");
+		} else {
+			main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Hybrid mode enabled (Background commands, direct polling)");
+		}
+	} else {
+		main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Direct mode enabled");
+	}
 
     main::print_log( "[Venstar Colortouch:"
           . $self->{data}->{name}
@@ -792,6 +1076,8 @@ sub process_data {
     # set state of self for state
     # for any registered child selfs, update their state if
 
+    main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Processing Data...") if ($self->{debug});
+
     my ( @fan, @fanstate, @mode, @state, @schedule );
     $fan[0]        = "auto";
     $fan[1]        = "on";
@@ -888,6 +1174,13 @@ sub process_data {
               . "] Mode changed from $mode[$self->{previous}->{info}->{mode}] to $mode[$self->{data}->{info}->{mode}]"
         ) if ( $self->{loglevel} );
         $self->{previous}->{info}->{mode} = $self->{data}->{info}->{mode};
+        if ( defined $self->{child_object}->{mode} ) {
+            main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Mode Child object found. Updating..."
+              if ( $self->{loglevel} );
+            $self->{child_object}->{mode}
+              ->set( $mode[$self->{data}->{info}->{mode}] );
+        }
+
     }
 
     if ( $self->{previous}->{info}->{state} != $self->{data}->{info}->{state} )
@@ -935,15 +1228,57 @@ sub process_data {
           $self->{data}->{info}->{schedulepart};
     }
 
-    if ( $self->{previous}->{info}->{away} != $self->{data}->{info}->{away} ) {
+    if ( $self->{type} eq "residential" and $self->{previous}->{info}->{away} != $self->{data}->{info}->{away} ) {
         my $away = "home mode";
         $away = "away mode" if ( $self->{data}->{info}->{away} );
         main::print_log( "[Venstar Colortouch:"
               . $self->{data}->{name}
-              . "] Thermostat occupency changed to"
+              . "] Thermostat occupancy changed to"
               . $away )
           if ( $self->{loglevel} );
         $self->{previous}->{info}->{away} = $self->{data}->{info}->{away};
+    }
+
+    if ( $self->{type} eq "commercial" and $self->{previous}->{info}->{holiday} != $self->{data}->{info}->{holiday} ) {
+        my $holiday = "observing holiday";
+        $holiday = "no holiday" if ( $self->{data}->{info}->{holiday} );
+        main::print_log( "[Venstar Colortouch:"
+              . $self->{data}->{name}
+              . "] Thermostat holiday changed to"
+              . $holiday )
+          if ( $self->{loglevel} );
+        $self->{previous}->{info}->{holiday} = $self->{data}->{info}->{holiday};
+    }
+
+    if ( $self->{type} eq "commercial" and $self->{previous}->{info}->{override} != $self->{data}->{info}->{override} ) {
+        my $override = "off";
+        $override = "on" if ( $self->{data}->{info}->{override} );
+        main::print_log( "[Venstar Colortouch:"
+              . $self->{data}->{name}
+              . "] Thermostat override changed to"
+              . $override )
+          if ( $self->{loglevel} );
+        $self->{previous}->{info}->{override} = $self->{data}->{info}->{override};
+    }
+
+    if ( $self->{type} eq "commercial" and $self->{previous}->{info}->{overridetime} != $self->{data}->{info}->{overridetime} ) {
+        main::print_log( "[Venstar Colortouch:"
+              . $self->{data}->{name}
+              . "] Thermostat overridetime changed to"
+              . $self->{data}->{info}->{overridetime} )
+          if ( $self->{loglevel} );
+        $self->{previous}->{info}->{overridetime} = $self->{data}->{info}->{overridetime};
+    }
+
+    if ( $self->{type} eq "commercial" and $self->{previous}->{info}->{forceunocc} != $self->{data}->{info}->{forceunocc} ) {
+        my $forceunocc = "off";
+        $forceunocc = "on" if ( $self->{data}->{info}->{forceunocc} );
+        main::print_log( "[Venstar Colortouch:"
+              . $self->{data}->{name}
+              . "] Thermostat forceunocc changed to"
+              . $forceunocc )
+          if ( $self->{loglevel} );
+        $self->{previous}->{info}->{forceunocc} = $self->{data}->{info}->{forceunocc};
     }
 
     if ( $self->{previous}->{info}->{spacetemp} !=
@@ -972,6 +1307,12 @@ sub process_data {
         ) if ( $self->{loglevel} );
         $self->{previous}->{info}->{heattemp} =
           $self->{data}->{info}->{heattemp};
+        if ( defined $self->{child_object}->{heat_sp} ) {
+            main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Heat Setpoint Child object found. Updating..."
+              if ( $self->{loglevel} );
+            $self->{child_object}->{heat_sp}
+              ->set( $self->{data}->{info}->{heattemp}, 'poll' );
+        }
     }
 
     if ( $self->{previous}->{info}->{heattempmin} !=
@@ -1005,6 +1346,12 @@ sub process_data {
         ) if ( $self->{loglevel} );
         $self->{previous}->{info}->{cooltemp} =
           $self->{data}->{info}->{cooltemp};
+        if ( defined $self->{child_object}->{cool_sp} ) {
+            main::print_log "[Venstar Colortouch:" . $self->{data}->{name} . "] Cooling Setpoint Child object found. Updating..."
+              if ( $self->{loglevel} );
+            $self->{child_object}->{cool_sp}
+              ->set( $self->{data}->{info}->{cooltemp}, 'poll' );
+        }
     }
 
     if ( $self->{previous}->{info}->{cooltempmin} !=
@@ -1058,6 +1405,10 @@ sub process_data {
        	 }
     }
 
+    #if ($self->{previous}->{info}->{hum} != $self->{data}->{info}->{hum}) {
+    #  main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Thermostat humidity changed from $self->{previous}->{info}->{hum} to $self->{data}->{info}->{hum}") if ($self->{loglevel});
+    #  $self->{previous}->{info}->{hum} = $self->{data}->{info}->{hum};
+    #}
 
     if ( $self->{previous}->{info}->{setpointdelta} !=
         $self->{data}->{info}->{setpointdelta} )
@@ -1289,6 +1640,11 @@ sub get_mode_humid {
 
 }
 
+sub get_debug {
+    my ($self) = @_;
+    return $self->{debug};
+}
+
 #------------
 # User control methods
 #tempunits=0&away=0&schedule=0&hum_setpoint=0&dehum_setpoint=0
@@ -1480,10 +1836,175 @@ sub set_mode {
 }
 
 sub set_away {
+    my ( $self, $value ) = @_;
+    return unless $self->{type} eq "residential";
+    my $num;
+    if ( lc $value eq "off" ) {
+        $num = 0;
+    }
+    elsif ( lc $value eq lc "on" ) {
+        $num = 1;
+    }
+    else {
+        main::print_log( "Venstar Colortouch:"
+              . $self->{data}->{name}
+              . "] Error, unknown away mode $value" );
+        return ('0');
+    }
+    my ( $isSuccessResponse, $status ) =
+      $self->_push_JSON_data( 'control', "away=$num" );
+    if ($isSuccessResponse) {
+        if ( $status eq "success" ) {
+            return (1);
+        }
+        else {
+            main::print_log( "[Venstar Colortouch:"
+                  . $self->{data}->{name}
+                  . "] Error. Could not set away to $num" );
+            return (0);
+        }
+    }
+    else {
+        main::print_log( "[Venstar Colortouch:"
+              . $self->{data}->{name}
+              . "] Error. Could not send data to Thermostat" );
+        return (0);
+    }
+}
 
-	#I don't use this. Shouldn't just be this simple though.
-    #($isSuccessResponse3,$status) = push_JSON_data($host,'settings','away=0&schedule=1');
+sub set_holiday {
+    my ( $self, $value ) = @_;
+    return unless $self->{type} eq "commercial";
+    my $num;
+    if ( lc $value eq "off" ) {
+        $num = 0;
+    }
+    elsif ( lc $value eq lc "on" ) {
+        $num = 1;
+    }
+    else {
+        main::print_log( "Venstar Colortouch:"
+              . $self->{data}->{name}
+              . "] Error, unknown holiday $value" );
+        return ('0');
+    }
+    my ( $isSuccessResponse, $status ) =
+      $self->_push_JSON_data( 'settings', "holiday=$num" );
+    if ($isSuccessResponse) {
+        if ( $status eq "success" ) {
+            return (1);
+        }
+        else {
+            main::print_log( "[Venstar Colortouch:"
+                  . $self->{data}->{name}
+                  . "] Error. Could not set holiday to $num" );
+            return (0);
+        }
+    }
+    else {
+        main::print_log( "[Venstar Colortouch:"
+              . $self->{data}->{name}
+              . "] Error. Could not send data to Thermostat" );
+        return (0);
+    }
+}
 
+sub set_override {
+    my ( $self, $value ) = @_;
+    return unless $self->{type} eq "commercial";
+    my $num;
+    if ( lc $value eq "off" ) {
+        $num = 0;
+    }
+    elsif ( lc $value eq lc "on" ) {
+        $num = 1;
+    }
+    else {
+        main::print_log( "Venstar Colortouch:"
+              . $self->{data}->{name}
+              . "] Error, unknown override $value" );
+        return ('0');
+    }
+    my ( $isSuccessResponse, $status ) =
+      $self->_push_JSON_data( 'settings', "override=$num" );
+    if ($isSuccessResponse) {
+        if ( $status eq "success" ) {
+            return (1);
+        }
+        else {
+            main::print_log( "[Venstar Colortouch:"
+                  . $self->{data}->{name}
+                  . "] Error. Could not set override to $num" );
+            return (0);
+        }
+    }
+    else {
+        main::print_log( "[Venstar Colortouch:"
+              . $self->{data}->{name}
+              . "] Error. Could not send data to Thermostat" );
+        return (0);
+    }
+}
+
+sub set_overridetime {
+    my ( $self, $value ) = @_;
+    return unless $self->{type} eq "commercial";
+    my ( $isSuccessResponse, $status ) =
+      $self->_push_JSON_data( 'settings', "overridetime=$value" );
+    if ($isSuccessResponse) {
+        if ( $status eq "success" ) {
+            return (1);
+        }
+        else {
+            main::print_log( "[Venstar Colortouch:"
+                  . $self->{data}->{name}
+                  . "] Error. Could not set overridetime to $value" );
+            return (0);
+        }
+    }
+    else {
+        main::print_log( "[Venstar Colortouch:"
+              . $self->{data}->{name}
+              . "] Error. Could not send data to Thermostat" );
+        return (0);
+    }
+}
+
+sub set_forceunocc {
+    my ( $self, $value ) = @_;
+    return unless $self->{type} eq "commercial";
+    my $num;
+    if ( lc $value eq "off" ) {
+        $num = 0;
+    }
+    elsif ( lc $value eq lc "on" ) {
+        $num = 1;
+    }
+    else {
+        main::print_log( "Venstar Colortouch:"
+              . $self->{data}->{name}
+              . "] Error, unknown forceunocc mode $value" );
+        return ('0');
+    }
+    my ( $isSuccessResponse, $status ) =
+      $self->_push_JSON_data( 'settings', "forceunocc=$num" );
+    if ($isSuccessResponse) {
+        if ( $status eq "success" ) {
+            return (1);
+        }
+        else {
+            main::print_log( "[Venstar Colortouch:"
+                  . $self->{data}->{name}
+                  . "] Error. Could not set forceunocc to $num" );
+            return (0);
+        }
+    }
+    else {
+        main::print_log( "[Venstar Colortouch:"
+              . $self->{data}->{name}
+              . "] Error. Could not send data to Thermostat" );
+        return (0);
+    }
 }
 
 sub set_fan {
@@ -1526,6 +2047,15 @@ sub set_fan {
 
 sub set_units {
 
+    #($isSuccessResponse3,$status) = push_JSON_data($host,'settings','away=0&schedule=1');
+
+}
+
+sub set_debug {
+    my ( $self, $debug ) = @_;
+    $self->{debug} = $debug if ($debug);
+    $self->{debug} = 0
+      if ( $self->{debug} < 0 );
 }
 
 sub set {
@@ -1656,6 +2186,8 @@ sub new {
     bless $self, $class;
 
     $$self{master_object} = $object;
+    push( @{ $$self{states} }, '0','5','10','15','20','25','30','35','40' );
+
 
     $object->register( $self, 'hum_sp' );
     $self->set( $object->get_sp_hum, 'poll' );
@@ -1739,6 +2271,138 @@ sub set {
 
     if ( $p_setby eq 'poll' ) {
         $self->SUPER::set($p_state);
+    }
+}
+
+package Venstar_Colortouch_Mode;
+
+@Venstar_Colortouch_Mode::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object ) = @_;
+
+    my $self = {};
+    bless $self, $class;
+
+    $$self{master_object} = $object;
+
+    $object->register( $self, 'mode' );
+    $self->set( $object->get_mode, 'poll' );
+    return $self;
+
+}
+
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
+
+    if ( $p_setby eq 'poll' ) {
+        $self->SUPER::set($p_state);
+    }
+    else {
+        if (  ( lc $p_state eq "cooling" ) or ( lc $p_state eq "heating" ) or ( lc $p_state eq "cool" ) or ( lc $p_state eq "heat" ) or ( lc $p_state eq "auto" ) or ( lc $p_state eq "off" ) ) {
+            $$self{master_object}->set_mode($p_state);
+        }
+        else {
+            main::print_log(
+                "[Venstar Colortouch Mode] Error. Unknown set state $p_state"
+            );
+        }
+    }
+}
+
+package Venstar_Colortouch_Heat_sp;
+
+@Venstar_Colortouch_Heat_sp::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object, $scale ) = @_;
+
+    my $self = {};
+    bless $self, $class;
+
+    $$self{master_object} = $object;
+    if ((defined $scale) and (lc $scale eq "F")) {
+    	push( @{ $$self{states} }, '65','66','67','68','69','70','71','72','73','74','75','76','77','78','79','80' );
+    	$self->{lower_limit} = 65;
+    	$self->{upper_limit} = 80;    	
+    } else {
+    	push( @{ $$self{states} }, '17','17.5','18','18.5','19','19.5','20','20.5','21','21.5','22','22.5','23','23.5','24','24.5','25','25.5','26' );  
+    	$self->{lower_limit} = 17;
+    	$self->{upper_limit} = 26;    	  
+    }
+
+    $object->register( $self, 'heat_sp' );
+    $self->set( $object->get_sp_heat, 'poll' );
+    return $self;
+
+}
+
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
+
+    if ( $p_setby eq 'poll' ) {
+        $self->SUPER::set($p_state);
+    }
+    else {
+        if ( ( $p_state >= 0 ) and ( $p_state <= 98 ) ) {
+            if (($p_state >= $self->{lower_limit}) and ($p_state <= $self->{upper_limit})) {
+        		$$self{master_object}->set_heat_sp($p_state);
+        	} else {
+             	main::print_log("[Venstar Colortouch Heat_SP] Error. $p_state out of limits (" . $self->{lower_limit} . " to " . $self->{upper_limit} . ")");       	
+        	}
+        }
+        else {
+            main::print_log(
+                "[Venstar Colortouch Heat_SP] Error. Unknown set state $p_state"
+            );
+        }
+    }
+}
+
+package Venstar_Colortouch_Cool_sp;
+
+@Venstar_Colortouch_Cool_sp::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object, $scale ) = @_;
+
+    my $self = {};
+    bless $self, $class;
+
+    $$self{master_object} = $object;
+    if ((defined $scale) and (lc $scale eq "F")) {
+    	push( @{ $$self{states} }, '58','59','60','61','62','63','64','65','66','67','68','69','70','71','72','73','74','75','76','77','78','79','80' );
+    	$self->{lower_limit} = 58;
+    	$self->{upper_limit} = 80;
+    } else {
+    	push( @{ $$self{states} }, '17','17.5','18','18.5','19','19.5','20','20.5','21','21.5','22','22.5','23','23.5','24','24.5','25','25.5','26' );    
+    	$self->{lower_limit} = 17;
+    	$self->{upper_limit} = 26;
+    }
+
+    $object->register( $self, 'cool_sp' );
+    $self->set( $object->get_sp_cool, 'poll' );
+    return $self;
+
+}
+
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
+
+    if ( $p_setby eq 'poll' ) {
+        $self->SUPER::set($p_state);
+    }
+    else {
+        if ( ( $p_state >= 0 ) and ( $p_state <= 98 ) ) {
+        	if (($p_state >= $self->{lower_limit}) and ($p_state <= $self->{upper_limit})) {
+            	$$self{master_object}->set_cool_sp($p_state);
+            } else {
+            	main::print_log("[Venstar Colortouch Cool_SP] Error. $p_state out of limits (" . $self->{lower_limit} . " to " . $self->{upper_limit} . ")");
+            }
+        }
+        else {
+            main::print_log("[Venstar Colortouch Cool_SP] Error. Unknown set state $p_state");
+        }
     }
 }
 
