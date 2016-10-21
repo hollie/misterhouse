@@ -1,4 +1,4 @@
-// v1.3
+// v1.3.600
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -202,7 +202,6 @@ function changePage (){
 		}
 		else if (path.indexOf('prefs') === 0){
 			var pref_name = path.replace(/\prefs\/?/,'');
-			console.log("loadprefs() "+pref_name);
 			loadPrefs(pref_name);
 		}		
 		else if(URLHash._request == 'page'){
@@ -308,31 +307,20 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 		});
 	}		
 	html += "<th>"+ config_name + "_config.json </th></tr></thead><tbody>";
-	console.log(config_data);
-	console.log("in prefs="+config_data.length);
 	for (var i in config_data){
 		if ( typeof config_data[i] === 'object') {
 			console.log("i "+i+":");
 			html += "<tr class='info'><td><b>"+ i + "</b></td></tr>";
 			for (var j in config_data[i]) {
 				if ( typeof config_data[i][j] === 'object') {
-					//console.log("j      "+j+":");
 					html += "<tr class='info'><td style='padding-left:40px'>"+ j + "</td></tr>";
-
 					for (var k in config_data[i][j]){
-						//console.log("k             "+k+" = "+json_store.ia7_config[i][j][k]);
 						 html += "<tr><td style='padding-left:80px'>"+k+" = "+config_data[i][j][k]+"</td></tr>";
 					}
-				//html +="<tr>";
 				} else {
-					//console.log("j      "+j+" = "+json_store.ia7_config[i][j]);
 					html += "<tr><td style='padding-left:40px'>"+j+" = "+config_data[i][j]+"</td></tr>"
 				}
 			}
-			//html +="<tr>";
-		} else {
-			//console.log("i "+i+" : "+json_store.ia7_config[i]);
-			//html += "<th>"+ String(json_store.ia7_config[i]) + "</th></tr></thead><tbody>";
 		}	
 	}
 
@@ -358,7 +346,6 @@ function parseLinkData (link,data) {
 		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
 		}
 	if (link == "/bin/items.pl") {
-		console.log("items data="+data);
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))		
 		data = data.replace(/href=\/bin\/items.pl/img, 'onclick="changePage()"');		
 		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
@@ -377,14 +364,11 @@ function parseLinkData (link,data) {
 	}	
 	if (link == "/bin/triggers.pl") { //fix links in the triggers modules
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
-		//data = data.replace(/href=\/bin\/triggers.pl/img, 'href=/ia7/#_request=page&link=/bin/triggers.pl&'+coll_key);
 		data = data.replace(/href=\/bin\/triggers.pl/img, 'onclick="changePage()"');
 		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
 		data = data.replace(/Trigger Index:/img,'');
 		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
-		//data = data.replace(/onChange=\'form.submit\(\)\'/img,'onChange=\'this\.form\.submit\(\)\'');
 		data = data.replace(/input name='resp' value="\/bin\/triggers.pl"/img, 'input name=\'resp\' value=\"/ia7/#_request=page&link=/bin/triggers.pl&'+coll_key+'\"');
-		//console.log(data);
 	}				
 	if (link == "/ia5/news/main.shtml") { //fix links in the email module 1
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
@@ -427,12 +411,6 @@ function parseLinkData (link,data) {
   		if (btn.attr('name') !== undefined) {
   			form_data.push({name : btn.attr('name'), value : btn.attr('value')});
   		}		
-		console.log("MHResponse Custom submit function "+ form.attr('action'));
- 		console.log( $(this).serializeArray() );
-  		console.log( "btn: "+btn.attr('name')+"="+btn.attr('value'));
-//  		if (btn.attr('value') !== undefined) {
-//  			console.log("executing data!");
-// unless the btn attribute has a name, then don't push the data (prevent text fields
 			$.ajax({
 				type: "POST",
 				url: form.attr('action'),
@@ -448,12 +426,9 @@ function parseLinkData (link,data) {
 					var end = data.toLowerCase().indexOf('</body>');
 
 					if (form.attr('action') === "/bin/triggers.pl?add" && ! data.match(/Not authorized to make updates/))  {
-						//location.reload();
 						changePage();
 					} else if (form.attr('action') === "/bin/iniedit.pl") {
-//						var pdata = parseLinkData("/bin/iniedit.pl",data);
 						parseLinkData("/bin/iniedit.pl",data);
-//						$('#row_page').html(pdata);
 //TODO parse data							 
 					} else {
 						$('#lastResponse').find('.modal-body').html(data.substring(start, end));
@@ -463,7 +438,6 @@ function parseLinkData (link,data) {
 					}
 				}
 			});
-//		}
 	});
 	$('#mhresponse :input:not(:text)').change(function() {
 //TODO - don't submit when a text field changes
@@ -911,7 +885,6 @@ var updateItem = function(item,link,time) {
 	//URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
 		// Only allow one update thread to run at once
-		//console.log("updateItem: Aborting update. updateSocket="+updateSocket.readyState);
 		updateSocket.abort();
 	}
 	if (time === undefined) {
@@ -1003,8 +976,26 @@ var updateStaticPage = function(link,time) {
 						//don't run this if stategrp0 exists	
 						if (states_loaded == 0) {
 			                $(".btn-state-cmd").click( function () {
-                                var entity = $(this).attr("entity");			
-								create_state_modal(entity);
+								var entity = $(this).attr("entity");
+								if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                					if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
+                         				var new_state = "";
+                         				var possible_states = 0;
+                         				for (var i = 0; i < json_store.objects[entity].states.length; i++){
+                         					if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
+                         					possible_states++;
+											if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i];
+
+                         				}
+										if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
+										url= '/SET;none?select_item='+entity+'&select_state='+new_state;
+										$.get( url);
+                					} else {
+                					create_state_modal(entity);
+                					}
+								} else {				
+									create_state_modal(entity);
+								}
 							});
 						}																
 					}			
@@ -1028,7 +1019,6 @@ function authDetails() {
 		alert("Warning, Collection ID 700: Authorize, is not defined in your collections.json!");
 	} else {
 		if (json_store.collections[700].user !== undefined) {
-//			console.log ("user found "+json_store.collections[700].user+".");
    			if (json_store.collections[700].user == "0") {
     			json_store.collections[700].name = "Log in";
     			json_store.collections[700].icon = "fa-lock";
@@ -1058,17 +1048,10 @@ var loadCollection = function(collection_keys) {
 	if (entity_sort.length <= 0){
 		entity_arr.push("Childless Collection");
 	}
-//	if (json_store.collections[700] == undefined) {
-//		alert("Warning, Collection ID 700: Authorize, is not defined in your collections.json!");
-//	} else {
-//		authDetails();
-//	}
 
 	for (var i = 0; i < entity_sort.length; i++){
 		var collection = entity_sort[i];
-//		console.log ("col="+collection);
 		if (!(collection in json_store.collections)) continue;
-//		console.log ("starting");
 
 		var link = json_store.collections[collection].link;
 		var icon = json_store.collections[collection].icon;
@@ -1199,7 +1182,6 @@ function fixIA7Nav() {
 
 	var url = $(location).attr('href');
 	var collid = url.split("_collection_key=");
-	console.log("fixing nav..."+url+" "+collid[1]);
 	$('a').each(function() {
 		if ($(this).attr('href').match("^/ia7/")) {
   			this.href += '&_collection_key='+collid[1]+',';
@@ -1327,7 +1309,6 @@ var mobile_device = function() {
 
 function audio_play(audioElement,srcUrl)
 {
-  //console.log ("in audio_play:"+srcUrl);
   audioElement.pause();
   audioElement.src=''; //force playback to stop and quit buffering. Not sure if this is strictly necessary.
   $("#sound_element2").attr("src", srcUrl);  //needed for mobile
@@ -1341,7 +1322,6 @@ function playWhenReady()
 {//wait for media element to be ready, then play
   audioElement=document.getElementById('sound_element');
   var audioReady=audioElement.readyState;
-  //console.log("playWhenReady = "+audioReady);
   if(audioReady>2) {
     audioElement.play();
   } else if(audioElement.error) {
@@ -1689,9 +1669,6 @@ var object_history = function(items,start,days,time) {
 				});
 				
 				$('.update_history').click(function() {
-					console.log ("start="+$('.hist_start').val()+" end="+$('.hist_end').val());
-//					var new_start = new Date($('.hist_start').val()).getTime();
-//					var new_end = new Date($('.hist_end').val()).getTime();
 					var new_start = new Date($('.hist_start').val().split('-')).getTime();
 					var new_end = new Date($('.hist_end').val().split('-')).getTime();					
 					var end_days = (new_start - new_end) / (24 * 60 * 60 * 1000)
@@ -1731,13 +1708,9 @@ var object_history = function(items,start,days,time) {
     					// take away the border so that it looks better and span the graph from start to end.
     					json.data.options.grid.borderWidth = 0;
 
-//    					json.data.options.xaxis.min = new Date($('.hist_end').val()).getTime();
-//                		json.data.options.xaxis.max = new Date($('.hist_start').val()).getTime() + (24 * 60 * 60 * 1000);
 						json.data.options.xaxis.min = new Date($('.hist_end').val().split('-')).getTime();
  						json.data.options.xaxis.max = new Date($('.hist_start').val().split('-')).getTime() + (24 * 60 * 60 * 1000);
                 		
-//console.log("data="+JSON.stringify(data));
-//console.log("xmin="+json.data.options.xaxis.min+" xmax="+json.data.options.xaxis.max);
     					$.plot($("#hist-graph"), data, json.data.options);
     					$('.legend').hide();	
 					}
@@ -1885,7 +1858,6 @@ var fp_resize_floorplan_image = function(){
     $("#fp_graphic").attr("width", "1px");
 
     fp_display_width = $("#graphic").width();
-//    console.log("FP: resize "+ floor_width + " => " + fp_display_width);
     $('#fp_graphic').attr("width",fp_display_width+"px");
     fp_display_height = $("#fp_graphic").height();
 };
@@ -1930,8 +1902,6 @@ var fp_reposition_entities = function(){
     var fp_scale =  width/nwidth;
     var fp_scale_percent = Math.round( fp_scale * 100);
     
-//	console.log("width="+width+" nwidth="+nwidth+" scale="+fp_scale_percent);
-
     // update the location of all the objects...
     $(".floorplan_item").each(function(index) {
         var classstr = $(this).attr("class");
@@ -1943,19 +1913,9 @@ var fp_reposition_entities = function(){
         }
         var fp_location = coords.split(/x/);
         var fp_offset =  fp_get_offset_from_location(fp_location);
-//		console.log("coords="+coords);       
 
-        // this seems to make the repositioning slow
-        // ~ 300+ms on my nexus7 firefox-beta vs <100ms with this code commented out
-        // var baseimg_width = $("#fp_graphic").width();
-        // if (baseimg_width < 500) {
-        //     $(this).attr('src',$(this).attr('src').replace('48.png','32.png'));
-        // } else {
-        //     $(this).attr('src',$(this).attr('src').replace('32.png','48.png'));
-        // }
         var element_id = $(this).attr('id');
         var adjust = fp_icon_image_size*fp_scale/2;
-//		console.log("adjust="+adjust+" fp_offset.top="+fp_offset.top+" fp_offset.left="+fp_offset.left);       
         var fp_off_center = {
             "top":  fp_offset.top - adjust,
             "left": fp_offset.left - adjust
@@ -2270,16 +2230,13 @@ var floorplan = function(group,time) {
                                                     }
                                                 }
                                                 html += "</div></div>";
-                                                //console.log("html="+html)
                                             }
                                             return html;
                                         }
                                     });
                                 } else {
                                     E.click( function () {
-                                        //var fp_entity = $(this).attr("id").split(/entity_/)[1]; //
                                         var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
-                                        //alert("entity="+fp_entity);
                                         create_state_modal(fp_entity);
                                     });
                                 }
@@ -2323,10 +2280,8 @@ var floorplan = function(group,time) {
                         url: "/LONG_POLL?json('GET','fp_icon_sets','px=48')",
                         dataType: "json",
                         error: function(xhr, textStatus, errorThrown){
-//                            console.log('FP: request iconsets failed: "' + textStatus + '" "'+JSON.stringify(errorThrown, undefined,2)+'"');
                         },
                         success: function( json, statusText, jqXHR ) {
-//                            console.log('FP: request iconsets: "' + statusText + '" "'+JSON.stringify(jqXHR, undefined,2)+'"');
                             var requestTime = time;
                             if (jqXHR.status === 200) {
                                 var iconlist = '<ul class="icon_select" style="display:none;z-index:1000;position:absolute;overflow:hidden;border:1px solid #CCC; background: #FFF; border-radius: 5px; padding: 0;">\n';
@@ -2404,7 +2359,6 @@ var floorplan = function(group,time) {
                 }
                 requestTime = json.meta.time;
                 var t1 = performance.now();
-//                console.log("FP: long poll " +Math.round(t1 - t0) + "ms");
             }
             if (jqXHR.status === 200 || jqXHR.status === 204) {
                 //Call update again, if page is still here
