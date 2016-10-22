@@ -59,7 +59,6 @@ Usage:
 
     -city     xxx => xxx is the City  you want.
     -state    xxx => xxx is the State you want.
-    -zone     xxx => xxx is the Zone (for forecast) you want.
 
     -data     xxx => xxx is either conditions, forecast, or all.  Default is all.
 
@@ -76,10 +75,9 @@ eof
 my ( $conditions, $forecast, %data );
 my %config_parms;
 
-$parms{city}  = 'Rochester'  unless $parms{city};
-$parms{zone}  = $parms{city} unless $parms{zone};
-$parms{state} = 'MN'         unless $parms{state};
-$parms{data}  = 'all'        unless $parms{data};
+$parms{city}  = 'Rochester' unless $parms{city};
+$parms{state} = 'MN'        unless $parms{state};
+$parms{data}  = 'all'       unless $parms{data};
 $data{conditions}++ if $parms{data} eq 'all' or $parms{data} eq 'conditions';
 $data{forecast}++   if $parms{data} eq 'all' or $parms{data} eq 'forecast';
 
@@ -110,9 +108,9 @@ if ( $data{conditions} ) {
 }
 
 if ( $data{forecast} ) {
-    print "Getting the forecast for $parms{zone}, $parms{state}\n";
+    print "Getting the forecast for $parms{city}, $parms{state}\n";
     $forecast =
-      print_forecast( $parms{zone}, $parms{state}, undef, undef, undef, 1 );
+      print_forecast( $parms{city}, $parms{state}, undef, undef, undef, 1 );
     $forecast =~ s/Geo::WeatherNOAA.pm .+\n//;    # Drop geo version
                                                   #$forecast =~ s/\.\.\./\. /g;
     $forecast =~ s/(\()(EDT|EST|CDT|CST|MDT|MST|PDT|PST)(\) *)//g;
