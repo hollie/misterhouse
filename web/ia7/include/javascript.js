@@ -972,7 +972,8 @@ var updateStaticPage = function(link,time) {
 						$('button[entity="'+entity+'"]').removeClass("btn-danger");
 						$('button[entity="'+entity+'"]').removeClass("btn-info");
 						$('button[entity="'+entity+'"]').addClass("btn-"+color);
-				
+						if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") $('button[entity="'+entity+'"]').addClass("btn-direct");
+						
 						//don't run this if stategrp0 exists	
 						if (states_loaded == 0) {
 			                $(".btn-state-cmd").click( function () {
@@ -2464,39 +2465,39 @@ var create_state_modal = function(entity) {
 			}
 			
 			for (var i = 0; i < modal_states.length; i++){
+console.log("Creating state buttons. ");
 				if (filterSubstate(modal_states[i]) == 1) {
-				advanced_html += "<button class='btn btn-default col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" hidden'>"+modal_states[i]+"</button>";
-				continue 
-			} else {
-				//buttonlength += 2 + modal_states[i].length 
-				buttonlength ++;
+					advanced_html += "<button class='btn btn-default col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" hidden'>"+modal_states[i]+"</button>";
+					continue 
+				} else {
+					//buttonlength += 2 + modal_states[i].length 
+					buttonlength ++;
+				}
+				//if (buttonlength >= 25) {
+				if (buttonlength > group_buttons) {
+					stategrp++;
+					$('#control').find('.states').append("<div class='btn-group btn-block stategrp"+stategrp+"'></div>");
+					buttonlength = 1;
+				}
+				var color = getButtonColor(modal_states[i])
+				var disabled = ""
+				if (modal_states[i] == json_store.objects[entity].state) {
+					disabled = "disabled";
+				}
+				//global override
+				if (json_store.ia7_config.prefs.disable_current_state !== undefined && json_store.ia7_config.prefs.disable_current_state == "no") {
+            		disabled = "";
+				}
+				//per object override
+				if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                	if (json_store.ia7_config.objects[entity].disable_current_state !== undefined && json_store.ia7_config.objects[entity].disable_current_state == "yes") {
+                    	disabled = "disabled";
+                	} else {
+                        disabled = "";
+                	}
+				}
+			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");					
 			}
-			//if (buttonlength >= 25) {
-			if (buttonlength > group_buttons) {
-				stategrp++;
-				$('#control').find('.states').append("<div class='btn-group btn-block stategrp"+stategrp+"'></div>");
-				buttonlength = 1;
-			}
-			var color = getButtonColor(modal_states[i])
-			var disabled = ""
-			if (modal_states[i] == json_store.objects[entity].state) {
-				disabled = "disabled";
-			}
-			//global override
-			if (json_store.ia7_config.prefs.disable_current_state !== undefined && json_store.ia7_config.prefs.disable_current_state == "no") {
-            	disabled = "";
-			}
-			//per object override
-			if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
-                if (json_store.ia7_config.objects[entity].disable_current_state !== undefined && json_store.ia7_config.objects[entity].disable_current_state == "yes") {
-                                disabled = "disabled";
-                } else {
-                                disabled = "";
-                }
-			}
-			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
-						
-		}
 		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
 		$('#control').find('.states').find('.btn').click(function (){
 			url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
