@@ -80,10 +80,10 @@ sub normalize_conditions {
 if ( said $v_get_internet_weather_data) {
     if (&net_connect_check) {
         set $p_weather_data
-          qq|get_weather -state $config_parms{state} -city "$city" -zone "$config_parms{zone}"|;
+          qq|get_weather -state $config_parms{state} -city "$config_parms{city}"|;
         start $p_weather_data;
         $v_get_internet_weather_data->respond(
-            "app=weather Weather data requested for $city, $config_parms{state}"
+            "app=weather Weather data requested for $config_parms{city}, $config_parms{state}"
               . ( ( $config_parms{zone} ) ? " Zone $config_parms{zone}" : '' )
         );
     }
@@ -97,10 +97,10 @@ if ( said $v_get_internet_weather_data) {
 if ( said $v_get_internet_weather_conditions) {
     if (&net_connect_check) {
         set $p_weather_conditions
-          qq|get_weather -state $config_parms{state} -city "$city" -zone "$config_parms{zone}" -data conditions|;
+          qq|get_weather -state $config_parms{state} -city "$config_parms{city}" -data conditions|;
         start $p_weather_conditions;
         $v_get_internet_weather_conditions->respond(
-            "app=weather Weather conditions requested for $city, $config_parms{state}"
+            "app=weather Weather conditions requested for $config_parms{city}, $config_parms{state}"
               . ( ( $config_parms{zone} ) ? " Zone $config_parms{zone}" : '' )
         );
     }
@@ -114,10 +114,11 @@ if ( said $v_get_internet_weather_conditions) {
 if ( said $v_get_internet_weather_forecast) {
     if (&net_connect_check) {
         set $p_weather_forecast
-          qq|get_weather -state $config_parms{state} -city "$city" -zone "$config_parms{zone}" -data forecast|;
+          qq|get_weather -state $config_parms{state} -city "$config_parms{city}" -data forecast|;
+        print_log "get_weather -state $config_parms{state} -city $config_parms{city} -data forecast";
         start $p_weather_forecast;
         $v_get_internet_weather_forecast->respond(
-            "app=weather Weather forecast requested for $city, $config_parms{state}"
+            "app=weather Weather forecast requested for $config_parms{city}, $config_parms{state}"
               . ( ( $config_parms{zone} ) ? " Zone $config_parms{zone}" : '' )
         );
     }
