@@ -234,8 +234,8 @@ foreach my $omnistat (@omnilist) {
             Omnistat::omnistat_log(
                 "$omniname[$omnistat] Omnistat: replace the filter", 0 );
 
-            # reset the timer to 6 months
-            $omnistat[$omnistat]->set_filter_reminder(180);
+            # reset the timer  to 30 days of runtime (59 max)
+            $omnistat[$omnistat]->set_filter_reminder(30);
         }
         else {
             Omnistat::omnistat_log(
