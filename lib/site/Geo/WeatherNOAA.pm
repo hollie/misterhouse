@@ -503,7 +503,17 @@ sub get_city_hourly {
     #print STDERR "Getting data from $URL\n";
     my $data = get_data( $URL, $filename, $fileopt, $UA );
     my $datalength = length($data);
+    if ( $data =~ /None issued/ ) {
+        $URL =
+            $URL_BASE
+          . $zone
+          . '&issuedby='
+          . $state
+          . '&product=RWR&format=txt&version=1&glossary=0';
 
+        $data = get_data( $URL, $filename, $fileopt, $UA );
+        $datalength = length($data);
+    }
     #print STDERR "Got data ($datalength)\n";
 
     # Return error if there's an error
