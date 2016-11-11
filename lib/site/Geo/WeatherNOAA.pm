@@ -169,7 +169,7 @@ sub process_city_zone {
 
     foreach my $key ( keys %forecast ) {
         $forecast{$key} =~ tr/\012//d;    # Remove newlines
-             #$forecast{$key} = lc($forecast{$key}); # No all CAPS
+            #$forecast{$key} = lc($forecast{$key}); # No all CAPS
         $forecast{$key} =~ s/\s+/ /g;    # Rid of multi-spaces
         $forecast{$key} = sent_caps( $forecast{$key} );   # Proper sentance caps
     }
@@ -514,6 +514,7 @@ sub get_city_hourly {
         $data = get_data( $URL, $filename, $fileopt, $UA );
         $datalength = length($data);
     }
+
     #print STDERR "Got data ($datalength)\n";
 
     # Return error if there's an error
@@ -579,7 +580,7 @@ sub get_city_hourly {
     #print STDERR "$line\n";
     #'@0 A15 @15 A9 @24 A5 @29 A5 @34 A4 @39 A8 @47 A8 @55 A8', $line;
 
-    return {} if $values[3] eq 'NOT AVBL';        # Return ref to empty hash
+    return {} if $values[3] eq 'NOT AVBL';    # Return ref to empty hash
 
     my %retValue;
     foreach my $i ( 0 .. $#fields ) {
@@ -864,3 +865,4 @@ http://www.seva.net/~msolomon/
 perl(1), Tie::IxHash(3), LWP::Simple(3), LWP::UserAgent(3).
 
 =cut
+
