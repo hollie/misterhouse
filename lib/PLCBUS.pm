@@ -389,19 +389,20 @@ sub _new_instance {
 
     $self->{current_cmd}   = undef;    ## currrent active command
     $self->{command_queue} = [];       ## qued commands
-    $self->{plc_devices} =
-    ();    # stores a hash of homes. Each home hold a hash of plcbus modules
-    $self->{homes} = ()
-    ; # only used for code generation so we know which home commands have alreay been created
+
+    # stores a hash of homes. Each home hold a hash of plcbus modules
+    $self->{plc_devices} = ();
+
+    # only used for code generation so we know which home commands have alreay been created
+    $self->{homes} = ();
     $self->{plcbussrv_proc} =
     new Process_Item();    # to start/stop the plcbussrv server
     $self->{plcbussrv_port} = $::config_parms{plcbussrv_port} || 4567;
 
-    my $plcbusserv_log = "/dev/null";
-    $plcbusserv_log = $::config_parms{plcbussrv_logfile}
-    if $::config_parms{plcbussrv_logfile};
-    my $c =
-    "plcbussrv /dev/plcbus $self->{plcbussrv_port} &>1 > $plcbusserv_log";
+    my $c = "plcbussrv $serial $self->{plcbussrv_port}";
+    if ($::config_parms{plcbussrv_logfile}) {
+        $c .= " 2>&1 > $::config_parms{plcbussrv_logfile}";
+    }
     _log($c);
 
     $self->{plcbussrv_proc}->set($c);
@@ -465,6 +466,9 @@ sub add_device($) {
 sub _handle_commands () {
     my ($self) = @_;
     $self->_check_external_plcbus_command_file();
+    if($::New_Day){
+        &main::file_backup("$main::config_parms{data_dir}/logs/plcbus.log");
+    }
 
     #$self->_queue_maintainance_commands();
     while ( $self->_handle_incoming_commands() ) { }
@@ -1109,6 +1113,10 @@ sub _write_current_command {
             . "'" );
     }
     else {
+        my $resp = $self->{current_cmd}->{respond};
+        if ($resp){
+            &::respond( $resp, "OK" );
+        }
         _logd($m);
     }
 }
@@ -1225,6 +1233,8 @@ sub generate_code(@) {
     my ( $home, $unit ) = _split_homeunit($address);
 
     my $home_name = "PLCBUS_$home";
+    $grouplist = "" unless $grouplist;
+    $scene_list = "" unless $scene_list;
 
     # $grouplist .= "|$phome";
 
@@ -1780,6 +1790,7 @@ sub handle_incoming {
 
     if ($msg) {
         if ( $c->{respond} ) {
+            $self->_log("response: $msg");
             &::respond( $c->{respond}, $msg );
         }
         $self->_log($msg);

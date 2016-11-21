@@ -849,6 +849,7 @@ sub setup {
 
     #   require 'console_utils.pl';
     require 'http_server.pl';
+	require 'ia7_utilities.pl';
     require 'xml_server.pl';
     require 'menu_code.pl';
     require 'trigger_code.pl';
@@ -3705,7 +3706,7 @@ sub exit_pgm {
         $sock->close() if $sock;
     }
 
-    # Use exit code 1 to mean we exited on purpose ... anything else
+    # Use exit code 0 to mean we exited on purpose ... anything else
     # we can use in mh_loop to mean accidental exit, 'better restart'
     if ($restart) {
         &print_log("Restarting mh");
@@ -3717,7 +3718,7 @@ sub exit_pgm {
         print "Bye Bye\n";
 
         #       exit 1;
-        POSIX::_exit(1);     # MUCH faster ... but no DESTROY or END called.
+        POSIX::_exit(0);     # MUCH faster ... but no DESTROY or END called.
     }
 }
 
