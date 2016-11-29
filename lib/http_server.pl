@@ -334,12 +334,14 @@ sub http_process_request {
     if ( $req_typ eq "POST" || $req_typ eq "PUT" ) {
         my $cl = $Http{'Content-Length'}
           || $Http{'Content-length'};    # Netscape uses lower case l
-        print "http POST query has $cl bytes of args\n" if $main::Debug{http};
+        print
+          "http POST query has $cl bytes of args\n";    # if $main::Debug{http};
         my $buf;
         read $socket, $buf, $cl;
 
         # Save the body into the global var
         $HTTP_BODY = $buf;
+        print "http POST buf=$buf get_arg=$get_arg\n" if $main::Debug{http};
 
         # This is a bad practice to merge the body and arguments together as the
         # body may not always contain an argument string.  It may contain JSON
@@ -347,10 +349,17 @@ sub http_process_request {
         # Since I can't figure out if any bad code relies on merging the body
         # into the arguments, the following regex tests if the body is a valid
         # argument string.  If it is, the body is merged.
-        if ( $buf =~ /^([-\+=&;%@.\w_]*)\s*$/ ) {
+        if ( $buf =~ /^([-\+=&;%@.*\w_]*)\s*$/ ) {
+            print "http POST in loop\n" if $main::Debug{http};
             $get_arg .= "&" if ( $get_arg ne '' );
             $get_arg .= $buf;
         }
+        else {
+            &main::print_log(
+                "[http_server.pl]: Warning, invalid argument string detected ($buf)\n"
+            );
+        }
+        print "http POST get_arg=$get_arg\n" if $main::Debug{http};
 
         #       shutdown($socket->fileno(), 0);   # "how":  0=no more receives, 1=sends, 2=both
     }
@@ -428,23 +437,24 @@ sub http_process_request {
 
     $get_arg =~ s/%([0-9a-fA-F]{2})/pack("C",hex($1))/ge;
 
-    #   print "http: gr=$get_req ga=$get_arg\n" if $main::Debug{http};
+    print "http: gr=$get_req ga=$get_arg\n" if $main::Debug{http};
 
     # Store so that include files have access to parent args
     $ENV{HTTP_QUERY_STRING} = $get_arg;
 
     # Prompt for password (SET_PASSWORD) and allow for UNSET_PASSWORD
     if ( $get_req =~ /SET_PASSWORD$/ ) {
-    	my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
+        my ($mode) = ( $Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\// );
 
         if ( $config_parms{password_menu} eq 'html' ) {
             my $html = &html_authorized;
             if ( $get_req =~ /^\/UNSET_PASSWORD$/ ) {
                 $Authorized = 0;
                 $Cookie .= "Set-Cookie: password=xyz ; ; path=/;\n";
-                $html .= "<meta name='unset' content='true'>";
+                $html   .= "<meta name='unset' content='true'>";
             }
-            $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n" unless (lc $mode eq "ia7");
+            $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n"
+              unless ( lc $mode eq "ia7" );
             $html .= &html_password('') . '<br>';
             print $socket &html_page( undef, $html, undef, undef, undef,
                 undef );
@@ -452,7 +462,7 @@ sub http_process_request {
         else {
             my $html = &html_authorized;
             $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
-			$html .= "<br>set_password else Referrer: $Http{Referer}\n";   
+            $html .= "<br>set_password else Referrer: $Http{Referer}\n";
 
             #           $html .= &html_reload_link('/', 'Refresh Main Page');   # Does not force reload?
             my ( $name, $name_short ) = &net_domain_name('http');
@@ -480,7 +490,7 @@ sub http_process_request {
 
     # Process the html password form
     elsif ( $get_req =~ /\/SET_PASSWORD_FORM$/ ) {
-        my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
+        my ($mode)     = ( $Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\// );
         my ($password) = $get_arg =~ /password=(\S+)/;
         my ($html);
         my ( $name, $name_short )       = &net_domain_name('http');
@@ -489,6 +499,7 @@ sub http_process_request {
         $html .= &html_authorized;
         $html .= "REMOVEME = get_arg = " . $get_arg . "<br>\n";
         $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
+
         #       $html .= &html_reload_link('/', 'Refresh Main Page');
         $html .= &html_password('');
         if ($password_crypted) {
@@ -804,23 +815,28 @@ sub http_process_request {
 sub html_password {
     my ($menu) = @_;
     $menu = $config_parms{password_menu} unless $menu;
-    my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
+    my ($mode) = ( $Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\// );
 
     #   return $html_unauthorized unless $Authorized;
 
     my $html;
     if ( $menu eq 'html' ) {
-        	$html = qq[<BODY onLoad="self.focus();document.pw.password.focus(); top.frames[0].location.reload()">\n] unless (lc $mode eq "ia7");
+        $html =
+          qq[<BODY onLoad="self.focus();document.pw.password.focus(); top.frames[0].location.reload()">\n]
+          unless ( lc $mode eq "ia7" );
 
-        	#       $html .= qq[<BASE TARGET='_top'>\n];
-        	$html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="post">\n];
+        #       $html .= qq[<BASE TARGET='_top'>\n];
+        $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="post">\n];
 
-        	#       $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="get">\n]; ... get not secure from browser history list!!
-        	#       $html .= qq[<h3>Password:<INPUT size=10 name='password' type='password'></h3>\n</FORM>\n];
-        	$html .= qq[<b>Password:</b><INPUT size=10 name='password' type='password'>\n];
-        	$html .= qq[<INPUT type=submit value='Submit Password'>\n</FORM>\n];
-        	$html .= qq[<P> This form is used for logging into MisterHouse.<br> For administration please see the documentation of <a href="http://misterhouse.net/mh.html"> set_password </a></P>\n];
-#		}
+        #       $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="get">\n]; ... get not secure from browser history list!!
+        #       $html .= qq[<h3>Password:<INPUT size=10 name='password' type='password'></h3>\n</FORM>\n];
+        $html .=
+          qq[<b>Password:</b><INPUT size=10 name='password' type='password'>\n];
+        $html .= qq[<INPUT type=submit value='Submit Password'>\n</FORM>\n];
+        $html .=
+          qq[<P> This form is used for logging into MisterHouse.<br> For administration please see the documentation of <a href="http://misterhouse.net/mh.html"> set_password </a></P>\n];
+
+        #		}
     }
     else {
         $html = qq[HTTP/1.0 401 Unauthorized\n];
@@ -832,7 +848,7 @@ sub html_password {
 }
 
 sub html_authorized {
-	my $html = "Status: <b>";
+    my $html = "Status: <b>";
     if ($Authorized) {
         $html .= "<a href=UNSET_PASSWORD>";
         $html .= "Logged In as $Authorized";
@@ -1584,8 +1600,9 @@ sub html_error_log {
 # These html_form functions are used by mh/web/bin/*.pl scrips
 sub html_form_input_set_func {
     my ( $func, $resp, $var1, $var2 ) = @_;
-    my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
+    my ($mode) = ( $Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\// );
     my $id = "";
+
     #$id = "id='mhresponse'" if ($mode eq 'ia7');
     my $html .= qq|<td><form action='/bin/set_func.pl' $id method=post>\n|;
     $html    .= qq|<input name='func' value="$func"  type='hidden'>\n|;
@@ -1602,9 +1619,10 @@ sub html_form_input_set_func {
 sub html_form_input_set_var {
     my ( $var, $resp, $default ) = @_;
     $default = HTML::Entities::encode($default);
-    my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
+    my ($mode) = ( $Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\// );
     my $id = "";
-    #$id = "id='mhresponse'" if ($mode eq 'ia7');    
+
+    #$id = "id='mhresponse'" if ($mode eq 'ia7');
     my $html .= qq|<td><form action='/bin/set_var.pl' $id method=post>\n|;
     $html    .= qq|<input name='var'   value="$var"   type='hidden'>\n|;
     $html    .= qq|<input name='resp'  value="$resp"  type='hidden'>\n|;
@@ -1632,10 +1650,11 @@ sub html_form_select {
 
 sub html_form_select_set_func {
     my ( $func, $resp, $var1, $default, @values ) = @_;
-    my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
+    my ($mode) = ( $Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\// );
     my $id = "";
+
     #$id = "id='mhresponse'" if ($mode eq 'ia7');
-#    my $form .= qq|<td><form action='/bin/set_func.pl' $id method=post>\n|;
+    #    my $form .= qq|<td><form action='/bin/set_func.pl' $id method=post>\n|;
     my $form .= qq|<td><form action='/bin/set_func.pl' $id method=post>\n|;
     $form    .= qq|<input name='func' value="$func"  type='hidden'>\n|;
     $form    .= qq|<input name='resp' value="$resp"  type='hidden'>\n|;
@@ -1649,15 +1668,17 @@ sub html_form_select_set_func {
         $form .= qq|<option value='$option' $selected>$value</option>\n|;
     }
     $form .= "</select></td></form>\n";
-#    $form .= "</select></td></form>\n";
+
+    #    $form .= "</select></td></form>\n";
     return $form;
 }
 
 sub html_form_select_set_var {
     my ( $var, $default, @values ) = @_;
-    my ($mode) = ($Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//);
+    my ($mode) = ( $Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\// );
     my $id = "";
-    #$id = "id='mhresponse'" if ($mode eq 'ia7');    
+
+    #$id = "id='mhresponse'" if ($mode eq 'ia7');
     my $html = "<td><form action=/bin/set_var.pl $id method=post>\n";
     $html .= qq|<input type='hidden' name='var'  value="$var">\n|;
     $html .= qq|<input type='hidden' name='resp' value='/bin/triggers.pl'>\n|;
