@@ -1544,6 +1544,13 @@ sub read_table_A {
         $other = join ', ', ( map { "'$_'" } @other );          # Quote data
        $object = "MySensors::Humidity($address, '$long_name', $parent, $other)";
     }
+    elsif ( $type eq "MYS_MULTIMETER" ) {
+        require 'MySensors.pm';
+        my ( $parent, $long_name );
+        ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+        $object = "MySensors::Multimeter($address, '$long_name', $parent, $other)";
+    }
 			
     #-------------- AD2 Objects -----------------
     elsif ( $type eq "AD2_INTERFACE" ) {
