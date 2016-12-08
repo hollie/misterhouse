@@ -1,6 +1,5 @@
 use strict;
-#hp 1133
-# data/object_logs/<object>/YYYY/MM.log
+
 package Generic_Item_Hash;
 
 require Tie::Hash;
@@ -136,6 +135,11 @@ sub new {
     $self->{logger_enable} = $main::config_parms{object_logger_enable} if (defined $main::config_parms{object_logger_enable});
     $self->{logger_mintime} = 1;
     $self->{logger_updatetime} = 0;
+    $self->restore_data('active_state', 'schedule_count');
+       for my $index (1..20) {
+          $self->restore_data('schedule_'.$index, 'schedule_label_'.$index, 'schedule_once_'.$index);
+       }
+    $self->_initialize_schedule;
 
     return $self;
 }
@@ -1815,6 +1819,177 @@ sub android_xml_tag {
     }
     return $xml_objects;
 }
+
+
+sub _initialize_schedule { 
+   my ($self) = @_;
+   $self->{'initialize_timer'} = ::Timer::new();
+   $self->{'initialize_timer'}->set(5, sub {
+   if (defined($self->{schedule_object}) && ($self->{schedule_object})) { return }
+   if ($self->{'schedule_count'} > 1) {
+       ::print_log("[SCHEDULE] Initialize schedule for ". $self->get_object_name." Schedule count is ".$self->{'schedule_count'});
+       $self->{'check_date_handler'} = sub { Generic_Item::check_date($self); };
+       ::MainLoop_post_add_hook( $self->{'check_date_handler'});
+   }
+});
+}
+
+
+
+sub _set_schedule_active_state {
+   my ($self, $state) = @_;
+   $self->{'active_state'} = $state if defined($state);
+}
+
+
+
+sub set_schedule {
+    my ($self,$index,$entry,$label) = @_;
+    unless ( defined($self->{'check_date_handler'}) ) { 
+	$self->{'check_date_handler'} = sub { Generic_Item::check_date($self); }; 
+        #::MainLoop_post_add_hook( $self->{'check_date_handler'}, 'persistent'); 
+        ::MainLoop_post_add_hook( $self->{'check_date_handler'});
+    }
+
+    if ($index > $self->{'schedule_count'}) { $self->{'schedule_count'} = $index; }
+    $self->{'schedule_'.$index} = $entry if (defined($entry));
+    $self->{'schedule_label_'.$index} = $label if (defined($label));
+    if (defined($self->{'schedule_'.$index})) { # the UI deletes all entries and adds them back which sets this flag to 2.
+                $self->{'schedule_once_'.$index} = 1 if ($self->{'schedule_once_'.$index} eq 2); # We only want real deleted entries set to 2, so set to 1.
+    }
+    unless ($entry) {
+        undef $self->{'schedule_label_'.$index};
+        undef $self->{'schedule_'.$index};
+        $self->{'schedule_once_'.$index} = 2 if ($self->{'schedule_once_'.$index});
+    }
+    $self->{set_time} = $::Time;
+}
+
+sub set_schedule_once {
+    my ($self,$index,$entry,$label) = @_;
+    unless ($self->{'schedule_once_'.$index} eq 1) {
+        if ((defined($self->{'set_timer_'.$index})) && ($self->{'set_timer_'.$index}->expired)) {
+           $self->{'schedule_once_'.$index} = 1;
+           $self->set_schedule($index,$entry,$label);
+        } else {
+           $self->{'set_timer_'.$index} = ::Timer::new();
+           $self->{'set_timer_'.$index}->set(10, sub {
+             $self->set_schedule_once($index,$entry,$label);
+          });
+        }
+    }
+}
+
+
+sub delete_schedule {
+    my ($self,$index) = @_;
+    $self->set_schedule($index);
+}
+
+
+sub reset_schedule {
+    my ($self) = @_;
+    my $count = $self->{'schedule_count'};
+     for my $index (1..$count) {
+       $self->set_schedule($index);
+     }
+  $self->{'schedule_count'} = 0;
+  $self->{set_time} = $::Time;
+}
+
+
+sub get_schedule {
+ my ($self) = @_;
+ if ( ( defined($self->{'initialize_timer'}) ) && ( $self->{'initialize_timer'}->active ) ) { return }
+ my @schedule;
+ my $count = $self->{'schedule_count'};
+ my @states = &get_states($self);
+
+
+     $schedule[0][0] = 0; #Index
+     $schedule[0][1] = '0 0 5 1 1'; #schedule
+     $schedule[0][2] = 0; #Label
+     $schedule[0][3] = \@states;
+     my $nullcount = 0;
+      for my $index (1..$count) {
+         unless(defined($self->{'schedule_'.$index})) {
+             if ($self->{'schedule_once_'.$index}) {
+                $self->{'schedule_once_'.$index} = 2;
+                $self->{'schedule_label_'.$index} = undef;
+              } else {
+                $nullcount++;
+                $self->{'schedule_label_'.$index} = undef;
+                $self->{'schedule_once_'.$index} = undef;
+                next;
+              }
+          }
+
+         if (defined($self->{'schedule_'.$index})) { # the UI deletes all entries and adds them back which sets this flag to 2.
+                $self->{'schedule_once_'.$index} = 1 if ($self->{'schedule_once_'.$index} eq 2); # We only want real deleted entries set to 2, so set to 1.
+          }
+
+         if ((defined($self->{'schedule_'.$index})) || ($self->{'schedule_once_'.$index} eq 2)) {
+              $self->{'schedule_'.($index-$nullcount)} = $self->{'schedule_'.$index};
+              $self->{'schedule_label_'.($index-$nullcount)} = $self->{'schedule_label_'.$index};
+              $self->{'schedule_once_'.($index-$nullcount)} = $self->{'schedule_once_'.$index};
+              $schedule[($index-$nullcount)][0] = ($index-$nullcount);
+              if ($self->{'schedule_once_'.$index} eq 2) { $schedule[($index-$nullcount)][1] = undef }
+              else { $schedule[($index-$nullcount)][1] = $self->{'schedule_'.$index} }
+
+              if (defined($self->{'schedule_label_'.$index}) ) { $schedule[($index-$nullcount)][2] = $self->{'schedule_label_'.$index} }
+              else { $schedule[($index-$nullcount)][2] = ($index-$nullcount) }
+
+               unless (($index-$nullcount) eq $index) {
+                  $self->{'schedule_'.$index} = undef;
+                  $self->{'schedule_label_'.$index} = undef;
+                  $self->{'schedule_once_'.$index} = undef;
+                }
+          }
+   }
+   $self->{'schedule_count'} = scalar @schedule;
+   return \@schedule;
+}
+
+sub check_date {
+ my ($self) = @_;
+ if ($::New_Minute) {
+
+    unless ($self->{'schedule_count'} > 1) {
+      if ( $self->{'schedule_delete_count'} eq 2 ) {
+	  ::print_log("[SCHEDULE] Dropping schedule for ". $self->get_object_name ." check count ". $self->{'schedule_delete_count'});
+          ::MainLoop_post_drop_hook( $self->{'check_date_handler'} );
+          undef $self->{'check_date_handler'};
+	  undef $self->{'schedule_delete_count'};
+        }
+      $self->{'schedule_delete_count'}++;
+     }
+
+
+    for my $index (1..$self->{'schedule_count'}) {
+         if (defined($self->{'schedule_'.$index})) {
+		::print_log("[SCHEDULE] Checking time for ". $self->get_object_name. " schedule is " . $self->{'schedule_'.$index} ." time_cron return ". &main::time_cron($self->{'schedule_'.$index}));
+                if (&main::time_cron($self->{'schedule_'.$index})) { $self->set_action($self->{'schedule_label_'.$index}) }
+         }
+       }
+  }
+}
+
+
+sub set_action {
+    my ($self,$state) = @_;
+	 return if &main::check_for_tied_filters( $self, $state );
+         $self->_set_schedule_active_state($state);
+         my $sub = 'set';
+         $sub = $self->{sub} if defined($self->{sub});
+         $self->$sub($state,'schedule',1);
+}
+
+
+sub set_sub {
+  my ($self, $sub) = @_;
+  $self->{sub} = $sub;
+}
+
 
 =back 
 

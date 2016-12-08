@@ -13,4 +13,4 @@ perl:
 
 install: true
 
-script: cd bin ; ./mh -tk 0 -code_dir ../code/test
+script: cd bin ; ./mh -tk 0 -debug process -code_dir ../code/test

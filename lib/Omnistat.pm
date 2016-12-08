@@ -380,6 +380,8 @@ RC-112 34
 RC-120 48
 RC-121 49
 RC-122 50
+RC-1000: 110
+RC-2000: 120
 
 Outside Temperature: writing to the outside temperature register will cause the thermostat to display the
 outside temperature every 4 seconds. The thermostat will stop displaying the outside temperature if this

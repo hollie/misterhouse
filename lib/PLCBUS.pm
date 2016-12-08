@@ -1,7 +1,6 @@
 use strict;
 use warnings;
 use Time::HiRes;
-use experimental 'smartmatch';
 use Group;
 use Process_Item;
 use IO::Socket::INET;
@@ -389,19 +388,20 @@ sub _new_instance {
 
     $self->{current_cmd}   = undef;    ## currrent active command
     $self->{command_queue} = [];       ## qued commands
-    $self->{plc_devices} =
-    ();    # stores a hash of homes. Each home hold a hash of plcbus modules
-    $self->{homes} = ()
-    ; # only used for code generation so we know which home commands have alreay been created
+
+    # stores a hash of homes. Each home hold a hash of plcbus modules
+    $self->{plc_devices} = ();
+
+    # only used for code generation so we know which home commands have alreay been created
+    $self->{homes} = ();
     $self->{plcbussrv_proc} =
     new Process_Item();    # to start/stop the plcbussrv server
     $self->{plcbussrv_port} = $::config_parms{plcbussrv_port} || 4567;
 
-    my $plcbusserv_log = "/dev/null";
-    $plcbusserv_log = $::config_parms{plcbussrv_logfile}
-    if $::config_parms{plcbussrv_logfile};
-    my $c =
-    "plcbussrv /dev/plcbus $self->{plcbussrv_port} &>1 > $plcbusserv_log";
+    my $c = "plcbussrv $serial $self->{plcbussrv_port}";
+    if ($::config_parms{plcbussrv_logfile}) {
+        $c .= " 2>&1 > $::config_parms{plcbussrv_logfile}";
+    }
     _log($c);
 
     $self->{plcbussrv_proc}->set($c);
@@ -465,6 +465,9 @@ sub add_device($) {
 sub _handle_commands () {
     my ($self) = @_;
     $self->_check_external_plcbus_command_file();
+    if($::New_Day){
+        &main::file_backup("$main::config_parms{data_dir}/logs/plcbus.log");
+    }
 
     #$self->_queue_maintainance_commands();
     while ( $self->_handle_incoming_commands() ) { }
@@ -532,7 +535,7 @@ sub _handle_incoming_commands {
         }
         if (   $self->{current_cmd}->{expected_response}
             && !$dec->{REPRQ}
-            && $cmd ~~ ( $self->{current_cmd}->{expected_response} ) )
+            && grep { $_ eq $cmd } @{ $self->{current_cmd}->{expected_response} } )
         {
             $self->{current_cmd}->{expected_response_seen} = 1;
 
@@ -1109,6 +1112,10 @@ sub _write_current_command {
             . "'" );
     }
     else {
+        my $resp = $self->{current_cmd}->{respond};
+        if ($resp){
+            &::respond( $resp, "OK" );
+        }
         _logd($m);
     }
 }
@@ -1225,6 +1232,8 @@ sub generate_code(@) {
     my ( $home, $unit ) = _split_homeunit($address);
 
     my $home_name = "PLCBUS_$home";
+    $grouplist = "" unless $grouplist;
+    $scene_list = "" unless $scene_list;
 
     # $grouplist .= "|$phome";
 
@@ -1780,6 +1789,7 @@ sub handle_incoming {
 
     if ($msg) {
         if ( $c->{respond} ) {
+            $self->_log("response: $msg");
             &::respond( $c->{respond}, $msg );
         }
         $self->_log($msg);
@@ -1819,8 +1829,8 @@ sub preset_dim {
     $self->command( 'presetdim', $bright_percent, $fade_rate_secs );
 }
 
-my @light_cmds = [ "on", "off", "bright", "dim" ];
-my @plc_cmds = [
+my @light_cmds = ( "on", "off", "bright", "dim" );
+my @plc_cmds = (
     "status req",
     "blink",
     "status on",
@@ -1828,7 +1838,7 @@ my @plc_cmds = [
     "get signal strength",
     "get noise strength",
     "all scenes addrs erase",
-];
+);
 
 sub set {
     my ( $self, $new_state, $setby, $respond ) = @_;
@@ -1838,13 +1848,13 @@ sub set {
     $l .= "respond $respond " if $respond;
     $self->_logd($l);
 
-    if ( $new_state ~~ @light_cmds ) {
+    if ( grep { $new_state eq $_ } @light_cmds ) {
         if ($self->{state} && $new_state eq $self->{state} ) {
             $self->_logd("Already in state $new_state, sending command anyway");
         }
         $self->command( $new_state, undef, undef, $setby, $respond );
     }
-    elsif ( $new_state ~~ @plc_cmds ) {
+    elsif ( grep { $_ eq $new_state } @plc_cmds ) {
         $new_state =~ s/ /_/g;
         $self->command( $new_state, undef, undef, $setby, $respond );
     }
