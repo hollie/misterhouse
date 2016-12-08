@@ -81,7 +81,8 @@ BEGIN {
     $Version .= " (compiler: $Info{Perl_compiled})" if $Info{Perl_compiled};
 
     #Create a build number if this is unstable version
-    if ( lc $Version eq 'unstable' ) {
+    # but only do this if we're on a .git version, not when we started from a zip file archive
+    if ( lc $Version eq 'unstable' && -e '../.git' ) {
         my $build = lc `git describe --long`;
         $build =~ /(\S+)-(\d+)-g([0-9a-f]+)/;
         $Version = "$1 Build $2 ($3)" if ( $1 && defined($2) && $3 );
@@ -291,7 +292,7 @@ BEGIN {
             chomp $autover;
             close(VERSION);
         }
-        if ( lc $autover eq 'unstable' ) {
+        if ( lc $autover eq 'unstable' && -e '../.git') {
             my $build_date = `git show -s --format="%ci"`;
             $Version_date = $build_date
               if ( $build_date =~ /^\d\d\d\d-\d\d-\d\d/ );
