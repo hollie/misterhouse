@@ -174,8 +174,10 @@ sub json_get {
         eval {
             my $json_collections = file_read($collection_file);
             $json_collections =~ s/\$config_parms\{(.+?)\}/$config_parms{$1}/gs;
-     		$json_collections =~ s/\$Authorized/$Authorized/gs; # needed for including current "Authorize" status
-            $json_data{'collections'} = decode_json($json_collections);    #HP, wrap this in eval to prevent MH crashes
+            $json_collections =~ s/\$Authorized/$Authorized/gs
+              ;    # needed for including current "Authorize" status
+            $json_data{'collections'} = decode_json($json_collections)
+              ;    #HP, wrap this in eval to prevent MH crashes
         };
         if ($@) {
             print_log
@@ -206,7 +208,7 @@ sub json_get {
             $json_data{'ia7_config'} =
               decode_json('{ "prefs" : { "status" : "error" } }')
               ;                     #write a blank collection
-        	config_checker($prefs_file);
+            config_checker($prefs_file);
         }
 
         # Look at the client ip overrides, and replace any pref key with the client_ip specific item
@@ -217,8 +219,11 @@ sub json_get {
             print_log
               "Json_Server.pl: Client override section for $Http{Client_address} found";
             for my $key (
-                keys %{$json_data{'ia7_config'}->{clients}
-                ->{ $Http{Client_address} }} )
+                keys %{
+                    $json_data{'ia7_config'}->{clients}
+                      ->{ $Http{Client_address} }
+                }
+              )
             {
                 print_log
                   "Json_Server.pl: Client key=$key, value = $json_data{'ia7_config'}->{clients}->{$Http{Client_address}}->{$key}";
@@ -415,85 +420,96 @@ sub json_get {
     }
 
     # List object history
-    if ( $path[0] eq 'history') {
+    if ( $path[0] eq 'history' ) {
 
         if ( $args{items} && $args{items}[0] ne "" ) {
-        	my %statemaps = ('on' => 100,
-        					 'open' => 100,
-        					 'opened' => 100,
-        					 'motion' => 100,
-        					 'enable' => 100,
-        					 'enabled' => 100,
-        					 'online' => 100,
-        					 'off' => -100,
-        					 'close' => -100,
-        					 'closed' => -100,
-        					 'still' => -100,
-        					 'disable' => -100,
-        					 'disabled' => -100,
-        					 'offline' => -100,
-        					 'dim' => 50,
-        					 );
-        	my $unknown_value = 40;
-        	my @dataset = ();
-        	my %states;
+            my %statemaps = (
+                'on'       => 100,
+                'open'     => 100,
+                'opened'   => 100,
+                'motion'   => 100,
+                'enable'   => 100,
+                'enabled'  => 100,
+                'online'   => 100,
+                'off'      => -100,
+                'close'    => -100,
+                'closed'   => -100,
+                'still'    => -100,
+                'disable'  => -100,
+                'disabled' => -100,
+                'offline'  => -100,
+                'dim'      => 50,
+            );
+            my $unknown_value = 40;
+            my @dataset       = ();
+            my %states;
             my %data;
-        	my $index = 0;
-        	my $start = time;
-        	$start = $args{start}[0] if (defined $args{start}[0]);
-        	my $graph = 0;
-        	$graph = $args{graph}[0] if (defined $args{graph}[0]);
-        	my $days = 0;
-        	$days = $args{days}[0] if (defined $args{days}[0]);        	
+            my $index = 0;
+            my $start = time;
+            $start = $args{start}[0] if ( defined $args{start}[0] );
+            my $graph = 0;
+            $graph = $args{graph}[0] if ( defined $args{graph}[0] );
+            my $days = 0;
+            $days = $args{days}[0] if ( defined $args{days}[0] );
+
             foreach my $name ( @{ $args{items} } ) {
-            	my $o = &get_object_by_name($name);
-            	next unless (defined $o);
- 				next unless $o->get_logger_status();
- 				my $label = $o->set_label();
- 				$label = $name unless (defined $label);
- 				my $logger_data = $o->get_logger_data($start,$days);
- 				#alert if any anomalous states are detected
-             	my @lines = split /\n/, $logger_data;
-            	foreach my $line (@lines) {	
-            		my $value;
-            		my ($time1,$time2,$obj,$state,$setby,$target) = split ",",$line;
-            		if ($graph) {
-            			if (defined $statemaps{$state}) {
-            				$value = $statemaps{$state};
-            			} else {
-            				if ($state =~ /(\d+)\%/) {
-            					$value = $_;
-            				} else { 
-            					&main::print_log("json_server.pl: WARNING. object history state $state not found in mapping");
-            					$value = $unknown_value++;
-            				}
-            			}          			
-                    	$states{$value} = $state;
- 						push @{$dataset[$index]->{data}}, [ int($time2), int($value) ];
- 					} else {
- 						push @dataset, [int($time2), $state, $setby];
-					} 						
- 				}
-                push @{$dataset[$index]->{label}}, $label if ($graph);
-				$index++;
- 			}
- 		if ($graph) {	
- 			#flot expects to see an array
-			my @yaxticks = ();
-			for my $j (sort keys %states) {
-    			push @yaxticks, [ $j, $states{$j} ];
-    		}
-  			$data{'options'}->{'yaxis'}->{'ticks'}  = \@yaxticks; #\%states;
-  			$data{'options'}->{'legend'}->{'show'} = "true";
-  			$data{'options'}->{'xaxis'}->{'mode'} = "time";
-  			$data{'options'}->{'points'}->{'show'} = "true";
-  			$data{'options'}->{'xaxis'}->{'timezone'} = "browser";
-  			$data{'options'}->{'grid'}->{'hoverable'} = "true";
-  		}
-        $data{'data'}    = \@dataset;
-        $json_data{'history'} = \%data;
- 		}
- 	}	
+                my $o = &get_object_by_name($name);
+                next unless ( defined $o );
+                next unless $o->get_logger_status();
+                my $label = $o->set_label();
+                $label = $name unless ( defined $label );
+                my $logger_data = $o->get_logger_data( $start, $days );
+
+                #alert if any anomalous states are detected
+                my @lines = split /\n/, $logger_data;
+                foreach my $line (@lines) {
+                    my $value;
+                    my ( $time1, $time2, $obj, $state, $setby, $target ) =
+                      split ",", $line;
+                    if ($graph) {
+                        if ( defined $statemaps{$state} ) {
+                            $value = $statemaps{$state};
+                        }
+                        else {
+                            if ( $state =~ /(\d+)\%/ ) {
+                                $value = $_;
+                            }
+                            else {
+                                &main::print_log(
+                                    "json_server.pl: WARNING. object history state $state not found in mapping"
+                                );
+                                $value = $unknown_value++;
+                            }
+                        }
+                        $states{$value} = $state;
+                        push @{ $dataset[$index]->{data} },
+                          [ int($time2), int($value) ];
+                    }
+                    else {
+                        push @dataset, [ int($time2), $state, $setby ];
+                    }
+                }
+                push @{ $dataset[$index]->{label} }, $label if ($graph);
+                $index++;
+            }
+            if ($graph) {
+
+                #flot expects to see an array
+                my @yaxticks = ();
+                for my $j ( sort keys %states ) {
+                    push @yaxticks, [ $j, $states{$j} ];
+                }
+                $data{'options'}->{'yaxis'}->{'ticks'} = \@yaxticks;  #\%states;
+                $data{'options'}->{'legend'}->{'show'} = "true";
+                $data{'options'}->{'xaxis'}->{'mode'}  = "time";
+                $data{'options'}->{'points'}->{'show'} = "true";
+                $data{'options'}->{'xaxis'}->{'timezone'} = "browser";
+                $data{'options'}->{'grid'}->{'hoverable'} = "true";
+            }
+            $data{'data'}         = \@dataset;
+            $json_data{'history'} = \%data;
+        }
+    }
 
     # List objects
     if ( $path[0] eq 'objects' || $path[0] eq '' ) {
@@ -533,7 +549,8 @@ sub json_get {
                     push @objects, &list_objects_by_type($object_type);
                 }
             }
-#            foreach my $o ( map { &get_object_by_name($_) } sort @objects ) {
+
+            #            foreach my $o ( map { &get_object_by_name($_) } sort @objects ) {
             foreach my $o ( map { &get_object_by_name($_) } @objects ) {
                 next unless $o;
                 my $name = $o;
@@ -710,12 +727,12 @@ sub json_get {
         }
     }
 
-    if ( $path[0] eq 'fp_icon_sets' ){
-        my $p = "../web/ia7/graphics/*default_".$args{px}[0].".png";
+    if ( $path[0] eq 'fp_icon_sets' ) {
+        my $p     = "../web/ia7/graphics/*default_" . $args{px}[0] . ".png";
         my @icons = glob($p);
         s/^..\/web// for @icons;
         $json_data{'icon_sets'} = [];
-        push( @{ $json_data{'fp_icon_sets'} }, @icons);
+        push( @{ $json_data{'fp_icon_sets'} }, @icons );
     }
 
     # List speak phrases
@@ -954,9 +971,11 @@ sub json_object_detail {
             #Items that have NEVER been set to a state have a null idle time
             return;
         }
-        elsif ( $request_time >= ( $current_time - $object->get_idle_time ) ) {
+        elsif (
+            ( $request_time - 1 ) > ( $current_time - $object->get_idle_time ) )
+        {
 
-            #Should get_tickcount be replaced with output_time??
+            #To avoid missed changes, since they can happen at the millisecond level, give a second's cushion
             #Object has not changed since time, so return undefined
             return;
         }
@@ -1368,86 +1387,100 @@ sub json_notification {
     push @json_notifications, $data;
 }
 
-sub config_checker { 
-	my ($file) = @_;
-	
-	my (%collections, $key, $output, $temp);
-	my @data = file_read($file);
+sub config_checker {
+    my ($file) = @_;
 
+    my ( %collections, $key, $output, $temp );
+    my @data = file_read($file);
 
-	foreach my $row (@data) {
-  		$key = $1 if $row =~ /\"(\d+?)\" \:/;
-  		$row =~ /\"(.+?)\" \: \"(.+?)\"/ ;
-  		$collections{$key}{$1} = $2 if $1;  
-  	}
+    foreach my $row (@data) {
+        $key = $1 if $row =~ /\"(\d+?)\" \:/;
+        $row =~ /\"(.+?)\" \: \"(.+?)\"/;
+        $collections{$key}{$1} = $2 if $1;
+    }
 
-	foreach my $row (@data) {
-  		$key = $1 if $row =~ /\"(\d+?)\" \:/;
-  		if ($row =~ /(\d+?)(\,|\n)/) {
-			my $sub_key = $1;
-    		my $comma = $2;
-    		$collections{$key}{children} .= "\t$1: " ;  
-			$collections{$key}{children} .= "$collections{$sub_key}{name}";
-			$collections{$key}{children} .= "\n";
-		}
-  	}
+    foreach my $row (@data) {
+        $key = $1 if $row =~ /\"(\d+?)\" \:/;
+        if ( $row =~ /(\d+?)(\,|\n)/ ) {
+            my $sub_key = $1;
+            my $comma   = $2;
+            $collections{$key}{children} .= "\t$1: ";
+            $collections{$key}{children} .= "$collections{$sub_key}{name}";
+            $collections{$key}{children} .= "\n";
+        }
+    }
 
- 
-	#foreach $key (sort check_numerically keys %collections) {
-	#	$output .= "$key: $collections{$key}{name}:$collections{$key}{link}$collections{$key}{external}$collections{$key}{iframe}:$collections{$key}{comment}:$collections{$key}{mode}:$collections{$key}{children}";  
-   	#}
-  
-	my ($row, $show_row, $bracket_errors, $comma_errors1, $comma_errors2, %brackets, $curly, $square);
-	$curly = 'closed';
-	$square = 'closed';
+    #foreach $key (sort check_numerically keys %collections) {
+    #	$output .= "$key: $collections{$key}{name}:$collections{$key}{link}$collections{$key}{external}$collections{$key}{iframe}:$collections{$key}{comment}:$collections{$key}{mode}:$collections{$key}{children}";
+    #}
 
-	while ($row < @data) {
-  		$show_row = $row + 1;
-  		$data[$row] =~ s/\s+$//; # remove trailing spaces
-  		if ($data[$row] =~ /\{/ and $data[$row] !~ /iframe|external/) {
-    		$brackets{open_curly} ++;
-    		$bracket_errors .= "Repeated open curly bracket in line $show_row: '$data[$row]'\n" if $curly and $curly eq 'open';
-    		$curly = 'open';
-    	}
-  		if ($data[$row] =~ /\}/ and $data[$row] !~ /iframe|external/) {
-    		$brackets{close_curly} ++;
-    		$bracket_errors .= "Repeated close curly bracket in line $show_row: '$data[$row]'\n" if $curly eq 'closed';
-    		$curly = 'closed';
-  		}
-  		if ($data[$row] =~ /\[/) {
-    		$brackets{open_square} ++;
-    		$bracket_errors .= "Repeated open square bracket in line $show_row: '$data[$row]'\n" if $square eq 'open';
-    		$square = 'open';
-  		}
-  		if ($data[$row] =~ /\]/) {
-    		$brackets{close_square} ++;
-    		$bracket_errors .= "Repeated close square bracket in line $show_row: '$data[$row]'\n" if $square eq 'closed';
-    		$square = 'closed';
-  		}
-  
-  		$comma_errors1 .= $row + 1 . ": '$data[$row]'\n" if $data[$row] !~ /\, *$/ 
-     		and $data[$row + 1] !~ /(\}|\])/ 
-     		and $data[$row] !~ /\: (\{|\[)/ 
-     		and $data[$row] !~ /^\{/ 
-     		and $data[$row] !~ /\}$/;
+    my ( $row, $show_row, $bracket_errors, $comma_errors1, $comma_errors2,
+        %brackets, $curly, $square );
+    $curly  = 'closed';
+    $square = 'closed';
 
-  		$comma_errors2 .= $row + 1 . ": '$data[$row]'\n" if $data[$row] =~ /\,/ and $data[$row + 1] =~ /(\}|\])\,/; 
+    while ( $row < @data ) {
+        $show_row = $row + 1;
+        $data[$row] =~ s/\s+$//;    # remove trailing spaces
+        if ( $data[$row] =~ /\{/ and $data[$row] !~ /iframe|external/ ) {
+            $brackets{open_curly}++;
+            $bracket_errors .=
+              "Repeated open curly bracket in line $show_row: '$data[$row]'\n"
+              if $curly and $curly eq 'open';
+            $curly = 'open';
+        }
+        if ( $data[$row] =~ /\}/ and $data[$row] !~ /iframe|external/ ) {
+            $brackets{close_curly}++;
+            $bracket_errors .=
+              "Repeated close curly bracket in line $show_row: '$data[$row]'\n"
+              if $curly eq 'closed';
+            $curly = 'closed';
+        }
+        if ( $data[$row] =~ /\[/ ) {
+            $brackets{open_square}++;
+            $bracket_errors .=
+              "Repeated open square bracket in line $show_row: '$data[$row]'\n"
+              if $square eq 'open';
+            $square = 'open';
+        }
+        if ( $data[$row] =~ /\]/ ) {
+            $brackets{close_square}++;
+            $bracket_errors .=
+              "Repeated close square bracket in line $show_row: '$data[$row]'\n"
+              if $square eq 'closed';
+            $square = 'closed';
+        }
 
-  		$row ++;
-	}
+        $comma_errors1 .= $row + 1 . ": '$data[$row]'\n"
+          if $data[$row] !~ /\, *$/
+          and $data[ $row + 1 ] !~ /(\}|\])/
+          and $data[$row] !~ /\: (\{|\[)/
+          and $data[$row] !~ /^\{/
+          and $data[$row] !~ /\}$/;
 
-	$output .= "Possible bracket errors:\n$bracket_errors\n" if $bracket_errors;
-	$output .= "The following lines should possibly have a comma at the end:\n$comma_errors1\n" if $comma_errors1;
-	$output .= "The following lines should possibly not have a comma at the end:\n$comma_errors2\n" if $comma_errors2;
+        $comma_errors2 .= $row + 1 . ": '$data[$row]'\n"
+          if $data[$row] =~ /\,/ and $data[ $row + 1 ] =~ /(\}|\])\,/;
 
-	$output .= "There are $brackets{open_square} '[' and $brackets{close_square} ']'.\n";
-	$output .= "There are $brackets{open_curly} '{' and $brackets{close_curly} '}'.\n";
+        $row++;
+    }
 
-	print_log $output;
+    $output .= "Possible bracket errors:\n$bracket_errors\n" if $bracket_errors;
+    $output .=
+      "The following lines should possibly have a comma at the end:\n$comma_errors1\n"
+      if $comma_errors1;
+    $output .=
+      "The following lines should possibly not have a comma at the end:\n$comma_errors2\n"
+      if $comma_errors2;
+
+    $output .=
+      "There are $brackets{open_square} '[' and $brackets{close_square} ']'.\n";
+    $output .=
+      "There are $brackets{open_curly} '{' and $brackets{close_curly} '}'.\n";
+
+    print_log $output;
 }
 
 sub check_numerically { $a <=> $b }
-
 
 return 1;    # Make require happy
 
