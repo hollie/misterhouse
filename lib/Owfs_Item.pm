@@ -88,7 +88,6 @@ use Socket_Item;
 
 package Owfs_Item;
 use strict;
-use experimental 'smartmatch';
 
 @Owfs_Item::ISA = ('Generic_Item');
 
