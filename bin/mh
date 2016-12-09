@@ -45,7 +45,7 @@ BEGIN {
       if $PAR::VERSION;         # If built with PAR
 
     # $0=path to mh/bin, $^X=path to perl, unless perl2exe compiled mh.exe
-    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /^(.*)[\\\/]([^.]+)/;
+    ( $Pgm_Path, $Pgm_Name ) = $0  =~ /^(.*)[\\\/]([^.]+)/;
     ( $Pgm_Path, $Pgm_Name ) = $^X =~ /^(.*)[\\\/]([^.]+)/
       if $Info{Perl_compiled};
 
@@ -479,7 +479,7 @@ EOF
                 # Allow for multiple debugs like serial;x10
                 for my $debug ( split /[,|;]/, lc $config_parms{debug} ) {
                     $debug =~ s/^\s+|\s+$//g;    #Trim whitespace
-                        # Allow for debug level like: x10:4
+                         # Allow for debug level like: x10:4
                     next unless $debug;
                     if ( $debug =~ /\s*(\S+)\s*:\s*(\d+)\s*/ ) {
                         $Debug{$1} = $2;
@@ -758,14 +758,14 @@ sub setup {
     # otherwise we use a simple but fast exact word match distance function.
     {
         local $SIG{__WARN__} =
-          sub { };    # Disable 5.8 "Can't locate auto/..." message
+          sub { };             # Disable 5.8 "Can't locate auto/..." message
         eval 'use Text::LevenshteinXS qw(distance)';
         eval
           'print " - using simple Text distance function\n"; sub distance { return $_[0] ne $_[1] }'
           if $@;
     }
-    use Time::Local;          # For timelocal
-    use Time::DaysInMonth;    # For days_in (and is_leap?)
+    use Time::Local;           # For timelocal
+    use Time::DaysInMonth;     # For days_in (and is_leap?)
 
     # Date::Manip needs it in ISO 8601 form: +-HHMM
     # Hmmm, this messes up str2time from Date::Parse
@@ -849,7 +849,7 @@ sub setup {
 
     #   require 'console_utils.pl';
     require 'http_server.pl';
-	require 'ia7_utilities.pl';
+    require 'ia7_utilities.pl';
     require 'xml_server.pl';
     require 'menu_code.pl';
     require 'trigger_code.pl';
@@ -915,7 +915,8 @@ sub setup {
     mkdir( "$config_parms{html_dir}/tv/clicktv", 0777 )
       unless -d "$config_parms{html_dir}/tv/clicktv";
 
-    $Time_Date = &time_date_stamp( $config_parms{time_format_log}, $Time )
+    $Time_Date =
+      &time_date_stamp( $config_parms{time_format_log}, $Time )
       ;    # Needed by print_log
 
     &open_logs;
@@ -961,7 +962,7 @@ sub setup {
         #       eval qq[\$break = "$break"];
 
         my $pretty_port_name = $port_name;
-        $pretty_port_name =~ s/_/\x20/g;    # a slight improvement
+        $pretty_port_name =~ s/_/\x20/g;                 # a slight improvement
 
         printf " - creating %-15s on %3s %s %5s %s\n", $pretty_port_name,
           $proto, $address, $port, $datatype;
@@ -1221,6 +1222,13 @@ sub setup {
         &serial_port_create( 'cm17', $config_parms{cm17_port} );
     }
 
+    if ( $config_parms{object_logger_enable} ) {
+        print " - object logging enabled\n";
+    }
+    else {
+        print " - object logging disabled\n";
+    }
+
     # Store boot time in seconds since epoc
     if ($OS_win) {
         $Time_Boot_time =
@@ -1268,7 +1276,8 @@ sub setup {
     # NOTE: on Windows, default is best left empty for tk_font (inherits font from OS display scheme)
 
     $config_parms{tk_font} = 'Times 10'
-      unless $config_parms{tk_font} or $OS_win;
+      unless $config_parms{tk_font}
+      or $OS_win;
     $config_parms{tk_font_fixed} = 'Courier 10'
       unless $config_parms{tk_font_fixed};
 
@@ -2361,7 +2370,8 @@ sub check_for_generic_serial_data {
                 $Serial_Ports{$port_name}{data} =~ /(.+?)$break(.*)/s )
             {
                 print "Data from $port_name: $record.  remainder=$remainder.\n"
-                  if $Debug{serial} or $Debug{$port_name};
+                  if $Debug{serial}
+                  or $Debug{$port_name};
                 $Serial_Ports{$port_name}{data_record} = $record;
                 $Serial_Ports{$port_name}{data}        = $remainder;
                 if ( $Serial_Ports{$port_name}{process_data} ) {
@@ -2585,7 +2595,7 @@ sub check_for_proxy_data {
                     # Drop only dynamic proxies, like those in common/proxy_client_server.pl.
                     # Leave static ones, so we can keep testing it so we can reconnect when proxy comes back
                     &drop_proxy($address) if $config_parms{mh_proxyreg_port};
-                    $address =~ s/\:\d+$//;    # Shorten up name for speaking
+                    $address =~ s/\:\d+$//;       # Shorten up name for speaking
                     $address =~ s/.+\.(\d+)$/$1/;
                     &speak("proxy $address is dead") if &new_minute(2);
                     next;
@@ -2782,7 +2792,7 @@ sub check_for_socket_data {
     #  - could probably use a smarter select check here, rather than loop for each port
     for my $port_name ( keys %Socket_Ports ) {
         next if $port_name eq 'http';    # Deal with this elsewhere
-          # Need to use _flag var so active/inactive_this_pass is valid for 1 full pass.
+           # Need to use _flag var so active/inactive_this_pass is valid for 1 full pass.
         $Socket_Ports{$port_name}{active_this_pass} = 0;
         $Socket_Ports{$port_name}{active_this_pass} = 1
           if $Socket_Ports{$port_name}{active_this_pass_flag};
@@ -2847,8 +2857,8 @@ sub check_for_socket_data {
 
                     push @{ $Socket_Ports{$port_name}{clients} },
                       [ $new_sock, $client_ip_address, $client_port, undef ];
-                    delete $Socket_Ports{$port_name}{data}
-                      ;    # Delete data from previous session
+                    delete $Socket_Ports{$port_name}
+                      {data};    # Delete data from previous session
                     $Socket_Ports{$port_name}{client_number} =
                       @{ $Socket_Ports{$port_name}{clients} } - 1;
 
@@ -3080,8 +3090,8 @@ sub check_for_tied_events {
                 &print_log($log_msg) unless $log_msg eq '1';
                 my $state  = $state1;    # So eval can substitute $state
                 my $object = $object1;
-                $Set_By = $object1->{set_by}
-                  ; # Checked in Generic_Item set method (not usually at this time)
+                $Set_By = $object1
+                  ->{set_by}; # Checked in Generic_Item set method (not usually at this time)
                 print
                   "Event link: state=$state set_by=$Set_By object=$object->{object_name} eval event=$event\n"
                   if $Debug{events};
@@ -3528,7 +3538,8 @@ sub eval_user_code_load {
                           . &eval_user_code_error( $@, $temp_code );
                         print $error;
                         &display( $error, 60 )
-                          unless $Startup or !$config_parms{tk};
+                          unless $Startup
+                          or !$config_parms{tk};
                         undef $old_error;
                         last;
                     }
@@ -4481,7 +4492,8 @@ sub phrase_match {
     #   for my $phrase2 (('when will the sun set', 'new moon')) {
     # Do a fast less accurate search on all phrases
     for my $phrase2 ( &Voice_Cmd::voice_items( 'mh', 'no_category' ) ) {
-        my $d = pdistance( $phrase, $phrase2, $set1, \&distance,
+        my $d =
+          pdistance( $phrase, $phrase2, $set1, \&distance,
             { -cost => [ 1, 0, 3 ], -mode => 'set' } );
         print " - d1=$d phrase=$phrase2.\n" if $Debug{phrase};
         push @{ $list1{$d} }, $phrase2 if $d <= $d_min1;
@@ -4495,7 +4507,8 @@ sub phrase_match {
     my $d_min2 = 999;
     my $set2   = 'abcdefghijklmnopqrstuvwxyz0123456789+-%';
     for my $phrase2 ( @{ $list1{$d_min1} } ) {
-        my $d = pdistance( $phrase, $phrase2, $set2, \&distance,
+        my $d =
+          pdistance( $phrase, $phrase2, $set2, \&distance,
             { -cost => [ 1, 0, 3 ], -mode => 'set' } );
         print " - d2=$d phrase=$phrase2.\n" if $Debug{phrase};
         push @{ $list2{$d} }, $phrase2 if $d <= $d_min2;
@@ -4774,7 +4787,7 @@ sub play {
 
     }
 
-    &Play_post_hooks(%parms);    # Created by &add_hooks
+    &Play_post_hooks(%parms);                       # Created by &add_hooks
 
 }
 
@@ -5945,7 +5958,8 @@ sub setup_DBI {
 
     unless ( &my_use('DBI') ) {    # So we don't fail if DBI is not installed
         return
-          if $DBI = DBI->connect( $db, $config_parms{dbi_user},
+          if $DBI =
+          DBI->connect( $db, $config_parms{dbi_user},
             $config_parms{dbi_password} );
     }
 
@@ -6149,7 +6163,8 @@ sub read_user_code {
 
             # Check for the end of a statment ... allow for end of line comments
             $noloop_statement_flag = 0
-              if $record =~ /\;\s*$/ or $record =~ /\;\s*#/;
+              if $record =~ /\;\s*$/
+              or $record =~ /\;\s*#/;
 
             $noloop_flag = 0 if $record =~ /#\s*noloop=stop/i;
 
@@ -6281,7 +6296,7 @@ sub read_user_code_loopcode {
 # Much quicker than a read_code call.
 # Like the 'do' function, except we add sub member_name {} around the code
 sub do_user_file {
-    my ($file)        = @_;
+    my ($file) = @_;
     my ($member_name) = $file =~ /([^\\\/]+)\.(pl|mhp)$/i;
     $member_name .= '_table' if $file =~ /mhp$/;
     my ( $sub_name, $code ) =
@@ -6708,7 +6723,8 @@ sub set_global_vars {
         }
         $New_Second = $New_Minute = $New_Hour = $New_Day = $New_Week =
           $New_Month = $New_Year = 0
-          if $Startup or $Reload;
+          if $Startup
+          or $Reload;
 
         # More $New_Second stuff ...
         $Info{cpu_used} = 0;
@@ -7304,7 +7320,7 @@ sub respond {
       if $target !~ /\S/
       or $target =~ /unknown/i
       or $target =~ /UserCode/i
-      or $target =~ /time/i;    # includes tie_time
+      or $target =~ /time/i;                 # includes tie_time
 
     print
       "respond target=$target lr=$Last_Response RT=$Respond_Target lso=$leave_socket_open_passes lsa=leave_socket_open_action a=@_\n"
@@ -7737,7 +7753,8 @@ sub route_display_rooms {
             my $func = "display_$targets{$target_room}{device}";
             foreach my $key ( keys %{ $targets{$target_room} } ) {
                 $parms{$key} = $targets{$target_room}{$key}
-                  unless $key eq 'device' or $key eq 'text';
+                  unless $key eq 'device'
+                  or $key eq 'text';
             }
             if ( $main::{$func} ) {
                 no strict 'refs';
@@ -7877,7 +7894,7 @@ sub time_now {
     #  - if we add a 'catchup mode', we can go back to checking on the exact second
     my $time_now = &my_str2time($time_date);
     unless ($time_now) {
-        my @caller = caller;    # This is not useful in user_code eval :(
+        my @caller = caller;          # This is not useful in user_code eval :(
         print "Bad time_now format:  $time_date  caller=@caller\n";
     }
 
@@ -8189,7 +8206,8 @@ sub x10_dim_level_decode {
     my ($code) = @_;
 
     # Convert bit string to decimal
-    my $level_b = $table_hcodes{ substr( $code, 0, 1 ) }
+    my $level_b =
+        $table_hcodes{ substr( $code, 0, 1 ) }
       . $table_dcodes{ substr( $code, 1, 1 ) };
     my $level_d = unpack( 'C', pack( 'B8', $level_b ) );
 
