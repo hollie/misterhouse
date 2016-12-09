@@ -1127,12 +1127,12 @@ sub convert_value {
     my $location = $self->{location};
     my $channel  = $self->{channel};
     my $value    = $state;
-    $value = 1 if ( $state ~~ $ON );
-    $value = 0 if ( $state ~~ $OFF );
-    $value = 1 if ( $state ~~ main::ON );
-    $value = 0 if ( $state ~~ main::OFF );
-    $value = 1 if ( $state ~~ 'yes' );
-    $value = 0 if ( $state ~~ 'no' );
+    $value = 1 if ( lc $state eq lc $ON ); #( $state ~~ $ON );
+    $value = 0 if ( lc $state eq lc $OFF ); #( $state ~~ $OFF );
+    $value = 1 if ( lc $state eq main::ON ); #( $state ~~ main::ON );
+    $value = 0 if ( lc $state eq main::OFF ); #( $state ~~ main::OFF );
+    $value = 1 if (lc $state eq 'yes' ); #( $state ~~ 'yes' );
+    $value = 0 if (lc $state eq 'no' ); #( $state ~~ 'no' );
     if ( ( $value ne 1 ) && ( $value ne 0 ) ) {
         my $debug = $self->{debug} || $main::Debug{owfs};
         &main::print_log(
