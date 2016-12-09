@@ -1,7 +1,6 @@
 use strict;
 use warnings;
 use Time::HiRes;
-use experimental 'smartmatch';
 use Group;
 use Process_Item;
 use IO::Socket::INET;
@@ -536,7 +535,7 @@ sub _handle_incoming_commands {
         }
         if (   $self->{current_cmd}->{expected_response}
             && !$dec->{REPRQ}
-            && $cmd ~~ ( $self->{current_cmd}->{expected_response} ) )
+            && grep { $_ eq $cmd } @{ $self->{current_cmd}->{expected_response} } )
         {
             $self->{current_cmd}->{expected_response_seen} = 1;
 
@@ -1830,8 +1829,8 @@ sub preset_dim {
     $self->command( 'presetdim', $bright_percent, $fade_rate_secs );
 }
 
-my @light_cmds = [ "on", "off", "bright", "dim" ];
-my @plc_cmds = [
+my @light_cmds = ( "on", "off", "bright", "dim" );
+my @plc_cmds = (
     "status req",
     "blink",
     "status on",
@@ -1839,7 +1838,7 @@ my @plc_cmds = [
     "get signal strength",
     "get noise strength",
     "all scenes addrs erase",
-];
+);
 
 sub set {
     my ( $self, $new_state, $setby, $respond ) = @_;
@@ -1849,13 +1848,13 @@ sub set {
     $l .= "respond $respond " if $respond;
     $self->_logd($l);
 
-    if ( $new_state ~~ @light_cmds ) {
+    if ( grep { $new_state eq $_ } @light_cmds ) {
         if ($self->{state} && $new_state eq $self->{state} ) {
             $self->_logd("Already in state $new_state, sending command anyway");
         }
         $self->command( $new_state, undef, undef, $setby, $respond );
     }
-    elsif ( $new_state ~~ @plc_cmds ) {
+    elsif ( grep { $_ eq $new_state } @plc_cmds ) {
         $new_state =~ s/ /_/g;
         $self->command( $new_state, undef, undef, $setby, $respond );
     }
