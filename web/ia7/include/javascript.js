@@ -1,4 +1,4 @@
-// v1.3.600
+// v1.3.601
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -972,7 +972,9 @@ var updateStaticPage = function(link,time) {
 						$('button[entity="'+entity+'"]').removeClass("btn-danger");
 						$('button[entity="'+entity+'"]').removeClass("btn-info");
 						$('button[entity="'+entity+'"]').addClass("btn-"+color);
-						if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") $('button[entity="'+entity+'"]').addClass("btn-direct");
+						if (json_store.ia7_config.objects[entity] !== undefined && 
+						    json_store.ia7_config.objects[entity].direct_control !== undefined && 
+						    json_store.ia7_config.objects[entity].direct_control == "yes") $('button[entity="'+entity+'"]').addClass("btn-direct");
 						
 						//don't run this if stategrp0 exists	
 						if (states_loaded == 0) {
