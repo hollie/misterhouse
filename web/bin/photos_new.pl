@@ -18,27 +18,27 @@ Example mh.ini parms:
 
 =cut
 
-use vars '@photos';             # This will be persistent across passes and code reloads
+use vars '@photos';    # This will be persistent across passes and code reloads
 @photos = file_read $config_parms{photo_index} unless @photos;
 
-                                # Set up defaults
+# Set up defaults
 my $time = $config_parms{photo_time};
 $time = 60 unless defined $time;
-$config_parms{photo_url}     = '/ia5'       unless $config_parms{photo_url};
+$config_parms{photo_url} = '/ia5' unless $config_parms{photo_url};
 my $images = "";
-foreach (@photos){
-	my $file = $_;
-	my $img = $file;
-	my @dirs = split(/,/, $config_parms{photo_dirs});
-	$file     =~  s/ /%20/g;
-	$file     =~  s/\#/%23/g;
-	$file     =~  s/\'/%27/g;
-	foreach (@dirs){
-		$img =~ s/$_//;
-	}
-	$img =~ m/(\/)?(.+)\.(\S+)/;
-	$img = $2;
-	$images .= <<eof;
+foreach (@photos) {
+    my $file = $_;
+    my $img  = $file;
+    my @dirs = split( /,/, $config_parms{photo_dirs} );
+    $file =~ s/ /%20/g;
+    $file =~ s/\#/%23/g;
+    $file =~ s/\'/%27/g;
+    foreach (@dirs) {
+        $img =~ s/$_//;
+    }
+    $img =~ m/(\/)?(.+)\.(\S+)/;
+    $img = $2;
+    $images .= <<eof;
 <div class="imageElement">
 	<h3>$img</h3>
 	<p></p>

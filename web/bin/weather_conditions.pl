@@ -7,17 +7,18 @@
 #
 # by Matthew Williams
 
-my $weather=qq[HTTP/1.0 200 OK
+my $weather = qq[HTTP/1.0 200 OK
 Server: MisterHouse
 Content-Type: text/plain
 Cache-Control: no-cache
 
 ];
 
-if ($Weather{Summary_Long}) { 
-	$weather.=$Weather{Summary_Long};
-} else {
-	$weather = 'unknown - enable a weather module';
+if ( $Weather{Summary_Long} ) {
+    $weather .= $Weather{Summary_Long};
+}
+else {
+    $weather = 'unknown - enable a weather module';
 }
 
 return $weather;

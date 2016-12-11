@@ -1,0 +1,87 @@
+#!/usr/bin/perl
+
+# This file will run perltidy on all perl files in the repository
+
+use strict;
+use warnings;
+
+# Allow script to be run from any directory
+if ( $0 =~ /(\\|\/)/ ) {
+    my ( $Pgm_Path, $Pgm_Name ) = $0 =~ /^(.*)[\\\/]([^.]+)/;
+    chdir $Pgm_Path;
+}
+
+# Recursively scans each directory
+sub read_dir {
+    my ( $dir_sub, $type ) = @_;
+    opendir( DIR, $dir_sub ) or die $!;
+    my ( @results, @dir_results );
+    while ( my $file = readdir(DIR) ) {
+        next if ( $file =~ m/^\./ );
+        next if ( -l "$dir_sub/$file" );    # Skip symlinks
+        if ( lc("$dir_sub/$file") =~ /^\.\.\/lib\/site/ )
+        {                                   #Skip distributed perl modules
+            next;
+        }
+        elsif ( -d "$dir_sub/$file" ) {     #Directory
+            push( @dir_results, "$dir_sub/$file" );
+        }
+        elsif ( $file =~ m/\.(bak|ERR)$/i && $type eq 'delete' ) {
+            push( @results, "$dir_sub/$file" );
+        }
+        elsif ( $file =~ m/\.(pl|pod|pm|t)$/i && $type eq 'read' )
+        {                                   #These are perl extensions
+            push( @results, "$dir_sub/$file" );
+        }
+        elsif ( $type eq 'read' )
+        {    #Unknown extension, look for perl interpreter in first line
+            open( my $fh2, '<', "$dir_sub/$file" ) || die "open $file: $!";
+            my $possible = <$fh2> || next;
+            next unless $possible =~ m/^#!.*perl\W/;
+            push( @results, "$dir_sub/$file" );
+        }
+    }
+    closedir(DIR);
+
+    #Recursively scan each sub directory
+    foreach (@dir_results) {
+        push( @results, read_dir( $_, $type ) );
+    }
+    return @results;
+}
+
+my $argument = shift @ARGV || "";
+
+if ( $argument eq '--delete_bak_err' ) {
+    print "\nDeleting PerlTidy backup files and error logs.\n";
+    foreach my $file ( read_dir( "..", 'delete' ) ) {
+        unlink $file or warn "Could not unlink $file: $!";
+    }
+    print "\n-----------------------------\n\n";
+    print "PerlTidyAll Cleanup Complete\n\n";
+}
+elsif ( $argument eq '' ) {
+    print "\nRunning PerlTidy on all Perl files in the MisterHouse repository. "
+      . "This may take a few minutes to complete, press Ctrl+C to cancel.\n";
+    my $command = "perltidy " . join( " ", read_dir( "..", 'read' ) );
+    `$command`;
+
+    print "\n-----------------------------\n\n";
+    print "PerlTidyAll Complete\n\n";
+    print
+      "Any errors encountered while tidying the files have saved to the files "
+      . "identified above. If no *.ERR files are listed than no errors occured\n\n";
+    print
+      "Backups of all files that were changed have been saved as *.bak.  Please "
+      . "review the changes made and if you are satisfied with the results you can "
+      . " delete the backup and error files by running the following command:\n\n";
+    print "perltidyall --delete_bak_err\n\n";
+}
+else {
+    print
+      "\nERROR - Unrecognized Argument\n\nPerlTidyAll may be run without any "
+      . "arguments or with the --delete_bak_err argument to delete backup and log"
+      . " files.\n";
+}
+
+exit 0;

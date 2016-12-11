@@ -13,30 +13,33 @@
 # The URL will be suffixed with the flight code.
 # e.g. Air Canada flight 123 will result in AC123 being added to the end of the URL.
 
-my $statusURL='';
-my $scriptLocation=$HTTP_REQUEST;
+my $statusURL      = '';
+my $scriptLocation = $HTTP_REQUEST;
 
-if ($HTTP_ARGV{airline} ne '' and $HTTP_ARGV{airline} ne 'none') {
-	$statusURL=$config_parms{flight_status_url};
-	$statusURL='http://Tracker.flightview.com/fvTV/fvcgi.exe?qtype=GIF&ACID=' unless $statusURL;
-	$statusURL .= $HTTP_ARGV{airline};
-	$statusURL .= int($HTTP_ARGV{flight});
+if ( $HTTP_ARGV{airline} ne '' and $HTTP_ARGV{airline} ne 'none' ) {
+    $statusURL = $config_parms{flight_status_url};
+    $statusURL = 'http://Tracker.flightview.com/fvTV/fvcgi.exe?qtype=GIF&ACID='
+      unless $statusURL;
+    $statusURL .= $HTTP_ARGV{airline};
+    $statusURL .= int( $HTTP_ARGV{flight} );
 }
 
-my $html='';
+my $html = '';
 
-if ($HTTP_ARGV{airline} eq 'none') {
-	$html.='<p><h3>You forgot to select an airline!</h3></p>';
+if ( $HTTP_ARGV{airline} eq 'none' ) {
+    $html .= '<p><h3>You forgot to select an airline!</h3></p>';
 }
 
-if ($statusURL ne '') {
-	$html .= qq[<p><h3>Airline: $HTTP_ARGV{airline}.  Flight Number: $HTTP_ARGV{flight}.</h3></p>
+if ( $statusURL ne '' ) {
+    $html .=
+      qq[<p><h3>Airline: $HTTP_ARGV{airline}.  Flight Number: $HTTP_ARGV{flight}.</h3></p>
 <p><img src="$statusURL"></p>
 <p><a href="$scriptLocation">Request the status of another flight</a></p>
 <p><a href="$scriptLocation?airline=$HTTP_ARGV{airline}&flight=$HTTP_ARGV{flight}">Refresh this flight status page</a></p>];
 
-} else {
-	$html.=qq[<form method="post" id="main" name="main">
+}
+else {
+    $html .= qq[<form method="post" id="main" name="main">
 <p><select name="airline">
 <option value="none">Please select an airline ...</option>
 <option value="TZ" >ATA Airlines - TZ</option>
@@ -147,7 +150,8 @@ if ($statusURL ne '') {
 </form>
 <hr />
 ];
-$html .= &insert_keyboard({form => 'main', target => 'flight', numeric_keypad => 'yes'});
+    $html .= &insert_keyboard(
+        { form => 'main', target => 'flight', numeric_keypad => 'yes' } );
 }
 
 return $html;

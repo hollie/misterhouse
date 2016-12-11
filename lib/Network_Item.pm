@@ -1,3 +1,4 @@
+
 =head1 B<Network_Item>
 
 =head2 SYNOPSIS
@@ -46,23 +47,24 @@ $interval: How often to ping (in seconds)
 =cut
 
 sub new {
-    my ($class, $address, $interval, $mac_address) = @_;
-	my $self={};
-	bless $self,$class;
+    my ( $class, $address, $interval, $mac_address ) = @_;
+    my $self = {};
+    bless $self, $class;
 
-    my $ping_test_cmd   = ($::OS_win) ? 'ping -n 1 ' : 'ping -c 1 ';
-    my $ping_test_file  = "$::config_parms{data_dir}/ping_results.$address.txt";
+    my $ping_test_cmd = ($::OS_win) ? 'ping -n 1 ' : 'ping -c 1 ';
+    my $ping_test_file = "$::config_parms{data_dir}/ping_results.$address.txt";
 
-    $self->{address}  = $address;
-    $self->{interval} = $interval;
+    $self->{address}     = $address;
+    $self->{interval}    = $interval;
     $self->{mac_address} = $mac_address;
     $self->add_states('start');
 
     $self->{timer} = new Timer;
-    $self->{timer}-> set($self->{interval}, sub {&Network_Item::ping_check($self)}, -1);
+    $self->{timer}
+      ->set( $self->{interval}, sub { &Network_Item::ping_check($self) }, -1 );
 
-    $self->{process} = new Process_Item($ping_test_cmd . $address);
-    $self->{process}-> set_output($ping_test_file);
+    $self->{process} = new Process_Item( $ping_test_cmd . $address );
+    $self->{process}->set_output($ping_test_file);
     unlink $ping_test_file;
     return $self;
 }
@@ -74,33 +76,35 @@ sub ping_check {
 
     $self->{process}->stop();
 
-    my $ping_test_file  = "$::config_parms{data_dir}/ping_results.$address.txt";
-    if (-e $ping_test_file) {
+    my $ping_test_file = "$::config_parms{data_dir}/ping_results.$address.txt";
+    if ( -e $ping_test_file ) {
         my $ping_results = &::file_read($ping_test_file);
-        print "db ping_results for $address f=$ping_test_file: $ping_results\n" if $::Debug{network};
-        my $state = ($ping_results =~ /ttl=/i) ? 'up' : 'down';
-	if ($self->state ne $state) { $self->set($state); };
-	unlink $ping_test_file;
+        print "db ping_results for $address f=$ping_test_file: $ping_results\n"
+          if $::Debug{network};
+        my $state = ( $ping_results =~ /ttl=/i ) ? 'up' : 'down';
+        if ( $self->state ne $state ) { $self->set($state); }
+        unlink $ping_test_file;
     }
 
     $self->{process}->start();
 
 }
 
-sub default_setstate
-{
-    my ($self, $state) = @_;
-    if ($state !~ m/^up|down|start$/i){
-    	&::print_log("Invalid state for Network_Item: $state") if $::Debug{network};
-    	return -1;
-    } else {
-    	&::print_log("Setting " .$self->{address}." as " .$state) if $::Debug{network};
+sub default_setstate {
+    my ( $self, $state ) = @_;
+    if ( $state !~ m/^up|down|start$/i ) {
+        &::print_log("Invalid state for Network_Item: $state")
+          if $::Debug{network};
+        return -1;
+    }
+    else {
+        &::print_log( "Setting " . $self->{address} . " as " . $state )
+          if $::Debug{network};
     }
 }
 
-sub setstate_start
-{
-    my ($self, $substate, $state) = @_;
+sub setstate_start {
+    my ( $self, $substate, $state ) = @_;
     #
     # wake
     #
@@ -109,53 +113,59 @@ sub setstate_start
     # in any kind of packet, in this case UDP to the discard port (9).
     #
 
-    my $hwaddr  = $self->{mac_address};
-    my $ipaddr  = '255.255.255.255';
-    my $port    = getservbyname('discard', 'udp');
+    my $hwaddr = $self->{mac_address};
+    my $ipaddr = '255.255.255.255';
+    my $port   = getservbyname( 'discard', 'udp' );
 
-    my ($raddr, $them, $proto);
-    my ($hwaddr_re, $pkt);
+    my ( $raddr, $them, $proto );
+    my ( $hwaddr_re, $pkt );
 
     # Validate hardware address (ethernet address)
 
-    $hwaddr_re = join(':', ('[0-9A-Fa-f]{1,2}') x 6);
-    if ($hwaddr !~ m/^$hwaddr_re$/)
-    {
+    $hwaddr_re = join( ':', ('[0-9A-Fa-f]{1,2}') x 6 );
+    if ( $hwaddr !~ m/^$hwaddr_re$/ ) {
         warn "Invalid hardware address: $hwaddr\n";
-	&::print_log("Missing or invalid MAC address for " .$self->{address}." ( " .$hwaddr." )") if $::Debug{network};
-	$state='down';
-	$self->set_states_for_next_pass($state);
-	return -1;
+        &::print_log( "Missing or invalid MAC address for "
+              . $self->{address} . " ( "
+              . $hwaddr
+              . " )" )
+          if $::Debug{network};
+        $state = 'down';
+        $self->set_states_for_next_pass($state);
+        return -1;
 
     }
+
     # Generate magic sequence
 
-    foreach (split /:/, $hwaddr)
-    {
-        $pkt .= chr(hex($_));
+    foreach ( split /:/, $hwaddr ) {
+        $pkt .= chr( hex($_) );
     }
     $pkt = chr(0xFF) x 6 . $pkt x 16;
 
     # Alocate socket and send packet
 
     $raddr = gethostbyname($ipaddr);
-    $them = pack_sockaddr_in($port, $raddr);
+    $them  = pack_sockaddr_in( $port, $raddr );
     $proto = getprotobyname('udp');
 
-    socket(S, AF_INET, SOCK_DGRAM, $proto) or die "socket : $!";
-    setsockopt(S, SOL_SOCKET, SO_BROADCAST, 1) or die "setsockopt : $!";
+    socket( S, AF_INET, SOCK_DGRAM, $proto ) or die "socket : $!";
+    setsockopt( S, SOL_SOCKET, SO_BROADCAST, 1 ) or die "setsockopt : $!";
 
     print "Sending magic packet to $ipaddr:$port with $hwaddr\n";
 
-    send(S, $pkt, 0, $them) or die "send : $!";
+    send( S, $pkt, 0, $them ) or die "send : $!";
     close S;
 
-    if ($self->state eq "start") { 
-	$state eq "down";
-	$self->set($state); };
-    &::print_log("Setting " .$self->{address}." substate as " .$state) if $::Debug{network};
+    if ( $self->state eq "start" ) {
+        $state eq "down";
+        $self->set($state);
+    }
+    &::print_log( "Setting " . $self->{address} . " substate as " . $state )
+      if $::Debug{network};
 
-    &::print_log("Setting " .$self->{address}." state as " .$state) if $::Debug{network};
+    &::print_log( "Setting " . $self->{address} . " state as " . $state )
+      if $::Debug{network};
 
 }
 

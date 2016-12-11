@@ -1,3 +1,4 @@
+
 =head1 B<HomeBase>
 
 =head2 SYNOPSIS
@@ -18,7 +19,6 @@ B<NONE>
 
 =cut
 
-
 use strict;
 
 package HomeBase;
@@ -27,22 +27,29 @@ my $temp;
 
 sub init {
     my ($serial_port) = @_;
-                                # Set to echo mode, so we can monitor events
-#   print "Sending HomeBase init string\n";
-    print "Bad HomeBase init echo command transmition\n" unless 6 == $serial_port->write("##%1d\r");
+
+    # Set to echo mode, so we can monitor events
+    #   print "Sending HomeBase init string\n";
+    print "Bad HomeBase init echo command transmition\n"
+      unless 6 == $serial_port->write("##%1d\r");
 }
 
 sub read_time {
     my ($serial_port) = @_;
     print "Reading HomeBase time\n";
-    if (6 == ($temp = $serial_port->write("##%06\r"))) {
-        select undef, undef, undef, 100 / 1000; # Give it a chance to respond
-        if (my $data = $serial_port->input) {
+    if ( 6 == ( $temp = $serial_port->write("##%06\r") ) ) {
+        select undef, undef, undef, 100 / 1000;    # Give it a chance to respond
+        if ( my $data = $serial_port->input ) {
+
             #print "HomeBase time string: $data\n";
-                                # Not sure about $second.  $wday looks like year, not 0-7??
-            my ($year, $month, $mday, $wday, $hour, $minute, $second) = unpack("A2A2A2A2A2A2A2", $data);
+            # Not sure about $second.  $wday looks like year, not 0-7??
+            my ( $year, $month, $mday, $wday, $hour, $minute, $second ) =
+              unpack( "A2A2A2A2A2A2A2", $data );
             print "Homebase time:  $hour:$minute:$second $month/$mday/$year\n";
-            return wantarray ? ($second, $minute, $hour, $mday, $month, $year, $wday) : " $hour:$minute:$second $month/$mday/$year";
+            return
+              wantarray
+              ? ( $second, $minute, $hour, $mday, $month, $year, $wday )
+              : " $hour:$minute:$second $month/$mday/$year";
         }
         else {
             print "Homebase did not respond to read_time request\n";
@@ -58,16 +65,17 @@ sub read_time {
 sub read_log {
     my ($serial_port) = @_;
     print "Reading HomeBase log\n";
-    if (6 == ($temp = $serial_port->write("##%15\r"))) {
-        select undef, undef, undef, 100 / 1000; # Give it a chance to respond
-                                # May need to paste data together to find real line breaks
+    if ( 6 == ( $temp = $serial_port->write("##%15\r") ) ) {
+        select undef, undef, undef, 100 / 1000;    # Give it a chance to respond
+               # May need to paste data together to find real line breaks
         my @log;
         my $buffer;
 
         # Read data in a buffer string
-        while (my $data = $serial_port->input) {
+        while ( my $data = $serial_port->input ) {
             $buffer .= $data;
-            select undef, undef, undef, 100 / 1000; # Need more/less/any delay here???
+            select undef, undef, undef,
+              100 / 1000;    # Need more/less/any delay here???
         }
 
         # Filter out extraneous stuff before splitting into list
@@ -90,7 +98,7 @@ sub read_log {
     }
     else {
         print "Homebase bad write on read_log request: $temp\n";
-        return 0
+        return 0;
     }
 }
 
@@ -104,11 +112,11 @@ sub read_log {
 #09/29 15:24:00 Call from Mom
 #09/29 15:43:06
 
-
 sub clear_log {
     my ($serial_port) = @_;
+
     #print "Clearing HomeBase log\n";
-    if (6 == $serial_port->write("##%16\r")) {
+    if ( 6 == $serial_port->write("##%16\r") ) {
         print "HomeBase log cleared\n";
         return 1;
     }
@@ -121,23 +129,24 @@ sub clear_log {
 sub read_flags {
     my ($serial_port) = @_;
     print "Reading HomeBase Flags\n";
-    if (6 == ($temp = $serial_port->write("##%10\r"))) {
-        select undef, undef, undef, 100 / 1000; # Give it a chance to respond
-                                # How may flags?? Best look for end of data character ... \n\n??
+    if ( 6 == ( $temp = $serial_port->write("##%10\r") ) ) {
+        select undef, undef, undef, 100 / 1000;    # Give it a chance to respond
+               # How may flags?? Best look for end of data character ... \n\n??
         my @flags;
-        while (my $data = $serial_port->input) {
-            my ($header, $flags) = $data =~ /(\S+?)[\n\r]+(\S+)/;
+        while ( my $data = $serial_port->input ) {
+            my ( $header, $flags ) = $data =~ /(\S+?)[\n\r]+(\S+)/;
             my $l = length $flags;
             $l /= 2;
+
             #print "Flag string has $l bits: $flags\n";
-                                # There are 2 characters per flag
-#           push(@flags, split('', $flags));
+            # There are 2 characters per flag
+            #           push(@flags, split('', $flags));
             while ($flags) {
-                push(@flags, substr($flags, 0, 2));
-                $flags = substr($flags, 2);
+                push( @flags, substr( $flags, 0, 2 ) );
+                $flags = substr( $flags, 2 );
             }
         }
-        print "Homebase did not respond to read_flags request\n" unless defined @flags;
+        print "Homebase did not respond to read_flags request\n" unless @flags;
         return @flags;
     }
     else {
@@ -148,19 +157,21 @@ sub read_flags {
 sub read_variables {
     my ($serial_port) = @_;
     print "Reading HomeBase Variables\n";
-    if (6 == ($temp = $serial_port->write("##%12\r"))) {
-        select undef, undef, undef, 100 / 1000; # Give it a chance to respond
-                                # May need to paste data together to find real line breaks
+    if ( 6 == ( $temp = $serial_port->write("##%12\r") ) ) {
+        select undef, undef, undef, 100 / 1000;    # Give it a chance to respond
+               # May need to paste data together to find real line breaks
         my @vars;
         my $buffer;
-        while (my $data = $serial_port->input) {
-            $buffer .= $data unless ( $data =~ /#/ ); # ##0 is end of list marker
-            select undef, undef, undef, 100 / 1000; # Need more/less/any delay here???
+        while ( my $data = $serial_port->input ) {
+            $buffer .= $data
+              unless ( $data =~ /#/ );    # ##0 is end of list marker
+            select undef, undef, undef,
+              100 / 1000;                 # Need more/less/any delay here???
         }
         @vars = split /\r\n/, $buffer;
         my $count = @vars;
         print "$count HomeBase var records were read\n";
-        print "Homebase did not respond to read_flags request\n" unless defined @vars;
+        print "Homebase did not respond to read_flags request\n" unless @vars;
         return @vars;
     }
     else {
@@ -183,22 +194,24 @@ this command was decoded empirically from Starate/WinEVM interaction
 
 sub set_time {
     my ($serial_port) = @_;
-    my ($Second, $Minute, $Hour, $Mday, $Month, $Year, $Wday, $Yday, $isdst) = localtime time;
+    my ( $Second, $Minute, $Hour, $Mday, $Month, $Year, $Wday, $Yday, $isdst )
+      = localtime time;
     $Month++;
     $Wday++;
     my $localtime = localtime time;
 
     # Week day setting seems to be ignored by stargate, so set it to 00
     $Wday = 0;
+
     # Bruce's weekday calculation, Mon=1, Sun=7)
-      # $Wday = 2 ** (7 - $Wday);
-      # if ($Yday > 255) {
-      #    $Yday -= 256;
-      #    $Wday *= 2;
-      # }
+    # $Wday = 2 ** (7 - $Wday);
+    # if ($Yday > 255) {
+    #    $Yday -= 256;
+    #    $Wday *= 2;
+    # }
 
     # Fix Year 2000 = 100 thing??
-    if ($Year ge 100) {
+    if ( $Year ge 100 ) {
         $Year -= 100;
     }
 
@@ -206,23 +219,32 @@ sub set_time {
     $isdst = "01";
     #
     #print ("DST=$isdst Y=$Year M=$Month D=$Mday DOW=$Wday H=$Hour M=$Minute\n");
-    my $set_time = sprintf("%04x%04x%02x%02x%02d%02d%02d%02d%02d%02d",
-                           abs($main::config_parms{latitude}),
-                           abs($main::config_parms{longitude}),
-                           abs($main::config_parms{time_zone}),
-                           $isdst,
-                           $Year,
-                           $Month,
-                           $Mday,
-                           $Wday,
-                           $Hour,
-                           $Minute);
+    my $set_time = sprintf(
+        "%04x%04x%02x%02x%02d%02d%02d%02d%02d%02d",
+        abs( $main::config_parms{latitude} ),
+        abs( $main::config_parms{longitude} ),
+        abs( $main::config_parms{time_zone} ),
+        $isdst,
+        $Year,
+        $Month,
+        $Mday,
+        $Wday,
+        $Hour,
+        $Minute
+    );
+
     #Checksum not required, so set it to 00
     #my $checksum = sprintf("%02x", unpack("%8C*", $set_time));
     my $checksum = "00";
     print "HomeBase set_time=$set_time checksum=$checksum\n";
 
-    if (32 == ($temp = $serial_port->write("##%05" . $set_time . $checksum . "\r"))) {
+    if (
+        32 == (
+            $temp =
+              $serial_port->write( "##%05" . $set_time . $checksum . "\r" )
+        )
+      )
+    {
         print "HomeBase time has been updated to $localtime\n";
         return 1;
     }
@@ -231,44 +253,46 @@ sub set_time {
         return -1;
     }
 
-
 }
 
 sub send_X10 {
-    my ($serial_port, $house_code) = @_;
-    print "\ndb sending HomeBase x10 code: $house_code\n" if lc($main::config_parms{debug}) eq 'homebase';
+    my ( $serial_port, $house_code ) = @_;
+    print "\ndb sending HomeBase x10 code: $house_code\n"
+      if lc( $main::config_parms{debug} ) eq 'homebase';
 
-    my ($house, $code) = $house_code =~ /(\S)(\S+)/;
+    my ( $house, $code ) = $house_code =~ /(\S)(\S+)/;
     $house = uc($house);
     $code  = uc($code);
 
     my %table_hcodes = qw(A 6  B 7  C 4  D 5  E 8  F 9  G a  H b
-                          I e  J f  K c  L d  M 0  N 1  O 2  P 3);
+      I e  J f  K c  L d  M 0  N 1  O 2  P 3);
 
     my %table_dcodes = qw(1 06  2 07  3 04  4 05  5 08  6 09  7 0a  8 0b
-                         9 0e  A 0f  B 0c  C 0d  D 00  E 01  F 02  G 03
-                         J 14  K 1c  L 12  M 1a O 18 P 10
-                         ON 14  OFF 1c  BRIGHT 12  DIM 1a);
-#                          ALL_OFF 10  ALL_ON 18
-#                          ALL_OFF_LIGHTS 16);
+      9 0e  A 0f  B 0c  C 0d  D 00  E 01  F 02  G 03
+      J 14  K 1c  L 12  M 1a O 18 P 10
+      ON 14  OFF 1c  BRIGHT 12  DIM 1a);
 
-    my ($house_bits, $code_bits, $function, $header);
+    #                          ALL_OFF 10  ALL_ON 18
+    #                          ALL_OFF_LIGHTS 16);
 
-    $house_bits = $table_hcodes{uc($house)};
-    unless (defined $house_bits) {
+    my ( $house_bits, $code_bits, $function, $header );
+
+    $house_bits = $table_hcodes{ uc($house) };
+    unless ( defined $house_bits ) {
         print "Error, invalid HomeBase X10 house code: $house\n";
         return;
     }
 
-    unless ($code_bits = $table_dcodes{uc($code)}) {
+    unless ( $code_bits = $table_dcodes{ uc($code) } ) {
         print "Error, invalid HomeBase x10 code: $code\n";
         return;
     }
 
-    $header  = "##%040" . $code_bits . $house_bits;
-    print "db HomeBase x10 command sent: $header\n" if lc($main::config_parms{debug}) eq 'homebase';
+    $header = "##%040" . $code_bits . $house_bits;
+    print "db HomeBase x10 command sent: $header\n"
+      if lc( $main::config_parms{debug} ) eq 'homebase';
 
-    my $sent = $serial_port->write($header . "\r");
+    my $sent = $serial_port->write( $header . "\r" );
     print "Bad HomeBase X10 transmition sent=$sent\n" unless 10 == $sent;
 }
 
@@ -278,83 +302,95 @@ sub send_X10 {
 # Pause = ,
 # CallerID C
 # HookFlash !
-sub send_telephone
-{
-    my ($serial_port, $phonedata) = @_;
-    print "\ndb sending HomeBase telephone command: $phonedata\n" if lc($main::config_parms{debug}) eq 'homebase';
+sub send_telephone {
+    my ( $serial_port, $phonedata ) = @_;
+    print "\ndb sending HomeBase telephone command: $phonedata\n"
+      if lc( $main::config_parms{debug} ) eq 'homebase';
 
     $phonedata = "##%57<" . $phonedata . ">";
-    print "db HomeBase telephone command sent: $phonedata\n" if lc($main::config_parms{debug}) eq 'homebase';
+    print "db HomeBase telephone command sent: $phonedata\n"
+      if lc( $main::config_parms{debug} ) eq 'homebase';
 
-    my $sent = $serial_port->write($phonedata . "\r");
+    my $sent = $serial_port->write( $phonedata . "\r" );
     print "Bad HomeBase telephone transmition sent=$sent\n" unless $sent > 0;
 }
 
-my $serial_data;                # Holds left over serial data
+my $serial_data;    # Holds left over serial data
 
 sub read {
 
     return undef unless $::New_Msecond_100;
 
-    my ($serial_port, $no_block) = @_;
+    my ( $serial_port, $no_block ) = @_;
 
     my %table_hcodes = qw(6  A 7  B 4  C 5  D 8  E 9  F a  G b H
-                          e  I f  J c  K d  L 0  M 1  N 2  O 3 P);
+      e  I f  J c  K d  L 0  M 1  N 2  O 3 P);
     my %table_dcodes = qw(06  1 07  2 04  3 05  4 08  5 09  6 0a  7 0b 8
-                         0e  9 0f  A 0c  B 0d  C 00  D 01  E 02  F 03 B
-                         14  J 1c  K 12  L 1a M 18 O 10 P);
-#                          10 ALL_OFF 18 ALL_ON
-#                          16 ALL_OFF_LIGHTS);
+      0e  9 0f  A 0c  B 0d  C 00  D 01  E 02  F 03 B
+      14  J 1c  K 12  L 1a M 18 O 10 P);
 
+    #                          10 ALL_OFF 18 ALL_ON
+    #                          16 ALL_OFF_LIGHTS);
 
     my ($data);
-    if ($data = $serial_port->input) {
-        print "db HomeBase serial data1=$data...\n" if lc($main::config_parms{debug}) eq 'homebase';
+    if ( $data = $serial_port->input ) {
+        print "db HomeBase serial data1=$data...\n"
+          if lc( $main::config_parms{debug} ) eq 'homebase';
         $serial_data .= $data;
-        print "db HomeBase serial data2=$serial_data...\n" if lc($main::config_parms{debug}) eq 'homebase';
-        my ($record, $remainder);
-        while (($record, $remainder) = $serial_data =~ /(.+?)\n(.*)/) {
-            $serial_data = $remainder; # Might have part of the next record left over
-            print "db HomeBase serial data3=$record remainder=$remainder.\n" if lc($main::config_parms{debug}) eq 'homebase';
+        print "db HomeBase serial data2=$serial_data...\n"
+          if lc( $main::config_parms{debug} ) eq 'homebase';
+        my ( $record, $remainder );
+        while ( ( $record, $remainder ) = $serial_data =~ /(.+?)\n(.*)/ ) {
+            $serial_data =
+              $remainder;    # Might have part of the next record left over
+            print "db HomeBase serial data3=$record remainder=$remainder.\n"
+              if lc( $main::config_parms{debug} ) eq 'homebase';
 
-#           return undef unless ($data) = $record =~ m|!!\d\d\\/\d{8}(\S+)|;
-            return undef unless $record =~ /^\!\!\d\d\//; # Only look at echo records
-            $data = substr($record, 13);
-            print "db data4=$data\n" if lc($main::config_parms{debug}) eq 'homebase';
+            #           return undef unless ($data) = $record =~ m|!!\d\d\\/\d{8}(\S+)|;
+            return undef
+              unless $record =~ /^\!\!\d\d\//;    # Only look at echo records
+            $data = substr( $record, 13 );
+            print "db data4=$data\n"
+              if lc( $main::config_parms{debug} ) eq 'homebase';
             my @bytes = split //, $data;
 
-            return undef unless $bytes[0] eq '0'; # Only look at x10 data for now
-            return undef unless $bytes[1] eq '0' or $bytes[1] eq '1'; # Only look at receive data for now
-            # Disable using the Stargate for X10 receive if so configured.  I am using the CM11a and just use
-            # the stargate for I/O and phone control (bsobel@vipmail.com)
+            return undef
+              unless $bytes[0] eq '0';    # Only look at x10 data for now
+            return undef
+              unless $bytes[1] eq '0'
+              or $bytes[1] eq '1';        # Only look at receive data for now
+             # Disable using the Stargate for X10 receive if so configured.  I am using the CM11a and just use
+             # the stargate for I/O and phone control (bsobel@vipmail.com)
             return if $main::config_parms{HomeBase_DisableX10Receive};
 
-            my ($house, $device);
-            unless ($house = $table_hcodes{lc($bytes[3])}) {
+            my ( $house, $device );
+            unless ( $house = $table_hcodes{ lc( $bytes[3] ) } ) {
                 print "Error, not a valid HomeBase house code: $bytes[3]\n";
                 return;
             }
             my $code = $bytes[1] . $bytes[2];
-            unless ($device = $table_dcodes{lc($code)}) {
+            unless ( $device = $table_dcodes{ lc($code) } ) {
                 print "Error, not a valid HomeBase device code: $code\n";
                 return;
             }
             else {
                 my $data = $house . $device;
-                print "X10 receive:$data\n" if lc($main::config_parms{debug}) eq 'homebase';
+                print "X10 receive:$data\n"
+                  if lc( $main::config_parms{debug} ) eq 'homebase';
                 return $data;
             }
         }
     }
+
     # If we do not do this, we may get endless error messages.
     else {
         $serial_port->reset_error;
     }
 
-    return undef;       # No data read
+    return undef;    # No data read
 }
 
-return 1;           # for require
+return 1;            # for require
 
 # For reference on dealing with bits/bytes/strings:
 #
@@ -411,7 +447,6 @@ return 1;           # for require
 #
 #
 #
-
 
 =back
 

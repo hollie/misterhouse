@@ -1,11 +1,12 @@
 # Category = MisterHouse
 
-#@ Use a small terminal window (e.g. SSH on a mobile phone) to walk menus 
+#@ Use a small terminal window (e.g. SSH on a mobile phone) to walk menus
 #@ using the Terminal_Menu module.
 #@ Use keys 1 to 9 to select menu entries, key 0 to go back in the menu
 #@ hierarchy and key # to terminate the menu.
 
 #############################################################################
+
 =begin comment
 
 INTRODUCTION
@@ -220,77 +221,82 @@ SPECIAL THANKS TO
     Everyone else using Misterhouse
 
 =cut
-#############################################################################
 
+#############################################################################
 
 use Terminal_Menu;
 
 my %connections = ();
-my $clientid = 0;
+my $clientid    = 0;
 
-$terminalmenu_server = new Socket_Item(undef, undef, 'server_terminalmenu', undef, undef, undef, "\n");
+$terminalmenu_server =
+  new Socket_Item( undef, undef, 'server_terminalmenu', undef, undef, undef,
+    "\n" );
 
 #############################################################################
 #############################################################################
 if ($Reload) {
     print_log "Reloading terminal menu\n";
-    
-    menu_parse scalar file_read("$config_parms{code_dir}/terminalmenu.menu"), 'terminal-menu';
+
+    menu_parse scalar file_read("$config_parms{code_dir}/terminalmenu.menu"),
+      'terminal-menu';
 }
 
 #############################################################################
 #############################################################################
-if (active_now $terminalmenu_server) { 
+if ( active_now $terminalmenu_server) {
     my $client_ip = $Socket_Ports{'server_terminalmenu'}{client_ip_address};
     my $client    = $Socket_Ports{'server_terminalmenu'}{socka};
-    
-    print_log "terminal_menu.pl: connection from $client_ip ($client)" if $Debug{'Terminal_Menu'};
-    
-    &new_connection($client) if (not exists $connections{$client});
+
+    print_log "terminal_menu.pl: connection from $client_ip ($client)"
+      if $Debug{'Terminal_Menu'};
+
+    &new_connection($client) if ( not exists $connections{$client} );
 }
 
 #############################################################################
 #############################################################################
-if (inactive_now $terminalmenu_server) {
+if ( inactive_now $terminalmenu_server) {
     my $client_ip = $Socket_Ports{'server_terminalmenu'}{client_ip_address};
-    print_log "terminal_menu.pl: session closed from $client_ip" if $Debug{'Terminal_Menu'};
+    print_log "terminal_menu.pl: session closed from $client_ip"
+      if $Debug{'Terminal_Menu'};
 
-    # Remove closed sockets	
+    # Remove closed sockets
     my %active_clients = ();
-    foreach my $client (@{$Socket_Ports{'server_terminalmenu'}{clients}}) {
-        $active_clients{$$client[0]} = 1;
+    foreach my $client ( @{ $Socket_Ports{'server_terminalmenu'}{clients} } ) {
+        $active_clients{ $$client[0] } = 1;
     }
-    
-    foreach my $client (keys %connections) {
-        unless ($active_clients{$client}) {
-            delete $connections{$client}; 
+
+    foreach my $client ( keys %connections ) {
+        unless ( $active_clients{$client} ) {
+            delete $connections{$client};
         }
-    } 
+    }
 }
 
 #############################################################################
 #############################################################################
 my $incoming_data;
-my $color_toggle = 1;
+my $color_toggle  = 1;
 my $border_toggle = 1;
-if (defined($incoming_data = said $terminalmenu_server)) {
+if ( defined( $incoming_data = said $terminalmenu_server) ) {
     my $client = $Socket_Ports{'server_terminalmenu'}{socka};
-    
-    &new_connection($client) if (not exists $connections{$client});
+
+    &new_connection($client) if ( not exists $connections{$client} );
 
     # Implementing a new feature: when key 'c' is pressed then color/bw is
     # toggled; if key 'b' is pressed border is switched on/off.
-    if ($incoming_data =~ m/^c$/i) {
-        $color_toggle = $color_toggle ? 0 : 1; 
+    if ( $incoming_data =~ m/^c$/i ) {
+        $color_toggle = $color_toggle ? 0 : 1;
         $connections{$client}{terminal_menu}->set("color $color_toggle");
         $connections{$client}{terminal_menu}->set("0");
     }
-    elsif ($incoming_data =~ m/^b$/i) {
-        $border_toggle = $border_toggle ? 0 : 1; 
+    elsif ( $incoming_data =~ m/^b$/i ) {
+        $border_toggle = $border_toggle ? 0 : 1;
         $connections{$client}{terminal_menu}->set("border $border_toggle");
         $connections{$client}{terminal_menu}->set("0");
     }
-    
+
     $connections{$client}{terminal_menu}->set($incoming_data);
 }
 
@@ -298,29 +304,31 @@ if (defined($incoming_data = said $terminalmenu_server)) {
 #############################################################################
 sub new_connection {
     my ($client) = @_;
-    
+
     ++$clientid;
     $connections{$client}{id} = $clientid;
-    $connections{$client}{terminal_menu} = eval "new Terminal_Menu('terminal-menu');";
-    $connections{$client}{terminal_menu}->tie_event("send_to_client $clientid, \$state");
+    $connections{$client}{terminal_menu} =
+      eval "new Terminal_Menu('terminal-menu');";
+    $connections{$client}{terminal_menu}
+      ->tie_event("send_to_client $clientid, \$state");
 }
 
 #############################################################################
 #############################################################################
 sub send_to_client {
-    my ($clientid, $state) = @_;
+    my ( $clientid, $state ) = @_;
 
-    foreach my $client (keys %connections) {
-        if ($clientid == $connections{$client}{id}) {
+    foreach my $client ( keys %connections ) {
+        if ( $clientid == $connections{$client}{id} ) {
             set $terminalmenu_server $state, $client;
         }
-    } 
+    }
 }
 
 #############################################################################
 #############################################################################
 {
-    foreach my $client (keys %connections) {
+    foreach my $client ( keys %connections ) {
         $connections{$client}{terminal_menu}->loop();
-    } 
+    }
 }

@@ -1,3 +1,4 @@
+
 =head1 B<MBM_mh>
 
 =head2 SYNOPSIS
@@ -24,7 +25,7 @@ B<Generic_Item>
 
 use strict;
 use Win32::API;
-use MBM_sensors;  # Required.  Distributed with MisterHouse or obtain from CPAN
+use MBM_sensors;   # Required.  Distributed with MisterHouse or obtain from CPAN
 
 package MBM_mh;
 @MBM_mh::ISA = ('Generic_Item');
@@ -39,7 +40,7 @@ my $num;
 ##
 
 sub new {
-    my ($class, $sensor_type, $sensor_num) = @_;
+    my ( $class, $sensor_type, $sensor_num ) = @_;
     my $self = {};
     $$self{state}         = undef;
     $$self{said}          = undef;
@@ -50,7 +51,11 @@ sub new {
     bless $self, $class;
 
     push @MBM_Sensor_Objects, $self;
-    restore_data $self ('name', 'current', 'high', 'low', 'count', 'total', 'alarm1', 'alarm2', 'timestamp'); 
+    restore_data $self (
+        'name',  'current', 'high',   'low',
+        'count', 'total',   'alarm1', 'alarm2',
+        'timestamp'
+    );
 
     return $self;
 }
@@ -93,52 +98,51 @@ sub time {
 
 ##
 # Methods internal to package
-## 
- 
+##
+
 =item C<startup>
 
 mh calls startup when mh.ini MBM_module=MBM_mh parm is processed 
 
 =cut
 
-sub startup {  
-    &::Reload_pre_add_hook(\&MBM_mh::reload_reset, 'persistent');
-    &::MainLoop_pre_add_hook(\&MBM_mh::check_for_data, 'persistent');
+sub startup {
+    &::Reload_pre_add_hook( \&MBM_mh::reload_reset, 'persistent' );
+    &::MainLoop_pre_add_hook( \&MBM_mh::check_for_data, 'persistent' );
 
     print " - creating MBM             object on shared memory\n";
 }
 
-sub reload_reset 
-{
+sub reload_reset {
     undef @MBM_Sensor_Objects;
 }
 
 sub check_for_data {
-  if ($main::New_Second) {
-    %MBM_sensors = &MBM_sensors::get; 
-    for my $self (@MBM_Sensor_Objects) {
-      $type = $self->{type};
-      $num  = $self->{num};
-      if ($self->{count} != $MBM_sensors{$type}{count}[$num]) {
-        $self->{name}        = $MBM_sensors{$type}{name}[$num];
-        $self->{current}     = $MBM_sensors{$type}{current}[$num];
-        $self->{low}         = $MBM_sensors{$type}{low}[$num];
-        $self->{high}        = $MBM_sensors{$type}{high}[$num];
-        $self->{count}       = $MBM_sensors{$type}{count}[$num];
-        $self->{total}       = $MBM_sensors{$type}{total}[$num];
-        $self->{alarm1}      = $MBM_sensors{$type}{alarm1}[$num];
-        $self->{alarm2}      = $MBM_sensors{$type}{alarm2}[$num];
-        $self->{timestamp}   = $MBM_sensors{timecurrent};
-        set $self $MBM_sensors{$type}{current}[$num];
-        ::print_log "MBM updating $type $num $self->{name} with $self->{current}" if $::config_parms{debug} eq 'MBM';
-      }
+    if ($main::New_Second) {
+        %MBM_sensors = &MBM_sensors::get;
+        for my $self (@MBM_Sensor_Objects) {
+            $type = $self->{type};
+            $num  = $self->{num};
+            if ( $self->{count} != $MBM_sensors{$type}{count}[$num] ) {
+                $self->{name}      = $MBM_sensors{$type}{name}[$num];
+                $self->{current}   = $MBM_sensors{$type}{current}[$num];
+                $self->{low}       = $MBM_sensors{$type}{low}[$num];
+                $self->{high}      = $MBM_sensors{$type}{high}[$num];
+                $self->{count}     = $MBM_sensors{$type}{count}[$num];
+                $self->{total}     = $MBM_sensors{$type}{total}[$num];
+                $self->{alarm1}    = $MBM_sensors{$type}{alarm1}[$num];
+                $self->{alarm2}    = $MBM_sensors{$type}{alarm2}[$num];
+                $self->{timestamp} = $MBM_sensors{timecurrent};
+                set $self $MBM_sensors{$type}{current}[$num];
+                ::print_log
+                  "MBM updating $type $num $self->{name} with $self->{current}"
+                  if $::config_parms{debug} eq 'MBM';
+            }
+        }
     }
-  }
 }
 
-
 1;
-
 
 =back
 

@@ -11,24 +11,28 @@
 
 # Declare Variables
 
-use vars qw($CompPhoneNumber $PhoneName $PhoneNumber $PhoneTime $PhoneDate $PhoneNumberSpoken);
+use vars
+  qw($CompPhoneNumber $PhoneName $PhoneNumber $PhoneTime $PhoneDate $PhoneNumberSpoken);
 
 # Set Variables used by my custom code to match the callerid.pl
 
-$PhoneName = $cid_item->name();
+$PhoneName   = $cid_item->name();
 $PhoneNumber = $cid_item->number();
-$PhoneTime = localtime($cid_item->{set_time});
+$PhoneTime   = localtime( $cid_item->{set_time} );
 
 # IF Phone Rings, play a wave file.
 
-if (state_now $cid_interface1 eq 'ring') {
-        play('file' => 'c:\mh\sounds\st-ring230.wav');
-        #set $TV 'mute';
+if ( state_now $cid_interface1 eq 'ring' ) {
+    play( 'file' => 'c:\mh\sounds\st-ring230.wav' );
+
+    #set $TV 'mute';
 }
 
 # Page my phone if there's a new call
 
-if ($CompPhoneNumber ne $PhoneNumber) {
-        if (state $current_away_mode eq 'away') {$page_email = "Call from $PhoneName - $PhoneNumber - $PhoneTime"};
-        $CompPhoneNumber = $PhoneNumber;
+if ( $CompPhoneNumber ne $PhoneNumber ) {
+    if ( state $current_away_mode eq 'away' ) {
+        $page_email = "Call from $PhoneName - $PhoneNumber - $PhoneTime";
+    }
+    $CompPhoneNumber = $PhoneNumber;
 }

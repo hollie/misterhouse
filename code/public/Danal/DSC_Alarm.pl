@@ -1,6 +1,6 @@
 # Category=Alarm System
 
-#@ Interface to DSC alarm system via DSC PC5400 Printer Module 
+#@ Interface to DSC alarm system via DSC PC5400 Printer Module
 
 ##################################################################
 #  Interface to DSC alarm system via DSC PC5400 Printer Module   #
@@ -49,44 +49,52 @@
 
 # Also see mh/code/public/Danal/Kitchen.pl for integration examples.
 
-
 $DSC_Alarm = new DSC_Alarm;
 my $warning_sent = 0;
 
-if (my $state = state_now $DSC_Alarm) {
-   if ($config_parms{debug} eq 'DSC') {
-     # Debugging / demo stuff
-     print_log "DSC_Alarm.pl $Loop_Count state_now = $state\n";
-     my $var = state $DSC_Alarm;     print_log "DSC_Alarm.pl $Loop_Count state     = $var\n";
-     my $var = mode $DSC_Alarm;      print_log "DSC_Alarm.pl $Loop_Count mode      = $var\n";
-     my $var = user $DSC_Alarm;      print_log "DSC_Alarm.pl $Loop_Count user      = $var\n";
-     my $var = alarm_now $DSC_Alarm; print_log "DSC_Alarm.pl $Loop_Count alarm     = $var\n";
-     my $var = zone $DSC_Alarm;      print_log "DSC_Alarm.pl $Loop_Count zone      = $var\n";
-     my $var = said $DSC_Alarm;      print_log "DSC_Alarm.pl $Loop_Count said      = $var\n";
-   }
+if ( my $state = state_now $DSC_Alarm) {
+    if ( $config_parms{debug} eq 'DSC' ) {
 
-   # Real stuff
-   if (alarm_now $DSC_Alarm) {
-     &alarm_page("Alarm in zone " . zone $DSC_Alarm);
-     $warning_sent=1;
-   }
-   if ($warning_sent) {
-     &alarm_page("Alarm state $state user " . user $DSC_Alarm);
-     $warning_sent=0;
-   }
+        # Debugging / demo stuff
+        print_log "DSC_Alarm.pl $Loop_Count state_now = $state\n";
+        my $var = state $DSC_Alarm;
+        print_log "DSC_Alarm.pl $Loop_Count state     = $var\n";
+        my $var = mode $DSC_Alarm;
+        print_log "DSC_Alarm.pl $Loop_Count mode      = $var\n";
+        my $var = user $DSC_Alarm;
+        print_log "DSC_Alarm.pl $Loop_Count user      = $var\n";
+        my $var = alarm_now $DSC_Alarm;
+        print_log "DSC_Alarm.pl $Loop_Count alarm     = $var\n";
+        my $var = zone $DSC_Alarm;
+        print_log "DSC_Alarm.pl $Loop_Count zone      = $var\n";
+        my $var = said $DSC_Alarm;
+        print_log "DSC_Alarm.pl $Loop_Count said      = $var\n";
+    }
+
+    # Real stuff
+    if ( alarm_now $DSC_Alarm) {
+        &alarm_page( "Alarm in zone " . zone $DSC_Alarm);
+        $warning_sent = 1;
+    }
+    if ($warning_sent) {
+        &alarm_page( "Alarm state $state user " . user $DSC_Alarm);
+        $warning_sent = 0;
+    }
 }
-
-
-
 
 # Subroutine to send a page / pcs message, etc.
 sub alarm_page {
-   my ($text) =@_;
-   speak(mode=>'unmuted', volume=>100, rooms=>'all', text=>"Djeeni says: $text");
-   $text = $text . " $Date_Now $Time_Now";
+    my ($text) = @_;
+    speak(
+        mode   => 'unmuted',
+        volume => 100,
+        rooms  => 'all',
+        text   => "Djeeni says: $text"
+    );
+    $text = $text . " $Date_Now $Time_Now";
 
-   my $p1 = new Process_Item("alpha_page -pin 1488774 -message \"$text\" ");
-   start $p1;      # Run externally so as not to hang MH process
+    my $p1 = new Process_Item("alpha_page -pin 1488774 -message \"$text\" ");
+    start $p1;    # Run externally so as not to hang MH process
 
-   print_log "Alarm notification sent, text = $text";
+    print_log "Alarm notification sent, text = $text";
 }

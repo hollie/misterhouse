@@ -1,3 +1,4 @@
+
 =begin comment
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -49,108 +50,107 @@ package Telephony_DTMF;
 
 my %m_actions;
 my %m_times;
-sub new
-{
-	my ($class,$p_telephony) = @_;
-	my $self={};
-	bless $self,$class;
-	$self->add($p_telephony);	
-	return $self;
+
+sub new {
+    my ( $class, $p_telephony ) = @_;
+    my $self = {};
+    bless $self, $class;
+    $self->add($p_telephony);
+    return $self;
 }
 
-sub add
-{
-	my ($class,$p_telephony) = @_;
-	$p_telephony->tie_items($class,'dtmf');
-	$p_telephony->tie_items($class,'hook');
+sub add {
+    my ( $class, $p_telephony ) = @_;
+    $p_telephony->tie_items( $class, 'dtmf' );
+    $p_telephony->tie_items( $class, 'hook' );
 }
 
-sub set
-{
-	my ($self,$p_state,$p_setby) = @_;
-	&::print_log("Telephony DTMF state:$p_state:$p_setby" . $p_setby->address());
-	$p_state=lc $p_state;
-	if ($p_state =~ /^dtmf/)
-	{
-		$p_state = $p_setby->dtmf();
-	}
-	elsif ($p_state =~ /^hook/)
-	{
-		if (lc($p_setby->hook) eq 'on')
-		{
-			$p_state = '+';
-		}
-		else
-		{
-			$p_state = '^';
-		}
-	}
-	$self->check_sequences($p_state,$p_setby);
-	$self->SUPER::set($p_state,$p_setby);
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
+    &::print_log(
+        "Telephony DTMF state:$p_state:$p_setby" . $p_setby->address() );
+    $p_state = lc $p_state;
+    if ( $p_state =~ /^dtmf/ ) {
+        $p_state = $p_setby->dtmf();
+    }
+    elsif ( $p_state =~ /^hook/ ) {
+        if ( lc( $p_setby->hook ) eq 'on' ) {
+            $p_state = '+';
+        }
+        else {
+            $p_state = '^';
+        }
+    }
+    $self->check_sequences( $p_state, $p_setby );
+    $self->SUPER::set( $p_state, $p_setby );
 }
 
-sub tie_sequence
-{
-	my ($self, $p_seq, $p_action,$p_time) = @_;
-#	$m_actions{$p_seq}=$p_action;
-	$$self{m_actions}{$p_seq}=$p_action;
-	$$self{m_times}{$p_seq}=$p_time;
+sub tie_sequence {
+    my ( $self, $p_seq, $p_action, $p_time ) = @_;
+
+    #	$m_actions{$p_seq}=$p_action;
+    $$self{m_actions}{$p_seq} = $p_action;
+    $$self{m_times}{$p_seq}   = $p_time;
 }
 
-sub check_sequences
-{
-	my ($self,$p_state,$p_setby) = @_;
-	#assemble the current sequence
-	my $l_sequence;
-	my $l_event;
-	my @l_times;
-	my $l_prevtime;
+sub check_sequences {
+    my ( $self, $p_state, $p_setby ) = @_;
 
-	#figure in current event
-	@l_times[0] = 0;
+    #assemble the current sequence
+    my $l_sequence;
+    my $l_event;
+    my @l_times;
+    my $l_prevtime;
 
-	#Get loged sequence and times
-	my @state_log = $self->state_log();
-#	&::print_log("statelog:" . @state_log );
-	for my $l_index ( 0 .. @state_log-1 )
-	{
-		$l_event = @state_log[$l_index];
-		$l_event =~ /^(\S+\/\S+\/\S+\s\S+:\S+:\S+\s\S+)\s(\S+)\s/;
-#		&::print_log("Event:$l_event,$1". &main::my_str2time($1) . ":" 
-#. $main::Time_Date . ":" . &main::my_str2time($main::Time_Date)  );
-		@l_times[$l_index+1] = &main::my_str2time($main::Time_Date) - &main::my_str2time($1);
-#		&::print_log("Event:$l_event:" . $l_times[$l_index+1]);
-		$l_sequence= $2 . $l_sequence;
-	}
-	$l_sequence = $l_sequence . $p_state;
-#	&::print_log("SEQ1:$l_sequence:");
-#	&::print_log("SEQ2:$l_sequence:");
+    #figure in current event
+    @l_times[0] = 0;
 
-	#assemble the times on each event.
-	foreach my $l_seq ( keys %{$$self{m_actions}})
-	{
-		&::print_log("Check seq:$l_seq:$l_sequence");
-#		&::print_log("Check seq:$l_seq:" . length($l_seq). ":" . $m_times{$l_seq} . ":");
-#		&::print_log("Time:" . $l_times[length($l_seq)-1] . ":" . $l_times[@l_times-1] ); 
-#		if ($l_times[length($l_seq)-1] <= $m_times{$l_seq})
-		if ($l_times[length($l_seq)-1] <= $$self{m_times}{$l_seq})
-		{
-			my $l_regseq = $l_seq;
-			$l_regseq =~ s/\+/\\\+/g;
-			$l_regseq =~ s/\^/\\\^/g;
-			$l_regseq =~ s/\*/\\\*/g;
-			$l_regseq = $l_regseq . '$';
-			if ($l_sequence =~ /$l_regseq/)
-			{
-				my $l_temp;
-#				$l_temp = $m_actions{$l_seq};
-				$l_temp = $$self{m_actions}{$l_seq};
-				eval($l_temp);
-				&::print_log("Match:$l_temp");
-#				&::print_log("Match2:" . $l_temp . ":");
-			}
-		}
-	}
+    #Get loged sequence and times
+    my @state_log = $self->state_log();
+
+    #	&::print_log("statelog:" . @state_log );
+    for my $l_index ( 0 .. @state_log - 1 ) {
+        $l_event = @state_log[$l_index];
+        $l_event =~ /^(\S+\/\S+\/\S+\s\S+:\S+:\S+\s\S+)\s(\S+)\s/;
+
+        #		&::print_log("Event:$l_event,$1". &main::my_str2time($1) . ":"
+        #. $main::Time_Date . ":" . &main::my_str2time($main::Time_Date)  );
+        @l_times[ $l_index + 1 ] =
+          &main::my_str2time($main::Time_Date) - &main::my_str2time($1);
+
+        #		&::print_log("Event:$l_event:" . $l_times[$l_index+1]);
+        $l_sequence = $2 . $l_sequence;
+    }
+    $l_sequence = $l_sequence . $p_state;
+
+    #	&::print_log("SEQ1:$l_sequence:");
+    #	&::print_log("SEQ2:$l_sequence:");
+
+    #assemble the times on each event.
+    foreach my $l_seq ( keys %{ $$self{m_actions} } ) {
+        &::print_log("Check seq:$l_seq:$l_sequence");
+
+        #		&::print_log("Check seq:$l_seq:" . length($l_seq). ":" . $m_times{$l_seq} . ":");
+        #		&::print_log("Time:" . $l_times[length($l_seq)-1] . ":" . $l_times[@l_times-1] );
+        #		if ($l_times[length($l_seq)-1] <= $m_times{$l_seq})
+        if ( $l_times[ length($l_seq) - 1 ] <= $$self{m_times}{$l_seq} ) {
+            my $l_regseq = $l_seq;
+            $l_regseq =~ s/\+/\\\+/g;
+            $l_regseq =~ s/\^/\\\^/g;
+            $l_regseq =~ s/\*/\\\*/g;
+            $l_regseq = $l_regseq . '$';
+            if ( $l_sequence =~ /$l_regseq/ ) {
+                my $l_temp;
+
+                #				$l_temp = $m_actions{$l_seq};
+                $l_temp = $$self{m_actions}{$l_seq};
+                eval($l_temp);
+                &::print_log("Match:$l_temp");
+
+                #				&::print_log("Match2:" . $l_temp . ":");
+            }
+        }
+    }
 }
 
 1;

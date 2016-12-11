@@ -1,13 +1,20 @@
 <html>
 <head>
-<!-- Last emacs update Time-stamp: <2005-07-03 20:45:41 winter> -->
 <link rel="STYLESHEET" href="default.css" type="text/css">
 <title>MisterHouse - Features</title>
 </head>
 <body>
 
 <h3>Some MisterHouse features</h3>
-<p>Check <a href='faq.html#6_8_what_sort_of_hardware_do_you_have_in_your_house'>here</a> for a list of hardware in Bruce's house.
+
+In the broadest sense, MiserHouse can control anything capable of being remotely
+controlled or monitor anything that can be queried by a computer.  If you can 
+code it, it can be done.
+
+It is difficult to provide an accurate and complete list of MisterHouse's features 
+due to the ease in which we can all contribute new modules or code to MisterHouse.  
+However, the following is at least a general overview of some features:
+
 <ul>
 
 <li>Executes actions based on voice input, time of day, file data, serial port data, and socket data.
@@ -28,16 +35,14 @@ version of mh.
 <li>Reads/writes any data from any serial attached device.
 
 <li>Speaks the speed, course, and position of vehicles, by interfacing to a ham radio modem (TNC).
-Brian Klier wrote
-<a href="http://www.faribault.k12.mn.us/brian/aprs/"> has a nice article about it</a>.
-You can see our <a href="http://mh.misterhouse.net/aprs"> car position logs here</a>
 
+<li>Sends/receives X10 data from the X10 CM11 (ActiveHome) interface.
 
-<li>Sends/receives X10 data from the
-<a href="http://www.x10.com/automation/x10_ck11a_d.htm">X10 CM11 (ActiveHome) interface</a>
+<li>Sends wireless X10 data using the X10 CM17 (Firecracker) interface.
 
-<li>Sends wireless X10 data using the
-<a href="http://www.x10.com/automation/firecracker_d.htm"> X10 CM17 (Firecracker) interface</a>
+<li>Supports all Insteon products, including i1 and i2cs devices
+
+<li>Build your own "user code" to do whatever you like
 
 <li>Send/receive data to the <a href=http://www.ibutton.com>Ibutton family</a> of devices,
 including the weather station.
@@ -55,15 +60,10 @@ that can process X10, digital, analog, callerID, and outgoing phone data.
 <li>Reads/writes to <a href=http://www.appdig.com/adicon.html>Applied Digital's</a>
 CPU-XA and Ocelot interfaces via the cpuxad socket deamon.
 
-<li>Reads data from
-<a href="http://www.evation.com/irman">IRman infrared receiver</a> serial interface
-and writes to
-<a href="http://www.x10.com/products/ux17a_bj2.htm">X10 IR Commander</a>
-wireless interface.
+<li>Reads data from IRman infrared receiver serial interface and writes to X10 IR Commander wireless interface.
 
 <li>Code has been written for DSC Alarm pannels, Stargate LCD displays, Alpha BetaBrite LED displays, Slinke IR send/receive,
-Marrick X10, RCI X10 sprinklers, Xantech preamps,
-ISDN modems, voice modems, ComPool and Aqualink pool equipment.
+Marrick X10, RCI X10 sprinklers, Xantech preamps, ISDN modems, voice modems, ComPool and Aqualink pool equipment.
 
 <li>Reads and writes from the
 <a href="http://lcdproc.omnipotent.net">lcdproc server</a>
@@ -75,8 +75,7 @@ which interfaces to inexpensive LCD modules and keypads.
 
 <li>Sends/receive instant messages using AIM, MSN, or <a href=http://www.jabbercentral.org>Jabber</a>
 
-<li>Reads MS Outlook, Unix ical, or the <a href=http://localhost:8080/organizer/calendar.pl>built in Organizer</a>
-calendar for event reminders and VCR programing.
+<li>Reads MS Outlook, Unix ical, or the built in Organizer calendar for event reminders and TV programing.
 
 <li>Uses free internet TV web pages to allow for VCR programing and show reminders.
 
@@ -85,37 +84,16 @@ calendar for event reminders and VCR programing.
 <li>Can monitor NetGear RT311 / RT314 or LinkSys syslog router traffic, so you can track
 stuff like incoming web hits and online game time.
 
-<li>Uses Voice XML to interface to <a href=http://tellme.com>tellme.com</a>. To try it,
-dial 1-800-555-Tell,  then after you ear 'tellme more', enter 1-46630 (1-HOME0).
-With a XML browser (e.g. IE), you can see a test vxml menu <a href="http://mh.misterhouse.net/sub?menu_vxml">here</a>
-
-<li>Use simple menu templates to generate menus for LCD, VXML, or WAP phones.  If you have a WAP
-phone or WAP browser, you can see <a href=http://misterhouse.net/mh/code/bruce/test.menu>this test menu</a>
-with this url: <a href=http://mh.misterhouse.net/sub?menu_wml>http://mh.misterhouse.net/sub?menu_wml</a>.
-You can also walk the menus with an html browser <a href=http://mh.misterhouse.net/bin/menu.pl>with a frames version</a>
-or a <a href=http://mh.misterhouse.net/sub?menu_html>a simpler version</a> .
-These menus can also be controled with a single switch (e.g. air sip switch for the disabled), using
-audible feedback to select items/states.
-You can also drive menus with an SSH client, like this <a href=http://misterhouse.net/pictures/terminal-menu_on_nokia.jpg>phone example</a>
-
 <li>Logs weather data to the
-<a href=http://wunderground.com/weatherstation>wunderground personal weather project</a>.   Here's
-<a href="http://www.wunderground.com/weatherstation/WXDailyHistory.asp?ID=KMNROCHE3">
-weather logs from my house</a>
+<a href=http://wunderground.com/weatherstation>wunderground personal weather project</a>.
 
 <li>Here is a list of some <a href="http://misterhouse.net/mh/code/public/README.txt">users written code files</a>
 along with <a href="http://mh.misterhouse.net/bin/code_select.pl">standard code files</a>
 that demonstrate some other MisterHouse features.
 
-<li>You can use RSS readers to track various data, like
-<a href="http://mh.misterhouse.net/bin/rss_logs.pl?phone">phone</a> or
-<a href="http://mh.misterhouse.net/bin/rss_logs.pl?speak">speak</a> logs.
+<li>You can use RSS readers to track various data.
 
-<li>Control of RoboSapien, ESRA, and ER1 robots.
-Some pictures and videos are in <a href=http://local.misterhouse.net/public/robot/>local.misterhouse.net/public/robot/</a>.
-
-<li>Uses the rrd program to generate
-<a href=http://w3.misterhouse.net:8090/ia5/outside/weather_index.shtml>weather graphs</a>.
+<li>Uses the rrd program to generate various graphs.
 
 <li>Support for
 <a href=http://www.xapautomation.org>xAP</a> and

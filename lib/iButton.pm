@@ -1,3 +1,4 @@
+
 =head1 B<iButton_Item>
 
 =head2 SYNOPSIS
@@ -193,7 +194,7 @@ package iButton;
 
 @iButton::ISA = ('Generic_Item');
 
-my (%connections, %objects_by_id, %buttons_active);
+my ( %connections, %objects_by_id, %buttons_active );
 
 #
 #  Create serial port(s) according to mh.ini
@@ -203,22 +204,23 @@ use Hardware::iButton::Connection;
 
 sub serial_startup {
     my ($instance) = @_;
-    my $port = $main::config_parms{$instance . "_serial_port"};
+    my $port = $main::config_parms{ $instance . "_serial_port" };
     &iButton::connect($port) if $port;
 }
 
 sub usleep {
-    my($usec) = @_;
-#   print "sleep2 $usec\n";
-    select undef, undef, undef, ($usec / 10**6);
+    my ($usec) = @_;
+
+    #   print "sleep2 $usec\n";
+    select undef, undef, undef, ( $usec / 10**6 );
 }
 
 sub new {
-    my ($class, $id, $port, $channel) = @_;
+    my ( $class, $id, $port, $channel ) = @_;
 
     # add the iButton class as a parent of the Hardware::iButton::Device class
     my $parentAdded = 0;
-    foreach my $i ( @Hardware::iButton::Device::ISA ) {
+    foreach my $i (@Hardware::iButton::Device::ISA) {
         $parentAdded = 1 if $i eq $class;
     }
     push @Hardware::iButton::Device::ISA, $class if !$parentAdded;
@@ -230,63 +232,70 @@ sub new {
     #$ib_bruce  = new iButton '0100000546e3fc';
     #$ib_bruce  = new iButton '00000546e3fc';
 
-    $id = '01' . $id if (length $id) == 12; # Assume a simple button, if prefix is missing
+    $id = '01' . $id
+      if ( length $id ) == 12;    # Assume a simple button, if prefix is missing
 
     my $raw_id = pack 'H16', $id;
-    my $family = substr($raw_id, 0, 1);
-    my $serial = substr($raw_id, 1, 6);
-    my $crc    = substr($raw_id, 7, 1);
+    my $family = substr( $raw_id, 0, 1 );
+    my $serial = substr( $raw_id, 1, 6 );
+    my $crc    = substr( $raw_id, 7, 1 );
 
-    $raw_id = unpack('b8', $family) . scalar(reverse(unpack('B48', $serial)));
+    $raw_id =
+      unpack( 'b8', $family ) . scalar( reverse( unpack( 'B48', $serial ) ) );
 
-                                # If the crc was not given, lets calculate it
-    if (length $id == 14) {
-        $crc = Hardware::iButton::Connection::crc(0, split(//, pack("b*", $raw_id)));
+    # If the crc was not given, lets calculate it
+    if ( length $id == 14 ) {
+        $crc = Hardware::iButton::Connection::crc( 0,
+            split( //, pack( "b*", $raw_id ) ) );
         $crc = pack 'C', $crc;
     }
-    $raw_id .= unpack('b8', $crc);
+    $raw_id .= unpack( 'b8', $crc );
 
     $port = $connections{default} unless $port;
     my $connection = $connections{$port} if $port;
 
-    my $self = Hardware::iButton::Device->new($connection, $raw_id);
+    my $self = Hardware::iButton::Device->new( $connection, $raw_id );
 
     $self->{port}    = $port;
     $self->{channel} = $channel;
 
-    $id = $self->id();       # Get the full id
+    $id = $self->id();             # Get the full id
     $objects_by_id{$id} = $self;
 
-    $$self{state}     = '';     # Will only be listed on web page if state is defined
+    $$self{state} = '';    # Will only be listed on web page if state is defined
 
-    if ($self->model() eq 'DS2406' ) {
-        push(@{$$self{states}}, 'on', 'off');
+    if ( $self->model() eq 'DS2406' ) {
+        push( @{ $$self{states} }, 'on', 'off' );
     }
 
     return $self;
 }
 
-                                # Called on mh startup
+# Called on mh startup
 sub connect {
     my ($port) = @_;
 
-    $port = '\\\\.\\' . $port if $main::Info{OS_name} eq 'NT' and $port =~ /^com\d{2}\z/i;
+    $port = '\\\\.\\' . $port
+      if $main::Info{OS_name} eq 'NT' and $port =~ /^com\d{2}\z/i;
 
-                                # The first port used is the default
+    # The first port used is the default
     $connections{default} = $port unless $connections{default};
 
-    if ($port =~ /proxy/i) {
+    if ( $port =~ /proxy/i ) {
         $connections{$port} = 'proxy';
         return 'iButton Proxy used';
     }
 
-    if ($connections{$port} && $connections{$port}->connected() ) {
+    if ( $connections{$port} && $connections{$port}->connected() ) {
         return 'iBbutton bus is already connected';
     }
-    elsif ( !$connections{ $port } ) {
+    elsif ( !$connections{$port} ) {
         printf " - creating %-15s object on port %s\n", 'Ibutton', $port;
-        $connections{$port} = new Hardware::iButton::Connection($port, $main::Debug{ibutton}, $main::config_parms{ibutton_tweak}, uc($main::config_parms{ibutton_line_length})) or
-          print "iButton connection error to port $port: $!";
+        $connections{$port} = new Hardware::iButton::Connection(
+            $port, $main::Debug{ibutton},
+            $main::config_parms{ibutton_tweak},
+            uc( $main::config_parms{ibutton_line_length} )
+        ) or print "iButton connection error to port $port: $!";
     }
     else {
         $connections{$port}->openPort;
@@ -299,10 +308,10 @@ sub disconnect {
     my ($port) = @_;
     $port = $connections{default} unless $port;
 
-    return 'Have never connected to iButton bus'  unless $connections{$port};
-    return 'Proxy used, disconnect ignored'           if $connections{$port} eq 'proxy';
+    return 'Have never connected to iButton bus' unless $connections{$port};
+    return 'Proxy used, disconnect ignored' if $connections{$port} eq 'proxy';
 
-    if ( !$connections{ $port }->connected() ) {
+    if ( !$connections{$port}->connected() ) {
         return 'iButton bus is already disconnected';
     }
     else {
@@ -311,25 +320,28 @@ sub disconnect {
     }
 }
 
-                                # This is called to monitor state changes (e.g. mh/code/common/iButton.pl)
+# This is called to monitor state changes (e.g. mh/code/common/iButton.pl)
 sub monitor {
-    my ($family, $port) = @_;
+    my ( $family, $port ) = @_;
     $port = $connections{default} unless $port;
     return unless $connections{$port};
-    return if     $connections{$port} eq 'proxy';
+    return if $connections{$port} eq 'proxy';
 
-    my (@ib_list, $count, $ib, $id, $object, %buttons_dropped);
-#   @ib_list = &scan;
-#   print "db calling scan\n";
-    @ib_list = &scan($family, $port);       # monitor just the button devices
+    my ( @ib_list, $count, $ib, $id, $object, %buttons_dropped );
+
+    #   @ib_list = &scan;
+    #   print "db calling scan\n";
+    @ib_list = &scan( $family, $port );    # monitor just the button devices
     $count = @ib_list;
-#   print "ib count=$count l=@ib_list.\n";
-    %buttons_dropped = %{$buttons_active{$port}} if $buttons_active{$port};
-#   print "db read $count devices\n";
+
+    #   print "ib count=$count l=@ib_list.\n";
+    %buttons_dropped = %{ $buttons_active{$port} } if $buttons_active{$port};
+
+    #   print "db read $count devices\n";
     for $ib (@ib_list) {
-        $id = $ib->id;
+        $id     = $ib->id;
         $object = $objects_by_id{$id};
-        if ($buttons_active{$port}{$id}) {
+        if ( $buttons_active{$port}{$id} ) {
             delete $buttons_dropped{$id};
         }
         else {
@@ -338,7 +350,7 @@ sub monitor {
             set_receive $object 'on' if $object;
         }
     }
-    for my $id (sort keys %buttons_dropped) {
+    for my $id ( sort keys %buttons_dropped ) {
         print "Device dropped: $id\n";
         delete $buttons_active{$port}{$id};
         set_receive $object 'off' if $object = $objects_by_id{$id};
@@ -349,82 +361,93 @@ sub monitor {
 sub read_switch {
     my ($self) = @_;
     my $connection;
-    return unless $connection = $connections{$self->{port}};
+    return unless $connection = $connections{ $self->{port} };
 
-#    $Hardware::iButton::Connection::debug = 1;
+    #    $Hardware::iButton::Connection::debug = 1;
 
-    if ($self->model() eq 'DS2406' ) {          #switch
+    if ( $self->model() eq 'DS2406' ) {    #switch
 
         $self->reset;
         $self->select;
-        $connection->mode("\xe1");               # DATA_MODE
-        $connection->send("\xf5\x58\xff\xff");   # channel access, ccb1, ccb2
+        $connection->mode("\xe1");                # DATA_MODE
+        $connection->send("\xf5\x58\xff\xff");    # channel access, ccb1, ccb2
         $connection->read(3);
-        my $byte = unpack("b",$connection->read(1));
+        my $byte = unpack( "b", $connection->read(1) );
+
         #print unpack("b",$byte);
         $connection->reset;
-#        $Hardware::iButton::Connection::debug = 0;
+
+        #        $Hardware::iButton::Connection::debug = 0;
         return $byte;
-    } else {
+    }
+    else {
         print "bad family for read_switch\n";
     }
-#    $Hardware::iButton::Connection::debug = 0;
+
+    #    $Hardware::iButton::Connection::debug = 0;
 
 }
 
 sub toggle_switch_2405 {
     my ($self) = @_;
     my $connection;
-    return unless $connection = $connections{$self->{port}};
+    return unless $connection = $connections{ $self->{port} };
 
-#    $Hardware::iButton::Connection::debug = 1;
+    #    $Hardware::iButton::Connection::debug = 1;
 
-    if ($self->model() eq 'DS2405' ) {          #switch
+    if ( $self->model() eq 'DS2405' ) {    #switch
 
         $self->reset;
         $self->select;
-        $connection->mode("\xe3");               # COMMAND_MODE (is this correct?)
-        $connection->send("\x55");               # This should toggle the switch
-        $connection->read(3);                    # How many bytes should I read here?
-        my $byte = unpack("b",$connection->read(1)); # This reads one more byte, I think.
-        print unpack("b",$byte);
+        $connection->mode("\xe3");         # COMMAND_MODE (is this correct?)
+        $connection->send("\x55");         # This should toggle the switch
+        $connection->read(3);              # How many bytes should I read here?
+        my $byte = unpack( "b", $connection->read(1) )
+          ;                                # This reads one more byte, I think.
+        print unpack( "b", $byte );
         $connection->reset;
-#        $Hardware::iButton::Connection::debug = 0;
+
+        #        $Hardware::iButton::Connection::debug = 0;
         return $byte;
-    } else {
+    }
+    else {
         print "bad family for toggle_switch_2405\n";
     }
-#    $Hardware::iButton::Connection::debug = 0;
+
+    #    $Hardware::iButton::Connection::debug = 0;
 
 }
 
 sub read_temp {
     my ($self) = @_;
-    return unless $connections{$self->{port}};
+    return unless $connections{ $self->{port} };
 
-    if ($connections{$self->{port}} eq 'proxy') {
-        &main::proxy_send($self->{port}, 'ibutton', 'read_temp', $$self{object_name});
-        return $self->{state}; # This is the previous  temp, but better than nothing.
+    if ( $connections{ $self->{port} } eq 'proxy' ) {
+        &main::proxy_send( $self->{port}, 'ibutton', 'read_temp',
+            $$self{object_name} );
+        return $self->{state}
+          ;    # This is the previous  temp, but better than nothing.
     }
 
     my $temp = $self->read_temperature_hires();
     return wantarray ? () : undef if !defined $temp;
 
-    my $temp_c = sprintf("%3.2f", $temp);
-    my $temp_f = sprintf("%3.2f", &::convert_c2f($temp));
-    my $temp_def = ($main::config_parms{weather_uom_temp} eq 'C') ? $temp_c : $temp_f;
+    my $temp_c = sprintf( "%3.2f", $temp );
+    my $temp_f = sprintf( "%3.2f", &::convert_c2f($temp) );
+    my $temp_def =
+      ( $main::config_parms{weather_uom_temp} eq 'C' ) ? $temp_c : $temp_f;
 
     set_receive $self $temp_def;
 
-    return wantarray ? ($temp_f, $temp_c) : $temp_def;
+    return wantarray ? ( $temp_f, $temp_c ) : $temp_def;
 }
 
 sub scan {
-    my ($family, $port) = @_;
+    my ( $family, $port ) = @_;
     $port = $connections{default} unless $port;
     return unless $connections{$port};
 
-    if ($connections{$port} eq 'proxy') {
+    if ( $connections{$port} eq 'proxy' ) {
         return 'not implemented';
     }
 
@@ -434,61 +457,70 @@ sub scan {
 }
 
 sub scan_report {
-    my ($family, $port) = @_;
+    my ( $family, $port ) = @_;
     $port = $connections{default} unless $port;
     return unless $connections{$port};
 
-    if ($connections{$port} eq 'proxy') {
-        return unless &main::proxy_send($port, 'ibutton', 'scan_report', $family);
-        return join("\n", &main::proxy_receive($port));
+    if ( $connections{$port} eq 'proxy' ) {
+        return
+          unless &main::proxy_send( $port, 'ibutton', 'scan_report', $family );
+        return join( "\n", &main::proxy_receive($port) );
     }
 
-    my @ib_list = &iButton::scan($family, $port);
+    my @ib_list = &iButton::scan( $family, $port );
     my $report;
     for my $ib (@ib_list) {
-        $report .= "Device type:" . $ib->family() . "  ID:" .
-            $ib->serial . "  CRC:" . $ib->crc . ": " . $ib->model() . "\n";
+        $report .=
+            "Device type:"
+          . $ib->family() . "  ID:"
+          . $ib->serial
+          . "  CRC:"
+          . $ib->crc . ": "
+          . $ib->model() . "\n";
     }
     return $report;
 }
 
-
- sub default_setstate {
-    my ($self, $state, $substate, $set_by) = @_;
+sub default_setstate {
+    my ( $self, $state, $substate, $set_by ) = @_;
     my $connection;
 
-    return -1 unless $connection = $connections{$self->{port}};
-#   $connection->reset;
+    return -1 unless $connection = $connections{ $self->{port} };
+
+    #   $connection->reset;
     $self->select;
     $self->{state} = $state;
 
-#   $Hardware::iButton::Connection::debug = 1;
-    if ($self->model() eq 'DS2406' ) {
-                                # New way
+    #   $Hardware::iButton::Connection::debug = 1;
+    if ( $self->model() eq 'DS2406' ) {
+
+        # New way
         my $channel = $self->{channel};
         $channel = 'A' unless $channel;
         $channel = 'CHANNEL_' . uc $channel;
-        $state = ($state eq 'off') ? 0 : 1;
-#       print "dbx setting relay $channel to $state\n";
-        $self->set_switch( $channel => $state)
+        $state   = ( $state eq 'off' ) ? 0 : 1;
 
-                                # Old way
-#       $state = ($state eq 'on') ? "\x00\x00" : "\xff\xff";
-#       $connection->mode("\xe1");           # DATA_MODE
-#       $connection->send("\xf5\x0c\xff");
-#       $connection->send($state);
-#       usleep(10);
+        #       print "dbx setting relay $channel to $state\n";
+        $self->set_switch( $channel => $state )
+
+          # Old way
+          #       $state = ($state eq 'on') ? "\x00\x00" : "\xff\xff";
+          #       $connection->mode("\xe1");           # DATA_MODE
+          #       $connection->send("\xf5\x0c\xff");
+          #       $connection->send($state);
+          #       usleep(10);
 
     }
-#   $Hardware::iButton::Connection::debug = 0;
+
+    #   $Hardware::iButton::Connection::debug = 0;
 }
 
 sub set_receive {
-    my ($self, $state) = @_;
+    my ( $self, $state ) = @_;
 
-    &main::iButton_receive_hooks($self, $state); # Created by &add_hooks
+    &main::iButton_receive_hooks( $self, $state );    # Created by &add_hooks
 
-    &Generic_Item::set_states_for_next_pass($self, $state);
+    &Generic_Item::set_states_for_next_pass( $self, $state );
 }
 
 sub _connections {
@@ -499,47 +531,47 @@ package iButton::Weather;
 @iButton::Weather::ISA = ('iButton');
 
 sub new {
-    my $class = shift;
-    my %ARGS = @_;
+    my $class       = shift;
+    my %ARGS        = @_;
     my %connections = iButton::_connections();
 
     my $this;
 
-    my $port = $ARGS{ PORT } ? $ARGS{ PORT } : $connections{default};
-    $this->{ PORT } = $port;
+    my $port = $ARGS{PORT} ? $ARGS{PORT} : $connections{default};
+    $this->{PORT} = $port;
 
     # Check to see that we have enough 01 chips
     my @windsensors;
     my @windcounters;
     my @windswitch;
     my @tempsensors;
-    foreach my $i ( @{$ARGS{ "CHIPS" }} ) {
-    my $ibutton = new iButton( $i, $port );
+    foreach my $i ( @{ $ARGS{"CHIPS"} } ) {
+        my $ibutton = new iButton( $i, $port );
 
-    push @windsensors,  $ibutton if uc(substr( $i, 0, 2 )) eq "01";
-    push @windswitch,   $ibutton if uc(substr( $i, 0, 2 )) eq "12";
-    push @windcounters, $ibutton if uc(substr( $i, 0, 2 )) eq "1D";
-    push @tempsensors,  $ibutton if uc(substr( $i, 0, 2 )) eq "10";
+        push @windsensors,  $ibutton if uc( substr( $i, 0, 2 ) ) eq "01";
+        push @windswitch,   $ibutton if uc( substr( $i, 0, 2 ) ) eq "12";
+        push @windcounters, $ibutton if uc( substr( $i, 0, 2 ) ) eq "1D";
+        push @tempsensors,  $ibutton if uc( substr( $i, 0, 2 ) ) eq "10";
     }
 
-    die "Need 8 01 chips!\n" if $#windsensors != 7;
-    die "Need a 1D counter!\n" if $#windcounters != 0;
-    die "Need a 12 switch!\n" if $#windswitch != 0;
+    die "Need 8 01 chips!\n"              if $#windsensors != 7;
+    die "Need a 1D counter!\n"            if $#windcounters != 0;
+    die "Need a 12 switch!\n"             if $#windswitch != 0;
     die "Need a 10 temperature sensor!\n" if $#tempsensors != 0;
 
-    $this->{ "01" } = [ @windsensors ];
-    $this->{ "1D" } = $windcounters[0];
-    $this->{ "12" } = $windswitch[0];
-    $this->{ "10" } = $tempsensors[0];
+    $this->{"01"} = [@windsensors];
+    $this->{"1D"} = $windcounters[0];
+    $this->{"12"} = $windswitch[0];
+    $this->{"10"} = $tempsensors[0];
 
     my %dirs;
     my $count = 0;
-    foreach my $i ( @windsensors ) {
-    $dirs{ $i->id() } = $count;
-    $count += 2;
+    foreach my $i (@windsensors) {
+        $dirs{ $i->id() } = $count;
+        $count += 2;
     }
 
-    $this->{ "DIRS" } = \%dirs;
+    $this->{"DIRS"} = \%dirs;
 
     bless $this, $class;
 }
@@ -547,17 +579,18 @@ sub new {
 sub read_temp {
     my $this = shift;
 
-    my $temp = $this->{ "10" }->read_temperature_hires();
+    my $temp = $this->{"10"}->read_temperature_hires();
 
     return if !defined $temp;
 
-    my $temp_c = sprintf("%3.2f", $temp);
-    my $temp_f = sprintf("%3.2f", &::convert_c2f($temp));
-    my $temp_def = ($main::config_parms{weather_uom_temp} eq 'C') ? $temp_c : $temp_f;
+    my $temp_c = sprintf( "%3.2f", $temp );
+    my $temp_f = sprintf( "%3.2f", &::convert_c2f($temp) );
+    my $temp_def =
+      ( $main::config_parms{weather_uom_temp} eq 'C' ) ? $temp_c : $temp_f;
 
-    $this->set_receive( $temp_def );
+    $this->set_receive($temp_def);
 
-    return wantarray ? ($temp_f, $temp_c) : $temp_def;
+    return wantarray ? ( $temp_f, $temp_c ) : $temp_def;
 }
 
 sub read_windspeed {
@@ -569,50 +602,51 @@ sub read_windspeed {
     #define MILES_PER_HOUR                  2.453
     #define KNOTS                                   2.130
 
-    if ( !defined $this->{ PREVCOUNT } ) {
-        $this->{ PREVCOUNT } = $this->{ "1D" }->read_counter( 3 );
-        return undef if !defined $this->{ PREVCOUNT };
+    if ( !defined $this->{PREVCOUNT} ) {
+        $this->{PREVCOUNT} = $this->{"1D"}->read_counter(3);
+        return undef if !defined $this->{PREVCOUNT};
 
-        $this->{ PREVTIME } = &main::get_tickcount() / 1000;
+        $this->{PREVTIME} = &main::get_tickcount() / 1000;
         select undef, undef, undef, 0.5;
     }
 
-    my $count = $this->{ "1D" }->read_counter( 3 );
+    my $count = $this->{"1D"}->read_counter(3);
     return undef if !defined $count;
 
     my $time = &main::get_tickcount() / 1000;
 
-    my $rev = ( ($count - $this->{ PREVCOUNT } ) / ( $time - $this->{ PREVTIME } )) / 2.0;
-    $this->{ PREVTIME } = $time;
-    $this->{ PREVCOUNT } = $count;
+    my $rev =
+      ( ( $count - $this->{PREVCOUNT} ) / ( $time - $this->{PREVTIME} ) ) / 2.0;
+    $this->{PREVTIME}  = $time;
+    $this->{PREVCOUNT} = $count;
 
-    my $speed = $rev * 2.453;  # This is the MPH constant
-    $this->set_receive( $speed );
+    my $speed = $rev * 2.453;    # This is the MPH constant
+    $this->set_receive($speed);
     return $speed;
 }
 
 sub read_dir {
-    my $this = shift;
+    my $this        = shift;
     my %connections = iButton::_connections();
 
-    $this->{ "12" }->set_switch( CHANNEL_B => 1);
-    my $c = $connections{ $this->{ PORT } };
+    $this->{"12"}->set_switch( CHANNEL_B => 1 );
+    my $c = $connections{ $this->{PORT} };
 
-    my @iButtons = $c->scan( "01" );
-    $this->{ "12" }->set_switch( CHANNEL_B => 1);
+    my @iButtons = $c->scan("01");
+    $this->{"12"}->set_switch( CHANNEL_B => 1 );
 
     my @dirs;
-    for ( 1..10 ) {
-    my @iButtons = $c->scan( "01" );
-    foreach my $i ( @iButtons ) {
-        my $id = $i->id();
-        push @dirs, $this->{ DIRS }->{ $id } if defined $this->{ DIRS }->{ $id };
+    for ( 1 .. 10 ) {
+        my @iButtons = $c->scan("01");
+        foreach my $i (@iButtons) {
+            my $id = $i->id();
+            push @dirs, $this->{DIRS}->{$id} if defined $this->{DIRS}->{$id};
+        }
+
+        last if $#dirs >= 0;
     }
 
-    last if $#dirs >= 0;
-    }
-
-    $this->{ "12" }->set_switch( CHANNEL_B => 0);
+    $this->{"12"}->set_switch( CHANNEL_B => 0 );
 
     my $dir;
     if ( $#dirs == 0 ) {
@@ -620,7 +654,7 @@ sub read_dir {
     }
     elsif ( $#dirs == 1 ) {
         @dirs = sort @dirs;
-        if ($dirs[0] == 0 && $dirs[1] == 14 ) {
+        if ( $dirs[0] == 0 && $dirs[1] == 14 ) {
             $dir = 15;
         }
         else {
@@ -629,23 +663,35 @@ sub read_dir {
     }
     else {
         warn "Got $#dirs direction readings\n";
-        $this->{ "12" }->set_switch( CHANNEL_B => 0);
+        $this->{"12"}->set_switch( CHANNEL_B => 0 );
         return undef;
     }
 
-    my %DIRS = ( 0 => "N", 1 => "NNE",  2 => "NE",  3 => "ENE", 4  => "E",  5 => "ESE",  6 => "SE", 7  => "SSE",
-                 8 => "S", 9 => "SSW", 10 => "SW", 11 => "WSW", 12 => "W", 13 => "WNW", 14 => "NW", 15 => "NNW",
-               );
+    my %DIRS = (
+        0  => "N",
+        1  => "NNE",
+        2  => "NE",
+        3  => "ENE",
+        4  => "E",
+        5  => "ESE",
+        6  => "SE",
+        7  => "SSE",
+        8  => "S",
+        9  => "SSW",
+        10 => "SW",
+        11 => "WSW",
+        12 => "W",
+        13 => "WNW",
+        14 => "NW",
+        15 => "NNW",
+    );
 
-    $this->set_receive( $DIRS{ $dir } );
-    $this->{ "12" }->set_switch( CHANNEL_B => 0);
-    return $DIRS{ $dir };
+    $this->set_receive( $DIRS{$dir} );
+    $this->{"12"}->set_switch( CHANNEL_B => 0 );
+    return $DIRS{$dir};
 }
 
-
-
-return 1;           # for require
-
+return 1;    # for require
 
 __END__
 

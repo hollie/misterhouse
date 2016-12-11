@@ -1,23 +1,24 @@
-;# $Id
-;#  vsLock v 0.103
-;#  Modified by Jason M. Hinkle, 2001
-;#
-;#  Based on File::Lock
-;#  Copyright (c) 1998, Raphael Manfredi
-;#  
-;#  You may redistribute only under the terms of the Artistic License,
-;#  as specified in the README file that comes with the distribution.
-;#
-;# $Log: vsLock.pm,v $
-;# Revision 1.3  2004/02/01 19:24:35  winter
-;#  - 2.87 release
-;#
-;# Revision 0.1.1.1  1998/05/12  07:42:19  ram
-;# patch1: Baseline for first alpha release.
-;#
+;    # $Id
+;    #  vsLock v 0.103
+;    #  Modified by Jason M. Hinkle, 2001
+;    #
+;    #  Based on File::Lock
+;    #  Copyright (c) 1998, Raphael Manfredi
+;    #
+;    #  You may redistribute only under the terms of the Artistic License,
+;    #  as specified in the README file that comes with the distribution.
+;    #
+;    # $Log: vsLock.pm,v $
+;    # Revision 1.3  2004/02/01 19:24:35  winter
+;    #  - 2.87 release
+;    #
+;    # Revision 0.1.1.1  1998/05/12  07:42:19  ram
+;    # patch1: Baseline for first alpha release.
+;    #
 
 ########################################################################
-package vsLock; @ISA = qw(Exporter);
+package vsLock;
+@ISA = qw(Exporter);
 
 #
 # This package extracts the simple locking logic used by mailagent-3.0
@@ -30,12 +31,12 @@ use Sys::Hostname;
 
 require Exporter;
 
-@ISA = qw(Exporter);
-@EXPORT = ();
+@ISA       = qw(Exporter);
+@EXPORT    = ();
 @EXPORT_OK = qw(lock trylock unlock);
-$VERSION = '0.103';
+$VERSION   = '0.103';
 
-$vsLock::LOCKER = undef;	# Default locking object
+$vsLock::LOCKER = undef;    # Default locking object
 
 #
 # ->make
@@ -63,22 +64,22 @@ $vsLock::LOCKER = undef;	# Default locking object
 # an existing object.
 #
 sub new {
-	my $self = bless {}, shift;
-	my (@hlist) = @_;
-	$self->configure(@hlist);
+    my $self = bless {}, shift;
+    my (@hlist) = @_;
+    $self->configure(@hlist);
 
-	# Set configuration defaults
-	$self->{'max'} = 30 unless $self->{'max'};
-	$self->{'delay'} = 2 unless $self->{'delay'};
-	$self->{'hold'} = 3600 unless $self->{'hold'};
-	$self->{'ext'} = '.lock' unless defined $self->{'ext'};
-	$self->{'nfs'} = 0 unless defined $self->{'nfs'};
-	$self->{'warn'} = 1 unless defined $self->{'warn'};
-	$self->{'wfunc'} = \&core_warn unless defined $self->{'wfunc'};
-	$self->{'wmin'} = 15 unless $self->{'wmin'};
-	$self->{'wafter'} = 20 unless $self->{'wafter'};
+    # Set configuration defaults
+    $self->{'max'}    = 30          unless $self->{'max'};
+    $self->{'delay'}  = 2           unless $self->{'delay'};
+    $self->{'hold'}   = 3600        unless $self->{'hold'};
+    $self->{'ext'}    = '.lock'     unless defined $self->{'ext'};
+    $self->{'nfs'}    = 0           unless defined $self->{'nfs'};
+    $self->{'warn'}   = 1           unless defined $self->{'warn'};
+    $self->{'wfunc'}  = \&core_warn unless defined $self->{'wfunc'};
+    $self->{'wmin'}   = 15          unless $self->{'wmin'};
+    $self->{'wafter'} = 20          unless $self->{'wafter'};
 
-	return $self;
+    return $self;
 }
 
 #
@@ -90,31 +91,31 @@ sub new {
 # Parameters are specified as (-warn => 1, -ext => '.lock') for instance.
 #
 sub configure {
-	my $self = shift;
-	my (%hlist) = @_;
-	my @known = qw(max delay hold format ext nfs warn wfunc wmin wafter);
-	foreach my $attr (@known) {
-		$self->{$attr} = $hlist{"-$attr"} if defined $hlist{"-$attr"};
-	}
+    my $self    = shift;
+    my (%hlist) = @_;
+    my @known   = qw(max delay hold format ext nfs warn wfunc wmin wafter);
+    foreach my $attr (@known) {
+        $self->{$attr} = $hlist{"-$attr"} if defined $hlist{"-$attr"};
+    }
 }
 
 #
 # Attribute access
 #
 
-sub max			{ $_[0]->{'max'} }
-sub delay		{ $_[0]->{'delay'} }
-sub format		{ $_[0]->{'format'} }
-sub hold		{ $_[0]->{'hold'} }
-sub nfs			{ $_[0]->{'nfs'} }
-sub ext			{ $_[0]->{'ext'} }
-sub warn		{ $_[0]->{'warn'} }
-sub wmin		{ $_[0]->{'wmin'} }
-sub wafter		{ $_[0]->{'wafter'} }
-sub wfunc		{ $_[0]->{'wfunc'} }
-sub Version		{ return $VERSION; }
+sub max     { $_[0]->{'max'} }
+sub delay   { $_[0]->{'delay'} }
+sub format  { $_[0]->{'format'} }
+sub hold    { $_[0]->{'hold'} }
+sub nfs     { $_[0]->{'nfs'} }
+sub ext     { $_[0]->{'ext'} }
+sub warn    { $_[0]->{'warn'} }
+sub wmin    { $_[0]->{'wmin'} }
+sub wafter  { $_[0]->{'wafter'} }
+sub wfunc   { $_[0]->{'wfunc'} }
+sub Version { return $VERSION; }
 
-sub core_warn	{ CORE::warn(@_) }
+sub core_warn { CORE::warn(@_) }
 
 #
 # ->lock
@@ -127,14 +128,14 @@ sub core_warn	{ CORE::warn(@_) }
 # object if not invoked as a method, turning on warnings.
 #
 sub lock {
-	my $self = shift;
-	unless (ref $self) {			# Not invoked as a method
-		unshift(@_, $self);
-		$self = $vsLock::LOCKER ||
-			vsLock->make('-warn' => 1);
-	}
-	my ($file, $format) = @_;		# File to be locked, lock format
-	return $self->_acs_lock($file, $format, 0);
+    my $self = shift;
+    unless ( ref $self ) {    # Not invoked as a method
+        unshift( @_, $self );
+        $self = $vsLock::LOCKER
+          || vsLock->make( '-warn' => 1 );
+    }
+    my ( $file, $format ) = @_;    # File to be locked, lock format
+    return $self->_acs_lock( $file, $format, 0 );
 }
 
 #
@@ -147,14 +148,14 @@ sub lock {
 # object if not invoked as a method, turning on warnings.
 #
 sub trylock {
-	my $self = shift;
-	unless (ref $self) {			# Not invoked as a method
-		unshift(@_, $self);
-		$self = $vsLock::LOCKER ||
-			vsLock->make('-warn' => 1);
-	}
-	my ($file, $format) = @_;		# File to be locked, lock format
-	return $self->_acs_lock($file, $format, 1);
+    my $self = shift;
+    unless ( ref $self ) {    # Not invoked as a method
+        unshift( @_, $self );
+        $self = $vsLock::LOCKER
+          || vsLock->make( '-warn' => 1 );
+    }
+    my ( $file, $format ) = @_;    # File to be locked, lock format
+    return $self->_acs_lock( $file, $format, 1 );
 }
 
 #
@@ -164,14 +165,14 @@ sub trylock {
 # Returns true if file was unlocked.
 #
 sub unlock {
-	my $self = shift;
-	unless (ref $self) {			# Not invoked as a method
-		unshift(@_, $self);
-		$self = $vsLock::LOCKER ||
-			vsLock->make('-warn' => 1);
-	}
-	my ($file, $format) = @_;		# File to be unlocked, lock format
-	return $self->_acs_unlock($file, $format);
+    my $self = shift;
+    unless ( ref $self ) {    # Not invoked as a method
+        unshift( @_, $self );
+        $self = $vsLock::LOCKER
+          || vsLock->make( '-warn' => 1 );
+    }
+    my ( $file, $format ) = @_;    # File to be unlocked, lock format
+    return $self->_acs_unlock( $file, $format );
 }
 
 #
@@ -186,32 +187,32 @@ sub unlock {
 #   %%: a plain % character
 #
 sub lockfile {
-	my $self = shift;
-	my ($file, $format) = @_;
-	local $_ = defined($format) ? $format : $self->format;
-	s/%%/\01/g;				# Protect double percent signs
-	s/%/\02/g;				# Protect against substitutions adding their own %
-	s/\02f/$file/g;			# %f is the full path name
-	s/\02D/&dir($file)/ge;	# %D is the dir name
-	s/\02F/&base($file)/ge;	# %F is the base name
-	s/\02p/$$/g;			# %p is the process's pid
-	s/\02/%/g;				# All other % kept as-is
-	s/\01/%/g;				# Restore escaped % signs
-	$_;
+    my $self = shift;
+    my ( $file, $format ) = @_;
+    local $_ = defined($format) ? $format : $self->format;
+    s/%%/\01/g;               # Protect double percent signs
+    s/%/\02/g;                # Protect against substitutions adding their own %
+    s/\02f/$file/g;           # %f is the full path name
+    s/\02D/&dir($file)/ge;    # %D is the dir name
+    s/\02F/&base($file)/ge;   # %F is the base name
+    s/\02p/$$/g;              # %p is the process's pid
+    s/\02/%/g;                # All other % kept as-is
+    s/\01/%/g;                # Restore escaped % signs
+    $_;
 }
 
 # Return file basename (last path component)
 sub base {
-	my ($file) = @_;
-	my ($base) = $file =~ m|^.*/(.*)|;
-	$base;
+    my ($file) = @_;
+    my ($base) = $file =~ m|^.*/(.*)|;
+    $base;
 }
 
 # Return dirname
 sub dir {
-	my ($file) = @_;
-	my ($dir) = $file =~ m|^(.*)/.*|;
-	$dir;
+    my ($file) = @_;
+    my ($dir)  = $file =~ m|^(.*)/.*|;
+    $dir;
 }
 
 #
@@ -222,77 +223,80 @@ sub dir {
 # If $try is true, don't wait if the file is already locked.
 # Returns true if the file was locked.
 #
-sub _acs_lock {		## private
-	my $self = shift;
-	my ($file, $format, $try) = @_;
-	my $max = $self->max;
-	my $delay = $self->delay;
-	my $stamp = $$;
+sub _acs_lock {    ## private
+    my $self = shift;
+    my ( $file, $format, $try ) = @_;
+    my $max   = $self->max;
+    my $delay = $self->delay;
+    my $stamp = $$;
 
-	# For NFS, we need something more unique than the process's PID
-	$stamp .= hostname if $self->nfs;
+    # For NFS, we need something more unique than the process's PID
+    $stamp .= hostname if $self->nfs;
 
-	# Compute locking file name -- hardwired default format is "%f.lock"
-	my $lockfile = $file . $self->ext;
-	$format = $self->format unless defined $format;
-	$lockfile = $self->lockfile($file, $format) if defined $format;
+    # Compute locking file name -- hardwired default format is "%f.lock"
+    my $lockfile = $file . $self->ext;
+    $format = $self->format unless defined $format;
+    $lockfile = $self->lockfile( $file, $format ) if defined $format;
 
-	# Break lock if held for too long
-	$self->_acs_check($file, $lockfile) if $self->hold;
+    # Break lock if held for too long
+    $self->_acs_check( $file, $lockfile ) if $self->hold;
 
-	my $waited = 0;					# Amount of time spent sleeping
-	my $lastwarn = 0;				# Last time we warned them...
-	my $warn = $self->warn;
-	my ($wmin, $wafter, $wfunc);
-	($wmin, $wafter, $wfunc) = 
-		($self->wmin, $self->wafter, $self->wfunc) if $warn;
-	my $locked = 0;
-	my $mask = umask(0333);			# No write permission
-	local *FILE;
+    my $waited   = 0;             # Amount of time spent sleeping
+    my $lastwarn = 0;             # Last time we warned them...
+    my $warn     = $self->warn;
+    my ( $wmin, $wafter, $wfunc );
+    ( $wmin, $wafter, $wfunc ) = ( $self->wmin, $self->wafter, $self->wfunc )
+      if $warn;
+    my $locked = 0;
+    my $mask   = umask(0333);     # No write permission
+    local *FILE;
 
-	while ($max-- > 0) {
-		if (-f $lockfile) {
-			next unless $try;
-			umask($mask);
-			return 0;				# Already locked
-		}
+    while ( $max-- > 0 ) {
+        if ( -f $lockfile ) {
+            next unless $try;
+            umask($mask);
+            return 0;             # Already locked
+        }
 
-		# Attempt to create lock
-		if (open(FILE, ">$lockfile")) {
-			print FILE "$stamp\n";
-			close FILE;
-			open(FILE, $lockfile);	# Check lock
-			my $l;
-			chop($l = <FILE>);
-			$locked = $l eq $stamp;
-			$l = <FILE>;			# Must be EOF
-			$locked = 0 if defined $l; 
-			close FILE;
-			last if $locked;		# Lock seems to be ours
-		} elsif ($try) {
-			umask($mask);
-			return 0;				# Already locked, or cannot create lock
-		}
-	} continue {
-		sleep($delay);				# Busy: wait
-		$waited += $delay;
+        # Attempt to create lock
+        if ( open( FILE, ">$lockfile" ) ) {
+            print FILE "$stamp\n";
+            close FILE;
+            open( FILE, $lockfile );    # Check lock
+            my $l;
+            chop( $l = <FILE> );
+            $locked = $l eq $stamp;
+            $l      = <FILE>;            # Must be EOF
+            $locked = 0 if defined $l;
+            close FILE;
+            last if $locked;             # Lock seems to be ours
+        }
+        elsif ($try) {
+            umask($mask);
+            return 0;                    # Already locked, or cannot create lock
+        }
+    }
+    continue {
+        sleep($delay);                   # Busy: wait
+        $waited += $delay;
 
-		# Warn them once after $wmin seconds and then every $wafter seconds
-		if (
-			$warn &&
-				((!$lastwarn && $waited > $wmin) ||
-				($waited - $lastwarn) > $wafter)
-		) {
-			my $waiting  = $lastwarn ? 'still waiting' : 'waiting';
-			my $after  = $lastwarn ? 'after' : 'since';
-			my $s = $waited == 1 ? '' : 's';
-			&$wfunc("WARNING $waiting for $file lock $after $waited second$s");
-			$lastwarn = $waited;
-		}
-	}
+        # Warn them once after $wmin seconds and then every $wafter seconds
+        if (
+            $warn
+            && (   ( !$lastwarn && $waited > $wmin )
+                || ( $waited - $lastwarn ) > $wafter )
+          )
+        {
+            my $waiting = $lastwarn    ? 'still waiting' : 'waiting';
+            my $after   = $lastwarn    ? 'after'         : 'since';
+            my $s       = $waited == 1 ? ''              : 's';
+            &$wfunc("WARNING $waiting for $file lock $after $waited second$s");
+            $lastwarn = $waited;
+        }
+    }
 
-	umask($mask);
-	return $locked;
+    umask($mask);
+    return $locked;
 }
 
 #
@@ -303,36 +307,36 @@ sub _acs_lock {		## private
 #
 # Return true if file was indeed locked by us and is now properly unlocked.
 #
-sub _acs_unlock {	## private
-	my $self = shift;
-	my ($file, $format) = @_;		# Locked file, locking format
-	my $stamp = $$;
-	$stamp .= hostname if $self->nfs;
+sub _acs_unlock {    ## private
+    my $self = shift;
+    my ( $file, $format ) = @_;    # Locked file, locking format
+    my $stamp = $$;
+    $stamp .= hostname if $self->nfs;
 
-	# Compute locking file name -- hardwired default format is "%f.lock"
-	my $lockfile = $file . $self->ext;
-	$format = $self->format unless defined $format;
-	$lockfile = $self->lockfile($file, $format) if defined $format;
+    # Compute locking file name -- hardwired default format is "%f.lock"
+    my $lockfile = $file . $self->ext;
+    $format = $self->format unless defined $format;
+    $lockfile = $self->lockfile( $file, $format ) if defined $format;
 
-	local *FILE;
-	my $unlocked = 0;
+    local *FILE;
+    my $unlocked = 0;
 
-	if (-f $lockfile) {
-		open(FILE, $lockfile);
-		my $l;
-		chop($l = <FILE>);
-		close FILE;
-		if ($l eq $stamp) {			 # Pid (plus hostname possibly) is OK
-			$unlocked = 1;
-			unlink $lockfile or $unlocked = 0;
-		}
-	}
+    if ( -f $lockfile ) {
+        open( FILE, $lockfile );
+        my $l;
+        chop( $l = <FILE> );
+        close FILE;
+        if ( $l eq $stamp ) {    # Pid (plus hostname possibly) is OK
+            $unlocked = 1;
+            unlink $lockfile or $unlocked = 0;
+        }
+    }
 
-	# It's reasonable to expect $! to be meaningful at this point
-	&{$self->wfunc}("WARNING did not unlock $file: $!")
-		if !$unlocked && $self->warn;
+    # It's reasonable to expect $! to be meaningful at this point
+    &{ $self->wfunc }("WARNING did not unlock $file: $!")
+      if !$unlocked && $self->warn;
 
-	return $unlocked;				# Did we successfully unlock?
+    return $unlocked;            # Did we successfully unlock?
 }
 
 #
@@ -342,22 +346,23 @@ sub _acs_unlock {	## private
 # then remove the lockfile.
 #
 sub _acs_check {
-	my $self = shift;
-	my ($file, $lockfile) = @_;
-	return unless -f $lockfile;
+    my $self = shift;
+    my ( $file, $lockfile ) = @_;
+    return unless -f $lockfile;
 
-	my $mtime = (stat($lockfile))[9];
-	my $hold = $self->hold;
+    my $mtime = ( stat($lockfile) )[9];
+    my $hold  = $self->hold;
 
-	# If file too old to be considered stale?
-	if ((time - $mtime) > $hold) {
-		unlink $lockfile;
-		if ($self->warn) {
-			$file =~ s|.*/(.*)|$1|;	# Keep only basename
-			my $s = $hold == 1 ? '' : 's';
-			&{$self->wfunc}("UNLOCKED $file (lock older than $hold second$s)");
-		}
-	}
+    # If file too old to be considered stale?
+    if ( ( time - $mtime ) > $hold ) {
+        unlink $lockfile;
+        if ( $self->warn ) {
+            $file =~ s|.*/(.*)|$1|;    # Keep only basename
+            my $s = $hold == 1 ? '' : 's';
+            &{ $self->wfunc }
+              ("UNLOCKED $file (lock older than $hold second$s)");
+        }
+    }
 }
 
 1;

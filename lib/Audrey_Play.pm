@@ -40,31 +40,38 @@ $ip is the IP address of the Audrey.
 =cut
 
 sub new {
-   my ($class, $ip) = @_;
-   my $self = { };
-   $self->{address}=$ip;
-   
-   if ($ip) {
-      &::print_log("Creating Audrey_Play object...");
-   } else {
-      warn 'Empty expression is not allowed.';
-   }
+    my ( $class, $ip ) = @_;
+    my $self = {};
+    $self->{address} = $ip;
 
-   bless $self, $class;
-   return $self;         
+    if ($ip) {
+        &::print_log("Creating Audrey_Play object...");
+    }
+    else {
+        warn 'Empty expression is not allowed.';
+    }
+
+    bless $self, $class;
+    return $self;
 }
 
 sub play {
-   my ($self,$web_file) = @_;
-   &::print_log("Called 'play' in Audrey_Play object...");
-   my $MHWeb = $::Info{IPAddress_local} . ":" . $::config_parms{http_port};
-   &::print_log($MHWeb);
-   &::run("get_url -quiet http://" . $self->{address} . "/mhspeak.shtml?http://" . $MHWeb . "/" . $web_file . " /dev/null");
+    my ( $self, $web_file ) = @_;
+    &::print_log("Called 'play' in Audrey_Play object...");
+    my $MHWeb = $::Info{IPAddress_local} . ":" . $::config_parms{http_port};
+    &::print_log($MHWeb);
+    &::run( "get_url -quiet http://"
+          . $self->{address}
+          . "/mhspeak.shtml?http://"
+          . $MHWeb . "/"
+          . $web_file
+          . " /dev/null" );
 }
 
 1;
 
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 =begin Audrey Config
 
 Exerpt from audreyspeak.pl

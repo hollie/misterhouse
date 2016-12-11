@@ -23,23 +23,32 @@
 
 use strict;
 
-my ($Pgm_Path, $Pgm_Name, $Version);
-use vars '$Pgm_Root';           # So we can see it in eval var subs in read_parms
+my ( $Pgm_Path, $Pgm_Name, $Version );
+use vars '$Pgm_Root';    # So we can see it in eval var subs in read_parms
 
 BEGIN {
-     ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
-     ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
-     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-     $Pgm_Root = "$Pgm_Path/..";
-     eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # Use BEGIN eval to keep perl2exe happy
+    ($Version) =
+      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+    $Pgm_Root = "$Pgm_Path/..";
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"
+      ;                           # Use BEGIN eval to keep perl2exe happy
 }
-
 
 use Getopt::Long;
 my %parms;
-if (!&GetOptions(\%parms, "h", "help", "message=s", "name:s", "pin:i", "service:s") or
-     @ARGV or $parms{h} or $parms{help} or !$parms{message} or !$parms{service}) {
-     print<<eof;
+if (
+    !&GetOptions( \%parms, "h", "help", "message=s", "name:s", "pin:i",
+        "service:s" )
+    or @ARGV
+    or $parms{h}
+    or $parms{help}
+    or !$parms{message}
+    or !$parms{service}
+  )
+{
+    print <<eof;
 
 $Pgm_Name (version $Version) sends alphanumeric page.
 
@@ -61,7 +70,7 @@ $Pgm_Name (version $Version) sends alphanumeric page.
 
 eof
 
-   exit;
+    exit;
 }
 
 my (%pin_numbers);
@@ -69,104 +78,114 @@ my (%pin_numbers);
 &setup;
 
 $parms{service} = "PageMart" unless $parms{service};
-unless ( ($parms{service} eq "PageMart") | ($parms{service} eq "Arch1way") | ($parms{service} eq "Arch2way") ) {
-     print "\nParameter error: $parms{service}\n";
-     print "The only accepted values for -service are:\n";
-     print "    PageMart\n";
-     print "    Arch1way\n";
-     print "    Arch2way\n";
-     print "(Note: not specifying -service will default to PageMart for backward compatibility.)\n";
-     exit;
+unless ( ( $parms{service} eq "PageMart" ) | ( $parms{service} eq "Arch1way" ) |
+    ( $parms{service} eq "Arch2way" ) )
+{
+    print "\nParameter error: $parms{service}\n";
+    print "The only accepted values for -service are:\n";
+    print "    PageMart\n";
+    print "    Arch1way\n";
+    print "    Arch2way\n";
+    print
+      "(Note: not specifying -service will default to PageMart for backward compatibility.)\n";
+    exit;
 }
 
-$parms{pin} = $pin_numbers{$parms{name}} unless $parms{pin};
-unless ($parms{pin}) {
-     print "\nYou must specifies mh.ini parm alpha_page_NAME_pin and -name option\n";
-     print "or specify -pin option.\n";
-     exit;
+$parms{pin} = $pin_numbers{ $parms{name} } unless $parms{pin};
+unless ( $parms{pin} ) {
+    print
+      "\nYou must specifies mh.ini parm alpha_page_NAME_pin and -name option\n";
+    print "or specify -pin option.\n";
+    exit;
 }
-&send_page ($parms{service}, $parms{pin}, "$parms{message}");
+&send_page( $parms{service}, $parms{pin}, "$parms{message}" );
 
 use vars "%config_parms";
+
 sub setup {
 
-     require 'handy_utilities.pl';
+    require 'handy_utilities.pl';
 
-     my $private_parms = $Pgm_Path . "/mh.private.ini";
-     &main::read_opts(\%config_parms, $Pgm_Path . "/mh.ini");
-     &main::read_opts(\%config_parms, $private_parms) if -e $private_parms;
+    my $private_parms = $Pgm_Path . "/mh.private.ini";
+    &main::read_opts( \%config_parms, $Pgm_Path . "/mh.ini" );
+    &main::read_opts( \%config_parms, $private_parms ) if -e $private_parms;
 
-                                 # Get pager parms
-     for my $parm (keys %config_parms) {
-         next unless $config_parms{$parm}; # Ingore blank parms
-         $pin_numbers{$1} = $config_parms{$parm} if $parm =~ /alpha_page_(\S+)_pin/;
-     }
+    # Get pager parms
+    for my $parm ( keys %config_parms ) {
+        next unless $config_parms{$parm};    # Ingore blank parms
+        $pin_numbers{$1} = $config_parms{$parm}
+          if $parm =~ /alpha_page_(\S+)_pin/;
+    }
 
-     for my $name (keys %pin_numbers) {
-         print "$name=$pin_numbers{$name}\n" if $config_parms{debug} eq 'page';
-     }
+    for my $name ( keys %pin_numbers ) {
+        print "$name=$pin_numbers{$name}\n" if $config_parms{debug} eq 'page';
+    }
 }
 
 sub send_page {
-     use LWP::UserAgent;
-     use HTTP::Request::Common;
-     my ($srv, $pin, $msg) = @_;
+    use LWP::UserAgent;
+    use HTTP::Request::Common;
+    my ( $srv, $pin, $msg ) = @_;
 
-     print "send page: ($srv) pin=$pin, $msg\n" if $config_parms{debug} eq 'page';
+    print "send page: ($srv) pin=$pin, $msg\n"
+      if $config_parms{debug} eq 'page';
 
-     my $ua = new LWP::UserAgent;
-     $ua->timeout([60]);         # Time out after 60 seconds
-     $ua->env_proxy();           # use proxy if defined
+    my $ua = new LWP::UserAgent;
+    $ua->timeout( [60] );    # Time out after 60 seconds
+    $ua->env_proxy();        # use proxy if defined
 
-     my $request;
+    my $request;
 
-     if ( $srv eq "Arch2way" ) {
-         $request = POST 'http://www.Arch.com/cgi-bin/wwwtwoway.exe',
-                   [ gw_pin              => $pin,
-                     MSSG                => $msg,
-                     Q1                  => '0',                     # (No echo) or '1' (echo)
-# The remaining fields have been tested and do work, but I am leaving commented out for now until I decide whether or not
-# it is worth the effort to make them all config_parms and/or ARGS...
-# ATM I am envisioning something like MH seeing a sensor above limit, sends page to 2way and then acts based on response.
-# e.g. -message 'No motion detected in house for 2 hours - should all lights be set OFF?'
-#      -resp_a_string 'Yes'
-#      -resp_b_string 'No'
-#      -resp_c_string 'Just Inside Lights'
-                     #resp_route          => 'Email',                 # or 'Pager', (type of response)
-                     #resp_addr           => 'account@server.TLD',    # address for response
-                     # Note: All below fields require resp_route and resp_addr to be set
-# confirm_receipt_str can only be 'confirm_page_delivery', so if confirmation not desired, leave it commented out
-                     #confirm_receipt_str => 'confirm_page_delivery', # optional, (only option)
-                     #resp_a_string       => 'A',                     # Custom response option A
-                     #resp_b_string       => 'B',                     # Custom response option B
-                     #resp_c_string       => 'C',                     # Custom response option C
-                     #resp_d_string       => 'D',                     # Custom response option D
-                     #resp_e_string       => 'E',                     # Custom response option E
-                     #resp_f_string       => 'F',                     # Custom response option F
-                   ];
-     }
-     elsif ( $srv eq "Arch1way" ) {
-         $request = POST 'http://www.Arch.com/cgi-bin/wwwpage.exe',
-                   [ PIN             => $pin,
-                     MSSG            => $msg,
-                   ];
-     }
-     elsif ( $srv eq "PageMart" ) {
-         $request = POST 'http://www2.pagemart.com/cgi-bin/rbox/pglpage-cgi',
-                   [ pin2            => $pin,
-                     PAGELAUNCHERID  => '2',
-                     message1        => $msg,
-                   ];
-     }
+    if ( $srv eq "Arch2way" ) {
+        $request = POST 'http://www.Arch.com/cgi-bin/wwwtwoway.exe', [
+            gw_pin => $pin,
+            MSSG   => $msg,
+            Q1     => '0',    # (No echo) or '1' (echo)
 
-     my $response = $ua->request($request);
+            # The remaining fields have been tested and do work, but I am leaving commented out for now until I decide whether or not
+            # it is worth the effort to make them all config_parms and/or ARGS...
+            # ATM I am envisioning something like MH seeing a sensor above limit, sends page to 2way and then acts based on response.
+            # e.g. -message 'No motion detected in house for 2 hours - should all lights be set OFF?'
+            #      -resp_a_string 'Yes'
+            #      -resp_b_string 'No'
+            #      -resp_c_string 'Just Inside Lights'
+            #resp_route          => 'Email',                 # or 'Pager', (type of response)
+            #resp_addr           => 'account@server.TLD',    # address for response
+            # Note: All below fields require resp_route and resp_addr to be set
+            # confirm_receipt_str can only be 'confirm_page_delivery', so if confirmation not desired, leave it commented out
+            #confirm_receipt_str => 'confirm_page_delivery', # optional, (only option)
+            #resp_a_string       => 'A',                     # Custom response option A
+            #resp_b_string       => 'B',                     # Custom response option B
+            #resp_c_string       => 'C',                     # Custom response option C
+            #resp_d_string       => 'D',                     # Custom response option D
+            #resp_e_string       => 'E',                     # Custom response option E
+            #resp_f_string       => 'F',                     # Custom response option F
+        ];
+    }
+    elsif ( $srv eq "Arch1way" ) {
+        $request = POST 'http://www.Arch.com/cgi-bin/wwwpage.exe',
+          [
+            PIN  => $pin,
+            MSSG => $msg,
+          ];
+    }
+    elsif ( $srv eq "PageMart" ) {
+        $request = POST 'http://www2.pagemart.com/cgi-bin/rbox/pglpage-cgi',
+          [
+            pin2           => $pin,
+            PAGELAUNCHERID => '2',
+            message1       => $msg,
+          ];
+    }
 
-     if ( $response ->is_success ) {
-         print "page sent\n" if $config_parms{debug} eq 'page';
-     }
-     else {
-         printf "page failed, %s\n", $response->status_line;
-     }
+    my $response = $ua->request($request);
+
+    if ( $response->is_success ) {
+        print "page sent\n" if $config_parms{debug} eq 'page';
+    }
+    else {
+        printf "page failed, %s\n", $response->status_line;
+    }
 }
 
 #

@@ -1,40 +1,46 @@
 #!/usr/bin/perl
-#--------------------------------------------------------------------------- 
-#  File: 
+#---------------------------------------------------------------------------
+#  File:
 #      display_callers
-#  Description: 
-#      A perl script that displays phone log data 
-#  Author: 
+#  Description:
+#      A perl script that displays phone log data
+#  Author:
 #      Bruce Winter  bruce@misterhouse.net
-#  Latest version: 
+#  Latest version:
 #      http://misterhouse.net/mh/bin/display_callers
-#  Change log: 
-#    12/27/97  Created. 
-#    05/30/98  Switched from Dialog to TK. 
+#  Change log:
+#    12/27/97  Created.
+#    05/30/98  Switched from Dialog to TK.
 #
-#  This software is licensed under the terms of the GNU public license.  
-#  Copyright 1997 Bruce Winter 
+#  This software is licensed under the terms of the GNU public license.
+#  Copyright 1997 Bruce Winter
 #
-#--------------------------------------------------------------------------- 
+#---------------------------------------------------------------------------
 
-package display_callers;        # So we can do the faster 'do' from mh, and not mess it up.
+package display_callers
+  ;    # So we can do the faster 'do' from mh, and not mess it up.
 
-my ($Pgm_Path, $Pgm_Name);
-use vars '$Pgm_Root';           # So we can see it in eval var subs in read_parms
+my ( $Pgm_Path, $Pgm_Name );
+use vars '$Pgm_Root';    # So we can see it in eval var subs in read_parms
+
 BEGIN {
-    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+    ($Version) =
+      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
 
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
     $Pgm_Root = "$Pgm_Path/..";
-    eval "use lib '$Pgm_Path/../lib'"; # Use BEGIN eval to keep perl2exe happy
+    eval "use lib '$Pgm_Path/../lib'";   # Use BEGIN eval to keep perl2exe happy
 }
 
 use Getopt::Long;
 my %parms;
-if (!&GetOptions(\%parms, "h", "help", "cgi") or
-    @ARGV > 2 or $parms{h} or $parms{help}) {  
-    print<<eof; 
+if (  !&GetOptions( \%parms, "h", "help", "cgi" )
+    or @ARGV > 2
+    or $parms{h}
+    or $parms{help} )
+{
+    print <<eof;
 
   $Pgm_Name displays callerid (incoming) and phone log (outgoing) data. 
 
@@ -46,340 +52,389 @@ if (!&GetOptions(\%parms, "h", "help", "cgi") or
 
 eof
 
-  exit; 
+    exit;
 }
 
-use strict; 
-&setup; 
-&read_member_list; 
-&read_callerid_list; 
-&read_dbm_file; 
-&read_in_call_log; 
-&read_out_call_log; 
-if ($parms{cgi}) {
+use strict;
+&setup;
+&read_member_list;
+&read_callerid_list;
+&read_dbm_file;
+&read_in_call_log;
+&read_out_call_log;
+if ( $parms{cgi} ) {
     &post_cgi_form;
 }
 else {
-    &display; 
+    &display;
 }
 
-my ($file_qual, $dir, $MW); 
-my (@members1, @members2, @members_picked1, @members_picked2, %info); 
-my (%callerid_name_by_number, %dbm_name_by_number, %calls); 
-my (@pl1, @pl2, @pl3); 
+my ( $file_qual, $dir, $MW );
+my ( @members1, @members2, @members_picked1, @members_picked2, %info );
+my ( %callerid_name_by_number, %dbm_name_by_number, %calls );
+my ( @pl1, @pl2, @pl3 );
 my ($loop);
 
 my %config_parms;
-sub setup { 
-    $file_qual = shift @ARGV; 
 
-    require 'handy_utilities.pl';       # For read_mh_opts funcion
-    &main::read_mh_opts(\%config_parms, $Pgm_Path);
+sub setup {
+    $file_qual = shift @ARGV;
+
+    require 'handy_utilities.pl';    # For read_mh_opts funcion
+    &main::read_mh_opts( \%config_parms, $Pgm_Path );
 
     use Time::ParseDate;
 
     $dir = "$config_parms{data_dir}/phone";
 
-#   use DB_File;  # neede for ocmpiled version??
+    #   use DB_File;  # neede for ocmpiled version??
 
-    if ($parms{cgi}) {
-        eval "use CGI ':all';"; # Use eval so we don't fail if CGI not available (e.g. mh.exe)
-        print &header(-target => 'New Window');
+    if ( $parms{cgi} ) {
+        eval "use CGI ':all';"
+          ;    # Use eval so we don't fail if CGI not available (e.g. mh.exe)
+        print &header( -target => 'New Window' );
         print &start_html("Phone Logs");
         print "<center><H2>Phone Logs</H1></center>\n";
     }
 
     else {
-                                # In case we were called from mh that has -tk
-        if ($main::MW) { 
-            $MW = $main::MW->Toplevel; 
+        # In case we were called from mh that has -tk
+        if ($main::MW) {
+            $MW   = $main::MW->Toplevel;
             $loop = 0;
-        } 
-        else { 
-            use Tk;  
-            $MW = MainWindow->new;  
+        }
+        else {
+            use Tk;
+            $MW   = MainWindow->new;
             $loop = 1;
-        } 
+        }
 
-        $MW->title('display_calls: Phone Log Display'); 
-        
-        $MW->geometry($config_parms{tk_display_callers_geometry}) if $MW and $config_parms{tk_display_callers_geometry};
-        
-        $MW->bind('<q>'         => \&my_exit);  
-        $MW->bind('<Escape>'    => \&my_exit);  
-        $MW->bind('<F3>'        => \&my_exit);  
-        $MW->bind('<Control-c>' => \&my_exit);  
-        
-        $MW->configure(-bg => 'white');  
-#       $MW->optionAdd('*font' => 'systemfixed');  
+        $MW->title('display_calls: Phone Log Display');
 
-        @pl1 = qw/-expand yes -fill both -side top  -padx 2/;  
-        @pl2 = qw/-expand yes -fill both -side left -padx 2/;  
-        @pl3 = qw/-side left -ipadx 5/;  
+        $MW->geometry( $config_parms{tk_display_callers_geometry} )
+          if $MW and $config_parms{tk_display_callers_geometry};
+
+        $MW->bind( '<q>'         => \&my_exit );
+        $MW->bind( '<Escape>'    => \&my_exit );
+        $MW->bind( '<F3>'        => \&my_exit );
+        $MW->bind( '<Control-c>' => \&my_exit );
+
+        $MW->configure( -bg => 'white' );
+
+        #       $MW->optionAdd('*font' => 'systemfixed');
+
+        @pl1 = qw/-expand yes -fill both -side top  -padx 2/;
+        @pl2 = qw/-expand yes -fill both -side left -padx 2/;
+        @pl3 = qw/-side left -ipadx 5/;
     }
 
 }
 
-sub read_member_list { 
-                                # Read directory for list of detailed phone logs ... default to the lastest one. 
-#   print "Read member list\n"; 
-    opendir(DIR, "$dir/logs") or die "Could not open directory $dir/logs: $!\n"; 
-    my @members = readdir(DIR); 
-    @members1 = reverse sort grep(/callerid.*$file_qual.*log$/, @members); # ... should sort by -M instead of name ?? 
-    @members2 = reverse sort grep(/phone.*$file_qual.*log$/, @members); 
-    # Default to just the latest member 
-    unless (@members_picked1) { 
-        @members_picked1 = ($members1[0]); 
-    } 
-    unless (@members_picked2) { 
-        @members_picked2 = ($members2[0]); 
-    } 
-#   print "members1=@members1\nmembers_picked1=@members_picked1\n"; 
-#   print "members2=@members2\nmembers_picked2=@members_picked2\n"; 
+sub read_member_list {
+
+    # Read directory for list of detailed phone logs ... default to the lastest one.
+    #   print "Read member list\n";
+    opendir( DIR, "$dir/logs" )
+      or die "Could not open directory $dir/logs: $!\n";
+    my @members = readdir(DIR);
+    @members1 = reverse sort grep( /callerid.*$file_qual.*log$/, @members )
+      ;    # ... should sort by -M instead of name ??
+    @members2 = reverse sort grep( /phone.*$file_qual.*log$/, @members );
+
+    # Default to just the latest member
+    unless (@members_picked1) {
+        @members_picked1 = ( $members1[0] );
+    }
+    unless (@members_picked2) {
+        @members_picked2 = ( $members2[0] );
+    }
+
+    #   print "members1=@members1\nmembers_picked1=@members_picked1\n";
+    #   print "members2=@members2\nmembers_picked2=@members_picked2\n";
 }
 
-sub read_callerid_list { 
-    print "Reading override phone list\n"; 
-    open (CALLERID, $config_parms{caller_id_file}) or print "Error, could not open mh.ini caller_id_file=$config_parms{caller_id_file}: $!\n"; 
+sub read_callerid_list {
+    print "Reading override phone list\n";
+    open( CALLERID, $config_parms{caller_id_file} )
+      or print
+      "Error, could not open mh.ini caller_id_file=$config_parms{caller_id_file}: $!\n";
 
-    my $callerid_cnt=0; 
-    while (<CALLERID>) { 
-        next if /^\#/; 
-        my ($number, $name) = $_ =~ /^(\S+) +(.+) *$/; 
-        next unless $name; 
-        $callerid_cnt++; 
-        $name =~ s/\.wav$//; # Delete wav extentions 
-        $callerid_name_by_number{$number} = $name; 
-    } 
-#    print "read in $callerid_cnt caller ID override names/numbers from $config_parms{caller_id_file}\n"; 
-    close CALLERID; 
-}    
+    my $callerid_cnt = 0;
+    while (<CALLERID>) {
+        next if /^\#/;
+        my ( $number, $name ) = $_ =~ /^(\S+) +(.+) *$/;
+        next unless $name;
+        $callerid_cnt++;
+        $name =~ s/\.wav$//;    # Delete wav extentions
+        $callerid_name_by_number{$number} = $name;
+    }
 
-sub read_dbm_file { 
-                                # Read the dbm file that tracks all callers who have ever called us 
-                                # Useful in associating a name with the numbers we dial out. 
-    my $dbm_file = "$dir/callerid.dbm"; 
-    print "Reading $dbm_file\n"; 
-    my %DBM; 
+    #    print "read in $callerid_cnt caller ID override names/numbers from $config_parms{caller_id_file}\n";
+    close CALLERID;
+}
 
-                                # Use tie, instead of dbmopen, so perl2exe works OK.
-#   dbmopen %DBM, $dbm_file, 0666 or die "Can not open dbm file $dbm_file: $!\n"; 
- 
-#   use Fcntl;
-#   use SDBM_File;
+sub read_dbm_file {
+
+    # Read the dbm file that tracks all callers who have ever called us
+    # Useful in associating a name with the numbers we dial out.
+    my $dbm_file = "$dir/callerid.dbm";
+    print "Reading $dbm_file\n";
+    my %DBM;
+
+    # Use tie, instead of dbmopen, so perl2exe works OK.
+    #   dbmopen %DBM, $dbm_file, 0666 or die "Can not open dbm file $dbm_file: $!\n";
+
+    #   use Fcntl;
+    #   use SDBM_File;
     use DB_File;
-#   tie (%DBM, 'SDBM_File', $dbm_file, O_RDWR|O_CREAT, 0666) or die "Can not open dbm file $dbm_file: $!";
-    tie (%DBM, 'DB_File',   $dbm_file, O_RDWR|O_CREAT, 0666) or die "Can not open dbm file $dbm_file: $!";
 
-    my $count = 0; 
-    delete $calls{dbm}; 
-    my ($number, $data); 
-    while (($number, $data) = each %DBM) { 
-#       $data =~ tr/\x20-\x7e//cd; # Translate bad characters or else TK will mess up 
-#       print "1 number=$number data=$data\n" if $data =~ /SPENSER/i or $number =~ /8619/ or $number =~ /5307/;
-#       next if $data =~ /[^\x9\xa\xd\x20-\x7e]/; # Ignore messed up records  ... should filter these out of source file.
-        next if $data =~ /[^\x20-\x7e]/;   # Ignore messed up records  ... should filter these out of source file.
-        next if $number =~ /[^\x20-\x7e]/; # Ignore messed up records  ... should filter these out of source file.
-#2  3:53 PM Sat, Dec 27 1997 name=WINTER BRUCE LA 
-        my ($calls, $time, $date, $name) = $data =~ /^(\d+) +(.+), (.+) name=(.+)/; 
-        next unless $name; 
-        $dbm_name_by_number{$number} = $name; 
+    #   tie (%DBM, 'SDBM_File', $dbm_file, O_RDWR|O_CREAT, 0666) or die "Can not open dbm file $dbm_file: $!";
+    tie( %DBM, 'DB_File', $dbm_file, O_RDWR | O_CREAT, 0666 )
+      or die "Can not open dbm file $dbm_file: $!";
 
-        $count++; 
-        $calls{dbm}{$count}{calls} = sprintf("%04d", $calls);
-        $calls{dbm}{$count}{date}  = sprintf("last=%010d calls=%4d", parsedate($date), $calls); 
+    my $count = 0;
+    delete $calls{dbm};
+    my ( $number, $data );
+    while ( ( $number, $data ) = each %DBM ) {
 
-        $calls{dbm}{$count}{'# calls'} = sprintf("%04d", $calls); # Since we do not have a sortable date here, sort on number of calls. 
-        $calls{dbm}{$count}{time_date} = sprintf("last=%s calls=%4d", $date, $calls); 
-        $calls{dbm}{$count}{number} = $number; 
-        $calls{dbm}{$count}{name}   = $name; 
-        
+        #       $data =~ tr/\x20-\x7e//cd; # Translate bad characters or else TK will mess up
+        #       print "1 number=$number data=$data\n" if $data =~ /SPENSER/i or $number =~ /8619/ or $number =~ /5307/;
+        #       next if $data =~ /[^\x9\xa\xd\x20-\x7e]/; # Ignore messed up records  ... should filter these out of source file.
+        next
+          if $data =~ /[^\x20-\x7e]/
+          ; # Ignore messed up records  ... should filter these out of source file.
+        next
+          if $number =~ /[^\x20-\x7e]/
+          ; # Ignore messed up records  ... should filter these out of source file.
+
+        #2  3:53 PM Sat, Dec 27 1997 name=WINTER BRUCE LA
+        my ( $calls, $time, $date, $name ) =
+          $data =~ /^(\d+) +(.+), (.+) name=(.+)/;
+        next unless $name;
+        $dbm_name_by_number{$number} = $name;
+
+        $count++;
+        $calls{dbm}{$count}{calls} = sprintf( "%04d", $calls );
+        $calls{dbm}{$count}{date} =
+          sprintf( "last=%010d calls=%4d", parsedate($date), $calls );
+
+        $calls{dbm}{$count}{'# calls'} = sprintf( "%04d", $calls )
+          ; # Since we do not have a sortable date here, sort on number of calls.
+        $calls{dbm}{$count}{time_date} =
+          sprintf( "last=%s calls=%4d", $date, $calls );
+        $calls{dbm}{$count}{number} = $number;
+        $calls{dbm}{$count}{name}   = $name;
+
         my $name2 = $callerid_name_by_number{$number};
         $name2 = $name unless $name2;
-        $calls{dbm}{$count}{name2}  = $name2;
-    } 
-    close DBM; 
+        $calls{dbm}{$count}{name2} = $name2;
+    }
+    close DBM;
 }
 
+sub read_in_call_log {
 
-sub read_in_call_log { 
+    print "Read Incoming phone logs\n";
+    my $count = 0;
+    delete $calls{in};
 
-    print "Read Incoming phone logs\n"; 
-    my $count = 0; 
-    delete $calls{in}; 
-                                # Sort by date, so most recent file is last 
-    my($log_file); 
-    foreach $log_file (sort {-M $b <=> -M $a} @members_picked1) { 
+    # Sort by date, so most recent file is last
+    my ($log_file);
+    foreach $log_file ( sort { -M $b <=> -M $a } @members_picked1 ) {
         next unless $log_file;
         $log_file = "$dir/logs/$log_file";
-#       print "Reading $log_file, date=", -M $log_file, ".\n"; 
-        open (DATA, $log_file) or die "Error, could not open file $log_file: $!\n"; 
-        binmode DATA;       # In case bad (binary) data is logged 
-        while (<DATA>) { 
-            
-#            next if /[^\x9\xa\xd\x20-\x7e]/; # Ignore messed up records 
-            tr/\x20-\x7e//cd; # Translate bad characters or else TK will mess up 
 
-#Tue, Nov  2  6:46 PM 507-252-8619 SPENCER DARYL
-#Mon 04/14/97 14:28:00 
+        #       print "Reading $log_file, date=", -M $log_file, ".\n";
+        open( DATA, $log_file )
+          or die "Error, could not open file $log_file: $!\n";
+        binmode DATA;    # In case bad (binary) data is logged
+        while (<DATA>) {
 
-#Sat 12/15/01 17:37:51 507-281-3888 name=TACINELLI JOHN  data=###DATE12151737...NMBR5072813888...NAMETACINELLI JOHN +++ line=W
-     
-            my($time_date, $number, $name) = $_ =~ /(.+?)(\d\d\d\-?\d\d\d\-?\d\d\d\d) (.+)$/;
-            my ($line) = $_ =~ /line=(.+?)/; # Optional ... which incoming line
+            #            next if /[^\x9\xa\xd\x20-\x7e]/; # Ignore messed up records
+            tr/\x20-\x7e//cd; # Translate bad characters or else TK will mess up
+
+            #Tue, Nov  2  6:46 PM 507-252-8619 SPENCER DARYL
+            #Mon 04/14/97 14:28:00
+
+            #Sat 12/15/01 17:37:51 507-281-3888 name=TACINELLI JOHN  data=###DATE12151737...NMBR5072813888...NAMETACINELLI JOHN +++ line=W
+
+            my ( $time_date, $number, $name ) =
+              $_ =~ /(.+?)(\d\d\d\-?\d\d\d\-?\d\d\d\d) (.+)$/;
+            my ($line) = $_ =~ /line=(.+?)/;  # Optional ... which incoming line
             $name =~ s/^name=//;
-        
-                                # Deal with "private, 'out of area', and bad data" calls 
-            unless ($name) { 
-                $time_date = substr($_, 0, 21); 
-                $number = substr($_, 21, 12); 
-#               $name   = substr($_, 34, 15); 
-                if ($number =~ /OUT OF AREA/) { 
-                    $number = " Out of Area"; 
-                } 
-                elsif ($number =~ /PRIVATE/) { 
-                    $number = " Private"; 
-                } 
-                else { 
-                    $number = ' Lost Data'; 
-                    $name = "  " . substr($_, 21); 
-                } 
-            } 
+
+            # Deal with "private, 'out of area', and bad data" calls
+            unless ($name) {
+                $time_date = substr( $_, 0,  21 );
+                $number    = substr( $_, 21, 12 );
+
+                #               $name   = substr($_, 34, 15);
+                if ( $number =~ /OUT OF AREA/ ) {
+                    $number = " Out of Area";
+                }
+                elsif ( $number =~ /PRIVATE/ ) {
+                    $number = " Private";
+                }
+                else {
+                    $number = ' Lost Data';
+                    $name = "  " . substr( $_, 21 );
+                }
+            }
             $time_date =~ s/ +$//;
             $name =~ s/data=.+//;
             $name =~ s/line=.+//;
-        
-#          $name =~ s/[\r\n]+$//; # Delete carrage return 
+
+            #          $name =~ s/[\r\n]+$//; # Delete carrage return
 
             my $name2 = $callerid_name_by_number{$number};
             $name2 = $name unless $name2;
-            
-#           my $number_name = sprintf("$line %-12s %s", $number, $name2); 
-            
-            $count++; 
-#           $calls{out}{$count}{date}     =&ParseDate($time_date); # For sorting by date .... MUCH too slow  :( 
-            $calls{in}{$count}{date} = sprintf("%05d", $count); # Make cmp sortable 
-            $calls{in}{$count}{time_date}   = $time_date; 
-            $calls{in}{$count}{number} = $number; 
-            $calls{in}{$count}{name}   = $name; 
-            $calls{in}{$count}{name2}  = $name2; 
-            $calls{in}{$count}{line}   = $line;  
-            
-        } 
+
+            #           my $number_name = sprintf("$line %-12s %s", $number, $name2);
+
+            $count++;
+
+            #           $calls{out}{$count}{date}     =&ParseDate($time_date); # For sorting by date .... MUCH too slow  :(
+            $calls{in}{$count}{date} =
+              sprintf( "%05d", $count );    # Make cmp sortable
+            $calls{in}{$count}{time_date} = $time_date;
+            $calls{in}{$count}{number}    = $number;
+            $calls{in}{$count}{name}      = $name;
+            $calls{in}{$count}{name2}     = $name2;
+            $calls{in}{$count}{line}      = $line;
+
+        }
         close DATA;
     }
 }
 
-sub read_out_call_log { 
-                                # Read log of Outgoing phone calls 
-    print "Read Outgoing phone logs\n"; 
-    my $count = 0; 
-    delete $calls{out}; 
-    my($log_file); 
-    foreach $log_file (sort {-M $b <=> -M $a} @members_picked2) { 
+sub read_out_call_log {
+
+    # Read log of Outgoing phone calls
+    print "Read Outgoing phone logs\n";
+    my $count = 0;
+    delete $calls{out};
+    my ($log_file);
+    foreach $log_file ( sort { -M $b <=> -M $a } @members_picked2 ) {
         next unless $log_file;
         $log_file = "$dir/logs/$log_file";
-        open (DATA, $log_file) or die "Error, could not open file $log_file: $!\n"; 
-        binmode DATA;       # In case bad (binary) data is logged 
-        while (<DATA>) { 
-#           next if /[^\x9\xa\xd\x20-\x7e]/; # Ignore messed up records 
-            tr/\x20-\x7e//cd; # Translate bad characters or else TK will mess up 
+        open( DATA, $log_file )
+          or die "Error, could not open file $log_file: $!\n";
+        binmode DATA;    # In case bad (binary) data is logged
+        while (<DATA>) {
 
-#Tue, Nov  2  9:28 AM O2537009
-#Fri 11/26/99 10:14:06 O2537009
+            #           next if /[^\x9\xa\xd\x20-\x7e]/; # Ignore messed up records
+            tr/\x20-\x7e//cd; # Translate bad characters or else TK will mess up
 
-            my($time_date, $number) = $_ =~ /(.+?) O(\S+)$/;
-#           my $time_date = substr($_, 0, 21); 
-#           my $number    = substr($_, 22); 
+            #Tue, Nov  2  9:28 AM O2537009
+            #Fri 11/26/99 10:14:06 O2537009
 
-                                # See if we can find a name for this number 
-            my $number_length = length($number); 
-            if ($number_length == 7) { 
-                $number =~ s/(\d\d\d)/$config_parms{local_area_code}-$1-/; 
-            } 
-            if ($number_length == 11) { 
-                $number = substr($number, 1); 
-                $number =~ s/(\d\d\d)(\d\d\d)/$1-$2-/; 
-            } 
-            my $name  = $dbm_name_by_number{$number}; 
+            my ( $time_date, $number ) = $_ =~ /(.+?) O(\S+)$/;
+
+            #           my $time_date = substr($_, 0, 21);
+            #           my $number    = substr($_, 22);
+
+            # See if we can find a name for this number
+            my $number_length = length($number);
+            if ( $number_length == 7 ) {
+                $number =~ s/(\d\d\d)/$config_parms{local_area_code}-$1-/;
+            }
+            if ( $number_length == 11 ) {
+                $number = substr( $number, 1 );
+                $number =~ s/(\d\d\d)(\d\d\d)/$1-$2-/;
+            }
+            my $name  = $dbm_name_by_number{$number};
             my $name2 = $callerid_name_by_number{$number};
 
             $name2 = $name  unless $name2;
             $name  = $name2 unless $name;
-            
-            $count++; 
-            $calls{out}{$count}{date} = sprintf("%05d", $count); # Make cmp sortable 
-            $calls{out}{$count}{time_date}   = $time_date; 
-            $calls{out}{$count}{number} = $number; 
-            $calls{out}{$count}{name}   = $name; 
-            $calls{out}{$count}{name2}  = $name2; 
-        } 
+
+            $count++;
+            $calls{out}{$count}{date} =
+              sprintf( "%05d", $count );    # Make cmp sortable
+            $calls{out}{$count}{time_date} = $time_date;
+            $calls{out}{$count}{number}    = $number;
+            $calls{out}{$count}{name}      = $name;
+            $calls{out}{$count}{name2}     = $name2;
+        }
         close DATA;
-    } 
+    }
 }
-#10:28 AM Sat, Dec 27 O2 
-#10:29 AM Sat, Dec 27 O2880513 
-# 3:48 PM Thu, Dec 25 O18004210699 
 
-# 1:17 PM Tue, Aug 23 507-288-1030 WINTER BRUCE LA 
-#10:03 PM Tue, Dec 23 OUT OF AREA  OUT OF AREA   
-# 2:22 PM Wed, Dec 24 507-288-1030 WINTER BRUCE LA 
-# 4:15 PM Wed, Dec 24 507-269-1033 OUT OF AREA   
-# 8:37 PM Fri, Dec 26 PRIVATE      PRIVATE       
+#10:28 AM Sat, Dec 27 O2
+#10:29 AM Sat, Dec 27 O2880513
+# 3:48 PM Thu, Dec 25 O18004210699
 
+# 1:17 PM Tue, Aug 23 507-288-1030 WINTER BRUCE LA
+#10:03 PM Tue, Dec 23 OUT OF AREA  OUT OF AREA
+# 2:22 PM Wed, Dec 24 507-288-1030 WINTER BRUCE LA
+# 4:15 PM Wed, Dec 24 507-269-1033 OUT OF AREA
+# 8:37 PM Fri, Dec 26 PRIVATE      PRIVATE
 
-sub display {     
+sub display {
 
-    my $ft    = $MW->Frame->pack(@pl1);  
-    my $fb    = $MW->Frame->pack(@pl1);  
-    my $ftl   = $ft->Frame->pack(@pl2);  
-    my $ftr   = $ft->Frame->pack(@pl2);  
-    my $fbl   = $fb->Frame->pack(@pl2);  
-    my $fbr   = $fb->Frame->pack(@pl2);  
+    my $ft  = $MW->Frame->pack(@pl1);
+    my $fb  = $MW->Frame->pack(@pl1);
+    my $ftl = $ft->Frame->pack(@pl2);
+    my $ftr = $ft->Frame->pack(@pl2);
+    my $fbl = $fb->Frame->pack(@pl2);
+    my $fbr = $fb->Frame->pack(@pl2);
 
-    $info{in}{sort}  = 'date'; 
-    $info{out}{sort} = 'date'; 
-    $info{dbm}{sort} = 'name'; 
-    $info{in}{label}  = 'Incoming calls'; 
-    $info{out}{label} = 'Outgoing calls'; 
-    $info{dbm}{label} = 'Database of callers'; 
-    
-    my $log1 = &phone_list($ftl, 'in'); 
-    my $log2 = &phone_list($ftr, 'out'); 
-    my $log3 = &phone_list($fbl, 'dbm'); 
+    $info{in}{sort}   = 'date';
+    $info{out}{sort}  = 'date';
+    $info{dbm}{sort}  = 'name';
+    $info{in}{label}  = 'Incoming calls';
+    $info{out}{label} = 'Outgoing calls';
+    $info{dbm}{label} = 'Database of callers';
 
-    $fbr->Label(-text => 'List of log files')->pack;  
-    my $fbr2  = $fbr->Frame->pack(qw/-expand no -fill x/); 
-    $fbr2->Label(-text => 'Incoming files')->pack(qw/-expand yes -fill x -side left/); 
-    $fbr2->Label(-text => 'Outgoing files')->pack(qw/-expand yes -fill x -side left/); 
+    my $log1 = &phone_list( $ftl, 'in' );
+    my $log2 = &phone_list( $ftr, 'out' );
+    my $log3 = &phone_list( $fbl, 'dbm' );
 
-    my($files1, $files2); 
-    $files1 = $fbr->Scrolled(qw/Listbox -selectmode extended -width -1 -height 10 -setgrid 1 -scrollbars e -bg cyan/);  
-    $files1->pack(@pl2)->insert(0, @members1);  
-    $files2 = $fbr->Scrolled(qw/Listbox -selectmode extended -width -1 -height 10 -setgrid 1 -scrollbars e -bg cyan/);  
-    $files2->pack(@pl2)->insert(0, @members2);  
+    $fbr->Label( -text => 'List of log files' )->pack;
+    my $fbr2 = $fbr->Frame->pack(qw/-expand no -fill x/);
+    $fbr2->Label( -text => 'Incoming files' )
+      ->pack(qw/-expand yes -fill x -side left/);
+    $fbr2->Label( -text => 'Outgoing files' )
+      ->pack(qw/-expand yes -fill x -side left/);
 
-#   $files1->activate(0); 
-#   $files2->activate(0); 
-    $files1->selection('set', 0); # Only one listbox widget can have a row slected at a time :( 
-#   $files2->selection('set', 0); 
+    my ( $files1, $files2 );
+    $files1 = $fbr->Scrolled(
+        qw/Listbox -selectmode extended -width -1 -height 10 -setgrid 1 -scrollbars e -bg cyan/
+    );
+    $files1->pack(@pl2)->insert( 0, @members1 );
+    $files2 = $fbr->Scrolled(
+        qw/Listbox -selectmode extended -width -1 -height 10 -setgrid 1 -scrollbars e -bg cyan/
+    );
+    $files2->pack(@pl2)->insert( 0, @members2 );
 
-    $files1->bind('<Double-1>' =>  sub  { 
-        @members_picked1 = map{$files1->get($_)} $files1->curselection; 
-        &read_in_call_log; 
-        &sort_data('in'); 
-    }); 
-    $files2->bind('<Double-1>' =>  sub  { 
-        @members_picked2 = map{$files2->get($_)} $files2->curselection; 
-        &read_out_call_log; 
-        &sort_data('out'); 
-    }); 
+    #   $files1->activate(0);
+    #   $files2->activate(0);
+    $files1->selection( 'set', 0 )
+      ;    # Only one listbox widget can have a row slected at a time :(
 
-                # tkwait messes up mh 'do'
-    $log1->tkwait('visibility', $log1) unless ($main::MW);
-#    $log1->focus('-force');
-#    $log1->grabGlobal; 
-#   $log1->grab("-global");     # This will disable the minimize-maximize-etc controls :(
+    #   $files2->selection('set', 0);
+
+    $files1->bind(
+        '<Double-1>' => sub {
+            @members_picked1 = map { $files1->get($_) } $files1->curselection;
+            &read_in_call_log;
+            &sort_data('in');
+        }
+    );
+    $files2->bind(
+        '<Double-1>' => sub {
+            @members_picked2 = map { $files2->get($_) } $files2->curselection;
+            &read_out_call_log;
+            &sort_data('out');
+        }
+    );
+
+    # tkwait messes up mh 'do'
+    $log1->tkwait( 'visibility', $log1 ) unless ($main::MW);
+
+    #    $log1->focus('-force');
+    #    $log1->grabGlobal;
+    #   $log1->grab("-global");     # This will disable the minimize-maximize-etc controls :(
 
     print "Displaying window\n";
 
@@ -388,78 +443,105 @@ sub display {
 }
 
 sub my_exit {
-                # Mainloop is local
+
+    # Mainloop is local
     if ($loop) {
-                # Normal exit;
-        if ($0 =~ /display_callers/) {
+
+        # Normal exit;
+        if ( $0 =~ /display_callers/ ) {
             exit;
         }
-                                # Called from another program, kill window and return
+
+        # Called from another program, kill window and return
         else {
             $MW->destroy;
             return;
         }
     }
-                                # Mainloop came from a calling program
+
+    # Mainloop came from a calling program
     else {
         $MW->destroy;
         return;
     }
 }
 
-sub phone_list { 
-    my($ptr, $class) = @_; 
-#   print "Creating frame for $class\n"; 
+sub phone_list {
+    my ( $ptr, $class ) = @_;
 
-    my $log_label = $ptr->Label(-textvariable => \$info{$class}{label2})->pack;  
+    #   print "Creating frame for $class\n";
+
+    my $log_label =
+      $ptr->Label( -textvariable => \$info{$class}{label2} )->pack;
 
     my $search_var;
-    if ($class eq 'dbm') {
-        my $search_frame = $ptr->Frame->pack;  
+    if ( $class eq 'dbm' ) {
+        my $search_frame = $ptr->Frame->pack;
 
-        my $search_label = $search_frame->Label(-text => "Search:")->pack(-side => 'left');  
+        my $search_label =
+          $search_frame->Label( -text => "Search:" )->pack( -side => 'left' );
 
-        my $search_entry = $search_frame->Entry(-textvariable => \$search_var, -width => 10)->pack;  
-        $search_entry -> bind('<Return>', sub { &search_data($search_var) } );
+        my $search_entry =
+          $search_frame->Entry( -textvariable => \$search_var, -width => 10 )
+          ->pack;
+        $search_entry->bind( '<Return>', sub { &search_data($search_var) } );
     }
 
-    my $frame  = $ptr->Frame->pack;  
-    my $log = $ptr->Scrolled(qw/Text -state normal -width 60 -height 15 -scrollbars e -bg cyan/)->pack(@pl2); 
-    $info{$class}{window} = $log; 
+    my $frame = $ptr->Frame->pack;
+    my $log   = $ptr->Scrolled(
+        qw/Text -state normal -width 60 -height 15 -scrollbars e -bg cyan/)
+      ->pack(@pl2);
+    $info{$class}{window} = $log;
 
-    for my $button (qw/name number date calls/) { 
+    for my $button (qw/name number date calls/) {
         my $button2 = $button;
         $button2 = '# calls' if $class eq 'dbm' and $button eq 'date';
-        $frame->Radiobutton(-text => "Sort by $button",   -variable => \$info{$class}{sort},
-                            -relief => 'flat', -value => $button, 
-                            -command => [\&sort_data, $class])->pack(@pl3); 
-    } 
-    
-    &sort_data($class); 
-    
-    $log->bind('<Double-1>' =>  sub  { 
-        my $text = $log->get('current linestart +20 chars', 'current lineend'); 
-        $text =~ s/^.*? (\d\d\d-)/$1/;  # Delete up to the number
-        my $popup = $MW->Toplevel; 
-        my $label = $popup->Label(-text=>"Edit name to be more prounancable,\nthen hit enter (or Escape to exit)")->pack(-side=>'top'); 
-        my $entry = $popup->Entry(-width => 40, -textvariable => \$text)->pack(-side=>'bottom'); 
+        $frame->Radiobutton(
+            -text     => "Sort by $button",
+            -variable => \$info{$class}{sort},
+            -relief   => 'flat',
+            -value    => $button,
+            -command  => [ \&sort_data, $class ]
+        )->pack(@pl3);
+    }
 
-        $entry->tkwait('visibility', $entry); 
-        $entry->focus; 
-        
-        $entry->bind('<Return>', sub { 
-            my $callerid_file_override = $config_parms{caller_id_file};
-            print "writing to $callerid_file_override\n"; 
-            open (CALLERID, ">>$callerid_file_override") or print "Error opening $callerid_file_override: $!\n"; 
-            print "text=",$entry->get,"\n"; 
-            print CALLERID $entry->get,"\n"; 
-            close CALLERID; 
-#           $MW->focus;
-#           $MW->focus('-force'); 
-            $popup->destroy; 
-        }); 
-        $popup->bind('<Escape>', sub {$popup->destroy;}); 
-    }); 
+    &sort_data($class);
+
+    $log->bind(
+        '<Double-1>' => sub {
+            my $text =
+              $log->get( 'current linestart +20 chars', 'current lineend' );
+            $text =~ s/^.*? (\d\d\d-)/$1/;    # Delete up to the number
+            my $popup = $MW->Toplevel;
+            my $label =
+              $popup->Label( -text =>
+                  "Edit name to be more prounancable,\nthen hit enter (or Escape to exit)"
+              )->pack( -side => 'top' );
+            my $entry = $popup->Entry( -width => 40, -textvariable => \$text )
+              ->pack( -side => 'bottom' );
+
+            $entry->tkwait( 'visibility', $entry );
+            $entry->focus;
+
+            $entry->bind(
+                '<Return>',
+                sub {
+                    my $callerid_file_override = $config_parms{caller_id_file};
+                    print "writing to $callerid_file_override\n";
+                    open( CALLERID, ">>$callerid_file_override" )
+                      or print "Error opening $callerid_file_override: $!\n";
+                    print "text=", $entry->get, "\n";
+                    print CALLERID $entry->get, "\n";
+                    close CALLERID;
+
+                    #           $MW->focus;
+                    #           $MW->focus('-force');
+                    $popup->destroy;
+                }
+            );
+            $popup->bind( '<Escape>', sub { $popup->destroy; } );
+        }
+    );
 
     return $log;
 }
@@ -467,79 +549,100 @@ sub phone_list {
 sub search_data {
     my ($search_var) = @_;
     print "Searching for $search_var\n";
-                                # Search data logged from incoming caller id data.
-    my ($count1, $count2, %results) = &main::search_dbm("$config_parms{data_dir}/phone/callerid.dbm", $search_var);
-                                # Also search in array created from mh.ini caller_id_file data
-    while (my($key, $value) = each %callerid_name_by_number) {
-        if ($key =~ /$search_var/i or $value =~ /$search_var/i) {
-            $value = &main::read_dbm("$config_parms{data_dir}/phone/callerid.dbm", $key); # Use dbm data for consistency
+
+    # Search data logged from incoming caller id data.
+    my ( $count1, $count2, %results ) =
+      &main::search_dbm( "$config_parms{data_dir}/phone/callerid.dbm",
+        $search_var );
+
+    # Also search in array created from mh.ini caller_id_file data
+    while ( my ( $key, $value ) = each %callerid_name_by_number ) {
+        if ( $key =~ /$search_var/i or $value =~ /$search_var/i ) {
+            $value =
+              &main::read_dbm( "$config_parms{data_dir}/phone/callerid.dbm",
+                $key );    # Use dbm data for consistency
             $results{$key} = $value;
         }
     }
-    $count2 = keys %results;    # Reset count, in case Caller_ID search found any
+    $count2 = keys %results;   # Reset count, in case Caller_ID search found any
 
-    my $list = $info{dbm}{window}; 
+    my $list = $info{dbm}{window};
 
-# last=Oct  1 1999 calls= 505 OUT OF AREA  OUT OF AREA
-#  6:36 PM Tue, Jun  1 1999
+    # last=Oct  1 1999 calls= 505 OUT OF AREA  OUT OF AREA
+    #  6:36 PM Tue, Jun  1 1999
     my $results;
     if ($count2) {
-        for (sort keys %results) {
-            my ($cid_number, $cid_date, $cid_name) = $results{$_} =~ /(\S+) (.+) name=(.+)/;
-            $cid_name = $callerid_name_by_number{$_} if $callerid_name_by_number{$_};
-            $cid_date = (split(',', $cid_date))[1]; #  Drop leading time field
-#           $results .= sprintf("%15s: %-15s calls=%3s last=%s\n                 %s\n", $_, $cid_name, $cid_number, $cid_date, $caller);
-            $results .= sprintf("last=%12s calls=%4d %s %s\n", $cid_date, $cid_number, $_, $cid_name);
+        for ( sort keys %results ) {
+            my ( $cid_number, $cid_date, $cid_name ) =
+              $results{$_} =~ /(\S+) (.+) name=(.+)/;
+            $cid_name = $callerid_name_by_number{$_}
+              if $callerid_name_by_number{$_};
+            $cid_date =
+              ( split( ',', $cid_date ) )[1];    #  Drop leading time field
+
+            #           $results .= sprintf("%15s: %-15s calls=%3s last=%s\n                 %s\n", $_, $cid_name, $cid_number, $cid_date, $caller);
+            $results .= sprintf( "last=%12s calls=%4d %s %s\n",
+                $cid_date, $cid_number, $_, $cid_name );
         }
-#       map {$results .= "   $_: $results{$_}\n\n"} sort keys %results;
-        $results = "Results:  $count2 out of $count1 records matched\n\n" . $results;
+
+        #       map {$results .= "   $_: $results{$_}\n\n"} sort keys %results;
+        $results =
+          "Results:  $count2 out of $count1 records matched\n\n" . $results;
     }
     else {
-        $results = "\nResults:  No match found out of $count1 records searched\n";
+        $results =
+          "\nResults:  No match found out of $count1 records searched\n";
     }
 
-    $list->delete('0.0', 'end'); 
-    $list->insert('0.0', $results); 
+    $list->delete( '0.0', 'end' );
+    $list->insert( '0.0', $results );
 
 }
 
-sub sort_data { 
-    my($class) = @_; 
-    my $sort_by = $info{$class}{sort}; 
+sub sort_data {
+    my ($class) = @_;
+    my $sort_by = $info{$class}{sort};
     $sort_by = 'time_date' unless $sort_by;
-    print "Sorting data for $class by $sort_by ... "; 
-    my($data, $count); 
-    undef $data; 
-    $count = 0; 
-    my $rec; 
-    for $rec (sort {$calls{$class}{$b}{$sort_by} cmp $calls{$class}{$a}{$sort_by}} keys %{$calls{$class}}) { 
-        $count++; 
-        $data .= sprintf("%s %s %-12s %s\n",  
-                         $calls{$class}{$rec}{time_date}, 
-                         $calls{$class}{$rec}{line}, 
-                         $calls{$class}{$rec}{number}, 
-                         $calls{$class}{$rec}{name2}); 
-    } 
-    if ($parms{cgi}) {
+    print "Sorting data for $class by $sort_by ... ";
+    my ( $data, $count );
+    undef $data;
+    $count = 0;
+    my $rec;
+
+    for $rec (
+        sort { $calls{$class}{$b}{$sort_by} cmp $calls{$class}{$a}{$sort_by} }
+        keys %{ $calls{$class} }
+      )
+    {
+        $count++;
+        $data .= sprintf(
+            "%s %s %-12s %s\n",
+            $calls{$class}{$rec}{time_date}, $calls{$class}{$rec}{line},
+            $calls{$class}{$rec}{number},    $calls{$class}{$rec}{name2}
+        );
+    }
+    if ( $parms{cgi} ) {
         return $data;
     }
     else {
-        my $list = $info{$class}{window}; 
-#       $list->configure(-state => 'normal'); 
-        $list->delete('0.0', 'end'); 
-        $list->insert('0.0', $data); 
-#       $list->configure(-state => 'disabled');    # ... this disables the curser :(
-        $info{$class}{label2}  = "$info{$class}{label} ($count entries)"; 
-        print "done\n"; 
+        my $list = $info{$class}{window};
+
+        #       $list->configure(-state => 'normal');
+        $list->delete( '0.0', 'end' );
+        $list->insert( '0.0', $data );
+
+        #       $list->configure(-state => 'disabled');    # ... this disables the curser :(
+        $info{$class}{label2} = "$info{$class}{label} ($count entries)";
+        print "done\n";
     }
 }
 
-
 sub post_cgi_form {
-    print &startform(-name => 'form1');
+    print &startform( -name => 'form1' );
 
-   print "<table border=5 width=100%>\n";
-#    print "<table>\n";
+    print "<table border=5 width=100%>\n";
+
+    #    print "<table>\n";
 
     print "<tr align=center>";
     &phone_list2('in');
@@ -549,21 +652,34 @@ sub post_cgi_form {
     &phone_list2('dbm');
     print "</tr><tr align=center>";
 
-    print "\n<td align=center BGCOLOR='#96B793'>", "Incoming Call Logs<p>",  &scrolling_list(-name=>'logs_in',  -size => 10, -default => 1, 
-                                                              -values => \@members1, -multiple => 'true',
-                                                              -onChange => "document.form1.submit()"), "</td>";
-    print "\n<td align=center BGCOLOR='#96B696'>", "Outgoing Call Logs<p>",  &scrolling_list(-name=>'logs_out', -size => 10, -default => 1,
-                                                              -values => \@members2, -multiple => 'true',
-                                                              -onChange => "document.form1.submit()"), "</td>";
+    print "\n<td align=center BGCOLOR='#96B793'>", "Incoming Call Logs<p>",
+      &scrolling_list(
+        -name     => 'logs_in',
+        -size     => 10,
+        -default  => 1,
+        -values   => \@members1,
+        -multiple => 'true',
+        -onChange => "document.form1.submit()"
+      ),
+      "</td>";
+    print "\n<td align=center BGCOLOR='#96B696'>", "Outgoing Call Logs<p>",
+      &scrolling_list(
+        -name     => 'logs_out',
+        -size     => 10,
+        -default  => 1,
+        -values   => \@members2,
+        -multiple => 'true',
+        -onChange => "document.form1.submit()"
+      ),
+      "</td>";
     print "</tr>";
 
     print "</table>\n";
 
     print &end_html;
 
-    
-#   print "<P>",&reset;
-#   print &submit('Action','Shout');
+    #   print "<P>",&reset;
+    #   print &submit('Action','Shout');
     print &endform;
     print "<HR>\n";
     print "<HR>\n";
@@ -573,14 +689,27 @@ sub post_cgi_form {
 sub phone_list2 {
     my ($list) = @_;
 
-    print "\n<td BGCOLOR='#B6C7F3' colspan=2><center>", "$info{$list}{label} Calls ($info{$list}{count} entries)<br>\n";
-    print &radio_group(-name=>"sort_$list", -values=>['name', 'number', 'date'], -default=>$info{$list}{sort},
-                       -onClick => "document.form1.submit()"), "</center><br>\n";
+    print "\n<td BGCOLOR='#B6C7F3' colspan=2><center>",
+      "$info{$list}{label} Calls ($info{$list}{count} entries)<br>\n";
+    print &radio_group(
+        -name    => "sort_$list",
+        -values  => [ 'name', 'number', 'date' ],
+        -default => $info{$list}{sort},
+        -onClick => "document.form1.submit()"
+      ),
+      "</center><br>\n";
 
-#    print "<pre><small>", &sort_data($list), "</small></pre></td>\n";
-#    print &scrolling_list(-name=>"calls_$list", -size=>10, -values=> [split("\n", &sort_data($list))]), "</td>\n";
-     print &textarea(-name=>"calls_$list", -rows=>15, -columns=>60, -default=> &sort_data($list)), "</td>\n";
-#                           -onFocus => "if (document.form1.calls_out.value != '') document.form1.submit()" ), "</td>\n";
+    #    print "<pre><small>", &sort_data($list), "</small></pre></td>\n";
+    #    print &scrolling_list(-name=>"calls_$list", -size=>10, -values=> [split("\n", &sort_data($list))]), "</td>\n";
+    print &textarea(
+        -name    => "calls_$list",
+        -rows    => 15,
+        -columns => 60,
+        -default => &sort_data($list)
+      ),
+      "</td>\n";
+
+    #                           -onFocus => "if (document.form1.calls_out.value != '') document.form1.submit()" ), "</td>\n";
 
 }
 
