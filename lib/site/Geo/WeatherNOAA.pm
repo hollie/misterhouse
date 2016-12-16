@@ -580,7 +580,7 @@ sub get_city_hourly {
     #print STDERR "$line\n";
     #'@0 A15 @15 A9 @24 A5 @29 A5 @34 A4 @39 A8 @47 A8 @55 A8', $line;
 
-    return {} if $values[3] eq 'NOT AVBL';         # Return ref to empty hash
+    return {} if $values[3] eq 'NOT AVBL';        # Return ref to empty hash
 
     my %retValue;
     foreach my $i ( 0 .. $#fields ) {
