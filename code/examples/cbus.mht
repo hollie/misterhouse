@@ -1,0 +1,13 @@
+# This file is an example MHT file for the Clipsal CBus module, providing
+# just a definition of the CGate interface. When MisterHouse runs with a valid
+# CGate definition, but no other CBus objects defined, it will query the
+# CBus network for known objects and units, and write a corresponding
+# MHT file including their definitions. 
+
+Format = A
+
+#TYPE, 					Address, 			Name, 	GroupList, 		Other
+
+CBUS_CGATE,   CGATE
+
+
