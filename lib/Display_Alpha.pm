@@ -123,7 +123,7 @@ my %modes  = ( rotate   => "\x61", hold     => "\x62", flash => "\x63",
 
 # last two modes are Alpha 3.0 (won't work with older signs)
 
-my %special_modes = (sparkle  => "\x31",twinkle  => "\x30",snow => "\x32", interlock => "\x33", switch => "\x34", slide => "\x35", spray => "\x36", starburst => "\x37", welcome => "\x38", slotmachine => "\x39", newsflash => "\x3A", trumpet => "\x3B", cyclecolors => "\x43", thankyou => "\x53", nosmoking => "\x55", dontdrinkanddrive => "\x56", runninganimal => "\x57", fireworks => "\x58", turbocar=>"\x59", cherrybomb=>"\x5A");
+my %special_modes = (sparkle  => "\x31",twinkle  => "\x30",snow => "\x32", interlock => "\x33", switch => "\x34", slide => "\x35", spray => "\x36", starburst => "\x37", welcome => "\x38", slotmachine => "\x39", newsflash => "\x41", trumpet => "\x3B", cyclecolors => "\x43", thankyou => "\x53", nosmoking => "\x55", dontdrinkanddrive => "\x56", runninganimal => "\x57", fireworks => "\x58", turbocar=>"\x59", cherrybomb=>"\x5A");
 
 # cyclecolors, trumpet and newsflash do not work on older Beta Brite signs
 
