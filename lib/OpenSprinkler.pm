@@ -5,7 +5,8 @@ use warnings;
 
 use LWP::UserAgent;
 use HTTP::Request::Common qw(POST);
-use JSON::XS;
+#use JSON::XS;
+use JSON qw(decode_json);
 use Data::Dumper;
 
 # OpenSprinkler - MH Module for the opensprinker irrigation system. www.opensprinkler.com
@@ -45,13 +46,14 @@ use Data::Dumper;
 #  $os1->get_rainstatus()
 
 # General Notes:
-#	-only tested with firmware 2.14
+#	-only tested with firmware 2.14 and 2.15
 
 # Child object Notes:
 #	Master
 #		- Disabling the opensprinkler itself doesn't turn off any running stations.
-#	Programs
-#		- Only enabling/disabling programs is supported at this time
+#   Programs
+#		- Set data only allows for days of the week, non repeating.
+
 
 # TODO
 #	- be nice to pull runtimes and store it into a dbm file, or maybe RRD?
@@ -60,6 +62,8 @@ use Data::Dumper;
 #	- no ability to print logs. The built-in web interface does this well already
 
 # v1.0 release
+# v1.1 (May 2016) - added ability to change program runtimes
+# v1.11 (May 2016) - removed JSON::XS dependancy
 
 @OpenSprinkler::ISA = ('Generic_Item');
 
@@ -340,7 +344,8 @@ sub _get_JSON_data {
       ; #kludge, reboot kills the OSP, so we don't get a return code, just always return success
 
     my $response;
-    eval { $response = JSON::XS->new->decode( $responseObj->content ); };
+#    eval { $response = JSON::XS->new->decode( $responseObj->content ); };
+    eval { $response = decode_json( $responseObj->content ); };
 
     # catch crashes:
     if ($@) {
@@ -716,13 +721,13 @@ sub set_station {
     }
 }
 
-sub get_program {
+sub get_program_state {
     my ( $self, $name ) = @_;
 
     return ( $self->{data}->{programs}->{$name}->{state} );
 }
 
-sub set_program {
+sub set_program_state {
 
     my ( $self, $name, $state ) = @_;
 
@@ -756,6 +761,94 @@ sub set_program {
             "[OpenSprinkler] Error. Could not send data to OpenSprinkler");
         return (0);
     }
+}
+
+sub set_program_data {
+
+    my ( $self, $name, $days, $start, $run ) = @_;
+    #days are the days of the week (Mon,Tue...
+    #to make things simpler, setting program data is only for named days.
+    #intervals can always come later.
+
+    return unless ( defined $self->{data}->{programs}->{$name} );
+	$days =~ s/\s//g; #remove whitespace
+	$start =~ s/\s//g;
+	$run =~ s/\s//g;
+	    
+    #set the program to schedule weekday , fixed time
+    my $bin = sprintf "%08b", $self->{data}->{programs}->{$name}->{flag};
+    my $newbin = $bin;
+    substr( $newbin, -6, 2 ) = "00"; #bits 4 & 5 set to 0 (weekday)
+    substr( $newbin, -7, 1 ) = "1"; #bit 6 set to 1 (fixed)
+    
+    #print "[flag=" . $self->{data}->{programs}->{$name}->{flag} . "] [bin=$bin][newbin=$newbin]\n";
+
+    my $flag = oct "0b$newbin";
+ 
+	my $d1 = "0000000";
+	my @dow = split(/,/,$days);
+
+	for (my $x = 0; $x < scalar(@dow); $x++) {
+		substr($d1, -1, 1) = 1 if (lc substr($dow[$x],0,3) eq "mon");
+		substr($d1, -2, 1) = 1 if (lc substr($dow[$x],0,3) eq "tue");
+		substr($d1, -3, 1) = 1 if (lc substr($dow[$x],0,3) eq "wed");
+		substr($d1, -4, 1) = 1 if (lc substr($dow[$x],0,3) eq "thu");
+		substr($d1, -5, 1) = 1 if (lc substr($dow[$x],0,3) eq "fri");
+		substr($d1, -6, 1) = 1 if (lc substr($dow[$x],0,3) eq "sat");
+		substr($d1, -7, 1) = 1 if (lc substr($dow[$x],0,3) eq "sun");
+	}
+    my $day1 = oct "0b$d1";
+    my $day2 = 0;
+    #do some sanity check, $start should be up to 4 comma delimited values from -1 to 86399
+    my @st = split(/,/,$start);
+ 	foreach my $stv (@st) {
+		if (($stv > 1439) or ($stv < -1)) {
+	        main::print_log("[OpenSprinkler] Error. Set_program_data Could not process start time value $stv");
+	        return (1);
+	    }
+	}   
+    # runtimes need to be padded out to the number of stations $self->{data}->{vars}->{nbrd} * 8
+	my @rtimes = split(/,/,$run);
+	my @run_tmp = (0) x ($self->{data}->{vars}->{nbrd} * 8);
+	for (my $y = 0; $y < scalar (@rtimes); $y++) {
+		$run_tmp[$y] = $rtimes[$y];
+	}
+	my $run1 = join(',',@run_tmp);
+	my $values = "[" . $start . "],[" . $run1 . "]";
+    my $cmd = "&pid=" . $self->{data}->{programs}->{$name}->{pid};
+    $cmd .= "&v=[" . $flag . "," . $day1 . "," .$day2 . ",";
+    $cmd .= $values . "]";
+    $cmd .= "&name=" . _url_encode($name);
+
+    #print "set program cmd=$cmd\n";
+
+    my ( $isSuccessResponse, $status ) =
+      $self->_push_JSON_data( 'set_program', $cmd );
+    if ($isSuccessResponse) {
+
+        #print "DB status=$status\n";
+        if ( $status eq "success" ) {    #todo parse return value
+            $self->poll;
+            return (1);
+        }
+        else {
+            main::print_log(
+                "[OpenSprinkler] Error. Could not set program data to [$start],[$run]");
+            return (0);
+        }
+    }
+    else {
+        main::print_log(
+            "[OpenSprinkler] Error. Could not send data to OpenSprinkler");
+        return (0);
+    }
+}
+
+sub get_program_data {
+    my ( $self, $name ) = @_;
+	my ($day,$start,$run) = $self->{data}->{programs}->{$name}->{data} =~ /(\d),\d+,\[(.*)\],\[(.*)\]/;
+# get DOW
+    return ( $day,$start,$run );
 }
 
 sub get_sunrise {
@@ -924,16 +1017,18 @@ package OpenSprinkler_Program;
 @OpenSprinkler_Program::ISA = ('Generic_Item');
 
 sub new {
-    my ( $class, $object, $name ) = @_;
+    my ( $class, $object, $name, $maxlimit ) = @_;
 
     my $self = {};
     bless $self, $class;
 
     $$self{master_object} = $object;
     $$self{program}       = $name;
+    $$self{limit}		  = 60 * 60;
+    $$self{limit}		  = $maxlimit * 60 if ($maxlimit);
     push( @{ $$self{states} }, 'enabled', 'disabled' );
     $object->register( $self, 'program', $name );
-    $self->set( $object->get_program($name), 'poll' );
+    $self->set( $object->get_program_state($name), 'poll' );
     return $self;
 }
 
@@ -946,8 +1041,31 @@ sub set {
         $self->SUPER::set($p_state);
     }
     else {
-        $$self{master_object}->set_program( $$self{program}, $p_state );
+        $$self{master_object}->set_program_state( $$self{program}, $p_state );
     }
+}
+
+sub set_program {
+	my ( $self, $day, $runtimes, $runseconds) = @_;
+	#sanity check that none of the runseconds is greater than the program limit
+	my @rs = split(/,/,$runseconds);
+	for (my $x = 0; $x < scalar(@rs); $x++) {
+		if ($rs[$x] > $$self{limit}) {
+            main::print_log("[OpenSprinkler] Warning. Adjusted runtime of " . $rs[$x] . " to limit (" .$$self{limit} . ")" );
+			$rs[$x] = $$self{limit};            
+ 		}
+ 	}
+
+	my $runseconds1 = join(',',@rs);
+	$$self{master_object}->set_program_data( $$self{program}, $day, $runtimes, $runseconds1 );
+
+}
+
+sub get_program {
+	my ($self) = @_;
+	    return ( $$self{master_object}->get_program_data( $$self{program}));
+
+
 }
 
 package OpenSprinkler_Comm;
