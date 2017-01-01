@@ -807,6 +807,7 @@ sub setup {
     use EIB_Items;
     use EIB_Device;
     use ajax;
+    use AlexaBridge;
     eval "use BSC";
 
     # Base_Items
@@ -976,6 +977,7 @@ sub setup {
         &socket_open($port_name);
     }
 
+    &AlexaBridge::startup;      # Start the AlexaBridge sockets, in lib/AlexaBridge.pm
     &xAP::startup;              # Start the xAP sockets, in lib/xAP_Items.pm
     &xPL::startup;              # Start the xPL sockets, in lib/xPL_Items.pm
     &EIB_Device::startup;       # Start the EIB device, in lib/EIB_Device.pm
@@ -2921,6 +2923,7 @@ sub check_for_socket_data {
             {
                 ( my $from_port, my $from_ip ) = sockaddr_in($from_saddr)
                   if $from_saddr;
+                $Socket_Ports{$port_name}{from_ipport} = $from_saddr;
                 $Socket_Ports{$port_name}{from_port} = $from_port;
                 $Socket_Ports{$port_name}{from_ip}   = $from_ip;
             }
