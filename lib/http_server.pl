@@ -58,12 +58,12 @@ my %mime_types = (
     'wmlsc' => 'application/vnd.wap.wmlscriptc',
     'wrl'   => 'x-world/x-vrml',
     'json'  => 'application/json',
-    'svg'  => 'image/svg+xml',
-    'otf'  => 'application/font-sfnt',
-    'ttf' => 'application/font-sfnt',
-    'woff'   => 'application/font-woff',
-    'woff2'  => 'application/font-woff2',
-    'eot'  => 'application/vnd.ms-fontobject',
+    'svg'   => 'image/svg+xml',
+    'otf'   => 'application/font-sfnt',
+    'ttf'   => 'application/font-sfnt',
+    'woff'  => 'application/font-woff',
+    'woff2' => 'application/font-woff2',
+    'eot'   => 'application/vnd.ms-fontobject',
 );
 
 my ( %http_dirs, %html_icons, $html_info_overlib, %password_protect_dirs,
@@ -332,8 +332,10 @@ sub http_process_request {
       . "A=$Authorized format=$Http{format} ua=$Http{'User-Agent'} h=$header"
       if $main::Debug{http};
     if ( $req_typ eq "POST" || $req_typ eq "PUT" ) {
-        my $cl = $Http{'Content-Length'}
-          || $Http{'Content-length'};    # Netscape uses lower case l
+        my $cl =
+             $Http{'Content-Length'}
+          || $Http{'Content-length'}
+          || $Http{'content-length'};    # Netscape uses lower case l
         print
           "http POST query has $cl bytes of args\n";    # if $main::Debug{http};
         my $buf;
