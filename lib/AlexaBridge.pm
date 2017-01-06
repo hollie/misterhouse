@@ -163,9 +163,11 @@ sub _receiveSSDPEvent {
         }
 		
 		my $target;
+	        &main::print_log ("[Alexa] Debug: SSDP IN - $buf \n") if $main::Debug{'alexa'};	
 		if ( $buf =~ /ST: urn:Belkin:device:\*\*.*/ ) { &_sendSearchResponse($peer) }
 		elsif ( $buf =~ /ST: urn:schemas-upnp-org:device:basic:1.*/ ) { &_sendSearchResponse($peer) }
 		elsif ( $buf =~ /ST: ssdp:all.*/ ) { &_sendSearchResponse($peer,'all') }
+                elsif ( $buf =~ /ST:ssdp:all.*/ ) { &_sendSearchResponse($peer,'all') }
 }
 
 
@@ -195,6 +197,7 @@ sub _sendSearchResponse {
 		$output .= 'ST: upnp:rootdevice' ."\r\n";
 		$output .= 'USN: uuid:'.$mac.'::upnp:rootdevice' ."\r\n";
 		$output .= "\r\n";
+		&main::print_log ("[Alexa] Debug: SSDP OUT - $output \n") if $main::Debug{'alexa'};
 		send($socket, $output, 0, $peer);
 
 		$output = "HTTP/1.1 200 OK\r\n";
@@ -208,6 +211,7 @@ sub _sendSearchResponse {
 		$output .= 'ST: uuid:2f402f80-da50-11e1-9b23-'.lc($mac)."\r\n";
 		$output .= 'USN: uuid:2f402f80-da50-11e1-9b23-001e06'.$mac."\r\n";
 		$output .= "\r\n";
+		&main::print_log ("[Alexa] Debug: SSDP OUT - $output \n") if $main::Debug{'alexa'};
 		send($socket, $output, 0, $peer);
 	      }
 
@@ -221,7 +225,8 @@ sub _sendSearchResponse {
 		$output .= 'hue-bridgeid: B827EBFFFE'.uc((substr $mac, -6))."\r\n";
 		$output .= 'ST: urn:schemas-upnp-org:device:basic:1'."\r\n";
 		$output .= 'USN: uuid:2f402f80-da50-11e1-9b23-'.lc($mac)."\r\n";
-		$output .= "\r\n";	
+		$output .= "\r\n";
+		&main::print_log ("[Alexa] Debug: SSDP OUT - $output \n") if $main::Debug{'alexa'};
         	send($socket, $output, 0, $peer);
 
 		$count++;
@@ -334,7 +339,7 @@ my $AlexaObjects;
                          $output .= "Date: ". time2str(time)."\r\n";
                          $output .= "\r\n";
                          $output .= $xmlmessage;
-			 &main::print_log ("[Alexa] Debug: MH Response $output \n") if $main::Debug{'alexa'};
+			 &main::print_log ("[Alexa] Debug: MH Response $xmlmessage \n") if $main::Debug{'alexa'};
                          return $output;
         }
         elsif ( ($uri =~ /^\/api/) && (lc($request_type) eq "post") ) {
@@ -421,15 +426,22 @@ my $AlexaObjects;
 			}
 			elsif (defined $uris[3]) {
                        		if ( $uris[3] eq 'lights' ) {
-                        	  $statep1 = qq[{"];
-                        	  $statep2 = qq[":"];
-                               	  $end = qq["}];
-                         	  $delm = qq[","];
+                        	  #$statep1 = qq[{"];
+                        	  #$statep2 = qq[":"];
+                               	  #$end = qq["}];
+                         	  #$delm = qq[","];
+	                          $statep1 = qq[{"lights":{"];
+        	                  $statep2 = qq[":{"state":{"on":false,"bri":254,"reachable":true},"type":"Extended color light","name":"];
+                	          $statep3 = qq[","modelid":"LCT001","manufacturername":"Philips","swversion":"65003148"}];
+                        	  $end = qq[}}];
+                            	  $delm = qq[,"];
                          	  foreach my $uuid ( keys %{$AlexaObjects->{'uuid'}} ) {
                                 	$name = $AlexaObjects->{'uuid'}->{$uuid}->{'name'};
                                		 next unless $name;
-                                	if ($count >= 1) { $content = $content.$delm.$uuid.$statep2.$name }
-                                	else { $content = $statep1.$uuid.$statep2.$name }
+                                	#if ($count >= 1) { $content = $content.$delm.$uuid.$statep2.$name }
+                                	#else { $content = $statep1.$uuid.$statep2.$name }
+	                                if ($count >= 1) { $content = $content.$delm.$uuid.$statep2.$name.$statep3 }
+        	                        else { $content = $statep1.$uuid.$statep2.$name.$statep3 }
                                 	$count++;
                         	  }
                         	}
