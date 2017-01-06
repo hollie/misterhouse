@@ -1064,7 +1064,7 @@ var loadCollection = function(collection_keys) {
 		var item = json_store.collections[collection].item;
 		
 		if (item !== undefined) {
-			if (json_store.objects[item] === undefined) {
+			if (json_store.objects === undefined || json_store.objects[item] === undefined) {
 				var path_str = "/objects";
 				var arg_str = "fields=state,states,label,state_log,schedule,logger_status,&items="+item;
 				$.ajax({
