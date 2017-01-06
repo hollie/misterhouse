@@ -539,7 +539,7 @@ sub http_process_request {
         return;
     }
 
-     if ( my $alexa_response = &AlexaBridge::process_http($get_req, $req_typ, $Http{'Host'}, $HTTP_BODY, $socket) ) {
+     if ( my $alexa_response = &AlexaBridge::process_http($get_req, $req_typ, $HTTP_BODY, $socket, %Http) ) {
           print $socket $alexa_response unless $alexa_response eq ' ';
           return;
         }
