@@ -683,7 +683,7 @@ sub uuid {
 	$uuid   = $ug->to_string( ( $ug->create_from_name(NameSpace_DNS, $name) ) );
 	$uuid =~ s/\D//g;
         $uuid =~ s/-//g;
-	#$uuid = (substr $uuid, 0, 18);
+	$uuid = (substr $uuid, 0, 9);
 	return lc($uuid);
 }
 
