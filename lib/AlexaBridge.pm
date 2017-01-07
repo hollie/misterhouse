@@ -426,22 +426,26 @@ my $AlexaObjects;
 			}
 			elsif (defined $uris[3]) {
                        		if ( $uris[3] eq 'lights' ) {
-                        	  #$statep1 = qq[{"];
+                        	  $statep1 = qq[{"];
                         	  #$statep2 = qq[":"];
                                	  #$end = qq["}];
                          	  #$delm = qq[","];
-	                          $statep1 = qq[{"lights":{"];
+				  #### 1
         	                  $statep2 = qq[":{"state":{"on":false,"bri":254,"reachable":true},"type":"Extended color light","name":"];
                 	          $statep3 = qq[","modelid":"LCT001","manufacturername":"Philips","swversion":"65003148"}];
-                        	  $end = qq[}}];
+                        	  $end = qq[}];
                             	  $delm = qq[,"];
+				  #### 2
+
                          	  foreach my $uuid ( keys %{$AlexaObjects->{'uuid'}} ) {
                                 	$name = $AlexaObjects->{'uuid'}->{$uuid}->{'name'};
                                		 next unless $name;
                                 	#if ($count >= 1) { $content = $content.$delm.$uuid.$statep2.$name }
                                 	#else { $content = $statep1.$uuid.$statep2.$name }
+					#### 1
 	                                if ($count >= 1) { $content = $content.$delm.$uuid.$statep2.$name.$statep3 }
         	                        else { $content = $statep1.$uuid.$statep2.$name.$statep3 }
+					#### 2
                                 	$count++;
                         	  }
                         	}
@@ -610,11 +614,11 @@ sub add {
   return unless defined $realname;
   my $fullname;
   my $cleanname = $realname;
-  $cleanname =~ s/\$//;
-  $cleanname =~ s/ //;
-  $cleanname =~ s/#//;
-  $cleanname =~ s/\\//;
-  $cleanname =~ s/&//;
+  $cleanname =~ s/\$//g;
+  $cleanname =~ s/ //g;
+  $cleanname =~ s/#//g;
+  $cleanname =~ s/\\//g;
+  $cleanname =~ s/&//g;
 
   if ( defined($name) ) {
       $fullname = $cleanname.'.'.$name;
@@ -666,6 +670,9 @@ sub uuid {
  use Data::UUID;
 	$ug    = Data::UUID->new;
 	$uuid   = $ug->to_string( ( $ug->create_from_name(NameSpace_DNS, $name) ) );
+	$uuid =~ s/\D//g;
+        $uuid =~ s/-//g;
+	#$uuid = (substr $uuid, 0, 18);
 	return lc($uuid);
 }
 
