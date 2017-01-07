@@ -413,7 +413,6 @@ my $AlexaObjects;
                          	$uuid = $uris[4];
                          	$name = $AlexaObjects->{'uuid'}->{$uuid}->{'name'};
 				my $state = &get_set_state($self, $AlexaObjects, $uuid,'get');
-
                          	$statep1 = qq[{"state":{$state,"hue":15823,"sat":88,"effect":"none","ct":313,"alert":"none","colormode":"ct","reachable":true,"xy":\[0.4255,0.3998\]},"type":"Extended color light","name":"];
                          	$statep2 = qq[","modelid":"LCT001","manufacturername":"Philips","uniqueid":"$uuid","swversion":"65003148","pointsymbol":{"1":"none","2":"none","3":"none","4":"none","5":"none","6":"none","7":"none","8":"none"}}];
                          	$content = $statep1.$name.$statep2;
@@ -433,26 +432,17 @@ my $AlexaObjects;
 			}
 			elsif (defined $uris[3]) {
                        		if ( $uris[3] eq 'lights' ) {
-                        	  $statep1 = qq[{"];
-                        	  #$statep2 = qq[":"];
-                               	  #$end = qq["}];
-                         	  #$delm = qq[","];
-				  #### 1
-        	                  $statep2 = qq[":{"state":{"on":false,"bri":254,"reachable":true},"type":"Extended color light","name":"];
-                	          $statep3 = qq[","modelid":"LCT001","manufacturername":"Philips","swversion":"65003148"}];
-                        	  $end = qq[}];
-                            	  $delm = qq[,"];
-				  #### 2
-
                          	  foreach my $uuid ( keys %{$AlexaObjects->{'uuid'}} ) {
                                 	$name = $AlexaObjects->{'uuid'}->{$uuid}->{'name'};
-                               		 next unless $name;
-                                	#if ($count >= 1) { $content = $content.$delm.$uuid.$statep2.$name }
-                                	#else { $content = $statep1.$uuid.$statep2.$name }
-					#### 1
+                               		next unless $name;
+					my $state = &get_set_state($self, $AlexaObjects, $uuid,'get');
+                                  	$statep1 = qq[{"];
+                                  	$statep2 = qq[":{"state":{$state,"reachable":true},"type":"Extended color light","name":"];
+                                  	$statep3 = qq[","modelid":"LCT001","manufacturername":"Philips","swversion":"65003148"}];
+                                  	$end = qq[}];
+                                  	$delm = qq[,"];
 	                                if ($count >= 1) { $content = $content.$delm.$uuid.$statep2.$name.$statep3 }
         	                        else { $content = $statep1.$uuid.$statep2.$name.$statep3 }
-					#### 2
                                 	$count++;
                         	  }
                         	}
@@ -475,20 +465,15 @@ my $AlexaObjects;
                        		 }
 			 }
                         elsif (defined $uris[2]) {
-                         $statep1 = qq[{"lights":{"];
-                         #$statep2 = qq[":{"state":{"on":false,"bri":254,"hue":15823,"sat":88,"effect":"none","ct":313,"alert":"none","colormode":"ct","reachable":true,"xy":\[0.4255,0.3998\]},"type":"Extended color light","name":"];
-                         $statep2 = qq[":{"state":{"on":false,"bri":254,"reachable":true},"type":"Extended color light","name":"]; # dis
-			 #$statep2 = qq[":{"state":{"on":false,"bri":254,"hue":15823,"sat":88,"effect":"none","ct":313,"alert":"none","colormode":"ct","reachable":true},"type":"Extended color light","name":"];
-			 #$statep3 = qq[","modelid":"LCT001","manufacturername":"Philips","uniqueid":"];
-			 $statep3 = qq[","modelid":"LCT001","manufacturername":"Philips","swversion":"65003148"}]; # 
-                         #$statep4 = qq[","swversion":"65003148","pointsymbol":{"1":"none","2":"none","3":"none","4":"none","5":"none","6":"none","7":"none","8":"none"}}];
-                         $end = qq[}}];
-                         $delm = qq[,"];
                          foreach my $uuid ( keys %{$AlexaObjects->{'uuid'}} ) {
-                                $name = $AlexaObjects->{'uuid'}->{$uuid}->{'name'};
+ 	                        $name = $AlexaObjects->{'uuid'}->{$uuid}->{'name'};
 				next unless $name;
-                                #if ($count >= 1) { $content = $content.$delm.$uuid.$statep2.$name.$statep3.$uuid.$statep4 }
-                                #else { $content = $statep1.$uuid.$statep2.$name.$statep3.$uuid.$statep4 }
+                                my $state = &get_set_state($self, $AlexaObjects, $uuid,'get');
+	                        $statep1 = qq[{"lights":{"];
+        	                $statep2 = qq[":{"state":{$state,"reachable":true},"type":"Extended color light","name":"]; # dis
+                	        $statep3 = qq[","modelid":"LCT001","manufacturername":"Philips","swversion":"65003148"}]; #
+                        	$end = qq[}}];
+                        	$delm = qq[,"];
                                 if ($count >= 1) { $content = $content.$delm.$uuid.$statep2.$name.$statep3 }
                                 else { $content = $statep1.$uuid.$statep2.$name.$statep3 }
                                 $count++;
@@ -563,11 +548,11 @@ sub get_set_state {
 		     if ( $AlexaObjects->{'uuid'}->{$uuid}->{'on'} eq $cstate ) { return qq["on":true,"bri":254] }
 		     elsif ( $AlexaObjects->{'uuid'}->{$uuid}->{'off'} eq $cstate ) { return qq["on":false,"bri":254] }
 		     elsif ( $cstate =~ /\d+/ ) { return qq["on":true,"bri":].&roundoff($cstate * 2.54) }
-		     else { return qq["on":false,"bri":254] }	
+		     else { return qq["on":true,"bri":254] }	
 		  } 
 		elsif ( $action eq 'set' ) {
 		    my $end;
-		    if ($object->$statesub =~ /%/) { $end = '%' }
+		    if ($object->$statesub =~ /\%/) { $end = '%' }
        		    &main::print_log ("[Alexa] Debug: setting object ( $realname ) to state ( $state$end )\n") if $main::Debug{'alexa'};
           	    $object->$sub($state.$end);
 		    return;
@@ -581,7 +566,7 @@ sub get_set_state {
 		 return;
 	     }
              elsif ( $action eq 'get' ) {
-	         return qq["on":false,"bri":254];
+	         return qq["on":true,"bri":254];
 	     }
 	   
        }
@@ -592,7 +577,7 @@ sub get_set_state {
 		return;
 	   }
 	   elsif ( $action eq 'get' ) {
-	     	return qq["on":false,"bri":254];
+	     	return qq["on":true,"bri":254];
 	   }
        }
 }
