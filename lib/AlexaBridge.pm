@@ -167,7 +167,7 @@ sub _receiveSSDPEvent {
         }
 		
 		my $target;
-	        &main::print_log ("[Alexa] Debug: SSDP IN - $buf \n") if $main::Debug{'alexa'};	
+	        &main::print_log ("[Alexa] Debug: SSDP IN - $buf \n") if $main::Debug{'alexa'} >= 3;	
 		if ( $buf =~ /ST: urn:Belkin:device:\*\*.*/ ) { &_sendSearchResponse($peer) }
 		elsif ( $buf =~ /ST: urn:schemas-upnp-org:device:basic:1.*/ ) { &_sendSearchResponse($peer) }
 		elsif ( $buf =~ /ST: ssdp:all.*/ ) { &_sendSearchResponse($peer,'all') }
@@ -201,7 +201,7 @@ sub _sendSearchResponse {
 		$output .= 'ST: upnp:rootdevice' ."\r\n";
 		$output .= 'USN: uuid:'.$mac.'::upnp:rootdevice' ."\r\n";
 		$output .= "\r\n";
-		&main::print_log ("[Alexa] Debug: SSDP OUT - $output \n") if $main::Debug{'alexa'};
+		&main::print_log ("[Alexa] Debug: SSDP OUT - $output \n") if $main::Debug{'alexa'} >= 3;
 		send($socket, $output, 0, $peer);
 
 		$output = "HTTP/1.1 200 OK\r\n";
@@ -215,7 +215,7 @@ sub _sendSearchResponse {
 		$output .= 'ST: uuid:2f402f80-da50-11e1-9b23-'.lc($mac)."\r\n";
 		$output .= 'USN: uuid:2f402f80-da50-11e1-9b23-001e06'.$mac."\r\n";
 		$output .= "\r\n";
-		&main::print_log ("[Alexa] Debug: SSDP OUT - $output \n") if $main::Debug{'alexa'};
+		&main::print_log ("[Alexa] Debug: SSDP OUT - $output \n") if $main::Debug{'alexa'} >= 3;
 		send($socket, $output, 0, $peer);
 	      }
 
@@ -230,7 +230,7 @@ sub _sendSearchResponse {
 		$output .= 'ST: urn:schemas-upnp-org:device:basic:1'."\r\n";
 		$output .= 'USN: uuid:2f402f80-da50-11e1-9b23-'.lc($mac)."\r\n";
 		$output .= "\r\n";
-		&main::print_log ("[Alexa] Debug: SSDP OUT - $output \n") if $main::Debug{'alexa'};
+		&main::print_log ("[Alexa] Debug: SSDP OUT - $output \n") if $main::Debug{'alexa'} >= 3;
         	send($socket, $output, 0, $peer);
 
 		$count++;
@@ -343,7 +343,7 @@ my $AlexaObjects;
                          $output .= "Date: ". time2str(time)."\r\n";
                          $output .= "\r\n";
                          $output .= $xmlmessage;
-			 &main::print_log ("[Alexa] Debug: MH Response $xmlmessage \n") if $main::Debug{'alexa'};
+			 &main::print_log ("[Alexa] Debug: MH Response $xmlmessage \n") if $main::Debug{'alexa'} >= 2;
                          return $output;
         }
         elsif ( ($uri =~ /^\/api/) && (lc($request_type) eq "post") ) {
@@ -360,7 +360,7 @@ my $AlexaObjects;
                         $output .= "Date: ". time2str(time)."\r\n";
                         $output .= "\r\n";
                         $output .= $content;
-			&main::print_log ("[Alexa] Debug: MH Response $output \n") if $main::Debug{'alexa'};
+			&main::print_log ("[Alexa] Debug: MH Response $output \n") if $main::Debug{'alexa'} >= 2;
                         return $output;
         }
         elsif ( ($uri =~ /^\/api\/.*\/lights\/(.*)\/state$/) && (lc($request_type) eq "put") ) {
@@ -374,6 +374,7 @@ my $AlexaObjects;
                         if ( $body =~ /\"(bri)\": (\d+)/ ) { $state = $2 }
 			elsif ( $body =~ /\"(bri)\":(\d+)/ ) { $state = $2 }
 			my $content = qq[\[{"success":{"/lights/$deviceID/state/$1":$2}}\]];
+			&main::print_log ("[Alexa] Debug: MH Got request ( $1 - $2 ) to Set device ( $deviceID ) to ( $state )\n") if $main::Debug{'alexa'};
 
                         if ( ($AlexaObjects->{'uuid'}->{$deviceID}) && (defined($state)) ) {
 				&get_set_state($self, $AlexaObjects, $deviceID, 'set', $state);
@@ -392,10 +393,11 @@ my $AlexaObjects;
                                 $output .= $content;
                          } else {
                                  $output = "HTTP/1.0 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\n";
+				 &main::print_log("[Alexa] Error: No Matching object for UUID ( $deviceID )");
 				 &main::print_log ("[Alexa] Debug: MH Response $output \n") if $main::Debug{'alexa'};
 				 return $output;
                         }
-			&main::print_log ("[Alexa] Debug: MH Response $output \n") if $main::Debug{'alexa'};
+			&main::print_log ("[Alexa] Debug: MH Response $output \n") if $main::Debug{'alexa'} >= 2;
 			return $output;
 			#print $socket $output; # print direct to the socket so it does not close.
 			#&main::http_process_request($socket); # we know there will be another request so get it in the same tcp session.
@@ -493,6 +495,7 @@ my $AlexaObjects;
                         }
                         if ($count >= 1) {
                                 $content = $content.$end;
+				$debugcontent = $content if $main::Debug{'alexa'} >= 2;
 				$content = &_Gzip($content,$Http{'Accept-Encoding'});
                                 $output = "HTTP/1.1 200 OK\r\n";
                                 $output .= "Server: MisterHouse\r\n";
@@ -510,7 +513,7 @@ my $AlexaObjects;
                         } else {
                                  my $output = "HTTP/1.0 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\n";
                         }
-			&main::print_log ("[Alexa] Debug: MH Response $output \n") if $main::Debug{'alexa'};
+			&main::print_log ("[Alexa] Debug: MH Response $debugcontent \n") if $main::Debug{'alexa'} >= 2;
                         return $output;
          }
          else { return 0 }
