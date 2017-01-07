@@ -1077,13 +1077,21 @@ var loadCollection = function(collection_keys) {
 						}
 				});
 			} else {
+                var btn_direct = "";
+                if (json_store.ia7_config.objects !== undefined 
+                        && json_store.ia7_config.objects[item] !== undefined
+                        && json_store.ia7_config.objects[item].direct_control !== undefined 
+                        && json_store.ia7_config.objects[item].direct_control == "yes") {
+                    btn_direct = "btn-direct";
+                }
+
 				var name = item;
 				var color = getButtonColor(json_store.objects[item].state);
 				if (json_store.objects[item].label !== undefined) name = json_store.objects[item].label;
 				var dbl_btn = "";
 				if (name.length < 30) dbl_btn = "<br>"; 
 				var button_html = "<div style='vertical-align:middle'><button entity='"+item+"' ";
-				button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover btn-state-cmd navbutton-padding'>";
+				button_html += "class='btn  btn-"+color+" btn-lg btn-block btn-list btn-popover "+ btn_direct +" btn-state-cmd navbutton-padding'>";
 				button_html += name+dbl_btn+"<span class='pull-right'>"+json_store.objects[item].state+"</span></button></div>";
 				entity_arr.push(button_html);
 				items += item+",";		
@@ -1143,10 +1151,35 @@ var loadCollection = function(collection_keys) {
 	// if any items present, then create modals and activate updateItem...
 	if (items !== "") {
 		items = items.slice(0,-1); //remove last comma
-		$('.btn-state-cmd').click( function () {			
-			var entity = $(this).attr("entity");
-			create_state_modal(entity);
-		});
+        $('.btn-state-cmd').click( function () {			
+            var entity = $(this).attr("entity");
+            if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
+                    var new_state = "";
+                    var possible_states = 0;
+                    for (var i = 0; i < json_store.objects[entity].states.length; i++){
+                        if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
+                        possible_states++;
+                        if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i];
+
+                    }
+                    if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
+                    url= '/SET;none?select_item='+entity+'&select_state='+new_state;
+                    $.get( url);
+                } else {
+                    create_state_modal(entity);
+                }
+            }
+            else {
+                create_state_modal(entity);
+            }
+        }
+        );
+        $(".btn-state-cmd").mayTriggerLongClicks().on( 'longClick', function() {		
+            var entity = $(this).attr("entity");
+            create_state_modal(entity);
+        });						
+			
 		$('.btn-resp-modal').click( function () {			
 			var url = $(this).attr('href');
 			alert("resp-model. opening url="+url);
