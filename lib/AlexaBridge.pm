@@ -566,8 +566,10 @@ sub get_set_state {
 		     else { return qq["on":false,"bri":254] }	
 		  } 
 		elsif ( $action eq 'set' ) {
-       		    &main::print_log ("[Alexa] Debug: setting object ( $realname ) to state ( $state )\n") if $main::Debug{'alexa'};
-          	    $object->$sub($state);
+		    my $end;
+		    if ($object->$statesub =~ /%/) { $end = '%' }
+       		    &main::print_log ("[Alexa] Debug: setting object ( $realname ) to state ( $state$end )\n") if $main::Debug{'alexa'};
+          	    $object->$sub($state.$end);
 		    return;
 		}
        }
