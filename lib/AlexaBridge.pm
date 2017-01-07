@@ -367,13 +367,12 @@ my $AlexaObjects;
                         my $output;
                         my $deviceID = $1;
                         my $state = undef;
-			if ($body =~ /:\w/ ) { $body =~ s/:/: /g }
-                        if ( $body =~ /\"(on)\": (true)/ ) { $state = 'on' }
-                        elsif ( $body =~ /\"(on)\": (false)/ ) { $state = 'off' }
-                        elsif ( $body =~ /\"(off)\": (true)/ ) { $state = 'off' }
-                        elsif ( $body =~ /\"(off)\": (false)/ ) { $state = 'on' }
-                        if ( $body =~ /\"(bri)\": (\d+)/ ) { $state = $2 }
-			elsif ( $body =~ /\"(bri)\":(\d+)/ ) { $state = $2 }
+			$body =~ s/: /:/g;
+                        if ( $body =~ /\"(on)\":(true)/ ) { $state = 'on' }
+                        elsif ( $body =~ /\"(on)\":(false)/ ) { $state = 'off' }
+                        elsif ( $body =~ /\"(off)\":(true)/ ) { $state = 'off' }
+                        elsif ( $body =~ /\"(off)\":(false)/ ) { $state = 'on' }
+                        if ( $body =~ /\"(bri)\":(\d+)/ ) { $state = $2 }
 			my $content = qq[\[{"success":{"/lights/$deviceID/state/$1":$2}}\]];
 			&main::print_log ("[Alexa] Debug: MH Got request ( $1 - $2 ) to Set device ( $deviceID ) to ( $state )\n") if $main::Debug{'alexa'};
 
@@ -394,7 +393,8 @@ my $AlexaObjects;
                                 $output .= $content;
                          } else {
                                  $output = "HTTP/1.0 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\n";
-				 &main::print_log("[Alexa] Error: No Matching object for UUID ( $deviceID )");
+				 &main::print_log("[Alexa] Error: No Matching object for UUID ( $deviceID )") unless ($AlexaObjects->{'uuid'}->{$deviceID});
+                                 &main::print_log("[Alexa] Error: Missing State from PUT for object with UUID ( $deviceID )") unless (defined($state));
 				 &main::print_log ("[Alexa] Debug: MH Response $output \n") if $main::Debug{'alexa'};
 				 return $output;
                         }
