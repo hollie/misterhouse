@@ -18,7 +18,11 @@ use constant DEFAULT_LEASE_TIME => 1800;
 use constant DEFAULT_NOTIFICATION_PORT => 50000;
 use constant DEFAULT_PORT_COUNT => 0;
 
-my ($AlexaGlobal);
+my ($LOCAL_IP, $LOCAL_MAC) = &DiscoverAddy unless ( (defined($::config_parms{'alexaMac'})) && (defined($::config_parms{'alexaHttpIp'})) );
+$LOCAL_IP = $::config_parms{'alexaHttpIp'} if defined($::config_parms{'alexaHttpIp'});
+$LOCAL_MAC = $::config_parms{'alexaMac'} if defined($::config_parms{'alexaMac'});
+
+my $AlexaGlobal;
 
 sub startup {
   	unless ($::config_parms{'alexa_enable'}) { return }
@@ -178,7 +182,7 @@ sub _sendSearchResponse {
  my $selfname = (&main::list_objects_by_type('AlexaBridge'))[0];
  my $self = ::get_object_by_name($selfname);
  my $alexa_ssdp_send = $AlexaGlobal->{'ssdp_send'};
- my $mac = $::config_parms{'alexaMac'} || '9aa645cc40aa';
+ my $mac = $LOCAL_MAC;
 
 
 	 foreach my $port ( (sort keys %{$self->{child}->{'ports'}}) ) {
@@ -190,7 +194,7 @@ sub _sendSearchResponse {
 		$output .= 'HOST: 239.255.255.250:1900'."\r\n";
 		$output .= 'CACHE-CONTROL: max-age=100'."\r\n";
 		$output .= 'EXT: '."\r\n";
-		$output .= 'LOCATION: http://'.$::config_parms{'alexaHttpIp'}.':'.$port.'/description.xml' ."\r\n";
+		$output .= 'LOCATION: http://'.$LOCAL_IP.':'.$port.'/description.xml' ."\r\n";
 		#$output .= 'LOCATION: http://'.$::config_parms{'alexaHttpIp'}.':'.$port.'/upnp/alexa-mh-bridge'.$count.'/setup.xml' ."\r\n";
 		$output .= 'SERVER: Linux/3.14.0 UPnP/1.0 IpBridge/1.15.0' ."\r\n";
 		$output .= 'hue-bridgeid: B827EBFFFE'.uc((substr $mac, -6))."\r\n";
@@ -204,7 +208,7 @@ sub _sendSearchResponse {
 		$output .= 'HOST: 239.255.255.250:1900'."\r\n";
 		$output .= 'CACHE-CONTROL: max-age=100'."\r\n";
 		$output .= 'EXT: '."\r\n";
-		$output .= 'LOCATION: http://'.$::config_parms{'alexaHttpIp'}.':'.$port.'/description.xml' ."\r\n";
+		$output .= 'LOCATION: http://'.$LOCAL_IP.':'.$port.'/description.xml' ."\r\n";
 		#$output .= 'LOCATION: http://'.$::config_parms{'alexaHttpIp'}.':'.$port.'/upnp/alexa-mh-bridge'.$count.'/setup.xml' ."\r\n";
 		$output .= 'SERVER: Linux/3.14.0 UPnP/1.0 IpBridge/1.15.0' ."\r\n";
 		$output .= 'hue-bridgeid: B827EBFFFE'.uc((substr $mac, -6))."\r\n";
@@ -219,7 +223,7 @@ sub _sendSearchResponse {
 		$output .= 'HOST: 239.255.255.250:1900'."\r\n";
 		$output .= 'CACHE-CONTROL: max-age=100'."\r\n";
 		$output .= 'EXT: '."\r\n";
-		$output .= 'LOCATION: http://'.$::config_parms{'alexaHttpIp'}.':'.$port.'/description.xml' ."\r\n";
+		$output .= 'LOCATION: http://'.$LOCAL_IP.':'.$port.'/description.xml' ."\r\n";
 		#$output .= 'LOCATION: http://'.$::config_parms{'alexaHttpIp'}.':'.$port.'/upnp/alexa-mh-bridge'.$count.'/setup.xml' ."\r\n";
 		$output .= 'SERVER: Linux/3.14.0 UPnP/1.0 IpBridge/1.15.0' ."\r\n";
 		$output .= 'hue-bridgeid: B827EBFFFE'.uc((substr $mac, -6))."\r\n";
@@ -270,10 +274,10 @@ my $xmlmessage = qq[<?xml version="1.0"?>
 <major>1</major>
 <minor>0</minor>
 </specVersion>
-<URLBase>http://$::config_parms{'alexaHttpIp'}:$port/</URLBase>
+<URLBase>http://$LOCAL_IP:$port/</URLBase>
 <device>
 <deviceType>urn:schemas-upnp-org:device:basic:1</deviceType>
-<friendlyName>Amazon-Echo-MH-Bridge (192.168.195.37)</friendlyName>
+<friendlyName>Amazon-Echo-MH-Bridge ($LOCAL_IP)</friendlyName>
 <manufacturer>Royal Philips Electronics</manufacturer>
 <manufacturerURL>http://misterhouse.sourceforge.net/</manufacturerURL>
 <modelDescription>Hue Emulator for Amazon Echo bridge</modelDescription>
@@ -520,6 +524,22 @@ sub _Gzip {
   }
   else { $content = $content_raw; } 
  return $content;
+}
+
+sub DiscoverAddy {
+   use Net::Address::Ethernet qw( :all );
+   my @a = get_addresses(@_);
+   foreach my $adapter (@a) {
+    # print $adapter->{sIP}."\n";
+    # print $adapter->{sEthernet}."\n";
+    # print "____________________\n";
+     next unless ($adapter->{iActive} eq 1);
+     next if ($adapter->{sEthernet} eq '');
+     next if ($adapter->{sIP} =~ /127\.0\.0\.1/);
+     my $Mac = $adapter->{sEthernet};
+     $Mac =~ s/://g;
+     return ($adapter->{sIP},$Mac);
+   }
 }
 
 sub get_set_state {
