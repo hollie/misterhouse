@@ -324,7 +324,7 @@ my $AlexaObjects;
  }
  else {
    &main::print_log( "[Alexa] Error: No Matching object for port ( $port )" ); 
-   $output = "HTTP/1.0 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\n";
+   $output = "HTTP/1.0 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\n\r\n";
    return $output;
  }
 
@@ -367,6 +367,7 @@ my $AlexaObjects;
                         my $output;
                         my $deviceID = $1;
                         my $state = undef;
+			if ($body =~ /:\w/ ) { $body =~ s/:/: /g }
                         if ( $body =~ /\"(on)\": (true)/ ) { $state = 'on' }
                         elsif ( $body =~ /\"(on)\": (false)/ ) { $state = 'off' }
                         elsif ( $body =~ /\"(off)\": (true)/ ) { $state = 'off' }
@@ -552,17 +553,17 @@ sub get_set_state {
      my $sub = $AlexaObjects->{'uuid'}->{$uuid}->{'sub'};
      my $statesub = $AlexaObjects->{'uuid'}->{$uuid}->{'statesub'};
      $state = $AlexaObjects->{'uuid'}->{$uuid}->{$state} if $AlexaObjects->{'uuid'}->{$uuid}->{$state};
-     if ( $state =~ /\d+/ ) { $state = &roundoff($state / 2.52) }
+     if ( $state =~ /\d+/ ) { $state = &roundoff($state / 2.54) }
       &main::print_log ("[Alexa] Debug: get_set_state ($uuid $action $state) : name: $name  realname: $realname sub: $sub state: $state\n") if $main::Debug{'alexa'};
        if ( $realname =~ /^\$/ ) {
            my $object = ::get_object_by_name( $realname );
 		if ( $action eq 'get' ) {
 		     my $cstate = $object->$statesub;
 		     $cstate =~ s/\%//;
-		     if ( $AlexaObjects->{'uuid'}->{$uuid}->{'on'} eq $cstate ) { return qq["on":true,"bri":252] }
-		     elsif ( $AlexaObjects->{'uuid'}->{$uuid}->{'off'} eq $cstate ) { return qq["on":false,"bri":252] }
-		     elsif ( $cstate =~ /\d+/ ) { return qq["on":true,"bri":].&roundoff($cstate * 2.52) }
-		     else { return qq["on":false,"bri":252] }	
+		     if ( $AlexaObjects->{'uuid'}->{$uuid}->{'on'} eq $cstate ) { return qq["on":true,"bri":254] }
+		     elsif ( $AlexaObjects->{'uuid'}->{$uuid}->{'off'} eq $cstate ) { return qq["on":false,"bri":254] }
+		     elsif ( $cstate =~ /\d+/ ) { return qq["on":true,"bri":].&roundoff($cstate * 2.54) }
+		     else { return qq["on":false,"bri":254] }	
 		  } 
 		elsif ( $action eq 'set' ) {
        		    &main::print_log ("[Alexa] Debug: setting object ( $realname ) to state ( $state )\n") if $main::Debug{'alexa'};
@@ -578,7 +579,7 @@ sub get_set_state {
 		 return;
 	     }
              elsif ( $action eq 'get' ) {
-	         return qq["on":false,"bri":252];
+	         return qq["on":false,"bri":254];
 	     }
 	   
        }
@@ -589,7 +590,7 @@ sub get_set_state {
 		return;
 	   }
 	   elsif ( $action eq 'get' ) {
-	     	return qq["on":false,"bri":252];
+	     	return qq["on":false,"bri":254];
 	   }
        }
 }
