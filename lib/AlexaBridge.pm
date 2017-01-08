@@ -545,14 +545,17 @@ sub get_set_state {
 		if ( $action eq 'get' ) {
 		     my $cstate = $object->$statesub;
 		     $cstate =~ s/\%//;
-		     if ( $AlexaObjects->{'uuid'}->{$uuid}->{'on'} eq $cstate ) { return qq["on":true,"bri":254] }
-		     elsif ( $AlexaObjects->{'uuid'}->{$uuid}->{'off'} eq $cstate ) { return qq["on":false,"bri":254] }
+		     my $level = '254';
+		     if ( $object->can('state_level') ) { $level = ( &roundoff(($object->level) * 2.54) )  }
+		     if ( $AlexaObjects->{'uuid'}->{$uuid}->{'on'} eq $cstate ) { return qq["on":true,"bri":$level] }
+		     elsif ( $AlexaObjects->{'uuid'}->{$uuid}->{'off'} eq $cstate ) { return qq["on":false,"bri":$level] }
 		     elsif ( $cstate =~ /\d+/ ) { return qq["on":true,"bri":].&roundoff($cstate * 2.54) }
-		     else { return qq["on":true,"bri":254] }	
+		     else { return qq["on":true,"bri":$level] }	
 		  } 
 		elsif ( $action eq 'set' ) {
 		    my $end;
-		    if ($object->$statesub =~ /\%/) { $end = '%' }
+		    #if ($object->$statesub =~ /\%/) { $end = '%' }
+		    if ( $object->can('state_level') ) { $end = '%'}
        		    &main::print_log ("[Alexa] Debug: setting object ( $realname ) to state ( $state$end )\n") if $main::Debug{'alexa'};
           	    $object->$sub($state.$end);
 		    return;
@@ -605,17 +608,23 @@ sub register {
 package AlexaBridge_Item;
 
 @AlexaBridge_Item::ISA = ('Generic_Item');
+use Storable;
 
 sub new {
    my ($class, $parent) = @_;
    my $self = new Generic_Item();
+   my $file = $::config_parms{'data_dir'}.'/alexa_temp.saved_id';
    bless $self, $class;
    $parent->register($self);
      foreach my $AlexaHttpName ( keys %{$AlexaGlobal->{http_sockets}} ) {
   	my $AlexaHttpPort = $AlexaGlobal->{http_sockets}->{$AlexaHttpName}->{port};
         $self->{'ports'}->{$AlexaHttpPort} = 0;
       }
-     $self->{'ports'}->{$::config_parms{'http_port'}} = 0;	
+     $self->{'ports'}->{$::config_parms{'http_port'}} = 0;
+     if (-e $file) {
+ 	my $restoredhash = retrieve($file);
+ 	$self->{idmap} = $restoredhash->{idmap};
+     } else { $self->{idmap} }
    return $self;
 }
 
@@ -652,6 +661,13 @@ sub add {
     last;
  }
 
+   # $self->{8080}->{'uuid'}->{3}->{'realname'}=$realname;
+   # $self->{8080}->{'uuid'}->{3}->{'name'}=$name || $cleanname;
+   # $self->{8080}->{'uuid'}->{3}->{'sub'}=$sub || 'set';
+   # $self->{8080}->{'uuid'}->{3}->{'on'}=$on || 'on';
+   # $self->{8080}->{'uuid'}->{3}->{'off'}=$off || 'off';
+   # $self->{8080}->{'uuid'}->{3}->{'statesub'}=$statesub || 'state';
+
 # Testing groups, saw the Echo hit /api/odtQdwTaiTjPgURo4ZyEtGfIqRgfSeCm1fl2AMG2/groups/0 
 #$self->{'groups'}->{0}->{'name'}='group0';
 #$self->{'groups'}->{0}->{'realname'}='$light0';
@@ -678,13 +694,46 @@ sub get_objects {
 
 sub uuid { 
  my ($self, $name) = @_;
- use Data::UUID;
-	$ug    = Data::UUID->new;
-	$uuid   = $ug->to_string( ( $ug->create_from_name(NameSpace_DNS, $name) ) );
-	$uuid =~ s/\D//g;
-        $uuid =~ s/-//g;
-	$uuid = (substr $uuid, 0, 9);
-	return lc($uuid);
+ my $file = $::config_parms{'data_dir'}.'/alexa_temp.saved_id';
+ return $self->{'idmap'}->{objects}->{$name} if ($self->{'idmap'}->{objects}->{$name});
+
+ my $highid;
+ my $missing;
+ my $count = 1;
+   foreach my $object (keys %{$self->{idmap}->{objects}}) {
+     my $currentid = $self->{idmap}->{objects}->{$object};
+     $highid = $currentid if ( $currentid > $highid );
+     $missing = $count unless ( $self->{'idmap'}->{ids}->{$count} ); #We have a number that has no value 
+     $count++;
+   }
+ $highid++;
+
+$highid = $missing if ( defined($missing) ); # Reuse numbers for deleted objects to keep the count from growning for ever. 
+
+$self->{'idmap'}->{objects}->{$name} = $highid;
+$self->{'idmap'}->{ids}->{$highid} = $name;
+
+my $idmap->{'idmap'} = $self->{'idmap'};
+store $idmap, $file;
+return $highid;
+ 
+# use Data::UUID;
+#	$ug    = Data::UUID->new;
+#	$uuid   = $ug->to_string( ( $ug->create_from_name(NameSpace_DNS, $name) ) );
+#	$uuid =~ s/\D//g;
+#        $uuid =~ s/-//g;
+#	$uuid = (substr $uuid, 0, 9);
+#	return lc($uuid);
+}
+
+sub isDeleted {
+ my ($self, $uuid) = @_;
+ my $count;
+ foreach my $port ( (sort keys %{$self->{'ports'}}) ) {
+  $count++ if ( $self->{$port}->{'uuid'}->{$uuid} );
+ }
+ return 1 unless $count;
+ return 0;
 }
 
 1;
