@@ -547,9 +547,21 @@ sub get_set_state {
 		     my $cstate = $object->$statesub;
 		     $cstate =~ s/\%//;
 		     my $level = '254';
-		     my $debug = "[Alexa] Debug: get_state (actual object state: $cstate) - ";
+                     my $type = $object->get_type();
+		     my $debug = "[Alexa] Debug: get_state (actual object state: $cstate) - (object type: $type) - ";
 		     my $return; 
-		     if ( $object->can('state_level') ) { $level = ( &roundoff(($object->level) * 2.54) ); $debug .= "(level: $level) - "; }
+		     if ( $object->can('state_level') ) {
+			my $l = $object->level;
+			$l =~ s/\%//;
+			if  ( $l =~ /\d+/ ) {
+			  $level = ( &roundoff(($l) * 2.54) ); 
+			  $debug .= "(level: $level) - ";
+			}
+		      }
+                     if ( lc($type) =~ /x10/ ) {
+                         if ( ($cstate =~ /\d+/) || ($cstate =~ /dim/) || ($cstate =~ /bright/) ) { $cstate = 'on' }
+			 $debug .= "(determined state: $cstate) - ";
+                     }
 		     if ( lc($AlexaObjects->{'uuid'}->{$uuid}->{'on'}) eq lc($cstate) ) { $return = qq["on":true,"bri":$level] }
 		     elsif ( lc($AlexaObjects->{'uuid'}->{$uuid}->{'off'}) eq lc($cstate) ) { $return = qq["on":false,"bri":$level] }
 		     elsif ( $cstate =~ /\d+/ ) { $return = qq["on":true,"bri":].&roundoff($cstate * 2.54) }
@@ -589,6 +601,20 @@ sub get_set_state {
 	   }
        }
 }
+
+sub get_state { 
+my ( $self, $object, $statesub ) = @_;
+       my $cstate = $object->$statesub;
+       $cstate =~ s/\%//;
+       my $type = $object->get_type();
+       my $debug = "[Alexa] Debug: get_state (actual object state: $cstate) - (object type: $type) - ";
+       if ( lc($type) =~ /x10/ ) { 
+	if ( ($state =~ /\d+/) || ($state =~ /dim/) || ($state =~ /bright/) ) { $cstate = 'on' }  
+       } 
+       $debug .= "(determined state: $cstate) - ";
+   return $cstate;
+} 
+
 
 sub roundoff
 {
