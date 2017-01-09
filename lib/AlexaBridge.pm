@@ -555,7 +555,7 @@ sub get_set_state {
 		elsif ( $action eq 'set' ) {
 		    my $end;
 		    #if ($object->$statesub =~ /\%/) { $end = '%' }
-		    if ( $object->can('state_level') ) { $end = '%'}
+		    if ( $object->can('state_level') && $state =~ /\d+/ ) { $end = '%'}
        		    &main::print_log ("[Alexa] Debug: setting object ( $realname ) to state ( $state$end )\n") if $main::Debug{'alexa'};
           	    $object->$sub($state.$end);
 		    return;
