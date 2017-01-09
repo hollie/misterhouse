@@ -537,7 +537,7 @@ sub get_set_state {
      my $realname = $AlexaObjects->{'uuid'}->{$uuid}->{'realname'};
      my $sub = $AlexaObjects->{'uuid'}->{$uuid}->{'sub'};
      my $statesub = $AlexaObjects->{'uuid'}->{$uuid}->{'statesub'};
-     $state = $AlexaObjects->{'uuid'}->{$uuid}->{$state} if $AlexaObjects->{'uuid'}->{$uuid}->{$state};
+     $state = $AlexaObjects->{'uuid'}->{$uuid}->{lc($state)} if $AlexaObjects->{'uuid'}->{$uuid}->{lc($state)};
      if ( $state =~ /\d+/ ) { $state = &roundoff($state / 2.54) }
       &main::print_log ("[Alexa] Debug: get_set_state ($uuid $action $state) : name: $name  realname: $realname sub: $sub state: $state\n") if $main::Debug{'alexa'};
        if ( $realname =~ /^\$/ ) {
@@ -547,11 +547,15 @@ sub get_set_state {
 		     my $cstate = $object->$statesub;
 		     $cstate =~ s/\%//;
 		     my $level = '254';
-		     if ( $object->can('state_level') ) { $level = ( &roundoff(($object->level) * 2.54) )  }
-		     if ( $AlexaObjects->{'uuid'}->{$uuid}->{'on'} eq $cstate ) { return qq["on":true,"bri":$level] }
-		     elsif ( $AlexaObjects->{'uuid'}->{$uuid}->{'off'} eq $cstate ) { return qq["on":false,"bri":$level] }
-		     elsif ( $cstate =~ /\d+/ ) { return qq["on":true,"bri":].&roundoff($cstate * 2.54) }
-		     else { return qq["on":true,"bri":$level] }	
+		     my $debug = "[Alexa] Debug: get_state (actual object state: $cstate) - ";
+		     my $return; 
+		     if ( $object->can('state_level') ) { $level = ( &roundoff(($object->level) * 2.54) ); $debug .= "(level: $level) - "; }
+		     if ( lc($AlexaObjects->{'uuid'}->{$uuid}->{'on'}) eq lc($cstate) ) { $return = qq["on":true,"bri":$level] }
+		     elsif ( lc($AlexaObjects->{'uuid'}->{$uuid}->{'off'}) eq lc($cstate) ) { $return = qq["on":false,"bri":$level] }
+		     elsif ( $cstate =~ /\d+/ ) { $return = qq["on":true,"bri":].&roundoff($cstate * 2.54) }
+		     else { $return = qq["on":true,"bri":$level] }
+		     &main::print_log ( "$debug returning - $return\n" ) if $main::Debug{'alexa'};
+		     return $return;	
 		  } 
 		elsif ( $action eq 'set' ) {
 		    my $end;
@@ -656,8 +660,8 @@ sub add {
     $self->{$port}->{'uuid'}->{$uuid}->{'realname'}=$realname;
     $self->{$port}->{'uuid'}->{$uuid}->{'name'}=$name || $cleanname;
     $self->{$port}->{'uuid'}->{$uuid}->{'sub'}=$sub || 'set';
-    $self->{$port}->{'uuid'}->{$uuid}->{'on'}=$on || 'on';
-    $self->{$port}->{'uuid'}->{$uuid}->{'off'}=$off || 'off';
+    $self->{$port}->{'uuid'}->{$uuid}->{'on'}=lc($on) || 'on';
+    $self->{$port}->{'uuid'}->{$uuid}->{'off'}=lc($off) || 'off';
     $self->{$port}->{'uuid'}->{$uuid}->{'statesub'}=$statesub || 'state';
     last;
  }
