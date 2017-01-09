@@ -542,6 +542,7 @@ sub get_set_state {
       &main::print_log ("[Alexa] Debug: get_set_state ($uuid $action $state) : name: $name  realname: $realname sub: $sub state: $state\n") if $main::Debug{'alexa'};
        if ( $realname =~ /^\$/ ) {
            my $object = ::get_object_by_name( $realname );
+		return qq["on":true,"bri":254] unless defined $object;
 		if ( $action eq 'get' ) {
 		     my $cstate = $object->$statesub;
 		     $cstate =~ s/\%//;
