@@ -651,7 +651,10 @@ sub new {
   	my $AlexaHttpPort = $AlexaGlobal->{http_sockets}->{$AlexaHttpName}->{port};
         $self->{'ports'}->{$AlexaHttpPort} = 0;
       }
-     $self->{'ports'}->{$::config_parms{'http_port'}} = 0;
+    if ( ($::config_parms{'alexaHttpPortCount'} eq 0) && ($::config_parms{'alexaHttpPort'}) ) {   
+      $self->{'ports'}->{$::config_parms{'alexaHttpPort'}} = 0; # This is to disable all MH proxy ports and use an external proxy port via Apache
+    } 
+    else { $self->{'ports'}->{$::config_parms{'http_port'}} = 0; } 
      if (-e $file) {
  	my $restoredhash = retrieve($file);
  	$self->{idmap} = $restoredhash->{idmap};
@@ -730,7 +733,7 @@ sub uuid {
 
  my $highid;
  my $missing;
- my $count = 1;
+ my $count = $::config_parms{'alexaUuidStart'} || 1;
    foreach my $object (keys %{$self->{idmap}->{objects}}) {
      my $currentid = $self->{idmap}->{objects}->{$object};
      $highid = $currentid if ( $currentid > $highid );
