@@ -1288,7 +1288,7 @@ sub new {
     #push( @{ $$self{states} }, 'on', 'off'); I'm not sure we should set the states here, since it's not a controlable item?
 
     $$self{master_object} = $object;
-    $devid = $devid . "-0-48-1";
+    $devid = $devid . "-0-48-1" unless ( $devid =~ m/-\d+-\d+/ );
     $$self{type} = "Binary Sensor";
     $$self{devid} = $devid;
     $object->register( $self, $devid, $options );
