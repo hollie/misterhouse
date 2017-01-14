@@ -9,14 +9,14 @@ use IO::Socket::Multicast;
 
 
 
-use constant SSDP_IP => "239.255.255.250";
-use constant SSDP_PORT => 1900;
-use constant CRLF => "\015\012";
+#use constant SSDP_IP => "239.255.255.250";
+#use constant SSDP_PORT => 1900;
+#use constant CRLF => "\015\012";
 
-use constant DEFAULT_HTTP_PORT => 8085;
-use constant DEFAULT_LEASE_TIME => 1800;
-use constant DEFAULT_NOTIFICATION_PORT => 50000;
-use constant DEFAULT_PORT_COUNT => 0;
+#use constant DEFAULT_HTTP_PORT => 80;
+#use constant DEFAULT_LEASE_TIME => 1800;
+#use constant DEFAULT_NOTIFICATION_PORT => 50000;
+#use constant DEFAULT_PORT_COUNT => 0;
 
 my ($LOCAL_IP, $LOCAL_MAC) = &DiscoverAddy unless ( (defined($::config_parms{'alexaMac'})) && (defined($::config_parms{'alexaHttpIp'})) );
 $LOCAL_IP = $::config_parms{'alexaHttpIp'} if defined($::config_parms{'alexaHttpIp'});
@@ -32,11 +32,12 @@ sub startup {
 
 sub open_port {
 
-       my $AlexaHttpPortCount = $::config_parms{'alexaHttpPortCount'} || DEFAULT_PORT_COUNT;
+       my $SSDP_PORT = '1900';
+       my $AlexaHttpPortCount = $::config_parms{'alexaHttpPortCount'} || '0';
        if ($AlexaHttpPortCount) { 
 	 $AlexaHttpPortCount = ($AlexaHttpPortCount - 1); 
          for my $count (0..$AlexaHttpPortCount) {
- 	   my $AlexaHttpPort = $::config_parms{'alexaHttpPort'} || DEFAULT_HTTP_PORT;
+ 	   my $AlexaHttpPort = $::config_parms{'alexaHttpPort'} || '80';
            $AlexaHttpPort = ($AlexaHttpPort + $count);
            my $AlexaHttpName = 'alexaServer'.$count;
            &http_ports($AlexaHttpName, $AlexaHttpPort);
@@ -49,7 +50,7 @@ sub open_port {
          $AlexaGlobal->{http_sender}->{'alexa_http_sender'} = new Socket_Item('alexa_http_sender', undef, $::config_parms{'http_server'}.':'.$::config_parms{'http_port'}, 'alexa_http_sender', 'tcp', 'raw');
         }
 
- 	my $notificationPort = $::config_parms{'alexa_notification_port'} || DEFAULT_NOTIFICATION_PORT;
+ 	my $notificationPort = $::config_parms{'alexa_notification_port'} || '50000';
 
 
 	my $ssdpNotificationName = 'alexaSsdpNotification';
@@ -76,19 +77,19 @@ sub open_port {
 	
 	my $ssdpListenName = 'alexaSsdpListen';
 	my $ssdpListenSocket = new IO::Socket::Multicast->new(
-						LocalPort => SSDP_PORT,
+						LocalPort => $SSDP_PORT,
 						Proto     => 'udp',
 						Reuse     => 1) 
-						|| &main::print_log( "\nError:  Could not start a udp alexa multicast listen server on ". SSDP_PORT .$@ ."\n\n" ) && return;
-	$ssdpListenSocket->mcast_add(SSDP_IP);
+						|| &main::print_log( "\nError:  Could not start a udp alexa multicast listen server on ". $SSDP_PORT .$@ ."\n\n" ) && return;
+	$ssdpListenSocket->mcast_add('239.255.255.250');
 	$::Socket_Ports{$ssdpListenName}{protocol} = 'udp';
 	$::Socket_Ports{$ssdpListenName}{datatype} = 'raw';
-	$::Socket_Ports{$ssdpListenName}{port}     = SSDP_PORT;
+	$::Socket_Ports{$ssdpListenName}{port}     = $SSDP_PORT;
 	$::Socket_Ports{$ssdpListenName}{sock}     = $ssdpListenSocket;
 	$::Socket_Ports{$ssdpListenName}{socka} 	  = $ssdpListenSocket;  # UDP ports are always "active"						   
 	$AlexaGlobal->{'ssdp_listen'} = new Socket_Item( undef, undef, $ssdpListenName );					   
 
-   	printf " - creating %-15s on %3s %5s %s\n", $ssdpListenName, 'udp', SSDP_PORT;
+   	printf " - creating %-15s on %3s %5s %s\n", $ssdpListenName, 'udp', $SSDP_PORT;
         &main::print_log ("Alexa open_port: p=$ssdpPort pn=$ssdpListenName s=" .$AlexaGlobal->{'ssdp_listen'} ."\n")
         if $main::Debug{alexa};
 
@@ -119,8 +120,10 @@ sub check_for_data {
   #foreach my $AlexaHttpName ( keys %{$AlexaGlobal->{http_sockets}} ) {
    my $AlexaHttpName = 'alexaServer0';
    my $alexa_listen = $AlexaGlobal->{http_sockets}{$AlexaHttpName};  
+
     if ( $alexa_listen && ( my $alexa_data = said $alexa_listen ) ) {
-          #&main::print_log( "[Alexa] Info: Data - $alexa_data" );
+	  my $peerip = $alexa_listen->peer;
+	  &main::print_log( "[Alexa] Debug: Peer: $peerip Data IN - $alexa_data" ) if $main::Debug{'alexa'} >= 5;
 	  $alexa_http_sender->start unless $alexa_http_sender->active;
 	  $alexa_http_sender->set($alexa_data);
 	
@@ -142,6 +145,8 @@ sub check_for_data {
 sub _sendHttpData {
   my ($alexa_listen, $alexa_http_sender) = @_;
       if ( $alexa_http_sender && ( my $alexa_sender_data = said $alexa_http_sender ) ) {
+	  my $peerip = $alexa_listen->peer;
+	  &main::print_log( "[Alexa] Debug: Peer: $peerip Data OUT - $alexa_sender_data" ) if $main::Debug{'alexa'} >= 5;
           $alexa_listen->set($alexa_sender_data);
      }
 }
@@ -167,11 +172,12 @@ sub _receiveSSDPEvent {
         }
 		
 		my $target;
-	        &main::print_log ("[Alexa] Debug: SSDP IN - $buf \n") if $main::Debug{'alexa'} >= 3;	
-		if ( $buf =~ /ST: urn:Belkin:device:\*\*.*/ ) { &_sendSearchResponse($peer) }
-		elsif ( $buf =~ /ST: urn:schemas-upnp-org:device:basic:1.*/ ) { &_sendSearchResponse($peer) }
-		elsif ( $buf =~ /ST: ssdp:all.*/ ) { &_sendSearchResponse($peer,'all') }
-                elsif ( $buf =~ /ST:ssdp:all.*/ ) { &_sendSearchResponse($peer,'all') }
+		$buf =~ s/ST: /ST:/g;
+		&main::print_log ("[Alexa] Debug: SSDP IN - $buf \n") if $main::Debug{'alexa'} >= 3;	
+		if ( $buf =~ /ST:urn:Belkin:device:\*\*.*/ ) { &_sendSearchResponse($peer) }
+		elsif ( $buf =~ /ST:urn:schemas-upnp-org:device:basic:1.*/ ) { &_sendSearchResponse($peer) }
+		elsif ( $buf =~ /ST:ssdp:all.*/ ) { &_sendSearchResponse($peer,'all') }
+                #elsif ( $buf =~ /ST:ssdp:all.*/ ) { &_sendSearchResponse($peer,'all') }
 }
 
 
@@ -186,7 +192,7 @@ sub _sendSearchResponse {
 
 
 	 foreach my $port ( (sort keys %{$self->{child}->{'ports'}}) ) {
- 	      next unless ( $self->{child}->{$port} );
+ 	      #next unless ( $self->{child}->{$port} );
 	      my $socket = handle $alexa_ssdp_send;
 	      my $output;
 	      if ($type eq 'all') { 
@@ -195,7 +201,6 @@ sub _sendSearchResponse {
 		$output .= 'CACHE-CONTROL: max-age=100'."\r\n";
 		$output .= 'EXT: '."\r\n";
 		$output .= 'LOCATION: http://'.$LOCAL_IP.':'.$port.'/description.xml' ."\r\n";
-		#$output .= 'LOCATION: http://'.$::config_parms{'alexaHttpIp'}.':'.$port.'/upnp/alexa-mh-bridge'.$count.'/setup.xml' ."\r\n";
 		$output .= 'SERVER: Linux/3.14.0 UPnP/1.0 IpBridge/1.15.0' ."\r\n";
 		$output .= 'hue-bridgeid: B827EBFFFE'.uc((substr $mac, -6))."\r\n";
 		$output .= 'ST: upnp:rootdevice' ."\r\n";
@@ -209,7 +214,6 @@ sub _sendSearchResponse {
 		$output .= 'CACHE-CONTROL: max-age=100'."\r\n";
 		$output .= 'EXT: '."\r\n";
 		$output .= 'LOCATION: http://'.$LOCAL_IP.':'.$port.'/description.xml' ."\r\n";
-		#$output .= 'LOCATION: http://'.$::config_parms{'alexaHttpIp'}.':'.$port.'/upnp/alexa-mh-bridge'.$count.'/setup.xml' ."\r\n";
 		$output .= 'SERVER: Linux/3.14.0 UPnP/1.0 IpBridge/1.15.0' ."\r\n";
 		$output .= 'hue-bridgeid: B827EBFFFE'.uc((substr $mac, -6))."\r\n";
 		$output .= 'ST: uuid:2f402f80-da50-11e1-9b23-'.lc($mac)."\r\n";
@@ -224,7 +228,6 @@ sub _sendSearchResponse {
 		$output .= 'CACHE-CONTROL: max-age=100'."\r\n";
 		$output .= 'EXT: '."\r\n";
 		$output .= 'LOCATION: http://'.$LOCAL_IP.':'.$port.'/description.xml' ."\r\n";
-		#$output .= 'LOCATION: http://'.$::config_parms{'alexaHttpIp'}.':'.$port.'/upnp/alexa-mh-bridge'.$count.'/setup.xml' ."\r\n";
 		$output .= 'SERVER: Linux/3.14.0 UPnP/1.0 IpBridge/1.15.0' ."\r\n";
 		$output .= 'hue-bridgeid: B827EBFFFE'.uc((substr $mac, -6))."\r\n";
 		$output .= 'ST: urn:schemas-upnp-org:device:basic:1'."\r\n";
@@ -242,7 +245,7 @@ sub process_http {
  unless ($::config_parms{'alexa_enable'}) { return 0 }
  my ( $uri, $request_type, $body, $socket, %Http ) = @_;
 
- unless ( ($uri =~ /^\/upnp\//) || ($uri =~ /^\/api/ ) || ($uri =~ /^\/description.xml$/) ) { return 0 } # Added for performance
+ unless ( ($uri =~ /^\/api/ ) || ($uri =~ /^\/description.xml$/) ) { return 0 } # Added for performance
 
  my $selfname = (&main::list_objects_by_type('AlexaBridge'))[0];
  my $self = ::get_object_by_name($selfname);
@@ -316,21 +319,25 @@ my $xmlmessage = qq[<?xml version="1.0"?>
 </root>];
 
  
-my $AlexaObjects;
- if ( $self->{child}->{$port} ) { 
+my ($AlexaObjects,$AlexaObjChunk);
+ if ( $::config_parms{'alexaEnableChunked'} ) {
+  $AlexaObjects = $self->{child}->{fulllist};
+ }
+ elsif ( $self->{child}->{$port} ) { 
   # use Data::Dumper;
    $AlexaObjects = $self->{child}->{$port};
+   $AlexaObjChunk = $self->{child}->{$port};
    #&main::print_log( Data::Dumper->Dumper($AlexaObjects) );
  }
  else {
    &main::print_log( "[Alexa] Error: No Matching object for port ( $port )" ); 
-   $output = "HTTP/1.0 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\n\r\n";
+   $output = "HTTP/1.1 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\nContent-Length: 2\r\nDate: ". time2str(time)."\r\n\r\n.."; 
    return $output;
  }
 
 &main::print_log ("[Alexa] Debug: Port: ( $port ) URI: ( $uri ) Body: ( $body ) Type: ( $request_type ) \n") if $main::Debug{'alexa'};
 
-        if ( ( ($uri =~ /^\/upnp\/.*\/setup.xml$/) || ($uri =~ /^\/description.xml$/) ) && (lc($request_type) eq "get") ) {
+        if ( ($uri =~ /^\/description.xml$/) && (lc($request_type) eq "get") ) {
                          my $output = "HTTP/1.1 200 OK\r\n";
                          $output .= "Server: MisterHouse\r\n";
                          $output .= 'Access-Control-Allow-Origin: *'."\r\n";
@@ -392,7 +399,7 @@ my $AlexaObjects;
                                 $output .= "\r\n";
                                 $output .= $content;
                          } else {
-                                 $output = "HTTP/1.0 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\n";
+                                 $output = "HTTP/1.1 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\nContent-Length: 2\r\nDate: ". time2str(time)."\r\n\r\n.."; 
 				 &main::print_log("[Alexa] Error: No Matching object for UUID ( $deviceID )") unless ($AlexaObjects->{'uuid'}->{$deviceID});
                                  &main::print_log("[Alexa] Error: Missing State from PUT for object with UUID ( $deviceID )") unless (defined($state));
 				 &main::print_log ("[Alexa] Debug: MH Response $output \n") if $main::Debug{'alexa'};
@@ -420,7 +427,7 @@ my $AlexaObjects;
                        	      }
 			      elsif ( $uris[3] eq 'lights' ) {
 				 &main::print_log("[Alexa] Error: No Matching object for UUID ( $uris[4] )");
-                                 $output = "HTTP/1.0 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\n";
+                                 $output = "HTTP/1.1 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\nContent-Length: 2\r\nDate: ". time2str(time)."\r\n\r\n.."; 
 				 &main::print_log ("[Alexa] Debug: MH Response $output \n") if $main::Debug{'alexa'};
                                  return $output;
 			      }
@@ -432,8 +439,9 @@ my $AlexaObjects;
 			}
 			elsif (defined $uris[3]) {
                        		if ( $uris[3] eq 'lights' ) {
-                         	  foreach my $uuid ( keys %{$AlexaObjects->{'uuid'}} ) {
-                                	$name = $AlexaObjects->{'uuid'}->{$uuid}->{'name'};
+				  $AlexaObjChunk = $self->_GetChunk($uris[3]) if ( $::config_parms{'alexaEnableChunked'} );				  
+                         	  foreach my $uuid ( keys %{$AlexaObjChunk->{'uuid'}} ) {
+                                	$name = $AlexaObjChunk->{'uuid'}->{$uuid}->{'name'};
                                		next unless $name;
 					my $state = &get_set_state($self, $AlexaObjects, $uuid,'get');
                                   	$statep1 = qq[{"];
@@ -451,8 +459,9 @@ my $AlexaObjects;
                 	           $statep2 = qq[":"];
                         	   $end = qq["}];
                         	   $delm = qq[","];
-                     		    foreach my $id ( keys %{$AlexaObjects->{'groups'}} ) {
-                                	$name = $AlexaObjects->{'groups'}->{$id}->{'name'};
+				   $AlexaObjChunk = $self->_GetChunk($uris[3]) if ( $::config_parms{'alexaEnableChunked'} );
+                     		    foreach my $id ( keys %{$AlexaObjChunk->{'groups'}} ) {
+                                	$name = $AlexaObjChunk->{'groups'}->{$id}->{'name'};
                                		 next unless $name;
                                 	 $statep1 = qq[{"$id": {"name": "$name","lights": \["1","2"\],"type": "LightGroup","action": {"on": true,"bri": 254,"hue": 10000,"sat": 254,"effect": "none","xy": \[0.5,0.5\],"ct": 250,"alert": "select","colormode": "ct"}}];
                                 	 $delim = qq[,];
@@ -465,8 +474,9 @@ my $AlexaObjects;
                        		 }
 			 }
                         elsif (defined $uris[2]) {
-                         foreach my $uuid ( keys %{$AlexaObjects->{'uuid'}} ) {
- 	                        $name = $AlexaObjects->{'uuid'}->{$uuid}->{'name'};
+			 $AlexaObjChunk = $self->_GetChunk('all') if ( $::config_parms{'alexaEnableChunked'} );
+                         foreach my $uuid ( keys %{$AlexaObjChunk->{'uuid'}} ) {
+ 	                        $name = $AlexaObjChunk->{'uuid'}->{$uuid}->{'name'};
 				next unless $name;
                                 my $state = &get_set_state($self, $AlexaObjects, $uuid,'get');
 	                        $statep1 = qq[{"lights":{"];
@@ -497,9 +507,9 @@ my $AlexaObjects;
                                 $output .= "\r\n";
                                 $output .= $content;
                         } else {
-                                 my $output = "HTTP/1.0 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\n";
+                                 $output = "HTTP/1.1 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\nContent-Length: 2\r\nDate: ". time2str(time)."\r\n\r\n..";
                         }
-			&main::print_log ("[Alexa] Debug: MH Response $debugcontent \n") if $main::Debug{'alexa'} >= 2;
+			&main::print_log ("[Alexa] Debug: MH Response $output.$debugcontent \n") if $main::Debug{'alexa'} >= 2;
                         return $output;
          }
          else { return 0 }
@@ -515,13 +525,30 @@ sub _Gzip {
  return $content;
 }
 
+
+sub _GetChunk {
+  my ( $self,$uri ) = @_;
+  use Time::HiRes qw(clock_gettime);
+  my $realtime = clock_gettime(CLOCK_REALTIME);
+  $self->{'conn'}->{$uri}->{time} = clock_gettime(CLOCK_REALTIME) unless $self->{'conn'}->{$uri}->{time};
+  $self->{'conn'}->{$uri}->{count} = 0 unless defined($self->{'conn'}->{$uri}->{count});
+
+  if ( ($realtime - $self->{'conn'}->{$uri}->{time}) <= .7 ) {
+      my $size = $self->{child}->{ChkCnt};
+      if ( $self->{'conn'}->{$uri}->{count} eq $size ) { $ChkCnt = $size; $self->{'conn'}->{$uri}->{count} = 0 }
+      elsif ( defined($self->{'conn'}->{$uri}->{count}) ) { $ChkCnt = $self->{'conn'}->{$uri}->{count}; $self->{'conn'}->{$uri}->{count}++ }
+      &main::print_log ("[Alexa] Debug: GetChunk - Time ( $realtime ) ChunkSize: ( $size ) Count: ( $ChkCnt ) CountHash: ( $self->{'conn'}->{$uri}->{count} )\n") if $main::Debug{'alexa'};
+  }
+  else { undef $self->{'conn'}->{$uri}->{time}; undef $self->{'conn'}->{$uri}->{count} }
+  my $AlexaObjChunk = $self->{child}->{$ChkCnt};
+ return $AlexaObjChunk;
+}
+
+
 sub DiscoverAddy {
    use Net::Address::Ethernet qw( :all );
    my @a = get_addresses(@_);
    foreach my $adapter (@a) {
-    # print $adapter->{sIP}."\n";
-    # print $adapter->{sEthernet}."\n";
-    # print "____________________\n";
      next unless ($adapter->{iActive} eq 1);
      next if ($adapter->{sEthernet} eq '');
      next if ($adapter->{sIP} =~ /127\.0\.0\.1/);
@@ -571,7 +598,6 @@ sub get_set_state {
 		  } 
 		elsif ( $action eq 'set' ) {
 		    my $end;
-		    #if ($object->$statesub =~ /\%/) { $end = '%' }
 		    if ( $object->can('state_level') && $state =~ /\d+/ ) { $end = '%'}
        		    &main::print_log ("[Alexa] Debug: setting object ( $realname ) to state ( $state$end )\n") if $main::Debug{'alexa'};
           	    $object->$sub($state.$end);
@@ -650,11 +676,20 @@ sub new {
      foreach my $AlexaHttpName ( keys %{$AlexaGlobal->{http_sockets}} ) {
   	my $AlexaHttpPort = $AlexaGlobal->{http_sockets}->{$AlexaHttpName}->{port};
         $self->{'ports'}->{$AlexaHttpPort} = 0;
+	&main::print_log ("[Alexa] Debug: Configured for port $AlexaHttpPort\n") if $main::Debug{'alexa'};
       }
     if ( ($::config_parms{'alexaHttpPortCount'} eq 0) && ($::config_parms{'alexaHttpPort'}) ) {   
       $self->{'ports'}->{$::config_parms{'alexaHttpPort'}} = 0; # This is to disable all MH proxy ports and use an external proxy port via Apache
+      &main::print_log ("[Alexa] Debug: Configured for a EXTERNAL proxy on port $::config_parms{'alexaHttpPort'}\n") if $main::Debug{'alexa'};
+    }
+    elsif ( ($::config_parms{'alexaNoDefaultHttp'}) && ($::config_parms{'alexaHttpPort'}) ) {
+       #this is to disable the default MH web port and only use a proxy port
+      &main::print_log ("[Alexa] Debug: Configured to disable port $::config_parms{'http_port'} and proxy port $::config_parms{'alexaHttpPort'}\n") if $main::Debug{'alexa'};
+    }
+    else { 
+	$self->{'ports'}->{$::config_parms{'http_port'}} = 0;
+	&main::print_log ("[Alexa] Debug: Configured for port $::config_parms{'http_port'}\n") if $main::Debug{'alexa'}; 
     } 
-    else { $self->{'ports'}->{$::config_parms{'http_port'}} = 0; } 
      if (-e $file) {
  	my $restoredhash = retrieve($file);
  	$self->{idmap} = $restoredhash->{idmap};
@@ -681,11 +716,34 @@ sub add {
       $fullname = $cleanname.'.'.$cleanname;
    }
   #use Data::Dumper;  
-  my $uuid = $self->uuid($fullname);
+ my $uuid = $self->uuid($fullname);
+ my $alexaObjectsPerGet = $::config_parms{'alexaObjectsPerGet'} || '60'; 
 
+ if ( $::config_parms{'alexaEnableChunked'} ) {
+    $self->{fulllist}->{'uuid'}->{$uuid}->{'realname'}=$realname;
+    $self->{fulllist}->{'uuid'}->{$uuid}->{'name'}=$name || $cleanname;
+    $self->{fulllist}->{'uuid'}->{$uuid}->{'sub'}=$sub || 'set';
+    $self->{fulllist}->{'uuid'}->{$uuid}->{'on'}=lc($on) || 'on';
+    $self->{fulllist}->{'uuid'}->{$uuid}->{'off'}=lc($off) || 'off';
+    $self->{fulllist}->{'uuid'}->{$uuid}->{'statesub'}=$statesub || 'state';
+    for my $count (0..5) {
+   	my $size = keys %{$self->{$count}->{'uuid'}};
+    	next if ($size eq $alexaObjectsPerGet); 
+	$self->{$count}->{'uuid'}->{$uuid}->{'realname'}=$realname;
+   	$self->{$count}->{'uuid'}->{$uuid}->{'name'}=$name || $cleanname;
+    	$self->{$count}->{'uuid'}->{$uuid}->{'sub'}=$sub || 'set';
+   	$self->{$count}->{'uuid'}->{$uuid}->{'on'}=lc($on) || 'on';
+   	$self->{$count}->{'uuid'}->{$uuid}->{'off'}=lc($off) || 'off';
+    	$self->{$count}->{'uuid'}->{$uuid}->{'statesub'}=$statesub || 'state';
+	$self->{ChkCnt} = $count;
+	&main::print_log ("[Alexa] Debug: UUID:( $uuid ) Count: ( $count ) \n") if $main::Debug{'alexa'};
+	last;
+    }
+ } 
+ else { 
  foreach my $port ( (sort keys %{$self->{'ports'}}) ) {
     my $size = keys %{$self->{$port}->{'uuid'}};
-    next if ($size eq 60);
+    next if ($size eq $alexaObjectsPerGet);
     $self->{$port}->{'uuid'}->{$uuid}->{'realname'}=$realname;
     $self->{$port}->{'uuid'}->{$uuid}->{'name'}=$name || $cleanname;
     $self->{$port}->{'uuid'}->{$uuid}->{'sub'}=$sub || 'set';
@@ -694,7 +752,7 @@ sub add {
     $self->{$port}->{'uuid'}->{$uuid}->{'statesub'}=$statesub || 'state';
     last;
  }
-
+}
    # $self->{8080}->{'uuid'}->{3}->{'realname'}=$realname;
    # $self->{8080}->{'uuid'}->{3}->{'name'}=$name || $cleanname;
    # $self->{8080}->{'uuid'}->{3}->{'sub'}=$sub || 'set';
