@@ -292,7 +292,7 @@ BEGIN {
             chomp $autover;
             close(VERSION);
         }
-        if ( lc $autover eq 'unstable' && -e '../.git') {
+        if ( lc $autover eq 'unstable' && -e '../.git' ) {
             my $build_date = `git show -s --format="%ci"`;
             $Version_date = $build_date
               if ( $build_date =~ /^\d\d\d\d-\d\d-\d\d/ );
@@ -1367,6 +1367,9 @@ sub setup {
     $config_parms{time_format_log} = 12 unless $config_parms{time_format_log};
 
     print "Done with setup\n\n";
+
+    &ia7_utilities::ia7_update_collection
+      ;    #Check if the collections need updating.
 
 }
 

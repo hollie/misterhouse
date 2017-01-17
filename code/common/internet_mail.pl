@@ -17,6 +17,9 @@
 #@ <p>The config param net_mail_scan_timeout_cycles prevents the process item
 #@ being killed if it didn't complete within a scan interval.
 
+#@ <p> The config param net_mail_command_disable globally disables scanning message
+#@ text looking for commands to execute
+
 #@ <p><a href="/email">Check here</a> after you have enabled and configured
 #@ this script to see your email messages.
 
@@ -268,8 +271,11 @@ sub scan_subjects {
     for my $line ( file_read $file) {
         my ( $from, $to, $subject_body ) =
           $line =~ /From: *(.+) To: *(.+) Subject: *(.*)/;
-        if ( my ( $command, $code ) =
-            $subject_body =~ /command:(.+?)\s+code:(\S+)/i )
+        if (
+            !( defined $config_parms{net_mail_command_disable} )
+            and ( my ( $command, $code ) =
+                $subject_body =~ /command:(.+?)\s+code:(\S+)/i )
+          )
         {
             my $results;
             if (    $config_parms{net_mail_command_code}
@@ -362,7 +368,8 @@ sub open_email_message_window {
         unless ( $w_window->{activated} ) {
             $w_window->{MW}{top_frame}->Label( -text => 'Re:' )
               ->pack(qw/-side left/);
-            $w_window->{re} = $w_window->{MW}{top_frame}->Entry()
+            $w_window->{re} =
+              $w_window->{MW}{top_frame}->Entry()
               ->pack(qw/-expand yes -fill both -side left/);
             $w_window->activate();
             $w_window->{re}->focus();
