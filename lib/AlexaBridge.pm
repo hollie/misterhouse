@@ -1,3 +1,38 @@
+#For Google Home and a reverse proxy (Apache/IIS/etc):
+#alexa_enable = 1
+#alexaHttpPortCount = 0   # disables all proxy ports 
+#alexaHttpPort = 80       # tells the module to send port 80 in the SSDP response and look for port 80 in the HTTP host header
+#alexaObjectsPerGet = 300 # Google Home can handle us returning all objects in a single response
+#
+#For Google Home using the builtin proxy port:
+#alexa_enable = 1
+#alexaHttpPortCount = 1   # Open 1 proxy port on port 80 (We default to port 80 so no need to define it)
+#alexaNoDefaultHttp = 1   # Disable responding on the default MH web port because Google Home will not use it any way.
+#alexaObjectsPerGet = 300 # Google Home can handle us returning all objects in a single response
+#
+#
+#For Echo (Chunked method):
+#alexa_enable = 1
+#alexaEnableChunked = 1
+#
+#
+#For Echo (Multi-port method):
+## This method should not be needed unless for some reason your Echo does not work with the Chunked method.
+#alexa_enable = 1
+#alexaHttpPortCount = 1  # Open 1 proxy port for a total of 2 ports including the default MH web port. We only support 1 for now unless I see a need for more.
+#alexaHttpPort=8085		# The proxy port will be on port 8085, this port should be higher than the MH web port so it is used first. 
+#
+#
+#
+#alexa_enable	    # Enable the module
+#alexaEnableChunked  # Enable chunked return method (For the Echo)
+#alexaHttpPortCount  # Amount of proxy ports to open
+#alexaNoDefaultHttp  # Disable responding on the default MH web port
+#alexaObjectsPerGet  # Amount of MH objects we return per GET from the Echo/GH
+#alexaHttpPort	    # First proxy port number
+#alexaMac	    	# This is used in the SSDP response, We discover it so it does not need to be defined uless something goes wrong
+#alexaHttpIp	    	# This is the IP of the local MH server, We discover it so it does not need to be defined uless something goes wrong
+
 package AlexaBridge;
 
 @AlexaBridge::ISA = ('Generic_Item');
@@ -129,6 +164,7 @@ sub check_for_data {
 	
     }
    &_sendHttpData($alexa_listen, $alexa_http_sender);
+   &close_stuck_sockets($alexa_listen, $AlexaHttpName); #This closes the oldest connection from a source IP if a second one is made. Fix for GH stuck connections
 
   # }
 
@@ -239,6 +275,31 @@ sub _sendSearchResponse {
 		$count++;
 	  }
 }
+
+
+sub close_stuck_sockets {
+my ($alexa_listen, $AlexaHttpName) = @_;
+   my $current_client_ip = $alexa_listen->peer;
+   $current_client_ip =~ s/:.*//;
+   my $current_client_port = $alexa_listen->peer;
+   $current_client_port =~ s/.*\://;
+   if ( (scalar @{ $::Socket_Ports{$AlexaHttpName}{clients} }) > 1 ) {
+      for my $ptr ( @{ $::Socket_Ports{$AlexaHttpName}{clients} } ) {
+           my ( $socka, $client_ip_address, $client_port, $data ) = @{$ptr};
+                   next if ( ($client_ip_address eq $current_client_ip) && ($client_port eq $current_client_port));
+                   if ($client_ip_address eq $current_client_ip) {
+			$AlexaGlobal->{http_client}->{$client_ip_address}->{$client_port}->{time} = time unless $AlexaGlobal->{http_client}->{$client_ip_address}->{$client_port}->{time};
+			if ( (time - $AlexaGlobal->{http_client}->{$client_ip_address}->{$client_port}->{time}) ge 60 ) { 
+                          close $socka if $socka;
+			  delete $AlexaGlobal->{http_client}->{$client_ip_address};
+                          &main::print_log( "[Alexa] Debug: Client count: ".(scalar @{ $::Socket_Ports{$AlexaHttpName}{clients} }) ." closing $client_ip_address : $client_port") if $main::Debug{'alexa'} >= 2;
+			}
+                   }
+          }
+
+    }
+}
+
 
 sub process_http {
 
@@ -505,11 +566,12 @@ my ($AlexaObjects,$AlexaObjChunk);
                                 $output .= "Content-Length: ". (length $content) ."\r\n";
                                 $output .= "Date: ". time2str(time)."\r\n";
                                 $output .= "\r\n";
+				$debugcontent = $output.$debugcontent if $main::Debug{'alexa'} >= 2;
                                 $output .= $content;
                         } else {
                                  $output = "HTTP/1.1 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\nContent-Length: 2\r\nDate: ". time2str(time)."\r\n\r\n..";
                         }
-			&main::print_log ("[Alexa] Debug: MH Response $output.$debugcontent \n") if $main::Debug{'alexa'} >= 2;
+			&main::print_log ("[Alexa] Debug: MH Response $debugcontent \n") if $main::Debug{'alexa'} >= 2;
                         return $output;
          }
          else { return 0 }
@@ -528,9 +590,12 @@ sub _Gzip {
 
 sub _GetChunk {
   my ( $self,$uri ) = @_;
-  use Time::HiRes qw(clock_gettime);
-  my $realtime = clock_gettime(CLOCK_REALTIME);
-  $self->{'conn'}->{$uri}->{time} = clock_gettime(CLOCK_REALTIME) unless $self->{'conn'}->{$uri}->{time};
+  #use Time::HiRes qw(clock_gettime);
+  use Time::HiRes qw(time);
+  #my $realtime = clock_gettime(CLOCK_REALTIME);
+  my $realtime = time;
+  #$self->{'conn'}->{$uri}->{time} = clock_gettime(CLOCK_REALTIME) unless $self->{'conn'}->{$uri}->{time};
+  $self->{'conn'}->{$uri}->{time} = time unless $self->{'conn'}->{$uri}->{time};
   $self->{'conn'}->{$uri}->{count} = 0 unless defined($self->{'conn'}->{$uri}->{count});
 
   if ( ($realtime - $self->{'conn'}->{$uri}->{time}) <= .7 ) {
@@ -597,10 +662,10 @@ sub get_set_state {
 		     return $return;	
 		  } 
 		elsif ( $action eq 'set' ) {
-		    my $end;
-		    if ( $object->can('state_level') && $state =~ /\d+/ ) { $end = '%'}
-       		    &main::print_log ("[Alexa] Debug: setting object ( $realname ) to state ( $state$end )\n") if $main::Debug{'alexa'};
-          	    $object->$sub($state.$end);
+		    if ( $object->can('state_level') && $state =~ /\d+/ ) { $state = $state.'%'}
+		    &main::print_log ("[Alexa] Debug: setting object ( $realname ) to state ( $state )\n") if $main::Debug{'alexa'};
+		    if ( lc($type) =~ /clipsal_cbus/ ) { $object->$sub($state,'Alexa') }
+		    else { $object->$sub($state) }
 		    return;
 		}
        }
@@ -617,15 +682,24 @@ sub get_set_state {
 	   
        }
        elsif ( ref($sub) eq 'CODE' ) {
-	   if ( $action eq 'set' ) {
-	   	&main::print_log ("[Alexa] Debug: running sub: $sub( $state ) \n") if $main::Debug{'alexa'};  
-             	&{$sub}($state);
-		return;
-	   }
-	   elsif ( $action eq 'get' ) {
-	     	return qq["on":true,"bri":254];
-	   }
+           if ( $action eq 'set' ) {
+                &main::print_log ("[Alexa] Debug: running sub: $sub( set, $state ) \n") if $main::Debug{'alexa'};
+                &{$sub}('set',$state);
+                return;
+           }
+           elsif ( $action eq 'get' ) {
+		my $debug = "[Alexa] Debug: get_state running sub: $sub( state, $state ) - ";
+                my $state = &{$sub}('state');
+                if  ( $state =~ /\d+/ ) {
+                      $state = ( &roundoff( ($state * 2.54) ) );
+		      my $return = qq["on":true,"bri":$state];
+		      &main::print_log ("$debug returning - $return\n" ) if $main::Debug{'alexa'};
+                      return $return;
+                 }
+                return qq["on":true,"bri":254];
+           }
        }
+
 }
 
 sub get_state { 
