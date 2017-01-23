@@ -60,10 +60,10 @@ sub derive_link_state {
     if ( $p_state =~ /^([+-])(\d+)/ ) {
         my $rel_state  = $1 . $2;
         my $curr_state = '100';
-        $curr_state = '0'   if ( $self->state eq 'off' );
-        $curr_state = $1    if $self->state =~ /(\d{1,3})/;
+        $curr_state = '0' if ( $self->state eq 'off' );
+        $curr_state = $1 if $self->state =~ /(\d{1,3})/;
         $p_state    = $curr_state + $rel_state;
-        $p_state    = 'on'  if ( $p_state > 0 );
+        $p_state    = 'on' if ( $p_state > 0 );
         $p_state    = 'off' if ( $p_state <= 0 );
     }
 
@@ -122,16 +122,18 @@ sub new {
     $$self{is_acknowledged} = 0;
     $$self{max_queue_time}  = $::config_parms{'Insteon_PLM_max_queue_time'};
     $$self{max_queue_time}  = 10
-      unless $$self{max_queue_time}
-      ;    # 10 seconds is max time allowed in command stack
+      unless
+      $$self{max_queue_time};  # 10 seconds is max time allowed in command stack
     @{ $$self{command_stack} } = ();
     $$self{_onlevel}          = undef;
     $$self{is_responder}      = 1;
     $$self{default_hop_count} = 0;
     $$self{timeout_factor}    = 1.0;
     $$self{is_deaf}           = 0;
-    $$self{logger_enable} 	  = $main::config_parms{object_logger_enable} if (defined $main::config_parms{object_logger_enable});
-    $$self{logger_mintime} 	  = 1;
+    $$self{logger_enable} = 1;    #default to on unless object_logger_enable = 0
+    $$self{logger_enable} = $main::config_parms{object_logger_enable}
+      if ( defined $main::config_parms{object_logger_enable} );
+    $$self{logger_mintime}    = 1;
     $$self{logger_updatetime} = 0;
     &Insteon::add($self);
     return $self;
@@ -1517,8 +1519,8 @@ sub new {
     $$self{is_acknowledged} = 0;
     $$self{max_queue_time}  = $::config_parms{'Insteon_PLM_max_queue_time'};
     $$self{max_queue_time}  = 10
-      unless $$self{max_queue_time}
-      ;    # 10 seconds is max time allowed in command stack
+      unless
+      $$self{max_queue_time};  # 10 seconds is max time allowed in command stack
     @{ $$self{command_stack} } = ();
     $$self{_onlevel}           = undef;
     $$self{retry_count_log}    = 0;
@@ -3409,8 +3411,7 @@ sub sync_links {
     # 2. Does a responder link exist on the PLM
     if (
         (
-            !$insteon_object->isa('Insteon_PLM')
-            && !$self->interface->has_link(
+            !$insteon_object->isa('Insteon_PLM') && !$self->interface->has_link(
                 $insteon_object, $self->group, 0, '00'
             )
         )
@@ -3451,7 +3452,7 @@ sub sync_links {
         $tgt_on_level = '100' unless defined $tgt_on_level;
         my $tgt_ramp_rate = $$self{members}{$member_ref}{ramp_rate};
         $tgt_ramp_rate = '0' unless defined $tgt_ramp_rate;
-        $tgt_on_level =~ s/(\d+)%?/$1/;
+        $tgt_on_level  =~ s/(\d+)%?/$1/;
         $tgt_ramp_rate =~ s/(\d)s?/$1/;
         my $resp_aldbkey =
           $member_root->_aldb->get_linkkey( $insteon_object->device_id,

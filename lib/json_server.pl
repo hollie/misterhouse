@@ -1,4 +1,3 @@
-
 =head1 B<json_server>
 
 =head2 SYNOPSIS
@@ -259,9 +258,16 @@ sub json_get {
     # RRD data routines
     if ( $path[0] eq 'rrd' || $path[0] eq '' ) {
         my $path = "$config_parms{data_dir}/rrd";
+	$path = "$config_parms{rrd_dir}"
+	 if ( defined $config_parms{rrd_dir} ); 
         $path = $json_data{'rrd_config'}->{'prefs'}->{'path'}
           if ( defined $json_data{'rrd_config'}->{'prefs'}->{'path'} );
-        my $rrd_file = "weather.rrd";
+        my $rrd_file = "weather_data.rrd";
+	$rrd_file = $config_parms{weather_data_rrd} 
+	if ( defined $config_parms{weather_data_rrd} );
+	if ( $rrd_file =~ m/.*\/(.*\.rrd)/ ) { 
+	     $rrd_file = $1;
+	    }
         $rrd_file = $json_data{'rrd_config'}->{'prefs'}->{'default_rrd'}
           if ( defined $json_data{'rrd_config'}->{'prefs'}->{'default_rrd'} );
         my $default_cf = "AVERAGE";
@@ -415,7 +421,7 @@ sub json_get {
         $data{'periods'} = $json_data{'rrd_config'}->{'periods'}
           if ( defined $json_data{'rrd_config'}->{'periods'} );
         $data{'last_update'} = $xml_info->{'last_update'} * 1000
-          if ( defined $xml_info->{'last_update'} );
+          if ( ref($xml_info) eq 'HASH' && defined $xml_info->{'last_update'} );
         $json_data{'rrd'} = \%data;
     }
 
