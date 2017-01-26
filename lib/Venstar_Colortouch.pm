@@ -1,7 +1,8 @@
 package Venstar_Colortouch;
 
-# v2.0.14
-# background > 2 for polling
+# v2.0.16
+
+#added in https support and don't retry commands that have a valid error reason code. Only retry if the device doesn't respond. (ie error 500)
 
 #check linesl829 l477 l493 l203
 #TODO - check that data is current before issuing command. within 2 poll periods.
@@ -17,7 +18,7 @@ use JSON::XS;
 use Data::Dumper;
 
 # Venstar::Colortouch Objects
-# $stat_upper         = new Venstar_Colortouch('192.168.0.100');
+# $stat_upper         = new Venstar_Colortouch('192.168.0.100',,"ssl,debug=1");
 #
 # $stat_upper_mode    = new Venstar_Colortouch_Mode($stat_upper);
 # $stat_upper_temp    = new Venstar_Colortouch_Temp($stat_upper);
@@ -74,7 +75,7 @@ $rest{control}  = "control";
 $rest{settings} = "settings";
 
 sub new {
-    my ( $class, $host, $poll, $debug ) = @_;
+    my ( $class, $host, $poll, $options ) = @_;
     my $self = {};
     bless $self, $class;
     $self->{data}                 = undef;
@@ -92,12 +93,15 @@ sub new {
     $self->{updating}      = 0;
     $self->{data}->{retry} = 0;
     $self->{host}          = $host;
+    $self->{method}        = "http";
+    $self->{method}        = "https" if ( $options =~ m/ssl/i );
     $self->{debug}         = 0;
-    $self->{debug}         = $debug if ($debug);
-    $self->{debug}         = 0 if ( $self->{debug} < 0 );
-    $self->{loglevel}      = 1;
-    $self->{status}        = "";
-    $self->{timeout}       = 15;                          #for http direct mode;
+    ( $self->{debug} ) = ( $options =~ /debug\=(\d+)/i )
+      if ( $options =~ m/debug\=/i );
+    $self->{debug}    = 0 if ( $self->{debug} < 0 );
+    $self->{loglevel} = 1;
+    $self->{status}   = "";
+    $self->{timeout}  = 15;                            #for http direct mode;
     $self->{background} =
       2;    #0 for direct, 1 for set commands, 2 for poll and set commands
     $self->{poll_data_timestamp}     = 0;
@@ -307,9 +311,9 @@ sub process_check {
 
         # catch crashes:
         if ($@) {
-            print "[Venstar Colortouch:"
-              . $self->{data}->{name}
-              . "] ERROR! JSON file parser crashed! $@\n";
+            main::print_log( "[Venstar Colortouch:"
+                  . $self->{data}->{name}
+                  . "] ERROR! JSON file parser crashed! $@\n" );
             $com_status = "offline";
         }
         else {
@@ -328,9 +332,10 @@ sub process_check {
                 $self->process_data();
             }
             else {
-                print "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] ERROR! Returned data not structured! Not processing...";
+                main::print_log( "[Venstar Colortouch:"
+                      . $self->{data}->{name}
+                      . "] ERROR! Returned data not structured! Not processing..."
+                );
                 $com_status = "offline";
             }
         }
@@ -388,9 +393,9 @@ sub process_check {
 
         # catch crashes:
         if ($@) {
-            print "[Venstar Colortouch:"
-              . $self->{data}->{name}
-              . "] ERROR! JSON file parser crashed! $@\n";
+            main::print_log( "[Venstar Colortouch:"
+                  . $self->{data}->{name}
+                  . "] ERROR! JSON file parser crashed! $@\n" );
             $com_status = "offline";
 
         }
@@ -403,30 +408,41 @@ sub process_check {
                     $self->poll;
                 }
                 else {
-                    print "[Venstar Colortouch:"
-                      . $self->{data}->{name}
-                      . "] WARNING Issued command was unsuccessful (success="
-                      . $data->{success}
-                      . ") , retrying...";
-                    if ( $self->{cmd_process_retry} >
-                        $self->{cmd_process_retry_limit} )
-                    {
-                        print "[Venstar Colortouch:"
-                          . $self->{data}->{name}
-                          . "] ERROR Issued command max retries reached. Abandoning command attempt...";
+                    if ( defined $data->{reason} ) {
+                        main::print_log( "[Venstar Colortouch:"
+                              . $self->{data}->{name}
+                              . "] WARNING Issued command was unsuccessful (reason="
+                              . $data->{reason}
+                              . ")" );
                         shift @{ $self->{cmd_queue} };
-                        $self->{cmd_process_retry} = 0;
-                        $com_status = "offline";
                     }
                     else {
-                        $self->{cmd_process_retry}++;
+                        main::print_log( "[Venstar Colortouch:"
+                              . $self->{data}->{name}
+                              . "] WARNING Issued command was unsuccessful with no returned reason , retrying..."
+                        );
+                        if ( $self->{cmd_process_retry} >
+                            $self->{cmd_process_retry_limit} )
+                        {
+                            main::print_log( "[Venstar Colortouch:"
+                                  . $self->{data}->{name}
+                                  . "] ERROR Issued command max retries reached. Abandoning command attempt..."
+                            );
+                            shift @{ $self->{cmd_queue} };
+                            $self->{cmd_process_retry} = 0;
+                            $com_status = "offline";
+                        }
+                        else {
+                            $self->{cmd_process_retry}++;
+                        }
                     }
                 }
             }
             else {
-                print "[Venstar Colortouch:"
-                  . $self->{data}->{name}
-                  . "] ERROR! Returned data not structured! Not processing...";
+                print_log( "[Venstar Colortouch:"
+                      . $self->{data}->{name}
+                      . "] ERROR! Returned data not structured! Not processing..."
+                );
                 $com_status = "offline";
             }
         }
@@ -441,7 +457,7 @@ sub process_check {
                   . "] Command Queue "
                   . $self->{cmd_process}->pid()
                   . " cmd=$cmd" )
-              if ( $self->{debug} );
+              if ( ( $self->{debug} ) or ( $self->{cmd_process_retry} ) );
         }
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{status} ne $com_status ) {
@@ -465,7 +481,11 @@ sub _get_JSON_data {
 
     if ( ( $self->{background} > 1 ) and ( lc $method ne "direct" ) ) {
 
-        my $cmd = 'get_url "http://' . $self->{host} . "/$rest{$mode}" . '"';
+        my $cmd =
+            'get_url "'
+          . $self->{method} . '://'
+          . $self->{host}
+          . "/$rest{$mode}" . '"';
         if ( $self->{poll_process}->done() ) {
             $self->{poll_process}->set($cmd);
             $self->{poll_process}->start();
@@ -524,7 +544,8 @@ sub _get_JSON_data {
             my $host = $self->{host};
 
             my $request =
-              HTTP::Request->new( POST => "http://$host/$rest{$mode}" );
+              HTTP::Request->new(
+                POST => $self->{method} . "://$host/$rest{$mode}" );
             $request->content_type("application/x-www-form-urlencoded");
 
             my $responseObj = $ua->request($request);
@@ -1002,8 +1023,8 @@ sub _push_JSON_data {
         $response = "success";
         my $cmd =
             'get_url -post "'
-          . $cmd
-          . '" "http://'
+          . $cmd . '" "'
+          . $self->{method} . '://'
           . $self->{host}
           . "/$rest{$type}" . '"';
         push @{ $self->{cmd_queue} }, "$cmd";
@@ -1045,16 +1066,18 @@ sub _push_JSON_data {
 
         my $host = $self->{host};
 
-        my $request = HTTP::Request->new( POST => "http://$host/$rest{$type}" );
+        my $request =
+          HTTP::Request->new(
+            POST => $self->{method} . "://$host/$rest{$type}" );
         $request->content_type("application/x-www-form-urlencoded");
         $request->content($cmd) if $cmd;
 
         my $responseObj = $ua->request($request);
         print $responseObj->content . "\n--------------------\n"
-          if $self->{debug};
+          if ( $self->{debug} );
 
         my $responseCode = $responseObj->code;
-        print 'Response code: ' . $responseCode . "\n" if $self->{debug};
+        print 'Response code: ' . $responseCode . "\n" if ( $self->{debug} );
         $isSuccessResponse = $responseCode < 400;
         if ( !$isSuccessResponse ) {
             main::print_log( "[Venstar Colortouch:"
@@ -2439,7 +2462,7 @@ sub set {
         main::print_log( "[Venstar Colortouch:"
               . $self->{data}->{name}
               . "] DB super::set, in master set, p_state=$p_state, p_setby=$p_setby"
-        );
+        ) if ( $self->{debug} );
 
         $self->SUPER::set($p_state);
         $self->start_timer if ( $self->{background} == 2 );
@@ -2449,7 +2472,7 @@ sub set {
         main::print_log( "[Venstar Colortouch:"
               . $self->{data}->{name}
               . "] DB set_mode, in master set, p_state=$p_state, p_setby=$p_setby"
-        );
+        ) if ( $self->{debug} );
 
         $self->set_mode($p_state);
     }
