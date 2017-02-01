@@ -33,6 +33,110 @@
 #alexaMac	    	# This is used in the SSDP response, We discover it so it does not need to be defined uless something goes wrong
 #alexaHttpIp	    	# This is the IP of the local MH server, We discover it so it does not need to be defined uless something goes wrong
 
+
+
+# mht example
+
+# ALEXABRIDGE_ADD, <actual object name>, <name you want Echo/GH to see>, <sub used to change the object state>, 
+# <State mapped to Echo/GH ON command>, <State mapped to Echo/GH OFF command>, <sub used to get the object state>
+#
+# ALEX_BRIDGE, Alexa
+# ALEXABRIDGE_ITEM, AlexaItems, Alexa
+
+# ALEXABRIDGE_ADD, AlexaItems, light1 light1, set, on, off, state  # these are the defaults 
+# ALEXABRIDGE_ADD, AlexaItems, light1 	# same as the line above 
+# ALEXABRIDGE_ADD, AlexaItems, light3, Test_Light_3   # if you want to change the name you say
+# ALEXABRIDGE_ADD, AlexaItems, testsub, Test_Sub, \&testsub  
+# ! will be replaced with the action ( on/off/<level number> ), so if you say "turn on test voice" then the module will run run_voice_cmd("test voice on")
+# ALEXABRIDGE_ADD, AlexaItems, test_voice_!, Test_Voice, run_voice_cmd
+
+
+
+
+
+# user code example:
+# $Alexa = new AlexaBridge();  # parent object
+# $AlexaItems = new AlexaBridge_Item($Alexa);  # child object
+#
+# $AlexaItems->add('$light1','light1','set','on','off','state');
+#
+#
+#
+# In order to allow the user to map pretty much anything in MH to a Echo/GH
+# command I created a mapping.
+#
+# $AlexaItems->add('<actual object name>','<name you want Echo/GH to
+# see>','<sub used to change the object state>','<State mapped to Echo/GH ON
+# command>','<State mapped to Echo/GH OFF command>','<sub used to get the
+# object state>');
+#
+#
+#
+# $AlexaItems->add('$light1','light1','set','on','off','state');  # This
+# is the same as $AlexaItems->add('$light1')
+#
+#
+# # To change the name of an object to a more natural name that you would
+# say to the Echo/GH:
+#
+# $AlexaItems->add('$GarageHall_light_front','Garage_Hall_light');
+#
+#
+# # To map a voice command, # is replaced by the Echo/GH command
+# (on/off/dim%).
+# # My actual voice command in MH is "set night mode on", so I configure it
+# like:
+#
+# $AlexaItems->add('set night mode !','NightMode','run_voice_cmd');   # If
+# I say "Alexa, Turn on Night Mode",  run_voice_cmd("set night mode on") is
+# run in MH.
+#
+#
+# # To configure a user code sub:
+# # The actual name (argument 1) can be anything.
+# # A code ref must be used.
+# # (on/off/dim%) are passed to the sub as an argument when its run.
+# $AlexaItems->add('testsub','Test_Sub',\&testsub);  # say "Alexa, Turn on
+# Test Sub",  &testsub("on") is run in MH.
+#
+#
+# # I have an Insteon thermostat and I configured it like:
+# $AlexaItems->add('$thermostat','Heat','heat_setpoint',undef,undef,'get_heat_sp');
+# # say "Alexa, Set Heat to 73%",  $thermostat->heat_setpoint("73") is run
+# in MH.
+# $AlexaItems->add('$thermostat','Cool','cool_setpoint',undef,undef,'get_cool_sp');
+
+
+# I have a script that I use to control my AV equipment and I can run it via
+# ssh, so I made a voice command in MH:
+#
+# $v_set_tv_mode = new Voice_Cmd("set tv mode [on,off,hbo,netflix,roku,directtv,xbmc,wii]");
+# $p_set_tv_mode = new Process_Item;
+# if (my $state = said $v_set_tv_mode) {
+#         set $p_set_tv_mode "/usr/bin/ssh wayne\@192.168.1.10 \"sudo /usr/local/HomeAVControl/bin/input_change $state\"";
+#         start $p_set_tv_mode;
+# }
+# 
+#
+#
+# I added the following to my MH user code:
+# $AlexaItems->add('set tv mode #','tv','run_voice_cmd'); # "Alexa, Turn on
+# tv" / "Alexa, Turn off tv" # turns all my AV stuff on or off
+# $AlexaItems->add('set tv mode #','DirectTv','run_voice_cmd','directtv','directtv');
+# #"Alexa, Turn on Direct Tv" # turns all my AV stuff on and set the input to
+# direct tv
+# $AlexaItems->add('set tv mode #','Hbo','run_voice_cmd','hbo','hbo');
+# #"Alexa, Turn on hbo" # turns all my AV stuff on and set the input to Roku
+# and launches the HBO Go app
+# $AlexaItems->add('set tv mode #','Netflix','run_voice_cmd','netflix','netflix');
+# #"Alexa, Turn on Netflix" # turns all my AV stuff on and set the input to
+# Roku and launches the Netflix app
+# $AlexaItems->add('set tv mode #','Roku','run_voice_cmd','roku','roku');
+# $AlexaItems->add('set tv mode #','xbmc','run_voice_cmd','xbmc','xbmc');
+# $AlexaItems->add('set tv mode #','wii','run_voice_cmd','wii','wii');
+
+
+
 package AlexaBridge;
 
 @AlexaBridge::ISA = ('Generic_Item');
@@ -157,14 +261,19 @@ sub check_for_data {
    my $alexa_listen = $AlexaGlobal->{http_sockets}{$AlexaHttpName};  
 
     if ( $alexa_listen && ( my $alexa_data = said $alexa_listen ) ) {
-	  my $peerip = $alexa_listen->peer;
-	  &main::print_log( "[Alexa] Debug: Peer: $peerip Data IN - $alexa_data" ) if $main::Debug{'alexa'} >= 5;
+          my $client_ip_address = $alexa_listen->peer;
+          &main::print_log( "[Alexa] Debug: Peer: $client_ip_address Sent Data" ) if $main::Debug{'alexa'} >= 2;
+	  &main::print_log( "[Alexa] Debug: Peer: $client_ip_address Data IN - $alexa_data" ) if $main::Debug{'alexa'} >= 5;
+	  $client_ip_address =~ s/:.*//;
+ 	  my $client_port = $alexa_listen->peer;
+	  $client_port =~ s/.*\://;
+	  $AlexaGlobal->{http_client}->{$client_ip_address}->{$client_port}->{time} = time;
 	  $alexa_http_sender->start unless $alexa_http_sender->active;
 	  $alexa_http_sender->set($alexa_data);
 	
     }
    &_sendHttpData($alexa_listen, $alexa_http_sender);
-   &close_stuck_sockets($alexa_listen, $AlexaHttpName); #This closes the oldest connection from a source IP if a second one is made. Fix for GH stuck connections
+   &close_stuck_sockets($alexa_listen, $AlexaHttpName) if ($alexa_listen); #This closes the oldest connection from a source IP if a second one is made. Fix for GH stuck connections
 
   # }
 
@@ -181,8 +290,13 @@ sub check_for_data {
 sub _sendHttpData {
   my ($alexa_listen, $alexa_http_sender) = @_;
       if ( $alexa_http_sender && ( my $alexa_sender_data = said $alexa_http_sender ) ) {
-	  my $peerip = $alexa_listen->peer;
-	  &main::print_log( "[Alexa] Debug: Peer: $peerip Data OUT - $alexa_sender_data" ) if $main::Debug{'alexa'} >= 5;
+          my $client_ip_address = $alexa_listen->peer;
+	  &main::print_log( "[Alexa] Debug: Peer: $client_ip_address Data OUT - $alexa_sender_data" ) if $main::Debug{'alexa'} >= 5;
+          $client_ip_address =~ s/:.*//;
+          my $client_port = $alexa_listen->peer;
+          $client_port =~ s/.*\://;
+
+	  delete $AlexaGlobal->{http_client}->{$client_ip_address}->{$client_port} if $AlexaGlobal->{http_client}->{$client_ip_address}->{$client_port};
           $alexa_listen->set($alexa_sender_data);
      }
 }
@@ -277,8 +391,9 @@ sub _sendSearchResponse {
 }
 
 
-sub close_stuck_sockets {
+sub close_stuck_sockets_old {
 my ($alexa_listen, $AlexaHttpName) = @_;
+   return unless $alexa_listen;
    my $current_client_ip = $alexa_listen->peer;
    $current_client_ip =~ s/:.*//;
    my $current_client_port = $alexa_listen->peer;
@@ -301,6 +416,29 @@ my ($alexa_listen, $AlexaHttpName) = @_;
 }
 
 
+sub close_stuck_sockets {
+my ($alexa_listen, $AlexaHttpName) = @_;
+   return unless $alexa_listen;
+   my $current_client_ip = $alexa_listen->peer;
+   $current_client_ip =~ s/:.*//;
+   my $current_client_port = $alexa_listen->peer;
+   $current_client_port =~ s/.*\://;
+      for my $ptr ( @{ $::Socket_Ports{$AlexaHttpName}{clients} } ) {
+           my ( $socka, $client_ip_address, $client_port, $data ) = @{$ptr};
+                   next if ( ($client_ip_address eq $current_client_ip) && ($client_port eq $current_client_port));
+		   next unless $AlexaGlobal->{http_client}->{$client_ip_address}->{$client_port}->{time}; 
+		   my $timediff = (time - $AlexaGlobal->{http_client}->{$client_ip_address}->{$client_port}->{time});
+                        if ( $timediff >= 20 ) {
+			  $output = "HTTP/1.1 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\nContent-Length: 2\r\nDate: ". time2str(time)."\r\n\r\n..";
+			  print $socka $output;
+                          delete $AlexaGlobal->{http_client}->{$client_ip_address}->{$client_port};
+                          &main::print_log( "[Alexa] Debug: Sending 404 to $client_ip_address:$client_port socket has been open for $timediff with no response") if $main::Debug{'alexa'} >= 2;
+                        }
+          }
+
+}
+
+
 sub process_http {
 
  unless ($::config_parms{'alexa_enable'}) { return 0 }
@@ -311,6 +449,13 @@ sub process_http {
  my $selfname = (&main::list_objects_by_type('AlexaBridge'))[0];
  my $self = ::get_object_by_name($selfname);
  unless ($self) { &main::print_log( "[Alexa] Error: No AlexaBridge parent object found" ); return 0 }
+
+ #my $client_ip_address = $::Socket_Ports{http}{client_ip_address};
+ #$client_ip_address =~ s/:.*//;
+ #my $client_port = $::Socket_Ports{http}{client_port};
+ #$client_port =~ s/.*\://;
+
+#&main::print_log( "[Alexa] Debug: Process_http - Client: $client_ip_address:$client_port has sent data") if $main::Debug{'alexa'} >= 2;
 
  use HTTP::Date qw(time2str);
  use IO::Compress::Gzip qw(gzip);
@@ -665,13 +810,14 @@ sub get_set_state {
 		    if ( $object->can('state_level') && $state =~ /\d+/ ) { $state = $state.'%'}
 		    &main::print_log ("[Alexa] Debug: setting object ( $realname ) to state ( $state )\n") if $main::Debug{'alexa'};
 		    if ( lc($type) =~ /clipsal_cbus/ ) { $object->$sub($state,'Alexa') }
-		    else { $object->$sub($state) }
+		    else { $object->$sub($state,'Alexa') }
 		    return;
 		}
        }
        elsif ( $sub =~ /^run_voice_cmd$/ ) {
 	     if ( $action eq 'set' ) {
                  $realname =~ s/#/$state/;
+		 $realname =~ s/!/$state/;
 	         &main::print_log ("[Alexa] Debug: running voice command: ( $realname )\n") if $main::Debug{'alexa'};
                  &main::run_voice_cmd("$realname");
 		 return;
