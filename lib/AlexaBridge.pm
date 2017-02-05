@@ -1,141 +1,253 @@
-#For Google Home and a reverse proxy (Apache/IIS/etc):
-#alexa_enable = 1
-#alexaHttpPortCount = 0   # disables all proxy ports 
-#alexaHttpPort = 80       # tells the module to send port 80 in the SSDP response and look for port 80 in the HTTP host header
-#alexaObjectsPerGet = 300 # Google Home can handle us returning all objects in a single response
-#
-#For Google Home using the builtin proxy port:
-#alexa_enable = 1
-#alexaHttpPortCount = 1   # Open 1 proxy port on port 80 (We default to port 80 so no need to define it)
-#alexaNoDefaultHttp = 1   # Disable responding on the default MH web port because Google Home will not use it any way.
-#alexaObjectsPerGet = 300 # Google Home can handle us returning all objects in a single response
-#
-#
-#For Echo (Chunked method):
-#alexa_enable = 1
-#alexaEnableChunked = 1
-#
-#
-#For Echo (Multi-port method):
-## This method should not be needed unless for some reason your Echo does not work with the Chunked method.
-#alexa_enable = 1
-#alexaHttpPortCount = 1  # Open 1 proxy port for a total of 2 ports including the default MH web port. We only support 1 for now unless I see a need for more.
-#alexaHttpPort=8085		# The proxy port will be on port 8085, this port should be higher than the MH web port so it is used first. 
-#
-#
-#
-#alexa_enable	    # Enable the module
-#alexaEnableChunked  # Enable chunked return method (For the Echo)
-#alexaHttpPortCount  # Amount of proxy ports to open
-#alexaNoDefaultHttp  # Disable responding on the default MH web port
-#alexaObjectsPerGet  # Amount of MH objects we return per GET from the Echo/GH
-#alexaHttpPort	    # First proxy port number
-#alexaMac	    	# This is used in the SSDP response, We discover it so it does not need to be defined uless something goes wrong
-#alexaHttpIp	    	# This is the IP of the local MH server, We discover it so it does not need to be defined uless something goes wrong
+=head1 B<AlexaBridge>
+
+=head2 DESCRIPTION
+
+Module emulates the HUE to allow for direct connectivity from the Amazon Echo, Google Home, and any other devices that support the HUE bridge. 
+
+=head2 CONFIGURATION
+
+
+The AlexaBridge_Item object holds the configured Misterhouse objects that are presented to the Amazon Echo or Google Home.
+See <AlexaBridge_Item>
+
+=head2 mh.private.ini Configuration
+
+Note: 
+You must use port 80 for Google Home, it is locked down to port 80.
+The user running MH must be root to run on port 80 or you have to give the MH user rights to use the port.
+
+For Google Home and a reverse proxy (Apache/IIS/etc):
+
+ alexa_enable = 1
+ alexaHttpPortCount = 0   # disables all proxy ports
+ alexaHttpPort = 80       # tells the module to send port 80 in the SSDP response and look for port 80 in the HTTP host header
+ alexaObjectsPerGet = 300 # Google Home can handle us returning all objects in a single response
+
+For Google Home using the builtin proxy port:
+
+ alexa_enable = 1
+ alexaHttpPortCount = 1   # Open 1 proxy port on port 80 (We default to port 80 so no need to define it)
+ alexaNoDefaultHttp = 1   # Disable responding on the default MH web port because Google Home will not use it any way.
+ alexaObjectsPerGet = 300 # Google Home can handle us returning all objects in a single response
+
+
+For Echo (Chunked method):
+
+ alexa_enable = 1
+ alexaEnableChunked = 1
+
+
+For Echo (Multi-port method):
+This method should not be needed unless for some reason your Echo does not work with the Chunked method.
+
+ alexa_enable = 1
+ alexaHttpPortCount = 1  # Open 1 proxy port for a total of 2 ports including the default MH web port. We only support 1 for now unless I see a need for more.
+ alexaHttpPort=8085             # The proxy port will be on port 8085, this port should be higher than the MH web port so it is used first.
+
+
+# All options
+
+ alexa_enable       # Enable the module
+ alexaEnableChunked  # Enable chunked return method (For the Echo)
+ alexaHttpPortCount  # Amount of proxy ports to open
+ alexaNoDefaultHttp  # Disable responding on the default MH web port
+ alexaObjectsPerGet  # Amount of MH objects we return per GET from the Echo/GH
+ alexaHttpPort      # First proxy port number
+ alexaMac               # This is used in the SSDP response, We discover it so it does not need to be defined unless something goes wrong
+ alexaHttpIp            # This is the IP of the local MH server, We discover it so it does not need to be defined unless something goes wrong
+
+=head2 Defining the Primary Object
+
+The object can be defined in the user code or in a .mht file.
+
+In mht:
+
+ ALEX_BRIDGE, Alexa
+
+
+Or in user code:
+
+ $Alexa = new AlexaBridge();  # parent object
+
+
+=head2 NOTES
+
+The most important part of the configuration is mapping the objects/code you want to present to the module (Echo/Google Home/Etc.).
+This allows the user to map pretty much anything in MH to a Echo/GH command.
+  
+ ALEXABRIDGE_ADD, <actual object name>, <name you want Echo/GH to see>, <sub used to change the object state>, 
+ <State mapped to Echo/GH ON command>, <State mapped to Echo/GH OFF command>, <sub used to get the object state>
+
+<actual object name> - This is the only required parameter. If you are
+good with the defaults, you can add an object like:
+# In MHT
+
+ ALEXABRIDGE_ADD, AlexaItems, light1 
+
+# or in user code
+
+ $AlexaItems->add('$light1');         
+
+<name you want Echo/GH to see> - This defaults to using the <actual
+object name> without the $. If want to change the name you say to the
+Echo/GH to control the object, you can define it here. You can also make
+aliases for objects so it's easier to remember.
+
+<sub used to change the object state> - This defaults to 'set' which
+works for most objects. You can also put a code reference or
+'run_voice_cmd'.
+
+<State mapped to Echo/GH on command> - If you want to set an object to
+something other than 'on' when you say 'on' to the Echo/GH, you can define
+it here. Defaults to 'on'.
+
+<State mapped to Echo/GH OFF command> - If you want to set an object to
+something other than 'off' when you say 'off' to the Echo/GH, you can
+define it here. Defaults to 'off'.
+
+<sub used to get the object state> - If your object uses a custom sub to
+get the state, define it here. Defaults to 'state' which works for most
+objects.
+
+
+The dim % is the actual number you say to Alexa, so if you say "Alexa,Set
+Light 1 to 75 %" then the dim % value will be 75.
+
+
+The module supports 300 devices which is the max supported by the Echo 
 
 
 
-# mht example
-
-# ALEXABRIDGE_ADD, <actual object name>, <name you want Echo/GH to see>, <sub used to change the object state>, 
-# <State mapped to Echo/GH ON command>, <State mapped to Echo/GH OFF command>, <sub used to get the object state>
-#
-# ALEX_BRIDGE, Alexa
-# ALEXABRIDGE_ITEM, AlexaItems, Alexa
-
-# ALEXABRIDGE_ADD, AlexaItems, light1 light1, set, on, off, state  # these are the defaults 
-# ALEXABRIDGE_ADD, AlexaItems, light1 	# same as the line above 
-# ALEXABRIDGE_ADD, AlexaItems, light3, Test_Light_3   # if you want to change the name you say
-# ALEXABRIDGE_ADD, AlexaItems, testsub, Test_Sub, \&testsub  
-# ! will be replaced with the action ( on/off/<level number> ), so if you say "turn on test voice" then the module will run run_voice_cmd("test voice on")
-# ALEXABRIDGE_ADD, AlexaItems, test_voice_!, Test_Voice, run_voice_cmd
+=head2 Complete Examples
 
 
+MHT examples:
+ 
+ ALEX_BRIDGE, Alexa
+ ALEXABRIDGE_ITEM, AlexaItems, Alexa
+ ALEXABRIDGE_ADD, AlexaItems, light1 light1, set, on, off, state  # these are the defaults
+ ALEXABRIDGE_ADD, AlexaItems, light1   # same as the line above
+ ALEXABRIDGE_ADD, AlexaItems, light3, Test_Light_3   # if you want to change the name you say
+ ALEXABRIDGE_ADD, AlexaItems, testsub, Test_Sub, \&testsub
+# "!" will be replaced with the action ( on/off/<level number> ), so if you say "turn on test voice" then the module will run run_voice_cmd("test voice on")
+ ALEXABRIDGE_ADD, AlexaItems, test_voice_!, Test_Voice, run_voice_cmd
+
+
+User code examples:
+
+ $Alexa = new AlexaBridge();  # parent object
+ $AlexaItems = new AlexaBridge_Item($Alexa);  # child object
+
+ $AlexaItems->add('$light1','light1','set','on','off','state');  # This is the same as $AlexaItems->add('$light1')
+
+
+ 
+To change the name of an object to a more natural name that you would say to the Echo/GH:
+
+ $AlexaItems->add('$GarageHall_light_front','Garage_Hall_light');
+
+
+To map a voice command, # is replaced by the Echo/GH command (on/off/dim%).
+My actual voice command in MH is "set night mode on", so I configure it like:
+
+ $AlexaItems->add('set night mode !','NightMode','run_voice_cmd');   
+
+ If I say "Alexa, Turn on Night Mode",  run_voice_cmd("set night mode on") is run in MH.
+
+
+To configure a user code sub:
+The actual name (argument 1) can be anything.
+A code ref must be used.
+When the sub is run 2 arguments are passed to it: Argument 1 is (state or set) Argument 2 is: (on/off/<dim % interger>).
+
+# Mht file
+
+ ALEXABRIDGE_ADD, AlexaItems, testsub, Test_Sub, &testsub
+
+# User Code
+
+ $AlexaItems->add('testsub','Test_Sub',\&testsub);  # say "Alexa, Turn on Test Sub",  &testsub('set','on') is run in MH.
+
+
+# I have an Insteon thermostat, the Insteon object name is $thermostat and I configured it like:
+
+ ALEXABRIDGE_ADD, AlexaItems, thermostat, Heat, heat_setpoint, on, off, get_heat_sp
+
+# say "Alexa, Set Heat to 73",  $thermostat->heat_setpoint("73") is run in MH.
+
+ ALEXABRIDGE_ADD, AlexaItems, thermostat, Cool, cool_setpoint, on, off, get_cool_sp
+
+ 
+In order to be able to say things like "Alexa, set thermostat up by 2", a sub must be created in user code
+When the above is said to the Echo, it first gets the current state, then subtracts or adds the amount that was said. 
+
+ sub temperature {
+   my ($type, $state) = @_;
+
+   # $type is state or set
+   # $state is the number, on, off, etc
+
+   # we are changing heat and cool so just return a static number, we just need the diff
+   # because the Echo will add or subtact the amount that was said to it.
+   # so if we say "set thermostat up by 2", 52 will be returned in $state   
+   if ($type eq 'state') { return 50; }
+
+   return '' unless ($state =~ /\d+/); Make sure we have a number
+   return '' if ($state > 65); # Dont allow changes over 15
+   return '' if ($state < 35); # Dont allow changes over 15
+   my ( $heatsp, $coolsp );
+   $state = ($state - 50); # subtract the amount we return above to get the actual amount to change.
+   $coolsp = ((state $thermo_setpoint_c) + $state);
+   $heatsp = ((state $thermo_setpoint_h) + $state);
+   # The Insteon thermostat has an issue when setting both heat and cool at the same time, so the timer is a work around.
+   $alexa_temp_timer = new Timer;
+   $thermostat->cool_setpoint($coolsp);
+   set $alexa_temp_timer '7', sub { $thermostat->heat_setpoint($heatsp) }
+ }
+
+# Map our new temperature sub in the .mht file so the Echo/Google Home can discover it 
+
+ ALEXABRIDGE_ADD, AlexaItems, thermostat, thermostat, &temperature
 
 
 
-# user code example:
-# $Alexa = new AlexaBridge();  # parent object
-# $AlexaItems = new AlexaBridge_Item($Alexa);  # child object
-#
-# $AlexaItems->add('$light1','light1','set','on','off','state');
-#
-#
-#
-# In order to allow the user to map pretty much anything in MH to a Echo/GH
-# command I created a mapping.
-#
-# $AlexaItems->add('<actual object name>','<name you want Echo/GH to
-# see>','<sub used to change the object state>','<State mapped to Echo/GH ON
-# command>','<State mapped to Echo/GH OFF command>','<sub used to get the
-# object state>');
-#
-#
-#
-# $AlexaItems->add('$light1','light1','set','on','off','state');  # This
-# is the same as $AlexaItems->add('$light1')
-#
-#
-# # To change the name of an object to a more natural name that you would
-# say to the Echo/GH:
-#
-# $AlexaItems->add('$GarageHall_light_front','Garage_Hall_light');
-#
-#
-# # To map a voice command, # is replaced by the Echo/GH command
-# (on/off/dim%).
-# # My actual voice command in MH is "set night mode on", so I configure it
-# like:
-#
-# $AlexaItems->add('set night mode !','NightMode','run_voice_cmd');   # If
-# I say "Alexa, Turn on Night Mode",  run_voice_cmd("set night mode on") is
-# run in MH.
-#
-#
-# # To configure a user code sub:
-# # The actual name (argument 1) can be anything.
-# # A code ref must be used.
-# # (on/off/dim%) are passed to the sub as an argument when its run.
-# $AlexaItems->add('testsub','Test_Sub',\&testsub);  # say "Alexa, Turn on
-# Test Sub",  &testsub("on") is run in MH.
-#
-#
-# # I have an Insteon thermostat and I configured it like:
-# $AlexaItems->add('$thermostat','Heat','heat_setpoint',undef,undef,'get_heat_sp');
-# # say "Alexa, Set Heat to 73%",  $thermostat->heat_setpoint("73") is run
-# in MH.
-# $AlexaItems->add('$thermostat','Cool','cool_setpoint',undef,undef,'get_cool_sp');
+I have a script that I use to control my AV equipment and I can run it via
+ssh, so I made a voice command in MH:
+
+ $v_set_tv_mode = new Voice_Cmd("set tv mode [on,off,hbo,netflix,roku,directtv,xbmc,wii]");
+ $p_set_tv_mode = new Process_Item;
+ if (my $state = said $v_set_tv_mode) {
+         set $p_set_tv_mode "/usr/bin/ssh wayne\@192.168.1.10 \"sudo /usr/local/HomeAVControl/bin/input_change $state\"";
+         start $p_set_tv_mode;
+ }
+
+I added the following to my .mht file:
+
+ ALEXABRIDGE_ADD, AlexaItems, set_tv_mode_!, DirectTv, run_voice_cmd, directtv, directtv
+ ALEXABRIDGE_ADD, AlexaItems, set_tv_mode_!, Roku, run_voice_cmd, roku, roku
+ ALEXABRIDGE_ADD, AlexaItems, set_tv_mode_!, xbmc, run_voice_cmd, xbmc, xbmc
+ ALEXABRIDGE_ADD, AlexaItems, set_tv_mode_!, wii, run_voice_cmd, wii, wii
+ ALEXABRIDGE_ADD, AlexaItems, set_tv_mode_!, Hbo, run_voice_cmd, hbo, hbo
+ ALEXABRIDGE_ADD, AlexaItems, set_tv_mode_!, Netflix, run_voice_cmd, netflix, netflix
 
 
-# I have a script that I use to control my AV equipment and I can run it via
-# ssh, so I made a voice command in MH:
-#
-# $v_set_tv_mode = new Voice_Cmd("set tv mode [on,off,hbo,netflix,roku,directtv,xbmc,wii]");
-# $p_set_tv_mode = new Process_Item;
-# if (my $state = said $v_set_tv_mode) {
-#         set $p_set_tv_mode "/usr/bin/ssh wayne\@192.168.1.10 \"sudo /usr/local/HomeAVControl/bin/input_change $state\"";
-#         start $p_set_tv_mode;
-# }
-# 
-#
-#
-# I added the following to my MH user code:
-# $AlexaItems->add('set tv mode #','tv','run_voice_cmd'); # "Alexa, Turn on
-# tv" / "Alexa, Turn off tv" # turns all my AV stuff on or off
-# $AlexaItems->add('set tv mode #','DirectTv','run_voice_cmd','directtv','directtv');
-# #"Alexa, Turn on Direct Tv" # turns all my AV stuff on and set the input to
-# direct tv
-# $AlexaItems->add('set tv mode #','Hbo','run_voice_cmd','hbo','hbo');
-# #"Alexa, Turn on hbo" # turns all my AV stuff on and set the input to Roku
-# and launches the HBO Go app
-# $AlexaItems->add('set tv mode #','Netflix','run_voice_cmd','netflix','netflix');
-# #"Alexa, Turn on Netflix" # turns all my AV stuff on and set the input to
-# Roku and launches the Netflix app
-# $AlexaItems->add('set tv mode #','Roku','run_voice_cmd','roku','roku');
-# $AlexaItems->add('set tv mode #','xbmc','run_voice_cmd','xbmc','xbmc');
-# $AlexaItems->add('set tv mode #','wii','run_voice_cmd','wii','wii');
 
+=head2 INHERITS
 
+L<Generic_Item>
+
+HTTP::Date
+IO::Compress::Gzip
+Time::HiRes
+Net::Address::Ethernet
+Storable
+Socket
+IO::Socket::INET
+IO::Socket::Multicast
+
+=over
+
+=cut
 
 package AlexaBridge;
 
@@ -146,16 +258,6 @@ use IO::Socket::INET;
 use Socket;
 use IO::Socket::Multicast;
 
-
-
-#use constant SSDP_IP => "239.255.255.250";
-#use constant SSDP_PORT => 1900;
-#use constant CRLF => "\015\012";
-
-#use constant DEFAULT_HTTP_PORT => 80;
-#use constant DEFAULT_LEASE_TIME => 1800;
-#use constant DEFAULT_NOTIFICATION_PORT => 50000;
-#use constant DEFAULT_PORT_COUNT => 0;
 
 my ($LOCAL_IP, $LOCAL_MAC) = &DiscoverAddy unless ( (defined($::config_parms{'alexaMac'})) && (defined($::config_parms{'alexaHttpIp'})) );
 $LOCAL_IP = $::config_parms{'alexaHttpIp'} if defined($::config_parms{'alexaHttpIp'});
@@ -450,12 +552,6 @@ sub process_http {
  my $self = ::get_object_by_name($selfname);
  unless ($self) { &main::print_log( "[Alexa] Error: No AlexaBridge parent object found" ); return 0 }
 
- #my $client_ip_address = $::Socket_Ports{http}{client_ip_address};
- #$client_ip_address =~ s/:.*//;
- #my $client_port = $::Socket_Ports{http}{client_port};
- #$client_port =~ s/.*\://;
-
-#&main::print_log( "[Alexa] Debug: Process_http - Client: $client_ip_address:$client_port has sent data") if $main::Debug{'alexa'} >= 2;
 
  use HTTP::Date qw(time2str);
  use IO::Compress::Gzip qw(gzip);
@@ -882,6 +978,55 @@ sub register {
    $self->{child} = $child;
 }
 
+=back
+
+=head1 B<AlexaBridge_Item>
+
+=head2 DESCRIPTION
+
+The AlexaBridge_Item object holds the configured Misterhouse objects that are presented to the Amazon Echo or Google Home
+
+=head2 mh.private.ini Configuration
+
+See L<AlexaBridge>
+
+=head2 Defining the Child object
+
+The object can be defined in the user code or in a .mht file.
+
+In mht:
+
+ALEXABRIDGE_ITEM, <object name>, <primary object name>
+
+ie:
+
+ ALEXABRIDGE_ITEM, AlexaItems, Alexa
+
+
+Or in user code:
+
+<object name> = new AlexaBridge_Item(<primary object name>);
+
+ie:
+
+ $AlexaItems = new AlexaBridge_Item($Alexa);
+
+
+=head2 NOTES
+
+See L<AlexaBridge> for complete examples
+
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
+
 package AlexaBridge_Item;
 
 @AlexaBridge_Item::ISA = ('Generic_Item');
@@ -916,6 +1061,17 @@ sub new {
      } else { $self->{idmap} }
    return $self;
 }
+
+=item C<add()>
+
+Presents misterhouse objects, subs, or voice coommands to the Echo, Google Home, or any thing that supports
+the HUE bridge. 
+
+add('<actual object name>','<name you want Echo/GH to see>',
+'<sub used to change the object state>','<State mapped to Echo/GH ON command>',
+'<State mapped to Echo/GH OFF command>','<sub used to get the object state>');
+
+=cut
 
 sub add {
   my ($self, $realname, $name, $sub, $on, $off, $statesub) = @_;
@@ -1049,4 +1205,25 @@ sub isDeleted {
 }
 
 1;
+
+=back
+
+=head2 NOTES
+
+=head2 AUTHOR
+
+Wayne Gatlin <wayne@razorcla.ws>
+
+=head2 SEE ALSO
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
 
