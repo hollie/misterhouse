@@ -7,7 +7,9 @@
 
 use strict;
 use Text::ParseWords;
+use AlexaBridge;
 require 'http_utils.pl';
+#require 'alexa_server.pl';
 
 #use Data::Dumper;
 #$main::Debug{http} = 4;
@@ -550,6 +552,10 @@ sub http_process_request {
         return;
     }
 
+     if ( my $alexa_response = &AlexaBridge::process_http($get_req, $req_typ, $HTTP_BODY, $socket, %Http) ) {
+          print $socket $alexa_response unless $alexa_response eq ' ';
+          return;
+        }
     # See if the request was for a file
     if ( &test_for_file( $socket, $get_req, $get_arg ) ) {
     }
