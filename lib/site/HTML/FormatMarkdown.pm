@@ -1,30 +1,24 @@
-package HTML::FormatText;
+package HTML::FormatMarkdown;
 
-# ABSTRACT: Format HTML as plaintext
+# ABSTRACT: Format HTML as Markdown
 
 
 use 5.006_001;
 use strict;
 use warnings;
 
-# We now use Smart::Comments in place of the old DEBUG framework.
-# this should be commented out in release versions....
-##use Smart::Comments;
-
-use base 'HTML::Formatter';
+use parent 'HTML::Formatter';
 
 our $VERSION = '2.14'; # VERSION
 our $AUTHORITY = 'cpan:NIGELM'; # AUTHORITY
 
-# ------------------------------------------------------------------------
 sub default_values {
     (   shift->SUPER::default_values(),
-        lm => 3,     # left margin
-        rm => 72,    # right margin (actually, maximum text width)
+        lm => 0,
+        rm => 70,
     );
 }
 
-# ------------------------------------------------------------------------
 sub configure {
     my ( $self, $hash ) = @_;
 
@@ -54,80 +48,177 @@ sub configure {
     $self;
 }
 
-# ------------------------------------------------------------------------
 sub begin {
     my $self = shift;
 
-    $self->SUPER::begin;
+    $self->SUPER::begin();
+    $self->{maxpos} = 0;
     $self->{curpos} = 0;    # current output position.
-    $self->{maxpos} = 0;    # highest value of $pos (used by header underliner)
-    $self->{hspace} = 0;    # horizontal space pending flag
 }
 
-# ------------------------------------------------------------------------
 sub end {
     shift->collect("\n");
 }
 
-# ------------------------------------------------------------------------
 sub header_start {
     my ( $self, $level ) = @_;
 
-    $self->vspace( 1 + ( 6 - $level ) * 0.4 );
-    $self->{maxpos} = 0;
+    $self->vspace(1);
+    $self->out( '#' x $level . ' ' );
     1;
 }
 
-# ------------------------------------------------------------------------
 sub header_end {
     my ( $self, $level ) = @_;
 
-    if ( $level <= 2 ) {
-        my $line;
-        $line = '=' if $level == 1;
-        $line = '-' if $level == 2;
-        $self->vspace(0);
-        $self->out( $line x ( $self->{maxpos} - $self->{lm} ) );
-    }
+    $self->out( ' ' . '#' x $level );
     $self->vspace(1);
-    1;
 }
 
-# ------------------------------------------------------------------------
 sub bullet {
     my $self = shift;
 
     $self->SUPER::bullet( $_[0] . ' ' );
+
 }
 
-# ------------------------------------------------------------------------
 sub hr_start {
     my $self = shift;
 
     $self->vspace(1);
-    $self->out( '-' x ( $self->{rm} - $self->{lm} ) );
+    $self->out('- - -');
     $self->vspace(1);
 }
 
-# ------------------------------------------------------------------------
+sub img_start {
+    my ( $self, $node ) = @_;
+
+    my $alt = $node->attr('alt');
+    my $src = $node->attr('src');
+
+    $self->out("![$alt]($src)");
+}
+
+sub a_start {
+    my ( $self, $node ) = @_;
+
+    # ignore named anchors
+    if ( $node->attr('name') ) {
+        1;
+    }
+    elsif ( $node->attr('href') =~ /^#/ ) {
+        1;
+    }
+    else {
+        $self->out("[");
+    }
+
+}
+
+sub a_end {
+    my ( $self, $node ) = @_;
+
+    if ( $node->attr('name') ) {
+        return;
+    }
+    elsif ( my $href = $node->attr('href') ) {
+        if ( $href =~ /^#/ ) {
+            return;
+        }
+        $self->out("]($href)");
+    }
+}
+
+sub b_start { shift->out("**") }
+sub b_end   { shift->out("**") }
+sub i_start { shift->out("*") }
+sub i_end   { shift->out("*") }
+
+sub tt_start {
+    my $self = shift;
+
+    if ( $self->{pre} ) {
+        return 1;
+    }
+    else {
+        $self->out("`");
+    }
+}
+
+sub tt_end {
+    my $self = shift;
+
+    if ( $self->{pre} ) {
+        return;
+    }
+    else {
+        $self->out("`");
+    }
+}
+
+sub blockquote_start {
+    my $self = shift;
+
+    $self->{blockquote}++;
+    $self->vspace(1);
+    $self->adjust_rm(-4);
+
+    1;
+}
+
+sub blockquote_end {
+    my $self = shift;
+
+    $self->{blockquote}--;
+    $self->vspace(1);
+    $self->adjust_rm(+4);
+
+}
+
+sub blockquote_out {
+    my ( $self, $text ) = @_;
+
+    $self->nl;
+    $self->goto_lm;
+
+    my $line = "> ";
+    $self->{curpos} += 2;
+
+    foreach my $word ( split /\s/, $text ) {
+        $line .= "$word ";
+        if ( ( $self->{curpos} + length($line) ) > $self->{rm} ) {
+            $self->collect($line);
+            $self->nl;
+            $self->goto_lm;
+            $line = "> ";
+            $self->{curpos} += 2;
+        }
+    }
+
+    $self->collect($line);
+    $self->nl;
+
+}
+
+# Quoted from HTML::FormatText
 sub pre_out {
     my $self = shift;
 
-    # should really handle bold/italic etc.
     if ( defined $self->{vspace} ) {
         if ( $self->{out} ) {
             $self->nl() while $self->{vspace}-- >= 0;
             $self->{vspace} = undef;
         }
     }
+
     my $indent = ' ' x $self->{lm};
-    my $pre    = shift;
+    $indent .= ' ' x 4;
+    my $pre = shift;
     $pre =~ s/^/$indent/mg;
     $self->collect($pre);
     $self->{out}++;
 }
 
-# ------------------------------------------------------------------------
 sub out {
     my $self = shift;
     my $text = shift;
@@ -170,7 +261,6 @@ sub out {
     $self->{'out'}++;
 }
 
-# ------------------------------------------------------------------------
 sub goto_lm {
     my $self = shift;
 
@@ -182,7 +272,6 @@ sub goto_lm {
     }
 }
 
-# ------------------------------------------------------------------------
 sub nl {
     my $self = shift;
 
@@ -191,7 +280,6 @@ sub nl {
     $self->collect("\n");
 }
 
-# ------------------------------------------------------------------------
 sub adjust_lm {
     my $self = shift;
 
@@ -199,11 +287,9 @@ sub adjust_lm {
     $self->goto_lm;
 }
 
-# ------------------------------------------------------------------------
 sub adjust_rm {
     shift->{rm} += $_[0];
 }
-
 
 1;
 
@@ -211,14 +297,14 @@ __END__
 
 =pod
 
+=for stopwords CPAN Markdown homepage
+
 =for test_synopsis 1;
 __END__
 
-=for stopwords latin1 leftmargin lm plaintext rightmargin rm CPAN homepage
-
 =head1 NAME
 
-HTML::FormatText - Format HTML as plaintext
+HTML::FormatMarkdown - Format HTML as Markdown
 
 =head1 VERSION
 
@@ -226,48 +312,23 @@ version 2.14
 
 =head1 SYNOPSIS
 
-    use HTML::TreeBuilder;
-    $tree = HTML::TreeBuilder->new->parse_file("test.html");
+    use HTML::FormatMarkdown;
 
-    use HTML::FormatText;
-    $formatter = HTML::FormatText->new(leftmargin => 0, rightmargin => 50);
-    print $formatter->format($tree);
+    my $string = HTML::FormatMarkdown->format_file(
+        'test.html'
+    );
 
-or, more simply:
-
-    use HTML::FormatText;
-    my $string = HTML::FormatText->format_file(
-        'test.html',
-        leftmargin => 0, rightmargin => 50
-        );
+    open my $fh, ">", "test.md" or die "$!\n";
+    print $fh $string;
+    close $fh;
 
 =head1 DESCRIPTION
 
-HTML::FormatText is a formatter that outputs plain latin1 text. All character
-attributes (bold/italic/underline) are ignored. Formatting of HTML tables and
-forms is not implemented.
+HTML::FormatMarkdown is a formatter that outputs Markdown.
 
-HTML::FormatText is built on L<HTML::Formatter> and documentation for that
+HTML::FormatMarkdown is built on L<HTML::Formatter> and documentation for that
 module applies to this - especially L<HTML::Formatter/new>,
 L<HTML::Formatter/format_file> and L<HTML::Formatter/format_string>.
-
-You might specify the following parameters when constructing the formatter:
-
-=over 4
-
-=item I<leftmargin> (alias I<lm>)
-
-The column of the left margin. The default is 3.
-
-=item I<rightmargin> (alias I<rm>)
-
-The column of the right margin. The default is 72.
-
-=back
-
-=head1 SEE ALSO
-
-L<HTML::Formatter>
 
 =head1 INSTALLATION
 

@@ -88,7 +88,6 @@ use Socket_Item;
 
 package Owfs_Item;
 use strict;
-use experimental 'smartmatch';
 
 @Owfs_Item::ISA = ('Generic_Item');
 
@@ -505,11 +504,11 @@ sub _dump {
     &main::print_log("id: \t\t$$self{id}")       if $main::Debug{owfs};
     &main::print_log("type: \t\t$$self{type}")   if $main::Debug{owfs};
     for my $key ( sort keys %$self ) {
-        next                                      if ( $key eq "root" );
-        next                                      if ( $key eq "path" );
-        next                                      if ( $key eq "family" );
-        next                                      if ( $key eq "id" );
-        next                                      if ( $key eq "type" );
+        next if ( $key eq "root" );
+        next if ( $key eq "path" );
+        next if ( $key eq "family" );
+        next if ( $key eq "id" );
+        next if ( $key eq "type" );
         &main::print_log("$key:\t\t$$self{$key}") if $main::Debug{owfs};
     }
     &main::print_log("\n") if $main::Debug{owfs};
@@ -1127,12 +1126,12 @@ sub convert_value {
     my $location = $self->{location};
     my $channel  = $self->{channel};
     my $value    = $state;
-    $value = 1 if ( $state ~~ $ON );
-    $value = 0 if ( $state ~~ $OFF );
-    $value = 1 if ( $state ~~ main::ON );
-    $value = 0 if ( $state ~~ main::OFF );
-    $value = 1 if ( $state ~~ 'yes' );
-    $value = 0 if ( $state ~~ 'no' );
+    $value = 1 if ( lc $state eq lc $ON );       #( $state ~~ $ON );
+    $value = 0 if ( lc $state eq lc $OFF );      #( $state ~~ $OFF );
+    $value = 1 if ( lc $state eq main::ON );     #( $state ~~ main::ON );
+    $value = 0 if ( lc $state eq main::OFF );    #( $state ~~ main::OFF );
+    $value = 1 if ( lc $state eq 'yes' );        #( $state ~~ 'yes' );
+    $value = 0 if ( lc $state eq 'no' );         #( $state ~~ 'no' );
     if ( ( $value ne 1 ) && ( $value ne 0 ) ) {
         my $debug = $self->{debug} || $main::Debug{owfs};
         &main::print_log(
@@ -1533,6 +1532,15 @@ sub new {
     return $self;
 }
 
+package Owfs_DS2405_pio;
+use strict;
+
+our $ON    = 'on';
+our $OFF   = 'off';
+our $PIO   = 0;
+our $SENSE = 1;
+our $LATCH = 2;
+
 @Owfs_DS2405_pio::ISA = ('Owfs_Switch');
 
 sub new {
@@ -1541,6 +1549,15 @@ sub new {
     bless $self, $class;
     return $self;
 }
+
+package Owfs_DS2405_sense;
+use strict;
+
+our $ON    = 'on';
+our $OFF   = 'off';
+our $PIO   = 0;
+our $SENSE = 1;
+our $LATCH = 2;
 
 @Owfs_DS2405_sense::ISA = ('Owfs_Switch');
 
