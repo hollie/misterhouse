@@ -6,7 +6,7 @@
 In user code:
 	
     	use raZberry;
-    	$razberry_controller  	= new raZberry('10.0.1.1');
+    	$razberry_controller  	= new raZberry('10.0.1.1',10);
     	$razberry_comm			= new raZberry_comm($razberry_controller);
     	$room_fan      			= new raZberry_dimmer($razberry_controller,'2','force_update');
     	$room_blind	  			= new raZberry_blind($razberry_controller,'3','digital');
@@ -54,16 +54,56 @@ the razberry is polled every 5 seconds.
 Update for local control use the 'niffler' plug in. This saves forcing a local device
 status every poll.
 
-=head3 SENSOR STATE CHILD OBJECT
+=head3 CHILD OBJECTS
 
 Each device class will need a child object, as the controller object is just a gateway
-to the hardware. Currently the only working device is a razberry_dimmer, and has only
-been tested with the leviton fan
+to the hardware. 
 
 There is also a communication object to allow for alerting and monitoring of the
 razberry controller.
 
-=head2 NOTES
+=head2 RaZberry v2 AUTHENTICATION
+
+Works and tested with v2.0.0. It _should_ also work with v1.7.4.
+For later versions, Z_Way has introduced authentication. raZberry v2.0 supports this via two methods:
+
+1: Enable anonymous authentication:
+- Create a room named devices, and assign all ZWay devices to that room
+- Create a user named anonymous with role anonymous
+- Edit user anonymous and allow access to room devices
+
+2: Create a new user and give it the admin role. Then in the controller definition, provide the username and password:
+$razberry_controller  	= new raZberry('10.0.1.1',10,"method=poll,username=user,password=pwd");
+
+
+=head2 v2 PUSH or POLL
+Using the HTTPGet automation module, this will 'push' a status change to MH rather than the constant polling. Use the following
+URL for updating: http://mh:port/SUB;razberry_push(%DEVICE%,%VALUE%)
+
+If the razberry or mh get out of sync, and $controller->poll can be issued to get the latest states.
+
+Only 1 razberry controller can be the push source, due to only a single controller can be linked to the web service.
+
+=head2 MH.INI CONFIG PARAMS
+
+raZberry_timeout
+raZberry_poll_seconds
+
+
+=head2 BUGS
+
+
+=head2 OTHER
+http calls can cause pauses. There are a few possible options around this;
+- push output to a file and then read the file. This is generally how other modules work.
+
+
+=head2 CHANGELOG
+v2.0
+- added in authentication method for razberry 2.1.2+ support
+- supports a push method when used in conjunction with the HTTPGet automation module
+- displays some controller information at startup
+
 v1.6
 - added in digital blinds, battery item (like a remote)
 
@@ -82,29 +122,6 @@ v1.2
 - added a check to see if the device is 'dead'. If dead it will attempt a ping for
   X attempts a Y seconds apart.
 
-OTHER
-
-Works and tested with v2.0.0. It _should_ also work with v1.7.4.
-For later versions, Z_Way has introduced authentication. raZberry will support that at a later time
-To get a 2.0+ version to work, anonymous authentication has to be enabled:
-- Create a room named devices, and assign all ZWay devices to that room
-- Create a user named anonymous with role anonymous
-- Edit user anonymous and allow access to room devices
-
-
-http calls can cause pauses. There are a few possible options around this;
-- push output to a file and then read the file. This is generally how other modules work.
-
-config parmas
-
-raZberry_timeout
-raZberry_poll_seconds
-
-=head2 BUGS
-
-
-
-=head2 METHODS
 
 =over
 
@@ -119,9 +136,10 @@ use warnings;
 
 use LWP::UserAgent;
 use HTTP::Request::Common qw(POST);
+use HTTP::Cookies;
 use JSON qw(decode_json);
 
-use Data::Dumper;
+#use Data::Dumper;
 
 @raZberry::ISA = ('Generic_Item');
 
@@ -136,6 +154,7 @@ $zway_system{id}{2}    = "2";
 
 my $zway_vdev   = "ZWayVDev_zway";
 my $zway_suffix = "-0-38";
+our $push_obj = "";
 
 our %rest;
 $rest{api}           = "";
@@ -157,7 +176,7 @@ $rest{usercode}      = "devices";
 $rest{controller}    = "Data/*";
 
 sub new {
-    my ( $class, $addr, $poll, $method ) = @_;
+    my ( $class, $addr, $poll, $options ) = @_;
     my $self = {};
     bless $self, $class;
     $self->{data}                   = undef;
@@ -174,7 +193,9 @@ sub new {
     $self->{host}  = $host;
     $self->{port}  = 8083;
     $self->{port}  = $port if ($port);
-    $self->{debug} = 1;
+    $self->{debug} = 0;
+    ( $self->{debug} ) = ( $options =~ /debug=(\s+)/i )
+      if ( ( defined $options ) and ( $options =~ m/debug=/i ) );
     $self->{debug} = $main::Debug{raZberry}
       if ( defined $main::Debug{raZberry} );
     $self->{lastupdate} = undef;
@@ -183,8 +204,18 @@ sub new {
       if ( defined $main::config_parms{raZberry_timeout} );
     $self->{status}          = "";
     $self->{controller_data} = ();
-    $self->{push}            = 0;
+    &main::print_log("[raZberry]: options are $options")
+      if ( ( $self->{debug} ) and ( defined $options ) );
+
+    my $method = "poll";
+    ($method) = ( $options =~ /method=(\s+)/ ) if ( defined $options );
+    $self->{push} = 0;
     $self->{push} = 1 if ( ( defined $method ) and ( lc $method eq 'push' ) );
+    $self->{username} = "";
+    ( $self->{username} ) = ( $options =~ /user\=([a-zA-Z0-9]+)/i )
+      if ( ( defined $options ) and ( $options =~ m/user\=/i ) );
+    ( $self->{password} ) = ( $options =~ /password\=([a-zA-Z0-9]+)/i )
+      if ( ( defined $options ) and ( $options =~ m/password\=/i ) );
 
     if ( ( $push_obj eq "" ) and ( $self->{push} ) ) {
         &main::print_log("[raZberry]: Push method selected");
@@ -192,7 +223,7 @@ sub new {
             "[raZberry]: The HTTPGet Automation module needs to be installed for push to work"
         );
         &main::print_log(
-            '[raZberry]: URL is http://mh:port/SUB?razberry_push(%DEVICE%,%LEVEL%).'
+            '[raZberry]: URL is http://mh:port/SUB;razberry_push(%DEVICE%,%VALUE%)'
         );
         $push_obj = \%{$self};
     }
@@ -201,8 +232,12 @@ sub new {
             "[raZberry]: Push method already in use on other object")
           if ($push_obj);
         &main::print_log("[raZberry]: Poll method selected");
+        $self->{push} = 0;
     }
-
+    if ( $self->{username} ) {
+        $self->{cookie_jar} = HTTP::Cookies->new( {} );
+        $self->login;
+    }
     $self->get_controllerdata;
     $self->{timer} = new Timer;
     unless ( $self->{push} ) {
@@ -213,6 +248,56 @@ sub new {
     }
     &main::print_log("[raZberry]: Object initialized.");
     return $self;
+}
+
+sub login {
+    my ($self) = @_;
+
+    my $ua = new LWP::UserAgent( keep_alive => 1 );
+    $ua->timeout( $self->{timeout} );
+    $ua->cookie_jar( $self->{cookie_jar} );
+    $ua->default_header( 'Accept'       => "application/json" );
+    $ua->default_header( 'Content-Type' => "application/json" );
+
+    my $host = $self->{host};
+    my $port = $self->{port};
+    &main::print_log("[raZberry]: Attempting to authenticate to host $host");
+    &main::print_log( "[raZberry]: with user:"
+          . $self->{username}
+          . " password: "
+          . $self->{password} )
+      if ( $self->{debug} );
+
+    my $request =
+      HTTP::Request->new(
+        POST => "http://$host:$port/ZAutomation/api/v1/login" );
+    my $json =
+        '{"form": true, "login": "'
+      . $self->{username}
+      . '", "password": "'
+      . $self->{password}
+      . '", "keepme": false, "default_ui": 1}';
+    $request->content($json);
+    my $responseObj = $ua->request($request);
+    $self->{cookie_jar}->extract_cookies($responseObj);
+    $self->{cookie_jar}->save;
+
+    #print Dumper $self->{cookie_jar};
+    #print $json . "\n";
+    #print $responseObj->content . "\n--------------------\n";
+    if ( $responseObj->code > 400 ) {
+        $self->{login_success} = 0;
+        &main::print_log(
+            "[raZberry]: Error attempting to authenticate to $host");
+        &main::print_log( "[raZberry]: Code is "
+              . $responseObj->code
+              . " and content is "
+              . $responseObj->content );
+    }
+    else {
+        &main::print_log("[raZberry]: Successful authentication.");
+        $self->{login_success} = 1;
+    }
 }
 
 sub get_controllerdata {
@@ -459,6 +544,7 @@ sub _get_JSON_data {
         $self->{updating} = 1;
         my $ua = new LWP::UserAgent( keep_alive => 1 );
         $ua->timeout( $self->{timeout} );
+        $ua->cookie_jar( $self->{cookie_jar} ) if ( $self->{username} );
 
         my $host   = $self->{host};
         my $port   = $self->{port};
@@ -628,15 +714,17 @@ sub register {
 }
 
 sub main::razberry_push {
-    my ( $id, $level ) = @_;
+    my ( $dev, $level ) = @_;
+
+    my ($id) = ( split /_/, $dev )[-1];    #always just get the last element
 
     &main::print_log(
-        "[raZberry]: HTTP Push update called for device id: $id and level $level"
+        "[raZberry]: HTTP Push update received for device: $dev, id: $id and level: $level"
     );
 
     #my $obj = &main::get_object_by_name($object);
     unless ( defined $push_obj ) {
-        &main::print_log("[raZberry]: Error, Push controller not defined!");
+        &main::print_log("[raZberry]: ERROR, Push controller not defined!");
     }
     else {
 
@@ -651,7 +739,7 @@ sub main::razberry_push {
         }
         else {
             &main::print_log(
-                "[raZberry]: WARNING, $id child object not found!");
+                "[raZberry]: ERROR, child object id $id not found!");
         }
     }
 }
