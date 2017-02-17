@@ -1,5 +1,5 @@
 
-=head1 B<raZberry> v2.0
+=head1 B<raZberry> v2.0b2
 
 =head2 SYNOPSIS
 
@@ -232,6 +232,7 @@ sub new {
             "[raZberry]: Push method already in use on other object")
           if ($push_obj);
         &main::print_log("[raZberry]: Poll method selected");
+        $push_obj = \%{$self};
         $self->{push} = 0;
     }
     if ( $self->{username} ) {
