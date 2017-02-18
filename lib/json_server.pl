@@ -1,3 +1,4 @@
+
 =head1 B<json_server>
 
 =head2 SYNOPSIS
@@ -229,8 +230,8 @@ sub json_get {
                 print_log
                   "Json_Server.pl: Master value = $json_data{'ia7_config'}->{prefs}->{$key}";
                 $json_data{'ia7_config'}->{prefs}->{$key} =
-                  $json_data{'ia7_config'}->{clients}
-                  ->{ $Http{Client_address} }->{$key};
+                  $json_data{'ia7_config'}->{clients}->{ $Http{Client_address} }
+                  ->{$key};
             }
             delete $json_data{'ia7_config'}->{clients};
         }
@@ -258,16 +259,17 @@ sub json_get {
     # RRD data routines
     if ( $path[0] eq 'rrd' || $path[0] eq '' ) {
         my $path = "$config_parms{data_dir}/rrd";
-	$path = "$config_parms{rrd_dir}"
-	 if ( defined $config_parms{rrd_dir} ); 
+        $path = "$config_parms{rrd_dir}"
+          if (  ( defined $config_parms{rrd_dir} )
+            and ( $config_parms{rrd_dir} ) );
         $path = $json_data{'rrd_config'}->{'prefs'}->{'path'}
           if ( defined $json_data{'rrd_config'}->{'prefs'}->{'path'} );
         my $rrd_file = "weather_data.rrd";
-	$rrd_file = $config_parms{weather_data_rrd} 
-	if ( defined $config_parms{weather_data_rrd} );
-	if ( $rrd_file =~ m/.*\/(.*\.rrd)/ ) { 
-	     $rrd_file = $1;
-	    }
+        $rrd_file = $config_parms{weather_data_rrd}
+          if ( defined $config_parms{weather_data_rrd} );
+        if ( $rrd_file =~ m/.*\/(.*\.rrd)/ ) {
+            $rrd_file = $1;
+        }
         $rrd_file = $json_data{'rrd_config'}->{'prefs'}->{'default_rrd'}
           if ( defined $json_data{'rrd_config'}->{'prefs'}->{'default_rrd'} );
         my $default_cf = "AVERAGE";
@@ -287,12 +289,16 @@ sub json_get {
         my @round    = ();
         my @type     = ();
         my $celsius  = 0;
+        my $kph      = 0;
         my $arg_time = 0;
         my $xml_info;
         $arg_time = int( $args{time}[0] ) if ( defined int( $args{time}[0] ) );
         $celsius = 1 if ( $config_parms{weather_uom_temp} eq 'C' );
         $celsius = 1
           if ( lc $json_data{'rrd_config'}->{'prefs'}->{'uom'} eq "celsius" );
+
+        $kph = 1 if ( $config_parms{weather_uom_wind} eq 'kph' );
+
         my %data;
         my $end = "now";
 
@@ -311,8 +317,8 @@ sub json_get {
                         ->{'group'} )
                     {
                         foreach my $group ( split /,/,
-                            $json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'}
-                          )
+                            $json_data{'rrd_config'}->{'ds'}->{$dsg}
+                            ->{'group'} )
                         {
                             push @{ $args{ds} }, $dsg
                               if ( lc $group ) eq ( lc $args{group}[0] );
@@ -334,13 +340,13 @@ sub json_get {
                 $dataset[$index]->{'label'} =
                   $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'}
                   if (
-                    defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'}
-                  );
+                    defined $json_data{'rrd_config'}->{'ds'}->{$ds}
+                    ->{'label'} );
                 $dataset[$index]->{'color'} =
                   $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'}
                   if (
-                    defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'}
-                  );
+                    defined $json_data{'rrd_config'}->{'ds'}->{$ds}
+                    ->{'color'} );
                 if (
                     lc $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} eq
                     "bar" )
@@ -363,8 +369,8 @@ sub json_get {
                 $round[$index] =
                   $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'}
                   if (
-                    defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'}
-                  );
+                    defined $json_data{'rrd_config'}->{'ds'}->{$ds}
+                    ->{'round'} );
                 $type[$index] =
                   $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'}
                   if (
@@ -379,40 +385,45 @@ sub json_get {
             $xml_info = $rrd->info if ( $default_timestamp eq "true" );
             my @lines = split /\n/, $xml;
 
-            foreach my $line (@lines) {
+            my ($step) = $xml =~
+              /\<step\>(\d+)\<\/step\>/;   #this is the width for any bar charts
 
-                #print "line=$line\n";
-                my ($step) = $line =~ /\<step\>(\d+)\<\/step\>/
-                  ;    #this is the width for any bar charts
-                if ($step) {
-                    for my $i ( 0 .. $#dataset ) {
-                        $dataset[$i]->{'bars'}->{'barWidth'} =
-                          int($step) * 1000
-                          if ( defined $dataset[$i]->{'bars'} );
-                    }
+            if ($step) {
+                for my $i ( 0 .. $#dataset ) {
+                    $dataset[$i]->{'bars'}->{'barWidth'} = int($step) * 1000
+                      if ( defined $dataset[$i]->{'bars'} );
                 }
-                my ($time) = $line =~ /\<row\>\<t\>(\d*)\<\/t\>/;
-                $time = $time * 1000;    #javascript is in milliseconds
-                next if ( $arg_time > int($time) );    #only return new items
+            }
+
+            my $time_index = 0;
+            my ($db_start) = $xml =~ /\<start\>(\d+)\<\/start\>/;
+
+            foreach my $line (@lines) {
                 my (@values) = $line =~ /\<v\>(-?[e.+-\d]*|NaN)\<\/v\>/g;
-                if ($time) {
-                    my $index = 0;
-                    foreach my $value (@values) {
-                        my $value1 = sprintf( "%.10g", $value );
-                        $value1 = ( $value1 - 32 ) * ( 5 / 9 )
-                          if (  ($celsius)
-                            and ( lc $type[$index] eq "temperature" ) );
-                        $value1 =
-                          sprintf( "%." . $round[$index] . "f", $value1 )
-                          if ( defined $round[$index] );
-                        $value1 =~ s/\.0*$//
-                          unless ( $value1 == 0 )
-                          ;    #remove unneccessary trailing decimals
-                        $value1 = "null" if ( lc $value1 eq "nan" );
-                        push @{ $dataset[$index]->{data} }, [ $time, $value1 ];
-                        $index++;
-                    }
+
+                next if ( !@values );    #skip header lines
+
+                my $index = 0;
+                foreach my $value (@values) {
+                    my $value1 = sprintf( "%.10g", $value );
+                    $value1 = ( $value1 - 32 ) * ( 5 / 9 )
+                      if (  ($celsius)
+                        and ( lc $type[$index] eq "temperature" ) );
+                    $value1 = sprintf( "%.2f", $value1 * 1.60934 )
+                      if ( ($kph) and ( lc $type[$index] eq "speed" ) );
+                    $value1 = sprintf( "%." . $round[$index] . "f", $value1 )
+                      if ( defined $round[$index] );
+                    $value1 =~ s/\.0*$//
+                      unless ( $value1 == 0 )
+                      ;    #remove unneccessary trailing decimals
+                    $value1 = "null" if ( lc $value1 eq "nan" );
+                    push @{ $dataset[$index]->{data} },
+                      [
+                        ( $db_start + ( $time_index * $step ) ) * 1000, $value1
+                      ];
+                    $index++;
                 }
+                $time_index++;
             }
         }
         $data{'data'}    = \@dataset;
@@ -652,7 +663,8 @@ sub json_get {
 
         for my $i ( 0 .. $#json_notifications ) {
             my $n_time = int( $json_notifications[$i]{time} );
-            my $x      = $args{time}[0]
+            my $x =
+              $args{time}[0]
               ; #Weird, does nothing, but notifications doesn't work if removed...
             if (    ($n_time)
                 and
@@ -1513,4 +1525,3 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =cut
-
