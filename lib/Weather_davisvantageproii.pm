@@ -321,24 +321,24 @@ sub process {
     $$wptr{RainTotal}     = $rain_storm;
     $$wptr{RainRate}      = $rain_rate;
 
-    if ( $::Debug{weather} ) {
-        foreach my $key qw(
-          TempIndoor
-          TempOutdoor
-          DewIndoor
-          DewOutdoor
-          WindAvgSpeed
-          WindAvgDir
-          Barom
-          BaromSea
-          HumidIndoor
-          HumidOutdoor
-          RainTotal
-          RainRate
-          ) {
-            &::print_log( "davisvantageproii: $key " . $$wptr{$key} );
-          };
-    }
+    #if ( $::Debug{weather} ) {
+    #    foreach my $key qw(
+    #      TempIndoor
+    #      TempOutdoor
+    #      DewIndoor
+    #      DewOutdoor
+    #      WindAvgSpeed
+    #      WindAvgDir
+    #      Barom
+    #      BaromSea
+    #      HumidIndoor
+    #      HumidOutdoor
+    #      RainTotal
+    #      RainRate
+    #      ) {
+    #        &::print_log( "davisvantageproii: $key " . $$wptr{$key} );
+    #      };
+    #}
 
     if ( $::Debug{weather} ) {
         &::print_log("uv: $uv");
@@ -461,21 +461,21 @@ value should be between 20 inches and 32.5 inches in Vantage
 Pro and between 20 inches and 32.5 inches in both Vantatge Pro
 Vantage Pro2. Values outside these ranges will not be logged.
 Inside Temperature 9 2 The value is sent as 10th of a degree in F. For example, 795 is
-returned for 79.5°F.
+returned for 79.5Â°F.
 Inside Humidity 11 1 This is the relative humidity in %, such as 50 is returned for 50%.
 Outside Temperature 12 2 The value is sent as 10th of a degree in F. For example, 795 is
-returned for 79.5°F.
+returned for 79.5Â°F.
 Wind Speed 14 1 It is a byte unsigned value in mph. If the wind speed is dashed
 because it lost synchronization with the radio or due to some
 other reason, the wind speed is forced to be 0.
 10 Min Avg Wind Speed 15 1 It is a byte unsigned value in mph.
-Wind Direction 16 2 It is a two byte unsigned value from 1 to 360 degrees. (0° is no
-wind data, 90° is East, 180° is South, 270° is West and 360° is
+Wind Direction 16 2 It is a two byte unsigned value from 1 to 360 degrees. (0Â° is no
+wind data, 90Â° is East, 180Â° is South, 270Â° is West and 360Â° is
 north)
 Extra Temperatures 18 7 This field supports seven extra temperature stations.
 Each byte is one extra temperature value in whole degrees F with
-an offset of 90 degrees. For example, a value of 0 = -90°F ; a
-value of 100 = 10°F ; and a value of 169 = 79°F.
+an offset of 90 degrees. For example, a value of 0 = -90Â°F ; a
+value of 100 = 10Â°F ; and a value of 169 = 79Â°F.
 Soil Temperatures 25 4 This field supports four soil temperature sensors, in the same
 format as the Extra Temperature field above
 Leaf Temperatures 29 4 This field supports four leaf temperature sensors, in the same
@@ -579,8 +579,8 @@ AND the daily UV dose has been manually cleared.
 Outside Humidity Alarms 74 1 Currently active outside humidity alarms.
 Low Humidity alarm 2
 High Humidity alarm 3
-Extra Temp/Hum Alarms 75 - 81 7 Each byte contains four alarm bits (0 – 3) for a single extra
-Temp/Hum station. Bits (4 – 7) are not used and reserved for
+Extra Temp/Hum Alarms 75 - 81 7 Each byte contains four alarm bits (0 Â– 3) for a single extra
+Temp/Hum station. Bits (4 Â– 7) are not used and reserved for
 future use.
 Use the temperature and humidity sensor numbers, as
 described in Section XIII.4 to locate which byte contains the
