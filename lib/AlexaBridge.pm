@@ -908,7 +908,8 @@ sub _GetChunk {
 sub DiscoverAddy {
    eval "use Net::Address::Ethernet qw( :all )";
     if ($@) { 
-        print "\n [Alexa] Error: Net::Address::Ethernet is not installed... Please install it or define the local IP and mac in alexaHttpIp/alexaMac\n\n";
+        print "\n [Alexa] Error: Net::Address::Ethernet is not installed... Please install it or define the local IP and mac in alexaHttpIp/alexaMac\n\n"
+	if ($::config_parms{'alexa_enable'});
         return ('127.0.0.1','9aa645cc40aa'); # return localhost as we dont know the real address 
      } 
    my @a = get_addresses(@_);
