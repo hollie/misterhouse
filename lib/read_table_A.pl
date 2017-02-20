@@ -1616,6 +1616,34 @@ sub read_table_A {
     }
 
     #-------------- End AD2 Objects -------------
+    #-------------- Alexa Objects -----------------
+    elsif ( $type eq "ALEX_BRIDGE" ) {
+        require 'AlexaBridge.pm';
+        ( $name ) = @item_info;
+        $object = "AlexaBridge('$other')";
+    }
+    elsif ( $type eq "ALEXABRIDGE_ITEM" ) {
+        require 'AlexaBridge.pm';
+        my ( $parent );
+        ( $name, $parent ) = @item_info;
+        $object = "AlexaBridge_Item(\$$parent)";
+    }
+    elsif ( $type eq "ALEXABRIDGE_ADD" ) {
+        my ( $parent, $realname, $name, $sub, $on, $off, $statesub, @other ) = @item_info;
+	if ($sub =~ /^&/) { $sub =~ s/&/\\&/ } 
+	if ($sub =~ /^\\\\&/) { $sub =~ s/\\// }
+	if ($sub =~ /run_voice_cmd/) { $realname =~ s/_/ /g }
+        unless ( ($sub =~ /run_voice_cmd/) || ($sub =~ /&/) ) { $realname = "\$$realname" } 
+	unless ( $sub =~ /&/ ) { $sub = "'".$sub."'" }  
+        my $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ( !$packages{AlexaBridge}++ ) { # first time for this object type?
+            $code .= "use AlexaBridge;\n";
+        }
+        $code .= sprintf "\$%-35s -> add('$realname','$name',$sub,'$on','$off','$statesub',$other);\n", $parent;
+        $object = '';
+    }
+    #-------------- End Alexa Objects ----------------
+
     elsif ( $type =~ /PLCBUS_.*/ ) {
         require PLCBUS;
         ( $address, $name, $grouplist, @other ) = @item_info;
