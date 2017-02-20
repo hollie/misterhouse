@@ -1,5 +1,5 @@
 
-=head1 B<raZberry> v2.0b3
+=head1 B<raZberry> v2.0b5
 
 =head2 SYNOPSIS
 
@@ -40,7 +40,7 @@ RAZBERRY_BLIND,			4, 	      main_blinds, 			HVAC|zwave, razberry_controller, bat
 
 for specifying controller options;
 
-RAZBERRY_CONTROLLER,	10.0.1.1, razberry_controller,	zwave, ,'username=admin,password=bob'
+RAZBERRY_CONTROLLER,	10.0.1.1, razberry_controller,	zwave, ,'user=admin,password=bob'
 
 
 =head2 DESCRIPTION
@@ -77,10 +77,10 @@ For later versions, Z_Way has introduced authentication. raZberry v2.0 supports 
 - Edit user anonymous and allow access to room devices
 
 2: Create a new user and give it the admin role. Then in the controller definition, provide the username and password:
-$razberry_controller  	= new raZberry('10.0.1.1',10,"method=poll,username=user,password=pwd");
+$razberry_controller  	= new raZberry('10.0.1.1',10,"method=poll,user=user,password=pwd");
 
 
-=head2 v2 PUSH or POLL. Only supported in version raZberry 2.1.0+
+=head2 v2 PUSH or POLL. Only tested in version raZberry 2.3.0
 Using the HTTPGet automation module, this will 'push' a status change to MH rather than the constant polling. Use the following
 URL for updating: http://mh:port/SUB;razberry_push(%DEVICE%,%VALUE%)
 
@@ -211,8 +211,9 @@ sub new {
     $self->{push}     = 0;
     $self->{push}     = 1 if ( ( defined $method ) and ( lc $method eq 'push' ) );
     $self->{username} = "";
-    ( $self->{username} ) = ( $options =~ /user\=([a-zA-Z0-9]+)/i )     if ( ( defined $options ) and ( $options =~ m/user\=/i ) );
-    ( $self->{password} ) = ( $options =~ /password\=([a-zA-Z0-9]+)/i ) if ( ( defined $options ) and ( $options =~ m/password\=/i ) );
+    $options =~ s/username\=/user\=/i;
+    ( $self->{username} ) = ( $options =~ /user\=([a-zA-Z0-9]+)/i ) if ( ( defined $options ) and ( $options =~ m/user\=/i ) );
+    ( $self->{password} ) = ( $options =~ /pass\=([a-zA-Z0-9]+)/i ) if ( ( defined $options ) and ( $options =~ m/password\=/i ) );
     if ( ( $push_obj eq "" ) and ( $self->{push} ) ) {
         &main::print_log("[raZberry]: Push method selected");
         &main::print_log("[raZberry]: The HTTPGet Automation module needs to be installed for push to work");
@@ -624,18 +625,22 @@ sub main::razberry_push {
     #my $obj = &main::get_object_by_name($object);
     if ( $push_obj eq "" ) {
         &main::print_log("[raZberry]: ERROR, Push control not enabled on this controller.");
+
     }
-    else {
-
+    elsif ( $dev =~ m/^ZWayVDev_zway_/ ) {
         if ( defined $push_obj->{child_object}->{$id} ) {
-            &main::print_log( '[raZberry]: Calling $push_obj->{child_object}->{' . $id . '}->set( ' . $level . ", 'poll' );" );
-
-            #$push_obj->{child_object}->{$id}->set( $level, 'poll' );
+            &main::print_log( '[raZberry]: Calling $push_obj->{child_object}->{' . $id . '}->set( ' . $level . ", 'push' );" );
+            $push_obj->{child_object}->{$id}->set( $level, 'push' );
         }
         else {
             &main::print_log("[raZberry]: ERROR, child object id $id not found!");
         }
+
     }
+    else {
+        &main::print_log("[raZberry]: ERROR, only ZWayVDev devices supported for push");
+    }
+
 }
 
 package raZberry_dimmer;
@@ -665,7 +670,7 @@ sub new {
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
-    if ( $p_setby eq 'poll' ) {
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
         $self->{level} = $p_state;
         my $n_state;
         if ( $p_state == 100 ) {
@@ -763,7 +768,7 @@ sub new {
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
-    if ( $p_setby eq 'poll' ) {
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
         if ( lc $p_state eq "on" ) {
             $self->{level} = 100;
         }
@@ -874,7 +879,7 @@ sub new {
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
-    if ( defined $p_setby && $p_setby eq 'poll' ) {
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
         $self->{level} = $p_state;
         my $n_state;
         if ( $p_state == 0 ) {
@@ -1037,7 +1042,7 @@ sub set {
     $map_states{locked}   = "close";
     $map_states{unlocked} = "open";
 
-    if ( $p_setby eq 'poll' ) {
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
         main::print_log( "[raZberry_lock] Setting value to $p_state: " . $map_states{$p_state} . ". Battery Level is " . $self->{battery_level} )
           if ( $self->{debug} );
         if ( ( $p_state eq "open" ) or ( $p_state eq "close" ) ) {
@@ -1237,7 +1242,7 @@ sub new {
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
-    if ( $p_setby eq 'poll' ) {
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
         $self->SUPER::set($p_state);
     }
 }
@@ -1285,7 +1290,7 @@ sub new {
 
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
-    if ( $p_setby eq 'poll' ) {
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
         $self->{level} = $p_state;
         $self->SUPER::set($p_state);
     }
@@ -1364,7 +1369,7 @@ sub new {
 
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
-    if ( $p_setby eq 'poll' ) {
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
         $self->{level} = $p_state;
 
         $self->SUPER::set($p_state);
@@ -1455,7 +1460,7 @@ sub new {
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
-    if ( $p_setby eq 'poll' ) {
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
         $self->{level} = $p_state;
         my $n_state;
         if ( $p_state eq "on" ) {
