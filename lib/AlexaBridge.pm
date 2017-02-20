@@ -62,7 +62,7 @@ The object can be defined in the user code or in a .mht file.
 
 In mht:
 
- ALEX_BRIDGE, Alexa
+ ALEXA_BRIDGE, Alexa
 
 
 Or in user code:
@@ -123,7 +123,7 @@ The module supports 300 devices which is the max supported by the Echo
 
 MHT examples:
  
- ALEX_BRIDGE, Alexa
+ ALEXA_BRIDGE, Alexa
  ALEXABRIDGE_ITEM, AlexaItems, Alexa
  ALEXABRIDGE_ADD, AlexaItems, light1 light1, set, on, off, state  # these are the defaults
  ALEXABRIDGE_ADD, AlexaItems, light1   # same as the line above
@@ -241,9 +241,7 @@ IO::Compress::Gzip
 Time::HiRes
 Net::Address::Ethernet
 Storable
-Socket
 IO::Socket::INET
-IO::Socket::Multicast
 
 =over
 
@@ -253,11 +251,7 @@ package AlexaBridge;
 
 @AlexaBridge::ISA = ('Generic_Item');
 
-use Carp;
 use IO::Socket::INET;
-use Socket;
-use IO::Socket::Multicast;
-
 
 my ($LOCAL_IP, $LOCAL_MAC) = &DiscoverAddy unless ( (defined($::config_parms{'alexaMac'})) && (defined($::config_parms{'alexaHttpIp'})) );
 $LOCAL_IP = $::config_parms{'alexaHttpIp'} if defined($::config_parms{'alexaHttpIp'});
@@ -301,8 +295,8 @@ sub open_port {
 						|| &main::print_log( "\nError:  Could not start a udp alexa multicast notification sender on $notificationPort: $@\n\n" ) && return;
     
 	setsockopt($ssdpNotificationSocket,
-				getprotobyname('ip'),
-				IP_MULTICAST_TTL,
+				getprotobyname('ip') || 0,
+				_constant('IP_MULTICAST_TTL'),
 				pack 'I', 4);
 	$::Socket_Ports{$ssdpNotificationName}{protocol} = 'udp';
 	$::Socket_Ports{$ssdpNotificationName}{datatype} = 'raw';
@@ -317,12 +311,18 @@ sub open_port {
 	
 	
 	my $ssdpListenName = 'alexaSsdpListen';
-	my $ssdpListenSocket = new IO::Socket::Multicast->new(
-						LocalPort => $SSDP_PORT,
-						Proto     => 'udp',
-						Reuse     => 1) 
-						|| &main::print_log( "\nError:  Could not start a udp alexa multicast listen server on ". $SSDP_PORT .$@ ."\n\n" ) && return;
-	$ssdpListenSocket->mcast_add('239.255.255.250');
+        my $ssdpListenSocket = new IO::Socket::INET->new(
+                                               LocalPort => $SSDP_PORT,
+                                               Proto     => 'udp',
+                                               Reuse     => 1)
+                                               || &main::print_log( "\nError:  Could not start a udp alexa multicast listen server on ". $SSDP_PORT .$@ ."\n\n" ) && return;
+
+        _mcast_add( $ssdpListenSocket, '239.255.255.250' );
+        setsockopt($ssdpListenSocket,
+                           getprotobyname('ip') || 0,
+                           _constant('IP_MULTICAST_TTL'),
+                           pack 'I', 4);
+
 	$::Socket_Ports{$ssdpListenName}{protocol} = 'udp';
 	$::Socket_Ports{$ssdpListenName}{datatype} = 'raw';
 	$::Socket_Ports{$ssdpListenName}{port}     = $SSDP_PORT;
@@ -355,6 +355,39 @@ sub http_ports {
 	printf " - creating %-15s on %3s %5s %s\n", $AlexaHttpName, 'tcp', $AlexaHttpPort;
 }
 
+sub _constant {
+    my $name = shift;
+    my %names = (
+        IP_MULTICAST_TTL  => 0,
+        IP_ADD_MEMBERSHIP => 1,
+        IP_MULTICAST_LOOP => 0,
+    );
+    
+    my %constants = (
+        MSWin32 => [10,12],
+        cygwin  => [3,5],
+        darwin  => [10,12],
+        linux => [33,35],
+        default => [33,35],
+    );
+    
+    my $index = $names{$name};
+    my $ref = $constants{ $^O } || $constants{default};
+    return $ref->[ $index ];
+}
+
+sub _mcast_add {
+    my ( $sock, $addr ) = @_;
+    my $ip_mreq = inet_aton( $addr ) . INADDR_ANY;
+    
+    setsockopt(
+        $sock,
+        getprotobyname('ip') || 0,
+        _constant('IP_ADD_MEMBERSHIP'),
+        $ip_mreq
+    ) || warn "Unable to add IGMP membership: $!\n";
+}
+
 sub check_for_data {
   my $alexa_http_sender = $AlexaGlobal->{http_sender}->{'alexa_http_sender'};
   my $alexa_ssdp_listen = $AlexaGlobal->{ssdp_listen};
@@ -370,8 +403,9 @@ sub check_for_data {
  	  my $client_port = $alexa_listen->peer;
 	  $client_port =~ s/.*\://;
 	  $AlexaGlobal->{http_client}->{$client_ip_address}->{$client_port}->{time} = time;
+	  #push (@{ $AlexaGlobal->{http_client_queue} }, $client_ip_address.":".$client_port); # Put the request in queue so the response is sent in order
 	  $alexa_http_sender->start unless $alexa_http_sender->active;
-	  $alexa_http_sender->set($alexa_data);
+	  $alexa_http_sender->set($alexa_data); # Send data from client on our proxy port to MH http server
 	
     }
    &_sendHttpData($alexa_listen, $alexa_http_sender);
@@ -397,10 +431,30 @@ sub _sendHttpData {
           $client_ip_address =~ s/:.*//;
           my $client_port = $alexa_listen->peer;
           $client_port =~ s/.*\://;
-
 	  delete $AlexaGlobal->{http_client}->{$client_ip_address}->{$client_port} if $AlexaGlobal->{http_client}->{$client_ip_address}->{$client_port};
-          $alexa_listen->set($alexa_sender_data);
+          $alexa_listen->set($alexa_sender_data); # Send data from the MH http server to the client on the proxy port
      }
+}
+
+
+sub _sendHttpData_test {
+my ($alexa_listen, $alexa_http_sender, $AlexaHttpName) = @_;
+ if ( $alexa_http_sender && ( my $alexa_sender_data = said $alexa_http_sender ) ) {
+   my $current_client_ip = @{ $AlexaGlobal->{http_client_queue} }[0];
+   $current_client_ip =~ s/:.*//;
+   my $current_client_port = @{ $AlexaGlobal->{http_client_queue} }[0];
+   $current_client_port =~ s/.*\://;
+      for my $ptr ( @{ $::Socket_Ports{$AlexaHttpName}{clients} } ) {
+           my ( $socka, $client_ip_address, $client_port, $data ) = @{$ptr};
+                   if ( ($client_ip_address eq $current_client_ip) && ($client_port eq $current_client_port)) {
+			  &main::print_log( "[Alexa] Debug: Peer: $client_ip_address:$client_port Data OUT - $alexa_sender_data" ) if $main::Debug{'alexa'} >= 5;
+			  delete $AlexaGlobal->{http_client}->{$client_ip_address}->{$client_port} if $AlexaGlobal->{http_client}->{$client_ip_address}->{$client_port};
+                          print $socka $alexa_sender_data;
+                          splice(@{ $AlexaGlobal->{http_client_queue} }, 0, 1); # Delete served queue item (first item in the array)
+                      }
+        }
+  }
+
 }
 	
 sub _receiveSSDPEvent {
