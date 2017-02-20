@@ -906,7 +906,11 @@ sub _GetChunk {
 
 
 sub DiscoverAddy {
-   use Net::Address::Ethernet qw( :all );
+   eval "use Net::Address::Ethernet qw( :all )";
+    if ($@) { 
+        print "\n [Alexa] Error: Net::Address::Ethernet is not installed... Please install it or define the local IP and mac in alexaHttpIp/alexaMac\n\n";
+        return ('127.0.0.1','9aa645cc40aa'); # return localhost as we dont know the real address 
+     } 
    my @a = get_addresses(@_);
    foreach my $adapter (@a) {
      next unless ($adapter->{iActive} eq 1);
