@@ -1,5 +1,5 @@
 
-=head1 B<raZberry> v2.0b5
+=head1 B<raZberry> v2.0b6
 
 =head2 SYNOPSIS
 
@@ -211,9 +211,9 @@ sub new {
     $self->{push}     = 0;
     $self->{push}     = 1 if ( ( defined $method ) and ( lc $method eq 'push' ) );
     $self->{username} = "";
-    $options =~ s/username\=/user\=/i;
-    ( $self->{username} ) = ( $options =~ /user\=([a-zA-Z0-9]+)/i ) if ( ( defined $options ) and ( $options =~ m/user\=/i ) );
-    ( $self->{password} ) = ( $options =~ /pass\=([a-zA-Z0-9]+)/i ) if ( ( defined $options ) and ( $options =~ m/password\=/i ) );
+    $options =~ s/username\=/user\=/i if ( defined $options );
+    ( $self->{username} ) = ( $options =~ /user\=([a-zA-Z0-9]+)/i )     if ( ( defined $options ) and ( $options =~ m/user\=/i ) );
+    ( $self->{password} ) = ( $options =~ /password\=([a-zA-Z0-9]+)/i ) if ( ( defined $options ) and ( $options =~ m/password\=/i ) );
     if ( ( $push_obj eq "" ) and ( $self->{push} ) ) {
         &main::print_log("[raZberry]: Push method selected");
         &main::print_log("[raZberry]: The HTTPGet Automation module needs to be installed for push to work");
