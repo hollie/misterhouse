@@ -1,5 +1,5 @@
 
-=head1 B<raZberry> v2.0b6
+=head1 B<raZberry> v2.0b7
 
 =head2 SYNOPSIS
 
@@ -32,6 +32,11 @@ RAZBERRY_LOCK,			device_id,	name,		 	 group,	controller_name, options
 RAZBERRY_THERMOSTAT,	device_id,	name,		 	 group,	controller_name, options
 RAZBERRY_TEMP_SENSOR,	device_id,	name,		 	 group,	controller_name, options
 RAZBERRY_BINARY_SENSOR,	device_id,	name,		 	 group,	controller_name, options
+
+RAZBERRY_GENERIC,       device_id,  name,            group, controller_name, options
+    * Note GENERIC requires the full device ID, ie 2-0-48-1
+RAZBERRY_VOLTAGE,       device_id,  name,            group, controller_name, options
+    * Note VOLTAGE is a multiattribute device, so device_id can only be the major number
 
 for example:
 
@@ -208,8 +213,10 @@ sub new {
 
     my $method = "poll";
     ($method) = ( $options =~ /method=(\s+)/ ) if ( defined $options );
-    $self->{push}     = 0;
-    $self->{push}     = 1 if ( ( defined $method ) and ( lc $method eq 'push' ) );
+    $self->{push} = 0;
+    $self->{push} = 1 if ( ( defined $method ) and ( lc $method eq 'push' ) );
+    $self->{config}->{poll_seconds} = 1800 if ( $self->{push} );    #poll the raZberry every 30 minutes if we are using the push method
+
     $self->{username} = "";
     $options =~ s/username\=/user\=/i if ( defined $options );
     ( $self->{username} ) = ( $options =~ /user\=([a-zA-Z0-9]+)/i )     if ( ( defined $options ) and ( $options =~ m/user\=/i ) );
@@ -223,8 +230,6 @@ sub new {
     else {
         &main::print_log("[raZberry]: Push method already in use on other object") if ($push_obj);
         &main::print_log("[raZberry]: Poll method selected");
-        $push_obj = \%{$self};    #TODO: remove when out of beta
-        $self->{push} = 1;
     }
     if ( $self->{username} ) {
         $self->{cookie_jar} = HTTP::Cookies->new( {} );
@@ -232,13 +237,9 @@ sub new {
     }
     $self->get_controllerdata;
     $self->{timer} = new Timer;
-    unless ( $self->{push} ) {
-        $self->start_timer;
-    }
-    else {
-        $self->poll;    #get initial data
-    }
-    &main::print_log("[raZberry]: Object initialized.");
+    $self->poll;
+    $self->start_timer;
+    &main::print_log("[raZberry]: Controller Initialization Complete");
     return $self;
 }
 
@@ -304,7 +305,7 @@ sub poll {
     &main::print_log("[raZberry]: cmd=$cmd") if ( $self->{debug} > 1 );
 
     for my $dev ( keys %{ $self->{data}->{force_update} } ) {
-        &main::print_log( "[raZberry]: Forcing update to device $dev to account for local changes" ) if ( $self->{debug} );
+        &main::print_log("[raZberry]: Forcing update to device $dev to account for local changes") if ( $self->{debug} );
         $self->update_dev($dev);
     }
 
@@ -328,8 +329,13 @@ sub poll {
             print "id=$id\n" if ( $self->{debug} > 1 );
             my $battery_dev = 0;
             $battery_dev = 1 if ( $id =~ m/-0-128$/ );
+            my $voltage_dev = 0;
+            $voltage_dev = 1 if ( $id =~ m/-0-50-\d$/ );
             if ($battery_dev) {                           #for a battery, set a different object
                 $self->{data}->{devices}->{$id}->{battery_level} = $item->{metrics}->{level};
+            }
+            elsif ($voltage_dev) {
+                &main::print_log("[raZberry]: Voltage Device found");
             }
             else {
                 $self->{data}->{devices}->{$id}->{level} = $item->{metrics}->{level};
@@ -486,7 +492,7 @@ sub _get_JSON_data {
             or ( $mode eq "usercode" )
             or ( $mode eq "usercode_data" ) );
         $method = "ZWaveAPI" if ( $mode eq "controller" );
-        &main::print_log( "[raZberry]: contacting http://$host:$port/$method/$rest{$mode}$params" ) if ( $self->{debug} );
+        &main::print_log("[raZberry]: contacting http://$host:$port/$method/$rest{$mode}$params") if ( $self->{debug} );
 
         my $request = HTTP::Request->new( GET => "http://$host:$port/$method/$rest{$mode}$params" );
         $request->content_type("application/x-www-form-urlencoded");
@@ -501,7 +507,7 @@ sub _get_JSON_data {
         my $isSuccessResponse = $responseCode < 400;
         $self->{updating} = 0;
         if ( !$isSuccessResponse ) {
-            &main::print_log( "[raZberry]: Warning, failed to get data. Response code $responseCode" );
+            &main::print_log("[raZberry]: Warning, failed to get data. Response code $responseCode");
             if ( defined $self->{child_object}->{comm} ) {
                 if ( $self->{status} eq "online" ) {
                     $self->{status} = "offline";
@@ -541,7 +547,7 @@ sub _get_JSON_data {
 
     }
     else {
-        &main::print_log( "[raZberry]: Warning, not fetching data due to operation in progress" );
+        &main::print_log("[raZberry]: Warning, not fetching data due to operation in progress");
         return ('0');
     }
 }
@@ -605,11 +611,11 @@ sub register {
         if ( defined $options ) {
             if ( $options =~ m/force_update/ ) {
                 $self->{data}->{force_update}->{$dev} = 1;
-                &main::print_log( "[raZberry]: Forcing Controller to contact Device $dev at each poll" );
+                &main::print_log("[raZberry]: Forcing Controller to contact Device $dev at each poll");
             }
             if ( $options =~ m/keep_alive/ ) {
                 $self->{data}->{ping}->{$dev} = 1;
-                &main::print_log( "[raZberry]: Forcing Controller to ping Device $dev at each poll" );
+                &main::print_log("[raZberry]: Forcing Controller to ping Device $dev at each poll");
             }
         }
     }
@@ -629,8 +635,14 @@ sub main::razberry_push {
     }
     elsif ( $dev =~ m/^ZWayVDev_zway_/ ) {
         if ( defined $push_obj->{child_object}->{$id} ) {
-            &main::print_log( '[raZberry]: Calling $push_obj->{child_object}->{' . $id . '}->set( ' . $level . ", 'push' );" );
-            $push_obj->{child_object}->{$id}->set( $level, 'push' );
+            if ( $dev =~ m/\-0\-\50\-\d$/ ) {
+                ( my $subdev ) = ( $dev =~ /\-0\-50\-(\d)$/ );
+                &main::print_log( '[raZberry]: Calling $push_obj->{child_object}->{' . $id . '}->set_level( ' . $level . ", $subdev );" );
+            }
+            else {
+                &main::print_log( '[raZberry]: Calling $push_obj->{child_object}->{' . $id . '}->set( ' . $level . ", 'push' );" );
+                $push_obj->{child_object}->{$id}->set( $level, 'push' );
+            }
         }
         else {
             &main::print_log("[raZberry]: ERROR, child object id $id not found!");
@@ -962,7 +974,7 @@ sub update_data {
 sub battery_check {
     my ($self) = @_;
     unless ( $self->{battery} ) {
-        main::print_log( "[raZberry_blind] ERROR, battery option not defined on this object" );
+        main::print_log("[raZberry_blind] ERROR, battery option not defined on this object");
         return;
     }
 
@@ -1549,3 +1561,120 @@ sub battery_check {
     }
 }
 
+package raZberry_voltage;
+@raZberry_voltage::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object, $devid, $options ) = @_;
+
+    my $self = {};
+    bless $self, $class;
+
+    #ZWayVDev_zway_x-0-50-0 - Power Meter kWh
+    #ZWayVDev_zway_x-0-50-1 - RGB setting of the switch LED
+    #ZWayVDev_zway_x-0-50-2 - Power Sensor W
+    #ZWayVDev_zway_x-0-50-4 - Voltage Sensor V
+    #ZWayVDev_zway_x-0-50-5 - Current Sensor A
+    #push( @{ $$self{states} }, 'on', 'off'); I'm not sure we should set the states here, since it's not a controlable item?
+
+    unless ( $devid =~ m/^\d+$/ ) {
+        $$self{master_object} = $object;
+        $$self{type}          = "Multilevel Voltage";
+        $$self{devid}         = $devid;
+        $object->register( $self, $devid . "-0-50-0", $options );
+        $object->register( $self, $devid . "-0-50-1", $options );
+        $object->register( $self, $devid . "-0-50-2", $options );
+        $object->register( $self, $devid . "-0-50-4", $options );
+        $object->register( $self, $devid . "-0-50-5", $options );
+
+        #$self->set($object->get_dev_status,$devid,'poll');
+        $self->{level}->{0} = "";
+        $self->{debug} = $object->{debug};
+    }
+    else {
+        main::print_log("[raZberry_voltage] ERROR, Voltage can only be a major dev id");
+
+    }
+    return $self;
+
+}
+
+sub level {
+    my ( $self, $attr ) = @_;
+
+    $attr = 0 unless ($attr);
+    if ( defined $self->{level}->{$attr} ) {
+        return ( $self->{level} );
+    }
+    else {
+        main::print_log("[raZberry_voltage] ERROR, unknown attribute $attr");
+        return (0);
+    }
+}
+
+sub set_level {
+    my ( $self, $value, $attr ) = @_;
+
+    $attr = 0 unless ($attr);
+    $self->{level}->{$attr} = $value;
+
+}
+
+sub ping {
+    my ($self) = @_;
+
+    $$self{master_object}->ping_dev( $$self{devid} );
+}
+
+sub isfailed {
+    my ($self) = @_;
+
+    $$self{master_object}->isfailed_dev( $$self{devid} );
+}
+
+sub update_data {
+    my ( $self, $data ) = @_;
+}
+
+package raZberry_generic;
+@raZberry_generic::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object, $devid, $options ) = @_;
+
+    my $self = {};
+    bless $self, $class;
+
+    $$self{master_object} = $object;
+    $$self{type}          = "Generic";
+    $$self{devid}         = $devid;
+    $object->register( $self, $devid, $options );
+
+    #$self->set($object->get_dev_status,$devid,'poll');
+    $self->{level} = "";
+    $self->{debug} = $object->{debug};
+    return $self;
+
+}
+
+sub level {
+    my ($self) = @_;
+
+    return ( $self->{level} );
+}
+
+sub ping {
+    my ($self) = @_;
+
+    $$self{master_object}->ping_dev( $$self{devid} );
+}
+
+sub isfailed {
+    my ($self) = @_;
+
+    $$self{master_object}->isfailed_dev( $$self{devid} );
+}
+
+sub update_data {
+    my ( $self, $data ) = @_;
+}

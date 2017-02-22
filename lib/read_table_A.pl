@@ -1351,6 +1351,28 @@ sub read_table_A {
             $object = "raZberry_battery(\$" . $controller . ",'$devid')";
         }
     }
+    elsif ( $type eq "RAZBERRY_GENERIC" ) {
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+            $object = "raZberry_generic(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+            $object = "raZberry_generic(\$" . $controller . ",'$devid')";
+        }
+    }
+    elsif ( $type eq "RAZBERRY_VOLTAGE" ) {
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+            $object = "raZberry_voltage(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+            $object = "raZberry_voltage(\$" . $controller . ",'$devid')";
+        }
+    }
 
     #-------------- End of RaZberry Objects -----------------
 
