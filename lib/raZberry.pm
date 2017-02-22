@@ -1,5 +1,5 @@
 
-=head1 B<raZberry> v2.0b7
+=head1 B<raZberry> v2.0b8
 
 =head2 SYNOPSIS
 
@@ -18,13 +18,13 @@ In user code:
 		$remote_1				= new raZberry_battery($razberry_controller,12);
 
 
-raZberry(<ip address>,<poll time>);
+raZberry(<ip address>,<poll time>|'push');
 raZberry_<child>(<controller>,<device id>,<options>)
 
 
 In items.mht:
 
-RAZBERRY_CONTROLLER,	ip_address, controller_name, group,	poll time, options
+RAZBERRY_CONTROLLER,	ip_address, controller_name, group,	poll time/'push', options
 RAZBERRY_DIMMER,		device_id,	name,		 	 group,	controller_name, options
 RAZBERRY_SWITCH,		device_id,	name,		 	 group,	controller_name, options
 RAZBERRY_BLIND,			device_id,	name,		 	 group,	controller_name, options
@@ -81,8 +81,11 @@ For later versions, Z_Way has introduced authentication. raZberry v2.0 supports 
 - Create a user named anonymous with role anonymous
 - Edit user anonymous and allow access to room devices
 
-2: Create a new user and give it the admin role. Then in the controller definition, provide the username and password:
-$razberry_controller  	= new raZberry('10.0.1.1',10,"method=poll,user=user,password=pwd");
+2: Create a new user and give it the admin role. Credentials can be stored in MH either in the mh.private.ini,
+or on a per controller basis.
+
+Then in the controller definition, provide the username and password:
+$razberry_controller  	= new raZberry('10.0.1.1',10,"user=user,password=pwd");
 
 
 =head2 v2 PUSH or POLL. Only tested in version raZberry 2.3.0
@@ -91,13 +94,14 @@ URL for updating: http://mh:port/SUB;razberry_push(%DEVICE%,%VALUE%)
 
 If the razberry or mh get out of sync, $controller->poll can be issued to get the latest states.
 
-Only 1 razberry controller can be the push source, due to only a single controller object that can be linked to the web service.
+Only one razberry controller can be the push source, due to only a single controller object that can be linked to the web service.
 
 =head2 MH.INI CONFIG PARAMS
 
 raZberry_timeout
 raZberry_poll_seconds
-
+raZberry_user
+raZberry_password
 
 =head2 BUGS
 
@@ -193,10 +197,18 @@ sub new {
     $self->{config}->{poll_seconds} = 5;
     $self->{config}->{poll_seconds} = $main::config_parms{raZberry_poll_seconds}
       if ( defined $main::config_parms{raZberry_poll_seconds} );
-    $self->{config}->{poll_seconds} = $poll if ($poll);
-    $self->{config}->{poll_seconds} = 1     if ( $self->{config}->{poll_seconds} < 1 );
-    $self->{updating}               = 0;
-    $self->{data}->{retry}          = 0;
+    $self->{push} = 0;
+
+    if ( ( defined $poll ) and ( lc $poll eq 'push' ) ) {
+        $self->{push} = 1;
+        $self->{config}->{poll_seconds} = 1800;    #poll the raZberry every 30 minutes if we are using the push method
+    }
+    else {
+        $self->{config}->{poll_seconds} = $poll if ( defined $poll );
+        $self->{config}->{poll_seconds} = 1     if ( $self->{config}->{poll_seconds} < 1 );
+    }
+    $self->{updating} = 0;
+    $self->{data}->{retry} = 0;
     my ( $host, $port ) = ( split /:/, $addr )[ 0, 1 ];
     $self->{host}  = $host;
     $self->{port}  = 8083;
@@ -211,14 +223,10 @@ sub new {
     $self->{controller_data} = ();
     &main::print_log("[raZberry]: options are $options") if ( ( $self->{debug} ) and ( defined $options ) );
 
-    my $method = "poll";
-    ($method) = ( $options =~ /method=(\s+)/ ) if ( defined $options );
-    $self->{push} = 0;
-    $self->{push} = 1 if ( ( defined $method ) and ( lc $method eq 'push' ) );
-    $self->{config}->{poll_seconds} = 1800 if ( $self->{push} );    #poll the raZberry every 30 minutes if we are using the push method
-
     $self->{username} = "";
     $options =~ s/username\=/user\=/i if ( defined $options );
+    $self->{username} = $main::config_parms{raZberry_user}     if ( defined $main::config_parms{raZberry_user} );
+    $self->{password} = $main::config_parms{raZberry_password} if ( defined $main::config_parms{raZberry_password} );
     ( $self->{username} ) = ( $options =~ /user\=([a-zA-Z0-9]+)/i )     if ( ( defined $options ) and ( $options =~ m/user\=/i ) );
     ( $self->{password} ) = ( $options =~ /password\=([a-zA-Z0-9]+)/i ) if ( ( defined $options ) and ( $options =~ m/password\=/i ) );
     if ( ( $push_obj eq "" ) and ( $self->{push} ) ) {

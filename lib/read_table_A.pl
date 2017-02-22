@@ -1249,7 +1249,7 @@ sub read_table_A {
             $object = "raZberry('$address','$poll',$other)";
         }
         elsif ($poll) {
-            $object = "raZberry('$address',$poll)";
+            $object = "raZberry('$address','$poll')";
         }
         else {
             $object = "raZberry('$address')";
