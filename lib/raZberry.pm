@@ -1,5 +1,5 @@
 
-=head1 B<raZberry> v2.0b8
+=head1 B<raZberry> v2.0b9
 
 =head2 SYNOPSIS
 
@@ -487,7 +487,6 @@ sub _get_JSON_data {
         my $ua = new LWP::UserAgent( keep_alive => 1 );
         $ua->timeout( $self->{timeout} );
         $ua->cookie_jar( $self->{cookie_jar} ) if ( $self->{username} );
-
         my $host   = $self->{host};
         my $port   = $self->{port};
         my $params = "";
@@ -505,13 +504,25 @@ sub _get_JSON_data {
         my $request = HTTP::Request->new( GET => "http://$host:$port/$method/$rest{$mode}$params" );
         $request->content_type("application/x-www-form-urlencoded");
 
-        my $responseObj = $ua->request($request);
-        print $responseObj->content . "\n--------------------\n"
-          if ( $self->{debug} > 1 );
+        #if unauthenticated, then try another login attempt.
+        my $connect_req = 0;
+        my $responseObj;
+        my $responseCode;
+        do {
+            $responseObj = $ua->request($request);
+            print $responseObj->content . "\n--------------------\n" if ( $self->{debug} > 1 );
+            $responseCode = $responseObj->code;
+            print 'Response code: ' . $responseCode . "\n" if ( $self->{debug} > 1 );
+            if ( ( $responseCode == 401 ) and ( !$connect_req ) ) {
+                &main::print_log("[raZberry]: ReAuthenticating...");
+                $self->login;
+                $connect_req = 1;
+            }
+            else {
+                $connect_req = 2;
+            }
+        } until ( $connect_req == 2 );
 
-        my $responseCode = $responseObj->code;
-        print 'Response code: ' . $responseCode . "\n"
-          if ( $self->{debug} > 1 );
         my $isSuccessResponse = $responseCode < 400;
         $self->{updating} = 0;
         if ( !$isSuccessResponse ) {
@@ -633,6 +644,10 @@ sub main::razberry_push {
     my ( $dev, $level ) = @_;
 
     my ($id) = ( split /_/, $dev )[-1];    #always just get the last element
+
+    #Filter out some non-items
+    return if ( ( $dev =~ m/^InfoWidget_/ )
+        or ( $dev =~ m/^BatteryPolling_/ ) );
 
     &main::print_log("[raZberry]: HTTP Push update received for device: $dev, id: $id and level: $level");
 
