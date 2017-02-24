@@ -39,7 +39,7 @@ my %parms;
 if (
     !&GetOptions(
         \%parms,   "h",      "help", "v", "city:s", "zone:s",
-        "state:s", "data=s", "no_log"
+        "state:s", "data=s", "no_log", "nws_rwr_zone:s"
     )
     or @ARGV
     or ( $parms{h} or $parms{help} )
@@ -102,7 +102,7 @@ $Geo::WeatherNOAA::proxy_from_env = 1;
 if ( $data{conditions} ) {
     print "\nGetting the current weather for $parms{city}, $parms{state}\n";
     $conditions =
-      print_current( $parms{city}, $parms{state}, undef, undef, undef, 1 );
+      print_current( $parms{city}, $parms{state}, undef, undef, undef, $parms{nws_rwr_zone} );
     $conditions =~ s/&deg;F/ degrees /;
     $conditions =~ s/ in\./ inches. /g;
 }
