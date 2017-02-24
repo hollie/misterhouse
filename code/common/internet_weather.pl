@@ -80,7 +80,7 @@ sub normalize_conditions {
 if ( said $v_get_internet_weather_data) {
     if (&net_connect_check) {
         set $p_weather_data
-          qq|get_weather -state $config_parms{state} -city "$config_parms{city}"|;
+          qq|get_weather -state $config_parms{state} -city "$config_parms{city}" -nws_rwr_zone $config_parms{nws_rwr_zone}|;
         start $p_weather_data;
         $v_get_internet_weather_data->respond(
             "app=weather Weather data requested for $config_parms{city}, $config_parms{state}"
@@ -97,7 +97,7 @@ if ( said $v_get_internet_weather_data) {
 if ( said $v_get_internet_weather_conditions) {
     if (&net_connect_check) {
         set $p_weather_conditions
-          qq|get_weather -state $config_parms{state} -city "$config_parms{city}" -data conditions|;
+          qq|get_weather -state $config_parms{state} -city "$config_parms{city}" -data conditions -nws_rwr_zone $config_parms{nws_rwr_zone}|;
         start $p_weather_conditions;
         $v_get_internet_weather_conditions->respond(
             "app=weather Weather conditions requested for $config_parms{city}, $config_parms{state}"
