@@ -1,5 +1,5 @@
 
-=head1 B<raZberry> v2.0b9
+=head1 B<raZberry> v2.0
 
 =head2 SYNOPSIS
 
