@@ -1,4 +1,4 @@
-// v1.3.601
+// v1.3.610
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -266,10 +266,10 @@ function changePage (){
 				nav_link = '#path=/objects&parents='+nav_name;				
 				if (collection_keys_arr.length > 2 && collection_keys_arr[collection_keys_arr.length-2].substring(0,1) == "$") nav_link = '#path=/objects&type='+nav_name; 
 				if (nav_name == "Group") nav_link = '#path=objects&type=Group'; //Hardcode this use case
-				if (json_store.objects[nav_name].label !== undefined) nav_name = (json_store.objects[nav_name].label);
+				if (json_store.objects[nav_name] !== undefined && json_store.objects[nav_name].label !== undefined) nav_name = (json_store.objects[nav_name].label);
 
-			}
-			else {
+			} else {
+				if (json_store.collections[collection_keys_arr[i]] == undefined) continue; //last breadcrumb duplicated so we don't need it.
 				nav_link = json_store.collections[collection_keys_arr[i]].link;
 				nav_name = json_store.collections[collection_keys_arr[i]].name;
 			}
@@ -278,8 +278,7 @@ function changePage (){
 			if (i == (collection_keys_arr.length-1)){
 				$('#nav').append('<li class="active">' + nav_name + '</a></li>');
 				$('title').html("MisterHouse - " + nav_name);
-			} 
-			else {
+			} else {
 				$('#nav').append('<li><a href="' + nav_link + '">' + nav_name + '</a></li>');
 			}
 		}
@@ -309,7 +308,6 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 	html += "<th>"+ config_name + "_config.json </th></tr></thead><tbody>";
 	for (var i in config_data){
 		if ( typeof config_data[i] === 'object') {
-			console.log("i "+i+":");
 			html += "<tr class='info'><td><b>"+ i + "</b></td></tr>";
 			for (var j in config_data[i]) {
 				if ( typeof config_data[i][j] === 'object') {
@@ -416,7 +414,6 @@ function parseLinkData (link,data) {
 				url: form.attr('action'),
 				data: form_data,
 				success: function(data){
-					console.log(data)
 					data = data.replace(/<link[^>]*>/img, ''); //Remove stylesheets
 					data = data.replace(/<title[^>]*>((\r|\n|.)*?)<\/title[^>]*>/img, ''); //Remove title
 					data = data.replace(/<meta[^>]*>/img, ''); //Remove meta refresh
@@ -1477,7 +1474,6 @@ var graph_rrd = function(start,group,time) {
 					last_timestamp = new Date(json.data.last_update);
 				}
 				//Update the footer database updated time
-				console.log ("Last Updated:"+last_timestamp);
 				$('#Last_updated').remove();		
 				$('#footer_stuff').prepend("<div id='Last_updated'>RRD Database Last Updated:"+last_timestamp+"</div>");
 				
@@ -1672,8 +1668,9 @@ var object_history = function(items,start,days,time) {
 				});
 				
 				$('.update_history').click(function() {
-					var new_start = new Date($('.hist_start').val().split('-')).getTime();
-					var new_end = new Date($('.hist_end').val().split('-')).getTime();					
+					//var new_start = new Date($('.hist_start').val().split('-')).getTime();
+					var new_start = new Date($('.hist_start').val().replace(/-/g, "/")).getTime();
+					var new_end = new Date($('.hist_end').val().replace(/-/g, "/")).getTime();					
 					var end_days = (new_start - new_end) / (24 * 60 * 60 * 1000)
 					new_start = new_start / 1000;
 					object_history(items,new_start,end_days);
@@ -1930,7 +1927,7 @@ var fp_reposition_entities = function(){
         $(this).width(fp_scale_percent + "%");
 	});
     var t1 = performance.now();
-    console.log("FP: reposition and scale: " +Math.round(t1 - t0) + "ms ");
+    //console.log("FP: reposition and scale: " +Math.round(t1 - t0) + "ms ");
 };
 
 var fp_show_all_icons = function() {
@@ -2376,9 +2373,9 @@ var floorplan = function(group,time) {
             if (time === 0){
                 // hack to fix initial positions of the items
                 var wait = 50;
-                console.log("FP: calling  fp in  " +wait+ "ms");
+                //console.log("FP: calling  fp in  " +wait+ "ms");
                 setTimeout(function(){
-                    console.log("FP: calling fp after " +wait+ "ms");
+                    //console.log("FP: calling fp after " +wait+ "ms");
                     fp_reposition_entities();
                 }, wait);
             }            
@@ -2467,7 +2464,6 @@ var create_state_modal = function(entity) {
 			}
 			
 			for (var i = 0; i < modal_states.length; i++){
-console.log("Creating state buttons. ");
 				if (filterSubstate(modal_states[i]) == 1) {
 					advanced_html += "<button class='btn btn-default col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" hidden'>"+modal_states[i]+"</button>";
 					continue 
@@ -2518,12 +2514,9 @@ console.log("Creating state buttons. ");
 
 			var modify_jqcon_dow = function(cronstr,offset) {
 				var cron = cronstr.split(/\s+/);
-				console.log("dow="+cron[cron.length-1]);
 				cron[cron.length-1] = cron[cron.length-1].replace(/\d/gi, function adjust(x) { 
-					console.log("x="+x+" offset="+offset);
 					return parseInt(x) + parseInt(offset); 
 				});;			
-				console.log("dow="+cron[cron.length-1]);
 				return cron.join(" ");
 				}	
 
@@ -2602,12 +2595,10 @@ console.log("Creating state buttons. ");
 
 			$('#control').find('.modal-body').append("<div class='sched_control'><span><h4>Schedule Control<button type='button' class='pull-right btn btn-success btn-xs schedadd'><i class='fa fa-plus'></i></button></h4></span>");
 			var sched_states = json_store.objects[entity].schedule[0][3];
-			console.log("schedule.length="+json_store.objects[entity].schedule.length);
 			for (var i = 1; i < json_store.objects[entity].schedule.length; i++){
 				var sched_index = json_store.objects[entity].schedule[i][0];
 				var sched_cron = modify_jqcon_dow(json_store.objects[entity].schedule[i][1],1);
 				var sched_label = json_store.objects[entity].schedule[i][2];
-				console.log("si="+sched_index+",sc="+sched_cron+",sl="+sched_label+",ss="+sched_states);	
 				add_schedule(sched_index,sched_cron,sched_label,sched_states);	
 			}
 			
@@ -2618,7 +2609,6 @@ console.log("Creating state buttons. ");
 				if (isNaN(newid)) newid=1;
 				var newlabel = newid;
 				if (sched_states[0] !== null) newlabel=sched_states[0];
-				console.log("add new schedule, index should be "+newid+" states are"+sched_states);
 				add_schedule(newid,'0 0 * * 1-7',newlabel,sched_states);
             	$('.sched_submit').removeClass('disabled');  
             	$('.sched_submit').removeClass('btn-default');  
@@ -2629,14 +2619,10 @@ console.log("Creating state buttons. ");
 				if ($(this).hasClass("disabled")) return;
 				var string = "";
 				$('.mhsched').each(function(index,value) {
-					console.log("string="+string);
-//					string += $( this ).attr("id") + ',"' + $( this ).text() + '",' + $( this ).attr("label") + ',';
 					string += $( this ).attr("id") + ',"' + modify_jqcon_dow($(this).text(),"-1") + '",' + $( this ).attr("label") + ',';
-					console.log("string="+string);					
 				});
 				string = string.replace(/,\s*$/, ""); //remove the last comma
 				var url="/SUB?ia7_update_schedule"+encodeURI("("+$(this).parents('.control-dialog').attr("entity")+","+string+")");
-				console.log("url="+url);
 				$.get(url);
             	$('.sched_submit').addClass('disabled');  
             	$('.sched_submit').removeClass('btn-success');  
@@ -2686,7 +2672,6 @@ console.log("Creating state buttons. ");
 		});
 		$('.logger_data').on('click',function() {
 			$('#control').modal('hide');
-			console.log('url='+$(location).attr('href'));
 		});
 }	
 
@@ -2723,7 +2708,6 @@ var authorize_modal = function(user) {
     });
 	$('.btn-login-logoff').click( function () {
 		$.get ("/UNSET_PASSWORD");
-		console.log("in logoff");
 		location.reload();
 		$('#loginModal').modal('hide');
 	});	
@@ -2735,7 +2719,6 @@ var authorize_modal = function(user) {
 			url: "/SET_PASSWORD_FORM",
 			data: $(this).serialize(),
 			success: function(data){
-				console.log(data) 
 				var status=data.match(/\<b\>(.*)\<\/b\>/gm);
 				//console.log("match="+status[2]); //3rd match is password status
 				if (status[2] == "<b>Password was incorrect</b>") {
@@ -2993,7 +2976,6 @@ $(document).ready(function() {
 	$('#mhresponse').click( function (e) {
 		e.preventDefault();
 		$form = $(this);
-		console.log("MHResponse Custom submit function "+ form.attr('action'));
 		//$.ajax({
 		//	type: "POST",
 		//	url: "/SET_PASSWORD_FORM",
