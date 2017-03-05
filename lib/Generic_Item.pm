@@ -1407,13 +1407,13 @@ sub get_logger_data {
         #  . ( $year + 1900 ) . "/"
         #  . ( $mon + 1 ) . "/"
         #  . $mday . "\n"
-          if (-e $::config_parms{data_dir}
-            . "/object_logs/"
-            . $object_name . "/"
-            . ( $year + 1900 ) . "/"
-            . ( $mon + 1 ) . "/"
-            . $mday
-            . ".log" );
+        #  if (-e $::config_parms{data_dir}
+        #    . "/object_logs/"
+        #    . $object_name . "/"
+        #    . ( $year + 1900 ) . "/"
+        #    . ( $mon + 1 ) . "/"
+        #    . $mday
+        #    . ".log" );
         $data .=
           ::file_read( $::config_parms{data_dir}
               . "/object_logs/"
