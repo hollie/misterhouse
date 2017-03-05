@@ -1386,27 +1386,27 @@ sub get_logger_data {
     my $data = "";
     $epoch = $epoch - ( $days * 60 * 60 * 24 );
     for ( my $i = 0; $i <= $days; $i++ ) {
-        print "db i=$i, days=$days, epoch=$epoch\n";
+        #print "db i=$i, days=$days, epoch=$epoch\n";
         my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
           localtime( $epoch + ( $i * 60 * 60 * 24 ) );
-        print "Epoch: $epoch is "
-          . $mday . "/"
-          . ( $mon + 1 ) . "/"
-          . ( $year + 1900 ) . "\n";
-        print "Checking "
-          . $::config_parms{data_dir}
-          . "/object_logs/"
-          . $object_name . "/"
-          . ( $year + 1900 ) . "/"
-          . ( $mon + 1 ) . "/"
-          . $mday . "\n";
-        print "Reading "
-          . $::config_parms{data_dir}
-          . "/object_logs/"
-          . $object_name . "/"
-          . ( $year + 1900 ) . "/"
-          . ( $mon + 1 ) . "/"
-          . $mday . "\n"
+        #print "Epoch: $epoch is "
+        #  . $mday . "/"
+        #  . ( $mon + 1 ) . "/"
+        #  . ( $year + 1900 ) . "\n";
+        #print "Checking "
+        #  . $::config_parms{data_dir}
+        #  . "/object_logs/"
+        #  . $object_name . "/"
+        #  . ( $year + 1900 ) . "/"
+        #  . ( $mon + 1 ) . "/"
+        #  . $mday . "\n";
+        #print "Reading "
+        #  . $::config_parms{data_dir}
+        #  . "/object_logs/"
+        #  . $object_name . "/"
+        #  . ( $year + 1900 ) . "/"
+        #  . ( $mon + 1 ) . "/"
+        #  . $mday . "\n"
           if (-e $::config_parms{data_dir}
             . "/object_logs/"
             . $object_name . "/"
