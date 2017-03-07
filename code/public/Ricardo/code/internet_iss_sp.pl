@@ -14,9 +14,7 @@ Note: Correct long. and time_zone parms for those of us in the
 =cut
 
 $iss_check = new Voice_Cmd '[lee,lista,visualiza] pases ISS';
-$iss_check->set_info(
-    'Lista horarios y localizaciones de los pases de la Estación Espacial Internacional (ISS)'
-);
+$iss_check->set_info('Lista horarios y localizaciones de los pases de la Estación Espacial Internacional (ISS)');
 
 run_voice_cmd 'lee pases ISS' if $New_Day;
 
@@ -35,11 +33,7 @@ start $iss_check_p   if $state eq 'lee';
 browser $iss_check_f if $state eq 'visualiza';
 
 if ( done_now $iss_check_p or $state eq 'lista' ) {
-    my (
-        $display,    $time_s,    $azimuth_s, $time_m, $azimuth_m,
-        $time_e,     $azimuth_e, $sec_s,     $sec_m,  $sec_e,
-        $time_start, $time_max,  $time_end
-    );
+    my ( $display, $time_s, $azimuth_s, $time_m, $azimuth_m, $time_e, $azimuth_e, $sec_s, $sec_m, $sec_e, $time_start, $time_max, $time_end );
     my $html = file_read $iss_check_f;
 
     # Add a base href, so we can click on links
@@ -113,8 +107,7 @@ eof
             $azimuth_s = convert_direction( &convert_to_degrees( $a[5] ) );
             $azimuth_m = convert_direction( &convert_to_degrees( $a[8] ) );
             $azimuth_e = convert_direction( &convert_to_degrees( $a[11] ) );
-            $display .= sprintf "ISS: %s, mag=%2d, alt=%3d, azimuth=%s\n",
-              $time_start, @a[ 2, 4 ], $azimuth_s;
+            $display .= sprintf "ISS: %s, mag=%2d, alt=%3d, azimuth=%s\n", $time_start, @a[ 2, 4 ], $azimuth_s;
 
             next unless $a[7] > 20;    # We can not see them if they are too low
 

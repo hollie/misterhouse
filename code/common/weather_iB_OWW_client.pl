@@ -122,10 +122,7 @@ my @direction = (
     "North West",
     "North North West"
 );
-my @directionshort = (
-    "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-    "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"
-);
+my @directionshort = ( "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW" );
 
 set $ibws_v 'Start' if $Startup;
 
@@ -144,19 +141,17 @@ if ( my $data = said $ibws) {
     # ----------------------------------------------------------------------------
     #                               ------ COLLECT and Sort the Data -------
     for ( my $i = 0; $i < 14; $i++ ) {    # ???????? -1 ???????????
-        print_log
-          "Processing data at $i which is $weather_vars[$i] value of $data[$i]"
+        print_log "Processing data at $i which is $weather_vars[$i] value of $data[$i]"
           if $Debug{oww};
         my $key = $weather_vars[$i];      # Get the Name of the data key
 
-        if ( $i < 3 ) {    # 0-TempOutdoor 1-TempOutdoorHigh 2-TempOutdoorLow
+        if ( $i < 3 ) {                   # 0-TempOutdoor 1-TempOutdoorHigh 2-TempOutdoorLow
             $Weather{$key} = $data[$i];
             $Weather{$key} = &main::convert_c2f( $data[$i] )
               if ( $main::config_parms{weather_uom_temp} eq 'F' );
         }
 
-        if ( ( $i >= 3 ) && ( $i <= 5 ) )
-        {                  # 3-WindSpeed 4-WindGustSpeed 5-WindSpeedHigh
+        if ( ( $i >= 3 ) && ( $i <= 5 ) ) {    # 3-WindSpeed 4-WindGustSpeed 5-WindSpeedHigh
             $Weather{$key} = $data[$i];                            # mps
             $Weather{$key} = &main::convert_mps2kph( $data[$i] )
               if ( $main::config_parms{weather_uom_wind} eq 'kph' );
@@ -164,33 +159,31 @@ if ( my $data = said $ibws) {
               if ( $main::config_parms{weather_uom_wind} eq 'mph' );
         }
 
-        if ( ( $i == 6 ) || ( $i == 7 ) ) {    # 6-WindDir 7-WindAvgDir
+        if ( ( $i == 6 ) || ( $i == 7 ) ) {                        # 6-WindDir 7-WindAvgDir
             $Weather{$key} = $data[$i];
         }
 
-        if ( $i == 8 ) {                       # 8-RainRate
+        if ( $i == 8 ) {                                           # 8-RainRate
             $Weather{$key} = $data[$i];
             $Weather{$key} = &main::convert_in2mm( $data[$i] )
               if ( $main::config_parms{weather_uom_rainrate} eq 'mm/hr' );
         }
-        if ( ( $i >= 9 ) && ( $i <= 11 ) )
-        {    # 9-RainTotal 10-RainWeek 11-RainMonth
+        if ( ( $i >= 9 ) && ( $i <= 11 ) ) {                       # 9-RainTotal 10-RainWeek 11-RainMonth
             $Weather{$key} = $data[$i];
             $Weather{$key} = &main::convert_in2mm( $data[$i] )
               if ( $main::config_parms{weather_uom_rain} eq 'mm' );
         }
-        if ( $i == 12 ) {    # 12-Humidity
+        if ( $i == 12 ) {                                          # 12-Humidity
             $Weather{$key} = sprintf( "%.2f", $data[$i] );
         }
-        if ( $i == 13 ) {    # 13-Barometric Pressure
+        if ( $i == 13 ) {                                          # 13-Barometric Pressure
             $Weather{$key} = $data[$i];
             $Weather{$key} = &main::convert_mb2in( $data[$i] )
               if ( $main::config_parms{weather_uom_baro} eq 'in' );
         }
     }
-    $Weather{WindAvgDir} = ( $Weather{WindDir} * 22.5 ); #convert to rrd degrees
-    $Weather{WindGustDir} =
-      $Weather{WindAvgDir};    # Because rrd wants this and we dont have it
+    $Weather{WindAvgDir}  = ( $Weather{WindDir} * 22.5 );          #convert to rrd degrees
+    $Weather{WindGustDir} = $Weather{WindAvgDir};                  # Because rrd wants this and we dont have it
     foreach my $key (@weather_vars) {
         print_log "Weather:: key: $key data: $Weather{$key}" if $Debug{oww};
     }
@@ -215,8 +208,7 @@ if ( $state = said $ibws_v) {
 
     }
     elsif ( $state eq 'Speak' ) {
-        my $msg =
-          "\nThe Current temperature is $Weather{TempOutdoor}\nA high of $Weather{TempOutdoorHigh}\nA low of $Weather{TempOutdoorLow}.\n";
+        my $msg = "\nThe Current temperature is $Weather{TempOutdoor}\nA high of $Weather{TempOutdoorHigh}\nA low of $Weather{TempOutdoorLow}.\n";
         $msg .=
           "Current Wind Speed is $Weather{WindAvgSpeed} miles per hour\nGusts of $Weather{WindSpeedPeak}\nHigh of $Weather{WindSpeedHigh}.\nWind Direction is $direction[$Weather{WindDir}]\nWind direction average $direction[$Weather{WindAvgDir}].\n";
 

@@ -11,7 +11,9 @@ Configure the required pushover settings in your mh.private.ini file:
 
   Pushover_token = <API token from Pushover.net registration> 
   Pushover_user =  <User or Group ID from Pushover.net registraton>
+  Pushover_device = <Default device or device list to sedn notifications to. List is comma-separated>
   Pushover_priority = [-1 | 0 | 1 | 2]  Default message priority,  defaults to 0.
+  Pushover_html = [ 0 | 1 ]  Support HTML messages, see https://pushover.net/api#html. Defaults to 0.
   Pushover_title = "MisterHouse" Default title for messages if none provided 
   Pushover_disable = 1  Disable notifications.  Messages will still be logged
 
@@ -38,6 +40,9 @@ provided on the message send.  They will be merged with and override the default
 values provided on initialization.   See the method documentation for below more details.
 
   $push->notify( "Some important message", { title => 'Security Alert', priority => 2 });
+
+Or with HTML formmatting   
+  $push->notify( "Some <b>important</b> message", { title => 'Security Alert', priority => 2, html => 1 });
 
 =head2 DESCRIPTION
 
@@ -75,9 +80,8 @@ use LWP::UserAgent;
 use Digest::MD5;
 use JSON;
 
-use constant TRACE => 0;    # enable for verbose tracing
-use constant DUPWINDOW =>
-  60;    # Time period in seconds to check for a duplicate message
+use constant TRACE     => 0;     # enable for verbose tracing
+use constant DUPWINDOW => 60;    # Time period in seconds to check for a duplicate message
 
 =head2 METHODS
 
@@ -90,7 +94,8 @@ Creates a new Pushover object. The parameter hash is optional.  Defaults will be
 B<This must be excluded from the primary misterhouse loop, or the acknowledgment checking and duplicate message rate limiting will be lost>
 
   my $push = Pushover->new( {   priority  => 0,            # Set default Message priority,  -1, 0, 1, 2
-  				retry     => 60,           # Set default retry priority 2 notification every 60 seconds
+        html      => 1,            # Support HTML formatting of message ...see https://pushover.net/api#html
+  			retry     => 60,           # Set default retry priority 2 notification every 60 seconds
 				expire    => 3600,         # Set default expration of the retry timer 
 				title     => "Some title", # Set default title for messages
 			 	token     => "xxxx...",    # Set the API Token 
@@ -112,9 +117,7 @@ sub new {
     my ( $class, $params ) = @_;
 
     if ( defined $params && ref($params) ne 'HASH' ) {
-        &::print_log(
-            "[Pushover] ERROR!  Pushover->new() invalid parameter hash - Pushover disabled"
-        );
+        &::print_log("[Pushover] ERROR!  Pushover->new() invalid parameter hash - Pushover disabled");
         $params = {};
         $params->{disable} = 1;
     }
@@ -122,11 +125,12 @@ sub new {
     $params = {} unless defined $params;
 
     my $self = {};
-    $self->{priority} = 0;    # Priority zero - honor quite times
-    $self->{speak}    = 1;    # Speak notifications and acknowledgments
+    $self->{priority} = 0;    # Priority zero - honour quite times
+    $self->{speak}    = 1;    # Speak notifications and acknowledgements
+    $self->{html}     = 0;    # Default html off
 
     # Merge the mh.private.ini defaults into the object
-    foreach (qw( token user priority title server retry expire speak disable)) {
+    foreach (qw( token user priority html title device server retry expire speak disable)) {
         $self->{$_} = $params->{$_};
         $self->{$_} = $::config_parms{"Pushover_$_"} unless defined $self->{$_};
     }
@@ -134,16 +138,13 @@ sub new {
 
     # initialize rudimentary duplicate message rate limiting
     my $lastSent = {};
-    $self->{_lastSent} =
-      $lastSent;              # Hash of message identifiers & time last sent
+    $self->{_lastSent} = $lastSent;    # Hash of message identifiers & time last sent
 
     # Internal parameters, Should not be overridden
     # Initialize array to track receipts and acknowledgements
     my $receipts = {};
-    $self->{_receipts} =
-      $receipts;    # Ref for the array of pending acknowledgments
-    $self->{_receiptTimer} =
-      Timer->new();    # Ref for the Timer object for acknowledgment checking
+    $self->{_receipts}     = $receipts;       # Ref for the array of pending acknowledgments
+    $self->{_receiptTimer} = Timer->new();    # Ref for the Timer object for acknowledgment checking
 
     my $note = ( $self->{disable} ) ? '- Notifications disabled' : '';
 
@@ -163,11 +164,13 @@ information for the notification.  The list is not exclusive.  Additional parame
 in the POST to Pushover.net.  This allows support of any API parameter as defined at https://pushover.net/api
 
   $push->notify("Some urgent message", {  priority => 2,            # Message priority,  -1, 0, 1, 2
-  				          retry    => 60,           # Retry priority 2 notification every 60 seconds
-					  expire   => 3600,         # Give up if not ack of priority 2 notify after 1 hour
-					  title    => "Some title", # Override title of message
-					  token    => "xxxx...",    # Override the API Token - probably not useful
-					  user     => "xxxx...",    # Override the target user/group
+            html     => 1,              # HTML formatting of message 0-off, 1-on ... see https://pushover.net/api#html
+            retry    => 60,             # Retry priority 2 notification every 60 seconds
+					  expire   => 3600,           # Give up if not ack of priority 2 notify after 1 hour
+					  title    => "Some title",   # Override title of message
+            device   => "nexus5,iphone" # Device or device-list 
+					  token    => "xxxx...",      # Override the API Token - probably not useful
+					  user     => "xxxx...",      # Override the target user/group
 				       });
 
 Notify will record the last message sent along with a timestamp.   If the duplicate message is sent within
@@ -188,12 +191,8 @@ sub notify {
     my $disable = $self->{disable};
 
     if ( defined $params && ref($params) ne 'HASH' ) {
-        &::print_log(
-            "[Pushover] ERROR!  notify called with invalid parameter hash - parameters ignored"
-        );
-        &::print_log(
-            "[Pushover] Usage: ->push(\"Message\", { priority => 1, title => \"Some title\"})"
-        );
+        &::print_log("[Pushover] ERROR!  notify called with invalid parameter hash - parameters ignored");
+        &::print_log("[Pushover] Usage: ->push(\"Message\", { priority => 1, title => \"Some title\"})");
     }
     else {
         $disable = $params->{disable} if ( defined $params->{disable} );
@@ -204,13 +203,13 @@ sub notify {
     # Copy the calling hash since we need to modify it.
     if ( defined $params && ref($params) eq 'HASH' ) {
         foreach ( keys %{$params} ) {
-            next if ( $_ eq 'disable' );   # internal override, not for pushover
+            next if ( $_ eq 'disable' );    # internal override, not for pushover
             $callparms->{$_} = $params->{$_};
         }
     }
 
     # Merge in the message defaults, They can be overridden
-    foreach (qw( token user priority title url url_title sound retry expire )) {
+    foreach (qw( token user priority html title device url url_title sound retry expire )) {
         next unless ( defined $self->{$_} );
         $callparms->{$_} = $self->{$_} unless defined $callparms->{$_};
     }
@@ -225,22 +224,19 @@ sub notify {
         $callparms->{expire} = 86400 if ( $callparms->{expire} > 86400 );
     }
 
-    &::print_log(
-        "[Pushover] Notify parameters: " . Data::Dumper::Dumper( \$callparms ) )
+    # remove html if off
+    if ( $callparms->{html} != 1 ) {
+        delete $callparms->{html};
+    }
+
+    &::print_log( "[Pushover] Notify parameters: " . Data::Dumper::Dumper( \$callparms ) )
       if TRACE;
 
-    my $msgsig =
-      Digest::MD5::md5_base64( $callparms->{message}
-          . $callparms->{user}
-          . $callparms->{priority}
-          . $callparms->{title} );
+    my $msgsig = Digest::MD5::md5_base64( $callparms->{message} . $callparms->{user} . $callparms->{priority} . $callparms->{title} );
 
     if ( my $lasttime = $self->{_lastSent}{$msgsig} ) {
         if ( time() < $lasttime + DUPWINDOW ) {
-            &::print_log(
-                "[Pushover] Skipped duplicate notification: $callparms->{message} within "
-                  . DUPWINDOW
-                  . " seconds." );
+            &::print_log( "[Pushover] Skipped duplicate notification: $callparms->{message} within " . DUPWINDOW . " seconds." );
             return;
         }
     }
@@ -248,9 +244,7 @@ sub notify {
     $self->{_lastSent}{$msgsig} = time();
 
     my $resp;
-    $resp =
-      LWP::UserAgent->new()
-      ->post( $self->{server} . '1/messages.json', $callparms, )
+    $resp = LWP::UserAgent->new()->post( $self->{server} . '1/messages.json', $callparms, )
       unless $disable;
     &::print_log("[Pushover] message: $callparms->{message} $note");
     &::speak("Pushover notification $callparms->{message} $note")
@@ -258,8 +252,7 @@ sub notify {
 
     return if $disable;    # Don't check the response if posting is disabled
 
-    &::print_log(
-        "[Pushover] Notify results: " . Data::Dumper::Dumper( \$resp ) )
+    &::print_log( "[Pushover] Notify results: " . Data::Dumper::Dumper( \$resp ) )
       if TRACE;
 
     my $decoded_json = JSON::decode_json( $resp->content() );
@@ -276,9 +269,7 @@ sub notify {
 
     }
     else {
-        &::print_log(
-            "[Pushover] ERROR: POST Failed: Status: $decoded_json->{status} - $decoded_json->{errors} "
-        );
+        &::print_log("[Pushover] ERROR: POST Failed: Status: $decoded_json->{status} - $decoded_json->{errors} ");
     }
 
     &::print_log( "[Pushover] " . Data::Dumper::Dumper( \$self ) ) if TRACE;
@@ -305,39 +296,27 @@ sub _checkReceipt {
     }
 
     foreach ( keys %{ $self->{_receipts} } ) {
-        my $resp =
-          LWP::UserAgent->new()
-          ->get(
-            "$self->{server}" . "1/receipts/$_.json?token=$self->{token}" );
+        my $resp = LWP::UserAgent->new()->get( "$self->{server}" . "1/receipts/$_.json?token=$self->{token}" );
         if ( $resp->is_success() ) {
-            &::print_log( "[Pushover] Get for Receipt check succeeded:"
-                  . Data::Dumper::Dumper( \$resp ) )
+            &::print_log( "[Pushover] Get for Receipt check succeeded:" . Data::Dumper::Dumper( \$resp ) )
               if TRACE;
             my $decoded_json = JSON::decode_json( $resp->content() );
             if ( $decoded_json->{acknowledged} ) {
-                &::print_log( "[Pushover] "
-                      . $self->{_receipts}{$_}
-                      . ": Message has been acknowledged" );
-                &::speak(
-                    "Pushover message acknowledged: $self->{_receipts}{$_}")
+                &::print_log( "[Pushover] " . $self->{_receipts}{$_} . ": Message has been acknowledged" );
+                &::speak("Pushover message acknowledged: $self->{_receipts}{$_}")
                   if $self->{speak};
                 delete $self->{_receipts}{$_};
             }
             elsif ( $decoded_json->{expired} ) {
-                &::speak(
-                    "Pushover message expired without acknowledment: $self->{_receipts}{$_}"
-                ) if $self->{speak};
-                &::print_log( "[Pushover] "
-                      . $self->{_receipts}{$_}
-                      . ": Message has expired without acknowledgment" );
+                &::speak("Pushover message expired without acknowledment: $self->{_receipts}{$_}") if $self->{speak};
+                &::print_log( "[Pushover] " . $self->{_receipts}{$_} . ": Message has expired without acknowledgment" );
                 delete $self->{_receipts}{$_};
             }
 
             # else - still waiting for an ack or expiration.
         }
         else {
-            &::print_log( "[Pushover] ERROR: Get for receipt check failed:"
-                  . Data::Dumper::Dumper( \$resp ) );
+            &::print_log( "[Pushover] ERROR: Get for receipt check failed:" . Data::Dumper::Dumper( \$resp ) );
             delete $self->{_receipts}{$_};
         }
     }
@@ -353,6 +332,11 @@ sub _checkReceipt {
 =head2 AUTHOR
 
 George Clark
+
+=head2 MODIFICATIONS
+
+2016/04/29 Marc  mhcoder@nowheremail.com
+           Added html and device support on API call
 
 =head2 SEE ALSO
 

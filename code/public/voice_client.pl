@@ -33,10 +33,7 @@ use Win32::Sound;
 use IO::Socket;
 use IO::Select;
 
-my (
-    $host, $port,     $VTxt,       $VTxt_version, $VTxt_stream,
-    $data, $password, $askforpass, $socket
-);
+my ( $host, $port, $VTxt, $VTxt_version, $VTxt_stream, $data, $password, $askforpass, $socket );
 my ( $sel, $attempts, $connected, $rh, $buf, @ready );
 
 # Get host and port
@@ -75,8 +72,7 @@ else {
 
 $|++;
 
-$socket =
-  new IO::Socket::INET( PeerAddr => $host, PeerPort => $port, Proto => 'tcp' )
+$socket = new IO::Socket::INET( PeerAddr => $host, PeerPort => $port, Proto => 'tcp' )
   or die "\nCould not create socket to $host port $port: $!\n";
 
 $sel = new IO::Select($socket);

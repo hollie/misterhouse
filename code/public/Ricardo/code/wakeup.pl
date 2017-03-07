@@ -13,12 +13,7 @@ if ( state_now $wakeup_bypass) {
 $v_wakeup_parents = new Voice_Cmd('Despertar a los padres');
 $v_wakeup_parents->set_info("No lo hagas!  Los padres quieren dormir.");
 
-if (
-    (
-            time_now( $config_parms{wakeup_time} )
-        and $Workday
-        and ( state $mode_mh ne 'offline' )
-    )
+if ( ( time_now( $config_parms{wakeup_time} ) and $Workday and ( state $mode_mh ne 'offline' ) )
     or said $v_wakeup_parents)
 {
     if ( state $wakeup_bypass) {
@@ -29,12 +24,8 @@ if (
         set $mode_mh 'normal';
         $Save{mode_set} = '';
         set $mode_sleeping 'nobody';
-        speak "rooms=all mode=unmute Buenos días.  Son las "
-          . say_time($Time_Now)
-          . " del $Date_Now_Speakable.";
-        speak "rooms=all mode=unmute La temperatura exterior es "
-          . round( $Weather{TempOutdoor} )
-          . " grados";
+        speak "rooms=all mode=unmute Buenos días.  Son las " . say_time($Time_Now) . " del $Date_Now_Speakable.";
+        speak "rooms=all mode=unmute La temperatura exterior es " . round( $Weather{TempOutdoor} ) . " grados";
 
         #       run_voice_cmd 'Check for school closing';
 

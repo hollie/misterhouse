@@ -11,9 +11,7 @@ $http_server = new Socket_Item( undef, undef, 'http' );
 my (%server_clients);
 
 $v_client_hits = new Voice_Cmd('Read the web server stats');
-$v_client_hits->set_info(
-    'Summarize how many people have visted the mh server in the last hour and day'
-);
+$v_client_hits->set_info('Summarize how many people have visted the mh server in the last hour and day');
 
 if ( my $data = said $http_server) {
 
@@ -101,8 +99,7 @@ if ($New_Hour) {
 sub hourly_web_hits {
     my $msg;
     if ( $Save{web_hits_hour} ) {
-        $msg =
-          "$Save{web_hits_hour} web hits from $Save{web_clients_hour} clients in the last hour.";
+        $msg = "$Save{web_hits_hour} web hits from $Save{web_clients_hour} clients in the last hour.";
     }
     else {
         $msg = "Nothing to report for the hour.";
@@ -124,8 +121,7 @@ sub hourly_web_hits {
 sub web_hits {
     my $msg;
     if ( $Save{web_hits_day} ) {
-        $msg =
-          "The MisterHouse server had $Save{web_hits_day} web hits from $Save{web_clients_day} clients since midnight.";
+        $msg = "The MisterHouse server had $Save{web_hits_day} web hits from $Save{web_clients_day} clients since midnight.";
     }
     else {
         $msg = "Nothing to report for today.";

@@ -28,22 +28,16 @@ BEGIN {
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
-my ($Version) =
-  q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
+my ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
 
 #print "Command: $Pgm_Name @ARGV\n";
 #print "Version: $Version\n";
 
 use Getopt::Long;
 my %parms;
-if (
-    !&GetOptions(
-        \%parms,   "h",      "help", "v", "city:s", "zone:s",
-        "state:s", "data=s", "no_log"
-    )
+if (  !&GetOptions( \%parms, "h", "help", "v", "city:s", "zone:s", "state:s", "data=s", "no_log", "nws_rwr_zone:s" )
     or @ARGV
-    or ( $parms{h} or $parms{help} )
-  )
+    or ( $parms{h} or $parms{help} ) )
 {
     print <<eof;
 
@@ -59,7 +53,6 @@ Usage:
 
     -city     xxx => xxx is the City  you want.
     -state    xxx => xxx is the State you want.
-    -zone     xxx => xxx is the Zone (for forecast) you want.
 
     -data     xxx => xxx is either conditions, forecast, or all.  Default is all.
 
@@ -76,10 +69,9 @@ eof
 my ( $conditions, $forecast, %data );
 my %config_parms;
 
-$parms{city}  = 'Rochester'  unless $parms{city};
-$parms{zone}  = $parms{city} unless $parms{zone};
-$parms{state} = 'MN'         unless $parms{state};
-$parms{data}  = 'all'        unless $parms{data};
+$parms{city}  = 'Rochester' unless $parms{city};
+$parms{state} = 'MN'        unless $parms{state};
+$parms{data}  = 'all'       unless $parms{data};
 $data{conditions}++ if $parms{data} eq 'all' or $parms{data} eq 'conditions';
 $data{forecast}++   if $parms{data} eq 'all' or $parms{data} eq 'forecast';
 
@@ -104,23 +96,22 @@ $Geo::WeatherNOAA::proxy_from_env = 1;
 if ( $data{conditions} ) {
     print "\nGetting the current weather for $parms{city}, $parms{state}\n";
     $conditions =
-      print_current( $parms{city}, $parms{state}, undef, undef, undef, 1 );
+      print_current( $parms{city}, $parms{state}, undef, undef, undef, $parms{nws_rwr_zone} );
     $conditions =~ s/&deg;F/ degrees /;
     $conditions =~ s/ in\./ inches. /g;
 }
 
 if ( $data{forecast} ) {
-    print "Getting the forecast for $parms{zone}, $parms{state}\n";
+    print "Getting the forecast for $parms{city}, $parms{state}\n";
     $forecast =
-      print_forecast( $parms{zone}, $parms{state}, undef, undef, undef, 1 );
+      print_forecast( $parms{city}, $parms{state}, undef, undef, undef, 1 );
     $forecast =~ s/Geo::WeatherNOAA.pm .+\n//;    # Drop geo version
                                                   #$forecast =~ s/\.\.\./\. /g;
     $forecast =~ s/(\()(EDT|EST|CDT|CST|MDT|MST|PDT|PST)(\) *)//g;
 }
 
 unless ( $parms{no_log} ) {
-    file_write( "$config_parms{data_dir}/web/weather_conditions.txt",
-        $conditions )
+    file_write( "$config_parms{data_dir}/web/weather_conditions.txt", $conditions )
       if $data{conditions};
     file_write( "$config_parms{data_dir}/web/weather_forecast.txt", $forecast )
       if $data{forecast};

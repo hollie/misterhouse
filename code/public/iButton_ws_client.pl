@@ -40,8 +40,7 @@ $ibws = new Socket_Item( undef, undef, 'localhost:8888', 'ibws', 'tcp', 'raw' );
 $ibws_v = new Voice_Cmd "[Start,Stop,Speak] the ibutton weather station client";
 $ibws_v->set_info('Connects to the ibutton weather station server');
 
-my @weather_vars =
-  qw(TempOutdoor TempOutdoorHigh TempOutdoorLow WindSpeed WindSpeedPeak WindSpeedHigh WindDir WindDirAvg
+my @weather_vars = qw(TempOutdoor TempOutdoorHigh TempOutdoorLow WindSpeed WindSpeedPeak WindSpeedHigh WindDir WindDirAvg
   RainRate RainToday RainWeek RainMonth);
 
 my $freezing = new Weather_Item 'TempOutdoor', '<', 32;
@@ -128,8 +127,7 @@ if ( $state = said $ibws_v) {
         stop $ibws;
     }
     elsif ( $state eq 'Speak' ) {
-        my $msg =
-          "\nThe Current temperature is $Weather{TempOutdoor}\nA high of $Weather{TempOutdoorHigh}\nA low of $Weather{TempOutdoorLow}.\n";
+        my $msg = "\nThe Current temperature is $Weather{TempOutdoor}\nA high of $Weather{TempOutdoorHigh}\nA low of $Weather{TempOutdoorLow}.\n";
         $msg .=
           "Current Wind Speed is $Weather{WindSpeed} miles per hour\nGusts of $Weather{WindSpeedPeak}\nHigh of $Weather{WindSpeedHigh}.\nWind Direction is $direction[$Weather{WindDir}]\nWind direction average $direction[$Weather{WindDirAvg}].\n";
         $msg .=

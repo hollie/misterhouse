@@ -80,10 +80,7 @@ sub new {
     if (
             $id !~ /^[0-9a-f]{2}$/
         and $id !~ /^[0-9a-f]{4}$/    # CJB
-        and $id ne 'sensor'
-        and $id ne 'system'
-        and $id ne 'control'
-        and $id ne 'remote'
+        and $id ne 'sensor' and $id ne 'system' and $id ne 'control' and $id ne 'remote'
       )
     {
 

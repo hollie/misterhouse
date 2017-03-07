@@ -18,9 +18,7 @@ $v_what_time2->tie_event("&announce_time(\$v_what_time2,\$state)");
 # Sun
 
 $v_sun_set = new Voice_Cmd( 'When will the sun [set,rise]', 0 );
-$v_sun_set->set_info(
-    "Calculates sunrise and sunset for latitude=$config_parms{latitude}, longitude=$config_parms{longitude}"
-);
+$v_sun_set->set_info("Calculates sunrise and sunset for latitude=$config_parms{latitude}, longitude=$config_parms{longitude}");
 $v_sun_set->set_authority('anyone');
 $v_sun_set->tie_event("&announce_sun(\$state)");
 
@@ -29,9 +27,7 @@ $v_sun_set->tie_event("&announce_sun(\$state)");
 $v_moon_info1 = new Voice_Cmd "When is the next [new,full] moon",  0;
 $v_moon_info2 = new Voice_Cmd "When was the last [new,full] moon", 0;
 $v_moon_info3 = new Voice_Cmd "What is the phase of the moon",     0;
-$v_moon_info3->set_info(
-    'Phase will be: New, One-Quarter Waxing, Half Waxing, Three-Quarter Waxing, Full, and same for Waning'
-);
+$v_moon_info3->set_info('Phase will be: New, One-Quarter Waxing, Half Waxing, Three-Quarter Waxing, Full, and same for Waning');
 $v_moon_info1->set_authority('anyone');
 $v_moon_info2->set_authority('anyone');
 $v_moon_info3->set_authority('anyone');
@@ -49,31 +45,20 @@ $f_full_moon = new File_Item("$config_parms{data_dir}/remarks/full_moon.txt");
 
 if ($Reload) {
     my $command = 'time_now $Time_Sunset and $Moon{phase} =~ /^full/i';
-    &trigger_set( $command, "&announce_full_moon()", 'NoExpire',
-        'announce full moon' )
+    &trigger_set( $command, "&announce_full_moon()", 'NoExpire', 'announce full moon' )
       unless &trigger_get('announce full moon');
 
     $command = "time_cron '30 9,12,19 * * *' and " . '$Holiday';
-    &trigger_set( $command,
-        'speak "app=holiday force_chime=1 Today is $Holiday"',
-        'NoExpire', 'announce holiday' )
+    &trigger_set( $command, 'speak "app=holiday force_chime=1 Today is $Holiday"', 'NoExpire', 'announce holiday' )
       unless &trigger_get('announce holiday');
 
     $command = 'time_now $Time_Sunrise';
-    &trigger_set(
-        $command,
-        'speak "force_chime=1 app=sunrise Notice, the sun is now rising at $Time_Sunrise"',
-        'NoExpire',
-        'announce sunrise'
-    ) unless &trigger_get('announce sunrise');
+    &trigger_set( $command, 'speak "force_chime=1 app=sunrise Notice, the sun is now rising at $Time_Sunrise"', 'NoExpire', 'announce sunrise' )
+      unless &trigger_get('announce sunrise');
 
     $command = 'time_now $Time_Sunset';
-    &trigger_set(
-        $command,
-        'speak "force_chime=1 app=sunset Notice, the sun is now setting at $Time_Sunset"',
-        'NoExpire',
-        'announce sunset'
-    ) unless &trigger_get('announce sunset');
+    &trigger_set( $command, 'speak "force_chime=1 app=sunset Notice, the sun is now setting at $Time_Sunset"', 'NoExpire', 'announce sunset' )
+      unless &trigger_get('announce sunset');
 }
 
 # events (tied to voice commands)
@@ -100,28 +85,23 @@ sub announce_sun {
 }
 
 sub announce_moon {
-    $v_moon_info3->respond(
-        qq[The moon is $Moon{phase}, $Moon{brightness}% bright, and $Moon{age} days old]
-    );
+    $v_moon_info3->respond(qq[The moon is $Moon{phase}, $Moon{brightness}% bright, and $Moon{age} days old]);
 }
 
 sub announce_previous_moon {
     my $state = shift;
     my $days = &time_diff( $Moon{"time_${state}_prev"}, $Time );
-    $v_moon_info2->respond(
-        qq[The last $state moon was $days ago, on $Moon{"${state}_prev"}]);
+    $v_moon_info2->respond(qq[The last $state moon was $days ago, on $Moon{"${state}_prev"}]);
 }
 
 sub announce_next_moon {
     my $state = shift;
     my $days = &time_diff( $Moon{"time_$state"}, $Time );
-    $v_moon_info1->respond(
-        qq[The next $state moon is in $days, on $Moon{$state}]);
+    $v_moon_info1->respond(qq[The next $state moon is in $days, on $Moon{$state}]);
 }
 
 sub announce_full_moon {
-    speak "app=moon Notice, tonight is a full moon.  "
-      . ( read_next $f_full_moon);
+    speak "app=moon Notice, tonight is a full moon.  " . ( read_next $f_full_moon);
 }
 
 # Uninstall (must be called prior to removing this module from code_select.txt)

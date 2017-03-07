@@ -50,8 +50,7 @@ my %vdr_commands = (
 
 my $vdr_backend = 'localhost:2001';
 
-$vdr =
-  new Socket_Item( undef, undef, $vdr_backend, 'vdr', 'tcp', 'rawout', "\r\n" );
+$vdr = new Socket_Item( undef, undef, $vdr_backend, 'vdr', 'tcp', 'rawout', "\r\n" );
 
 $Remote = new X10_MR26;
 

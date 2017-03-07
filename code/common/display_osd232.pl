@@ -18,8 +18,7 @@ if ($osd) {
 
     &init_osd232();
 
-    my $weatherpage =
-      new Display_osd232page( PAGENAME => "Weather", FLIPRATE => 20 );
+    my $weatherpage = new Display_osd232page( PAGENAME => "Weather", FLIPRATE => 20 );
     $weatherpage->addline(
         "temptext",
         TEXT      => "Temp:",
@@ -91,8 +90,7 @@ if ($osd) {
         TEXTCOLOR => osdCLRwhite
     );
 
-    my $securitypage =
-      new Display_osd232page( PAGENAME => "Security", FLIPRATE => 5 );
+    my $securitypage = new Display_osd232page( PAGENAME => "Security", FLIPRATE => 5 );
     $securitypage->addline(
         "securitytext",
         TEXT      => "Last Security Event:",

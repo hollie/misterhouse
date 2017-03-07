@@ -93,8 +93,7 @@ sub request_stat {
     for my $circle ( $self->find_members('xPL_Plugwise') ) {
         if ($circle) {
             my $name = $circle->get_object_name();
-            &::print_log(
-                "[xPL_PlugwiseGateway] Requesting state for $name over xPL")
+            &::print_log("[xPL_PlugwiseGateway] Requesting state for $name over xPL")
               if $main::Debug{xpl_plugwise};
             $circle->request_stat();
 
@@ -109,9 +108,7 @@ sub default_setstate {
     if ( $set_by =~ /^xpl/i ) {
     }
     else {
-        &::print_log(
-            "[xPL_PlugwiseGateway] WARN: Gateway state may not be explicitely set.  Ignoring."
-        ) if $main::Debug{xpl_plugwise};
+        &::print_log("[xPL_PlugwiseGateway] WARN: Gateway state may not be explicitely set.  Ignoring.") if $main::Debug{xpl_plugwise};
 
         # return a -1 if not changed by xpl so that state is not revised until receipt of gateinfo
         return -1;
@@ -234,9 +231,7 @@ sub new {
     $self->SUPER::device_monitor("device=$id") if $id;
 
     # remap the state values to on and off
-    $self->tie_value_convertor( 'level',
-        '($section =~ /^plugwise.basic/ and $value eq "off") ? "off" : "$value"'
-    );
+    $self->tie_value_convertor( 'level', '($section =~ /^plugwise.basic/ and $value eq "off") ? "off" : "$value"' );
 
     $self->addStates( 'on', 'off' );
 
@@ -261,15 +256,7 @@ sub addStates {
 sub ignore_message {
     my ( $self, $p_data ) = @_;
     my $ignore_msg = 0;
-    if (
-        !(
-            (
-                defined( $$p_data{'plugwise.basic'} )
-                and $$p_data{'plugwise.basic'}{'device'} eq $self->id
-            )
-        )
-      )
-    {
+    if ( !( ( defined( $$p_data{'plugwise.basic'} ) and $$p_data{'plugwise.basic'}{'device'} eq $self->id ) ) ) {
         $ignore_msg = 1;
     }
     return $ignore_msg;
@@ -282,15 +269,12 @@ sub default_setstate {
 
     if ( $set_by =~ /^xpl/i ) {
         if ( $$self{changed} =~ /plugwise\.basic/ ) {
-            &::print_log( "[xPL_Plugwise] "
-                  . $self->get_object_name
-                  . " state is $state" )
+            &::print_log( "[xPL_Plugwise] " . $self->get_object_name . " state is $state" )
               if $main::Debug{xpl_plugwise};
 
             # TO-DO: process all of the other pertinent attributes available
             return -1
-              if $self->state eq
-              $state;    # don't propagate state unless it has changed
+              if $self->state eq $state;    # don't propagate state unless it has changed
         }
     }
     else {
@@ -298,12 +282,8 @@ sub default_setstate {
         my $cmnd = ( $state =~ /^off/i ) ? 'off' : 'on';
 
         return -1
-          if ( $self->state eq $state )
-          ;              # Don't propagate state unless it has changed.
-        &::print_log( "[xPL_Plugwise] Request "
-              . $self->get_object_name
-              . " turn "
-              . $cmnd )
+          if ( $self->state eq $state );    # Don't propagate state unless it has changed.
+        &::print_log( "[xPL_Plugwise] Request " . $self->get_object_name . " turn " . $cmnd )
           if $main::Debug{xpl_plugwise};
         my $cmd_block;
         $$cmd_block{'command'} = $cmnd;

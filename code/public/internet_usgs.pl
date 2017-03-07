@@ -32,8 +32,7 @@ my %USGS_Notify;    # The River level to send notification
 my %USGS_Level;     # The current River Level
 my %USGS_Name;      # The River Name/Location
 
-my @MH_Rivers = split( / /, $config_parms{USGS_Monitor} )
-  ;                 # The River IDs and Notification level
+my @MH_Rivers = split( / /, $config_parms{USGS_Monitor} );    # The River IDs and Notification level
 
 my $f_USGS_list = "$config_parms{data_dir}/web/USGS.txt";
 my $f_USGS_html = "$config_parms{data_dir}/web/USGS.html";
@@ -50,8 +49,7 @@ for ( my $i = 0; $i <= @MH_Rivers; $i += 2 ) {
 }
 
 #More of the general URL
-$USGS_URL .=
-  "&search_site_no_match_type=exact&index_pmcode_STATION_NM=1&index_pmcode_DATETIME=2";
+$USGS_URL .= "&search_site_no_match_type=exact&index_pmcode_STATION_NM=1&index_pmcode_DATETIME=2";
 
 # Add whether CFS or Level
 if   ( $config_parms{USGS_Rate} ) { $USGS_URL .= "&index_pmcode_00065=3"; }
@@ -75,8 +73,8 @@ $state = said $v_USGS_list;
 #Check to see if there's anything in the file before speaking
 #speak    (text => $f_USGS_list, display => 0) if ($state eq 'Read' && file_size $f_USGS_list);
 if ( $state eq 'Read' ) {
-    if ( file_size $f_USGS_list) { speak text => "app=usgs $f_USGS_list"; }
-    else { speak text => 'app=usgs No water anywhere!'; }
+    if   ( file_size $f_USGS_list) { speak text => "app=usgs $f_USGS_list"; }
+    else                           { speak text => 'app=usgs No water anywhere!'; }
 }
 elsif ( $state eq 'Show' ) {
     if ( file_size $f_USGS_list) {
@@ -108,8 +106,7 @@ elsif ( $state eq 'Get' ) {
 
         # fixed 100219 looks like it spoke, then set things to read, and then read it again.
         #speak text => "app=usgs $f_USGS_list" if file_size $f_USGS_list;
-        start $p_USGS_list 'do_nothing'
-          ; # Fire the process with no-op, so we can still run the parsing code for debug
+        start $p_USGS_list 'do_nothing';    # Fire the process with no-op, so we can still run the parsing code for debug
     }
     else {
         if (&net_connect_check) {
@@ -120,7 +117,7 @@ elsif ( $state eq 'Get' ) {
         }
         else { speak "app=usgs Sorry, you must be logged onto the net"; }
     }
-    &respond_wait;    # Tell web browser to wait for respond
+    &respond_wait;                          # Tell web browser to wait for respond
 }
 
 if ( done_now $p_USGS_list) {
@@ -143,21 +140,11 @@ if ( done_now $p_USGS_list) {
         @USGS_RiverValues = split( "\t", $USGS_River );
         $USGS_Level{"@USGS_RiverValues[1]"} = @USGS_RiverValues[7];
         $USGS_Name{"@USGS_RiverValues[1]"}  = @USGS_RiverValues[2];
-        print "Result: "
-          . $USGS_Level{"@USGS_RiverValues[1]"}
-          . $USGS_Name{"@USGS_RiverValues[1]"} . "\n";
-        if (
-            (
-                $USGS_Level{"@USGS_RiverValues[1]"} >=
-                $USGS_Notify{"@USGS_RiverValues[1]"}
-            )
-            && $USGS_Level{"@USGS_RiverValues[1]"} ne ""
-          )
+        print "Result: " . $USGS_Level{"@USGS_RiverValues[1]"} . $USGS_Name{"@USGS_RiverValues[1]"} . "\n";
+        if ( ( $USGS_Level{"@USGS_RiverValues[1]"} >= $USGS_Notify{"@USGS_RiverValues[1]"} )
+            && $USGS_Level{"@USGS_RiverValues[1]"} ne "" )
         {
-            $USGS_Message .=
-                $USGS_Name{"@USGS_RiverValues[1]"}
-              . " is at "
-              . $USGS_Level{"@USGS_RiverValues[1]"} . ".\n";
+            $USGS_Message .= $USGS_Name{"@USGS_RiverValues[1]"} . " is at " . $USGS_Level{"@USGS_RiverValues[1]"} . ".\n";
         }
     }
 
@@ -177,8 +164,7 @@ if ( done_now $p_USGS_list) {
             );
         }
         else {    # Email me anyway even if it's too cold
-            $USGS_Message .=
-              "Current temp is " . $Weather{TempOutdoor} . " degrees.\n";
+            $USGS_Message .= "Current temp is " . $Weather{TempOutdoor} . " degrees.\n";
             &net_mail_send(
                 subject => "Woohoo! Rivers are up",
                 text    => $USGS_Message

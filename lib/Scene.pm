@@ -111,10 +111,7 @@ sub add {
     my ( $self, $obj, $on_level, $ramp_rate ) = @_;
     if ( ref $obj ) {
         if ( $$self{members} && $$self{members}{$obj} ) {
-            print "[scene] An object ("
-              . $obj->{object_name}
-              . ") already exists "
-              . "in this scene.  Aborting add request.\n"
+            print "[scene] An object (" . $obj->{object_name} . ") already exists " . "in this scene.  Aborting add request.\n"
               if $main::Debug{scene};
             return;
         }
@@ -148,8 +145,7 @@ sub remove_member {
                 last if $member;
             }
             else {
-                &::print_log(
-                    "Unable to add object to scene " . $self->{object_name} );
+                &::print_log( "Unable to add object to scene " . $self->{object_name} );
             }
         }
     }
@@ -196,17 +192,12 @@ sub resume {
             my $original_state = $$self{members}{$obj_ref}{original_state};
             if ( ref $obj and defined $original_state ) {
                 $obj->set( $original_state, $self );
-                print "[scene] Restore object ("
-                  . $obj->{object_name}
-                  . ") state to scene "
-                  . $self->{object_name} . "\n"
+                print "[scene] Restore object (" . $obj->{object_name} . ") state to scene " . $self->{object_name} . "\n"
                   if $main::Debug{scene};
             }
             else {
                 my $obj_name = ($obj) ? $obj->{object_name} : 'unknown';
-                print
-                  "[scene] Unable to restore object ($obj_name) state to scene ("
-                  . $self->{object_name} . ")\n"
+                print "[scene] Unable to restore object ($obj_name) state to scene (" . $self->{object_name} . ")\n"
                   if $main::Debug{scene};
             }
         }
@@ -238,17 +229,11 @@ sub set {
                 # sync the value for the on_level to the object (as it's not communicated)
                 #                $obj->set_receive($$self{members}{$obj_ref}{on_level}, $self);
                 $obj->set( $$self{members}{$obj_ref}{on_level}, $self );
-                print "[scene] Setting "
-                  . $obj->{object_name} . " to "
-                  . $$self{members}{$obj_ref}{on_level}
-                  . " for scene: "
-                  . $self->{object_name} . "\n"
+                print "[scene] Setting " . $obj->{object_name} . " to " . $$self{members}{$obj_ref}{on_level} . " for scene: " . $self->{object_name} . "\n"
                   if $main::Debug{scene};
             }
             else {
-                print "[scene] Unable to maintain scene ("
-                  . $self->{object_name}
-                  . ") state for object\n"
+                print "[scene] Unable to maintain scene (" . $self->{object_name} . ") state for object\n"
                   if $main::Debug{scene};
             }
         }
@@ -260,17 +245,11 @@ sub set {
 
                 #                $obj->set_receive($p_state, $self);
                 $obj->set( $p_state, $self );
-                print "[scene] Setting "
-                  . $obj->{object_name} . " to "
-                  . $p_state
-                  . " for scene: "
-                  . $self->{object_name} . "\n"
+                print "[scene] Setting " . $obj->{object_name} . " to " . $p_state . " for scene: " . $self->{object_name} . "\n"
                   if $main::Debug{scene};
             }
             else {
-                print "[scene] Unable to maintain scene ("
-                  . $self->{object_name}
-                  . ") state for object\n"
+                print "[scene] Unable to maintain scene (" . $self->{object_name} . ") state for object\n"
                   if $main::Debug{scene};
             }
         }
@@ -279,8 +258,7 @@ sub set {
     # create a "special" setby name as the tied_items in the main loop would otherwise
     # prohibit using $self if the passed $p_setby is not an object; if it is an object
     # then preserve as the setby chain needs to be maintained
-    my $m_setby =
-      ( ref $p_setby ) ? $p_setby : "scene [" . $self->{object_name} . "]";
+    my $m_setby = ( ref $p_setby ) ? $p_setby : "scene [" . $self->{object_name} . "]";
     if ( $p_state eq 'on' ) {
         print "[scene] Setting scene (" . $self->{object_name} . ") on\n"
           if $main::Debug{scene};

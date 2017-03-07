@@ -1,7 +1,4 @@
-// Optimization opportunity
-//  add print_errorlog
-//  updateStaticPage has lots of copy paste
-
+// v1.3.610
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -169,6 +166,10 @@ function changePage (){
 		else if (path.indexOf('vars') === 0){
 			loadVars();
 		}
+		else if (path.indexOf('prefs') === 0){
+			var pref_name = path.replace(/\prefs\/?/,'');
+			loadPrefs(pref_name);
+		}		
 		else if(URLHash._request == 'page'){
 			var link = URLHash.link.replace(/\?+.*/,''); //HP for some reason, this often has the first arg with no value, ie ?bob
 			var args = HashPathArgs(URLHash);
@@ -205,7 +206,11 @@ function changePage (){
 		else if(path.indexOf('rrd') === 0){
 			var path_arg = path.split('?');
 			graph_rrd(path_arg[1],path_arg[2]);
-		}		
+		}
+		else if(path.indexOf('history') === 0){
+			var path_arg = path.split('?');
+			object_history(path_arg[1],undefined,path_arg[2]);
+		}					
 		else if(URLHash._request == 'trigger'){
 			trigger();
 		}
@@ -214,6 +219,7 @@ function changePage (){
 		}
 		//update the breadcrumb: 
 		// Weird end-case, The Group from browse items is broken with parents on the URL
+		// Also have to change parents to type if the ending collection_keys are $<name>,
 		$('#nav').html('');
 		var collection_keys_arr = URLHash._collection_key;
 		if (collection_keys_arr === undefined) collection_keys_arr = '0';
@@ -226,12 +232,13 @@ function changePage (){
 				//group objects can be browsed recursively.  Possibly use different
 				//prefix if other recursively browsable formats are later added
 				nav_name = collection_keys_arr[i].replace("$", '');
-				nav_link = '#path=/objects&parents='+nav_name;
+				nav_link = '#path=/objects&parents='+nav_name;				
+				if (collection_keys_arr.length > 2 && collection_keys_arr[collection_keys_arr.length-2].substring(0,1) == "$") nav_link = '#path=/objects&type='+nav_name; 
 				if (nav_name == "Group") nav_link = '#path=objects&type=Group'; //Hardcode this use case
-				if (json_store.objects[nav_name].label !== undefined) nav_name = (json_store.objects[nav_name].label);
+				if (json_store.objects[nav_name] !== undefined && json_store.objects[nav_name].label !== undefined) nav_name = (json_store.objects[nav_name].label);
 
-			}
-			else {
+			} else {
+				if (json_store.collections[collection_keys_arr[i]] == undefined) continue; //last breadcrumb duplicated so we don't need it.
 				nav_link = json_store.collections[collection_keys_arr[i]].link;
 				nav_name = json_store.collections[collection_keys_arr[i]].name;
 			}
@@ -240,13 +247,179 @@ function changePage (){
 			if (i == (collection_keys_arr.length-1)){
 				$('#nav').append('<li class="active">' + nav_name + '</a></li>');
 				$('title').html("MisterHouse - " + nav_name);
-			} 
-			else {
+			} else {
 				$('#nav').append('<li><a href="' + nav_link + '">' + nav_name + '</a></li>');
 			}
 		}
 	}
 }
+
+function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_prefs if no arg then both
+
+	$('#list_content').html("<div id='prefs_table' class='row top-buffer'>");
+	$('#prefs_table').append("<div id='prtable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
+	var html = "<table class='table table-curved'><thead><tr>";
+	var config_data;
+	if (config_name === undefined || config_name === '')  config_name="ia7";
+	if (config_name == "ia7") {
+		config_data = json_store.ia7_config;
+	} else if (config_name == "ia7_rrd") {
+		$.ajax({
+			type: "GET",
+			async: false,  //async is always better, but since this is the only point of the sub, it's OK
+			url: "/json/rrd_config",
+			dataType: "json",
+			success: function( json ) {
+				config_data = json.data;
+			}
+		});
+	}		
+	html += "<th>"+ config_name + "_config.json </th></tr></thead><tbody>";
+	for (var i in config_data){
+		if ( typeof config_data[i] === 'object') {
+			html += "<tr class='info'><td><b>"+ i + "</b></td></tr>";
+			for (var j in config_data[i]) {
+				if ( typeof config_data[i][j] === 'object') {
+					html += "<tr class='info'><td style='padding-left:40px'>"+ j + "</td></tr>";
+					for (var k in config_data[i][j]){
+						 html += "<tr><td style='padding-left:80px'>"+k+" = "+config_data[i][j][k]+"</td></tr>";
+					}
+				} else {
+					html += "<tr><td style='padding-left:40px'>"+j+" = "+config_data[i][j]+"</td></tr>"
+				}
+			}
+		}	
+	}
+
+	html += "</tbody></table></div>";
+	$('#prtable').html(html);
+
+}
+
+function parseLinkData (link,data) {
+
+	data = data.replace(/<link[^>]*>/img, ''); //Remove stylesheets
+	data = data.replace(/<title[^>]*>((\r|\n|.)*?)<\/title[^>]*>/img, ''); //Remove title
+	data = data.replace(/<meta[^>]*>/img, ''); //Remove meta refresh
+	data = data.replace(/<base[^>]*>/img, ''); //Remove base target tags
+				
+	if (link == "/bin/code_select.pl" || link == "/bin/code_unselect.pl") { //fix links in the code select / unselect modules
+		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
+		data = data.replace(/href=\/bin\/browse.pl(.*?)>/img, function (path,r1) {
+			return 'href=/ia7/#_request=page&link=/bin/browse.pl'+r1+'&'+coll_key+',>';
+		});
+		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
+		data = data.replace(/Category Index:/img,'');
+		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
+		}
+	if (link == "/bin/items.pl") {
+		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))		
+		data = data.replace(/href=\/bin\/items.pl/img, 'onclick="changePage()"');		
+		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
+		data = data.replace(/Item Index:/img,'');
+		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
+		data = data.replace(/input name='resp' value="\/bin\/items.pl"/img, 'input name=\'resp\' value=\"/ia7/#_request=page&link=/bin/items.pl&'+coll_key+'\"');
+		
+	}
+	if (link == "/bin/iniedit.pl") {
+		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))	
+		data = data.replace(/<input type=submit name=\"Switch\" value=\"Switch\">/img, '');	
+		data = data.replace(/<input type=submit name=\"Reset Values\" value=\"Reset Values\">/img,'');
+		data = data.replace(/<a href=\"\/bin\/iniedit.pl\">Back<\/a>/img,'<a onclick=\"changePage()\">Back<\/a>');
+	
+		//replace the back button with a reload
+	}	
+	if (link == "/bin/triggers.pl") { //fix links in the triggers modules
+		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
+		data = data.replace(/href=\/bin\/triggers.pl/img, 'onclick="changePage()"');
+		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
+		data = data.replace(/Trigger Index:/img,'');
+		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
+		data = data.replace(/input name='resp' value="\/bin\/triggers.pl"/img, 'input name=\'resp\' value=\"/ia7/#_request=page&link=/bin/triggers.pl&'+coll_key+'\"');
+	}				
+	if (link == "/ia5/news/main.shtml") { //fix links in the email module 1
+		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
+		data = data.replace(/<a href='\/email\/latest.html'>Latest emails<\/a>/img,'');
+		data = data.replace(/href=\/email\/(.*?)>/img, function (path,r1) {
+			return 'href=/ia7/#_request=page&link=/email/'+r1+'&'+coll_key+',>';
+		});
+		data = data.replace(/<a href=\"SET;&dir_index\(.*?\)\">(.*?)<\/a>/img, function (path,r1,r2) {
+			return r1;
+		});
+		data = data.replace(/href='RUN;\/ia5\/news\/main.shtml\?Check_for_e_mail'/img, 'class="btn-voice-cmd" voice_cmd="Check_for_e_mail"');				
+	}
+	if (link.indexOf('/email/') === 0) { //fix links in the email module 2
+		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
+		data = data.replace(/<a href='#top'>Previous<\/a>.*?<br>/img, '');
+		data = data.replace(/<a name='.*?' href='#top'>Back to Index<\/a>.*?<b>/img,'<b>');
+		data = data.replace(/href='#\d+'/img,'');
+	}
+	if (link.indexOf('/comics/') === 0) { //fix links in the comics module
+		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))				
+		data = data.replace(/<a href="(.*?)">(.*?)<\/a>/img,function (path,r1,r2) {
+			return '<a href=/ia7/#_request=page&link=/comics/'+r1+'&'+coll_key+',>'+r2+'</a>';
+		});	
+		data = data.replace(/<img src="(.*?)"/img,function (path,r1) {
+			return '<img src="/comics/'+r1+'"';
+		});							
+	}			
+	data = data.replace(/href="\/bin\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function
+	data = data.replace(/href="\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function 
+//TODO clean up this regex?
+	data = data.replace(/href=SET_PASSWORD/img,'onclick=\'authorize_modal("0")\''); //Special case, setup Mr.House without being logged in 
+
+
+	$('#row_page').html(data);
+	$('#mhresponse').submit( function (e) { //allow for forms with id=mhresponse to show data returned in modal
+		e.preventDefault();
+		var form = $(this);
+        var btn = $(this).find("input[type=submit]:focus" );
+        var form_data = $(this).serializeArray();
+  		if (btn.attr('name') !== undefined) {
+  			form_data.push({name : btn.attr('name'), value : btn.attr('value')});
+  		}		
+			$.ajax({
+				type: "POST",
+				url: form.attr('action'),
+				data: form_data,
+				success: function(data){
+					data = data.replace(/<link[^>]*>/img, ''); //Remove stylesheets
+					data = data.replace(/<title[^>]*>((\r|\n|.)*?)<\/title[^>]*>/img, ''); //Remove title
+					data = data.replace(/<meta[^>]*>/img, ''); //Remove meta refresh
+					data = data.replace(/<base[^>]*>/img, ''); //Remove base target tags
+
+					var start = data.toLowerCase().indexOf('<body>') + 6;
+					var end = data.toLowerCase().indexOf('</body>');
+
+					if (form.attr('action') === "/bin/triggers.pl?add" && ! data.match(/Not authorized to make updates/))  {
+						changePage();
+					} else if (form.attr('action') === "/bin/iniedit.pl") {
+						parseLinkData("/bin/iniedit.pl",data);
+//TODO parse data							 
+					} else {
+						$('#lastResponse').find('.modal-body').html(data.substring(start, end));
+						$('#lastResponse').modal({
+							show: true
+						});
+					}
+				}
+			});
+	});
+	$('#mhresponse :input:not(:text)').change(function() {
+//TODO - don't submit when a text field changes
+//	console.log("in input not text");
+		$('#mhresponse').submit();
+ 	});			
+	$('#mhexec a').click( function (e) {
+		e.preventDefault();
+		var url = $(this).attr('href');
+		url = url.replace(/;(.*?)\?/,'?');
+		$.get( url, function(data) {
+		});
+		changePage();
+	});
+}
+
 
 function loadVars (){ //variables list
 	var URLHash = URLToHash();
@@ -318,7 +491,7 @@ var loadList = function() {
 	var button_text = '';
 	var button_html = '';
 	var entity_arr = [];
-	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text";
+	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status";
 	$.ajax({
 		type: "GET",
 		url: "/json/"+HashtoJSONArgs(URLHash),
@@ -528,7 +701,8 @@ var loadList = function() {
 
 var getButtonColor = function (state) {
 	var color = "default";
-	if (state == "on" || state == "open" || state == "disarmed" || state == "unarmed" || state == "ready" || state == "dry" || state == "up" || state == "100%" || state == "online") {
+	if (state !== undefined) state = state.toLowerCase();
+	if (state == "on" || state == "open" || state == "disarmed" || state == "unarmed" || state == "ready" || state == "dry" || state == "up" || state == "100%" || state == "online" || state == "unlocked") {
 		 color = "success";
 	} else if (state == "motion" || state == "closed" || state == "armed" || state == "wet" || state == "fault" || state == "down" || state == "offline") {
 		 color = "danger";
@@ -551,7 +725,7 @@ var filterSubstate = function (state) {
          filter = 1
         }
     }
-    
+	if (state !== undefined) state = state.toLowerCase();    
     if (state == "manual" ||
     	state == "double on" ||
     	state == "double off" ||
@@ -607,7 +781,7 @@ var sortArrayByArray = function (listArray, sortArray){
 //Used to dynamically update the state of objects
 var updateList = function(path) {
 	var URLHash = URLToHash();
-	URLHash.fields = "state,state_log,type";
+	URLHash.fields = "state,state_log,schedule,logger_status,type";
 	URLHash.long_poll = 'true';
 	URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -667,10 +841,7 @@ var updateItem = function(item,link,time) {
 		time = "";
 	}
 	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
-	//arg_str=link=%2Fia7%2Fhouse%2Fgarage.shtml&fields=state%2Ctype&long_poll=true&time=1426011733833.94
-	//arg_str = "fields=state,states,label&long_poll=true&time="+time;
-	var arg_str = "fields=state,states,label,state_log&long_poll=true&items="+item+"&time="+time;
-	//alert("path_str="+path_str+" arg_str="+arg_str)
+	var arg_str = "fields=state,states,label,state_log,schedule,logger_status&long_poll=true&items="+item+"&time="+time;
 	updateSocket = $.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
@@ -718,7 +889,7 @@ var updateStaticPage = function(link,time) {
    		 }
    	})
 	var URLHash = URLToHash();
-	URLHash.fields = "state,states,state_log,label,type";
+	URLHash.fields = "state,states,state_log,schedule,logger_status,label,type";
 	URLHash.long_poll = 'true';
 	URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -727,7 +898,7 @@ var updateStaticPage = function(link,time) {
 	}
 
 	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
-	var arg_str = "fields=state%2Cstates%2Cstate_log%2Clabel&long_poll=true&items="+items+"&time="+time;
+	var arg_str = "fields=state%2Cstates%2Cstate_log%2Cschedule%2Clogger_status%2Clabel&long_poll=true&items="+items+"&time="+time;
 
 	updateSocket = $.ajax({
 		type: "GET",
@@ -751,12 +922,33 @@ var updateStaticPage = function(link,time) {
 						$('button[entity="'+entity+'"]').removeClass("btn-danger");
 						$('button[entity="'+entity+'"]').removeClass("btn-info");
 						$('button[entity="'+entity+'"]').addClass("btn-"+color);
-				
+						if (json_store.ia7_config.objects[entity] !== undefined && 
+						    json_store.ia7_config.objects[entity].direct_control !== undefined && 
+						    json_store.ia7_config.objects[entity].direct_control == "yes") $('button[entity="'+entity+'"]').addClass("btn-direct");
+						
 						//don't run this if stategrp0 exists	
 						if (states_loaded == 0) {
 			                $(".btn-state-cmd").click( function () {
-                                var entity = $(this).attr("entity");			
-								create_state_modal(entity);
+								var entity = $(this).attr("entity");
+								if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                					if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
+                         				var new_state = "";
+                         				var possible_states = 0;
+                         				for (var i = 0; i < json_store.objects[entity].states.length; i++){
+                         					if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
+                         					possible_states++;
+											if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i];
+
+                         				}
+										if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
+										url= '/SET;none?select_item='+entity+'&select_state='+new_state;
+										$.get( url);
+                					} else {
+                					create_state_modal(entity);
+                					}
+								} else {				
+									create_state_modal(entity);
+								}
 							});
 						}																
 					}			
@@ -775,6 +967,28 @@ var updateStaticPage = function(link,time) {
 	});  
 }
 
+function authDetails() {
+	if (json_store.collections[700] == undefined) {
+		alert("Warning, Collection ID 700: Authorize, is not defined in your collections.json!");
+	} else {
+		if (json_store.collections[700].user !== undefined) {
+   			if (json_store.collections[700].user == "0") {
+    			json_store.collections[700].name = "Log in";
+    			json_store.collections[700].icon = "fa-lock";
+    			authorized = false;
+   				$(".fa-gear").css("color", "red");
+   			} else {
+    			json_store.collections[700].name = "Log out "+json_store.collections[700].user+"...";
+    			json_store.collections[700].icon = "fa-unlock";   		   		
+    			authorized = true;
+    			$(".fa-gear").css("color", "green");
+    			if (json_store.collections[700].user == "admin") {
+        			$(".fa-gear").css("color", "purple");
+				}
+   			}
+   		}
+   	}
+}
 	
 //Prints all of the navigation items for Ia7
 var loadCollection = function(collection_keys) {
@@ -787,9 +1001,11 @@ var loadCollection = function(collection_keys) {
 	if (entity_sort.length <= 0){
 		entity_arr.push("Childless Collection");
 	}
+
 	for (var i = 0; i < entity_sort.length; i++){
 		var collection = entity_sort[i];
 		if (!(collection in json_store.collections)) continue;
+
 		var link = json_store.collections[collection].link;
 		var icon = json_store.collections[collection].icon;
 		var name = json_store.collections[collection].name;
@@ -798,9 +1014,9 @@ var loadCollection = function(collection_keys) {
 		var item = json_store.collections[collection].item;
 		
 		if (item !== undefined) {
-			if (json_store.objects[item] === undefined) {
+			if (json_store.objects === undefined || json_store.objects[item] === undefined) {
 				var path_str = "/objects";
-				var arg_str = "fields=state,states,label,state_log&items="+item;
+				var arg_str = "fields=state,states,label,state_log,schedule,logger_status,&items="+item;
 				$.ajax({
 					type: "GET",
 					url: "/json"+path_str+"?"+arg_str,
@@ -811,13 +1027,21 @@ var loadCollection = function(collection_keys) {
 						}
 				});
 			} else {
+                var btn_direct = "";
+                if (json_store.ia7_config.objects !== undefined 
+                        && json_store.ia7_config.objects[item] !== undefined
+                        && json_store.ia7_config.objects[item].direct_control !== undefined 
+                        && json_store.ia7_config.objects[item].direct_control == "yes") {
+                    btn_direct = "btn-direct";
+                }
+
 				var name = item;
 				var color = getButtonColor(json_store.objects[item].state);
 				if (json_store.objects[item].label !== undefined) name = json_store.objects[item].label;
 				var dbl_btn = "";
 				if (name.length < 30) dbl_btn = "<br>"; 
 				var button_html = "<div style='vertical-align:middle'><button entity='"+item+"' ";
-				button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover btn-state-cmd navbutton-padding'>";
+				button_html += "class='btn  btn-"+color+" btn-lg btn-block btn-list btn-popover "+ btn_direct +" btn-state-cmd navbutton-padding'>";
 				button_html += name+dbl_btn+"<span class='pull-right'>"+json_store.objects[item].state+"</span></button></div>";
 				entity_arr.push(button_html);
 				items += item+",";		
@@ -868,12 +1092,47 @@ var loadCollection = function(collection_keys) {
 	// if any items present, then create modals and activate updateItem...
 	if (items !== "") {
 		items = items.slice(0,-1); //remove last comma
-		//console.log("items="+items);
-		$('.btn-state-cmd').click( function () {			
-			var entity = $(this).attr("entity");
-			//console.log("entity="+entity);
-			create_state_modal(entity);
-		});
+        $('.btn-state-cmd').click( function () {			
+            var entity = $(this).attr("entity");
+            if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
+                    var new_state = "";
+                    var possible_states = 0;
+                    for (var i = 0; i < json_store.objects[entity].states.length; i++){
+                        if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
+                        possible_states++;
+                        if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i];
+
+                    }
+                    if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
+                    url= '/SET;none?select_item='+entity+'&select_state='+new_state;
+                    $.get( url);
+                } else {
+                    create_state_modal(entity);
+                }
+            }
+            else {
+                create_state_modal(entity);
+            }
+        }
+        );
+        $(".btn-state-cmd").mayTriggerLongClicks().on( 'longClick', function() {		
+            var entity = $(this).attr("entity");
+            create_state_modal(entity);
+        });						
+			
+		$('.btn-resp-modal').click( function () {			
+			var url = $(this).attr('href');
+			alert("resp-model. opening url="+url);
+			$.get( url, function(data) {
+				var start = data.toLowerCase().indexOf('<body>') + 6;
+				var end = data.toLowerCase().indexOf('</body>');
+				$('#lastResponse').find('.modal-body').html(data.substring(start, end));
+				$('#lastResponse').modal({
+					show: true
+				});
+			});
+		});		
 // test multiple items at some point
 		updateItem(items);
 	}	
@@ -893,6 +1152,18 @@ function buildLink (link, collection_keys){
 	}
 	link += "_collection_key="+ collection_keys;
 	return link;
+}
+
+//Called froms static pages. Grabs collection key from URL to modify static href="/ia7" links
+function fixIA7Nav() {
+
+	var url = $(location).attr('href');
+	var collid = url.split("_collection_key=");
+	$('a').each(function() {
+		if ($(this).attr('href').match("^/ia7/")) {
+  			this.href += '&_collection_key='+collid[1]+',';
+  		}
+	});
 }
 
 //Outputs a constantly updating print log
@@ -942,6 +1213,101 @@ var print_log = function(type,time) {
 	});
 };
 
+
+var get_notifications = function(time) {
+	if (time === undefined) time = new Date().getTime();
+	if (updateSocketN !== undefined && updateSocketN.readyState != 4){
+		// Only allow one update thread to run at once
+		console.log ("Notify aborted "+updateSocketN.readyState);
+		updateSocketN.abort();
+	}
+	var arg_str = "long_poll=true&time="+time;	
+	var path_str = "/notifications";
+	updateSocketN = $.ajax({
+		type: "GET",
+		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
+		dataType: "json",
+		success: function( json, statusText, jqXHR ) {
+			var requestTime = time;	
+			if (jqXHR.status == 200) {
+				if (json.data !== undefined) {
+					for (var i = 0; i < json.data.length; i++){
+						var url = String(json.data[i].url);
+						var mode = String(json.data[i].mode);
+						var text = String(json.data[i].text);
+						var type = String(json.data[i].type);
+						var color = String(json.data[i].color);
+
+						if ((type == "sound" ) || ((type == "speech") && (speech_sound == "yes"))) {
+							audio_play(document.getElementById('sound_element'),url)	
+						}
+						if (type == "banner" || ((type == "speech") && (speech_banner == "yes"))) {
+							var alert_type = "info";
+							if (color !== undefined) {
+								if (color == "green") {
+									alert_type = "success";
+								} else if (color == "red") {
+									alert_type = "danger";
+								} else if (color == "yellow") {
+									alert_type = "warning";
+								}
+							}
+							var mobile = "";
+							if ($(window).width() <= 768) { // override the responsive mobile top-buffer
+							  mobile = "mobile-alert";
+							  //console.log ("mobile notification");
+							}
+							$("#alert-area").append($("<div class='alert-message alert alerts "+mobile+" alert-" + alert_type + " fade in' data-alert><p><i class='fa fa-info-circle'></i><strong>  Notification:</strong> " + text + " </p></div>"));
+   	 						$(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+						}
+						if (type == "alert") {
+							jAlert(text,'MH Notifications');
+						}
+					}
+				}
+				requestTime = json.meta.time;				
+			}
+			if (jqXHR.status == 200 || jqXHR.status == 204) {
+					get_notifications(requestTime);
+				}
+		}
+	});
+};
+
+var mobile_device = function() {
+	//placeholder to turn on webaudio in the future
+	var device = "no";
+	if (navigator.userAgent.match(/(iPod|iPhone|iPad)/))
+		device = "ios";
+	if (navigator.userAgent.match(/Android/))
+		device = "android";
+	return device;
+}
+
+function audio_play(audioElement,srcUrl)
+{
+  audioElement.pause();
+  audioElement.src=''; //force playback to stop and quit buffering. Not sure if this is strictly necessary.
+  $("#sound_element2").attr("src", srcUrl);  //needed for mobile
+  audioElement.src=srcUrl;
+  audioElement.currentSrc=srcUrl;
+  audioElement.load();
+  playWhenReady();
+}
+
+function playWhenReady()
+{//wait for media element to be ready, then play
+  audioElement=document.getElementById('sound_element');
+  var audioReady=audioElement.readyState;
+  if(audioReady>2) {
+    audioElement.play();
+  } else if(audioElement.error) {
+      var errorText=['(no error)','User interrupted download','Network error caused interruption','Miscellaneous problem with media data','Cannot actually decode this media'];
+      console.log("Something went wrong!\n"+errorText[audioElement.error.code]);
+  } else { //check for media ready again in half a second
+      setTimeout(playWhenReady,500);
+  }
+}
 
 //Creates a table based on the $json_table data structure. desktop & mobile design
 var display_table = function(table,records,time) {
@@ -1082,6 +1448,15 @@ var graph_rrd = function(start,group,time) {
 				dropdown_html += '</ul></div>';
 				
 				$('#rrd-periods').append(dropdown_html);
+				
+				var last_timestamp = "unavailable";
+				if (json.data.last_update !== undefined) {
+					last_timestamp = new Date(json.data.last_update);
+				}
+				//Update the footer database updated time
+				$('#Last_updated').remove();		
+				$('#footer_stuff').prepend("<div id='Last_updated'>RRD Database Last Updated:"+last_timestamp+"</div>");
+				
 
 				$('.dropdown').on('click', '.dropdown-menu li a', function(e){
 					e.stopPropagation();
@@ -1204,43 +1579,439 @@ var graph_rrd = function(start,group,time) {
 	});
 };
 
-var floorplan = function(group,time) {
+var object_history = function(items,start,days,time) {
+
 	var URLHash = URLToHash();
-	var baseimg_width;
+	var graph = 0;
+	if (developer) graph = 1;  //right now only show the graph if in developer mode
 	if (typeof time === 'undefined'){
-  		$('#list_content').html("<div id='floorplan' class='row top-buffer'>");
-  		$('#floorplan').append("<div id='graphic' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-  		time = 0;
-  		$('#graphic').prepend('<center><img id="fp_graphic" width="" src="/ia7/graphics/floorplan-'+group+'.png" /></center>');
-  		baseimg_width = $(window).width();
-    	if (baseimg_width > 990) baseimg_width = 800;
-    	$('#fp_graphic').attr("width",baseimg_width+"px");
-  	}
-  	
- 	if (updateSocket !== undefined && updateSocket.readyState != 4){
-  		// Only allow one update thread to run at once
-  		updateSocket.abort();
- 	} 
-	//resize window if changed
-	window.onresize = function(){
-    	baseimg_width = $(window).width();
-   		if (baseimg_width > 990) baseimg_width = 800;
-    	$('#fp_graphic').attr("width",baseimg_width+"px");
-    	// update the location of all the objects...
-    	$(".floorplan_item").each(function(index) {
-    		var classstr = $(this).attr("class");
-    		var coords = classstr.split(/coords=/)[1];
-    		var fp_location = coords.split(/x/);
-    		var location = get_fp_location(fp_location,0);
-    		//alert("fp_location="+fp_location+" location="+location); 
-    		$(this).attr("style",location);
-//iphone scale
-			var baseimg_width = $(window).width();
-			if (baseimg_width < 500) {
-      			$(this).attr('src',$(this).attr('src').replace('48.png','32.png'))
-			} else {
-			    $(this).attr('src',$(this).attr('src').replace('32.png','48.png'))
+		if (graph) {
+			$('#list_content').html("<div id='top-graph' class='row top-buffer'>");
+			$('#top-graph').append("<div id='hist-periods' class='row'>");		
+			$('#top-graph').append("<div id='hist-graph' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
+			$('#top-graph').append("<div id='hist-legend' class='rrd-legend-class'><br>");
+		} else {
+			$('#list_content').html("<div id='hist-table' class='row top-buffer'>");
+			$('#hist-table').append("<div id='hist-periods' class='row'>");					
+			$('#hist-table').append("<div id='rtable' class='hist-table-margin col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
+		}
+		time = 0;
+	}
+		
+	URLHash.time = time;
+	URLHash.long_poll = 'true';
+	if (updateSocket !== undefined && updateSocket.readyState != 4){
+		// Only allow one update thread to run at once
+		updateSocket.abort();
+	}	
+	var path_str = "/history"  
+	arg_str = "&items="+items+"&days="+days+"&graph="+graph+"&time="+time;
+	if (start !== undefined) arg_str += "&start="+start;
+	updateSocket = $.ajax({
+		type: "GET",
+		//url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+		url: "/json"+path_str+"?"+arg_str,		
+		dataType: "json",
+		success: function( json, statusText, jqXHR ) {
+			var requestTime = time;
+			if (jqXHR.status == 200) {
+				JSONStore(json);
+				// HP should probably use jquery, but couldn't get sequencing right.
+				// HP jquery would allow selected values to be replaced in the future.
+
+				if (json.data.data !== undefined) {  //If no data, at least show the header and an error
+//TODO
+				}	
+				if (start == undefined) {
+					start = new Date().getTime();
+				} else {
+					start = start * 1000; //js works in ms
+				}
+				if (days == undefined) days = 0;
+				var end = start - (days * 24 * 60 * 60 * 1000);
+				var start_date = new Date(start);
+				var end_date = new Date(end);
+				
+//				var start_value = (start_date.getMonth() + 1)+"/"+start_date.getDate()+"/"+start_date.getFullYear();
+//				var end_value = (end_date.getMonth() + 1)+"/"+end_date.getDate()+"/"+end_date.getFullYear();
+				var start_value = start_date.getFullYear()+"-"+(start_date.getMonth() + 1)+"-"+start_date.getDate();
+				var end_value = end_date.getFullYear()+"-"+(end_date.getMonth() + 1)+"-"+end_date.getDate();
+								
+				var datepicker_html = '<div class="input-group input-daterange" id="datepicker">';
+    			datepicker_html += '<input type="text" class="form-control hist_end" value="'+end_value+'">';
+    			datepicker_html += '<span class="input-group-addon">to</span>';
+   				datepicker_html += '<input type="text" class="form-control hist_start" value="'+start_value+'">';
+   				datepicker_html += '<span class="input-group-btn"><button type="button" class="btn btn-default update_history">Update</button></span></div>';
+				$('#hist-periods').append('<div id="row0" class="hist-datepicker col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">'+datepicker_html+'</div>');
+				//$('.input-daterange input').each(function() {
+    			//	$(this).datepicker();
+				//});
+				$('#datepicker').datepicker({
+					format: "yyyy-m-d"
+				});
+				
+				$('.update_history').click(function() {
+					//var new_start = new Date($('.hist_start').val().split('-')).getTime();
+					var new_start = new Date($('.hist_start').val().replace(/-/g, "/")).getTime();
+					var new_end = new Date($('.hist_end').val().replace(/-/g, "/")).getTime();					
+					var end_days = (new_start - new_end) / (24 * 60 * 60 * 1000)
+					new_start = new_start / 1000;
+					object_history(items,new_start,end_days);
+				});
+				// graphing view
+				if (graph) {
+					//sort the legend
+					json.data.data.sort(function(a, b){
+    					if(a.label < b.label) return -1;
+    					if(a.label > b.label) return 1;
+    					return 0;
+					})
+					// put the selection list on the side.
+					for (var i = 0; i < json.data.data.length; i++){
+						var legli = $('<li style="list-style:none;"/>').appendTo('#hist-legend');
+						$('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
+						$('<label>', {
+							class: "rrd-legend-class",
+							text: json.data.data[i].label,
+				    		'for': json.data.data[i].label
+							}).appendTo(legli);
+					}
+					function plotAccordingToChoices() {
+    					var data = [];
+
+    					$('#hist-legend').find("input:checked").each(function() {
+        					var key = this.name;
+        					for (var i = 0; i < json.data.data.length; i++) {
+            					if (json.data.data[i].label == key) {
+                					data.push(json.data.data[i]);
+                					return true;
+           		 				}
+       		 				}
+    					});
+    					// take away the border so that it looks better and span the graph from start to end.
+    					json.data.options.grid.borderWidth = 0;
+
+						json.data.options.xaxis.min = new Date($('.hist_end').val().split('-')).getTime();
+ 						json.data.options.xaxis.max = new Date($('.hist_start').val().split('-')).getTime() + (24 * 60 * 60 * 1000);
+                		
+    					$.plot($("#hist-graph"), data, json.data.options);
+    					$('.legend').hide();	
+					}
+		
+					window.onresize = function(){
+    					var base_width = $(window).width();
+   						//if (base_width > 990) base_width = 990;
+   						// styling changes @992, so then add a 30 right and left margin
+   						var graph_width = base_width - 200; //give some room for the legend
+						if (base_width < 701) {
+							//put legend below graph
+							graph_width=base_width; // - 10;
+						} 
+    					$('#hist-graph').css("width",graph_width+"px");
+    					$('#hist-graph').text(''); 
+    					$('#hist-graph').show(); //check
+    					plotAccordingToChoices();
+
+					}
+
+					var previousPoint = null;
+
+					$("#hist-graph").bind("plothover", function(event, pos, item) {
+    					$("#x").text(pos.x.toFixed(2));
+    					$("#y").text(pos.y.toFixed(2));
+    					if (item) {
+        					if (previousPoint != item.datapoint) {
+            				previousPoint = item.datapoint;
+            				$("#tooltip").remove();
+            				var x = item.datapoint[0].toFixed(2),
+                			y = item.datapoint[1].toFixed(2);
+							var date = new Date(parseInt(x));
+							var date_str = date.toString(); //split("GMT")[0];
+							var nice_date = date_str.split(" GMT")[0];
+            				showTooltip(item.pageX, item.pageY, item.series.label + " " + y + "<br>" + nice_date);
+        					}
+    					} else {
+        					$("#tooltip").remove();
+        					previousPoint = null;
+    					}	
+					});
+
+					function showTooltip(x, y, contents) {
+    					$('<div id="tooltip">' + contents + '</div>').css({
+        					position: 'absolute',
+        					display: 'none',
+        					top: y + 5,
+        					left: x + 15,
+        					border: '1px solid #fdd',
+        					padding: '2px',
+        					backgroundColor: '#fee',
+        					opacity: 0.80
+    					}).appendTo("body").fadeIn(200);
+					}
+
+					window.onresize(); // get all settings based on current window size
+					plotAccordingToChoices();
+
+					$('#hist-legend').find("input").change(plotAccordingToChoices);		
+
+					$('.legendColorBox > div > div').each(function(i){
+						var color = $(this).css("border-left-color");
+    					$('#hist-legend').find("li").eq(i).prepend('<span style="width:4px;height:4px;border: 0px;background: '+color+';">&nbsp;&nbsp;&nbsp;</span>&nbsp');
+					});
+				} else {
+					// table
+					var html = "<table class='table table-curved'><thead><tr>";
+					html += "<th>Time</th><th>State</th><th>Set By</th>";
+					html += "</tr></thead><tbody>";
+					if (json.data.data !== undefined) {  //If no data, at least show the header
+						json.data.data.reverse();
+						for (var i = 0; i < json.data.data.length; i++){
+							html +="<tr>";
+					  		html += "<td data-title='Time'>"+new Date(json.data.data[i][0]).toString().replace(/GMT-\d\d\d\d/,"")+"</td>";
+					  		html += "<td data-title='State'>"+String(json.data.data[i][1])+"</td>";
+					  		html += "<td data-title='Setby'>"+String(json.data.data[i][2])+"</td>";
+							html += "</tr>";
+						}
+					}
+					html += "</tbody></table></div>";
+					$('#rtable').html(html);
+				}	
+				requestTime = json.meta.time;
+
 			}
+			if (jqXHR.status == 200 || jqXHR.status == 204) {
+				//Call update again, if page is still here
+				//KRK best way to handle this is likely to check the URL hash
+//TODO live updates
+			}		
+		}
+	});
+};
+
+
+
+/////////////// Floorplan //////////////////////////////////////////////////////////
+var fp_display_width=0; // updated by fp_resize_floorplan_image
+var fp_display_height=0; // updated by fp_resize_floorplan_image
+var fp_scale = 100; // updated by fp_reposition_entities
+var fp_grabbed_entity = null; // store item for drag & drop
+var fp_icon_select_item_id = null; // store item id on right click for icon set selection
+var fp_icon_image_size = 48;
+
+var noDragDrop = function() {
+    return false;
+};
+
+var fp_getOrCreateIcon = function (json, entity, i, coords){
+    var popover = 0;
+    if ((json.data[entity].type === "FPCamera_Item") || (json_store.ia7_config.prefs.fp_state_popovers === "yes"))
+        popover = 1;
+
+    var popover_html = "";
+    if (popover)
+        popover_html = 'data-toggle="popover" data-trigger="focus" tabindex="0"';
+
+    var entityId = 'entity_'+entity+'_'+i;
+    if ($('#' + entityId).length === 0) {
+        var html = '<span style="display: inline-block">'  + // this span somehow magically make resizing the icons work
+                '<a title="'+entity+'"><img '+popover_html+' ' +
+                'id="'+entityId+'"' +
+                'class="entity='+entityId+' floorplan_item coords='+coords+'" '+
+                '></img></a>'+
+                '</span>';
+        if (coords !== ""){
+            $('#graphic').append(html);
+        }
+        else {
+            $('#fp_positionless_items').append(html);
+        }
+    }
+    var E = $('#'+entityId);
+    E.bind("dragstart", noDragDrop);
+    var image = get_fp_image(json.data[entity]);
+    E.attr('src',"/ia7/graphics/"+image);
+    if (developer)
+        E.css("border","1px solid black");
+
+    return E;
+};
+
+var fp_resize_floorplan_image = function(){
+    var floor_width = $("#fp_graphic").width();
+    $("#fp_graphic").attr("width", "1px");
+
+    fp_display_width = $("#graphic").width();
+    $('#fp_graphic').attr("width",fp_display_width+"px");
+    fp_display_height = $("#fp_graphic").height();
+};
+
+var fp_reposition_entities = function(){
+    var t0 = performance.now();
+    var fp_graphic_offset = $("#fp_graphic").offset();
+//    console.log("fp_graphic_offset: "+ JSON.stringify(fp_graphic_offset));
+    var width = fp_display_width;
+    var hight = fp_display_height;
+    var onePercentWidthInPx = width/100;
+    var onePercentHeightInPx = hight/100;
+    var fp_get_offset_from_location = function(item) {
+        var y = item[0];
+        var x = item[1];
+        var newy = fp_graphic_offset.top +  y * onePercentHeightInPx;
+        var newx = fp_graphic_offset.left +  x * onePercentWidthInPx;
+        return {
+            "top": newy,
+            "left": newx
+        };
+    };
+//    var nwidth = $("#fp_graphic").get(0).naturalWidth;
+//    var nwidth = $("#fp_graphic").width();
+    var nwidth;
+//There are 2 sizing jumps in bootstrap.min.css one at 992 and another at 1200
+//Scale icons if less than 991
+//1-991
+//@992 = 821 (171)
+//@993 = 822
+//@995 = 824
+//@994 = 828   (166)
+//@1100 = 991 (109)
+//@1200 = 790
+    if (width < 992) {
+    	nwidth = 992;
+    } else if (width < 1200) {
+    	nwidth = 822;
+    } else {
+    	nwidth = 790;
+    }
+    var fp_scale =  width/nwidth;
+    var fp_scale_percent = Math.round( fp_scale * 100);
+    
+    // update the location of all the objects...
+    $(".floorplan_item").each(function(index) {
+        var classstr = $(this).attr("class");
+        var coords = classstr.split(/coords=/)[1];
+        $(this).width(fp_scale_percent + "%");
+
+        if (coords.length === 0){
+            return;
+        }
+        var fp_location = coords.split(/x/);
+        var fp_offset =  fp_get_offset_from_location(fp_location);
+
+        var element_id = $(this).attr('id');
+        var adjust = fp_icon_image_size*fp_scale/2;
+        var fp_off_center = {
+            "top":  fp_offset.top - adjust,
+            "left": fp_offset.left - adjust
+        };
+        fp_set_pos(element_id, fp_off_center);
+    });
+
+	$('.icon_select img').each(function(){
+        $(this).width(fp_scale_percent + "%");
+	});
+    var t1 = performance.now();
+    //console.log("FP: reposition and scale: " +Math.round(t1 - t0) + "ms ");
+};
+
+var fp_show_all_icons = function() {
+
+    $(".floorplan_item").each(function(index) {
+		$(this).show();
+	});
+};
+
+var fp_set_pos = function(id, offset){
+    var item =  $('#' + id);
+    // do not move the span, this make the popup to narrow somehow
+    // item.closest("span").offset(offset);
+    item.offset(offset);
+
+};
+
+var fp_is_point_on_fp = function (p){
+    var offset = $("#fp_graphic").offset();
+    var width = $("#fp_graphic").width();
+    var height = $("#fp_graphic").height();
+    if (p.top < offset.top)
+        return false;
+    if (p.top > offset.top + height)
+        return false;
+    if (p.left < offset.left)
+        return false;
+    if (p.left > offset.left + width)
+        return false;
+
+    return true;
+};
+
+var floorplan = function(group,time) {
+    var URLHash = URLToHash();
+    var baseimg_width;
+    if (typeof time === 'undefined'){
+        //var window_width = $(window).width();
+        $('#list_content').html("<div id='floorplan' class='row top-buffer'>");
+        if (developer){
+            // add elememnts to show current position on floorplan
+            $('#floorplan').append("<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'><ol>" +
+                    "<li>grab icon and drop it on apropriate position on the flooplan</li>" +
+                    "<li>right click item to select another iconset</li>"+
+                    "<li>to remove the item from the perl code drop it besides the fp background image</li>"+
+                    "<li>repeat 1/2/3 for all items you'd like to change</li>"+
+                    "<li>copy the generated perl code into your usercode file</li>" +
+                    "</ol>" +
+                    "<center>y,x = <span id='debug_pos'></span>" +
+                    "</center></div>");
+        }
+        $('#floorplan').append("<div id='graphic' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+        time = 0;
+        $('#graphic').prepend('<center><img id="fp_graphic" border="1"  /></center>');
+        if (developer){
+            $('#fp_graphic').css("border","1px solid black");
+            $('#list_content').append("<div id='fp_positionless_items' />");
+            $('#list_content').append("<pre id='fp_pos_perl_code' />");
+        }
+        $('#fp_graphic').bind("load", function () {
+//            console.log("FP: background loaded.");
+            fp_resize_floorplan_image();
+            floorplan(group, time);
+        });
+        var base_img_dir = '/ia7/graphics';
+		if (json_store.ia7_config.prefs.floorplan_baseimg_dir !== undefined) base_img_dir = json_store.ia7_config.prefs.floorplan_baseimg_dir;
+        $('#fp_graphic').attr("src", base_img_dir+'/floorplan-'+group+'.png');
+        return;
+    }
+
+    if (updateSocket !== undefined && updateSocket.readyState !== 4){
+        // Only allow one update thread to run at once
+        updateSocket.abort();
+    }
+
+    if (developer){
+        // update positon
+
+        $(document).mousemove(function(e){
+            var offset = $("#fp_graphic").offset();
+            var width = $("#fp_graphic").width();
+            var hight = $("#fp_graphic").height();
+            var  l = e.pageX - offset.left;
+            var  t = e.pageY - offset.top;
+
+            //var pos =   Math.round((t/hight) *100) +"," + Math.round((l/width)*100);
+            var pos =  (t/hight) *100 +"," + (l/width)*100;
+            //console.log("floorplanpos: " + pos );
+            $('#debug_pos').text(pos);
+            if (fp_grabbed_entity !== null){
+                //var itemCenterOffset = Math.round(fp_grabbed_entity.width/2);
+                var itemCenterOffset = fp_grabbed_entity.width/2;
+                var newPos = {
+                    "top": e.pageY - itemCenterOffset,
+                    "left": e.pageX - itemCenterOffset
+                };
+                fp_set_pos(fp_grabbed_entity.id, newPos);
+                //console.log(fp_grabbed_entity.id +" pos: " +newPos.top + " x " + newPos.left);
+                //fp_grabbed_entity.class.replace("coords=.*", "coords="+pos);
+            }
+        });
 
 		});
 	}
@@ -1345,35 +2116,10 @@ var floorplan = function(group,time) {
 									return html
 								}
 
-								});
-							} else {
-								$('#entity_'+entity+'_'+i).click( function () {
-									//var fp_entity = $(this).attr("id").split(/entity_/)[1]; //
-									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
-									//alert("entity="+fp_entity);
-									create_state_modal(fp_entity);
-								});	
-							}
-							$('#entity_'+entity+'_'+i).mayTriggerLongClicks().on( 'longClick', function() {		
-									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
-									create_state_modal(fp_entity);
-							});	
-						}
- 					}
- 				}
-    			requestTime = json.meta.time;
-   			 }
-   			if (jqXHR.status == 200 || jqXHR.status == 204) {
-    		//Call update again, if page is still here
-    		//KRK best way to handle this is likely to check the URL hash
-    			if ($('#floorplan').length !== 0){
-     				//If the floorplan page is still active request more data
-     				floorplan(group,requestTime);
-    			}
-    		}
-   		}  
- 	});
-};
+            set_coordinates_from_offset(fp_grabbed_entity.id);
+            fp_reposition_entities();
+            fp_grabbed_entity = null;
+        });
 
 //have to figure out height, and the jumps at 991 and 1200
 var get_fp_location = function(item,index) {
@@ -1391,29 +2137,351 @@ var get_fp_location = function(item,index) {
   		}
   		baseimg_width = 800;
 
-  	}
-  	var location = "position: absolute; ";
-  	var top = parseInt((baseimg_height * item[index] / 100)+tmargin);
-  	var left = parseInt((baseimg_width * item[index+1] / 100)+lmargin);
-  	//console.log("baseimg_width="+baseimg_width+" top="+top+" left="+left); 
-  	location += "top: "+top+"px;";
-  	location += "left: "+left+"px";
-  	return location;
-}
+    var set_coordinates_from_offset = function (id)
+    {
+        var E = $('#'+id);
+        var offsetE = E.offset();
+        offsetE.top += E.width()/2;
+        offsetE.left += E.width()/2;
+        var offsetP = $("#fp_graphic").offset();
+        var width = fp_display_width;
+        var hight = fp_display_height;
+        var onePercentWidthInPx = width/100;
+        var onePercentHeightInPx = hight/100;
 
+        var newy =  (offsetE.top - offsetP.top) / onePercentHeightInPx;
+        var newx =  (offsetE.left - offsetP.left) / onePercentWidthInPx;
+        var coords = newy+"x"+newx;
+        var name = id.match(/entity_(.*)_(\d)+$/)[1];
+        var codeLines = $("#fp_pos_perl_code").text().split('\n');
+        var newCode = "";
+        if (fp_is_point_on_fp(offsetE) === false){
+            E.attr("class", "entity="+id+" floorplan_item coords=");
+            E.attr("src", "/ia7/graphics/fp_unknown_info_48.png");
+            for (var i = 0; i< codeLines.length; i++)
+            {
+                var line = codeLines[i];
+                if (line.startsWith("$"+name) === false && line !== "")
+                {
+                    newCode += line + "\n";
+                }
+            }
+        }
+        else{
+            E.attr("class", "entity="+id+" floorplan_item coords="+coords);
+            var coordIdx = id.match(/entity_(.*)_(\d)+$/)[2];
+
+            var itemUpdated = false;
+            for (var i = 0; i< codeLines.length; i++)
+            {
+                var line = codeLines[i];
+                if (line.startsWith("$"+name+"->set_fp_location"))
+                {
+                    var m = line.match(/.*\((.*)\).*/);
+                    oldCoords = m[1].split(",");
+                    oldCoords[+coordIdx] = newy;
+                    oldCoords[+coordIdx+1] = newx;
+                    var newline = "$" + name + "->set_fp_location("+ oldCoords.join(",") + ");\n";
+                    newCode += newline;
+                    itemUpdated = true;
+                }
+                else if (line !== "")
+                {
+                    newCode += line + "\n";
+                }
+            }
+            if (itemUpdated === false)
+            {
+                var newline = "$" + name + "->set_fp_location("+ newy +","+ newx + ");\n";
+                newCode += newline;
+            }
+        }
+        newCode = newCode.split('\n').sort().join('\n');
+        $("#fp_pos_perl_code").text(newCode);
+    };
+
+    // reposition on window size change
+    window.onresize = function(){
+        if ($('#floorplan').length === 0)
+        {
+            window.onresize = null;
+            return;
+        }
+
+//        console.log("FP: window resized");
+        fp_resize_floorplan_image();
+        fp_reposition_entities();
+    };
+
+    var path_str = "/objects";
+    var fields = "fields=fp_location,state,states,fp_icons,schedule,logger_status,fp_icon_set,img,link,label,type";
+    if (json_store.ia7_config.prefs.state_log_show === "yes")
+        fields += ",state_log";
+
+    var arg_str = "parents="+group+"&"+fields+"&long_poll=true&time="+time;
+
+    updateSocket = $.ajax({
+        type: "GET",
+        url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+        dataType: "json",
+        error: function(xhr, textStatus, errorThrown){
+            //   console.log('FP: request failed: "' + textStatus + '" "'+JSON.stringify(errorThrown, undefined,2)+'"');
+        },
+        success: function( json, statusText, jqXHR ) {
+            //  console.log('FP: request succeeded: "' + statusText + '" "'+JSON.stringify(jqXHR, undefined,2)+'"');
+            var requestTime = time;
+            if (jqXHR.status === 200) {
+                var t0 = performance.now();
+                JSONStore(json);
+                for (var entity in json.data) {
+                    if (developer && requestTime === 0){
+                        perl_pos_coords = "";
+                    }
+                    for (var i=0 ; i < json.data[entity].fp_location.length-1; i=i+2){ //allow for multiple graphics
+                        var popover = 0;
+                        if ((json.data[entity].type === "FPCamera_Item") || (json_store.ia7_config.prefs.fp_state_popovers === "yes"))
+                            popover = 1;
+
+                        if (developer && requestTime === 0){
+                            if (perl_pos_coords.length !== 0){
+                                perl_pos_coords += ", ";
+                            }
+                            perl_pos_coords += "" + json.data[entity].fp_location[i]+','+json.data[entity].fp_location[i+1];
+                        }
+
+                        var coords= json.data[entity].fp_location[i]+'x'+json.data[entity].fp_location[i+1];
+                        var E = fp_getOrCreateIcon(json, entity, i, coords, developer);
+
+                        if (developer === false)
+                        {
+                            // create unique popovers for Camera items
+                            if (json.data[entity].type === "FPCamera_Item") {
+                                var name = entity;
+                                if (json.data[entity].label !== undefined)
+                                    name = json.data[entity].label;
+
+                                var a_start = "";
+                                var a_end = "";
+                                if (json.data[entity].link !== undefined) {
+                                    a_start = '<a href="'+json.data[entity].link+'">';
+                                    a_end = '</a>';
+                                }
+
+                                $('[data-toggle="popover"]').popover({
+                                    placement : 'auto bottom', //placement of the popover. also can use top, bottom, left or right
+                                    title : name,
+                                    html: 'true', //needed to show html of course
+                                    content : '<div id="popOverBox">'+a_start+'<img src="'+json.data[entity].img+'" width="251" height="201" />'+a_end+'</div>'
+                                });
+                            } else {
+                                if (popover) {
+
+                                    $('[data-toggle="popover"]').popover({
+                                        placement : 'auto bottom', //placement of the popover. also can use top, bottom, left or right
+                                        title : function() {
+                                            var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+                                            var name = fp_entity;
+                                            if (json_store.objects[fp_entity].label !== undefined) name = json_store.objects[fp_entity].label;
+                                            var ackt = E.offset();
+                                            return name+ " - "+json_store.objects[fp_entity].state;
+                                        },
+                                        html: 'true', //needed to show html of course
+                                        content : function() {
+                                            var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+                                            var po_states = json_store.objects[fp_entity].states;
+                                            var html = '<div id="popOverBox">';
+                                            // HP need to have at least 2 states to be a controllable object...
+                                            if (po_states.length > 1) {
+                                                html = '<div class="btn-group stategrp0 btn-block">';
+                                                var buttons = 0;
+                                                var stategrp = 0;
+                                                for (var i = 0; i < po_states.length; i++){
+                                                    if (filterSubstate(po_states[i]) !== 1) {
+                                                        buttons++;
+                                                        if (buttons > 2) {
+                                                            stategrp++;
+                                                            html += "</div><div class='btn-group btn-block stategrp"+stategrp+"'>";
+                                                            buttons = 1;
+                                                        }
+
+                                                        var color = getButtonColor(po_states[i]);
+                                                        //TODO disabled override
+                                                        var disabled = "";
+                                                        if (po_states[i] === json_store.objects[fp_entity].state) {
+                                                            disabled = "disabled";
+                                                        }
+                                                        html += "<button class='btn col-sm-6 col-xs-6 btn-"+color+" "+disabled+"'";
+                                                        var url= '/SET;none?select_item='+fp_entity+'&select_state='+po_states[i];
+                                                        html += ' onclick="$.get(';
+                                                        html += "'"+url+"')";
+                                                        html += '">'+po_states[i]+'</button>';
+                                                    }
+                                                }
+                                                html += "</div></div>";
+                                            }
+                                            return html;
+                                        }
+                                    });
+                                } else {
+                                    E.click( function () {
+                                        var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+                                        create_state_modal(fp_entity);
+                                    });
+                                }
+                                E.mayTriggerLongClicks().on( 'longClick', function() {
+                                    var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+                                    create_state_modal(fp_entity);
+                                });
+                            }
+                        }
+                    }
+
+                    if (developer && requestTime === 0){
+                        if (perl_pos_coords.length===0)
+                        {
+                            fp_getOrCreateIcon(json, entity, 0, "");
+                        }
+                        else{
+                            var oldCode = $('#fp_pos_perl_code').text();
+                            if (oldCode.length !== 0)
+                                oldCode += "\n";
+
+                            var perl_pos_code = "";
+                            var iconset = json.data[entity].fp_icon_set;
+                            if (iconset !== undefined){
+                                perl_pos_code += '$' + entity + '->set_fp_icon_set("';
+                                perl_pos_code += iconset + '");\n';
+                            }
+                            perl_pos_code += "$" + entity + "->set_fp_location(";
+                            perl_pos_code += perl_pos_coords + ");";
+                            perl_pos_code = oldCode  + perl_pos_code;
+                            perl_pos_code = perl_pos_code.split('\n').sort().join('\n');
+                            $('#fp_pos_perl_code').text(perl_pos_code);
+                        }
+                    }
+                }
+                fp_reposition_entities();
+                if (requestTime === 0 && developer){
+                    $('#list_content').append("<p>&nbsp;</p>");
+                    $.ajax({
+                        type: "GET",
+                        url: "/LONG_POLL?json('GET','fp_icon_sets','px=48')",
+                        dataType: "json",
+                        error: function(xhr, textStatus, errorThrown){
+                        },
+                        success: function( json, statusText, jqXHR ) {
+                            var requestTime = time;
+                            if (jqXHR.status === 200) {
+                                var iconlist = '<ul class="icon_select" style="display:none;z-index:1000;position:absolute;overflow:hidden;border:1px solid #CCC; background: #FFF; border-radius: 5px; padding: 0;">\n';
+                                var pathlist = jqXHR.responseJSON.data;
+                                for (var i = 0; i < pathlist.length; i++){
+                                    var path = pathlist[i];
+                                    iconlist += "<il  style='float:left;padding:1px;cursor:pointer;list-style-type:none;transition:all .3s ease;'>";
+                                    iconlist += "<img src='"+path+"' size='"+fp_scale+"%'/></il>\n";
+                                }
+                                iconlist += "<il  style='float:left;padding:1px;cursor:pointer;list-style-type:none;transition:all .3s ease;'>";
+                                iconlist += "</ul>\n";
+                                $('#list_content').append(iconlist);
+
+                                // Trigger action when the contexmenu is about to be shown
+                                $(".floorplan_item").bind("contextmenu", function (event) {
+
+                                    event.preventDefault();
+
+                                    fp_icon_select_item_id = $(this).attr('id');
+                                    $(".icon_select").finish().toggle(100);
+                                    $(".icon_select").offset({
+                                        top: event.pageY,
+                                        left: event.pageX
+                                    });
+                                });
+
+
+                                // If the document is clicked somewhere
+                                $(document).bind("mousedown", function (e) {
+                                    if ($(e.target).parents(".icon_select").length === 0) {
+                                        $(".icon_select").hide(100);
+                                        fp_icon_select_item_id = null;
+                                    }
+                                });
+
+
+                                // If the menu element is clicked
+                                $(".icon_select img").click(function(){
+                                    var img = $(this).attr("src");
+                                    $('#'+fp_icon_select_item_id).attr('src', img);
+                                    var name = fp_icon_select_item_id.match(/entity_(.*)_(\d)+$/)[1];
+
+                                    var codeLines = $("#fp_pos_perl_code").text().split('\n');
+                                    var newCode = "";
+
+                                    var icon_set_name = img.match(/.*fp_(.*)_(.*)_48.png/)[1];
+                                    var itemUpdated = false;
+                                    for (var i = 0; i< codeLines.length; i++)
+                                    {
+                                        var line = codeLines[i];
+                                        if (line.startsWith("$"+name+"->set_fp_icon_set"))
+                                        {
+                                            var newline = "$" + name + '->set_fp_icon_set("'+ icon_set_name+ '");\n';
+                                            newCode += newline;
+                                            itemUpdated = true;
+                                        }
+                                        else if (line !== "")
+                                        {
+                                            newCode += line + "\n";
+                                        }
+                                    }
+                                    if (itemUpdated === false)
+                                    {
+                                        var newline = "$" + name + '->set_fp_icon_set("'+ icon_set_name +'");\n';
+                                        newCode += newline;
+                                    }
+                                    newCode = newCode.split('\n').sort().join('\n');
+                                    $("#fp_pos_perl_code").text(newCode);
+                                    $(".icon_select").hide(100);
+                                    fp_icon_select_item_id = null;
+                                });
+                            }
+                        }
+                    });
+                }
+                requestTime = json.meta.time;
+                var t1 = performance.now();
+            }
+            if (jqXHR.status === 200 || jqXHR.status === 204) {
+                //Call update again, if page is still here
+                //KRK best way to handle this is likely to check the URL hash
+                if ($('#floorplan').length !== 0){
+                    //If the floorplan page is still active request more data
+                    // and we are not editing the fp
+                    if (developer ===  false)
+                        floorplan(group,requestTime);
+                }
+            }
+            if (time === 0){
+                // hack to fix initial positions of the items
+                var wait = 50;
+                //console.log("FP: calling  fp in  " +wait+ "ms");
+                setTimeout(function(){
+                    //console.log("FP: calling fp after " +wait+ "ms");
+                    fp_reposition_entities();
+                }, wait);
+            }            
+        }
+    });
+};
 var get_fp_image = function(item,size,orientation) {
   	var image_name;
   	var image_color = getButtonColor(item.state)
 	var baseimg_width = $(window).width();
-  	var image_size = "48"
-  	if (baseimg_width < 500) image_size = "32" // iphone scaling
+  //	if (baseimg_width < 500) fp_icon_image_size = "32" // iphone scaling
+	//kvar fp_icon_image_size = "32"
  	if (item.fp_icons !== undefined) {
  		//alert("Has a button defined state="+item.fp_icons[item.state]);
  		if (item.fp_icons[item.state] !== undefined) return item.fp_icons[item.state];
  	}
  	if (item.fp_icon_set !== undefined) {
- 		//alert("Has a button defined state="+item.fp_icons[item.state]);
-  		return "fp_"+item.fp_icon_set+"_"+image_color+"_"+image_size+".png";
+		return "fp_"+item.fp_icon_set+"_"+image_color+"_"+fp_icon_image_size+".png";
  	} 	
  	//	if item.fp_icons.return item.fp_icons[state];
   	if(item.type == "Light_Item" || item.type == "Fan_Light" ||
@@ -1425,26 +2493,26 @@ var get_fp_image = function(item,size,orientation) {
     		item.type == "UIO_Item" || item.type == "X10_Item" ||    		
     		item.type == "xPL_Plugwise" || item.type == "X10_Appliance") {
 
-  			return "fp_light_"+image_color+"_"+image_size+".png";
+			return "fp_light_"+image_color+"_"+fp_icon_image_size+".png";
   	}
   	
-  	if(item.type == "Motion_Item" || item.type == "X10_Sensor" ||
-    		item.type == "Insteon::MotionSensor" ) {
-  			return "fp_motion_"+image_color+"_"+image_size+".png";
+	if(item.type === "Motion_Item" || item.type === "X10_Sensor" ||
+		item.type === "Insteon::MotionSensor" ) {
+			return "fp_motion_"+image_color+"_"+fp_icon_image_size+".png";
 
   	}
   	
-  	if(item.type == "Door_Item" || item.type == "Insteon::IOLinc_door") {
-  			return "fp_door_"+image_color+"_"+image_size+".png";
+	if(item.type === "Door_Item" || item.type === "Insteon::IOLinc_door") {
+			return "fp_door_"+image_color+"_"+fp_icon_image_size+".png";
 
   	}  	
 
-  	if(item.type == "FPCamera_Item" ) {
- 			return "fp_camera_default_"+image_size+".png";
+	if(item.type === "FPCamera_Item" ) {
+			return "fp_camera_default_"+fp_icon_image_size+".png";
  		}
   	
-  	return "fp_unknown_info_"+image_size+".png";
-}
+	return "fp_unknown_info_"+fp_icon_image_size+".png";
+};
 
 var create_img_popover = function(entity) {
 }
@@ -1487,38 +2555,37 @@ var create_state_modal = function(entity) {
 			
 			for (var i = 0; i < modal_states.length; i++){
 				if (filterSubstate(modal_states[i]) == 1) {
-				advanced_html += "<button class='btn btn-default col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" hidden'>"+modal_states[i]+"</button>";
-				continue 
-			} else {
-				//buttonlength += 2 + modal_states[i].length 
-				buttonlength ++;
+					advanced_html += "<button class='btn btn-default col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" hidden'>"+modal_states[i]+"</button>";
+					continue 
+				} else {
+					//buttonlength += 2 + modal_states[i].length 
+					buttonlength ++;
+				}
+				//if (buttonlength >= 25) {
+				if (buttonlength > group_buttons) {
+					stategrp++;
+					$('#control').find('.states').append("<div class='btn-group btn-block stategrp"+stategrp+"'></div>");
+					buttonlength = 1;
+				}
+				var color = getButtonColor(modal_states[i])
+				var disabled = ""
+				if (modal_states[i] == json_store.objects[entity].state) {
+					disabled = "disabled";
+				}
+				//global override
+				if (json_store.ia7_config.prefs.disable_current_state !== undefined && json_store.ia7_config.prefs.disable_current_state == "no") {
+            		disabled = "";
+				}
+				//per object override
+				if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                	if (json_store.ia7_config.objects[entity].disable_current_state !== undefined && json_store.ia7_config.objects[entity].disable_current_state == "yes") {
+                    	disabled = "disabled";
+                	} else {
+                        disabled = "";
+                	}
+				}
+			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");					
 			}
-			//if (buttonlength >= 25) {
-			if (buttonlength > group_buttons) {
-				stategrp++;
-				$('#control').find('.states').append("<div class='btn-group btn-block stategrp"+stategrp+"'></div>");
-				buttonlength = 1;
-			}
-			var color = getButtonColor(modal_states[i])
-			var disabled = ""
-			if (modal_states[i] == json_store.objects[entity].state) {
-				disabled = "disabled";
-			}
-			//global override
-			if (json_store.ia7_config.prefs.disable_current_state !== undefined && json_store.ia7_config.prefs.disable_current_state == "no") {
-            	disabled = "";
-			}
-			//per object override
-			if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
-                if (json_store.ia7_config.objects[entity].disable_current_state !== undefined && json_store.ia7_config.objects[entity].disable_current_state == "yes") {
-                                disabled = "disabled";
-                } else {
-                                disabled = "";
-                }
-			}
-			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
-						
-		}
 		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
 		$('#control').find('.states').find('.btn').click(function (){
 			url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
@@ -1529,12 +2596,160 @@ var create_state_modal = function(entity) {
 			//remove states from anything that doesn't have more than 1 state
 			$('#control').find('.states').find('.btn-group').remove();
 		}
+		
+		$('#control').find('.modal-body').find('.sched_control').remove();	
+		$('#control').find('.modal-footer').find('.sched_submit').remove();	
+		// Unique Schedule Data here
+		if (json_store.objects[entity].schedule !== undefined) {
+
+			var modify_jqcon_dow = function(cronstr,offset) {
+				var cron = cronstr.split(/\s+/);
+				cron[cron.length-1] = cron[cron.length-1].replace(/\d/gi, function adjust(x) { 
+					return parseInt(x) + parseInt(offset); 
+				});;			
+				return cron.join(" ");
+				}	
+
+			var add_schedule = function(index,cron,label,state_sets) {
+				if (cron === null) return;
+				if (label == undefined) label = index;
+				var sched_label_html = "<div class='col-md-3 sched_label' value='"+cron+"'><input type='text' class='form-control sched"+index+"label' id='"+index+"' value='"+label+"'></div>"
+				if (state_sets[0] !== null) {
+					var display_label = label
+					if (display_label.length > 7) display_label = display_label.substring(0,6)+"..";
+					sched_label_html = "<div class='col-md-3 sched_label dropdown'><button type='button' class='btn btn-default btn-list-dropdown dropdown-toggle sched_dropdown sched"+index+"label' id='"+index+"' value='"+label+"' style='width: 100%;' data-target='#' data-toggle='dropdown'>"+display_label+"</button><ul class='dropdown-menu sched-dropdown-menu'>";					
+					for (var i = 0; i < state_sets.length; i++){
+					    sched_label_html += "<li><a href='javascript: void(0)'id='"+index+"'>"+state_sets[i]+"</a></li>";
+					}
+					sched_label_html += "</ul></div>";
+				}
+				var sched_row_html = "<div class='row schedule_row schedule"+index+"entry'>"+sched_label_html+"<div id='"+index+"' class='schedule"+index+" sched_cron col-md-8 cron-data'></div><div class='sched_rmbutton col-md-1 sched"+index+"button'><button type='button' id='schedule"+index+"' class='pull-left btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></div></div>"
+				$('#control').find('.sched_control').append("<div class='cron_entry' id='"+index+"' value='"+cron+"'><span style='display:none' id='"+index+"' label='"+label+"' class='mhsched schedule"+index+"value'></span></div>");	
+				$('#control').find('.sched_control').append(sched_row_html);
+
+				$('.schedule'+index).jqCron({
+					enabled_minute: true,
+					multiple_dom: true,
+					multiple_month: false,
+					multiple_mins: true,
+					multiple_dow: true,
+					multiple_time_hours: true,
+					multiple_time_minutes: true,
+					default_period: 'week',
+					default_value : cron,
+					no_reset_button: true,
+					numeric_zero_pad: true,
+					label: index,
+					bind_to: $('.schedule'+index+'value'),
+		        	bind_method: {
+            			set: function($element, value) {
+                			$element.html(value);
+                			$('.sched_submit').removeClass('disabled');  
+                			$('.sched_submit').removeClass('btn-default');  
+                			$('.sched_submit').addClass('btn-success');              			      			
+           				 	}	
+           			},		
+					lang: 'en'
+				});	
+				$('#control').find('.form-control').change(function() {
+					$('.schedule'+$(this).attr("id")+'value').attr("label",$(this).val());
+                	$('.sched_submit').removeClass('disabled');  
+                	$('.sched_submit').removeClass('btn-default');  
+                	$('.sched_submit').addClass('btn-success'); 					
+				});
+				// So that the label and cron cell row heights line up
+				$('.cron-data').resize(function() {
+		    		$(".sched"+$(this).attr("id")+"label").height($(this).height()-12);  		
+				});
+				$('.dropdown-menu li a').on('click',function() {
+					if 	(display_mode == "simple") return;
+					$('.schedule'+$(this).attr("id")+'value').attr("label",$(this).text());	
+					var display_label = $(this).text();
+					if (display_label.length > 7) display_label = display_label.substring(0,6)+"..";
+				    $(".sched"+$(this).attr("id")+"label").text(display_label);
+				    $(".sched"+$(this).attr("id")+"label").val($(this).text());
+            		$('.sched_submit').removeClass('disabled');  
+            		$('.sched_submit').removeClass('btn-default');  
+            		$('.sched_submit').addClass('btn-success');				    
+				});
+				$('#control').find('.schedule'+index).find('.schedule_row').append("<span class='input-group-addon'><button type='button' id='schedule"+index+"' class='btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></span>");		
+				$('.schedrm').on('click', function(){
+					var sched_id = $( this ).attr("id")
+					$('.'+sched_id+'entry').remove();
+					$('.'+sched_id+'value').remove();
+	                $('.sched_submit').removeClass('disabled');  
+                	$('.sched_submit').removeClass('btn-default');  
+                	$('.sched_submit').addClass('btn-success');
+				});
+			}
+
+			$('#control').find('.modal-body').append("<div class='sched_control'><span><h4>Schedule Control<button type='button' class='pull-right btn btn-success btn-xs schedadd'><i class='fa fa-plus'></i></button></h4></span>");
+			var sched_states = json_store.objects[entity].schedule[0][3];
+			for (var i = 1; i < json_store.objects[entity].schedule.length; i++){
+				var sched_index = json_store.objects[entity].schedule[i][0];
+				var sched_cron = modify_jqcon_dow(json_store.objects[entity].schedule[i][1],1);
+				var sched_label = json_store.objects[entity].schedule[i][2];
+				add_schedule(sched_index,sched_cron,sched_label,sched_states);	
+			}
+			
+			$('#control').find('.modal-footer').prepend('<button class="btn btn-default disabled sched_submit">Submit</button>');      	
+
+			$('.schedadd').on('click', function(){
+				var newid = Number($('.cron_entry:last').attr("id"))+1;
+				if (isNaN(newid)) newid=1;
+				var newlabel = newid;
+				if (sched_states[0] !== null) newlabel=sched_states[0];
+				add_schedule(newid,'0 0 * * 1-7',newlabel,sched_states);
+            	$('.sched_submit').removeClass('disabled');  
+            	$('.sched_submit').removeClass('btn-default');  
+            	$('.sched_submit').addClass('btn-success'); 
+			});
+		
+			$('.sched_submit').on('click', function(){
+				if ($(this).hasClass("disabled")) return;
+				var string = "";
+				$('.mhsched').each(function(index,value) {
+					string += $( this ).attr("id") + ',"' + modify_jqcon_dow($(this).text(),"-1") + '",' + $( this ).attr("label") + ',';
+				});
+				string = string.replace(/,\s*$/, ""); //remove the last comma
+				var url="/SUB?ia7_update_schedule"+encodeURI("("+$(this).parents('.control-dialog').attr("entity")+","+string+")");
+				$.get(url);
+            	$('.sched_submit').addClass('disabled');  
+            	$('.sched_submit').removeClass('btn-success');  
+            	$('.sched_submit').addClass('btn-default');  
+            	//emtpy the array since the long_poll should get the updated schedules.
+            	json_store.objects[entity].schedule.length = 0; 			
+			});			
+			//hide the schedule controls if in simple mode
+			if 	(display_mode == "simple") {
+				$('.sched_submit').hide();
+				$('.schedrm').hide();
+				$('.schedadd').hide();
+				$('#control').find('.modal-footer').hide();			
+			} 
+
+		} 
+	
+		//no schedule data so no button needed.	
+		if ($('.sched_control').length == 0) { 
+			$('#control').find('.modal-footer').hide();
+		} else {
+			$('#control').find('.modal-footer').show();
+		}
+
 		if (json_store.ia7_config.prefs.state_log_show !== "no") {
 			//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
 			// could load all log items, and only unhide the last 4 -- maybe later
 			$('#control').find('.modal-body').find('.obj_log').remove();
-
-			$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
+			var object_log_header = "<div class='obj_log'><h4>Object Log";
+			if (json_store.objects[entity].logger_status == "1") {
+				var collid = $(location).attr('href').split("_collection_key=");
+				var link = "/ia7/#path=/history?"+entity+"?1&_collection_key="+collid[1]+",";
+				object_log_header += "<a href='"+link+"' class='pull-right btn btn-success btn-xs logger_data'><i class='fa fa-line-chart'></i></a>";
+			}
+			object_log_header += "</h4>"
+//			$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
+			$('#control').find('.modal-body').append(object_log_header);
 			for (var i = 0; i < json_store.ia7_config.prefs.state_log_entries; i++) {
 				if (json_store.objects[entity].state_log[i] == undefined) continue;
 				var slog = json_store.objects[entity].state_log[i].split("set_by=");
@@ -1545,8 +2760,76 @@ var create_state_modal = function(entity) {
 			$('#control').find('.states').find('.btn').removeClass('hidden');
 			$('#control').find('.mh_set_by').removeClass('hidden');
 		});
+		$('.logger_data').on('click',function() {
+			$('#control').modal('hide');
+		});
 }	
 
+var authorize_modal = function(user) {
+
+	//alert(user);
+	var changed = "false";
+	var af = "";
+	var html = '<div class="form-group">';
+	if (user !== "0") html += "<span id='currentuser'>Currently logged in as "+user+"<br><br></span>";
+    html += '<label for="login-password">Password</label>';
+    html += '<input type="password" class="form-control" name="password" id="password" placeholder="Password">';
+  	html += '</div>';
+  	html += '<b><span id="pwstatus" style="color:red"></span></b>';
+
+//create footer buttons
+	$('#loginModal').find('.modal-footer').html('<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>');  
+
+	if (user == "0") {			
+		$('#loginModal').find('.modal-footer').prepend('<button type="submit" value="logon" class="btn btn-default btn-login-login">Logon');      	
+	} else {  	
+		$('#loginModal').find('.modal-footer').prepend('<button type="submit" value="logon" class="btn btn-default btn-login-login">Change User</button>');      	
+		$('#loginModal').find('.modal-footer').prepend('<button type="button" class="btn btn-default btn-login-logoff">Logoff</button>');      	
+	}
+	$('#loginModal').find('.modal-body').html(html);
+	$('#loginModal').modal({
+		show: true
+	});	
+	$('#loginModal').on('shown.bs.modal', function () {
+		if (user == "0") $('#password').focus();
+	});
+	$('#loginModal').on('hide.bs.modal', function () {
+        if (changed == "true") location.reload();
+    });
+	$('.btn-login-logoff').click( function () {
+		$.get ("/UNSET_PASSWORD");
+		location.reload();
+		$('#loginModal').modal('hide');
+	});	
+	$('#LoginModalpw').submit( function (e) {
+		e.preventDefault();
+		//console.log("Custom submit function");
+		$.ajax({
+			type: "POST",
+			url: "/SET_PASSWORD_FORM",
+			data: $(this).serialize(),
+			success: function(data){
+				var status=data.match(/\<b\>(.*)\<\/b\>/gm);
+				//console.log("match="+status[2]); //3rd match is password status
+				if (status[2] == "<b>Password was incorrect</b>") {
+					//alert("Password was incorrect");
+					$('#loginModal').find('#pwstatus').html("Password was incorrect");
+					$("#loginModal").find('#password').val('');
+					if (user !== "0") {
+						user = "0";
+						authorized = "false";
+						changed = "true";
+						$("#currentuser").html("");
+						//location.reload();
+					}	
+				} else {
+					location.reload();
+					$('#loginModal').modal('hide');
+				}
+			}
+		});
+	});							
+}
 
 //Outputs the list of triggers
 var trigger = function() {
@@ -1676,6 +2959,20 @@ $(document).ready(function() {
 			$('#optionsModal').modal('hide');
 		});
 	});
+	
+//TODO remove me?	
+	$('#mhresponse').click( function (e) {
+		e.preventDefault();
+		$form = $(this);
+		//$.ajax({
+		//	type: "POST",
+		//	url: "/SET_PASSWORD_FORM",
+		//	data: $(this).serialize(),
+		//	success: function(data){
+		//		console.log(data) 
+		//		}
+		//	});
+	});		
 });
 
 //

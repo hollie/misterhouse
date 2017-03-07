@@ -80,8 +80,7 @@ sub put_volume_back {
     my $wav_did_it = shift;
     if ($wav_did_it) {
         if ( !$is_speaking_flag ) {
-            set $mh_speakers OFF
-              ;    # don't turn speakers off if talking (WAV likely a chime)
+            set $mh_speakers OFF;    # don't turn speakers off if talking (WAV likely a chime)
         }
     }
     else {
@@ -95,9 +94,7 @@ sub put_volume_back {
     if ( defined $config_parms{volume_wav_default_volume}
         and ( $Voice_Text::VTxt_version ne 'msv5' or $wav_did_it ) )
     {
-        print_log(
-            "Putting wav volume back to $config_parms{volume_wav_default_volume}"
-        );
+        print_log("Putting wav volume back to $config_parms{volume_wav_default_volume}");
         &set_volume_wav( $config_parms{volume_wav_default_volume} );
 
         if ($volume_master_changed) {
@@ -130,12 +127,10 @@ if ( $is_speaking_flag and !$is_speaking ) {
 }
 
 $test_volume = new Voice_Cmd 'Test volume at [5,20,60,100]';
-$test_volume->tie_event(
-    '$test_volume->respond("volume=$state Testing volume at $state%")');
+$test_volume->tie_event('$test_volume->respond("volume=$state Testing volume at $state%")');
 
 # Currently, this only works with the MS Voice TTS
-$test_speak_mode = new Voice_Cmd
-  'Set speech to [stop,pause,resume,rewind,fastforward,fast,normal,slow,-5,5]';
+$test_speak_mode = new Voice_Cmd 'Set speech to [stop,pause,resume,rewind,fastforward,fast,normal,slow,-5,5]';
 $test_speak_mode->tie_event('speak mode => $state');
 
 # Currently, this only works with the MS Voice TTS
@@ -202,11 +197,9 @@ sub set_volume_pre_hook {
     print_log "FUNCTION: set_volume_pre_hook";
     return
       if $is_speaking
-      and $Voice_Text::VTxt_version ne
-      'msv5';    # Speaking volume wins over play volume (unless using MSv5!)
+      and $Voice_Text::VTxt_version ne 'msv5';    # Speaking volume wins over play volume (unless using MSv5!)
     return
-      unless $Info{Volume_Control}
-      ;          # Verify we have a volume control module installed
+      unless $Info{Volume_Control};               # Verify we have a volume control module installed
     my %parms = @_;
 
     # msv5 changes volume with xml tags in lib/Voice_Text.pm
@@ -234,8 +227,7 @@ sub set_volume_pre_hook {
 
     # Set a timer since we can not detect when a wav file is done
     if ( $parms{time} ) {
-        set $mh_speakers_timer $parms{time},
-          '&put_volume_back(1)';     # flag to say WAV did it!
+        set $mh_speakers_timer $parms{time}, '&put_volume_back(1)';    # flag to say WAV did it!
     }
 
     if ( $parms{time}
@@ -278,8 +270,6 @@ sub sound_pre_play {
 
 # Allow for restarting of TTS engine
 $restart_tts = new Voice_Cmd 'Restart the TTS engine';
-$restart_tts->set_info(
-    'This will restart the voice Text To Speech engine, in case it died for some reason'
-);
+$restart_tts->set_info('This will restart the voice Text To Speech engine, in case it died for some reason');
 
 &Voice_Text::init if said $restart_tts;

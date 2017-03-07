@@ -3,13 +3,11 @@
 
 #@ Commands to monitor computer game time
 
-$check_game_time =
-  new Voice_Cmd "Display Nick's [all,total,daily] game time log";
+$check_game_time = new Voice_Cmd "Display Nick's [all,total,daily] game time log";
 
 if ( $state = said $check_game_time) {
     display
-      text =>
-      scalar file_tail( '//warp/c/mh/data/logs/eqtime_totals.log', 100 ),
+      text   => scalar file_tail( '//warp/c/mh/data/logs/eqtime_totals.log', 100 ),
       time   => 200,
       title  => 'Total eq time log',
       font   => 'fixed',

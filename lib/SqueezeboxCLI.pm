@@ -87,9 +87,7 @@ sub new {
     $$self{login}           = $user . " " . $pass || "";
     $$self{players}         = {};
     $$self{reconnect_timer} = new Timer;
-    $$self{squeezecenter} =
-      new Socket_Item( undef, undef, $$self{server} . ":" . $$self{port},
-        "squeezecenter_cli", 'tcp', 'record' );
+    $$self{squeezecenter}   = new Socket_Item( undef, undef, $$self{server} . ":" . $$self{port}, "squeezecenter_cli", 'tcp', 'record' );
     $self->login();
     ::MainLoop_pre_add_hook( sub { $self->check_for_data(); }, 'persistent' );
     return $self;
@@ -122,9 +120,7 @@ sub reconnect_delay {
     my $action = sub { $self->reconnect() };
     if ( !$seconds ) {
         $seconds = 60;
-        $self->debug(
-            "Connection to squeezecenter lost, will try to connect again in 1 minute."
-        );
+        $self->debug("Connection to squeezecenter lost, will try to connect again in 1 minute.");
     }
     $$self{reconnect_timer}->set( $seconds, $action );
 }
@@ -157,8 +153,7 @@ sub check_for_data {
         }
 
         if ( $data =~ /([\w|%]{27})\s+(.+)/ ) {
-            $self->debug(
-                "Passing message to player '$1' for further processing", 4 );
+            $self->debug( "Passing message to player '$1' for further processing", 4 );
 
             # Pass the message to the correct object for processing
             # but only do this for players we're supposed to manage
@@ -227,9 +222,7 @@ The following parameters are optional
 =cut
 
 sub new {
-    my ( $class, $name, $interface, $coupled_device, $auto_off_time,
-        $preheat_time )
-      = @_;
+    my ( $class, $name, $interface, $coupled_device, $auto_off_time, $preheat_time ) = @_;
     my $self = new Generic_Item();
     bless $self, $class;
     $$self{sb_name}        = $name;
@@ -266,17 +259,11 @@ sub process_cli_response {
     return if ( $response =~ /^menustatus/ );
     return if ( $response =~ /^displaynotify/ );
 
-    $self->debug(
-        $self->get_object_name()
-          . ": processing '$response', current state "
-          . $self->state(),
-        2
-    );
+    $self->debug( $self->get_object_name() . ": processing '$response', current state " . $self->state(), 2 );
 
     if ( $response =~ /power[:| ](\d)/ ) {
         my $command = ( $1 == 1 ) ? 'on' : 'off';
-        $self->debug(
-            $$self{object_name} . " power is " . $1 . " command is $command" );
+        $self->debug( $$self{object_name} . " power is " . $1 . " command is $command" );
         $self->set_now( $command, 'cli' );
 
         # Turn off the coupled device immediately if the SB is turned off
@@ -290,18 +277,10 @@ sub process_cli_response {
         $$self{mixer_volume} = $1;
         $self->debug( $$self{object_name} . " mixer volume is " . $1 );
     }
-    if (
-        (
-               $response =~ /^pause 1/
-            || $response =~ /mode[:| ][pause|stop]/
-            || $response =~ /playlist stop/
-        )
-        && $self->state() ne 'off'
-      )
+    if ( ( $response =~ /^pause 1/ || $response =~ /mode[:| ][pause|stop]/ || $response =~ /playlist stop/ )
+        && $self->state() ne 'off' )
     {
-        $self->debug( $$self{object_name}
-              . " we got mode pause and state is "
-              . $self->state() );
+        $self->debug( $$self{object_name} . " we got mode pause and state is " . $self->state() );
 
         $self->set_now( 'pause', 'cli' );
 
@@ -311,9 +290,7 @@ sub process_cli_response {
             # Program the auto-off timer
             my $action = sub { $self->set( 'off', 'timer' ); };
             $$self{auto_off_timer}->set( $$self{auto_off_time} * 60, $action );
-            $self->debug( $$self{object_name}
-                  . " auto-off timer set because current state is "
-                  . $self->state() );
+            $self->debug( $$self{object_name} . " auto-off timer set because current state is " . $self->state() );
         }
     }
     if ( $response =~ /pause 0/ || $response =~ /playlist newsong/ ) {
@@ -323,17 +300,12 @@ sub process_cli_response {
         $self->send_cmd("mode ?");
     }
     if ( $response =~ /mode[:| ]play/ ) {
-        $self->debug( $$self{object_name}
-              . " received mode play, now in "
-              . $self->state() );
+        $self->debug( $$self{object_name} . " received mode play, now in " . $self->state() );
 
         $self->set_now( 'play', 'cli' );
 
         # In case an auto-off timer is active we need to disable it when we start playing
-        $self->debug( $$self{object_name}
-              . " mode is "
-              . $self->state()
-              . ", auto-timeoff cleared " );
+        $self->debug( $$self{object_name} . " mode is " . $self->state() . ", auto-timeoff cleared " );
         $$self{auto_off_timer}->set(0);
 
         # Control the coupled device too if it is defined
@@ -381,8 +353,7 @@ Handle state changes of the Squeezeboxes
 sub default_setstate {
     my ( $self, $state, $substate, $set_by ) = @_;
 
-    $self->debug(
-        $$self{object_name} . " in setstate with $state setby $set_by" );
+    $self->debug( $$self{object_name} . " in setstate with $state setby $set_by" );
 
     # If we're set by the CLI then we don't need to send out the command again
     # as we actually received it from the server
@@ -392,9 +363,7 @@ sub default_setstate {
     return -1 if ( $self->state eq $state );
 
     # Print debug info
-    $self->debug( "Request "
-          . $self->get_object_name
-          . " to change to state '$state' by '$set_by'" );
+    $self->debug( "Request " . $self->get_object_name . " to change to state '$state' by '$set_by'" );
 
     if ( $state =~ /^off/i ) {
         $self->send_cmd('power 0');
@@ -459,16 +428,13 @@ sub play_notification {
         and $$self{'preheat_time'} )
     {
 
-        $self->debug( $$self{object_name}
-              . " Preheating the amplifier and delaying the notification. We'll be back when the speakers are on"
-        );
+        $self->debug( $$self{object_name} . " Preheating the amplifier and delaying the notification. We'll be back when the speakers are on" );
 
         # Turn on
         $$self{coupled_device}->set('on');
 
         # Program timer to play the notification later
-        my $action =
-          sub { $self->play_notification( $notification, $volume ); };
+        my $action = sub { $self->play_notification( $notification, $volume ); };
         $$self{preheat_timer}->set( $$self{preheat_time}, $action );
         return;
     }
@@ -490,8 +456,7 @@ sub play_notification {
     $self->send_cmd("time ?");
 
     # Save the current playlist
-    $self->send_cmd(
-        "playlist save prenotification_playlist_" . $$self{object_name} );
+    $self->send_cmd( "playlist save prenotification_playlist_" . $$self{object_name} );
 
     # Set the repeat to none
     $self->send_cmd("playlist repeat 0");
@@ -558,11 +523,7 @@ sub save_sb_state {
     $$self{'prev_state'}->{'repeat'} = $$self{'repeat'};
     $$self{'prev_state'}->{'volume'} = $$self{'volume'};
 
-    $self->debug( $$self{object_name}
-          . " saved state to be: state:"
-          . $$self{'prev_state'}->{'state'}
-          . " repeat:"
-          . $$self{'prev_state'}->{'repeat'} );
+    $self->debug( $$self{object_name} . " saved state to be: state:" . $$self{'prev_state'}->{'state'} . " repeat:" . $$self{'prev_state'}->{'repeat'} );
 
 }
 
@@ -582,8 +543,7 @@ sub restore_sb_state {
 
     # Restore playlist/mode
     if ( $$self{prev_state}->{'state'} eq 'play' ) {
-        $self->send_cmd(
-            "playlist resume prenotification_playlist_" . $$self{object_name} );
+        $self->send_cmd( "playlist resume prenotification_playlist_" . $$self{object_name} );
         $self->send_cmd( "time " . $$self{'time'} );
     }
     else {

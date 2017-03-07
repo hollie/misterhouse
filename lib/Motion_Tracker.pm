@@ -174,8 +174,7 @@ sub last_motion {
     else {
         # Haven't expired yet, so setup timer to set state later on
         # Note that I subtract the age() as time served :)
-        $$self{expire_timer}
-          ->set( $self->expire_timeout() - $self->age(), $self );
+        $$self{expire_timer}->set( $self->expire_timeout() - $self->age(), $self );
     }
     return $last_motion;
 }

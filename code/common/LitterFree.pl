@@ -19,10 +19,8 @@
 # appliance module ($LitterBox) and a sensor mounted inside the box ($Litterbox_Movement).
 
 # Adjust the following two values to your preference
-my $litter_timeout = 960
-  ; # Time the sensor must be inactive before a flush begins.  Currently 16 minutes.
-my $litter_cycle_timeout =
-  1980;    # LitterFree cycle time (wash and dry).  It's about 33 minutes.
+my $litter_timeout       = 960;     # Time the sensor must be inactive before a flush begins.  Currently 16 minutes.
+my $litter_cycle_timeout = 1980;    # LitterFree cycle time (wash and dry).  It's about 33 minutes.
 
 my $litterboxstate   = 'OFF';
 my $littercyclestate = 'OFF';
@@ -31,13 +29,8 @@ $litter_timer       = new Timer();
 $litter_cycle_timer = new Timer();
 
 #  Cat enters the litter box (not during a cycle)
-if (
-    (
-           state_now $Litterbox_Movement eq 'ON'
-        or state_now $Litterbox_Movement eq 'on'
-    )
-    and ( expired $litter_cycle_timer or inactive $litter_cycle_timer)
-  )
+if (    ( state_now $Litterbox_Movement eq 'ON' or state_now $Litterbox_Movement eq 'on' )
+    and ( expired $litter_cycle_timer or inactive $litter_cycle_timer) )
 {
     set $litter_timer ($litter_timeout);
     if ( $Save{litterboxstate} ne 'OFF' ) {

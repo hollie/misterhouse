@@ -49,9 +49,17 @@
 	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.selection.min.js"></script>
 	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.resize.min.js"></script>
 	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.time.min.js"></script>
+
+	<!-- jqCon libraries for displaying cron data -->
+	<link rel="stylesheet" href="/ia7/include/jqCron.css">	
+	<script language="javascript" type="text/javascript" src="/ia7/include/jqCron.js"></script>
+	<script language="javascript" type="text/javascript" src="/ia7/include/jqCron.en.js"></script>
 	
+	<!-- bootstrap datepicker -->
+	<link href="/ia7/include/bootstrap-datepicker3.standalone.min.css" rel="stylesheet"/>	
+    <script src="/ia7/include/bootstrap-datepicker.min.js"></script>
 	
-	<!-- ia7 JS File-->
+	<!-- Misterhouse ia7 System JS File-->
 	<script src="/ia7/include/javascript.js"></script>
 	
 	<style type="text/css">
@@ -68,6 +76,11 @@
 			margin-top:20px;
 		}
 	}
+	@media (max-width: 991px) {
+		#hist-graph {
+    		margin-left:-5px !important;
+    	}
+    }
 	.btn-direct {
 	  border-style: solid;
 	  border-width: 2px;
@@ -78,15 +91,15 @@
       outline: none !important;
 	}
 	
-	@media (min-width: 450px){
+	@media (min-width: 450px) {
 		.control-dialog {
 			width: 400px;
-		}
+		}	
 	}
 	.col-center {
 		text-align: center;
 	}
-	.dropdown-lead{
+	.dropdown-lead {
 		width: 100%;
 	}
 	.leadcontainer {
@@ -94,7 +107,7 @@
 		position: absolute;
 		right: 30px;
 	}
-	.dropdown-toggle{
+	.dropdown-toggle {
 		width: 30px;
 		box-sizing: border-box;
 	}
@@ -125,31 +138,79 @@
 	.toolbar-right-end {
 		margin-right: 15px;
 	}	
-	.icon-larger:before 
-	{
+	.icon-larger:before {
   		font-size: 46px;
   		margin-left: -10px;
 	}	
-	.rrd-period-dropdown
-	{
-		margin-left:55px;
+	.rrd-period-dropdown {
+		margin-left:45px;
 	}
-	.rrd-legend-class
-	{	
+	.rrd-legend-class, .hist-legend-class {	
     	margin-left:10px;
 	}
-	#top-graph
-	{
+	#top-graph {
 		margin-left: 10px;
 	}
-	#rrd-graph
-	{
+    #hist-table {
+    	margin-left: 10px;
+    }
+    .hist-table-margin {
+    	padding-right: 35px;
+    }	
+	#rrd-graph {
     	width:700px;
     	height:500px;
     	min-width:200px;
     	float:left;
     	margin-left:-10px;
 	}
+	.hist-datepicker {
+		padding-right:40px;
+	}
+	#hist-graph {
+	    width:700px;
+    	height:500px;
+    	min-width:200px;
+    	float:left;
+    	margin-left:50px;
+    }
+	.alerts {
+  		position: absolute;
+  		top: 3px;
+  		left: 17px;
+  		right: 17px;
+	}
+	.mobile-alert {
+		margin-top:-22px !important;
+	}
+	.dropdown-caret {
+		margin-left:-5px !important;
+	}
+	.schedule_row {
+		margin-bottom: 5px !important;
+	}
+	.sched_label {
+		border-top-right-radius: 0px !important;
+		border-bottom-right-radius: 0px !important;	
+	}
+	.sched_cron {
+		border: 1px solid #ccc !important;
+		border-top-right-radius: 4px !important;
+		border-bottom-right-radius: 4px !important;
+    	background-color: #e3e3e3 !important;
+    	padding-right: 0px !important;
+    	padding-left: 0px !important;
+    	margin-left: -18px !important;
+    	vertical-align: middle !important;
+    	min-height: 34px !important;
+	}
+	.sched_rmbutton {
+	    vertical-align: middle !important;
+	}
+	.sched-dropdown-menu {
+		margin-left: 14px !important;	
+	}
+	
 	</style>
 </head>
 <body>
@@ -212,6 +273,8 @@
         <div class="states">
         </div>
       </div>
+      <div class="modal-footer">
+		</div>      
     </div><!-- /.modal-content -->
   </div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
