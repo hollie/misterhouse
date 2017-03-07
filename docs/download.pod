@@ -10,7 +10,7 @@ modify the code/common/mh_release.pl file to search the new format!!
 
 =head1 Current Stable
 
-B<Version 3.1> - released on 03/31/2014
+B<Version 4.2> - released on 03/08/2017
 
 =over
 
@@ -28,7 +28,7 @@ A large (30MB) zip of optional files (mainly sound files) is here: L<http://mist
 
 =head1 Previous Stable
 
-B<Version 3.0> - released on 06/20/2013
+B<Version 4.1> - released on 02/28/2016 
 
 =over
 
