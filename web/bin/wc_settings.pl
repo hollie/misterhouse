@@ -41,8 +41,8 @@
 # We use the wc_address_x from 0 to wc_max - 1
 
 # if we pass anything in output changes to html snippet
-my $outmode = @ARGV[0];   # arg is number of columns to format to
-my $arg2    = @ARGV[1];   # if we have a second arg it is the url for full frame
+my $outmode = @ARGV[0];    # arg is number of columns to format to
+my $arg2    = @ARGV[1];    # if we have a second arg it is the url for full frame
 my ( $outimage, $rest ) = split / /, $arg2;    # because we may have extra stuff
 
 my $html   = "<!-- $outmode @ARGV --> \n ";
@@ -72,8 +72,7 @@ for ( $wcx = 1; $wcx < $wcMax + 1; $wcx++ ) {
         #Add this cameras settings into the string
         my $wcURL = $config_parms{$wcThis};
         my ( $wcURL, $wcDescr ) = split( /\,/, $wcURL );
-        $scriptlet .=
-          "webCamRegisterCam(\"" . $wcx . ": $wcDescr\", \"$wcURL\", $wcx); \n";
+        $scriptlet .= "webCamRegisterCam(\"" . $wcx . ": $wcDescr\", \"$wcURL\", $wcx); \n";
 
         $html .=
             "<td BGCOLOR='"

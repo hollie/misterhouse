@@ -62,9 +62,7 @@ sub new {
     foreach (@LogType) {
         if ( !exists $::config_parms{$_} ) {
             $main::config_parms{$_} = 1;
-            &::print_log(
-                "Parameter $_ not defined in mh.private.ini, enabling by default"
-            );
+            &::print_log("Parameter $_ not defined in mh.private.ini, enabling by default");
         }
     }
 
@@ -77,29 +75,19 @@ sub new {
     # no big deal.
     cmd( $self, 'Poll' );    # request an initial poll
 
-    select( undef, undef, undef, 0.250 )
-      ; # wait 250 millseconds to avoid overrunning RS-232 receive buffer on panel
-    cmd( $self, 'StatusReport' );    # request an initial status report
-    if ( defined $::config_parms{DSC_5401_verbose_arming} )
-    {    # enable/disable verbose arming if configured
-        select( undef, undef, undef, 0.250 )
-          ; # wait 250 millseconds to avoid overrunning RS-232 receive buffer on panel
-        cmd( $self, 'VerboseArmingControl',
-            $::config_parms{DSC_5401_verbose_arming} );
+    select( undef, undef, undef, 0.250 );    # wait 250 millseconds to avoid overrunning RS-232 receive buffer on panel
+    cmd( $self, 'StatusReport' );            # request an initial status report
+    if ( defined $::config_parms{DSC_5401_verbose_arming} ) {    # enable/disable verbose arming if configured
+        select( undef, undef, undef, 0.250 );                    # wait 250 millseconds to avoid overrunning RS-232 receive buffer on panel
+        cmd( $self, 'VerboseArmingControl', $::config_parms{DSC_5401_verbose_arming} );
     }
-    if ( defined $::config_parms{DSC_5401_time_log} )
-    {       # enable/disable time broadcasts if configured
-        select( undef, undef, undef, 0.250 )
-          ; # wait 250 millseconds to avoid overrunning RS-232 receive buffer on panel
-        cmd( $self, 'TimeBroadcastControl',
-            $::config_parms{DSC_5401_time_log} );
+    if ( defined $::config_parms{DSC_5401_time_log} ) {          # enable/disable time broadcasts if configured
+        select( undef, undef, undef, 0.250 );                    # wait 250 millseconds to avoid overrunning RS-232 receive buffer on panel
+        cmd( $self, 'TimeBroadcastControl', $::config_parms{DSC_5401_time_log} );
     }
-    if ( defined $::config_parms{DSC_5401_temp_log} )
-    {       # enable/disable temperature broadcasts if configured
-        select( undef, undef, undef, 0.250 )
-          ; # wait 250 millseconds to avoid overrunning RS-232 receive buffer on panel
-        cmd( $self, 'TemperatureBroadcastControl',
-            $::config_parms{DSC_5401_temp_log} );
+    if ( defined $::config_parms{DSC_5401_temp_log} ) {          # enable/disable temperature broadcasts if configured
+        select( undef, undef, undef, 0.250 );                    # wait 250 millseconds to avoid overrunning RS-232 receive buffer on panel
+        cmd( $self, 'TemperatureBroadcastControl', $::config_parms{DSC_5401_temp_log} );
     }
     return $self;
 }
@@ -134,27 +122,19 @@ module startup / enabling serial port
 sub startup {
     my $self = $Self;
     ( my $port = $::config_parms{'DSC_5401_serial_port'} )
-      or warn
-      "DSC5401.pm->startup  DSC_5401_serial_port not defined in mh.ini file";
+      or warn "DSC5401.pm->startup  DSC_5401_serial_port not defined in mh.ini file";
     my $BaudRate =
       ( defined $::config_parms{DSC_5401_baudrate} )
       ? $main::config_parms{DSC_5401_baudrate}
       : 9600;
-    if ( &main::serial_port_create( 'DSC5401', $port, $BaudRate, 'none', 'raw' )
-      )
-    {
+    if ( &main::serial_port_create( 'DSC5401', $port, $BaudRate, 'none', 'raw' ) ) {
         init( $::Serial_Ports{DSC5401}{object}, $port );
-        &main::print_log(
-            "  DSC5401.pm initializing port $port at $BaudRate baud")
+        &main::print_log("  DSC5401.pm initializing port $port at $BaudRate baud")
           if $main::config_parms{debug} eq 'DSC5401';
         &::MainLoop_pre_add_hook( \&DSC5401::check_for_data, 1 )
           if $main::Serial_Ports{DSC5401}{object};
-        $::Year_Month_Now =
-          &::time_date_stamp( 10, time );    # Not yet set when we init.
-        LocalLogit(
-            "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-            "    ========= DSC5401.pm Initialized ========="
-        );
+        $::Year_Month_Now = &::time_date_stamp( 10, time );    # Not yet set when we init.
+        LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "    ========= DSC5401.pm Initialized =========" );
     }
 }
 
@@ -213,29 +193,20 @@ sub CheckCmd {
         if ( $cmd == 500 ) {    # System Error
             my $CmdName = "Unknown";
             $CmdName = $CmdMsgRev{$data} if exists $CmdMsgRev{$data};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} $CmdName"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} $CmdName" );
 
             #&::print_log("$EventMsg{$cmd}:   $CmdName");
         }
         elsif ( $cmd == 501 ) {    # Command Error (bad checksum)
             my $ECName = "Unknown";
             $ECName = $ErrorCode{$data} if exists $ErrorCode{$data};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} $ECName"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} $ECName" );
             &::print_log("$EventMsg{$cmd}:   $ECName");
         }
         elsif ( $cmd == 502 ) {    # System Error
             my $ECName = "Unknown";
             $ECName = $ErrorCode{$data} if exists $ErrorCode{$data};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} $ECName"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} $ECName" );
             &::print_log("$EventMsg{$cmd}:   $ECName");
         }
         elsif ( $cmd == 550 ) {    # Time Broadcast
@@ -244,10 +215,8 @@ sub CheckCmd {
             my $MM   = substr( $data, 4, 2 );
             my $DD   = substr( $data, 6, 2 );
             my $YY   = substr( $data, 8, 2 );
-            LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} $Hour:$Min $MM/$DD/$YY"
-            ) if $main::config_parms{DSC_5401_time_log};
+            LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} $Hour:$Min $MM/$DD/$YY" )
+              if $main::config_parms{DSC_5401_time_log};
             $self->{TimeBroadcast} = 'on';
             $self->{Time}          = "$Hour:$Min $MM/$DD/$YY";
             $self->{TimeStamp}     = &::time_date_stamp( 17, time );
@@ -255,20 +224,16 @@ sub CheckCmd {
         }
         elsif ( $cmd == 560 ) {    # Telephone ring detected
             my $Name = $data;
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd}:"
-            ) if $main::config_parms{DSC_5401_ring_log};
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd}:" )
+              if $main::config_parms{DSC_5401_ring_log};
             $self->{ring_now} = 1;
         }
         elsif ( $cmd == 561 ) {    # Indoor Temperature Broadcast
             my $TstatNum  = substr( $data, 0, 1 );
             my $TstatTemp = substr( $data, 1, 3 );
             $TstatTemp = ( 128 - $TstatTemp ) if $TstatTemp > 128;
-            LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} Thermostat:$TstatNum  Temp:$TstatTemp"
-            ) if $main::config_parms{DSC_5401_temp_log};
+            LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} Thermostat:$TstatNum  Temp:$TstatTemp" )
+              if $main::config_parms{DSC_5401_temp_log};
             $self->{TstatBroadcast}          = 'on';
             $self->{IntTstatTemp_now}        = $TstatTemp;
             $self->{IntTstatTemp_now_number} = $TstatNum;
@@ -280,10 +245,8 @@ sub CheckCmd {
             my $TstatNum  = substr( $data, 0, 1 );
             my $TstatTemp = substr( $data, 1, 3 );
             $TstatTemp = ( 128 - $TstatTemp ) if $TstatTemp > 128;
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} Thermostat:$TstatNum  Temp:$TstatTemp"
-            ) if $main::config_parms{DSC_5401_temp_log};
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} Thermostat:$TstatNum  Temp:$TstatTemp" )
+              if $main::config_parms{DSC_5401_temp_log};
             $self->{TstatBroadcast}          = 'on';
             $self->{ExtTstatTemp_now}        = $TstatTemp;
             $self->{ExtTstatTemp_now_number} = $TstatNum;
@@ -298,18 +261,15 @@ sub CheckCmd {
               if exists $main::config_parms{"DSC_5401_zone_$ZoneNum"};
             $PartName = $main::config_parms{"DSC_5401_part_$PartName"}
               if exists $main::config_parms{"DSC_5401_part_$PartName"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} zone $ZoneName  ($ZoneNum)"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} zone $ZoneName  ($ZoneNum)" );
             $ZoneNum =~ s/^0*//;
-            $self->{zone_now_cmd} = $cmd;
+            $self->{zone_now_cmd}            = $cmd;
             $self->{zone_status}{"$ZoneNum"} = "alarm";
-            $self->{zone_now_msg}   = "$EventMsg{$cmd} $ZoneName ($ZoneNum)";
-            $self->{zone_now_state} = "alarm";
-            $self->{zone_now}       = "$ZoneNum";
+            $self->{zone_now_msg}            = "$EventMsg{$cmd} $ZoneName ($ZoneNum)";
+            $self->{zone_now_state}          = "alarm";
+            $self->{zone_now}                = "$ZoneNum";
             $self->{zone_status}{"$ZoneNum"} = "alarm";
-            $self->{zone_now_cmd} = $cmd;
+            $self->{zone_now_cmd}            = $cmd;
         }
         elsif ( $cmd == 602 ) {    # zone alarm restore
             my $PartName = substr( $data, 0, 1 );
@@ -318,16 +278,13 @@ sub CheckCmd {
               if exists $main::config_parms{"DSC_5401_zone_$ZoneNum"};
             $PartName = $main::config_parms{"DSC_5401_part_$PartName"}
               if exists $main::config_parms{"DSC_5401_part_$PartName"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} zone $ZoneName  ($ZoneNum)"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} zone $ZoneName  ($ZoneNum)" );
             $ZoneNum =~ s/^0*//;
-            $self->{zone_now_cmd}     = $cmd;
-            $self->{zone_now_msg}     = "$EventMsg{$cmd} $ZoneName ($ZoneNum)";
-            $self->{zone_now_state}   = "alarm restore";
-            $self->{zone_now}         = "$ZoneNum";
-            $self->{zone_now_restore} = "$ZoneNum";
+            $self->{zone_now_cmd}            = $cmd;
+            $self->{zone_now_msg}            = "$EventMsg{$cmd} $ZoneName ($ZoneNum)";
+            $self->{zone_now_state}          = "alarm restore";
+            $self->{zone_now}                = "$ZoneNum";
+            $self->{zone_now_restore}        = "$ZoneNum";
             $self->{zone_status}{"$ZoneNum"} = "alarm restore";
         }
         elsif ( $cmd == 603 ) {    # zone tamper
@@ -337,16 +294,13 @@ sub CheckCmd {
               if exists $main::config_parms{"DSC_5401_zone_$ZoneNum"};
             $PartName = $main::config_parms{"DSC_5401_part_$PartName"}
               if exists $main::config_parms{"DSC_5401_part_$PartName"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} zone $ZoneName  ($ZoneNum)"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} zone $ZoneName  ($ZoneNum)" );
             $ZoneNum =~ s/^0*//;
-            $self->{zone_now_cmd}    = $cmd;
-            $self->{zone_now_msg}    = "$EventMsg{$cmd} $ZoneName ($ZoneNum)";
-            $self->{zone_now_status} = "alarm restore";
-            $self->{zone_now}        = "$ZoneNum";
-            $self->{zone_now_tamper} = "$ZoneNum";
+            $self->{zone_now_cmd}            = $cmd;
+            $self->{zone_now_msg}            = "$EventMsg{$cmd} $ZoneName ($ZoneNum)";
+            $self->{zone_now_status}         = "alarm restore";
+            $self->{zone_now}                = "$ZoneNum";
+            $self->{zone_now_tamper}         = "$ZoneNum";
             $self->{zone_status}{"$ZoneNum"} = "alarm restore";
         }
         elsif ( $cmd == 604 ) {    # zone tamper restore
@@ -356,15 +310,12 @@ sub CheckCmd {
               if exists $main::config_parms{"DSC_5401_zone_$ZoneNum"};
             $PartName = $main::config_parms{"DSC_5401_part_$PartName"}
               if exists $main::config_parms{"DSC_5401_part_$PartName"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} zone $ZoneName  ($ZoneNum)"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} zone $ZoneName  ($ZoneNum)" );
             $ZoneNum =~ s/^0*//;
-            $self->{zone_now_cmd}    = $cmd;
-            $self->{zone_now_msg}    = "$EventMsg{$cmd} $ZoneName ($ZoneNum)";
-            $self->{zone_now_status} = "alarm restore";
-            $self->{zone_now}        = "$ZoneNum";
+            $self->{zone_now_cmd}            = $cmd;
+            $self->{zone_now_msg}            = "$EventMsg{$cmd} $ZoneName ($ZoneNum)";
+            $self->{zone_now_status}         = "alarm restore";
+            $self->{zone_now}                = "$ZoneNum";
             $self->{zone_now_tamper_restore} = "$ZoneNum";
             $self->{zone_status}{"$ZoneNum"} = "alarm restore";
         }
@@ -372,10 +323,8 @@ sub CheckCmd {
             my $ZoneName = my $ZoneNum = $data;
             $ZoneName = $main::config_parms{"DSC_5401_zone_${data}"}
               if exists $main::config_parms{"DSC_5401_zone_${data}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} zone $ZoneName  ($ZoneNum)"
-            ) if $main::config_parms{DSC_5401_zone_log};
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} zone $ZoneName  ($ZoneNum)" )
+              if $main::config_parms{DSC_5401_zone_log};
             $ZoneNum =~ s/^0*//;
             $self->{zone_now_cmd}            = $cmd;
             $self->{zone_now_msg}            = "$EventMsg{$cmd} $ZoneName";
@@ -388,58 +337,50 @@ sub CheckCmd {
             my $ZoneName = my $ZoneNum = $data;
             $ZoneName = $main::config_parms{"DSC_5401_zone_${data}"}
               if exists $main::config_parms{"DSC_5401_zone_${data}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} zone $ZoneName  ($ZoneNum)"
-            ) if $main::config_parms{DSC_5401_zone_log};
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} zone $ZoneName  ($ZoneNum)" )
+              if $main::config_parms{DSC_5401_zone_log};
             $ZoneNum =~ s/^0*//;
-            $self->{zone_now_cmd}    = $cmd;
-            $self->{zone_now_msg}    = "$EventMsg{$cmd} $ZoneName ($ZoneNum)";
-            $self->{zone_now_status} = "fault restored";
-            $self->{zone_now}        = "$ZoneNum";
-            $self->{zone_now_fault_restore} = "$ZoneNum";
+            $self->{zone_now_cmd}            = $cmd;
+            $self->{zone_now_msg}            = "$EventMsg{$cmd} $ZoneName ($ZoneNum)";
+            $self->{zone_now_status}         = "fault restored";
+            $self->{zone_now}                = "$ZoneNum";
+            $self->{zone_now_fault_restore}  = "$ZoneNum";
             $self->{zone_status}{"$ZoneNum"} = "fault restored";
         }
         elsif ( $cmd == 609 ) {    # zone open
             my $ZoneName = my $ZoneNum = $data;
             $ZoneName = $main::config_parms{"DSC_5401_zone_${data}"}
               if exists $main::config_parms{"DSC_5401_zone_${data}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} zone $ZoneName ($ZoneNum)"
-            ) if $main::config_parms{DSC_5401_zone_log};
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} zone $ZoneName ($ZoneNum)" )
+              if $main::config_parms{DSC_5401_zone_log};
             $ZoneNum =~ s/^0*//;
-            $self->{zone_now_cmd}    = $cmd;
-            $self->{zone_now_msg}    = "$EventMsg{$cmd} $ZoneName ($ZoneNum)";
-            $self->{zone_now_status} = "open";
-            $self->{zone_now}        = "$ZoneNum";
-            $self->{zone_now_open}   = "$ZoneNum";
+            $self->{zone_now_cmd}            = $cmd;
+            $self->{zone_now_msg}            = "$EventMsg{$cmd} $ZoneName ($ZoneNum)";
+            $self->{zone_now_status}         = "open";
+            $self->{zone_now}                = "$ZoneNum";
+            $self->{zone_now_open}           = "$ZoneNum";
             $self->{zone_status}{"$ZoneNum"} = "open";
         }
         elsif ( $cmd == 610 ) {    # zone restored
             my $ZoneName = my $ZoneNum = $data;
             $ZoneName = $main::config_parms{"DSC_5401_zone_${data}"}
               if exists $main::config_parms{"DSC_5401_zone_${data}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} zone $ZoneName ($ZoneNum)"
-            ) if $main::config_parms{DSC_5401_zone_log};
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} zone $ZoneName ($ZoneNum)" )
+              if $main::config_parms{DSC_5401_zone_log};
             $ZoneNum =~ s/^0*//;
-            $self->{zone_now_cmd}     = $cmd;
-            $self->{zone_now_msg}     = "$EventMsg{$cmd} $ZoneName ($ZoneNum)";
-            $self->{zone_now_status}  = "restored";
-            $self->{zone_now}         = "$ZoneNum";
-            $self->{zone_now_restore} = "$ZoneNum";
+            $self->{zone_now_cmd}            = $cmd;
+            $self->{zone_now_msg}            = "$EventMsg{$cmd} $ZoneName ($ZoneNum)";
+            $self->{zone_now_status}         = "restored";
+            $self->{zone_now}                = "$ZoneNum";
+            $self->{zone_now_restore}        = "$ZoneNum";
             $self->{zone_status}{"$ZoneNum"} = "restored";
         }
         elsif ( $cmd == 650 ) {    # Partition Ready
             my $PartName = my $PartNum = $data;
             $PartName = $main::config_parms{"DSC_5401_part_${data}"}
               if exists $main::config_parms{"DSC_5401_part_${data}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} partition $PartName  ($PartNum)"
-            ) if $main::config_parms{DSC_5401_part_log};
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} partition $PartName  ($PartNum)" )
+              if $main::config_parms{DSC_5401_part_log};
             $self->{zone_now_cmd}         = $cmd;
             $self->{partition_now_msg}    = "Partition $PartName is ready";
             $self->{partition_now_status} = "ready";
@@ -449,10 +390,8 @@ sub CheckCmd {
             my $PartName = my $PartNum = $data;
             $PartName = $main::config_parms{"DSC_5401_part_${data}"}
               if exists $main::config_parms{"DSC_5401_part_${data}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} parition $PartName  ($PartNum)"
-            ) if $main::config_parms{DSC_5401_part_log};
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} parition $PartName  ($PartNum)" )
+              if $main::config_parms{DSC_5401_part_log};
             $self->{partition_now_cmd}    = $cmd;
             $self->{partition_now_msg}    = "Partition $PartName is not ready";
             $self->{partition_now_status} = "not ready";
@@ -461,23 +400,14 @@ sub CheckCmd {
         elsif ( $cmd == 652 ) {    # Partition Armed
             my $PartNum = my $PartName = substr( $data, 0, 1 );
             my $Mode = ( length($data) == 2 ) ? substr( $data, 1, 1 ) : 4;
-            my @ModeTxt = (
-                "armed away",
-                "armed stay",
-                "armed Zero-Entry-Away",
-                "armed Zero-Entry-Stay",
-                "armed"
-            );
+            my @ModeTxt = ( "armed away", "armed stay", "armed Zero-Entry-Away", "armed Zero-Entry-Stay", "armed" );
             $PartName = $main::config_parms{"DSC_5401_part_${PartName}"}
               if exists $main::config_parms{"DSC_5401_part_${PartName}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} partition $PartName ($PartNum) in mode $ModeTxt[$Mode] by user $self->{user_name}  ($self->{user_id})"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
+                "$cmd $EventMsg{$cmd} partition $PartName ($PartNum) in mode $ModeTxt[$Mode] by user $self->{user_name}  ($self->{user_id})" );
             set $self "$ModeTxt[$Mode]";
-            $self->{partition_now_cmd} = $cmd;
-            $self->{partition_now_msg} =
-              "Partition $PartName armed $ModeTxt[$Mode] by user $self->{user_name}";
+            $self->{partition_now_cmd}        = $cmd;
+            $self->{partition_now_msg}        = "Partition $PartName armed $ModeTxt[$Mode] by user $self->{user_name}";
             $self->{partition_now_status}     = "$ModeTxt[$Mode]";
             $self->{partition_now}            = "$PartNum";
             $self->{partition_now_mode}       = "$ModeTxt[$Mode]";
@@ -487,10 +417,8 @@ sub CheckCmd {
             my $PartName = my $PartNum = $data;
             $PartName = $main::config_parms{"DSC_5401_part_${data}"}
               if exists $main::config_parms{"DSC_5401_part_${data}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} parition $PartName  ($PartNum)"
-            ) if $main::config_parms{DSC_5401_part_log};
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} parition $PartName  ($PartNum)" )
+              if $main::config_parms{DSC_5401_part_log};
             $self->{partition_now_cmd}    = $cmd;
             $self->{partition_now_msg}    = "Partition $PartName is in alarm";
             $self->{partition_now_status} = "alarm";
@@ -500,14 +428,11 @@ sub CheckCmd {
             my $PartName = my $PartNum = $data;
             $PartName = $main::config_parms{"DSC_5401_part_${data}"}
               if exists $main::config_parms{"DSC_5401_part_${data}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} partition $PartName ($PartNum) by user $self->{user_name} ($self->{user_id})"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
+                "$cmd $EventMsg{$cmd} partition $PartName ($PartNum) by user $self->{user_name} ($self->{user_id})" );
             set $self "disarmed";
-            $self->{partition_now_cmd} = $cmd;
-            $self->{partition_now_msg} =
-              "Partition $PartName ($PartNum) disarmed by user $self->{user_name}";
+            $self->{partition_now_cmd}    = $cmd;
+            $self->{partition_now_msg}    = "Partition $PartName ($PartNum) disarmed by user $self->{user_name}";
             $self->{partition_now_status} = "disarmed";
             $self->{partition_now}        = "$PartNum";
         }
@@ -515,28 +440,22 @@ sub CheckCmd {
             my $PartName = my $PartNum = $data;
             $PartName = $main::config_parms{"DSC_5401_part_${data}"}
               if exists $main::config_parms{"DSC_5401_part_${data}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} partition $PartName  ($PartNum)"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} partition $PartName  ($PartNum)" );
             set $self "exit delay";
-            $self->{partition_now_cmd}    = $cmd;
-            $self->{partition_now_msg}    = "Partition $PartName in exit delay";
-            $self->{partition_now_status} = "exit delay";
-            $self->{partition_now}        = "$PartNum";
+            $self->{partition_now_cmd}        = $cmd;
+            $self->{partition_now_msg}        = "Partition $PartName in exit delay";
+            $self->{partition_now_status}     = "exit delay";
+            $self->{partition_now}            = "$PartNum";
             $self->{partition_mode}{$PartNum} = "exit delay";
         }
         elsif ( $cmd == 657 ) {    # Entry Delay in Progress
             my $PartName = my $PartNum = $data;
             $PartName = $main::config_parms{"DSC_5401_part_${data}"}
               if exists $main::config_parms{"DSC_5401_part_${data}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} partition $PartName ($PartNum)"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} partition $PartName ($PartNum)" );
             set $self "Entry Delay";
-            $self->{partition_now_cmd} = $cmd;
-            $self->{partition_now_msg} = "Partition $PartName in entry delay";
+            $self->{partition_now_cmd}    = $cmd;
+            $self->{partition_now_msg}    = "Partition $PartName in entry delay";
             $self->{partition_now_status} = "entry delay";
             $self->{partition_now}        = "$PartNum";
         }
@@ -552,47 +471,38 @@ sub CheckCmd {
                 "$cmd $EventMsg{$cmd} user $UserName ($UserNum) closing partition $PartName ($PartNum)"
             );
             set $self "user closing";
-            $self->{user_name}         = $UserName;
-            $self->{user_id}           = $UserNum;
-            $self->{partition_now_cmd} = $cmd;
-            $self->{partition_now_msg} =
-              "User $UserName  closing partition $PartName";
+            $self->{user_name}            = $UserName;
+            $self->{user_id}              = $UserNum;
+            $self->{partition_now_cmd}    = $cmd;
+            $self->{partition_now_msg}    = "User $UserName  closing partition $PartName";
             $self->{partition_now_status} = "user closing";
             $self->{partition_now}        = "$PartNum";
         }
-        elsif ( $cmd == 701 )
-        {    # Special closing (probably via computer command)
+        elsif ( $cmd == 701 ) {    # Special closing (probably via computer command)
             my $PartName = my $PartNum = $data;
             $PartName = $main::config_parms{"DSC_5401_part_${PartName}"}
               if exists $main::config_parms{"DSC_5401_part_${PartName}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} Misterhouse or Anonymous doing special closing on partition $PartName ($PartNum)"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
+                "$cmd $EventMsg{$cmd} Misterhouse or Anonymous doing special closing on partition $PartName ($PartNum)" );
             set $self "special closing";
-            $self->{user_name}         = "Misterhouse or Anonymous";
-            $self->{user_id}           = "0000";
-            $self->{partition_now_cmd} = $cmd;
-            $self->{partition_now_msg} =
-              "Misterhouse or Anonymous doing special closing on partition $PartName";
+            $self->{user_name}            = "Misterhouse or Anonymous";
+            $self->{user_id}              = "0000";
+            $self->{partition_now_cmd}    = $cmd;
+            $self->{partition_now_msg}    = "Misterhouse or Anonymous doing special closing on partition $PartName";
             $self->{partition_now_status} = "special closing";
             $self->{partition_now}        = "$PartNum";
         }
-        elsif ( $cmd == 702 )
-        {    # Partial closing (probably via computer command)
+        elsif ( $cmd == 702 ) {    # Partial closing (probably via computer command)
             my $PartName = my $PartNum = $data;
             $PartName = $main::config_parms{"DSC_5401_part_${PartName}"}
               if exists $main::config_parms{"DSC_5401_part_${PartName}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} Misterhouse or Anonymous doing spartial closing on partition $PartName ($PartNum)"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
+                "$cmd $EventMsg{$cmd} Misterhouse or Anonymous doing spartial closing on partition $PartName ($PartNum)" );
             set $self "partial closing";
-            $self->{user_name}         = "Misterhouse or Anonymous";
-            $self->{user_id}           = "0000";
-            $self->{partition_now_cmd} = $cmd;
-            $self->{partition_now_msg} =
-              "Misterhouse or Anonymous doing partital closing on partition $PartName";
+            $self->{user_name}            = "Misterhouse or Anonymous";
+            $self->{user_id}              = "0000";
+            $self->{partition_now_cmd}    = $cmd;
+            $self->{partition_now_msg}    = "Misterhouse or Anonymous doing partital closing on partition $PartName";
             $self->{partition_now_status} = "partial closing";
             $self->{partition_now}        = "$PartNum";
         }
@@ -608,94 +518,68 @@ sub CheckCmd {
                 "$cmd $EventMsg{$cmd} User $UserName ($UserNum) opening partition $PartName ($PartNum)"
             );
             set $self "user opening";
-            $self->{user_name}         = "$UserName";
-            $self->{user_id}           = $UserNum;
-            $self->{partition_now_cmd} = $cmd;
-            $self->{partition_now_msg} =
-              "User $UserName  opening partition $PartName";
+            $self->{user_name}            = "$UserName";
+            $self->{user_id}              = $UserNum;
+            $self->{partition_now_cmd}    = $cmd;
+            $self->{partition_now_msg}    = "User $UserName  opening partition $PartName";
             $self->{partition_now_status} = "user opening";
             $self->{partition_now}        = "$PartNum";
         }
-        elsif ( $cmd == 751 )
-        {    # Special opening (probably via computer command)
+        elsif ( $cmd == 751 ) {    # Special opening (probably via computer command)
             my $PartName = my $PartNum = $data;
             $PartName = $main::config_parms{"DSC_5401_part_${PartName}"}
               if exists $main::config_parms{"DSC_5401_part_${PartName}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} Misterhouse or Anonymous doing spartial closing on partition $PartName ($PartNum)"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
+                "$cmd $EventMsg{$cmd} Misterhouse or Anonymous doing spartial closing on partition $PartName ($PartNum)" );
             set $self "special opening";
-            $self->{user_name}         = "Misterhouse or Anonymous";
-            $self->{user_id}           = "0000";
-            $self->{partition_now_cmd} = $cmd;
-            $self->{partition_now_msg} =
-              "Misterhouse or Anonymous opening partition $PartName";
+            $self->{user_name}            = "Misterhouse or Anonymous";
+            $self->{user_id}              = "0000";
+            $self->{partition_now_cmd}    = $cmd;
+            $self->{partition_now_msg}    = "Misterhouse or Anonymous opening partition $PartName";
             $self->{partition_now_status} = "special opening";
             $self->{partition_now}        = "$PartNum";
         }
         elsif ( $cmd == 810 ) {    # Phone line 1 open or short condition
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} Phone line 1 is in open or short condition"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
+                "$cmd $EventMsg{$cmd} Phone line 1 is in open or short condition" );
             set $self "phone line 1 trouble";
         }
         elsif ( $cmd == 811 ) {    # Phone line 1 trouble restored
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} Phone line 1 trouble is restored"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} Phone line 1 trouble is restored" );
             set $self "phone line 1 restored";
         }
         elsif ( $cmd == 812 ) {    # Phone line 2 open or short condition
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} Phone line 2 is in open or short condition"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
+                "$cmd $EventMsg{$cmd} Phone line 2 is in open or short condition" );
             set $self "phone line 2 trouble";
         }
         elsif ( $cmd == 813 ) {    # Phone line 2 trouble restored
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} Phone line 2 trouble is restored"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} Phone line 2 trouble is restored" );
             set $self "phone line 2 restored";
         }
         elsif ( $cmd == 831 ) {    # Trouble With Escort module
             my $PartName = my $PartNum = $data;
             $PartName = $main::config_parms{"DSC_5401_part_${PartName}"}
               if exists $main::config_parms{"DSC_5401_part_${PartName}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} System report trouble with Escort"
-            );
-            &::print_log(
-                "$EventMsg{$cmd}:   System report trouble with Escort module");
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} System report trouble with Escort" );
+            &::print_log("$EventMsg{$cmd}:   System report trouble with Escort module");
         }
         elsif ( $cmd == 832 ) {    # Escort trouble restored
             my $PartName = my $PartNum = $data;
             $PartName = $main::config_parms{"DSC_5401_part_${PartName}"}
               if exists $main::config_parms{"DSC_5401_part_${PartName}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} System trouble with Escort restored"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "$cmd $EventMsg{$cmd} System trouble with Escort restored" );
             &::print_log("$EventMsg{$cmd}:   Escort module trouble restored");
         }
         elsif ( $cmd == 840 ) {    # Trouble Status (trouble on system)
             my $PartName = my $PartNum = $data;
             $PartName = $main::config_parms{"DSC_5401_part_${PartName}"}
               if exists $main::config_parms{"DSC_5401_part_${PartName}"};
-            &LocalLogit(
-                "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-                "$cmd $EventMsg{$cmd} System report trouble on partition $PartName"
-            );
-            &::print_log(
-                "$EventMsg{$cmd}:   System report trouble on partition $PartName"
-            );
+            &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
+                "$cmd $EventMsg{$cmd} System report trouble on partition $PartName" );
+            &::print_log("$EventMsg{$cmd}:   System report trouble on partition $PartName");
         }
-        elsif ( $cmd == 841 ) {  # Trouble Status Restore (No trouble on system)
+        elsif ( $cmd == 841 ) {    # Trouble Status Restore (No trouble on system)
             my $PartName = my $PartNum = $data;
             $PartName = $main::config_parms{"DSC_5401_part_${PartName}"}
               if exists $main::config_parms{"DSC_5401_part_${PartName}"};
@@ -703,20 +587,14 @@ sub CheckCmd {
                 "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
                 "$cmd $EventMsg{$cmd} System report no trouble on partition $PartName"
             );
-            print(
-                "$EventMsg{$cmd}:   System report no trouble on partition $PartName\n"
-            );
+            print("$EventMsg{$cmd}:   System report no trouble on partition $PartName\n");
         }
         else {
-            &main::print_log(
-                "DSC5401:check_for_data  Undefined command [$cmd] received via $CmdStr"
-            );
+            &main::print_log("DSC5401:check_for_data  Undefined command [$cmd] received via $CmdStr");
         }
     }
     else {
-        &main::print_log(
-            "DSC5401:check_for_data  Invalid checksum from $CmdStr ($CalcChecksum)"
-        );
+        &main::print_log("DSC5401:check_for_data  Invalid checksum from $CmdStr ($CalcChecksum)");
     }
     return;
 }
@@ -794,8 +672,8 @@ sub ResetDscState {
             $self->{partition_cmd}{$PartNum}    = $self->{partition_now_cmd};
             $self->{partition_msg}{$PartNum}    = $self->{partition_now_msg};
             $self->{partition_status}{$PartNum} = $self->{partition_now_status};
-            $self->{partition_time}{$PartNum}  = &::time_date_stamp( 17, time );
-            $self->{partition_epoch}{$PartNum} = time;
+            $self->{partition_time}{$PartNum}   = &::time_date_stamp( 17, time );
+            $self->{partition_epoch}{$PartNum}  = time;
             undef $self->{partition_now};
             undef $self->{partition_now_cmd};
             undef $self->{partition_now_msg};
@@ -848,8 +726,7 @@ Define hash with DSC message event
 sub DefineEventMsg {
 
     %EventMsg = (
-        "000" => "Poll                                     "
-        ,    # Application originated command
+        "000" => "Poll                                     ",    # Application originated command
         "001" => "Status Report                            ",    #         |
         "010" => "Set Date and Time                        ",    #        \ /
         "020" => "Command Output Control                   ",
@@ -864,8 +741,7 @@ sub DefineEventMsg {
         "057" => "Temperature Broadcast Control            ",
         "060" => "Trigger Panic Alarm                      ",
         "200" => "Code Send                                ",
-        "500" => "Command Acknowledge                      "
-        ,    # PC5401 Originated Command
+        "500" => "Command Acknowledge                      ",    # PC5401 Originated Command
         "501" => "Command Error                            ",    #        |
         "502" => "System Error                             ",    #       \ /
         "550" => "Time/Date Broadcast                      ",
@@ -1038,27 +914,20 @@ sub cmd {
     $CmdName = ( exists $CmdMsgRev{$cmd} ) ? $CmdMsgRev{$cmd} : "unknown";
 
     if ( $CmdName =~ /^unknown/ ) {
-        &::print_log(
-            "Invalid DSC panel command : $CmdName ($cmd) with argument $arg");
+        &::print_log("Invalid DSC panel command : $CmdName ($cmd) with argument $arg");
         return;
     }
 
     if ( $cmd eq "033" || $cmd eq "040" ) {    # we don't display password
         &::print_log("Sending to DSC panel     $CmdName ($cmd)");
-        &LocalLogit(
-            "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-            ">>> Sending to DSC panel                      $CmdName ($cmd)"
-        );
+        &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", ">>> Sending to DSC panel                      $CmdName ($cmd)" );
         $main::Serial_Ports{DSC5401}{object}->write("$CmdStr\r\n");
         return "Sending to DSC panel: $CmdName ($cmd)";
     }
     else {
-        &::print_log(
-            "Sending to DSC panel     $CmdName ($cmd) with argument ($arg)");
-        &LocalLogit(
-            "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-            ">>> Sending to DSC panel                      $CmdName ($cmd) with argument ($arg)  [$CmdStr]"
-        );
+        &::print_log("Sending to DSC panel     $CmdName ($cmd) with argument ($arg)");
+        &LocalLogit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
+            ">>> Sending to DSC panel                      $CmdName ($cmd) with argument ($arg)  [$CmdStr]" );
         $main::Serial_Ports{DSC5401}{object}->write("$CmdStr\r\n");
         return "Sending to DSC panel: $CmdName ($cmd) with argument ($arg)";
     }
@@ -1154,16 +1023,14 @@ sub user_id {
 
 sub IntTstat {
     my ( $class, $TstatNum ) = @_;
-    return $_[0]->{IntTstatTemp}{$TstatNum}, $_[0]->{IntTstatTime}{$TstatNum},
-      $_[0]->{IntTstatEpoch}{$TstatNum}
+    return $_[0]->{IntTstatTemp}{$TstatNum}, $_[0]->{IntTstatTime}{$TstatNum}, $_[0]->{IntTstatEpoch}{$TstatNum}
       if defined $_[0]->{IntTstatTemp};
     return -999;
 }
 
 sub ExtTstat {
     my ( $class, $TstatNum ) = @_;
-    return $_[0]->{ExtTstatTemp}{$TstatNum}, $_[0]->{ExtTstatTime}{$TstatNum},
-      $_[0]->{ExtTstatEpoch}{$TstatNum}
+    return $_[0]->{ExtTstatTemp}{$TstatNum}, $_[0]->{ExtTstatTime}{$TstatNum}, $_[0]->{ExtTstatEpoch}{$TstatNum}
       if defined $_[0]->{ExtTstatTemp};
     return -999;
 }
@@ -1183,8 +1050,7 @@ This method copied from Gaeton's example DSC_Clock.pl code.  I recommend that th
 sub set_clock {
     my ($self) = @_;
 
-    my ( $sec, $m, $h, $mday, $mon, $year, $wday, $yday, $isdst ) =
-      localtime(time);
+    my ( $sec, $m, $h, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime(time);
     $year = sprintf( "%02d", $year % 100 );
     $mon += 1;
     $m    = ( $m < 10 )    ? "0" . $m    : $m;
@@ -1193,10 +1059,7 @@ sub set_clock {
     $mon  = ( $mon < 10 )  ? "0" . $mon  : $mon;
     my $TimeStamp = "$h$m$mon$mday$year";
     &::print_log("Setting time on DSC panel to $TimeStamp");
-    &::logit(
-        "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-        "Setting time on DSC panel to $TimeStamp"
-    );
+    &::logit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "Setting time on DSC panel to $TimeStamp" );
     $self->cmd( "SetDateTime", $TimeStamp );
 }
 

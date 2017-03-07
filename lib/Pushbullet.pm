@@ -97,9 +97,7 @@ sub new {
     my ( $class, $params ) = @_;
 
     if ( defined $params && ref($params) ne 'HASH' ) {
-        &::print_log(
-            "[Pushbullet] ERROR!  Pushbullet->new() invalid parameter hash - Pushbullet disabled"
-        );
+        &::print_log("[Pushbullet] ERROR!  Pushbullet->new() invalid parameter hash - Pushbullet disabled");
         $params = {};
         $params->{disable} = 1;
     }
@@ -109,7 +107,7 @@ sub new {
     my $self = {};
 
     # Set configuration defaults
-    $self->{config}{speak} = 1;    # Speak notifications and acknowledgments
+    $self->{config}{speak}  = 1;                               # Speak notifications and acknowledgments
     $self->{config}{server} = 'https://api.pushbullet.com/';
 
     # mh.private.ini settings override the defaults
@@ -179,8 +177,8 @@ sub push_note {
 
     $params = $self->_check_params_hash($params);
     $params->{type} = "note";    #Force type to note when using this function
-    $params->{body}   = $message || " ";
-    $params->{title}  = $title || " ";
+    $params->{body}  = $message || " ";
+    $params->{title} = $title   || " ";
     $params->{action} = "POST";
     $params->{path}   = "v2/pushes";
 
@@ -205,9 +203,9 @@ sub push_link {
     my ( $self, $title, $url, $params ) = @_;
 
     $params = $self->_check_params_hash($params);
-    $params->{type} = "link";       #Force type to note when using this function
-    $params->{url} = $url || " ";
-    $params->{title}  = $title || " ";
+    $params->{type} = "link";    #Force type to note when using this function
+    $params->{url}   = $url   || " ";
+    $params->{title} = $title || " ";
     $params->{action} = "POST";
     $params->{path}   = "v2/pushes";
 
@@ -226,7 +224,7 @@ sub push_address {
 
     $params = $self->_check_params_hash($params);
     $params->{type} = "address";    #Force type to note when using this function
-    $params->{name} = $name || " ";
+    $params->{name}    = $name    || " ";
     $params->{address} = $address || " ";
     $params->{action}  = "POST";
     $params->{path}    = "v2/pushes";
@@ -286,7 +284,7 @@ sub push_file {
     $params->{type} = "file";    #Force type to note when using this function
     $params->{file_name} = $file_name || " ";
     $params->{file_type} = $file_type || " ";
-    $params->{file_url}  = $file_url || " ";
+    $params->{file_url}  = $file_url  || " ";
     $params->{action}    = "POST";
     $params->{path}      = "v2/pushes";
 
@@ -344,18 +342,15 @@ sub push_hash {
     my $disable = $params->{disable};
     my $note = ($disable) ? '- Notifications disabled' : '';
 
-    &::print_log( "[Pushbullet] Push Hash parameters: "
-          . Data::Dumper::Dumper( \$callparams ) )
+    &::print_log( "[Pushbullet] Push Hash parameters: " . Data::Dumper::Dumper( \$callparams ) )
       if TRACE;
 
     # Form browser and request
     my $browser = LWP::UserAgent->new;
-    my $req     = HTTP::Request->new(
-        $params->{action} => $params->{server} . $params->{path} );
+    my $req = HTTP::Request->new( $params->{action} => $params->{server} . $params->{path} );
     if ( keys $callparams ) {
         $req->content( JSON::encode_json($callparams) );
-        $req->content_type('application/json')
-          ;    # Posting JSON content is preferred
+        $req->content_type('application/json');    # Posting JSON content is preferred
     }
     $req->authorization_basic( $params->{token}, "" );
     my $resp;
@@ -373,8 +368,7 @@ sub push_hash {
 
     return if $disable;    # Don't check the response if posting is disabled
 
-    &::print_log(
-        "[Pushbullet] Notify results: " . Data::Dumper::Dumper( \$resp ) )
+    &::print_log( "[Pushbullet] Notify results: " . Data::Dumper::Dumper( \$resp ) )
       if TRACE;
 
     my $decoded_json = JSON::decode_json( $resp->content() );
@@ -388,9 +382,7 @@ sub push_hash {
         return $decoded_json->{'iden'};
     }
     else {
-        &::print_log(
-            "[Pushbullet] ERROR: POST Failed: Status: $decoded_json->{error}{type} - $decoded_json->{error}{message} "
-        );
+        &::print_log("[Pushbullet] ERROR: POST Failed: Status: $decoded_json->{error}{type} - $decoded_json->{error}{message} ");
         return;
     }
 }
@@ -449,9 +441,7 @@ sub upload_file {
 sub _check_params_hash {
     my ( $self, $params ) = @_;
     if ( defined $params && ref($params) ne 'HASH' ) {
-        &::print_log(
-            "[Pushbullet] ERROR! called with invalid parameter hash - passed parameters ignored"
-        );
+        &::print_log("[Pushbullet] ERROR! called with invalid parameter hash - passed parameters ignored");
         return {};
     }
     else {

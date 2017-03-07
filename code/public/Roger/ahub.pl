@@ -6,29 +6,23 @@
 
 #use vars '$AHubSweUP','$AHubSweUsers','$AHubSweBps','$AHubSwePkts','$AHubSweVer','$AHubSweTime';
 #use vars '$AHubEastUP','$AHubEastUsers','$AHubEastBps','$AHubEastPkts','$AHubEastVer','$AHubEastTime';
-use vars '$AH2ndStart', '$AH2ndRestarts', '$AH2ndLast', '$AHStart',
-  '$AH2ndAvg', '$AH2ndRaw';
+use vars '$AH2ndStart', '$AH2ndRestarts', '$AH2ndLast', '$AHStart', '$AH2ndAvg', '$AH2ndRaw';
 use vars '@AHubUP', '@AHubUsers', '@AHubUsersX', '@AHubBps', '@AHubPkts',
   '@AHubVer', '@AHubVerX', '@AHubTime', '@AHubTimeX', '@AHubName', '@AHubRaw',
   '@AHubRawX';
 use vars '@AHubCon', '@AHubCon60', '@AHubConX', '@AHubCon60X';
-use vars '@APDName', '@APDLoc', '@APDVer', '@APDUsers', '@APDUsers2',
-  '@APDList', '@APDTime', '@APDRaw';
-use vars '$APDNbr', '$APDLine', '@AHubMail', '@AHubMailX';
+use vars '@APDName', '@APDLoc',    '@APDVer',   '@APDUsers', '@APDUsers2', '@APDList', '@APDTime', '@APDRaw';
+use vars '$APDNbr',  '$APDLine',   '@AHubMail', '@AHubMailX';
 use vars '$WXKey';
 
-use vars '@MailName', '@MailStart', '@MailRem', '@MailAddr', '@MailNbr',
-  '$MailCount';
+use vars '@MailName', '@MailStart', '@MailRem', '@MailAddr', '@MailNbr', '$MailCount';
 
 # my (@APDName,@APDLoc,@APDVer,@APDUsers,@APDUsers2,@APDList,@APDTime,@APDRaw);
 
-use vars '$FirstName', '$FirstLoc', '$FirstVer', '$FirstUsers', '$FirstUsers2',
-  '$FirstTime', '$FirstStart', '$FirstUp', '$FirstList';
-use vars '$SecondName', '$SecondLoc', '$SecondVer', '$SecondUsers',
-  '$SecondUsers2', '$SecondTime', '$SecondStart', '$SecondUp', '$SecondList';
-use vars '$ThirdName', '$ThirdLoc', '$ThirdVer', '$ThirdUsers', '$ThirdUsers2',
-  '$ThirdTime', '$ThirdStart', '$ThirdUp', '$ThirdList';
-use vars '@CoreCon', '@CoreCon60';
+use vars '$FirstName',  '$FirstLoc',  '$FirstVer',  '$FirstUsers',  '$FirstUsers2',  '$FirstTime',  '$FirstStart',  '$FirstUp',  '$FirstList';
+use vars '$SecondName', '$SecondLoc', '$SecondVer', '$SecondUsers', '$SecondUsers2', '$SecondTime', '$SecondStart', '$SecondUp', '$SecondList';
+use vars '$ThirdName',  '$ThirdLoc',  '$ThirdVer',  '$ThirdUsers',  '$ThirdUsers2',  '$ThirdTime',  '$ThirdStart',  '$ThirdUp',  '$ThirdList';
+use vars '@CoreCon',    '@CoreCon60';
 
 my ( @List, $Loc, $x, $newkey, $MailText, $MailTo );
 
@@ -38,13 +32,9 @@ my ($APRSString);
 my ( $key, $count, $AHubNbr );
 my ( $Name, $Ver, $VerX, $Users, $UsersX, $Bps, $Pkts, $UP );
 my ( @AHub, @AHubLoc, @AHubWWW, @AHcolor, @AFcolor );
-my ( $AHubLine, $AH2ndTag );
+my ( $AHubLine,     $AH2ndTag );
 my ( $AHubUsersSum, $AHubBpsSum, $AHubPktsSum, $AHubUsersXSum, $BordCol );
-my (
-    $Time1,   $Time2,  $Time3,     $Time4,  $Time5,
-    $Diff,    $Avg,    $TempUsers, $TempUp, $TempUsersX,
-    $TempUpX, $bgTime, $bgUp,      $bgTimeX
-);
+my ( $Time1,        $Time2, $Time3, $Time4, $Time5, $Diff, $Avg, $TempUsers, $TempUp, $TempUsersX, $TempUpX, $bgTime, $bgUp, $bgTimeX );
 my ( $TempBps, $TempPkts, $TempCon, $TempConX );
 my $bgRed = "bgcolor=\"#FF0000\"";
 my $bgYel = "bgcolor=\"#FFFF00\"";
@@ -68,15 +58,15 @@ if ($Startup) {
 
 if ($Reload) {
     open( AHUB, "$config_parms{code_dir}/ahub.pos" );    # Open	for	input
-    @AHub = <AHUB>;    # Open	array and read in data
-    close AHUB;        # Close the file
+    @AHub = <AHUB>;                                      # Open	array and read in data
+    close AHUB;                                          # Close the file
     $AH2ndLast = 0;
     $count     = 0;
 
     # 	$APDNbr	= 0;
     foreach $AHubLine (@AHub) {
         ( $AHubName[$count], $AHubWWW[$count], $AHubLoc[$count] ) =
-          ( split( ',', $AHubLine ) )[ 0, 1, 2 ];    # Split	each line
+          ( split( ',', $AHubLine ) )[ 0, 1, 2 ];        # Split	each line
         $AHubNbr           = $count;
         $AHubMail[$count]  = 0;
         $AHubMailX[$count] = 0;
@@ -97,14 +87,11 @@ if ($Reload) {
     }
 
     open( AHUB, "$config_parms{code_dir}/ahub.mail" );    # Open	for	input
-    @AHub = <AHUB>;    # Open	array and read in data
-    close AHUB;        # Close the file
+    @AHub = <AHUB>;                                       # Open	array and read in data
+    close AHUB;                                           # Close the file
     $count = 0;
     foreach $AHubLine (@AHub) {
-        (
-            $MailName[$count], $MailStart[$count],
-            $MailRem[$count],  $MailAddr[$count]
-        ) = ( split( ',', $AHubLine ) )[ 0, 1, 2, 3 ];    # Split	each line
+        ( $MailName[$count], $MailStart[$count], $MailRem[$count], $MailAddr[$count] ) = ( split( ',', $AHubLine ) )[ 0, 1, 2, 3 ];    # Split	each line
 
         #		$MailNbr[$count] = 0;
         $MailCount = $count;
@@ -151,10 +138,8 @@ if ( $APRSString = said $tnc_output2) {
         # AHUBSWE>APRS,TCPIP*:!5848.83N/01652.44EI SM5NRK/AFilterX 1.3,	10 users connected
         # 		print_msg "AHub: $APRSString";						# Monitor to Msg Window
 
-        if ( $APRSString =~
-            /(.*)>.*:.*AHub (.*),(\d+) users,(\d+) bps,(\d+) Pkts UP=(.*\d\d[hd]).*/
-          )
-        {
+        if ( $APRSString =~ /(.*)>.*:.*AHub (.*),(\d+) users,(\d+) bps,(\d+) Pkts UP=(.*\d\d[hd]).*/ ) {
+
             # 			print_msg "AHub: Processing";
             $Name  = $1;
             $Ver   = $2;
@@ -222,7 +207,7 @@ if ( $APRSString = said $tnc_output2) {
             $Name   = $1;
             $UsersX = $2;
 
-            if ( $APRSString =~ /.*APAX(\d)(\d),.*/ ) { $VerX = $1 . "." . $2 }
+            if ( $APRSString =~ /.*APAX(\d)(\d),.*/ )     { $VerX = $1 . "." . $2 }
             if ( $APRSString =~ /.*:.*AFilterX (.*),.*/ ) { $VerX = $1 }
 
             $count = 0;
@@ -493,9 +478,8 @@ if ($New_Minute) {
             $Time2 =
               ( $MailStart[$key] + $AHubMail[$count] * $MailRem[$key] ) * 60;
 ##			print_msg "Mail1: $AHubName[$count] $MailName[$key] $AHubTime[$count] $MailStart[$key] $AHubMailX[$count] $MailRem[$key] Time1=$Time1 Time2=$Time2";
-            if ( $AHubName[$count] eq $MailName[$key]
-                and ( time() - $AHubTime[$count] ) >
-                ( $MailStart[$key] + $AHubMail[$count] * $MailRem[$key] ) * 60
+            if (    $AHubName[$count] eq $MailName[$key]
+                and ( time() - $AHubTime[$count] ) > ( $MailStart[$key] + $AHubMail[$count] * $MailRem[$key] ) * 60
                 and $AHubTime[$count] != "" )
             {
                 $Time1 = &utc( $AHubTime[$count] );
@@ -508,33 +492,26 @@ if ($New_Minute) {
                 #				$Time5 = (time() - $AHubTimeX[$count])/60;
                 #				$Time5 = round $Time5;
                 $AHubMail[$count]++;
-                print_msg
-                  "Warning AHub on $AHubName[$count] $Time1 $AHubMail[$count] $MailAddr[$key]";
-                $MailText =
-                  "Warning, missing status report from AHub on $AHubName[$count]\n\n";
+                print_msg "Warning AHub on $AHubName[$count] $Time1 $AHubMail[$count] $MailAddr[$key]";
+                $MailText = "Warning, missing status report from AHub on $AHubName[$count]\n\n";
                 $MailText = $MailText . "Warning Time: $Time2\n\n";
                 $MailText = $MailText . "AHub warning #: $AHubMail[$count]\n";
                 $MailText = $MailText . "AHub Last Status: $Time1\n";
                 $MailText = $MailText . "AHub delta time: $Time3 minutes\n";
-                $MailText =
-                  $MailText . "AHub Last Packet: $AHubRaw[$count]\n\n";
-                $MailText =
-                  $MailText . "First warning after $MailStart[$key] minutes\n";
-                $MailText =
-                  $MailText . "Next warning after $MailRem[$key] minutes\n\n";
-                $MailText =
-                  $MailText . "This is an automatic message from Roger Bille\n";
+                $MailText = $MailText . "AHub Last Packet: $AHubRaw[$count]\n\n";
+                $MailText = $MailText . "First warning after $MailStart[$key] minutes\n";
+                $MailText = $MailText . "Next warning after $MailRem[$key] minutes\n\n";
+                $MailText = $MailText . "This is an automatic message from Roger Bille\n";
 
                 #				$MailTo = "$MailAddr[$key];temp\@ahubswe.net";
                 #				$MailTo = "$MailAddr[$key]";
                 @List = split( / /, $MailAddr[$key] );
                 foreach $MailTo (@List) {
                     &net_mail_send(
-                        to => "$MailTo",
-                        subject =>
-                          "Warning $AHubMail[$count] for AHub on $AHubName[$count] $Time1.",
-                        text => "$MailText",
-                        from => 'APRSstat@ahubswe.net'
+                        to      => "$MailTo",
+                        subject => "Warning $AHubMail[$count] for AHub on $AHubName[$count] $Time1.",
+                        text    => "$MailText",
+                        from    => 'APRSstat@ahubswe.net'
                     );
                 }
             }
@@ -544,9 +521,8 @@ if ($New_Minute) {
             $Time2 =
               ( $MailStart[$key] + $AHubMailX[$count] * $MailRem[$key] ) * 60;
 ##			print_msg "Mail2: $AHubName[$count] $MailName[$key] $AHubTimeX[$count] $MailStart[$key] $AHubMailX[$count] $MailRem[$key] Time1=$Time1 Time2=$Time2";
-            if ( $AHubName[$count] eq $MailName[$key]
-                and ( time() - $AHubTimeX[$count] ) >
-                ( $MailStart[$key] + $AHubMailX[$count] * $MailRem[$key] ) * 60
+            if (    $AHubName[$count] eq $MailName[$key]
+                and ( time() - $AHubTimeX[$count] ) > ( $MailStart[$key] + $AHubMailX[$count] * $MailRem[$key] ) * 60
                 and $AHubTimeX[$count] != "" )
             {
                 #				$Time1 = &utc($AHubTime[$count]);
@@ -558,34 +534,26 @@ if ($New_Minute) {
                 $Time5 = ( time() - $AHubTimeX[$count] ) / 60;
                 $Time5 = round $Time5;
                 $AHubMailX[$count]++;
-                print_msg
-                  "Warning AFilter on $AHubName[$count] $Time4 $AHubMailX[$count] $MailAddr[$key]";
-                $MailText =
-                  "Warning, missing status report from AFilterX on $AHubName[$count]\n\n";
+                print_msg "Warning AFilter on $AHubName[$count] $Time4 $AHubMailX[$count] $MailAddr[$key]";
+                $MailText = "Warning, missing status report from AFilterX on $AHubName[$count]\n\n";
                 $MailText = $MailText . "Warning Time: $Time2\n\n";
-                $MailText =
-                  $MailText . "AFilterX warning #: $AHubMailX[$count]\n";
+                $MailText = $MailText . "AFilterX warning #: $AHubMailX[$count]\n";
                 $MailText = $MailText . "AFilterX Last Status: $Time4\n";
                 $MailText = $MailText . "AFilterX delta time: $Time5 minutes\n";
-                $MailText =
-                  $MailText . "AFilterX Last Packet: $AHubRawX[$count]\n\n";
-                $MailText =
-                  $MailText . "First warning after $MailStart[$key] minutes\n";
-                $MailText =
-                  $MailText . "Next warning after $MailRem[$key] minutes\n\n";
-                $MailText =
-                  $MailText . "This is an automatic message from Roger Bille\n";
+                $MailText = $MailText . "AFilterX Last Packet: $AHubRawX[$count]\n\n";
+                $MailText = $MailText . "First warning after $MailStart[$key] minutes\n";
+                $MailText = $MailText . "Next warning after $MailRem[$key] minutes\n\n";
+                $MailText = $MailText . "This is an automatic message from Roger Bille\n";
 
                 #				$MailTo = "$MailAddr[$key];temp\@ahubswe.net";
                 #				$MailTo = "$MailAddr[$key]";
                 @List = split( / /, $MailAddr[$key] );
                 foreach $MailTo (@List) {
                     &net_mail_send(
-                        to => "$MailTo",
-                        subject =>
-                          "Warning $AHubMailX[$count] for AFilterX on $AHubName[$count] $Time4.",
-                        text => "$MailText",
-                        from => 'APRSstat@ahubswe.net'
+                        to      => "$MailTo",
+                        subject => "Warning $AHubMailX[$count] for AFilterX on $AHubName[$count] $Time4.",
+                        text    => "$MailText",
+                        from    => 'APRSstat@ahubswe.net'
                     );
                 }
             }
@@ -603,10 +571,8 @@ sub create_html {
     # Standard HTML
     #
 
-    $BordCol =
-      " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
-    $BordCol = $BordCol
-      . "	style=\"border-bottom-style: solid;	border-bottom-color: #000000\"";
+    $BordCol = " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
+    $BordCol = $BordCol . "	style=\"border-bottom-style: solid;	border-bottom-color: #000000\"";
 
     open( HTML, ">\\\\server\\d\$\\wwwroot\\ahub.html" );
 
@@ -670,50 +636,31 @@ sub create_html {
 sub ahub_table {
 
     #	open(HTML, ">\\\\server\\d\$\\wwwroot\\ahub_table.html");
-    $BordCol =
-      " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
-    $BordCol = $BordCol
-      . "	style=\"border-bottom-style: solid;	border-bottom-color: #000000\"";
-    print HTML
-      "<h2	align=\"center\">AHub Statistics</h2>\n<table border=\"1\" width=\"100%\">\n";
+    $BordCol = " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
+    $BordCol = $BordCol . "	style=\"border-bottom-style: solid;	border-bottom-color: #000000\"";
+    print HTML "<h2	align=\"center\">AHub Statistics</h2>\n<table border=\"1\" width=\"100%\">\n";
 
     print HTML "<tr>\n";
     print HTML "<td	width=\"10%\"><b><font size=\"2\">Server</font></b></td>\n";
-    print HTML
-      "<td	width=\"14%\"><b><font size=\"2\">Location</font></b></td>\n";
-    print HTML
-      "<td	width=\"53%\" colspan=\"7\"><b><font size=\"2\"><p align=\"center\">AHub</font></b></td>\n";
-    print HTML
-      "<td	width=\"37%\" colspan=\"4\"><b><font size=\"2\"><p align=\"center\">AFilterX</font></b></td>\n";
+    print HTML "<td	width=\"14%\"><b><font size=\"2\">Location</font></b></td>\n";
+    print HTML "<td	width=\"53%\" colspan=\"7\"><b><font size=\"2\"><p align=\"center\">AHub</font></b></td>\n";
+    print HTML "<td	width=\"37%\" colspan=\"4\"><b><font size=\"2\"><p align=\"center\">AFilterX</font></b></td>\n";
     print HTML "</tr>\n";
 
     print HTML "<tr>\n";
-    print HTML
-      "<td	width=\"10%\"$BordCol><b><font size=\"2\"></font></b></td>\n";
-    print HTML
-      "<td	width=\"14%\"$BordCol><b><font size=\"2\"></font></b></td>\n";
-    print HTML
-      "<td	width=\"15%\"$BordCol><b><font size=\"2\">Last Update UTC</font></b></td>\n";
-    print HTML
-      "<td	width=\"7%\"$BordCol><b><font size=\"2\">Version</font></b></td>\n";
-    print HTML
-      "<td	width=\"6%\"$BordCol><b><font size=\"2\">Users</font></b></td>\n";
-    print HTML
-      "<td	width=\"7%\"$BordCol><b><font size=\"2\">Connect</font></b></td>\n";
-    print HTML
-      "<td	width=\"6%\"$BordCol><b><font size=\"2\">bps</font></b></td>";
-    print HTML
-      "<td	width=\"6%\"$BordCol><b><font size=\"2\">Pkts</font></b></td>\n";
-    print HTML
-      "<td	width=\"6%\"$BordCol><b><font size=\"2\">UP Time</font></b></td>\n";
-    print HTML
-      "<td	width=\"14%\"$BordCol><b><font size=\"2\">Last Update UTC</font></b></td>\n";
-    print HTML
-      "<td	width=\"7%\"$BordCol><b><font size=\"2\">Version</font></b></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><b><font size=\"2\">Users</font></b></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><b><font size=\"2\">Connect</font></b></td>\n";
+    print HTML "<td	width=\"10%\"$BordCol><b><font size=\"2\"></font></b></td>\n";
+    print HTML "<td	width=\"14%\"$BordCol><b><font size=\"2\"></font></b></td>\n";
+    print HTML "<td	width=\"15%\"$BordCol><b><font size=\"2\">Last Update UTC</font></b></td>\n";
+    print HTML "<td	width=\"7%\"$BordCol><b><font size=\"2\">Version</font></b></td>\n";
+    print HTML "<td	width=\"6%\"$BordCol><b><font size=\"2\">Users</font></b></td>\n";
+    print HTML "<td	width=\"7%\"$BordCol><b><font size=\"2\">Connect</font></b></td>\n";
+    print HTML "<td	width=\"6%\"$BordCol><b><font size=\"2\">bps</font></b></td>";
+    print HTML "<td	width=\"6%\"$BordCol><b><font size=\"2\">Pkts</font></b></td>\n";
+    print HTML "<td	width=\"6%\"$BordCol><b><font size=\"2\">UP Time</font></b></td>\n";
+    print HTML "<td	width=\"14%\"$BordCol><b><font size=\"2\">Last Update UTC</font></b></td>\n";
+    print HTML "<td	width=\"7%\"$BordCol><b><font size=\"2\">Version</font></b></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><b><font size=\"2\">Users</font></b></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><b><font size=\"2\">Connect</font></b></td>\n";
     print HTML "</tr>\n";
 
     $AHubUsersSum  = 0;
@@ -725,10 +672,9 @@ sub ahub_table {
 
         # code for @AHcolor	and	@AFcolor in	here
 
-        $BordCol =
-          " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
-        $Time1 = "";
-        $Time2 = "";
+        $BordCol = " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
+        $Time1   = "";
+        $Time2   = "";
         if ( $AHubTime[$count] != "" )  { $Time1 = &utc( $AHubTime[$count] ) }
         if ( $AHubTimeX[$count] != "" ) { $Time2 = &utc( $AHubTimeX[$count] ) }
         $bgTime     = "";
@@ -762,57 +708,39 @@ sub ahub_table {
         if ( $AHubCon60X[$count] == 0 ) { $TempConX = "" }
 
         print HTML "<tr>\n";
-        print HTML
-          "<td	width=\"10%\"$BordCol><a href=$AHubWWW[$count]><font size=\"2\">$AHubName[$count]</font></a></td>\n";
-        print HTML
-          "<td	width=\"14%\"$BordCol><font	size=\"2\">$AHubLoc[$count]</font></td>\n";
-        print HTML
-          "<td	width=\"15%\"$BordCol $bgTime><font size=\"2\">$Time1</font></td>\n";
-        print HTML
-          "<td	width=\"7%\"$BordCol><font size=\"2\">$AHubVer[$count]</font></td>\n";
-        print HTML
-          "<td	width=\"6%\"$BordCol><font size=\"2\">$TempUsers</font></td>\n";
-        print HTML
-          "<td width=\"7%\"$BordCol><font size=\"2\">$TempCon</font></td>\n";
-        print HTML
-          "<td	width=\"6%\"$BordCol><font size=\"2\">$TempBps</font></td>\n";
-        print HTML
-          "<td	width=\"6%\"$BordCol><font size=\"2\">$TempPkts</font></td>\n";
-        print HTML
-          "<td	width=\"6%\"$BordCol $bgUp><font size=\"2\">$TempUp</font></td>\n";
-        print HTML
-          "<td	width=\"14%\"$BordCol $bgTimeX><font size=\"2\">$Time2</font></td>\n";
-        print HTML
-          "<td	width=\"7%\"$BordCol><font size=\"2\">$AHubVerX[$count]</font></td>\n";
-        print HTML
-          "<td	width=\"8%\"$BordCol><font size=\"2\">$TempUsersX</font></td>\n";
-        print HTML
-          "<td	width=\"8%\"$BordCol><font size=\"2\">$TempConX</font></td>\n";
+        print HTML "<td	width=\"10%\"$BordCol><a href=$AHubWWW[$count]><font size=\"2\">$AHubName[$count]</font></a></td>\n";
+        print HTML "<td	width=\"14%\"$BordCol><font	size=\"2\">$AHubLoc[$count]</font></td>\n";
+        print HTML "<td	width=\"15%\"$BordCol $bgTime><font size=\"2\">$Time1</font></td>\n";
+        print HTML "<td	width=\"7%\"$BordCol><font size=\"2\">$AHubVer[$count]</font></td>\n";
+        print HTML "<td	width=\"6%\"$BordCol><font size=\"2\">$TempUsers</font></td>\n";
+        print HTML "<td width=\"7%\"$BordCol><font size=\"2\">$TempCon</font></td>\n";
+        print HTML "<td	width=\"6%\"$BordCol><font size=\"2\">$TempBps</font></td>\n";
+        print HTML "<td	width=\"6%\"$BordCol><font size=\"2\">$TempPkts</font></td>\n";
+        print HTML "<td	width=\"6%\"$BordCol $bgUp><font size=\"2\">$TempUp</font></td>\n";
+        print HTML "<td	width=\"14%\"$BordCol $bgTimeX><font size=\"2\">$Time2</font></td>\n";
+        print HTML "<td	width=\"7%\"$BordCol><font size=\"2\">$AHubVerX[$count]</font></td>\n";
+        print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$TempUsersX</font></td>\n";
+        print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$TempConX</font></td>\n";
         print HTML "</tr>\n";
         $AHubUsersSum  = $AHubUsersSum + $AHubUsers[$count];
         $AHubBpsSum    = $AHubBpsSum + $AHubBps[$count];
         $AHubPktsSum   = $AHubPktsSum + $AHubPkts[$count];
         $AHubUsersXSum = $AHubUsersXSum + $AHubUsersX[$count];
     }
-    $BordCol = $BordCol
-      . "	style=\"border-top-style: solid; border-top-color: #000000\"";
+    $BordCol = $BordCol . "	style=\"border-top-style: solid; border-top-color: #000000\"";
     print HTML "<tr>\n";
     print HTML "<td	width=\"10%\"$BordCol><font	size=\"2\">TOTAL</font></td>\n";
     print HTML "<td	width=\"14%\"$BordCol><font	size=\"2\"></font></td>\n";
     print HTML "<td	width=\"15%\"$BordCol><font	size=\"2\"></font></td>\n";
     print HTML "<td	width=\"7%\"$BordCol><font size=\"2\"></font></td>\n";
-    print HTML
-      "<td	width=\"6%\"$BordCol><font size=\"2\">$AHubUsersSum</font></td>\n";
+    print HTML "<td	width=\"6%\"$BordCol><font size=\"2\">$AHubUsersSum</font></td>\n";
     print HTML "<td	width=\"7%\"$BordCol><font size=\"2\"></font></td>\n";
-    print HTML
-      "<td	width=\"6%\"$BordCol><font size=\"2\">$AHubBpsSum</font></td>\n";
-    print HTML
-      "<td	width=\"6%\"$BordCol><font size=\"2\">$AHubPktsSum</font></td>\n";
+    print HTML "<td	width=\"6%\"$BordCol><font size=\"2\">$AHubBpsSum</font></td>\n";
+    print HTML "<td	width=\"6%\"$BordCol><font size=\"2\">$AHubPktsSum</font></td>\n";
     print HTML "<td	width=\"6%\"$BordCol><font size=\"2\"></font></td>\n";
     print HTML "<td	width=\"14%\"$BordCol><font	size=\"2\"></font></td>\n";
     print HTML "<td	width=\"7%\"$BordCol><font size=\"2\"></font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><font size=\"2\">$AHubUsersXSum</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$AHubUsersXSum</font></td>\n";
     print HTML "<td	width=\"8%\"$BordCol><font size=\"2\"></font></td>\n";
     print HTML "</tr>\n";
     print HTML "</table>\n\n";
@@ -823,26 +751,20 @@ sub ahub_table {
 }
 
 sub core_table {
-    $BordCol =
-      " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
-    $BordCol = $BordCol
-      . "	style=\"border-bottom-style: solid;	border-bottom-color: #000000\"";
-    print HTML
-      "<h2	align=\"center\">Core servers Statistics</h2>\n<table border=\"1\"	width=\"100%\">\n";
+    $BordCol = " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
+    $BordCol = $BordCol . "	style=\"border-bottom-style: solid;	border-bottom-color: #000000\"";
+    print HTML "<h2	align=\"center\">Core servers Statistics</h2>\n<table border=\"1\"	width=\"100%\">\n";
     print HTML "<tr>\n";
     print HTML "<td	width=\"10%\"><b><font size=\"2\">Server</font></b></td>\n";
-    print HTML
-      "<td	width=\"14%\"><b><font size=\"2\">Location</font></b></td>\n";
-    print HTML
-      "<td	width=\"15%\"><b><font size=\"2\">Last Update UTC</font></b></td>\n";
+    print HTML "<td	width=\"14%\"><b><font size=\"2\">Location</font></b></td>\n";
+    print HTML "<td	width=\"15%\"><b><font size=\"2\">Last Update UTC</font></b></td>\n";
     print HTML "<td	width=\"8%\"><b><font size=\"2\">Version</font></b></td>\n";
     print HTML "<td	width=\"8%\"><b><font size=\"2\">Users</font></b></td>\n";
     print HTML "<td	width=\"8%\"><b><font size=\"2\">Connect</font></b></td>\n";
     print HTML "<td	width=\"8%\"><b><font size=\"2\">UP Time</font></b></td>\n";
     print HTML "</tr>\n";
 
-    $BordCol =
-      " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
+    $BordCol = " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
 
     # First
 
@@ -864,20 +786,13 @@ sub core_table {
     }
     if ( $CoreCon60[1] == 0 ) { $TempCon = "" }
     print HTML "<tr>\n";
-    print HTML
-      "<td	width=\"10%\"$BordCol><font	size=\"2\">$FirstName (first)</font></a></td>\n";
-    print HTML
-      "<td	width=\"14%\"$BordCol><font	size=\"2\">$FirstLoc</font></td>\n";
-    print HTML
-      "<td	width=\"15%\"$BordCol $bgTime><font size=\"2\">$Time1</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><font size=\"2\">$FirstVer</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><font size=\"2\">$TempUsers</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><font size=\"2\">$TempCon</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol $bgUp><font size=\"2\">$TempUp</font></td>\n";
+    print HTML "<td	width=\"10%\"$BordCol><font	size=\"2\">$FirstName (first)</font></a></td>\n";
+    print HTML "<td	width=\"14%\"$BordCol><font	size=\"2\">$FirstLoc</font></td>\n";
+    print HTML "<td	width=\"15%\"$BordCol $bgTime><font size=\"2\">$Time1</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$FirstVer</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$TempUsers</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$TempCon</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol $bgUp><font size=\"2\">$TempUp</font></td>\n";
     print HTML "</tr>\n";
 
     # Second
@@ -899,20 +814,13 @@ sub core_table {
     }
     if ( $CoreCon60[2] == 0 ) { $TempCon = "" }
     print HTML "<tr>\n";
-    print HTML
-      "<td	width=\"10%\"$BordCol><font	size=\"2\">$SecondName (second)</font></a></td>\n";
-    print HTML
-      "<td	width=\"14%\"$BordCol><font	size=\"2\">$SecondLoc</font></td>\n";
-    print HTML
-      "<td	width=\"15%\"$BordCol $bgTime><font size=\"2\">$Time1</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><font size=\"2\">$SecondVer</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><font size=\"2\">$TempUsers</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><font size=\"2\">$TempCon</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol $bgUp><font size=\"2\">$TempUp</font></td>\n";
+    print HTML "<td	width=\"10%\"$BordCol><font	size=\"2\">$SecondName (second)</font></a></td>\n";
+    print HTML "<td	width=\"14%\"$BordCol><font	size=\"2\">$SecondLoc</font></td>\n";
+    print HTML "<td	width=\"15%\"$BordCol $bgTime><font size=\"2\">$Time1</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$SecondVer</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$TempUsers</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$TempCon</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol $bgUp><font size=\"2\">$TempUp</font></td>\n";
     print HTML "</tr>\n";
 
     # Third
@@ -935,20 +843,13 @@ sub core_table {
     }
     if ( $CoreCon60[3] == 0 ) { $TempCon = "" }
     print HTML "<tr>\n";
-    print HTML
-      "<td	width=\"10%\"$BordCol><font	size=\"2\">$ThirdName (third)</font></a></td>\n";
-    print HTML
-      "<td	width=\"14%\"$BordCol><font	size=\"2\">$ThirdLoc</font></td>\n";
-    print HTML
-      "<td	width=\"15%\"$BordCol $bgTime><font size=\"2\">$Time1</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><font size=\"2\">$ThirdVer</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><font size=\"2\">$TempUsers</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><font size=\"2\">$TempCon</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol $bgUp><font size=\"2\">$TempUp</font></td>\n";
+    print HTML "<td	width=\"10%\"$BordCol><font	size=\"2\">$ThirdName (third)</font></a></td>\n";
+    print HTML "<td	width=\"14%\"$BordCol><font	size=\"2\">$ThirdLoc</font></td>\n";
+    print HTML "<td	width=\"15%\"$BordCol $bgTime><font size=\"2\">$Time1</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$ThirdVer</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$TempUsers</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$TempCon</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol $bgUp><font size=\"2\">$TempUp</font></td>\n";
     print HTML "</tr>\n";
 
     print HTML "</table>\n\n";
@@ -957,43 +858,33 @@ sub core_table {
 }
 
 sub core_test_table {
-    $BordCol =
-      " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
-    $BordCol = $BordCol
-      . "	style=\"border-bottom-style: solid;	border-bottom-color: #000000\"";
-    print HTML
-      "<h2	align=\"center\">Core servers Statistics</h2>\n<table border=\"1\"	width=\"100%\">\n";
+    $BordCol = " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
+    $BordCol = $BordCol . "	style=\"border-bottom-style: solid;	border-bottom-color: #000000\"";
+    print HTML "<h2	align=\"center\">Core servers Statistics</h2>\n<table border=\"1\"	width=\"100%\">\n";
     print HTML "<tr>\n";
     print HTML "<td	width=\"10%\"><b><font size=\"2\">Server</font></b></td>\n";
-    print HTML
-      "<td	width=\"14%\"><b><font size=\"2\">Location</font></b></td>\n";
-    print HTML
-      "<td	width=\"15%\"><b><font size=\"2\">Last Update UTC</font></b></td>\n";
+    print HTML "<td	width=\"14%\"><b><font size=\"2\">Location</font></b></td>\n";
+    print HTML "<td	width=\"15%\"><b><font size=\"2\">Last Update UTC</font></b></td>\n";
     print HTML "<td	width=\"8%\"><b><font size=\"2\">Version</font></b></td>\n";
     print HTML "<td	width=\"8%\"><b><font size=\"2\">Users</font></b></td>\n";
     print HTML "</tr>\n";
 
-    $BordCol =
-      " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
+    $BordCol = " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
 
     # First
 
     $Time1 = "";
     if ( $FirstTime != "" ) { $Time1 = &utc($FirstTime) }
     print HTML "<tr>\n";
-    print HTML
-      "<td	width=\"10%\"$BordCol><font	size=\"2\">$FirstName (first)</font></a></td>\n";
-    print HTML
-      "<td	width=\"14%\"$BordCol><font	size=\"2\">$FirstLoc</font></td>\n";
+    print HTML "<td	width=\"10%\"$BordCol><font	size=\"2\">$FirstName (first)</font></a></td>\n";
+    print HTML "<td	width=\"14%\"$BordCol><font	size=\"2\">$FirstLoc</font></td>\n";
     print HTML "<td	width=\"15%\"$BordCol";
     if ( time() - $FirstTime > 1500 and $FirstTime != "" ) {
         print HTML "	bgcolor=\"#FF0000\"";
     }
     print HTML "><font size=\"2\">$Time1</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><font size=\"2\">$FirstVer</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><font size=\"2\">$FirstUsers ($FirstUsers2) $FirstList</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$FirstVer</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$FirstUsers ($FirstUsers2) $FirstList</font></td>\n";
     print HTML "</tr>\n";
 
     # Second
@@ -1001,19 +892,15 @@ sub core_test_table {
     $Time1 = "";
     if ( $SecondTime != "" ) { $Time1 = &utc($SecondTime) }
     print HTML "<tr>\n";
-    print HTML
-      "<td	width=\"10%\"$BordCol><font	size=\"2\">$SecondName (second)</font></a></td>\n";
-    print HTML
-      "<td	width=\"14%\"$BordCol><font	size=\"2\">$SecondLoc</font></td>\n";
+    print HTML "<td	width=\"10%\"$BordCol><font	size=\"2\">$SecondName (second)</font></a></td>\n";
+    print HTML "<td	width=\"14%\"$BordCol><font	size=\"2\">$SecondLoc</font></td>\n";
     print HTML "<td	width=\"15%\"$BordCol";
     if ( time() - $SecondTime > 1500 and $SecondTime != "" ) {
         print HTML "	bgcolor=\"#FF0000\"";
     }
     print HTML "><font size=\"2\">$Time1</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><font size=\"2\">$SecondVer</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><font size=\"2\">$SecondUsers ($SecondUsers2) $SecondList</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$SecondVer</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$SecondUsers ($SecondUsers2) $SecondList</font></td>\n";
     print HTML "</tr>\n";
 
     # Third
@@ -1021,39 +908,29 @@ sub core_test_table {
     $Time1 = "";
     if ( $ThirdTime != "" ) { $Time1 = &utc($ThirdTime) }
     print HTML "<tr>\n";
-    print HTML
-      "<td	width=\"10%\"$BordCol><font	size=\"2\">$ThirdName (third)</font></a></td>\n";
-    print HTML
-      "<td	width=\"14%\"$BordCol><font	size=\"2\">$ThirdLoc</font></td>\n";
+    print HTML "<td	width=\"10%\"$BordCol><font	size=\"2\">$ThirdName (third)</font></a></td>\n";
+    print HTML "<td	width=\"14%\"$BordCol><font	size=\"2\">$ThirdLoc</font></td>\n";
     print HTML "<td	width=\"15%\"$BordCol";
     if ( time() - $ThirdTime > 1500 and $ThirdTime != "" ) {
         print HTML "	bgcolor=\"#FF0000\"";
     }
     print HTML "><font size=\"2\">$Time1</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><font size=\"2\">$ThirdVer</font></td>\n";
-    print HTML
-      "<td	width=\"8%\"$BordCol><font size=\"2\">$ThirdUsers ($ThirdUsers) $ThirdList</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$ThirdVer</font></td>\n";
+    print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$ThirdUsers ($ThirdUsers) $ThirdList</font></td>\n";
     print HTML "</tr>\n";
 
     print HTML "</table>\n\n";
-    print HTML
-      "<p><font size=\"2\">Time in <span style=\"background-color: #FF0000\">red</span> if no update last 25 minutes.</font></p>";
+    print HTML "<p><font size=\"2\">Time in <span style=\"background-color: #FF0000\">red</span> if no update last 25 minutes.</font></p>";
 }
 
 sub aprsd_table {
-    $BordCol =
-      " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
-    $BordCol = $BordCol
-      . "	style=\"border-bottom-style: solid;	border-bottom-color: #000000\"";
-    print HTML
-      "<h2	align=\"center\">aprsd Statistics</h2>\n<table border=\"1\"	width=\"100%\">\n";
+    $BordCol = " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
+    $BordCol = $BordCol . "	style=\"border-bottom-style: solid;	border-bottom-color: #000000\"";
+    print HTML "<h2	align=\"center\">aprsd Statistics</h2>\n<table border=\"1\"	width=\"100%\">\n";
     print HTML "<tr>\n";
     print HTML "<td	width=\"10%\"><b><font size=\"2\">Server</font></b></td>\n";
-    print HTML
-      "<td	width=\"14%\"><b><font size=\"2\">Location</font></b></td>\n";
-    print HTML
-      "<td	width=\"15%\"><b><font size=\"2\">Last Update UTC</font></b></td>\n";
+    print HTML "<td	width=\"14%\"><b><font size=\"2\">Location</font></b></td>\n";
+    print HTML "<td	width=\"15%\"><b><font size=\"2\">Last Update UTC</font></b></td>\n";
     print HTML "<td	width=\"8%\"><b><font size=\"2\">Version</font></b></td>\n";
     print HTML "<td	width=\"8%\"><b><font size=\"2\">Users</font></b></td>\n";
     print HTML "</tr>\n";
@@ -1061,45 +938,34 @@ sub aprsd_table {
     for ( $count = 0; $count <= $APDNbr; $count++ ) {
 
         # code for @AHcolor	and	@AFcolor in	here
-        $BordCol =
-          " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
-        $Time1 = "";
+        $BordCol = " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
+        $Time1   = "";
         if ( $APDTime[$count] != "" ) { $Time1 = &utc( $APDTime[$count] ) }
         print HTML "<tr>\n";
-        print HTML
-          "<td	width=\"10%\"$BordCol><font	size=\"2\">$APDName[$count]</font></a></td>\n";
-        print HTML
-          "<td	width=\"14%\"$BordCol><font	size=\"2\">$APDLoc[$count]</font></td>\n";
+        print HTML "<td	width=\"10%\"$BordCol><font	size=\"2\">$APDName[$count]</font></a></td>\n";
+        print HTML "<td	width=\"14%\"$BordCol><font	size=\"2\">$APDLoc[$count]</font></td>\n";
         print HTML "<td	width=\"15%\"$BordCol";
 
         if ( time() - $APDTime[$count] > 1500 and $APDTime[$count] != "" ) {
             print HTML "	bgcolor=\"#FF0000\"";
         }
         print HTML "><font size=\"2\">$Time1</font></td>\n";
-        print HTML
-          "<td	width=\"8%\"$BordCol><font size=\"2\">$APDVer[$count]</font></td>\n";
-        print HTML
-          "<td	width=\"8%\"$BordCol><font size=\"2\">$APDUsers[$count]</font></td>\n";
+        print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$APDVer[$count]</font></td>\n";
+        print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$APDUsers[$count]</font></td>\n";
         print HTML "</tr>\n";
     }
     print HTML "</table>\n\n";
-    print HTML
-      "<p><font size=\"2\">Time in <span style=\"background-color: #FF0000\">red</span> if no update last 25 minutes.</font></p>";
+    print HTML "<p><font size=\"2\">Time in <span style=\"background-color: #FF0000\">red</span> if no update last 25 minutes.</font></p>";
 }
 
 sub aprsd_test_table {
-    $BordCol =
-      " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
-    $BordCol = $BordCol
-      . "	style=\"border-bottom-style: solid;	border-bottom-color: #000000\"";
-    print HTML
-      "<h2	align=\"center\">aprsd Statistics</h2>\n<table border=\"1\"	width=\"100%\">\n";
+    $BordCol = " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
+    $BordCol = $BordCol . "	style=\"border-bottom-style: solid;	border-bottom-color: #000000\"";
+    print HTML "<h2	align=\"center\">aprsd Statistics</h2>\n<table border=\"1\"	width=\"100%\">\n";
     print HTML "<tr>\n";
     print HTML "<td	width=\"10%\"><b><font size=\"2\">Server</font></b></td>\n";
-    print HTML
-      "<td	width=\"14%\"><b><font size=\"2\">Location</font></b></td>\n";
-    print HTML
-      "<td	width=\"15%\"><b><font size=\"2\">Last Update UTC</font></b></td>\n";
+    print HTML "<td	width=\"14%\"><b><font size=\"2\">Location</font></b></td>\n";
+    print HTML "<td	width=\"15%\"><b><font size=\"2\">Last Update UTC</font></b></td>\n";
     print HTML "<td	width=\"8%\"><b><font size=\"2\">Version</font></b></td>\n";
     print HTML "<td	width=\"8%\"><b><font size=\"2\">Users</font></b></td>\n";
     print HTML "</tr>\n";
@@ -1107,30 +973,24 @@ sub aprsd_test_table {
     for ( $count = 0; $count <= $APDNbr; $count++ ) {
 
         # code for @AHcolor	and	@AFcolor in	here
-        $BordCol =
-          " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
-        $Time1 = "";
+        $BordCol = " bordercolor=\"#FFFFFF\" bordercolorlight=\"#FFFFFF\" bordercolordark=\"#FFFFFF\"";
+        $Time1   = "";
         if ( $APDTime[$count] != "" ) { $Time1 = &utc( $APDTime[$count] ) }
         print HTML "<tr>\n";
-        print HTML
-          "<td	width=\"10%\"$BordCol><font	size=\"2\">$APDName[$count]</font></a></td>\n";
-        print HTML
-          "<td	width=\"14%\"$BordCol><font	size=\"2\">$APDLoc[$count]</font></td>\n";
+        print HTML "<td	width=\"10%\"$BordCol><font	size=\"2\">$APDName[$count]</font></a></td>\n";
+        print HTML "<td	width=\"14%\"$BordCol><font	size=\"2\">$APDLoc[$count]</font></td>\n";
         print HTML "<td	width=\"15%\"$BordCol";
 
         if ( time() - $APDTime[$count] > 1500 and $APDTime[$count] != "" ) {
             print HTML "	bgcolor=\"#FF0000\"";
         }
         print HTML "><font size=\"2\">$Time1</font></td>\n";
-        print HTML
-          "<td	width=\"8%\"$BordCol><font size=\"2\">$APDVer[$count]</font></td>\n";
-        print HTML
-          "<td	width=\"8%\"$BordCol><font size=\"2\">$APDUsers[$count] ($APDUsers2[$count]) $APDList[$count]</font></td>\n";
+        print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$APDVer[$count]</font></td>\n";
+        print HTML "<td	width=\"8%\"$BordCol><font size=\"2\">$APDUsers[$count] ($APDUsers2[$count]) $APDList[$count]</font></td>\n";
         print HTML "</tr>\n";
     }
     print HTML "</table>\n\n";
-    print HTML
-      "<p><font size=\"2\">Time in <span style=\"background-color: #FF0000\">red</span> if no update last 25 minutes.</font></p>";
+    print HTML "<p><font size=\"2\">Time in <span style=\"background-color: #FF0000\">red</span> if no update last 25 minutes.</font></p>";
 }
 
 sub second {
@@ -1140,9 +1000,7 @@ sub second {
         $Time4 = &utc($AHStart);
         $Diff  = round( ( time() - $AH2ndStart ) / 60 );
 
-        print HTML
-          "second $AH2ndRestarts restarts since $Time4. Last restart $Time3 (Current uptime = $Diff minutes)."
-          ;    # Average uptime =	$Avg minutes";
+        print HTML "second $AH2ndRestarts restarts since $Time4. Last restart $Time3 (Current uptime = $Diff minutes).";    # Average uptime =	$Avg minutes";
         if ( $AH2ndRestarts != 1 ) {
             $Avg = round( ( $AH2ndAvg / ( $AH2ndRestarts - 1 ) ) / 60 );
             print HTML " Average uptime	= $Avg minutes";
@@ -1158,27 +1016,21 @@ sub log_page {
     print HTML "</head>\n\n<body>\n\n";
 
     for ( $count = 0; $count <= $AHubNbr; $count++ ) {
-        print HTML
-          "<p style=\"margin-top: 0; margin-bottom: 0\"><font size=\"2\">$AHubRaw[$count]</font></p>\n";
-        print HTML
-          "<p style=\"margin-top: 0; margin-bottom: 0\"><font size=\"2\">$AHubRawX[$count]</font></p>\n";
+        print HTML "<p style=\"margin-top: 0; margin-bottom: 0\"><font size=\"2\">$AHubRaw[$count]</font></p>\n";
+        print HTML "<p style=\"margin-top: 0; margin-bottom: 0\"><font size=\"2\">$AHubRawX[$count]</font></p>\n";
     }
     for ( $count = 0; $count <= $APDNbr; $count++ ) {
-        print HTML
-          "<p style=\"margin-top: 0; margin-bottom: 0\"><font size=\"2\">$APDRaw[$count]</font></p>\n";
+        print HTML "<p style=\"margin-top: 0; margin-bottom: 0\"><font size=\"2\">$APDRaw[$count]</font></p>\n";
     }
-    print HTML
-      "<p style=\"margin-top: 0; margin-bottom: 0\"><font size=\"2\">$AH2ndRaw</font></p>\n";
+    print HTML "<p style=\"margin-top: 0; margin-bottom: 0\"><font size=\"2\">$AH2ndRaw</font></p>\n";
     print HTML "</body>\n\n</html>\n";
     close HTML;
 }
 
 sub utc {
     my ($ltime) = @_;
-    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
-      gmtime($ltime);
-    my $utc = sprintf "%s-%02d-%02d %02d:%02d:%02d", $year + 1900, $mon + 1,
-      $mday, $hour, $min, $sec;
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = gmtime($ltime);
+    my $utc = sprintf "%s-%02d-%02d %02d:%02d:%02d", $year + 1900, $mon + 1, $mday, $hour, $min, $sec;
     return $utc;
 }
 
@@ -1226,8 +1078,7 @@ if ( said $v_first_page eq 'Get' ) {
 
 if ( done_now $p_first_page) {
     my $html = file_read $f_first_html;
-    $text = HTML::FormatText->new( leftmargin => 0, rightmargin => 150 )
-      ->format( HTML::TreeBuilder->new()->parse($html) );
+    $text = HTML::FormatText->new( leftmargin => 0, rightmargin => 150 )->format( HTML::TreeBuilder->new()->parse($html) );
     if ( $text =~ /.*Server up time (.*) hours.*/ ) {
         $FirstStart = time() - $1 * 3600;
 
@@ -1255,8 +1106,7 @@ if ( said $v_third_page eq 'Get' ) {
 
 if ( done_now $p_third_page) {
     my $html = file_read $f_third_html;
-    $text = HTML::FormatText->new( leftmargin => 0, rightmargin => 150 )
-      ->format( HTML::TreeBuilder->new()->parse($html) );
+    $text = HTML::FormatText->new( leftmargin => 0, rightmargin => 150 )->format( HTML::TreeBuilder->new()->parse($html) );
     if ( $text =~ /.*Server up time (.*) hours.*/ ) {
         $ThirdStart = time() - $1 * 3600;
 

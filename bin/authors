@@ -6,8 +6,7 @@ use strict;
 
 # Uses various flakey heuristics to pick out real names.
 
-my @bogus_first =
-  qw(The Tk Bug Web Added Applied Button By Category Change Email Family Fixed Global Henriksen Linux Lan
+my @bogus_first = qw(The Tk Bug Web Added Applied Button By Category Change Email Family Fixed Global Henriksen Linux Lan
   Memory More On Outlook Preset Radio Random Round Serial Unix Voice Windows Cue Dynamic Festival File Some
   ViaVoice SetWindowText Internet My Western Eastern Daylight Restart Call No Peet Rewrote Turtle
   Select Solid Edit Telephony Unit Weather Rio Red About Australian Caller Card
@@ -15,8 +14,7 @@ my @bogus_first =
   How Iridium Misterhouse Motorola Mythtv Password Server Song Charter Ogg European Another Media Moved Video VoIP
   Intuitive Package Perl Scalable Southern
 );
-my @bogus_last =
-  qw(Homelink House Group Report Programs Aqualink WinTV CallerID Voices Video Faq
+my @bogus_last = qw(Homelink House Group Report Programs Aqualink WinTV CallerID Voices Video Faq
   Events Address Station Audio Hat MrHouse Clipsal
   Remotes Credit Type Inputs Tivo Robotics Codes Commands Celeron Linux Theatre To Flares
   GUIs Management Network Info Media Windows Serial Wireless Acid Bay Manager Users

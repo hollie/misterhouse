@@ -113,15 +113,9 @@ if ( my $data = said $asterisk_server) {
             my $callername   = $1;
             my $callernumber = $2;
             my $astline      = $3;
-            &asterisk_logit( "in", $callernumber, &make_bettername($callername),
-                $ast_to_name{$astline} );
+            &asterisk_logit( "in", $callernumber, &make_bettername($callername), $ast_to_name{$astline} );
             stop $asterisk_server;
-            respond(
-                "mode=unmuted Call from "
-                  . &make_speakable(
-                    $callername, $callernumber, $ast_to_name{$astline}
-                  )
-            );
+            respond( "mode=unmuted Call from " . &make_speakable( $callername, $callernumber, $ast_to_name{$astline} ) );
 
         }
         elsif ( $data =~ /DTMF:/ ) {
@@ -214,8 +208,5 @@ sub asterisk_logit {
     else {
         $filename = 'phone';
     }
-    &::logit(
-        "$::config_parms{data_dir}/phone/logs/$filename.$::Year_Month_Now.log",
-        "number=$number name=$name line=$line type=$type"
-    );
+    &::logit( "$::config_parms{data_dir}/phone/logs/$filename.$::Year_Month_Now.log", "number=$number name=$name line=$line type=$type" );
 }

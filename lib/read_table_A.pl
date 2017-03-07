@@ -381,8 +381,8 @@ sub read_table_A {
         $object = "RF_Item('$address', '$name', $other)";
     }
     elsif ( $type eq "COMPOOL" ) {
-        ( $address, $name, $grouplist ) = @item_info;
-        ( $address, $comparison, $limit ) = $address =~ /\s*(\w+)\s*(\<|\>|\=)*\s*(\d*)/;
+        ( $address, $name,       $grouplist ) = @item_info;
+        ( $address, $comparison, $limit )     = $address =~ /\s*(\w+)\s*(\<|\>|\=)*\s*(\d*)/;
         $object = "Compool_Item('$address', '$comparison', '$limit')"
           if $comparison ne undef;
         $object = "Compool_Item('$address')" if $comparison eq undef;
@@ -1494,29 +1494,30 @@ sub read_table_A {
     #-------------- Alexa Objects -----------------
     elsif ( $type eq "ALEX_BRIDGE" ) {
         require 'AlexaBridge.pm';
-        ( $name ) = @item_info;
+        ($name) = @item_info;
         $object = "AlexaBridge('$other')";
     }
     elsif ( $type eq "ALEXABRIDGE_ITEM" ) {
         require 'AlexaBridge.pm';
-        my ( $parent );
+        my ($parent);
         ( $name, $parent ) = @item_info;
         $object = "AlexaBridge_Item(\$$parent)";
     }
     elsif ( $type eq "ALEXABRIDGE_ADD" ) {
         my ( $parent, $realname, $name, $sub, $on, $off, $statesub, @other ) = @item_info;
-	if ($sub =~ /^&/) { $sub =~ s/&/\\&/ } 
-	if ($sub =~ /^\\\\&/) { $sub =~ s/\\// }
-	if ($sub =~ /run_voice_cmd/) { $realname =~ s/_/ /g }
-        unless ( ($sub =~ /run_voice_cmd/) || ($sub =~ /&/) ) { $realname = "\$$realname" } 
-	unless ( $sub =~ /&/ ) { $sub = "'".$sub."'" }  
+        if ( $sub =~ /^&/ )            { $sub =~ s/&/\\&/ }
+        if ( $sub =~ /^\\\\&/ )        { $sub =~ s/\\// }
+        if ( $sub =~ /run_voice_cmd/ ) { $realname =~ s/_/ /g }
+        unless ( ( $sub =~ /run_voice_cmd/ ) || ( $sub =~ /&/ ) ) { $realname = "\$$realname" }
+        unless ( $sub =~ /&/ ) { $sub = "'" . $sub . "'" }
         my $other = join ', ', ( map { "'$_'" } @other );    # Quote data
-        if ( !$packages{AlexaBridge}++ ) { # first time for this object type?
+        if ( !$packages{AlexaBridge}++ ) {                   # first time for this object type?
             $code .= "use AlexaBridge;\n";
         }
         $code .= sprintf "\$%-35s -> add('$realname','$name',$sub,'$on','$off','$statesub',$other);\n", $parent;
         $object = '';
     }
+
     #-------------- End Alexa Objects ----------------
 
     elsif ( $type =~ /PLCBUS_.*/ ) {
@@ -1526,9 +1527,9 @@ sub read_table_A {
     }
     elsif ( $type eq "WINK" ) {
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );                                 # Quote data
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         $object = "Wink('$address',$other)";
-        if ( !$packages{Wink}++ ) {                                                    # first time for this object type?
+        if ( !$packages{Wink}++ ) {                       # first time for this object type?
             $code .= "use Wink;\n";
             &::MainLoop_pre_add_hook( \&Wink::GetDevicesAndStatus, 1 );
         }
@@ -1681,13 +1682,13 @@ sub validate_def {
                 }
             }
             elsif ( $param_type eq 'insteon_on_level' ) {
-                ::print_log( "[Read_Table_A] WARNING: $_[0]: $$passed_values[0] On level should be 0-100%, got \"$$passed_values[$paramNum]\" " )
+                ::print_log("[Read_Table_A] WARNING: $_[0]: $$passed_values[0] On level should be 0-100%, got \"$$passed_values[$paramNum]\" ")
                   unless ( $$passed_values[$paramNum] =~ m/^(\d+)%?$/
                     && $1 <= 100
                     && $1 >= 0 );
             }
             elsif ( $param_type eq 'insteon_ramp_rate' ) {
-                ::print_log( "[Read_Table_A] WARNING: $_[0]: $$passed_values[0] Ramp rate should be 0-540 seconds, got \"$$passed_values[$paramNum]\" " )
+                ::print_log("[Read_Table_A] WARNING: $_[0]: $$passed_values[0] Ramp rate should be 0-540 seconds, got \"$$passed_values[$paramNum]\" ")
                   unless ( $$passed_values[$paramNum] =~ m/^([.0-9]+)s?$/
                     && $1 <= 540
                     && $1 >= 0 );
@@ -1695,7 +1696,7 @@ sub validate_def {
             elsif ( $param_type eq 'insteon_address' ) {
                 my ( $x1, $x2, $x3 ) = $$passed_values[$paramNum] =~ m/^([A-F0-9]{2})\.([A-F0-9]{2})\.([A-F0-9]{2})$/i;
                 unless ( $x1 && $x2 && $x3 ) {
-                    ::print_log( "[Read_Table_A] ERROR: $_[0]: $$passed_values[0] Insteon Address should be xx.xx.xx, got \"$$passed_values[$paramNum]\" " );
+                    ::print_log("[Read_Table_A] ERROR: $_[0]: $$passed_values[0] Insteon Address should be xx.xx.xx, got \"$$passed_values[$paramNum]\" ");
                     ::print_log( "[Read_table-A]        $_[0], " . join( ', ', @$passed_values ) );
                     return 0;
                 }
@@ -1711,13 +1712,13 @@ sub validate_def {
                 }
             }
             else {
-                ::print_log( "[Read_Table_A] WARNING: Unknown validation type: $param_type" );
+                ::print_log("[Read_Table_A] WARNING: Unknown validation type: $param_type");
             }
         }
         else {
             if ( $paramNum < $req_count ) {
                 my $pc = scalar @$passed_values;
-                ::print_log( "[Read_table-A] ERROR: $_[0]  $req_count parameters are required in the definition, $pc parameters found: definition skipped." );
+                ::print_log("[Read_table-A] ERROR: $_[0]  $req_count parameters are required in the definition, $pc parameters found: definition skipped.");
                 ::print_log( "[Read_table-A]        $_[0], " . join( ', ', @$passed_values ) );
                 return 0;
             }

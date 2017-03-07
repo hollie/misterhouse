@@ -16,33 +16,23 @@
 #&tk_label(\$Save{stock_data1});
 #&tk_label(\$Save{stock_data2});
 
-my @months = (
-    'January', 'Febuary', 'March',     'April',   'May',      'June',
-    'July',    'August',  'September', 'October', 'November', 'December'
-);
+my @months = ( 'January', 'Febuary', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' );
 
 my @stock_symbols = split ' ', $config_parms{stocks};
 my %stocks;    # This is where the data will be stored
 
 # More info on how this magic url was derived can be found here:
 #    http://www.padz.net/~djpadz/YahooQuote/
-my $stock_url =
-  'http://download.finance.yahoo.com/d?f=snl1d1t1c1p2va2bapomwerr1dyj1x\&s='
-  . join( '%20', @stock_symbols );
+my $stock_url = 'http://download.finance.yahoo.com/d?f=snl1d1t1c1p2va2bapomwerr1dyj1x\&s=' . join( '%20', @stock_symbols );
 my @stock_keys = (
-    'SName',      'LName',        'Last',          'Date',
-    'Time',       'Change',       'PChange',       'Volume',
-    'Avg Volume', 'Bid',          'Ask',           'Prev Close',
-    'Open',       'Day Range',    '52-Week Range', 'EPS',
-    'P/E Ratio',  'Div Pay Date', 'Div/Share',     'Div Yield',
-    'Mkt Cap',    'Exchange'
+    'SName',      'LName',        'Last',      'Date',       'Time',    'Change',    'PChange',       'Volume',
+    'Avg Volume', 'Bid',          'Ask',       'Prev Close', 'Open',    'Day Range', '52-Week Range', 'EPS',
+    'P/E Ratio',  'Div Pay Date', 'Div/Share', 'Div Yield',  'Mkt Cap', 'Exchange'
 );
 
 #***Split these up for security (read is only anyone can do)
 $v_stock_quote = new Voice_Cmd '[Get,Read,Check,Mail,SMS] stock quotes', 0;
-$v_stock_quote->set_info(
-    "Gets stock market info from yahoo for these stocks: $config_parms{stocks}"
-);
+$v_stock_quote->set_info("Gets stock market info from yahoo for these stocks: $config_parms{stocks}");
 $v_stock_quote->set_authority('anyone');
 $f_stock_quote = new File_Item "$config_parms{data_dir}/web/stocks.html";
 $p_stock_quote = new Process_Item;
@@ -54,9 +44,7 @@ if ( $state eq 'Read' ) {
 }
 elsif ($state) {
     unless (&net_connect_check) {
-        $v_stock_quote->respond(
-            "app=stocks Cannot update stock information when disconnected from the Internet."
-        );
+        $v_stock_quote->respond("app=stocks Cannot update stock information when disconnected from the Internet.");
         return;
     }
 
@@ -121,20 +109,15 @@ if ( done_now $p_stock_quote) {
         map { $stocks{$stock}{ $stock_keys[ $i++ ] } = $_ } @data;
         $stocks{$stock}{PChange} =~ s/[-+%]//g;
 
-        $stocks{$stock}{Date} =~
-          s|\/\d{4}||;    # Drop the year ... should be obvious :)
+        $stocks{$stock}{Date} =~ s|\/\d{4}||;    # Drop the year ... should be obvious :)
 
-        $Save{stock_data1} =
-          "Quotes: $stocks{$stock}{Date} $stocks{$stock}{Time} "
+        $Save{stock_data1} = "Quotes: $stocks{$stock}{Date} $stocks{$stock}{Time} "
           unless $results;
         $Save{stock_data2} = 'Change:' unless $results;
         $Save{stock_data1} .=
           sprintf( "%s:%.2f ", $stocks{$stock}{SName}, $stocks{$stock}{Last} );
 
-        $Save{stock_data2} .= sprintf( "%s:%+.2f/%s ",
-            $stocks{$stock}{SName},
-            $stocks{$stock}{Change},
-            $stocks{$stock}{PChange} );
+        $Save{stock_data2} .= sprintf( "%s:%+.2f/%s ", $stocks{$stock}{SName}, $stocks{$stock}{Change}, $stocks{$stock}{PChange} );
 
         #Some stocks are below a dollar, modify the display for dollars and cents.
         if ( $stocks{$stock}{Last} < 1 ) {
@@ -158,20 +141,16 @@ if ( done_now $p_stock_quote) {
                     $stocks{$stock}{'Speak Name'}
                   ? $stocks{$stock}{'Speak Name'}
                   : $stocks{$stock}{LName};
-                $Save{stock_alert} .= " has "
-                  . ( $stocks{$stock}{Change} < 0 ? "fallen" : "risen" );
-                $Save{stock_alert} .=
-                  " $stocks{$stock}{PChange} percent to $stocks{$stock}{Last}";
+                $Save{stock_alert} .= " has " . ( $stocks{$stock}{Change} < 0 ? "fallen" : "risen" );
+                $Save{stock_alert} .= " $stocks{$stock}{PChange} percent to $stocks{$stock}{Last}";
             }
         }
 
         #Modify the change to cents as it sounds better.
         $stocks{$stock}{Change} = ( $stocks{$stock}{Change} * 100 );
-        $stocks{$stock}{Change2} =
-          "down " . sprintf( "%2.f cents", $stocks{$stock}{Change} )
+        $stocks{$stock}{Change2} = "down " . sprintf( "%2.f cents", $stocks{$stock}{Change} )
           if $stocks{$stock}{Change} < 0;
-        $stocks{$stock}{Change2} =
-          "up " . sprintf( "%2.f cents", $stocks{$stock}{Change} )
+        $stocks{$stock}{Change2} = "up " . sprintf( "%2.f cents", $stocks{$stock}{Change} )
           if $stocks{$stock}{Change} > 0;
         $stocks{$stock}{Change2} = "unchanged " if $stocks{$stock}{Change} eq 0;
 
@@ -194,24 +173,19 @@ if ( done_now $p_stock_quote) {
 
     }
     if ( $Save{stock_alert} ) {
-        $v_stock_quote->respond(
-            "app=stocks connected=0 important=1 $Save{stock_alert}");
+        $v_stock_quote->respond("app=stocks connected=0 important=1 $Save{stock_alert}");
     }
     $position = rindex( $download_date, "/" );
     $month = substr( $download_date, 0, $position );
     $day = substr( $download_date, $position + 1 );
-    $Save{stock_results} =
-      'On ' . $months[ $month - 1 ] . ' ' . $day . ",\n " . $results;
+    $Save{stock_results} = 'On ' . $months[ $month - 1 ] . ' ' . $day . ",\n " . $results;
 
     if ( $v_stock_quote->{state} eq 'Check' ) {
         $v_stock_quote->respond("app=stocks connected=0 $Save{stock_results}.");
     }
     elsif ( $v_stock_quote->{state} eq 'Mail' ) {
         my $to = $config_parms{stocks_sendto} || "";
-        $v_stock_quote->respond(
-                "app=stocks connected=0 image=mail Sending stock quotes to "
-              . ( ($to) ? $to : $config_parms{net_mail_send_account} )
-              . '.' );
+        $v_stock_quote->respond( "app=stocks connected=0 image=mail Sending stock quotes to " . ( ($to) ? $to : $config_parms{net_mail_send_account} ) . '.' );
         &net_mail_send(
             subject => "Stock quotes",
             to      => $to,
@@ -221,8 +195,7 @@ if ( done_now $p_stock_quote) {
     elsif ( $v_stock_quote->{state} eq 'SMS' ) {
         my $to = $config_parms{cell_phone};
         if ($to) {
-            $v_stock_quote->respond(
-                "connected=0 image=mail Sending stock quotes to cell phone.");
+            $v_stock_quote->respond("connected=0 image=mail Sending stock quotes to cell phone.");
 
             # *** Try to respond via email or SMS and warn if they return false
             &net_mail_send(
@@ -232,23 +205,18 @@ if ( done_now $p_stock_quote) {
             );
         }
         else {
-            $v_stock_quote->respond(
-                "connected=0 app=error Mobile phone email address not found!");
+            $v_stock_quote->respond("connected=0 app=error Mobile phone email address not found!");
         }
 
     }
     else {
-        $v_stock_quote->respond(
-            "app=stocks connected=0 Stock quotes retrieved.");
+        $v_stock_quote->respond("app=stocks connected=0 Stock quotes retrieved.");
     }
 }
 
 if ($Reload) {
-    &trigger_set(
-        "time_cron '5 9-17 * * 1-5' and net_connect_check",
-        "run_voice_cmd 'Get stock quotes'",
-        'NoExpire', 'get stocks'
-    ) unless &trigger_get('get stocks');
+    &trigger_set( "time_cron '5 9-17 * * 1-5' and net_connect_check", "run_voice_cmd 'Get stock quotes'", 'NoExpire', 'get stocks' )
+      unless &trigger_get('get stocks');
 }
 
 # 07 Jul 14, Jared J. Fernandez

@@ -41,12 +41,7 @@ $v_get_xml_weather = new Voice_Cmd('Get XML weather data');
 
 # Create trigger
 if ($Reload) {
-    &trigger_set(
-        "time_cron '15 * * * *'",
-        "run_voice_cmd('Get XML weather data')",
-        'NoExpire',
-        'get xml weather'
-    ) unless &trigger_get('get xml weather');
+    &trigger_set( "time_cron '15 * * * *'", "run_voice_cmd('Get XML weather data')", 'NoExpire', 'get xml weather' ) unless &trigger_get('get xml weather');
 }
 
 if ( said $v_get_xml_weather) {
@@ -54,21 +49,16 @@ if ( said $v_get_xml_weather) {
         $v_get_xml_weather->respond("app=weather Retrieving XML weather...");
         #
         # read XML file
-        $NWSdata = $xml->XMLin(
-            get(
-                "http://www.weather.gov/data/current_obs/" . $station . ".xml"
-            )
-        );
+        $NWSdata = $xml->XMLin( get( "http://www.weather.gov/data/current_obs/" . $station . ".xml" ) );
 
         # hash used to temporarily store weather info before selective load into %Weather
         my %w = ();
 
-        $w{TempOutdoor}  = NA_to_zero( $NWSdata->{temp_f} );
-        $w{HumidOutdoor} = NA_to_zero( $NWSdata->{relative_humidity} );
-        $w{HumidOutdoorMeasured} =
-          1;    # tell Weather_Common that we directly measured humidity
-        $w{WindAvgDir}   = convert_wind_dir_text_to_num( $NWSdata->{wind_dir} );
-        $w{WindAvgSpeed} = NA_to_zero( $NWSdata->{wind_mph} );
+        $w{TempOutdoor}          = NA_to_zero( $NWSdata->{temp_f} );
+        $w{HumidOutdoor}         = NA_to_zero( $NWSdata->{relative_humidity} );
+        $w{HumidOutdoorMeasured} = 1;                                                      # tell Weather_Common that we directly measured humidity
+        $w{WindAvgDir}           = convert_wind_dir_text_to_num( $NWSdata->{wind_dir} );
+        $w{WindAvgSpeed}         = NA_to_zero( $NWSdata->{wind_mph} );
 
         $w{WindGustSpeed} = NA_to_zero( $NWSdata->{wind_gust_mph} );
         $w{Barom}         = NA_to_zero( $NWSdata->{pressure_in} );
@@ -85,16 +75,12 @@ if ( said $v_get_xml_weather) {
             }
         }
 
-        &print_log( "weather_xml: finished retrieving weather for station "
-              . $station );
-        $v_get_xml_weather->respond( 'app=weather connected=0 Weather data for '
-              . $NWSdata->{location}
-              . ' retrieved.' );
+        &print_log( "weather_xml: finished retrieving weather for station " . $station );
+        $v_get_xml_weather->respond( 'app=weather connected=0 Weather data for ' . $NWSdata->{location} . ' retrieved.' );
 
     }
     else {
-        $v_get_xml_weather->respond(
-            "I must be connected to the Internet to get weather data.");
+        $v_get_xml_weather->respond("I must be connected to the Internet to get weather data.");
     }
 }
 

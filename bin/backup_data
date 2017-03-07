@@ -21,21 +21,15 @@ use strict;
 my ( $Pgm_Path, $Pgm_Name, $Version );
 
 BEGIN {
-    ($Version) =
-      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
 }
 my %parms;
 use Getopt::Long;
-if (
-    !&GetOptions(
-        \%parms, 'h',      'help',    'file=s', 'size=i', 'skip=s',
-        'age=s', 'no_zip', 'no_date', 'int'
-    )
+if (   !&GetOptions( \%parms, 'h', 'help', 'file=s', 'size=i', 'skip=s', 'age=s', 'no_zip', 'no_date', 'int' )
     or !@ARGV
     or $parms{h}
-    or $parms{help}
-  )
+    or $parms{help} )
 {
     print <<eof;
 
@@ -109,20 +103,10 @@ sub get_files {
         push @files, &read_dir($dir);
     }
     $msg = "\nRead $counts{dir} directories:\n";
-    $msg .= sprintf " -  Storing %5.1f MB of data from %4d files\n",
-      $counts{size} / 10**6, $counts{file};
-    $msg .=
-      sprintf
-      " -  Skipped %5.1f MB of data from %4d files with size > $parms{size} KBytes\n",
-      $counts{size_size} / 10**6, $counts{count_size};
-    $msg .=
-      sprintf
-      " -  Skipped %5.1f MB of data from %4d files with name = $parms{skip}\n",
-      $counts{size_skip} / 10**6, $counts{count_skip};
-    $msg .=
-      sprintf
-      " -  Skipped %5.1f MB of data from %4d files with age  > $parms{age}\n",
-      $counts{size_age} / 10**6, $counts{count_age};
+    $msg .= sprintf " -  Storing %5.1f MB of data from %4d files\n",                                 $counts{size} / 10**6,      $counts{file};
+    $msg .= sprintf " -  Skipped %5.1f MB of data from %4d files with size > $parms{size} KBytes\n", $counts{size_size} / 10**6, $counts{count_size};
+    $msg .= sprintf " -  Skipped %5.1f MB of data from %4d files with name = $parms{skip}\n",        $counts{size_skip} / 10**6, $counts{count_skip};
+    $msg .= sprintf " -  Skipped %5.1f MB of data from %4d files with age  > $parms{age}\n",         $counts{size_age} / 10**6,  $counts{count_age};
     print $msg;
     $log .= $msg;
 }
@@ -156,8 +140,7 @@ sub tar_files {
         }
     }
     my ( $size, $date ) = ( stat $parms{file} )[ 7, 9 ];
-    printf "\nFile stats: %s  %s  %s\n\n", $parms{file}, $size,
-      scalar localtime $date;
+    printf "\nFile stats: %s  %s  %s\n\n", $parms{file}, $size, scalar localtime $date;
 }
 
 sub read_dir {

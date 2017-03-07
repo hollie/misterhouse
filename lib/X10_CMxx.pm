@@ -76,9 +76,7 @@ sub startup {
         return;
     }
     if ( not open_fifo() ) {
-        &::print_log(
-            ">>>>> CMxx: still can't open fifo $fifo: $!. Will try again later <<<<<<"
-        );
+        &::print_log(">>>>> CMxx: still can't open fifo $fifo: $!. Will try again later <<<<<<");
         sleep 5;
     }
     else {
@@ -99,12 +97,9 @@ sub check_for_data {
     my $rv;
 
     if ( not $fifo_opened and &::new_minute() ) {
-        &::print_log(
-            ">>>>> CMxx: has not yet opened $fifo. Trying again now <<<<<<");
+        &::print_log(">>>>> CMxx: has not yet opened $fifo. Trying again now <<<<<<");
         if ( not open_fifo() ) {
-            &::print_log(
-                ">>>>> CMxx: still can't open fifo $fifo: $!. Will try again later <<<<<<"
-            );
+            &::print_log(">>>>> CMxx: still can't open fifo $fifo: $!. Will try again later <<<<<<");
         }
         else {
             $fifo_opened = 1;
@@ -146,9 +141,7 @@ sub check_for_data {
 
             # Unknown data isn't bad, it should just be recognized if it's valid data with a different
             # prefix, or ignored otherwise.
-            warn(
-                "Received $line from mochad, but does not start with known '5D 20/29', please fix me"
-            );
+            warn("Received $line from mochad, but does not start with known '5D 20/29', please fix me");
             next;
         }
         my $data = $line;
@@ -156,9 +149,8 @@ sub check_for_data {
         # Data gets sent multiple times
         #  - Check time
         #  - Process data only on the 2nd occurance, to avoid noise (seems essential)
-        my $duplicate_threshold =
-          1;    # 2nd occurance; set to 0 to omit duplicate check
-        my $duplicate_count = duplicate_count($data);
+        my $duplicate_threshold = 1;                        # 2nd occurance; set to 0 to omit duplicate check
+        my $duplicate_count     = duplicate_count($data);
         if ( $duplicate_count == $duplicate_threshold ) {
             my @bytes;
             my $byteidx = 0;
@@ -183,14 +175,10 @@ sub check_for_data {
         elsif ( $duplicate_count == 0 ) {
 
             # Ignore the first send so that we can filter RF noise by confirming 2 identical frames in a row.
-            &::print_log(
-                "CMxx: Ignoring first send of X10RF data from mochad (looking for confirmation resend): $line"
-            ) if $main::Debug{cmxx};
+            &::print_log("CMxx: Ignoring first send of X10RF data from mochad (looking for confirmation resend): $line") if $main::Debug{cmxx};
         }
         else {
-            &::print_log(
-                "CMxx: Ignoring duplicate X10RF data from mochad (dupe cnt >= $duplicate_count): $line"
-            ) if $main::Debug{cmxx};
+            &::print_log("CMxx: Ignoring duplicate X10RF data from mochad (dupe cnt >= $duplicate_count): $line") if $main::Debug{cmxx};
         }
     }
 }
@@ -206,9 +194,8 @@ sub duplicate_count {
         # most recent messages are always first in the queue
         for my $msg_ptr (@msg_buffer) {
             my %msg = %$msg_ptr;
-            if ( &X10_CMxx::is_within_timeout( $time, $msg{time}, $repeat_time )
-              )
-            {
+            if ( &X10_CMxx::is_within_timeout( $time, $msg{time}, $repeat_time ) ) {
+
                 # a match exists on the data; so, compare against the time stamp
                 if ( $raw_msg eq $msg{data} ) {
 

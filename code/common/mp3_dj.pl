@@ -69,18 +69,15 @@ sub voice_over {
 
         if ($now_playing_formatted) {
             if ( not $trivia_question_asked ) {
-                my $f_trivia_question =
-                  new File_Item("$config_parms{data_dir}/trivia_question.txt");
-                my $trivia_question = read_all $f_trivia_question;
-                $speech = "Time for today's trivia question. $trivia_question";
+                my $f_trivia_question = new File_Item("$config_parms{data_dir}/trivia_question.txt");
+                my $trivia_question   = read_all $f_trivia_question;
+                $speech                = "Time for today's trivia question. $trivia_question";
                 $trivia_question_asked = 1;
             }
             elsif ( $trivia_question_asked and not $trivia_question_answered ) {
-                my $f_trivia_answer =
-                  new File_Item("$config_parms{data_dir}/trivia_answer.txt");
-                my $trivia_answer = read_all $f_trivia_answer;
-                $speech =
-                  "And now the answer to today's trivia question. $trivia_answer";
+                my $f_trivia_answer = new File_Item("$config_parms{data_dir}/trivia_answer.txt");
+                my $trivia_answer   = read_all $f_trivia_answer;
+                $speech                   = "And now the answer to today's trivia question. $trivia_answer";
                 $trivia_question_answered = 1;
             }
             elsif ( rand(10) > 7 ) {
@@ -101,12 +98,9 @@ sub voice_over {
                     if ( rand(10) > 4 and $speech ) {
                         $speech = " Hey, " . lcfirst($speech);
                     }
-                    $speech .=
-                      "The outdoor temperature is "
-                      . $Weather{TempOutdoor} . '. '
+                    $speech .= "The outdoor temperature is " . $Weather{TempOutdoor} . '. '
                       if ( defined $Weather{TempOutdoor} );
-                    $speech .=
-                      "Inside it is " . $Weather{TempIndoor} . " degrees. "
+                    $speech .= "Inside it is " . $Weather{TempIndoor} . " degrees. "
                       if ( $Weather{TempIndoor} );
                     $speech .= $Weather{chance_of_rain} . ' '
                       if ( $Weather{chance_of_rain} and rand(10) > 4 );
@@ -172,8 +166,7 @@ sub voice_over {
                     $forecast = $Weather{"Forecast $forecast_day"};
 
                     $speech = "How are you? It is $Time_Now";
-                    $speech .=
-                      " and time for the weather forecast. " . $forecast
+                    $speech .= " and time for the weather forecast. " . $forecast
                       if ( $forecast and rand(10) > 6 );
 
                 }
@@ -194,9 +187,7 @@ sub voice_over {
                 }
             }
 
-            &speak( "app=dj no_chime=1 voice=$voice "
-                  . ( ( defined $pitch ) ? " pitch=$pitch" : '' )
-                  . $speech );
+            &speak( "app=dj no_chime=1 voice=$voice " . ( ( defined $pitch ) ? " pitch=$pitch" : '' ) . $speech );
         }
     }
 }
@@ -236,8 +227,7 @@ sub dj {
 
         if ( $mptime - $mpelapse > 5 ) {
             $timer_voice_over->stop() unless inactive $timer_voice_over;
-            set $timer_voice_over $mptime - $mpelapse + 1,
-              "voice_over(" . '"' . "$last_track" . '")';
+            set $timer_voice_over $mptime - $mpelapse + 1, "voice_over(" . '"' . "$last_track" . '")';
         }
     }
 }

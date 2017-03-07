@@ -49,8 +49,7 @@ sub new {
 
     &::print_log("[Clipsal CBus] New group object $object_name at $address");
 
-    $self->set_states( split ',',
-        'on,off,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%' );
+    $self->set_states( split ',', 'on,off,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%' );
     $self->set_label($label);
     $$self{ramp_speed} = $::config_parms{cbus_ramp_speed};
     $$self{address}    = $address;
@@ -105,8 +104,7 @@ sub set {
     if ( $set_by =~ /MisterHouseSync/ ) {
 
         # This was a Recursive set, we are ignoring
-        $self->debug( "set() by MisterHouse sync - no CBus update required",
-            $debug );
+        $self->debug( "set() by MisterHouse sync - no CBus update required", $debug );
         return;
     }
 
@@ -133,13 +131,11 @@ sub set {
     my $cmd_log_string = "RAMP $cbus_label set $state, speed=$speed";
     $self->debug( "$cmd_log_string", $debug );
 
-    my $ramp_command =
-      "[MisterHouse-$Clipsal_CBus::Command_Counter] RAMP $address $state $speed\n";
+    my $ramp_command = "[MisterHouse-$Clipsal_CBus::Command_Counter] RAMP $address $state $speed\n";
     $Clipsal_CBus::Talker->set($ramp_command);
     $Clipsal_CBus::Talker_last_sent = $ramp_command;
     $Clipsal_CBus::Command_Counter  = 0
-      if (
-        ++$Clipsal_CBus::Command_Counter > $Clipsal_CBus::Command_Counter_Max );
+      if ( ++$Clipsal_CBus::Command_Counter > $Clipsal_CBus::Command_Counter_Max );
 }
 
 =item C<get_voice_cmds>

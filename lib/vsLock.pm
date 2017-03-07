@@ -190,14 +190,14 @@ sub lockfile {
     my $self = shift;
     my ( $file, $format ) = @_;
     local $_ = defined($format) ? $format : $self->format;
-    s/%%/\01/g;               # Protect double percent signs
-    s/%/\02/g;                # Protect against substitutions adding their own %
-    s/\02f/$file/g;           # %f is the full path name
-    s/\02D/&dir($file)/ge;    # %D is the dir name
-    s/\02F/&base($file)/ge;   # %F is the base name
-    s/\02p/$$/g;              # %p is the process's pid
-    s/\02/%/g;                # All other % kept as-is
-    s/\01/%/g;                # Restore escaped % signs
+    s/%%/\01/g;                # Protect double percent signs
+    s/%/\02/g;                 # Protect against substitutions adding their own %
+    s/\02f/$file/g;            # %f is the full path name
+    s/\02D/&dir($file)/ge;     # %D is the dir name
+    s/\02F/&base($file)/ge;    # %F is the base name
+    s/\02p/$$/g;               # %p is the process's pid
+    s/\02/%/g;                 # All other % kept as-is
+    s/\01/%/g;                 # Restore escaped % signs
     $_;
 }
 
@@ -359,8 +359,7 @@ sub _acs_check {
         if ( $self->warn ) {
             $file =~ s|.*/(.*)|$1|;    # Keep only basename
             my $s = $hold == 1 ? '' : 's';
-            &{ $self->wfunc }
-              ("UNLOCKED $file (lock older than $hold second$s)");
+            &{ $self->wfunc }("UNLOCKED $file (lock older than $hold second$s)");
         }
     }
 }

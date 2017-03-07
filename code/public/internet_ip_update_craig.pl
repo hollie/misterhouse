@@ -12,8 +12,7 @@ relevant bits:
 
 =cut
 
-$f_internet_ip_update =
-  new File_Item("$config_parms{data_dir}/web/internet_ip_update.html");
+$f_internet_ip_update = new File_Item("$config_parms{data_dir}/web/internet_ip_update.html");
 set_watch $f_internet_ip_update if $Reload;
 $v_send_ip_address1 = new Voice_Cmd('Send ip address to the web page');
 if ( said $v_send_ip_address1) {

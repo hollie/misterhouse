@@ -335,26 +335,22 @@ sub _parse_data {
             elsif ( uc( substr( $data, 1, 1 ) ) eq 'N' ) {
                 $$self{xmit_in_progress} = 0;
 
-
-                my $pop =                 pop( @{ $$self{command_stack} } );
+                my $pop         = pop( @{ $$self{command_stack} } );
                 my $destination = unpack( "C", pack( "H*", substr( $pop, 6, 2 ) ) );
                 my $msgid       = unpack( "C", pack( "H*", substr( $pop, 10, 2 ) ) );
                 my $command;
-                for my $key ( keys %UPB_Device::message_types )
-                {
-                  if ($UPB_Device::message_types{$key} == $msgid)
-                  {
-                    $command = $key;
-                    last;
-                  }
+                for my $key ( keys %UPB_Device::message_types ) {
+                    if ( $UPB_Device::message_types{$key} == $msgid ) {
+                        $command = $key;
+                        last;
+                    }
                 }
-                for my $obj ( @{ $$self{objects} } )
-                {
-                  if ($obj->device_id() == $destination )
-                  {
-                    #&::print_log("$self->object_name: Reports device does not respond; LastCommand: $pop");
-                    &::print_log("UPBPIM reports that device: " . $obj->get_object_name . " does not respond to command: $command");
-                  }
+                for my $obj ( @{ $$self{objects} } ) {
+                    if ( $obj->device_id() == $destination ) {
+
+                        #&::print_log("$self->object_name: Reports device does not respond; LastCommand: $pop");
+                        &::print_log( "UPBPIM reports that device: " . $obj->get_object_name . " does not respond to command: $command" );
+                    }
                 }
                 select( undef, undef, undef, .15 );
                 $self->process_command_stack();

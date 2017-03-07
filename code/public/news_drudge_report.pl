@@ -2,8 +2,7 @@
 my $f_drudge_report      = "$config_parms{data_dir}/web/drudge_report.txt";
 my $f_drudge_report_html = "$config_parms{data_dir}/web/drudge_report.html";
 
-$p_drudge_report =
-  new Process_Item("get_url http://www.drudgereport.com $f_drudge_report_html");
+$p_drudge_report = new Process_Item("get_url http://www.drudgereport.com $f_drudge_report_html");
 $v_drudge_report = new Voice_Cmd('[Get,Read,Show] the drudge report');
 
 speak($f_drudge_report)   if said $v_drudge_report eq 'Read';

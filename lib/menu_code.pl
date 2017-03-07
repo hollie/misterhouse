@@ -37,9 +37,8 @@ sub menu_parse {
     $Menus{$menu_group} = \%menus;
 
     # Find all the valid Voice_Cmd text
-    for my $object ( map { &get_object_by_name($_) }
-        &list_objects_by_type('Voice_Cmd') )
-    {
+    for my $object ( map { &get_object_by_name($_) } &list_objects_by_type('Voice_Cmd') ) {
+
         # Pick first of {a,b} enumerations (e.g. {tell me,what is} )
         my $text = $$object{text};
         $text =~ s/\{([^,]+).+?\}/$1/g;
@@ -56,9 +55,8 @@ sub menu_parse {
         # Pull out 'start menu' records:  M: Lights
         if ( $type eq 'M' ) {
             $menu = $data;
-            $menu =~
-              s/ /_/g;    # Blanks will mess up wml (and vxml and html?) menus
-                # Reset index.  Allow for menus in different sections/files
+            $menu =~ s/ /_/g;                     # Blanks will mess up wml (and vxml and html?) menus
+                                                  # Reset index.  Allow for menus in different sections/files
             $index = -1;
             $index = @{ $menus{$menu}{items} } - 1
               if $menus{$menu} and $menus{$menu}{items};
@@ -97,8 +95,7 @@ sub menu_parse {
         if ($states) {
             $menus{$menu}{items}[$index]{ $type . 'prefix' } = $prefix;
             $menus{$menu}{items}[$index]{ $type . 'suffix' } = $suffix;
-            @{ $menus{$menu}{items}[$index]{ $type . 'states' } } = split ',',
-              $states;
+            @{ $menus{$menu}{items}[$index]{ $type . 'states' } } = split ',', $states;
 
             # Create a states menu for each unique set of states
             if ( $type eq 'D' ) {
@@ -108,8 +105,8 @@ sub menu_parse {
                     push @{ $menus{_menu_list} }, $menu_states_cnt;
                     my $i = 0;
                     for my $state ( split ',', $states ) {
-                        $menus{$menu_states_cnt}{items}[$i]{D} = $state;
-                        $menus{$menu_states_cnt}{items}[$i]{A} = 'state_select';
+                        $menus{$menu_states_cnt}{items}[$i]{D}    = $state;
+                        $menus{$menu_states_cnt}{items}[$i]{A}    = 'state_select';
                         $menus{$menu_states_cnt}{items}[$i]{goto} = 'prev';
                         $i++;
                     }
@@ -136,8 +133,7 @@ sub menu_parse {
             my $i = 0;
             if ( $$ptr{Astates} ) {
                 for my $state ( @{ $$ptr{Astates} } ) {
-                    $$ptr{actions}[ $i++ ] =
-                      "$$ptr{Aprefix}'$state'$$ptr{Asuffix}";
+                    $$ptr{actions}[ $i++ ] = "$$ptr{Aprefix}'$state'$$ptr{Asuffix}";
                 }
             }
 
@@ -179,8 +175,7 @@ sub menu_parse {
                 delete $unused_menus{ $$ptr{goto} };
             }
             else {
-                print
-                  "\nWarning, goto menu not found: menu=$menu goto=$$ptr{goto} text=$$ptr{D}\n\n"
+                print "\nWarning, goto menu not found: menu=$menu goto=$$ptr{goto} text=$$ptr{D}\n\n"
                   unless $$ptr{goto} eq 'prev';
             }
         }
@@ -285,8 +280,7 @@ Create a menu for all voice commands
 
 sub menu_create {
     my ($file) = @_;
-    my $menu_top =
-      "# This is an auto-generated file.  Rename it before you edit it, then update menu.pl to point to it\nM: mh\n";
+    my $menu_top = "# This is an auto-generated file.  Rename it before you edit it, then update menu.pl to point to it\nM: mh\n";
     my $menu;
     for my $category ( sort &list_code_webnames('Voice_Cmd') ) {
         $menu_top .= "  D: $category\n";
@@ -303,8 +297,7 @@ sub menu_create {
             my $text = $$object{text};
             $text =~ s/\{([^,]+).+?\}/$1/g;
 
-            $menu .= sprintf "  D: %-50s  # %-25s %10s\n", $text, $object_name,
-              $authority;
+            $menu .= sprintf "  D: %-50s  # %-25s %10s\n", $text, $object_name, $authority;
         }
     }
     &file_write( $file, $menu_top . $menu );
@@ -349,14 +342,14 @@ sub menu_run {
     # Allow anyone to run set_authority('anyone') commands
     my $ref;
     if ( $cmd = $action ) {
-        $cmd =~ s/\'//g;    # Drop the '' quotes around state if a voice cmd
+        $cmd =~ s/\'//g;                         # Drop the '' quotes around state if a voice cmd
         ($ref) = &Voice_Cmd::voice_item_by_text( lc($cmd) );
     }
-    $authority = $ref->get_authority       unless $authority or !$ref;
-    $authority = $Password_Allow{$display} unless $authority;
-    $authority = $Password_Allow{$cmd}     unless $authority;
+    $authority = $ref->get_authority                     unless $authority or !$ref;
+    $authority = $Password_Allow{$display}               unless $authority;
+    $authority = $Password_Allow{$cmd}                   unless $authority;
     $authority = $Menus{$menu_group}{$menu}{'default:P'} unless $authority;
-    $authority = '' unless $authority;
+    $authority = ''                                      unless $authority;
 
     $Socket_Ports{http}{client_ip_address} = ''
       unless $Socket_Ports{http}{client_ip_address};
@@ -368,34 +361,26 @@ sub menu_run {
 
     unless ( &authority_check($authority) ) {
         if ( $format eq 'v' ) {
-            my $vxml =
-              qq|<form><block><audio>Sorry, authorization required to run $action</audio><goto next='_lastanchor'/></block></form>|;
+            my $vxml = qq|<form><block><audio>Sorry, authorization required to run $action</audio><goto next='_lastanchor'/></block></form>|;
             return &vxml_page($vxml);
         }
 
         # If wap cell phone id is not in the list, prompt for the password
         elsif ( $format eq 'w' ) {
-            unless (
-                $Http{'x-up-subno'} and grep $Http{'x-up-subno'} eq $_,
-                split( /[, ]/, $config_parms{password_allow_phones} )
-              )
-            {
-                return &html_password('browser')
-                  ;    # wml requires browser login ... no form/cookies for now
+            unless ( $Http{'x-up-subno'} and grep $Http{'x-up-subno'} eq $_, split( /[, ]/, $config_parms{password_allow_phones} ) ) {
+                return &html_password('browser');    # wml requires browser login ... no form/cookies for now
             }
         }
         elsif ( $format eq 'l' ) {
             return 'Not authorized';
         }
         else {
-            return &html_password('')
-              ; # Html can take cookies or browser ... default to mh.ini password_menu
+            return &html_password('');               # Html can take cookies or browser ... default to mh.ini password_menu
         }
     }
 
     if ($action) {
-        my $msg =
-          "menu_run: g=$menu_group m=$menu i=$item s=$state => action: $action";
+        my $msg = "menu_run: g=$menu_group m=$menu i=$item s=$state => action: $action";
         print_log $msg;
         my $setby = ( lc $format =~ /^h/i ) ? 'web' : 'notweb';
         $setby .= " [$Socket_Ports{http}{client_ip_address}]"
@@ -408,8 +393,7 @@ sub menu_run {
         {
             #           package main;   # Need this if we had this code in a package
             eval $action;
-            print
-              "Error in menu_run: m=$menu i=$item s=$state action=$action error=$@\n"
+            print "Error in menu_run: m=$menu i=$item s=$state action=$action error=$@\n"
               if $@;
         }
     }
@@ -426,8 +410,7 @@ sub menu_run {
         #  Default to referer.  Also make sure we have a full path, starting with http
         $Http{Referer} =~ m|(http://\S+?)/|;
         $referer = $1 . $referer unless $referer =~ /^http/;
-        $referer =~ s/&&/&/
-          ; # These got doubled up in http_server ... need them as single (e.g. /bin/menu.pl?main&Top|Main|Rooms)
+        $referer =~ s/&&/&/;    # These got doubled up in http_server ... need them as single (e.g. /bin/menu.pl?main&Top|Main|Rooms)
         $referer =~ s/ /%20/g;
         return &http_redirect($referer);
     }
@@ -448,8 +431,7 @@ sub menu_run {
         $response = eval $1;
     }
     elsif ($response) {
-        eval
-          "\$response = qq[$response]";   # Allow for var substitution of $state
+        eval "\$response = qq[$response]";    # Allow for var substitution of $state
     }
 
     if ( !$response or $response eq 'last_response' ) {
@@ -475,10 +457,8 @@ sub menu_run_response {
     $response = 'all done' unless $response;
     if ( $format and $format eq 'w' ) {
         $response =~ s/& /&amp; /g;
-        my $wml =
-          qq|<head><meta forua="true" http-equiv="Cache-Control" content="max-age=0"/></head>\n|;
-        $wml .=
-          qq|<template><do type="accept" label="Prev."><prev/></do></template>\n|;
+        my $wml = qq|<head><meta forua="true" http-equiv="Cache-Control" content="max-age=0"/></head>\n|;
+        $wml .= qq|<template><do type="accept" label="Prev."><prev/></do></template>\n|;
         $wml .= qq|<card><p>$response</p></card>|;
         return &wml_page($wml);
     }
@@ -486,12 +466,10 @@ sub menu_run_response {
 
         #       my $http_root = "http://$config_parms{http_server}:$config_parms{http_port}";
         my $http_root = '';    # Full url is no longer required :)
-        my $goto =
-          "${http_root}sub?menu_vxml($Menus{menu_data}{last_response_menu_group})#$Menus{menu_data}{last_response_menu}";
+        my $goto = "${http_root}sub?menu_vxml($Menus{menu_data}{last_response_menu_group})#$Menus{menu_data}{last_response_menu}";
 
         #       print "db1 gt=$goto\n";
-        my $vxml =
-          qq|<form><block><audio>$response</audio><goto next='$goto'/></block></form>|;
+        my $vxml = qq|<form><block><audio>$response</audio><goto next='$goto'/></block></form>|;
 
         #       my $vxml = qq|<form><block><audio>$response</audio><goto expr="'$goto'"/></block></form>|;
         return &vxml_page($vxml);
@@ -535,8 +513,7 @@ sub menu_html {
                 $html .= "    <li> $$ptr2{Dprefix}\n";
                 my $state = 0;
                 for my $state_name ( @{ $$ptr2{Dstates} } ) {
-                    $html .=
-                      "      <a href='/sub?menu_run($menu_group,$menu,$item,$state,h)'>$state_name</a>, \n";
+                    $html .= "      <a href='/sub?menu_run($menu_group,$menu,$item,$state,h)'>$state_name</a>, \n";
                     $state++;
                 }
                 $html .= "    $$ptr2{Dsuffix}\n";
@@ -544,19 +521,16 @@ sub menu_html {
 
             # One state
             else {
-                $html .=
-                  "    <li><a href='/sub?menu_run($menu_group,$menu,$item,,h)'>$$ptr2{D}</a>\n";
+                $html .= "    <li><a href='/sub?menu_run($menu_group,$menu,$item,,h)'>$$ptr2{D}</a>\n";
             }
         }
         elsif ( $$ptr2{R} ) {
-            $html .=
-              "    <li><a href='/sub?menu_run($menu_group,$menu,$item,,h)'>$$ptr2{D}</a>\n";
+            $html .= "    <li><a href='/sub?menu_run($menu_group,$menu,$item,,h)'>$$ptr2{D}</a>\n";
         }
 
         # Menu item
         else {
-            $html .=
-              "    <li><a href='/sub?menu_html($menu_group,$goto)'>$goto</a>\n";
+            $html .= "    <li><a href='/sub?menu_html($menu_group,$goto)'>$goto</a>\n";
         }
         $item++;
     }
@@ -576,8 +550,7 @@ sub menu_wml {
 
     ($menu_group) = &get_menu_default('default') unless $menu_group;
     $menu_start = $Menus{$menu_group}{_menu_list}[0] unless $menu_start;
-    logit "$config_parms{data_dir}/logs/menu_wml.log",
-      "ip=$Socket_Ports{http}{client_ip_address} mg=$menu_group m=$menu_start";
+    logit "$config_parms{data_dir}/logs/menu_wml.log", "ip=$Socket_Ports{http}{client_ip_address} mg=$menu_group m=$menu_start";
 
     my ( @menus, @cards );
 
@@ -611,8 +584,7 @@ sub menu_wml_cards {
     %menus = map { $_, 1 } @menus;
 
     # Dang, can not get a prev button when using select??
-    my $template =
-      qq|<template><do type="prev" label="Prev1"><prev/></do></template>\n|;
+    my $template = qq|<template><do type="prev" label="Prev1"><prev/></do></template>\n|;
 
     #                            qq|<do type="accept" label="Prev2"><prev/></do></template>\n|;
     push @cards, $template;
@@ -651,29 +623,24 @@ sub menu_wml_cards {
                       ( $menus{$goto} )
                       ? "#$goto"
                       : "/sub?menu_wml($menu_group,$goto)";
-                    $wml .=
-                      "    <option value='$item' onpick='$goto'>$$ptr{Dprefix}..$$ptr{Dsuffix}</option>\n";
+                    $wml .= "    <option value='$item' onpick='$goto'>$$ptr{Dprefix}..$$ptr{Dsuffix}</option>\n";
                 }
 
                 # States menu
                 elsif ( $$ptr{A} eq 'state_select' ) {
-                    $wml .=
-                      "    <option onpick='/sub?menu_run($menu_group,\$prev_menu,\$prev_value,$item,w)'>$$ptr{D}</option>\n";
+                    $wml .= "    <option onpick='/sub?menu_run($menu_group,\$prev_menu,\$prev_value,$item,w)'>$$ptr{D}</option>\n";
                 }
 
                 # One state
                 elsif ( $$ptr{A} eq 'set_password' ) {
-                    $wml .=
-                      "    <option onpick='/SET_PASSWORD'>Set Password</option>\n";
+                    $wml .= "    <option onpick='/SET_PASSWORD'>Set Password</option>\n";
                 }
                 else {
-                    $wml .=
-                      "    <option onpick='/sub?menu_run($menu_group,$menu,$item,,w)'>$$ptr{D}</option>\n";
+                    $wml .= "    <option onpick='/sub?menu_run($menu_group,$menu,$item,,w)'>$$ptr{D}</option>\n";
                 }
             }
             elsif ( $$ptr{R} ) {
-                $wml .=
-                  "    <option onpick='/sub?menu_run($menu_group,$menu,$item,,w)'>$$ptr{D}</option>\n";
+                $wml .= "    <option onpick='/sub?menu_run($menu_group,$menu,$item,,w)'>$$ptr{D}</option>\n";
             }
 
             # Menu item
@@ -683,8 +650,7 @@ sub menu_wml_cards {
                   ( $menus{$goto} )
                   ? "#$goto"
                   : "/sub?menu_wml($menu_group,$goto)";
-                $wml .=
-                  "    <option value='$item' onpick='$goto'>$$ptr{D}</option>\n";
+                $wml .= "    <option value='$item' onpick='$goto'>$$ptr{D}</option>\n";
             }
             $item++;
         }
@@ -707,16 +673,12 @@ sub menu_vxml {
 
     ($menu_group) = &get_menu_default('default') unless $menu_group;
     $menu_start = $Menus{$menu_group}{_menu_list}[0] unless $menu_start;
-    logit "$config_parms{data_dir}/logs/menu_vxml.log",
-      "ip=$Socket_Ports{http}{client_ip_address} mg=$menu_group m=$menu_start";
+    logit "$config_parms{data_dir}/logs/menu_vxml.log", "ip=$Socket_Ports{http}{client_ip_address} mg=$menu_group m=$menu_start";
 
     # Get a list of all menus, then build vxml forms
     my @menus = &menu_submenus( $menu_group, $menu_start, 99 );
     my @forms = &menu_vxml_forms( $menu_group, @menus );
-    my $greeting = &vxml_audio(
-        'greeting',                 'Welcome to Mister House',
-        '/misc/tellme_welcome.wav', "#$menu_start"
-    );
+    my $greeting = &vxml_audio( 'greeting', 'Welcome to Mister House', '/misc/tellme_welcome.wav', "#$menu_start" );
     my $vxml_vars = "<var name='prev_menu'/>\n<var name='prev_item'/>\n";
     return &vxml_page( $vxml_vars . $greeting . "@forms" );
 }
@@ -762,14 +724,12 @@ sub menu_vxml_forms {
 
                     #                   $goto = "${http_root}sub?menu_run($menu_group,{prev_menu},{prev_item},$item,v)";
                     # db1x
-                    $goto =
-                      "${http_root}sub?menu_run($menu_group,' + prev_menu + ',' + prev_item + ',$item,v)";
+                    $goto = "${http_root}sub?menu_run($menu_group,' + prev_menu + ',' + prev_item + ',$item,v)";
                 }
 
                 # One state
                 else {
-                    $goto =
-                      "${http_root}sub?menu_run($menu_group,$menu,$item,,v)";
+                    $goto = "${http_root}sub?menu_run($menu_group,$menu,$item,,v)";
                 }
             }
             elsif ( $$ptr{R} ) {
@@ -889,16 +849,14 @@ sub menu_lcd_navigate {
         if ( $$lcd{cy} < $$lcd{dy} ) {
             $$lcd{dy} = $$lcd{cy};
         }
-        &menu_lcd_curser_state( $lcd, $$lcd{menu_ptr}{items}[ $$lcd{cy} ] )
-          ;    # Move cursor to the same state
+        &menu_lcd_curser_state( $lcd, $$lcd{menu_ptr}{items}[ $$lcd{cy} ] );    # Move cursor to the same state
     }
     elsif ( $key eq 'down' ) {
         $$lcd{cy}++ unless $$lcd{cy} == $$lcd{menu_cnt};
         if ( $$lcd{cy} > ( $$lcd{dy} + $$lcd{dy_max} ) ) {
             $$lcd{dy} = $$lcd{cy} - $$lcd{dy_max};
         }
-        &menu_lcd_curser_state( $lcd, $$lcd{menu_ptr}{items}[ $$lcd{cy} ] )
-          ;    # Move cursor to the same state
+        &menu_lcd_curser_state( $lcd, $$lcd{menu_ptr}{items}[ $$lcd{cy} ] );    # Move cursor to the same state
     }
     elsif ( $key eq 'left' ) {
 
@@ -933,9 +891,7 @@ sub menu_lcd_navigate {
         if ( $ptr and $$ptr{A} ) {
 
             #           my $response = &menu_run("$$lcd{menu_group},$menu,$$lcd{cy},$$lcd{menu_state},l");
-            my $response =
-              &menu_run( $$lcd{menu_group}, $menu, $$lcd{cy},
-                $$lcd{menu_state}, 'l' );
+            my $response = &menu_run( $$lcd{menu_group}, $menu, $$lcd{cy}, $$lcd{menu_state}, 'l' );
             if ($response) {
                 &menu_lcd_display( $lcd, $response, $menu );
             }
@@ -943,9 +899,7 @@ sub menu_lcd_navigate {
 
         # Display a response
         elsif ( $ptr and $$ptr{R} ) {
-            my $response =
-              &menu_run( $$lcd{menu_group}, $menu, $$lcd{cy},
-                $$lcd{menu_state}, 'l' );
+            my $response = &menu_run( $$lcd{menu_group}, $menu, $$lcd{cy}, $$lcd{menu_state}, 'l' );
             if ($response) {
                 &menu_lcd_display( $lcd, $response, $menu );
             }
@@ -954,8 +908,7 @@ sub menu_lcd_navigate {
         # Load next menu
         elsif ($ptr) {
             push @{ $$lcd{menu_history} }, $menu;
-            push @{ $$lcd{menu_states} }, join $;, $$lcd{cx}, $$lcd{cy},
-              $$lcd{dy}, $$lcd{menu_state};
+            push @{ $$lcd{menu_states} }, join $;, $$lcd{cx}, $$lcd{cy}, $$lcd{dy}, $$lcd{menu_state};
             &menu_lcd_load( $lcd, $$ptr{D} );
         }
 
@@ -980,8 +933,7 @@ sub menu_lcd_navigate {
 sub menu_lcd_display {
     my ( $lcd, $response, $menu ) = @_;
     push @{ $$lcd{menu_history} }, $menu if $menu;
-    push @{ $$lcd{menu_states} }, join $;, $$lcd{cx}, $$lcd{cy}, $$lcd{dy},
-      $$lcd{menu_state};
+    push @{ $$lcd{menu_states} }, join $;, $$lcd{cx}, $$lcd{cy}, $$lcd{dy}, $$lcd{menu_state};
     $Text::Wrap::columns = 20;
 
     #   @{$$lcd{display}} = split "\n", wrap('', '', $response);
@@ -1023,10 +975,7 @@ sub menu_format_list {
     my ( $format, @list ) = @_;
 
     if ( $format eq 'w' ) {
-        return
-            '<select><option>'
-          . join( "</option>\n<option>", @list )
-          . '</option></select>';
+        return '<select><option>' . join( "</option>\n<option>", @list ) . '</option></select>';
     }
     elsif ( $format eq 'h' ) {
         return join( "<br>\n", @list );
@@ -1049,8 +998,7 @@ sub set_menu_default {
 
 sub get_menu_default {
     my ($address) = @_;
-    my ( $menu_group, $menus ) = split $;,
-      $Menus{menu_data}{defaults}{$address};
+    my ( $menu_group, $menus ) = split $;, $Menus{menu_data}{defaults}{$address};
 
     # Safeguard, in case the default was mis-specified.
     # Auto-generated mh.menu  group will always be there.

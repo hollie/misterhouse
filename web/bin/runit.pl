@@ -23,8 +23,7 @@ sub runit {
     $cmd =~ s/switch //g;
 
     if ( &process_external_command( $cmd, 1, 'android', 'speak' ) ) {
-        print_log
-          "-------------------- Exact Command Match removing articles $cmd";
+        print_log "-------------------- Exact Command Match removing articles $cmd";
         return &html_page( '', 'done' );
     }
 
