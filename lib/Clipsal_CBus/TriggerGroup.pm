@@ -42,8 +42,7 @@ sub new {
     my $object_name   = "\$" . $name;
     my $object_name_v = $object_name . '_v';
 
-    &::print_log(
-        "[Clipsal CBus] New trigger group object $object_name at $address");
+    &::print_log("[Clipsal CBus] New trigger group object $object_name at $address");
 
     #$self->set_states( split ',','on,off,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%' );
     $self->set_label($label);
@@ -88,8 +87,7 @@ sub set {
     my $cbus_label = $self->{label};
     my $address    = $$self{address};
 
-    $self->debug( "$cbus_label set to action selector $state by $set_by",
-        $info );
+    $self->debug( "$cbus_label set to action selector $state by $set_by", $info );
 
     if ( $set_by =~ /cbus/ ) {
 
@@ -101,8 +99,7 @@ sub set {
     if ( $set_by =~ /MisterHouseSync/ ) {
 
         # This was a Recursive set, we are ignoring
-        $self->debug( "set() by MisterHouse sync - no CBus update required",
-            $debug );
+        $self->debug( "set() by MisterHouse sync - no CBus update required", $debug );
         return;
     }
 
@@ -130,13 +127,11 @@ sub set {
     my $cmd_log_string = "TRIGGER EVENT $cbus_label set action selector $state";
     $self->debug( "$cmd_log_string", $debug );
 
-    my $command =
-      "[MisterHouse-$Clipsal_CBus::Command_Counter] TRIGGER EVENT $address $state ";
+    my $command = "[MisterHouse-$Clipsal_CBus::Command_Counter] TRIGGER EVENT $address $state ";
     $Clipsal_CBus::Talker->set($command);
     $Clipsal_CBus::Talker_last_sent = $command;
     $Clipsal_CBus::Command_Counter  = 0
-      if (
-        ++$Clipsal_CBus::Command_Counter > $Clipsal_CBus::Command_Counter_Max );
+      if ( ++$Clipsal_CBus::Command_Counter > $Clipsal_CBus::Command_Counter_Max );
 }
 
 =item C<get_voice_cmds>

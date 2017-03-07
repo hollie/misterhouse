@@ -71,8 +71,7 @@ else {
 
 $html .= qq[<form>\n];
 
-$html .=
-  qq[<table cellpadding=0 cellspacing=0 width='100%' border='0' align='center'>\n];
+$html .= qq[<table cellpadding=0 cellspacing=0 width='100%' border='0' align='center'>\n];
 $html .= qq[<tr valign='center'><td nowrap><b>$fontstart\n];
 
 # Do parms in specified order
@@ -86,18 +85,13 @@ for my $parm (@parms) {
     # Allow for sun (auto-pick), sunrise, or sunset
     elsif ( $parm =~ /sun/ ) {
         if ( $parm eq 'sun' ) {
-            $parm = (
-                     time_less_than "$Time_Sunrise + 2:00"
-                  or time_greater_than "$Time_Sunset  + 2:00"
-            ) ? 'sunrise' : 'sunset';
+            $parm = ( time_less_than "$Time_Sunrise + 2:00" or time_greater_than "$Time_Sunset  + 2:00" ) ? 'sunrise' : 'sunset';
         }
         if ( $parm eq 'sunrise' ) {
-            $html .=
-              qq[&nbsp;<img src='/ia5/images/sunrise.gif' border=0>&nbsp;Rise $Time_Sunrise\n];
+            $html .= qq[&nbsp;<img src='/ia5/images/sunrise.gif' border=0>&nbsp;Rise $Time_Sunrise\n];
         }
         else {
-            $html .=
-              qq[&nbsp;<img src='/ia5/images/sunset.gif' border=0>&nbsp;Set $Time_Sunset\n];
+            $html .= qq[&nbsp;<img src='/ia5/images/sunset.gif' border=0>&nbsp;Set $Time_Sunset\n];
         }
     }
 
@@ -124,27 +118,23 @@ for my $parm (@parms) {
 
     elsif ( $parm eq 'email' ) {
         $Save{email_flag} = '' unless $Save{email_flag};
-        $html .=
-          qq[&nbsp;<img src='/ia5/images/mail.gif' border=0>$Save{email_flag}\n];
+        $html .= qq[&nbsp;<img src='/ia5/images/mail.gif' border=0>$Save{email_flag}\n];
     }
 
     elsif ( $parm eq 'weather' ) {
         $Weather{Summary_Short} = '' unless $Weather{Summary_Short};
-        $html .=
-          qq[&nbsp;<img src='/ia5/images/temp.gif' border=0>&nbsp;$Weather{Summary_Short}\n];
+        $html .= qq[&nbsp;<img src='/ia5/images/temp.gif' border=0>&nbsp;$Weather{Summary_Short}\n];
     }
     elsif ( $parm eq 'weather_long' ) {
         $Weather{Summary} = '' unless $Weather{Summary};
-        $html .=
-          qq[&nbsp;<img src='/ia5/images/temp.gif' border=0>&nbsp;$Weather{Summary}\n];
+        $html .= qq[&nbsp;<img src='/ia5/images/temp.gif' border=0>&nbsp;$Weather{Summary}\n];
     }
 
     elsif ( $parm eq 'wind' ) {
         my $html_wind = $Weather{Wind};
         $html_wind = '' unless $html_wind;
         $html_wind =~ s/from the/ /;
-        $html .=
-          qq[&nbsp;<img src='/ia5/images/wind.gif' border=0>&nbsp;$html_wind\n];
+        $html .= qq[&nbsp;<img src='/ia5/images/wind.gif' border=0>&nbsp;$html_wind\n];
     }
 
     # Allow for user defined html (e.g. code/bruce/web_sub.pl)
@@ -157,19 +147,16 @@ for my $parm (@parms) {
 $html .= "</font></td>\n";
 
 if ( $parms{date} ) {
-    $html .=
-      qq[<td id='jdate' nowrap align='right'>$fontstart<b>$Date_Now</b></font></td>\n];
+    $html .= qq[<td id='jdate' nowrap align='right'>$fontstart<b>$Date_Now</b></font></td>\n];
 }
 if ( $parms{clock} ) {
     $html .= qq[<td nowrap>${fontstart}<b>&nbsp;$Time_Now</b></font></td>\n];
 }
 if ( $parms{jclock1} ) {
-    $html .=
-      qq[<td><form name=form><input type=button name=jclock value='' style="font-size: 15"></form></td>\n];
+    $html .= qq[<td><form name=form><input type=button name=jclock value='' style="font-size: 15"></form></td>\n];
 }
 if ( $parms{jclock2} ) {
-    $html .=
-      qq[<td nowrap align='right'><div id='jclock'>${fontstart}<b>&nbsp;$Time_Now</b></font></div></td>\n];
+    $html .= qq[<td nowrap align='right'><div id='jclock'>${fontstart}<b>&nbsp;$Time_Now</b></font></div></td>\n];
 }
 
 $html .= qq[</tr></table></form></body></html>\n];

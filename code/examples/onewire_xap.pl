@@ -19,16 +19,14 @@ where "inside-t" is the sensor ID that correlates to the oxc daemon's config;
 my $thermo_temps = "68,69,70,71,72,73,74,75,76,77,78,79,80";
 
 # define voice commands to set thermostat cool and heat setpoints
-$v_thermo_cool_sp =
-  new Voice_Cmd("Set thermostat cool setpoint to [$thermo_temps]");
+$v_thermo_cool_sp = new Voice_Cmd("Set thermostat cool setpoint to [$thermo_temps]");
 if ( $state = said $v_thermo_cool_sp) {
     $main::Save{'cool_setpoint'} = $state;
     $temp_inside->token( 'cool_setpoint', $state );
     $temp_inside->check_tied_state_conditions();
 }
 
-$v_thermo_heat_sp =
-  new Voice_Cmd("Set thermostat heat setpoint to [$thermo_temps]");
+$v_thermo_heat_sp = new Voice_Cmd("Set thermostat heat setpoint to [$thermo_temps]");
 if ( $state = said $v_thermo_heat_sp) {
     $main::Save{'heat_setpoint'} = $state;
     $temp_inside->token( 'heat_setpoint', $state );
@@ -46,9 +44,8 @@ $humid_inside->map_to_weather('HumidIndoor');
 # now, create the conditions ("rules") used for state transition
 # note the use of $token_<tokentag> syntax
 my $hot_condition     = '$measurement > $token_cool_setpoint';
-my $comfort_condition = '$token_heat_setpoint <= $measurement and '
-  . '$measurement <= $token_cool_setpoint';
-my $cool_condition = '$measurement < $token_heat_setpoint';
+my $comfort_condition = '$token_heat_setpoint <= $measurement and ' . '$measurement <= $token_cool_setpoint';
+my $cool_condition    = '$measurement < $token_heat_setpoint';
 
 # now, tie the conditions
 $temp_inside->tie_state_condition( $hot_condition,     'hot' );

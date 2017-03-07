@@ -156,8 +156,7 @@ sub new {
     $$self{user}        = $::config_parms{ $instance . '_user' };
     $$self{password}    = $::config_parms{ $instance . '_password' };
     my $year_mon = &::time_date_stamp( 10, time );
-    $$self{log_file} =
-      $::config_parms{'data_dir'} . "/logs/DOORBIRD.$year_mon.log";
+    $$self{log_file} = $::config_parms{'data_dir'} . "/logs/DOORBIRD.$year_mon.log";
 
     bless $self, $class;
 
@@ -234,14 +233,7 @@ sub send_command {
     my $ua = LWP::UserAgent->new();
     $ua->timeout($httptimeout);
     ::print_log("[DOORBIRD] Sent request /bha-api/$type.cgi");
-    my $req =
-      $ua->get( 'http://'
-          . $$self{user} . ':'
-          . $$self{password} . '@'
-          . $$self{doorbell_ip}
-          . '/bha-api/'
-          . $type
-          . '.cgi' );
+    my $req = $ua->get( 'http://' . $$self{user} . ':' . $$self{password} . '@' . $$self{doorbell_ip} . '/bha-api/' . $type . '.cgi' );
 }
 
 =back
@@ -307,22 +299,16 @@ sub new {
 sub set {
     my ( $self, $p_state, $p_setby, $p_response ) = @_;
     if ( $p_state eq 'ON' ) {
-        ::print_log( "[DOORBIRD::Bell] Received request "
-              . $p_state . " for "
-              . $self->get_object_name );
+        ::print_log( "[DOORBIRD::Bell] Received request " . $p_state . " for " . $self->get_object_name );
         $self->SUPER::set( $p_state, $p_setby );
         $self->set_with_timer( 'TON', 2, 'TOFF' );
     }
     if ( $p_state eq 'TOFF' ) {
-        ::print_log( "[DOORBIRD::Bell] Received request OFF"
-              . " by timer for "
-              . $self->get_object_name );
+        ::print_log( "[DOORBIRD::Bell] Received request OFF" . " by timer for " . $self->get_object_name );
         $self->SUPER::set( 'OFF', 'TIMER' );
     }
     if ( $p_state eq 'OFF' ) {
-        ::print_log( "[DOORBIRD::Bell] Received request "
-              . $p_state . " for "
-              . $self->get_object_name );
+        ::print_log( "[DOORBIRD::Bell] Received request " . $p_state . " for " . $self->get_object_name );
         $self->SUPER::set( 'OFF', 'TIMER' );
     }
 }
@@ -394,22 +380,16 @@ sub new {
 sub set {
     my ( $self, $p_state, $p_setby, $p_response ) = @_;
     if ( $p_state eq 'ON' ) {
-        ::print_log( "[DOORBIRD::Motion] Received request "
-              . $p_state . " for "
-              . $self->get_object_name );
+        ::print_log( "[DOORBIRD::Motion] Received request " . $p_state . " for " . $self->get_object_name );
         $self->SUPER::set( $p_state, $p_setby );
         $self->set_with_timer( 'TON', 20, 'TOFF' );
     }
     if ( $p_state eq 'TOFF' ) {
-        ::print_log( "[DOORBIRD::Motion] Received request OFF"
-              . " by timer for "
-              . $self->get_object_name );
+        ::print_log( "[DOORBIRD::Motion] Received request OFF" . " by timer for " . $self->get_object_name );
         $self->SUPER::set( 'OFF', 'TIMER' );
     }
     if ( $p_state eq 'OFF' ) {
-        ::print_log( "[DOORBIRD::Motion] Received request "
-              . $p_state . " for "
-              . $self->get_object_name );
+        ::print_log( "[DOORBIRD::Motion] Received request " . $p_state . " for " . $self->get_object_name );
         $self->SUPER::set( 'OFF', 'TIMER' );
     }
 }
@@ -484,34 +464,24 @@ sub new {
 sub set {
     my ( $self, $p_state, $p_setby, $p_response ) = @_;
     if ( $p_state eq 'ON' ) {
-        ::print_log( "[DOORBIRD::Relay] Received request "
-              . $p_state . " for "
-              . $self->get_object_name );
+        ::print_log( "[DOORBIRD::Relay] Received request " . $p_state . " for " . $self->get_object_name );
         $self->SUPER::set( $p_state, $p_setby );
         $self->set_with_timer( 'TON', 2, 'TOFF' );
     }
     if ( $p_state eq 'TOFF' ) {
-        ::print_log( "[DOORBIRD::Relay] Received request OFF"
-              . " by timer for "
-              . $self->get_object_name );
+        ::print_log( "[DOORBIRD::Relay] Received request OFF" . " by timer for " . $self->get_object_name );
         $self->SUPER::set( 'OFF', 'TIMER' );
     }
     if ( $p_state eq 'OFF' ) {
-        ::print_log( "[DOORBIRD::Relay] Received request "
-              . $p_state . " for "
-              . $self->get_object_name );
+        ::print_log( "[DOORBIRD::Relay] Received request " . $p_state . " for " . $self->get_object_name );
         $self->SUPER::set( 'OFF', 'TIMER' );
     }
     if ( $p_state eq 'TOGGLE' ) {
-        ::print_log( "[DOORBIRD::Relay] Received request "
-              . $p_state . " for "
-              . $self->get_object_name );
+        ::print_log( "[DOORBIRD::Relay] Received request " . $p_state . " for " . $self->get_object_name );
         $$self{doorbell}->send_command( $object, 'open-door', $class );
     }
     if ( $p_state eq 'LIGHT_ON' ) {
-        ::print_log( "[DOORBIRD::Relay] Received request "
-              . $p_state . " for "
-              . $self->get_object_name );
+        ::print_log( "[DOORBIRD::Relay] Received request " . $p_state . " for " . $self->get_object_name );
         $self->send_command( $object, 'light-on', $class );
     }
 }

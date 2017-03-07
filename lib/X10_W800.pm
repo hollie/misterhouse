@@ -42,8 +42,7 @@ use X10_RF;
 sub startup {
 
     #  $main::config_parms{"W800_break"} = pack('C', 0xad);
-    &main::serial_port_create( 'W800', $main::config_parms{W800_port},
-        4800, 'none', 'raw' );
+    &main::serial_port_create( 'W800', $main::config_parms{W800_port}, 4800, 'none', 'raw' );
 
     # Add hook only if serial port was created ok
     &::MainLoop_pre_add_hook( \&X10_W800::check_for_data, 1 )
@@ -66,9 +65,7 @@ sub check_for_data {
     # Nothing to do if there is nothing in the buffer.
     unless ( $main::Serial_Ports{W800}{data} ) {
         if ( $prev_bad_checksums != 0 and !($prev_residual) ) {
-            &::print_log(
-                    "W800: failed to recover from bad checksums due to no data"
-                  . "(count=$prev_bad_checksums)" );
+            &::print_log( "W800: failed to recover from bad checksums due to no data" . "(count=$prev_bad_checksums)" );
             $prev_bad_checksums = 0;
         }
 
@@ -109,8 +106,7 @@ sub check_for_data {
               if $main::Debug{w800};
 
             if ( $prev_bad_checksums != 0 ) {
-                &::print_log( "W800: failed to recover from bad checksums "
-                      . "(count=$prev_bad_checksums)" );
+                &::print_log( "W800: failed to recover from bad checksums " . "(count=$prev_bad_checksums)" );
                 $prev_bad_checksums = 0;
             }
 
@@ -134,8 +130,7 @@ sub check_for_data {
         # Data gets sent multiple times
         #  - Check time
         #  - Process data only on the 2nd occurance, to avoid noise (seems essential)
-        my $duplicate_threshold =
-          1;    # 2nd occurance; set to 0 to omit duplicate check
+        my $duplicate_threshold = 1;    # 2nd occurance; set to 0 to omit duplicate check
         if ( &X10_W800::duplicate_count($data) == $duplicate_threshold ) {
 
             # If this is the first signs of new data in a while, make a note of the
@@ -173,8 +168,7 @@ sub check_for_data {
 
                 # Report if we recovered from previous bad checksums.
                 if ( $prev_bad_checksums != 0 ) {
-                    &::print_log( "W800: recovered from bad checksum "
-                          . "(count=$prev_bad_checksums)" );
+                    &::print_log( "W800: recovered from bad checksum " . "(count=$prev_bad_checksums)" );
                 }
 
                 # reset bad checksum counter since this one is ok
@@ -205,7 +199,7 @@ sub check_for_data {
         $prev_residual = $residual;
     }
     $reset_prev_residual_pending = 0;    # always clear the reset flag since
-         # it should only be reset on new data and prev_residual
+                                         # it should only be reset on new data and prev_residual
 
 }
 
@@ -220,9 +214,8 @@ sub duplicate_count {
         # most recent messages are always first in the queue
         for my $msg_ptr (@msg_buffer) {
             my %msg = %$msg_ptr;
-            if ( &X10_W800::is_within_timeout( $time, $msg{time}, $repeat_time )
-              )
-            {
+            if ( &X10_W800::is_within_timeout( $time, $msg{time}, $repeat_time ) ) {
+
                 # a match exists on the data; so, compare against the time stamp
                 if ( $raw_msg eq $msg{data} ) {
 

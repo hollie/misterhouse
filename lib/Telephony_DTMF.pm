@@ -67,8 +67,7 @@ sub add {
 
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
-    &::print_log(
-        "Telephony DTMF state:$p_state:$p_setby" . $p_setby->address() );
+    &::print_log( "Telephony DTMF state:$p_state:$p_setby" . $p_setby->address() );
     $p_state = lc $p_state;
     if ( $p_state =~ /^dtmf/ ) {
         $p_state = $p_setby->dtmf();

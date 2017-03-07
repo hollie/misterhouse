@@ -4,12 +4,9 @@
 #@ also automatically gets this information each day.
 
 my $slashdot_news = "$config_parms{data_dir}/web/slashdot_news";
-$p_slashdot_news = new Process_Item
-  "get_url http://slashdot.org/slashdot.xml $slashdot_news.xml";
-$v_slashdot_news =
-  new Voice_Cmd '[Get,Show,Display,Read,Parse] the slashdot news';
-$v_slashdot_news->set_info(
-    'Summarize recent news from the great geek new site slashdot.org');
+$p_slashdot_news = new Process_Item "get_url http://slashdot.org/slashdot.xml $slashdot_news.xml";
+$v_slashdot_news = new Voice_Cmd '[Get,Show,Display,Read,Parse] the slashdot news';
+$v_slashdot_news->set_info('Summarize recent news from the great geek new site slashdot.org');
 $v_slashdot_news->set_authority('anyone');
 
 $state = said $v_slashdot_news;

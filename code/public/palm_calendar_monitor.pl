@@ -2,12 +2,10 @@
 
 # Watch for changes made to a Palm datebook.dat file
 
-$axel_datebook_file =
-  new File_Item "/home/axel/Palm/BrownA/datebook/datebook.dat";
+$axel_datebook_file = new File_Item "/home/axel/Palm/BrownA/datebook/datebook.dat";
 set_watch $axel_datebook_file if $Reload;
 
-$debbie_datebook_file =
-  new File_Item "/home/debbie/Palm/Debbie/datebook/datebook.dat";
+$debbie_datebook_file = new File_Item "/home/debbie/Palm/Debbie/datebook/datebook.dat";
 set_watch $debbie_datebook_file if $Reload;
 
 my $calendarScript = "palm_calendar";

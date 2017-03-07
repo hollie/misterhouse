@@ -28,14 +28,9 @@ use strict;
 
 my %parms;
 use Getopt::Long;
-if (
-    !&GetOptions(
-        \%parms,    "h",       "help",     "mailto=s",
-        "ignore=s", "runid=s", "outdir=s", "debug"
-    )
+if (  !&GetOptions( \%parms, "h", "help", "mailto=s", "ignore=s", "runid=s", "outdir=s", "debug" )
     or @ARGV > 1
-    or ( $parms{h} or $parms{help} )
-  )
+    or ( $parms{h} or $parms{help} ) )
 {
     print <<eof;
 
@@ -77,24 +72,19 @@ my $log_pos = &open_log($log_file);
 
 print "Current log position=$log_pos\n";
 
-my ( %clients, %hits, $hits_hour, $hits_day, $clients_hour, $clients_day,
-    $last_active );
+my ( %clients, %hits, $hits_hour, $hits_day, $clients_hour, $clients_day, $last_active );
 my $id_cnt = 'WebGuy1';
 
 while (1) {
     sleep 2;
     my ( $sec, $min, $hour ) = (localtime)[ 0, 1, 2 ];
     if ( $min == 2 and $sec < 5 ) {
-        &speak(
-            "rooms=all $hits_hour web hits from $clients_hour clients in the last hour"
-        ) if $hits_hour > 5;
+        &speak("rooms=all $hits_hour web hits from $clients_hour clients in the last hour") if $hits_hour > 5;
         $hits_hour    = 0;
         $clients_hour = 0;
     }
     elsif ( $hour == 20 and $min == 1 and $sec < 5 ) {
-        &speak(
-            "rooms=all Notice, there were $hits_day web hits from $clients_day clients in the last day"
-        ) if $hits_day > 1;
+        &speak("rooms=all Notice, there were $hits_day web hits from $clients_day clients in the last day") if $hits_day > 1;
         $hits_day    = 0;
         $clients_day = 0;
     }
@@ -114,8 +104,7 @@ while (1) {
 
     seek( LOG, $log_pos, 0 );    # Reset end of file flag
     while (<LOG>) {
-        my ( $client, $day, $hour ) =
-          $_ =~ m!^(\S+) - - \[(\d+)/\w+/\d{4}:(\d+):\d+:\d+ [\d+-]+\]!;
+        my ( $client, $day, $hour ) = $_ =~ m!^(\S+) - - \[(\d+)/\w+/\d{4}:(\d+):\d+:\d+ [\d+-]+\]!;
         next unless defined $hour;
         $last_active = time;
 
@@ -196,8 +185,7 @@ sub speak_old {
         close $socket;
     }
     else {
-        print
-          "monitor_weblog error opening socket to $parms{mh_server} on port $parms{mh_port}: $!\n";
+        print "monitor_weblog error opening socket to $parms{mh_server} on port $parms{mh_port}: $!\n";
     }
 }
 

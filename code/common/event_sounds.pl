@@ -19,8 +19,7 @@ if (
         or $Reload )
   )
 {
-    &print_log(
-        "Reading event sounds data from $config_parms{event_sounds_file}");
+    &print_log("Reading event sounds data from $config_parms{event_sounds_file}");
 
     open( SOUNDSDATA, $config_parms{event_sounds_file} );
     while (<SOUNDSDATA>) {

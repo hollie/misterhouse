@@ -36,8 +36,7 @@ if ( $state = said $v_mp3_control_state) {
     speak "MP3 control now $state.";
 }
 
-$v_mp3_control_cmd = new Voice_Cmd(
-    "Set mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song]");
+$v_mp3_control_cmd = new Voice_Cmd("Set mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song]");
 if ( $state = said $v_mp3_control_cmd) {
     run "$config_parms{mp3_program} $gqmpeg_arguments{$state}";
     $state = $gqmpeg_arguments{$state} if $gqmpeg_arguments{$state};
@@ -52,8 +51,7 @@ if ( $state = said $v_play_clear_music) {
 }
 
 # noloop=start      This directive allows this code to be run on startup/reload
-my $mp3playlist = &load_mp3_file_list( $config_parms{mp3_playlist_dir},
-    $config_parms{mp3_playlist_ext} );
+my $mp3playlist = &load_mp3_file_list( $config_parms{mp3_playlist_dir}, $config_parms{mp3_playlist_ext} );
 
 # noloop=stop
 

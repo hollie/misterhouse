@@ -25,13 +25,10 @@
 =cut
 
 $v_iButton_readtemps = new Voice_Cmd "Read the iButton temperature buttons";
-$v_iButton_readtemps->set_info(
-    'This reads all all iButton temperature devices.  Takes a while (.6 s per device)'
-);
+$v_iButton_readtemps->set_info('This reads all all iButton temperature devices.  Takes a while (.6 s per device)');
 $v_iButton_readtemp = new Voice_Cmd "Read the iButton temperature [1,2,3,4]";
 
-$v_iButton_readtemp->set_info(
-    'Read only the temperature from a specific button');
+$v_iButton_readtemp->set_info('Read only the temperature from a specific button');
 $v_iButton_readtemp->set_authority('anyone');
 
 $v_iButton_relay1 = new Voice_Cmd "Turn on relay1 [on,off]";
@@ -43,12 +40,9 @@ my @ib_temps = ( $ib_temp1, $ib_temp2, $ib_temp3, $ib_temp4 );
 $ib_relay1 = new iButton '120000001187d206', undef, 'A';
 $ib_relay2 = new iButton '120000001187d206', undef, 'B';
 
-$remark_bad = new File_Item "$config_parms{data_dir}/remarks/personal_bad.txt",
-  'Ok';
-$remark_good =
-  new File_Item "$config_parms{data_dir}/remarks/personal_good.txt", 'Ok';
-$f_deep_thoughts_ib =
-  new File_Item("$config_parms{data_dir}/remarks/deep_thoughts.txt");
+$remark_bad  = new File_Item "$config_parms{data_dir}/remarks/personal_bad.txt",  'Ok';
+$remark_good = new File_Item "$config_parms{data_dir}/remarks/personal_good.txt", 'Ok';
+$f_deep_thoughts_ib = new File_Item("$config_parms{data_dir}/remarks/deep_thoughts.txt");
 
 speak
   voice => 'next',

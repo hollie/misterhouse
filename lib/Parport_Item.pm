@@ -90,8 +90,7 @@ sub new {
         return $self;
     }
     else {
-        &main::print_log(
-            "Parport_Item: ERROR: Unsupported pin ($pin) for $description");
+        &main::print_log("Parport_Item: ERROR: Unsupported pin ($pin) for $description");
         die "Parport_Item: ERROR: Unsupported pin ($pin) for $description";
     }
 }
@@ -117,8 +116,7 @@ sub get_pin_state {
                     || ( $pin_state == '0' ) )
               )
             {
-                &Generic_Item::set_states_for_next_pass( $item, 'off',
-                    'Parallel Port' );
+                &Generic_Item::set_states_for_next_pass( $item, 'off', 'Parallel Port' );
             }
             elsif (
                 ( $item->{'state'} eq 'off' )
@@ -126,8 +124,7 @@ sub get_pin_state {
                     || ( $pin_state == '1' ) )
               )
             {
-                &Generic_Item::set_states_for_next_pass( $item, 'on',
-                    'Parallel Port' );
+                &Generic_Item::set_states_for_next_pass( $item, 'on', 'Parallel Port' );
             }
         }
     }

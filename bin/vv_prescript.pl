@@ -15,8 +15,7 @@ while (<AMIXER>) {
     if ( $state =~ /mute/ig ) {
         system("/usr/bin/amixer set Rear unmute 2>&1 > /dev/null");
         open( UNMUTE, "> /tmp/.vvo_speak.unmute" )
-          or die
-          "Can't create unmute file, check ownership of /tmp/.vvo_speak.unmute";
+          or die "Can't create unmute file, check ownership of /tmp/.vvo_speak.unmute";
         print UNMUTE "$state\n";
         close(UNMUTE);
         last;

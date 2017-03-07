@@ -12,9 +12,7 @@
 #@ in mh/web/comics/dailystrips/strips.def
 
 $v_dailystrip_update = new Voice_Cmd '[Update,Clean] the daily comic strips';
-$v_dailystrip_update->set_info(
-    "Runs the dailystrip program to retrieve comics specified in mh.ini parm comics: $config_parms{comics}"
-);
+$v_dailystrip_update->set_info("Runs the dailystrip program to retrieve comics specified in mh.ini parm comics: $config_parms{comics}");
 
 # *** We need to get the corners and FP icons, etc. out of the graphics root!
 # *** set_icon short-circuits the matching logic with no recourse
@@ -24,8 +22,7 @@ $v_dailystrip_update->set_info(
 if ( $state = said $v_dailystrip_update) {
     my $comics_dir = &html_alias('/comics');
     if ( $state eq 'Update' ) {
-        $v_dailystrip_update->respond(
-            "app=comics Retrieving daily comic strips...");
+        $v_dailystrip_update->respond("app=comics Retrieving daily comic strips...");
         my $cmd = "${Pgm_Path}/mh -run dailystrips ";
         $cmd .= "--defs $config_parms{html_dir}/comics/dailystrips/strips.def ";
         $cmd .= "--local --basedir $comics_dir --save --nostale ";
@@ -38,8 +35,7 @@ if ( $state = said $v_dailystrip_update) {
         run $cmd;
     }
     else {
-        $v_dailystrip_update->respond(
-            "app=comics Cleaning out old comic strips...");
+        $v_dailystrip_update->respond("app=comics Cleaning out old comic strips...");
         run "mh -run dailystrips-clean --dir $comics_dir 14";
     }
 }
@@ -47,8 +43,7 @@ if ( $state = said $v_dailystrip_update) {
 $v_dailystrips_email = new Voice_Cmd 'Email daily comics';
 
 if ( said $v_dailystrips_email) {
-    $v_dailystrips_email->respond(
-        "app=comics image=email Mailing daily comic strips...");
+    $v_dailystrips_email->respond("app=comics image=email Mailing daily comic strips...");
     my $comics_dir = &html_alias('/comics');
     my $to         = $config_parms{comics_sendto} || "";
     my $baseref    = $config_parms{comics_baseref}
@@ -66,16 +61,8 @@ if ( said $v_dailystrips_email) {
 # lets allow the user to control via triggers
 
 if ($Reload) {
-    &trigger_set(
-        "time_now '4 am' and net_connect_check",
-        "run_voice_cmd 'Update the daily comic strips'",
-        'NoExpire',
-        'update comics'
-    ) unless &trigger_get('update comics');
-    &trigger_set(
-        "time_now '5 am' and net_connect_check",
-        "run_voice_cmd 'Clean the daily comic strips'",
-        'NoExpire',
-        'clean comics'
-    ) unless &trigger_get('clean comics');
+    &trigger_set( "time_now '4 am' and net_connect_check", "run_voice_cmd 'Update the daily comic strips'", 'NoExpire', 'update comics' )
+      unless &trigger_get('update comics');
+    &trigger_set( "time_now '5 am' and net_connect_check", "run_voice_cmd 'Clean the daily comic strips'", 'NoExpire', 'clean comics' )
+      unless &trigger_get('clean comics');
 }

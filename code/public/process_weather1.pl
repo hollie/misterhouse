@@ -78,12 +78,9 @@ my $ProcessStart;
 
 if ( time_cron '30 7 * * *' ) {
 
-    my $weather_file = "$config_parms{data_dir}/weather.txt";
-    my @days         = (
-        'Sunday',   'Monday', 'Tuesday', 'Wednesday',
-        'Thursday', 'Friday', 'Saturday'
-    );
-    my @rain_probability   = ( '1',  '.8',  '.6',  '.4',  '.2',  '0', '0' );
+    my $weather_file       = "$config_parms{data_dir}/weather.txt";
+    my @days               = ( 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday' );
+    my @rain_probability   = ( '1', '.8', '.6', '.4', '.2', '0', '0' );
     my @sunny_probability  = ( '-1', '-.8', '-.6', '-.4', '-.2', '0', '0' );
     my @cloudy_probability = ( '.2', '.05', '.05', '.05', '.05', '0', '0' );
     my $high_cnt           = 0;
@@ -127,8 +124,7 @@ if ( time_cron '30 7 * * *' ) {
 
     open( WEATHER, "$weather_file" )     || die "Cannot open $weather_file";
     open( RESULTS, ">$weather_results" ) || die "Cannot open $weather_results";
-    $dbh = DBI->connect( "DBI:mysql:database=$database:$host",
-        $dbuser, $dbpass, { PrintError => 0 } )
+    $dbh = DBI->connect( "DBI:mysql:database=$database:$host", $dbuser, $dbpass, { PrintError => 0 } )
       || die $DBI::errstr;
 
     undef($/);
@@ -168,8 +164,7 @@ if ( time_cron '30 7 * * *' ) {
         $index = $wday + 1;
     }
 
-    $query =
-      "insert into history_forecast (water_date, forecast) values (now(), \"$weather\")";
+    $query = "insert into history_forecast (water_date, forecast) values (now(), \"$weather\")";
 
     $sth = $dbh->prepare($query) || die $dbh->errstr;
     $sth->execute || die $dbh->errstr;
@@ -214,19 +209,15 @@ if ( time_cron '30 7 * * *' ) {
 
         $tempreg1  = "\\s*($days[$index]\[^ \].*)$days[$tindex1]\[^ \].*";
         $tempreg11 = "\\s*($days[$index]\[^ \].*)$days[$tindex1].*";
-        $tempreg2 =
-          "\\s*($days[$index]\[^ \].*)$days[$tindex1] and $days[$tindex2].*";
-        $tempreg3 =
-          "\\s*($days[$index] and $days[$tindex1].*)$days[$tindex2]\[^ \].*";
-        $tempreg4 =
-          "\\s*($days[$index] and $days[$tindex1].*)$days[$tindex2] and $days[$tindex3].*";
+        $tempreg2  = "\\s*($days[$index]\[^ \].*)$days[$tindex1] and $days[$tindex2].*";
+        $tempreg3  = "\\s*($days[$index] and $days[$tindex1].*)$days[$tindex2]\[^ \].*";
+        $tempreg4  = "\\s*($days[$index] and $days[$tindex1].*)$days[$tindex2] and $days[$tindex3].*";
         $tempreg5  = "\\s*($days[$index] and $days[$tindex1].*)";
         $tempreg12 = "\\s*($days[$index].*)$days[$tindex1].*";
-        $tempreg6 =
-          "\\s*($days[$index]\[^ \].*)$days[$tindex1] through $days[$tindex3].*";
-        $tempreg7 = "\\s*($days[$index] through $days[$tindex2].*)";
-        $tempreg8 = "\\s*($days[$index] through $days[$tindex3].*)";
-        $tempreg9 = "\\s*($days[$index].*)";
+        $tempreg6  = "\\s*($days[$index]\[^ \].*)$days[$tindex1] through $days[$tindex3].*";
+        $tempreg7  = "\\s*($days[$index] through $days[$tindex2].*)";
+        $tempreg8  = "\\s*($days[$index] through $days[$tindex3].*)";
+        $tempreg9  = "\\s*($days[$index].*)";
 
         if ( $weather =~ /$tempreg4$/is ) {
             $forecast[$i] = $1;
@@ -303,9 +294,7 @@ if ( time_cron '30 7 * * *' ) {
         $high           = 0;
         $low            = 0;
 
-        if ( $forecast[$i] =~
-            /.*Chance+\s+of+\s+[rain|showers|thunderstorms]+\s+(\d+\d*).+$/is )
-        {
+        if ( $forecast[$i] =~ /.*Chance+\s+of+\s+[rain|showers|thunderstorms]+\s+(\d+\d*).+$/is ) {
             $percent_chance = $1;
         }
 
@@ -331,44 +320,26 @@ if ( time_cron '30 7 * * *' ) {
             $cloudy = ( $forecast[$i] =~ /cloudy|cool|overcast|sprinkles/is );
         }
 
-        if ( $forecast[$i] =~
-            /.*((High|Highs)+\s+(in\s+the|near|around)+\s+(upper|lower|mid)+\s+(to)+\s*(mid|upper|lower)+\s+)(\d+\d*)s*.*$/is
-          )
-        {
+        if ( $forecast[$i] =~ /.*((High|Highs)+\s+(in\s+the|near|around)+\s+(upper|lower|mid)+\s+(to)+\s*(mid|upper|lower)+\s+)(\d+\d*)s*.*$/is ) {
             $high = $7 + 5;
         }
-        elsif ( $forecast[$i] =~
-            /.*((High|Highs)+\s+(near|in\s+the|around)+\s+(upper|lower|mid)+\s+)(\d+\d*)s*.*$/is
-          )
-        {
+        elsif ( $forecast[$i] =~ /.*((High|Highs)+\s+(near|in\s+the|around)+\s+(upper|lower|mid)+\s+)(\d+\d*)s*.*$/is ) {
             $high = $5 + 5;
         }
-        elsif ( $forecast[$i] =~
-            /.*((High|Highs)+\s+(near|in\s+the|around|from)+\s*(upper|lower|mid)*\s+)(\d+\d*)s*.*$/is
-          )
-        {
+        elsif ( $forecast[$i] =~ /.*((High|Highs)+\s+(near|in\s+the|around|from)+\s*(upper|lower|mid)*\s+)(\d+\d*)s*.*$/is ) {
             $high = $5 + 5;
         }
         elsif ( $forecast[$i] =~ /.*High (\d+\d*)s*.*$/is ) {
             $high = $1 + 5;
         }
 
-        if ( $forecast[$i] =~
-            /.*((Low|Lows)+\s+(near|in\s+the|around)+\s+(upper|lower|mid)+\s+(to)+\s*(mid|upper|lower)+\s+)(\d+\d*)s*.*$/is
-          )
-        {
+        if ( $forecast[$i] =~ /.*((Low|Lows)+\s+(near|in\s+the|around)+\s+(upper|lower|mid)+\s+(to)+\s*(mid|upper|lower)+\s+)(\d+\d*)s*.*$/is ) {
             $low = $7;
         }
-        elsif ( $forecast[$i] =~
-            /.*((Low|Lows)+\s+(near|in\s+the|around)+\s+(upper|lower|mid)+\s+)(\d+\d*)s*.*$/is
-          )
-        {
+        elsif ( $forecast[$i] =~ /.*((Low|Lows)+\s+(near|in\s+the|around)+\s+(upper|lower|mid)+\s+)(\d+\d*)s*.*$/is ) {
             $low = $5;
         }
-        elsif ( $forecast[$i] =~
-            /.*((Low|Lows)+\s+(near|in\s+the|around)+\s*(upper|lower|mid)*\s+)(\d+\d*)s*/is
-          )
-        {
+        elsif ( $forecast[$i] =~ /.*((Low|Lows)+\s+(near|in\s+the|around)+\s*(upper|lower|mid)*\s+)(\d+\d*)s*/is ) {
             $low = $5;
         }
         elsif ( $forecast[$i] =~ /.*Low (\d+\d*)s*/is ) {
@@ -393,8 +364,7 @@ if ( time_cron '30 7 * * *' ) {
         $probability += $cloudy_probability[$i] if ($cloudy);
         $probability += $sunny_probability[$i]  if ($sunny);
 
-        print RESULTS
-          "<High = $high, Low = $low, Probability = $probability, Percent = $percent_chance\n $forecast[$i]>\n";
+        print RESULTS "<High = $high, Low = $low, Probability = $probability, Percent = $percent_chance\n $forecast[$i]>\n";
     }
 
     $high_avg /= $high_cnt if ( $high_cnt > 0 );
@@ -530,13 +500,11 @@ if ( ( state_now $Irr_Remote eq OFF ) ) {
     set $Irr_Front_Yard 'OFF';
 }
 
-if ( ( state_now $Irr_Manual_Start eq ON ) || ( state_now $Irr_Remote eq ON ) )
-{
+if ( ( state_now $Irr_Manual_Start eq ON ) || ( state_now $Irr_Remote eq ON ) ) {
 
     $duration  = $default_duration;
     $irr_state = "Manual";
-    $dbh       = DBI->connect( "DBI:mysql:database=$database:$host",
-        $dbuser, $dbpass, { PrintError => 0 } )
+    $dbh       = DBI->connect( "DBI:mysql:database=$database:$host", $dbuser, $dbpass, { PrintError => 0 } )
       || die $DBI::errstr;
     $query =
       "insert into history_detail (water_date, zone, zone_percent, duration, start_type, irr_state) values (now(), 'Irr_Front_Garage', $irr_zone1_percent, $duration, \"$irr_state\", 'ON')";
@@ -563,8 +531,7 @@ if ( ( state_now $Irr_Manual_Start eq ON ) || ( state_now $Irr_Remote eq ON ) )
 }
 
 if ( expired $irr_zone1_timer) {
-    $dbh = DBI->connect( "DBI:mysql:database=$database:$host",
-        $dbuser, $dbpass, { PrintError => 0 } )
+    $dbh = DBI->connect( "DBI:mysql:database=$database:$host", $dbuser, $dbpass, { PrintError => 0 } )
       || die $DBI::errstr;
     $query =
       "insert into history_detail (water_date, zone, zone_percent, duration, start_type, irr_state) values (now(), 'Irr_Front_Garage', $irr_zone1_percent, $duration, \"$irr_state\", 'OFF')";
@@ -588,8 +555,7 @@ if ( expired $irr_zone1_timer) {
 }
 
 if ( expired $irr_zone2_timer) {
-    $dbh = DBI->connect( "DBI:mysql:database=$database:$host",
-        $dbuser, $dbpass, { PrintError => 0 } )
+    $dbh = DBI->connect( "DBI:mysql:database=$database:$host", $dbuser, $dbpass, { PrintError => 0 } )
       || die $DBI::errstr;
     $query =
       "insert into history_detail (water_date, zone, zone_percent, duration, start_type, irr_state) values (now(), 'Irr_Deck_Steps', $irr_zone2_percent, $duration, \"$irr_state\", 'OFF')";
@@ -613,8 +579,7 @@ if ( expired $irr_zone2_timer) {
 }
 
 if ( expired $irr_zone3_timer) {
-    $dbh = DBI->connect( "DBI:mysql:database=$database:$host",
-        $dbuser, $dbpass, { PrintError => 0 } )
+    $dbh = DBI->connect( "DBI:mysql:database=$database:$host", $dbuser, $dbpass, { PrintError => 0 } )
       || die $DBI::errstr;
     $query =
       "insert into history_detail (water_date, zone, zone_percent, duration, start_type, irr_state) values (now(), 'Irr_Along_Fence', $irr_zone3_percent, $duration, \"$irr_state\", 'OFF')";
@@ -637,8 +602,7 @@ if ( expired $irr_zone3_timer) {
 }
 
 if ( expired $irr_zone4_timer) {
-    $dbh = DBI->connect( "DBI:mysql:database=$database:$host",
-        $dbuser, $dbpass, { PrintError => 0 } )
+    $dbh = DBI->connect( "DBI:mysql:database=$database:$host", $dbuser, $dbpass, { PrintError => 0 } )
       || die $DBI::errstr;
     $query =
       "insert into history_detail (water_date, zone, zone_percent, duration, start_type, irr_state) values (now(), 'Irr_Right_Of_Deck', $irr_zone4_percent, $duration, \"$irr_state\", 'OFF')";
@@ -661,8 +625,7 @@ if ( expired $irr_zone4_timer) {
 }
 
 if ( expired $irr_zone5_timer) {
-    $dbh = DBI->connect( "DBI:mysql:database=$database:$host",
-        $dbuser, $dbpass, { PrintError => 0 } )
+    $dbh = DBI->connect( "DBI:mysql:database=$database:$host", $dbuser, $dbpass, { PrintError => 0 } )
       || die $DBI::errstr;
     $query =
       "insert into history_detail (water_date, zone, zone_percent, duration, start_type, irr_state) values (now(), 'Irr_Back_Right', $irr_zone5_percent, $duration, \"$irr_state\", 'OFF')";
@@ -685,8 +648,7 @@ if ( expired $irr_zone5_timer) {
 }
 
 if ( expired $irr_zone6_timer) {
-    $dbh = DBI->connect( "DBI:mysql:database=$database:$host",
-        $dbuser, $dbpass, { PrintError => 0 } )
+    $dbh = DBI->connect( "DBI:mysql:database=$database:$host", $dbuser, $dbpass, { PrintError => 0 } )
       || die $DBI::errstr;
     $query =
       "insert into history_detail (water_date, zone, zone_percent, duration, start_type, irr_state) values (now(), 'Irr_Middle_Right_Bvld', $irr_zone6_percent, $duration, \"$irr_state\", 'OFF')";
@@ -709,8 +671,7 @@ if ( expired $irr_zone6_timer) {
 }
 
 if ( expired $irr_zone7_timer) {
-    $dbh = DBI->connect( "DBI:mysql:database=$database:$host",
-        $dbuser, $dbpass, { PrintError => 0 } )
+    $dbh = DBI->connect( "DBI:mysql:database=$database:$host", $dbuser, $dbpass, { PrintError => 0 } )
       || die $DBI::errstr;
     $query =
       "insert into history_detail (water_date, zone, zone_percent, duration, start_type, irr_state) values (now(), 'Irr_Front_Yard', $irr_zone7_percent, $duration, \"$irr_state\", 'OFF')";

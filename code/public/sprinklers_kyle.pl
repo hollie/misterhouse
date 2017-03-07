@@ -48,13 +48,11 @@ if (   ( time_cron "40 4,16 * * *" )
         my $chance = $Weather{"Chance of rain $day"};
         if ( $chance >= 50 ) {
             $Save{sprinkler_skip} = 3;
-            print_log
-              "Chance of rain on $day is $chance.  Setting Save{sprinkler_skip} to: $Save{sprinkler_skip}";
+            print_log "Chance of rain on $day is $chance.  Setting Save{sprinkler_skip} to: $Save{sprinkler_skip}";
             last;
         }
         elsif ( $chance > 0 ) {
-            print_log
-              "Chance of rain on $day is only $chance.  Not skipping sprinklers.";
+            print_log "Chance of rain on $day is only $chance.  Not skipping sprinklers.";
         }
     }
 }
@@ -107,8 +105,7 @@ if (
         print_log "Skipping sprinklers due to recent rain.";
     }
     else {
-        set $SprinklersFront
-          '1-on~600~1-off;2-on~600~2-off;3-on~600~3-off;4-on~600~4-off';
+        set $SprinklersFront '1-on~600~1-off;2-on~600~2-off;3-on~600~3-off;4-on~600~4-off';
         print_log "Starting front sprinkler cycle";
     }
 }
@@ -184,8 +181,7 @@ if ( time_now("00:00") ) {
 
 if ( $Save{sprinkler_skip} and $New_Day ) {
     $Save{sprinkler_skip}--;
-    print_log
-      "!!!! DEBUG: New Save{sprinkler_skip} value: $Save{sprinkler_skip}";
+    print_log "!!!! DEBUG: New Save{sprinkler_skip} value: $Save{sprinkler_skip}";
 }
 
 =begin comment

@@ -90,8 +90,7 @@ BEGIN {
         # i give up!  user is going to have to set it manually
         print "Content-type: text/html\n\n";
         print "<b>Installation path could not be determined.</b>\n";
-        print
-          "<p>Please edit the script and set \$ENV{\"CWD\"} to the full path in which the script is installed.";
+        print "<p>Please edit the script and set \$ENV{\"CWD\"} to the full path in which the script is installed.";
         exit 1;
     }
 }    # / BEGIN
@@ -260,14 +259,10 @@ sub PrintAllRecords {
     #$activePage = $objMyDB->ActivePage; # (in case we specified one out of range)
     my ($pageCount) = $objMyDB->PageCount;
 
-    print
-      "<table cellspacing='2' cellpadding='2' border='0'><tr valign='middle'><td bgcolor='$dataDarkColor'>\n";
+    print "<table cellspacing='2' cellpadding='2' border='0'><tr valign='middle'><td bgcolor='$dataDarkColor'>\n";
 
     #if ($m_blnIsSysAdmin) {
-    print
-      "<input type='submit' value='Add New Task' onclick=\"self.location='$scriptName"
-      . PassThrough( "vsCOM", "ADD" )
-      . "';return false\">\n";
+    print "<input type='submit' value='Add New Task' onclick=\"self.location='$scriptName" . PassThrough( "vsCOM", "ADD" ) . "';return false\">\n";
 
     #	print "<input type='submit' value='Logout' onclick=\"if (confirm('Logout?')) {self.location='$scriptName?vsSC=$showCompleted&vsCOM=LOGOUT';return false;} else {return false;};\">\n" if ($m_strSysAdminUserId || $m_strSysAdminPassword);
     #} else {
@@ -276,14 +271,12 @@ sub PrintAllRecords {
     #}
 
     if ($showCompleted) {
-        print
-          " <input type='submit' value='Hide Completed' onclick=\"self.location='$scriptName?vsSORT=$sortField&vsPS=$pageSize&"
+        print " <input type='submit' value='Hide Completed' onclick=\"self.location='$scriptName?vsSORT=$sortField&vsPS=$pageSize&"
           . $ia7_suffix
           . "';return false\">\n";
     }
     else {
-        print
-          " <input type='submit' value='Show Completed' onclick=\"self.location='$scriptName?vsSORT=$sortField&vsSC=1&vsPS=$pageSize&"
+        print " <input type='submit' value='Show Completed' onclick=\"self.location='$scriptName?vsSORT=$sortField&vsSC=1&vsPS=$pageSize&"
           . $ia7_suffix
           . "';return false\">\n";
     }
@@ -293,8 +286,7 @@ sub PrintAllRecords {
     print "<tr valign='top' bgcolor='#CCCCCC'>\n";
     print "<td>&nbsp;</td>\n";
     foreach $fieldName (@showFields) {
-        print
-          "<td><b><font face='arial' size='2'><a href='$scriptName?vsSORT=$fieldName&vsPS=$pageSize&vsSC=$showCompleted&"
+        print "<td><b><font face='arial' size='2'><a href='$scriptName?vsSORT=$fieldName&vsPS=$pageSize&vsSC=$showCompleted&"
           . $ia7_suffix . "'>"
           . $fieldName
           . "</a></font></b></td>\n";
@@ -315,11 +307,7 @@ sub PrintAllRecords {
           . $objMyDB->FieldValue("ID") . "&"
           . $ia7_suffix . "'>";
         $link_close = "</a>";
-        print "<td>"
-          . $link_open
-          . "<img src='$icon' alt='Details' border='0'></font>"
-          . $link_close
-          . "</td>\n";
+        print "<td>" . $link_open . "<img src='$icon' alt='Details' border='0'></font>" . $link_close . "</td>\n";
 
         foreach $fieldName (@showFields) {
             $fieldValue = $objMyDB->FieldValue($fieldName);
@@ -327,22 +315,10 @@ sub PrintAllRecords {
             if ( $fieldName eq "SpecialField" ) {
 
                 # not used at the moment, but maybe later...
-                print "<td>"
-                  . $link_open
-                  . "<font face='arial' size='2'>"
-                  . $fieldValue
-                  . "</font>"
-                  . $link_close
-                  . "</td>\n";
+                print "<td>" . $link_open . "<font face='arial' size='2'>" . $fieldValue . "</font>" . $link_close . "</td>\n";
             }
             elsif ( lc $fieldName eq "SPEAK" ) {
-                print "<td>"
-                  . $link_open
-                  . "<font face='arial' size='2'>"
-                  . $fieldValue
-                  . "</font>"
-                  . $link_close
-                  . "</td>\n";
+                print "<td>" . $link_open . "<font face='arial' size='2'>" . $fieldValue . "</font>" . $link_close . "</td>\n";
             }
             elsif ( $fieldName eq "SOURCE" ) {
             }
@@ -353,13 +329,7 @@ sub PrintAllRecords {
                     $link_open  = "";
                     $link_close = "";
                 }
-                print "<td>"
-                  . $link_open
-                  . "<font face='arial' size='2'>"
-                  . $fieldValue
-                  . "</font>"
-                  . $link_close
-                  . "</td>\n";
+                print "<td>" . $link_open . "<font face='arial' size='2'>" . $fieldValue . "</font>" . $link_close . "</td>\n";
             }
         }
         print "</tr>\n";
@@ -397,14 +367,11 @@ sub PrintCurrentRecord {
     print "<table cellspacing='2' cellpadding='2' border='0'>\n";
     foreach $fieldName ( $objMyDB->FieldNames ) {
         if ( $fieldName eq "ID" ) {
-            print "<input type='hidden' name='vsID' value='"
-              . $objMyDB->FieldValue("ID") . "'>\n";
+            print "<input type='hidden' name='vsID' value='" . $objMyDB->FieldValue("ID") . "'>\n";
         }
         else {
             print "<tr valign='top' bgcolor='$dataLightColor'>\n";
-            print "<td><font face='arial' size='2'>"
-              . $fieldName
-              . "</font></td>\n"
+            print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n"
               if ( $fieldName ne "SOURCE" );
             if ( $fieldName eq "Complete" ) {
                 my ($yes) = "";
@@ -413,10 +380,8 @@ sub PrintCurrentRecord {
                   if ( $objMyDB->FieldValue("Complete") eq "Yes" );
                 $no = "checked" if ( $objMyDB->FieldValue("Complete") eq "No" );
                 print "<td><font face='arial' size='2'>";
-                print
-                  "<input type=\"radio\" name=\"Complete\" value=\"Yes\" $yes>Yes\n";
-                print
-                  "<input type=\"radio\" name=\"Complete\" value=\"No\" $no>No\n";
+                print "<input type=\"radio\" name=\"Complete\" value=\"Yes\" $yes>Yes\n";
+                print "<input type=\"radio\" name=\"Complete\" value=\"No\" $no>No\n";
                 print "</font></td>";
             }
             elsif ( $fieldName eq "Notes" ) {
@@ -427,8 +392,7 @@ sub PrintCurrentRecord {
             }
             elsif ( $fieldName eq "SPEAK" ) {
                 $fieldValue = $objMyDB->FieldValue($fieldName);
-                print
-                  "<td><input name='SPEAK' type=\"checkbox\" value=\"Yes\" ";
+                print "<td><input name='SPEAK' type=\"checkbox\" value=\"Yes\" ";
                 if ( $fieldValue eq "Yes" ) {
                     print "CHECKED > ";
                 }
@@ -444,9 +408,7 @@ sub PrintCurrentRecord {
 
             }
             else {
-                print "<td><input size=\"50\" name=\""
-                  . $fieldName
-                  . "\" value=\"";
+                print "<td><input size=\"50\" name=\"" . $fieldName . "\" value=\"";
                 $fieldValue = $objMyDB->FieldValue($fieldName);
                 $fieldValue =~ s/\"/&quot;/g;
                 print $fieldValue . "\"></td>\n";
@@ -469,16 +431,14 @@ sub PrintCurrentRecord {
           "<input style=\"COLOR: maroon;\" type='reset' value='Delete'  onclick=\"if (confirm('Permenantly delete this task?')) {self.location='$scriptName?vsSORT=$sortField&vsAP=$activePage&vsPS=$pageSize&vsSC=$showCompleted&vsCOM=DELETE&vsID="
           . $objMyDB->FieldValue("ID")
           . "';return false;} else {return false;};\">\n";
-        print
-          "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
+        print "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
         print "<p>\n";
     }
     else {
         $source =~ /^ical=(\S*)\ssync=(.*)/;
         my $icalname = $1;
         my $icalsync = $2;
-        print
-          "<tr><td colspan=4><font face='arial' size='2'>iCal2vsdb (ical $icalname) $icalsync\n";
+        print "<tr><td colspan=4><font face='arial' size='2'>iCal2vsdb (ical $icalname) $icalsync\n";
         print "</font></td></tr></table>\n";
     }
 }
@@ -492,40 +452,26 @@ sub PrintBlankRecord {
         if ( $fieldName ne "ID" ) {
             print "<tr valign='top' bgcolor='$dataLightColor'>\n";
             if ( $fieldName eq "Complete" ) {
-                print "<td><font face='arial' size='2'>"
-                  . $fieldName
-                  . "</font></td>\n";
+                print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
                 print "<td><font face='arial' size='2'>";
-                print
-                  "<input type=\"radio\" name=\"Complete\" value=\"Yes\">Yes\n";
-                print
-                  "<input type=\"radio\" name=\"Complete\" value=\"No\" checked>No\n";
+                print "<input type=\"radio\" name=\"Complete\" value=\"Yes\">Yes\n";
+                print "<input type=\"radio\" name=\"Complete\" value=\"No\" checked>No\n";
                 print "</font></td>";
             }
             elsif ( $fieldName eq "Notes" ) {
-                print "<td><font face='arial' size='2'>"
-                  . $fieldName
-                  . "</font></td>\n";
-                print
-                  "<td><textarea name='Notes' cols='38' rows='3'></textarea></td>\n";
+                print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
+                print "<td><textarea name='Notes' cols='38' rows='3'></textarea></td>\n";
             }
             elsif ( $fieldName eq "SPEAK" ) {
-                print "<td><font face='arial' size='2'>"
-                  . $fieldName
-                  . "</font></td>\n";
-                print
-                  "<td><input name='SPEAK' type=\"checkbox\" value=\"Yes\" >";
+                print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
+                print "<td><input name='SPEAK' type=\"checkbox\" value=\"Yes\" >";
                 print "</tr>\n";
             }
             elsif ( $fieldName eq "SOURCE" ) {    #do nothing
             }
             else {
-                print "<td><font face='arial' size='2'>"
-                  . $fieldName
-                  . "</font></td>\n";
-                print "<td><input size=\"50\" name=\""
-                  . $fieldName
-                  . "\" value=\"\"></td>\n";
+                print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
+                print "<td><input size=\"50\" name=\"" . $fieldName . "\" value=\"\"></td>\n";
             }
             print "</tr>\n";
         }
@@ -541,8 +487,7 @@ sub PrintBlankRecord {
     print "<input type='hidden' name='ia7' value='$ia7_keys'>\n";
 
     print "<input type='submit' value='Add'>\n";
-    print
-      "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
+    print "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
     print "<p>\n";
 }
 
@@ -589,19 +534,15 @@ sub FatalError {
     my ($strMessage) = shift || "Unknown Error";
     print "Content-type: text/html\n\n" unless defined($HEADER_PRINTED);
     print "<p><font face='arial,helvetica' size='2'>\n";
-    print
-      "<b>A fatal error occured.  The script cannot continue.  Details are below:</b>";
+    print "<b>A fatal error occured.  The script cannot continue.  Details are below:</b>";
     print "<p><font color='red'>" . $strMessage . "</font>";
     print "<p>The most common causes of fatal errors are:\n";
     print "<ol>\n";
-    print
-      "<li>One of the script files was uploaded via FTP in Binary mode instead of ASCII\n";
-    print
-      "<li>The file permissions for the data directory and all .tab and .cfg files is not readable/writable\n";
+    print "<li>One of the script files was uploaded via FTP in Binary mode instead of ASCII\n";
+    print "<li>The file permissions for the data directory and all .tab and .cfg files is not readable/writable\n";
     print "</ol>\n";
     print "<p>If you have already tried these, you may want to visit the ";
-    print
-      "<a href='http://www.verysimple.com/support/'>VerySimple Support Forum</a> \n";
+    print "<a href='http://www.verysimple.com/support/'>VerySimple Support Forum</a> \n";
     print "to see if there is a solution available.\n";
     print "</font>\n";
     exit 1;

@@ -47,8 +47,7 @@ B<>
 
 =cut
 
-my ( $class, $self, $id, $state, $action, $repeat, @timers_with_actions,
-    $resort_timers_with_actions, @sets_from_previous_pass );
+my ( $class, $self, $id, $state, $action, $repeat, @timers_with_actions, $resort_timers_with_actions, @sets_from_previous_pass );
 
 # This is called from mh each pass
 sub check_for_timer_actions {
@@ -77,8 +76,7 @@ sub expired_timers_with_actions {
 
         #       print "db3 s=$self ex=$self->{expire_time}\n";
         if ( !$self->{expire_time} ) {
-            shift
-              @timers_with_actions;  # These timers were 'unset' ... delete them
+            shift @timers_with_actions;    # These timers were 'unset' ... delete them
         }
 
         # Use this method avoids problems with Timer is called from X10_Items
@@ -91,8 +89,7 @@ sub expired_timers_with_actions {
             }
         }
         else {
-            last
-              ; # The first timer has not expired yet, so don't check the others
+            last;    # The first timer has not expired yet, so don't check the others
         }
     }
     return @expired_timers;
@@ -142,16 +139,13 @@ sub restore_string {
     $restore_string .= ", $self->{repeat}"    if $self->{repeat};
     $restore_string .= ";\n";
     $restore_string .= $self->{object_name} . "->set_from_last_pass();\n";
-    $restore_string .=
-      $self->{object_name} . "->{expire_time} = $expire_time;\n"
+    $restore_string .= $self->{object_name} . "->{expire_time} = $expire_time;\n"
       if $expire_time;
     $restore_string .= $self->{object_name} . "->{time} = q~$self->{time}~;\n"
       if $self->{time};
-    $restore_string .=
-      $self->{object_name} . "->{time_pause} = q~$self->{time_pause}~;\n"
+    $restore_string .= $self->{object_name} . "->{time_pause} = q~$self->{time_pause}~;\n"
       if $self->{time_pause};
-    $restore_string .=
-      $self->{object_name} . "->{time_adjust} = q~$self->{time_adjust}~;\n"
+    $restore_string .= $self->{object_name} . "->{time_adjust} = q~$self->{time_adjust}~;\n"
       if $self->{time_adjust};
 
     return $restore_string;
@@ -290,17 +284,13 @@ sub run_action {
         elsif ( $action_type eq '' ) {
 
             #       &::print_log("Action");
-            package main
-              ; # Had to do this to get the 'speak' function recognized without having to &main::speak() it
-            my $timer_name = $self->{object_name}
-              ;    # So we can use this in the timer action eval
-            $state = $self->{object_name}
-              ;    # So we can use this in the timer action eval
+            package main;    # Had to do this to get the 'speak' function recognized without having to &main::speak() it
+            my $timer_name = $self->{object_name};    # So we can use this in the timer action eval
+            $state = $self->{object_name};            # So we can use this in the timer action eval
             eval $action;
 
             package Timer;
-            print
-              "\nError in running timer action: action=$action\n error: $@\n"
+            print "\nError in running timer action: action=$action\n error: $@\n"
               if $@;
         }
         else {
@@ -362,8 +352,7 @@ sub hours_remaining {
 sub hours_remaining_now {
     ($self) = @_;
     return if inactive $self;
-    my $hours_left = int(
-        .5 + ( $self->{expire_time} - main::get_tickcount ) / ( 60 * 60000 ) );
+    my $hours_left = int( .5 + ( $self->{expire_time} - main::get_tickcount ) / ( 60 * 60000 ) );
     if (    $hours_left
         and $self->{hours_remaining} != $hours_left )
     {
@@ -431,13 +420,8 @@ Returns true if the timer is still running.
 
 sub active {
     ($self) = @_;
-    if (
-        (
-                $self->{expire_time}
-            and $self->{expire_time} >= main::get_tickcount
-        )
-        or ( $self->{set_next_pass} )
-      )
+    if (   ( $self->{expire_time} and $self->{expire_time} >= main::get_tickcount )
+        or ( $self->{set_next_pass} ) )
     {
         return 1;
     }
@@ -485,8 +469,7 @@ sub restart {
     $self->{time}        = time;
     $self->{time_adjust} = 0;
     $self->{time_pause}  = 0;
-    if ( $$self{expire_time} )
-    {    # If this timer is countdown type then restart it instead
+    if ( $$self{expire_time} ) {    # If this timer is countdown type then restart it instead
 
         #           $self->{expire_time} = ($$self{period} * 1000) + main::get_tickcount;
         #       push @sets_from_previous_pass, $self;

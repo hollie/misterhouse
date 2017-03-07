@@ -75,9 +75,7 @@ if ($Authorized) {
             }
         }
 
-        foreach
-          my $j (qw( Name Controller Unoccupied Occupied Sleeping Maximum ))
-        {
+        foreach my $j (qw( Name Controller Unoccupied Occupied Sleeping Maximum )) {
             if ( $i =~ /Heating_Zone_${j}_(\d+)/ ) {
                 my $num = $1;
                 $hvac->{heatingzones}->[ $num - 1 ]->{$j} = $ARGS{$i};
@@ -98,21 +96,18 @@ if ($Authorized) {
             }
         }
 
-        foreach my $j (
-            qw( Name Unoccupied Occupied Sleeping Maximum Sensor TimeToHeat ))
-        {
+        foreach my $j (qw( Name Unoccupied Occupied Sleeping Maximum Sensor TimeToHeat )) {
             if ( $i =~ /Heating_Room_${j}_(\d+)_(\d+)/ ) {
                 my ( $zone, $num ) = ( $1, $2 );
-                $hvac->{heatingzones}->[ $zone - 1 ]->{Rooms}->[ $num - 1 ]
-                  ->{$j} = $ARGS{$i};
+                $hvac->{heatingzones}->[ $zone - 1 ]->{Rooms}->[ $num - 1 ]->{$j} = $ARGS{$i};
             }
         }
 
         foreach my $j (qw( Room State Item Value )) {
             if ( $i =~ /Heating_Tie_${j}_(\d+)_(\d+)/ ) {
                 my ( $zone, $num ) = ( $1, $2 );
-                $hvac->{heatingzones}->[ $zone - 1 ]->{Ties}->[ $num - 1 ]->{$j}
-                  = $ARGS{$i};
+                $hvac->{heatingzones}->[ $zone - 1 ]->{Ties}->[ $num - 1 ]->{$j} =
+                  $ARGS{$i};
             }
         }
     }
@@ -188,8 +183,7 @@ if ($Authorized) {
 print "Content-Type: text/html\n\n";
 print "<html>\n<body>\n";
 print "<link REL=\"STYLESHEET\" HREF=\"/default.css\" TYPE=\"text/css\" />\n";
-print
-  "<div ID=\"overDiv\" STYLE=\"position:absolute; visibility:hide; z-index:1;\" />\n";
+print "<div ID=\"overDiv\" STYLE=\"position:absolute; visibility:hide; z-index:1;\" />\n";
 
 #print "<script LANGUAGE=\"JavaScript\" SRC=\"/lib/overlib.js\" />\n";
 #print "<base TARGET='speech' />\n";
@@ -231,18 +225,15 @@ sub setupHeatingZone {
 
     my $name = $hvac->{heatingzones}->[$zone]->{Name};
 
-    my $str =
-      "<a href=\"$scriptname?SETUP=1\">Return to Main Setup Page</a><br /><br />\n";
+    my $str = "<a href=\"$scriptname?SETUP=1\">Return to Main Setup Page</a><br /><br />\n";
 
     $str .= "<form>\n";
-    $str .=
-      "<input type=\"hidden\" name=\"SETUP\" value=\"Heating_$setup\" />\n";
+    $str .= "<input type=\"hidden\" name=\"SETUP\" value=\"Heating_$setup\" />\n";
 
     my $select;
     my $selected =
       $hvac->{heatingzones}->[$zone]->{Controller} || "No Controller";
-    $select =
-      "<select name=\"Heating_Zone_Controller_${setup}\" onchange=\"submit()\">\n";
+    $select = "<select name=\"Heating_Zone_Controller_${setup}\" onchange=\"submit()\">\n";
     $select .= "<option ";
     $select .= "selected " if "No Controller" eq $selected;
     $select .= "value=\"No Controller\">No Controller</option>\n";
@@ -260,8 +251,7 @@ sub setupHeatingZone {
     $str    .= "<b>Zone Heating Controller: </b> $select <br />\n";
 
     $str .= "<table cellspacing=\"0\" cellpadding=\"0\" border=\"1\">\n";
-    $str .=
-      "<tr><th bgcolor=\"$bgcolor\">$name (for Heating) Defaults</th></tr>\n";
+    $str .= "<tr><th bgcolor=\"$bgcolor\">$name (for Heating) Defaults</th></tr>\n";
     $str .= "<tr><td>\n";
     $str .= "<table cellspacing=\"0\" cellpadding=\"0\" border=\"0\">\n";
     $str .= "<tr>";
@@ -276,8 +266,7 @@ sub setupHeatingZone {
 
     $str .= "<tr>\n";
     $selected = $hvac->{heatingzones}->[$zone]->{Unoccupied} || 50;
-    $select =
-      "<select name=\"Heating_Zone_Unoccupied_${setup}\" onchange=\"submit()\">\n";
+    $select = "<select name=\"Heating_Zone_Unoccupied_${setup}\" onchange=\"submit()\">\n";
     foreach my $temp ( 45 .. 75 ) {
         $select .= "<option ";
         $select .= "selected " if $temp == $selected;
@@ -287,8 +276,7 @@ sub setupHeatingZone {
     $str    .= "<td>$select</td>\n";
 
     $selected = $hvac->{heatingzones}->[$zone]->{Occupied} || 71;
-    $select =
-      "<select name=\"Heating_Zone_Occupied_${setup}\" onchange=\"submit()\">\n";
+    $select = "<select name=\"Heating_Zone_Occupied_${setup}\" onchange=\"submit()\">\n";
     for ( my $temp = 65; $temp <= 75; $temp += 0.5 ) {
         $select .= "<option ";
         $select .= "selected " if $temp == $selected;
@@ -298,8 +286,7 @@ sub setupHeatingZone {
     $str    .= "<td>$select</td>\n";
 
     $selected = $hvac->{heatingzones}->[$zone]->{Sleeping} || 68;
-    $select =
-      "<select name=\"Heating_Zone_Sleeping_${setup}\" onchange=\"submit()\">\n";
+    $select = "<select name=\"Heating_Zone_Sleeping_${setup}\" onchange=\"submit()\">\n";
     for ( my $temp = 45; $temp <= 75; $temp += 0.5 ) {
         $select .= "<option ";
         $select .= "selected " if $temp == $selected;
@@ -309,8 +296,7 @@ sub setupHeatingZone {
     $str    .= "<td>$select</td>\n";
 
     $selected = $hvac->{heatingzones}->[$zone]->{Maximum} || 75;
-    $select =
-      "<select name=\"Heating_Zone_Maximum_${setup}\" onchange=\"submit()\">\n";
+    $select = "<select name=\"Heating_Zone_Maximum_${setup}\" onchange=\"submit()\">\n";
     foreach my $temp ( 60 .. 85 ) {
         $select .= "<option ";
         $select .= "selected " if $temp == $selected;
@@ -321,8 +307,7 @@ sub setupHeatingZone {
     $str    .= "</tr></table></td></tr></table><br />\n";
 
     $str .= "<table cellspacing=\"0\" cellpadding=\"0\" border=\"1\">\n";
-    $str .=
-      "<tr><th bgcolor=\"$bgcolor\">Rooms in $name (for Heating)</th></tr>\n";
+    $str .= "<tr><th bgcolor=\"$bgcolor\">Rooms in $name (for Heating)</th></tr>\n";
     $str .= "<tr><td>\n";
     $str .= "<table cellspacing=\"0\" cellpadding=\"0\" border=\"0\">\n";
 
@@ -348,13 +333,11 @@ sub setupHeatingZone {
     foreach my $i ( @{ $hvac->{heatingzones}->[$zone]->{Rooms} } ) {
         $str .= "<tr>";
 
-        $str .=
-          "<td>&nbsp;<input name=\"Heating_Room_Name_${setup}_$count\" value=\"$i->{ Name }\" onchange=\"submit()\">&nbsp;&nbsp;&nbsp;</td>\n";
+        $str .= "<td>&nbsp;<input name=\"Heating_Room_Name_${setup}_$count\" value=\"$i->{ Name }\" onchange=\"submit()\">&nbsp;&nbsp;&nbsp;</td>\n";
 
         my $select;
         my $selected = $i->{Sensor} || "No Sensor";
-        $select =
-          "<select name=\"Heating_Room_Sensor_${setup}_$count\" onchange=\"submit()\">\n";
+        $select = "<select name=\"Heating_Room_Sensor_${setup}_$count\" onchange=\"submit()\">\n";
         $select .= "<option ";
         $select .= "selected " if "No Sensor" eq $selected;
         $select .= "value=\"No Sensor\">No Sensor</option>\n";
@@ -372,8 +355,7 @@ sub setupHeatingZone {
         $str    .= "<td align=\"center\">$select</td>\n";
 
         $selected = $i->{Unoccupied};
-        $select =
-          "<select name=\"Heating_Room_Unoccupied_${setup}_$count\" onchange=\"submit()\">\n";
+        $select   = "<select name=\"Heating_Room_Unoccupied_${setup}_$count\" onchange=\"submit()\">\n";
         foreach my $temp ( 45 .. 75 ) {
             $select .= "<option ";
             $select .= "selected " if $temp == $selected;
@@ -383,8 +365,7 @@ sub setupHeatingZone {
         $str    .= "<td align=\"center\">$select</td>\n";
 
         $selected = $i->{Occupied};
-        $select =
-          "<select name=\"Heating_Room_Occupied_${setup}_$count\" onchange=\"submit()\">\n";
+        $select   = "<select name=\"Heating_Room_Occupied_${setup}_$count\" onchange=\"submit()\">\n";
         for ( my $temp = 65; $temp <= 75; $temp += 0.5 ) {
             $select .= "<option ";
             $select .= "selected " if $temp == $selected;
@@ -394,8 +375,7 @@ sub setupHeatingZone {
         $str    .= "<td align=\"center\">$select</td>\n";
 
         $selected = $i->{Sleeping};
-        $select =
-          "<select name=\"Heating_Room_Sleeping_${setup}_$count\" onchange=\"submit()\">\n";
+        $select   = "<select name=\"Heating_Room_Sleeping_${setup}_$count\" onchange=\"submit()\">\n";
         for ( my $temp = 45; $temp <= 75; $temp += 0.5 ) {
             $select .= "<option ";
             $select .= "selected " if $temp == $selected;
@@ -405,8 +385,7 @@ sub setupHeatingZone {
         $str    .= "<td align=\"center\">$select</td>\n";
 
         $selected = $i->{Maximum};
-        $select =
-          "<select name=\"Heating_Room_Maximum_${setup}_$count\" onchange=\"submit()\">\n";
+        $select   = "<select name=\"Heating_Room_Maximum_${setup}_$count\" onchange=\"submit()\">\n";
         foreach my $temp ( 60 .. 85 ) {
             $select .= "<option ";
             $select .= "selected " if $temp == $selected;
@@ -416,8 +395,7 @@ sub setupHeatingZone {
         $str    .= "<td align=\"center\">$select</td>\n";
 
         $selected = $i->{TimeToHeat};
-        $select =
-          "<select name=\"Heating_Room_TimeToHeat_${setup}_$count\" onchange=\"submit()\">\n";
+        $select   = "<select name=\"Heating_Room_TimeToHeat_${setup}_$count\" onchange=\"submit()\">\n";
         foreach my $temp ( 1 .. 90 ) {
             $select .= "<option ";
             $select .= "selected " if $temp == $selected;
@@ -426,25 +404,21 @@ sub setupHeatingZone {
         $select .= "</select>\n";
         $str    .= "<td align=\"center\">$select</td>\n";
 
-        $str .=
-          "<td><a href=\"$scriptname?SETUP=Heating_$setup&DeleteHeatingRoom=${setup}_$count\">Delete</a>&nbsp;&nbsp;&nbsp;</td>\n";
+        $str .= "<td><a href=\"$scriptname?SETUP=Heating_$setup&DeleteHeatingRoom=${setup}_$count\">Delete</a>&nbsp;&nbsp;&nbsp;</td>\n";
         $str .= "</tr>\n";
         $count++;
     }
 
     my $offset = 8;
-    $str .=
-      "<tr height=\"$offset\"><td height=\"$offset\"><img src=\"/graphics/1pixel.gif\" border=\"0\" height=\"$offset\" /></td></tr>\n";
-    $str .=
-      "<tr><td colspan=\"5\">&nbsp;<a href=\"$scriptname?SETUP=Heating_$setup&AddNewRoom=1\">Add a New Room</a></td>\n";
+    $str .= "<tr height=\"$offset\"><td height=\"$offset\"><img src=\"/graphics/1pixel.gif\" border=\"0\" height=\"$offset\" /></td></tr>\n";
+    $str .= "<tr><td colspan=\"5\">&nbsp;<a href=\"$scriptname?SETUP=Heating_$setup&AddNewRoom=1\">Add a New Room</a></td>\n";
 
     $str .= "</table>";
     $str .= "</tr></td></table>\n";
 
     $str .= "<br />\n";
     $str .= "<table cellspacing=\"0\" cellpadding=\"0\" border=\"1\">\n";
-    $str .=
-      "<tr><th bgcolor=\"$bgcolor\">Tie Temperature States to Items</th></tr>\n";
+    $str .= "<tr><th bgcolor=\"$bgcolor\">Tie Temperature States to Items</th></tr>\n";
     $str .= "<tr><td>\n";
     $str .= "<table cellspacing=\"0\" cellpadding=\"0\" border=\"0\">\n";
 
@@ -455,8 +429,7 @@ sub setupHeatingZone {
     foreach my $i ( @{ $hvac->{heatingzones}->[$zone]->{Ties} } ) {
         $str .= "<tr>";
 
-        my $select =
-          "<select name=\"Heating_Tie_Room_${setup}_$count\" onchange=\"submit()\">\n";
+        my $select   = "<select name=\"Heating_Tie_Room_${setup}_$count\" onchange=\"submit()\">\n";
         my $selected = $i->{Room};
         foreach my $room ( @{ $hvac->{heatingzones}->[$zone]->{Rooms} } ) {
             $select .= "<option ";
@@ -466,8 +439,7 @@ sub setupHeatingZone {
         $select .= "</select>\n";
         $str    .= "<td>&nbsp;Set $select to&nbsp;</td>\n";
 
-        $select =
-          "<select name=\"Heating_Tie_State_${setup}_$count\" onchange=\"submit()\">\n";
+        $select   = "<select name=\"Heating_Tie_State_${setup}_$count\" onchange=\"submit()\">\n";
         $selected = $i->{State};
         foreach my $state (qw (Unoccupied Occupied Sleeping)) {
             $select .= "<option ";
@@ -477,8 +449,7 @@ sub setupHeatingZone {
         $select .= "</select>\n";
         $str    .= "<td>$select if&nbsp;</td>\n";
 
-        $select =
-          "<select name=\"Heating_Tie_Item_${setup}_$count\" onchange=\"submit()\">\n";
+        $select = "<select name=\"Heating_Tie_Item_${setup}_$count\" onchange=\"submit()\">\n";
         $selected = $i->{Item} || "Choose an Item";
         $select .= "<option ";
         $select .= "selected " if "Choose an Item" eq $selected;
@@ -496,20 +467,16 @@ sub setupHeatingZone {
         $select .= "</select>\n";
         $str    .= "<td>$select equals&nbsp;</td>\n";
 
-        $str .=
-          "<td><input name=\"Heating_Tie_Value_${setup}_$count\" value=\"$i->{ Value }\" onchange=\"submit()\">&nbsp;&nbsp;&nbsp;</td>\n";
+        $str .= "<td><input name=\"Heating_Tie_Value_${setup}_$count\" value=\"$i->{ Value }\" onchange=\"submit()\">&nbsp;&nbsp;&nbsp;</td>\n";
 
-        $str .=
-          "<td><a href=\"$scriptname?SETUP=Heating_$setup&DeleteHeatingTie=${setup}_$count\">Delete</a>&nbsp;&nbsp;&nbsp;</td>\n";
+        $str .= "<td><a href=\"$scriptname?SETUP=Heating_$setup&DeleteHeatingTie=${setup}_$count\">Delete</a>&nbsp;&nbsp;&nbsp;</td>\n";
 
         $str .= "</tr>\n";
         $count++;
     }
 
-    $str .=
-      "<tr height=\"$offset\"><td height=\"$offset\"><img src=\"/graphics/1pixel.gif\" border=\"0\" height=\"$offset\" /></td></tr>\n";
-    $str .=
-      "<tr><td colspan=\"5\">&nbsp;<a href=\"$scriptname?SETUP=Heating_$setup&AddNewTie=1\">Add a New Rule</a></td>\n";
+    $str .= "<tr height=\"$offset\"><td height=\"$offset\"><img src=\"/graphics/1pixel.gif\" border=\"0\" height=\"$offset\" /></td></tr>\n";
+    $str .= "<tr><td colspan=\"5\">&nbsp;<a href=\"$scriptname?SETUP=Heating_$setup&AddNewTie=1\">Add a New Rule</a></td>\n";
 
     $str .= "</table>";
     $str .= "</tr></td></table>\n";
@@ -520,8 +487,7 @@ sub setupHeatingZone {
 
     $str .= "<br />\n";
     $str .= "<table cellspacing=\"0\" cellpadding=\"0\" border=\"1\">\n";
-    $str .=
-      "<tr><th bgcolor=\"$bgcolor\">Triggers That Match Rules from Tied Section</th></tr>\n";
+    $str .= "<tr><th bgcolor=\"$bgcolor\">Triggers That Match Rules from Tied Section</th></tr>\n";
     $str .= "<tr><td>\n";
     $str .= "<table cellspacing=\"0\" cellpadding=\"0\" border=\"0\">\n";
 
@@ -570,10 +536,8 @@ sub showSetup {
 
     if ( @{ $hvac->{heatingzones} } > 0 ) {
         $str .= "<tr><td><b>#</b></td>";
-        $str .=
-          "<td><img src=\"/graphics/1pixel.gif\" border=\"0\" width=\"1\" /></td>";
-        $str .=
-          "<td><img src=\"/graphics/1pixel.gif\" border=\"0\" width=\"20\" /></td>";
+        $str .= "<td><img src=\"/graphics/1pixel.gif\" border=\"0\" width=\"1\" /></td>";
+        $str .= "<td><img src=\"/graphics/1pixel.gif\" border=\"0\" width=\"20\" /></td>";
         $str .= "<td><b>Name</b></td><td /></tr>\n";
     }
 
@@ -582,44 +546,34 @@ sub showSetup {
         $str .= "<tr>";
         $str .= "<td>$count)&nbsp;&nbsp;</td>";
         if ( $count > 1 ) {
-            $str .=
-              "<td><a href=\"$scriptname?SETUP=1&MoveHeatingZoneUp_$count\"><img src=\"/graphics/a1+.gif\" border=\"0\"></a></td>";
+            $str .= "<td><a href=\"$scriptname?SETUP=1&MoveHeatingZoneUp_$count\"><img src=\"/graphics/a1+.gif\" border=\"0\"></a></td>";
         }
         else {
-            $str .=
-              "<td><img src=\"/graphics/1pixel.gif\" border=\"0\" width=\"1\" /></td>";
+            $str .= "<td><img src=\"/graphics/1pixel.gif\" border=\"0\" width=\"1\" /></td>";
         }
 
         if ( $count < @{ $hvac->{heatingzones} } ) {
-            $str .=
-              "<td><a href=\"$scriptname?SETUP=1&MoveHeatingZoneDown_$count\"><img src=\"/graphics/a1-.gif\" border=\"0\"></a></td>";
+            $str .= "<td><a href=\"$scriptname?SETUP=1&MoveHeatingZoneDown_$count\"><img src=\"/graphics/a1-.gif\" border=\"0\"></a></td>";
         }
         else {
-            $str .=
-              "<td><img src=\"/graphics/1pixel.gif\" border=\"0\" width=\"1\" /></td>";
+            $str .= "<td><img src=\"/graphics/1pixel.gif\" border=\"0\" width=\"1\" /></td>";
         }
-        $str .=
-          "<td><input name=\"Heating_Zone_Name_$count\" value=\"$i->{ Name }\" / onchange=\"submit()\">&nbsp;&nbsp;&nbsp;</td>\n";
-        $str .=
-          "<td><a href=\"$scriptname?SETUP=Heating_$count\">Setup</a>&nbsp;&nbsp;&nbsp;</td>\n";
-        $str .=
-          "<td><a href=\"$scriptname?SETUP=1&DeleteHeatingZone=$count\">Delete</a>&nbsp;&nbsp;&nbsp;</td>\n";
+        $str .= "<td><input name=\"Heating_Zone_Name_$count\" value=\"$i->{ Name }\" / onchange=\"submit()\">&nbsp;&nbsp;&nbsp;</td>\n";
+        $str .= "<td><a href=\"$scriptname?SETUP=Heating_$count\">Setup</a>&nbsp;&nbsp;&nbsp;</td>\n";
+        $str .= "<td><a href=\"$scriptname?SETUP=1&DeleteHeatingZone=$count\">Delete</a>&nbsp;&nbsp;&nbsp;</td>\n";
         $str .= "</tr>\n";
         $count++;
     }
     my $offset = 8;
-    $str .=
-      "<tr height=\"$offset\"><td height=\"$offset\"><img src=\"/graphics/1pixel.gif\" border=\"0\" height=\"$offset\" /></td></tr>\n";
-    $str .=
-      "<tr><td colspan=\"5\"><a href=\"$scriptname?SETUP=1&AddHeatingZone=1\">Add a New Zone</a></td>\n";
+    $str .= "<tr height=\"$offset\"><td height=\"$offset\"><img src=\"/graphics/1pixel.gif\" border=\"0\" height=\"$offset\" /></td></tr>\n";
+    $str .= "<tr><td colspan=\"5\"><a href=\"$scriptname?SETUP=1&AddHeatingZone=1\">Add a New Zone</a></td>\n";
 
     $str .= "</table>";
     $str .= "</tr></td></table>\n";
 
     $str .= "<br />\n";
     $str .= "<table cellspacing=\"0\" cellpadding=\"0\" border=\"1\">\n";
-    $str .=
-      "<tr><th bgcolor=\"$bgcolor\">Heating Temperature Defaults</th></tr>\n";
+    $str .= "<tr><th bgcolor=\"$bgcolor\">Heating Temperature Defaults</th></tr>\n";
     $str .= "<tr><td>\n";
     $str .= "<table cellspacing=\"0\" cellpadding=\"0\" border=\"0\">\n";
     $str .= "<tr>";
@@ -632,8 +586,7 @@ sub showSetup {
 
     $str .= "<td><b>Temperatures&nbsp;&nbsp;</b></td>\n";
     my $selected = $hvac->{HeatingDefaults}->{Unoccupied} || 50;
-    my $select =
-      "<select name=\"HeatingDefaults_Unoccupied\" onchange=\"submit()\">\n";
+    my $select = "<select name=\"HeatingDefaults_Unoccupied\" onchange=\"submit()\">\n";
     foreach my $temp ( 45 .. 75 ) {
         $select .= "<option ";
         $select .= "selected " if $temp == $selected;
@@ -643,8 +596,7 @@ sub showSetup {
     $str    .= "<td align=\"right\">$select&nbsp;&nbsp;</td>\n";
 
     $selected = $hvac->{HeatingDefaults}->{Occupied} || 71;
-    $select =
-      "<select name=\"HeatingDefaults_Occupied\" onchange=\"submit()\">\n";
+    $select = "<select name=\"HeatingDefaults_Occupied\" onchange=\"submit()\">\n";
     for ( my $temp = 65; $temp <= 75; $temp += 0.5 ) {
         $select .= "<option ";
         $select .= "selected " if $temp == $selected;
@@ -654,8 +606,7 @@ sub showSetup {
     $str    .= "<td align=\"right\">$select&nbsp;&nbsp;</td>\n";
 
     $selected = $hvac->{HeatingDefaults}->{Sleeping} || 68;
-    $select =
-      "<select name=\"HeatingDefaults_Sleeping\" onchange=\"submit()\">\n";
+    $select = "<select name=\"HeatingDefaults_Sleeping\" onchange=\"submit()\">\n";
     for ( my $temp = 45; $temp <= 75; $temp += 0.5 ) {
         $select .= "<option ";
         $select .= "selected " if $temp == $selected;
@@ -665,8 +616,7 @@ sub showSetup {
     $str    .= "<td align=\"right\">$select&nbsp;&nbsp;</td>\n";
 
     $selected = $hvac->{HeatingDefaults}->{Maximum} || 75;
-    $select =
-      "<select name=\"HeatingDefaults_Maximum\" onchange=\"submit()\">\n";
+    $select = "<select name=\"HeatingDefaults_Maximum\" onchange=\"submit()\">\n";
     foreach my $temp ( 60 .. 85 ) {
         $select .= "<option ";
         $select .= "selected " if $temp == $selected;
@@ -726,19 +676,13 @@ sub showSetup {
     $str .= "<br />\n";
 
     if (0) {
-        $str .=
-          "The temperature range settings allow you to specify when heat turns on and off.<br />\n";
-        $str .=
-          "For example, if you set the thermostat at 70 degrees, the heat may come on at 69 degrees<br />";
+        $str .= "The temperature range settings allow you to specify when heat turns on and off.<br />\n";
+        $str .= "For example, if you set the thermostat at 70 degrees, the heat may come on at 69 degrees<br />";
         $str .= "and turn off at 71 degrees.<br />\n";
-        $str .=
-          "The point where the heat turns on, I call the 'low offset' (in this example, the low offset<br />";
-        $str .=
-          "is -1 degrees)  I call the point where the heat turns off the 'high offset' (+1 degree in<br />";
-        $str .=
-          "this example)  I added another setting called 'low offset2'.  If the heat is already on, the<br />";
-        $str .=
-          "low offset changes to this number.  This encourages multiple zones to be heating at the same time.<br />";
+        $str .= "The point where the heat turns on, I call the 'low offset' (in this example, the low offset<br />";
+        $str .= "is -1 degrees)  I call the point where the heat turns off the 'high offset' (+1 degree in<br />";
+        $str .= "this example)  I added another setting called 'low offset2'.  If the heat is already on, the<br />";
+        $str .= "low offset changes to this number.  This encourages multiple zones to be heating at the same time.<br />";
     }
 
     $str .= "</form>";
@@ -749,16 +693,14 @@ sub generateTabs {
     my $ARGS = shift;
     my $hvac = shift;
 
-    my $tabs =
-      "<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\">\n<tr>\n";
+    my $tabs = "<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\">\n<tr>\n";
 
     foreach my $i ( @{ $hvac->{heatingzones} } ) {
         my $name = $i->{Name};
         my $text = "<a href=\"$scriptname?ZONE=$name\">$name</a>";
         $text = "<b>$name</b>" if $ARGS->{ZONE} eq $name;
         $tabs .= "<td bgcolor=\"$bgcolor\" nowrap>&nbsp;$text&nbsp;</td>";
-        $tabs .=
-          "<td width=\"1\"><img src=\"/graphics/1pixel.gif\" border=\"0\" width=\"1\" /></td>\n";
+        $tabs .= "<td width=\"1\"><img src=\"/graphics/1pixel.gif\" border=\"0\" width=\"1\" /></td>\n";
     }
 
     #    my $text = $Authorized ? "<a href=\"$scriptname?SETUP=1\">Setup</a>" : "";
@@ -766,12 +708,10 @@ sub generateTabs {
     if ( $ARGS{SETUP} ) {
         $text = "<b>Setup</b>";
     }
-    $tabs .=
-      "<td width=\"100%\" bgcolor=\"$bgcolor\" align=\"right\">$text&nbsp;</td></tr>\n";
+    $tabs .= "<td width=\"100%\" bgcolor=\"$bgcolor\" align=\"right\">$text&nbsp;</td></tr>\n";
 
     my $offset = 5;
-    $tabs .=
-      "<tr height=\"$offset\"><td height=\"$offset\"><img src=\"/graphics/1pixel.gif\" border=\"0\" height=\"$offset\" /></td></tr>\n";
+    $tabs .= "<tr height=\"$offset\"><td height=\"$offset\"><img src=\"/graphics/1pixel.gif\" border=\"0\" height=\"$offset\" /></td></tr>\n";
     $tabs .= "</table>\n";
 
     return $tabs;
@@ -840,8 +780,7 @@ sub showZone {
         }
         $zonenum++;
     }
-    my $hidden =
-      "<input type=\"hidden\" name=\"ZONE\" value=\"$zonename\" />\n";
+    my $hidden = "<input type=\"hidden\" name=\"ZONE\" value=\"$zonename\" />\n";
     if ( $ARGS->{SHOWALL} ) {
         $hidden .= "<input type=\"hidden\" name=\"SHOWALL\" value=\"1\" />\n";
     }
@@ -855,24 +794,19 @@ sub showZone {
             if ( $Save{hvac_statistics} && $Save{hvac_statistics}->[0] ) {
                 my $info = "";
                 if (   $Save{hvac_statistics}->[0]->{heattime}
-                    && $Save{hvac_statistics}->[0]->{heattime}
-                    ->{ $zone->{Name} } )
+                    && $Save{hvac_statistics}->[0]->{heattime}->{ $zone->{Name} } )
                 {
-                    my $time = showTime( $Save{hvac_statistics}->[0]->{heattime}
-                          ->{ $zone->{Name} } );
+                    my $time = showTime( $Save{hvac_statistics}->[0]->{heattime}->{ $zone->{Name} } );
                     $info .= "Zone was heated for $time today";
                 }
                 if (   $Save{hvac_statistics}->[0]->{heatcycle}
-                    && $Save{hvac_statistics}->[0]->{heatcycle}
-                    ->{ $zone->{Name} } )
+                    && $Save{hvac_statistics}->[0]->{heatcycle}->{ $zone->{Name} } )
                 {
                     if ($info) {
-                        $info .=
-                          " and cycled $Save{ hvac_statistics }->[0]->{ heatcycle }->{ $zone->{ Name } } times";
+                        $info .= " and cycled $Save{ hvac_statistics }->[0]->{ heatcycle }->{ $zone->{ Name } } times";
                     }
                     else {
-                        $info .=
-                          "Zone cycled $Save{ hvac_statistics }->[0]->{ heatcycle }->{ $zone->{ Name } } times today";
+                        $info .= "Zone cycled $Save{ hvac_statistics }->[0]->{ heatcycle }->{ $zone->{ Name } } times today";
                     }
                 }
                 if ($info) {
@@ -880,11 +814,7 @@ sub showZone {
                     $str .= "<br />\n";
                 }
             }
-            $str .=
-                "Zone is currently "
-              . $object->state
-              . " and has been since "
-              . scalar( localtime( $Time - $object->get_idle_time ) );
+            $str .= "Zone is currently " . $object->state . " and has been since " . scalar( localtime( $Time - $object->get_idle_time ) );
             $str .= "<br />\n";
         }
     }
@@ -896,8 +826,7 @@ sub showZone {
     $str .= "<tr>\n";
     $str .= "  <td colspan=\"2\">&nbsp;</td>\n";
     $str .= "  <td colspan=\"2\" align=\"center\"><b>Temperatures</b></td>\n";
-    $str .=
-      "  <td colspan=\"2\" align=\"center\" nowrap><b>Upcoming Changes</b></td>\n";
+    $str .= "  <td colspan=\"2\" align=\"center\" nowrap><b>Upcoming Changes</b></td>\n";
     $str .= "</tr>\n";
     $str .= "<tr>\n";
     $str .= "  <td><b>Name&nbsp;&nbsp;</b></td>\n";
@@ -927,16 +856,14 @@ sub showZone {
         $str .= "  <td nowrap>$i->{Name}&nbsp&nbsp;</td>\n";
 
         if ($roomobj) {
-            my $select =
-              "<select name=\"set_heat_\$hvac_$room\" onchange=\"submit()\">\n";
+            my $select = "<select name=\"set_heat_\$hvac_$room\" onchange=\"submit()\">\n";
             foreach my $val (qw (Unoccupied Occupied Sleeping)) {
                 $select .= "<option ";
                 $select .= "selected " if lc($val) eq lc($state);
                 $select .= "value=\"$val\">$val</option>\n";
             }
             $select .= "</select>\n";
-            $str .=
-              "  <form>$hidden<td nowrap>$select&nbsp;&nbsp;</td></form>\n";
+            $str    .= "  <form>$hidden<td nowrap>$select&nbsp;&nbsp;</td></form>\n";
         }
         else {
             $str .= "  <td>&nbsp;&nbsp;</td>\n";
@@ -957,8 +884,7 @@ sub showZone {
 
         my $des = state_next_pass($desiredobj);
 
-        my $select =
-          "<select name=\"set_desired_heat_\$hvac_${room}_desired\" onchange=\"submit()\">\n";
+        my $select = "<select name=\"set_desired_heat_\$hvac_${room}_desired\" onchange=\"submit()\">\n";
         for ( my $temp = 45; $temp <= 75; $temp += 0.5 ) {
             $select .= "<option ";
             $select .= "selected " if $temp == $des;
@@ -1013,12 +939,10 @@ sub showAllHeatingZones {
             && $Save{hvac_statistics}->[0]->{heatcycle}->{furnace} )
         {
             if ($info) {
-                $info .=
-                  " and cycled $Save{ hvac_statistics }->[0]->{ heatcycle }->{ furnace } times";
+                $info .= " and cycled $Save{ hvac_statistics }->[0]->{ heatcycle }->{ furnace } times";
             }
             else {
-                $info .=
-                  "Furnace cycled $Save{ hvac_statistics }->[0]->{ heatcycle }->{ furnace } times today";
+                $info .= "Furnace cycled $Save{ hvac_statistics }->[0]->{ heatcycle }->{ furnace } times today";
             }
         }
         if ($info) {
@@ -1029,11 +953,7 @@ sub showAllHeatingZones {
 
     my $object = get_object_by_name("\$furnace");
     if ($object) {
-        $str .=
-            "Furnace is currently "
-          . $object->state
-          . " and has been since "
-          . scalar( localtime( $Time - $object->get_idle_time ) );
+        $str .= "Furnace is currently " . $object->state . " and has been since " . scalar( localtime( $Time - $object->get_idle_time ) );
         $str .= "<br />\n";
     }
 
@@ -1048,8 +968,7 @@ sub showAllHeatingZones {
 sub writeHvacCode {
     my $hvac = shift;
 
-    my $code =
-      'my $hvac = $Save{ hvac_system } if $Save{ hvac_system };' . "\n";
+    my $code = 'my $hvac = $Save{ hvac_system } if $Save{ hvac_system };' . "\n";
 
     my $zonenum = 0;
     foreach my $i ( @{ $hvac->{heatingzones} } ) {
@@ -1061,8 +980,7 @@ sub writeHvacCode {
             $name =~ s/\W/_/g;
             $code .= "\$hvac_${name}_desired = new Generic_Item;\n";
             $code .= "\$hvac_$name = new Generic_Item;\n";
-            $code .=
-              "\$hvac_$name->set_states qw( Unoccupied Occupied Sleeping );\n";
+            $code .= "\$hvac_$name->set_states qw( Unoccupied Occupied Sleeping );\n";
 
             #	    $code .= "if ( 0 && !state \$hvac_$name ) {\n";
             #	    $code .= "    set \$hvac_$name 'Occupied';\n";
@@ -1071,20 +989,10 @@ sub writeHvacCode {
             $code .= "\n";
 
             foreach my $k qw( Unoccupied Occupied Sleeping ) {
-                $code .=
-                    "if ( lc( state_changed \$hvac_$name ) eq '"
-                  . lc($k)
-                  . "' ) {\n";
+                $code .= "if ( lc( state_changed \$hvac_$name ) eq '" . lc($k) . "' ) {\n";
 
                 #		$code .= "   set \$hvac_${name}_desired $j->{ $k };\n";
-                $code .=
-                    "   set \$hvac_${name}_desired "
-                  . '$hvac->{ heatingzones }->[ '
-                  . $zonenum
-                  . ' ]->{ Rooms }->[ '
-                  . $roomnum
-                  . ' ]->{ '
-                  . $k . " };\n";
+                $code .= "   set \$hvac_${name}_desired " . '$hvac->{ heatingzones }->[ ' . $zonenum . ' ]->{ Rooms }->[ ' . $roomnum . ' ]->{ ' . $k . " };\n";
                 $code .= "}\n";
                 $code .= "\n";
             }
@@ -1115,13 +1023,9 @@ sub writeHvacCode {
                 }
             }
 
-            $code .=
-                "if ( lc( state_changed $j->{Item} ) eq '"
-              . lc($value)
-              . "' ) {\n";
+            $code .= "if ( lc( state_changed $j->{Item} ) eq '" . lc($value) . "' ) {\n";
             $code .= "   set \$hvac_$room '$state';\n";
-            $code .=
-              "   set \$hvac_${room}_desired $roompointer->{ $state };\n";
+            $code .= "   set \$hvac_${room}_desired $roompointer->{ $state };\n";
             $code .= "   print_log 'ok $j->{Room} changed to $j->{State}';\n";
             $code .= "}\n";
             $code .= "\n";
@@ -1165,18 +1069,13 @@ sub time_to_trigger_fire {
             $interval = 1 if !$interval || $interval < 1;
             $interval = 59 if $interval && $interval > 59;
 
-            $t =
-              time - $Second + 60 * ( $interval - ( $Minute % $interval ) ) - 1;
+            $t = time - $Second + 60 * ( $interval - ( $Minute % $interval ) ) - 1;
         }
         if ( $type eq "hour" ) {
             $interval = 1 if !$interval || $interval < 1;
             $interval = 23 if $interval && $interval > 23;
 
-            $t =
-              time -
-              $Second -
-              60 * $Minute +
-              3600 * ( $interval - ( $Hour % $interval ) ) - 1;
+            $t = time - $Second - 60 * $Minute + 3600 * ( $interval - ( $Hour % $interval ) ) - 1;
         }
     }
     else {

@@ -1,12 +1,12 @@
 
-=head1 B<raZberry> v1.6.1
+=head1 B<raZberry> v2.0
 
 =head2 SYNOPSIS
 
 In user code:
 	
     	use raZberry;
-    	$razberry_controller  	= new raZberry('10.0.1.1');
+    	$razberry_controller  	= new raZberry('10.0.1.1',10);
     	$razberry_comm			= new raZberry_comm($razberry_controller);
     	$room_fan      			= new raZberry_dimmer($razberry_controller,'2','force_update');
     	$room_blind	  			= new raZberry_blind($razberry_controller,'3','digital');
@@ -18,13 +18,13 @@ In user code:
 		$remote_1				= new raZberry_battery($razberry_controller,12);
 
 
-raZberry(<ip address>,<poll time>);
+raZberry(<ip address>,<poll time>|'push');
 raZberry_<child>(<controller>,<device id>,<options>)
 
 
 In items.mht:
 
-RAZBERRY_CONTROLLER,	ip_address, controller_name, group,	options
+RAZBERRY_CONTROLLER,	ip_address, controller_name, group,	poll time/'push', options
 RAZBERRY_DIMMER,		device_id,	name,		 	 group,	controller_name, options
 RAZBERRY_SWITCH,		device_id,	name,		 	 group,	controller_name, options
 RAZBERRY_BLIND,			device_id,	name,		 	 group,	controller_name, options
@@ -33,10 +33,19 @@ RAZBERRY_THERMOSTAT,	device_id,	name,		 	 group,	controller_name, options
 RAZBERRY_TEMP_SENSOR,	device_id,	name,		 	 group,	controller_name, options
 RAZBERRY_BINARY_SENSOR,	device_id,	name,		 	 group,	controller_name, options
 
+RAZBERRY_GENERIC,       device_id,  name,            group, controller_name, options
+    * Note GENERIC requires the full device ID, ie 2-0-48-1
+RAZBERRY_VOLTAGE,       device_id,  name,            group, controller_name, options
+    * Note VOLTAGE is a multiattribute device, so device_id can only be the major number
+
 for example:
 
 RAZBERRY_CONTROLLER,	10.0.1.1, razberry_controller,	zwave
 RAZBERRY_BLIND,			4, 	      main_blinds, 			HVAC|zwave, razberry_controller, battery
+
+for specifying controller options;
+
+RAZBERRY_CONTROLLER,	10.0.1.1, razberry_controller,	zwave, ,'user=admin,password=bob'
 
 
 =head2 DESCRIPTION
@@ -54,16 +63,60 @@ the razberry is polled every 5 seconds.
 Update for local control use the 'niffler' plug in. This saves forcing a local device
 status every poll.
 
-=head3 SENSOR STATE CHILD OBJECT
+=head3 CHILD OBJECTS
 
 Each device class will need a child object, as the controller object is just a gateway
-to the hardware. Currently the only working device is a razberry_dimmer, and has only
-been tested with the leviton fan
+to the hardware. 
 
 There is also a communication object to allow for alerting and monitoring of the
 razberry controller.
 
-=head2 NOTES
+=head2 RaZberry v2 AUTHENTICATION
+
+Works and tested with v2.0.0. It _should_ also work with v1.7.4.
+For later versions, Z_Way has introduced authentication. raZberry v2.0 supports this via two methods:
+
+1: Enable anonymous authentication:
+- Create a room named devices, and assign all ZWay devices to that room
+- Create a user named anonymous with role anonymous
+- Edit user anonymous and allow access to room devices
+
+2: Create a new user and give it the admin role. Credentials can be stored in MH either in the mh.private.ini,
+or on a per controller basis.
+
+Then in the controller definition, provide the username and password:
+$razberry_controller  	= new raZberry('10.0.1.1',10,"user=user,password=pwd");
+
+
+=head2 v2 PUSH or POLL. Only tested in version raZberry 2.3.0
+Using the HTTPGet automation module, this will 'push' a status change to MH rather than the constant polling. Use the following
+URL for updating: http://mh:port/SUB;razberry_push(%DEVICE%,%VALUE%)
+
+If the razberry or mh get out of sync, $controller->poll can be issued to get the latest states.
+
+Only one razberry controller can be the push source, due to only a single controller object that can be linked to the web service.
+
+=head2 MH.INI CONFIG PARAMS
+
+raZberry_timeout
+raZberry_poll_seconds
+raZberry_user
+raZberry_password
+
+=head2 BUGS
+
+
+=head2 OTHER
+http calls can cause pauses. There are a few possible options around this;
+- push output to a file and then read the file. This is generally how other modules work.
+
+
+=head2 CHANGELOG
+v2.0
+- added in authentication method for razberry 2.1.2+ support
+- supports a push method when used in conjunction with the HTTPGet automation module
+- displays some controller information at startup
+
 v1.6
 - added in digital blinds, battery item (like a remote)
 
@@ -82,35 +135,13 @@ v1.2
 - added a check to see if the device is 'dead'. If dead it will attempt a ping for
   X attempts a Y seconds apart.
 
-OTHER
-
-Works and tested with v2.0.0. It _should_ also work with v1.7.4.
-For later versions, Z_Way has introduced authentication. raZberry will support that at a later time
-To get a 2.0+ version to work, anonymous authentication has to be enabled:
-- Create a room named devices, and assign all ZWay devices to that room
-- Create a user named anonymous with role anonymous
-- Edit user anonymous and allow access to room devices
-
-
-http calls can cause pauses. There are a few possible options around this;
-- push output to a file and then read the file. This is generally how other modules work.
-
-config parmas
-
-raZberry_timeout
-raZberry_poll_seconds
-
-=head2 BUGS
-
-
-
-=head2 METHODS
 
 =over
 
 =cut
 
 use strict;
+our $push_obj;
 
 package raZberry;
 
@@ -118,6 +149,7 @@ use warnings;
 
 use LWP::UserAgent;
 use HTTP::Request::Common qw(POST);
+use HTTP::Cookies;
 use JSON qw(decode_json);
 
 #use Data::Dumper;
@@ -135,6 +167,7 @@ $zway_system{id}{2}    = "2";
 
 my $zway_vdev   = "ZWayVDev_zway";
 my $zway_suffix = "-0-38";
+our $push_obj = "";
 
 our %rest;
 $rest{api}           = "";
@@ -153,9 +186,10 @@ $rest{ping}          = "devices";
 $rest{isfailed}      = "devices";
 $rest{usercode_data} = "devices";
 $rest{usercode}      = "devices";
+$rest{controller}    = "Data/*";
 
 sub new {
-    my ( $class, $addr, $poll ) = @_;
+    my ( $class, $addr, $poll, $options ) = @_;
     my $self = {};
     bless $self, $class;
     $self->{data}                   = undef;
@@ -163,9 +197,16 @@ sub new {
     $self->{config}->{poll_seconds} = 5;
     $self->{config}->{poll_seconds} = $main::config_parms{raZberry_poll_seconds}
       if ( defined $main::config_parms{raZberry_poll_seconds} );
-    $self->{config}->{poll_seconds} = $poll if ($poll);
-    $self->{config}->{poll_seconds} = 1
-      if ( $self->{config}->{poll_seconds} < 1 );
+    $self->{push} = 0;
+
+    if ( ( defined $poll ) and ( lc $poll eq 'push' ) ) {
+        $self->{push} = 1;
+        $self->{config}->{poll_seconds} = 1800;    #poll the raZberry every 30 minutes if we are using the push method
+    }
+    else {
+        $self->{config}->{poll_seconds} = $poll if ( defined $poll );
+        $self->{config}->{poll_seconds} = 1     if ( $self->{config}->{poll_seconds} < 1 );
+    }
     $self->{updating} = 0;
     $self->{data}->{retry} = 0;
     my ( $host, $port ) = ( split /:/, $addr )[ 0, 1 ];
@@ -173,132 +214,183 @@ sub new {
     $self->{port}  = 8083;
     $self->{port}  = $port if ($port);
     $self->{debug} = 0;
-    $self->{debug} = $main::Debug{razberry}
-      if ( defined $main::Debug{razberry} );
-    $self->{lastupdate} = undef;
-    $self->{timeout}    = 2;
-    $self->{timeout}    = $main::config_parms{raZberry_timeout}
-      if ( defined $main::config_parms{raZberry_timeout} );
-    $self->{status} = "";
+    ( $self->{debug} ) = ( $options =~ /debug=(\s+)/i ) if ( ( defined $options ) and ( $options =~ m/debug=/i ) );
+    $self->{debug}           = $main::Debug{raZberry} if ( defined $main::Debug{raZberry} );
+    $self->{lastupdate}      = undef;
+    $self->{timeout}         = 2;
+    $self->{timeout}         = $main::config_parms{raZberry_timeout} if ( defined $main::config_parms{raZberry_timeout} );
+    $self->{status}          = "";
+    $self->{controller_data} = ();
+    &main::print_log("[raZberry]: options are $options") if ( ( $self->{debug} ) and ( defined $options ) );
 
+    $self->{username} = "";
+    $options =~ s/username\=/user\=/i if ( defined $options );
+    $self->{username} = $main::config_parms{raZberry_user}     if ( defined $main::config_parms{raZberry_user} );
+    $self->{password} = $main::config_parms{raZberry_password} if ( defined $main::config_parms{raZberry_password} );
+    ( $self->{username} ) = ( $options =~ /user\=([a-zA-Z0-9]+)/i )     if ( ( defined $options ) and ( $options =~ m/user\=/i ) );
+    ( $self->{password} ) = ( $options =~ /password\=([a-zA-Z0-9]+)/i ) if ( ( defined $options ) and ( $options =~ m/password\=/i ) );
+    if ( ( $push_obj eq "" ) and ( $self->{push} ) ) {
+        &main::print_log("[raZberry]: Push method selected");
+        &main::print_log("[raZberry]: The HTTPGet Automation module needs to be installed for push to work");
+        &main::print_log('[raZberry]: URL is http://mh:port/SUB;razberry_push(%DEVICE%,%VALUE%)');
+        $push_obj = \%{$self};
+    }
+    else {
+        &main::print_log("[raZberry]: Push method already in use on other object") if ($push_obj);
+        &main::print_log("[raZberry]: Poll method selected");
+    }
+    if ( $self->{username} ) {
+        $self->{cookie_jar} = HTTP::Cookies->new( {} );
+        $self->login;
+    }
+    $self->get_controllerdata;
     $self->{timer} = new Timer;
+    $self->poll;
     $self->start_timer;
-    &main::print_log("[raZberry] Controller initialized.");
+    &main::print_log("[raZberry]: Controller Initialization Complete");
     return $self;
+}
+
+sub login {
+    my ($self) = @_;
+
+    my $ua = new LWP::UserAgent( keep_alive => 1 );
+    $ua->timeout( $self->{timeout} );
+    $ua->cookie_jar( $self->{cookie_jar} );
+    $ua->default_header( 'Accept'       => "application/json" );
+    $ua->default_header( 'Content-Type' => "application/json" );
+
+    my $host = $self->{host};
+    my $port = $self->{port};
+    &main::print_log("[raZberry]: Attempting to authenticate to host $host");
+    &main::print_log( "[raZberry]: with user:" . $self->{username} . " password: " . $self->{password} ) if ( $self->{debug} );
+
+    my $request = HTTP::Request->new( POST => "http://$host:$port/ZAutomation/api/v1/login" );
+    my $json = '{"form": true, "login": "' . $self->{username} . '", "password": "' . $self->{password} . '", "keepme": false, "default_ui": 1}';
+    $request->content($json);
+    my $responseObj = $ua->request($request);
+    $self->{cookie_jar}->extract_cookies($responseObj);
+    $self->{cookie_jar}->save;
+
+    #print Dumper $self->{cookie_jar};
+    #print $json . "\n";
+    #print $responseObj->content . "\n--------------------\n";
+    if ( $responseObj->code > 400 ) {
+        $self->{login_success} = 0;
+        &main::print_log("[raZberry]: Error attempting to authenticate to $host");
+        &main::print_log( "[raZberry]: Code is " . $responseObj->code . " and content is " . $responseObj->content );
+    }
+    else {
+        &main::print_log("[raZberry]: Successful authentication.");
+        $self->{login_success} = 1;
+    }
+}
+
+sub get_controllerdata {
+    my ($self) = @_;
+    my ( $isSuccessResponse1, $controller_data ) = _get_JSON_data( $self, 'controller' );
+    if ($isSuccessResponse1) {
+
+        #print Dumper $controller_data;
+        $self->{controller_data} = $controller_data->{controller}->{data};
+        &main::print_log("[raZberry]: Controller found");
+        &main::print_log( "[raZberry]: Chip version:\t\t" . $self->{controller_data}->{ZWaveChip}->{value} );
+        &main::print_log( "[raZberry]: Software version:\t" . $self->{controller_data}->{softwareRevisionVersion}->{value} );
+        &main::print_log( "[raZberry]: API version:\t\t" . $self->{controller_data}->{APIVersion}->{value} );
+        &main::print_log( "[raZberry]: SDK version:\t\t" . $self->{controller_data}->{SDK}->{value} );
+    }
+    else {
+        &main::print_log( "[raZberry]: Problem connecting to controller " . $self->{host} );
+    }
 }
 
 sub poll {
     my ($self) = @_;
 
-    &main::print_log("[raZberry] Polling initiated") if ( $self->{debug} );
+    &main::print_log("[raZberry]: Polling initiated") if ( $self->{debug} );
     my $cmd = "";
     $cmd = "?since=" . $self->{lastupdate} if ( defined $self->{lastupdate} );
-    &main::print_log("[raZberry] cmd=$cmd") if ( $self->{debug} > 1 );
+    &main::print_log("[raZberry]: cmd=$cmd") if ( $self->{debug} > 1 );
 
     for my $dev ( keys %{ $self->{data}->{force_update} } ) {
-        &main::print_log(
-            "[raZberry] Forcing update to device $dev to account for local changes"
-        ) if ( $self->{debug} );
+        &main::print_log("[raZberry]: Forcing update to device $dev to account for local changes") if ( $self->{debug} );
         $self->update_dev($dev);
     }
 
     for my $dev ( keys %{ $self->{data}->{ping} } ) {
-        &main::print_log("[raZberry] Keep_alive: Pinging device $dev...")
-          ;    # if ($self->{debug});
-        &main::print_log("[raZberry] ping_dev $dev");    # if ($self->{debug});
-                                                         #$self->ping_dev($dev);
+        &main::print_log("[raZberry]: Keep_alive: Pinging device $dev...");    # if ($self->{debug});
+        &main::print_log("[raZberry]: ping_dev $dev");                         # if ($self->{debug});
+                                                                               #$self->ping_dev($dev);
     }
 
-    my ( $isSuccessResponse1, $devices ) =
-      _get_JSON_data( $self, 'devices', $cmd );
+    my ( $isSuccessResponse1, $devices ) = _get_JSON_data( $self, 'devices', $cmd );
 
     #    print Dumper $devices if ( $self->{debug} > 1 );
     if ($isSuccessResponse1) {
         $self->{lastupdate} = $devices->{data}->{updateTime};
         foreach my $item ( @{ $devices->{data}->{devices} } ) {
-            &main::print_log( "[raZberry] Found:"
-                  . $item->{id}
-                  . " with level "
-                  . $item->{metrics}->{level}
-                  . " and updated "
-                  . $item->{updateTime}
-                  . "." )
+            &main::print_log( "[raZberry]: Found:" . $item->{id} . " with level " . $item->{metrics}->{level} . " and updated " . $item->{updateTime} . "." )
               if ( $self->{debug} );
 
             #my ($id) = ( split /_/, $item->{id} )[2];
-            my ($id) =
-              ( split /_/, $item->{id} )[-1];  #always just get the last element
+            my ($id) = ( split /_/, $item->{id} )[-1];    #always just get the last element
             print "id=$id\n" if ( $self->{debug} > 1 );
             my $battery_dev = 0;
             $battery_dev = 1 if ( $id =~ m/-0-128$/ );
-            if ($battery_dev) {    #for a battery, set a different object
-                $self->{data}->{devices}->{$id}->{battery_level} =
-                  $item->{metrics}->{level};
+            my $voltage_dev = 0;
+            $voltage_dev = 1 if ( $id =~ m/-0-50-\d$/ );
+            if ($battery_dev) {                           #for a battery, set a different object
+                $self->{data}->{devices}->{$id}->{battery_level} = $item->{metrics}->{level};
+            }
+            elsif ($voltage_dev) {
+                &main::print_log("[raZberry]: Voltage Device found");
             }
             else {
-                $self->{data}->{devices}->{$id}->{level} =
-                  $item->{metrics}->{level};
+                $self->{data}->{devices}->{$id}->{level} = $item->{metrics}->{level};
             }
             $self->{data}->{devices}->{$id}->{updateTime} = $item->{updateTime};
             $self->{data}->{devices}->{$id}->{devicetype} = $item->{deviceType};
             $self->{data}->{devices}->{$id}->{location}   = $item->{location};
-            $self->{data}->{devices}->{$id}->{title} =
-              $item->{metrics}->{title};
-            $self->{data}->{devices}->{$id}->{icon} = $item->{metrics}->{icon};
+            $self->{data}->{devices}->{$id}->{title}      = $item->{metrics}->{title};
+            $self->{data}->{devices}->{$id}->{icon}       = $item->{metrics}->{icon};
 
             #thermostat data items
-            $self->{data}->{devices}->{$id}->{units} =
-              $item->{metrics}->{scaleTitle}
+            $self->{data}->{devices}->{$id}->{units} = $item->{metrics}->{scaleTitle}
               if ( defined $item->{metrics}->{scaleTitle} );
-            $self->{data}->{devices}->{$id}->{temp_min} =
-              $item->{metrics}->{min}
+            $self->{data}->{devices}->{$id}->{temp_min} = $item->{metrics}->{min}
               if ( defined $item->{metrics}->{min} );
-            $self->{data}->{devices}->{$id}->{temp_max} =
-              $item->{metrics}->{max}
+            $self->{data}->{devices}->{$id}->{temp_max} = $item->{metrics}->{max}
               if ( defined $item->{metrics}->{max} );
 
             $self->{status} = "online";
 
             if ( defined $self->{child_object}->{$id} ) {
                 if ($battery_dev) {
-                    &main::print_log(
-                            "[raZberry] Child object detected: Battery Level:["
+                    &main::print_log( "[raZberry]: Child object detected: Battery Level:["
                           . $item->{metrics}->{level}
                           . "] Child Level:["
                           . $self->{child_object}->{$id}->battery_level()
                           . "]" )
                       if ( $self->{debug} > 1 );
-                    $self->{child_object}->{$id}
-                      ->update_data( $self->{data}->{devices}->{$id} )
-                      ;    #be able to push other data to objects for actions
+                    $self->{child_object}->{$id}->update_data( $self->{data}->{devices}->{$id} );    #be able to push other data to objects for actions
                 }
                 else {
-                    &main::print_log(
-                        "[raZberry] Child object detected: Controller Level:["
+                    &main::print_log( "[raZberry]: Child object detected: Controller Level:["
                           . $item->{metrics}->{level}
                           . "] Child Level:["
                           . $self->{child_object}->{$id}->level()
                           . "]" )
                       if ( $self->{debug} > 1 );
-                    $self->{child_object}->{$id}
-                      ->set( $item->{metrics}->{level}, 'poll' )
-                      if (
-                        (
-                            $self->{child_object}->{$id}->level() ne
-                            $item->{metrics}->{level}
-                        )
-                        and !( $id =~ m/-0-128$/ )
-                      );
-                    $self->{child_object}->{$id}
-                      ->update_data( $self->{data}->{devices}->{$id} )
-                      ;    #be able to push other data to objects for actions
+                    $self->{child_object}->{$id}->set( $item->{metrics}->{level}, 'poll' )
+                      if ( ( $self->{child_object}->{$id}->level() ne $item->{metrics}->{level} )
+                        and !( $id =~ m/-0-128$/ ) );
+                    $self->{child_object}->{$id}->update_data( $self->{data}->{devices}->{$id} );    #be able to push other data to objects for actions
                 }
             }
         }
     }
     else {
-        &main::print_log(
-            "[raZberry] Problem retrieving data from " . $self->{host} );
+        &main::print_log( "[raZberry]: Problem retrieving data from " . $self->{host} );
         $self->{data}->{retry}++;
         return ('0');
     }
@@ -308,7 +400,7 @@ sub poll {
 sub set_dev {
     my ( $self, $device, $mode ) = @_;
 
-    &main::print_log("[raZberry] Setting $device to $mode")
+    &main::print_log("[raZberry]: Setting $device to $mode")
       if ( $self->{debug} );
     my $cmd;
 
@@ -316,13 +408,11 @@ sub set_dev {
     if ( defined $rest{$action} ) {
         $cmd = "/$zway_vdev" . "_" . $device . "/$rest{$action}";
         $cmd .= "$lvl" if $lvl;
-        &main::print_log("[raZberry] sending command $cmd")
+        &main::print_log("[raZberry]: sending command $cmd")
           if ( $self->{debug} > 1 );
-        my ( $isSuccessResponse1, $status ) =
-          _get_JSON_data( $self, 'devices', $cmd );
+        my ( $isSuccessResponse1, $status ) = _get_JSON_data( $self, 'devices', $cmd );
         unless ($isSuccessResponse1) {
-            &main::print_log(
-                "[raZberry] Problem retrieving data from " . $self->{host} );
+            &main::print_log( "[raZberry]: Problem retrieving data from " . $self->{host} );
             return ('0');
         }
 
@@ -336,15 +426,14 @@ sub ping_dev {
 
     #curl --globoff "http://mhip:8083/ZWaveAPI/Run/devices[x].SendNoOperation()"
     my ( $devid, $instance, $class ) = ( split /-/, $device )[ 0, 1, 2 ];
-    &main::print_log("[raZberry] Pinging device $device ($devid)...")
+    &main::print_log("[raZberry]: Pinging device $device ($devid)...")
       if ( $self->{debug} );
     my $cmd;
     $cmd = "%5B" . $devid . "%5D.SendNoOperation()";
     &main::print_log("ping cmd=$cmd");    # if ($self->{debug} > 1);
     my ( $isSuccessResponse0, $status ) = _get_JSON_data( $self, 'ping', $cmd );
     unless ($isSuccessResponse0) {
-        &main::print_log(
-            "[raZberry] Error: Problem retrieving data from " . $self->{host} );
+        &main::print_log( "[raZberry]: Error: Problem retrieving data from " . $self->{host} );
         $self->{data}->{retry}++;
         return ('0');
     }
@@ -356,17 +445,15 @@ sub isfailed_dev {
     #"http://mhip:8083/ZWaveAPI/Run/devices[x].data.isFailed.value"
     my ( $self, $device ) = @_;
     my ( $devid, $instance, $class ) = ( split /-/, $device )[ 0, 1, 2 ];
-    &main::print_log("[raZberry] Checking $device ($devid)...")
+    &main::print_log("[raZberry]: Checking $device ($devid)...")
       if ( $self->{debug} );
     my $cmd;
     $cmd = "%5B" . $devid . "%5D.data.isFailed.value";
     &main::print_log("isFailed cmd=$cmd");    # if ($self->{debug} > 1);
-    my ( $isSuccessResponse0, $status ) =
-      _get_JSON_data( $self, 'isfailed', $cmd );
+    my ( $isSuccessResponse0, $status ) = _get_JSON_data( $self, 'isfailed', $cmd );
 
     unless ($isSuccessResponse0) {
-        &main::print_log(
-            "[raZberry] Error: Problem retrieving data from " . $self->{host} );
+        &main::print_log( "[raZberry]: Error: Problem retrieving data from " . $self->{host} );
         $self->{data}->{retry}++;
         return ('error');
     }
@@ -377,21 +464,13 @@ sub update_dev {
     my ( $self, $device ) = @_;
     my $cmd;
     my ( $devid, $instance, $class ) = ( split /-/, $device )[ 0, 1, 2 ];
-    $cmd = "%5B"
-      . $devid
-      . "%5D.instances%5B"
-      . $instance
-      . "%5D.commandClasses%5B"
-      . $class
-      . "%5D.Get()";
-    &main::print_log("[raZberry] Getting local state from $device ($devid)...")
+    $cmd = "%5B" . $devid . "%5D.instances%5B" . $instance . "%5D.commandClasses%5B" . $class . "%5D.Get()";
+    &main::print_log("[raZberry]: Getting local state from $device ($devid)...")
       if ( $self->{debug} );
     &main::print_log("cmd=$cmd") if ( $self->{debug} > 1 );
-    my ( $isSuccessResponse0, $status ) =
-      _get_JSON_data( $self, 'force_update', $cmd );
+    my ( $isSuccessResponse0, $status ) = _get_JSON_data( $self, 'force_update', $cmd );
     unless ($isSuccessResponse0) {
-        &main::print_log(
-            "[raZberry] Error: Problem retrieving data from " . $self->{host} );
+        &main::print_log( "[raZberry]: Error: Problem retrieving data from " . $self->{host} );
         $self->{data}->{retry}++;
         return ('0');
     }
@@ -407,7 +486,7 @@ sub _get_JSON_data {
         $self->{updating} = 1;
         my $ua = new LWP::UserAgent( keep_alive => 1 );
         $ua->timeout( $self->{timeout} );
-
+        $ua->cookie_jar( $self->{cookie_jar} ) if ( $self->{username} );
         my $host   = $self->{host};
         my $port   = $self->{port};
         my $params = "";
@@ -419,33 +498,39 @@ sub _get_JSON_data {
             or ( $mode eq "isfailed" )
             or ( $mode eq "usercode" )
             or ( $mode eq "usercode_data" ) );
-        &main::print_log(
-            "[raZberry] contacting http://$host:$port/$method/$rest{$mode}$params"
-        ) if ( $self->{debug} );
+        $method = "ZWaveAPI" if ( $mode eq "controller" );
+        &main::print_log("[raZberry]: contacting http://$host:$port/$method/$rest{$mode}$params") if ( $self->{debug} );
 
-        my $request =
-          HTTP::Request->new(
-            GET => "http://$host:$port/$method/$rest{$mode}$params" );
+        my $request = HTTP::Request->new( GET => "http://$host:$port/$method/$rest{$mode}$params" );
         $request->content_type("application/x-www-form-urlencoded");
 
-        my $responseObj = $ua->request($request);
-        print $responseObj->content . "\n--------------------\n"
-          if ( $self->{debug} > 1 );
+        #if unauthenticated, then try another login attempt.
+        my $connect_req = 0;
+        my $responseObj;
+        my $responseCode;
+        do {
+            $responseObj = $ua->request($request);
+            print $responseObj->content . "\n--------------------\n" if ( $self->{debug} > 1 );
+            $responseCode = $responseObj->code;
+            print 'Response code: ' . $responseCode . "\n" if ( $self->{debug} > 1 );
+            if ( ( $responseCode == 401 ) and ( !$connect_req ) ) {
+                &main::print_log("[raZberry]: ReAuthenticating...");
+                $self->login;
+                $connect_req = 1;
+            }
+            else {
+                $connect_req = 2;
+            }
+        } until ( $connect_req == 2 );
 
-        my $responseCode = $responseObj->code;
-        print 'Response code: ' . $responseCode . "\n"
-          if ( $self->{debug} > 1 );
         my $isSuccessResponse = $responseCode < 400;
         $self->{updating} = 0;
         if ( !$isSuccessResponse ) {
-            &main::print_log(
-                "[raZberry] Warning, failed to get data. Response code $responseCode"
-            );
+            &main::print_log("[raZberry]: Warning, failed to get data. Response code $responseCode");
             if ( defined $self->{child_object}->{comm} ) {
                 if ( $self->{status} eq "online" ) {
                     $self->{status} = "offline";
-                    main::print_log
-                      "[raZberry] Communication Tracking object found. Updating from "
+                    main::print_log "[raZberry]: Communication Tracking object found. Updating from "
                       . $self->{child_object}->{comm}->state()
                       . " to offline..."
                       if ( $self->{loglevel} );
@@ -457,10 +542,7 @@ sub _get_JSON_data {
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{status} eq "offline" ) {
                 $self->{status} = "online";
-                main::print_log
-                  "[raZberry] Communication Tracking object found. Updating from "
-                  . $self->{child_object}->{comm}->state()
-                  . " to online..."
+                main::print_log "[raZberry]: Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to online..."
                   if ( $self->{loglevel} );
                 $self->{child_object}->{comm}->set( "online", 'poll' );
             }
@@ -468,28 +550,23 @@ sub _get_JSON_data {
         return ('1')
           if ( ( $mode eq "force_update" )
             or ( $mode eq "ping" )
-            or ( $mode eq "usercode" ) )
-          ;   #these come backs as nulls which crashes JSON::XS, so just return.
+            or ( $mode eq "usercode" ) );    #these come backs as nulls which crashes JSON::XS, so just return.
         return ( $responseObj->content ) if ( $mode eq "isfailed" );
 
         #        my $response = JSON::XS->new->decode( $responseObj->content );
         my $response;
         eval {
-            $response = decode_json( $responseObj->content )
-              ;    #HP, wrap this in eval to prevent MH crashes
+            $response = decode_json( $responseObj->content );    #HP, wrap this in eval to prevent MH crashes
         };
         if ($@) {
-            &main::print_log(
-                "[raZberry]: WARNING: decode_json failed for returned data");
+            &main::print_log("[raZberry]: WARNING: decode_json failed for returned data");
             return ( "0", "" );
         }
         return ( $isSuccessResponse, $response )
 
     }
     else {
-        &main::print_log(
-            "[raZberry] Warning, not fetching data due to operation in progress"
-        );
+        &main::print_log("[raZberry]: Warning, not fetching data due to operation in progress");
         return ('0');
     }
 }
@@ -503,8 +580,7 @@ sub stop_timer {
 sub start_timer {
     my ($self) = @_;
 
-    $self->{timer}->set( $self->{config}->{poll_seconds},
-        sub { &raZberry::poll($self) }, -1 );
+    $self->{timer}->set( $self->{config}->{poll_seconds}, sub { &raZberry::poll($self) }, -1 );
 }
 
 sub display_all_devices {
@@ -514,10 +590,8 @@ sub display_all_devices {
 
         print "RaZberry Device $id\n";
         print "\t level:\t\t $self->{data}->{devices}->{$id}->{level}\n";
-        print "\t updateTime:\t "
-          . localtime( $self->{data}->{devices}->{$id}->{updateTime} ) . "\n";
-        print
-          "\t deviceType:\t $self->{data}->{devices}->{$id}->{devicetype}\n";
+        print "\t updateTime:\t " . localtime( $self->{data}->{devices}->{$id}->{updateTime} ) . "\n";
+        print "\t deviceType:\t $self->{data}->{devices}->{$id}->{devicetype}\n";
         print "\t location:\t $self->{data}->{devices}->{$id}->{location}\n";
         print "\t title:\t\t $self->{data}->{devices}->{$id}->{title}\n";
         print "\t icon:\t\t $self->{data}->{devices}->{$id}->{icon}\n\n";
@@ -534,8 +608,7 @@ sub get_dev_status {
     }
     else {
 
-        &main::print_log(
-            "[raZberry] Warning, unable to get status of device $id");
+        &main::print_log("[raZberry]: Warning, unable to get status of device $id");
         return 0;
     }
 
@@ -544,8 +617,7 @@ sub get_dev_status {
 sub register {
     my ( $self, $object, $dev, $options ) = @_;
     if ( lc $dev eq 'comm' ) {
-        &main::print_log(
-            "[raZberry] Registering Communication object to controller");
+        &main::print_log("[raZberry]: Registering Communication object to controller");
         $self->{child_object}->{'comm'} = $object;
     }
     else {
@@ -553,25 +625,57 @@ sub register {
         my $type = $object->{type};
         $type = "Digital " . $type
           if ( ( defined $options ) and ( $options =~ m/digital/ ) );
-        &main::print_log( "[raZberry] Registering "
-              . $type
-              . " Device ID $dev to controller" );
+        &main::print_log( "[raZberry]: Registering " . $type . " Device ID $dev to controller" );
         $self->{child_object}->{$dev} = $object;
         if ( defined $options ) {
             if ( $options =~ m/force_update/ ) {
                 $self->{data}->{force_update}->{$dev} = 1;
-                &main::print_log(
-                    "[raZberry] Forcing Controller to contact Device $dev at each poll"
-                );
+                &main::print_log("[raZberry]: Forcing Controller to contact Device $dev at each poll");
             }
             if ( $options =~ m/keep_alive/ ) {
                 $self->{data}->{ping}->{$dev} = 1;
-                &main::print_log(
-                    "[raZberry] Forcing Controller to ping Device $dev at each poll"
-                );
+                &main::print_log("[raZberry]: Forcing Controller to ping Device $dev at each poll");
             }
         }
     }
+}
+
+sub main::razberry_push {
+    my ( $dev, $level ) = @_;
+
+    my ($id) = ( split /_/, $dev )[-1];    #always just get the last element
+
+    #Filter out some non-items
+    return if ( ( $dev =~ m/^InfoWidget_/ )
+        or ( $dev =~ m/^BatteryPolling_/ ) );
+
+    &main::print_log("[raZberry]: HTTP Push update received for device: $dev, id: $id and level: $level");
+
+    #my $obj = &main::get_object_by_name($object);
+    if ( $push_obj eq "" ) {
+        &main::print_log("[raZberry]: ERROR, Push control not enabled on this controller.");
+
+    }
+    elsif ( $dev =~ m/^ZWayVDev_zway_/ ) {
+        if ( defined $push_obj->{child_object}->{$id} ) {
+            if ( $dev =~ m/\-0\-\50\-\d$/ ) {
+                ( my $subdev ) = ( $dev =~ /\-0\-50\-(\d)$/ );
+                &main::print_log( '[raZberry]: Calling $push_obj->{child_object}->{' . $id . '}->set_level( ' . $level . ", $subdev );" );
+            }
+            else {
+                &main::print_log( '[raZberry]: Calling $push_obj->{child_object}->{' . $id . '}->set( ' . $level . ", 'push' );" );
+                $push_obj->{child_object}->{$id}->set( $level, 'push' );
+            }
+        }
+        else {
+            &main::print_log("[raZberry]: ERROR, child object id $id not found!");
+        }
+
+    }
+    else {
+        &main::print_log("[raZberry]: ERROR, only ZWayVDev devices supported for push");
+    }
+
 }
 
 package raZberry_dimmer;
@@ -583,11 +687,7 @@ sub new {
 
     my $self = {};
     bless $self, $class;
-    push(
-        @{ $$self{states} },
-        'off', 'low', 'med', 'high', 'on',  '10%', '20%',
-        '30%', '40%', '50%', '60%',  '70%', '80%', '90%'
-    );
+    push( @{ $$self{states} }, 'off', 'low', 'med', 'high', 'on', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%' );
 
     $$self{master_object} = $object;
     $devid = $devid . $zway_suffix if ( $devid =~ m/^\d+$/ );
@@ -605,7 +705,7 @@ sub new {
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
-    if ( $p_setby eq 'poll' ) {
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
         $self->{level} = $p_state;
         my $n_state;
         if ( $p_state == 100 ) {
@@ -626,9 +726,7 @@ sub set {
         else {
             $n_state .= "$p_state%";
         }
-        main::print_log(
-            "[raZberry_dimmer] Setting value to $n_state. Level is "
-              . $self->{level} )
+        main::print_log( "[raZberry_dimmer] Setting value to $n_state. Level is " . $self->{level} )
           if ( $self->{debug} );
 
         $self->SUPER::set($n_state);
@@ -651,8 +749,7 @@ sub set {
             $$self{master_object}->set_dev( $$self{devid}, "level=$n_state" );
         }
         else {
-            main::print_log(
-                "[raZberry_dimmer] Error. Unknown set state $p_state");
+            main::print_log("[raZberry_dimmer] Error. Unknown set state $p_state");
         }
     }
 }
@@ -706,7 +803,7 @@ sub new {
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
-    if ( $p_setby eq 'poll' ) {
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
         if ( lc $p_state eq "on" ) {
             $self->{level} = 100;
         }
@@ -714,9 +811,7 @@ sub set {
             $self->{level} = 0;
         }
 
-        main::print_log(
-            "[raZberry_switch] Setting value to $p_state. Level is "
-              . $self->{level} )
+        main::print_log( "[raZberry_switch] Setting value to $p_state. Level is " . $self->{level} )
           if ( $self->{debug} );
         $self->SUPER::set($p_state);
     }
@@ -725,8 +820,7 @@ sub set {
             $$self{master_object}->set_dev( $$self{devid}, $p_state );
         }
         else {
-            main::print_log(
-                "[raZberry_switch] Error. Unknown set state $p_state");
+            main::print_log("[raZberry_switch] Error. Unknown set state $p_state");
         }
     }
 }
@@ -779,11 +873,7 @@ sub new {
     $self->{digital} = 1
       if ( ( defined $options ) and ( $options =~ m/digital/i ) );
     if ( $self->{digital} ) {
-        push(
-            @{ $$self{states} },
-            'down', '10%', '20%', '30%', '40%', '50%',
-            '60%',  '70%', '80%', '90%', 'up'
-        );
+        push( @{ $$self{states} }, 'down', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', 'up' );
     }
     else {
         push( @{ $$self{states} }, 'down', 'stop', 'up' );
@@ -810,7 +900,7 @@ sub new {
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
-    if ( defined $p_setby && $p_setby eq 'poll' ) {
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
         $self->{level} = $p_state;
         my $n_state;
         if ( $p_state == 0 ) {
@@ -831,8 +921,7 @@ sub set {
         }
 
         # stop level?
-        main::print_log( "[raZberry_blind] Setting value to $n_state. Level is "
-              . $self->{level} )
+        main::print_log( "[raZberry_blind] Setting value to $n_state. Level is " . $self->{level} )
           if ( $self->{debug} );
         $self->SUPER::set($n_state);
     }
@@ -846,12 +935,10 @@ sub set {
             }
             elsif ( ( $p_state eq "100%" ) or ( $p_state =~ m/^\d{1,2}\%$/ ) ) {
                 my ($n_state) = ( $p_state =~ /(\d+)%/ );
-                $$self{master_object}
-                  ->set_dev( $$self{devid}, "level=$n_state" );
+                $$self{master_object}->set_dev( $$self{devid}, "level=$n_state" );
             }
             else {
-                main::print_log(
-                    "[raZberry_blind] Error. Unknown set state $p_state");
+                main::print_log("[raZberry_blind] Error. Unknown set state $p_state");
             }
         }
         elsif (( lc $p_state eq "up" )
@@ -861,8 +948,7 @@ sub set {
             $$self{master_object}->set_dev( $$self{devid}, $p_state );
         }
         else {
-            main::print_log(
-                "[raZberry_blind] Error. Unknown set state $p_state");
+            main::print_log("[raZberry_blind] Error. Unknown set state $p_state");
         }
     }
 }
@@ -888,9 +974,7 @@ sub isfailed {
 sub update_data {
     my ( $self, $data ) = @_;
     if ( defined $data->{battery_level} ) {
-        &main::print_log( "[raZberry_blind] Setting battery value to "
-              . $data->{battery_level}
-              . "." )
+        &main::print_log( "[raZberry_blind] Setting battery value to " . $data->{battery_level} . "." )
           if ( $self->{debug} );
         $self->{battery_level} = $data->{battery_level};
     }
@@ -899,20 +983,15 @@ sub update_data {
 sub battery_check {
     my ($self) = @_;
     unless ( $self->{battery} ) {
-        main::print_log(
-            "[raZberry_blind] ERROR, battery option not defined on this object"
-        );
+        main::print_log("[raZberry_blind] ERROR, battery option not defined on this object");
         return;
     }
 
     if ( $self->{battery_level} eq "" ) {
-        main::print_log(
-            "[raZberry_blind] INFO Battery level currently undefined");
+        main::print_log("[raZberry_blind] INFO Battery level currently undefined");
         return;
     }
-    main::print_log( "[raZberry_blind] INFO Battery currently at "
-          . $self->{battery_level}
-          . "%" );
+    main::print_log( "[raZberry_blind] INFO Battery currently at " . $self->{battery_level} . "%" );
     if ( ( $self->{battery_level} < 30 ) and ( $self->{battery_alert} == 0 ) ) {
         $self->{battery_alert} = 1;
         main::speak("Warning, Zwave blind battery has less than 30% charge");
@@ -925,8 +1004,7 @@ sub battery_check {
 sub _battery_timer {
     my ($self) = @_;
 
-    $self->{battery_timer}->set( $self->{battery_poll_seconds},
-        sub { &raZberry_blind::battery_check($self) }, -1 );
+    $self->{battery_timer}->set( $self->{battery_poll_seconds}, sub { &raZberry_blind::battery_check($self) }, -1 );
 }
 
 sub battery_level {
@@ -985,11 +1063,8 @@ sub set {
     $map_states{locked}   = "close";
     $map_states{unlocked} = "open";
 
-    if ( $p_setby eq 'poll' ) {
-        main::print_log( "[raZberry_lock] Setting value to $p_state: "
-              . $map_states{$p_state}
-              . ". Battery Level is "
-              . $self->{battery_level} )
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
+        main::print_log( "[raZberry_lock] Setting value to $p_state: " . $map_states{$p_state} . ". Battery Level is " . $self->{battery_level} )
           if ( $self->{debug} );
         if ( ( $p_state eq "open" ) or ( $p_state eq "close" ) ) {
             $self->SUPER::set( $map_states{$p_state} );
@@ -998,19 +1073,16 @@ sub set {
             $self->{level} = $p_state;
         }
         else {
-            main::print_log(
-                "[raZberry_lock] Unknown value $p_state in poll set");
+            main::print_log("[raZberry_lock] Unknown value $p_state in poll set");
         }
 
     }
     else {
         if ( ( lc $p_state eq "locked" ) or ( lc $p_state eq "unlocked" ) ) {
-            $$self{master_object}
-              ->set_dev( $$self{devid}, $map_states{$p_state} );
+            $$self{master_object}->set_dev( $$self{devid}, $map_states{$p_state} );
         }
         else {
-            main::print_log( "[raZberry_lock] Error. Unknown set state "
-                  . $map_states{$p_state} );
+            main::print_log( "[raZberry_lock] Error. Unknown set state " . $map_states{$p_state} );
         }
     }
 }
@@ -1042,9 +1114,7 @@ sub isfailed {
 sub update_data {
     my ( $self, $data ) = @_;
     if ( defined $data->{battery_level} ) {
-        &main::print_log( "[raZberry_lock] Setting battery value to "
-              . $data->{battery_level}
-              . "." )
+        &main::print_log( "[raZberry_lock] Setting battery value to " . $data->{battery_level} . "." )
           if ( $self->{debug} );
         $self->{battery_level} = $data->{battery_level};
     }
@@ -1053,13 +1123,10 @@ sub update_data {
 sub battery_check {
     my ($self) = @_;
     if ( $self->{battery_level} eq "" ) {
-        &main::print_log(
-            "[raZberry_lock] INFO Battery level currently undefined");
+        &main::print_log("[raZberry_lock] INFO Battery level currently undefined");
         return;
     }
-    &main::print_log( "[raZberry_lock] INFO Battery currently at "
-          . $self->{battery_level}
-          . "%" );
+    &main::print_log( "[raZberry_lock] INFO Battery currently at " . $self->{battery_level} . "%" );
     if ( ( $self->{battery_level} < 30 ) and ( $self->{battery_alert} == 0 ) ) {
         $self->{battery_alert} = 1;
         &main::speak("Warning, Zwave lock battery has less than 30% charge");
@@ -1076,8 +1143,7 @@ sub enable_user {
     $status = $self->_control_user( $userid, $code, "1" );
 
     #delay for the lock to process the code and then read in the users
-    main::eval_with_timer( sub { &raZberry_lock::_update_users($self) },
-        $self->{user_data_delay} );
+    main::eval_with_timer( sub { &raZberry_lock::_update_users($self) }, $self->{user_data_delay} );
     return ($status);
 }
 
@@ -1090,8 +1156,7 @@ sub disable_user {
     $status = $self->_control_user( $userid, $code, "0" );
 
     #delay for the lock to process the code and then read in the users
-    main::eval_with_timer( sub { &raZberry_lock::_update_users($self) },
-        $self->{user_data_delay} );
+    main::eval_with_timer( sub { &raZberry_lock::_update_users($self) }, $self->{user_data_delay} );
     return ($status);
 }
 
@@ -1118,8 +1183,7 @@ sub print_users {
 sub _battery_timer {
     my ($self) = @_;
 
-    $self->{battery_timer}->set( $self->{battery_poll_seconds},
-        sub { &raZberry_lock::battery_check($self) }, -1 );
+    $self->{battery_timer}->set( $self->{battery_poll_seconds}, sub { &raZberry_lock::battery_check($self) }, -1 );
 }
 
 sub _control_user {
@@ -1129,20 +1193,13 @@ sub _control_user {
 
     my $cmd;
     my ( $devid, $instance, $class ) = ( split /-/, $self->{devid} )[ 0, 1, 2 ];
-    $cmd = "%5B"
-      . $devid
-      . "%5D.UserCode.Set("
-      . $userid . ","
-      . $code . ","
-      . $control . ")";
-    &main::print_log("[raZberry] Enabling usercodes $userid ($devid)...")
+    $cmd = "%5B" . $devid . "%5D.UserCode.Set(" . $userid . "," . $code . "," . $control . ")";
+    &main::print_log("[raZberry]: Enabling usercodes $userid ($devid)...")
       if ( $self->{debug} );
     &main::print_log("cmd=$cmd") if ( $self->{debug} > 1 );
-    my ( $isSuccessResponse0, $status ) =
-      &raZberry::_get_JSON_data( $self->{master_object}, 'usercode', $cmd );
+    my ( $isSuccessResponse0, $status ) = &raZberry::_get_JSON_data( $self->{master_object}, 'usercode', $cmd );
     unless ($isSuccessResponse0) {
-        &main::print_log(
-            "[raZberry] Error: Problem retrieving data from " . $self->{host} );
+        &main::print_log( "[raZberry]: Error: Problem retrieving data from " . $self->{host} );
         $self->{data}->{retry}++;
         return ('0');
     }
@@ -1155,27 +1212,22 @@ sub _update_users {
     my $cmd;
     my ( $devid, $instance, $class ) = ( split /-/, $self->{devid} )[ 0, 1, 2 ];
     $cmd = "%5B" . $devid . "%5D.UserCode.Get()";
-    &main::print_log("[raZberry] Getting local usercodes ($devid)...")
+    &main::print_log("[raZberry]: Getting local usercodes ($devid)...")
       if ( $self->{debug} );
     &main::print_log("cmd=$cmd") if ( $self->{debug} > 1 );
-    my ( $isSuccessResponse0, $status ) =
-      &raZberry::_get_JSON_data( $self->{master_object}, 'usercode', $cmd );
+    my ( $isSuccessResponse0, $status ) = &raZberry::_get_JSON_data( $self->{master_object}, 'usercode', $cmd );
     unless ($isSuccessResponse0) {
-        &main::print_log(
-            "[raZberry] Error: Problem retrieving data from " . $self->{host} );
+        &main::print_log( "[raZberry]: Error: Problem retrieving data from " . $self->{host} );
         $self->{data}->{retry}++;
         return ('0');
     }
     $cmd = "%5B" . $devid . "%5D.UserCode.data";
-    &main::print_log("[raZberry] Downloading local usercodes from $devid...")
+    &main::print_log("[raZberry]: Downloading local usercodes from $devid...")
       if ( $self->{debug} );
     &main::print_log("cmd=$cmd") if ( $self->{debug} > 1 );
-    my ( $isSuccessResponse1, $response ) =
-      &raZberry::_get_JSON_data( $self->{master_object}, 'usercode_data',
-        $cmd );
+    my ( $isSuccessResponse1, $response ) = &raZberry::_get_JSON_data( $self->{master_object}, 'usercode_data', $cmd );
     unless ($isSuccessResponse1) {
-        &main::print_log(
-            "[raZberry] Error: Problem retrieving data from " . $self->{host} );
+        &main::print_log( "[raZberry]: Error: Problem retrieving data from " . $self->{host} );
         $self->{data}->{retry}++;
         return ('0');
     }
@@ -1183,8 +1235,7 @@ sub _update_users {
     #    print Dumper $response if ( $self->{debug} > 1 );
     foreach my $key ( keys %{$response} ) {
         if ( $key =~ m/^[0-9]*$/ ) {    #a number, so a user code
-            $self->{users}->{"$key"}->{status} =
-              $response->{"$key"}->{status}->{value};
+            $self->{users}->{"$key"}->{status} = $response->{"$key"}->{status}->{value};
         }
     }
 
@@ -1212,7 +1263,7 @@ sub new {
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
-    if ( $p_setby eq 'poll' ) {
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
         $self->SUPER::set($p_state);
     }
 }
@@ -1231,22 +1282,14 @@ sub new {
     my $self = {};
     bless $self, $class;
     if ( ( defined $deg ) and ( lc $deg eq "f" ) ) {
-        push(
-            @{ $$self{states} },
-            60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
-            71, 72, 73, 74, 75, 76, 77, 78, 79, 80
-        );
+        push( @{ $$self{states} }, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80 );
         $self->{units}    = "F";
         $self->{min_temp} = 58;
         $self->{max_temp} = 80;
 
     }
     else {
-        push(
-            @{ $$self{states} },
-            12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-            22, 23, 24, 25, 16, 27, 28, 29, 30
-        );
+        push( @{ $$self{states} }, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 16, 27, 28, 29, 30 );
         $self->{units}    = "C";
         $self->{min_temp} = 10;
         $self->{max_temp} = 30;
@@ -1268,7 +1311,7 @@ sub new {
 
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
-    if ( $p_setby eq 'poll' ) {
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
         $self->{level} = $p_state;
         $self->SUPER::set($p_state);
     }
@@ -1276,10 +1319,7 @@ sub set {
         if (   ( $p_state < $self->{min_temp} )
             or ( $p_state > $self->{max_temp} ) )
         {
-            main::pring_log(
-                "[raZberry]: WARNING not setting level to $p_state since out of bounds "
-                  . $self->{min_temp} . ":"
-                  . $self->{max_temp} );
+            main::pring_log( "[raZberry]: WARNING not setting level to $p_state since out of bounds " . $self->{min_temp} . ":" . $self->{max_temp} );
         }
         else {
             $$self{master_object}->set_dev( $$self{devid}, "level=$p_state" );
@@ -1317,19 +1357,11 @@ sub update_data {
     #if units is F then rescale states
 
     if ( $data->{units} =~ m/F/ ) {
-        @{ $$self{states} } = (
-            58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
-            70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80
-        );
+        @{ $$self{states} } = ( 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80 );
     }
     $self->{min_temp} = $data->{temp_min};
     $self->{max_temp} = $data->{temp_max};
-    main::print_log( "In set, units = "
-          . $data->{units}
-          . " max = "
-          . $data->{temp_max}
-          . " min = "
-          . $data->{temp_min} )
+    main::print_log( "In set, units = " . $data->{units} . " max = " . $data->{temp_max} . " min = " . $data->{temp_min} )
       if ( $self->{debug} );
 
 }
@@ -1358,7 +1390,7 @@ sub new {
 
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
-    if ( $p_setby eq 'poll' ) {
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
         $self->{level} = $p_state;
 
         $self->SUPER::set($p_state);
@@ -1449,7 +1481,7 @@ sub new {
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
-    if ( $p_setby eq 'poll' ) {
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
         $self->{level} = $p_state;
         my $n_state;
         if ( $p_state eq "on" ) {
@@ -1458,15 +1490,12 @@ sub set {
         else {
             $n_state = "closed";
         }
-        main::print_log(
-            "[raZberry] Setting openclose value to $n_state. Level is "
-              . $self->{level} )
+        main::print_log( "[raZberry]: Setting openclose value to $n_state. Level is " . $self->{level} )
           if ( $self->{debug} );
         $self->SUPER::set($n_state);
     }
     else {
-        main::print_log(
-            "[raZberry] ERROR Can not set state $p_state for openclose");
+        main::print_log("[raZberry]: ERROR Can not set state $p_state for openclose");
     }
 }
 
@@ -1528,13 +1557,10 @@ sub update_data {
 sub battery_check {
     my ($self) = @_;
     if ( $self->{battery_level} eq "" ) {
-        main::print_log(
-            "[raZberry_battery] INFO Battery level currently undefined");
+        main::print_log("[raZberry_battery] INFO Battery level currently undefined");
         return;
     }
-    main::print_log( "[raZberry_battery] INFO Battery currently at "
-          . $self->{battery_level}
-          . "%" );
+    main::print_log( "[raZberry_battery] INFO Battery currently at " . $self->{battery_level} . "%" );
     if ( ( $self->{battery_level} < 30 ) and ( $self->{battery_alert} == 0 ) ) {
         $self->{battery_alert} = 1;
         main::speak("Warning, Zwave battery has less than 30% charge");
@@ -1544,4 +1570,120 @@ sub battery_check {
     }
 }
 
-1;
+package raZberry_voltage;
+@raZberry_voltage::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object, $devid, $options ) = @_;
+
+    my $self = {};
+    bless $self, $class;
+
+    #ZWayVDev_zway_x-0-50-0 - Power Meter kWh
+    #ZWayVDev_zway_x-0-50-1 - RGB setting of the switch LED
+    #ZWayVDev_zway_x-0-50-2 - Power Sensor W
+    #ZWayVDev_zway_x-0-50-4 - Voltage Sensor V
+    #ZWayVDev_zway_x-0-50-5 - Current Sensor A
+    #push( @{ $$self{states} }, 'on', 'off'); I'm not sure we should set the states here, since it's not a controlable item?
+
+    unless ( $devid =~ m/^\d+$/ ) {
+        $$self{master_object} = $object;
+        $$self{type}          = "Multilevel Voltage";
+        $$self{devid}         = $devid;
+        $object->register( $self, $devid . "-0-50-0", $options );
+        $object->register( $self, $devid . "-0-50-1", $options );
+        $object->register( $self, $devid . "-0-50-2", $options );
+        $object->register( $self, $devid . "-0-50-4", $options );
+        $object->register( $self, $devid . "-0-50-5", $options );
+
+        #$self->set($object->get_dev_status,$devid,'poll');
+        $self->{level}->{0} = "";
+        $self->{debug} = $object->{debug};
+    }
+    else {
+        main::print_log("[raZberry_voltage] ERROR, Voltage can only be a major dev id");
+
+    }
+    return $self;
+
+}
+
+sub level {
+    my ( $self, $attr ) = @_;
+
+    $attr = 0 unless ($attr);
+    if ( defined $self->{level}->{$attr} ) {
+        return ( $self->{level} );
+    }
+    else {
+        main::print_log("[raZberry_voltage] ERROR, unknown attribute $attr");
+        return (0);
+    }
+}
+
+sub set_level {
+    my ( $self, $value, $attr ) = @_;
+
+    $attr = 0 unless ($attr);
+    $self->{level}->{$attr} = $value;
+
+}
+
+sub ping {
+    my ($self) = @_;
+
+    $$self{master_object}->ping_dev( $$self{devid} );
+}
+
+sub isfailed {
+    my ($self) = @_;
+
+    $$self{master_object}->isfailed_dev( $$self{devid} );
+}
+
+sub update_data {
+    my ( $self, $data ) = @_;
+}
+
+package raZberry_generic;
+@raZberry_generic::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object, $devid, $options ) = @_;
+
+    my $self = {};
+    bless $self, $class;
+
+    $$self{master_object} = $object;
+    $$self{type}          = "Generic";
+    $$self{devid}         = $devid;
+    $object->register( $self, $devid, $options );
+
+    #$self->set($object->get_dev_status,$devid,'poll');
+    $self->{level} = "";
+    $self->{debug} = $object->{debug};
+    return $self;
+
+}
+
+sub level {
+    my ($self) = @_;
+
+    return ( $self->{level} );
+}
+
+sub ping {
+    my ($self) = @_;
+
+    $$self{master_object}->ping_dev( $$self{devid} );
+}
+
+sub isfailed {
+    my ($self) = @_;
+
+    $$self{master_object}->isfailed_dev( $$self{devid} );
+}
+
+sub update_data {
+    my ( $self, $data ) = @_;
+}

@@ -55,9 +55,7 @@ sub rf_is_security {
     # 3rd byte: Device ID
     # 4th byte: Top nibble is complement of top nibble of 3rd byte,
     #           bottom nibble is copy of bottom nibble of 3rd byte
-    return ( $initial_checksum_good
-          && ( $nbytes[2] & 0xf0 ) == ( ( $nbytes[3] & 0xf0 ) ^ 0xf0 )
-          && ( $nbytes[2] & 0x0f ) == ( $nbytes[3] & 0x0f ) );
+    return ( $initial_checksum_good && ( $nbytes[2] & 0xf0 ) == ( ( $nbytes[3] & 0xf0 ) ^ 0xf0 ) && ( $nbytes[2] & 0x0f ) == ( $nbytes[3] & 0x0f ) );
 }
 
 #------------------------------------------------------------------------------
@@ -85,12 +83,8 @@ sub rf_process_security {
     #   my $scode = $scodes{   unpack("H2", chr($cmd))};
     my $scode = $scodes{ lc( unpack( "H2", chr($cmd) ) ) };
     unless ( defined $scode ) {
-        &::print_log(
-            sprintf "%s: unimplemented security cmd device_id "
-              . "= 0x%02x, cmd = 0x%02x (%s %s %s %s)",
-            $uc_module, $device_id, $cmd, $bbytes[0],
-            $bbytes[1], $bbytes[2], $bbytes[3]
-        );
+        &::print_log( sprintf "%s: unimplemented security cmd device_id " . "= 0x%02x, cmd = 0x%02x (%s %s %s %s)",
+            $uc_module, $device_id, $cmd, $bbytes[0], $bbytes[1], $bbytes[2], $bbytes[3] );
         return undef;
     }
 
@@ -104,20 +98,15 @@ sub rf_process_security {
     my $item_id = lc sprintf "%02x", $device_id;
 
     if ( $main::Debug{$lc_module} ) {
-        &::print_log( sprintf "%s: security: device_id = 0x%02x, cmd = 0x%02x",
-            $uc_module, $device_id, $cmd );
-        &::print_log(
-            sprintf "%s: security: class_id = %s, "
-              . "item_id = %s, state = %s",
-            $uc_module, $class_id, $item_id, $state );
+        &::print_log( sprintf "%s: security: device_id = 0x%02x, cmd = 0x%02x", $uc_module, $device_id, $cmd );
+        &::print_log( sprintf "%s: security: class_id = %s, " . "item_id = %s, state = %s", $uc_module, $class_id, $item_id, $state );
     }
 
     # Set state of all MR26/W800 and X10_RF_Receiver objects.
     &rf_set_receiver( $module, $state );
 
     # Set the state of any items or classes associated with this device.
-    &rf_set_RF_Item( $module, "security", "unmatched device 0x$item_id",
-        $item_id, $class_id, $state );
+    &rf_set_RF_Item( $module, "security", "unmatched device 0x$item_id", $item_id, $class_id, $state );
 
     return $state;
 }

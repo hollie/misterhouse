@@ -11,8 +11,7 @@
 
 # Declare Variables
 
-use vars
-  qw($CompPhoneNumber $PhoneName $PhoneNumber $PhoneTime $PhoneDate $PhoneNumberSpoken);
+use vars qw($CompPhoneNumber $PhoneName $PhoneNumber $PhoneTime $PhoneDate $PhoneNumberSpoken);
 
 # Set Variables used by my custom code to match the callerid.pl
 

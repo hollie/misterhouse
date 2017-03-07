@@ -30,8 +30,7 @@ if ( said $v_Geat_Header_Files) {
         unlink "$config_parms{data_dir}/headerallow.tab";
     }
     find( \&GenerateHeaderFiles, "$codedhtmlrootdir" );    #Need PGM ROOT!
-    file_write( "$config_parms{data_dir}/headerallow.tab", $TmpData ) &
-      main::speak "Header control file generation is complete";
+    file_write( "$config_parms{data_dir}/headerallow.tab", $TmpData ) & main::speak "Header control file generation is complete";
 }
 
 sub Search_Header_Allow {
@@ -62,8 +61,8 @@ sub Search_Header_Allow {
                     $AllowHeaderPassage = 1;
 
                 }
-                elsif ( ( $Authorized =~ /guest/i ) and ( $guest =~ /True/i ) )
-                {
+                elsif ( ( $Authorized =~ /guest/i ) and ( $guest =~ /True/i ) ) {
+
                     #print_log "Allowing Passage";
                     $AllowHeaderPassage = 1;
 
@@ -81,8 +80,7 @@ sub Search_Header_Allow {
     if (    ( $AllowHeaderPassage eq "" )
         and ( $config_parms{Use_Header_Control} = 1 ) )
     {
-        print_log
-          "Could not find -$Header_name- in control file.$AllowHeaderPassage";
+        print_log "Could not find -$Header_name- in control file.$AllowHeaderPassage";
     }
     if ( $AllowHeaderPassage == 1 ) {
 

@@ -30,13 +30,12 @@ my @R4of = ( 0x00a4, 0x0000 );
 
 # modify the following items and code for more than one board in the system
 # misterhouse is installed in /opt/misterhouse as suggested in faq's
-my $eio1DataLog = '/opt/misterhouse/data/logs/eio1data';
-my $client1_address = '192.168.36.61:5000';    # my EIO board address and port
+my $eio1DataLog     = '/opt/misterhouse/data/logs/eio1data';
+my $client1_address = '192.168.36.61:5000';                    # my EIO board address and port
 
 # set up the output states for the socket port
-$eio1 = new Socket_Item( "SEND INFORMATION NOW\n",
-    "status", $client1_address, "EIO-1", 'udp', 'rawout' );
-$eio1->add( pack( 'v*', @R1on ), "E1R1 on" );    # relay control commands
+$eio1 = new Socket_Item( "SEND INFORMATION NOW\n", "status", $client1_address, "EIO-1", 'udp', 'rawout' );
+$eio1->add( pack( 'v*', @R1on ), "E1R1 on" );                  # relay control commands
 $eio1->add( pack( 'v*', @R2on ), "E1R2 on" );
 $eio1->add( pack( 'v*', @R3on ), "E1R3 on" );
 $eio1->add( pack( 'v*', @R4on ), "E1R4 on" );
@@ -84,19 +83,15 @@ $loop1count++;
 # re-evaluate the data on each reply in order to set the flags on the web page.
 # do this if the board hasn't timed out, if it has, reset the relays to last state
 if ( my $eio1data = said $eio1) {    # first check to see if the board responds
-    if ( $loop1count > $loop1timeout )
-    {                                # the board previously timed out - its back
-        &reload_board1;              # reload the last known state
+    if ( $loop1count > $loop1timeout ) {    # the board previously timed out - its back
+        &reload_board1;                     # reload the last known state
     }
-    elsif ( $eio1data ne $eio1last )
-    {                                # (no timeout) new data since last response
-        $eio1last = $eio1data;       # save the new data for next pass thru
-        my $eio1out =
-          substr( $eio1data, 0, -10 );    # parse the reply of extra characters
-        logit( $eio1DataLog, $eio1out, 12 );    # append change to the logfile
-              #	update the changed status icons on the web page
-        if ( ( state $eio1I4 == OFF ) && ( substr( $eio1data, 1, 1 ) eq "0" ) )
-        {
+    elsif ( $eio1data ne $eio1last ) {      # (no timeout) new data since last response
+        $eio1last = $eio1data;              # save the new data for next pass thru
+        my $eio1out = substr( $eio1data, 0, -10 );    # parse the reply of extra characters
+        logit( $eio1DataLog, $eio1out, 12 );          # append change to the logfile
+                                                      #	update the changed status icons on the web page
+        if ( ( state $eio1I4 == OFF ) && ( substr( $eio1data, 1, 1 ) eq "0" ) ) {
             set $eio1I4 ON;
         }
         elsif (( state $eio1I4 == ON )
@@ -104,8 +99,7 @@ if ( my $eio1data = said $eio1) {    # first check to see if the board responds
         {
             set $eio1I4 OFF;
         }
-        if ( ( state $eio1I3 == OFF ) && ( substr( $eio1data, 2, 1 ) eq "0" ) )
-        {
+        if ( ( state $eio1I3 == OFF ) && ( substr( $eio1data, 2, 1 ) eq "0" ) ) {
             set $eio1I3 ON;
         }
         elsif (( state $eio1I3 == ON )
@@ -113,8 +107,7 @@ if ( my $eio1data = said $eio1) {    # first check to see if the board responds
         {
             set $eio1I3 OFF;
         }
-        if ( ( state $eio1I2 == OFF ) && ( substr( $eio1data, 3, 1 ) eq "0" ) )
-        {
+        if ( ( state $eio1I2 == OFF ) && ( substr( $eio1data, 3, 1 ) eq "0" ) ) {
             set $eio1I2 ON;
         }
         elsif (( state $eio1I2 == ON )
@@ -122,8 +115,7 @@ if ( my $eio1data = said $eio1) {    # first check to see if the board responds
         {
             set $eio1I2 OFF;
         }
-        if ( ( state $eio1I1 == OFF ) && ( substr( $eio1data, 4, 1 ) eq "0" ) )
-        {
+        if ( ( state $eio1I1 == OFF ) && ( substr( $eio1data, 4, 1 ) eq "0" ) ) {
             set $eio1I1 ON;
         }
         elsif (( state $eio1I1 == ON )
@@ -131,8 +123,7 @@ if ( my $eio1data = said $eio1) {    # first check to see if the board responds
         {
             set $eio1I1 OFF;
         }
-        if ( ( state $eio1R4 == OFF ) && ( substr( $eio1data, 6, 1 ) eq "1" ) )
-        {
+        if ( ( state $eio1R4 == OFF ) && ( substr( $eio1data, 6, 1 ) eq "1" ) ) {
             set $eio1R4 ON;
         }
         elsif (( state $eio1R4 == ON )
@@ -140,8 +131,7 @@ if ( my $eio1data = said $eio1) {    # first check to see if the board responds
         {
             set $eio1R4 OFF;
         }
-        if ( ( state $eio1R3 == OFF ) && ( substr( $eio1data, 7, 1 ) eq "1" ) )
-        {
+        if ( ( state $eio1R3 == OFF ) && ( substr( $eio1data, 7, 1 ) eq "1" ) ) {
             set $eio1R3 ON;
         }
         elsif (( state $eio1R3 == ON )
@@ -149,8 +139,7 @@ if ( my $eio1data = said $eio1) {    # first check to see if the board responds
         {
             set $eio1R3 OFF;
         }
-        if ( ( state $eio1R2 == OFF ) && ( substr( $eio1data, 8, 1 ) eq "1" ) )
-        {
+        if ( ( state $eio1R2 == OFF ) && ( substr( $eio1data, 8, 1 ) eq "1" ) ) {
             set $eio1R2 ON;
         }
         elsif (( state $eio1R2 == ON )
@@ -158,8 +147,7 @@ if ( my $eio1data = said $eio1) {    # first check to see if the board responds
         {
             set $eio1R2 OFF;
         }
-        if ( ( state $eio1R1 == OFF ) && ( substr( $eio1data, 9, 1 ) eq "1" ) )
-        {
+        if ( ( state $eio1R1 == OFF ) && ( substr( $eio1data, 9, 1 ) eq "1" ) ) {
             set $eio1R1 ON;
         }
         elsif (( state $eio1R1 == ON )
@@ -225,8 +213,7 @@ elsif ( $state = said $v_eio1R4) {
 }
 
 sub reload_board1 {
-    my $log1file =
-      $eio1DataLog;    #determine the last used datafile (log rotation)
+    my $log1file = $eio1DataLog;    #determine the last used datafile (log rotation)
     if ( file_size($log1file) == 0 ) {
         $log1file .= ".1";
     }                                           #in case logs have rotated

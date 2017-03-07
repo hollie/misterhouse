@@ -83,8 +83,7 @@ sub new {
     print "Adding xAP_Item to SysDiag_xAP instance with address: $xap_address\n"
       if $::Debug{sysdiag};
     my $friendly_name = "xap_sysdiag_$instance" . "_$server";
-    &main::store_object_data( $xap_item, 'xAP_Item', $friendly_name,
-        $friendly_name );
+    &main::store_object_data( $xap_item, 'xAP_Item', $friendly_name, $friendly_name );
     $$self{xap_item} = $xap_item;
 
     # now tie our only xAP item to our self
@@ -98,12 +97,10 @@ sub add {
         for my $monitor (@monitors) {
             if ( $monitor->isa('AnalogSensor_Item') ) {
                 my $key = $monitor->type . "." . $monitor->id;
-                print "[SysDiag] Adding monitor: $key to "
-                  . "sysdiag: $$self{instance}\n"
+                print "[SysDiag] Adding monitor: $key to " . "sysdiag: $$self{instance}\n"
                   if $main::Debug{sysdiag};
                 $$self{m_monitors}{$key} = $monitor;
-                $self->SUPER::add($monitor)
-                  ;    # add it so that it can set this object
+                $self->SUPER::add($monitor);    # add it so that it can set this object
             }
         }
     }
@@ -131,8 +128,7 @@ sub _process_section {
     my ( $self, $section_name ) = @_;
     my $section = $$self{xap_item}{$section_name};
     for my $subsection_name ( keys %{$section} ) {
-        print "[SysDiag] Processing $section_name.$subsection_name: "
-          . $section->{$subsection_name} . ":"
+        print "[SysDiag] Processing $section_name.$subsection_name: " . $section->{$subsection_name} . ":"
           if $main::Debug{sysdiag};
 
         # now, copy it
@@ -141,14 +137,8 @@ sub _process_section {
 
         # locate the corresponding device if it exists
         # the naming convention must use a period as the delimitter
-        if (
-            exists(
-                $$self{m_monitors}{ $section_name . "." . $subsection_name }
-            )
-          )
-        {
-            my $monitor =
-              $$self{m_monitors}{ $section_name . "." . $subsection_name };
+        if ( exists( $$self{m_monitors}{ $section_name . "." . $subsection_name } ) ) {
+            my $monitor = $$self{m_monitors}{ $section_name . "." . $subsection_name };
             print "Exists $$section{$subsection_name} "
               if $main::Debug{sysdiag};
             $monitor->measurement( $$section{$subsection_name} );
