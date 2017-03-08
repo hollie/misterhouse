@@ -41,7 +41,7 @@ The following fils are all the code files in you code_dir list:  $config_parms{c
     $html .= qq|Simply uncheck files you want to disable or check to re-enable.|
       if $Authorized eq 'admin';
     $html .= qq|
-<CENTER><FORM ACTION="/bin/code_unselect.pl" method=post>
+<CENTER><FORM ACTION="/bin/code_unselect.pl" id="mhresponse" method=post>
 <TABLE BORDER="0" cellspacing="0" cellpadding="0" width="100%">
 <tr><td colspan="2"><B>Search</B> (file or description): <input  align='left' size='25' name='search'>&nbsp;<INPUT TYPE='submit' VALUE='Search'>
 |;

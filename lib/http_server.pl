@@ -186,12 +186,19 @@ sub http_process_request {
     unless ($header) {
 
         # Ignore empty requests, like from 'check the http server' command
-        print "http: Error, not header request.  header=$temp\n"
+        print "http: Error, not header request.  header=[$temp]\n"
           if $main::Debug{http} and $temp;
+        my ( $type, $file ) = ( $temp =~ /^(\S*)\s(.*)\sHTTP/ );
+        print "t=[$type] f=[$file]\n" if $main::Debug{http2};
+        if ( $type eq "HEAD" ) {
+            print "yes\n";
+            print $socket &mime_header( $file, 1, 4592100 );
+        }
         return;
     }
 
     $Socket_Ports{http}{data_record} = $header;
+    print "http: Header = $header\n" if $main::Debug{http};
 
     #print Dumper %Http if $main::Debug{http};
     print "http: Range Header $Http{Range} encountered for $header"
@@ -427,6 +434,7 @@ sub http_process_request {
         my ($mode) = ( $Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\// );
 
         if ( $config_parms{password_menu} eq 'html' ) {
+            my $html = &html_authorized;
             if ( $get_req =~ /^\/UNSET_PASSWORD$/ ) {
                 $Authorized = 0;
                 $Cookie .= "Set-Cookie: password=xyz ; ; path=/;\n";
@@ -471,6 +479,7 @@ sub http_process_request {
         my ( $user, $password_crypted ) = &password_check2($password);
         $Authorized = $user if $password_crypted;
         $html .= &html_authorized;
+        $html .= "REMOVEME = get_arg = " . $get_arg . "<br>\n";
         $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
 
         #       $html .= &html_reload_link('/', 'Refresh Main Page');
@@ -498,7 +507,9 @@ sub http_process_request {
 
             #           &speak("app=admin Password NOT set by $name_short");
         }
+
         print $socket &html_page( undef, $html );
+
         return;
     }
 
@@ -804,12 +815,18 @@ sub html_password {
 sub html_authorized {
     my $html = "Status: <b>";
     if ($Authorized) {
-        return
-          "Status: <b><a href=UNSET_PASSWORD>Logged In as $Authorized</a></b><br>";
+        $html .= "<a href=UNSET_PASSWORD>";
+        $html .= "Logged In as $Authorized";
+        $html .= "</a>";
+        $html .= "</b><br>";
     }
     else {
-        return "Status: <b><a href=SET_PASSWORD>Not Logged In</a></b><br>";
+        $html .= "<a href=SET_PASSWORD>";
+        $html .= "Not Logged In";
+        $html .= "</a>";
+        $html .= "</b><br>";
     }
+    return $html;
 }
 
 sub html_unauthorized {
@@ -1052,7 +1069,7 @@ sub html_sub {
     }
 
     # Allow for &sub1 and &sub1(args)
-    if (   ( ( $sub_name, $sub_arg ) = $data =~ /\&([^\&]+?)\((.*)\)$/ )
+    if (   ( ( $sub_name, $sub_arg ) = $data =~ /^\&(\S+?)\((.*)\)$/ )
         or ( ($sub_name) = $data =~ /^\&(\S+)$/ ) )
     {
         $sub_arg = '' unless defined $sub_arg;    # Avoid uninit warninng
@@ -1114,8 +1131,8 @@ sub html_response {
             #           $leave_socket_open_action = "&speak_log_last(1)"; # Only show the last spoken text
             #           $leave_socket_open_action = "&Voice_Text::last_spoken(1)"; # Only show the last spoken text
         }
-        elsif ( $h_response =~ /^https?:\S+$/i or $h_response =~ /^reff?erer/i )
-        {
+        elsif ( $h_response =~ /^http:\S+$/i or $h_response =~ /^reff?erer/i ) {
+
             # Allow to use just the base part of the referer
             #  - some browsers (audrey) do not return full referer url :(
             #    so allow for referer(url)...
@@ -1509,7 +1526,7 @@ sub html_form_input_set_func {
     $size = 10 if $size < 10;
     $size = 30 if $size > 30;
     $html .= qq|<input name='var2' value="$var2" size=$size>\n|;
-    $html .= qq|</td></form>\n|;
+    $html .= qq|</form></td>\n|;
     return $html;
 }
 
@@ -1524,7 +1541,7 @@ sub html_form_input_set_var {
     $html    .= qq|<input name='var'   value="$var"   type='hidden'>\n|;
     $html    .= qq|<input name='resp'  value="$resp"  type='hidden'>\n|;
     $html    .= qq|<input name='value' value="$default" size=30>\n|;
-    $html    .= qq|</td></form>\n|;
+    $html    .= qq|</form></td>\n|;
     return $html;
 }
 
@@ -1589,8 +1606,10 @@ sub html_file {
 
     # Do not cach shtml files
     my ($cache) = ( $file =~ /\.shtm?l?$/ or $file =~ /\.vxml?$/ ) ? 0 : 1;
+    ($cache) = ( defined $Http{Range} ) ? 0 : 1;
 
-    # Return right away if the file has not changed
+    # Return right away if the file has not changed, don't return a cache entry if there is
+    # a http Range header though...
     #http:   header key=If-Modified-Since value=Sat, 27 Mar 2004 02:49:29 GMT; length=1685.
     if (    $cache
         and $Http{'If-Modified-Since'}
@@ -1599,7 +1618,7 @@ sub html_file {
         my $time2 = &str2time($1);
         my $time3 = ( stat($file) )[9];
         print "db web file cache check: f=$file t=$time2/$time3\n"
-          if $main::Debug{http3};
+          if $main::Debug{http};
         if ( $time3 <= $time2 ) {
             return "HTTP/1.0 304 Not Modified\nServer: MisterHouse\n\n";
         }
@@ -1613,6 +1632,8 @@ sub html_file {
         close HTML;
         return;
     }
+
+    print "http: processing file\n" if $main::Debug{http};
 
     # Allow for 'server side include' directives
     #  <!--#include file="whatever"-->
@@ -1633,6 +1654,7 @@ sub html_file {
     # Note: These differ from classic .cgi in that they return
     #       the results, rather than print them to stdout.
     elsif ( $file =~ /\.(pl|cgi)$/ ) {
+        print "Processing perl or CGI file: $file\n" if $main::Debug{http};
         my $code = join( '', <HTML> );
 
         # Check if authorized
@@ -1675,6 +1697,7 @@ sub html_file {
         #       print "Http_server  .pl file results:$html.\n" if $main::Debug{http};
     }
     else {
+        print "http: Reading file: $file\n" if $main::Debug{http};
         binmode HTML;
 
         #       my $data = join '', <HTML>;
@@ -1849,7 +1872,7 @@ sub html_cgi {
 }
 
 sub mime_header {
-    my ( $file_or_type, $cache, $length ) = @_;
+    my ( $file_or_type, $cache, $length, $range, $full_length ) = @_;
 
     # Allow for passing filename or filetype
     my ( $mime, $date );
@@ -1866,8 +1889,9 @@ sub mime_header {
     }
 
     #   print "dbx2 m=$mime f=$file_or_type\n";
-
-    my $header = "HTTP/1.0 200 OK\nServer: MisterHouse\nContent-type: $mime\n";
+    my $code = "HTTP/1.0 200 OK";
+    $code = "HTTP/1.1 206 Partial Content" if $range;
+    my $header = "$code\nServer: MisterHouse\nContent-Type: $mime\n";
 
     #   $header .= ($cache) ? "Cache-Control: max-age=1000000\n" : "Cache-Control: no-cache\n";
     if ($cache) {
@@ -2995,10 +3019,16 @@ sub print_socket_fork {
             }
         }
         else {
+            my $keep_alive = 0;
+            $keep_alive = 1
+              if (  ( defined $Http{Connection} )
+                and ( $Http{Connection} eq "keep-alive" ) );
             &print_socket_fork_unix( $socket, $html );
         }
     }
     else {
+        print "http: printing with regular socket l=$length s=$socket\n"
+          if $main::Debug{http};
         print $socket $html;
     }
 }

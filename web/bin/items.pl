@@ -83,17 +83,17 @@ function openparmhelp(parm1){
 
     #form action='/bin/items.pl?add' method=post>
     $html .= qq|<tr>
-<form action='/bin/set_func.pl' method=post><td>
+<td><form action='/bin/set_func.pl' method=post>
 <input type=submit value='Create'>
 <input name='func' value="web_item_add"  type='hidden'>
 <input name='resp' value="/bin/items.pl" type='hidden'>
 $form_type
-<input type=input name=address  size=10 value='A1'>
-<input type=input name=name     size=10 value='Test_light'>
-<input type=input name=group    size=10 value=''>
-<input type=input name=other1   size=10 value=''>
-<input type=input name=other2   size=10 value=''>
-<td></form><tr>
+<input type=text name=address  size=10 value='A1'>
+<input type=text name=name     size=10 value='Test_light'>
+<input type=text name=group    size=10 value=''>
+<input type=text name=other1   size=10 value=''>
+<input type=text name=other2   size=10 value=''>
+</form></td></tr>
 | if $Authorized eq 'admin';
 
     # Parse table data
@@ -106,7 +106,7 @@ $form_type
         # Do not list comments
         unless ( $record =~ /^\s*\#/
             or $record =~ /^\s*$/
-            or $record =~ /^Format *=/ )
+            or $record =~ /^Format *=/i )
         {
             $record =~ s/#.*//;    # Ignore comments
             $record =~ s/,? *$//;
@@ -169,9 +169,9 @@ $form_type
 
         my @headers =
           ( $headers{$type} ) ? @{ $headers{$type} } : @{ $headers{default} };
-        my $headers = 1 + @headers;
+        my $headers = 2 + @headers;
 
-        $html .= "<table border><tr><td colspan=$headers><B>$type</B>\n";
+        $html .= "<br><table border width='100%' id='mhexec'><tr><td colspan=$headers><B>$type</B>\n";
         $html .= "(<a name='$type' href='#Top'>back to top</a>)</td></tr>\n";
         $headers--;
 

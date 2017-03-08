@@ -3,9 +3,19 @@
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
+var updateSocketN; //Second socket for notifications
 var display_mode;
 if (display_mode == undefined) display_mode = "simple";
+var notifications;
+var speech_sound;
+var speech_banner;
+var audio_init;
+var audioElement = document.getElementById('sound_element');
+var authorized = "false";
+var developer = false;
 
+var ctx; //audio context
+var buf; //audio buffer
 
 //Takes the current location and parses the achor element into a hash
 function URLToHash() {
@@ -109,7 +119,6 @@ function getJSONDataByPath (path){
 	return returnJSON;
 }
 
-
 //Called anytime the page changes
 function changePage (){
 	var URLHash = URLToHash();
@@ -119,10 +128,7 @@ function changePage (){
 		URLHash.path = "collections";
 	}
 	if (getJSONDataByPath("ia7_config") === undefined){
-		// We need at minimum the basic collections data to render all pages
-		// (the breadcrumb)
-		// NOTE may want to think about how to handle dynamic changes to the 
-		// collections list
+		// Load all the specific preferences
 		$.ajax({
 			type: "GET",
 			url: "/json/ia7_config",
@@ -133,11 +139,34 @@ function changePage (){
 			}
 		});
 	} else {
-		//console.log("x "+json_store.ia7_config.prefs.substate_percentages);
-		if (json_store.ia7_config.prefs.header_button == "no") {
-			$("#mhstatus").remove();
-		}
+		if (json_store.ia7_config.prefs.header_button == "no") $("#mhstatus").remove();
+		if (json_store.ia7_config.prefs.audio_controls !== undefined && json_store.ia7_config.prefs.audio_controls == "yes") {
+  			$("#sound_element").attr("controls", "controls");  //Show audio Controls
+  		}
 		if (json_store.ia7_config.prefs.substate_percentages === undefined) json_store.ia7_config.prefs.substate_percentages = 20;
+		if (json_store.ia7_config.prefs.developer !== undefined) developer = json_store.ia7_config.prefs.developer;
+		// First time loading, set the default speech notifications
+		if (speech_sound === undefined) {
+			if ((json_store.ia7_config.prefs.speech_default !== undefined) && (json_store.ia7_config.prefs.speech_default.search("audio") >= 0 )) {
+				speech_sound = "yes";
+			} else {
+				speech_sound = "no";
+			}
+		}
+		if (speech_banner === undefined) {
+			if ((json_store.ia7_config.prefs.speech_default !== undefined) && (json_store.ia7_config.prefs.speech_default.search("banner") >= 0 )) {
+				speech_banner = "yes";
+			} else {
+				speech_banner = "no";
+			}
+		}
+		if ((json_store.ia7_config.prefs.notifications == undefined) || ((json_store.ia7_config.prefs.notifications !== undefined) && (json_store.ia7_config.prefs.notifications == "no" ))) {
+			  	notifications = "disabled";
+			  	speech_sound = "no";
+			  	speech_banner = "no";
+		} else {
+				notifications = "enabled";
+		}
 	}
 	if (getJSONDataByPath("collections") === undefined){
 		// We need at minimum the basic collections data to render all pages
@@ -155,8 +184,13 @@ function changePage (){
 		});
 	} 
 	else {
+		// Check for authorize
+		authDetails();
 		// Clear Options Entity by Default
 		$("#toolButton").attr('entity', '');
+		
+		// Remove the RRD Last Updated 
+		$('#Last_updated').remove();
 		
 		//Trim leading and trailing slashes from path
 		var path = URLHash.path.replace(/^\/|\/$/g, "");
@@ -177,16 +211,13 @@ function changePage (){
 				args = args.replace(/\=undefined/img,''); //HP sometimes arguments are just items and not key=value...
 				link += "?"+args;
 			}
-			//alert("link="+link);
-			//$.get(URLHash.link, function( data ) {
+
 			$.get(link, function( data ) {
-				data = data.replace(/<link[^>]*>/img, ''); //Remove stylesheets
-				data = data.replace(/<title[^>]*>((\r|\n|.)*?)<\/title[^>]*>/img, ''); //Remove title
-				data = data.replace(/<meta[^>]*>/img, ''); //Remove meta refresh
-				data = data.replace(/<base[^>]*>/img, ''); //Remove base target tags
+				
 				$('#list_content').html("<div id='buffer_page' class='row top-buffer'>");
 				$('#buffer_page').append("<div id='row_page' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-				$('#row_page').html(data);
+				parseLinkData(link,data); //remove css & fix up Mr.House setup stuff
+		
 			});
 		}
 		else if(path.indexOf('print_log') === 0){
@@ -198,7 +229,7 @@ function changePage (){
 		else if(path.indexOf('display_table') === 0){
 			var path_arg = path.split('?');
 			display_table(path_arg[1]);
-		}
+		}	
 		else if(path.indexOf('floorplan') === 0){
 			var path_arg = path.split('?');
 			floorplan(path_arg[1]);
@@ -525,6 +556,8 @@ var loadList = function() {
 			
 			// Sort that list if a sort exists, probably exists a shorter way to
 			// write the sort
+			// Sorting code removed. Original design idea that buttons could be moved
+			// Around by the end user. Possible function for the future.
 //			if (sort_list !== undefined){
 //				entity_list = sortArrayByArray(entity_list, sort_list);
 //			}
@@ -535,7 +568,7 @@ var loadList = function() {
 					// This is not an entity, likely a value of the root obj
 					continue;
 				}
-				if (json_store.objects[entity].hidden != undefined){
+				if (json_store.objects[entity].hidden !== undefined){
 					// This is an entity with the hidden property, so skip it
 					continue;
 				}
@@ -557,8 +590,8 @@ var loadList = function() {
 						button_html += '<div class="leadcontainer">';
 						button_html += '<button type="button" class="btn btn-default dropdown-lead btn-lg btn-list btn-voice-cmd navbutton-padding">'+button_text_start + "<u>" + options[0] + "</u>" + button_text_end+'</button>';
 						button_html += '</div>';
-						button_html += '<button type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown navbutton-padding" data-toggle="dropdown">';
-						button_html += '<span class="caret"></span>';
+						button_html += '<button type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown navbutton-padding" data-toggle="dropdown">';						
+						button_html += '<span class="caret dropdown-caret"></span>';
 						button_html += '<span class="sr-only">Toggle Dropdown</span>';
 						button_html += '</button>';
 						button_html += '<ul class="dropdown-menu dropdown-voice-cmd" role="menu">';
@@ -610,7 +643,6 @@ var loadList = function() {
 					var dbl_btn = "";
 					if (json_store.ia7_config.prefs.always_double_buttons == "yes") {
 						if (name.length < 30) dbl_btn = "<br>"; 
-			//			if (json_store.objects[entity].state == undefined) dbl_btn += "<br>";
 					}
 					// direct control item, differentiate the button
 					var btn_direct = "";
@@ -667,16 +699,14 @@ var loadList = function() {
 				var entity = $(this).attr("entity");
 				if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
                 	if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
-                         //console.log("This is a direct control object "+entity+" state="+json_store.objects[entity].state+" length="+json_store.objects[entity].states.length);
                          var new_state = "";
                          var possible_states = 0;
                          for (var i = 0; i < json_store.objects[entity].states.length; i++){
                          	if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
-                         	//console.log("state "+i+" is "+json_store.objects[entity].states[i])
                          	possible_states++;
-                         	if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i]
+				if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i];
+
                          	}
-                        //console.log("End states = "+i+" new_state="+new_state)
 						if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
 						url= '/SET;none?select_item='+entity+'&select_state='+new_state;
 						$.get( url);
@@ -690,7 +720,7 @@ var loadList = function() {
 			$(".btn-state-cmd").mayTriggerLongClicks().on( 'longClick', function() {		
 				var entity = $(this).attr("entity");
 				create_state_modal(entity);
-			});			
+			});						
 			
 		}
 	});
@@ -704,12 +734,29 @@ var getButtonColor = function (state) {
 	if (state !== undefined) state = state.toLowerCase();
 	if (state == "on" || state == "open" || state == "disarmed" || state == "unarmed" || state == "ready" || state == "dry" || state == "up" || state == "100%" || state == "online" || state == "unlocked") {
 		 color = "success";
-	} else if (state == "motion" || state == "closed" || state == "armed" || state == "wet" || state == "fault" || state == "down" || state == "offline") {
+	} else if (state == "motion" || state == "closed" || state == "armed" || state == "wet" || state == "fault" || state == "down" || state == "offline" || state == "locked") {
 		 color = "danger";
 	} else if (state == undefined || state == "unknown" ) {
-		 color = "info";
-	} else if (state == "low" || state == "med" || state.indexOf('%') >= 0 || state == "light") { 
+		 color = "purple";
+	} else if (state == "low" || state == "med" || state.indexOf('%') >= 0 || state == "light" || state == "heating" || state == "heat") { 
 		 color = "warning";
+	} else if (state == "cooling" || state == "cool") {
+		 color = "info";
+	}
+	if (json_store.ia7_config.state_colors !== undefined
+            && json_store.ia7_config.state_colors[state] !== undefined) {
+		color = "purple";
+		if (json_store.ia7_config.state_colors[state] == "green") {
+			color = "success";
+		} else if (json_store.ia7_config.state_colors[state] == "red") {
+			color = "danger";
+		} else if (json_store.ia7_config.state_colors[state] == "blue") {
+			color = "info";
+		} else if (json_store.ia7_config.state_colors[state] == "orange") {
+			color = "warning";
+		} else if (json_store.ia7_config.state_colors[state] == "default") {
+			color = "default";
+		}
 	}
 	return color;
 };
@@ -844,7 +891,7 @@ var updateItem = function(item,link,time) {
 	var arg_str = "fields=state,states,label,state_log,schedule,logger_status&long_poll=true&items="+item+"&time="+time;
 	updateSocket = $.ajax({
 		type: "GET",
-		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
 		dataType: "json",
 		success: function( json, textStatus, jqXHR) {
 			var requestTime = time;
@@ -1066,8 +1113,17 @@ var loadCollection = function(collection_keys) {
 				link = json_store.collections[collection].external;
 			}
 			var icon_set = "fa";
+			var button_html;
 			if (icon.indexOf("wi-") !=-1) icon_set = "wi";
-			var button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list "+hidden+" navbutton-padding' role='button'><i class='"+icon_set+" "+icon+" icon-larger fa-2x fa-fw'></i>"+name+"</a>";
+			if (json_store.collections[collection].response_modal !== undefined && json_store.collections[collection].response_modal == "true") {
+				var reload_modal = "false";
+				if (json_store.collections[collection].reload_modal !== undefined) {
+					reload_modal = json_store.collections[collection].reload_modal;
+				}
+				button_html = "<a link-type='collection' modal='"+link+"' reload_modal='"+reload_modal+"' class='btn btn-default btn-lg btn-block btn-list btn-resp-modal "+hidden+" navbutton-padding' role='button'><i class='"+icon_set+" "+icon+" icon-larger fa-2x fa-fw'></i>"+name+"</a>";
+			} else {			
+				button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list "+hidden+" navbutton-padding' role='button'><i class='"+icon_set+" "+icon+" icon-larger fa-2x fa-fw'></i>"+name+"</a>";
+			}
 			entity_arr.push(button_html);
 		}
 	}
@@ -1366,7 +1422,6 @@ var display_table = function(table,records,time) {
 				$('#rtable').html(html);
 				if (json_store.ia7_config.prefs.enable_data_table_more !== undefined && json_store.ia7_config.prefs.enable_data_table_more === "yes") {
 					if (json.data.hook !== undefined && $('#more_row').length === 0) { //there is an option to pull more data
-						//console.log("More Data!"+$('#more_row').length);
 						$('#display_table').append("<div id='more_row' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
 						$('#more_row').append('<div class="table_more"><button class="btn btn-default toolbar-right-end right-end pull-right table_btn_more" type="button">');
 						$('.table_btn_more').append('next  <i class="fa fa-caret-right"></i>');
@@ -1392,7 +1447,6 @@ var display_table = function(table,records,time) {
 };
 
 
-//Creates a table based on the $json_table data structure. desktop & mobile design
 var graph_rrd = function(start,group,time) {
 
 	var URLHash = URLToHash();
@@ -1401,7 +1455,6 @@ var graph_rrd = function(start,group,time) {
 		$('#top-graph').append("<div id='rrd-periods' class='row'>");
 		$('#top-graph').append("<div id='rrd-graph' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
 		$('#top-graph').append("<div id='rrd-legend' class='rrd-legend-class'><br>");
-	//	$('#top-graph').append("<div id='legend class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'><br><br>");
 
 		time = 0;
 	}
@@ -1413,10 +1466,12 @@ var graph_rrd = function(start,group,time) {
 		updateSocket.abort();
 	}	
 	var path_str = "/rrd"  
-	var arg_str = "start="+start+"&group="+group+"&long_poll=true&time="+time;
+	//var arg_str = "start="+start+"&group="+group+"&long_poll=true&time="+time;
+	var arg_str = "start="+start+"&group="+group+"&time="+time;
 	updateSocket = $.ajax({
 		type: "GET",
-		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+		//url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+		url: "/json"+path_str+"?"+arg_str,		
 		dataType: "json",
 		success: function( json, statusText, jqXHR ) {
 			var requestTime = time;
@@ -1433,12 +1488,10 @@ var graph_rrd = function(start,group,time) {
 				var dropdown_current = "Unknown  ";
 
 				$.each(json.data.periods, function(key, value) {
-    				//console.log(key, value);
     				if (start === value.split(",")[1]) {
     					dropdown_current = value.split(",")[0]+"  ";
     				} else {
     					dropdown_html_list += '<li><a href="javascript: void(0)" id="rrdperiod_'+key+'" ';
-    					//dropdown_html_list += 'onclick=graph_rrd('+value.split(",")[1]+','+group+','+time+');';
     					dropdown_html_list += '>'+value.split(",")[0]+'</a></li>';
  
     				}
@@ -1475,7 +1528,6 @@ var graph_rrd = function(start,group,time) {
 
 					// put the selection list on the side.
 				for (var i = 0; i < json.data.data.length; i++){
-					//console.log("selection="+json.data.data[i].label);
 					var legli = $('<li style="list-style:none;"/>').appendTo('#rrd-legend');
 					$('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
 					$('<label>', {
@@ -1503,14 +1555,14 @@ var graph_rrd = function(start,group,time) {
 		
 				window.onresize = function(){
     				var base_width = $(window).width();
-   					if (base_width > 990) base_width = 990;
+   					//if (base_width > 990) base_width = 990;
+   					// styling changes @992, so then add a 30 right and left margin
    					var graph_width = base_width - 200; //give some room for the legend
 					if (base_width < 701) {
 						//put legend below graph
 						graph_width=base_width; // - 10;
 					} 
     				$('#rrd-graph').css("width",graph_width+"px");
-    				//console.log("base="+base_width+" graph="+graph_width);
     				$('#rrd-graph').text(''); 
     				$('#rrd-graph').show(); //check
     				plotAccordingToChoices();
@@ -1559,8 +1611,6 @@ var graph_rrd = function(start,group,time) {
 
 				$('.legendColorBox > div > div').each(function(i){
 					var color = $(this).css("border-left-color");
-					//console.log("color="+color);
-    				//$(this).clone().prependTo($('#rrd-legend').find("li").eq(i));
     				$('#rrd-legend').find("li").eq(i).prepend('<span style="width:4px;height:4px;border: 0px;background: '+color+';">&nbsp;&nbsp;&nbsp;</span>&nbsp');
 					});
 				requestTime = json.meta.time;
@@ -2013,129 +2063,24 @@ var floorplan = function(group,time) {
             }
         });
 
-		});
-	}
+        $(window).mousedown(function(e){
+            if (e.which === 1 && e.target.id.indexOf("entity_") >= 0){
+                fp_grabbed_entity = e.target;
+                e.stopPropagation();
+                return true;
+            }
+        });
 
- 	var path_str = "/objects";  
- 	var arg_str = "parents="+group+"&fields=fp_location,state,states,state_log,fp_icons,fp_icon_set,img,link,label,type&long_poll=true&time="+time;
-
- 	updateSocket = $.ajax({
-  		type: "GET",
-  		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
-  		dataType: "json",
-  		success: function( json, statusText, jqXHR ) {
-   			var requestTime = time;
-    		if (jqXHR.status == 200) {
-     			JSONStore(json);
-     			for (var entity in json.data) {
-					for (var i=0 ; i < json.data[entity].fp_location.length-1; i=i+2){ //allow for multiple graphics
-						//alert("length="+json.data[entity].fp_location.length+" i="+i+" x="+json.data[entity].fp_location[i]+" y="+json.data[entity].fp_location[i+1]+" ent_length="+$('#entity_'+entity).length);
-    					var location = get_fp_location(json.data[entity].fp_location,i);
-    					var popover = 0;
-    					if ((json.data[entity].type == "FPCamera_Item") ||
-    						(json_store.ia7_config.prefs.fp_state_popovers == "yes")) popover = 1 
-    					//console.log("popover="+popover+" config="+json_store.ia7_config.prefs.fp_state_popovers)
-    					var popover_html = "";
-    					if (popover) popover_html = 'data-toggle="popover" data-trigger="focus" tabindex="0"' 
-    					
-   						var image = get_fp_image(json.data[entity]);
-      					if ($('#entity_'+entity+'_'+i).length > 0) {
-      						$('#entity_'+entity+'_'+i).attr('src',"/ia7/graphics/"+image);
-      					} else {				   					
-							$('#graphic').append('<img '+popover_html+' id="entity_'+entity+'_'+i+'" class="entity='+entity+'_'+i+' floorplan_item coords='+json.data[entity].fp_location[i]+'x'+json.data[entity].fp_location[i+1]+'" style="'+location+'" src="/ia7/graphics/'+image+'" />');
-							//create_state_modal('#entity_'+entity+i,entity); 
-						}
-						// create unique popovers for Camera items
-						if (json.data[entity].type == "FPCamera_Item") {
-							var name = entity;
-							if (json.data[entity].label !== undefined) name = json.data[entity].label
-							var a_start = "";
-							var a_end = "";
-							if (json.data[entity].link !== undefined) {
-								a_start = '<a href="'+json.data[entity].link+'">'
-								a_end = '</a>';
-							}
-							//console.log("name="+entity+" label = "+json.data[entity].label);
-							//console.log("link = "+json.data[entity].get_img);
-							$('[data-toggle="popover"]').popover({
-								placement : 'auto bottom', //placement of the popover. also can use top, bottom, left or right
-      							title : name, 
-      							html: 'true', //needed to show html of course
-      							content : '<div id="popOverBox">'+a_start+'<img src="'+json.data[entity].img+'" width="251" height="201" />'+a_end+'</div>'
-							});
-						} else {
-							if (popover) {								
-								
-								$('[data-toggle="popover"]').popover({
-									placement : 'auto bottom', //placement of the popover. also can use top, bottom, left or right
-      								title : function() {
-      									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
-      									var name = fp_entity;
-										if (json_store.objects[fp_entity].label !== undefined) name = json_store.objects[fp_entity].label;								
-      									return name+" - "+json_store.objects[fp_entity].state;
-      									}, 
-      								html: 'true', //needed to show html of course
-      								content : function() {
-      									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
-										var po_states = json_store.objects[fp_entity].states;
-										var html = '<div id="popOverBox">';
-										// HP need to have at least 2 states to be a controllable object...
-										if (po_states.length > 1) {
-											html = '<div class="btn-group stategrp0 btn-block">';
-											var buttons = 0;
-											var stategrp = 0;
-											for (var i = 0; i < po_states.length; i++){
-												if (filterSubstate(po_states[i]) == 1) {
-													continue 
-												} else {
-													buttons++ 
-												//}
-												if (buttons > 2) {
-													stategrp++;
-													html += "</div><div class='btn-group btn-block stategrp"+stategrp+"'>";
-													buttons = 1;
-												}
-												//console.log ("name="+fp_entity+" buttons="+buttons)
-										
-												var color = getButtonColor(po_states[i])
-//TODO disabled override
-												var disabled = ""
-												if (po_states[i] == json_store.objects[fp_entity].state) {
-													disabled = "disabled";
-												}
-												html += "<button class='btn col-sm-6 col-xs-6 btn-"+color+" "+disabled+"'"
-												var url= '/SET;none?select_item='+fp_entity+'&select_state='+po_states[i];
-												html += ' onclick="$.get('
-												html += "'"+url+"')"
-												html += '">'+po_states[i]+'</button>';
-											}
-										}
-									}
-									html += "</div></div>"
-									//console.log("html="+html)
-									return html
-								}
+        $(window).mouseup(function(e){
+            if (fp_grabbed_entity === null)
+                return;
 
             set_coordinates_from_offset(fp_grabbed_entity.id);
             fp_reposition_entities();
             fp_grabbed_entity = null;
         });
 
-//have to figure out height, and the jumps at 991 and 1200
-var get_fp_location = function(item,index) {
-	var baseimg_width = $(window).width();
-	//var baseimg_height = $(window).height() - 60;
-	var baseimg_height = $('#fp_graphic').height();	
-	var tmargin = 0;
-	var lmargin = 0;
-  	//console.log("baseimg_width="+baseimg_width+"baseimg_height="+baseimg_height+" h2="+baseimg_height2); 
-  	if (baseimg_width > 990) {
-  		lmargin = (baseimg_width - 980) / 2;
-  		tmargin = 20;
-  		if (baseimg_width > 1200) {
-  			lmargin = (baseimg_width - 1180) / 2;
-  		}
-  		baseimg_width = 800;
+    }
 
     var set_coordinates_from_offset = function (id)
     {
@@ -2472,26 +2417,25 @@ var get_fp_location = function(item,index) {
 };
 var get_fp_image = function(item,size,orientation) {
   	var image_name;
-  	var image_color = getButtonColor(item.state)
+	var image_color = getButtonColor(item.state);
 	var baseimg_width = $(window).width();
   //	if (baseimg_width < 500) fp_icon_image_size = "32" // iphone scaling
 	//kvar fp_icon_image_size = "32"
  	if (item.fp_icons !== undefined) {
- 		//alert("Has a button defined state="+item.fp_icons[item.state]);
  		if (item.fp_icons[item.state] !== undefined) return item.fp_icons[item.state];
  	}
  	if (item.fp_icon_set !== undefined) {
 		return "fp_"+item.fp_icon_set+"_"+image_color+"_"+fp_icon_image_size+".png";
  	} 	
  	//	if item.fp_icons.return item.fp_icons[state];
-  	if(item.type == "Light_Item" || item.type == "Fan_Light" ||
-    		item.type == "Insteon_Device" || item.type == "UPB_Link" ||
-    		item.type == "Insteon::SwitchLinc" || item.type == "Insteon::SwitchLincRelay" ||    
-    		item.type == "Insteon::KeyPadLinc" ||   		    				
-    		item.type == "EIB_Item" || item.type == "EIB1_Item" ||
-    		item.type == "EIB2_Item" || item.type == "EIO_Item" ||
-    		item.type == "UIO_Item" || item.type == "X10_Item" ||    		
-    		item.type == "xPL_Plugwise" || item.type == "X10_Appliance") {
+	if(item.type === "Light_Item" || item.type === "Fan_Light" ||
+		item.type === "Insteon_Device" || item.type === "UPB_Link" ||
+		item.type === "Insteon::SwitchLinc" || item.type === "Insteon::SwitchLincRelay" ||
+		item.type === "Insteon::KeyPadLinc" ||
+		item.type === "EIB_Item" || item.type === "EIB1_Item" ||
+		item.type === "EIB2_Item" || item.type === "EIO_Item" ||
+		item.type === "UIO_Item" || item.type === "X10_Item" ||
+		item.type === "xPL_Plugwise" || item.type === "X10_Appliance") {
 
 			return "fp_light_"+image_color+"_"+fp_icon_image_size+".png";
   	}
@@ -2551,7 +2495,6 @@ var create_state_modal = function(entity) {
 				grid_buttons = 4;
 				group_buttons = 3;
 			}
-			//console.log("display buttons="+display_buttons+" grid_buttons="+grid_buttons+" group_buttons="+group_buttons); 
 			
 			for (var i = 0; i < modal_states.length; i++){
 				if (filterSubstate(modal_states[i]) == 1) {
@@ -2900,14 +2843,27 @@ $(document).ready(function() {
 	$(window).bind('hashchange', function() {
 		changePage();
 	});
+	
 	$("#mhstatus").click( function () {
 		var link = json_store.collections[600].link;
 		link = buildLink (link, "0,600");
-	//    window.location.href = "/ia7/#path=/objects&parents=group1&_collection_key=0,1,17,$group1";
 	    window.location.href = link;
 	});
-	updateItem("ia7_status");
+	
+	// Load up 'globals' -- notification and the status
+	updateItem("ia7_status");	
+	get_notifications();	
+
 	$("#toolButton").click( function () {
+		// Need a 'click' event to turn on sound for mobile devices
+		if (mobile_device() == "ios" ) {
+			if (audio_init === undefined) {
+				audioElement = document.getElementById('sound_element');
+				audioElement.play();
+			}
+			audio_init = 1;
+		}
+		//
 		var entity = $("#toolButton").attr('entity');
 		$('#optionsModal').modal('show');
 		$('#optionsModal').find('.object-title').html("Mr.House Options");
@@ -2916,6 +2872,8 @@ $(document).ready(function() {
 		$('#optionsModal').find('.modal-body').html('<div class="btn-group btn-block" data-toggle="buttons"></div>');
 		var simple_active = "active";
 		var simple_checked = "checked";
+		var develop_active = "";
+		var develop_checked = "";
 		var advanced_active = "";
 		var advanced_checked = ""
 		if (display_mode == "advanced") {
@@ -2923,13 +2881,87 @@ $(document).ready(function() {
 			simple_checked = "";
 			advanced_active = "active";
 			advanced_checked = "checked"
+			develop_active = "";
+			develop_checked = "";
 		}
-		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-6 col-sm-6"+simple_active+"'><input type='radio' name='mhmode2' id='simple' autocomplete='off'"+simple_checked+">simple</label>");
-		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-6 col-sm-6"+advanced_active+"'><input type='radio' name='mhmode2' id='advanced' autocomplete='off'"+advanced_checked+">advanced</label>");
+		if (display_mode == "advanced" && developer == true)  {
+			simple_active = "";
+			simple_checked = "";
+			advanced_active = "";
+			advanced_checked = ""
+			develop_active = "active";
+			developed_checked = "checked"
+		}		
+		
+		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-4 col-sm-4 "+simple_active+"'><input type='radio' name='mhmode2' id='simple' autocomplete='off'"+simple_checked+">simple</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-4 col-sm-4 "+advanced_active+"'><input type='radio' name='mhmode2' id='advanced' autocomplete='off'"+advanced_checked+">expert</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-4 col-sm-4 "+develop_active+"'><input type='radio' name='mhmode2' id='developer' autocomplete='off'"+develop_checked+">developer</label>");
+
 		$('.mhmode').on('click', function(){
-			display_mode = $(this).find('input').attr('id');	
+			if ($(this).find('input').attr('id') == "developer") {
+				display_mode = "advanced";
+				developer = true;
+			} else {
+				display_mode = $(this).find('input').attr('id');
+				developer = false;
+			}	
 			changePage();
   		});
+  		
+  		var sound_active = "";
+  		var banner_active = "";
+  		var off_active = "active";
+  		var sound_label = "Sound";
+  		var banner_label = "Banner";
+  		if ($(window).width() <= 768) { // make icons for mobile
+			sound_label = "<i class='fa fa-volume-up'></i>";
+			banner_label = "<i class='fa fa-list-ul'></i>";
+		}
+  		if (speech_banner === "yes") {
+  			banner_active = "active";
+  			off_active = "";
+  		}
+   		if (speech_sound === "yes") {
+  			sound_active = "active";
+  			off_active = "";
+  		} 
+     	if (notifications === "disabled") {
+  			sound_active = "active";
+  			off_active = "active";
+  			banner_active = "active";
+  		}				
+  		// if notifications disabled then disable all the buttons
+   		$('#optionsModal').find('.modal-body').append('<div class="btn-group btn-block btn-notifications" data-toggle="buttons"></div>');
+		$('#optionsModal').find('.modal-body').find('.btn-notifications').append("<label class='btn btn-default mhnotify col-xs-6 col-sm-6 disabled'><input type='checkbox' name='mhnotify0' id='speech' autocomplete='off'>Speech</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-notifications').append("<label class='btn btn-default mhnotify mhnotifyopt col-xs-2 col-sm-2 "+sound_active+" "+notifications+"'><input type='checkbox' name='mhnotify1' id='sound' autocomplete='off'>"+sound_label+"</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-notifications').append("<label class='btn btn-default mhnotify mhnotifyopt col-xs-2 col-sm-2 "+banner_active+" "+notifications+"'><input type='checkbox' name='mhnotify2' id='banner' autocomplete='off'>"+banner_label+"</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-notifications').append("<label class='btn btn-default mhnotify mhnotifyoff col-xs-2 col-sm-2 "+off_active+" "+notifications+"'><input type='checkbox' name='mhnotify3' id='off' autocomplete='off'>Off</label>");
+ 		$('.mhnotify').on('click', function(){
+			var speech_mode = $(this).find('input').attr('id');
+			var button_active = $(this).hasClass('active');
+			if (speech_mode == "off") {
+				$('.mhnotifyopt').removeClass('active');
+				speech_sound = "no";
+				speech_banner = "no";
+			} else {
+				if (speech_mode === "sound") {
+					if (button_active === true) {
+						speech_sound = "no";
+					} else {
+						speech_sound = "yes";
+					}
+				} else if (speech_mode === "banner") {
+					if (button_active === true) {
+						speech_banner = "no";
+					} else {
+						speech_banner = "yes";
+					}
+				}
+				$('.mhnotifyoff').removeClass('active');
+				if ((speech_banner === "no") && (speech_sound === "no")) $('.mhnotifyoff').addClass('active');
+			}
+			//if off, then unselect others
+  		});  		
 		// parse the collection ID 500 and build a list of buttons
 		var opt_collection_keys = 0;
 		var opt_entity_html = "";
@@ -2951,10 +2983,23 @@ $(document).ready(function() {
 				if (json_store.collections[collection].external !== undefined) {
 					link = json_store.collections[collection].external;
 				}
-				opt_entity_html += "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
+				//Check to see if this is the login button
+				if (json_store.collections[collection].user !== undefined) {
+//					if (name == undefined) {
+//						authDetails();
+//					} 
+					opt_entity_html += "<a link-type='collection' user='"+json_store.collections[collection].user+"' class='btn btn-default btn-lg btn-block btn-list btn-login-modal' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
+				} else {	
+					opt_entity_html += "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
+				}
 			}
 		}
-		$('#optionsModal').find('.modal-body').append(opt_entity_html);						
+		$('#optionsModal').find('.modal-body').append(opt_entity_html);	
+		$('.btn-login-modal').click( function () {
+			$('#optionsModal').modal('hide');			
+			var user = $(this).attr('user')
+			authorize_modal(user);
+		});						
 		$('#optionsModal').find('.btn-list').click(function (){
 			$('#optionsModal').modal('hide');
 		});

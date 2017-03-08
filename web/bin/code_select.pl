@@ -43,7 +43,7 @@ activate properly.|;
 
     $html .= qq|<br><font color=red><b>Read-Only</b>: <a href="/bin/SET_PASSWORD">Login as admin</a> to edit</font>| unless $Authorized eq 'admin';
     $html .= qq|
-<CENTER><FORM ACTION="/bin/code_select.pl" method=post>
+<CENTER><FORM ACTION="/bin/code_select.pl" id="mhresponse" method=post>
 <TABLE BORDER="0" cellspacing="0" cellpadding="0" width="100%">
 <tr><td colspan="2"><B>Search</B> (file or description): <input  align='left' size='25' name='search'>&nbsp;<INPUT TYPE='submit' VALUE='Search'>
 |;

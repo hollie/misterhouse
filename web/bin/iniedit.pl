@@ -169,7 +169,7 @@ sub edit {
         Note: Commit will resort and filter out comments.'
       if $Authorized eq 'admin';
     $data .= '
-        <FORM method=post>
+        <FORM method=post id="mhresponse" action="/bin/iniedit.pl">
     ';
 
     $data .= '
@@ -249,7 +249,7 @@ sub edit {
 
 sub edit_list {
     my $data = '
-        <FORM method=post>
+        <FORM method=post id="mhresponse" action="/bin/iniedit.pl">
     ';
     $data .= '
         <TABLE WIDTH="98%" CELLSPACING=0 CELLPADDING=0 BORDER=0>

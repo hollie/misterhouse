@@ -47,6 +47,7 @@ use HTML::Entities;    # So we can encode characters like <>& etc
 use JSON qw(decode_json);
 use IO::Compress::Gzip qw(gzip);
 use vars qw(%json_table);
+my @json_notifications = ();    #noloop
 
 sub json {
     my ( $request_type, $path_str, $arguments, $body ) = @_;
@@ -263,6 +264,7 @@ sub json_get {
         my $celsius  = 0;
         my $kph      = 0;
         my $arg_time = 0;
+        my $xml_info;
         $arg_time = int( $args{time}[0] ) if ( defined int( $args{time}[0] ) );
         $celsius  = 1                     if ( $config_parms{weather_uom_temp} eq 'C' );
         $celsius  = 1
@@ -327,13 +329,10 @@ sub json_get {
             }
 
             push @defs, @xports;
-
-            #print "defs=" . join (',',@defs) . "\n";
-            #print "start=$start end=$end\n";
-
             my $rrd = RRDTool::Rawish->new( rrdfile => "$path/$rrd_file" );
             my $xml =
               $rrd->xport( [@defs], { '--start' => $start, '--end' => $end, } );
+            $xml_info = $rrd->info if ( $default_timestamp eq "true" );
             my @lines = split /\n/, $xml;
 
             my ($step) = $xml =~ /\<step\>(\d+)\<\/step\>/;    #this is the width for any bar charts
@@ -380,8 +379,6 @@ sub json_get {
         $data{'last_update'} = $xml_info->{'last_update'} * 1000
           if ( ref($xml_info) eq 'HASH' && defined $xml_info->{'last_update'} );
         $json_data{'rrd'} = \%data;
-
-        #print Dumper %data;
     }
 
     # List object history
@@ -619,8 +616,6 @@ sub json_get {
         if ( $args{var} ) {
             my $length = $#{ $json_table{ $args{var}[0] }->{data} } + 1;
 
-            #print "json_db: length = $length start=" . $args{start}[0] . " records=" . $args{records}[0] . "\n";
-
             #need to check if vars and keys exist
 
             my $start = 0;
@@ -631,30 +626,13 @@ sub json_get {
               if ( defined $json_table{ $args{var}[0] }{page} );
             $records = $args{records}[0] if ( $args{records}[0] );
 
-            #		if ($length < ($start + $records)) {
-            #			print "db: will have to request data, $length, $start, $records\n";
-            #			print "&" . $json_table{$args{var}[0]}{hook} . "($start,$records)\n";
-            #			my $hook = 	$json_table{$args{var}[0]}{hook} . "($start,$records)";
-            #
-            #		#eval (&get_inbound_data($start,$records));
-            #			eval ("&$hook");
-            #			if ($@) {
-            #	  			print_log "Json_Server.pl: WARNING: fetch data failed for " . $args{var}[0] . " " . $json_table{$args{var}[0]}{hook} . "!";
-            #			} else {
-            #	  			$page++ if (scalar @{$json_table{$args{var}[0]}->{data}} > $json_table{$args{var}[0]}{page_size});
-            #			}
-            #			#$json_table{$args{var}[0]}{page} = $page;
-            #		}
-            #if requesting data beyond what's available, fetch it.
-            #test bad table
-            #remove data from hash
-            my $jt_time = int( $json_table{ $args{var}[0] }{time} );
+            # TODO: At some point have a hook that pulls in more data into the table if it's missing
+            #  ie read a file
 
-            #print "arg time = " . int($args{time}[0]) . " table time = " .$jt_time . "\n";
+            my $jt_time = int( $json_table{ $args{var}[0] }{time} );
             if (   ( $args{time} && int( $args{time}[0] ) < $jt_time )
                 or ( !$args{time} ) )
             {
-                #$json_data->{'table_data'} = $json_table{$args{var}[0]};
                 #need to copy all the data since we can adjust starts and records
 
                 $json_data{'table_data'}{exist} =
@@ -675,8 +653,6 @@ sub json_get {
                   if ( $args{records}[0] );
                 $json_data{'table_data'}{records} =
                   scalar @{ $json_data{'table_data'}->{data} };
-
-                #print "db=$json_data{'table_data'}{records}\n";
             }
         }
     }
@@ -745,20 +721,16 @@ sub json_get {
     # Insert Data or Error Message
     if ($output_ref) {
         $json{data} = $output_ref;
-
-        #	   foreach my $key (sort (keys(%{$output_ref}))) {
-        #	   print "db:key = $key\n";
-        #  		 $json{data}{$key} = $output_ref->{$key};
-        #		}
     }
     else {
         $json{error}{msg} = 'No data, or path does not exist.';
     }
 
     #Insert Meta Data fields
-    $json{meta}{time} = $output_time;
-    $json{meta}{path} = \@path;
-    $json{meta}{args} = \%args;
+    $json{meta}{time}      = $output_time;
+    $json{meta}{path}      = \@path;
+    $json{meta}{args}      = \%args;
+    $json{meta}{client_ip} = $Http{Client_address};
 
     my $json_raw = JSON->new->allow_nonref;
 
