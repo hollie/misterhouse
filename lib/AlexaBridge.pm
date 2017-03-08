@@ -371,9 +371,20 @@ sub _constant {
 
 sub _mcast_add {
     my ( $sock, $addr ) = @_;
-    my $ip_mreq = inet_aton($addr) . INADDR_ANY;
+    my $ip_mreq;
+     if (defined $::config_parms{'alexaHttpIp'}) {
+       $ip_mreq = inet_aton($::config_parms{'alexaHttpIp'});
+      } else {
+        $ip_mreq = inet_aton('0.0.0.0');
+      }
+     $ip_mreq = inet_aton( $addr ) . $ip_mreq;
 
-    setsockopt( $sock, getprotobyname('ip') || 0, _constant('IP_ADD_MEMBERSHIP'), $ip_mreq ) || warn "Unable to add IGMP membership: $!\n";
+    setsockopt(
+        $sock,
+        getprotobyname('ip') || 0,
+        _constant('IP_ADD_MEMBERSHIP'),
+        $ip_mreq
+    ) || warn "Unable to add IGMP membership: $!\n";
 }
 
 sub check_for_data {
