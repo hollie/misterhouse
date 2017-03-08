@@ -3,8 +3,7 @@
 use strict;
 
 ##############################################################################
-$winlirc_client =
-  new Socket_Item( undef, undef, 'localhost:8765', 'winlirc', 'tcp', 'record' );
+$winlirc_client = new Socket_Item( undef, undef, 'localhost:8765', 'winlirc', 'tcp', 'record' );
 
 if ($Startup) {
     start $winlirc_client;
@@ -13,8 +12,7 @@ if ($Startup) {
 if ( my $msg = said $winlirc_client) {
 
     #    		print_log "Winlirc_message_received: $msg\n";
-    my ( $code, $act, $key, $remote ) =
-      ( $msg =~ /([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+) */ );
+    my ( $code, $act, $key, $remote ) = ( $msg =~ /([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+) */ );
     if ( $act eq '00' ) {
         print_log "Winlirc_message_received: $msg\n";
         print "Winlirc_message_received: $msg\n";
@@ -40,35 +38,35 @@ if ( my $msg = said $winlirc_client) {
         run_voice_cmd 'Set audible key to 2'       if ( $key eq 'CD-5' );
         run_voice_cmd 'Toggle the house mode'      if ( $key eq 'CD-Mute' );
         run_voice_cmd 'Media Box rand_next'        if ( $key eq 'TV-Prog-up' );
-        run_voice_cmd 'Media Box stop'       if ( $key eq 'TV-Prog-down' );
-        run_voice_cmd 'Media Box voldn'      if ( $key eq 'TV-1' );
-        run_voice_cmd 'Media Box volup'      if ( $key eq 'TV-3' );
-        run_voice_cmd 'Media Box voldn'      if ( $key eq 'TV-Volume-down' );
-        run_voice_cmd 'Media Box volup'      if ( $key eq 'TV-Volume-up' );
-        run_voice_cmd 'Media Box up'         if ( $key eq 'TV-2' );
-        run_voice_cmd 'Media Box down'       if ( $key eq 'TV-8' );
-        run_voice_cmd 'Media Box left'       if ( $key eq 'TV-4' );
-        run_voice_cmd 'Media Box right'      if ( $key eq 'TV-6' );
-        run_voice_cmd 'Media Box enter'      if ( $key eq 'TV-5' );
-        run_voice_cmd 'Media Box play_pause' if ( $key eq 'TV-0' );
-        run_voice_cmd 'Media Box play_pause' if ( $key eq 'TV-0' );
-        run_voice_cmd 'Media Box fforward'   if ( $key eq 'TV-9' );
-        run_voice_cmd 'Media Box mark'       if ( $key eq 'TV-7' );
-        run_voice_cmd 'Media Box exit'       if ( $key eq 'TV-Exit' );
-        run_voice_cmd 'Media Box start'      if ( $key eq 'TV-Switch-onoff' );
-        run_voice_cmd 'Turn on TV channel 1' if ( $key eq 'TV 1' );
-        run_voice_cmd 'Turn on TV channel 2' if ( $key eq 'TV 2' );
-        run_voice_cmd 'Turn on TV channel 3' if ( $key eq 'TV 3' );
-        run_voice_cmd 'Turn on TV channel 4' if ( $key eq 'TV 4' );
-        run_voice_cmd 'Turn on TV channel 5' if ( $key eq 'TV 5' );
-        run_voice_cmd 'Turn on TV channel 6' if ( $key eq 'TV 6' );
-        run_voice_cmd 'Turn on TV channel 7' if ( $key eq 'TV 7' );
-        run_voice_cmd 'Turn on TV channel 8' if ( $key eq 'TV 8' );
-        run_voice_cmd 'Set TV Channel up'    if ( $key eq 'TV-Prog-up' );
-        run_voice_cmd 'Set TV Channel down'  if ( $key eq 'TV-Prog-down' );
-        run_voice_cmd 'Set TV OnOff'         if ( $key eq 'TV Switch onoff' );
-        run_voice_cmd 'Set TV Full screen'   if ( $key eq 'TV Full screen' );
-        run_voice_cmd 'Set TV Mute'          if ( $key eq 'TV Mute' );
+        run_voice_cmd 'Media Box stop'             if ( $key eq 'TV-Prog-down' );
+        run_voice_cmd 'Media Box voldn'            if ( $key eq 'TV-1' );
+        run_voice_cmd 'Media Box volup'            if ( $key eq 'TV-3' );
+        run_voice_cmd 'Media Box voldn'            if ( $key eq 'TV-Volume-down' );
+        run_voice_cmd 'Media Box volup'            if ( $key eq 'TV-Volume-up' );
+        run_voice_cmd 'Media Box up'               if ( $key eq 'TV-2' );
+        run_voice_cmd 'Media Box down'             if ( $key eq 'TV-8' );
+        run_voice_cmd 'Media Box left'             if ( $key eq 'TV-4' );
+        run_voice_cmd 'Media Box right'            if ( $key eq 'TV-6' );
+        run_voice_cmd 'Media Box enter'            if ( $key eq 'TV-5' );
+        run_voice_cmd 'Media Box play_pause'       if ( $key eq 'TV-0' );
+        run_voice_cmd 'Media Box play_pause'       if ( $key eq 'TV-0' );
+        run_voice_cmd 'Media Box fforward'         if ( $key eq 'TV-9' );
+        run_voice_cmd 'Media Box mark'             if ( $key eq 'TV-7' );
+        run_voice_cmd 'Media Box exit'             if ( $key eq 'TV-Exit' );
+        run_voice_cmd 'Media Box start'            if ( $key eq 'TV-Switch-onoff' );
+        run_voice_cmd 'Turn on TV channel 1'       if ( $key eq 'TV 1' );
+        run_voice_cmd 'Turn on TV channel 2'       if ( $key eq 'TV 2' );
+        run_voice_cmd 'Turn on TV channel 3'       if ( $key eq 'TV 3' );
+        run_voice_cmd 'Turn on TV channel 4'       if ( $key eq 'TV 4' );
+        run_voice_cmd 'Turn on TV channel 5'       if ( $key eq 'TV 5' );
+        run_voice_cmd 'Turn on TV channel 6'       if ( $key eq 'TV 6' );
+        run_voice_cmd 'Turn on TV channel 7'       if ( $key eq 'TV 7' );
+        run_voice_cmd 'Turn on TV channel 8'       if ( $key eq 'TV 8' );
+        run_voice_cmd 'Set TV Channel up'          if ( $key eq 'TV-Prog-up' );
+        run_voice_cmd 'Set TV Channel down'        if ( $key eq 'TV-Prog-down' );
+        run_voice_cmd 'Set TV OnOff'               if ( $key eq 'TV Switch onoff' );
+        run_voice_cmd 'Set TV Full screen'         if ( $key eq 'TV Full screen' );
+        run_voice_cmd 'Set TV Mute'                if ( $key eq 'TV Mute' );
         run_voice_cmd 'Toggle recording of TV programme'
           if ( $key eq 'TV Record' );
         run_voice_cmd 'Play recorded file' if ( $key eq 'TV Red' );
@@ -109,13 +107,13 @@ if ( my $msg = said $winlirc_client) {
         run_voice_cmd 'Turn on Radio channel 7' if ( $key eq 'RADIO 7' );
         run_voice_cmd 'Turn on Radio channel 8' if ( $key eq 'RADIO 8' );
         run_voice_cmd 'Set Radio Seek up'       if ( $key eq 'RADIO Prog up' );
-        run_voice_cmd 'Set Radio Seek down' if ( $key eq 'RADIO Prog down' );
-        run_voice_cmd 'Set Radio Volume up' if ( $key eq 'RADIO Volume up' );
+        run_voice_cmd 'Set Radio Seek down'     if ( $key eq 'RADIO Prog down' );
+        run_voice_cmd 'Set Radio Volume up'     if ( $key eq 'RADIO Volume up' );
         run_voice_cmd 'Set Radio Volume down'
           if ( $key eq 'RADIO Volume down' );
-        run_voice_cmd 'Set Radio Off'  if ( $key eq 'RADIO Exit' );
-        run_voice_cmd 'Set Radio Off'  if ( $key eq 'RADIO Switch onoff' );
-        run_voice_cmd 'Set Radio Mute' if ( $key eq 'RADIO Mute' );
+        run_voice_cmd 'Set Radio Off'              if ( $key eq 'RADIO Exit' );
+        run_voice_cmd 'Set Radio Off'              if ( $key eq 'RADIO Switch onoff' );
+        run_voice_cmd 'Set Radio Mute'             if ( $key eq 'RADIO Mute' );
         run_voice_cmd 'Set music audible key to 1' if ( $key eq 'TV-Red' );
         run_voice_cmd 'Set music audible key to 2' if ( $key eq 'TV-Green' );
         run_voice_cmd 'Set audible key to 1'       if ( $key eq 'TV-Yellow' );

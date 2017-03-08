@@ -48,8 +48,7 @@ longitude .ini variable to be negative.
 
 # Add earthquake image to Informational category web page
 if ($Reload) {
-    $Included_HTML{'Informational'} .=
-      qq(<h3>Latest Earthquake<p><img src='/data/web/earthquakes.gif?<!--#include code="int(100000*rand)"-->'><p>\n\n\n);
+    $Included_HTML{'Informational'} .= qq(<h3>Latest Earthquake<p><img src='/data/web/earthquakes.gif?<!--#include code="int(100000*rand)"-->'><p>\n\n\n);
 }
 
 # Default Magnitude Thresholds
@@ -73,8 +72,7 @@ if ( $config_parms{Earthquake_Count} ) {
 my $f_earthquakes_html = "$config_parms{data_dir}/web/earthquakes.html";
 my $f_earthquakes_data = "$config_parms{data_dir}/earthquakes_data";
 $f_earthquakes_file = new File_Item($f_earthquakes_data);
-$f_earthquakes_gif =
-  new File_Item("$config_parms{data_dir}/web/earthquakes.gif");
+$f_earthquakes_gif  = new File_Item("$config_parms{data_dir}/web/earthquakes.gif");
 
 my $image;
 $p_earthquakes_image = new Process_Item;
@@ -137,8 +135,7 @@ if ( ( changed $f_earthquakes_file) or $Startup ) {
     foreach ( split /\n/, $text ) {
 
         #Only look at lines with quake data on them
-        if (/^(\d+)\s+(\S+)\s+(\S+)\s+(\S+)([NS])\s+(\S+)([EW])\s+(\S+)\s+(.+)/)
-        {
+        if (/^(\d+)\s+(\S+)\s+(\S+)\s+(\S+)([NS])\s+(\S+)([EW])\s+(\S+)\s+(.+)/) {
             $search = $quake = $_;
 
             #    print "Terremoto: $quake\n";
@@ -174,14 +171,9 @@ sub calc_distance {
     $lat2 /= $c;
     $lon1 /= $c;
     $lon2 /= $c;
-    $d = 2 * Math::Trig::asin(
-        sqrt(
-            ( sin( ( $lat1 - $lat2 ) / 2 ) )**2 +
-              cos($lat1) * cos($lat2) * ( sin( ( $lon1 - $lon2 ) / 2 ) )**2
-        )
-    );
+    $d = 2 * Math::Trig::asin( sqrt( ( sin( ( $lat1 - $lat2 ) / 2 ) )**2 + cos($lat1) * cos($lat2) * ( sin( ( $lon1 - $lon2 ) / 2 ) )**2 ) );
 
-    return $d * ( .5 * 7915.6 * .86838 ) * 1.609344;  # convert to Km and return
+    return $d * ( .5 * 7915.6 * .86838 ) * 1.609344;    # convert to Km and return
 }
 
 sub calc_age {
@@ -190,8 +182,7 @@ sub calc_age {
     my $time = shift;
 
     #Split it up
-    my ( $qyear, $qmnth, $qdate, $qhour, $qminu, $qseco ) =
-      $time =~ m!(\S+)/(\S+)/(\S+)\s+(\S+):(\S+):(\S+)!;
+    my ( $qyear, $qmnth, $qdate, $qhour, $qminu, $qseco ) = $time =~ m!(\S+)/(\S+)/(\S+)\s+(\S+):(\S+):(\S+)!;
 
     #Merge it
     my $qtime = timegm( $qseco, $qminu, $qhour, $qdate, $qmnth - 1, $qyear );
@@ -204,9 +195,7 @@ sub calc_age {
     $qtime = timelocal( $qseco, $qminu, $qhour, $qdate, $qmnth - 1, $qyear );
 
     my $midnight = timelocal( 0, 0, 0, $Mday, $Month - 1, $Year - 1900 );
-    my $diff = (
-        time -
-          timelocal( $qseco, $qminu, $qhour, $qdate, $qmnth - 1, $qyear ) );
+    my $diff = ( time - timelocal( $qseco, $qminu, $qhour, $qdate, $qmnth - 1, $qyear ) );
 
     return "hace " . int( $diff / 60 ) . " minutos " if ( $diff < 60 * 120 );
     return "hace " . int( $diff / ( 60 * 60 ) ) . " horas "
@@ -222,10 +211,7 @@ sub calc_age {
     #   elsif ($qhour == 12) {$hour = "12 PM"}
     #   else {$hour = $qhour - 12 . " PM"}
     return "Ayer a las $hour " if ( $qtime > $midnight - 60 * 60 * 24 );
-    return
-        "hace "
-      . int( $diff / ( 60 * 60 * 24 ) + .5 )
-      . " días a las $hour ";
+    return "hace " . int( $diff / ( 60 * 60 * 24 ) + .5 ) . " días a las $hour ";
 }
 
 # EVENTO FECHA-HORA GMT LATITUD LONGITUD MAG SENTIDO MEC PROF LOCALIZACIÓN
@@ -234,14 +220,8 @@ sub calc_age {
 sub speak_quake {
 
     #   print "Speak_quake: $_\n";
-    if (
-        my (
-            $qevent, $qdate, $qtime,  $qlatd, $qnoso, $qlong,
-            $qeawe,  $qmagn, $qpercv, $qmec,  $qdept, $qloca
-        )
-        = $_ =~
-        m!^(\d+)\s+(\S+)\s+(\S+)\s+(\S+)([NS])\s+(\S+)([EW])\s+(\S+)\s*(SI)?\s*(\S+)?\s*(\d+)?\s+(.+)!
-      )
+    if ( my ( $qevent, $qdate, $qtime, $qlatd, $qnoso, $qlong, $qeawe, $qmagn, $qpercv, $qmec, $qdept, $qloca ) =
+        $_ =~ m!^(\d+)\s+(\S+)\s+(\S+)\s+(\S+)([NS])\s+(\S+)([EW])\s+(\S+)\s*(SI)?\s*(\S+)?\s*(\d+)?\s+(.+)! )
     {
         my $distance;
         my $clatd = $config_parms{quakes_ref_latitude};
@@ -252,42 +232,34 @@ sub speak_quake {
         if ( $clatd && $clong && $ccity ) {
 
             # reference to a diferent place
-            $distance = sprintf "%d kilómetros de %s,",
-              calc_distance( $clatd, $clong, $qlatd, $qlong ) + .5, $ccity;
+            $distance = sprintf "%d kilómetros de %s,", calc_distance( $clatd, $clong, $qlatd, $qlong ) + .5, $ccity;
         }
         else {
             # reference distance to mh home city
-            $distance = sprintf "%d kilómetros",
-              calc_distance( $config_parms{latitude}, $config_parms{longitude},
-                $qlatd, $qlong ) + .5;
+            $distance = sprintf "%d kilómetros", calc_distance( $config_parms{latitude}, $config_parms{longitude}, $qlatd, $qlong ) + .5;
         }
         for ( keys %Magnitude_thresholds ) {
             if ( $distance <= $_ and $qmagn >= $Magnitude_thresholds{$_} ) {
 
                 #         my $long_reso = abs(5 * round($qlatd/5)) > 45 ? (abs(5 * round($qlatd/5)) > 65 ? 20 : 10) : 5;
-                $image = 'http://pangea.ign.es/servidor/sismo/cnis/proximo/'
-                  . $qevent . '.gif';
+                $image = 'http://pangea.ign.es/servidor/sismo/cnis/proximo/' . $qevent . '.gif';
                 my ( $direction, $local, $area, $where );
                 ( $direction, $local ) = $qloca =~ m!^([NS]?[EW]?)\s+(.+)!;
 
                 #         print "qloca: $qloca, direction: $direction, local: $local\n";
                 if ($direction) {
-                    $direction =
-                      convert_direction( &convert_to_degrees($direction) );
+                    $direction = convert_direction( &convert_to_degrees($direction) );
                     my $aux = $local;
                     ( $local, $area ) = $aux =~ m!^(.+?)\.(\S+)!;
                     $local = lc $local;
-                    $where = "al $direction de "
-                      . ( $local ? "$local ($area)" : lc $aux );
+                    $where = "al $direction de " . ( $local ? "$local ($area)" : lc $aux );
                 }
                 else {
                     ( $local, $area ) = $qloca =~ m!^(.+?)\.(\S+)!;
                     $local = lc $local;
-                    $where =
-                      "cerca de " . ( $local ? "$local ($area)" : lc $qloca );
+                    $where = "cerca de " . ( $local ? "$local ($area)" : lc $qloca );
                 }
-                speak &calc_age("$qdate $qtime")
-                  . "ha ocurrido un seísmo de magintud $qmagn a una distancia de $distance $where";
+                speak &calc_age("$qdate $qtime") . "ha ocurrido un seísmo de magintud $qmagn a una distancia de $distance $where";
                 return 1;
             }
         }

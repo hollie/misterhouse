@@ -51,10 +51,8 @@ if ( done_now $p_school_closing) {
             $status =~ s/\.gif//;
         }
         if ( $status and $status !~ /on[ _]?time/ ) {
-            speak
-              "rooms=all Important school notice from K R O C. School status: $status";
-            speak
-              "rooms=all Important school notice from K R O C. School status: $status";
+            speak "rooms=all Important school notice from K R O C. School status: $status";
+            speak "rooms=all Important school notice from K R O C. School status: $status";
         }
         else {
             print_log "School status from KROC:  $image";
@@ -71,10 +69,8 @@ if ( done_now $p_school_closing) {
         my $status = $1;
         chomp $status;
         if ($status) {
-            speak
-              "rooms=all Important school notice from K T T C.  School status: $status";
-            speak
-              "rooms=all Important school notice from K T T C.  School status: $status";
+            speak "rooms=all Important school notice from K T T C.  School status: $status";
+            speak "rooms=all Important school notice from K T T C.  School status: $status";
         }
     }
 

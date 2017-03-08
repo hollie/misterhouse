@@ -35,13 +35,11 @@ if ( said $v_chart_xl) {
     my $today = substr( $Year, 2 ) . sprintf( "%02d%02d", $Month, $Mday );
 
     #  List of variables follows here:
-    my $chart_file = "$config_parms{html_dir}/chart_xl.html";
-    my $chart_source_file =
-      "$Pgm_Path/$config_parms{data_dir}/logs/temps$today.csv";
-    my $chart_caption = "18 CLONCURRY STREET TEMPERATURE CHART";
-    my $chart_source =
-      "Source: </b>I-button temperature data (recorded by Mr. House)";
-    my $chart_notes = qq[Note:<br>
+    my $chart_file        = "$config_parms{html_dir}/chart_xl.html";
+    my $chart_source_file = "$Pgm_Path/$config_parms{data_dir}/logs/temps$today.csv";
+    my $chart_caption     = "18 CLONCURRY STREET TEMPERATURE CHART";
+    my $chart_source      = "Source: </b>I-button temperature data (recorded by Mr. House)";
+    my $chart_notes       = qq[Note:<br>
    10&deg;C = 50&deg;F<br>
    15&deg;C = 59&deg;F<br>
    20&deg;C = 68&deg;F<br>
@@ -55,19 +53,11 @@ if ( said $v_chart_xl) {
     foreach my $item (@chart_headers) {
         $count = "0" if $count == 0;
         $col = uc( chr( $count + 66 ) );
-        $chart_headers .=
-          "ac.Cells(1, " . ( $count + 2 ) . ").Value = " . qq["$item"] . "\n";
-        $chart_items .=
-            "  ac.Cells(i, "
-          . ( $count + 2 )
-          . ").Value = Data("
-          . ( $count + 1 ) . ")\n";
-        $chart_collections .=
-          qq[cs0.SeriesCollection($count).SetData c.chDimSeriesNames, 0, "${col}1"\n];
-        $chart_collections .=
-          qq[cs0.SeriesCollection($count).SetData c.chDimCategories, 0, "A2:A" + Num\n];
-        $chart_collections .=
-          qq[cs0.SeriesCollection($count).SetData c.chDimValues, 0, "${col}2:$col" + Num\n];
+        $chart_headers .= "ac.Cells(1, " . ( $count + 2 ) . ").Value = " . qq["$item"] . "\n";
+        $chart_items .= "  ac.Cells(i, " . ( $count + 2 ) . ").Value = Data(" . ( $count + 1 ) . ")\n";
+        $chart_collections .= qq[cs0.SeriesCollection($count).SetData c.chDimSeriesNames, 0, "${col}1"\n];
+        $chart_collections .= qq[cs0.SeriesCollection($count).SetData c.chDimCategories, 0, "A2:A" + Num\n];
+        $chart_collections .= qq[cs0.SeriesCollection($count).SetData c.chDimValues, 0, "${col}2:$col" + Num\n];
         $count++;
     }
 

@@ -7,15 +7,12 @@
 #####################################################################
 
 # Create the Alarm objects
-my $ComputerRoom = new ConceptZone( 'Computer Room', 120 )
-  ;    # Zone object to handle the motion sensor in the computer room
-my $LoungeRoom =
-  new ConceptZone( 'Lounge Room', 120 );   # Motion sensor in the computer room.
-my $BedRoom =
-  new ConceptZone( 'Bed Room', 120 );      # Motion Sensor in the bed room
-my $BAbyRoom = new ConceptZone( 'Baby Room', 120 );
-my $BackDoor = new ConceptZone('Back Door');    # Read switch on back door
-my $FrontDoor = new ConceptZone('Front Door');   # Reed switch on the front door
+my $ComputerRoom = new ConceptZone( 'Computer Room', 120 );    # Zone object to handle the motion sensor in the computer room
+my $LoungeRoom   = new ConceptZone( 'Lounge Room',   120 );    # Motion sensor in the computer room.
+my $BedRoom      = new ConceptZone( 'Bed Room',      120 );    # Motion Sensor in the bed room
+my $BAbyRoom     = new ConceptZone( 'Baby Room',     120 );
+my $BackDoor  = new ConceptZone('Back Door');                  # Read switch on back door
+my $FrontDoor = new ConceptZone('Front Door');                 # Reed switch on the front door
 
 my $state;
 my $CompLastState;

@@ -88,14 +88,12 @@ sub startup {
             $port = $port_room;
             $room = 'default';
         }
-        print
-          "Opening Display_Alpha port: pr=$port_room port=$port room=$room\n"
+        print "Opening Display_Alpha port: pr=$port_room port=$port room=$room\n"
           if $::Debug{display_alpha};
         push @room_names, $room;
 
         if ( $type and $type eq 'old' ) {
-            &::serial_port_create( "Display_Alpha_$room", $port, 9600, undef,
-                undef, undef, "even", 7, 2 );
+            &::serial_port_create( "Display_Alpha_$room", $port, 9600, undef, undef, undef, "even", 7, 2 );
         }
         else {
             &::serial_port_create( "Display_Alpha_$room", $port, 9600 );
@@ -172,7 +170,7 @@ my %special_modes = (
     starburst         => "\x37",
     welcome           => "\x38",
     slotmachine       => "\x39",
-    newsflash         => "\x3A",
+    newsflash         => "\x41",
     trumpet           => "\x3B",
     cyclecolors       => "\x43",
     thankyou          => "\x53",
@@ -281,9 +279,7 @@ sub set_image_memory {
 
     ( $height, $width ) = &image_dimensions($image);
 
-    return
-      $address . 'DU'
-      . uc( sprintf( "%02x", $height ) . sprintf( "%02x", $width ) ) . '4000';
+    return $address . 'DU' . uc( sprintf( "%02x", $height ) . sprintf( "%02x", $width ) ) . '4000';
 
 }
 
@@ -304,8 +300,7 @@ sub image {
     print "Address: $address height: $height width: $width\n"
       if $::Debug{display_alpha};
 
-    return (
-        uc( sprintf( "%02x", $height ) . sprintf( "%02x", $width ) ) . $image );
+    return ( uc( sprintf( "%02x", $height ) . sprintf( "%02x", $width ) ) . $image );
 
 }
 
@@ -328,18 +323,11 @@ sub header {
 sub message {
     my (%parms) = @_;
 
-    my (
-        $message,  $color, $mode,    $position, $font,
-        $fontsize, $speed, $address, $image,    $imageposition
-    );
+    my ( $message, $color, $mode, $position, $font, $fontsize, $speed, $address, $image, $imageposition );
     my $special;
 
     if ( !$parms{text} ) {
-        (
-            $message,       $color,    $mode,  $position,
-            $font,          $fontsize, $speed, $image,
-            $imageposition, $address
-        ) = @_;
+        ( $message, $color, $mode, $position, $font, $fontsize, $speed, $image, $imageposition, $address ) = @_;
     }
     else {
         $message       = $parms{text};
@@ -368,8 +356,7 @@ sub message {
     $imageposition = 'left' unless $imageposition;
     $position = 'middle' if !$position or !$positions{$position};
     $address = "A" unless $address;
-    my $result = $positions{$position}
-      . ( ($special) ? ( "\x6E" . $special_modes{$mode} ) : $modes{$mode} );
+    my $result = $positions{$position} . ( ($special) ? ( "\x6E" . $special_modes{$mode} ) : $modes{$mode} );
     $result .= "\x1c" . $colors{$color} if $color    and $colors{$color};
     $result .= "\x1a" . $fonts{$font}   if $font     and $fonts{$font};
     $result .= "\x12"                   if $fontsize and $fontsize eq 'wide';
@@ -389,10 +376,7 @@ sub message {
 sub main::display_alpha {
     my (%parms) = @_;
     my %message_parms;
-    my (
-        $text,  $mode,           $color, $font, $position,
-        $image, $image_position, $rooms, $wait
-    );
+    my ( $text, $mode, $color, $font, $position, $image, $image_position, $rooms, $wait );
     my @rooms;
     my $image_address;
 
@@ -408,10 +392,7 @@ sub main::display_alpha {
         $image_position = $parms{imageposition};
     }
     else {
-        (
-            $text,  $mode,           $color, $font, $position,
-            $image, $image_position, $rooms, $wait
-        ) = @_;
+        ( $text, $mode, $color, $font, $position, $image, $image_position, $rooms, $wait ) = @_;
     }
 
     $message_parms{text}          = $text;
@@ -427,9 +408,8 @@ sub main::display_alpha {
 
         #	    my $image_file = "$::config_parms{data_dir}/alpha/images/$image.bmp";
         my $image_file = $::Pgm_Root . "/data/alpha/images/$image.bmp";
-        if ( -e $image_file )
-        {    # look for Windows Bitmap (Todo: add XBM support)
-            if ( !&::file_changed($image_file) and $bitmaps{$image} ) {  #cached
+        if ( -e $image_file ) {           # look for Windows Bitmap (Todo: add XBM support)
+            if ( !&::file_changed($image_file) and $bitmaps{$image} ) {    #cached
                 $image = $bitmaps{$image};
             }
             else {
@@ -440,12 +420,8 @@ sub main::display_alpha {
                 print "\n" if $::Debug{display_alpha};
                 for my $i ( 0 .. $#picture ) {
                     for my $j ( 0 .. $#{ $picture[$i] } ) {
-                        if (
-                            defined $beta_brite_colors{
-                                uc( @color_table[ $picture[$i][$j] ] ) } )
-                        {
-                            $image .= $beta_brite_colors{
-                                uc( @color_table[ $picture[$i][$j] ] ) };
+                        if ( defined $beta_brite_colors{ uc( @color_table[ $picture[$i][$j] ] ) } ) {
+                            $image .= $beta_brite_colors{ uc( @color_table[ $picture[$i][$j] ] ) };
                         }
                         else {    # unmapped color, turn LED off
                             $image .= $beta_brite_colors{'000000'};
@@ -508,8 +484,7 @@ sub send {
             and $::Serial_Ports{"Display_Alpha_$room"}{object} )
         {
             $::Serial_Ports{"Display_Alpha_default"}{object}->write($data);
-            warn
-              "Invalid alphanumeric display port: $room.  Data sent to default port\n";
+            warn "Invalid alphanumeric display port: $room.  Data sent to default port\n";
         }
         else {
             warn "Invalid alphanumeric display port: $room.\n";
@@ -523,7 +498,7 @@ sub send_sequence {
     my $run_sequence;
 
     @rooms = @room_names
-      unless @rooms; # populated on init, contains 'default' if no rooms defined
+      unless @rooms;    # populated on init, contains 'default' if no rooms defined
     for my $room (@rooms) {
 
         # Set memory
@@ -545,10 +520,7 @@ sub send_sequence {
         for (@images) {
             print "Setting image: $address\n" if $::Debug{display_alpha};
 
-            &send(
-                &set_image_memory( image => $_, address => chr( $address++ ) ),
-                $room
-            );
+            &send( &set_image_memory( image => $_, address => chr( $address++ ) ), $room );
         }
         &send( $FINISH, $room );
 
@@ -689,14 +661,13 @@ sub GetBMPInfo ($) {
     $data_size += 256 * ord( BMPRead( $fh, 1 ) );
 
     unless ($data_size) {
-        $data_size =
-          $size - $offset;    #file size minus header size equals data size
+        $data_size = $size - $offset;    #file size minus header size equals data size
     }
 
     print "Data size: $data_size\n" if $::Debug{display_alpha};
 
-    BMPRead( $fh, 4 );        # skip pels
-    BMPRead( $fh, 4 );        # skip pels
+    BMPRead( $fh, 4 );                   # skip pels
+    BMPRead( $fh, 4 );                   # skip pels
 
     my $colors = ord( BMPRead( $fh, 1 ) );
     $colors += 256 * ord( BMPRead( $fh, 1 ) );
@@ -707,19 +678,18 @@ sub GetBMPInfo ($) {
 
     print "Colors: $colors\n" if $::Debug{display_alpha};
 
-    BMPRead( $fh, 4 );    # skip "important" colors (don't care)
+    BMPRead( $fh, 4 );                            # skip "important" colors (don't care)
 
     my $color_table;
     my @color_table;
 
-    if ( $bitsperpixel == 4 or $bitsperpixel == 8 )
-    { #16-color bitmap has 16 * 4 byte color table (colors take up four bytes each)
+    if ( $bitsperpixel == 4 or $bitsperpixel == 8 ) {    #16-color bitmap has 16 * 4 byte color table (colors take up four bytes each)
 
         for my $i ( 1 .. 2**$bitsperpixel ) {
             my $blue  = unpack( 'H2', BMPRead( $fh, 1 ) );
             my $green = unpack( 'H2', BMPRead( $fh, 1 ) );
             my $red   = unpack( 'H2', BMPRead( $fh, 1 ) );
-            BMPRead( $fh, 1 );    #skip reserved byte (last in quad)
+            BMPRead( $fh, 1 );                           #skip reserved byte (last in quad)
             my $hex_color = "$red$green$blue";
             push @color_table, $hex_color;
             print "Color #$i: " . uc($hex_color) . "\n"
@@ -746,7 +716,7 @@ sub GetBMPInfo ($) {
 
     print "Bytes per row: $bytes_per_row\n" if $::Debug{display_alpha};
 
-    my @picture;    # array of row array references (PERL 2D array)
+    my @picture;                   # array of row array references (PERL 2D array)
     for my $row ( 1 .. $height ) {
         my $column = 1;
         my $pixel  = 1;

@@ -25,8 +25,7 @@ Date::Easter, Date::Manip, Date::ICal, Data::ICal, Data::ICal::Entry::Event
 
 $p_holical = new Process_Item();
 
-$v_generate_holidays =
-  new Voice_Cmd('Generate holiday information for [1,2,3,4] year(s)');
+$v_generate_holidays = new Voice_Cmd('Generate holiday information for [1,2,3,4] year(s)');
 $v_generate_holidays->set_info('Generate ical compatible holiday information');
 $v_generate_holidays->set_authority('anyone');
 my $holiday_output_filename = $config_parms{holiday_ical_filename};
@@ -46,9 +45,7 @@ if (   ( said $v_generate_holidays)
     $years = "0" if !$years;
 
     if ( -e $config_parms{holiday_definition_file} ) {
-        $p_holical->set(
-            "holical -y +$years $options -f $holiday_output_filename $config_parms{holiday_definition_file} "
-        );
+        $p_holical->set("holical -y +$years $options -f $holiday_output_filename $config_parms{holiday_definition_file} ");
         start $p_holical;
     }
     else {

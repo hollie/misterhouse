@@ -12,9 +12,7 @@ if (    time_now( $config_parms{wakeup_time} )
     set $mode_mh 'normal';
     $Save{mode_set} = '';
     set $mode_sleeping 'nobody';
-    speak "rooms=all mode=unmute Buenos días.  Son las "
-      . say_time($Time_Now)
-      . " del $Date_Now_Speakable.";
+    speak "rooms=all mode=unmute Buenos días.  Son las " . say_time($Time_Now) . " del $Date_Now_Speakable.";
 }
 
 if ( time_now "$config_parms{wakeup_time}" ) {

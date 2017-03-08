@@ -154,9 +154,8 @@ my (%ack_mate) = (
     "\x10" => ["\x30"],
     "\x12" => [ "\x32", "\x33", "\x34", "\x35" ],
     "\x1d" => sub { &rm_pending_xmit("ack"); },    # msg OK, flush pending msg
-    "\x1f" => sub { &rm_pending_xmit("nak"); }
-    ,    # msg rejected, kill whatever msg caused it
-    "\x1e" => sub { &force_resend() }    # nak from host, resend
+    "\x1f" => sub { &rm_pending_xmit("nak"); },    # msg rejected, kill whatever msg caused it
+    "\x1e" => sub { &force_resend() }              # nak from host, resend
 
 );
 
@@ -351,8 +350,7 @@ while (1) {
         $ob->read_const_time(5000);    ## use a (shorter) timeout
     }
     else {
-        $ob->read_const_time(60000)
-          ;    ## not much to do anyway (except keep an eye on rtc drift)
+        $ob->read_const_time(60000);    ## not much to do anyway (except keep an eye on rtc drift)
     }
 
     my $result;
@@ -525,11 +523,8 @@ sub set_clock {
     $debug_msg && print "set clock processing\n";
     $last_set_clock = $now;
 
-    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
-      localtime($now);
-    my $time_hex = pack( "C C C C C C",
-        $year % 100,
-        $mon + 1, $mday, $hour, $min, $wday + 1 );
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime($now);
+    my $time_hex = pack( "C C C C C C", $year % 100, $mon + 1, $mday, $hour, $min, $wday + 1 );
     my $time_fmt = unpack( "H*", $time_hex );
 
     &dump( $time_hex, "time_hex" );
@@ -707,12 +702,7 @@ sub check_q {
 
         &dump( $xmit_q[0]{msg}, "check_q send:" );
         $debug_io && print scalar( localtime( time() ) ), "\n";
-        $debug_io && printf(
-            "sending msg [%02x] for the %d time (%d in queue)\n",
-            ord( $xmit_q[0]{msgnum} ),
-            $xmit_q[0]{xmit_count},
-            scalar(@xmit_q)
-        );
+        $debug_io && printf( "sending msg [%02x] for the %d time (%d in queue)\n", ord( $xmit_q[0]{msgnum} ), $xmit_q[0]{xmit_count}, scalar(@xmit_q) );
         $reply_pending = time();
     }
 }
@@ -736,11 +726,7 @@ sub apply_ack {
             }
             else {
 
-                $debug_io && printf(
-                    "pending msg  [%02x] not ack'ed by [%02x]\n",
-                    ord( $xmit_q[0]{msgnum} ),
-                    ord($msghex)
-                );
+                $debug_io && printf( "pending msg  [%02x] not ack'ed by [%02x]\n", ord( $xmit_q[0]{msgnum} ), ord($msghex) );
             }
         }
     }
@@ -910,13 +896,11 @@ sub cache_info {
     my ( $key1, $key2, $data ) = @_;
     my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
       localtime( time() );
-    my $tfmt =
-      sprintf( "%02d/%02d %02d:%02d:%02d", $mon + 1, $mday, $hour, $min, $sec );
+    my $tfmt = sprintf( "%02d/%02d %02d:%02d:%02d", $mon + 1, $mday, $hour, $min, $sec );
 
     if ( exists( $zone_hash{$key1}{$key2} ) ) {
         if ( $zone_hash{$key1}{$key2} ne $data ) {
-            print "$tfmt cache_info changing [$key1],[$key2] from:",
-              "[$zone_hash{$key1}{$key2}], to [$data]\n";
+            print "$tfmt cache_info changing [$key1],[$key2] from:", "[$zone_hash{$key1}{$key2}], to [$data]\n";
             &cache_modified( "old", @_ );
         }
         else {
@@ -953,12 +937,10 @@ sub cache_modified {
 
     ## and report partition transitions...
     if ( $key2 eq "armed" ) {
-        &udp_send(
-            "partition=$key1" . "&" . "$key2=$data&time=$msg_recv_time\n" );
+        &udp_send( "partition=$key1" . "&" . "$key2=$data&time=$msg_recv_time\n" );
     }
     if ( $key2 eq "stay" ) {
-        &udp_send(
-            "partition=$key1" . "&" . "$key2=$data&time=$msg_recv_time\n" );
+        &udp_send( "partition=$key1" . "&" . "$key2=$data&time=$msg_recv_time\n" );
     }
 }
 

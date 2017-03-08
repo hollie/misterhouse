@@ -58,9 +58,7 @@ if ( $RRDs::VERSION >= 1.2 and $rrd_format eq 'gif' ) {
         $native_rrd_format = 'png';
     }
     else {
-        &print_log(
-            'weather_graph_zoom: you need to define weather_convert_png_to_gif in order for me to create GIFs with rrdtool version 1.2+'
-        );
+        &print_log('weather_graph_zoom: you need to define weather_convert_png_to_gif in order for me to create GIFs with rrdtool version 1.2+');
         $rrd_format = 'png';
     }
 }
@@ -100,33 +98,25 @@ if ( $cgi->param ) {
     #  my $day = $cgi->param('debday');
     #  my $month = $cgi->param('debmonth');
     #  my $year = $cgi->param('debyear');
-    my $debepochtime = timelocal(
-        0, 0, 0,
-        $cgi->param('debday'),
-        $cgi->param('debmonth') - 1,
-        $cgi->param('debyear') - 1900
-    );
+    my $debepochtime = timelocal( 0, 0, 0, $cgi->param('debday'), $cgi->param('debmonth') - 1, $cgi->param('debyear') - 1900 );
 
     # Convert end date in Epoch date
-    my $endepochtime = timelocal(
-        59, 59, 23,
-        $cgi->param('endday'),
-        $cgi->param('endmonth') - 1,
-        $cgi->param('endyear') - 1900
-    );
+    my $endepochtime = timelocal( 59, 59, 23, $cgi->param('endday'), $cgi->param('endmonth') - 1, $cgi->param('endyear') - 1900 );
     if ( $endepochtime > time() ) {
         $endepochtime = time();
     }
 
     if ( $debepochtime <= $endepochtime ) {
         my %sensor_names;
-        &main::read_parm_hash( \%sensor_names,
-            $main::config_parms{weather_graph_sensor_names} );
+        &main::read_parm_hash( \%sensor_names, $main::config_parms{weather_graph_sensor_names} );
         &create_rrdgraph_zoom(
-            $debepochtime,          $endepochtime,
-            $cgi->param('width'),   $cgi->param('height'),
-            $cgi->param('sensor1'), $sensor_names{ $cgi->param('sensor1') },
-            $cgi->param('sensor2'), $sensor_names{ $cgi->param('sensor2') }
+            $debepochtime, $endepochtime,
+            $cgi->param('width'),
+            $cgi->param('height'),
+            $cgi->param('sensor1'),
+            $sensor_names{ $cgi->param('sensor1') },
+            $cgi->param('sensor2'),
+            $sensor_names{ $cgi->param('sensor2') }
         );
     }
     else {
@@ -176,9 +166,7 @@ sub print_graph {
     );
     print $cgi->start_Tr;
     print $cgi->start_td( { -align => 'center' } );
-    print $cgi->img(
-        { src => "/rrd/weather_zoom.$rrd_format?" . time(), align => 'center' }
-    );
+    print $cgi->img( { src => "/rrd/weather_zoom.$rrd_format?" . time(), align => 'center' } );
     print $cgi->end_td;
     print $cgi->end_Tr;
     print $cgi->end_table();
@@ -232,13 +220,11 @@ sub print_prompts {
             -cellspacing => "0"
         }
     );
-    print $cgi->start_form(
-        { -method => 'GET', -action => '/bin/weather_graph_zoom.pl' } );
+    print $cgi->start_form( { -method => 'GET', -action => '/bin/weather_graph_zoom.pl' } );
 
     # Choose RRD database
     print $cgi->start_Tr;
-    print $cgi->start_td(
-        { -align => 'right', valign => "center", width => "90" } );
+    print $cgi->start_td( { -align => 'right', valign => "center", width => "90" } );
     print '<B>Round Robin Database</B>';
     print $cgi->end_td;
     $RRDDIR = "$config_parms{rrd_dir}";
@@ -260,10 +246,8 @@ sub print_prompts {
     print '<B>Sensor 2</B>';
     print $cgi->end_td;
 
-    print $cgi->start_td(
-        { -align => 'left', -colspan => 1, valign => "center" } );
-    &main::read_parm_hash( \%sensor_names,
-        $main::config_parms{weather_graph_sensor_names} );
+    print $cgi->start_td( { -align => 'left', -colspan => 1, valign => "center" } );
+    &main::read_parm_hash( \%sensor_names, $main::config_parms{weather_graph_sensor_names} );
     for my $sensor_name ( sort keys %sensor_names ) {
         push @list_sensors, $sensor_name;
     }
@@ -292,15 +276,13 @@ sub print_prompts {
     );
     print $cgi->end_td;
 
-    print $cgi->start_td(
-        { -align => 'right', -colspan => 1, valign => "center" } );
+    print $cgi->start_td( { -align => 'right', -colspan => 1, valign => "center" } );
     print $cgi->start_b;
     print "Width ";
     print $cgi->br;
     print "Height ";
     print $cgi->end_td;
-    print $cgi->start_td(
-        { -align => 'left', -colspan => 1, valign => "center" } );
+    print $cgi->start_td( { -align => 'left', -colspan => 1, valign => "center" } );
     print $cgi->popup_menu(
         -name      => 'width',
         -size      => 1,
@@ -485,10 +467,7 @@ sub get_footer1 {
     else {
         $colon = ':';
     }
-    $footer =
-        "Step size$colon "
-      . convertstepz($step)
-      . "   Data points$colon $datapoint";
+    $footer = "Step size$colon " . convertstepz($step) . "   Data points$colon $datapoint";
     return $footer;
 }
 
@@ -511,10 +490,9 @@ sub get_footer2 {
 sub create_rrdgraph_zoom {
     my $celgtime;
     my $create_graph;
-    my $colordatamoy  = 'ff0000'; # color of primary variable average line (red)
-    my $colordatamoy2 = '330099'; # color of primary variable average line (red)
-    my $colorna =
-      'C0C0C0';   # color for unknown area or 0 for gaps (barre noire verticale)
+    my $colordatamoy  = 'ff0000';    # color of primary variable average line (red)
+    my $colordatamoy2 = '330099';    # color of primary variable average line (red)
+    my $colorna       = 'C0C0C0';    # color for unknown area or 0 for gaps (barre noire verticale)
     my $colordatamax  = '330099';    # color of min and max
     my $colordatamax2 = 'FFFF00';    # color of min and max
     my $colorwhite    = 'ffffff';    # color white
@@ -529,10 +507,7 @@ sub create_rrdgraph_zoom {
     my $secs;
     my $titrerrd;
 
-    my (
-        $time1,   $time2,      $gwidth,  $gheight,
-        $sensor1, $libsensor1, $sensor2, $libsensor2
-    ) = @_;
+    my ( $time1, $time2, $gwidth, $gheight, $sensor1, $libsensor1, $sensor2, $libsensor2 ) = @_;
 
     print "SENSOR1=$sensor1 LIBSENSOR1=$libsensor1" if $debug;
     print "SENSOR2=$sensor2 LIBSENSOR2=$libsensor2" if $debug;
@@ -554,12 +529,9 @@ sub create_rrdgraph_zoom {
     $time1 = int( $time1 / $secs ) * $secs;
     $time2 = int( $time2 / $secs ) * $secs;
 
-    $titrerrd =
-      ( $sensor2 ne "nosensor" ) ? "$libsensor1, $libsensor2" : "$libsensor1";
+    $titrerrd = ( $sensor2 ne "nosensor" ) ? "$libsensor1, $libsensor2" : "$libsensor1";
 
-    ( $start, $step, $names, $array ) =
-      RRDs::fetch "$config_parms{weather_data_rrd}", "AVERAGE", "-s", "$time1",
-      "-e", "$time2";
+    ( $start, $step, $names, $array ) = RRDs::fetch "$config_parms{weather_data_rrd}", "AVERAGE", "-s", "$time1", "-e", "$time2";
     $err = RRDs::error;
     die "ERROR : function RRDs::fetch : $err" if $err;
     $datapoint = $#$array + 1;
@@ -736,8 +708,7 @@ sub create_rrdgraph_zoom {
     ( $strminvar2 = $strminvar ) =~ s/mindata/mindata2/g;
     ( $strmaxvar2 = $strmaxvar ) =~ s/maxdata/maxdata2/g;
 
-    $str_graph =
-      qq^RRDs::graph("$rrd_graph_dir/weather_zoom.$native_rrd_format",
+    $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_zoom.$native_rrd_format",
 "--title", "Environmental data : $titrerrd",
 "--height","$gheight",
 "--width", "$gwidth",
@@ -749,12 +720,7 @@ sub create_rrdgraph_zoom {
 "--color","SHADEA#0000CC",
 "--color","SHADEB#0000CC",
 ^
-      . "\"--vertical-label\","
-      . "$libuom"
-      . "\"--start\","
-      . "\"$time1\","
-      . "\"--end\","
-      . "\"$time2\","
+      . "\"--vertical-label\"," . "$libuom" . "\"--start\"," . "\"$time1\"," . "\"--end\"," . "\"$time2\","
 
       . "\"DEF:var=$rrd_dir:"
       . $sensor1
@@ -770,20 +736,17 @@ sub create_rrdgraph_zoom {
       . "$strmaxvar"
 
       . (
-        $sensor2 ne "nosensor"
-        ? "\"DEF:var2=$rrd_dir:" . $sensor2 . ":AVERAGE\","
+        $sensor2 ne "nosensor" ? "\"DEF:var2=$rrd_dir:" . $sensor2 . ":AVERAGE\","
         : ''
       )
       . ( $sensor2 ne "nosensor" ? "$strvar2" : '' )
       . (
-        $sensor2 ne "nosensor"
-        ? "\"DEF:mindata2=$rrd_dir:" . $sensor2 . ":MIN\","
+        $sensor2 ne "nosensor" ? "\"DEF:mindata2=$rrd_dir:" . $sensor2 . ":MIN\","
         : ''
       )
       . ( $sensor2 ne "nosensor" ? "$strminvar2" : '' )
       . (
-        $sensor2 ne "nosensor"
-        ? "\"DEF:maxdata2=$rrd_dir:" . $sensor2 . ":MAX\","
+        $sensor2 ne "nosensor" ? "\"DEF:maxdata2=$rrd_dir:" . $sensor2 . ":MAX\","
         : ''
       )
       . ( $sensor2 ne "nosensor" ? "$strmaxvar2" : '' )
@@ -798,10 +761,7 @@ sub create_rrdgraph_zoom {
 "GPRINT:fvar:LAST:Last \\\\: %5.1lf\\\\n",
 ^
       . (
-        $sensor2 ne "nosensor"
-        ? "\"LINE2:fvar2#$colordatamoy2:"
-          . sprintf( "%-${max}s", $libsensor2 )
-          . " (Average)\","
+        $sensor2 ne "nosensor" ? "\"LINE2:fvar2#$colordatamoy2:" . sprintf( "%-${max}s", $libsensor2 ) . " (Average)\","
         : ''
       )
       . (
@@ -817,8 +777,7 @@ sub create_rrdgraph_zoom {
         : ''
       )
       . (
-        $sensor2 ne "nosensor"
-        ? "\"GPRINT:fvar2:LAST:Last \\\\: %5.1lf\\\\n\","
+        $sensor2 ne "nosensor" ? "\"GPRINT:fvar2:LAST:Last \\\\: %5.1lf\\\\n\","
         : ''
       )
       . qq^
@@ -833,18 +792,13 @@ sub create_rrdgraph_zoom {
     die "ERROR : function RRDs::graph : $err\n" if $err;
     if ( $rrd_format ne $native_rrd_format ) {
         if ( $rrd_format eq 'gif' and $native_rrd_format eq 'png' ) {
-            my $pngFilename =
-              File::Spec->catfile( $rrd_graph_dir, "weather_zoom.png" );
-            my $gifFilename =
-              File::Spec->catfile( $rrd_graph_dir, "weather_zoom.gif" );
+            my $pngFilename = File::Spec->catfile( $rrd_graph_dir, "weather_zoom.png" );
+            my $gifFilename = File::Spec->catfile( $rrd_graph_dir, "weather_zoom.gif" );
 
-            system( $config_parms{weather_convert_png_to_gif},
-                $pngFilename, $gifFilename );
+            system( $config_parms{weather_convert_png_to_gif}, $pngFilename, $gifFilename );
         }
         else {
-            &print_log(
-                "weather_graph_zoom: sorry, don't know how to convert from $native_rrd_format to $rrd_format"
-            );
+            &print_log("weather_graph_zoom: sorry, don't know how to convert from $native_rrd_format to $rrd_format");
         }
     }
 }

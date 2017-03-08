@@ -5,12 +5,9 @@ use Time::Local;
 
 my $debug = 0;
 
-my @Month = (
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-);
-my @Day = ( "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" );
-my @Date = localtime();
+my @Month = ( "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" );
+my @Day   = ( "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" );
+my @Date  = localtime();
 $Date[5] += 1900;
 
 sub GetCstring {
@@ -381,8 +378,7 @@ sub parseDatebook {
         print STDERR "   db_start_time $i is $x\n" if $debug;
         @Date = localtime( &readLong( $db_start_time[$idx] ) );
         $Date[5] += 1900;
-        print STDERR "Date: $Day[$Date[6]], $Date[3] $Month[$Date[4]] $Date[5] "
-          . sprintf( "%02d:%02d:%02d $tzval\n", $Date[2], $Date[1], $Date[0] )
+        print STDERR "Date: $Day[$Date[6]], $Date[3] $Month[$Date[4]] $Date[5] " . sprintf( "%02d:%02d:%02d $tzval\n", $Date[2], $Date[1], $Date[0] )
           if $debug;
 
         #"Reading field type..";
@@ -400,8 +396,7 @@ sub parseDatebook {
         print STDERR "   db_end_time $i is $x\n" if $debug;
         @Date = localtime( &readLong( $db_end_time[$idx] ) );
         $Date[5] += 1900;
-        print STDERR "Date: $Day[$Date[6]], $Date[3] $Month[$Date[4]] $Date[5] "
-          . sprintf( "%02d:%02d:%02d $tzval\n", $Date[2], $Date[1], $Date[0] )
+        print STDERR "Date: $Day[$Date[6]], $Date[3] $Month[$Date[4]] $Date[5] " . sprintf( "%02d:%02d:%02d $tzval\n", $Date[2], $Date[1], $Date[0] )
           if $debug;
 
         # "Reading field type..";
@@ -782,10 +777,7 @@ sub writeOutCalendar {
         my $j = 0;
         @NowDate = localtime();
         $NowDate[5] += 1900;
-        $nowepoch = timelocal(
-            $NowDate[0], $NowDate[1], $NowDate[2],
-            $NowDate[3], $NowDate[4], $NowDate[5]
-        );
+        $nowepoch = timelocal( $NowDate[0], $NowDate[1], $NowDate[2], $NowDate[3], $NowDate[4], $NowDate[5] );
 
         for ( $i = 0; $i < $idx; $i++ ) {
 
@@ -873,11 +865,8 @@ sub writeOutCalendar {
                     $StartDate[5] += 1900;
 
                     if ( $sinceepoch >= $nowepoch ) {
-                        $startDate = sprintf( "%d.%d.%d",
-                            $StartDate[5], $StartDate[4] + 1,
-                            $StartDate[3] );
-                        print CTAB
-                          "$j\t$startDate\t$startTime\t$db_description[$i]\t\t$db_note[$i]\t$alarm_set\t$db_record_who[$i]\n";
+                        $startDate = sprintf( "%d.%d.%d", $StartDate[5], $StartDate[4] + 1, $StartDate[3] );
+                        print CTAB "$j\t$startDate\t$startTime\t$db_description[$i]\t\t$db_note[$i]\t$alarm_set\t$db_record_who[$i]\n";
                         $j++;
                     }
 
@@ -893,10 +882,7 @@ sub writeOutCalendar {
                             $StartDate[4] -= 12;
                             $StartDate[5]++;
                         }
-                        $sinceepoch = timelocal(
-                            $StartDate[0], $StartDate[1], $StartDate[2],
-                            $StartDate[3], $StartDate[4], $StartDate[5]
-                        );
+                        $sinceepoch = timelocal( $StartDate[0], $StartDate[1], $StartDate[2], $StartDate[3], $StartDate[4], $StartDate[5] );
                     }
                     elsif ( $reType == 4 ) {    # Monthly By Day
                         $StartDate[4] += ( 1 * $reInterval );
@@ -904,17 +890,11 @@ sub writeOutCalendar {
                             $StartDate[4] -= 12;
                             $StartDate[5]++;
                         }
-                        $sinceepoch = timelocal(
-                            $StartDate[0], $StartDate[1], $StartDate[2],
-                            $StartDate[3], $StartDate[4], $StartDate[5]
-                        );
+                        $sinceepoch = timelocal( $StartDate[0], $StartDate[1], $StartDate[2], $StartDate[3], $StartDate[4], $StartDate[5] );
                     }
                     elsif ( $reType == 5 ) {    # Yearly By Date
                         $StartDate[5]++;
-                        $sinceepoch = timelocal(
-                            $StartDate[0], $StartDate[1], $StartDate[2],
-                            $StartDate[3], $StartDate[4], $StartDate[5]
-                        );
+                        $sinceepoch = timelocal( $StartDate[0], $StartDate[1], $StartDate[2], $StartDate[3], $StartDate[4], $StartDate[5] );
                     }
                     elsif ( $reType == 6 ) {    # Yearly By Day
                     }
@@ -923,11 +903,8 @@ sub writeOutCalendar {
             else {
                 next if ( $NowDate[5] > $StartDate[5] );
 
-                $startDate = sprintf( "%d.%d.%d",
-                    $StartDate[5], $StartDate[4] + 1,
-                    $StartDate[3] );
-                print CTAB
-                  "$j\t$startDate\t$startTime\t$db_description[$i]\t\t$db_note[$i]\t$alarm_set\t$db_record_who[$i]\n";
+                $startDate = sprintf( "%d.%d.%d", $StartDate[5], $StartDate[4] + 1, $StartDate[3] );
+                print CTAB "$j\t$startDate\t$startTime\t$db_description[$i]\t\t$db_note[$i]\t$alarm_set\t$db_record_who[$i]\n";
                 $j++;
             }
         }

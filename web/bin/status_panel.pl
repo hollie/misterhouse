@@ -22,10 +22,7 @@ for my $parm (@parms) {
     # Allow for sun (auto-pick), sunrise, or sunset
     elsif ( $parm =~ /sun/ ) {
         if ( $parm eq 'sun' ) {
-            $parm = (
-                     time_less_than "$Time_Sunrise + 2:00"
-                  or time_greater_than "$Time_Sunset  + 2:00"
-            ) ? 'sunrise' : 'sunset';
+            $parm = ( time_less_than "$Time_Sunrise + 2:00" or time_greater_than "$Time_Sunset  + 2:00" ) ? 'sunrise' : 'sunset';
         }
         if ( $parm eq 'sunrise' ) {
             $html .= qq[<p><b>Sunrise:</b> $Time_Sunrise</p>\n];

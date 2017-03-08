@@ -29,19 +29,18 @@ my $sub_path = "";
 my $html = "<HTML><HEAD>
  <!-- include var='$config_parms{html_style}' -->
 </HEAD><BODY  VLINK='#CC00FF'>
-<BASE TARGET='output'>";    # basic html page to the target
-                            # setup our starting point
-my @dirs    = $search_from; # Start with a simple array of One entry
-my @endDirs = "";           # We fill this as we find the ending dirs
+<BASE TARGET='output'>";                            # basic html page to the target
+                                                    # setup our starting point
+my @dirs    = $search_from;                         # Start with a simple array of One entry
+my @endDirs = "";                                   # We fill this as we find the ending dirs
 
-&recurse_dirs();            # Here we go off and find all the dirs !
+&recurse_dirs();                                    # Here we go off and find all the dirs !
 
-@endDirs = sort @endDirs;   # Sort our entries because its easier to read
+@endDirs = sort @endDirs;                           # Sort our entries because its easier to read
 
-$html .=
-  "<TABLE BORDER=2 BORDERCOLOR='#4169E1' BGCOLOR='#64 95 ED' ALIGN='center' NOWRAP>";
+$html .= "<TABLE BORDER=2 BORDERCOLOR='#4169E1' BGCOLOR='#64 95 ED' ALIGN='center' NOWRAP>";
 
-my $mycol = 1;              # table column counter
+my $mycol = 1;                                      # table column counter
 
 #my $columns =3;					#  and limits (width)
 my $columns = $wcMax - 1;
@@ -74,14 +73,7 @@ for my $endirs (@endDirs) {
     my ( $jnk, $theName ) = split( /\/\//,  $endirs );
     my ( $jnk, $myPath )  = split( /\/web/, $endirs );
     if ( ($theName) and ( $theName ne "images" ) ) {
-        $html .=
-            "<TD><a href='/bin/webcam_movie.pl?"
-          . $myPath
-          . "/' target='__blank'> "
-          . $theName
-          . " </a></TD><TD>("
-          . $numImages
-          . " Images)</TD>";
+        $html .= "<TD><a href='/bin/webcam_movie.pl?" . $myPath . "/' target='__blank'> " . $theName . " </a></TD><TD>(" . $numImages . " Images)</TD>";
         if ( $mycol <= $columns ) { $html .= "<TD> </TD>"; }
         if ( $mycol > $columns ) { $html .= "</TR><TR>"; $mycol = 0; }
         $mycol++;
@@ -119,16 +111,16 @@ sub get_dirs {
 
         next if ( $files =~ /^\./ );           # no dot dirs
         $thisDir = $search_this . "/" . $files;    # usable path
-             # here we need to strip off everything up to and incl ./web/
+                                                   # here we need to strip off everything up to and incl ./web/
         ( $base, $here ) = split( /\/web/, $thisDir );
         if ( -d $thisDir ) {
 
             # we need to see if we're at the end of the line
-            my $Status = &test_for_dirs();    # use the quick check
-            if ( $Status eq "end" ) {         # to see if were done on this one
-                push @endDirs, "$thisDir";    #  yep save it to the display list
+            my $Status = &test_for_dirs();         # use the quick check
+            if ( $Status eq "end" ) {              # to see if were done on this one
+                push @endDirs, "$thisDir";         #  yep save it to the display list
             }
-            push @dirs, "$thisDir";           #and put on recurson stack
+            push @dirs, "$thisDir";                #and put on recurson stack
         }
     }
     return;

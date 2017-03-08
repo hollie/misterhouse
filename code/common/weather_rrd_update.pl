@@ -186,13 +186,11 @@ my $rrdDataTransferFile = $config_parms{data_dir} . '/rrdtransfer.pl';
 if ($Reread) {
     $config_parms{weather_graph_frequency} = 10
       unless $config_parms{weather_graph_frequency};
-    $config_parms{weather_data_rrd} =
-      "$config_parms{data_dir}/rrd/weather_data.rrd"
+    $config_parms{weather_data_rrd} = "$config_parms{data_dir}/rrd/weather_data.rrd"
       unless $config_parms{weather_data_rrd};
     $config_parms{weather_graph_dir} = "$config_parms{data_dir}/rrd"
       unless $config_parms{weather_graph_dir};
-    $config_parms{weather_graph_footer} =
-      'Last updated $Time_Date, Dominique Benoliel, www.domotix.net'
+    $config_parms{weather_graph_footer} = 'Last updated $Time_Date, Dominique Benoliel, www.domotix.net'
       unless $config_parms{weather_graph_footer};
     mkdir $config_parms{weather_graph_dir}
       unless -d $config_parms{weather_graph_dir};
@@ -205,8 +203,7 @@ if ($Reread) {
       unless $config_parms{weather_graph_format};
 
     if ( $RRDs::VERSION >= 1.2 and lc( $config_parms{weather_graph_format} eq 'gif' ) ) {
-        &print_log(
-            "weather_rrd: WARNING, RRD version 1.2+ does not support GIFs");
+        &print_log("weather_rrd: WARNING, RRD version 1.2+ does not support GIFs");
     }
 
     &weather_rrd_rename_chill_to_apparent;
@@ -244,33 +241,20 @@ my $debug = 1 if $main::Debug{weather_graph};
 # Update RRD database every 1 minute
 if ($New_Minute) {
     my (
-        $rrd_TempOutdoor,   $rrd_HumidOutdoor, $rrd_DewOutdoor,
-        $rrd_Barom,         $rrd_WindGustDir,  $rrd_WindAvgDir,
-        $rrd_WindGustSpeed, $rrd_WindAvgSpeed, $rrd_TempOutdoorApparent,
-        $rrd_RainRate,      $rrd_RainTotal,    $rrd_TempIndoor,
-        $rrd_HumidIndoor,   $rrd_DewIndoor,    $rrd_TempSpare1,
-        $rrd_HumidSpare1,   $rrd_DewSpare1,    $rrd_TempSpare2,
-        $rrd_HumidSpare2,   $rrd_DewSpare2,    $rrd_TempSpare3,
-        $rrd_HumidSpare3,   $rrd_DewSpare3,    $rrd_TempSpare4,
-        $rrd_HumidSpare4,   $rrd_TempSpare5,   $rrd_HumidSpare5,
-        $rrd_TempSpare6,    $rrd_HumidSpare6,  $rrd_TempSpare7,
-        $rrd_HumidSpare7,   $rrd_TempSpare8,   $rrd_HumidSpare8,
-        $rrd_TempSpare9,    $rrd_HumidSpare9,  $rrd_TempSpare10,
+        $rrd_TempOutdoor,   $rrd_HumidOutdoor, $rrd_DewOutdoor,          $rrd_Barom,       $rrd_WindGustDir, $rrd_WindAvgDir,
+        $rrd_WindGustSpeed, $rrd_WindAvgSpeed, $rrd_TempOutdoorApparent, $rrd_RainRate,    $rrd_RainTotal,   $rrd_TempIndoor,
+        $rrd_HumidIndoor,   $rrd_DewIndoor,    $rrd_TempSpare1,          $rrd_HumidSpare1, $rrd_DewSpare1,   $rrd_TempSpare2,
+        $rrd_HumidSpare2,   $rrd_DewSpare2,    $rrd_TempSpare3,          $rrd_HumidSpare3, $rrd_DewSpare3,   $rrd_TempSpare4,
+        $rrd_HumidSpare4,   $rrd_TempSpare5,   $rrd_HumidSpare5,         $rrd_TempSpare6,  $rrd_HumidSpare6, $rrd_TempSpare7,
+        $rrd_HumidSpare7,   $rrd_TempSpare8,   $rrd_HumidSpare8,         $rrd_TempSpare9,  $rrd_HumidSpare9, $rrd_TempSpare10,
         $rrd_HumidSpare10
     );
 
     foreach my $sensor (@rrd_sensors) {
 
         # this command says that only use the sensor if it is defined and composed of an optional negative sign, digits and decimal points
-        my $command = '$rrd_'
-          . $sensor
-          . ' = (defined $Weather{'
-          . $sensor
-          . '} and $Weather{'
-          . $sensor
-          . '} =~ /^\s*-?[\d\.]+\s*$/) ? $Weather{'
-          . $sensor
-          . '} : "U";';
+        my $command =
+          '$rrd_' . $sensor . ' = (defined $Weather{' . $sensor . '} and $Weather{' . $sensor . '} =~ /^\s*-?[\d\.]+\s*$/) ? $Weather{' . $sensor . '} : "U";';
         eval $command;
     }
 
@@ -283,15 +267,9 @@ if ($New_Minute) {
 
     if ( $config_parms{weather_uom_temp} eq 'C' ) {
         grep { $_ = convert_c2f($_) unless $_ eq 'U' } (
-            $rrd_TempOutdoor, $rrd_TempIndoor,
-            $rrd_TempSpare1,  $rrd_TempSpare2,
-            $rrd_TempSpare3,  $rrd_TempSpare4,
-            $rrd_TempSpare5,  $rrd_TempSpare6,
-            $rrd_TempSpare7,  $rrd_TempSpare8,
-            $rrd_TempSpare9,  $rrd_TempSpare10,
-            $rrd_DewOutdoor,  $rrd_DewIndoor,
-            $rrd_DewSpare1,   $rrd_DewSpare2,
-            $rrd_DewSpare3,   $rrd_TempOutdoorApparent
+            $rrd_TempOutdoor, $rrd_TempIndoor, $rrd_TempSpare1, $rrd_TempSpare2, $rrd_TempSpare3, $rrd_TempSpare4,
+            $rrd_TempSpare5,  $rrd_TempSpare6, $rrd_TempSpare7, $rrd_TempSpare8, $rrd_TempSpare9, $rrd_TempSpare10,
+            $rrd_DewOutdoor,  $rrd_DewIndoor,  $rrd_DewSpare1,  $rrd_DewSpare2,  $rrd_DewSpare3,  $rrd_TempOutdoorApparent
         );
     }
 
@@ -300,13 +278,11 @@ if ($New_Minute) {
     }
 
     if ( $config_parms{weather_uom_wind} eq 'kph' ) {
-        grep { $_ = convert_km2mile($_) unless $_ eq 'U' }
-          ( $rrd_WindGustSpeed, $rrd_WindAvgSpeed );
+        grep { $_ = convert_km2mile($_) unless $_ eq 'U' } ( $rrd_WindGustSpeed, $rrd_WindAvgSpeed );
     }
 
     if ( $config_parms{weather_uom_wind} eq 'm/s' ) {
-        grep { $_ = convert_mps2mph($_) unless $_ eq 'U' }
-          ( $rrd_WindGustSpeed, $rrd_WindAvgSpeed );
+        grep { $_ = convert_mps2mph($_) unless $_ eq 'U' } ( $rrd_WindGustSpeed, $rrd_WindAvgSpeed );
     }
 
     if ( $config_parms{weather_uom_rain} eq 'mm' ) {
@@ -318,18 +294,12 @@ if ($New_Minute) {
     }
 
     @d = (
-        $rrd_TempOutdoor,   $rrd_HumidOutdoor, $rrd_DewOutdoor,
-        $rrd_Barom,         $rrd_WindGustDir,  $rrd_WindAvgDir,
-        $rrd_WindGustSpeed, $rrd_WindAvgSpeed, $rrd_TempOutdoorApparent,
-        $rrd_RainRate,      $rrd_RainTotal,    $rrd_TempIndoor,
-        $rrd_HumidIndoor,   $rrd_DewIndoor,    $rrd_TempSpare1,
-        $rrd_HumidSpare1,   $rrd_DewSpare1,    $rrd_TempSpare2,
-        $rrd_HumidSpare2,   $rrd_DewSpare2,    $rrd_TempSpare3,
-        $rrd_HumidSpare3,   $rrd_DewSpare3,    $rrd_TempSpare4,
-        $rrd_HumidSpare4,   $rrd_TempSpare5,   $rrd_HumidSpare5,
-        $rrd_TempSpare6,    $rrd_HumidSpare6,  $rrd_TempSpare7,
-        $rrd_HumidSpare7,   $rrd_TempSpare8,   $rrd_HumidSpare8,
-        $rrd_TempSpare9,    $rrd_HumidSpare9,  $rrd_TempSpare10,
+        $rrd_TempOutdoor,   $rrd_HumidOutdoor, $rrd_DewOutdoor,          $rrd_Barom,       $rrd_WindGustDir, $rrd_WindAvgDir,
+        $rrd_WindGustSpeed, $rrd_WindAvgSpeed, $rrd_TempOutdoorApparent, $rrd_RainRate,    $rrd_RainTotal,   $rrd_TempIndoor,
+        $rrd_HumidIndoor,   $rrd_DewIndoor,    $rrd_TempSpare1,          $rrd_HumidSpare1, $rrd_DewSpare1,   $rrd_TempSpare2,
+        $rrd_HumidSpare2,   $rrd_DewSpare2,    $rrd_TempSpare3,          $rrd_HumidSpare3, $rrd_DewSpare3,   $rrd_TempSpare4,
+        $rrd_HumidSpare4,   $rrd_TempSpare5,   $rrd_HumidSpare5,         $rrd_TempSpare6,  $rrd_HumidSpare6, $rrd_TempSpare7,
+        $rrd_HumidSpare7,   $rrd_TempSpare8,   $rrd_HumidSpare8,         $rrd_TempSpare9,  $rrd_HumidSpare9, $rrd_TempSpare10,
         $rrd_HumidSpare10
     );
 
@@ -345,8 +315,7 @@ if ($New_Minute) {
 }
 
 # Create the graphs
-$p_weather_graph =
-  new Process_Item qq:weather_rrd_update_graphs "$rrdDataTransferFile":;
+$p_weather_graph     = new Process_Item qq:weather_rrd_update_graphs "$rrdDataTransferFile":;
 $tell_generate_graph = new Voice_Cmd "Generate weather graphs";
 
 if (   new_minute $config_parms{weather_graph_frequency}
@@ -368,8 +337,7 @@ sub update_graphs {
     }
 
     if ( !open( RRDDATATRANSFER, '>' . $rrdDataTransferFile ) ) {
-        &print_log(
-            "weather_rrd: can't open $rrdDataTransferFile for writing: $!");
+        &print_log("weather_rrd: can't open $rrdDataTransferFile for writing: $!");
         return;
     }
 
@@ -398,8 +366,8 @@ sub update_graphs {
 !;
 
     foreach my $key ( keys(%config_parms) ) {
-        next if $key !~ /^weather_rrd_color_(.*)/;   # we only want certain keys
-        next if $key =~ /_MHINTERNAL_/;              # not internal copies
+        next if $key !~ /^weather_rrd_color_(.*)/;    # we only want certain keys
+        next if $key =~ /_MHINTERNAL_/;               # not internal copies
         my $element = $1;
         my $color   = $config_parms{ "weather_rrd_color_" . $element };
         &print_log("weather_rrd: found element -$element- value is -$color-")
@@ -409,16 +377,14 @@ sub update_graphs {
     }
 
     foreach my $key ( keys(%config_parms) ) {
-        next if $key !~ /^weather_uom_(.*)/;         # we only want certain keys
-        next if $key =~ /_MHINTERNAL_/;              # not internal copies
+        next                                      if $key !~ /^weather_uom_(.*)/;    # we only want certain keys
+        next                                      if $key =~ /_MHINTERNAL_/;         # not internal copies
         &print_log("weather_rrd: found key $key") if $Debug{weather_graph};
-        print RRDDATATRANSFER
-          qq:\$weather_uom_$1="$config_parms{"weather_uom_".$1}";\n:;
+        print RRDDATATRANSFER qq:\$weather_uom_$1="$config_parms{"weather_uom_".$1}";\n:;
     }
 
     my %sensor_names;
-    &main::read_parm_hash( \%sensor_names,
-        $main::config_parms{weather_graph_sensor_names} );
+    &main::read_parm_hash( \%sensor_names, $main::config_parms{weather_graph_sensor_names} );
 
     foreach my $key ( keys(%sensor_names) ) {
         print RRDDATATRANSFER qq:\$sensor_names{$key}="$sensor_names{$key}";\n:;
@@ -426,7 +392,7 @@ sub update_graphs {
 
     close(RRDDATATRANSFER);
     &print_log("weather_rrd: updating weather graphs") if $Debug{weather_graph};
-    start $p_weather_graph; # We are now safe to do this in Windows as all of the processing is done in an external file
+    start $p_weather_graph;    # We are now safe to do this in Windows as all of the processing is done in an external file
 }
 
 #==============================================================================
@@ -635,19 +601,14 @@ sub update_csv {
             'Humidity module 10',
             "\n" );
 
-        &logit( "$config_parms{weather_data_csv}.$Year_Month_Now",
-            $row_header, 0 );
+        &logit( "$config_parms{weather_data_csv}.$Year_Month_Now", $row_header, 0 );
     }
     $row_data = join( ";",
-        $time,       $log_annee,   $log_mois, $log_jour, $log_heure,
-        $log_minute, $log_seconde, $data[0],  $data[1],  $data[2],
-        $data[3],    $data[4],     $data[5],  $data[6],  $data[7],
-        $data[8],    $data[9],     $data[10], $data[11], $data[12],
-        $data[13],   $data[14],    $data[15], $data[16], $data[17],
-        $data[18],   $data[19],    $data[20], $data[21], $data[22],
-        $data[23],   $data[24],    $data[25], $data[26], $data[27],
-        $data[28],   $data[29],    $data[30], $data[31], $data[32],
-        $data[33],   $data[34],    $data[35], $data[36], "\n" );
+        $time,     $log_annee, $log_mois, $log_jour, $log_heure, $log_minute, $log_seconde, $data[0],  $data[1],
+        $data[2],  $data[3],   $data[4],  $data[5],  $data[6],   $data[7],    $data[8],     $data[9],  $data[10],
+        $data[11], $data[12],  $data[13], $data[14], $data[15],  $data[16],   $data[17],    $data[18], $data[19],
+        $data[20], $data[21],  $data[22], $data[23], $data[24],  $data[25],   $data[26],    $data[27], $data[28],
+        $data[29], $data[30],  $data[31], $data[32], $data[33],  $data[34],   $data[35],    $data[36], "\n" );
 
     &logit( "$config_parms{weather_data_csv}.$Year_Month_Now", $row_data, 0 );
 }
@@ -659,8 +620,7 @@ sub analyze_rrd_rain {
       if $::Debug{weather_graph};
 
     my @hours = ( 1, 2, 6, 12, 18, 24, 48, 72, 168 );
-    my $resolution = 18 * 60
-      ; # using 18 minute datapoints - don't change this unless you know what you're doing
+    my $resolution = 18 * 60;    # using 18 minute datapoints - don't change this unless you know what you're doing
 
     # set default values
     foreach my $hour (@hours) {
@@ -669,17 +629,12 @@ sub analyze_rrd_rain {
 
     my $endtime = int( time / $resolution ) * $resolution;
 
-    my ( $start, $step, $names, $data ) = RRDs::fetch(
-        $RRD, 'AVERAGE', '-r', $resolution,
-        '-e', $endtime,  '-s', 'e-168hours'
-    );
+    my ( $start, $step, $names, $data ) = RRDs::fetch( $RRD, 'AVERAGE', '-r', $resolution, '-e', $endtime, '-s', 'e-168hours' );
 
     my $RRDerror = RRDs::error;
 
     if ($RRDerror) {
-        &print_log(
-            "weather_rrd_update: having trouble fetching data for rain: $RRDerror"
-        );
+        &print_log("weather_rrd_update: having trouble fetching data for rain: $RRDerror");
         return;
     }
 
@@ -753,33 +708,29 @@ sub analyze_rrd_rain {
         # if the total rain in the last period of time is lower than the
         # next larger period of time, then check the next period
         next
-          if ( $Weather{"RainLast${shorter}Hours"} <=
-            $Weather{"RainLast${longer}Hours"} );
+          if ( $Weather{"RainLast${shorter}Hours"} <= $Weather{"RainLast${longer}Hours"} );
 
         # a quirk in the data has caused a smaller period to have a larger
         # value than the next larger period
         # fix it by copying the smaller amount onto the larger amount
-        $Weather{"RainLast${shorter}Hours"} =
-          $Weather{"RainLast${longer}Hours"};
+        $Weather{"RainLast${shorter}Hours"} = $Weather{"RainLast${longer}Hours"};
     }
     &print_log('analyze_rrd_rain: complete') if $::Debug{weather_graph};
 }
 
 # Allow for sending graphs via email
 
-$weather_graph_email = new Voice_Cmd
-  'Email [tempout,tempin,windspeed,winddir,raintotal,rainrate,press,humout,humin] weather chart';
+$weather_graph_email = new Voice_Cmd 'Email [tempout,tempin,windspeed,winddir,raintotal,rainrate,press,humout,humin] weather chart';
 
 if ( $state = said $weather_graph_email) {
     print_log "Sending $state weather charts";
     my $html = &html_file( undef, '../web/bin/weather_graph.pl', $state );
     &net_mail_send(
         subject => "$state weather charts for $Date_Now",
-        baseref =>
-          "$config_parms{http_server}:$config_parms{http_port}/ia5/outside/",
-        to   => $config_parms{weather_graph_email},
-        text => $html,
-        mime => 'html'
+        baseref => "$config_parms{http_server}:$config_parms{http_port}/ia5/outside/",
+        to      => $config_parms{weather_graph_email},
+        text    => $html,
+        mime    => 'html'
     );
 
     #    &net_mail_send(subject => "Weather charts for $Date_Now",
@@ -792,9 +743,7 @@ sub uninstall_weather_rrd_update {
 }
 
 if ($Reload) {
-    &trigger_set(
-        'new_minute(10)', '&analyze_rrd_rain',
-        'NoExpire',       'update rain totals from RRD database'
-    ) unless &trigger_get('update rain totals from RRD database');
+    &trigger_set( 'new_minute(10)', '&analyze_rrd_rain', 'NoExpire', 'update rain totals from RRD database' )
+      unless &trigger_get('update rain totals from RRD database');
     &analyze_rrd_rain;
 }

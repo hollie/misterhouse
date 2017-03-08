@@ -49,8 +49,7 @@ if ( said $v_ToggleGarageDoorS) {
 # Overhead Garage Doors
 #
 if ( state_now $WB_IB_NorthOHDoor eq OPEN ) {
-    if ( time_greater_than("$Time_Sunset") or time_less_than("$Time_Sunrise") )
-    {
+    if ( time_greater_than("$Time_Sunset") or time_less_than("$Time_Sunrise") ) {
         set_with_timer $Garage_North_Lights ON, 60;
         set_with_timer $Coach_Lights ON,        90;
 
@@ -67,8 +66,7 @@ if ( state_now $WB_IB_NorthOHDoor eq CLOSED ) {
 }
 
 if ( state_now $WB_IC_SouthOHDoor eq OPEN ) {
-    if ( time_greater_than("$Time_Sunset") or time_less_than("$Time_Sunrise") )
-    {
+    if ( time_greater_than("$Time_Sunset") or time_less_than("$Time_Sunrise") ) {
         set $Garage_South_Lights ON;
         set_with_timer $Coach_Lights ON, 90;
         set $TimerGarageSLights 60, '&GarageSLightsExpired';

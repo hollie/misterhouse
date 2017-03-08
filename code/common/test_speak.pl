@@ -9,8 +9,7 @@ $house_tagline = new File_Item("$config_parms{data_dir}/remarks/1100tags.txt");
 $test_speak1   = new Voice_Cmd 'Test speech with tagline';
 respond( read_next $house_tagline) if said $test_speak1;
 
-$test_speak2 = new Voice_Cmd
-  'Test speech with tagline to a file with [low,normal,high] compression';
+$test_speak2 = new Voice_Cmd 'Test speech with tagline to a file with [low,normal,high] compression';
 
 #peak to_file => "$config_parms{data_dir}/test_tts.wav", compression => 'high',
 if ( $state = said $test_speak2) {
@@ -24,10 +23,8 @@ if ( $state = said $test_speak2) {
     play "$config_parms{data_dir}/test_tts.wav";
 }
 
-$test_speak3 = new Voice_Cmd
-  'Test speech control of [start,stop,pause,resume,rewind,fastforward,fast,normal,slow,-6,-4,4,6,10]';
-$test_speak3->set_info(
-    'Reads the mh FAQ, allowing you to test the start,stop, ect speak options');
+$test_speak3 = new Voice_Cmd 'Test speech control of [start,stop,pause,resume,rewind,fastforward,fast,normal,slow,-6,-4,4,6,10]';
+$test_speak3->set_info('Reads the mh FAQ, allowing you to test the start,stop, ect speak options');
 
 if ( $state = state_now $test_speak3) {
     if ( $state eq 'start' ) {
@@ -43,8 +40,7 @@ if ( $state = state_now $test_speak3) {
 
 # Create a command search menu with all the Voice_Cmd words
 my $voice_name_list = join( ',', &Voice_Text::list_voices );    # noloop
-$test_speak4 =
-  new Voice_Cmd "Test speech with voice [$voice_name_list,random,next]";
+$test_speak4 = new Voice_Cmd "Test speech with voice [$voice_name_list,random,next]";
 $test_speak4->set_info('Speak a phrase with the chosen voice');
 speak "voice=$state Testing speech with voice $state"
   if $state = state_now $test_speak4;
@@ -77,23 +73,20 @@ speak
   text  => "Attention $state room people.  Hi."
   if $state = said $test_speak9;
 
-$test_speak10 =
-  new Voice_Cmd "Test speech to room [living,bedroom,all] with a wav file";
+$test_speak10 = new Voice_Cmd "Test speech to room [living,bedroom,all] with a wav file";
 play
   rooms => $state,
   file  => "hello_from_bruce.wav",
   time  => 5
   if $state = said $test_speak10;
 
-$test_speak11 = new Voice_Cmd
-  "Test speech engine [festival,viavoice,vv_tts,flite,NaturalVoice]";
+$test_speak11 = new Voice_Cmd "Test speech engine [festival,viavoice,vv_tts,flite,NaturalVoice]";
 speak
   engine => $state,
   text   => "Speaking with speech engine $state"
   if $state = said $test_speak11;
 
-$test_voice12 = new Voice_Cmd
-  "Change speech engine to [festival,viavoice,vv_tts,flite,NaturalVoice]";
+$test_voice12 = new Voice_Cmd "Change speech engine to [festival,viavoice,vv_tts,flite,NaturalVoice]";
 if ( $state = said $test_voice12) {
     $config_parms{voice_text} = $state;
     speak "The default speech engine has been set to $state";

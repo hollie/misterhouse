@@ -106,8 +106,7 @@ sub decode_rf_bytes {
     }
 
     if ( $main::Debug{$lc_module} ) {
-        &::print_log( sprintf "%s: reordered data: %02x %02x %02x %02x",
-            $uc_module, $nbytes[0], $nbytes[1], $nbytes[2], $nbytes[3] );
+        &::print_log( sprintf "%s: reordered data: %02x %02x %02x %02x", $uc_module, $nbytes[0], $nbytes[1], $nbytes[2], $nbytes[3] );
     }
 
     # The first two bytes are always complements (Except for Digimax and rfxsensor).
@@ -126,7 +125,7 @@ sub decode_rf_bytes {
         return &rf_process_tv_remote( $module, @nbytes, @bbytes );
 
     }
-    elsif ( $lc_module ne 'mr26' ) {  # Can't receive the following with an MR26
+    elsif ( $lc_module ne 'mr26' ) {    # Can't receive the following with an MR26
 
         if ( &rf_is_security( $initial_checksum_good, @nbytes ) ) {
             &::print_log("$lc_module: this is x10 security data")
@@ -149,13 +148,11 @@ sub decode_rf_bytes {
 
     # If we made it to here, then we don't know what to do with the command.
     if ( !$initial_checksum_good ) {
-        &::print_log( "${uc_module}: bad initial checksum: "
-              . "$bbytes[0] $bbytes[1] $bbytes[2] $bbytes[3]" )
+        &::print_log( "${uc_module}: bad initial checksum: " . "$bbytes[0] $bbytes[1] $bbytes[2] $bbytes[3]" )
           if $main::Debug{$lc_module};
     }
     else {
-        &::print_log( "${uc_module}: bad checksum: "
-              . "$bbytes[0] $bbytes[1] $bbytes[2] $bbytes[3]" )
+        &::print_log( "${uc_module}: bad checksum: " . "$bbytes[0] $bbytes[1] $bbytes[2] $bbytes[3]" )
           if $main::Debug{$lc_module};
     }
 
@@ -172,11 +169,7 @@ sub rf_set_receiver {
 
     my $uc_module = uc $module;
 
-    for my $name (
-        &main::list_objects_by_type( 'X10_' . $uc_module ),
-        &main::list_objects_by_type('X10_RF_Receiver')
-      )
-    {
+    for my $name ( &main::list_objects_by_type( 'X10_' . $uc_module ), &main::list_objects_by_type('X10_RF_Receiver') ) {
 
         my $object = &main::get_object_by_name($name);
         $object->set($state);
@@ -202,8 +195,7 @@ sub rf_set_RF_Item {
             $object->set( $state, 'rf' );
             $matched = 1;
             if ( $main::Debug{$lc_module} ) {
-                &::print_log(
-                    "$item_id: " . substr( $name, 1 ) . " set $state" );
+                &::print_log( "$item_id: " . substr( $name, 1 ) . " set $state" );
             }
         }
     }
@@ -231,8 +223,7 @@ sub rf_get_RF_Item {
             my $state = $object->state;
             $matched = 1;
             if ( $main::Debug{$lc_module} ) {
-                &::print_log(
-                    "$item_id: " . substr( $name, 1 ) . " get $state" );
+                &::print_log( "$item_id: " . substr( $name, 1 ) . " get $state" );
             }
             return $state;
         }

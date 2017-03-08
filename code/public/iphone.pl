@@ -124,18 +124,14 @@ sub iphoneWebApp {
               if ( $icon ne "" );
             if ( $object->isa('EIB1_Item') || $object->isa('xPL_Plugwise') ) {
                 $html .= "                <li>";
-                $html .=
-                    '<input type="checkbox" id="'
-                  . $item2
-                  . '" class="iToggle" title="I|O"';
+                $html .= '<input type="checkbox" id="' . $item2 . '" class="iToggle" title="I|O"';
                 if ( $state eq 'on' ) { $html .= ' checked="checked" '; }
                 if ( $name =~ s/^:// ) {
                 }
                 else {
                     $html .= " onclick=\"ChangeState('../SET?$item2=toggle')\"";
                 }
-                $html .=
-                  '/>' . $icon . '<label>' . $name . ' </label></a></li>';
+                $html .= '/>' . $icon . '<label>' . $name . ' </label></a></li>';
             }
             elsif ( $object->isa('EIB2_Item') ) {
                 $html .= "
@@ -153,33 +149,21 @@ sub iphoneWebApp {
             }
             elsif ( $object->isa('EIB5_Item') || $object->isa('EIB6_Item') ) {
                 $name =~ s/^://;
-                $html .=
-                    "                <li><span>"
-                  . sprintf( $unit, $state )
-                  . "</span>$icon$name</li>";
+                $html .= "                <li><span>" . sprintf( $unit, $state ) . "</span>$icon$name</li>";
             }
             elsif ( $object->isa('EIB3_Item') ) {
                 $name =~ s/^://;
                 $state =~ s/.*([0-9]{2}):([0-9]{2}):[0-9]{2}/$1:$2h/;
-                $html .=
-                    "                <li><span>"
-                  . sprintf( $unit, $state )
-                  . "</span>$icon$name</li>";
+                $html .= "                <li><span>" . sprintf( $unit, $state ) . "</span>$icon$name</li>";
             }
             elsif ( $object->isa('EIB4_Item') ) {
                 $name =~ s/^://;
                 $state =~ s:([0-9]{2})/([0-9]{2})/([0-9]{2}):$2.$1.$3:;
-                $html .=
-                    "                <li><span>"
-                  . sprintf( $unit, $state )
-                  . "</span>$icon$name</li>";
+                $html .= "                <li><span>" . sprintf( $unit, $state ) . "</span>$icon$name</li>";
             }
             elsif ( $object->isa('EIB10_Item') || $object->isa('EIB11_Item') ) {
                 $name =~ s/^://;
-                $html .=
-                    "                <li><span>"
-                  . sprintf( $unit, $state )
-                  . "</span>$icon$name</li>";
+                $html .= "                <li><span>" . sprintf( $unit, $state ) . "</span>$icon$name</li>";
             }
             elsif ( $object->isa('Network_Item') ) {
                 $html .= "                <li";
@@ -209,19 +193,14 @@ sub iphoneWebApp {
                 $html .= ">$name<span>$temp</span></li> ";
             }
             elsif ( $object->isa('X10_Switchlinc') ) {
-                $html .=
-                  "                <li><a href='#_$item2'>$icon$name<span>$state</span></a></li> ";
+                $html .= "                <li><a href='#_$item2'>$icon$name<span>$state</span></a></li> ";
 
                 $html_groups = "                	<li>";
-                $html_groups .=
-                    '<input type="checkbox" id="'
-                  . $item2
-                  . '" class="iToggle" title="I|O"';
+                $html_groups .= '<input type="checkbox" id="' . $item2 . '" class="iToggle" title="I|O"';
                 if ( $state ne 'off' ) {
                     $html_groups .= ' checked="checked" ';
                 }
-                $html_groups .=
-                  " onclick=\"ChangeState('../SET?$item2=toggle')\"";
+                $html_groups .= " onclick=\"ChangeState('../SET?$item2=toggle')\"";
                 $html_groups .= '/><label>' . $name . ' </label></li>
 ';
 
@@ -243,24 +222,16 @@ sub iphoneWebApp {
                 #';
                 #  ------------------------------------------------
                 $html_groups .= "			<li>";
-                $html_groups .=
-                  "<form action=\"/SET;referer?\" method=\"get\">";
-                $html_groups .=
-                  "<INPUT type=\"hidden\" name=\"select_item\" value=\"$item\">";
+                $html_groups .= "<form action=\"/SET;referer?\" method=\"get\">";
+                $html_groups .= "<INPUT type=\"hidden\" name=\"select_item\" value=\"$item\">";
                 $html_groups .= "<label>Dim Level</label><span>";
-                $html_groups .=
-                  "<SELECT name=\"select_state\" onChange=\"form.submit()\">\n";
+                $html_groups .= "<SELECT name=\"select_state\" onChange=\"form.submit()\">\n";
                 my ($value) = $state =~ /(\d*)%/;
                 $html_groups .= "\t\t\t<option value=\"\" ";
                 $html_groups .= "SELECTED" if !$value;
                 $html_groups .= "></option>\n";
 
-                for (
-                    my $dim_level = 10;
-                    $dim_level < 100;
-                    $dim_level = $dim_level + 10
-                  )
-                {
+                for ( my $dim_level = 10; $dim_level < 100; $dim_level = $dim_level + 10 ) {
                     $html_groups .= "\t\t\t<option value=\"$dim_level%\"";
                     $html_groups .= " SELECTED"
                       if ( $value
@@ -270,10 +241,7 @@ sub iphoneWebApp {
                 }
                 $html_groups .= "\t\t\t</SELECT></form></span></li>\n";
 
-                $html_groups .=
-                    "			</ul><ul class=\"iArrow\"><li><a href='#_"
-                  . $item2
-                  . "_advanced'>Advanced</a></li>";
+                $html_groups .= "			</ul><ul class=\"iArrow\"><li><a href='#_" . $item2 . "_advanced'>Advanced</a></li>";
                 my $html_groups1    = "";
                 my @advanced_states = @{ $object->{states} };
                 for my $s1 (@advanced_states) {
@@ -282,8 +250,7 @@ sub iphoneWebApp {
                         or ( $s1 eq "off" )
                         or ( $s1 eq "dim" )
                         or ( $s1 =~ m/\d*%/ ) );
-                    $html_groups1 .=
-                      "                <li><a href='../SET;&referer(/iphone/index.shtml%23_$item2)?$item2=$s1'>$s1</a></li>
+                    $html_groups1 .= "                <li><a href='../SET;&referer(/iphone/index.shtml%23_$item2)?$item2=$s1'>$s1</a></li>
 ";
                 }
 
@@ -313,10 +280,7 @@ sub iphoneWebApp {
                 $state = "gekippt" if ( $state eq "tilt" );
                 $state = "offen" if ( $state eq "open" );
                 $state = "zu" if ( $state eq "closed" );
-                $html .=
-                    "                <li><span>"
-                  . sprintf( $unit, $state )
-                  . "</span>$icon$name</li>";
+                $html .= "                <li><span>" . sprintf( $unit, $state ) . "</span>$icon$name</li>";
             }
             elsif ( $object->isa('EIBRB_Item') ) {
                 $unit = "%i%%" if ( $unit eq "%s" || $unit eq "" );
@@ -338,8 +302,7 @@ sub iphoneWebApp {
             }
             elsif ( $object->isa('Group') ) {
                 $name =~ s/^://;
-                $html .=
-                  "                <li><a href='#_$item2'>$icon$name</a></li>";
+                $html .= "                <li><a href='#_$item2'>$icon$name</a></li>";
                 $html_group = "";
                 for my $o ( &list_objects_by_group( $list_name, 1 ) ) {
                     next unless $o;
@@ -351,18 +314,15 @@ sub iphoneWebApp {
                 @item_states = @{ $object->{states} }
                   if ( defined $object->{states} );
                 if ( $name =~ s/^:// || !@item_states ) {
-                    $html .=
-                      "                <li>$icon$name<span>$state</span></li> ";
+                    $html .= "                <li>$icon$name<span>$state</span></li> ";
                 }
                 else {
-                    $html .=
-                      "                <li><a href='#_$item2'>$icon$name<span>$state</span></a></li> ";
+                    $html .= "                <li><a href='#_$item2'>$icon$name<span>$state</span></a></li> ";
                     $html_groups = "";
                     my @item_states = @{ $object->{states} };
                     for my $s (@item_states) {
                         next if ( $s =~ m:\d*/\d*.*: );
-                        $html_groups .=
-                          "                <li><a href='../SET;&referer(/iphone/index.shtml%23_$item2)?$item2=$s'>$s</a></li>
+                        $html_groups .= "                <li><a href='../SET;&referer(/iphone/index.shtml%23_$item2)?$item2=$s'>$s</a></li>
 ";
                     }
                     my $r = ref $object;

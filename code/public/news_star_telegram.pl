@@ -7,8 +7,7 @@
 my $f_telegram_summary = "$config_parms{data_dir}/web/telegram_summary.txt";
 my $f_telegram_html    = "$config_parms{data_dir}/web/telegram.html";
 
-$p_telegram = new Process_Item(
-    "get_url http://www.dfw.com/mld/dfw/news/local $f_telegram_html");
+$p_telegram = new Process_Item("get_url http://www.dfw.com/mld/dfw/news/local $f_telegram_html");
 $v_telegram = new Voice_Cmd('[Get,Read,Show] the local news');
 
 speak($f_telegram_summary)   if said $v_telegram eq 'Read';

@@ -37,8 +37,7 @@ if ($Reload) {
     mkdir "$config_parms{data_dir}/rrd/"
       unless -d "$config_parms{data_dir}/rrd/";
     &create_actiontec_rrd($Time) unless -e $RRD;
-    $Included_HTML{'Internet'} .=
-      qq(<h3>Actiontec Throughput<p><img src='sub;?graph_actiontec_rrd()'><p>\n\n\n);
+    $Included_HTML{'Internet'} .= qq(<h3>Actiontec Throughput<p><img src='sub;?graph_actiontec_rrd()'><p>\n\n\n);
     $actiontec_host = $config_parms{'actiontec_host'}
       if $config_parms{'actiontec_host'};
     $actiontec_url = "http://$actiontec_host";
@@ -56,11 +55,7 @@ if (    new_minute
 
 if ( said $v_read_actiontec) {
     my $state = $v_read_actiontec->{state};
-    my $text =
-        "Internet download bit rate: "
-      . $Save{actiontec_rx}
-      . " Mbps  upload: "
-      . $Save{actiontec_tx} . " Mbps";
+    my $text  = "Internet download bit rate: " . $Save{actiontec_rx} . " Mbps  upload: " . $Save{actiontec_tx} . " Mbps";
     $v_read_actiontec->respond("app=network $text");
 }
 
@@ -68,28 +63,24 @@ use Digest::MD5;
 if ( done_now $p_get_actiontec) {
     my $html      = file_read $f_actiontec;
     my $post_data = "bla=foo";
-    my %hidden =
-      $html =~ m|\<INPUT type=HIDDEN name=\"([^\"]*)\" value=\"([^\"]*)\">|g;
-    my ($url) = $html =~ m|f.action=\"(/cache/\d+/index.cgi)\"|;
+    my %hidden    = $html =~ m|\<INPUT type=HIDDEN name=\"([^\"]*)\" value=\"([^\"]*)\">|g;
+    my ($url)     = $html =~ m|f.action=\"(/cache/\d+/index.cgi)\"|;
 
     if ( $stage eq 'authen' ) {
         $stage = 'get_main';
         print_log "actiontec stage $stage url $url";
         $hidden{mimic_button_field} = "submit_button_login_submit: ..";
         if ( $html =~ m|$hidden{mimic_button_field}| ) {
-            $hidden{user_name} = $actiontec_username;
+            $hidden{user_name}                          = $actiontec_username;
             $hidden{"passwordmask_$hidden{session_id}"} = $actiontec_password;
-            $hidden{md5_pass} =
-              Digest::MD5::md5_hex( $hidden{"passwordmask_$hidden{session_id}"}
-                  . $hidden{auth_key} );
-            $hidden{passwd1} = "                    ";
+            $hidden{md5_pass}                           = Digest::MD5::md5_hex( $hidden{"passwordmask_$hidden{session_id}"} . $hidden{auth_key} );
+            $hidden{passwd1}                            = "                    ";
             foreach my $key ( keys %hidden ) {
                 $hidden{$key} = &escape( $hidden{$key} );
                 $post_data .= "&$key=$hidden{$key}" if defined $hidden{$key};
             }
             print_log "actiontec post data: $post_data" if $debug;
-            set $p_get_actiontec
-              qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
+            set $p_get_actiontec qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
             $p_get_actiontec->start;
         }
         else {
@@ -108,8 +99,7 @@ if ( done_now $p_get_actiontec) {
                 $post_data .= "&$key=$hidden{$key}" if defined $hidden{$key};
             }
             print_log "actiontec post data: $post_data" if $debug;
-            set $p_get_actiontec
-              qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
+            set $p_get_actiontec qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
             $p_get_actiontec->start;
         }
         else {
@@ -128,8 +118,7 @@ if ( done_now $p_get_actiontec) {
                 $post_data .= "&$key=$hidden{$key}" if defined $hidden{$key};
             }
             print_log "actiontec post data: $post_data" if $debug;
-            set $p_get_actiontec
-              qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
+            set $p_get_actiontec qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
             $p_get_actiontec->start;
         }
         else {
@@ -148,8 +137,7 @@ if ( done_now $p_get_actiontec) {
                 $post_data .= "&$key=$hidden{$key}" if defined $hidden{$key};
             }
             print_log "actiontec post data: $post_data" if $debug;
-            set $p_get_actiontec
-              qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
+            set $p_get_actiontec qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
             $p_get_actiontec->start;
         }
         else {
@@ -168,8 +156,7 @@ if ( done_now $p_get_actiontec) {
                 $post_data .= "&$key=$hidden{$key}" if defined $hidden{$key};
             }
             print_log "actiontec post data: $post_data" if $debug;
-            set $p_get_actiontec
-              qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
+            set $p_get_actiontec qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
             $p_get_actiontec->start;
         }
         else {
@@ -186,12 +173,8 @@ if ( done_now $p_get_actiontec) {
         $Save{actiontec_tx} = $cell[0][0] / 1000;
 
         if ( $Save{actiontec_rx} and $Save{actiontec_tx} ) {
-            &update_actiontec_rrd( $Time, $Save{actiontec_rx},
-                $Save{actiontec_tx} );
-            print_log "Internet download bit rate: "
-              . $Save{actiontec_rx}
-              . " Mbps  upload: "
-              . $Save{actiontec_tx} . " Mbps"
+            &update_actiontec_rrd( $Time, $Save{actiontec_rx}, $Save{actiontec_tx} );
+            print_log "Internet download bit rate: " . $Save{actiontec_rx} . " Mbps  upload: " . $Save{actiontec_tx} . " Mbps"
               if $debug;
         }
         else {
@@ -227,39 +210,36 @@ sub create_actiontec_rrd {
     print "Create RRD database : $RRD\n";
 
     RRDs::create $RRD,
-      '-b', $_[0], '-s', 60,
-      "DS:rxmbps:GAUGE:300:U:U",
-      "DS:txmbps:GAUGE:300:U:U",
-      'RRA:AVERAGE:0.5:1:801',    # details for 6 hours (agregate 1 minute)
+      '-b', $_[0], '-s', 60, "DS:rxmbps:GAUGE:300:U:U", "DS:txmbps:GAUGE:300:U:U", 'RRA:AVERAGE:0.5:1:801',    # details for 6 hours (agregate 1 minute)
 
-      'RRA:MIN:0.5:2:801',        # 1 day (agregate 2 minutes)
+      'RRA:MIN:0.5:2:801',                                                                                     # 1 day (agregate 2 minutes)
       'RRA:AVERAGE:0.5:2:801', 'RRA:MAX:0.5:2:801',
 
-      'RRA:MIN:0.5:5:641',        # 2 day (agregate 5 minutes)
+      'RRA:MIN:0.5:5:641',                                                                                     # 2 day (agregate 5 minutes)
       'RRA:AVERAGE:0.5:5:641', 'RRA:MAX:0.5:5:641',
 
-      'RRA:MIN:0.5:18:623',       # 1 week (agregate 18 minutes)
+      'RRA:MIN:0.5:18:623',                                                                                    # 1 week (agregate 18 minutes)
       'RRA:AVERAGE:0.5:18:623', 'RRA:MAX:0.5:18:623',
 
-      'RRA:MIN:0.5:35:618',       # 2 weeks (agregate 35 minutes)
+      'RRA:MIN:0.5:35:618',                                                                                    # 2 weeks (agregate 35 minutes)
       'RRA:AVERAGE:0.5:35:618', 'RRA:MAX:0.5:35:618',
 
-      'RRA:MIN:0.5:75:694',       # 1 month (agregate 1h15mn)
+      'RRA:MIN:0.5:75:694',                                                                                    # 1 month (agregate 1h15mn)
       'RRA:AVERAGE:0.5:75:694', 'RRA:MAX:0.5:75:694',
 
-      'RRA:MIN:0.5:150:694',      # 2 months (agregate 2h30mn)
+      'RRA:MIN:0.5:150:694',                                                                                   # 2 months (agregate 2h30mn)
       'RRA:AVERAGE:0.5:150:694', 'RRA:MAX:0.5:150:694',
 
-      'RRA:MIN:0.5:1080:268',     # 6 months (agregate 18 hours)
+      'RRA:MIN:0.5:1080:268',                                                                                  # 6 months (agregate 18 hours)
       'RRA:AVERAGE:0.5:1080:268', 'RRA:MAX:0.5:1080:268',
 
-      'RRA:MIN:0.5:2880:209',     # 12 months (agregate 2 days)
+      'RRA:MIN:0.5:2880:209',                                                                                  # 12 months (agregate 2 days)
       'RRA:AVERAGE:0.5:2880:209', 'RRA:MAX:0.5:2880:209',
 
-      'RRA:MIN:0.5:4320:279',     # 2 years (agregate 3 days)
+      'RRA:MIN:0.5:4320:279',                                                                                  # 2 years (agregate 3 days)
       'RRA:AVERAGE:0.5:4320:279', 'RRA:MAX:0.5:4320:279',
 
-      'RRA:MIN:0.5:8640:334',     # 5 years (agregate 6 days)
+      'RRA:MIN:0.5:8640:334',                                                                                  # 5 years (agregate 6 days)
       'RRA:AVERAGE:0.5:8640:334', 'RRA:MAX:0.5:8640:334';
 
     my $err = RRDs::error;
@@ -290,20 +270,13 @@ sub graph_actiontec_rrd {
 
     unlink "$config_parms{data_dir}/rrd/actiontec.png";
     my ( $graph, $x, $y ) = RRDs::graph(
-        "$config_parms{data_dir}/rrd/actiontec.png",
-        "--start=$ago",
-        "--end=$Time",
-        "--width=$width",
-        "--height=$height",
-        "--lower-limit=-$actiontec_upload_mbps",
-        "--upper-limit=$actiontec_download_mbps",
-        "--vertical-label=Mb/s",
-        "DEF:rxmbps=$RRD:rxmbps:AVERAGE",
-        "AREA:rxmbps#2000FF:In traffic",
-        "DEF:txmbps=$RRD:txmbps:AVERAGE",
-        "CDEF:itxmbps=txmbps,-1,*",
-        "AREA:itxmbps#AFAF00:Out traffic",
-        $thumb
+        "$config_parms{data_dir}/rrd/actiontec.png", "--start=$ago",
+        "--end=$Time",                               "--width=$width",
+        "--height=$height",                          "--lower-limit=-$actiontec_upload_mbps",
+        "--upper-limit=$actiontec_download_mbps",    "--vertical-label=Mb/s",
+        "DEF:rxmbps=$RRD:rxmbps:AVERAGE",            "AREA:rxmbps#2000FF:In traffic",
+        "DEF:txmbps=$RRD:txmbps:AVERAGE",            "CDEF:itxmbps=txmbps,-1,*",
+        "AREA:itxmbps#AFAF00:Out traffic",           $thumb
     );
     my $err = RRDs::error;
     print_log "actiontec graph error $err\n" if $err;

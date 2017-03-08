@@ -1,4 +1,4 @@
-// v1.3
+// v1.3.610
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -202,7 +202,6 @@ function changePage (){
 		}
 		else if (path.indexOf('prefs') === 0){
 			var pref_name = path.replace(/\prefs\/?/,'');
-			console.log("loadprefs() "+pref_name);
 			loadPrefs(pref_name);
 		}		
 		else if(URLHash._request == 'page'){
@@ -267,10 +266,10 @@ function changePage (){
 				nav_link = '#path=/objects&parents='+nav_name;				
 				if (collection_keys_arr.length > 2 && collection_keys_arr[collection_keys_arr.length-2].substring(0,1) == "$") nav_link = '#path=/objects&type='+nav_name; 
 				if (nav_name == "Group") nav_link = '#path=objects&type=Group'; //Hardcode this use case
-				if (json_store.objects[nav_name].label !== undefined) nav_name = (json_store.objects[nav_name].label);
+				if (json_store.objects[nav_name] !== undefined && json_store.objects[nav_name].label !== undefined) nav_name = (json_store.objects[nav_name].label);
 
-			}
-			else {
+			} else {
+				if (json_store.collections[collection_keys_arr[i]] == undefined) continue; //last breadcrumb duplicated so we don't need it.
 				nav_link = json_store.collections[collection_keys_arr[i]].link;
 				nav_name = json_store.collections[collection_keys_arr[i]].name;
 			}
@@ -279,8 +278,7 @@ function changePage (){
 			if (i == (collection_keys_arr.length-1)){
 				$('#nav').append('<li class="active">' + nav_name + '</a></li>');
 				$('title').html("MisterHouse - " + nav_name);
-			} 
-			else {
+			} else {
 				$('#nav').append('<li><a href="' + nav_link + '">' + nav_name + '</a></li>');
 			}
 		}
@@ -308,31 +306,19 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 		});
 	}		
 	html += "<th>"+ config_name + "_config.json </th></tr></thead><tbody>";
-	console.log(config_data);
-	console.log("in prefs="+config_data.length);
 	for (var i in config_data){
 		if ( typeof config_data[i] === 'object') {
-			console.log("i "+i+":");
 			html += "<tr class='info'><td><b>"+ i + "</b></td></tr>";
 			for (var j in config_data[i]) {
 				if ( typeof config_data[i][j] === 'object') {
-					//console.log("j      "+j+":");
 					html += "<tr class='info'><td style='padding-left:40px'>"+ j + "</td></tr>";
-
 					for (var k in config_data[i][j]){
-						//console.log("k             "+k+" = "+json_store.ia7_config[i][j][k]);
 						 html += "<tr><td style='padding-left:80px'>"+k+" = "+config_data[i][j][k]+"</td></tr>";
 					}
-				//html +="<tr>";
 				} else {
-					//console.log("j      "+j+" = "+json_store.ia7_config[i][j]);
 					html += "<tr><td style='padding-left:40px'>"+j+" = "+config_data[i][j]+"</td></tr>"
 				}
 			}
-			//html +="<tr>";
-		} else {
-			//console.log("i "+i+" : "+json_store.ia7_config[i]);
-			//html += "<th>"+ String(json_store.ia7_config[i]) + "</th></tr></thead><tbody>";
 		}	
 	}
 
@@ -358,7 +344,6 @@ function parseLinkData (link,data) {
 		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
 		}
 	if (link == "/bin/items.pl") {
-		console.log("items data="+data);
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))		
 		data = data.replace(/href=\/bin\/items.pl/img, 'onclick="changePage()"');		
 		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
@@ -377,14 +362,11 @@ function parseLinkData (link,data) {
 	}	
 	if (link == "/bin/triggers.pl") { //fix links in the triggers modules
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
-		//data = data.replace(/href=\/bin\/triggers.pl/img, 'href=/ia7/#_request=page&link=/bin/triggers.pl&'+coll_key);
 		data = data.replace(/href=\/bin\/triggers.pl/img, 'onclick="changePage()"');
 		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
 		data = data.replace(/Trigger Index:/img,'');
 		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
-		//data = data.replace(/onChange=\'form.submit\(\)\'/img,'onChange=\'this\.form\.submit\(\)\'');
 		data = data.replace(/input name='resp' value="\/bin\/triggers.pl"/img, 'input name=\'resp\' value=\"/ia7/#_request=page&link=/bin/triggers.pl&'+coll_key+'\"');
-		//console.log(data);
 	}				
 	if (link == "/ia5/news/main.shtml") { //fix links in the email module 1
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
@@ -427,18 +409,11 @@ function parseLinkData (link,data) {
   		if (btn.attr('name') !== undefined) {
   			form_data.push({name : btn.attr('name'), value : btn.attr('value')});
   		}		
-		console.log("MHResponse Custom submit function "+ form.attr('action'));
- 		console.log( $(this).serializeArray() );
-  		console.log( "btn: "+btn.attr('name')+"="+btn.attr('value'));
-//  		if (btn.attr('value') !== undefined) {
-//  			console.log("executing data!");
-// unless the btn attribute has a name, then don't push the data (prevent text fields
 			$.ajax({
 				type: "POST",
 				url: form.attr('action'),
 				data: form_data,
 				success: function(data){
-					console.log(data)
 					data = data.replace(/<link[^>]*>/img, ''); //Remove stylesheets
 					data = data.replace(/<title[^>]*>((\r|\n|.)*?)<\/title[^>]*>/img, ''); //Remove title
 					data = data.replace(/<meta[^>]*>/img, ''); //Remove meta refresh
@@ -448,12 +423,9 @@ function parseLinkData (link,data) {
 					var end = data.toLowerCase().indexOf('</body>');
 
 					if (form.attr('action') === "/bin/triggers.pl?add" && ! data.match(/Not authorized to make updates/))  {
-						//location.reload();
 						changePage();
 					} else if (form.attr('action') === "/bin/iniedit.pl") {
-//						var pdata = parseLinkData("/bin/iniedit.pl",data);
 						parseLinkData("/bin/iniedit.pl",data);
-//						$('#row_page').html(pdata);
 //TODO parse data							 
 					} else {
 						$('#lastResponse').find('.modal-body').html(data.substring(start, end));
@@ -463,7 +435,6 @@ function parseLinkData (link,data) {
 					}
 				}
 			});
-//		}
 	});
 	$('#mhresponse :input:not(:text)').change(function() {
 //TODO - don't submit when a text field changes
@@ -911,7 +882,6 @@ var updateItem = function(item,link,time) {
 	//URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
 		// Only allow one update thread to run at once
-		//console.log("updateItem: Aborting update. updateSocket="+updateSocket.readyState);
 		updateSocket.abort();
 	}
 	if (time === undefined) {
@@ -999,12 +969,33 @@ var updateStaticPage = function(link,time) {
 						$('button[entity="'+entity+'"]').removeClass("btn-danger");
 						$('button[entity="'+entity+'"]').removeClass("btn-info");
 						$('button[entity="'+entity+'"]').addClass("btn-"+color);
-				
+						if (json_store.ia7_config.objects[entity] !== undefined && 
+						    json_store.ia7_config.objects[entity].direct_control !== undefined && 
+						    json_store.ia7_config.objects[entity].direct_control == "yes") $('button[entity="'+entity+'"]').addClass("btn-direct");
+						
 						//don't run this if stategrp0 exists	
 						if (states_loaded == 0) {
 			                $(".btn-state-cmd").click( function () {
-                                var entity = $(this).attr("entity");			
-								create_state_modal(entity);
+								var entity = $(this).attr("entity");
+								if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                					if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
+                         				var new_state = "";
+                         				var possible_states = 0;
+                         				for (var i = 0; i < json_store.objects[entity].states.length; i++){
+                         					if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
+                         					possible_states++;
+											if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i];
+
+                         				}
+										if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
+										url= '/SET;none?select_item='+entity+'&select_state='+new_state;
+										$.get( url);
+                					} else {
+                					create_state_modal(entity);
+                					}
+								} else {				
+									create_state_modal(entity);
+								}
 							});
 						}																
 					}			
@@ -1028,7 +1019,6 @@ function authDetails() {
 		alert("Warning, Collection ID 700: Authorize, is not defined in your collections.json!");
 	} else {
 		if (json_store.collections[700].user !== undefined) {
-//			console.log ("user found "+json_store.collections[700].user+".");
    			if (json_store.collections[700].user == "0") {
     			json_store.collections[700].name = "Log in";
     			json_store.collections[700].icon = "fa-lock";
@@ -1058,17 +1048,10 @@ var loadCollection = function(collection_keys) {
 	if (entity_sort.length <= 0){
 		entity_arr.push("Childless Collection");
 	}
-//	if (json_store.collections[700] == undefined) {
-//		alert("Warning, Collection ID 700: Authorize, is not defined in your collections.json!");
-//	} else {
-//		authDetails();
-//	}
 
 	for (var i = 0; i < entity_sort.length; i++){
 		var collection = entity_sort[i];
-//		console.log ("col="+collection);
 		if (!(collection in json_store.collections)) continue;
-//		console.log ("starting");
 
 		var link = json_store.collections[collection].link;
 		var icon = json_store.collections[collection].icon;
@@ -1078,7 +1061,7 @@ var loadCollection = function(collection_keys) {
 		var item = json_store.collections[collection].item;
 		
 		if (item !== undefined) {
-			if (json_store.objects[item] === undefined) {
+			if (json_store.objects === undefined || json_store.objects[item] === undefined) {
 				var path_str = "/objects";
 				var arg_str = "fields=state,states,label,state_log,schedule,logger_status,&items="+item;
 				$.ajax({
@@ -1091,13 +1074,21 @@ var loadCollection = function(collection_keys) {
 						}
 				});
 			} else {
+                var btn_direct = "";
+                if (json_store.ia7_config.objects !== undefined 
+                        && json_store.ia7_config.objects[item] !== undefined
+                        && json_store.ia7_config.objects[item].direct_control !== undefined 
+                        && json_store.ia7_config.objects[item].direct_control == "yes") {
+                    btn_direct = "btn-direct";
+                }
+
 				var name = item;
 				var color = getButtonColor(json_store.objects[item].state);
 				if (json_store.objects[item].label !== undefined) name = json_store.objects[item].label;
 				var dbl_btn = "";
 				if (name.length < 30) dbl_btn = "<br>"; 
 				var button_html = "<div style='vertical-align:middle'><button entity='"+item+"' ";
-				button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover btn-state-cmd navbutton-padding'>";
+				button_html += "class='btn  btn-"+color+" btn-lg btn-block btn-list btn-popover "+ btn_direct +" btn-state-cmd navbutton-padding'>";
 				button_html += name+dbl_btn+"<span class='pull-right'>"+json_store.objects[item].state+"</span></button></div>";
 				entity_arr.push(button_html);
 				items += item+",";		
@@ -1157,10 +1148,35 @@ var loadCollection = function(collection_keys) {
 	// if any items present, then create modals and activate updateItem...
 	if (items !== "") {
 		items = items.slice(0,-1); //remove last comma
-		$('.btn-state-cmd').click( function () {			
-			var entity = $(this).attr("entity");
-			create_state_modal(entity);
-		});
+        $('.btn-state-cmd').click( function () {			
+            var entity = $(this).attr("entity");
+            if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
+                    var new_state = "";
+                    var possible_states = 0;
+                    for (var i = 0; i < json_store.objects[entity].states.length; i++){
+                        if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
+                        possible_states++;
+                        if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i];
+
+                    }
+                    if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
+                    url= '/SET;none?select_item='+entity+'&select_state='+new_state;
+                    $.get( url);
+                } else {
+                    create_state_modal(entity);
+                }
+            }
+            else {
+                create_state_modal(entity);
+            }
+        }
+        );
+        $(".btn-state-cmd").mayTriggerLongClicks().on( 'longClick', function() {		
+            var entity = $(this).attr("entity");
+            create_state_modal(entity);
+        });						
+			
 		$('.btn-resp-modal').click( function () {			
 			var url = $(this).attr('href');
 			alert("resp-model. opening url="+url);
@@ -1199,7 +1215,6 @@ function fixIA7Nav() {
 
 	var url = $(location).attr('href');
 	var collid = url.split("_collection_key=");
-	console.log("fixing nav..."+url+" "+collid[1]);
 	$('a').each(function() {
 		if ($(this).attr('href').match("^/ia7/")) {
   			this.href += '&_collection_key='+collid[1]+',';
@@ -1327,7 +1342,6 @@ var mobile_device = function() {
 
 function audio_play(audioElement,srcUrl)
 {
-  //console.log ("in audio_play:"+srcUrl);
   audioElement.pause();
   audioElement.src=''; //force playback to stop and quit buffering. Not sure if this is strictly necessary.
   $("#sound_element2").attr("src", srcUrl);  //needed for mobile
@@ -1341,7 +1355,6 @@ function playWhenReady()
 {//wait for media element to be ready, then play
   audioElement=document.getElementById('sound_element');
   var audioReady=audioElement.readyState;
-  //console.log("playWhenReady = "+audioReady);
   if(audioReady>2) {
     audioElement.play();
   } else if(audioElement.error) {
@@ -1494,7 +1507,6 @@ var graph_rrd = function(start,group,time) {
 					last_timestamp = new Date(json.data.last_update);
 				}
 				//Update the footer database updated time
-				console.log ("Last Updated:"+last_timestamp);
 				$('#Last_updated').remove();		
 				$('#footer_stuff').prepend("<div id='Last_updated'>RRD Database Last Updated:"+last_timestamp+"</div>");
 				
@@ -1689,11 +1701,9 @@ var object_history = function(items,start,days,time) {
 				});
 				
 				$('.update_history').click(function() {
-					console.log ("start="+$('.hist_start').val()+" end="+$('.hist_end').val());
-//					var new_start = new Date($('.hist_start').val()).getTime();
-//					var new_end = new Date($('.hist_end').val()).getTime();
-					var new_start = new Date($('.hist_start').val().split('-')).getTime();
-					var new_end = new Date($('.hist_end').val().split('-')).getTime();					
+					//var new_start = new Date($('.hist_start').val().split('-')).getTime();
+					var new_start = new Date($('.hist_start').val().replace(/-/g, "/")).getTime();
+					var new_end = new Date($('.hist_end').val().replace(/-/g, "/")).getTime();					
 					var end_days = (new_start - new_end) / (24 * 60 * 60 * 1000)
 					new_start = new_start / 1000;
 					object_history(items,new_start,end_days);
@@ -1731,13 +1741,9 @@ var object_history = function(items,start,days,time) {
     					// take away the border so that it looks better and span the graph from start to end.
     					json.data.options.grid.borderWidth = 0;
 
-//    					json.data.options.xaxis.min = new Date($('.hist_end').val()).getTime();
-//                		json.data.options.xaxis.max = new Date($('.hist_start').val()).getTime() + (24 * 60 * 60 * 1000);
 						json.data.options.xaxis.min = new Date($('.hist_end').val().split('-')).getTime();
  						json.data.options.xaxis.max = new Date($('.hist_start').val().split('-')).getTime() + (24 * 60 * 60 * 1000);
                 		
-//console.log("data="+JSON.stringify(data));
-//console.log("xmin="+json.data.options.xaxis.min+" xmax="+json.data.options.xaxis.max);
     					$.plot($("#hist-graph"), data, json.data.options);
     					$('.legend').hide();	
 					}
@@ -1803,13 +1809,15 @@ var object_history = function(items,start,days,time) {
     					$('#hist-legend').find("li").eq(i).prepend('<span style="width:4px;height:4px;border: 0px;background: '+color+';">&nbsp;&nbsp;&nbsp;</span>&nbsp');
 					});
 				} else {
+					// table
 					var html = "<table class='table table-curved'><thead><tr>";
 					html += "<th>Time</th><th>State</th><th>Set By</th>";
 					html += "</tr></thead><tbody>";
 					if (json.data.data !== undefined) {  //If no data, at least show the header
+						json.data.data.reverse();
 						for (var i = 0; i < json.data.data.length; i++){
 							html +="<tr>";
-					  		html += "<td data-title='Time'>"+new Date(json.data.data[i][0]).toUTCString()+"</td>";
+					  		html += "<td data-title='Time'>"+new Date(json.data.data[i][0]).toString().replace(/GMT-\d\d\d\d/,"")+"</td>";
 					  		html += "<td data-title='State'>"+String(json.data.data[i][1])+"</td>";
 					  		html += "<td data-title='Setby'>"+String(json.data.data[i][2])+"</td>";
 							html += "</tr>";
@@ -1883,7 +1891,6 @@ var fp_resize_floorplan_image = function(){
     $("#fp_graphic").attr("width", "1px");
 
     fp_display_width = $("#graphic").width();
-    console.log("FP: resize "+ floor_width + " => " + fp_display_width);
     $('#fp_graphic').attr("width",fp_display_width+"px");
     fp_display_height = $("#fp_graphic").height();
 };
@@ -1891,7 +1898,7 @@ var fp_resize_floorplan_image = function(){
 var fp_reposition_entities = function(){
     var t0 = performance.now();
     var fp_graphic_offset = $("#fp_graphic").offset();
-    console.log("fp_graphic_offset: "+ JSON.stringify(fp_graphic_offset));
+//    console.log("fp_graphic_offset: "+ JSON.stringify(fp_graphic_offset));
     var width = fp_display_width;
     var hight = fp_display_height;
     var onePercentWidthInPx = width/100;
@@ -1928,7 +1935,6 @@ var fp_reposition_entities = function(){
     var fp_scale =  width/nwidth;
     var fp_scale_percent = Math.round( fp_scale * 100);
     
-	console.log("width="+width+" nwidth="+nwidth+" scale="+fp_scale_percent);
     // update the location of all the objects...
     $(".floorplan_item").each(function(index) {
         var classstr = $(this).attr("class");
@@ -1940,19 +1946,9 @@ var fp_reposition_entities = function(){
         }
         var fp_location = coords.split(/x/);
         var fp_offset =  fp_get_offset_from_location(fp_location);
-		console.log("coords="+coords);       
 
-        // this seems to make the repositioning slow
-        // ~ 300+ms on my nexus7 firefox-beta vs <100ms with this code commented out
-        // var baseimg_width = $("#fp_graphic").width();
-        // if (baseimg_width < 500) {
-        //     $(this).attr('src',$(this).attr('src').replace('48.png','32.png'));
-        // } else {
-        //     $(this).attr('src',$(this).attr('src').replace('32.png','48.png'));
-        // }
         var element_id = $(this).attr('id');
         var adjust = fp_icon_image_size*fp_scale/2;
-		console.log("adjust="+adjust+" fp_offset.top="+fp_offset.top+" fp_offset.left="+fp_offset.left);       
         var fp_off_center = {
             "top":  fp_offset.top - adjust,
             "left": fp_offset.left - adjust
@@ -1961,33 +1957,25 @@ var fp_reposition_entities = function(){
     });
 
 	$('.icon_select img').each(function(){
-        $(this).width(fp_scale + "%");
+        $(this).width(fp_scale_percent + "%");
 	});
     var t1 = performance.now();
-    console.log("FP: reposition and scale: " +Math.round(t1 - t0) + "ms ");
+    //console.log("FP: reposition and scale: " +Math.round(t1 - t0) + "ms ");
+};
+
+var fp_show_all_icons = function() {
+
+    $(".floorplan_item").each(function(index) {
+		$(this).show();
+	});
 };
 
 var fp_set_pos = function(id, offset){
     var item =  $('#' + id);
     // do not move the span, this make the popup to narrow somehow
     // item.closest("span").offset(offset);
-    var left11 = item.css("left");
-    var left12 = item[0].style.left;
-    var top11 = item.css("top");
-    var top12 = item[0].style.top;    
-    var before = item.offset();
-    var init = false
-    if (item.css("left") == "auto") {
-    	console.log("auto found, fixing left property");
-    	offset.left = 0 - fp_icon_image_size/2;
-    }
     item.offset(offset);
-    var after = item.offset();
-    var left21 = item.css("left");
-    var left22 = item[0].style.left;        
-    console.log("offset.top="+offset.top+" offset.left="+offset.left+" before.top="+before.top+" before.left="+before.left+" after.top="+after.top+" after.left="+after.left);
-	console.log("top11="+top11+" top12="+top12);
-	console.log("left11="+left11+" left12="+left12+" left21="+left21+" left22="+left22);    
+
 };
 
 var fp_is_point_on_fp = function (p){
@@ -2033,7 +2021,7 @@ var floorplan = function(group,time) {
             $('#list_content').append("<pre id='fp_pos_perl_code' />");
         }
         $('#fp_graphic').bind("load", function () {
-            console.log("FP: background loaded.");
+//            console.log("FP: background loaded.");
             fp_resize_floorplan_image();
             floorplan(group, time);
         });
@@ -2165,7 +2153,7 @@ var floorplan = function(group,time) {
             return;
         }
 
-        console.log("FP: window resized");
+//        console.log("FP: window resized");
         fp_resize_floorplan_image();
         fp_reposition_entities();
     };
@@ -2275,16 +2263,13 @@ var floorplan = function(group,time) {
                                                     }
                                                 }
                                                 html += "</div></div>";
-                                                //console.log("html="+html)
                                             }
                                             return html;
                                         }
                                     });
                                 } else {
                                     E.click( function () {
-                                        //var fp_entity = $(this).attr("id").split(/entity_/)[1]; //
                                         var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
-                                        //alert("entity="+fp_entity);
                                         create_state_modal(fp_entity);
                                     });
                                 }
@@ -2328,10 +2313,8 @@ var floorplan = function(group,time) {
                         url: "/LONG_POLL?json('GET','fp_icon_sets','px=48')",
                         dataType: "json",
                         error: function(xhr, textStatus, errorThrown){
-                            console.log('FP: request iconsets failed: "' + textStatus + '" "'+JSON.stringify(errorThrown, undefined,2)+'"');
                         },
                         success: function( json, statusText, jqXHR ) {
-                            console.log('FP: request iconsets: "' + statusText + '" "'+JSON.stringify(jqXHR, undefined,2)+'"');
                             var requestTime = time;
                             if (jqXHR.status === 200) {
                                 var iconlist = '<ul class="icon_select" style="display:none;z-index:1000;position:absolute;overflow:hidden;border:1px solid #CCC; background: #FFF; border-radius: 5px; padding: 0;">\n';
@@ -2409,7 +2392,6 @@ var floorplan = function(group,time) {
                 }
                 requestTime = json.meta.time;
                 var t1 = performance.now();
-                console.log("FP: long poll " +Math.round(t1 - t0) + "ms");
             }
             if (jqXHR.status === 200 || jqXHR.status === 204) {
                 //Call update again, if page is still here
@@ -2421,6 +2403,15 @@ var floorplan = function(group,time) {
                         floorplan(group,requestTime);
                 }
             }
+            if (time === 0){
+                // hack to fix initial positions of the items
+                var wait = 50;
+                //console.log("FP: calling  fp in  " +wait+ "ms");
+                setTimeout(function(){
+                    //console.log("FP: calling fp after " +wait+ "ms");
+                    fp_reposition_entities();
+                }, wait);
+            }            
         }
     });
 };
@@ -2507,38 +2498,37 @@ var create_state_modal = function(entity) {
 			
 			for (var i = 0; i < modal_states.length; i++){
 				if (filterSubstate(modal_states[i]) == 1) {
-				advanced_html += "<button class='btn btn-default col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" hidden'>"+modal_states[i]+"</button>";
-				continue 
-			} else {
-				//buttonlength += 2 + modal_states[i].length 
-				buttonlength ++;
+					advanced_html += "<button class='btn btn-default col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" hidden'>"+modal_states[i]+"</button>";
+					continue 
+				} else {
+					//buttonlength += 2 + modal_states[i].length 
+					buttonlength ++;
+				}
+				//if (buttonlength >= 25) {
+				if (buttonlength > group_buttons) {
+					stategrp++;
+					$('#control').find('.states').append("<div class='btn-group btn-block stategrp"+stategrp+"'></div>");
+					buttonlength = 1;
+				}
+				var color = getButtonColor(modal_states[i])
+				var disabled = ""
+				if (modal_states[i] == json_store.objects[entity].state) {
+					disabled = "disabled";
+				}
+				//global override
+				if (json_store.ia7_config.prefs.disable_current_state !== undefined && json_store.ia7_config.prefs.disable_current_state == "no") {
+            		disabled = "";
+				}
+				//per object override
+				if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                	if (json_store.ia7_config.objects[entity].disable_current_state !== undefined && json_store.ia7_config.objects[entity].disable_current_state == "yes") {
+                    	disabled = "disabled";
+                	} else {
+                        disabled = "";
+                	}
+				}
+			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");					
 			}
-			//if (buttonlength >= 25) {
-			if (buttonlength > group_buttons) {
-				stategrp++;
-				$('#control').find('.states').append("<div class='btn-group btn-block stategrp"+stategrp+"'></div>");
-				buttonlength = 1;
-			}
-			var color = getButtonColor(modal_states[i])
-			var disabled = ""
-			if (modal_states[i] == json_store.objects[entity].state) {
-				disabled = "disabled";
-			}
-			//global override
-			if (json_store.ia7_config.prefs.disable_current_state !== undefined && json_store.ia7_config.prefs.disable_current_state == "no") {
-            	disabled = "";
-			}
-			//per object override
-			if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
-                if (json_store.ia7_config.objects[entity].disable_current_state !== undefined && json_store.ia7_config.objects[entity].disable_current_state == "yes") {
-                                disabled = "disabled";
-                } else {
-                                disabled = "";
-                }
-			}
-			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
-						
-		}
 		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
 		$('#control').find('.states').find('.btn').click(function (){
 			url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
@@ -2557,12 +2547,9 @@ var create_state_modal = function(entity) {
 
 			var modify_jqcon_dow = function(cronstr,offset) {
 				var cron = cronstr.split(/\s+/);
-				console.log("dow="+cron[cron.length-1]);
 				cron[cron.length-1] = cron[cron.length-1].replace(/\d/gi, function adjust(x) { 
-					console.log("x="+x+" offset="+offset);
 					return parseInt(x) + parseInt(offset); 
 				});;			
-				console.log("dow="+cron[cron.length-1]);
 				return cron.join(" ");
 				}	
 
@@ -2641,12 +2628,10 @@ var create_state_modal = function(entity) {
 
 			$('#control').find('.modal-body').append("<div class='sched_control'><span><h4>Schedule Control<button type='button' class='pull-right btn btn-success btn-xs schedadd'><i class='fa fa-plus'></i></button></h4></span>");
 			var sched_states = json_store.objects[entity].schedule[0][3];
-			console.log("schedule.length="+json_store.objects[entity].schedule.length);
 			for (var i = 1; i < json_store.objects[entity].schedule.length; i++){
 				var sched_index = json_store.objects[entity].schedule[i][0];
 				var sched_cron = modify_jqcon_dow(json_store.objects[entity].schedule[i][1],1);
 				var sched_label = json_store.objects[entity].schedule[i][2];
-				console.log("si="+sched_index+",sc="+sched_cron+",sl="+sched_label+",ss="+sched_states);	
 				add_schedule(sched_index,sched_cron,sched_label,sched_states);	
 			}
 			
@@ -2657,7 +2642,6 @@ var create_state_modal = function(entity) {
 				if (isNaN(newid)) newid=1;
 				var newlabel = newid;
 				if (sched_states[0] !== null) newlabel=sched_states[0];
-				console.log("add new schedule, index should be "+newid+" states are"+sched_states);
 				add_schedule(newid,'0 0 * * 1-7',newlabel,sched_states);
             	$('.sched_submit').removeClass('disabled');  
             	$('.sched_submit').removeClass('btn-default');  
@@ -2668,14 +2652,10 @@ var create_state_modal = function(entity) {
 				if ($(this).hasClass("disabled")) return;
 				var string = "";
 				$('.mhsched').each(function(index,value) {
-					console.log("string="+string);
-//					string += $( this ).attr("id") + ',"' + $( this ).text() + '",' + $( this ).attr("label") + ',';
 					string += $( this ).attr("id") + ',"' + modify_jqcon_dow($(this).text(),"-1") + '",' + $( this ).attr("label") + ',';
-					console.log("string="+string);					
 				});
 				string = string.replace(/,\s*$/, ""); //remove the last comma
 				var url="/SUB?ia7_update_schedule"+encodeURI("("+$(this).parents('.control-dialog').attr("entity")+","+string+")");
-				console.log("url="+url);
 				$.get(url);
             	$('.sched_submit').addClass('disabled');  
             	$('.sched_submit').removeClass('btn-success');  
@@ -2725,7 +2705,6 @@ var create_state_modal = function(entity) {
 		});
 		$('.logger_data').on('click',function() {
 			$('#control').modal('hide');
-			console.log('url='+$(location).attr('href'));
 		});
 }	
 
@@ -2762,7 +2741,6 @@ var authorize_modal = function(user) {
     });
 	$('.btn-login-logoff').click( function () {
 		$.get ("/UNSET_PASSWORD");
-		console.log("in logoff");
 		location.reload();
 		$('#loginModal').modal('hide');
 	});	
@@ -2774,7 +2752,6 @@ var authorize_modal = function(user) {
 			url: "/SET_PASSWORD_FORM",
 			data: $(this).serialize(),
 			success: function(data){
-				console.log(data) 
 				var status=data.match(/\<b\>(.*)\<\/b\>/gm);
 				//console.log("match="+status[2]); //3rd match is password status
 				if (status[2] == "<b>Password was incorrect</b>") {
@@ -3032,7 +3009,6 @@ $(document).ready(function() {
 	$('#mhresponse').click( function (e) {
 		e.preventDefault();
 		$form = $(this);
-		console.log("MHResponse Custom submit function "+ form.attr('action'));
 		//$.ajax({
 		//	type: "POST",
 		//	url: "/SET_PASSWORD_FORM",

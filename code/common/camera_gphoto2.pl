@@ -59,8 +59,7 @@ It's only been tested with one camera, Cannon S230.
 =cut
 
 my $gphoto2_dir = "$config_parms{data_dir}/photos";
-my ( $gphoto2_state, $dir, $gphoto2_camera_cnt, $gphoto2_old_disk_cnt,
-    $gphoto2_new_disk_cnt, $gphoto2_file );
+my ( $gphoto2_state, $dir, $gphoto2_camera_cnt, $gphoto2_old_disk_cnt, $gphoto2_new_disk_cnt, $gphoto2_file );
 
 if ($Reload) {
     $gphoto2_dir = "$config_parms{gphoto2_dir}" if "$config_parms{gphoto2_dir}";
@@ -114,9 +113,7 @@ if ( done_now $p_gphoto2) {
         if ( $config_parms{gphoto2_automatic} ) {
             if ( $gphoto2_camera_cnt > 0 ) {
                 $gphoto2_state = 'download';
-                speak( text =>
-                      "I found $gphoto2_camera_cnt digital camera images for download"
-                );
+                speak( text => "I found $gphoto2_camera_cnt digital camera images for download" );
             }
             else {
                 $gphoto2_state = 'idle';
@@ -124,9 +121,7 @@ if ( done_now $p_gphoto2) {
         }
         else {
             print_log "gphoto detect: $gphoto2_camera_cnt images found";
-            speak( text =>
-                  "I found $gphoto2_camera_cnt digital camera images for download"
-            );
+            speak( text => "I found $gphoto2_camera_cnt digital camera images for download" );
         }
     }
 
@@ -142,21 +137,15 @@ if ( done_now $p_gphoto2) {
         close DIR;
         $gphoto2_new_disk_cnt -= $gphoto2_old_disk_cnt;
         if ( $gphoto2_new_disk_cnt == $gphoto2_camera_cnt ) {
-            print_log
-              "$gphoto2_new_disk_cnt images successfully downloaded from digital camera";
-            speak( text =>
-                  "$gphoto2_new_disk_cnt images successfully downloaded from digital camera"
-            );
+            print_log "$gphoto2_new_disk_cnt images successfully downloaded from digital camera";
+            speak( text => "$gphoto2_new_disk_cnt images successfully downloaded from digital camera" );
             if ( $config_parms{gphoto2_automatic} ) {
                 $gphoto2_state = 'erase';
             }
         }
         else {
-            print_log
-              "photo download failed, only $gphoto2_new_disk_cnt of $gphoto2_camera_cnt images downloaded from digital camera";
-            speak( text =>
-                  "photo download failed, only $gphoto2_new_disk_cnt of $gphoto2_camera_cnt images downloaded from digital camera"
-            );
+            print_log "photo download failed, only $gphoto2_new_disk_cnt of $gphoto2_camera_cnt images downloaded from digital camera";
+            speak( text => "photo download failed, only $gphoto2_new_disk_cnt of $gphoto2_camera_cnt images downloaded from digital camera" );
             if ( $config_parms{gphoto2_automatic} ) {
                 $gphoto2_state = 'idle';
             }
@@ -165,11 +154,8 @@ if ( done_now $p_gphoto2) {
 
     # erase is now complete, let's clean up our state
     elsif ( $gphoto2_state eq 'erase' ) {
-        print_log
-          "$gphoto2_camera_cnt images successfully erased from digital camera";
-        speak( text =>
-              "$gphoto2_camera_cnt images successfully erased from digital camera"
-        );
+        print_log "$gphoto2_camera_cnt images successfully erased from digital camera";
+        speak( text => "$gphoto2_camera_cnt images successfully erased from digital camera" );
         if ( $config_parms{gphoto2_automatic} ) {
             $gphoto2_state = 'idle';
         }
@@ -235,8 +221,7 @@ elsif ( done $p_gphoto2) {
         }
         else {
             print_log "gphoto download: no images detected for download";
-            speak( text =>
-                  "sorry, no digital camera images detected for download" );
+            speak( text => "sorry, no digital camera images detected for download" );
         }
     }
 
@@ -252,9 +237,7 @@ elsif ( done $p_gphoto2) {
         }
         else {
             print_log "digital camera erase disabled, last download failed";
-            speak( text =>
-                  "sorry, digital camera erase disabled, last download failed"
-            );
+            speak( text => "sorry, digital camera erase disabled, last download failed" );
         }
     }
 }

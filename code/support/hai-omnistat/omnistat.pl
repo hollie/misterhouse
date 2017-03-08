@@ -10,8 +10,7 @@
 # Close to full rewrite/overhaul by Marc MERLIN 2009/07/22
 
 #
-use vars
-  qw(%omnicache @omnilist @omnistat @omniname @omnioffset $stat_cool_temp $stat_heat_temp $stat_mode $stat_fan $stat_hold
+use vars qw(%omnicache @omnilist @omnistat @omniname @omnioffset $stat_cool_temp $stat_heat_temp $stat_mode $stat_fan $stat_hold
   $stat_indoor_temp $cmd  $stat_model @v_omnistat_fan @v_omnistat_resume @v_omnistat_hold @v_omnistat_mode
   @v_omnistat_cool_sp @v_omnistat_heat_sp @v_omnistat_setting @stat_reset_timer $house_stat $mbr_stat $test_stat
   @v_omnistat_background);
@@ -68,22 +67,14 @@ foreach my $omnistat (@omnilist) {
     my $statidx = " ";
     $statidx = " $omniname[$omnistat]" if ( $#omnilist > 0 );
 
-    $v_omnistat_fan[$omnistat] =
-      new Voice_Cmd("Set$statidx Thermostat fan [on,auto,cycle]");
-    $v_omnistat_resume[$omnistat] = new Voice_Cmd("Resume $statidx Thermostat");
-    $v_omnistat_hold[$omnistat] =
-      new Voice_Cmd("Set$statidx Thermostat hold [on,off,vacation]");
-    $v_omnistat_mode[$omnistat] =
-      new Voice_Cmd("Set$statidx Thermostat mode [off,heat,cool,auto]");
-    $v_omnistat_cool_sp[$omnistat] =
-      new Voice_Cmd("Set$statidx Thermostat cool setpoint to [$temprange]");
-    $v_omnistat_heat_sp[$omnistat] =
-      new Voice_Cmd("Set$statidx Thermostat heat setpoint to [$temprange]");
-    $v_omnistat_setting[$omnistat] =
-      new Voice_Cmd("What is the$statidx thermostat set to");
-    $v_omnistat_background[$omnistat] = new Voice_Cmd(
-        "Set$statidx Thermostat background to [Blue,Green,Purple,Red,Orange,Yellow]"
-    );
+    $v_omnistat_fan[$omnistat]        = new Voice_Cmd("Set$statidx Thermostat fan [on,auto,cycle]");
+    $v_omnistat_resume[$omnistat]     = new Voice_Cmd("Resume $statidx Thermostat");
+    $v_omnistat_hold[$omnistat]       = new Voice_Cmd("Set$statidx Thermostat hold [on,off,vacation]");
+    $v_omnistat_mode[$omnistat]       = new Voice_Cmd("Set$statidx Thermostat mode [off,heat,cool,auto]");
+    $v_omnistat_cool_sp[$omnistat]    = new Voice_Cmd("Set$statidx Thermostat cool setpoint to [$temprange]");
+    $v_omnistat_heat_sp[$omnistat]    = new Voice_Cmd("Set$statidx Thermostat heat setpoint to [$temprange]");
+    $v_omnistat_setting[$omnistat]    = new Voice_Cmd("What is the$statidx thermostat set to");
+    $v_omnistat_background[$omnistat] = new Voice_Cmd("Set$statidx Thermostat background to [Blue,Green,Purple,Red,Orange,Yellow]");
 
     # With these, you can either send
     # 'Set Thermostat cool setpoint to 68'
@@ -91,9 +82,7 @@ foreach my $omnistat (@omnilist) {
     # 'Set Bedroom Thermostat cool setpoint to 72'
     # if you have multiple
 
-    Omnistat::omnistat_log(
-        "$omniname[$omnistat] Omnistat: Mh restarted, will reconfigure stat",
-        2 );
+    Omnistat::omnistat_log( "$omniname[$omnistat] Omnistat: Mh restarted, will reconfigure stat", 2 );
 }
 
 # noloop=stop
@@ -141,10 +130,8 @@ foreach my $omnistat (@omnilist) {
         # This mashes $hold and $mode together from registers cached in the group1 call and outputs a combined string
         $mode = $omnistat[$omnistat]->get_mode;
 
-        Omnistat::omnistat_log( ""
-              . $omniname[$omnistat]
-              . " Omnistat $stat_type: Indoor temp is $temp, HVAC Command: $output, heat to $heat_sp, cool to $cool_sp, mode: $mode"
-        );
+        Omnistat::omnistat_log(
+            "" . $omniname[$omnistat] . " Omnistat $stat_type: Indoor temp is $temp, HVAC Command: $output, heat to $heat_sp, cool to $cool_sp, mode: $mode" );
 
         # only store the temperature from the first stat (which we'll assume is master)
         $Weather{TempIndoor} = $temp if ( $omnistat == $omnilist[0] );
@@ -177,19 +164,14 @@ foreach my $omnistat (@omnilist) {
 
     if ( $state = $v_omnistat_cool_sp[$omnistat]->said ) {
         $omnistat[$omnistat]->cool_setpoint($state);
-        respond
-          "Air conditioning set to $state degrees for $omniname[$omnistat] Omnistat";
-        Omnistat::omnistat_log(
-            "$omniname[$omnistat] Omnistat: Air conditioning set to $state degrees",
-            2
-        );
+        respond "Air conditioning set to $state degrees for $omniname[$omnistat] Omnistat";
+        Omnistat::omnistat_log( "$omniname[$omnistat] Omnistat: Air conditioning set to $state degrees", 2 );
     }
 
     if ( $state = $v_omnistat_heat_sp[$omnistat]->said ) {
         $omnistat[$omnistat]->heat_setpoint($state);
         respond "Heat set to $state degrees for $omniname[$omnistat] Omnistat";
-        Omnistat::omnistat_log(
-            "$omniname[$omnistat] Omnistat: Heat set to $state degrees", 2 );
+        Omnistat::omnistat_log( "$omniname[$omnistat] Omnistat: Heat set to $state degrees", 2 );
     }
 
     if ( $state = $v_omnistat_setting[$omnistat]->said ) {
@@ -197,10 +179,7 @@ foreach my $omnistat (@omnilist) {
         $cool = $omnistat[$omnistat]->get_cool_sp;
         $heat = $omnistat[$omnistat]->get_heat_sp;
         respond "cool setpoint $cool, heat setpoint $heat";
-        Omnistat::omnistat_log(
-            "$omniname[$omnistat] Omnistat: cool setpoint $cool, heat setpoint $heat",
-            2
-        );
+        Omnistat::omnistat_log( "$omniname[$omnistat] Omnistat: cool setpoint $cool, heat setpoint $heat", 2 );
     }
 
     if ( $state = $v_omnistat_background[$omnistat]->said ) {
@@ -228,20 +207,15 @@ foreach my $omnistat (@omnilist) {
     if ( time_now '7:45 PM' ) {
         my $filter_days = $omnistat[$omnistat]->get_filter_reminder;
         if ( $filter_days == 0 ) {
-            speak
-              "Replace the furnace filter linked to $omniname[$omnistat] Omnistat";
+            speak "Replace the furnace filter linked to $omniname[$omnistat] Omnistat";
             print_log "$omniname[$omnistat] Omnistat: replace the filter";
-            Omnistat::omnistat_log(
-                "$omniname[$omnistat] Omnistat: replace the filter", 0 );
+            Omnistat::omnistat_log( "$omniname[$omnistat] Omnistat: replace the filter", 0 );
 
             # reset the timer  to 30 days of runtime (59 max)
             $omnistat[$omnistat]->set_filter_reminder(30);
         }
         else {
-            Omnistat::omnistat_log(
-                "$omniname[$omnistat] Omnistat: $filter_days days before filter replacement",
-                1
-            );
+            Omnistat::omnistat_log( "$omniname[$omnistat] Omnistat: $filter_days days before filter replacement", 1 );
         }
     }
 
@@ -253,10 +227,7 @@ foreach my $omnistat (@omnilist) {
         # Set the outside temp on the thermostat if available (refreshing this value should cause the
         # stat to display the outside temperature on the display).
         if ( $Weather{TempOutdoor} ) {
-            Omnistat::omnistat_log(
-                "$omniname[$omnistat] Omnistat: Setting outside temperature to $Weather{TempOutdoor}",
-                2
-            );
+            Omnistat::omnistat_log( "$omniname[$omnistat] Omnistat: Setting outside temperature to $Weather{TempOutdoor}", 2 );
             $omnistat[$omnistat]->outdoor_temp( $Weather{TempOutdoor} );
         }
 
@@ -277,12 +248,9 @@ foreach my $omnistat (@omnilist) {
                 $background_color = "Purple";
             }
             elsif ( $Weather{TempOutdoor} < 55 ) { $background_color = "Blue"; }
-            else { $background_color = "Orange"; }
+            else                                 { $background_color = "Orange"; }
 
-            Omnistat::omnistat_log(
-                "$omniname[$omnistat] Omnistat: Setting background color to $background_color",
-                2
-            );
+            Omnistat::omnistat_log( "$omniname[$omnistat] Omnistat: Setting background color to $background_color", 2 );
             $omnistat[$omnistat]->set_background_color($state);
         }
     }

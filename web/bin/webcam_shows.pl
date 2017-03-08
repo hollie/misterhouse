@@ -16,8 +16,7 @@ $wcMax = "4" unless $config_parms{wc_max};    # default it
 my $wcx = "" unless $config_parms{wc_address_1};    # 1 ?
 
 # Get the list of directories in the camera directory
-my $abs_dir =
-  $config_parms{html_dir} . "/" . $config_parms{wc_slide_dir} . "/cams";
+my $abs_dir = $config_parms{html_dir} . "/" . $config_parms{wc_slide_dir} . "/cams";
 opendir( DIR, $abs_dir );
 my @files = grep { !/\.$/ && -d "$abs_dir/$_" } readdir(DIR);    #readdir(DIR);
 closedir(DIR);
@@ -27,10 +26,8 @@ closedir(DIR);
 
 my $bgcolor = "#333366";
 
-my $webdir =
-  $config_parms{wc_slide_dir} . $config_parms{wc_slide_dir} . "/cams/";
-my $html =
-  "<!-- Dynmically Generated List for $config_parms{wc_slide_dir} -->\n";
+my $webdir = $config_parms{wc_slide_dir} . $config_parms{wc_slide_dir} . "/cams/";
+my $html   = "<!-- Dynmically Generated List for $config_parms{wc_slide_dir} -->\n";
 $html .= "<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=3>\n";
 
 # make the links to the movie files ...
@@ -56,25 +53,14 @@ foreach $file (@files) {
     #Add this cameras settings into the string
     my $wcURL = $config_parms{$wcThis};
     my ( $wcURL, $wcDescr ) = split( /\,/, $wcURL );
-    my $currDir =
-      "/bin/webcam_movie.pl?" . $config_parms{wc_slide_dir} . "/cams/" . $file;
-    my $href = "<a href='" . $currDir . "' target='_blank' >";
+    my $currDir = "/bin/webcam_movie.pl?" . $config_parms{wc_slide_dir} . "/cams/" . $file;
+    my $href    = "<a href='" . $currDir . "' target='_blank' >";
 
     $html .= "<TR><TD WIDTH=50>  </TD>\n";
-    $html .=
-        "<TD BGCOLOR='$bgcolor' ALIGN='center'>"
-      . $href
-      . "<img SRC='/graphics/icons/security1.png'>
+    $html .= "<TD BGCOLOR='$bgcolor' ALIGN='center'>" . $href . "<img SRC='/graphics/icons/security1.png'>
     		 </a></td>";
 
-    $html .=
-        "<TD BGCOLOR='$bgcolor' ALIGN='center'>"
-      . $href . "#"
-      . $wcx . " "
-      . $wcDescr . "<BR>"
-      . $num_images
-      . " images <br>"
-      . "</a></td>";
+    $html .= "<TD BGCOLOR='$bgcolor' ALIGN='center'>" . $href . "#" . $wcx . " " . $wcDescr . "<BR>" . $num_images . " images <br>" . "</a></td>";
 
     # my  $last_image = $files[$num_images - 1] ;
     my ( $last_image, $jnk ) = split /\-/, $files[ $num_images - 1 ];
@@ -91,17 +77,9 @@ foreach $file (@files) {
         #$last_image = sprintf ('%04s/2%02s%02d%02d%02d%02d%02d',$last_image, $last_image);
     }
     else { $jnk = "None"; }
-    $html .=
-        "<TD BGCOLOR='$bgcolor' ALIGN='center'>"
-      . $href
-      . " Last Image <br>" . " "
-      . $jnk
-      . "</a></td>";
+    $html .= "<TD BGCOLOR='$bgcolor' ALIGN='center'>" . $href . " Last Image <br>" . " " . $jnk . "</a></td>";
 
-    $html .=
-        "<TD BGCOLOR='$bgcolor' ALIGN='center'>"
-      . $href
-      . "<IMG SRC='/graphics/movie.gif'>
+    $html .= "<TD BGCOLOR='$bgcolor' ALIGN='center'>" . $href . "<IMG SRC='/graphics/movie.gif'>
     		 </a></td>";
 
     $html .= "</TR>\n";

@@ -154,8 +154,7 @@ if ( state_now $morning_alarm_buttons eq 'off' ) {
 $v_ambient_lights = new Voice_Cmd("Ambient Lights");
 
 # Turn entryway and living room lamp on at sunset
-if ( ( $state = said $v_ambient_lights) or ( time_now "$Time_Sunset - 1:00" ) )
-{
+if ( ( $state = said $v_ambient_lights) or ( time_now "$Time_Sunset - 1:00" ) ) {
     set $ambient_lights 'off';
     set $ambient_lights 'on';
     set $computer_room_light '-50';
@@ -554,8 +553,7 @@ if ( state_now $low_light_kitchen eq 'light' ) {
 
 if ( state_now $motion_detector_living_room eq 'motion' ) {
     print_log "Motion - Living Room";
-    logit( "$Pgm_Path/../web/mh/motion.log",
-        "Motion Detected Living Room<BR>" );
+    logit( "$Pgm_Path/../web/mh/motion.log", "Motion Detected Living Room<BR>" );
 
     if (    ( state $alarmactive eq 'on' )
         and ( seconds_remaining_now $timer_alarm == '0' ) )
@@ -835,22 +833,14 @@ if ( ( said $v_house_status) || ( state_now $request_time_stuff eq 'off' ) ) {
 
 $v_set_wakeup_alarm_on = new Voice_Cmd("Alarm Clock On");
 if ( $state = said $v_set_wakeup_alarm_on) {
-    &trigger_set(
-        "time_cron '0 6 * * 1,2,3,4,5'",
-        "run_voice_cmd 'Play Music from Upstairs'",
-        "NoExpire", "ALARM ON", 1
-    );
+    &trigger_set( "time_cron '0 6 * * 1,2,3,4,5'", "run_voice_cmd 'Play Music from Upstairs'", "NoExpire", "ALARM ON", 1 );
     speak "Alarm now active for tomorrow morning.";
     print_log "Alarm now active for tomorrow morning.";
 }
 
 $v_set_wakeup_alarm_off = new Voice_Cmd("Alarm Clock Off");
 if ( $state = said $v_set_wakeup_alarm_off) {
-    &trigger_set(
-        "time_cron '0 6 * * 1,2,3,4,5'",
-        "run_voice_cmd 'Play Music from Upstairs'",
-        "Disabled", "ALARM ON", 1
-    );
+    &trigger_set( "time_cron '0 6 * * 1,2,3,4,5'", "run_voice_cmd 'Play Music from Upstairs'", "Disabled", "ALARM ON", 1 );
     speak "Alarm clock now off.";
     print_log "Alarm clock now off.";
 }
@@ -870,8 +860,7 @@ if ( $state = said $v_set_wakeup_alarm_off) {
 if ( time_cron('33 20,21 * * 0,1,2,3,4') ) {
     ( $af, $af, $atx, $af ) = &trigger_get('ALARM ON');
     if ( $atx eq 'Disabled' ) {
-        speak
-          "Notice: Please be aware that the alarm clock for tomorrow morning is off.";
+        speak "Notice: Please be aware that the alarm clock for tomorrow morning is off.";
         print_log "Alarm Clock Reminder Sent.";
     }
 }
@@ -1040,9 +1029,7 @@ if ( $Weather{TempOutdoor} eq $Weather{WindChill} ) {
 }
 
 if ( $Weather{TempOutdoor} ne $Weather{WindChill} ) {
-    speak(
-        "It's $Time_Now. Temp is $Weather{TempOutdoor}. Winnd Chill is $Weather{WindChill}."
-    ) if time_cron('30 10,11,12,13,14,15,16,17,18,19,20 * * *');
+    speak("It's $Time_Now. Temp is $Weather{TempOutdoor}. Winnd Chill is $Weather{WindChill}.") if time_cron('30 10,11,12,13,14,15,16,17,18,19,20 * * *');
 }
 
 # Category=Entertainment

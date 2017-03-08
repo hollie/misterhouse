@@ -4,14 +4,11 @@
 
 # This script will initiate APRS, open ports and monitor them.
 
-$tnc_output =
-  new Socket_Item( undef, undef, '192.168.75.2:14579' );    # Nordic feed
-$tnc_output2 = new Socket_Item( undef, undef, '192.168.75.4:14579' )
-  ;    # Special feed for AHub Statistics
+$tnc_output  = new Socket_Item( undef, undef, '192.168.75.2:14579' );    # Nordic feed
+$tnc_output2 = new Socket_Item( undef, undef, '192.168.75.4:14579' );    # Special feed for AHub Statistics
 
 #$tnc_test	 = new Socket_Item(undef, undef, '192.168.75.2:2023');		# Full feed
-$tnc_ahubwx = new Socket_Item( undef, undef, 'ahubwest.net:23' )
-  ;    # AHubWX Feed for AHub Statistics
+$tnc_ahubwx = new Socket_Item( undef, undef, 'ahubwest.net:23' );        # AHubWX Feed for AHub Statistics
 
 unless ( active $tnc_output or not new_second 15 ) {
     print_log "Starting APRS connection to Nordic Feed";

@@ -37,10 +37,8 @@ if ( $Startup or $Reread ) {
     my $dbm_file = "$config_parms{data_dir}/irman.dbm";
     print_log "Opening irman database $dbm_file";
 
-    my $tie_code =
-      qq[tie (%DBM_IR, 'DB_File', '$dbm_file', O_RDWR|O_CREAT, 0666) or ];
-    $tie_code .=
-      qq[print "\n\nError, can not open irman dbm file $dbm_file: $!"];
+    my $tie_code = qq[tie (%DBM_IR, 'DB_File', '$dbm_file', O_RDWR|O_CREAT, 0666) or ];
+    $tie_code .= qq[print "\n\nError, can not open irman dbm file $dbm_file: $!"];
 
     eval $tie_code;
     if ($@) {
@@ -63,8 +61,7 @@ if ( $Startup or $Reread ) {
 
 # Start/stop programming mode
 $v_irman_program = new Voice_Cmd("[Start,Stop] programming IRman codes");
-$v_irman_program->set_info(
-    'To program, enter the key key into test_input2, then press the ir button');
+$v_irman_program->set_info('To program, enter the key key into test_input2, then press the ir button');
 
 speak "${state}ing irmain programming" if $state = said $v_irman_program;
 
@@ -80,8 +77,7 @@ if ( my $data = said $irman_port) {
             print "irman program data: $data...\n";
         }
         else {
-            logit( "$config_parms{data_dir}/logs/tv_ir.$Year_Month_Now.log",
-                $data );
+            logit( "$config_parms{data_dir}/logs/tv_ir.$Year_Month_Now.log", $data );
             print "IR man data: ", unpack( 'H*', $data );
 
             if ( $DBM_IR{$data} ) {

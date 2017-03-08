@@ -43,9 +43,7 @@ sub rf_is_tv_remote {
     # The first two bytes must be complements of each other and contain
     # the command sent by the remote.  Byte 3 is always 0x77 and byte 4
     # is always 0x88.
-    return ( $initial_checksum_good
-          && $nbytes[2] == 0x77
-          && $nbytes[3] == 0x88 );
+    return ( $initial_checksum_good && $nbytes[2] == 0x77 && $nbytes[3] == 0x88 );
 }
 
 #------------------------------------------------------------------------------
@@ -75,26 +73,20 @@ sub rf_process_tv_remote {
     $cmd = $nbytes[0];
     $state = $vcodes{ unpack( "H2", chr($cmd) ) };
     unless ( defined $state ) {
-        &::print_log(
-            sprintf "%s: unimplemented tv remote command: "
-              . "0x%02x (%s %s %s %s)",
-            $uc_module, $cmd,       $bbytes[0],
-            $bbytes[1], $bbytes[2], $bbytes[3]
-        );
+        &::print_log( sprintf "%s: unimplemented tv remote command: " . "0x%02x (%s %s %s %s)",
+            $uc_module, $cmd, $bbytes[0], $bbytes[1], $bbytes[2], $bbytes[3] );
         return undef;
     }
 
     if ( $main::Debug{$lc_module} ) {
-        &::print_log( sprintf "%s: tv remote: state = %s (0x%02x)",
-            $uc_module, $state, $cmd );
+        &::print_log( sprintf "%s: tv remote: state = %s (0x%02x)", $uc_module, $state, $cmd );
     }
 
     # Set state of all MR26/W800 and X10_RF_Receiver objects.
     &rf_set_receiver( $module, $state );
 
     # Set the state of any items or classes associated with this device.
-    &rf_set_RF_Item( $module, "tv remote", "no remote defined",
-        "remote", undef, $state );
+    &rf_set_RF_Item( $module, "tv remote", "no remote defined", "remote", undef, $state );
 
     return $state;
 }

@@ -111,8 +111,7 @@ sub file_ready_for_audrey {
         my ( $room, $ip ) = $audrey =~ /(\S+)\-(\S+)/;
         $room = lc $room;
         if ( grep( /$room/, @{ $parms{audreySpeakRooms} } ) ) {
-            run
-              "get_url -quiet http://$ip/mhspeak.shtml?http://$MHWeb/$speakFile /dev/null";
+            run "get_url -quiet http://$ip/mhspeak.shtml?http://$MHWeb/$speakFile /dev/null";
         }
     }
 }

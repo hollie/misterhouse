@@ -9,8 +9,7 @@ my ( $Pgm_Path, $Pgm_Name );
 BEGIN {
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval
-      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";    # So perl2exe works
 }
 
 my ( %config_parms, %parms );
@@ -18,14 +17,10 @@ my ( %config_parms, %parms );
 use Getopt::Long;
 
 #print "get_url: @ARGV\n";
-if (
-    !&GetOptions( \%parms, 'h', 'help',
-        'quiet', 'cookies=s', 'cookie_file_in=s', 'cookie_file_out=s',
-        'post=s', 'header=s', 'userid=s', 'password=s' )
+if (   !&GetOptions( \%parms, 'h', 'help', 'quiet', 'cookies=s', 'cookie_file_in=s', 'cookie_file_out=s', 'post=s', 'header=s', 'userid=s', 'password=s' )
     or !@ARGV
     or $parms{h}
-    or $parms{help}
-  )
+    or $parms{help} )
 {
 
     print <<eof;
@@ -103,7 +98,7 @@ sub use_ua {
     $ua->proxy( [ 'http', 'ftp' ] => $config_parms{proxy} )
       if $config_parms{proxy};
 
-    $ua->timeout( 30 );            # Time out after 30 seconds
+    $ua->timeout(30);                 # Time out after 30 seconds
     $ua->env_proxy();
     $ua->agent( $config_parms{get_url_ua} ) if $config_parms{get_url_ua};
 
@@ -139,8 +134,7 @@ sub use_ua {
         print " url retrieved.\n" unless $parms{quiet};
         if ( $parms{header} ) {
             open( OUT, ">$parms{header}" )
-              or die
-              "Error, could not open file '$parms{header}' for output: $!\n";
+              or die "Error, could not open file '$parms{header}' for output: $!\n";
             binmode OUT;
             print OUT $response->headers_as_string();
             close OUT;
@@ -148,9 +142,7 @@ sub use_ua {
         if ( $parms{cookie_file_out} ) {
             my $cookies;
             for my $header ( split /\n/, $response->headers_as_string() ) {
-                if ( my ( $name, $value ) =
-                    $header =~ /^Set-Cookie: ([^=]+)=([^;]+)/ )
-                {
+                if ( my ( $name, $value ) = $header =~ /^Set-Cookie: ([^=]+)=([^;]+)/ ) {
                     $cookies .= "$name=$value; ";
                 }
             }
