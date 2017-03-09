@@ -11,7 +11,7 @@ Example:
 
 use strict;
 
-#print "db a=@ARGV\n";
+#&main::print_log("db a=@ARGV\n");
 
 # Process form
 if ( @ARGV > 2 ) {

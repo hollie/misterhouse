@@ -59,12 +59,12 @@ need to put a semicolon at the end.  If you don't want to run one of the automat
 triggers, change the type to "Disabled".  If you delete it, the trigger will be recreated the next  
 time Misterhouse is restarted.   
 
-<form action='/bin/triggers.pl?add' method=post>
-<input type=input name=name     size=10 value="Test">
+<form action='/bin/triggers.pl?add' id='mhresponse' method=post>
+<input type=text name=name     size=10 value="Test">
 $form_trigger
-<input type=input name=trigger2 size=18 value="12 pm">
+<input type=text name=trigger2 size=18 value="12 pm">
 $form_code
-<input type=input name=code2    size=30 value="hi">
+<input type=text name=code2    size=30 value="hi">
 <select name='type'>
 <option value='OneShot' selected>OneShot</option>
 <option value='NoExpire'>NoExpire</option>
