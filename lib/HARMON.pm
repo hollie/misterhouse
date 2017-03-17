@@ -774,8 +774,7 @@ sub new {
     $$self{reconnect_time} = $::config_parms{ $instance . '_server_recon' };
     $$self{reconnect_time} = 10 if !defined( $$self{reconnect_time} );
     my $year_mon = &::time_date_stamp( 10, time );
-    $$self{log_file} =
-      $::config_parms{'data_dir'} . "/logs/HARMON.$year_mon.log";
+    $$self{log_file} = $::config_parms{'data_dir'} . "/logs/HARMON.$year_mon.log";
 
     bless $self, $class;
 
@@ -821,18 +820,10 @@ sub serial_startup {
           ( defined $::config_parms{ $instance . '_baudrate' } )
           ? $::config_parms{ "$instance" . '_baudrate' }
           : 115200;
-        if (
-            &main::serial_port_create(
-                $instance, $port, $BaudRate, 'none', 'raw'
-            )
-          )
-        {
+        if ( &main::serial_port_create( $instance, $port, $BaudRate, 'none', 'raw' ) ) {
             init( $::Serial_Ports{$instance}{object}, $port );
-            ::print_log(
-                "[HARMON] initializing $instance on port $port at $BaudRate baud"
-            ) if $main::Debug{'HARMON'};
-            ::MainLoop_pre_add_hook(
-                sub { check_for_data( $instance, 'serial' ); }, 1 )
+            ::print_log("[HARMON] initializing $instance on port $port at $BaudRate baud") if $main::Debug{'HARMON'};
+            ::MainLoop_pre_add_hook( sub { check_for_data( $instance, 'serial' ); }, 1 )
               if $main::Serial_Ports{"$instance"}{object};
         }
     }
@@ -844,20 +835,14 @@ sub server_startup {
     $Socket_Items{"$instance"}{recon_timer} = ::Timer::new();
     my $ip   = $::config_parms{ "$instance" . '_server_ip' };
     my $port = $::config_parms{ "$instance" . '_server_port' };
-    ::print_log(
-        "  HARMON.pm initializing $instance TCP session with $ip on port $port")
+    ::print_log("  HARMON.pm initializing $instance TCP session with $ip on port $port")
       if $main::Debug{'HARMON'};
     $Socket_Items{"$instance"}{'socket'} =
       new Socket_Item( $instance, undef, "$ip:$port", $instance, 'tcp', 'raw' );
-    $Socket_Items{ "$instance" . '_sender' }{'socket'} = new Socket_Item(
-        $instance . '_sender',
-        undef, "$ip:$port", $instance . '_sender',
-        'tcp', 'rawout'
-    );
+    $Socket_Items{ "$instance" . '_sender' }{'socket'} = new Socket_Item( $instance . '_sender', undef, "$ip:$port", $instance . '_sender', 'tcp', 'rawout' );
     $Socket_Items{"$instance"}{'socket'}->start;
     $Socket_Items{ "$instance" . '_sender' }{'socket'}->start;
-    ::MainLoop_pre_add_hook(
-        sub { HARMON::check_for_data( $instance, 'tcp' ); }, 1 );
+    ::MainLoop_pre_add_hook( sub { HARMON::check_for_data( $instance, 'tcp' ); }, 1 );
 }
 
 sub check_for_data {
@@ -927,16 +912,12 @@ sub check_for_data {
 
     if ( $connecttype eq 'tcp' ) {
         if ( $Socket_Items{$instance}{'socket'}->active ) {
-            $NewCmd =
-              uc(
-                unpack( 'H*', ( $Socket_Items{$instance}{'socket'}->said ) ) );
+            $NewCmd = uc( unpack( 'H*', ( $Socket_Items{$instance}{'socket'}->said ) ) );
         }
         else {
             # restart the TCP connection if its lost.
             if ( $Socket_Items{$instance}{recon_timer}->inactive ) {
-                ::print_log(
-                    "Connection to $instance instance of HARMON was lost, I will try to reconnect in $$self{reconnect_time} seconds"
-                );
+                ::print_log("Connection to $instance instance of HARMON was lost, I will try to reconnect in $$self{reconnect_time} seconds");
                 $Socket_Items{$instance}{recon_timer}->set(
                     $$self{reconnect_time},
                     sub {
@@ -998,9 +979,7 @@ sub check_for_data {
                 elsif ( $2 eq 'M' ) { $object_type = 'mute_object'; }
                 elsif ( $2 eq 'I' ) { $object_type = 'input_object'; }
                 $self->set_child_state( $object_type, $zone_num, $msg );
-                &main::print_log(
-                    "[HARMON] - ACK MSG ($msg) - Zone ($zone_num) - Object Type ($object_type)"
-                );
+                &main::print_log("[HARMON] - ACK MSG ($msg) - Zone ($zone_num) - Object Type ($object_type)");
             }
         }
         else {
@@ -1089,15 +1068,12 @@ sub set {
         else {
             # restart the TCP connection if its lost.
             if ( $Socket_Items{$instance}{recon_timer}->inactive ) {
-                ::print_log(
-                    "Connection to $instance sending instance of HARMON was lost, I will try to reconnect in $$self{reconnect_time} seconds"
-                );
+                ::print_log("Connection to $instance sending instance of HARMON was lost, I will try to reconnect in $$self{reconnect_time} seconds");
                 $Socket_Items{$instance}{recon_timer}->set(
                     $$self{reconnect_time},
                     sub {
                         $Socket_Items{ $instance . '_sender' }{'socket'}->start;
-                        $Socket_Items{ $instance . '_sender' }{'socket'}
-                          ->set("$cmd");
+                        $Socket_Items{ $instance . '_sender' }{'socket'}->set("$cmd");
                     }
                 );
             }
@@ -1174,10 +1150,7 @@ sub new {
 
 sub set {
     my ( $self, $p_state, $p_setby, $p_response ) = @_;
-    ::print_log( "[HARMON::power] Received request to "
-          . $p_state
-          . " for zone "
-          . $self->get_object_name );
+    ::print_log( "[HARMON::power] Received request to " . $p_state . " for zone " . $self->get_object_name );
     $p_state =~ s/ /-/g;
     if ( $p_state =~ /^GET-PWR-STAT/ ) {
         $p_state = "Z" . $$self{zone} . "_" . $p_state;
@@ -1263,11 +1236,7 @@ sub new {
 
 sub set {
     my ( $self, $p_state, $p_setby, $p_response ) = @_;
-    ::print_log( "[HARMON::Volume] Received request "
-          . $p_state . " for "
-          . $self->get_object_name
-          . " for zone "
-          . $$self{zone} );
+    ::print_log( "[HARMON::Volume] Received request " . $p_state . " for " . $self->get_object_name . " for zone " . $$self{zone} );
     if ( $p_state =~ /^GET-VOL-STAT/ ) {
         $p_state = "Z" . $$self{zone} . "_" . $p_state;
         $$self{receiver}->set($p_state);
@@ -1350,11 +1319,7 @@ sub new {
 
 sub set {
     my ( $self, $p_state, $p_setby, $p_response ) = @_;
-    ::print_log( "[HARMON::Mute] Received request "
-          . $p_state . " for "
-          . $self->get_object_name
-          . " for zone "
-          . $$self{zone} );
+    ::print_log( "[HARMON::Mute] Received request " . $p_state . " for " . $self->get_object_name . " for zone " . $$self{zone} );
     if ( $p_state =~ /^Z\d_MUTE/ ) {
         $$self{receiver}->set($p_state);
     }
@@ -1433,23 +1398,14 @@ sub new {
     $receiver->register( $self, $zone );
     $$self{receiver} = $receiver;
     $$self{zone}     = $zone;
-    @{ $$self{states} } = (
-        'SAT',     'BLURAY', 'BRIDGE', 'DVR',
-        'SIRIUS',  'FM',     'AM',     'TV',
-        'GAME',    'MEDIA',  'AUX',    'INET-RADIO',
-        'NETWORK', 'SRC-A',  'SRC-B',  'SRC-C',
-        'SRC-D'
-    );
+    @{ $$self{states} } =
+      ( 'SAT', 'BLURAY', 'BRIDGE', 'DVR', 'SIRIUS', 'FM', 'AM', 'TV', 'GAME', 'MEDIA', 'AUX', 'INET-RADIO', 'NETWORK', 'SRC-A', 'SRC-B', 'SRC-C', 'SRC-D' );
     return $self;
 }
 
 sub set {
     my ( $self, $p_state, $p_setby, $p_response ) = @_;
-    ::print_log( "[HARMON::Input] Received request "
-          . $p_state . " for "
-          . $self->get_object_name
-          . " for zone "
-          . $$self{zone} );
+    ::print_log( "[HARMON::Input] Received request " . $p_state . " for " . $self->get_object_name . " for zone " . $$self{zone} );
     if ( $p_state =~ /^Z\d_/ ) {
         $$self{receiver}->set($p_state);
     }
@@ -1522,20 +1478,14 @@ sub new {
     $receiver->register( $self, $zone );
     $$self{receiver} = $receiver;
     $$self{zone}     = $zone;
-    @{ $$self{states} } = (
-        'SIRIUS-TUNE-DOWN', 'SIRIUS-TUNE-UP', 'MENU', 'UP', 'DOWN', 'LEFT',
-        'RIGHT', 'OK', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
-    );
+    @{ $$self{states} } =
+      ( 'SIRIUS-TUNE-DOWN', 'SIRIUS-TUNE-UP', 'MENU', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'OK', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' );
     return $self;
 }
 
 sub set {
     my ( $self, $p_state, $p_setby, $p_response ) = @_;
-    ::print_log( "[HARMON::Control] Received request "
-          . $p_state . " for "
-          . $self->get_object_name
-          . " for zone "
-          . $$self{zone} );
+    ::print_log( "[HARMON::Control] Received request " . $p_state . " for " . $self->get_object_name . " for zone " . $$self{zone} );
     if ( $p_state =~ /^Z\d_(.*)/ ) {
         $$self{receiver}->set($p_state);
         $self->SUPER::set( $1, $p_setby );

@@ -55,8 +55,7 @@ sub convert {
     my $in_file = new FileHandle $tgt;
     confess "can't read [$tgt]\n" unless $in_file;
     while (<$in_file>) {
-        if ( /Format\s*=\s*(\S+)/i && $1 eq "A" )
-        {    ## we're hard-wired for tbl A
+        if ( /Format\s*=\s*(\S+)/i && $1 eq "A" ) {    ## we're hard-wired for tbl A
             $format  = $1;
             $xml_out = new FileHandle ">$dest";
             confess "can't write [$dest]\n" unless $xml_out;
@@ -66,11 +65,7 @@ sub convert {
         }
         next unless ($format);
 
-        my (
-            $code,      $address,    $name,      $object,
-            $grouplist, $comparison, $limit,     @other,
-            $other,     $vcommand,   $occupancy, $pa_type
-        );
+        my ( $code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand, $occupancy, $pa_type );
         my ($type);
         my ($comment);
         my (@item_info);

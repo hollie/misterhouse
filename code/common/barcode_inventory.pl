@@ -17,8 +17,7 @@ if ( said $v_barcode_inventory) {
     display $results;
 }
 
-if ( my $scan = state_now $barcode_data and state $barcode_mode =~ /inventory/ )
-{
+if ( my $scan = state_now $barcode_data and state $barcode_mode =~ /inventory/ ) {
     my ( $type, $code, $isbn ) = split ' ', $scan;
     my $mode = state $barcode_mode;
 

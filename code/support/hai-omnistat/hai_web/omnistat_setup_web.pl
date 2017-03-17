@@ -23,8 +23,7 @@ The HTML of this page is based on work by Kent Noonan.
 
 =cut
 
-use vars
-  qw($stat_cool_temp $stat_heat_temp $stat_mode $stat_fan $stat_hold $stat_indoor_temp $stat_output);
+use vars qw($stat_cool_temp $stat_heat_temp $stat_mode $stat_fan $stat_hold $stat_indoor_temp $stat_output);
 use strict;
 my $html;
 my $stat;
@@ -56,8 +55,7 @@ foreach my $object_type (&::list_object_types) {
             push @locations, $object_name;
             if ( not $location ) {
                 $location = $object_name;
-                Omnistat::omnistat_debug(
-                    "$NAME: Will set location to $location");
+                Omnistat::omnistat_debug("$NAME: Will set location to $location");
             }
         }
     }
@@ -68,12 +66,10 @@ $stat = &::get_object_by_name("$location");
 
 if ( not $stat ) {
     if ( not $location ) {
-        die
-          "$NAME was not able to get an omnistat object, check your stat definitions in mycode/omnistat.pl";
+        die "$NAME was not able to get an omnistat object, check your stat definitions in mycode/omnistat.pl";
     }
     else {
-        die
-          "$NAME was not able to get an omnistat object with location \"$location\"";
+        die "$NAME was not able to get an omnistat object with location \"$location\"";
     }
 }
 else {
@@ -89,8 +85,7 @@ if ( $stat->is_omnistat2 ) {
 }
 
 if ( $submit eq 'reset stat to scheduled values' ) {
-    Omnistat::omnistat_debug(
-        "$NAME: Got 'reset to scheduled values' for $location");
+    Omnistat::omnistat_debug("$NAME: Got 'reset to scheduled values' for $location");
     $stat->restore_setpoints();
 }
 
@@ -127,13 +122,9 @@ if ( $hold =~ /([^=]+)=(.+)/ & $2 ne "" ) {
 }
 
 # this will pickup changes we may have just made
-(
-    $stat_cool_temp, $stat_heat_temp, $stat_mode, $stat_fan, $stat_hold,
-    $stat_indoor_temp, $stat_output
-) = $stat->read_group1("true");
+( $stat_cool_temp, $stat_heat_temp, $stat_mode, $stat_fan, $stat_hold, $stat_indoor_temp, $stat_output ) = $stat->read_group1("true");
 
-my $pretty_name =
-  &pretty_object_name($location) . " (" . $stat->get_stat_type() . ")";
+my $pretty_name = &pretty_object_name($location) . " (" . $stat->get_stat_type() . ")";
 
 #Write the HTML page
 $html = '<html><body>' . &html_header('Browse Items') . "
@@ -167,30 +158,20 @@ if ( $#locations > 0 ) {
         if ( $location eq $statname ) {
 
             #Omnistat::omnistat_debug("$NAME: Selecting $statname in drop down menu since it is location $location. Objects are ".&::get_object_by_name($statname)." and ".&::get_object_by_name($statname));
-            $html =
-                $html
-              . "<option SELECTED  value ='$statname'>"
-              . &pretty_object_name($statname)
-              . "</option>";
+            $html = $html . "<option SELECTED  value ='$statname'>" . &pretty_object_name($statname) . "</option>";
         }
         else {
-            $html =
-                $html
-              . "<option value ='$statname'>"
-              . &pretty_object_name($statname)
-              . "</option>";
+            $html = $html . "<option value ='$statname'>" . &pretty_object_name($statname) . "</option>";
         }
     }
     $html = $html . "</select>";
 }
 else {
-    Omnistat::omnistat_debug(
-        "$NAME: Got single location $location, skipping drop down menu");
+    Omnistat::omnistat_debug("$NAME: Got single location $location, skipping drop down menu");
     $html = $html . $pretty_name;
     $html = $html . "<input name='location' value='$location' type='hidden'>";
 }
-$html = $html
-  . "<br><br><a style='font-size: 120%; font-weight: bold;'> Current temp&nbsp;$stat_indoor_temp
+$html = $html . "<br><br><a style='font-size: 120%; font-weight: bold;'> Current temp&nbsp;$stat_indoor_temp
               <br>
               <br>
               <a style='font-size: 120%; font-weight: bold;'> Current stat mode:&nbsp;$stat_output

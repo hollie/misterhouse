@@ -146,8 +146,7 @@ if ($Startup) {
     $irc_ops->add_global_handler( 'join',   \&irc_on_join );
     $irc_ops->add_global_handler( 'part',   \&irc_on_part );
     $irc_ops->add_global_handler( 'quit',   \&irc_on_part );
-    $irc_ops->add_global_handler( [ 251, 252, 253, 254, 302, 255 ],
-        \&irc_on_init );
+    $irc_ops->add_global_handler( [ 251, 252, 253, 254, 302, 255 ], \&irc_on_init );
     $irc_ops->add_global_handler( 'disconnect', \&irc_on_disconnect );
     $irc_ops->add_global_handler( 376,          \&irc_on_connect );
     $irc_ops->add_global_handler( 433,          \&irc_on_nick_taken );
@@ -170,19 +169,13 @@ if ($Reload) {
             $cline =~ /irc_connection(\d+)/;
             $handle = $1;
             print "CLINE $handle: $cline\n" if $main::Debug{irc};
-            my ( $server, $port, $nick, $channels, $irc_name, $user_name,
-                $passwd );
-            if ( $config_parms{$cline} =~
-                /(\S+):(\d*):(\S+):(\S+):(\S+):(\S+):(\S*)/ )
-            {
-                (
-                    $server, $port, $nick, $channels, $irc_name, $user_name,
-                    $passwd
-                ) = ( $1, $2, $3, $4, $5, $6, $7 );
+            my ( $server, $port, $nick, $channels, $irc_name, $user_name, $passwd );
+            if ( $config_parms{$cline} =~ /(\S+):(\d*):(\S+):(\S+):(\S+):(\S+):(\S*)/ ) {
+                ( $server, $port, $nick, $channels, $irc_name, $user_name, $passwd ) = ( $1, $2, $3, $4, $5, $6, $7 );
                 $irc_data{connections}{$handle}{server} = $server;
-                $ref         = $irc_data{connections}{$handle};
-                $ref->{port} = $port;
-                $ref->{nick} = $nick;
+                $ref                                    = $irc_data{connections}{$handle};
+                $ref->{port}                            = $port;
+                $ref->{nick}                            = $nick;
                 foreach ( split( /,/, $channels ) ) {
                     print "CHANNEL: $_\n";
                     $ref->{channels}{$_}{start} = 1;
@@ -195,14 +188,13 @@ if ($Reload) {
                 $ref->{auths} = '.*';    # no auth
                 $ref->{queue} = [];
 
-                $ref->{max_bytes} = 2560;    # optimised for hybrid6 ircd
-                $ref->{window}    = 10;      # hybrid6
+                $ref->{max_bytes}   = 2560;                                          # optimised for hybrid6 ircd
+                $ref->{window}      = 10;                                            # hybrid6
                 $ref->{float}       = $ref->{max_bytes};
-                $ref->{line_length} = 511;                 # hybrid6
-                $ref->{last_time} = $ref->{first_time} = $ref->{since} = time();
-                $ref->{last_sent} = 0;
-                print
-                  "$handle: $server, $port, $nick, $irc_name, $user_name, $passwd\n"
+                $ref->{line_length} = 511;                                           # hybrid6
+                $ref->{last_time}   = $ref->{first_time} = $ref->{since} = time();
+                $ref->{last_sent}   = 0;
+                print "$handle: $server, $port, $nick, $irc_name, $user_name, $passwd\n"
                   if $main::Debug{irc};
             }
         }
@@ -233,7 +225,7 @@ if ($Reload) {
                     $ref->{max_bytes}   = $max_bytes   ? $max_bytes   : 2560;
                     $ref->{line_length} = $line_length ? $line_length : 511;
                     $ref->{window}      = $window      ? $window      : 10;
-                    $ref->{float} = $ref->{max_bytes};
+                    $ref->{float}       = $ref->{max_bytes};
                     print "$handle: $config_parms{$bline}\n"
                       if $main::Debug{irc};
                 }
@@ -285,8 +277,7 @@ sub irc_disconnect {
 
     foreach $handle ( keys( %{ $irc_data{connections} } ) ) {
         if ( defined( $irc_data{connections}{$handle}{conn} ) ) {
-            $irc_data{connections}{$handle}
-              {quit}++;    # flag the disconnect handler to abort
+            $irc_data{connections}{$handle}{quit}++;    # flag the disconnect handler to abort
             $irc_data{connections}{$handle}{conn}->quit($irc_quit_msg);
         }
     }
@@ -304,9 +295,7 @@ sub irc_log {
     foreach $handle ( keys( %{ $irc_data{connections} } ) ) {
 
         # for each connection, generate channel log msgs
-        foreach $channel (
-            keys( %{ $irc_data{connections}{$handle}{channels} } ) )
-        {
+        foreach $channel ( keys( %{ $irc_data{connections}{$handle}{channels} } ) ) {
             $mask = $irc_data{connections}{$handle}{channels}{$channel}{publog};
             next unless defined($mask);
             next unless ( $mask eq 'all' or $log_source =~ /$mask/ );
@@ -314,8 +303,7 @@ sub irc_log {
         }
 
         # then do private log msgs
-        foreach $user ( keys( %{ $irc_data{connections}{$handle}{userlog} } ) )
-        {
+        foreach $user ( keys( %{ $irc_data{connections}{$handle}{userlog} } ) ) {
             $mask = $irc_data{connections}{$handle}{userlog}{$user};
             next unless defined($mask);
             next unless ( $mask eq 'all' or $log_source =~ /$mask/ );
@@ -378,8 +366,7 @@ sub irc_on_public {
     print "on_public: <$nick><$from> $arg\n" if $main::Debug{irc};
 
     if ( $arg =~ /^$mynick[:,]\s*(.*)/ ) {    #were we addressed?
-        if ( irc_check_auth( $handle, $from ) )
-        {    # only hear channel msgs from authenticated users
+        if ( irc_check_auth( $handle, $from ) ) {    # only hear channel msgs from authenticated users
             $cmd = $1;
             print "addressed by $nick -> $cmd\n" if $main::Debug{irc};
 
@@ -395,8 +382,7 @@ sub irc_on_join {
     my $channel = ( $event->to )[0];
     my ( $nick, $mynick ) = ( $event->nick, $self->nick );
 
-    printf "on_join: *** %s (%s) has joined channel %s\n",
-      $event->nick, $event->userhost, $channel
+    printf "on_join: *** %s (%s) has joined channel %s\n", $event->nick, $event->userhost, $channel
       if $main::Debug{irc};
 
     if ( $nick eq $mynick ) {    # it's about me
@@ -406,8 +392,7 @@ sub irc_on_join {
         }
         else {
             # bogus. maybe a nick collision
-            print
-              "on_join: got told I joined $channel, but I'm not on that channel!\n"
+            print "on_join: got told I joined $channel, but I'm not on that channel!\n"
               if $main::Debug{irc};
         }
     }
@@ -424,19 +409,13 @@ sub irc_on_part {
       if $main::Debug{irc};
 
     if ( $nick eq $mynick ) {    # it's about me
-        if (
-            defined(
-                $irc_data{connections}{$handle}{channels}{$channel}{joined}
-            )
-          )
-        {
+        if ( defined( $irc_data{connections}{$handle}{channels}{$channel}{joined} ) ) {
             delete $irc_data{connections}{$handle}{channels}{$channel}{joined};
             print "on_part: left $channel\n" if $main::Debug{irc};
         }
         else {
             # bogus. maybe a nick collision
-            print
-              "on_join: got told I left $channel, but I'm not on that channel!\n"
+            print "on_join: got told I left $channel, but I'm not on that channel!\n"
               if $main::Debug{irc};
         }
     }
@@ -447,8 +426,7 @@ sub irc_on_disconnect {
     my ( $self, $event ) = @_;
     my $handle = find_handle($self);
 
-    print_log "Disconnected from ", $event->from(), " (",
-      ( $event->args() )[0], ")\n";
+    print_log "Disconnected from ", $event->from(), " (", ( $event->args() )[0], ")\n";
 
     if ( defined($handle) ) {
         if ( defined( $irc_data{connections}{$handle}{quit} ) ) {
@@ -488,8 +466,7 @@ sub irc_on_connect {    # actually on endmotd
         #my $channel=$irc_data{connections}{$handle}{channel};
         my $channel;
 
-        foreach $channel ( keys %{ $irc_data{connections}{$handle}{channels} } )
-        {
+        foreach $channel ( keys %{ $irc_data{connections}{$handle}{channels} } ) {
             if ( $irc_data{connections}{$handle}{channels}{$channel}{start} ) {
                 print_log "on_connect: Joining $channel...\n";
                 $self->join($channel);
@@ -559,35 +536,32 @@ sub irc_interpret {
             if ( $cmd eq 'quit' ) {    #### QUIT ####
                 irc_cmd_quit( $obj, $nick, $from, $handle );
             }
-            elsif ( $cmd =~ /^log(?:$|\s+(.*))/ )
-            {                          #### LOG #### logging via privmsg
+            elsif ( $cmd =~ /^log(?:$|\s+(.*))/ ) {    #### LOG #### logging via privmsg
                 irc_cmd_log( $obj, $nick, $from, $handle, $1 );
             }
-            elsif ( $cmd =~ /^publog(?:$|\s+(\S*)\s*(.*))/ )
-            {                          #### PUBLOG #### logging via channel msg
+            elsif ( $cmd =~ /^publog(?:$|\s+(\S*)\s*(.*))/ ) {    #### PUBLOG #### logging via channel msg
                 irc_cmd_publog( $obj, $nick, $from, $handle, $1, $2 );
             }
-            elsif ( $cmd eq 'links' ) {    #### LINKS ####
+            elsif ( $cmd eq 'links' ) {                           #### LINKS ####
                 irc_cmd_links( $obj, $nick, $from, $handle );
             }
-            elsif ( $cmd eq 'test' ) {     #### TEST ####
+            elsif ( $cmd eq 'test' ) {                            #### TEST ####
                 irc_cmd_test( $obj, $nick, $from, $handle );
             }
-            elsif ( $cmd =~ /^join\s+(\S+)/ ) {    #### JOIN ####
+            elsif ( $cmd =~ /^join\s+(\S+)/ ) {                   #### JOIN ####
                 irc_cmd_join( $obj, $nick, $from, $handle, $1 );
             }
-            elsif ( $cmd =~ /^part\s+(\S+)/ ) {    #### PART ####
+            elsif ( $cmd =~ /^part\s+(\S+)/ ) {                   #### PART ####
                 irc_cmd_part( $obj, $nick, $from, $handle, $1 );
             }
-            elsif ( $cmd eq 'list' ) {             #### LIST ####
+            elsif ( $cmd eq 'list' ) {                            #### LIST ####
                 irc_cmd_list( $obj, $nick, $from, $handle );
             }
-            elsif ( $cmd =~ /^find\s+(.+)/ ) {     #### FIND ####
+            elsif ( $cmd =~ /^find\s+(.+)/ ) {                    #### FIND ####
                 irc_cmd_find( $obj, $nick, $from, $handle, $1 );
             }
             else {
-                &process_external_command( $cmd, 0, '',
-                    "irc handle=$handle target=$nick" );
+                &process_external_command( $cmd, 0, '', "irc handle=$handle target=$nick" );
             }
         }    # end authorised
     }
@@ -607,8 +581,7 @@ sub irc_cmd_login {
 sub irc_cmd_quit {
     my ( $obj, $nick, $from, $handle ) = @_;
 
-    $irc_data{connections}{$handle}
-      {quit}++;    # flag the disconnect handler to abort
+    $irc_data{connections}{$handle}{quit}++;    # flag the disconnect handler to abort
     $obj->quit($irc_quit_msg);
 }
 
@@ -632,8 +605,7 @@ sub irc_cmd_publog {
     if ( ( $channel ne '' ) && ( $mask ne '' ) ) {    # publog channel mask
         if ( defined( $irc_data{connections}{$handle}{channels}{$channel} ) ) {
             $irc_data{connections}{$handle}{channels}{$channel}{publog} = $mask;
-            queue_msg( $handle, $nick,
-                "channel logging for $channel set to '$mask'\n" );
+            queue_msg( $handle, $nick, "channel logging for $channel set to '$mask'\n" );
         }
         else {
             queue_msg( $handle, $nick, "I'm not on channel $channel\n" );
@@ -658,12 +630,10 @@ sub irc_cmd_publog {
 
         if ( $channel ne '' ) {
             $irc_data{connections}{$handle}{channels}{$channel}{publog} = $mask;
-            queue_msg( $handle, $nick,
-                "channel logging for  $channel set to '$mask'\n" );
+            queue_msg( $handle, $nick, "channel logging for  $channel set to '$mask'\n" );
         }
         else {
-            queue_msg( $handle, $nick,
-                "I don't know which channel you're referring to\n" );
+            queue_msg( $handle, $nick, "I don't know which channel you're referring to\n" );
         }
     }
     else {    # publog
@@ -676,13 +646,11 @@ sub irc_cmd_publog {
                 $mask =
                   $irc_data{connections}{$handle}{channels}{$channel}{publog};
                 $mask = ( defined($mask) ) ? $mask : 'none';
-                queue_msg( $handle, $nick,
-                    "channel logging for $channel set to '$mask'\n" );
+                queue_msg( $handle, $nick, "channel logging for $channel set to '$mask'\n" );
             }
         }
         else {
-            queue_msg( $handle, $nick,
-                "I'm not currently logging to any channels\n" );
+            queue_msg( $handle, $nick, "I'm not currently logging to any channels\n" );
         }
     }
 }
@@ -700,19 +668,11 @@ sub irc_cmd_links {
 
         $penalty = $ref->{since} - $ref->{last_time};
 
-        $text = sprintf(
-            "%4d: %s%s as %s (%s)\n",
-            $handle, $ref->{server}, $ref->{port} ? ":$ref->{port}" : "",
-            $ref->{nick}, $ref->{username}
-        );
-        $text .= "      channels: "
-          . join( ', ', sort keys( %{ $ref->{channels} } ) ) . "\n";
-        $text .= "      admins: "
-          . join( ', ', sort keys( %{ $ref->{authenticated} } ) ) . "\n";
-        $text .=
-          "      buffer: $ref->{float} / $ref->{max_bytes} bytes used , $ref->{line_length} cpl, penalty $penalty\n";
-        $text .= sprintf( "      $qsize entr%s in queue\n",
-            $qsize == 1 ? "y" : "ies" );
+        $text = sprintf( "%4d: %s%s as %s (%s)\n", $handle, $ref->{server}, $ref->{port} ? ":$ref->{port}" : "", $ref->{nick}, $ref->{username} );
+        $text .= "      channels: " . join( ', ', sort keys( %{ $ref->{channels} } ) ) . "\n";
+        $text .= "      admins: " . join( ', ', sort keys( %{ $ref->{authenticated} } ) ) . "\n";
+        $text .= "      buffer: $ref->{float} / $ref->{max_bytes} bytes used , $ref->{line_length} cpl, penalty $penalty\n";
+        $text .= sprintf( "      $qsize entr%s in queue\n", $qsize == 1 ? "y" : "ies" );
         queue_msg( $handle, $nick, $text );
     }
 }
@@ -725,9 +685,7 @@ sub irc_cmd_test {
 sub irc_cmd_join {
     my ( $obj, $nick, $from, $handle, $channel ) = @_;
 
-    if (
-        defined( $irc_data{connections}{$handle}{channels}{$channel}{joined} ) )
-    {
+    if ( defined( $irc_data{connections}{$handle}{channels}{$channel}{joined} ) ) {
         queue_msg( $handle, $nick, "I'm already on $channel\n" );
     }
     else {
@@ -739,9 +697,7 @@ sub irc_cmd_join {
 sub irc_cmd_part {
     my ( $obj, $nick, $from, $handle, $channel ) = @_;
 
-    if (
-        defined( $irc_data{connections}{$handle}{channels}{$channel}{joined} ) )
-    {
+    if ( defined( $irc_data{connections}{$handle}{channels}{$channel}{joined} ) ) {
         queue_msg( $handle, $nick, "Leaving $channel...\n" );
         $obj->part($channel);
     }
@@ -757,8 +713,7 @@ sub irc_cmd_list {
     @cmds = &Voice_Cmd::voice_items();
 
     for $cmd (@cmds) {
-        $cmd =~ s/^[^:]+: //
-          ;    #Trim the category ("Other: ", etc) from the front of the command
+        $cmd =~ s/^[^:]+: //;    #Trim the category ("Other: ", etc) from the front of the command
         $cmd =~ s/\s*$//;
         my ($ref) = &Voice_Cmd::voice_item_by_text( lc($cmd) );
         my $authority = $ref->get_authority if $ref;
@@ -769,8 +724,7 @@ sub irc_cmd_list {
           or $authority eq '';
     }
 
-    $cmd = sprintf( "Found %d command%s\n",
-        scalar(@cmds2), scalar(@cmds2) == 1 ? "" : "s" );
+    $cmd = sprintf( "Found %d command%s\n", scalar(@cmds2), scalar(@cmds2) == 1 ? "" : "s" );
     queue_msg( $handle, $nick, $cmd );
     queue_msg( $handle, $nick, join( ', ', @cmds2 ) );
 }
@@ -785,8 +739,7 @@ sub irc_cmd_find {
     @cmds = &list_voice_cmds_match($search);
 
     for $cmd (@cmds) {
-        $cmd =~ s/^[^:]+: //
-          ;    #Trim the category ("Other: ", etc) from the front of the command
+        $cmd =~ s/^[^:]+: //;    #Trim the category ("Other: ", etc) from the front of the command
         $cmd =~ s/\s*$//;
         my ($ref) = &Voice_Cmd::voice_item_by_text( lc($cmd) );
         my $authority = $ref->get_authority if $ref;
@@ -796,8 +749,7 @@ sub irc_cmd_find {
           or $authority eq '';
     }
 
-    $cmd = sprintf( "Found %d command%s\n",
-        scalar(@cmds2), scalar(@cmds2) == 1 ? "" : "s" );
+    $cmd = sprintf( "Found %d command%s\n", scalar(@cmds2), scalar(@cmds2) == 1 ? "" : "s" );
     queue_msg( $handle, $nick, $cmd );
     for $cmd (@cmds2) {
         queue_msg( $handle, $nick, "    $cmd\n" );
@@ -855,8 +807,7 @@ sub irc_authenticate {
                     if ( $user eq $mhuser ) {
                         $irc_data{connections}{$handle}{authenticated}{$from} =
                           2;
-                        print_log
-                          "authenticated $from as $mhuser with password $pwd\n";
+                        print_log "authenticated $from as $mhuser with password $pwd\n";
                         return 1;
                     }
                 }
@@ -920,19 +871,14 @@ sub poll_queue {
 
             #printf "penalty: %d buffer ;%d\n", $connref->{since} - $connref->{last_time}, $connref->{float} if $main::Debug{irc};
 
-            if (
-                $connref->{since} - $connref->{last_time} < $connref->{window} )
-            {
+            if ( $connref->{since} - $connref->{last_time} < $connref->{window} ) {
+
                 # we're not penalised
                 $connref->{float} += $connref->{last_sent};
                 $connref->{last_sent} = 0;
 
-                my $len =
-                  length( $msgref->{msg} ) +
-                  length( $msgref->{target} ) +
-                  length("privmsg") + 12;  # 12 byte overhead in IRC::Connection
-                my $to_send =
-                  $len > $connref->{float} ? 0 : $len;   # only send whole lines
+                my $len = length( $msgref->{msg} ) + length( $msgref->{target} ) + length("privmsg") + 12;    # 12 byte overhead in IRC::Connection
+                my $to_send = $len > $connref->{float} ? 0 : $len;                                            # only send whole lines
 
                 if ($to_send) {
                     my $msg = shift @{$qref};
@@ -946,8 +892,7 @@ sub poll_queue {
 
                     $connref->{last_sent} = $to_send;
                     $connref->{float} -= $to_send;
-                    $connref->{since} +=
-                      ( 2 + $to_send / 120 );    # hybrid6 magic formula
+                    $connref->{since} += ( 2 + $to_send / 120 );    # hybrid6 magic formula
                 }
                 else {
                     # buffer full

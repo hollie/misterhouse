@@ -2,8 +2,7 @@
 
 #@ Lists time idle for various types of items.  User configurable "other" option allows reporting on other items.
 
-$_vc_display_item_status =
-  new Voice_Cmd 'Show Idle Time [RF,Analog Sensor,Other]';
+$_vc_display_item_status = new Voice_Cmd 'Show Idle Time [RF,Analog Sensor,Other]';
 
 if ( defined( $state = said $_vc_display_item_status) ) {
     if ( $state eq 'RF' ) {
@@ -20,8 +19,7 @@ if ( defined( $state = said $_vc_display_item_status) ) {
             &display_idle_item_status($idle_items_other);
         }
         else {
-            print
-              "You must first define idle_items_other in your ini parms.  Separate multiple item class names with a comma.\n";
+            print "You must first define idle_items_other in your ini parms.  Separate multiple item class names with a comma.\n";
         }
     }
 }
@@ -30,8 +28,7 @@ sub display_idle_item_status {
     my ($idle_types) = @_;
     my $output = "\n($idle_types) items and corresponding idle time";
     $output .= "\n------------------------------------------------------------";
-    $output .=
-      "\n  * warn - some items may report time since restart/reload\n\n";
+    $output .= "\n  * warn - some items may report time since restart/reload\n\n";
     my @idle_items = &main::get_idle_item_data($idle_types);
     foreach my $idle_item_ptr (@idle_items) {
         if ($idle_item_ptr) {
@@ -80,13 +77,9 @@ sub web_idle_status {
             my $object = &get_object_by_name($name);
             $name =~ s/\$//g;
             my $type = $item_data{class};
-            $html_data{$type} =
-              "<tr id='resultrow' bgcolor='#9999CC' class='wvtheader'><th align='left' colspan=\"3\">"
-              . $type
-              . "</th></tr>"
+            $html_data{$type} = "<tr id='resultrow' bgcolor='#9999CC' class='wvtheader'><th align='left' colspan=\"3\">" . $type . "</th></tr>"
               unless ( defined $html_data{$type} );
-            $html_data{$type} .=
-              "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>\n";
+            $html_data{$type} .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>\n";
             $html_data{$type} .= "<td nowrap>$name</td>";
             $html_data{$type} .= "<td ";
 
@@ -124,8 +117,7 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
         $html .= $html_hdr . $html_output;
     }
     else {
-        $html .=
-          &html_header("Error, no data to display for type: $idle_types!");
+        $html .= &html_header("Error, no data to display for type: $idle_types!");
     }
 
     $html .= "</body>";

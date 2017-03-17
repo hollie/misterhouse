@@ -201,8 +201,7 @@ $main::Debug{mqtt} = 1;
 
 # ------------------------------------------------------------------------------
 sub dump() {
-    &main::print_log(
-        "*** mqtt Dumper (MQTT_Data):\n" . Dumper( \%MQTT_Data ) . "***" );
+    &main::print_log( "*** mqtt Dumper (MQTT_Data):\n" . Dumper( \%MQTT_Data ) . "***" );
 }
 
 # ------------------------------------------------------------------------------
@@ -224,9 +223,7 @@ sub mqtt_reconnect() {
     ###
     $$self{socket}->close();
 
-    &main::print_log(
-        "*** mqtt $$self{instance} mqtt_connect Socket ($$self{host}:$$self{port},$$self{keep_alive_timer}) "
-    ) if ( $main::Debug{mqtt} || 1 );
+    &main::print_log("*** mqtt $$self{instance} mqtt_connect Socket ($$self{host}:$$self{port},$$self{keep_alive_timer}) ") if ( $main::Debug{mqtt} || 1 );
 
     ### 1) open a socket (host, port and keepalive
     my $socket = IO::Socket::INET->new(
@@ -237,9 +234,7 @@ sub mqtt_reconnect() {
     # Can't use this at this time
     # $socket = new main::Socket_Item(undef, undef, "$host:$port", $instance);
 
-    &main::print_log(
-        "*** mqtt $$self{instance} Socket check #1 ($$self{keep_alive_timer}) [ $! ]: "
-          . ( $self->isConnected() ? "Connected" : "Failed" ) )
+    &main::print_log( "*** mqtt $$self{instance} Socket check #1 ($$self{keep_alive_timer}) [ $! ]: " . ( $self->isConnected() ? "Connected" : "Failed" ) )
       if ( $main::Debug{mqtt} );
     return if ( !defined($socket) );
 
@@ -257,9 +252,7 @@ sub mqtt_reconnect() {
     );
 
     ### 3) Check for ACK or fail
-    &main::print_log(
-        "*** mqtt $$self{instance} Socket check #2 ($$self{keep_alive_timer}) [ $! ]: "
-          . ( $self->isConnected() ? "Connected" : "Failed" ) )
+    &main::print_log( "*** mqtt $$self{instance} Socket check #2 ($$self{keep_alive_timer}) [ $! ]: " . ( $self->isConnected() ? "Connected" : "Failed" ) )
       if ( $main::Debug{mqtt} );
 
     my $msg = read_mqtt_msg_timeout( $self, $buf );
@@ -286,23 +279,20 @@ sub mqtt_reconnect() {
     $self->send_mqtt_msg(
         message_type => MQTT_SUBSCRIBE,
         message_id   => $msg_id++,
-        topics => [ map { [ $_ => MQTT_QOS_AT_MOST_ONCE ] } $self->{topic} ]
+        topics       => [ map { [ $_ => MQTT_QOS_AT_MOST_ONCE ] } $self->{topic} ]
     );
 
     ### 5) Check for ACK or fail
     ###    we really should check for a SubAck and that it's the correct SubAck
     $msg = $self->read_mqtt_msg_timeout($buf)
-      or
-      &main::print_log( "*** mqtt $$self{instance} Received: " . "No SubAck" );
-    &main::print_log(
-        "*** mqtt $$self{instance} Sub 1 Received: " . "$$msg{string}" )
+      or &main::print_log( "*** mqtt $$self{instance} Received: " . "No SubAck" );
+    &main::print_log( "*** mqtt $$self{instance} Sub 1 Received: " . "$$msg{string}" )
       if ( $main::Debug{mqtt} );
 
     ### ------------------------------------------------------------------------
 
     ### 6) check for data
-    &main::print_log(
-        "*** mqtt $$self{instance} Initializing MQTT re_connection ...")
+    &main::print_log("*** mqtt $$self{instance} Initializing MQTT re_connection ...")
       if ( $main::Debug{mqtt} );
 }
 
@@ -314,9 +304,7 @@ sub mqtt_reconnect() {
 sub mqtt_connect() {
     my ($self) = @_;
 
-    &main::print_log(
-        "*** mqtt mqtt_connect Socket ($$self{host}:$$self{port},$$self{keep_alive_timer}) "
-    ) if ( $main::Debug{mqtt} || 1 );
+    &main::print_log("*** mqtt mqtt_connect Socket ($$self{host}:$$self{port},$$self{keep_alive_timer}) ") if ( $main::Debug{mqtt} || 1 );
 
     ### 1) open a socket (host, port and keepalive
     my $socket = IO::Socket::INET->new(
@@ -344,9 +332,7 @@ sub mqtt_connect() {
     );
 
     ### 3) Check for ACK or fail
-    &main::print_log(
-        "*** mqtt Socket check ($$self{keep_alive_timer}) [ $! ]: "
-          . ( $self->isConnected() ? "Connected" : "Failed" ) )
+    &main::print_log( "*** mqtt Socket check ($$self{keep_alive_timer}) [ $! ]: " . ( $self->isConnected() ? "Connected" : "Failed" ) )
       if ( $main::Debug{mqtt} );
 
     my $msg = read_mqtt_msg_timeout( $self, $buf );
@@ -366,13 +352,12 @@ sub mqtt_connect() {
     $self->send_mqtt_msg(
         message_type => MQTT_SUBSCRIBE,
         message_id   => $msg_id++,
-        topics => [ map { [ $_ => MQTT_QOS_AT_MOST_ONCE ] } $self->{topic} ]
+        topics       => [ map { [ $_ => MQTT_QOS_AT_MOST_ONCE ] } $self->{topic} ]
     );
 
     ### 5) Check for ACK or fail
     $msg = $self->read_mqtt_msg_timeout($buf)
-      or
-      &main::print_log( "*** mqtt $$self{instance} Received: " . "No SubAck" );
+      or &main::print_log( "*** mqtt $$self{instance} Received: " . "No SubAck" );
     if ( $main::Debug{mqtt} ) {
         my $s =
           defined( $$msg{string} )
@@ -381,13 +366,11 @@ sub mqtt_connect() {
         ###
         ### IF we're not getting $$msg{string} then what are we getting ?
         ###
-        &main::print_log( "*** mqtt $$self{instance} Sub 1 Received: " . "$s" )
-          ;    # @FIXME: Use of uninitialized value
+        &main::print_log( "*** mqtt $$self{instance} Sub 1 Received: " . "$s" );    # @FIXME: Use of uninitialized value
     }
 
     ### 6) check for data
-    &main::print_log(
-        "*** mqtt $$self{instance} Initializing MQTT connection ...")
+    &main::print_log("*** mqtt $$self{instance} Initializing MQTT connection ...")
       if ( $main::Debug{mqtt} );
 }
 
@@ -422,9 +405,7 @@ sub isNotConnected {
 =cut
 
 sub new {
-    my ( $class, $instance, $host, $port, $topic, $user, $password,
-        $keep_alive_timer )
-      = @_;
+    my ( $class, $instance, $host, $port, $topic, $user, $password, $keep_alive_timer ) = @_;
 
     my $self = {};
 
@@ -448,24 +429,19 @@ sub new {
                         $self,
                         message_type => MQTT_SUBSCRIBE,
                         message_id   => $msg_id++,
-                        topics =>
-                          [ map { [ $_ => MQTT_QOS_AT_MOST_ONCE ] } $topic ]
+                        topics       => [ map { [ $_ => MQTT_QOS_AT_MOST_ONCE ] } $topic ]
                     );
 
                     ### 5) Check for ACK or fail
                     $buf = '';
                     my $msg = read_mqtt_msg( $self, $buf )
-                      or &main::print_log(
-                        "*** mqtt $$self{instance} Received: " . "No SubAck" );
-                    &main::print_log(
-                        "*** mqtt $inst Sub 2 Received: " . $msg->string )
+                      or &main::print_log( "*** mqtt $$self{instance} Received: " . "No SubAck" );
+                    &main::print_log( "*** mqtt $inst Sub 2 Received: " . $msg->string )
                       if ( $main::Debug{mqtt} );
                 }
 
                 # This is the little messages that appear when MH starts
-                &main::print_log(
-                    "*** Reusing $inst (instead of $instance) on $host:$port $topic"
-                );
+                &main::print_log("*** Reusing $inst (instead of $instance) on $host:$port $topic");
 
                 ###
                 ### Ran into an issue doing it this way, it renames the object to the last
@@ -513,9 +489,7 @@ sub new {
     $MQTT_Data{$instance}{self} = $self;
 
     if ( $main::Debug{mqtt} ) {
-        &main::print_log(
-            "*** Opening MQTT ($instance) connection to $$self{host}/$$self{port}/$$self{topic}"
-        );
+        &main::print_log("*** Opening MQTT ($instance) connection to $$self{host}/$$self{port}/$$self{topic}");
         &main::print_log("*** Host       = $$self{host}");
         &main::print_log("*** Port       = $$self{port}");
         &main::print_log("*** Topic      = $$self{topic}");
@@ -526,8 +500,7 @@ sub new {
     ### ------------------------------------------------------------------------
     $self->mqtt_connect();
 
-    &main::print_log(
-        "\n***\n*** Hmm, this is not good!, can't find myself\n***\n")
+    &main::print_log("\n***\n*** Hmm, this is not good!, can't find myself\n***\n")
       unless $self;
     return unless $self;
 
@@ -574,9 +547,7 @@ sub check_for_data {
             if ( 'off' ne $self->{state} ) {
 
                 # First say something
-                &main::print_log(
-                    "*** mqtt $inst failed ($$self{host}/$$self{port}/$$self{topic})"
-                );
+                &main::print_log("*** mqtt $inst failed ($$self{host}/$$self{port}/$$self{topic})");
 
                 # Then do something (reconnect)
 
@@ -616,14 +587,8 @@ sub check_for_data {
                 ### Someone published something, deal with it
                 ###
                 if ( $main::Debug{mqtt} ) {
-                    &main::print_log(
-                        "*** mqtt $inst check_for_data rcv'd: T:" . $msg->topic,
-                        ", M:",
-                        $msg->message
-                    );
-                    &main::print_log( "*** mqtt $inst check_for_data rcv'd: S:"
-                          . $msg->string
-                          . "," );
+                    &main::print_log( "*** mqtt $inst check_for_data rcv'd: T:" . $msg->topic, ", M:", $msg->message );
+                    &main::print_log( "*** mqtt $inst check_for_data rcv'd: S:" . $msg->string . "," );
                 }
 
                 ###
@@ -638,15 +603,13 @@ sub check_for_data {
             }
             elsif ( $msg->message_type == MQTT_PINGRESP ) {
                 $$self{got_ping_response} = 1;
-                &main::print_log(
-                    "*** mqtt $inst check_for_data Ping rcvd: " . $msg->string )
+                &main::print_log( "*** mqtt $inst check_for_data Ping rcvd: " . $msg->string )
                   if ( $main::Debug{mqtt} );
             }
             else {
                 # "$msg->string"
                 # Net::MQTT::Message::SubAck=HASH(0x2da94e0)->string
-                &main::print_log(
-                    "*** mqtt $inst check_for_data Received: " . $msg->string )
+                &main::print_log( "*** mqtt $inst check_for_data Received: " . $msg->string )
                   if ( $main::Debug{mqtt} );
             }
         }
@@ -678,8 +641,7 @@ sub check_for_data {
             ###
             ### We've exceeded the ping time
             ###
-            &main::print_log(
-                "*** mqtt $inst read_mqtt_msg Ping Response timeout.")
+            &main::print_log("*** mqtt $inst read_mqtt_msg Ping Response timeout.")
               unless ( $$self{got_ping_response} );
             ###
             ### This has confused me, I'm not certain if I should put it back in or not
@@ -747,13 +709,10 @@ sub read_mqtt_msg {
 
         # We get no bytes if there is an error or the socket has closed
         unless ($bytes) {
-            &main::print_log(
-                "*** mqtt $$self{instance}: read_mqtt_msg Socket closed "
-                  . ( defined $bytes ? 'gracefully ' : "with error [ $! ]" ) );
+            &main::print_log( "*** mqtt $$self{instance}: read_mqtt_msg Socket closed " . ( defined $bytes ? 'gracefully ' : "with error [ $! ]" ) );
 
             # Not a permanent solution just a way to keep debugging
-            &main::print_log(
-                "*** mqtt deleting $$self{instance}\n" . Dumper( \$self ) )
+            &main::print_log( "*** mqtt deleting $$self{instance}\n" . Dumper( \$self ) )
               if ( $main::Debug{mqtt} );
             delete( $MQTT_Data{ $$self{instance} } );
 
@@ -791,13 +750,10 @@ sub read_mqtt_msg_timeout {
 
         # We get no bytes if there is an error or the socket has closed
         unless ($bytes) {
-            &main::print_log(
-                "*** mqtt $$self{instance}: read_mqtt_msg Socket closed "
-                  . ( defined $bytes ? 'gracefully ' : "with error [ $! ]" ) );
+            &main::print_log( "*** mqtt $$self{instance}: read_mqtt_msg Socket closed " . ( defined $bytes ? 'gracefully ' : "with error [ $! ]" ) );
 
             # Not a permanent solution just a way to keep debugging
-            &main::print_log(
-                "*** mqtt deleting $$self{instance}\n" . Dumper( \$self ) )
+            &main::print_log( "*** mqtt deleting $$self{instance}\n" . Dumper( \$self ) )
               if ( $main::Debug{mqtt} );
             delete( $MQTT_Data{ $$self{instance} } );
 
@@ -872,9 +828,7 @@ sub pub_msg {
     if ( $self->isNotConnected() ) {
 
         # First say something
-        &main::print_log(
-            "*** mqtt $$self{instance} failed ($$self{host}/$$self{port}/$$self{topic})"
-        );
+        &main::print_log("*** mqtt $$self{instance} failed ($$self{host}/$$self{port}/$$self{topic})");
 
         # Then do something (reconnect)
 
@@ -1114,9 +1068,7 @@ sub set {
         ###
         ### Incoming (MQTT to MH)
         ###
-        &::print_log( "*** mqtt mqtt_Item nom to MQTT to MH "
-              . $self->get_object_name()
-              . "::set($msg, $p_setby)" )
+        &::print_log( "*** mqtt mqtt_Item nom to MQTT to MH " . $self->get_object_name() . "::set($msg, $p_setby)" )
           if $main::Debug{mqtt};
     }
     else {
@@ -1125,14 +1077,10 @@ sub set {
         ###
         if ( $main::Debug{mqtt} ) {
             if ( defined( $self->get_object_name() ) ) {
-                &::print_log( "*** mqtt mqtt_Item nom to MH to MQTT ("
-                      . $self->get_object_name()
-                      . ') no p_setby ::set($msg, $p_setby)' );
+                &::print_log( "*** mqtt mqtt_Item nom to MH to MQTT (" . $self->get_object_name() . ') no p_setby ::set($msg, $p_setby)' );
             }
             else {
-                &::print_log(
-                    '*** mqtt mqtt_Item nom to MH to MQTT () no p_setby ::set($msg, $p_setby)'
-                );
+                &::print_log('*** mqtt mqtt_Item nom to MH to MQTT () no p_setby ::set($msg, $p_setby)');
             }
         }
         ###

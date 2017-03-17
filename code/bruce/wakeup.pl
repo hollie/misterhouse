@@ -77,14 +77,7 @@ $v_wakeup_parents->set_info("Do not do this!  Parents like to sleep.");
 #if ((!$Holiday and time_cron('00 6 * * 1-5') and $Save{mode} ne 'offline') or
 #if ((time_cron('45 6 * * 1-5') and $Save{mode} ne 'offline') or
 #if ((time_cron('00 6 * * 1-5') and $Save{mode} ne 'offline') or
-if (
-    (
-            time_now( $Save{wakeup_time} )
-        and $Weekday
-        and $Save{mode} ne 'offline'
-        and $Save{wakeup_time}
-        and time_greater_than('6 am')
-    )
+if ( ( time_now( $Save{wakeup_time} ) and $Weekday and $Save{mode} ne 'offline' and $Save{wakeup_time} and time_greater_than('6 am') )
     or said $v_wakeup_parents)
 {
     if ( state $wakeup_bypass) {
@@ -98,11 +91,8 @@ if (
         $Save{sleeping_nick} = 0;
 
         #       $Save{sleeping_zack} = 0;
-        speak
-          "rooms=bedroom mode=unmute Good morning Parents.  It is now $Time_Now on $Date_Now_Speakable.";
-        speak "rooms=bedroom mode=unmute The outside temperature is "
-          . round( $Weather{TempOutdoor} )
-          . " degrees";
+        speak "rooms=bedroom mode=unmute Good morning Parents.  It is now $Time_Now on $Date_Now_Speakable.";
+        speak "rooms=bedroom mode=unmute The outside temperature is " . round( $Weather{TempOutdoor} ) . " degrees";
 
         run_voice_cmd 'Check for school closing';
 

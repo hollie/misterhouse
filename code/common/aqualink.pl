@@ -161,8 +161,7 @@ if ( $data = said $jandy ) {
             my $LED15 = vec( chr($4), 2, 2 );
             my $LED16 = vec( chr($4), 3, 2 );
 
-            speak
-              "Pump $LED7 Heater $LED15 $LED16 Spa $LED6 AUX1 $LED5 AUX2 $LED4 AUX3 $LED3";
+            speak "Pump $LED7 Heater $LED15 $LED16 Spa $LED6 AUX1 $LED5 AUX2 $LED4 AUX3 $LED3";
         }
 
         if ( $command eq 'OPTIONS' ) {
@@ -337,8 +336,7 @@ if ( $data = said $jandy ) {
                     speak "It is now ready.";
                 }
                 else {
-                    my $TimeLeft = int( ( 96 - $value ) / .7 )
-                      ; # My heater can raise the spa temp 7 degrees in 10 minutes
+                    my $TimeLeft = int( ( 96 - $value ) / .7 );    # My heater can raise the spa temp 7 degrees in 10 minutes
                     speak "It should be ready in $TimeLeft minutes.";
                 }
             }
@@ -553,8 +551,7 @@ if ( said $v_pool_AUX1_set) {
 $v_pool_AUX1_chk = new Voice_Cmd("Check the $AUX1 status");
 if ( said $v_pool_AUX1_chk) {
     if ( $Cleaner eq '1' ) {
-        $v_pool_AUX1_chk->respond(
-            "app=pool Your system doesn't use AUX 1 - Use Cleaner instead.");
+        $v_pool_AUX1_chk->respond("app=pool Your system doesn't use AUX 1 - Use Cleaner instead.");
     }
     else {
         $v_pool_AUX1_chk->respond("app=pool Checking $AUX1 status.");
@@ -660,8 +657,7 @@ if ($Startup) {
     run_after_delay 10, "run_voice_cmd 'Check the spa heater status'";
     run_after_delay 12, "run_voice_cmd 'Check the spa temperature'";
     run_after_delay 14, "run_voice_cmd 'Check the pool cleaner'";
-    run_after_delay 16,
-      "run_voice_cmd 'Check the pool auxiliary device 3 status'";
+    run_after_delay 16, "run_voice_cmd 'Check the pool auxiliary device 3 status'";
     run_after_delay 18, "run_voice_cmd 'Check the air temperature'";
 }
 
@@ -669,8 +665,7 @@ sub logspa {
     my $text  = @_;
     my $spadb = "$config_parms{data_dir}/log/spa.log";
     open( SPADB, ">>$spadb" );
-    print SPADB
-      "$Date_Now $Time_Now $Save{PoolSpaTemp} $Save{PoolAirTemp} $text\n";
+    print SPADB "$Date_Now $Time_Now $Save{PoolSpaTemp} $Save{PoolAirTemp} $text\n";
     close SPADB;
 }
 

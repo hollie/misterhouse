@@ -28,8 +28,7 @@ $f_weather_file = new File_Item($f_weather_data);
 
 # The obligatory voice command.
 $v_weather_page = new Voice_Cmd('[Reget,Get,Read,Show] internet weather');
-$v_weather_page->set_info(
-    "Weather conditions for $config_parms{weather_meteored_city}");
+$v_weather_page->set_info("Weather conditions for $config_parms{weather_meteored_city}");
 $v_weather_page->set_authority('anyone');
 
 #$v_weather_forecast = new  Voice_Cmd('[Read,Show] weather forecast');
@@ -86,20 +85,11 @@ sub format_ec_weather {
     $data .= ". ";
 
     if ( $Weather{TempOutdoor} > -10 ) {
-        $data .=
-            "La humedad es del "
-          . $Weather{HumidOutdoor}
-          . " %, y un punto de condensación de "
-          . $Weather{DewpointOutdoor}
-          . " grados. ";
+        $data .= "La humedad es del " . $Weather{HumidOutdoor} . " %, y un punto de condensación de " . $Weather{DewpointOutdoor} . " grados. ";
     }
 
     if ( $Weather{WindAvg} ) {
-        $data .=
-            "Viento del "
-          . convert_direction( $Weather{WindAvgDir} ) . " a "
-          . $Weather{WindAvg}
-          . " kilometros por hora";
+        $data .= "Viento del " . convert_direction( $Weather{WindAvgDir} ) . " a " . $Weather{WindAvg} . " kilometros por hora";
 
         #	$data .= ", con ráfagas de " . $Weather{WindGust} . " kilometros por hora" if ($Weather{WindGust});
         $data .= ". ";
@@ -169,18 +159,12 @@ sub fetch_ec_weather {
 
     # create the summaries used by the MH web (and tk?) displays.
     if ( $Weather{TempOutdoor} != $Weather{WindChill} ) {
-        $Weather{Summary_Short} = sprintf( "%2dº/%2dº %3d%%",
-            $Weather{TempOutdoor}, $Weather{WindChill},
-            $Weather{HumidOutdoor} );
-        $Weather{Summary} = sprintf( "out/chill: %2dºC/%2dºC Humid:%3d%%",
-            $Weather{TempOutdoor}, $Weather{WindChill},
-            $Weather{HumidOutdoor} );
+        $Weather{Summary_Short} = sprintf( "%2dº/%2dº %3d%%", $Weather{TempOutdoor}, $Weather{WindChill}, $Weather{HumidOutdoor} );
+        $Weather{Summary} = sprintf( "out/chill: %2dºC/%2dºC Humid:%3d%%", $Weather{TempOutdoor}, $Weather{WindChill}, $Weather{HumidOutdoor} );
     }
     else {
-        $Weather{Summary_Short} = sprintf( "%2dºC %3d%%",
-            $Weather{TempOutdoor}, $Weather{HumidOutdoor} );
-        $Weather{Summary} = sprintf( "out:%2dºC Humid:%3d%%",
-            $Weather{TempOutdoor}, $Weather{HumidOutdoor} );
+        $Weather{Summary_Short} = sprintf( "%2dºC %3d%%",           $Weather{TempOutdoor}, $Weather{HumidOutdoor} );
+        $Weather{Summary}       = sprintf( "out:%2dºC Humid:%3d%%", $Weather{TempOutdoor}, $Weather{HumidOutdoor} );
     }
 
     # and for fun, speak the current weather to anyone who is listening.
@@ -204,15 +188,11 @@ sub windchill {
 
     my $chill;
 
-    if ( ( $wind < 5 ) || ( $wind > 100 ) || ( $temp < -50 ) || ( $temp > 5 ) )
-    {
+    if ( ( $wind < 5 ) || ( $wind > 100 ) || ( $temp < -50 ) || ( $temp > 5 ) ) {
         $chill = '';
     }
     else {
-        $chill =
-          ( 13.12 + 0.6215 * $temp -
-              11.37 * ( $wind**0.16 ) +
-              0.3965 * $temp * ( $wind**0.16 ) );
+        $chill = ( 13.12 + 0.6215 * $temp - 11.37 * ( $wind**0.16 ) + 0.3965 * $temp * ( $wind**0.16 ) );
         $chill = int( $chill + 0.5 );
 
         print "temp $temp wind $wind chill $chill\n";
@@ -232,10 +212,7 @@ sub dewpoint {
     $humidity /= 100;   # convert from percent to fraction
 
     # saturation vapour pressure
-    my $e_sw =
-      6.1078 *
-      exp( 5.0065 * log( 273.15 / $temp ) ) *
-      exp( 24.846 * ( 1 - ( 273.15 / $temp ) ) );
+    my $e_sw = 6.1078 * exp( 5.0065 * log( 273.15 / $temp ) ) * exp( 24.846 * ( 1 - ( 273.15 / $temp ) ) );
 
     # current vapour pressure
     my $e_vp = $humidity * $e_sw;
@@ -243,9 +220,7 @@ sub dewpoint {
     # final
     my $dewpoint = 0;
     if ( $e_vp != 0 ) {
-        $dewpoint =
-          ( 237.3 * log( $e_vp / 6.1078 ) ) /
-          ( 17.27 - ( log( $e_vp / 6.1078 ) ) );
+        $dewpoint = ( 237.3 * log( $e_vp / 6.1078 ) ) / ( 17.27 - ( log( $e_vp / 6.1078 ) ) );
         $dewpoint = int( $dewpoint + 0.5 );
     }
     return $dewpoint;

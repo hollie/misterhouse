@@ -66,8 +66,7 @@ if ($Reload) {
 
     # $search_code_string is defined in /code/common/mh_control.pl
 
-    &tk_entry( 'MP3 Search', \$Save{mp3_search}, 'MP3 Genre',
-        \$Save{mp3_Genre} )
+    &tk_entry( 'MP3 Search', \$Save{mp3_search}, 'MP3 Genre', \$Save{mp3_Genre} )
       if $Run_Members{mp3_playlist};
 
     #   &tk_entry('Phone Search', \$Save{phone_search}) if $Run_Members{phone};

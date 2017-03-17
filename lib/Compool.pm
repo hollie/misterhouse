@@ -62,13 +62,7 @@ my ( %Compool_Data, @compool_command_list, $temp, $last_command_time );
 sub serial_startup {
     if ( $::config_parms{Compool_serial_port} ) {
         my ($speed) = $::config_parms{Compool_baudrate} || 9600;
-        if (
-            &::serial_port_create(
-                'Compool', $::config_parms{Compool_serial_port},
-                $speed, 'none', 'raw'
-            )
-          )
-        {
+        if ( &::serial_port_create( 'Compool', $::config_parms{Compool_serial_port}, $speed, 'none', 'raw' ) ) {
             init( $::Serial_Ports{Compool}{object} );
             &::MainLoop_pre_add_hook( \&Compool::UserCodePreHook, 1 );
 
@@ -137,9 +131,7 @@ sub UserCodePreHook {
                 if ( $index >= 0 ) {
                     my $packet = substr( $data, $index, 24 );
 
-                    if (
-                        length($packet) >=
-                        9 )    # 9 is the minimum length required
+                    if ( length($packet) >= 9 )    # 9 is the minimum length required
                     {
                         if (   substr( $packet, 4, 1 ) eq "\x02"
                             && substr( $packet, 5, 1 ) eq "\x10"
@@ -152,78 +144,35 @@ sub UserCodePreHook {
                             # Remove bytes from the received data to account for this packet
                             $packetsize = 24;
 
-                            my $Checksum =
-                              unpack( '%16C*', substr( $packet, 0, 22 ) )
-                              % 65536;
-                            my $Checksum = pack( "CC",
-                                ( ( $Checksum >> 8 ) & 0xFF ),
-                                ( $Checksum & 0xFF ) );
+                            my $Checksum = unpack( '%16C*', substr( $packet, 0, 22 ) ) % 65536;
+                            my $Checksum = pack( "CC", ( ( $Checksum >> 8 ) & 0xFF ), ( $Checksum & 0xFF ) );
 
                             #
                             # Check if this is tagged as a basic acknowledge packet (Opcode == 2 && InfoFieldLengh == 10h)
                             #
                             if ( $Checksum eq substr( $packet, 22, 2 ) ) {
-                                print "Compool BAP data : "
-                                  . unpack( 'H*', $packet ) . "\n"
+                                print "Compool BAP data : " . unpack( 'H*', $packet ) . "\n"
                                   if $main::Debug{compool}
                                   and $main::Debug{compool} >= 3;
 
                                 # If first packet then we must initialize the Next_ data for the equipment to be in the opposite bit states
                                 # as the data inidicates so we fire the first get_device_now triggers.
 
-                                if ( $Compool_Data{$serial_port}
-                                    {Last_Basic_Acknowledgement_Packet} eq
-                                    undef )
-                                {
-                                    print
-                                      "Compool initializing _now data bit fields\n"
+                                if ( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet} eq undef ) {
+                                    print "Compool initializing _now data bit fields\n"
                                       if $main::Debug{compool}
                                       and $main::Debug{compool} >= 2;
-                                    substr(
-                                        $Compool_Data{$serial_port}
-                                          {Now_Basic_Acknowledgement_Packet},
-                                        8,
-                                        1
-                                      )
-                                      = pack(
-                                        'C',
-                                        (
-                                            unpack( 'C',
-                                                substr( $packet, 8, 1 ) ) ^ 255
-                                        )
-                                      );
-                                    substr(
-                                        $Compool_Data{$serial_port}
-                                          {Now_Basic_Acknowledgement_Packet},
-                                        9,
-                                        1
-                                      )
-                                      = pack(
-                                        'C',
-                                        (
-                                            unpack( 'C',
-                                                substr( $packet, 9, 1 ) ) ^ 255
-                                        )
-                                      );
+                                    substr( $Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet}, 8, 1 ) =
+                                      pack( 'C', ( unpack( 'C', substr( $packet, 8, 1 ) ) ^ 255 ) );
+                                    substr( $Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet}, 9, 1 ) =
+                                      pack( 'C', ( unpack( 'C', substr( $packet, 9, 1 ) ) ^ 255 ) );
                                 }
-                                $Compool_Data{$serial_port}
-                                  {Last_Basic_Acknowledgement_Packet} = $packet;
-                                $Compool_Data{$serial_port}
-                                  {Last_Basic_Acknowledgement_Recent} = 1;
+                                $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet} = $packet;
+                                $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Recent} = 1;
 
                                 if (
-                                    substr(
-                                        $Compool_Data{$serial_port}
-                                          {Last_Basic_Acknowledgement_Packet},
-                                        8,
-                                        10
-                                    ) ne substr(
-                                        $Compool_Data{$serial_port}
-                                          {Now_Basic_Acknowledgement_Packet},
-                                        8,
-                                        10
-                                    )
-                                  )
+                                    substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}, 8, 10 ) ne
+                                    substr( $Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet},  8, 10 ) )
                                 {
                                     print "Compool change detected\n"
                                       if $main::Debug{compool}
@@ -233,41 +182,29 @@ sub UserCodePreHook {
                                     # set tied objects to the corosponding state.
                                     my $object;
                                     foreach $object (@compool_item_list) {
-                                        my $newstate =
-                                          $object->GetDeviceState();
-                                        print "Compool checking "
-                                          . $object->{object_name} . " is "
-                                          . $object->state()
-                                          . " new '$newstate'\n"
+                                        my $newstate = $object->GetDeviceState();
+                                        print "Compool checking " . $object->{object_name} . " is " . $object->state() . " new '$newstate'\n"
                                           if $main::Debug{compool}
                                           and $main::Debug{compool} >= 2;
                                         if ( $newstate ne undef
-                                            and
-                                            ( $object->state() ne $newstate ) )
+                                            and ( $object->state() ne $newstate ) )
                                         {
-                                            print "Compool "
-                                              . $object->{object_name} . " was "
-                                              . $object->state()
-                                              . " now $newstate\n"
+                                            print "Compool " . $object->{object_name} . " was " . $object->state() . " now $newstate\n"
                                               if $main::Debug{compool};
-                                            $object->set_states_for_next_pass(
-                                                $newstate);
+                                            $object->set_states_for_next_pass($newstate);
                                         }
                                     }
 
                                     # Update the NOW packet so later compares will match
-                                    $Compool_Data{$serial_port}
-                                      {Now_Basic_Acknowledgement_Packet} =
-                                      $Compool_Data{$serial_port}
-                                      {Last_Basic_Acknowledgement_Packet};
+                                    $Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet} =
+                                      $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet};
                                     print "Compool change done\n"
                                       if $main::Debug{compool}
                                       and $main::Debug{compool} >= 2;
                                 }
                             }
                             else {
-                                print
-                                  "Compool BAP packet recieved with invalid checksum, ignoring\n"
+                                print "Compool BAP packet recieved with invalid checksum, ignoring\n"
                                   if $main::Debug{compool};
                             }
                         }
@@ -320,8 +257,7 @@ sub UserCodePreHook {
                             if ( length($packet) >= 24 ) {
                                 $packetsize = 1;
                             }
-                            print "Compool unchecked data   : "
-                              . unpack( 'H*', $packet ) . "\n"
+                            print "Compool unchecked data   : " . unpack( 'H*', $packet ) . "\n"
                               if $protocol_debugging;
                         }
                     }
@@ -341,28 +277,19 @@ sub UserCodePreHook {
                 # Store remaining data for next pass
                 $Compool_Data{$serial_port}{Last_Partial_Packet} =
                   substr( $data, $packetsize );
-                print "Packetsize=$packetsize Length1="
-                  . length($data)
-                  . " Length2="
-                  . length( substr( $data, $packetsize ) ) . "\n"
+                print "Packetsize=$packetsize Length1=" . length($data) . " Length2=" . length( substr( $data, $packetsize ) ) . "\n"
                   if $main::Debug{compool}
                   and $main::Debug{compool} >= 3
                   and length( substr( $data, $packetsize ) ) > 0;
-                print "Compool debug remaining data="
-                  . unpack( 'H*', substr( $data, $packetsize ) ) . "\n"
+                print "Compool debug remaining data=" . unpack( 'H*', substr( $data, $packetsize ) ) . "\n"
                   if $protocol_debugging;
             }
 
             # Require a recent status packet and at least 2 seconds between commands (delay in order to avoid blowing any circuit breakers by
             # turning on too many items at once.
-            if (
-                (
-                    $Compool_Data{$serial_port}
-                    {Last_Basic_Acknowledgement_Recent} == 1
-                )
+            if (    ( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Recent} == 1 )
                 and ( @compool_command_list > 0 )
-                and ( time - $last_command_time > 3 )
-              )
+                and ( time - $last_command_time > 3 ) )
             {
                 # Increment our retry count
                 @compool_command_list[2]++;
@@ -376,34 +303,19 @@ sub UserCodePreHook {
                 else {
                     # If this is an device set command (these toggle the state) make sure the state isn't already where it was requested
                     # before continuing.
-                    if (
-                        ( @compool_command_list[3] ne undef )
-                        and (
-                            get_device(
-                                @compool_command_list[0],
-                                @compool_command_list[3]
-                            ) eq @compool_command_list[4]
-                        )
-                      )
+                    if (    ( @compool_command_list[3] ne undef )
+                        and ( get_device( @compool_command_list[0], @compool_command_list[3] ) eq @compool_command_list[4] ) )
                     {
-                        print "Compool removing queued command (device "
-                          . @compool_command_list[3]
-                          . " already "
-                          . @compool_command_list[4] . ")\n"
+                        print "Compool removing queued command (device " . @compool_command_list[3] . " already " . @compool_command_list[4] . ")\n"
                           if $main::Debug{compool};
                         remove_command();
                     }
                     else {
-                        send_command(
-                            @compool_command_list[0],
-                            @compool_command_list[1]
-                        );
+                        send_command( @compool_command_list[0], @compool_command_list[1] );
 
                         # We are about to get a new BAP packet, nuke any holdover data
-                        $Compool_Data{ @compool_command_list[0] }
-                          {Last_Partial_Packet} = "";
-                        $Compool_Data{$serial_port}
-                          {Last_Basic_Acknowledgement_Recent} = 0;
+                        $Compool_Data{ @compool_command_list[0] }{Last_Partial_Packet} = "";
+                        $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Recent} = 0;
                     }
                 }
             }
@@ -425,23 +337,16 @@ sub UserCodePreHook {
 
 sub set_time {
     my ($serial_port) = @_;
-    my ( $Second, $Minute, $Hour, $Mday, $Month, $Year, $Wday, $Yday, $isdst )
-      = localtime time;
+    my ( $Second, $Minute, $Hour, $Mday, $Month, $Year, $Wday, $Yday, $isdst ) = localtime time;
     my $Compool_Time = pack( "CC", $Minute, $Hour );
     print "Compool set_time setting time to current local time\n"
       if $main::Debug{compool};
-    return queue_command( $serial_port,
-        $Compool_Time . "\x00\x00\x00\x00\x00\x00\x03" );
+    return queue_command( $serial_port, $Compool_Time . "\x00\x00\x00\x00\x00\x00\x03" );
 }
 
 sub get_time {
     my ( $serial_port, $nowstate ) = @_;
-    unless (
-        length(
-            $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}
-        ) == 24
-      )
-    {
+    unless ( length( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet} ) == 24 ) {
         if ( $main::Debug{compool} ) {
             ::print_log "Compool get_time no status packet received\n";
         }
@@ -451,27 +356,15 @@ sub get_time {
     if (
         $nowstate
         and (
-            substr(
-                $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet},
-                6,
-                2
-            ) eq substr(
-                $Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet},
-                6, 2
-            )
-        )
+            substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}, 6, 2 ) eq
+            substr( $Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet},  6, 2 ) )
       )
     {
         return undef;
     }
     else {
-        return
-          substr(
-            $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet},
-            7, 1 ),
-          substr(
-            $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet},
-            6, 1 );
+        return substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}, 7, 1 ),
+          substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}, 6, 1 );
     }
 }
 
@@ -482,40 +375,22 @@ sub set_temp {
 
     SWITCH: for ($targetdevice) {
         /pooldesiredtemp/i && do {
-            return queue_command( $serial_port,
-                    "\x00\x00\x00\x00\x00"
-                  . $Compool_Target_Temp
-                  . "\x00\x00\x20" );
+            return queue_command( $serial_port, "\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x00\x20" );
         };
         /pooldesired/i && do {
-            return queue_command( $serial_port,
-                    "\x00\x00\x00\x00\x00"
-                  . $Compool_Target_Temp
-                  . "\x00\x00\x20" );
+            return queue_command( $serial_port, "\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x00\x20" );
         };
         /pool/i && do {
-            return queue_command( $serial_port,
-                    "\x00\x00\x00\x00\x00"
-                  . $Compool_Target_Temp
-                  . "\x00\x00\x20" );
+            return queue_command( $serial_port, "\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x00\x20" );
         };
         /spadesiredtemp/i && do {
-            return queue_command( $serial_port,
-                    "\x00\x00\x00\x00\x00\x00"
-                  . $Compool_Target_Temp
-                  . "\x00\x40" );
+            return queue_command( $serial_port, "\x00\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x40" );
         };
         /spadesired/i && do {
-            return queue_command( $serial_port,
-                    "\x00\x00\x00\x00\x00\x00"
-                  . $Compool_Target_Temp
-                  . "\x00\x40" );
+            return queue_command( $serial_port, "\x00\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x40" );
         };
         /spa/i && do {
-            return queue_command( $serial_port,
-                    "\x00\x00\x00\x00\x00\x00"
-                  . $Compool_Target_Temp
-                  . "\x00\x40" );
+            return queue_command( $serial_port, "\x00\x00\x00\x00\x00\x00" . $Compool_Target_Temp . "\x00\x40" );
         };
         ::print_log "Compool set_temp unknown device\n";
     }
@@ -524,12 +399,7 @@ sub set_temp {
 
 sub get_temp {
     my ( $serial_port, $targetdevice, $comparison, $limit, $nowstate ) = @_;
-    unless (
-        length(
-            $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}
-        ) == 24
-      )
-    {
+    unless ( length( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet} ) == 24 ) {
         if ( $main::Debug{compool} ) {
             ::print_log "Compool get_temp no status packet received\n";
         }
@@ -550,9 +420,9 @@ sub get_temp {
         /spasolartemp/i    && do { $PacketOffset = 14; last SWITCH; };
         /spasolar/i        && do { $PacketOffset = 14; last SWITCH; };
         /spatemp/i
-          && do { $PacketOffset = 11; last SWITCH; }; # This is 13 on the 3830 controller.  Detect from byte 21 and autoswitch
+          && do { $PacketOffset = 11; last SWITCH; };    # This is 13 on the 3830 controller.  Detect from byte 21 and autoswitch
         /spa/i
-          && do { $PacketOffset = 11; last SWITCH; }; # This is 13 on the 3830 controller.  Detect from byte 21 and autoswitch
+          && do { $PacketOffset = 11; last SWITCH; };    # This is 13 on the 3830 controller.  Detect from byte 21 and autoswitch
 
         #   /spatemp/i 	        && do { $PacketOffset = 13; last SWITCH; };
         #   /spa/i 	        && do { $PacketOffset = 13; last SWITCH; };
@@ -564,32 +434,14 @@ sub get_temp {
     if (
         $nowstate
         and (
-            substr(
-                $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet},
-                $PacketOffset,
-                1
-            ) eq substr(
-                $Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet},
-                $PacketOffset, 1
-            )
-        )
+            substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}, $PacketOffset, 1 ) eq
+            substr( $Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet},  $PacketOffset, 1 ) )
       )
     {
         return undef;
     }
     else {
-        if (
-            unpack(
-                'C',
-                substr(
-                    $Compool_Data{$serial_port}
-                      {Last_Basic_Acknowledgement_Packet},
-                    $PacketOffset,
-                    1
-                )
-            ) == 0
-          )
-        {
+        if ( unpack( 'C', substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}, $PacketOffset, 1 ) ) == 0 ) {
             return 0;
         }
         else {
@@ -597,21 +449,8 @@ sub get_temp {
             my $divisor =
               ( ( $PacketOffset == 12 ) or ( $PacketOffset == 17 ) ) ? 2 : 4;
 
-            my $temp = int(
-                (
-                    (
-                        unpack(
-                            'C',
-                            substr(
-                                $Compool_Data{$serial_port}
-                                  {Last_Basic_Acknowledgement_Packet},
-                                $PacketOffset,
-                                1
-                            )
-                        ) / $divisor
-                    ) * 1.8
-                ) + 32
-            );
+            my $temp =
+              int( ( ( unpack( 'C', substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}, $PacketOffset, 1 ) ) / $divisor ) * 1.8 ) + 32 );
 
             # If the spa temp is reading 0, then return the pool temp as they are the same
             $temp = get_temp("pool") if $temp == 0 and $PacketOffset == 13;
@@ -630,8 +469,7 @@ sub set_device {
 
     # Handle 'toggle' state
     if ( $targetstate eq 'toggle' ) {
-        $targetstate =
-          ( get_device( $serial_port, $targetdevice ) eq 'on' ) ? 'off' : 'on';
+        $targetstate = ( get_device( $serial_port, $targetdevice ) eq 'on' ) ? 'off' : 'on';
     }
 
     if ( $targetstate eq 'on' or $targetstate eq 'ON' or $targetstate eq '1' ) {
@@ -667,26 +505,20 @@ sub set_device {
         /aux6/i && do { $targetbit = 128; last SWITCH; };
         $targetprimary = 9;
         $byteuseenable = 8;
-        /remote/i      && do { $targetbit = 1; last SWITCH; };
-        /display/i     && do { $targetbit = 2; last SWITCH; };
-        /delaycancel/i && do { $targetbit = 4; last SWITCH; };
-        /spare1/i      && do { $targetbit = 8; last SWITCH; };
-        /aux7/i   && do { $targetbit = 16;  $byteuseenable = 4; last SWITCH; };
-        /spare2/i && do { $targetbit = 32;  last SWITCH; };
-        /spare3/i && do { $targetbit = 64;  last SWITCH; };
-        /spare4/i && do { $targetbit = 128; last SWITCH; };
+        /remote/i      && do { $targetbit = 1;   last SWITCH; };
+        /display/i     && do { $targetbit = 2;   last SWITCH; };
+        /delaycancel/i && do { $targetbit = 4;   last SWITCH; };
+        /spare1/i      && do { $targetbit = 8;   last SWITCH; };
+        /aux7/i        && do { $targetbit = 16;  $byteuseenable = 4; last SWITCH; };
+        /spare2/i      && do { $targetbit = 32;  last SWITCH; };
+        /spare3/i      && do { $targetbit = 64;  last SWITCH; };
+        /spare4/i      && do { $targetbit = 128; last SWITCH; };
         ::print_log "Compool set_device unknown device", return -1;
     }
 
     my $currentstate;
 
-    $currentstate = unpack(
-        'C',
-        substr(
-            $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet},
-            $targetprimary, 1
-        )
-    );
+    $currentstate = unpack( 'C', substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}, $targetprimary, 1 ) );
 
     #
     # Determine if we need to toggle the device to get it into the right state.
@@ -703,34 +535,15 @@ sub set_device {
 
     # Sending to primary equipment field or secondary equipment field?
     ( $targetprimary == 8 )
-      ? return queue_command(
-        $serial_port,
-        "\x00\x00"
-          . pack( "C", $targetbit )
-          . "\x00\x00\x00\x00\x00"
-          . pack( "C", $byteuseenable ),
-        $targetdevice,
-        $targetstate == 1 ? "on" : "off"
-      )
-      : return queue_command(
-        $serial_port,
-        "\x00\x00\x00"
-          . pack( "C", $targetbit )
-          . "\x00\x00\x00\x00"
-          . pack( "C", $byteuseenable ),
-        $targetdevice,
-        $targetstate == 1 ? "on" : "off"
-      );
+      ? return queue_command( $serial_port, "\x00\x00" . pack( "C", $targetbit ) . "\x00\x00\x00\x00\x00" . pack( "C", $byteuseenable ),
+        $targetdevice, $targetstate == 1 ? "on" : "off" )
+      : return queue_command( $serial_port, "\x00\x00\x00" . pack( "C", $targetbit ) . "\x00\x00\x00\x00" . pack( "C", $byteuseenable ),
+        $targetdevice, $targetstate == 1 ? "on" : "off" );
 }
 
 sub get_device {
     my ( $serial_port, $targetdevice, $nowstate ) = @_;
-    unless (
-        length(
-            $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}
-        ) == 24
-      )
-    {
+    unless ( length( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet} ) == 24 ) {
         if ( $main::Debug{compool} ) {
             ::print_log "Compool get_device no status packet received\n";
         }
@@ -762,78 +575,33 @@ sub get_device {
         ::print_log "Compool get_device unknown device", return undef;
     }
 
-    if (
-        $nowstate
-        and (
-            int(
-                unpack(
-                    'C',
-                    substr(
-                        $Compool_Data{$serial_port}
-                          {Last_Basic_Acknowledgement_Packet},
-                        $targetprimary,
-                        1
-                    )
-                )
-            ) & $targetbit
-        ) == (
-            int(
-                unpack(
-                    'C',
-                    substr(
-                        $Compool_Data{$serial_port}
-                          {Now_Basic_Acknowledgement_Packet},
-                        $targetprimary,
-                        1
-                    )
-                )
-            ) & $targetbit
-        )
-      )
+    if ( $nowstate
+        and ( int( unpack( 'C', substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}, $targetprimary, 1 ) ) ) & $targetbit ) ==
+        ( int( unpack( 'C', substr( $Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet}, $targetprimary, 1 ) ) ) & $targetbit ) )
     {
         return undef;
     }
     else {
-        (
-            unpack(
-                'C',
-                substr(
-                    $Compool_Data{$serial_port}
-                      {Last_Basic_Acknowledgement_Packet},
-                    $targetprimary,
-                    1
-                )
-            ) & $targetbit
-        ) ? return "on" : return "off";
+        ( unpack( 'C', substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}, $targetprimary, 1 ) ) & $targetbit )
+          ? return "on"
+          : return "off";
     }
 }
 
 sub get_version {
     my ( $serial_port, $targetdevice ) = @_;
-    unless (
-        length(
-            $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}
-        ) == 24
-      )
-    {
+    unless ( length( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet} ) == 24 ) {
         if ( $main::Debug{compool} ) {
             ::print_log "Compool get_version no status packet received\n";
         }
         return undef;
     }
-    return
-      substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet},
-        3, 1 );
+    return substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}, 3, 1 );
 }
 
 sub get_delay {
     my ( $serial_port, $targetdevice, $nowstate ) = @_;
-    unless (
-        length(
-            $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}
-        ) == 24
-      )
-    {
+    unless ( length( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet} ) == 24 ) {
         if ( $main::Debug{compool} ) {
             ::print_log "Compool get_delay no status packet received\n";
         }
@@ -852,76 +620,27 @@ sub get_delay {
         ::print_log "Compool get_delay unknown device", return undef;
     }
 
-    if (
-        $nowstate
-        and (
-            int(
-                unpack(
-                    'C',
-                    substr(
-                        $Compool_Data{$serial_port}
-                          {Last_Basic_Acknowledgement_Packet},
-                        10,
-                        1
-                    )
-                )
-            ) & $targetbit
-        ) == (
-            int(
-                unpack(
-                    'C',
-                    substr(
-                        $Compool_Data{$serial_port}
-                          {Now_Basic_Acknowledgement_Packet},
-                        10,
-                        1
-                    )
-                )
-            ) & $targetbit
-        )
-      )
+    if ( $nowstate
+        and ( int( unpack( 'C', substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}, 10, 1 ) ) ) & $targetbit ) ==
+        ( int( unpack( 'C', substr( $Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet}, 10, 1 ) ) ) & $targetbit ) )
     {
         return undef;
     }
     else {
-        (
-            unpack(
-                'C',
-                substr(
-                    $Compool_Data{$serial_port}
-                      {Last_Basic_Acknowledgement_Packet},
-                    10,
-                    1
-                )
-            ) & $targetbit
-        ) ? return "on" : return "off";
+        ( unpack( 'C', substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}, 10, 1 ) ) & $targetbit ) ? return "on" : return "off";
     }
 }
 
 sub get_solar_present {
     my ( $serial_port, $targetdevice ) = @_;
-    unless (
-        length(
-            $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}
-        ) == 24
-      )
-    {
+    unless ( length( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet} ) == 24 ) {
         if ( $main::Debug{compool} ) {
             ::print_log "Compool get_solar_present no status packet received\n";
         }
         return undef;
     }
 
-    (
-        unpack(
-            'C',
-            substr(
-                $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet},
-                10,
-                1
-            )
-        ) & 8
-    ) ? return "yes" : return "no";
+    ( unpack( 'C', substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}, 10, 1 ) ) & 8 ) ? return "yes" : return "no";
 }
 
 sub set_heatsource {
@@ -931,26 +650,15 @@ sub set_heatsource {
 
 sub get_heatsource {
     my ( $serial_port, $targetdevice, $nowstate ) = @_;
-    unless (
-        length(
-            $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}
-        ) == 24
-      )
-    {
+    unless ( length( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet} ) == 24 ) {
         if ( $main::Debug{compool} ) {
             ::print_log "Compool get_heatsource no status packet received\n";
         }
         return undef;
     }
 
-    my $targetbit  = 0;
-    my $targetbyte = unpack(
-        'C',
-        substr(
-            $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet},
-            10, 1
-        )
-    );
+    my $targetbit   = 0;
+    my $targetbyte  = unpack( 'C', substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}, 10, 1 ) );
     my $targetshift = 0;
 
     SWITCH: for ($targetdevice) {
@@ -981,34 +689,9 @@ sub get_heatsource {
         ::print_log "Compool get_heatsource unknown device\n", return undef;
     }
 
-    if (
-        $nowstate
-        and (
-            int(
-                unpack(
-                    'C',
-                    substr(
-                        $Compool_Data{$serial_port}
-                          {Last_Basic_Acknowledgement_Packet},
-                        10,
-                        1
-                    )
-                )
-            ) & $targetbit
-        ) == (
-            int(
-                unpack(
-                    'C',
-                    substr(
-                        $Compool_Data{$serial_port}
-                          {Now_Basic_Acknowledgement_Packet},
-                        10,
-                        1
-                    )
-                )
-            ) & $targetbit
-        )
-      )
+    if ( $nowstate
+        and ( int( unpack( 'C', substr( $Compool_Data{$serial_port}{Last_Basic_Acknowledgement_Packet}, 10, 1 ) ) ) & $targetbit ) ==
+        ( int( unpack( 'C', substr( $Compool_Data{$serial_port}{Now_Basic_Acknowledgement_Packet}, 10, 1 ) ) ) & $targetbit ) )
     {
         return undef;
     }
@@ -1063,17 +746,14 @@ sub send_command {
 
     my $Compool_Command_Header = "\xFF\xAA\x00\x01\x82\x09";
 
-    my $Checksum =
-      unpack( "%16C*", $Compool_Command_Header . $command ) % 65536;
+    my $Checksum = unpack( "%16C*", $Compool_Command_Header . $command ) % 65536;
     my $Checksum =
       pack( "CC", ( ( $Checksum >> 8 ) & 0xFF ), ( $Checksum & 0xFF ) );
 
-    print "Compool send data: "
-      . unpack( 'H*', $Compool_Command_Header . $command . $Checksum ) . "\n"
+    print "Compool send data: " . unpack( 'H*', $Compool_Command_Header . $command . $Checksum ) . "\n"
       if $main::Debug{compool};
 
-    ( my $BlockingFlags, my $InBytes, my $OutBytes, my $LatchErrorFlags ) =
-      $serial_port->is_status || warn "could not get port status\n";
+    ( my $BlockingFlags, my $InBytes, my $OutBytes, my $LatchErrorFlags ) = $serial_port->is_status || warn "could not get port status\n";
     my $ClearedErrorFlags = $serial_port->reset_error;
 
     # The API resets errors when reading status, $LatchErrorFlags
@@ -1084,17 +764,11 @@ sub send_command {
 
     #   select (undef, undef, undef, .05); # Sleep a bit
     select( undef, undef, undef, .04 );    # Sleep a bit
-    if (
-        17 == (
-            $temp = $serial_port->write(
-                $Compool_Command_Header . $command . $Checksum
-            )
-        )
-      )
-    {
+    if ( 17 == ( $temp = $serial_port->write( $Compool_Command_Header . $command . $Checksum ) ) ) {
+
         #      select (undef, undef, undef, .02); # Sleep a bit
         select( undef, undef, undef, .025 );    # Sleep a bit
-             #$serial_port->dtr_active(1) or warn "Could not set dtr_active(1)";
+                                                #$serial_port->dtr_active(1) or warn "Could not set dtr_active(1)";
         $serial_port->rts_active(0);
         print "Compool send command ok\n"
           if $main::Debug{compool} and $main::Debug{compool} >= 3;
@@ -1106,8 +780,8 @@ sub send_command {
     }
     else {
         #       select (undef, undef, undef, .02); # Sleep a bit
-        select( undef, undef, undef, .05 );    # Sleep a bit
-             #$serial_port->dtr_active(1) or warn "Could not set dtr_active(1)";
+        select( undef, undef, undef, .05 );     # Sleep a bit
+                                                #$serial_port->dtr_active(1) or warn "Could not set dtr_active(1)";
         $serial_port->rts_active(0);
         print "Compool send command failed sent " . $temp . " bytes\n";
         return -1;
@@ -1153,8 +827,7 @@ sub new {
       if ( $serial_port == undef );
 
     if (    ( $comparison ne undef )
-        and
-        ( $comparison ne '<' and $comparison ne '>' and $comparison ne '=' ) )
+        and ( $comparison ne '<' and $comparison ne '>' and $comparison ne '=' ) )
     {
         print "Invalid comparison operator (<>= valid) in Compool_Item\n";
         return;
@@ -1172,32 +845,22 @@ sub new {
 
     SWITCH: for ( $self->{device} ) {
         /pooltemp/i && do {
-            push(
-                @{ $$self{states} },
-                '64', '66', '68', '70', '72',  '74',  '76',
-                '78', '80', '82', '84', '86',  '88',  '90',
-                '92', '94', '96', '98', '100', '102', '104'
-            );
+            push( @{ $$self{states} },
+                '64', '66', '68', '70', '72', '74', '76', '78', '80', '82', '84', '86', '88', '90', '92', '94', '96', '98', '100', '102', '104' );
             last SWITCH;
         };
         /spatemp/i && do {
-            push(
-                @{ $$self{states} },
-                '64', '66', '68', '70', '72',  '74',  '76',
-                '78', '80', '82', '84', '86',  '88',  '90',
-                '92', '94', '96', '98', '100', '102', '104'
-            );
+            push( @{ $$self{states} },
+                '64', '66', '68', '70', '72', '74', '76', '78', '80', '82', '84', '86', '88', '90', '92', '94', '96', '98', '100', '102', '104' );
             last SWITCH;
         };
 
         /spaheatsource/i && do {
-            push( @{ $$self{states} },
-                'off', 'solar', 'heater', 'solarpriority' );
+            push( @{ $$self{states} }, 'off', 'solar', 'heater', 'solarpriority' );
             last SWITCH;
         };
         /poolheatsource/i && do {
-            push( @{ $$self{states} },
-                'off', 'solar', 'heater', 'solarpriority' );
+            push( @{ $$self{states} }, 'off', 'solar', 'heater', 'solarpriority' );
             last SWITCH;
         };
 
@@ -1246,46 +909,25 @@ sub GetDeviceState {
 
     SWITCH: for ( $self->{device} ) {
         /pooltemp/i && do {
-            return &Compool::get_temp(
-                $self->{serial_port}, $self->{device},
-                $self->{comparison},  $self->{limit}
-            );
+            return &Compool::get_temp( $self->{serial_port}, $self->{device}, $self->{comparison}, $self->{limit} );
         };
         /poolsolartemp/i && do {
-            return &Compool::get_temp(
-                $self->{serial_port}, $self->{device},
-                $self->{comparison},  $self->{limit}
-            );
+            return &Compool::get_temp( $self->{serial_port}, $self->{device}, $self->{comparison}, $self->{limit} );
         };
         /pooldesiredtemp/i && do {
-            return &Compool::get_temp(
-                $self->{serial_port}, $self->{device},
-                $self->{comparison},  $self->{limit}
-            );
+            return &Compool::get_temp( $self->{serial_port}, $self->{device}, $self->{comparison}, $self->{limit} );
         };
         /spatemp/i && do {
-            return &Compool::get_temp(
-                $self->{serial_port}, $self->{device},
-                $self->{comparison},  $self->{limit}
-            );
+            return &Compool::get_temp( $self->{serial_port}, $self->{device}, $self->{comparison}, $self->{limit} );
         };
         /spasolartemp/i && do {
-            return &Compool::get_temp(
-                $self->{serial_port}, $self->{device},
-                $self->{comparison},  $self->{limit}
-            );
+            return &Compool::get_temp( $self->{serial_port}, $self->{device}, $self->{comparison}, $self->{limit} );
         };
         /spadesiredtemp/i && do {
-            return &Compool::get_temp(
-                $self->{serial_port}, $self->{device},
-                $self->{comparison},  $self->{limit}
-            );
+            return &Compool::get_temp( $self->{serial_port}, $self->{device}, $self->{comparison}, $self->{limit} );
         };
         /airtemp/i && do {
-            return &Compool::get_temp(
-                $self->{serial_port}, $self->{device},
-                $self->{comparison},  $self->{limit}
-            );
+            return &Compool::get_temp( $self->{serial_port}, $self->{device}, $self->{comparison}, $self->{limit} );
         };
 
         /spadelay/i && do {
@@ -1299,89 +941,68 @@ sub GetDeviceState {
         };
 
         /spaheatsource/i && do {
-            return &Compool::get_heatsource( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_heatsource( $self->{serial_port}, $self->{device} );
         };
         /poolheatsource/i && do {
-            return &Compool::get_heatsource( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_heatsource( $self->{serial_port}, $self->{device} );
         };
 
         /spa/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /pool/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /aux1/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /aux2/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /aux3/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /aux4/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /aux5/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /aux6/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /heater/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /solar/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /remote/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /display/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /delaycancel/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /spare1/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /aux7/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /spare2/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /spare3/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /spare4/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
         /service/i && do {
-            return &Compool::get_device( $self->{serial_port},
-                $self->{device} );
+            return &Compool::get_device( $self->{serial_port}, $self->{device} );
         };
     }
     print "Compool Item: state_now device item $self->{device}\n";
@@ -1422,94 +1043,76 @@ sub default_setstate {
         };
 
         /spaheatsource/i && do {
-            &Compool::set_heatsource( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_heatsource( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
         /poolheatsource/i && do {
-            &Compool::set_heatsource( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_heatsource( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
 
         /spa/i && do {
-            &Compool::set_device( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_device( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
         /pool/i && do {
-            &Compool::set_device( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_device( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
         /aux1/i && do {
-            &Compool::set_device( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_device( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
         /aux2/i && do {
-            &Compool::set_device( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_device( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
         /aux3/i && do {
-            &Compool::set_device( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_device( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
         /aux4/i && do {
-            &Compool::set_device( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_device( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
         /aux5/i && do {
-            &Compool::set_device( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_device( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
         /aux6/i && do {
-            &Compool::set_device( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_device( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
         /remote/i && do {
-            &Compool::set_device( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_device( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
         /display/i && do {
-            &Compool::set_device( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_device( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
         /delaycancel/i && do {
-            &Compool::set_device( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_device( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
         /spare1/i && do {
-            &Compool::set_device( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_device( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
         /aux7/i && do {
-            &Compool::set_device( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_device( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
         /spare2/i && do {
-            &Compool::set_device( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_device( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
         /spare3/i && do {
-            &Compool::set_device( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_device( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
         /spare4/i && do {
-            &Compool::set_device( $self->{serial_port}, $self->{device},
-                $state );
+            &Compool::set_device( $self->{serial_port}, $self->{device}, $state );
             return -1;
         };
     }

@@ -87,8 +87,7 @@ print "$ScriptName: Cache file should be $config_parms{data_dir}/$ImageFile\n"
 
 # We hit the cache, so we give back the image and exit
 if ( -f "$config_parms{html_alias_cache}/$ImageFile" ) {
-    print
-      "$ScriptName: Hit cached file $config_parms{html_alias_cache}/$ImageFile\n"
+    print "$ScriptName: Hit cached file $config_parms{html_alias_cache}/$ImageFile\n"
       if $Debug{$ScriptName};
     my $data = file_read("$config_parms{html_alias_cache}$ImageFile");
     return &mime_header( "/cache" . $ImageFile, 1, length $data ) . $data;
@@ -125,22 +124,18 @@ if ($GDTemplate) {
 
     my $WorkAreaMinX = $config_parms{button_min_x} || 3;
     my $WorkAreaMinY = $config_parms{button_min_y} || 3;
-    print
-      "$ScriptName: WorkAreaMinX=$WorkAreaMinX  WorkAreaMinY=$WorkAreaMinY\n"
+    print "$ScriptName: WorkAreaMinX=$WorkAreaMinX  WorkAreaMinY=$WorkAreaMinY\n"
       if $Debug{$ScriptName};
 
     my $WorkAreaMaxX = $config_parms{button_max_x} || $Twidth - 3;
     my $WorkAreaMaxY = $config_parms{button_max_y} || $THeight - 3;
-    print
-      "$ScriptName: WorkAreaMaxX=$WorkAreaMaxX  WorkAreaMaxY=$WorkAreaMaxY\n"
+    print "$ScriptName: WorkAreaMaxX=$WorkAreaMaxX  WorkAreaMaxY=$WorkAreaMaxY\n"
       if $Debug{$ScriptName};
 
     # copy icon over template, try to center in height
     my ( $IWidth, $IHeight ) = $GDIcon->getBounds();
-    my $IconY =
-      ( $WorkAreaMaxY - $WorkAreaMinY ) / 2 + $WorkAreaMinY - ( $IHeight / 2 );
-    $GDTemplate->copy( $GDIcon, $WorkAreaMinX, $IconY, 0, 0, $IWidth,
-        $IHeight );
+    my $IconY = ( $WorkAreaMaxY - $WorkAreaMinY ) / 2 + $WorkAreaMinY - ( $IHeight / 2 );
+    $GDTemplate->copy( $GDIcon, $WorkAreaMinX, $IconY, 0, 0, $IWidth, $IHeight );
     print "$ScriptName: Icon upper left [ $WorkAreaMinX, $IconY] \n"
       if $Debug{$ScriptName};
 
@@ -152,8 +147,7 @@ if ($GDTemplate) {
     # determine how many pixels available for text
     my $MaxTextPixelX = $WorkAreaMaxX - ( $IWidth + $WorkAreaMinX );
     my $MaxTextPixelY = $WorkAreaMaxY - $WorkAreaMinY;
-    print
-      "$ScriptName: Maximum Text pixels available X=$MaxTextPixelX Y=$MaxTextPixelY\n"
+    print "$ScriptName: Maximum Text pixels available X=$MaxTextPixelX Y=$MaxTextPixelY\n"
       if $Debug{$ScriptName};
 
     my @lines = split( '_', $Text );
@@ -179,12 +173,10 @@ if ($GDTemplate) {
     # validate ttf fonts
     if ( -f $config_parms{button_ttf} ) {
         $PTSize = $config_parms{button_ttf_ptsize} || 8.0;
-        my @Bounds = GD::Image->stringTTF( "0,0,0", $config_parms{button_ttf},
-            $PTSize, 0.0, 0, 0, "Nothing" );
+        my @Bounds = GD::Image->stringTTF( "0,0,0", $config_parms{button_ttf}, $PTSize, 0.0, 0, 0, "Nothing" );
         if ( scalar @Bounds == 0 ) {
             print "$ScriptName: Invalid TTF fonts $FontUse\n";
-            print
-              "$ScriptName:         maybe GD not configured for TTF, or invalid file\n";
+            print "$ScriptName:         maybe GD not configured for TTF, or invalid file\n";
             $ButtonOK = 0;
         }
         else {
@@ -200,12 +192,9 @@ if ($GDTemplate) {
         $PTSize = $config_parms{button_ttf_ptsize} || 8.0;
 
         my $AllChar = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-        @Bounds =
-          GD::Image->stringTTF( $TextColor, $FontUse, $PTSize, 0.0, 0, 0,
-            $AllChar );
+        @Bounds = GD::Image->stringTTF( $TextColor, $FontUse, $PTSize, 0.0, 0, 0, $AllChar );
         my $FontHeight = $Bounds[7] - $Bounds[1];
-        print
-          "$ScriptName: text will be written with font $FontUse and PTSize $PTSize\n"
+        print "$ScriptName: text will be written with font $FontUse and PTSize $PTSize\n"
           if $Debug{$ScriptName};
         print "$ScriptName: Font height $FontHeight pixels\n"
           if $Debug{$ScriptName};
@@ -214,86 +203,62 @@ if ($GDTemplate) {
         if ( $NumLines == 1 ) {
 
             #determine text position
-            @Bounds =
-              GD::Image->stringTTF( $TextColor, $FontUse, $PTSize, 0.0, 0, 0,
-                $lines[0] );
+            @Bounds = GD::Image->stringTTF( $TextColor, $FontUse, $PTSize, 0.0, 0, 0, $lines[0] );
             print "$ScriptName:        Bounds for line \"$lines[0]\" @Bounds\n"
               if $Debug{$ScriptName};
-            $x = $WorkAreaMaxX - ( $Bounds[2] + 2 - $Bounds[0] );
-            $y = $WorkAreaMaxY - 2;
-            @Bounds =
-              $GDTemplate->stringTTF( $TextColor, $FontUse, $PTSize, 0, $x, $y,
-                $lines[0] );
+            $x      = $WorkAreaMaxX - ( $Bounds[2] + 2 - $Bounds[0] );
+            $y      = $WorkAreaMaxY - 2;
+            @Bounds = $GDTemplate->stringTTF( $TextColor, $FontUse, $PTSize, 0, $x, $y, $lines[0] );
             print "$ScriptName: Text location for line \"$lines[0]\" [$x,$y]\n"
               if $Debug{$ScriptName};
         }
         elsif ( $NumLines == 2 ) {
-            @Bounds =
-              GD::Image->stringTTF( $TextColor, $FontUse, $PTSize, 0.0, 0, 0,
-                $lines[1] );
+            @Bounds = GD::Image->stringTTF( $TextColor, $FontUse, $PTSize, 0.0, 0, 0, $lines[1] );
             print "$ScriptName:        Bounds for line \"$lines[1]\" @Bounds\n"
               if $Debug{$ScriptName};
             $x = $WorkAreaMaxX - ( $Bounds[2] + 2 - $Bounds[1] );
             $y = $WorkAreaMaxY - 2;
             my $nexty = $y + $Bounds[7] - 2;
-            @Bounds =
-              $GDTemplate->stringTTF( $TextColor, $FontUse, $PTSize, 0, $x, $y,
-                $lines[1] );
+            @Bounds = $GDTemplate->stringTTF( $TextColor, $FontUse, $PTSize, 0, $x, $y, $lines[1] );
             print "$ScriptName: Text location for line \"$lines[1]\" [$x,$y]\n"
               if $Debug{$ScriptName};
 
-            @Bounds =
-              GD::Image->stringTTF( $TextColor, $FontUse, $PTSize, 0.0, 0, 0,
-                $lines[0] );
+            @Bounds = GD::Image->stringTTF( $TextColor, $FontUse, $PTSize, 0.0, 0, 0, $lines[0] );
             print "$ScriptName:        Bounds for line \"$lines[0]\" @Bounds\n"
               if $Debug{$ScriptName};
-            $x = $WorkAreaMaxX - ( $Bounds[2] + 2 - $Bounds[0] );
-            $y = $nexty;
-            @Bounds =
-              $GDTemplate->stringTTF( $TextColor, $FontUse, $PTSize, 0, $x, $y,
-                $lines[0] );
+            $x      = $WorkAreaMaxX - ( $Bounds[2] + 2 - $Bounds[0] );
+            $y      = $nexty;
+            @Bounds = $GDTemplate->stringTTF( $TextColor, $FontUse, $PTSize, 0, $x, $y, $lines[0] );
             print "$ScriptName: Text location for line \"$lines[0]\" [$x,$y]\n"
               if $Debug{$ScriptName};
         }
         else {
-            @Bounds =
-              GD::Image->stringTTF( $TextColor, $FontUse, $PTSize, 0.0, 0, 0,
-                $lines[2] );
+            @Bounds = GD::Image->stringTTF( $TextColor, $FontUse, $PTSize, 0.0, 0, 0, $lines[2] );
             print "$ScriptName:        Bounds for line \"$lines[2]\" @Bounds\n"
               if $Debug{$ScriptName};
-            $x     = $WorkAreaMaxX - ( $Bounds[2] + 2 - $Bounds[0] );
-            $y     = $WorkAreaMaxY - 2;
-            $nexty = $y + ( $Bounds[7] ) - 2;
-            @Bounds =
-              $GDTemplate->stringTTF( $TextColor, $FontUse, $PTSize, 0, $x, $y,
-                $lines[2] );
+            $x      = $WorkAreaMaxX - ( $Bounds[2] + 2 - $Bounds[0] );
+            $y      = $WorkAreaMaxY - 2;
+            $nexty  = $y + ( $Bounds[7] ) - 2;
+            @Bounds = $GDTemplate->stringTTF( $TextColor, $FontUse, $PTSize, 0, $x, $y, $lines[2] );
             print "$ScriptName: Text location for line \"$lines[2]\" [$x,$y]\n"
               if $Debug{$ScriptName};
 
-            @Bounds =
-              GD::Image->stringTTF( $TextColor, $FontUse, $PTSize, 0.0, 0, 0,
-                $lines[1] );
+            @Bounds = GD::Image->stringTTF( $TextColor, $FontUse, $PTSize, 0.0, 0, 0, $lines[1] );
             print "$ScriptName:        Bounds for line \"$lines[1]\" @Bounds\n"
               if $Debug{$ScriptName};
-            $x     = $WorkAreaMaxX - ( $Bounds[2] + 2 - $Bounds[0] );
-            $y     = $nexty;
-            $nexty = $y + $Bounds[7] - 2;
-            @Bounds =
-              $GDTemplate->stringTTF( $TextColor, $FontUse, $PTSize, 0, $x, $y,
-                $lines[1] );
+            $x      = $WorkAreaMaxX - ( $Bounds[2] + 2 - $Bounds[0] );
+            $y      = $nexty;
+            $nexty  = $y + $Bounds[7] - 2;
+            @Bounds = $GDTemplate->stringTTF( $TextColor, $FontUse, $PTSize, 0, $x, $y, $lines[1] );
             print "$ScriptName: Text location for line \"$lines[1]\" [$x,$y]\n"
               if $Debug{$ScriptName};
 
-            @Bounds =
-              GD::Image->stringTTF( $TextColor, $FontUse, $PTSize, 0.0, 0, 0,
-                $lines[0] );
+            @Bounds = GD::Image->stringTTF( $TextColor, $FontUse, $PTSize, 0.0, 0, 0, $lines[0] );
             print "$ScriptName:        Bounds for line \"$lines[0]\" @Bounds\n"
               if $Debug{$ScriptName};
-            $x = $WorkAreaMaxX - ( $Bounds[2] + 2 - $Bounds[0] );
-            $y = $nexty;
-            @Bounds =
-              $GDTemplate->stringTTF( $TextColor, $FontUse, $PTSize, 0, $x, $y,
-                $lines[0] );
+            $x      = $WorkAreaMaxX - ( $Bounds[2] + 2 - $Bounds[0] );
+            $y      = $nexty;
+            @Bounds = $GDTemplate->stringTTF( $TextColor, $FontUse, $PTSize, 0, $x, $y, $lines[0] );
             print "$ScriptName: Text location for line \"$lines[0]\" [$x,$y]\n"
               if $Debug{$ScriptName};
         }
@@ -302,9 +267,7 @@ if ($GDTemplate) {
     else {
 
         if ( $config_parms{button_ttf} ) {
-            print(
-                "$ScriptName: Invalid ttf font $config_parms{button_ttf}, use default GD font\n"
-            );
+            print("$ScriptName: Invalid ttf font $config_parms{button_ttf}, use default GD font\n");
             $ButtonOK = 0;
         }
 
@@ -333,45 +296,39 @@ if ($GDTemplate) {
         if ( $NumLines == 1 ) {
             my $x = $WorkAreaMaxX - ( length( $lines[0] ) * $FontWidth );
             my $y = $WorkAreaMaxY - $FontHeight - 1;
-            $GDTemplate->string( $FontUse, $x, $y, ucfirst $lines[0],
-                $TextColor );
+            $GDTemplate->string( $FontUse, $x, $y, ucfirst $lines[0], $TextColor );
             print "$ScriptName: Text location for line \"$lines[0]\" [$x,$y]\n"
               if $Debug{$ScriptName};
         }
         elsif ( $NumLines == 2 ) {
             my $x = $WorkAreaMaxX - ( length( $lines[1] ) * $FontWidth );
             my $y = $WorkAreaMaxY - $FontHeight - 1;
-            $GDTemplate->string( $FontUse, $x, $y, ucfirst $lines[1],
-                $TextColor );
+            $GDTemplate->string( $FontUse, $x, $y, ucfirst $lines[1], $TextColor );
             print "$ScriptName: Text location for line \"$lines[1]\" [$x,$y]\n"
               if $Debug{$ScriptName};
 
             $x = $WorkAreaMaxX - ( length( $lines[0] ) * $FontWidth );
             $y -= $FontHeight;
-            $GDTemplate->string( $FontUse, $x, $y, ucfirst $lines[0],
-                $TextColor );
+            $GDTemplate->string( $FontUse, $x, $y, ucfirst $lines[0], $TextColor );
             print "$ScriptName: Text location for line \"$lines[0]\" [$x,$y]\n"
               if $Debug{$ScriptName};
         }
         else {
             my $x = $WorkAreaMaxX - ( length( $lines[2] ) * $FontWidth );
             my $y = $WorkAreaMaxY - $FontHeight - 1;
-            $GDTemplate->string( $FontUse, $x, $y, ucfirst $lines[2],
-                $TextColor );
+            $GDTemplate->string( $FontUse, $x, $y, ucfirst $lines[2], $TextColor );
             print "$ScriptName: Text location for line \"$lines[2]\" [$x,$y]\n"
               if $Debug{$ScriptName};
 
             $x = $WorkAreaMaxX - ( length( $lines[1] ) * $FontWidth );
             $y -= $FontHeight;
-            $GDTemplate->string( $FontUse, $x, $y, ucfirst $lines[1],
-                $TextColor );
+            $GDTemplate->string( $FontUse, $x, $y, ucfirst $lines[1], $TextColor );
             print "$ScriptName: Text location for line \"$lines[1]\" [$x,$y]\n"
               if $Debug{$ScriptName};
 
             $x = $WorkAreaMaxX - ( length( $lines[0] ) * $FontWidth );
             $y -= $FontHeight;
-            $GDTemplate->string( $FontUse, $x, $y, ucfirst $lines[0],
-                $TextColor );
+            $GDTemplate->string( $FontUse, $x, $y, ucfirst $lines[0], $TextColor );
             print "$ScriptName: Text location for line \"$lines[0]\" [$x,$y]\n"
               if $Debug{$ScriptName};
         }
@@ -385,18 +342,15 @@ if ($GDTemplate) {
     }
     my $ButtonFile = $GDTemplate->$ButtonType();
     if ($ButtonOK) {
-        print
-          "$ScriptName: Writing button to cache: $config_parms{html_alias_cache}/$ImageFile\n"
+        print "$ScriptName: Writing button to cache: $config_parms{html_alias_cache}/$ImageFile\n"
           if $Debug{$ScriptName};
         file_write( "$config_parms{html_alias_cache}/$ImageFile", $ButtonFile );
     }
     else {
-        print
-          "$ScriptName: Button $config_parms{html_alias_cache}/$ImageFile not written to cache\n";
+        print "$ScriptName: Button $config_parms{html_alias_cache}/$ImageFile not written to cache\n";
     }
 
-    return &mime_header( "/cache" . $ImageFile, 1, length $ButtonFile )
-      . $ButtonFile;
+    return &mime_header( "/cache" . $ImageFile, 1, length $ButtonFile ) . $ButtonFile;
 }
 else {
     print "$ScriptName: Error generating image\n";
@@ -416,8 +370,7 @@ sub ValidIcon {
     # name could have 1 dot, to define type (icon.png)
     my $DotCount = $IconName =~ tr/././;
     if ( $DotCount > 1 ) {
-        print
-          "ValidIcon: Invalid icon name $IconName, no more than 1 dot (.) allow in name, using EmptyIcon.png\n";
+        print "ValidIcon: Invalid icon name $IconName, no more than 1 dot (.) allow in name, using EmptyIcon.png\n";
         return ( "NOICON", "NOICON", "" );
     }
 
@@ -432,8 +385,7 @@ sub ValidIcon {
 
     # is it a valid GD type
     if ( index( "JPG JPEG PNG XBM WMP XPM", uc($Type) ) < 0 ) {
-        print
-          "$ScriptName: ValidIcon: Invalid icon type [$Type], only JPG JPEG PNG XBM WMP XPM allowed\n";
+        print "$ScriptName: ValidIcon: Invalid icon type [$Type], only JPG JPEG PNG XBM WMP XPM allowed\n";
         return ( "NOICON", "NOICON", "" );
     }
 
@@ -510,24 +462,13 @@ sub OpenImage {
     elsif ( $FileName eq "NOTEMPLATE" ) {
 
         # we have no template
-        $TemplateObject =
-          GD::Image->new( $GenericTemplateX, $GenericTemplateY );
+        $TemplateObject = GD::Image->new( $GenericTemplateX, $GenericTemplateY );
         my $white = $TemplateObject->colorAllocate( 255, 255, 255 );
         my $black = $TemplateObject->colorAllocate( 0,   0,   0 );
-        $TemplateObject->rectangle( 0, 0, $GenericTemplateX, $GenericTemplateY,
-            $white );
-        $TemplateObject->rectangle(
-            1, 1,
-            $GenericTemplateX - 1,
-            $GenericTemplateY - 1, $black
-        );
-        $TemplateObject->rectangle(
-            3, 3,
-            $GenericTemplateX - 3,
-            $GenericTemplateY - 3, $white
-        );
-        print
-          "$ScriptName: Template file not defined in configuration file, will create a simple one\n";
+        $TemplateObject->rectangle( 0, 0, $GenericTemplateX,     $GenericTemplateY,     $white );
+        $TemplateObject->rectangle( 1, 1, $GenericTemplateX - 1, $GenericTemplateY - 1, $black );
+        $TemplateObject->rectangle( 3, 3, $GenericTemplateX - 3, $GenericTemplateY - 3, $white );
+        print "$ScriptName: Template file not defined in configuration file, will create a simple one\n";
         $ButtonOK = 0;
     }
     elsif ( $FileName eq "NOICON" ) {
@@ -569,8 +510,7 @@ sub FindFile {
             return "$Dirname/$FileName";
         }
     }
-    print
-      "$ScriptName: FindFile: $ImageType $FileName not found in any icons dir";
+    print "$ScriptName: FindFile: $ImageType $FileName not found in any icons dir";
     return "NO$ImageType";
 
 }

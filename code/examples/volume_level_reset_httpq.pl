@@ -3,14 +3,13 @@
 # Category=All
 
 $movement_sensor = new Serial_Item( 'XAJ', ON );    # Need ON and OFF
-$movement_sensor->add( 'XAK', OFF );    # Just once to control all Hawkeyes
-$movement_sensor_unit = new Serial_Item( 'XA4', 'office' )
-  ;    # Add one line per Hawkeye, Set code to Hawkeye
+$movement_sensor->add( 'XAK', OFF );                # Just once to control all Hawkeyes
+$movement_sensor_unit = new Serial_Item( 'XA4', 'office' );    # Add one line per Hawkeye, Set code to Hawkeye
 $movement_sensor_unit->add( 'XA5', 'frontdoor' );
 $movement_sensor_unit->add( 'XA6', 'pool' );
 $movement_sensor_unit->add( 'XA7', 'serverroom' );
 
-$timer_office      = new Timer();    # Set one timer per Hawkeye
+$timer_office      = new Timer();                              # Set one timer per Hawkeye
 $timer_front_door  = new Timer();
 $timer_pool        = new Timer();
 $timer_server_room = new Timer();

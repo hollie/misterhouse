@@ -154,7 +154,7 @@ sub serial_startup {
 
     &::serial_port_create( $instance, $port, $speed );
 
-    if ( 1 == scalar( keys %RCSsTR40_Data ) ) {   # Add hooks on first call only
+    if ( 1 == scalar( keys %RCSsTR40_Data ) ) {    # Add hooks on first call only
         &::MainLoop_post_add_hook( \&RCSsTR40::poll_all, 1 );
         &::MainLoop_pre_add_hook( \&RCSsTR40::check_for_data, 1 );
     }
@@ -189,16 +189,13 @@ sub check_for_data {
             # User changed something and a status message was sent... but for some
             # reason the status message sent doesn't usually (ever?) contain the
             # actual change.  So, make sure we requset a full status update.
-            print
-              "RCSs_TR40: Received status report... requesting full report\n"
+            print "RCSs_TR40: Received status report... requesting full report\n"
               unless $main::config_parms{no_log} =~ /RCSsTR40/;
             $RCSsTR40_Data{$port_name}{'send_count'}++;
             $RCSsTR40_Data{$port_name}{'obj'}->_poll();
         }
         $main::Serial_Ports{$port_name}{data_record} = '';
-        if ( ( $RCSsTR40_Data{$port_name}{'obj'}->{'last_change'} + 5 ) ==
-            $main::Time )
-        {
+        if ( ( $RCSsTR40_Data{$port_name}{'obj'}->{'last_change'} + 5 ) == $main::Time ) {
             $RCSsTR40_Data{$port_name}{'obj'}->{'last_change'} = 0;
             $RCSsTR40_Data{$port_name}{'obj'}->_poll();
         }
@@ -222,15 +219,9 @@ sub new {
     bless $self, $class;
     $RCSsTR40_Data{$port_name}{'obj'}        = $self;
     $RCSsTR40_Data{$port_name}{'send_count'} = 0;
-    push(
-        @{ $$self{states} },
-        'temp_change',    'outside_temp_change', 'heat_sp_change',
-        'cool_sp_change', 'off',                 'heat',
-        'cool',           'auto',                'emerg_heat',
-        'invalid',        'fan_on',              'fan_auto',
-        'hold',           'run',                 'vacation',
-        'no_vacation'
-    );
+    push( @{ $$self{states} },
+        'temp_change', 'outside_temp_change', 'heat_sp_change', 'cool_sp_change', 'off', 'heat', 'cool', 'auto', 'emerg_heat', 'invalid', 'fan_on', 'fan_auto',
+        'hold', 'run', 'vacation', 'no_vacation' );
     $self->_get_times();
     $self->_poll();
     return $self;
@@ -488,8 +479,7 @@ sub create_schedule_entry {
     $hour =~ s/^\d$/0$hour/;
     $heat =~ s/^\d$/0$heat/;
     $cool =~ s/^\d$/0$cool/;
-    print
-      "$::Time_Date: RCSsTR40 -> Set Schedule: $day/$entry=$hour$min$heat$cool\n"
+    print "$::Time_Date: RCSsTR40 -> Set Schedule: $day/$entry=$hour$min$heat$cool\n"
       unless $main::config_parms{no_log} =~ /RCSsTR40/;
     $self->_send_cmd("SE$day/$entry=$hour$min$heat$cool");
 }
@@ -557,13 +547,11 @@ sub send_text_msg {
     print "$::Time_Date: RCSsTR40 -> Send Text message: $msg\n"
       unless $main::config_parms{no_log} =~ /RCSsTR40/;
     if ( $msg =~ /\"/ ) {
-        print
-          "$::Time_Date: RCSsTR40 -> send_text_msg ERROR message contains double-quotes: $msg\n";
+        print "$::Time_Date: RCSsTR40 -> send_text_msg ERROR message contains double-quotes: $msg\n";
         return;
     }
     if ( length($msg) > 80 ) {
-        print
-          "$::Time_Date: RCSsTR40 -> send_text_msg ERROR message is longer than 80 characters: $msg\n";
+        print "$::Time_Date: RCSsTR40 -> send_text_msg ERROR message is longer than 80 characters: $msg\n";
         return;
     }
     $self->_send_cmd("TM=\"$msg\"");
@@ -580,15 +568,13 @@ sub cool_setpoint {
     print "$::Time_Date: RCSsTR40 -> Cool setpoint $temp\n"
       unless $main::config_parms{no_log} =~ /RCSsTR40/;
     if ( $temp !~ /^\d+$/ ) {
-        print
-          "$::Time_Date: RCSsTR40 -> cool_setpoint ERROR $temp not numeric\n";
+        print "$::Time_Date: RCSsTR40 -> cool_setpoint ERROR $temp not numeric\n";
         return;
     }
     if (   ( $temp < $$self{'cool_min_limit'} )
         or ( $temp > $$self{'cool_max_limit'} ) )
     {
-        print
-          "$::Time_Date: RCSsTR40 -> cool_setpoint WARNING temp '$temp' is outside of limits\n";
+        print "$::Time_Date: RCSsTR40 -> cool_setpoint WARNING temp '$temp' is outside of limits\n";
         return;
     }
     $$self{'cool_sp'}         = $temp;
@@ -607,15 +593,13 @@ sub heat_setpoint {
     print "$::Time_Date: RCSsTR40 -> Heat setpoint $temp\n"
       unless $main::config_parms{no_log} =~ /RCSsTR40/;
     if ( $temp !~ /^\d+$/ ) {
-        print
-          "$::Time_Date: RCSsTR40 -> heat_setpoint ERROR $temp not numeric\n";
+        print "$::Time_Date: RCSsTR40 -> heat_setpoint ERROR $temp not numeric\n";
         return;
     }
     if (   ( $temp < $$self{'heat_min_limit'} )
         or ( $temp > $$self{'heat_max_limit'} ) )
     {
-        print
-          "$::Time_Date: RCSsTR40 -> heat_setpoint WARNING temp '$temp' is outside of limits\n";
+        print "$::Time_Date: RCSsTR40 -> heat_setpoint WARNING temp '$temp' is outside of limits\n";
         return;
     }
     $$self{'heat_sp'}         = $temp;
@@ -635,8 +619,7 @@ sub set_outside_temp {
     print "$::Time_Date: RCSsTR40 -> Set outside temp: $temp\n"
       unless $main::config_parms{no_log} =~ /RCSsTR40/;
     if ( $temp !~ /^\d+$/ ) {
-        print
-          "$::Time_Date: RCSsTR40 -> set_outside_temp ERROR $temp not numeric\n";
+        print "$::Time_Date: RCSsTR40 -> set_outside_temp ERROR $temp not numeric\n";
         return;
     }
     $$self{'outside_temp'} = $temp;
@@ -656,8 +639,7 @@ sub set_remote_temp {
     print "$::Time_Date: RCSsTR40 -> Set remote temp: $temp\n"
       unless $main::config_parms{no_log} =~ /RCSsTR40/;
     if ( $temp !~ /^\d+$/ ) {
-        print
-          "$::Time_Date: RCSsTR40 -> set_remote_temp ERROR $temp not numeric\n";
+        print "$::Time_Date: RCSsTR40 -> set_remote_temp ERROR $temp not numeric\n";
         return;
     }
     $self->_send_cmd("RT=$temp");
@@ -672,8 +654,7 @@ that the module automatically calls this once per hour.
 
 sub set_date_time {
     my ($self) = @_;
-    my ( $Second, $Minute, $Hour, $Mday, $Month, $Year, $Wday ) =
-      localtime $main::Time;
+    my ( $Second, $Minute, $Hour, $Mday, $Month, $Year, $Wday ) = localtime $main::Time;
     $Year += 1900;
     $Wday++;
     $Second =~ s/^\d$/0$Second/;
@@ -683,8 +664,7 @@ sub set_date_time {
     $Year =~ s/^\d\d(\d\d)$/$1/;
     my $time = "$Hour:$Minute:$Second";
     my $date = "$Month:$Mday:$Year";
-    print
-      "$::Time_Date: RCSsTR40 -> Set date ($date), time ($time), and weekday ($Wday)\n"
+    print "$::Time_Date: RCSsTR40 -> Set date ($date), time ($time), and weekday ($Wday)\n"
       unless $main::config_parms{no_log} =~ /RCSsTR40/;
     $self->_send_cmd("TIME=$time DATE=$date DOW=$Wday");
 }
@@ -717,9 +697,7 @@ sub auto_set_outside_temp {
 sub _check_auto_outside_temp {
     my ($self) = @_;
     if ( ref $$self{'auto_outside_temp_ref'} ) {
-        if ( ${ $$self{'auto_outside_temp_ref'} } !=
-            $$self{'last_auto_outside_temp'} )
-        {
+        if ( ${ $$self{'auto_outside_temp_ref'} } != $$self{'last_auto_outside_temp'} ) {
             $$self{'last_auto_outside_temp'} =
               ${ $$self{'auto_outside_temp_ref'} };
             if ( $$self{'last_auto_outside_temp'} ) {
@@ -878,15 +856,11 @@ sub _parse_data {
             $$self{'temp'} = $val;
             $self->_process_off_times();
             if ( $$self{'temp'} < $$self{'heat_sp'} ) {
-                &::print_log(
-                    "RCSsTR40: Temp $$self{temp} is less than $$self{heat_sp} (mode=$$self{mode})"
-                );
+                &::print_log("RCSsTR40: Temp $$self{temp} is less than $$self{heat_sp} (mode=$$self{mode})");
                 if (   ( $$self{'mode'} eq 'heat' )
                     or ( $$self{'mode'} eq 'auto' ) )
                 {
-                    &::print_log(
-                        "RCSsTR40: heat_start=$$self{heat_start}, heat_end=$$self{heat_end}, mot=$$self{mot}"
-                    );
+                    &::print_log("RCSsTR40: heat_start=$$self{heat_start}, heat_end=$$self{heat_end}, mot=$$self{mot}");
                     if ( $$self{'heat_end'} > $::Time ) {
 
                         # It was scheduled to turn off, so cancel that
@@ -935,8 +909,7 @@ sub _parse_data {
                     }
                 }
             }
-            if (    ( $$self{'temp'} >= $$self{'heat_sp'} )
-                and ( ( $$self{'temp'} <= $$self{'cool_sp'} ) )
+            if (   ( $$self{'temp'} >= $$self{'heat_sp'} ) and ( ( $$self{'temp'} <= $$self{'cool_sp'} ) )
                 or ( $$self{'mode'} eq 'off' ) )
             {
                 if ( $$self{'heat_start'} ) {
@@ -952,8 +925,8 @@ sub _parse_data {
                     elsif ( not $$self{'heat_end'} ) {
 
                         # Is running, schedule stop time
-                        if ( ( $$self{'heat_start'} + $$self{mrt} ) > $::Time )
-                        {
+                        if ( ( $$self{'heat_start'} + $$self{mrt} ) > $::Time ) {
+
                             # Schedule future stop
                             $$self{'heat_end'} =
                               ( $$self{'heat_start'} + $$self{mrt} );
@@ -977,8 +950,8 @@ sub _parse_data {
                     elsif ( not $$self{'cool_end'} ) {
 
                         # Is running, schedule stop time
-                        if ( ( $$self{'cool_start'} + $$self{mrt} ) > $::Time )
-                        {
+                        if ( ( $$self{'cool_start'} + $$self{mrt} ) > $::Time ) {
+
                             # Schedule future stop
                             $$self{'cool_end'} =
                               ( $$self{'cool_start'} + $$self{mrt} );
@@ -993,8 +966,7 @@ sub _parse_data {
             }
         }
         elsif ( $name eq 'OA' ) {
-            if ( $$self{'outside_temp'} and ( $$self{'outside_temp'} != $val ) )
-            {
+            if ( $$self{'outside_temp'} and ( $$self{'outside_temp'} != $val ) ) {
                 $self->set_receive('outside_temp_change');
             }
             $$self{'outside_temp'} = $val;
@@ -1023,8 +995,7 @@ sub _parse_data {
             $$self{'schedule_mode'} = $val;
         }
         elsif ( $name eq 'SPH' ) {
-            print
-              "Examining SPH: $val, $$self{heat_sp_pending}, $$self{heat_sp}, $$self{vacation}\n"
+            print "Examining SPH: $val, $$self{heat_sp_pending}, $$self{heat_sp}, $$self{vacation}\n"
               unless $main::config_parms{no_log} =~ /RCSsTR40/;
             if ( $val == 66 ) {
                 $vacation_sph = 1;
@@ -1050,8 +1021,7 @@ sub _parse_data {
             $$self{'heat_sp'} = $val;
         }
         elsif ( $name eq 'SPC' ) {
-            print
-              "Examining SPC: $val, $$self{cool_sp_pending}, $$self{cool_sp}, $$self{vacation}\n"
+            print "Examining SPC: $val, $$self{cool_sp_pending}, $$self{cool_sp}, $$self{vacation}\n"
               unless $main::config_parms{no_log} =~ /RCSsTR40/;
             if ( $val == 80 ) {
                 $vacation_spc = 1;

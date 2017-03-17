@@ -3,14 +3,10 @@
 #@ Zips up the MisterHouse test distribution.  Runs nightly.
 
 $v_zip_code = new Voice_Cmd 'Zip up misterhouse source code';
-$v_zip_code->set_info(
-    'Zips up the current code to http://misterhouse.net/public/misterhouse_src_test.zip'
-);
+$v_zip_code->set_info('Zips up the current code to http://misterhouse.net/public/misterhouse_src_test.zip');
 
 $v_zip_win = new Voice_Cmd 'Zip up misterhouse windows code';
-$v_zip_win->set_info(
-    'Compile and zip the windows mh.exe to http://misterhouse.net/public/misterhouse_win_test.zip'
-);
+$v_zip_win->set_info('Compile and zip the windows mh.exe to http://misterhouse.net/public/misterhouse_win_test.zip');
 
 # Note:  run_zip_test calls run_zip which will install copy on linux box also
 
