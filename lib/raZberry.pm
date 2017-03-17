@@ -215,7 +215,7 @@ sub new {
     $self->{port}  = $port if ($port);
     $self->{debug} = 0;
     ( $self->{debug} ) = ( $options =~ /debug=(\s+)/i ) if ( ( defined $options ) and ( $options =~ m/debug=/i ) );
-    $self->{debug}           = $main::Debug{raZberry} if ( defined $main::Debug{raZberry} );
+    $self->{debug}           = $main::Debug{razberry} if ( defined $main::Debug{razberry} );
     $self->{lastupdate}      = undef;
     $self->{timeout}         = 2;
     $self->{timeout}         = $main::config_parms{raZberry_timeout} if ( defined $main::config_parms{raZberry_timeout} );
