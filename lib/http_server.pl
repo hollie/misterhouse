@@ -479,7 +479,7 @@ sub http_process_request {
         my ( $user, $password_crypted ) = &password_check2($password);
         $Authorized = $user if $password_crypted;
         $html .= &html_authorized;
-        $html .= "REMOVEME = get_arg = " . $get_arg . "<br>\n";
+        #$html .= "REMOVEME = get_arg = " . $get_arg . "<br>\n";
         $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
 
         #       $html .= &html_reload_link('/', 'Refresh Main Page');
