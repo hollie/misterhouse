@@ -328,7 +328,7 @@ sub http_process_request {
              $Http{'Content-Length'}
           || $Http{'Content-length'}
           || $Http{'content-length'};     # Netscape uses lower case l
-        print "http POST query has $cl bytes of args\n";    # if $main::Debug{http};
+        print "http POST query has $cl bytes of args\n"  if $main::Debug{http};
         my $buf;
         read $socket, $buf, $cl;
 

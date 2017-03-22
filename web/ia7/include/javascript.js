@@ -2746,11 +2746,13 @@ var authorize_modal = function(user) {
 	});	
 	$('#LoginModalpw').submit( function (e) {
 		e.preventDefault();
-		//console.log("Custom submit function");
+		var encoded_data = $(this).serialize();
+		encoded_data = encoded_data.replace(/\!/g,"%21"); //for some reason serialize doesn't encode a !...
+		//console.log("Custom submit function: "+$(this).serialize()+" "+encoded_data);
 		$.ajax({
 			type: "POST",
 			url: "/SET_PASSWORD_FORM",
-			data: $(this).serialize(),
+			data: encoded_data,
 			success: function(data){
 				var status=data.match(/\<b\>(.*)\<\/b\>/gm);
 				//console.log("match="+status[2]); //3rd match is password status
