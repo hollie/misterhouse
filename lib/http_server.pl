@@ -328,13 +328,13 @@ sub http_process_request {
              $Http{'Content-Length'}
           || $Http{'Content-length'}
           || $Http{'content-length'};     # Netscape uses lower case l
-        print "http POST query has $cl bytes of args\n";    # if $main::Debug{http};
+        print "http POST query has $cl bytes of args\n"  if $main::Debug{http};
         my $buf;
         read $socket, $buf, $cl;
 
         # Save the body into the global var
         $HTTP_BODY = $buf;
-        print "http POST buf=$buf get_arg=$get_arg\n" if $main::Debug{http};
+        print "http POST buf=$buf get_arg=$get_arg\n";# if $main::Debug{http};
 
         # This is a bad practice to merge the body and arguments together as the
         # body may not always contain an argument string.  It may contain JSON
