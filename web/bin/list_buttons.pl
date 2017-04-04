@@ -83,8 +83,7 @@ for my $item ( sort @objects ) {
         $image = "/bin/button.pl?$item&item&$state" unless -e $file;
 
         #       $image = "/bin/button.pl?$item&item&$state" unless -e "$config_parms{html_dir}$image";
-        $icon =
-          "<a href='/bin/button_action.pl?$list_name&$item&$state_new'><img src='$image' alt='$name $state' ISMAP border=0></a>";
+        $icon = "<a href='/bin/button_action.pl?$list_name&$item&$state_new'><img src='$image' alt='$name $state' ISMAP border=0></a>";
 
         #       $icon = "<a href='/SET;&referer(/bin/list_buttons.pl|$list_name)?$item=$state_new'><img src='$image'       border=0></a>";
         $html .= "
@@ -110,10 +109,7 @@ for my $item ( sort @objects ) {
 
 #$html = "<html><body>\n<base target ='output'>\n" .
 if ($html_refrate) {
-    $htm_hdr =
-        "<html><head><meta HTTP-EQUIV=\"refresh\" CONTENT=\""
-      . $html_refrate
-      . ";\"><\/head><body>\n";
+    $htm_hdr = "<html><head><meta HTTP-EQUIV=\"refresh\" CONTENT=\"" . $html_refrate . ";\"><\/head><body>\n";
 }
 else {
     $htm_hdr = "<html><body>\n";

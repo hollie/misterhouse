@@ -58,9 +58,8 @@ sub new {
     $self->set_states( 'fatal', 'error', 'warn', 'info', 'debug', 'trace' );
     $$self{state} = 'info';
 
-    $self->print_expression( 'my $tmp = $self->get_object_name();'
-          . '$tmp =~ s/(_logger|_log)$//i;'
-          . '&main::print_log( $tmp . \' [\' . $level . \'] \' . $msg );' );
+    $self->print_expression(
+        'my $tmp = $self->get_object_name();' . '$tmp =~ s/(_logger|_log)$//i;' . '&main::print_log( $tmp . \' [\' . $level . \'] \' . $msg );' );
 
     return $self;
 }

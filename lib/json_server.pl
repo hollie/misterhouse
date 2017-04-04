@@ -1,3 +1,4 @@
+
 =head1 B<json_server>
 
 =head2 SYNOPSIS
@@ -173,17 +174,12 @@ sub json_get {
         eval {
             my $json_collections = file_read($collection_file);
             $json_collections =~ s/\$config_parms\{(.+?)\}/$config_parms{$1}/gs;
-            $json_collections =~ s/\$Authorized/$Authorized/gs
-              ;    # needed for including current "Authorize" status
-            $json_data{'collections'} = decode_json($json_collections)
-              ;    #HP, wrap this in eval to prevent MH crashes
+            $json_collections =~ s/\$Authorized/$Authorized/gs;    # needed for including current "Authorize" status
+            $json_data{'collections'} = decode_json($json_collections);    #HP, wrap this in eval to prevent MH crashes
         };
         if ($@) {
-            print_log
-              "Json_Server.pl: WARNING: decode_json failed for collection.json. Please check this file!";
-            $json_data{'collections'} =
-              decode_json('{ "0" : { "name" : "error" } }')
-              ;    #write a blank collection
+            print_log "Json_Server.pl: WARNING: decode_json failed for collection.json. Please check this file!";
+            $json_data{'collections'} = decode_json('{ "0" : { "name" : "error" } }');    #write a blank collection
             config_checker($collection_file);
         }
     }
@@ -198,39 +194,21 @@ sub json_get {
 
         eval {
             my $prefs = file_read($prefs_file);
-            $json_data{'ia7_config'} =
-              decode_json($prefs);  #HP, wrap this in eval to prevent MH crashes
+            $json_data{'ia7_config'} = decode_json($prefs);    #HP, wrap this in eval to prevent MH crashes
         };
         if ($@) {
-            print_log
-              "Json_Server.pl: WARNING: decode_json failed for ia7_config.json. Please check this file!";
-            $json_data{'ia7_config'} =
-              decode_json('{ "prefs" : { "status" : "error" } }')
-              ;                     #write a blank collection
+            print_log "Json_Server.pl: WARNING: decode_json failed for ia7_config.json. Please check this file!";
+            $json_data{'ia7_config'} = decode_json('{ "prefs" : { "status" : "error" } }');    #write a blank collection
             config_checker($prefs_file);
         }
 
         # Look at the client ip overrides, and replace any pref key with the client_ip specific item
-        if (
-            defined $json_data{'ia7_config'}->{clients}
-            ->{ $Http{Client_address} } )
-        {
-            print_log
-              "Json_Server.pl: Client override section for $Http{Client_address} found";
-            for my $key (
-                keys %{
-                    $json_data{'ia7_config'}->{clients}
-                      ->{ $Http{Client_address} }
-                }
-              )
-            {
-                print_log
-                  "Json_Server.pl: Client key=$key, value = $json_data{'ia7_config'}->{clients}->{$Http{Client_address}}->{$key}";
-                print_log
-                  "Json_Server.pl: Master value = $json_data{'ia7_config'}->{prefs}->{$key}";
-                $json_data{'ia7_config'}->{prefs}->{$key} =
-                  $json_data{'ia7_config'}->{clients}
-                  ->{ $Http{Client_address} }->{$key};
+        if ( defined $json_data{'ia7_config'}->{clients}->{ $Http{Client_address} } ) {
+            print_log "Json_Server.pl: Client override section for $Http{Client_address} found";
+            for my $key ( keys %{ $json_data{'ia7_config'}->{clients}->{ $Http{Client_address} } } ) {
+                print_log "Json_Server.pl: Client key=$key, value = $json_data{'ia7_config'}->{clients}->{$Http{Client_address}}->{$key}";
+                print_log "Json_Server.pl: Master value = $json_data{'ia7_config'}->{prefs}->{$key}";
+                $json_data{'ia7_config'}->{prefs}->{$key} = $json_data{'ia7_config'}->{clients}->{ $Http{Client_address} }->{$key};
             }
             delete $json_data{'ia7_config'}->{clients};
         }
@@ -246,38 +224,35 @@ sub json_get {
 
         eval {
             my $prefs = file_read($prefs_file);
-            $json_data{'rrd_config'} =
-              decode_json($prefs);  #HP, wrap this in eval to prevent MH crashes
+            $json_data{'rrd_config'} = decode_json($prefs);    #HP, wrap this in eval to prevent MH crashes
         };
         if ($@) {
-            print_log
-              "Json_Server.pl: WARNING: decode_json failed for ia7_rrd_config.json. Please check this file!";
+            print_log "Json_Server.pl: WARNING: decode_json failed for ia7_rrd_config.json. Please check this file!";
         }
     }
 
     # RRD data routines
     if ( $path[0] eq 'rrd' || $path[0] eq '' ) {
         my $path = "$config_parms{data_dir}/rrd";
-	$path = "$config_parms{rrd_dir}"
-	 if ( defined $config_parms{rrd_dir} ); 
+        $path = "$config_parms{rrd_dir}"
+          if (  ( defined $config_parms{rrd_dir} )
+            and ( $config_parms{rrd_dir} ) );
         $path = $json_data{'rrd_config'}->{'prefs'}->{'path'}
           if ( defined $json_data{'rrd_config'}->{'prefs'}->{'path'} );
         my $rrd_file = "weather_data.rrd";
-	$rrd_file = $config_parms{weather_data_rrd} 
-	if ( defined $config_parms{weather_data_rrd} );
-	if ( $rrd_file =~ m/.*\/(.*\.rrd)/ ) { 
-	     $rrd_file = $1;
-	    }
+        $rrd_file = $config_parms{weather_data_rrd}
+          if ( defined $config_parms{weather_data_rrd} );
+        if ( $rrd_file =~ m/.*\/(.*\.rrd)/ ) {
+            $rrd_file = $1;
+        }
         $rrd_file = $json_data{'rrd_config'}->{'prefs'}->{'default_rrd'}
           if ( defined $json_data{'rrd_config'}->{'prefs'}->{'default_rrd'} );
         my $default_cf = "AVERAGE";
         $default_cf = $json_data{'rrd_config'}->{'prefs'}->{'default_cf'}
           if ( defined $json_data{'rrd_config'}->{'prefs'}->{'default_cf'} );
         my $default_timestamp = "true";
-        $default_timestamp =
-          $json_data{'rrd_config'}->{'prefs'}->{'get_last_update'}
-          if (
-            defined $json_data{'rrd_config'}->{'prefs'}->{'get_last_update'} );
+        $default_timestamp = $json_data{'rrd_config'}->{'prefs'}->{'get_last_update'}
+          if ( defined $json_data{'rrd_config'}->{'prefs'}->{'get_last_update'} );
 
         my @dss      = ();
         my @defs     = ();
@@ -287,12 +262,16 @@ sub json_get {
         my @round    = ();
         my @type     = ();
         my $celsius  = 0;
+        my $kph      = 0;
         my $arg_time = 0;
         my $xml_info;
         $arg_time = int( $args{time}[0] ) if ( defined int( $args{time}[0] ) );
-        $celsius = 1 if ( $config_parms{weather_uom_temp} eq 'C' );
-        $celsius = 1
+        $celsius  = 1                     if ( $config_parms{weather_uom_temp} eq 'C' );
+        $celsius  = 1
           if ( lc $json_data{'rrd_config'}->{'prefs'}->{'uom'} eq "celsius" );
+
+        $kph = 1 if ( $config_parms{weather_uom_wind} eq 'kph' );
+
         my %data;
         my $end = "now";
 
@@ -306,14 +285,8 @@ sub json_get {
             if ( defined $args{group}[0] ) {
                 @{ $args{ds} } = ();    #override any DSs specified in the URL
                 for my $dsg ( keys %{ $json_data{'rrd_config'}->{'ds'} } ) {
-                    if (
-                        defined $json_data{'rrd_config'}->{'ds'}->{$dsg}
-                        ->{'group'} )
-                    {
-                        foreach my $group ( split /,/,
-                            $json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'}
-                          )
-                        {
+                    if ( defined $json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'} ) {
+                        foreach my $group ( split /,/, $json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'} ) {
                             push @{ $args{ds} }, $dsg
                               if ( lc $group ) eq ( lc $args{group}[0] );
                         }
@@ -327,48 +300,31 @@ sub json_get {
                 #if it doesn't exist as a ds then skip
                 my $cf = $default_cf;
                 $cf = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'cf'}
-                  if (
-                    defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'cf'} );
+                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'cf'} );
                 push @defs,   "DEF:$ds=$path/$rrd_file:$ds:$cf";
                 push @xports, "XPORT:$ds";
-                $dataset[$index]->{'label'} =
-                  $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'}
-                  if (
-                    defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'}
-                  );
-                $dataset[$index]->{'color'} =
-                  $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'}
-                  if (
-                    defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'}
-                  );
-                if (
-                    lc $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} eq
-                    "bar" )
-                {
+                $dataset[$index]->{'label'} = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'}
+                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'} );
+                $dataset[$index]->{'color'} = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'}
+                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'} );
+                if ( lc $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} eq "bar" ) {
                     $dataset[$index]->{'bars'}->{'show'}      = "true";
                     $dataset[$index]->{'bars'}->{'fill'}      = "0";
                     $dataset[$index]->{'bars'}->{'lineWidth'} = 0;
 
                     #$dataset[$index]->{'bars'}->{'barWidth'} = 8 * 60 * 60 * 1000;  #calculate barwidth based on data range
                     #TODO - bar width on data range
-                    $dataset[$index]->{'bars'}->{'fillColor'}->{'colors'}[0]
-                      ->{'opacity'} = 0.3;
-                    $dataset[$index]->{'bars'}->{'fillColor'}->{'colors'}[1]
-                      ->{'opacity'} = 0.3;
-                    $dataset[$index]->{'yaxis'} = 2;
+                    $dataset[$index]->{'bars'}->{'fillColor'}->{'colors'}[0]->{'opacity'} = 0.3;
+                    $dataset[$index]->{'bars'}->{'fillColor'}->{'colors'}[1]->{'opacity'} = 0.3;
+                    $dataset[$index]->{'yaxis'}                                           = 2;
                 }
                 else {
                     $dataset[$index]->{'lines'}->{'show'} = "true";
                 }
-                $round[$index] =
-                  $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'}
-                  if (
-                    defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'}
-                  );
-                $type[$index] =
-                  $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'}
-                  if (
-                    defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} );
+                $round[$index] = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'}
+                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'} );
+                $type[$index] = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'}
+                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} );
                 $index++;
             }
 
@@ -379,40 +335,40 @@ sub json_get {
             $xml_info = $rrd->info if ( $default_timestamp eq "true" );
             my @lines = split /\n/, $xml;
 
-            foreach my $line (@lines) {
+            my ($step) = $xml =~ /\<step\>(\d+)\<\/step\>/;    #this is the width for any bar charts
 
-                #print "line=$line\n";
-                my ($step) = $line =~ /\<step\>(\d+)\<\/step\>/
-                  ;    #this is the width for any bar charts
-                if ($step) {
-                    for my $i ( 0 .. $#dataset ) {
-                        $dataset[$i]->{'bars'}->{'barWidth'} =
-                          int($step) * 1000
-                          if ( defined $dataset[$i]->{'bars'} );
-                    }
+            if ($step) {
+                for my $i ( 0 .. $#dataset ) {
+                    $dataset[$i]->{'bars'}->{'barWidth'} = int($step) * 1000
+                      if ( defined $dataset[$i]->{'bars'} );
                 }
-                my ($time) = $line =~ /\<row\>\<t\>(\d*)\<\/t\>/;
-                $time = $time * 1000;    #javascript is in milliseconds
-                next if ( $arg_time > int($time) );    #only return new items
+            }
+
+            my $time_index = 0;
+            my ($db_start) = $xml =~ /\<start\>(\d+)\<\/start\>/;
+
+            foreach my $line (@lines) {
                 my (@values) = $line =~ /\<v\>(-?[e.+-\d]*|NaN)\<\/v\>/g;
-                if ($time) {
-                    my $index = 0;
-                    foreach my $value (@values) {
-                        my $value1 = sprintf( "%.10g", $value );
-                        $value1 = ( $value1 - 32 ) * ( 5 / 9 )
-                          if (  ($celsius)
-                            and ( lc $type[$index] eq "temperature" ) );
-                        $value1 =
-                          sprintf( "%." . $round[$index] . "f", $value1 )
-                          if ( defined $round[$index] );
-                        $value1 =~ s/\.0*$//
-                          unless ( $value1 == 0 )
-                          ;    #remove unneccessary trailing decimals
-                        $value1 = "null" if ( lc $value1 eq "nan" );
-                        push @{ $dataset[$index]->{data} }, [ $time, $value1 ];
-                        $index++;
-                    }
+
+                next if ( !@values );    #skip header lines
+
+                my $index = 0;
+                foreach my $value (@values) {
+                    my $value1 = sprintf( "%.10g", $value );
+                    $value1 = ( $value1 - 32 ) * ( 5 / 9 )
+                      if (  ($celsius)
+                        and ( lc $type[$index] eq "temperature" ) );
+                    $value1 = sprintf( "%.2f", $value1 * 1.60934 )
+                      if ( ($kph) and ( lc $type[$index] eq "speed" ) );
+                    $value1 = sprintf( "%." . $round[$index] . "f", $value1 )
+                      if ( defined $round[$index] );
+                    $value1 =~ s/\.0*$//
+                      unless ( $value1 == 0 );    #remove unneccessary trailing decimals
+                    $value1 = "null" if ( lc $value1 eq "nan" );
+                    push @{ $dataset[$index]->{data} }, [ ( $db_start + ( $time_index * $step ) ) * 1000, $value1 ];
+                    $index++;
                 }
+                $time_index++;
             }
         }
         $data{'data'}    = \@dataset;
@@ -481,15 +437,12 @@ sub json_get {
                                 $value = $_;
                             }
                             else {
-                                &main::print_log(
-                                    "json_server.pl: WARNING. object history state $state not found in mapping"
-                                );
+                                &main::print_log("json_server.pl: WARNING. object history state $state not found in mapping");
                                 $value = $unknown_value++;
                             }
                         }
                         $states{$value} = $state;
-                        push @{ $dataset[$index]->{data} },
-                          [ int($time2), int($value) ];
+                        push @{ $dataset[$index]->{data} }, [ int($time2), int($value) ];
                     }
                     else {
                         push @dataset, [ int($time2), $state, $setby ];
@@ -505,10 +458,10 @@ sub json_get {
                 for my $j ( sort keys %states ) {
                     push @yaxticks, [ $j, $states{$j} ];
                 }
-                $data{'options'}->{'yaxis'}->{'ticks'} = \@yaxticks;  #\%states;
-                $data{'options'}->{'legend'}->{'show'} = "true";
-                $data{'options'}->{'xaxis'}->{'mode'}  = "time";
-                $data{'options'}->{'points'}->{'show'} = "true";
+                $data{'options'}->{'yaxis'}->{'ticks'}    = \@yaxticks;    #\%states;
+                $data{'options'}->{'legend'}->{'show'}    = "true";
+                $data{'options'}->{'xaxis'}->{'mode'}     = "time";
+                $data{'options'}->{'points'}->{'show'}    = "true";
                 $data{'options'}->{'xaxis'}->{'timezone'} = "browser";
                 $data{'options'}->{'grid'}->{'hoverable'} = "true";
             }
@@ -535,9 +488,7 @@ sub json_get {
                 my $o = &get_object_by_name($name);
                 print_log "json: object name=$name ref=" . ref $o
                   if $Debug{json};
-                if ( my $data =
-                    &json_object_detail( $o, \%args, \%fields, $parent_table ) )
-                {
+                if ( my $data = &json_object_detail( $o, \%args, \%fields, $parent_table ) ) {
                     $json_data{objects}{$name} = $data;
                 }
             }
@@ -564,9 +515,7 @@ sub json_get {
                 $name =~ s/\$|\%|\&|\@//g;
                 print_log "json: object name=$name ref=" . ref $o
                   if $Debug{json};
-                if ( my $data =
-                    &json_object_detail( $o, \%args, \%fields, $parent_table ) )
-                {
+                if ( my $data = &json_object_detail( $o, \%args, \%fields, $parent_table ) ) {
                     $json_data{objects}{$name} = $data;
                 }
             }
@@ -579,8 +528,12 @@ sub json_get {
                     'type'    => 'Category',
                     'members' => ''
                 };
-                if ( filter_object( $temp_object, \%args ) ) {
-                    $json_data{objects}{$category} = $temp_object;
+                # if a time has been supplied, then the client data has been initialized, and we don't need to send it again
+                # if a category gets added, it won't refresh, but that's rare and this prevents the clients from continually sending data
+                unless ( $args{time} && $args{time}[0] > 0 ) {
+                    if ( filter_object( $temp_object, \%args ) ) {
+                        $json_data{objects}{$category} = $temp_object;
+                    }
                 }
             }
 
@@ -592,8 +545,12 @@ sub json_get {
                     'type'    => 'Type',
                     'members' => ''
                 };
-                if ( filter_object( $temp_object, \%args ) ) {
-                    $json_data{objects}{$type} = $temp_object;
+                # if a time has been supplied, then the client data has been initialized, and we don't need to send it again
+                # if a category gets added, it won't refresh, but that's rare and this prevents the clients from continually sending data
+                unless ( $args{time} && $args{time}[0] > 0 ) {                
+                    if ( filter_object( $temp_object, \%args ) ) {
+                        $json_data{objects}{$type} = $temp_object;
+                    }
                 }
             }
         }
@@ -616,8 +573,7 @@ sub json_get {
             next unless $key =~ /.+::$/;
             next if $key eq 'main::';
             my $iref = ${$ref}{$key};
-            my ( $k, $r ) =
-              &json_walk_var( $iref, $key, qw( SCALAR ARRAY HASH CODE ) );
+            my ( $k, $r ) = &json_walk_var( $iref, $key, qw( SCALAR ARRAY HASH CODE ) );
             $json_data{packages}{$k} = $r if $k ne "";
         }
 
@@ -652,16 +608,11 @@ sub json_get {
 
         for my $i ( 0 .. $#json_notifications ) {
             my $n_time = int( $json_notifications[$i]{time} );
-            my $x      = $args{time}[0]
-              ; #Weird, does nothing, but notifications doesn't work if removed...
+            my $x      = $args{time}[0];                         #Weird, does nothing, but notifications doesn't work if removed...
             if (    ($n_time)
-                and
-                ( ( defined $args{time} && int( $args{time}[0] ) < $n_time ) ) )
+                and ( ( defined $args{time} && int( $args{time}[0] ) < $n_time ) ) )
             {
-                push(
-                    @{ $json_data{'notifications'} },
-                    $json_notifications[$i]
-                );
+                push( @{ $json_data{'notifications'} }, $json_notifications[$i] );
             }
             else {
                 #if older than X minutes, then remove the array values to keep things tidy
@@ -750,8 +701,7 @@ sub json_get {
         {
             #Only return messages since time
             @log = ::print_speaklog_since( $args{time}[0] );
-            push @log, ''
-              ; #TODO HP - Kludge, the javascript seems to want an extra line in the array for some reason
+            push @log, '';    #TODO HP - Kludge, the javascript seems to want an extra line in the array for some reason
         }
         elsif ( !$args{time} ) {
             @log = ::print_speaklog_since();
@@ -793,7 +743,7 @@ sub json_get {
     my $json_raw = JSON->new->allow_nonref;
 
     # Translate special characters
-    $json_raw->canonical(1); #Order the data so that objects show alphabetically
+    $json_raw->canonical(1);    #Order the data so that objects show alphabetically
     $json_raw = $json_raw->pretty->encode( \%json );
     return &json_page($json_raw);
 
@@ -807,8 +757,7 @@ sub json_get_sub_element {
     $error_path .= $path . "/";
     if ( ref $json_ref eq 'HASH' && exists $json_ref->{$path} ) {
         if ( scalar( @{$element_ref} ) > 0 ) {
-            return json_get_sub_element( $element_ref, $json_ref->{$path},
-                $error_path );
+            return json_get_sub_element( $element_ref, $json_ref->{$path}, $error_path );
         }
         else {
             #This is the end of the line
@@ -929,8 +878,7 @@ sub build_parent_table {
         my $group = &get_object_by_name($group_name);
         $group_name =~ s/\$|\%|\&|\@//g;
         unless ( defined $group ) {
-            print_log
-              "json: build_parent_table, group_name $group_name doesn't have an object?"
+            print_log "json: build_parent_table, group_name $group_name doesn't have an object?"
               if $Debug{json};
             next;
         }
@@ -964,8 +912,8 @@ sub json_object_detail {
     if ( $args{time} && $args{time}[0] > 0 ) {
 
         # Idle times are only reported in seconds
-        my $request_time = int( $args{time}[0] / 1000 );    # Convert to seconds
-        my $current_time = int( ::get_tickcount() / 1000 ); # Convert to seconds
+        my $request_time = int( $args{time}[0] / 1000 );       # Convert to seconds
+        my $current_time = int( ::get_tickcount() / 1000 );    # Convert to seconds
 
         if ( !( $object->can('get_idle_time') ) ) {
 
@@ -977,14 +925,12 @@ sub json_object_detail {
             #Items that have NEVER been set to a state have a null idle time
             return;
         }
-        elsif (
-            ( $request_time - 1 ) > ( $current_time - $object->get_idle_time ) )
-        {
+        elsif ( ( $request_time - 1 ) > ( $current_time - $object->get_idle_time ) ) {
 
             #To avoid missed changes, since they can happen at the millisecond level, give a second's cushion
             #Object has not changed since time, so return undefined
             return;
-        }
+        }        
     }
 
     my %json_objects;
@@ -1048,11 +994,8 @@ sub json_object_detail {
             ## can add linked items too.
             if ( ref($object) eq 'Group' ) {
                 $value = [];
-                my @tmp
-                  ; ## pull all the members into a temp array that can be sorted
-                for my $obj_name (
-                    &list_objects_by_group( $object->get_object_name, 1 ) )
-                {
+                my @tmp;    ## pull all the members into a temp array that can be sorted
+                for my $obj_name ( &list_objects_by_group( $object->get_object_name, 1 ) ) {
                     $obj_name =~ s/\$|\%|\&|\@//g;
 
                     #push (@{$value}, $obj_name);
@@ -1073,8 +1016,7 @@ sub json_object_detail {
             print_log "json: object_dets f $f ev $value" if $Debug{json};
         }
         elsif ( $f eq 'html' and $object->can('get_type') ) {
-            $value = "<!\[CDATA\["
-              . &html_item_state( $object, $object->get_type ) . "\]\]>";
+            $value = "<!\[CDATA\[" . &html_item_state( $object, $object->get_type ) . "\]\]>";
             print_log "json: object_dets f $f" if $Debug{json};
         }
         else {
@@ -1107,7 +1049,7 @@ sub filter_object {
         next if ( lc($f) eq 'fields' );
         next if ( lc($f) eq 'long_poll' );
         next
-          if ( lc($f) eq 'items' ); #HP, we should already have parsed the items
+          if ( lc($f) eq 'items' );    #HP, we should already have parsed the items
         next if ( $f eq '' );
         if ( $$object{$f} ) {
             for my $test_val ( @{ $args{$f} } ) {
@@ -1189,9 +1131,7 @@ eof
         my $url = "/sub?json($r)";
         $html .= "<h2>$r</h2>\n<p><a href='$url'>$url</a></p>\n<ul>\n";
         foreach my $opt ( sort keys %args ) {
-            if ( $args{$opt}{applyto} eq 'all' or grep /^$r$/,
-                split /\|/, $args{$opt}{applyto} )
-            {
+            if ( $args{$opt}{applyto} eq 'all' or grep /^$r$/, split /\|/, $args{$opt}{applyto} ) {
                 $url = "/sub?json($r,$opt";
                 if ( defined $args{$opt}{example} ) {
                     foreach ( split /\|/, $args{$opt}{example} ) {
@@ -1353,9 +1293,7 @@ sub json_table_fetch_data {
     my @data;
     eval( @data = &{ $json_table{$key}{hook} }( $posx, $records ) );
     if ($@) {
-        print_log "Json_Server.pl: WARNING: fetch data failed for "
-          . $key . " "
-          . $json_table{$key}{hook} . "!";
+        print_log "Json_Server.pl: WARNING: fetch data failed for " . $key . " " . $json_table{$key}{hook} . "!";
         return 0;
     }
     my $l = &json_get_table_length($key) + 1;
@@ -1420,8 +1358,7 @@ sub config_checker {
     #	$output .= "$key: $collections{$key}{name}:$collections{$key}{link}$collections{$key}{external}$collections{$key}{iframe}:$collections{$key}{comment}:$collections{$key}{mode}:$collections{$key}{children}";
     #}
 
-    my ( $row, $show_row, $bracket_errors, $comma_errors1, $comma_errors2,
-        %brackets, $curly, $square );
+    my ( $row, $show_row, $bracket_errors, $comma_errors1, $comma_errors2, %brackets, $curly, $square );
     $curly  = 'closed';
     $square = 'closed';
 
@@ -1430,29 +1367,25 @@ sub config_checker {
         $data[$row] =~ s/\s+$//;    # remove trailing spaces
         if ( $data[$row] =~ /\{/ and $data[$row] !~ /iframe|external/ ) {
             $brackets{open_curly}++;
-            $bracket_errors .=
-              "Repeated open curly bracket in line $show_row: '$data[$row]'\n"
+            $bracket_errors .= "Repeated open curly bracket in line $show_row: '$data[$row]'\n"
               if $curly and $curly eq 'open';
             $curly = 'open';
         }
         if ( $data[$row] =~ /\}/ and $data[$row] !~ /iframe|external/ ) {
             $brackets{close_curly}++;
-            $bracket_errors .=
-              "Repeated close curly bracket in line $show_row: '$data[$row]'\n"
+            $bracket_errors .= "Repeated close curly bracket in line $show_row: '$data[$row]'\n"
               if $curly eq 'closed';
             $curly = 'closed';
         }
         if ( $data[$row] =~ /\[/ ) {
             $brackets{open_square}++;
-            $bracket_errors .=
-              "Repeated open square bracket in line $show_row: '$data[$row]'\n"
+            $bracket_errors .= "Repeated open square bracket in line $show_row: '$data[$row]'\n"
               if $square eq 'open';
             $square = 'open';
         }
         if ( $data[$row] =~ /\]/ ) {
             $brackets{close_square}++;
-            $bracket_errors .=
-              "Repeated close square bracket in line $show_row: '$data[$row]'\n"
+            $bracket_errors .= "Repeated close square bracket in line $show_row: '$data[$row]'\n"
               if $square eq 'closed';
             $square = 'closed';
         }
@@ -1471,17 +1404,13 @@ sub config_checker {
     }
 
     $output .= "Possible bracket errors:\n$bracket_errors\n" if $bracket_errors;
-    $output .=
-      "The following lines should possibly have a comma at the end:\n$comma_errors1\n"
+    $output .= "The following lines should possibly have a comma at the end:\n$comma_errors1\n"
       if $comma_errors1;
-    $output .=
-      "The following lines should possibly not have a comma at the end:\n$comma_errors2\n"
+    $output .= "The following lines should possibly not have a comma at the end:\n$comma_errors2\n"
       if $comma_errors2;
 
-    $output .=
-      "There are $brackets{open_square} '[' and $brackets{close_square} ']'.\n";
-    $output .=
-      "There are $brackets{open_curly} '{' and $brackets{close_curly} '}'.\n";
+    $output .= "There are $brackets{open_square} '[' and $brackets{close_square} ']'.\n";
+    $output .= "There are $brackets{open_curly} '{' and $brackets{close_curly} '}'.\n";
 
     print_log $output;
 }
@@ -1513,4 +1442,3 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =cut
-

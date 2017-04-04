@@ -19,8 +19,7 @@ sub dump_rrd_file {
     use RRDs;
 
     my $rrdfile = $config_parms{rrd_dir} . "/" . $sensor . ".rrd";
-    my ( $start, $step, $names, $array ) = RRDs::fetch $rrdfile, "AVERAGE",
-      -s $rrd_start, -e $rrd_end;
+    my ( $start, $step, $names, $array ) = RRDs::fetch $rrdfile, "AVERAGE", -s $rrd_start, -e $rrd_end;
     my $ERROR = RRDs::error;
     my @readings;
 
@@ -34,12 +33,8 @@ sub dump_rrd_file {
             #				print_log "Bad value -> $val <> $oval\n";
             #				$val = $oval if $oval - 5 > $val;
             #			}
-            my ( $Second, $Minute, $Hour, $Mday, $Month, $year_unix, $Wday ) =
-              localtime($start);
-            push( @readings,
-                sprintf "%2.2d/%2.2d/%2.2d %2.2d:%2.2d:%2.2d %3.2f\n",
-                $Month + 1, $Mday, $year_unix + 1900,
-                $Hour, $Minute, $Second, $val );
+            my ( $Second, $Minute, $Hour, $Mday, $Month, $year_unix, $Wday ) = localtime($start);
+            push( @readings, sprintf "%2.2d/%2.2d/%2.2d %2.2d:%2.2d:%2.2d %3.2f\n", $Month + 1, $Mday, $year_unix + 1900, $Hour, $Minute, $Second, $val );
             $oval = $val;
         }
     }
@@ -54,8 +49,7 @@ sub fetch_rrd_hilo {
     use RRDs;
 
     my $rrdfile = $config_parms{rrd_dir} . "/" . $sensor . ".rrd";
-    my ( $start, $step, $names, $array ) = RRDs::fetch $rrdfile, "AVERAGE",
-      -s $rrd_start, -e $rrd_end;
+    my ( $start, $step, $names, $array ) = RRDs::fetch $rrdfile, "AVERAGE", -s $rrd_start, -e $rrd_end;
     my $ERROR = RRDs::error;
     print_log "RRD FETCH ERROR: $ERROR\n" if $ERROR;
 
@@ -123,9 +117,8 @@ sub plot_rrd {
     my $targetdir = "/home/www/html/automation/plots";
     my $curtime   = time;
     my $lastday   = ( $curtime - ( 24 * 60 * 60 ) );
-    my $plot_def =
-      "DEF:sensor=" . $config_parms{rrd_dir} . "/" . $sensor . ".rrd:temp:LAST";
-    my $probes = "
+    my $plot_def  = "DEF:sensor=" . $config_parms{rrd_dir} . "/" . $sensor . ".rrd:temp:LAST";
+    my $probes    = "
 		LINE1:sensor#ff000c:'$sensor'
 		GPRINT:sensor:LAST:'Cur\\:%3.2lf%s'
         	GPRINT:sensor:MIN:'Min\\:%3.2lf%s'

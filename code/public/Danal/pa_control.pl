@@ -32,10 +32,8 @@
 ##################################################################
 
 my @speakers;
-my $DIO_address = 'A'
-  ;  # Weeder DIO boards have an DIP switch settable prefix.  Set this to match.
-my $port_name =
-  'weeder';    # edit to match weeder serial port name from mh.private.ini
+my $DIO_address = 'A';         # Weeder DIO boards have an DIP switch settable prefix.  Set this to match.
+my $port_name   = 'weeder';    # edit to match weeder serial port name from mh.private.ini
 $pa_speaker_timer = new Timer;
 
 # PA relay items.
@@ -66,10 +64,7 @@ $pa_outdoor            = new Generic_Item;
 $pa_outdoor->{bitmask} = 0x80;
 $pa_outdoor->{notall}  = 1;
 
-@speakers = (
-    $pa_master, $pa_office, $pa_kitchen, $pa_garage, $pa_5, $pa_6, $pa_7,
-    $pa_outdoor
-);
+@speakers = ( $pa_master, $pa_office, $pa_kitchen, $pa_garage, $pa_5, $pa_6, $pa_7, $pa_outdoor );
 
 ##################################################################
 # Code run by speak & play pre-hooks
@@ -104,7 +99,7 @@ sub pa_stub {
         }
     }
     &set_DIO;
-    select undef, undef, undef, .05; # adjust to delay sound until relays settle
+    select undef, undef, undef, .05;    # adjust to delay sound until relays settle
 }
 
 ##################################################################

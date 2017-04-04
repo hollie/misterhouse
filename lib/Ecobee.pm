@@ -162,10 +162,10 @@ $rest{group}             = "/1/group";
 sub new {
     my ( $class, $api_key, $poll_interval, $port_name, $url ) = @_;
     my $self = {};
-    $port_name     = 'Ecobee'                 if !$port_name;
-    $url           = "https://api.ecobee.com" if !$url;
-    $poll_interval = 60                       if !$poll_interval;
-    $api_key = $::config_parms{ $port_name . "_api_key" } if !$api_key;
+    $port_name     = 'Ecobee'                                   if !$port_name;
+    $url           = "https://api.ecobee.com"                   if !$url;
+    $poll_interval = 60                                         if !$poll_interval;
+    $api_key       = $::config_parms{ $port_name . "_api_key" } if !$api_key;
     $$self{port_name}         = $port_name;
     $$self{url}               = $url;
     $$self{poll_interval}     = $poll_interval;
@@ -201,25 +201,19 @@ sub _check_auth {
     #$$self{access_token} = undef;
     #$$self{refresh_token} = undef;
     # Check if we have cached access and refresh tokens
-    if ( ( defined $$self{access_token} ) && ( defined $$self{refresh_token} ) )
-    {
-        if ( ( $$self{access_token} eq '' ) || ( $$self{refresh_token} eq '' ) )
-        {
+    if ( ( defined $$self{access_token} ) && ( defined $$self{refresh_token} ) ) {
+        if ( ( $$self{access_token} eq '' ) || ( $$self{refresh_token} eq '' ) ) {
+
             # The access_token or refresh_token are missing. Tell the user and wait
-            $self->debug(
-                "Error: Missing tokens. Please reauthenticate the API key with the Ecobee portal"
-            );
+            $self->debug("Error: Missing tokens. Please reauthenticate the API key with the Ecobee portal");
             $self->_request_pin_auth();
         }
         else {
             # Ok, we have tokens. Make sure they are current, then go get the initial state of the device, then start the time to look for updates
             $self->debug("We have tokens, lets proceed");
-            $self->_thermostat_summary()
-              ;    # This populates the revision numbers and operating state
-            $self->_list_thermostats()
-              ;    # This gets the full initial state of each thermostat
-            $self->_get_groups()
-              ; # This gets the groups, their settings and the associated thermostats in each group
+            $self->_thermostat_summary();    # This populates the revision numbers and operating state
+            $self->_list_thermostats();      # This gets the full initial state of each thermostat
+            $self->_get_groups();            # This gets the groups, their settings and the associated thermostats in each group
 
             ####
             # Testing functions here. These will be removed eventually
@@ -257,9 +251,7 @@ sub _check_auth {
     else {
         # If we don't have tokens, we need to get a PIN and wait until they user registers it
         # The access_token or refresh_token are undefined. This is probably the first run. Tell the user and wait
-        $self->debug(
-            "Error: Token variables undefined. Please authenticate the PIN with the Ecobee portal. A request for a new PIN will follow this message."
-        );
+        $self->debug("Error: Token variables undefined. Please authenticate the PIN with the Ecobee portal. A request for a new PIN will follow this message.");
         $self->_request_pin_auth();
     }
 
@@ -270,19 +262,12 @@ sub _check_auth {
 # We don't have a valid set of tokens, so request a new PIN
 sub _request_pin_auth {
     my ($self) = @_;
-    my ( $isSuccessResponse1, $keyparams ) = $self->_get_JSON_data(
-        "GET",
-        "authorize",
-        "?response_type=ecobeePin&client_id="
-          . $$self{api_key}
-          . "&scope=smartWrite"
-    );
+    my ( $isSuccessResponse1, $keyparams ) =
+      $self->_get_JSON_data( "GET", "authorize", "?response_type=ecobeePin&client_id=" . $$self{api_key} . "&scope=smartWrite" );
     if ( !$isSuccessResponse1 ) {
 
         # something has gone wrong, we should probably exit
-        main::print_log(
-            "[Ecobee]: Error, failed to get PIN! Have you entered a valid API key?"
-        );
+        main::print_log("[Ecobee]: Error, failed to get PIN! Have you entered a valid API key?");
     }
     else {
         # print the PIN to the log so the user knows what to enter
@@ -290,13 +275,11 @@ sub _request_pin_auth {
               . $keyparams->{ecobeePin}
               . "<-. You have "
               . $keyparams->{expires_in}
-              . " minutes to add a new application with this PIN on the Ecobee website!"
-        );
+              . " minutes to add a new application with this PIN on the Ecobee website!" );
 
         # loop until the user enters the PIN or the code expires
         my $action = sub {
-            $self->_wait_for_tokens( $keyparams->{ecobeePin},
-                $keyparams->{code}, $keyparams->{interval} );
+            $self->_wait_for_tokens( $keyparams->{ecobeePin}, $keyparams->{code}, $keyparams->{interval} );
         };
         $$self{token_check_timer}->set( $keyparams->{interval}, $action );
     }
@@ -307,11 +290,8 @@ sub _wait_for_tokens {
     my ( $self, $pin, $code, $interval ) = @_;
 
     # check for token
-    my ( $isSuccessResponse1, $tokenparams ) = $self->_get_JSON_data(
-        "POST",
-        "token",
-        "?grant_type=ecobeePin&code=" . $code . "&client_id=" . $$self{api_key}
-    );
+    my ( $isSuccessResponse1, $tokenparams ) =
+      $self->_get_JSON_data( "POST", "token", "?grant_type=ecobeePin&code=" . $code . "&client_id=" . $$self{api_key} );
     if (   $isSuccessResponse1
         && defined $tokenparams->{access_token}
         && defined $tokenparams->{refresh_token} )
@@ -325,17 +305,13 @@ sub _wait_for_tokens {
     # If expired, get a new PIN and start over
     if ( defined $tokenparams->{error} ) {
         if ( $tokenparams->{error} eq "authorization_expired" ) {
-            main::print_log(
-                "[Ecobee]: Warning, PIN has expired, requesting new PIN.");
+            main::print_log("[Ecobee]: Warning, PIN has expired, requesting new PIN.");
             $self->_request_pin_auth();
         }
         elsif ( $tokenparams->{error} eq "authorization_pending" ) {
             main::print_log(
-                "[Ecobee]: Authorization is still pending. Please add a new application with PIN ->"
-                  . $pin
-                  . "<- on Ecobee website before it expires." );
-            my $action =
-              sub { $self->_wait_for_tokens( $pin, $code, $interval ) };
+                "[Ecobee]: Authorization is still pending. Please add a new application with PIN ->" . $pin . "<- on Ecobee website before it expires." );
+            my $action = sub { $self->_wait_for_tokens( $pin, $code, $interval ) };
             $$self{token_check_timer}->set( $interval, $action );
         }
     }
@@ -345,14 +321,8 @@ sub _wait_for_tokens {
 sub _refresh_tokens {
     my ($self) = @_;
     $self->debug("Refreshing tokens");
-    my ( $isSuccessResponse1, $tokenparams ) = $self->_get_JSON_data(
-        "POST",
-        "token",
-        "?grant_type=refresh_token&refresh_token="
-          . $$self{refresh_token}
-          . "&client_id="
-          . $$self{api_key}
-    );
+    my ( $isSuccessResponse1, $tokenparams ) =
+      $self->_get_JSON_data( "POST", "token", "?grant_type=refresh_token&refresh_token=" . $$self{refresh_token} . "&client_id=" . $$self{api_key} );
     if ($isSuccessResponse1) {
         $self->debug("Refresh token response looks good");
         $$self{access_token}  = $tokenparams->{access_token};
@@ -360,15 +330,12 @@ sub _refresh_tokens {
     }
     else {
         # We need to handle the case where the refresh token has expired and start a new PIN authorization request.
-        main::print_log(
-            "[Ecobee]: Uh, oh... Something went wrong with the refresh token request. Flushing tokens and requesting a new PIN"
-        );
+        main::print_log("[Ecobee]: Uh, oh... Something went wrong with the refresh token request. Flushing tokens and requesting a new PIN");
 
         # It looks like the tokens are FUBAR. We need to re-authenticate
         $$self{access_token}  = undef;
         $$self{refresh_token} = undef;
-        $$self{ready} =
-          0;    # This disables polling until the issue can be corrected
+        $$self{ready}         = 0;       # This disables polling until the issue can be corrected
         $self->_request_pin_auth();
     }
 }
@@ -388,9 +355,7 @@ sub _list_thermostats {
     );
     my $json_body =
       '{"selection":{"selectionType":"registered","selectionMatch":"","includeAlerts":"true","includeSettings":"true","includeEvents":"true","includeRuntime":"true","includeSensors":"true","includeProgram":"true"}}';
-    my ( $isSuccessResponse1, $thermoparams ) =
-      $self->_get_JSON_data( "GET", "thermostat",
-        '?format=json&body=' . uri_escape($json_body), $headers );
+    my ( $isSuccessResponse1, $thermoparams ) = $self->_get_JSON_data( "GET", "thermostat", '?format=json&body=' . uri_escape($json_body), $headers );
     if ($isSuccessResponse1) {
         $self->debug("Thermostat response looks good.");
         foreach my $device ( @{ $thermoparams->{thermostatList} } ) {
@@ -404,54 +369,42 @@ sub _list_thermostats {
             foreach my $index ( @{ $device->{remoteSensors} } ) {
 
                 # Since this is an array, the sensor order can vary. We need to save these into hashes so they can be indexed by ID
-                $$self{data}{devices}{ $device->{identifier} }
-                  {remoteSensorsHash}{ $index->{id} }{id} = $index->{id};
-                $$self{data}{devices}{ $device->{identifier} }
-                  {remoteSensorsHash}{ $index->{id} }{name} = $index->{name};
-                $$self{data}{devices}{ $device->{identifier} }
-                  {remoteSensorsHash}{ $index->{id} }{type} = $index->{type};
-                $$self{data}{devices}{ $device->{identifier} }
-                  {remoteSensorsHash}{ $index->{id} }{inUse} = $index->{inUse};
+                $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{id}    = $index->{id};
+                $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{name}  = $index->{name};
+                $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{type}  = $index->{type};
+                $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{inUse} = $index->{inUse};
                 foreach my $capability ( @{ $index->{capability} } ) {
 
                     # capabilities can vary by sensor type
-                    $$self{data}{devices}{ $device->{identifier} }
-                      {remoteSensorsHash}{ $index->{id} }{capability}
-                      { $capability->{id} }{id} = $capability->{id};
-                    $$self{data}{devices}{ $device->{identifier} }
-                      {remoteSensorsHash}{ $index->{id} }{capability}
-                      { $capability->{id} }{type} = $capability->{type};
-                    $$self{data}{devices}{ $device->{identifier} }
-                      {remoteSensorsHash}{ $index->{id} }{capability}
-                      { $capability->{id} }{value} = $capability->{value};
+                    $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{capability}{ $capability->{id} }{id} = $capability->{id};
+                    $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{capability}{ $capability->{id} }{type} =
+                      $capability->{type};
+                    $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{capability}{ $capability->{id} }{value} =
+                      $capability->{value};
                 }
             }
 
             # We need to do this for the settings as well
             foreach my $key ( keys %{ $device->{settings} } ) {
-                $$self{data}{devices}{ $device->{identifier} }{settings}{$key}
-                  = $device->{settings}{$key};
+                $$self{data}{devices}{ $device->{identifier} }{settings}{$key} =
+                  $device->{settings}{$key};
             }
 
             # Get the Alerts (provided as a JSON array)
             foreach my $index ( @{ $device->{alerts} } ) {
                 foreach my $key ( keys %{$index} ) {
-                    $$self{data}{devices}{ $device->{identifier} }{alertsHash}
-                      { $index->{acknowledgeRef} }{$key} = $index->{$key};
+                    $$self{data}{devices}{ $device->{identifier} }{alertsHash}{ $index->{acknowledgeRef} }{$key} = $index->{$key};
                 }
             }
 
             # We also need to get the Events (provided as a JSON array, but does not contain a unique ID so we have to create our own to make this a hash)
             foreach my $index ( @{ $device->{events} } ) {
                 if ( exists $index->{holdClimateRef} ) {
-                    $$self{data}{devices}{ $device->{identifier} }{eventsHash}
-                      {     $index->{type} . "-"
-                          . $index->{name} . "-"
-                          . $index->{holdClimateRef} } = $index;
+                    $$self{data}{devices}{ $device->{identifier} }{eventsHash}{ $index->{type} . "-" . $index->{name} . "-" . $index->{holdClimateRef} } =
+                      $index;
                 }
                 else {
-                    $$self{data}{devices}{ $device->{identifier} }{eventsHash}
-                      { $index->{type} . "-" . $index->{name} } = $index;
+                    $$self{data}{devices}{ $device->{identifier} }{eventsHash}{ $index->{type} . "-" . $index->{name} } = $index;
                 }
             }
 
@@ -467,16 +420,11 @@ sub _list_thermostats {
             $$self{data}{devices}{ $device->{identifier} }{program} =
               $device->{program};
 
-            $self->debug( $$self{data}{devices}{ $device->{identifier} }{name}
-                  . " ID is "
-                  . $$self{data}{devices}{ $device->{identifier} }{identifier}
-            );
+            $self->debug( $$self{data}{devices}{ $device->{identifier} }{name} . " ID is " . $$self{data}{devices}{ $device->{identifier} }{identifier} );
         }
     }
     else {
-        main::print_log(
-            "[Ecobee]: Uh, oh... Something went wrong with the thermostat list request"
-        );
+        main::print_log("[Ecobee]: Uh, oh... Something went wrong with the thermostat list request");
     }
 }
 
@@ -493,11 +441,8 @@ sub _get_settings {
         'Content-Type'  => 'text/json',
         'Authorization' => 'Bearer ' . $$self{access_token}
     );
-    my $json_body =
-      '{"selection":{"selectionType":"registered","selectionMatch":"","includeSettings":"true","includeEvents":"true","includeProgram":"true"}}';
-    my ( $isSuccessResponse1, $thermoparams ) =
-      $self->_get_JSON_data( "GET", "thermostat",
-        '?format=json&body=' . uri_escape($json_body), $headers );
+    my $json_body = '{"selection":{"selectionType":"registered","selectionMatch":"","includeSettings":"true","includeEvents":"true","includeProgram":"true"}}';
+    my ( $isSuccessResponse1, $thermoparams ) = $self->_get_JSON_data( "GET", "thermostat", '?format=json&body=' . uri_escape($json_body), $headers );
     if ($isSuccessResponse1) {
         $self->debug("Settings response looks good.");
 
@@ -509,19 +454,15 @@ sub _get_settings {
               dclone $$self{data}{devices}{ $device->{identifier} }{settings};
 
             foreach my $key ( keys %{ $device->{settings} } ) {
-                if ( $device->{settings}{$key} ne
-                    $$self{data}{devices}{ $device->{identifier} }{settings}
-                    {$key} )
-                {
+                if ( $device->{settings}{$key} ne $$self{data}{devices}{ $device->{identifier} }{settings}{$key} ) {
                     $self->debug( "Settings parameter "
                           . $key
                           . " has changed from "
-                          . $$self{data}{devices}{ $device->{identifier} }
-                          {settings}{$key} . " to "
+                          . $$self{data}{devices}{ $device->{identifier} }{settings}{$key} . " to "
                           . $device->{settings}{$key} );
                 }
-                $$self{data}{devices}{ $device->{identifier} }{settings}{$key}
-                  = $device->{settings}{$key};
+                $$self{data}{devices}{ $device->{identifier} }{settings}{$key} =
+                  $device->{settings}{$key};
             }
 
             # Compare the old with the new
@@ -539,9 +480,7 @@ sub _get_settings {
             my $temp_events;
             foreach my $index ( @{ $device->{events} } ) {
                 if ( exists $index->{holdClimateRef} ) {
-                    $temp_events->{ $index->{type} . "-"
-                          . $index->{name} . "-"
-                          . $index->{holdClimateRef} } = $index;
+                    $temp_events->{ $index->{type} . "-" . $index->{name} . "-" . $index->{holdClimateRef} } = $index;
                 }
                 else {
                     $temp_events->{ $index->{type} . "-" . $index->{name} } =
@@ -551,34 +490,22 @@ sub _get_settings {
 
             # Look for new events
             foreach my $key ( keys %{$temp_events} ) {
-                unless (
-                    defined $$self{data}{devices}{ $device->{identifier} }
-                    {eventsHash}{$key} )
-                {
+                unless ( defined $$self{data}{devices}{ $device->{identifier} }{eventsHash}{$key} ) {
                     $self->debug("New event added: $key");
-                    $$self{data}{devices}{ $device->{identifier} }{eventsHash}
-                      {$key} = $temp_events->{$key};
-                    if (
-                        exists $$self{data}{devices}{ $device->{identifier} }
-                        {eventsHash}{'none'} )
-                    {
+                    $$self{data}{devices}{ $device->{identifier} }{eventsHash}{$key} = $temp_events->{$key};
+                    if ( exists $$self{data}{devices}{ $device->{identifier} }{eventsHash}{'none'} ) {
+
                         # delete the none event if there is a real one
-                        delete $$self{data}{devices}{ $device->{identifier} }
-                          {eventsHash}{'none'};
+                        delete $$self{data}{devices}{ $device->{identifier} }{eventsHash}{'none'};
                     }
                 }
             }
 
             # Look for deleted events
-            foreach my $key (
-                keys
-                %{ $$self{data}{devices}{ $device->{identifier} }{eventsHash} }
-              )
-            {
+            foreach my $key ( keys %{ $$self{data}{devices}{ $device->{identifier} }{eventsHash} } ) {
                 unless ( defined $temp_events->{$key} || ( $key eq 'none' ) ) {
                     $self->debug("Event deleted: $key");
-                    delete $$self{data}{devices}{ $device->{identifier} }
-                      {eventsHash}{$key};
+                    delete $$self{data}{devices}{ $device->{identifier} }{eventsHash}{$key};
                 }
             }
 
@@ -604,16 +531,12 @@ sub _get_settings {
             $$self{data}{devices}{ $device->{identifier} }{program} =
               $device->{program};
 
-            if ( $$self{data}{devices}{ $device->{identifier} }{program}
-                {currentClimateRef} ne
-                $$self{prev_data}{devices}{ $device->{identifier} }{program}
-                {currentClimateRef} )
+            if ( $$self{data}{devices}{ $device->{identifier} }{program}{currentClimateRef} ne
+                $$self{prev_data}{devices}{ $device->{identifier} }{program}{currentClimateRef} )
             {
                 $self->debug( "currentClimateRef has changed from "
-                      . $$self{prev_data}{devices}{ $device->{identifier} }
-                      {program}{currentClimateRef} . " to "
-                      . $$self{data}{devices}{ $device->{identifier} }{program}
-                      {currentClimateRef} );
+                      . $$self{prev_data}{devices}{ $device->{identifier} }{program}{currentClimateRef} . " to "
+                      . $$self{data}{devices}{ $device->{identifier} }{program}{currentClimateRef} );
             }
 
             # Compare the old with the new
@@ -625,9 +548,7 @@ sub _get_settings {
         }
     }
     else {
-        main::print_log(
-            "[Ecobee]: Uh, oh... Something went wrong with the settings request"
-        );
+        main::print_log("[Ecobee]: Uh, oh... Something went wrong with the settings request");
     }
 }
 
@@ -644,11 +565,8 @@ sub _get_alerts {
         'Content-Type'  => 'text/json',
         'Authorization' => 'Bearer ' . $$self{access_token}
     );
-    my $json_body =
-      '{"selection":{"selectionType":"registered","selectionMatch":"","includeAlerts":"true"}}';
-    my ( $isSuccessResponse1, $thermoparams ) =
-      $self->_get_JSON_data( "GET", "thermostat",
-        '?format=json&body=' . uri_escape($json_body), $headers );
+    my $json_body = '{"selection":{"selectionType":"registered","selectionMatch":"","includeAlerts":"true"}}';
+    my ( $isSuccessResponse1, $thermoparams ) = $self->_get_JSON_data( "GET", "thermostat", '?format=json&body=' . uri_escape($json_body), $headers );
     if ($isSuccessResponse1) {
         $self->debug("Alerts response looks good.");
 
@@ -660,11 +578,7 @@ sub _get_alerts {
               dclone $$self{data}{devices}{ $device->{identifier} }{alertsHash};
 
             # Look for events that have been acked and are no longer in the array
-            foreach my $key (
-                keys
-                %{ $$self{data}{devices}{ $device->{identifier} }{alertsHash} }
-              )
-            {
+            foreach my $key ( keys %{ $$self{data}{devices}{ $device->{identifier} }{alertsHash} } ) {
                 my $matched = 0;
                 foreach my $index ( @{ $device->{alerts} } ) {
                     if ( $key eq $index->{acknowledgeRef} ) {
@@ -674,29 +588,19 @@ sub _get_alerts {
                 if ( !$matched ) {
 
                     # Alert has been acked
-                    $self->debug( "Alert $key: (\""
-                          . $$self{data}{devices}{ $device->{identifier} }
-                          {alertsHash}{$key}{text}
-                          . "\") has  been acked." );
-                    delete $$self{data}{devices}{ $device->{identifier} }
-                      {alertsHash}{$key};
+                    $self->debug( "Alert $key: (\"" . $$self{data}{devices}{ $device->{identifier} }{alertsHash}{$key}{text} . "\") has  been acked." );
+                    delete $$self{data}{devices}{ $device->{identifier} }{alertsHash}{$key};
                 }
             }
             foreach my $index ( @{ $device->{alerts} } ) {
-                if (
-                    defined $$self{data}{devices}{ $device->{identifier} }
-                    {alertsHash}{ $index->{acknowledgeRef} } )
-                {
+                if ( defined $$self{data}{devices}{ $device->{identifier} }{alertsHash}{ $index->{acknowledgeRef} } ) {
+
                     # Do we need to see if something has changed? All of the alert properties should be static and the alert dissappears from the JSON array once acked.
                 }
                 else {
                     # This is a new alert
-                    $self->debug( "A new alert "
-                          . $index->{acknowledgeRef} . ": (\""
-                          . $index->{text}
-                          . "\") has been generated." );
-                    $$self{data}{devices}{ $device->{identifier} }{alertsHash}
-                      { $index->{acknowledgeRef} } = $index;
+                    $self->debug( "A new alert " . $index->{acknowledgeRef} . ": (\"" . $index->{text} . "\") has been generated." );
+                    $$self{data}{devices}{ $device->{identifier} }{alertsHash}{ $index->{acknowledgeRef} } = $index;
                 }
             }
 
@@ -705,8 +609,7 @@ sub _get_alerts {
         }
     }
     else {
-        main::print_log(
-            "[Ecobee]: Uh, oh... Something went wrong with the alerts request");
+        main::print_log("[Ecobee]: Uh, oh... Something went wrong with the alerts request");
     }
 }
 
@@ -724,9 +627,7 @@ sub _get_groups {
         'Authorization' => 'Bearer ' . $$self{access_token}
     );
     my $json_body = '{"selection":{"selectionType":"registered"}}';
-    my ( $isSuccessResponse1, $groupparams ) =
-      $self->_get_JSON_data( "GET", "group",
-        '?format=json&body=' . uri_escape($json_body), $headers );
+    my ( $isSuccessResponse1, $groupparams ) = $self->_get_JSON_data( "GET", "group", '?format=json&body=' . uri_escape($json_body), $headers );
     if ($isSuccessResponse1) {
         $self->debug("Groups response looks good.");
         foreach my $group ( @{ $groupparams->{groups} } ) {
@@ -736,8 +637,7 @@ sub _get_groups {
         }
     }
     else {
-        main::print_log(
-            "[Ecobee]: Uh, oh... Something went wrong with the groups request");
+        main::print_log("[Ecobee]: Uh, oh... Something went wrong with the groups request");
     }
 }
 
@@ -754,11 +654,8 @@ sub _get_runtime_with_sensors {
         'Content-Type'  => 'text/json',
         'Authorization' => 'Bearer ' . $$self{access_token}
     );
-    my $json_body =
-      '{"selection":{"selectionType":"registered","selectionMatch":"","includeRuntime":"true","includeSensors":"true"}}';
-    my ( $isSuccessResponse1, $thermoparams ) =
-      $self->_get_JSON_data( "GET", "thermostat",
-        '?format=json&body=' . uri_escape($json_body), $headers );
+    my $json_body = '{"selection":{"selectionType":"registered","selectionMatch":"","includeRuntime":"true","includeSensors":"true"}}';
+    my ( $isSuccessResponse1, $thermoparams ) = $self->_get_JSON_data( "GET", "thermostat", '?format=json&body=' . uri_escape($json_body), $headers );
     if ($isSuccessResponse1) {
         $self->debug("Runtime response looks good.");
 
@@ -770,15 +667,11 @@ sub _get_runtime_with_sensors {
 
             # we need to inspect the runtime and remoteSensors
             foreach my $key ( keys %{ $device->{runtime} } ) {
-                if ( $device->{runtime}{$key} ne
-                    $$self{data}{devices}{ $device->{identifier} }{runtime}
-                    {$key} )
-                {
+                if ( $device->{runtime}{$key} ne $$self{data}{devices}{ $device->{identifier} }{runtime}{$key} ) {
                     main::print_log( "[Ecobee]: runtime parameter "
                           . $key
                           . " has changed from "
-                          . $$self{data}{devices}{ $device->{identifier} }
-                          {runtime}{$key} . " to "
+                          . $$self{data}{devices}{ $device->{identifier} }{runtime}{$key} . " to "
                           . $device->{runtime}{$key} );
                 }
                 $$self{data}{devices}{ $device->{identifier} }{runtime}{$key} =
@@ -797,102 +690,60 @@ sub _get_runtime_with_sensors {
             );
 
             # Save the previous remoteSensorsHash
-            $$self{prev_data}{devices}{ $device->{identifier} }
-              {remoteSensorsHash} =
-              dclone $$self{data}{devices}{ $device->{identifier} }
-              {remoteSensorsHash};
+            $$self{prev_data}{devices}{ $device->{identifier} }{remoteSensorsHash} = dclone $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash};
             foreach my $index ( @{ $device->{remoteSensors} } ) {
 
                 # Since this is an array, the sensor order can vary. We need to save these into hashes so they can be indexed by ID
-                $$self{data}{devices}{ $device->{identifier} }
-                  {remoteSensorsHash}{ $index->{id} }{id} = $index->{id};
-                $$self{data}{devices}{ $device->{identifier} }
-                  {remoteSensorsHash}{ $index->{id} }{name} = $index->{name};
-                $$self{data}{devices}{ $device->{identifier} }
-                  {remoteSensorsHash}{ $index->{id} }{type} = $index->{type};
-                if (
-                    defined $$self{data}{devices}{ $device->{identifier} }
-                    {remoteSensorsHash}{ $index->{id} }{inUse} )
-                {
-                    if ( $$self{data}{devices}{ $device->{identifier} }
-                        {remoteSensorsHash}{ $index->{id} }{inUse} ne
-                        $index->{inUse} )
-                    {
-                        $self->debug(
-                            $$self{data}{devices}{ $device->{identifier} }{name}
+                $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{id}   = $index->{id};
+                $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{name} = $index->{name};
+                $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{type} = $index->{type};
+                if ( defined $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{inUse} ) {
+                    if ( $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{inUse} ne $index->{inUse} ) {
+                        $self->debug( $$self{data}{devices}{ $device->{identifier} }{name}
                               . ", sensor "
-                              . $$self{data}{devices}{ $device->{identifier} }
-                              {remoteSensorsHash}{ $index->{id} }{name}
-                              . " (id "
-                              . $$self{data}{devices}{ $device->{identifier} }
-                              {remoteSensorsHash}{ $index->{id} }{id}
+                              . $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{name} . " (id "
+                              . $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{id}
                               . ") has changed from "
-                              . $$self{data}{devices}{ $device->{identifier} }
-                              {remoteSensorsHash}{ $index->{id} }{inUse}
-                              . " to "
+                              . $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{inUse} . " to "
                               . $index->{inUse} );
                     }
                 }
-                $$self{data}{devices}{ $device->{identifier} }
-                  {remoteSensorsHash}{ $index->{id} }{inUse} = $index->{inUse};
+                $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{inUse} = $index->{inUse};
                 foreach my $capability ( @{ $index->{capability} } ) {
 
                     # capabilities can vary by sensor type
-                    $$self{data}{devices}{ $device->{identifier} }
-                      {remoteSensorsHash}{ $index->{id} }{capability}
-                      { $capability->{id} }{id} = $capability->{id};
-                    $$self{data}{devices}{ $device->{identifier} }
-                      {remoteSensorsHash}{ $index->{id} }{capability}
-                      { $capability->{id} }{type} = $capability->{type};
-                    if (
-                        defined $$self{data}{devices}{ $device->{identifier} }
-                        {remoteSensorsHash}{ $index->{id} }{capability}
-                        { $capability->{id} }{value} )
-                    {
-                        if ( $$self{data}{devices}{ $device->{identifier} }
-                            {remoteSensorsHash}{ $index->{id} }{capability}
-                            { $capability->{id} }{value} ne
+                    $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{capability}{ $capability->{id} }{id} = $capability->{id};
+                    $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{capability}{ $capability->{id} }{type} =
+                      $capability->{type};
+                    if ( defined $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{capability}{ $capability->{id} }{value} ) {
+                        if ( $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{capability}{ $capability->{id} }{value} ne
                             $capability->{value} )
                         {
-                            $self->debug(
-                                $$self{data}{devices}{ $device->{identifier} }
-                                  {name}
+                            $self->debug( $$self{data}{devices}{ $device->{identifier} }{name}
                                   . ", sensor "
-                                  . $$self{data}{devices}
-                                  { $device->{identifier} }{remoteSensorsHash}
-                                  { $index->{id} }{name}
+                                  . $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{name}
                                   . ", capability "
                                   . $capability->{type} . " (id "
-                                  . $$self{data}{devices}
-                                  { $device->{identifier} }{remoteSensorsHash}
-                                  { $index->{id} }{id} . ":"
+                                  . $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{id} . ":"
                                   . $capability->{id}
                                   . ") has changed from "
-                                  . $$self{data}{devices}
-                                  { $device->{identifier} }{remoteSensorsHash}
-                                  { $index->{id} }{capability}
-                                  { $capability->{id} }{value} . " to "
+                                  . $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{capability}{ $capability->{id} }{value}
+                                  . " to "
                                   . $capability->{value} );
                         }
                     }
-                    $$self{data}{devices}{ $device->{identifier} }
-                      {remoteSensorsHash}{ $index->{id} }{capability}
-                      { $capability->{id} }{value} = $capability->{value};
+                    $$self{data}{devices}{ $device->{identifier} }{remoteSensorsHash}{ $index->{id} }{capability}{ $capability->{id} }{value} =
+                      $capability->{value};
                 }
 
                 # Compare the old with the new, but we need to handle this differently since it is nested (a child of a child)
                 # $self->compare_data( $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}, $$self{prev_data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}, $$self{monitor}{remoteSensorsHash} );
             }
-            $self->debug( $$self{data}{devices}{ $device->{identifier} }{name}
-                  . " ID is "
-                  . $$self{data}{devices}{ $device->{identifier} }{identifier}
-            );
+            $self->debug( $$self{data}{devices}{ $device->{identifier} }{name} . " ID is " . $$self{data}{devices}{ $device->{identifier} }{identifier} );
         }
     }
     else {
-        main::print_log(
-            "[Ecobee]: Uh, oh... Something went wrong with the runtime and sensor request"
-        );
+        main::print_log("[Ecobee]: Uh, oh... Something went wrong with the runtime and sensor request");
     }
 }
 
@@ -910,15 +761,10 @@ sub _thermostat_summary {
         'Content-Type'  => 'text/json',
         'Authorization' => 'Bearer ' . $$self{access_token}
     );
-    my $json_body =
-      '{"selection":{"selectionType":"registered","selectionMatch":"","includeEquipmentStatus":true}}';
-    my ( $isSuccessResponse1, $thermoparams ) =
-      $self->_get_JSON_data( "GET", "thermostatSummary",
-        '?json=' . uri_escape($json_body), $headers );
+    my $json_body = '{"selection":{"selectionType":"registered","selectionMatch":"","includeEquipmentStatus":true}}';
+    my ( $isSuccessResponse1, $thermoparams ) = $self->_get_JSON_data( "GET", "thermostatSummary", '?json=' . uri_escape($json_body), $headers );
     if ($isSuccessResponse1) {
-        $self->debug( "Thermostat response looks good. Found "
-              . $thermoparams->{thermostatCount}
-              . " thermostats" );
+        $self->debug( "Thermostat response looks good. Found " . $thermoparams->{thermostatCount} . " thermostats" );
         foreach my $device ( @{ $thermoparams->{revisionList} } ) {
 
             # format:
@@ -930,69 +776,49 @@ sub _thermostat_summary {
             $$self{data}{devices}{ $values[0] }{name}       = $values[1];
 
             if ( defined $$self{data}{devices}{ $values[0] }{connected} ) {
-                if ( $$self{data}{devices}{ $values[0] }{connected} ne
-                    $values[2] )
-                {
+                if ( $$self{data}{devices}{ $values[0] }{connected} ne $values[2] ) {
+
                     # This tells us if we are connected to the Ecobee servers
-                    $self->debug( "connected has changed from "
-                          . $$self{data}{devices}{ $values[0] }{connected}
-                          . " to "
-                          . $values[2] );
+                    $self->debug( "connected has changed from " . $$self{data}{devices}{ $values[0] }{connected} . " to " . $values[2] );
                 }
             }
             $$self{data}{devices}{ $values[0] }{connected} = $values[2];
 
             if ( defined $$self{data}{devices}{ $values[0] }{thermoRev} ) {
-                if ( $$self{data}{devices}{ $values[0] }{thermoRev} !=
-                    $values[3] )
-                {
+                if ( $$self{data}{devices}{ $values[0] }{thermoRev} != $values[3] ) {
+
                     # This tells us that the thermostat program, hvac mode, settings or configuration has changed
-                    $self->debug( "thermoRev has changed from "
-                          . $$self{data}{devices}{ $values[0] }{thermoRev}
-                          . " to "
-                          . $values[3] );
+                    $self->debug( "thermoRev has changed from " . $$self{data}{devices}{ $values[0] }{thermoRev} . " to " . $values[3] );
                     $self->_get_settings();
                 }
             }
             $$self{data}{devices}{ $values[0] }{thermoRev} = $values[3];
 
             if ( defined $$self{data}{devices}{ $values[0] }{alertsRev} ) {
-                if ( $$self{data}{devices}{ $values[0] }{alertsRev} !=
-                    $values[4] )
-                {
+                if ( $$self{data}{devices}{ $values[0] }{alertsRev} != $values[4] ) {
+
                     # This tells us of a new alert is issued or an alert is modified (acked)
-                    $self->debug( "alertsRev has changed from "
-                          . $$self{data}{devices}{ $values[0] }{alertsRev}
-                          . " to "
-                          . $values[4] );
+                    $self->debug( "alertsRev has changed from " . $$self{data}{devices}{ $values[0] }{alertsRev} . " to " . $values[4] );
                     $self->_get_alerts();
                 }
             }
             $$self{data}{devices}{ $values[0] }{alertsRev} = $values[4];
 
             if ( defined $$self{data}{devices}{ $values[0] }{runtimeRev} ) {
-                if ( $$self{data}{devices}{ $values[0] }{runtimeRev} !=
-                    $values[5] )
-                {
+                if ( $$self{data}{devices}{ $values[0] }{runtimeRev} != $values[5] ) {
+
                     # This tells us when the thermostat has sent a new status message, or the equipment state or remote sensor readings have changed
-                    $self->debug( "runtimeRev has changed from "
-                          . $$self{data}{devices}{ $values[0] }{runtimeRev}
-                          . " to "
-                          . $values[5] );
+                    $self->debug( "runtimeRev has changed from " . $$self{data}{devices}{ $values[0] }{runtimeRev} . " to " . $values[5] );
                     $self->_get_runtime_with_sensors();
                 }
             }
             $$self{data}{devices}{ $values[0] }{runtimeRev} = $values[5];
 
             if ( defined $$self{data}{devices}{ $values[0] }{intervalRev} ) {
-                if ( $$self{data}{devices}{ $values[0] }{intervalRev} !=
-                    $values[6] )
-                {
+                if ( $$self{data}{devices}{ $values[0] }{intervalRev} != $values[6] ) {
+
                     # This tells us that the thermostat has sent a new status message (every 15 minutes)
-                    $self->debug( "intervalRev has changed from "
-                          . $$self{data}{devices}{ $values[0] }{intervalRev}
-                          . " to "
-                          . $values[6] );
+                    $self->debug( "intervalRev has changed from " . $$self{data}{devices}{ $values[0] }{intervalRev} . " to " . $values[6] );
                 }
             }
             $$self{data}{devices}{ $values[0] }{intervalRev} = $values[6];
@@ -1046,14 +872,10 @@ sub _thermostat_summary {
                 @states = split( ',', $values[1] );
                 foreach my $index ( 0 .. $#states ) {
                     $statusvec |= $status_bit_LUT->{ $states[$index] };
-                    $self->debug( "Statusvec=$statusvec, key="
-                          . $states[$index]
-                          . ", LUT="
-                          . $status_bit_LUT->{ $states[$index] } );
+                    $self->debug( "Statusvec=$statusvec, key=" . $states[$index] . ", LUT=" . $status_bit_LUT->{ $states[$index] } );
                 }
             }
-            if ( exists $$self{data}{devices}{ $values[0] }{statusvec}{status} )
-            {
+            if ( exists $$self{data}{devices}{ $values[0] }{statusvec}{status} ) {
                 $$self{prev_data}{devices}{ $values[0] }{statusvec} =
                   dclone $$self{data}{devices}{ $values[0] }{statusvec};
 
@@ -1099,35 +921,23 @@ sub _thermostat_summary {
                         foreach my $index ( 0 .. $#states ) {
                             if ( $states[$index] eq $stat ) {
                                 $matched = 1;
-                                if ( $$self{data}{devices}{ $values[0] }{status}
-                                    { $states[$index] } == 0 )
-                                {
-                                    $$self{data}{devices}{ $values[0] }{status}
-                                      { $states[$index] } = 1;
-                                    $self->debug(
-                                        "Status $stat has changed from off to on"
-                                    );
+                                if ( $$self{data}{devices}{ $values[0] }{status}{ $states[$index] } == 0 ) {
+                                    $$self{data}{devices}{ $values[0] }{status}{ $states[$index] } = 1;
+                                    $self->debug("Status $stat has changed from off to on");
                                 }
                             }
                         }
-                        if (
-                            ( !$matched )
-                            && ( $$self{data}{devices}{ $values[0] }{status}
-                                {$stat} == 1 )
-                          )
+                        if (   ( !$matched )
+                            && ( $$self{data}{devices}{ $values[0] }{status}{$stat} == 1 ) )
                         {
-                            $self->debug(
-                                "C1 Status $stat has changed from on to off");
+                            $self->debug("C1 Status $stat has changed from on to off");
                         }
                     }
                     else {
-                        if ( $$self{data}{devices}{ $values[0] }{status}{$stat}
-                            != 0 )
-                        {
-                            $$self{data}{devices}{ $values[0] }{status}{$stat}
-                              = 0;
-                            $self->debug(
-                                "C2 Status $stat has changed from on to off");
+                        if ( $$self{data}{devices}{ $values[0] }{status}{$stat} != 0 ) {
+                            $$self{data}{devices}{ $values[0] }{status}{$stat} =
+                              0;
+                            $self->debug("C2 Status $stat has changed from on to off");
                         }
                     }
                 }
@@ -1139,8 +949,7 @@ sub _thermostat_summary {
                 $$self{data}{devices}{ $values[0] }{status} = \%default_status;
                 if ( scalar @values > 1 ) {
                     foreach my $index ( 0 .. $#states ) {
-                        $$self{data}{devices}{ $values[0] }{status}
-                          { $states[$index] } = 1;
+                        $$self{data}{devices}{ $values[0] }{status}{ $states[$index] } = 1;
                     }
                 }
             }
@@ -1149,9 +958,7 @@ sub _thermostat_summary {
         }
     }
     else {
-        main::print_log(
-            "[Ecobee]: Uh, oh... Something went wrong with the thermostat list request"
-        );
+        main::print_log("[Ecobee]: Uh, oh... Something went wrong with the thermostat list request");
     }
 }
 
@@ -1175,8 +982,7 @@ sub _get_JSON_data {
 
     my $url = $$self{url};
 
-    my $request =
-      HTTP::Request->new( $type, $url . $rest{$endpoint} . $args, $headers );
+    my $request = HTTP::Request->new( $type, $url . $rest{$endpoint} . $args, $headers );
     $request->content($content) if defined $content;
     $self->debug( "Full request ->" . $request->as_string . "<-" );
 
@@ -1210,21 +1016,15 @@ sub _get_JSON_data {
                     $self->_refresh_tokens();
 
                     # Update the token in the header first
-                    $headers->header(
-                        'Authorization' => 'Bearer ' . $$self{access_token} );
-                    return $self->_get_JSON_data( $type, $endpoint, $args,
-                        $headers );
+                    $headers->header( 'Authorization' => 'Bearer ' . $$self{access_token} );
+                    return $self->_get_JSON_data( $type, $endpoint, $args, $headers );
                 }
                 else {
-                    main::print_log(
-                        "[Ecobee]: Warning, failed to get data. Response code $responseCode, error code "
-                          . $response->{status}->{code} );
+                    main::print_log( "[Ecobee]: Warning, failed to get data. Response code $responseCode, error code " . $response->{status}->{code} );
                 }
             }
             else {
-                main::print_log(
-                    "[Ecobee]: Warning, failed to get data. Response code $responseCode"
-                );
+                main::print_log("[Ecobee]: Warning, failed to get data. Response code $responseCode");
             }
         }
         else {
@@ -1280,8 +1080,7 @@ sub compare_data {
         if ( ref $value eq 'HASH' ) {
             $self->compare_data( $value, $prev_value, $monitor_value );
         }
-        elsif ( ( $value ne $prev_value ) && ( ref $monitor_value eq 'ARRAY' ) )
-        {
+        elsif ( ( $value ne $prev_value ) && ( ref $monitor_value eq 'ARRAY' ) ) {
             for my $action ( @{$monitor_value} ) {
                 $self->debug("I am running action for key $key, value $value");
                 &$action( $key, $value );
@@ -1339,10 +1138,7 @@ sub print_devices {
     my ($self) = @_;
     my $output = "The list of devices reported by Ecobee is:\n";
     foreach my $key ( keys %{ $$self{data}{devices} } ) {
-        $output .=
-            "            Name:"
-          . $$self{data}{devices}{$key}{name} . " ID: "
-          . $$self{data}{devices}{$key}{identifier} . "\n";
+        $output .= "            Name:" . $$self{data}{devices}{$key}{name} . " ID: " . $$self{data}{devices}{$key}{identifier} . "\n";
     }
     $self->debug($output);
 }
@@ -1371,14 +1167,9 @@ sub get_temp {
             return $$self{data}{devices}{$d_id}{runtime}{actualTemperature};
         }
         else {
-            foreach my $key (
-                keys %{ $$self{data}{devices}{$d_id}{remoteSensorsHash} } )
-            {
-                if ( $$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{name}
-                    eq $name )
-                {
-                    return $$self{data}{devices}{$d_id}{remoteSensorsHash}
-                      {$key}{capability}{1}{value};
+            foreach my $key ( keys %{ $$self{data}{devices}{$d_id}{remoteSensorsHash} } ) {
+                if ( $$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{name} eq $name ) {
+                    return $$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{capability}{1}{value};
                 }
             }
             return 0;
@@ -1414,17 +1205,10 @@ sub get_humidity {
             return $$self{data}{devices}{$d_id}{runtime}{actualHumidity};
         }
         else {
-            foreach my $key (
-                keys %{ $$self{data}{devices}{$d_id}{remoteSensorsHash} } )
-            {
-                if ( $$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{name}
-                    eq $name )
-                {
-                    if ( $$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}
-                        {capability}{2}{type} eq "humidity" )
-                    {
-                        return $$self{data}{devices}{$d_id}{remoteSensorsHash}
-                          {$key}{capability}{2}{value};
+            foreach my $key ( keys %{ $$self{data}{devices}{$d_id}{remoteSensorsHash} } ) {
+                if ( $$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{name} eq $name ) {
+                    if ( $$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{capability}{2}{type} eq "humidity" ) {
+                        return $$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{capability}{2}{value};
                     }
                     else {
                         # This sensor type doesn't have a humidity sensor. Only the main thermostat unit does
@@ -1464,9 +1248,7 @@ sub get_desired_comfort {
         }
     }
     if ($d_id) {
-        if (
-            defined $$self{data}{devices}{$d_id}{runtime}{ "desired" . $name } )
-        {
+        if ( defined $$self{data}{devices}{$d_id}{runtime}{ "desired" . $name } ) {
             return $$self{data}{devices}{$d_id}{runtime}{ "desired" . $name };
         }
         else {
@@ -1705,14 +1487,11 @@ sub device_id {
     my $type_hash;
     my $parent = $$self{parent};
     for my $device_id ( keys %{ $$self{interface}{data}{devices} } ) {
-        if ( $$parent{name} eq
-            $$self{interface}{data}{devices}{$device_id}{name} )
-        {
+        if ( $$parent{name} eq $$self{interface}{data}{devices}{$device_id}{name} ) {
             return $device_id;
         }
     }
-    $self->debug(
-        "ERROR, no device by the name " . $$parent{name} . " was found." );
+    $self->debug( "ERROR, no device by the name " . $$parent{name} . " was found." );
     return 0;
 }
 
@@ -1727,30 +1506,15 @@ sub sensor_id {
     my $type_hash;
     my $parent = $$self{parent};
     for my $device_id ( keys %{ $$self{interface}{data}{devices} } ) {
-        if ( $$parent{name} eq
-            $$self{interface}{data}{devices}{$device_id}{name} )
-        {
-            foreach my $sensor_id (
-                keys %{
-                    $$self{interface}{data}{devices}{$device_id}
-                      {remoteSensorsHash}
-                }
-              )
-            {
-                if ( $$parent{sensor_name} eq
-                    $$self{interface}{data}{devices}{$device_id}
-                    {remoteSensorsHash}{$sensor_id}{name} )
-                {
+        if ( $$parent{name} eq $$self{interface}{data}{devices}{$device_id}{name} ) {
+            foreach my $sensor_id ( keys %{ $$self{interface}{data}{devices}{$device_id}{remoteSensorsHash} } ) {
+                if ( $$parent{sensor_name} eq $$self{interface}{data}{devices}{$device_id}{remoteSensorsHash}{$sensor_id}{name} ) {
                     return $sensor_id;
                 }
             }
         }
     }
-    $self->debug( "ERROR, no sensor by the name "
-          . $$parent{sensor_name}
-          . " was found on device "
-          . $$parent{name}
-          . "." );
+    $self->debug( "ERROR, no sensor by the name " . $$parent{sensor_name} . " was found on device " . $$parent{name} . "." );
     return 0;
 }
 
@@ -1767,8 +1531,7 @@ sub get_value {
         return $$self{interface}{data}{devices}{$device_id}{$value};
     }
     else {
-        $self->debug(
-            "ERROR, no value for $value on device $device_id was found.");
+        $self->debug("ERROR, no value for $value on device $device_id was found.");
         return 0;
     }
 }
@@ -1836,9 +1599,7 @@ sub new {
     $monitor_value->{runtime}{actualTemperature} = '';
     my $self = new Ecobee_Generic( $interface, '', $monitor_value );
     bless $self, $class;
-    $$self{class}  = 'devices',
-      $$self{type} = 'thermostats',
-      $$self{name} = $name;
+    $$self{class} = 'devices', $$self{type} = 'thermostats', $$self{name} = $name;
     return $self;
 }
 
@@ -1849,10 +1610,9 @@ Returns the current ambient temperature.
 =cut
 
 sub get_temp {
-    my ($self) = @_;
-    my $runtime = $self->get_value("runtime")
-      ;    # This returns a hashref with all the runtime properties
-     #$self->debug("The actualTemperature is " . $runtime->{actualTemperature} );
+    my ($self)  = @_;
+    my $runtime = $self->get_value("runtime");    # This returns a hashref with all the runtime properties
+                                                  #$self->debug("The actualTemperature is " . $runtime->{actualTemperature} );
     return $runtime->{actualTemperature};
 }
 
@@ -1864,8 +1624,7 @@ Returns the current events.
 
 sub get_events {
     my ($self) = @_;
-    my $eventshash = $self->get_value("eventsHash")
-      ;    # This returns a hashref with all the events (including holds)
+    my $eventshash = $self->get_value("eventsHash");    # This returns a hashref with all the events (including holds)
     if ( scalar keys %{$eventshash} > 0 ) {
         return $eventshash;
     }
@@ -1882,8 +1641,7 @@ Returns the current programs.
 
 sub get_programs {
     my ($self) = @_;
-    my $programs = $self->get_value("program")
-      ;    # This returns a hashref with all the programs
+    my $programs = $self->get_value("program");    # This returns a hashref with all the programs
     return $programs;
 }
 
@@ -1895,8 +1653,7 @@ Sets the mode to $state, must be [heat,auxHeatOnly,cool,auto,off]
 
 sub set_hvac_mode {
     my ( $self, $state, $p_setby, $p_response ) = @_;
-    main::print_log(
-        "[Ecobee]: Attempting to set the thermostat mode to $state");
+    main::print_log("[Ecobee]: Attempting to set the thermostat mode to $state");
     $$self{interface}{polling_timer}->pause;
     $state = lc($state);
     if (   $state ne 'heat'
@@ -1905,9 +1662,7 @@ sub set_hvac_mode {
         && $state ne 'auto'
         && $state ne 'off' )
     {
-        $self->debug(
-            "set_hvac_mode must be one of: heat, auxHeatOnly, cool, auto, or off. Not $state."
-        );
+        $self->debug("set_hvac_mode must be one of: heat, auxHeatOnly, cool, auto, or off. Not $state.");
         return;
     }
     $$self{state_pending}{hvacMode} = [ $p_setby, $p_response ];
@@ -1922,21 +1677,13 @@ sub set_hvac_mode {
     #my $json_body = '{"selection":{"selectionType":"registered","selectionMatch":""},"thermostat":{"settings":{"hvacMode":"' . $state . '"}}}';
     # Note: This will only change the specific device (or devices if more than one is given in CSV format)
     my $json_body =
-        '{"selection":{"selectionType":"thermostats","selectionMatch":"'
-      . $self->device_id
-      . '"},"thermostat":{"settings":{"hvacMode":"'
-      . $state . '"}}}';
-    my ( $isSuccessResponse1, $modeparams ) =
-      $$self{interface}
-      ->_get_JSON_data( "POST", "thermostat", "?format=json", $headers,
-        $json_body );
+      '{"selection":{"selectionType":"thermostats","selectionMatch":"' . $self->device_id . '"},"thermostat":{"settings":{"hvacMode":"' . $state . '"}}}';
+    my ( $isSuccessResponse1, $modeparams ) = $$self{interface}->_get_JSON_data( "POST", "thermostat", "?format=json", $headers, $json_body );
     if ($isSuccessResponse1) {
         $self->debug("Mode change response looks good");
     }
     else {
-        main::print_log(
-            "[Ecobee]: Uh, oh... Something went wrong with the mode change request"
-        );
+        main::print_log("[Ecobee]: Uh, oh... Something went wrong with the mode change request");
     }
     $$self{interface}{polling_timer}->resume;
 }
@@ -1990,17 +1737,12 @@ sub set_hold {
         'Content-Type'  => 'text/json',
         'Authorization' => 'Bearer ' . $$self{interface}{access_token}
     );
-    my ( $isSuccessResponse1, $holdparams ) =
-      $$self{interface}
-      ->_get_JSON_data( "POST", "thermostat", "?format=json", $headers,
-        $json_body );
+    my ( $isSuccessResponse1, $holdparams ) = $$self{interface}->_get_JSON_data( "POST", "thermostat", "?format=json", $headers, $json_body );
     if ($isSuccessResponse1) {
         $self->debug("Set hold response looks good");
     }
     else {
-        main::print_log(
-            "[Ecobee]: Uh, oh... Something went wrong with the set hold request"
-        );
+        main::print_log("[Ecobee]: Uh, oh... Something went wrong with the set hold request");
     }
     $$self{interface}{polling_timer}->resume;
 }
@@ -2023,17 +1765,12 @@ sub clear_hold {
         '{"selection":{"selectionType":"thermostats","selectionMatch":"'
       . $self->device_id
       . '"},"functions": [{"type":"resumeProgram","params":{"resumeAll":false}}]}';
-    my ( $isSuccessResponse1, $holdparams ) =
-      $$self{interface}
-      ->_get_JSON_data( "POST", "thermostat", "?format=json", $headers,
-        $json_body );
+    my ( $isSuccessResponse1, $holdparams ) = $$self{interface}->_get_JSON_data( "POST", "thermostat", "?format=json", $headers, $json_body );
     if ($isSuccessResponse1) {
         $self->debug("Clear hold response looks good");
     }
     else {
-        main::print_log(
-            "[Ecobee]: Uh, oh... Something went wrong with the clear hold request"
-        );
+        main::print_log("[Ecobee]: Uh, oh... Something went wrong with the clear hold request");
     }
     $$self{interface}{polling_timer}->resume;
 }
@@ -2071,8 +1808,7 @@ sub new {
     my ( $class, $parent ) = @_;
     my $monitor_value;
     $monitor_value->{runtime}{actualHumidity} = '';
-    my $self =
-      new Ecobee_Generic( $$parent{interface}, $parent, $monitor_value );
+    my $self = new Ecobee_Generic( $$parent{interface}, $parent, $monitor_value );
     bless $self, $class;
     return $self;
 }
@@ -2111,8 +1847,7 @@ sub new {
     my ( $class, $parent ) = @_;
     my $monitor_value;
     $monitor_value->{statusvec}{status} = '';
-    my $self =
-      new Ecobee_Generic( $$parent{interface}, $parent, $monitor_value );
+    my $self = new Ecobee_Generic( $$parent{interface}, $parent, $monitor_value );
     bless $self, $class;
     return $self;
 }
@@ -2151,8 +1886,7 @@ sub new {
     my ( $class, $parent ) = @_;
     my $monitor_value;
     $monitor_value->{settings}{hvacMode} = '';
-    my $self =
-      new Ecobee_Generic( $$parent{interface}, $parent, $monitor_value );
+    my $self = new Ecobee_Generic( $$parent{interface}, $parent, $monitor_value );
     $$self{states} = [ 'heat', 'auxHeatOnly', 'cool', 'auto', 'off' ];
     bless $self, $class;
     return $self;
@@ -2201,8 +1935,7 @@ sub new {
     $monitor_value->{eventsHash}{'hold-auto-home'}{holdClimateRef} = '';
     $monitor_value->{eventsHash}{'hold-auto-away'}{holdClimateRef} = '';
     $monitor_value->{eventsHash}{'none'}{holdClimateRef}           = '';
-    my $self =
-      new Ecobee_Generic( $$parent{interface}, $parent, $monitor_value );
+    my $self = new Ecobee_Generic( $$parent{interface}, $parent, $monitor_value );
     bless $self, $class;
     return $self;
 }
@@ -2227,9 +1960,7 @@ sub data_changed {
         # We need to check if there are any active holds with a holdClimateRef before changing the state
         my $events = $$self{parent}->get_events;
         if ( !exists $events->{'none'} ) {
-            main::print_log(
-                "[Ecobee]: Not setting the state to $new_value because there is still an active hold"
-            );
+            main::print_log("[Ecobee]: Not setting the state to $new_value because there is still an active hold");
             return;
         }
         else {
@@ -2240,9 +1971,7 @@ sub data_changed {
         $self->set_receive( $state, $$self{parent}{interface} );
     }
     else {
-        $self->debug(
-            "Not setting the state to $state because that is already the current value"
-        );
+        $self->debug("Not setting the state to $state because that is already the current value");
     }
 }
 

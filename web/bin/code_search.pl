@@ -18,8 +18,7 @@ my $results = &search_code($string);
 
 my $font_size = ( &http_agent_size < 800 ) ? 1 : 3;
 
-$results =
-  qq[<font size=$font_size><pre>Searching for "$string" in code scripts:<BR> <BR>$results</pre></font>];
+$results = qq[<font size=$font_size><pre>Searching for "$string" in code scripts:<BR> <BR>$results</pre></font>];
 
 return &html_page( '', $results, ' ' );
 

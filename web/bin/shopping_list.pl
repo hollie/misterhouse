@@ -191,20 +191,14 @@ sub shoppingListError {
 
 $param{'action'} = 'list' unless defined( $param{'action'} );
 $param{'action'} = 'list' if $param{'action'} eq 'cancel';
-my $printing = (
-         ( $param{'action'} eq 'print' )
-      or ( $param{'action'} eq 'print preview' )
-      or ( $param{'action'} eq 'e-mail' )
-);
-my $atShop = (
-         ( $param{'action'} eq 'at shop' )
-      or ( $param{'action'} eq 'remove items' )
-);
+my $printing =
+  ( ( $param{'action'} eq 'print' ) or ( $param{'action'} eq 'print preview' ) or ( $param{'action'} eq 'e-mail' ) );
+my $atShop =
+  ( ( $param{'action'} eq 'at shop' ) or ( $param{'action'} eq 'remove items' ) );
 
 if ( $param{'action'} eq 'add item' ) {
     if ( ( $param{'category'} eq 'select' ) or ( $param{'item'} eq '' ) ) {
-        $html .=
-          qq[<p>Category: <select name="category">\n<option>select</option>\n];
+        $html .= qq[<p>Category: <select name="category">\n<option>select</option>\n];
         open( SHOPLIST, $file ) || return shoppingListError("$file: $!");
         while (<SHOPLIST>) {
             chomp;
@@ -213,24 +207,20 @@ if ( $param{'action'} eq 'add item' ) {
         }
         close(SHOPLIST);
         $html .= qq[</select></p><p>&nbsp;</p>\n];
-        $html .=
-          qq[<p>Item: <input type="text" name="item" id="item" size=50></p><br>];
-        $html .=
-          qq[<p>Add to $prettyName Now: <input type="checkbox" name="onlistnow"></p><br>];
+        $html .= qq[<p>Item: <input type="text" name="item" id="item" size=50></p><br>];
+        $html .= qq[<p>Add to $prettyName Now: <input type="checkbox" name="onlistnow"></p><br>];
         $html .= qq[<p><input type="submit" name="action" value="add item">\n];
         $html .= qq[<input type="submit" name="action" value="cancel"></p>\n];
         $html .= qq[</form>\n];
         $html .= '';
-        $html .= &insert_keyboard(
-            { form => 'main', target => 'item', autocap => 'yes' } );
+        $html .= &insert_keyboard( { form => 'main', target => 'item', autocap => 'yes' } );
         $html .= qq[</body></html>\n];
         return html_page( undef, $html );
     }
     open( OLDLIST, $file ) || return shoppingListError("$file: $!");
     my $duplicate = 0;
     my $newvalue = $param{'onlistnow'} eq 'on' ? '1' : '0';
-    $html .=
-      "<p>Param onlistnow is $param{'onlistnow'} so newvalue is $newvalue</p>\n"
+    $html .= "<p>Param onlistnow is $param{'onlistnow'} so newvalue is $newvalue</p>\n"
       if $shoppinglistdebug;
 
     while (<OLDLIST>) {
@@ -369,30 +359,19 @@ while (<SHOPLIST>) {
         }
         else {
             if ($atShop) {
-                $sectionHeader .=
-                  qq[\n<hr><h3>$1</h3><p><input type="submit" name="action" value="remove items">];
-                $sectionHeader .=
-                  qq[<input type="submit" name="action" value="cancel"><p><table>\n];
+                $sectionHeader .= qq[\n<hr><h3>$1</h3><p><input type="submit" name="action" value="remove items">];
+                $sectionHeader .= qq[<input type="submit" name="action" value="cancel"><p><table>\n];
             }
             else {
-                $sectionHeader .=
-                  qq[<p><input type="submit" name="action" value="update list">\n];
-                $sectionHeader .=
-                  qq[<input type="submit" name="action" value="print preview">\n];
-                $sectionHeader .=
-                  qq[<input type="submit" name="action" value="print">\n];
-                $sectionHeader .=
-                  qq[<input type="submit" name="action" value="e-mail">\n];
-                $sectionHeader .=
-                  qq[<input type="submit" name="action" value="add item">\n];
-                $sectionHeader .=
-                  qq[<input type="submit" name="action" value="at shop">\n];
-                $sectionHeader .=
-                  qq[<input type="submit" name="action" value="cancel">\n];
-                $sectionHeader .=
-                  qq[<input type="submit" name="action" value="clear all"></p>\n];
-                $sectionHeader .=
-                  qq[<hr><h3>$1</h3><table width="100%"><colgroup span="$numColumns" width="$columnWidth">\n];
+                $sectionHeader .= qq[<p><input type="submit" name="action" value="update list">\n];
+                $sectionHeader .= qq[<input type="submit" name="action" value="print preview">\n];
+                $sectionHeader .= qq[<input type="submit" name="action" value="print">\n];
+                $sectionHeader .= qq[<input type="submit" name="action" value="e-mail">\n];
+                $sectionHeader .= qq[<input type="submit" name="action" value="add item">\n];
+                $sectionHeader .= qq[<input type="submit" name="action" value="at shop">\n];
+                $sectionHeader .= qq[<input type="submit" name="action" value="cancel">\n];
+                $sectionHeader .= qq[<input type="submit" name="action" value="clear all"></p>\n];
+                $sectionHeader .= qq[<hr><h3>$1</h3><table width="100%"><colgroup span="$numColumns" width="$columnWidth">\n];
             }
         }
         next;
@@ -427,10 +406,8 @@ while (<SHOPLIST>) {
             $html .= qq[<td><input type="checkbox">$item</td>\n];
         }
         else {
-            $html .= qq[<td><input type="checkbox" name="$item"]
-              . ( $checked ? ' checked' : '' ) . '>';
-            $html .=
-              qq[<a onClick="document.main.elements['$item'].checked=!document.main.elements['$item'].checked">$item</a></td>\n];
+            $html .= qq[<td><input type="checkbox" name="$item"] . ( $checked ? ' checked' : '' ) . '>';
+            $html .= qq[<a onClick="document.main.elements['$item'].checked=!document.main.elements['$item'].checked">$item</a></td>\n];
         }
       }
 }

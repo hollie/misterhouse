@@ -25,8 +25,7 @@ $u1 = qq|http://www.vicinity.com/gif?&CT=$y\%3A$x\%3A|;
 #u2 = qq|&FAM=myblast&W=600&H=350|;
 $u2 = qq|&FAM=myblast&W=300&H=300|;
 
-$u1 =
-  qq|http://maps.aprsworld.net/mapserver/map.php?lat=$y&lon=$x&label=$text2|;
+$u1 = qq|http://maps.aprsworld.net/mapserver/map.php?lat=$y&lon=$x&label=$text2|;
 
 my $html = "<p><b>$text</b></p>\n";
 

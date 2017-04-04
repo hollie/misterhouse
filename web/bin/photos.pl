@@ -29,8 +29,7 @@ use vars '@photos';    # This will be persistent across passes and code reloads
 my $time = $config_parms{photo_time};
 $time = 60 unless defined $time;
 $config_parms{photo_url} = '/ia5' unless $config_parms{photo_url};
-my $background =
-  ( $config_parms{photo_background} =~ /$Http{'User-Agent'}/ ) ? 1 : 0;
+my $background = ( $config_parms{photo_background} =~ /$Http{'User-Agent'}/ ) ? 1 : 0;
 
 #$background = 1;
 my $browser_size = &http_agent_size;
@@ -44,13 +43,8 @@ if ( !defined $i or $i !~ /^\d+$/ ) {
 
 # If sync, and requested photo does not match up with the last
 # photo served, then change the refresh time to sync up the 2 browsers
-elsif (
-    $parm eq 'sync'
-    and !(
-        $i == $Save{photo_index} + 1
-        or ( $i == 0 and $Save{photo_index} == $#photos )
-    )
-  )
+elsif ( $parm eq 'sync'
+    and !( $i == $Save{photo_index} + 1 or ( $i == 0 and $Save{photo_index} == $#photos ) ) )
 {
     $i = $Save{photo_index};
     my $time_diff = $Time - $Save{photo_index_time};
@@ -131,8 +125,7 @@ $photo_name = '...' . substr( $photo_name, -60 )
 my $time2 = $time * 1000;
 
 # This is simplier.
-my $refresh =
-  "<meta HTTP-EQUIV='Refresh' CONTENT='$time;URL=/bin/photos.pl?$i_n&sync'>";
+my $refresh = "<meta HTTP-EQUIV='Refresh' CONTENT='$time;URL=/bin/photos.pl?$i_n&sync'>";
 
 # This can cause problems.   When the java timer expires
 # to triggers a refresh on the Audrey, it will interrupt any other voyager browser activity
@@ -150,8 +143,7 @@ $refresh = ' ' if $parm eq 'pause' or $time == 0;
 
 # Create header html with optional search
 my $header = '';
-$header =
-  "<font size='3' color='#ff0000'><a href=/misc/photo_search.html>$i</a> :
+$header = "<font size='3' color='#ff0000'><a href=/misc/photo_search.html>$i</a> :
 <a href=$big_photo>$photo_name</a></font>" unless $config_parms{photo_no_title};
 $header = "<form action='/bin/photo_search.pl'>
 <input size=15 name='search' onChange='form.submit()'>

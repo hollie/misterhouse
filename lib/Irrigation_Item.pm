@@ -96,10 +96,9 @@ sub initialize {
     $$self{m_zoneHammer}      = 0;
     $$self{m_zoneHammerTime}  = 0;
     $$self{m_zoneHammerTimer} = new Timer();
-    $$self{m_zoneMaximum} =
-      1 * 60 * 60;    #if no time is specified this is the failsafe time
+    $$self{m_zoneMaximum}     = 1 * 60 * 60;    #if no time is specified this is the failsafe time
     $$self{m_ETData}[12];
-    $self->zone_count(8);    #default 8 zones
+    $self->zone_count(8);                       #default 8 zones
 }
 
 sub set {
@@ -282,11 +281,11 @@ sub zone {
     else {
         &::print_log("Irrigiation Zone:$p_zone:Off:");
         $self->SUPER::set( 'off:' . $p_zone );
-        if ( $self->single() eq 1 ) { #if single shot mode, shut everything down
+        if ( $self->single() eq 1 ) {    #if single shot mode, shut everything down
             $self->zone_current(0);
             $$self{m_timerCycle}->set('off');
         }
-        else {                        # if normal cycle mode, skip this zone
+        else {                           # if normal cycle mode, skip this zone
             if (    $self->zone_current() eq $p_zone
                 and $$self{m_timerCycle}->active() eq 1 )
             {
@@ -301,7 +300,7 @@ sub zone {
         $$self{m_timerCycle}->set( $p_time, $self );
     }
     elsif ( lc($p_state) eq 'on' ) {
-        $$self{m_timerCycle}->set( 1 * 60 * 60, $self );  #Failsafe 1 hour limit
+        $$self{m_timerCycle}->set( 1 * 60 * 60, $self );    #Failsafe 1 hour limit
     }
 
 }

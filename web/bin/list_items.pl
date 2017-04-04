@@ -17,24 +17,19 @@ for my $object_type (@Object_Types) {
     my $name  = &pretty_object_name($object_type);
 
     if ( &http_get_local_file($image) ) {
-        $h .=
-          qq[<a href=list?$object_type><img src="$image" alt='$name' border="0"></a>\n];
+        $h .= qq[<a href=list?$object_type><img src="$image" alt='$name' border="0"></a>\n];
     }
 
     # Create buttons with GD module if available
     elsif ( $Info{module_GD} ) {
 
         #        $name =~ s/ /%20/g;
-        $h .=
-          qq[<a href=list?$object_type><img src="/bin/button.pl?$name" alt='$name' border="0"></a>\n];
+        $h .= qq[<a href=list?$object_type><img src="/bin/button.pl?$name" alt='$name' border="0"></a>\n];
     }
 
     # Otherwise use text
     else {
-        $h .=
-          &html_active_href( "list?$object_type",
-            &pretty_object_name($object_type) )
-          . "\n";
+        $h .= &html_active_href( "list?$object_type", &pretty_object_name($object_type) ) . "\n";
     }
     $html .= $h . "</td>\n";
     $html .= "</tr><tr>\n" unless ++$count % 3;

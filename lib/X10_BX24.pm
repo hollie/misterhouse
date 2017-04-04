@@ -157,8 +157,7 @@ package X10_BX24;
 @X10_BX24::ISA = ('Generic_Item');
 
 sub startup {
-    &main::serial_port_create( 'BX24', $main::config_parms{BX24_port},
-        19200, 'none', 'raw' );
+    &main::serial_port_create( 'BX24', $main::config_parms{BX24_port}, 19200, 'none', 'raw' );
 
     # Add hook only if serial port was created ok
     &::MainLoop_pre_add_hook( \&X10_BX24::check_for_data, 1 )
@@ -192,8 +191,7 @@ sub Stanley {
       if $main::config_parms{debug} eq 'BX24';
     if ( $StanleyCode !~ /^23/ ) {
 
-        &::logit( "$::config_parms{data_dir}/logs/BX24.$::Year_Month_Now.log",
-            "BX24 Stanley Code Invalid ->  $StanleyCode" );
+        &::logit( "$::config_parms{data_dir}/logs/BX24.$::Year_Month_Now.log", "BX24 Stanley Code Invalid ->  $StanleyCode" );
         return 1;
     }
     my $PackLine = "H" . length($StanleyCode);
@@ -249,8 +247,7 @@ sub SendX10 {
     if ( scalar(@_) != 1 ) {
         &main::print_log("X10_BX24.pm: call to CM11a Invalid parameter [@_]")
           if $main::config_parms{debug} eq 'BX24';
-        &::logit( "$::config_parms{data_dir}/logs/BX24.$::Year_Month_Now.log",
-            "BX24 call to CM11a Invalid parameter [@_]" );
+        &::logit( "$::config_parms{data_dir}/logs/BX24.$::Year_Month_Now.log", "BX24 call to CM11a Invalid parameter [@_]" );
         return;
     }
 
@@ -271,8 +268,7 @@ sub SendX10 {
     if ( uc($House) !~ /[A-P]/ ) {
         &main::print_log("X10_BX24.pm: invalid house code [$House]")
           if $main::config_parms{debug} eq 'BX24';
-        &::logit( "$::config_parms{data_dir}/logs/BX24.$::Year_Month_Now.log",
-            "BX24 invalid house code [$House]" );
+        &::logit( "$::config_parms{data_dir}/logs/BX24.$::Year_Month_Now.log", "BX24 invalid house code [$House]" );
         $prev_X10 = '';
         return;
     }
@@ -292,13 +288,8 @@ sub SendX10 {
     }
     elsif ( $X10Type =~ /[JKLM\-\+\&]/ ) {
         if ( $prev_X10 eq '' ) {
-            &main::print_log(
-                "X10_BX24.pm: invalid CM11a command, no housecode defined  [@_]"
-            ) if $main::config_parms{debug} eq 'BX24';
-            &::logit(
-                "$::config_parms{data_dir}/logs/BX24.$::Year_Month_Now.log",
-                "BX24 invalid CM11a command, no housecode defined  [@_]"
-            );
+            &main::print_log("X10_BX24.pm: invalid CM11a command, no housecode defined  [@_]") if $main::config_parms{debug} eq 'BX24';
+            &::logit( "$::config_parms{data_dir}/logs/BX24.$::Year_Month_Now.log", "BX24 invalid CM11a command, no housecode defined  [@_]" );
             return;
         }
         if ( $X10Type eq "J" ) {    # ON
@@ -331,24 +322,21 @@ sub SendX10 {
             $Cmd = $prev_X10 . "D40";
         }
 
-        &main::print_log(
-            "X10_BX24.pm: SendX10 Complete X10 command received [$Cmd]")
+        &main::print_log("X10_BX24.pm: SendX10 Complete X10 command received [$Cmd]")
           if $main::config_parms{debug} eq 'BX24';
         $prev_X10 = '';
     }
     else {
         &main::print_log("X10_BX24.pm: Invalid CM11a command [@_]")
           if $main::config_parms{debug} eq 'BX24';
-        &::logit( "$::config_parms{data_dir}/logs/BX24.$::Year_Month_Now.log",
-            "BX24 invalid CM11a command [@_]" );
+        &::logit( "$::config_parms{data_dir}/logs/BX24.$::Year_Month_Now.log", "BX24 invalid CM11a command [@_]" );
         $prev_X10 = '';
         return;
     }
 
     &main::print_log("X10_BX24.pm: Sending CM11a command [$Cmd]")
       if $main::config_parms{debug} eq 'BX24';
-    &::logit( "$::config_parms{data_dir}/logs/BX24.$::Year_Month_Now.log",
-        "BX24 Sending CM11a command [$Cmd]" );
+    &::logit( "$::config_parms{data_dir}/logs/BX24.$::Year_Month_Now.log", "BX24 Sending CM11a command [$Cmd]" );
     $main::Serial_Ports{BX24}{object}->write("$Cmd");
 
     return;
@@ -456,16 +444,15 @@ sub check_for_data {
 
             &main::print_log("X10_BX24.pm: Keeping RX Unit [$prev_rx]")
               if $main::config_parms{debug} eq 'BX24';
-            return;    # we need to wait for action before processing
+            return;                  # we need to wait for action before processing
         }
         else {
-            if ( $prev_rx eq '' ) {  # it's a bright/dim, never rcv unit command
+            if ( $prev_rx eq '' ) {    # it's a bright/dim, never rcv unit command
                 $RX[1] = join( ' ', @RX );    # we rcv bright, keep housecode
             }
-            $data = "($prev_rx $RX[1] )"; # this will reproduce a similar RF cmd
+            $data = "($prev_rx $RX[1] )";     # this will reproduce a similar RF cmd
 
-            &main::print_log(
-                "X10_BX24.pm: Receive RX action [ $prev_rx $RX[1] ]")
+            &main::print_log("X10_BX24.pm: Receive RX action [ $prev_rx $RX[1] ]")
               if $main::config_parms{debug} eq 'BX24';
             $prev_rx = '';
         }
@@ -514,8 +501,7 @@ sub check_for_data {
         elsif ( $X10BX24 =~ /All Lights On/ ) {
             $X10Code = "X${House}O";
         }
-        elsif ( $X10BX24 =~ /All Units Off/ )
-        {    # sound like the On and Off message are different
+        elsif ( $X10BX24 =~ /All Units Off/ ) {    # sound like the On and Off message are different
             $X10Code = "X${House}P";
         }
         else {
@@ -523,7 +509,7 @@ sub check_for_data {
         }
 
         &main::process_serial_data($X10Code)
-          if $X10Code;   # This will act like the CM11a and declare a X10 action
+          if $X10Code;                             # This will act like the CM11a and declare a X10 action
         &main::print_log("BX24 Code: $X10BX24   X10 Code:$X10Code")
           if $main::config_parms{debug} eq 'BX24';
 
@@ -558,23 +544,16 @@ sub check_for_data {
                 my $CurrentStatus = "unknown";
 
                 # 00 and 04 is an open state (X10 Door/Window sensor)
-                $CurrentStatus =
-                  ( $StatusNum[0] eq '0' ) ? "open" : $CurrentStatus;
+                $CurrentStatus = ( $StatusNum[0] eq '0' ) ? "open" : $CurrentStatus;
 
                 # 80 and 84 is a close state (X10 Door/Window sensor)
-                $CurrentStatus =
-                  ( $StatusNum[0] eq '8' ) ? "close" : $CurrentStatus;
+                $CurrentStatus = ( $StatusNum[0] eq '8' ) ? "close" : $CurrentStatus;
                 if ( $CurrentStatus eq "unknown" ) {
-                    ::print_log
-                      "X10_BX24.pm: The security sensor $SensorName has an unknown status of [$Status_ID]";
-                    ::logit(
-                        "$::config_parms{data_dir}/logs/BX24.$::Year_Month_Now.log",
-                        "$SensorName received unknown code [$data] from BX24"
-                    );
+                    ::print_log "X10_BX24.pm: The security sensor $SensorName has an unknown status of [$Status_ID]";
+                    ::logit( "$::config_parms{data_dir}/logs/BX24.$::Year_Month_Now.log", "$SensorName received unknown code [$data] from BX24" );
                     return;
                 }
-                ::print_log
-                  "X10_BX24.pm: The security sensor $SensorName is now $CurrentStatus"
+                ::print_log "X10_BX24.pm: The security sensor $SensorName is now $CurrentStatus"
                   if $main::config_parms{debug} eq 'BX24';
                 $obj->set($CurrentStatus);
                 return;
@@ -582,8 +561,7 @@ sub check_for_data {
         }
 
         &main::print_log("Bad data [$TimeNow] [$data] received from BX24");
-        &::logit( "$::config_parms{data_dir}/logs/BX24.$::Year_Month_Now.log",
-            "Unknown data [$data] received from BX24" );
+        &::logit( "$::config_parms{data_dir}/logs/BX24.$::Year_Month_Now.log", "Unknown data [$data] received from BX24" );
 
     }
 

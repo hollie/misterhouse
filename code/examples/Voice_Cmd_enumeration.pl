@@ -3,8 +3,7 @@
 # with  a 'state enumeration group' bounded with [].
 
 # Example of several phrase enumeration groups
-$v_test1 =
-  new Voice_Cmd("{turn,set} the {living,famliy} room {light,lights} [on,off]");
+$v_test1 = new Voice_Cmd("{turn,set} the {living,famliy} room {light,lights} [on,off]");
 
 # Example of how to specify optional words
 $v_test2 = new Voice_Cmd("{Please, } tell me the time");

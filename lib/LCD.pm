@@ -53,8 +53,7 @@ sub new {
     $$self{timer} = new main::Timer;
 
     if ( $type eq 'lcdproc' ) {
-        $$self{object} =
-          new main::Socket_Item( undef, undef, $port, 'lcdproc' );
+        $$self{object} = new main::Socket_Item( undef, undef, $port, 'lcdproc' );
     }
 
     # lcdserial is Ian Davidson's code for talking to his custom
@@ -301,8 +300,7 @@ sub process {
         $main::Menus{menu_data}{last_response_loop} = 0;
 
         #       &main::menu_lcd_display($self, &main::last_response, $main::Menus{menu_data}{last_response_menu});
-        &main::menu_lcd_display( $main::Menus{menu_data}{last_response_object},
-            &main::last_response, $main::Menus{menu_data}{last_response_menu} );
+        &main::menu_lcd_display( $main::Menus{menu_data}{last_response_object}, &main::last_response, $main::Menus{menu_data}{last_response_menu} );
     }
 
 }

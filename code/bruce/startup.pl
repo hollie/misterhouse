@@ -8,9 +8,7 @@
 #speak volume => 75 if $Startup;
 
 $v_initialize_serial_port = new Voice_Cmd("Initialize the serial port");
-$v_initialize_serial_port->set_info(
-    'This will initialize the weeder digital ports.  Automatically done on startup'
-);
+$v_initialize_serial_port->set_info('This will initialize the weeder digital ports.  Automatically done on startup');
 
 # In case a power fail reset the weeder boards (... they default to output only)
 set $v_initialize_serial_port 1 if $Startup;
@@ -18,9 +16,7 @@ set $v_initialize_serial_port 1 if $Startup;
 if ( said $v_initialize_serial_port) {
 
     # Make sure these sensors are in switch mode and read their status
-    for my $ref ( $back_door, $garage_entry_door, $front_door,
-        $entry_door, $garage_door, $wireless1, $mailbox )
-    {
+    for my $ref ( $back_door, $garage_entry_door, $front_door, $entry_door, $garage_door, $wireless1, $mailbox ) {
         set $ref 'init';
     }
 

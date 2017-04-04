@@ -80,9 +80,8 @@ use LWP::UserAgent;
 use Digest::MD5;
 use JSON;
 
-use constant TRACE => 0;    # enable for verbose tracing
-use constant DUPWINDOW =>
-  10;    # Time period in seconds to check for a duplicate message
+use constant TRACE     => 0;     # enable for verbose tracing
+use constant DUPWINDOW => 10;    # Time period in seconds to check for a duplicate message
 
 =head2 METHODS
 
@@ -112,9 +111,7 @@ sub new {
     my ( $class, $params ) = @_;
 
     if ( defined $params && ref($params) ne 'HASH' ) {
-        &::print_log(
-            "[Pushsafer] ERROR!  Pushsafer->new() invalid parameter hash - Pushsafer disabled"
-        );
+        &::print_log("[Pushsafer] ERROR!  Pushsafer->new() invalid parameter hash - Pushsafer disabled");
         $params = {};
         $params->{disable} = 1;
     }
@@ -122,7 +119,7 @@ sub new {
     $params = {} unless defined $params;
 
     my $self = {};
-    $self->{speak}    = 1;    # Speak notifications and acknowledgements
+    $self->{speak} = 1;    # Speak notifications and acknowledgements
 
     # Merge the mh.private.ini defaults into the object
     foreach (qw( k t d i s v speak disable)) {
@@ -133,21 +130,18 @@ sub new {
 
     # initialize rudimentary duplicate message rate limiting
     my $lastSent = {};
-    $self->{_lastSent} =
-      $lastSent;              # Hash of message identifiers & time last sent
+    $self->{_lastSent} = $lastSent;    # Hash of message identifiers & time last sent
 
     # Internal parameters, Should not be overridden
     # Initialize array to track receipts and acknowledgements
     my $receipts = {};
-    $self->{_receipts} =
-      $receipts;    # Ref for the array of pending acknowledgments
-    $self->{_receiptTimer} =
-      Timer->new();    # Ref for the Timer object for acknowledgment checking
+    $self->{_receipts}     = $receipts;       # Ref for the array of pending acknowledgments
+    $self->{_receiptTimer} = Timer->new();    # Ref for the Timer object for acknowledgment checking
 
     my $note = ( $self->{disable} ) ? '- Notifications disabled' : '';
 
     &::print_log("[Pushsafer] Pushsafer object initialized $note");
-    &::print_log("[Pushsafer] " . Data::Dumper::Dumper( \$self ) ) if TRACE;
+    &::print_log( "[Pushsafer] " . Data::Dumper::Dumper( \$self ) ) if TRACE;
 
     return bless( $self, $class );
 
@@ -185,12 +179,8 @@ sub notify {
     my $disable = $self->{disable};
 
     if ( defined $params && ref($params) ne 'HASH' ) {
-        &::print_log(
-            "[Pushsafer] ERROR!  notify called with invalid parameter hash - parameters ignored"
-        );
-        &::print_log(
-            "[Pushsafer] Usage: ->push(\"Message\", { title => \"Some title\", device => \"111\"})"
-        );
+        &::print_log("[Pushsafer] ERROR!  notify called with invalid parameter hash - parameters ignored");
+        &::print_log("[Pushsafer] Usage: ->push(\"Message\", { title => \"Some title\", device => \"111\"})");
     }
     else {
         $disable = $params->{disable} if ( defined $params->{disable} );
@@ -201,7 +191,7 @@ sub notify {
     # Copy the calling hash since we need to modify it.
     if ( defined $params && ref($params) eq 'HASH' ) {
         foreach ( keys %{$params} ) {
-            next if ( $_ eq 'disable' );   # internal override, not for pushsafer
+            next if ( $_ eq 'disable' );    # internal override, not for pushsafer
             $callparms->{$_} = $params->{$_};
         }
     }
@@ -212,21 +202,14 @@ sub notify {
         $callparms->{$_} = $self->{$_} unless defined $callparms->{$_};
     }
 
-    
-    &::print_log(
-        "[Pushsafer] Notify parameters: " . Data::Dumper::Dumper( \$callparms ) )
+    &::print_log( "[Pushsafer] Notify parameters: " . Data::Dumper::Dumper( \$callparms ) )
       if TRACE;
 
-    my $msgsig =
-      Digest::MD5::md5_base64( $callparms->{m}
-          . $callparms->{t}
-          . $callparms->{d} );
+    my $msgsig = Digest::MD5::md5_base64( $callparms->{m} . $callparms->{t} . $callparms->{d} );
 
     if ( my $lasttime = $self->{_lastSent}{$msgsig} ) {
         if ( time() < $lasttime + DUPWINDOW ) {
-            &::print_log(
-                "[Pushsafer] Skipped duplicate notification: $callparms->{m} within "
-                  . DUPWINDOW . " seconds." );
+            &::print_log( "[Pushsafer] Skipped duplicate notification: $callparms->{m} within " . DUPWINDOW . " seconds." );
             return;
         }
     }
@@ -234,9 +217,7 @@ sub notify {
     $self->{_lastSent}{$msgsig} = time();
 
     my $resp;
-    $resp =
-      LWP::UserAgent->new()
-      ->post( $self->{server} . 'api', $callparms, )
+    $resp = LWP::UserAgent->new()->post( $self->{server} . 'api', $callparms, )
       unless $disable;
     &::print_log("[Pushsafer] message: $callparms->{m} $note");
     &::speak("Pushsafer notification $callparms->{m} $note")
@@ -244,22 +225,17 @@ sub notify {
 
     return if $disable;    # Don't check the response if posting is disabled
 
-    &::print_log(
-        "[Pushsafer] Notify results: " . Data::Dumper::Dumper( \$resp ) )
+    &::print_log( "[Pushsafer] Notify results: " . Data::Dumper::Dumper( \$resp ) )
       if TRACE;
 
     my $decoded_json = JSON::decode_json( $resp->content() );
     if ( $resp->is_success() ) {
 
-        &::print_log(
-            "[Pushsafer] SUCCESS: Status: $decoded_json->{status} - $decoded_json->{errors} "
-        );
+        &::print_log("[Pushsafer] SUCCESS: Status: $decoded_json->{status} - $decoded_json->{errors} ");
 
     }
     else {
-        &::print_log(
-            "[Pushsafer] ERROR: POST Failed: Status: $decoded_json->{status} - $decoded_json->{errors} "
-        );
+        &::print_log("[Pushsafer] ERROR: POST Failed: Status: $decoded_json->{status} - $decoded_json->{errors} ");
     }
 
     &::print_log( "[Pushsafer] " . Data::Dumper::Dumper( \$self ) ) if TRACE;
