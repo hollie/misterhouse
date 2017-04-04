@@ -1,4 +1,4 @@
-// v1.3.610
+// v1.3.630
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -168,7 +168,7 @@ function changePage (){
 				notifications = "enabled";
 		}
 	}
-	if (getJSONDataByPath("collections") === undefined){
+	if (getJSONDataByPath("collections") === undefined || json_store.objects === undefined){
 		// We need at minimum the basic collections data to render all pages
 		// (the breadcrumb)
 		// NOTE may want to think about how to handle dynamic changes to the 

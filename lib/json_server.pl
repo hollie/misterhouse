@@ -528,8 +528,12 @@ sub json_get {
                     'type'    => 'Category',
                     'members' => ''
                 };
-                if ( filter_object( $temp_object, \%args ) ) {
-                    $json_data{objects}{$category} = $temp_object;
+                # if a time has been supplied, then the client data has been initialized, and we don't need to send it again
+                # if a category gets added, it won't refresh, but that's rare and this prevents the clients from continually sending data
+                unless ( $args{time} && $args{time}[0] > 0 ) {
+                    if ( filter_object( $temp_object, \%args ) ) {
+                        $json_data{objects}{$category} = $temp_object;
+                    }
                 }
             }
 
@@ -541,8 +545,12 @@ sub json_get {
                     'type'    => 'Type',
                     'members' => ''
                 };
-                if ( filter_object( $temp_object, \%args ) ) {
-                    $json_data{objects}{$type} = $temp_object;
+                # if a time has been supplied, then the client data has been initialized, and we don't need to send it again
+                # if a category gets added, it won't refresh, but that's rare and this prevents the clients from continually sending data
+                unless ( $args{time} && $args{time}[0] > 0 ) {                
+                    if ( filter_object( $temp_object, \%args ) ) {
+                        $json_data{objects}{$type} = $temp_object;
+                    }
                 }
             }
         }
@@ -922,7 +930,7 @@ sub json_object_detail {
             #To avoid missed changes, since they can happen at the millisecond level, give a second's cushion
             #Object has not changed since time, so return undefined
             return;
-        }
+        }        
     }
 
     my %json_objects;
