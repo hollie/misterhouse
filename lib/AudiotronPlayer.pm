@@ -42,12 +42,7 @@ sub new {
     push( @audiotronplayer_object_list, $self );
 
     # See http://gulf.uvic.ca/~karvanit/winamp/commands.html
-    push(
-        @{ $$self{states} },
-        'play',     'pause',      'stop',   'next',
-        'prev',     'random',     'repeat', 'randomsong',
-        'volumeup', 'volumedown', 'clear'
-    );
+    push( @{ $$self{states} }, 'play', 'pause', 'stop', 'next', 'prev', 'random', 'repeat', 'randomsong', 'volumeup', 'volumedown', 'clear' );
 
     print "AudiotronPlayer $address created" . "\n";
 
@@ -60,20 +55,15 @@ sub new {
 sub default_setstate {
     my ( $self, $state, $substate ) = @_;
 
-    print "Audiotron set called: "
-      . $self->{address} . " to "
-      . $state . ":"
-      . $substate . " ";
+    print "Audiotron set called: " . $self->{address} . " to " . $state . ":" . $substate . " ";
 
     my $apiwebpassword = '';
     $apiwebpassword = "admin:" . $main::config_parms{AudiotronWebPassword} . "@"
       if $main::config_parms{AudiotronWebPassword};
 
-    my $apicmdurl =
-      "http://" . $apiwebpassword . $self->{address} . "/apicmd.asp?cmd=";
+    my $apicmdurl = "http://" . $apiwebpassword . $self->{address} . "/apicmd.asp?cmd=";
 
-    my $apiqfile =
-      "http://" . $apiwebpassword . $self->{address} . "/apiqfile.asp?type=";
+    my $apiqfile = "http://" . $apiwebpassword . $self->{address} . "/apiqfile.asp?type=";
 
     if ( $state eq 'randomsong' ) {
         ;
@@ -87,15 +77,8 @@ sub default_setstate {
 
         #$self->{audiotron_last_entry} = $BaseName;
         $self->{audiotron_last_entry} = $file;
-        print "Playlist: "
-          . $apiqfile
-          . $self->{audiotron_last_type}
-          . "&file="
-          . $self->{audiotron_last_entry};
-        print ::filter_cr ::get $apiqfile
-          . $self->{audiotron_last_type}
-          . "&file="
-          . $self->{audiotron_last_entry};
+        print "Playlist: " . $apiqfile . $self->{audiotron_last_type} . "&file=" . $self->{audiotron_last_entry};
+        print ::filter_cr ::get $apiqfile . $self->{audiotron_last_type} . "&file=" . $self->{audiotron_last_entry};
     }
     elsif ( $state =~ /volume/i ) {
 
@@ -114,15 +97,8 @@ sub default_setstate {
             $self->set("repeat:on");
             $self->{audiotron_last_type}  = 'List';
             $self->{audiotron_last_entry} = 'Background';
-            print "Playlist: "
-              . $apiqfile
-              . $self->{audiotron_last_type}
-              . "&file="
-              . $self->{audiotron_last_entry};
-            print ::filter_cr ::get $apiqfile
-              . $self->{audiotron_last_type}
-              . "&file="
-              . $self->{audiotron_last_entry};
+            print "Playlist: " . $apiqfile . $self->{audiotron_last_type} . "&file=" . $self->{audiotron_last_entry};
+            print ::filter_cr ::get $apiqfile . $self->{audiotron_last_type} . "&file=" . $self->{audiotron_last_entry};
         }
 
         print ::filter_cr ::get $apicmdurl . "play";

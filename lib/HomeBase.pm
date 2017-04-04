@@ -43,11 +43,9 @@ sub read_time {
 
             #print "HomeBase time string: $data\n";
             # Not sure about $second.  $wday looks like year, not 0-7??
-            my ( $year, $month, $mday, $wday, $hour, $minute, $second ) =
-              unpack( "A2A2A2A2A2A2A2", $data );
+            my ( $year, $month, $mday, $wday, $hour, $minute, $second ) = unpack( "A2A2A2A2A2A2A2", $data );
             print "Homebase time:  $hour:$minute:$second $month/$mday/$year\n";
-            return
-              wantarray
+            return wantarray
               ? ( $second, $minute, $hour, $mday, $month, $year, $wday )
               : " $hour:$minute:$second $month/$mday/$year";
         }
@@ -67,15 +65,14 @@ sub read_log {
     print "Reading HomeBase log\n";
     if ( 6 == ( $temp = $serial_port->write("##%15\r") ) ) {
         select undef, undef, undef, 100 / 1000;    # Give it a chance to respond
-               # May need to paste data together to find real line breaks
+                                                   # May need to paste data together to find real line breaks
         my @log;
         my $buffer;
 
         # Read data in a buffer string
         while ( my $data = $serial_port->input ) {
             $buffer .= $data;
-            select undef, undef, undef,
-              100 / 1000;    # Need more/less/any delay here???
+            select undef, undef, undef, 100 / 1000;    # Need more/less/any delay here???
         }
 
         # Filter out extraneous stuff before splitting into list
@@ -131,7 +128,7 @@ sub read_flags {
     print "Reading HomeBase Flags\n";
     if ( 6 == ( $temp = $serial_port->write("##%10\r") ) ) {
         select undef, undef, undef, 100 / 1000;    # Give it a chance to respond
-               # How may flags?? Best look for end of data character ... \n\n??
+                                                   # How may flags?? Best look for end of data character ... \n\n??
         my @flags;
         while ( my $data = $serial_port->input ) {
             my ( $header, $flags ) = $data =~ /(\S+?)[\n\r]+(\S+)/;
@@ -159,14 +156,13 @@ sub read_variables {
     print "Reading HomeBase Variables\n";
     if ( 6 == ( $temp = $serial_port->write("##%12\r") ) ) {
         select undef, undef, undef, 100 / 1000;    # Give it a chance to respond
-               # May need to paste data together to find real line breaks
+                                                   # May need to paste data together to find real line breaks
         my @vars;
         my $buffer;
         while ( my $data = $serial_port->input ) {
             $buffer .= $data
-              unless ( $data =~ /#/ );    # ##0 is end of list marker
-            select undef, undef, undef,
-              100 / 1000;                 # Need more/less/any delay here???
+              unless ( $data =~ /#/ );             # ##0 is end of list marker
+            select undef, undef, undef, 100 / 1000;    # Need more/less/any delay here???
         }
         @vars = split /\r\n/, $buffer;
         my $count = @vars;
@@ -194,8 +190,7 @@ this command was decoded empirically from Starate/WinEVM interaction
 
 sub set_time {
     my ($serial_port) = @_;
-    my ( $Second, $Minute, $Hour, $Mday, $Month, $Year, $Wday, $Yday, $isdst )
-      = localtime time;
+    my ( $Second, $Minute, $Hour, $Mday, $Month, $Year, $Wday, $Yday, $isdst ) = localtime time;
     $Month++;
     $Wday++;
     my $localtime = localtime time;
@@ -224,13 +219,7 @@ sub set_time {
         abs( $main::config_parms{latitude} ),
         abs( $main::config_parms{longitude} ),
         abs( $main::config_parms{time_zone} ),
-        $isdst,
-        $Year,
-        $Month,
-        $Mday,
-        $Wday,
-        $Hour,
-        $Minute
+        $isdst, $Year, $Month, $Mday, $Wday, $Hour, $Minute
     );
 
     #Checksum not required, so set it to 00
@@ -238,13 +227,7 @@ sub set_time {
     my $checksum = "00";
     print "HomeBase set_time=$set_time checksum=$checksum\n";
 
-    if (
-        32 == (
-            $temp =
-              $serial_port->write( "##%05" . $set_time . $checksum . "\r" )
-        )
-      )
-    {
+    if ( 32 == ( $temp = $serial_port->write( "##%05" . $set_time . $checksum . "\r" ) ) ) {
         print "HomeBase time has been updated to $localtime\n";
         return 1;
     }
@@ -341,8 +324,7 @@ sub read {
           if lc( $main::config_parms{debug} ) eq 'homebase';
         my ( $record, $remainder );
         while ( ( $record, $remainder ) = $serial_data =~ /(.+?)\n(.*)/ ) {
-            $serial_data =
-              $remainder;    # Might have part of the next record left over
+            $serial_data = $remainder;    # Might have part of the next record left over
             print "db HomeBase serial data3=$record remainder=$remainder.\n"
               if lc( $main::config_parms{debug} ) eq 'homebase';
 
@@ -355,12 +337,12 @@ sub read {
             my @bytes = split //, $data;
 
             return undef
-              unless $bytes[0] eq '0';    # Only look at x10 data for now
+              unless $bytes[0] eq '0';            # Only look at x10 data for now
             return undef
               unless $bytes[1] eq '0'
-              or $bytes[1] eq '1';        # Only look at receive data for now
-             # Disable using the Stargate for X10 receive if so configured.  I am using the CM11a and just use
-             # the stargate for I/O and phone control (bsobel@vipmail.com)
+              or $bytes[1] eq '1';                # Only look at receive data for now
+                                                  # Disable using the Stargate for X10 receive if so configured.  I am using the CM11a and just use
+                                                  # the stargate for I/O and phone control (bsobel@vipmail.com)
             return if $main::config_parms{HomeBase_DisableX10Receive};
 
             my ( $house, $device );

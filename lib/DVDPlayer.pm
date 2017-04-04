@@ -25,15 +25,14 @@ B<Generic_Item>
 #!/usr/bin/perl
 
 use strict;
-use Win32::TieRegistry 0.20 ( Delimiter => "/", ArrayValues => 0 )
-  ;    # used to find installed WinDVD
+use Win32::TieRegistry 0.20 ( Delimiter => "/", ArrayValues => 0 );    # used to find installed WinDVD
 
 package DVDPlayer;
 @DVDPlayer::ISA = ('Generic_Item');
 
 my @dvdplayer_object_list;
 
-my $title;    # *** These two should be $self hash.
+my $title;                                                             # *** These two should be $self hash.
 my $mode;
 
 my $windvd_path;
@@ -46,11 +45,9 @@ sub find_program_path {
     }
     else {
         unless ($windvd_path) {
-            $windvd_path = $Registry->{
-                'Classes/Applications/Windvd.exe/shell/open/command//'};
+            $windvd_path = $Registry->{'Classes/Applications/Windvd.exe/shell/open/command//'};
             $windvd_path = $1 if $windvd_path =~ /"(.*?)"/;
-            $windvd_path =~
-              s/\x20"*\%\d"*//g;   # remove parameter templates (%1, "%2", etc.)
+            $windvd_path =~ s/\x20"*\%\d"*//g;    # remove parameter templates (%1, "%2", etc.)
         }
         return $windvd_path;
     }
@@ -67,20 +64,12 @@ sub new {
 
     push(
         @{ $$self{states} },
-        'play',             'pause',          'stop',
-        'rewind',           'fast forward',   'step',
-        'skip forward',     'instant replay', 'full screen',
-        'root menu',        'title menu',     'volume down',
-        'volume up',        'mute',           'brightness up',
-        'brightness down',  'chapter',        'next chapter',
-        'previous chapter', 'on',             'off',
-        '0',                '1',              '2',
-        '3',                '4',              '5',
-        '6',                '7',              '8',
-        '9',                'angle',          'audio',
-        'subtitle',         'unzoom',         'pan',
-        'bookmark',         'capture',        'on',
-        'off'
+        'play',           'pause',           'stop',      'rewind',       'fast forward',     'step',      'skip forward',
+        'instant replay', 'full screen',     'root menu', 'title menu',   'volume down',      'volume up', 'mute',
+        'brightness up',  'brightness down', 'chapter',   'next chapter', 'previous chapter', 'on',        'off',
+        '0',              '1',               '2',         '3',            '4',                '5',         '6',
+        '7',              '8',               '9',         'angle',        'audio',            'subtitle',  'unzoom',
+        'pan',            'bookmark',        'capture',   'on',           'off'
     );
     return $self;
 }
@@ -109,16 +98,12 @@ sub windvd_control {
     if ( $command =~ /^play "(.*)"/ ) {
 
         # run command line
-        print(  "DVDPlayer::windvd_control: Running "
-              . qq[$windvd_path "$::config_parms{dvd_archives_folder}\\video_ts\\VTS_01_0.ifo"]
-              . "\n" )
+        print( "DVDPlayer::windvd_control: Running " . qq[$windvd_path "$::config_parms{dvd_archives_folder}\\video_ts\\VTS_01_0.ifo"] . "\n" )
           if $::Debug{windvd};
 
         # *** Find the IFO!
 
-        &::run(
-            qq|"$windvd_path" "$::config_parms{dvd_archives_folder}\\$1\\video_ts\\VTS_01_0.ifo"|
-        );
+        &::run(qq|"$windvd_path" "$::config_parms{dvd_archives_folder}\\$1\\video_ts\\VTS_01_0.ifo"|);
 
         $title = $1;
 
@@ -136,8 +121,7 @@ sub windvd_control {
         while ( $retries++ < 3 and !$window ) {
             print "Trying to find WinDVD attempt #$retries\n"
               if $::Debug{windvd};
-            $window =
-              &::sendkeys_find_window( 'Intervideo WinDVD', $windvd_path );
+            $window = &::sendkeys_find_window( 'Intervideo WinDVD', $windvd_path );
         }
 
         $fresh = $retries;
@@ -234,12 +218,10 @@ sub windvd_control {
                 $result = &::SendKeys( $window, 'e', 1 );
             }
             elsif ( $command eq 'volume up' ) {
-                $result =
-                  &::SendKeys( $window, '\\SHIFT+\\\\UP\\\\SHIFT-\\', 1 );
+                $result = &::SendKeys( $window, '\\SHIFT+\\\\UP\\\\SHIFT-\\', 1 );
             }
             elsif ( $command eq 'volume down' ) {
-                $result =
-                  &::SendKeys( $window, '\\SHIFT+\\\\DOWN\\\\SHIFT-\\', 1 );
+                $result = &::SendKeys( $window, '\\SHIFT+\\\\DOWN\\\\SHIFT-\\', 1 );
             }
             elsif ( $command eq 'brightness up' ) {
                 $result = &::SendKeys( $window, '\\SHIFT+\\+\\SHIFT-\\', 1 );

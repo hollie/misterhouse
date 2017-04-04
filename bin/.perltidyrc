@@ -51,7 +51,7 @@
 --look-for-selfloader
 --maximum-consecutive-blank-lines=1
 --maximum-fields-per-table=0
---maximum-line-length=80
+--maximum-line-length=160
 --minimum-space-to-comment=4
 --noopening-anonymous-sub-brace-on-new-line
 --noopening-brace-on-new-line

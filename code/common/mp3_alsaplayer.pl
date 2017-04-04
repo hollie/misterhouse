@@ -33,8 +33,7 @@ sub set_alsaplayer_in_use_notify {
 }
 
 $v_mp3_control_cmd = new Voice_Cmd(
-    "Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off]"
-);
+    "Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off]");
 my $state;
 mp3_control($state) if $state = said $v_mp3_control_cmd;
 
@@ -138,8 +137,7 @@ sub mp3_get_playlist_pos {
     return -1 unless ref $ref;
     foreach ( @{$ref} ) {
         $i++;
-        print_log
-          "Alsaplayer::mp3_get_playlist_pos(): Checking $currsong against $_";
+        print_log "Alsaplayer::mp3_get_playlist_pos(): Checking $currsong against $_";
         if ( $_ eq $player->get_path() ) {
             print_log "Alsaplayer::mp3_get_playlist_pos(): Returning $i";
             return $i;

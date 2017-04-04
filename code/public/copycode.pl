@@ -81,11 +81,7 @@ sub copycode {
     my @filestocopy = ();
     my @computers   = ();
     my @lines       = ();
-    my (
-        $file,            $line,         $computer,
-        $variable_phrase, $phrase_start, $phrase_length,
-        $var_end_pos,     $count,        $outline
-    );
+    my ( $file, $line, $computer, $variable_phrase, $phrase_start, $phrase_length, $var_end_pos, $count, $outline );
 
     #                                            Find the files in the master/code directory that
     #                                            we want to copy
@@ -112,16 +108,11 @@ sub copycode {
                 foreach $line (@lines) {
                     if ( substr( $line, 0, 10 ) eq '# Category' ) {
                         print TEMPOUT "$line\n\n";
-                        print TEMPOUT
-                          "# This file is automatically created by running the copycode\n";
-                        print TEMPOUT
-                          "# program in the master code directory.  Any changes made to\n";
-                        print TEMPOUT
-                          "# this file will be overwritten the next time it is run.\n";
-                        print TEMPOUT
-                          "# You should make changes to the appropiate file in the master\n";
-                        print TEMPOUT
-                          "# code directory then re-run the copycode program.\n\n";
+                        print TEMPOUT "# This file is automatically created by running the copycode\n";
+                        print TEMPOUT "# program in the master code directory.  Any changes made to\n";
+                        print TEMPOUT "# this file will be overwritten the next time it is run.\n";
+                        print TEMPOUT "# You should make changes to the appropiate file in the master\n";
+                        print TEMPOUT "# code directory then re-run the copycode program.\n\n";
                     }
                     elsif ( substr( $line, 1, 2 ) eq 'v_' ) {
                         $phrase_start    = 0;
@@ -156,17 +147,15 @@ sub copycode {
                             print TEMPOUT "$line\n";
                             if ( $variable_phrase eq "yes" ) {
                                 $outline =
-                                  "run \"mhsend -host $maincomputer -run \'"
-                                  . substr( $line, $phrase_start,
-                                    $phrase_length )
+                                    "run \"mhsend -host $maincomputer -run \'"
+                                  . substr( $line, $phrase_start, $phrase_length )
                                   . "\$state\'\" if \$state = said "
                                   . substr( $line, 0, $var_end_pos ) . "\;";
                             }
                             else {
                                 $outline =
-                                  "run \"mhsend -host $maincomputer -run \'"
-                                  . substr( $line, $phrase_start,
-                                    $phrase_length )
+                                    "run \"mhsend -host $maincomputer -run \'"
+                                  . substr( $line, $phrase_start, $phrase_length )
                                   . "\'\" if \$state = said "
                                   . substr( $line, 0, $var_end_pos ) . "\;";
                             }

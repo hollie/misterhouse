@@ -5,11 +5,9 @@
 
 # Check clock against an internet atomic clock
 $v_set_clock = new Voice_Cmd('Set the clock via the internet');
-$v_set_clock->set_info(
-    'Use an Internet connected atomic clock to set your pc clock time');
+$v_set_clock->set_info('Use an Internet connected atomic clock to set your pc clock time');
 $v_set_clock->set_icon('time');
-$p_set_clock =
-  new Process_Item "set_clock -log $config_parms{data_dir}/logs/set_clock.log";
+$p_set_clock = new Process_Item "set_clock -log $config_parms{data_dir}/logs/set_clock.log";
 
 if (   said $v_set_clock
     or time_cron '7 6 * * * ' )

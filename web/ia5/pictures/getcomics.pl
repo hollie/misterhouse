@@ -15,10 +15,7 @@ my $doc;
 my $base;
 my %pages;
 
-$pages{'dilbert'} = [
-    'http://www.dilbert.com/comics/dilbert/archive/',
-    'img.*?src="(/comics/dilbert/archive/images/dilbert\d+.gif)"'
-];
+$pages{'dilbert'} = [ 'http://www.dilbert.com/comics/dilbert/archive/', 'img.*?src="(/comics/dilbert/archive/images/dilbert\d+.gif)"' ];
 
 #$pages{'bobbins'} =
 #  [
@@ -157,10 +154,7 @@ for my $page ( sort keys %pages ) {
                 $filename =~ s|/|.|g;
 
                 if ( -f $filename ) {
-                    (
-                        undef, undef, undef,  undef, undef, undef, undef,
-                        undef, undef, $mtime, undef, undef, undef
-                    ) = stat($filename);
+                    ( undef, undef, undef, undef, undef, undef, undef, undef, undef, $mtime, undef, undef, undef ) = stat($filename);
                     if ( $mtime > $utime ) {
                         $cached = 1;
                     }
@@ -206,8 +200,7 @@ for my $page ( sort keys %pages ) {
         next if !defined($content);
         next if $n < $numrules;
 
-        print
-          "   Item $page, content type $contenttype successfully fetched.\n";
+        print "   Item $page, content type $contenttype successfully fetched.\n";
 
         # Now, filter the page.
         if ( defined( $filters{$page} ) ) {
@@ -276,15 +269,8 @@ for my $page ( sort keys %pages ) {
         my $srcurl = "";
         $srcurl = " (<a href=\"$url\">from $url</a>)<br>";
         $srcurl .= " ($date)" if $date;
-        if (
-            !(
-                $compilation =~
-                s|(<!-- feed me $page -->)|<a href="$filename">$page</a>$srcurl\n|
-            )
-          )
-        {
-            $compilation =~
-              s|(<!-- feed me text -->)|<a href="$filename">$page</a>$srcurl\n$1|;
+        if ( !( $compilation =~ s|(<!-- feed me $page -->)|<a href="$filename">$page</a>$srcurl\n| ) ) {
+            $compilation =~ s|(<!-- feed me text -->)|<a href="$filename">$page</a>$srcurl\n$1|;
         }
     }
 }
@@ -344,8 +330,7 @@ sub carve_image {
             }
 
             `pnmcut $x $y $w $h $name/$filename 2>/dev/null | ppmtogif 2>/dev/null > $name/$ {name}_$ {x}_$ {y}.gif`;
-            $html .=
-              qq(<td><img src="$name/$ {name}_$ {x}_$ {y}.gif" width="$w" height="$h"></td>);
+            $html .= qq(<td><img src="$name/$ {name}_$ {x}_$ {y}.gif" width="$w" height="$h"></td>);
         }
         $html .= "</tr>\n";
     }
@@ -365,12 +350,12 @@ sub patchurl {
 
     eval {
         if ( !defined( $uri->scheme ) or !$uri->scheme ) {
-            $uri = new URI $url, ( $base->scheme || 'http' );   # what the hell?
+            $uri = new URI $url, ( $base->scheme || 'http' );    # what the hell?
         }
 
         # Gack! relative URL!
         if ( $uri->path !~ m|^/| ) {
-            local $URI::ABS_ALLOW_RELATIVE_SCHEME = 1;          # gack gack
+            local $URI::ABS_ALLOW_RELATIVE_SCHEME = 1;           # gack gack
             $uri = URI->new($url)->abs($base);
         }
 
@@ -380,9 +365,9 @@ sub patchurl {
         }
     };
 
-    $uri->scheme('http') unless $uri->scheme;    # thanks, slashdot
+    $uri->scheme('http') unless $uri->scheme;                    # thanks, slashdot
 
-    return $url if $@;                           # bail out if there's an error.
+    return $url if $@;                                           # bail out if there's an error.
 
     $uri->as_string;
 }

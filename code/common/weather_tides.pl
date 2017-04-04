@@ -12,16 +12,13 @@ my $tide_site = 'Charleston, South Carolina';
 my $f_tides   = "$config_parms{data_dir}/web/tides.html";
 $v_get_tides = new Voice_Cmd 'Get tide info';
 $v_get_tides->set_info('Get tide information from the Internet');
-$v_read_tides =
-  new Voice_Cmd 'When is the next [High Tide,Low Tide,Moonrise,Moonset]?';
-$v_read_tides->set_info(
-    'Show tide, moonrise and moonset information from the Internet');
+$v_read_tides = new Voice_Cmd 'When is the next [High Tide,Low Tide,Moonrise,Moonset]?';
+$v_read_tides->set_info('Show tide, moonrise and moonset information from the Internet');
 $p_get_tides = new Process_Item;
 $tide_site   = $config_parms{weather_tide_site}
   if $config_parms{weather_tide_site};
 $tide_site = &escape($tide_site);
-set $p_get_tides
-  "get_url http://tbone.biol.sc.edu/tide/tideshow.cgi?site=$tide_site $f_tides";
+set $p_get_tides "get_url http://tbone.biol.sc.edu/tide/tideshow.cgi?site=$tide_site $f_tides";
 trigger_delete "get tide info";
 
 #noloop=stop
@@ -35,8 +32,7 @@ if (
     )
     or said $v_get_tides)
 {
-    $v_get_tides->respond(
-        "app=tides Retrieving tide information for $tide_site...")
+    $v_get_tides->respond("app=tides Retrieving tide information for $tide_site...")
       if said $v_get_tides;
     unlink $f_tides;
     $p_get_tides->start;
@@ -105,13 +101,9 @@ if ( done_now $p_get_tides) {
     my ( $nexth, $nextl, $nextr, $nexts );
     for my $html ( file_read $f_tides, '' ) {
         if ( my ( $year, $mnth, $date, $hour, $minu, $size, $units, $event ) =
-            $html =~
-            /^(\d\d\d\d)-(\d\d)-(\d\d)  (\d\d):(\d\d) \w\w\w\s+(-?\d+\.\d+ (feet|meters))?\s+?(Low Tide|High Tide|Sunrise|Sunset|Moonrise|Moonset)$/
-          )
+            $html =~ /^(\d\d\d\d)-(\d\d)-(\d\d)  (\d\d):(\d\d) \w\w\w\s+(-?\d+\.\d+ (feet|meters))?\s+?(Low Tide|High Tide|Sunrise|Sunset|Moonrise|Moonset)$/ )
         {
-            my $timediff =
-              timelocal( 0, $minu, $hour, $date, $mnth - 1, $year - 1900 ) -
-              $Time;
+            my $timediff = timelocal( 0, $minu, $hour, $date, $mnth - 1, $year - 1900 ) - $Time;
             my $time_str = "$mnth/$date $hour:$minu";
             print_log "$time_str $size $event \n";
             $Weather{'Previous High Tide'} = $time_str

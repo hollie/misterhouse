@@ -92,10 +92,8 @@ use strict;
 $Clipsal_CBus::Command_Counter     = 0;
 $Clipsal_CBus::Command_Counter_Max = 100;
 
-$Clipsal_CBus::Talker =
-  new Socket_Item( undef, undef, $::config_parms{cgate_talk_address} );
-$Clipsal_CBus::Monitor =
-  new Socket_Item( undef, undef, $::config_parms{cgate_mon_address} );
+$Clipsal_CBus::Talker  = new Socket_Item( undef, undef, $::config_parms{cgate_talk_address} );
+$Clipsal_CBus::Monitor = new Socket_Item( undef, undef, $::config_parms{cgate_mon_address} );
 
 $Clipsal_CBus::Talker_last_sent = "N/A";
 
@@ -139,8 +137,7 @@ adds a post reload hook into &main to run this function.
 
 sub generate_voice_commands {
 
-    &::print_log(
-        "[Clipsal CBus] Generating Voice commands for all CBus group objects");
+    &::print_log("[Clipsal CBus] Generating Voice commands for all CBus group objects");
 
     my $object_string;
     for my $object (&main::list_all_objects) {
@@ -157,22 +154,15 @@ sub generate_voice_commands {
         my $voice_cmds = $object->get_voice_cmds();
 
         #Initialize the voice command with all of the possible device commands
-        $object_string .= "$object_name_v  = new Voice_Cmd '$command ["
-          . join( ",", sort keys %$voice_cmds ) . "]';\n";
+        $object_string .= "$object_name_v  = new Voice_Cmd '$command [" . join( ",", sort keys %$voice_cmds ) . "]';\n";
 
         #Tie the proper routine to each voice command
         foreach ( keys %$voice_cmds ) {
-            $object_string .=
-                "$object_name_v -> tie_event('"
-              . $voice_cmds->{$_}
-              . "', '$_');\n\n";
+            $object_string .= "$object_name_v -> tie_event('" . $voice_cmds->{$_} . "', '$_');\n\n";
         }
 
         #Add this object to the list of CBus Voice Commands on the Web Interface
-        $object_string .= ::store_object_data(
-            $object_name_v, 'Voice_Cmd',
-            'Clipsal CBus', 'Clipsal_CBus_commands'
-        );
+        $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'Clipsal CBus', 'Clipsal_CBus_commands' );
     }
 
     #Evaluate the resulting object generating string

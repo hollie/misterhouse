@@ -30,20 +30,19 @@ BEGIN {
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
-my ($Version) =
-  q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
+my ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
 
 use Getopt::Long;
-use vars '%config_parms';      # Not a my, as called from handy_net_utils
+use vars '%config_parms';                    # Not a my, as called from handy_net_utils
 
 #my %config_parms;
 
-require 'handy_utilities.pl';    # For read_mh_opts
+require 'handy_utilities.pl';                # For read_mh_opts
 &main::read_mh_opts( \%config_parms, $Pgm_Path );
 
 BEGIN {
     eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";
-}                                # Use BEGIN eval to keep perl2exe happy
+}                                            # Use BEGIN eval to keep perl2exe happy
 
 #======================================================================
 # Variable declarations and other init
@@ -60,15 +59,9 @@ my ( %DBM, %DBM2 );
 #======================================================================
 # Check invocation options, and print usage message if necessary
 #======================================================================
-if (
-    !&GetOptions(
-        \%parms,     "h",        "help",  "infile=s",
-        "outfile=s", "outdir=s", "reget", "redo",
-        "db=s",      "name=s",   "debug", "channels=s"
-    )
+if (  !&GetOptions( \%parms, "h", "help", "infile=s", "outfile=s", "outdir=s", "reget", "redo", "db=s", "name=s", "debug", "channels=s" )
     or @ARGV
-    or ( $parms{h} or $parms{help} )
-  )
+    or ( $parms{h} or $parms{help} ) )
 {
     print <<eof;
 $Pgm_Name gets a TV grid/schedule using get_tv_cplus_grid
@@ -107,13 +100,8 @@ my $debug = $parms{debug};
 setup();
 
 my %channel_name = (
-    'TVE1',   '1-TVE1',
-    'TVE2',   '2-La+2+de+TVE',
-    'A3',     '3-Antena+3',
-    'TELE5',  '4-Tele+5',
-    'TM3',    '6-Telemadrid',
-    'CUATRO', '22-cuatro',
-    'CCMTV',  '17-PROGRAMACION+DE+CASTILLA+LA+MANCHA+TELEVISI%D3N'
+    'TVE1', '1-TVE1', 'TVE2', '2-La+2+de+TVE', 'A3', '3-Antena+3', 'TELE5', '4-Tele+5', 'TM3', '6-Telemadrid', 'CUATRO', '22-cuatro',
+    'CCMTV', '17-PROGRAMACION+DE+CASTILLA+LA+MANCHA+TELEVISI%D3N'
 );
 
 foreach ( split /,/, $parms{channels} ) {
@@ -156,17 +144,9 @@ sub get_cplus_grid {
 
     for ( $i = 1; $i <= 2; $i++ ) {
         my $tv_grid_URL;
-        $tv_grid_URL =
-          'http://www.plus.es/codigo/television/guiatv/resultado.asp?tipo=dh5&c='
-          . $tv_channel
-          . '&pr=L&dia=i'
-          . $date
-          . '&f=TO&usu=&pag='
-          . $i;
-        $f_tv_grid_html =
-          "$config_parms{data_dir}/web/tv_channel_$tv_channel.html";
-        $f_tv_grid_data =
-          "$config_parms{data_dir}/tv_channel_${tv_channel}_data";
+        $tv_grid_URL = 'http://www.plus.es/codigo/television/guiatv/resultado.asp?tipo=dh5&c=' . $tv_channel . '&pr=L&dia=i' . $date . '&f=TO&usu=&pag=' . $i;
+        $f_tv_grid_html = "$config_parms{data_dir}/web/tv_channel_$tv_channel.html";
+        $f_tv_grid_data = "$config_parms{data_dir}/tv_channel_${tv_channel}_data";
 
         get_url_ua( $tv_grid_URL, $f_tv_grid_html );
 
@@ -213,14 +193,9 @@ sub get_general_grid {
     #date in format YYYYMMDD
 
     my $tv_grid_URL;
-    $tv_grid_URL =
-        'http://www.elpais.es/parrillatv/resultados.html?franja=&tipo=&canal='
-      . $channel_name{$tv_channel} . '&dia='
-      . $date;
-    my $f_tv_grid_html =
-      "$config_parms{data_dir}/web/tv_channel_$tv_channel.html";
-    my $f_tv_grid_data =
-      "$config_parms{data_dir}/tv_channel_${tv_channel}_data";
+    $tv_grid_URL = 'http://www.elpais.es/parrillatv/resultados.html?franja=&tipo=&canal=' . $channel_name{$tv_channel} . '&dia=' . $date;
+    my $f_tv_grid_html = "$config_parms{data_dir}/web/tv_channel_$tv_channel.html";
+    my $f_tv_grid_data = "$config_parms{data_dir}/tv_channel_${tv_channel}_data";
 
     get_url_ua( $tv_grid_URL, $f_tv_grid_html );
 
@@ -259,21 +234,14 @@ sub processFileCPlus {
 
         #Only look at lines with tv programm data on them
         if (m!^.+?:.+\|!) {
-            ( $pgm_name, $pgm_desc, $time_start, $time_end, $pgm_type ) = $_ =~
-              m!^(.+?):\s+(.+)\|.*?\|.*?(\d\d:\d\d)h\. - (\d+:\d+)h\.\s+\((.+)-.*?\)!;
+            ( $pgm_name, $pgm_desc, $time_start, $time_end, $pgm_type ) = $_ =~ m!^(.+?):\s+(.+)\|.*?\|.*?(\d\d:\d\d)h\. - (\d+:\d+)h\.\s+\((.+)-.*?\)!;
         }
         else {
-            ( $pgm_name, $time_start, $time_end, $pgm_type ) = $_ =~
-              m!^(.+)\|.*?\|.*?(\d\d:\d\d)h\. - (\d+:\d+)h\.\s+\((.+)-.*?\)!;
+            ( $pgm_name, $time_start, $time_end, $pgm_type ) = $_ =~ m!^(.+)\|.*?\|.*?(\d\d:\d\d)h\. - (\d+:\d+)h\.\s+\((.+)-.*?\)!;
             $pgm_desc = "";
         }
-        store_in_dbm(
-            $ch_key, $ch_name,
-            $ch_number,  adjust_date( $pgm_date, $time_start, $time_first ),
-            $time_start, $time_end,
-            $pgm_type,   $pgm_name,
-            $pgm_desc
-        );
+        store_in_dbm( $ch_key, $ch_name, $ch_number, adjust_date( $pgm_date, $time_start, $time_first ),
+            $time_start, $time_end, $pgm_type, $pgm_name, $pgm_desc );
 
         print "Programa $_\n" if $debug;
         print "--> $time_start, $time_end, $pgm_type, $pgm_name, $pgm_desc\n"
@@ -291,8 +259,7 @@ sub processFilePais {
     #------------------------------------------------------------
     # Read first line and get channel no., and channel name
     #------------------------------------------------------------
-    my ($ch_name) = $textdata =~
-      m!Día:.*\sTipo: Todos los tipos\. Canal:\s(.+)\. Franja: Todo el día!;
+    my ($ch_name) = $textdata =~ m!Día:.*\sTipo: Todos los tipos\. Canal:\s(.+)\. Franja: Todo el día!;
     print "Channel: $ch_name\n" if $debug;
 
     # delete 2 head lines
@@ -306,14 +273,12 @@ sub processFilePais {
         if (/^(\d+:\d+)\s+(.+)/) {
             if ($time_start) {
                 ($time_end) = $_ =~ m!^(\d+:\d+)\s!;
-                store_in_dbm( $ch_key, $ch_name, 0,
-                    adjust_date( $pgm_date, $time_start, $time_first ),
+                store_in_dbm( $ch_key, $ch_name, 0, adjust_date( $pgm_date, $time_start, $time_first ),
                     $time_start, $time_end, $pgm_type, $pgm_name, $pgm_desc );
                 $time_start = '';
             }
 
-            ( $time_pgm, $pgm_name, $pgm_type ) =
-              $_ =~ m!^(\d\d:\d\d)\s(.*)\s$ch_name\s(.*)!;
+            ( $time_pgm, $pgm_name, $pgm_type ) = $_ =~ m!^(\d\d:\d\d)\s(.*)\s$ch_name\s(.*)!;
             $time_start = $time_pgm;
             if ( !$time_first ) { $time_first = $time_pgm }
             $pgm_desc = '';
@@ -328,9 +293,7 @@ sub processFilePais {
     }
     if ($time_start) {
         $time_end = $time_first;
-        store_in_dbm( $ch_key, $ch_name, 0,
-            adjust_date( $pgm_date, $time_start, $time_first ),
-            $time_start, $time_end, $pgm_type, $pgm_name, $pgm_desc );
+        store_in_dbm( $ch_key, $ch_name, 0, adjust_date( $pgm_date, $time_start, $time_first ), $time_start, $time_end, $pgm_type, $pgm_name, $pgm_desc );
         $time_start = '';
     }
 }
@@ -339,10 +302,7 @@ sub processFilePais {
 # Store the data in the DBM
 #------------------------------------------------------------
 sub store_in_dbm {
-    my (
-        $ch_key,   $ch_name,  $ch_number, $pgm_date, $time_start,
-        $time_end, $pgm_type, $pgm_name,  $pgm_desc
-    ) = @_;
+    my ( $ch_key, $ch_name, $ch_number, $pgm_date, $time_start, $time_end, $pgm_type, $pgm_name, $pgm_desc ) = @_;
     my $db_key = join( $;, $ch_key, $pgm_date, $time_start );
     my $db_data = join( $;, $pgm_name, $pgm_type, $time_end, $pgm_desc );
     $DBM{$db_key} = $db_data;
@@ -359,8 +319,7 @@ sub setup {
     #------------------------------------------------------------
     # Process Incoming Parameters, defaulting as necessary
     #------------------------------------------------------------
-    $parms{channels} =
-      "TVE1,TVE2,A3,TELE5,TM3,CP,CP2,CPC1,CPC2,CPC3,CMA,CMADOS,CL13,FOXGE,AXN"
+    $parms{channels} = "TVE1,TVE2,A3,TELE5,TM3,CP,CP2,CPC1,CPC2,CPC3,CMA,CMADOS,CL13,FOXGE,AXN"
       unless $parms{channels};
     $parms{db} = 'tv' unless $parms{db};
     $parms{outdir} = "$config_parms{html_dir}/$parms{db}"
@@ -493,10 +452,8 @@ sub adjust_date {
     }
 
     #Merge it (year > 2000)
-    my $ptime =
-      timelocal( 0, $pminu, $phour, $pday, $pmonth - 1, $pyear + 100 );
-    my $ftime =
-      timelocal( 0, $fminu, $fhour, $pday, $pmonth - 1, $pyear + 100 );
+    my $ptime = timelocal( 0, $pminu, $phour, $pday, $pmonth - 1, $pyear + 100 );
+    my $ftime = timelocal( 0, $fminu, $fhour, $pday, $pmonth - 1, $pyear + 100 );
 
     #check if program time is before first morning program time
     #this means, program time is next day

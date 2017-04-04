@@ -61,13 +61,12 @@ sub send_pcs_phone {
     }
     print "PCS: who=$parms{who}, msg=$parms{msg}" if $Debug{pcs};
     $addr = "$pcsnumber\@messaging.sprintpcs.com" if lc $pcsservice eq 'sprint';
-    $addr = "$pcsnumber\@vtext.com"            if lc $pcsservice eq 'verizon';
-    $addr = "$pcsnumber\@tmomail.net"          if lc $pcsservice eq 't-mobile';
-    $addr = "$pcsnumber\@mycingular.net"       if lc $pcsservice eq 'cingular';
-    $addr = "$pcsnumber\@messaging.nextel.com" if lc $pcsservice eq 'nextel';
+    $addr = "$pcsnumber\@vtext.com"               if lc $pcsservice eq 'verizon';
+    $addr = "$pcsnumber\@tmomail.net"             if lc $pcsservice eq 't-mobile';
+    $addr = "$pcsnumber\@mycingular.net"          if lc $pcsservice eq 'cingular';
+    $addr = "$pcsnumber\@messaging.nextel.com"    if lc $pcsservice eq 'nextel';
     if ( $addr eq '' ) {
-        print_log
-          "PCS ERROR: Service with name \"$pcsservice\" is not supported.";
+        print_log "PCS ERROR: Service with name \"$pcsservice\" is not supported.";
         return;
     }
 

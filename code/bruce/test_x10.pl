@@ -24,8 +24,7 @@ if ( $state = state_now $test_x10_rf1) {
 }
 if ( $state = state_now $test_x10_rf2) {
     my $set_by = get_set_by $test_x10_rf2;
-    print_log
-      "test_x10_rf2 a set to $state by $test_x10_rf2->{set_by} sb=$set_by";
+    print_log "test_x10_rf2 a set to $state by $test_x10_rf2->{set_by} sb=$set_by";
     print_log "test_x10_rf2 b set to $state by $test_x10_rf2->{set_by}"
       if get_set_by $test_x10_rf2 eq "rf";
 }

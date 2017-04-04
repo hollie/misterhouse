@@ -45,8 +45,7 @@ if ( $Startup or $Reread ) {
 # Since we don't really need to know when the cda program finishes, we could
 # use the run function instead of Process_Item, like this:
 
-$v_cd_player = new Voice_Cmd
-  'cd player [on,off,load,eject,next,prev,play,stop,pause,volume up,volume down]';
+$v_cd_player = new Voice_Cmd 'cd player [on,off,load,eject,next,prev,play,stop,pause,volume up,volume down]';
 
 if ( $state = said $v_cd_player) {
     my %cmd_table = (
