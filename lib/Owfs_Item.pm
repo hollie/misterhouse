@@ -357,8 +357,13 @@ sub set {
 
     #$value .= ' ';
     my $value_length = length($value);
-    my $payload = pack( 'Z' . $path_length . 'A' . $value_length, $path, $value );
-    $self->_ToServer( $path, $token, $value, $set_by, length($payload) + 1, $msg_write, $value_length, 0, $payload );
+    my $payload =
+      pack( 'Z' . $path_length . 'A' . $value_length, $path, $value );
+    $self->_ToServer(
+        $path,                $token,     $value,        $set_by,
+        length($payload), $msg_write, $value_length, 0,
+        $payload
+    );
 }
 
 # This method is called to schedule a read command be sent to the owserver for the object.
@@ -367,7 +372,8 @@ sub get {
     return if ( !defined $self->{path} );
     my $path = $self->{path} . $token;
     &main::print_log("Owfs_Item::get path: $path") if $main::Debug{owfs};
-    $self->_ToServer( $path, $token, 0, 0, length($path) + 1, $msg_read, $default_block, 0, $path );
+    $self->_ToServer( $path, $token, 0, 0, length($path),
+        $msg_read, $default_block, 0, $path );
 }
 
 # This method is called to schedule a directory command be sent to the owserver for the object.
@@ -378,7 +384,8 @@ sub _dir {
     # new msg_dirall method -- single packet
     &main::print_log("Owfs_Item::dir path: $path") if $main::Debug{owfs};
     $self->{dir_path} = $path;
-    $self->_ToServer( $path, 0, 0, 0, length($path) + 1, $msg_dirall, $default_block, 0, $path );
+    $self->_ToServer( $path, 0, 0, 0, length($path),
+        $msg_dirall, $default_block, 0, $path );
 }
 
 # This method is called to schedule a write command be sent to the owserver for the object.
@@ -397,8 +404,13 @@ sub _set_root {
 
     #$value .= ' ';
     my $value_length = length($value);
-    my $payload = pack( 'Z' . $path_length . 'A' . $value_length, $path, $value );
-    $self->_ToServer( $path, $token, $value, $set_by, length($payload) + 1, $msg_write, $value_length, 0, $payload );
+    my $payload =
+      pack( 'Z' . $path_length . 'A' . $value_length, $path, $value );
+    $self->_ToServer(
+        $path,                $token,     $value,        $set_by,
+        length($payload), $msg_write, $value_length, 0,
+        $payload
+    );
 }
 
 # This method is called to schedule a read command be sent to the owserver for the object.
@@ -410,7 +422,8 @@ sub _get_root {
     return if ( !defined $root );
     my $path = $self->{root} . $token;
     &main::print_log("Owfs_Item::_get_root path: $path") if $main::Debug{owfs};
-    $self->_ToServer( $path, $token, 0, 0, length($path) + 1, $msg_read, $default_block, 0, $path );
+    $self->_ToServer( $path, $token, 0, 0, length($path),
+        $msg_read, $default_block, 0, $path );
 }
 
 # This method is used to search the one-wire tree for the specific object as defined
@@ -497,12 +510,20 @@ sub _chomp_plus {
 # This method is a direct port from the OWNet.pm module from owfs.  This is the lower layer interface
 # to the owserver socket port.
 sub _ToServer {
-    my ( $self, $path, $token, $value, $set_by, $payload_length, $msg_type, $size, $offset, $payload_data ) = @_;
-    my $f = "N6Z$payload_length";
+    my (
+        $self,   $path,           $token,    $value,
+        $set_by, $payload_length, $msg_type, $size,
+        $offset, $payload_data
+    ) = @_;
+    my $f = "N6A$payload_length";
 
-    #$f .= 'Z'.$payload_length if ( $payload_length > 0 ) ;
-    my $message = pack( $f, $self->{VER}, $payload_length, $msg_type, $self->{SG} | $self->{PERSIST}, $size, $offset, $payload_data );
-    &main::print_log("Owfs_Item::_ToServer path: $path payload_length: $payload_length payload_data: $payload_data message: $message") if $main::Debug{owfs};
+    my $message = pack( $f,
+        $self->{VER}, $payload_length, $msg_type,
+        $self->{SG} | $self->{PERSIST},
+        $size, $offset, $payload_data );
+    &main::print_log(
+        "Owfs_Item::_ToServer path: $path payload_length: $payload_length payload_data: $payload_data message: $message"
+    ) if $main::Debug{owfs};
     my $hashref = {
         msg_type => $msg_type,
         self     => $self,
