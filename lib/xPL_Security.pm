@@ -69,8 +69,7 @@ sub area_id_list {
 
 sub request_stat {
     my ( $self, $request_all ) = @_;
-    $self->SUPER::send_cmnd(
-        'security.request' => { 'request' => 'gateinfo' } );
+    $self->SUPER::send_cmnd( 'security.request' => { 'request' => 'gateinfo' } );
     if ($request_all) {
         for my $zone ( $self->find_members('xPL_Zone') ) {
             if ($zone) {
@@ -98,51 +97,39 @@ sub default_setstate {
             $$self{'area_commands'} =
               $$self{'security.gateinfo'}{'area-commands'};
             &::print_log(
-                    "[xPL_SecurityGateway] Received security.gateinfo message."
-                  . " Zone Count= "
-                  . $$self{'zone_count'}
-                  . " Area Count= "
-                  . $$self{'area_count'} )
+                "[xPL_SecurityGateway] Received security.gateinfo message." . " Zone Count= " . $$self{'zone_count'} . " Area Count= " . $$self{'area_count'} )
               if $main::Debug{xpl_security};
 
             # send out a request to get info about the supported zone list
             if ( $$self{'zone_count'} > 0 ) {
-                $self->SUPER::send_cmnd(
-                    'security.request' => { 'request' => 'zonelist' } );
+                $self->SUPER::send_cmnd( 'security.request' => { 'request' => 'zonelist' } );
             }
             elsif ( $$self{'area_count'} > 0 ) {
-                $self->SUPER::send_cmnd(
-                    'security.request' => { 'request' => 'arealist' } );
+                $self->SUPER::send_cmnd( 'security.request' => { 'request' => 'arealist' } );
             }
             else {
-                $self->SUPER::send_cmnd(
-                    'security.request' => { 'request' => 'gatestat' } );
+                $self->SUPER::send_cmnd( 'security.request' => { 'request' => 'gatestat' } );
             }
         }
         elsif ( $$self{changed} =~ /security\.zonelist/ ) {
-            &::print_log(
-                "[xPL_SecurityGateway] Received security.zonelist message")
+            &::print_log("[xPL_SecurityGateway] Received security.zonelist message")
               if $main::Debug{xpl_security};
             if ( $$self{'security.zonelist'}{'zone-list'} ) {
                 my @list =
                   split( /,/, $$self{'security.zonelist'}{'zone-list'} );
                 @{ $$self{'zone_id_list'} } =
                   ( @{ $$self{'zone_id_list'} }, @list );
-                print "zone_id_list size is "
-                  . @{ $$self{'zone_id_list'} } . "\n";
+                print "zone_id_list size is " . @{ $$self{'zone_id_list'} } . "\n";
             }
             if ( $$self{'area_count'} > 0 ) {
-                $self->SUPER::send_cmnd(
-                    'security.request' => { 'request' => 'arealist' } );
+                $self->SUPER::send_cmnd( 'security.request' => { 'request' => 'arealist' } );
             }
             else {
-                $self->SUPER::send_cmnd(
-                    'security.request' => { 'request' => 'gatestat' } );
+                $self->SUPER::send_cmnd( 'security.request' => { 'request' => 'gatestat' } );
             }
         }
         elsif ( $$self{changed} =~ /security\.arealist/ ) {
-            &::print_log(
-                "[xPL_SecurityGateway] Received security.arealist message")
+            &::print_log("[xPL_SecurityGateway] Received security.arealist message")
               if $main::Debug{xpl_security};
             if ( $$self{'security.arealist'}{'area-list'} ) {
                 my @list =
@@ -150,12 +137,10 @@ sub default_setstate {
                 @{ $$self{'area_id_list'} } =
                   ( @{ $$self{'area_id_list'} }, @list );
             }
-            $self->SUPER::send_cmnd(
-                'security.request' => { 'request' => 'gatestat' } );
+            $self->SUPER::send_cmnd( 'security.request' => { 'request' => 'gatestat' } );
         }
         elsif ( $$self{changed} =~ /security\.gatestat/ ) {
-            &::print_log(
-                "[xPL_SecurityGateway] Received security.gatestat message")
+            &::print_log("[xPL_SecurityGateway] Received security.gatestat message")
               if $main::Debug{xpl_security};
             $$self{'ac_status'} = $$self{'security.gatestat'}{'ac-fail'};
             $$self{'battery_status'} =
@@ -163,30 +148,24 @@ sub default_setstate {
             $$self{'alarm_status'} = $$self{'security.gatestat'}{'status'};
         }
         elsif ( $$self{changed} =~ /security\.zoneinfo/ ) {
-            &::print_log(
-                "[xPL_SecurityGateway] Received security.zoneinfo message")
+            &::print_log("[xPL_SecurityGateway] Received security.zoneinfo message")
               if $main::Debug{xpl_security};
         }
         elsif ( $$self{changed} =~ /security\.areainfo/ ) {
-            &::print_log(
-                "[xPL_SecurityGateway] Received security.areainfo message")
+            &::print_log("[xPL_SecurityGateway] Received security.areainfo message")
               if $main::Debug{xpl_security};
         }
         elsif ( $$self{changed} =~ /security\.zonestat/ ) {
-            &::print_log(
-                "[xPL_SecurityGateway] Received security.zonestat message")
+            &::print_log("[xPL_SecurityGateway] Received security.zonestat message")
               if $main::Debug{xpl_security};
         }
         elsif ( $$self{changed} =~ /security\.areastat/ ) {
-            &::print_log(
-                "[xPL_SecurityGateway] Received security.areastat message")
+            &::print_log("[xPL_SecurityGateway] Received security.areastat message")
               if $main::Debug{xpl_security};
         }
     }
     else {
-        &::print_log(
-            "[xPL_SecurityGateway] WARN: Gateway state may not be explicitely set.  Ignoring."
-        ) if $main::Debug{xpl_security};
+        &::print_log("[xPL_SecurityGateway] WARN: Gateway state may not be explicitely set.  Ignoring.") if $main::Debug{xpl_security};
 
         # return a -1 if not changed by xpl so that state is not revised until receipt of gateinfo
         return -1;
@@ -315,9 +294,8 @@ sub new {
     $$self{gateway} = $gateway;
     $gateway->add_item_if_not_present($self);
     $self->SUPER::class_name('security.zone*');
-    $$self{id} = $id;
-    $$self{state_monitor} =
-      "security.zonestat : armed|security.zonestat : alert|security.zonestat : alarm|security.zone : event";
+    $$self{id}            = $id;
+    $$self{state_monitor} = "security.zonestat : armed|security.zonestat : alert|security.zonestat : alarm|security.zone : event";
     $self->SUPER::device_monitor("zone=$id") if $id;
 
     $self->state_overload('off');
@@ -327,8 +305,7 @@ sub new {
 
 sub request_stat {
     my ($self) = @_;
-    $self->SUPER::send_cmnd(
-        'security.request' => { 'request' => 'zonestat' } );
+    $self->SUPER::send_cmnd( 'security.request' => { 'request' => 'zonestat' } );
 }
 
 sub id {
@@ -341,10 +318,7 @@ sub ignore_message {
     my $ignore_message = 0;
     if (
         !(
-            (
-                defined( $$p_data{'security.zonestat'} )
-                and $$p_data{'security.zonestat'}{'zone'} eq $self->id
-            )
+            ( defined( $$p_data{'security.zonestat'} ) and $$p_data{'security.zonestat'}{'zone'} eq $self->id )
             or ( defined( $$p_data{'security.zone'} )
                 and $$p_data{'security.zone'}{'zone'} eq $self->id )
         )
@@ -359,26 +333,20 @@ sub default_setstate {
     my ( $self, $state, $substate, $set_by ) = @_;
     if ( $set_by =~ /^xpl/i ) {
         if ( $$self{changed} =~ /security\.zonestat/ ) {
-            &::print_log( "[xPL_Security] security zone status: "
-                  . $self->get_object_name
-                  . " state is $state" )
+            &::print_log( "[xPL_Security] security zone status: " . $self->get_object_name . " state is $state" )
               if $main::Debug{xpl_security};
 
             # TO-DO: process all of the other pertinent attributes available
             return -1
-              if $self->state eq
-              $state;    # don't propagate state unless it has changed
+              if $self->state eq $state;    # don't propagate state unless it has changed
         }
         elsif ( $$self{changed} =~ /security\.zone/ ) {
-            &::print_log( "[xPL_Security] security zone : "
-                  . $self->get_object_name
-                  . " state is $state" )
+            &::print_log( "[xPL_Security] security zone : " . $self->get_object_name . " state is $state" )
               if $main::Debug{xpl_security};
 
             # TO-DO: process all of the other pertinent attributes available
             return -1
-              if $self->state eq
-              $state;    # don't propagate state unless it has changed
+              if $self->state eq $state;    # don't propagate state unless it has changed
         }
     }
 }
@@ -393,9 +361,8 @@ sub new {
     $$self{gateway} = $gateway;
     $gateway->add_item_if_not_present($self);
     $self->SUPER::class_name('security.area*');
-    $$self{id} = $id;
-    $$self{state_monitor} =
-      "security.areastat : armed|security.areastat : alert|security.areastat : alarm|security.area : event";
+    $$self{id}            = $id;
+    $$self{state_monitor} = "security.areastat : armed|security.areastat : alert|security.areastat : alarm|security.area : event";
     $self->SUPER::device_monitor("area=$id") if $id;
 
     $self->state_overload('off');
@@ -405,8 +372,7 @@ sub new {
 
 sub request_stat {
     my ($self) = @_;
-    $self->SUPER::send_cmnd(
-        'security.request' => { 'request' => 'areastat' } );
+    $self->SUPER::send_cmnd( 'security.request' => { 'request' => 'areastat' } );
 }
 
 sub id {
@@ -419,10 +385,7 @@ sub ignore_message {
     my $ignore_message = 0;
     if (
         !(
-            (
-                defined( $$p_data{'security.areastat'} )
-                and $$p_data{'security.areastat'}{'area'} eq $self->id
-            )
+            ( defined( $$p_data{'security.areastat'} ) and $$p_data{'security.areastat'}{'area'} eq $self->id )
             or ( defined( $$p_data{'security.device'} )
                 and $$p_data{'security.area'}{'area'} eq $self->id )
         )
@@ -437,26 +400,20 @@ sub default_setstate {
     my ( $self, $state, $substate, $set_by ) = @_;
     if ( $set_by =~ /^xpl/i ) {
         if ( $$self{changed} =~ /security\.areastat/ ) {
-            &::print_log( "[xPL_Security] security area stat: "
-                  . $self->get_object_name
-                  . " state is $state" )
+            &::print_log( "[xPL_Security] security area stat: " . $self->get_object_name . " state is $state" )
               if $main::Debug{xpl_security};
 
             # TO-DO: process all of the other pertinent attributes available
             return -1
-              if $self->state eq
-              $state;    # don't propagate state unless it has changed
+              if $self->state eq $state;    # don't propagate state unless it has changed
         }
         elsif ( $$self{changed} =~ /security\.area/ ) {
-            &::print_log( "[xPL_Security] security area: "
-                  . $self->get_object_name
-                  . " state is $state" )
+            &::print_log( "[xPL_Security] security area: " . $self->get_object_name . " state is $state" )
               if $main::Debug{xpl_security};
 
             # TO-DO: process all of the other pertinent attributes available
             return -1
-              if $self->state eq
-              $state;    # don't propagate state unless it has changed
+              if $self->state eq $state;    # don't propagate state unless it has changed
         }
     }
 }

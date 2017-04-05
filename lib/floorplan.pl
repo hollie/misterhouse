@@ -36,8 +36,7 @@ $^W = 0;    # Avoid redefined sub msgs
 
 my $object_name = shift || '$Property';
 my $object = &get_object_by_name($object_name);
-return &html_page( 'FloorPlan',
-    "No $object_name Group found to generate a floorplan from" )
+return &html_page( 'FloorPlan', "No $object_name Group found to generate a floorplan from" )
   unless $object;
 
 my $html = "<meta http-equiv='refresh' content='10;URL='>";
@@ -72,13 +71,9 @@ sub web_fp    #render table representation of objects and their co-ordinates
         for my $obj (@l_objs) {
             ( $l_x, $l_y, $l_w, $l_h ) = $obj->get_fp_location();
             if ( $l_x ne "" ) {    #Only do items with co-ordinates
-                for ( my $h = $l_y;
-                    $h < $l_y + $l_h;
-                    $h++ )    # Create Virtual Frame Buffer of object blocks
+                for ( my $h = $l_y; $h < $l_y + $l_h; $h++ )    # Create Virtual Frame Buffer of object blocks
                 {
-                    for ( my $w = $l_x;
-                        $w < $l_x + $l_w;
-                        $w++ )    # Create Virtual Frame buffer of object blocks
+                    for ( my $w = $l_x; $w < $l_x + $l_w; $w++ )    # Create Virtual Frame buffer of object blocks
                     {
                         $l_fp[$w][$h] = $obj;
                         $l_xmax = $w if $l_xmax < $w;
@@ -89,61 +84,40 @@ sub web_fp    #render table representation of objects and their co-ordinates
         }
         $l_html .= web_fp_item($p_obj) . "<br>";
         if ( @l_objs > 0 ) {
-            $l_html .=
-                "<table border='0' width='"
-              . $l_xmax * $l_xscale
-              . "' height='"
-              . $l_ymax * $l_yscale . "'>\n";
-            for ( my $x = 0;
-                $x <= $l_xmax;
-                $x++ )    #initialize table with (hopefully) accurate sizing
+            $l_html .= "<table border='0' width='" . $l_xmax * $l_xscale . "' height='" . $l_ymax * $l_yscale . "'>\n";
+            for ( my $x = 0; $x <= $l_xmax; $x++ )                  #initialize table with (hopefully) accurate sizing
             {
                 $l_html .= "<td></td>";
             }
-            for ( my $y = 0;
-                $y <= $l_ymax;
-                $y++ )    #Create HTML Table stucture of Virtual Frame buffer
+            for ( my $y = 0; $y <= $l_ymax; $y++ )                  #Create HTML Table stucture of Virtual Frame buffer
             {
                 $l_html .= "<tr>\n";
-                $l_html .=
-                  "\t<td width='" . $l_xscale . "' height='" . $l_yscale . "'>";
+                $l_html .= "\t<td width='" . $l_xscale . "' height='" . $l_yscale . "'>";
                 $l_html .= "</td>\n";
                 for ( my $x = 0; $x <= $l_xmax; $x++ ) {
                     $l_obj = $l_fp[$x][$y];
-                    if ( $l_obj ne "" ) {   #Only do if object is at coordinates
+                    if ( $l_obj ne "" ) {                           #Only do if object is at coordinates
                         if ( $l_rendered{$l_obj} eq '' ) {
                             $l_rendered{$l_obj} = 1;
-                            ( $l_x, $l_y, $l_w, $l_h ) =
-                              $l_obj->get_fp_location();
+                            ( $l_x, $l_y, $l_w, $l_h ) = $l_obj->get_fp_location();
                             if ( $l_x eq '' ) { $l_x = 1; }
                             if ( $l_y eq '' ) { $l_y = 1; }
                             if ( $l_w eq '' ) { $l_w = 1; }
                             if ( $l_h eq '' ) { $l_h = 1; }
-                            if ( $l_obj->isa('Group') ) {    #recurse groups
+                            if ( $l_obj->isa('Group') ) {           #recurse groups
                                 $l_html .=
-                                    "\t<td bgcolor='$l_bcolor' width='"
-                                  . $l_xscale * $l_w
-                                  . "' height='"
-                                  . $l_yscale * $l_h
-                                  . "' colspan='$l_w' rowspan='$l_h'>";
+                                  "\t<td bgcolor='$l_bcolor' width='" . $l_xscale * $l_w . "' height='" . $l_yscale * $l_h . "' colspan='$l_w' rowspan='$l_h'>";
                                 $l_html .= web_fp($l_obj);
                             }
                             else {
-                                $l_html .= "\t<td bgcolor='"
-                                  . web_fp_idle_color( $l_obj, $l_acolor,
-                                    $l_bcolor )
-                                  . "' colspan='$l_w' rowspan='$l_h'>";
+                                $l_html .= "\t<td bgcolor='" . web_fp_idle_color( $l_obj, $l_acolor, $l_bcolor ) . "' colspan='$l_w' rowspan='$l_h'>";
                                 $l_html .= web_fp_item($l_obj);
                             }
                             $l_html .= "</td>\n";
                         }
                     }
-                    else {    #Blank space
-                        $l_html .=
-                            "\t<td width='"
-                          . $l_xscale
-                          . "' height='"
-                          . $l_yscale . "'>";
+                    else {                                          #Blank space
+                        $l_html .= "\t<td width='" . $l_xscale . "' height='" . $l_yscale . "'>";
                         $l_html .= "</td>\n";
                     }
                 }
@@ -259,8 +233,7 @@ sub web_fp_item    #render all items based on type
         $l_text .= ':' . $p_obj->state();
     }
     if ( $l_state ne '' ) {
-        $l_html .=
-          "<a href='/bin/SET;referer?" . $p_obj->{object_name} . "=$l_state'>";
+        $l_html .= "<a href='/bin/SET;referer?" . $p_obj->{object_name} . "=$l_state'>";
     }
     if ( $l_image ne '' ) {
         $l_html .= "<img src='/graphics/$l_image' border=0 alt='$l_text'>";
@@ -274,17 +247,15 @@ sub web_fp_item    #render all items based on type
     return $l_html;
 }
 
-sub web_fp_idle_color #Fade color from acolor to bcolor over idle_time of object
+sub web_fp_idle_color    #Fade color from acolor to bcolor over idle_time of object
 {
     my ( $p_object, $p_acolor, $p_bcolor, $p_maxtime ) = @_;
 
     my ( $l_ared, $l_agreen, $l_ablue ) = $p_acolor =~ /#*(..)(..)(..)/;
     my ( $l_bred, $l_bgreen, $l_bblue ) = $p_bcolor =~ /#*(..)(..)(..)/;
 
-    ( $l_ared, $l_agreen, $l_ablue ) =
-      ( hex $l_ared, hex $l_agreen, hex $l_ablue );
-    ( $l_bred, $l_bgreen, $l_bblue ) =
-      ( hex $l_bred, hex $l_bgreen, hex $l_bblue );
+    ( $l_ared, $l_agreen, $l_ablue ) = ( hex $l_ared, hex $l_agreen, hex $l_ablue );
+    ( $l_bred, $l_bgreen, $l_bblue ) = ( hex $l_bred, hex $l_bgreen, hex $l_bblue );
 
     my ( $l_red, $l_green, $l_blue );
     my $l_time;
@@ -322,10 +293,7 @@ sub web_fp_idle_color #Fade color from acolor to bcolor over idle_time of object
         $l_blue = int( $l_ablue + ( ( $l_bblue - $l_ablue ) * ($l_percent) ) );
     }
 
-    return ("#"
-          . sprintf( "%02X", $l_red )
-          . sprintf( "%02X", $l_green )
-          . sprintf( "%02X", $l_blue ) );
+    return ( "#" . sprintf( "%02X", $l_red ) . sprintf( "%02X", $l_green ) . sprintf( "%02X", $l_blue ) );
 }
 
 sub web_fp_camera_popup {

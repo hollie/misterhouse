@@ -22,8 +22,7 @@ use HTML::Entities;    # So we can encode characters like <>& etc
 
 sub xml {
     my ( $request, $options ) = @_;
-    my ( $xml, $xml_types, $xml_groups, $xml_categories, $xml_vars,
-        $xml_objects );
+    my ( $xml, $xml_types, $xml_groups, $xml_categories, $xml_vars, $xml_objects );
 
     return &xml_usage unless $request;
 
@@ -181,16 +180,14 @@ sub xml {
     # List packages
     if ( $request{packages} or $request{package} ) {
         $xml .= "  <packages>\n    <vars>\n";
-        if ( $request{packages}{members} and @{ $request{packages}{members} } )
-        {
+        if ( $request{packages}{members} and @{ $request{packages}{members} } ) {
             foreach my $member ( @{ $request{packages}{members} } ) {
                 no strict 'refs';
                 my ( $type, $base ) = $member =~ /^(.)(.*)/;
                 my $ref;
                 eval "\$ref = \\$member";
                 print_log "xml packages error: $@" if $@;
-                $xml .=
-                  &walk_var( $ref, $member, 3, qw( SCALAR ARRAY HASH CODE ) );
+                $xml .= &walk_var( $ref, $member, 3, qw( SCALAR ARRAY HASH CODE ) );
             }
         }
         else {
@@ -199,8 +196,7 @@ sub xml {
                 next unless $key =~ /.+::$/;
                 next if $key eq 'main::';
                 my $iref = ${$ref}{$key};
-                $xml .=
-                  &walk_var( $iref, $key, 3, qw( SCALAR ARRAY HASH CODE ) );
+                $xml .= &walk_var( $iref, $key, 3, qw( SCALAR ARRAY HASH CODE ) );
             }
         }
         $xml .= "    </vars>\n  </packages>\n";
@@ -212,9 +208,7 @@ sub xml {
         if (   ( $request{vars}{members} and @{ $request{vars}{members} } )
             or ( $request{var}{members} and @{ $request{var}{members} } ) )
         {
-            foreach my $member ( @{ $request{vars}{members} },
-                @{ $request{var}{members} } )
-            {
+            foreach my $member ( @{ $request{vars}{members} }, @{ $request{var}{members} } ) {
                 no strict 'refs';
                 my ( $type, $name ) = $member =~ /^([\$\@\%\&])?(.+)/;
                 my $ref;
@@ -232,8 +226,7 @@ sub xml {
                 }
                 elsif ( $member =~ /.+::$/ ) {
                     eval "\$ref = \\\%$member";
-                    $xml .=
-                      &walk_var( $ref, $name, 2, qw( SCALAR ARRAY HASH CODE ) )
+                    $xml .= &walk_var( $ref, $name, 2, qw( SCALAR ARRAY HASH CODE ) )
                       if $ref;
                 }
                 else {
@@ -473,8 +466,7 @@ sub object_detail {
             print_log "xml: object_dets f $f ev $value" if $Debug{xml};
         }
         elsif ( $f eq 'html' and $object->can('get_type') ) {
-            $value = "<!\[CDATA\["
-              . &html_item_state( $object, $object->get_type ) . "\]\]>";
+            $value = "<!\[CDATA\[" . &html_item_state( $object, $object->get_type ) . "\]\]>";
             print_log "xml: object_dets f $f" if $Debug{xml};
         }
         else {
@@ -570,9 +562,7 @@ eof
         my $url = "/sub?xml($r)";
         $html .= "<h2>$r</h2>\n<p><a href='$url'>$url</a></p>\n<ul>\n";
         foreach my $opt ( sort keys %options ) {
-            if ( $options{$opt}{applyto} eq 'all' or grep /^$r$/,
-                split /\|/, $options{$opt}{applyto} )
-            {
+            if ( $options{$opt}{applyto} eq 'all' or grep /^$r$/, split /\|/, $options{$opt}{applyto} ) {
                 $url = "/sub?xml($r,$opt";
                 if ( defined $options{$opt}{example} ) {
                     foreach ( split /\|/, $options{$opt}{example} ) {

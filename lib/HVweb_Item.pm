@@ -53,14 +53,12 @@ sub add {
     $self->{$state} = $cmd;    #Homevision html tag to set item state
     $self->{defined_states} .= ","
       if ( defined( $self->{defined_states} ) );    # comma delimiter
-    $self->{defined_states} .=
-      "$state";    #List of all states defined for this item
-    $self->{state} = '?';    #Item state returned by Homeivision
-    $self->{state_info} =
-      '';    #Addt'l state info from Homeiviosn (Ex. X10 Brightness level)
+    $self->{defined_states} .= "$state";            #List of all states defined for this item
+    $self->{state}      = '?';                      #Item state returned by Homeivision
+    $self->{state_info} = '';                       #Addt'l state info from Homeiviosn (Ex. X10 Brightness level)
     $self->{status_tag} = $status_tag
-      if ($status_tag);    #Homevision html tag to read item state
-    $self->{desc} = $desc if ($desc);    #Descriptive text for this item
+      if ($status_tag);                             #Homevision html tag to read item state
+    $self->{desc} = $desc if ($desc);               #Descriptive text for this item
 }
 
 sub default_setstate {
@@ -71,8 +69,7 @@ sub default_setstate {
     my $desc = $$self{desc};
 
     if ( $cmd eq '' ) {
-        &main::print_log(
-            "(HVWEB_ITEM) Error: Command '$desc' - '$state' not defined\n");
+        &main::print_log("(HVWEB_ITEM) Error: Command '$desc' - '$state' not defined\n");
         return;
     }
 
@@ -92,9 +89,7 @@ sub default_setstate {
         $self->{state} = $state;
     }
     else {
-        &main::print_log( "(HVWEB_ITEM) '$desc' - '$state' ($cmd) Error: "
-              . $res->status_line
-              . "\n" );
+        &main::print_log( "(HVWEB_ITEM) '$desc' - '$state' ($cmd) Error: " . $res->status_line . "\n" );
     }
     return;
 }

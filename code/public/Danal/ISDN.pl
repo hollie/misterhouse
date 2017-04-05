@@ -27,19 +27,19 @@ if ( my $packet = said $ISDN) {
 
     my ( $NumChannels, %current, %service );
 
-    my $i = 4;    # Start at first option flag
+    my $i = 4;                                             # Start at first option flag
     while ( $i < length($packet) ) {
         my $option = unpack( 'C', substr( $packet, $i,     1 ) );
         my $length = unpack( 'C', substr( $packet, $i + 1, 1 ) );
         $i += 2;
         print_log "Option = $option Length = $length " if $debug;
 
-        if ( $option == 1 ) {    # Number of channels running
+        if ( $option == 1 ) {                              # Number of channels running
             $NumChannels = unpack( 'C', substr( $packet, $i, 1 ) );
             print_log "NumChannels = $NumChannels\n" if $debug;
         }
 
-        if ( $option == 2 ) {    # Call Type/Direction Channel 1
+        if ( $option == 2 ) {                              # Call Type/Direction Channel 1
             $current{1}{callflag} = unpack( 'C', substr( $packet, $i, 1 ) );
             if ( 1 == $current{1}{callflag} ) {
                 $current{1}{calltype} = 'VOICE';
@@ -61,8 +61,7 @@ if ( my $packet = said $ISDN) {
                 $current{1}{calltype} = '';
                 $current{1}{calldir}  = '';
             }
-            print_log
-              "Current call channel 1 = $current{1}{callflag} $current{1}{calltype} $current{1}{calldir}\n"
+            print_log "Current call channel 1 = $current{1}{callflag} $current{1}{calltype} $current{1}{calldir}\n"
               if $debug;
         }
 
@@ -133,8 +132,7 @@ if ( my $packet = said $ISDN) {
                 $current{2}{calltype} = '';
                 $current{2}{calldir}  = '';
             }
-            print_log
-              "Current call Channel 2 = $current{2}{callflag} $current{2}{calltype} $current{2}{calldir}\n"
+            print_log "Current call Channel 2 = $current{2}{callflag} $current{2}{calltype} $current{2}{calldir}\n"
               if $debug;
         }
 
@@ -243,8 +241,7 @@ if ( my $packet = said $ISDN) {
     {    # New data call?
         $data1_call = $current{1}{destname};
         if ( $data1_call eq $config_parms{isdn_internet} ) {
-            print_log
-              "Outgoing ISDN Data Call detected to $data1_call; starting TZO process";
+            print_log "Outgoing ISDN Data Call detected to $data1_call; starting TZO process";
             start $p_set_ip_3com_tzo;
         }
     }
@@ -255,8 +252,7 @@ if ( my $packet = said $ISDN) {
     {    # New data call?
         $data2_call = $current{2}{destname};
         if ( $data2_call eq $config_parms{isdn_internet} ) {
-            print_log
-              "Outgoing ISDN Data Call detected to $data2_call; starting TZO process";
+            print_log "Outgoing ISDN Data Call detected to $data2_call; starting TZO process";
             start $p_set_ip_3com_tzo;
         }
     }
@@ -284,14 +280,10 @@ sub checkcalled {
 sub callerid {
     return;
     my ($cid_nmbr) = @_;
-    my $cid_speak_nmbr =
-        substr( $cid_nmbr, 0, 3 ) . "."
-      . substr( $cid_nmbr, 3, 3 ) . "."
-      . substr( $cid_nmbr, 6, 4 );        # Pauses for speak
+    my $cid_speak_nmbr = substr( $cid_nmbr, 0, 3 ) . "." . substr( $cid_nmbr, 3, 3 ) . "." . substr( $cid_nmbr, 6, 4 );    # Pauses for speak
     my $areacode = substr( $cid_nmbr, 0, 3 );
     $cid_speak_nmbr = substr( $cid_speak_nmbr, 3, 8 )
-      if ( $areacode eq $config_parms{local_area_code} )
-      ;                                   # Drop area code if same
+      if ( $areacode eq $config_parms{local_area_code} );                                                                  # Drop area code if same
 #### $Caller_ID::state_by_areacode{$areacode};
     # Put Spaces in the Phone Number to 'speak' correctly
     my @chars = split //, $cid_speak_nmbr;
@@ -300,16 +292,14 @@ sub callerid {
         $cid_speak_nmbr .= $char . " ";
     }
 
-    my $cid_speak_name = '';              # for now...
-    my $cid_name       = '';              # for now...
-                                          # Long term logs
-    logit( "$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log",
-        "$cid_nmbr $cid_name" );
-    logit_dbm( "$config_parms{data_dir}/phone/callerid.dbm",
-        $cid_nmbr, "$Time_Now $Date_Now $Year name=$cid_name" );
+    my $cid_speak_name = '';                                                                                               # for now...
+    my $cid_name       = '';                                                                                               # for now...
+                                                                                                                           # Long term logs
+    logit( "$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log", "$cid_nmbr $cid_name" );
+    logit_dbm( "$config_parms{data_dir}/phone/callerid.dbm", $cid_nmbr, "$Time_Now $Date_Now $Year name=$cid_name" );
 
     # Short term log; speak or clear via X10 keypresses.
-    open( CALLLOG, ">>$config_parms{data_dir}\\phone\\callerid.log" );  # Log it
+    open( CALLLOG, ">>$config_parms{data_dir}\\phone\\callerid.log" );                                                     # Log it
     print CALLLOG "$Date_Now`$Time_Now`$cid_speak_name`$cid_speak_nmbr\n";
     close CALLLOG;
 

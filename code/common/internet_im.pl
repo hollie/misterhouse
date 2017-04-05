@@ -58,8 +58,7 @@ If on Linux (or the above does not work on Windows) try:
 =cut
 
 $v_im_test = new Voice_Cmd 'Send [AOL,ICQ,MSN,jabber] test message';
-$v_im_test->set_info(
-    'Send a test message to the default AOL, ICQ, MSN, or jabber address');
+$v_im_test->set_info('Send a test message to the default AOL, ICQ, MSN, or jabber address');
 
 if ( $state = said $v_im_test) {
     my $msg = "MisterHouse has been up for $Tk_objects{label_uptime_cpu}";
@@ -69,8 +68,7 @@ if ( $state = said $v_im_test) {
 }
 
 $v_im_signon = new Voice_Cmd 'Connect to [AOL,ICQ,MSN,jabber]';
-$v_im_signon->set_info(
-    'Disconnect, then re-Connect to the specified im servers');
+$v_im_signon->set_info('Disconnect, then re-Connect to the specified im servers');
 if ( $state = said $v_im_signon) {
     if ( $state eq 'AOL' and $oscar::aim_connected ) {
         &net_im_signoff($state);
@@ -91,11 +89,9 @@ if ( $state = said $v_im_signoff) {
 }
 
 $v_im_logdata1 = new Voice_Cmd 'Start sending log data to [AOL,ICQ,MSN,jabber]';
-$v_im_logdata1->set_info(
-    'Start sending print log entries and speech to the default IM user');
+$v_im_logdata1->set_info('Start sending print log entries and speech to the default IM user');
 $v_im_logdata2 = new Voice_Cmd 'Stop sending log data to [AOL,ICQ,MSN,jabber]';
-$v_im_logdata2->set_info(
-    'Stop sending print log entries and speech to the default IM user');
+$v_im_logdata2->set_info('Stop sending print log entries and speech to the default IM user');
 
 $log_to_im_list{"$state default"} = 'all' if $state = said $v_im_logdata1;
 delete $log_to_im_list{"$state default"} if $state = said $v_im_logdata2;
@@ -176,15 +172,13 @@ sub im_message {
         return;
     }
 
-    print
-      "IM: RUN a=$authority,$im_data{password_allow}{$from} from=$from text=$text\n"
+    print "IM: RUN a=$authority,$im_data{password_allow}{$from} from=$from text=$text\n"
       if $main::Debug{im};
     return if $text =~ /^i\'m away/i;
     return if $text =~ /^Sorry, I ran out for a bit/i;
     return if $text =~ /^I am currently away from the computer/i;
     return
-      if $from =~ /AOL System Msg/i
-      ;    # Fix for AOL: bot to bot infinite loop - stops replies to AOL's bot.
+      if $from =~ /AOL System Msg/i;    # Fix for AOL: bot to bot infinite loop - stops replies to AOL's bot.
 
     my ($im_sessionless_from) = $from =~ m/^(.*@.*\/.*)\w{8}$/;
 
@@ -193,17 +187,14 @@ sub im_message {
         if ( $im_data{password_allow}{$from} ) {
 
             # *** What about the three different levels?
-            $msg =
-              "You have $im_data{password_allow}{$from} access, so there is no need to login!";
+            $msg = "You have $im_data{password_allow}{$from} access, so there is no need to login!";
         }
         else {
             if ( my $user = password_check $2) {
                 run_after_delay 120, "&im_logoff('$pgm', '$from')";
                 $im_data{password_allow_temp}{$from} = $user;
-                $msg =
-                  "$user login accepted. You will be logged out in 2 minutes.";
-                $msg .=
-                  "\nRun set_password to create a password.  Global authorization enabled until then"
+                $msg = "$user login accepted. You will be logged out in 2 minutes.";
+                $msg .= "\nRun set_password to create a password.  Global authorization enabled until then"
                   unless -e $config_parms{password_file};
             }
             else {
@@ -236,8 +227,7 @@ sub im_message {
                 push @cmds2, $cmd;
             }
             else {
-                $cmd =~ s/^[^:]+: //
-                  ; #Trim the category ("Other: ", etc) from the front of the command
+                $cmd =~ s/^[^:]+: //;    #Trim the category ("Other: ", etc) from the front of the command
                 $cmd =~ s/\s*$//;
                 my ($ref) = &Voice_Cmd::voice_item_by_text( lc($cmd) );
                 $authority = $ref->get_authority if $ref;
@@ -246,8 +236,7 @@ sub im_message {
                   or lc $authority eq 'anyone';
             }
         }
-        $msg =
-          "Found " . scalar(@cmds2) . " commands that matched \"$search\":\n  ";
+        $msg = "Found " . scalar(@cmds2) . " commands that matched \"$search\":\n  ";
         $msg .= join( "\n  ", @cmds2 );
     }
     elsif ( $text =~ /^help/ ) {
@@ -257,15 +246,12 @@ sub im_message {
         $msg .= "  speak:  xyz  => speaks text xyz\n";
         $msg .= "  display:  xyz  => speaks text xyz\n";
         $msg .= "  set: xyz state => set object xyz to state\n";
-        $msg .=
-          "  log: xyz  => xyz is a filter of what to log. (print, speak, play, speak|play, all, and stop)\n"
+        $msg .= "  log: xyz  => xyz is a filter of what to log. (print, speak, play, speak|play, all, and stop)\n"
           if ( $im_data{password_allow}{$from}
             or $im_data{password_allow_temp}{$from} );
-        $msg .=
-          "  var: abc xyz => abc is a variable, hash or reference, xyz element in hash or hash reference to show\n";
+        $msg .= "  var: abc xyz => abc is a variable, hash or reference, xyz element in hash or hash reference to show\n";
         $msg .= "  logon: xyz  => logon with password xyz\n";
-        $msg .=
-          "  send sname:  xyz  => sname is a Screenname to send a message to, and xyz is the text to send. Can only send using current IM program\n"
+        $msg .= "  send sname:  xyz  => sname is a Screenname to send a message to, and xyz is the text to send. Can only send using current IM program\n"
           if ( $im_data{password_allow}{$from}
             or $im_data{password_allow_temp}{$from} );
         $msg .= "  any valid MisterHouse command(e.g. What time is it)\n";
@@ -293,8 +279,7 @@ sub im_message {
                         $msg = "\\$$$var = ${${$var}}";
                     }
                     else {
-                        $msg =
-                          "Error, \$$var is not a scalar reference, it is a $refType reference.  I need a second parameter";
+                        $msg = "Error, \$$var is not a scalar reference, it is a $refType reference.  I need a second parameter";
                     }
                 }
             }
@@ -302,8 +287,7 @@ sub im_message {
                 if ( $refType eq '' ) {    # this is a simple hash
                     $msg = '$' . $var . '{' . $key . '} = ' . ${$var}{$key};
                 }
-                else
-                {    # this is a reference, assuming a hash or object reference
+                else {                     # this is a reference, assuming a hash or object reference
                     $msg = '$' . $var . '->{' . $key . '} = ' . ${$var}->{$key};
                 }
             }
@@ -337,9 +321,7 @@ sub im_message {
             my @command = split( / /, $cmdstring );
 
             # check each of the following object classes for matching object name
-            for my $objectclass ( 'X10_Item', 'X10_Appliance', 'Serial_Item',
-                'Group' )
-            {
+            for my $objectclass ( 'X10_Item', 'X10_Appliance', 'Serial_Item', 'Group' ) {
                 for my $name ( &list_objects_by_type($objectclass) ) {
 
                     # compare lowercase to make case-insensitive
@@ -356,8 +338,7 @@ sub im_message {
                                 # so do it!
                                 $flag = 1;
                                 set $object $command[1];
-                                $msg =
-                                  $command[0] . " set to " . $command[1] . "\n";
+                                $msg = $command[0] . " set to " . $command[1] . "\n";
 
                                 # break out since we're done
                                 last;
@@ -366,10 +347,7 @@ sub im_message {
                         if ( !$flag ) {
 
                             # oops...invalid state requested, let them know
-                            $msg =
-                                $command[1]
-                              . " is not a valid state for "
-                              . $command[0] . "\n";
+                            $msg = $command[1] . " is not a valid state for " . $command[0] . "\n";
 
                             # set the flag so we'll stop searching because
                             # we already matched the object name
@@ -395,9 +373,7 @@ sub im_message {
             $cmdstring =~ s/\s+$//;
 
             # check each of the following object classes for matching object name
-            for my $objectclass ( 'X10_Item', 'X10_Appliance', 'Serial_Item',
-                'Group' )
-            {
+            for my $objectclass ( 'X10_Item', 'X10_Appliance', 'Serial_Item', 'Group' ) {
                 for my $name ( &list_objects_by_type($objectclass) ) {
 
                     # compare lowercase to make case-insensitive
@@ -430,19 +406,11 @@ sub im_message {
 
         # *** Need to convert unmatched command to a find...
         # RespondTarget is deprecated, use set_by to respond to the correct program/user
-        elsif (
-            &process_external_command(
-                $text, 1,
-                "im [$pgm,$from]",
-                "im pgm=$pgm to=$from"
-            )
-          )
-        {
+        elsif ( &process_external_command( $text, 1, "im [$pgm,$from]", "im pgm=$pgm to=$from" ) ) {
         }
         else {
 
-            use vars '$eliza_rule'
-              ;    # in case eliza_server common code module is not loaded
+            use vars '$eliza_rule';    # in case eliza_server common code module is not loaded
 
             my $rule;
 
@@ -452,10 +420,8 @@ sub im_message {
                 $rule = $eliza_rule->{state};
             }
 
-            if ( $rule and $rule ne 'none' )
-            {      # allow short-circuit of chatbot via config parm or widget
-                my $eliza = new Chatbot::Eliza "Eliza",
-                  "../data/eliza/$rule.txt";
+            if ( $rule and $rule ne 'none' ) {    # allow short-circuit of chatbot via config parm or widget
+                my $eliza = new Chatbot::Eliza "Eliza", "../data/eliza/$rule.txt";
                 $msg = $eliza->transform($text);
             }
             else {

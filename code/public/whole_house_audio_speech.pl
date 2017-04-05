@@ -60,14 +60,12 @@ my $wav_before_festival = 1;
 
 # If you want certain zones to turn on only if certain rooms are occupied,
 # you can list zone names and then associated presence objects here
-my %presence_by_room =
-  ( 'kitchen' => [ $om_presence_kitchen, $om_presence_family_room ] );
+my %presence_by_room = ( 'kitchen' => [ $om_presence_kitchen, $om_presence_family_room ] );
 
 # Define your alsa channels here (leave the undef there to fill the space
 # of the 0 array index).  These should be listed in the same order that
 # they are connected to you whole-house audio system
-my @alsa_channels =
-  ( undef, 'channel12', 'channel34', 'channel56', 'channel78' );
+my @alsa_channels = ( undef, 'channel12', 'channel34', 'channel56', 'channel78' );
 
 # Provide list of rooms to be used when speech goes to 'all' rooms
 # kitchen, master_bed, outside, office, kirks_room, guest_room
@@ -92,20 +90,13 @@ my @restore_volume;
 my %delay;
 my %last_played;
 my $SpeechCount = 0;
-my @wav_players = (
-    undef,
-    new Process_Item(),
-    new Process_Item(),
-    new Process_Item(),
-    new Process_Item()
-);
+my @wav_players = ( undef, new Process_Item(), new Process_Item(), new Process_Item(), new Process_Item() );
 
 sub play_audio {
     my ( $output, $file ) = @_;
     my $cmd;
     if ( $bitrate and $file =~ /speak_festival/ ) {
-        $cmd =
-          "sox '$file' -r $bitrate '$file.new.wav'; /usr/bin/aplay -D '$alsa_channels[$output]' '$file.new.wav'";
+        $cmd = "sox '$file' -r $bitrate '$file.new.wav'; /usr/bin/aplay -D '$alsa_channels[$output]' '$file.new.wav'";
     }
     else {
         $cmd = "/usr/bin/aplay -D '$alsa_channels[$output]' '$file'";
@@ -167,19 +158,14 @@ sub pre_handle_room {
     my $source = 0;
     return 0 unless ( $zones_by_room{$room} );
     my $zone_num = $zones_by_room{$room}->get_zone_num();
-    print_log
-      "Speech: Checking room $room(zone=$zone_num): importance=$importance, only_if_occupied=$only_if_occupied";
-    print_log "Speech:    name of current virtual source: "
-      . $audio_router->get_virtual_source_name_for_zone($zone_num);
-    print_log "Speech:    current source: "
-      . $zones_by_room{$room}->get_source();
-    if ( $audio_router->get_virtual_source_name_for_zone($zone_num) eq
-        'v_voice' )
-    {
+    print_log "Speech: Checking room $room(zone=$zone_num): importance=$importance, only_if_occupied=$only_if_occupied";
+    print_log "Speech:    name of current virtual source: " . $audio_router->get_virtual_source_name_for_zone($zone_num);
+    print_log "Speech:    current source: " . $zones_by_room{$room}->get_source();
+    if ( $audio_router->get_virtual_source_name_for_zone($zone_num) eq 'v_voice' ) {
+
         # Always play if room is already tuned in...
         $source = $audio_router->get_real_source_number_for_zone($zone_num);
-        print_log
-          "Speech:    Room $room(zone=$zone_num): already on voice (source=$source)";
+        print_log "Speech:    Room $room(zone=$zone_num): already on voice (source=$source)";
 
         # Check for pause in case I'm playing MP3s through the Misterhouse web-based jukebox
         &check_for_pause($zone_num);
@@ -190,30 +176,24 @@ sub pre_handle_room {
         # Zone is already on another virtual source...
         print_log "Speech:    mute=" . $Save{"mute_$room"};
         if ( ( $importance eq 'urgent' ) or ( not $Save{"mute_$room"} ) ) {
-            my $vsource =
-              $audio_router->get_virtual_source_obj_for_zone($zone_num);
+            my $vsource = $audio_router->get_virtual_source_obj_for_zone($zone_num);
             print_log "Speech:    vsource=$$vsource{name}";
             if ( $vsource->get_data('playlist') ) {
 
                 # Source is playing MP3s...
                 $source = &check_for_pause($zone_num);
-                print_log
-                  "Speech:    Room $room(zone=$zone_num): listening to MP3s. (source=$source)";
+                print_log "Speech:    Room $room(zone=$zone_num): listening to MP3s. (source=$source)";
             }
             elsif (( $importance eq 'urgent' )
                 or ( $importance eq 'important' ) )
             {
                 # Not tuned to voice or MP3s
                 if ( not $only_if_occupied or &is_room_occupied($room) ) {
-                    $zone_recovery{$room}->{'vsource'} =
-                      $audio_router->get_virtual_source_name_for_zone(
-                        $zone_num);
-                    $source = $audio_router->select_virtual_source( $zone_num,
-                        'v_voice' );
+                    $zone_recovery{$room}->{'vsource'} = $audio_router->get_virtual_source_name_for_zone($zone_num);
+                    $source = $audio_router->select_virtual_source( $zone_num, 'v_voice' );
                     $zones_by_room{$room}->set_source($source)
                       if ( $source > 0 );
-                    print_log
-                      "Speech:    Room $room(zone=$zone_num): listening to something else, switching to voice source. (source=$source";
+                    print_log "Speech:    Room $room(zone=$zone_num): listening to something else, switching to voice source. (source=$source";
                     $zone_recovery{$room}->{'source'} = $source;
                     $zone_recovery{$room}->{'zone'}   = $zone_num;
                 }
@@ -225,15 +205,12 @@ sub pre_handle_room {
         # Zone is off... turn on unless debug importance
         if ( not $only_if_occupied or &is_room_occupied($room) ) {
             if ( ( $importance eq 'urgent' ) or ( not $Save{"mute_$room"} ) ) {
-                $source =
-                  $audio_router->select_virtual_source( $zone_num, 'v_voice' );
+                $source = $audio_router->select_virtual_source( $zone_num, 'v_voice' );
                 if ( $source > 0 ) {
-                    print_log
-                      "Speech:    Room $room(zone=$zone_num): turning on to source $source";
+                    print_log "Speech:    Room $room(zone=$zone_num): turning on to source $source";
                     $zones_by_room{$room}->set_source($source);
                     if ( $speech_volume{ $zones_by_room{$room} } ) {
-                        $zones_by_room{$room}->set_volume(
-                            $speech_volume{ $zones_by_room{$room} } );
+                        $zones_by_room{$room}->set_volume( $speech_volume{ $zones_by_room{$room} } );
                     }
                     $zones_by_room{$room}->delay_off(120);
                 }
@@ -250,15 +227,13 @@ sub pre_handle_room {
             }
         }
     }
-    print_log
-      "Speech:    returning source $source for room $room(zone=$zone_num)";
+    print_log "Speech:    returning source $source for room $room(zone=$zone_num)";
     return $source;
 }
 
 sub pre_speak_hook {
     my ($parms) = @_;
-    print_log
-      "Speech: pre_speak_hook importance=$$parms{importance}, rooms=[$$parms{rooms}]";
+    print_log "Speech: pre_speak_hook importance=$$parms{importance}, rooms=[$$parms{rooms}]";
     my $only_if_occupied = 1;
     my $importance       = $$parms{'importance'};
     unless ($importance) {
@@ -280,8 +255,7 @@ sub pre_speak_hook {
     my $source;
     my %use_players;
     foreach (@rooms) {
-        if ( $source = &pre_handle_room( $_, $importance, $only_if_occupied ) )
-        {
+        if ( $source = &pre_handle_room( $_, $importance, $only_if_occupied ) ) {
             print_log "Speech: got source $source for room $_";
             $use_players{$source}++;
         }
@@ -298,8 +272,7 @@ sub pre_speak_hook {
     print_log "Speech: player string is: $player_str";
     if ($player_str) {
         $SpeechCount++;
-        $parms->{'to_file'} =
-          "$config_parms{html_alias_cache}/speak_festival.${Hour}.${Minute}.${Second}.${SpeechCount}.wav";
+        $parms->{'to_file'}     = "$config_parms{html_alias_cache}/speak_festival.${Hour}.${Minute}.${Second}.${SpeechCount}.wav";
         $parms->{'use_players'} = $player_str;
     }
     else {
@@ -328,8 +301,7 @@ sub post_speak_hook {
 #####################################################################
 
 if ($New_Hour) {
-    system( 'find', "$config_parms{html_alias_cache}",
-        '-mmin', '+5', '-exec', 'rm', '-f', '{}', ';' );
+    system( 'find', "$config_parms{html_alias_cache}", '-mmin', '+5', '-exec', 'rm', '-f', '{}', ';' );
 }
 
 if ($Reload) {
@@ -341,16 +313,14 @@ if ($Reload) {
 # Watch for completion...
 for ( my $source = 1; $source <= $#wav_players; $source++ ) {
     if ( $wav_players[$source]->done_now() ) {
-        print_log
-          "Speech:    speech to source $source is complete (restore_volume=$restore_volume[$source]).";
+        print_log "Speech:    speech to source $source is complete (restore_volume=$restore_volume[$source]).";
         if ( $restore_volume[$source] ) {
             if ($pause_mp3s) {
                 print_log "Speech:    Unpausing MP3s on source $source";
                 $players[$source]->unpause();
             }
             else {
-                print_log
-                  "Speech:    Increasing volume of MP3s on source $source";
+                print_log "Speech:    Increasing volume of MP3s on source $source";
                 $players[$source]->volume('1.0');
             }
             $restore_volume[$source] = 0;
@@ -358,12 +328,8 @@ for ( my $source = 1; $source <= $#wav_players; $source++ ) {
         foreach my $room ( keys %zone_recovery ) {
             if ( $zone_recovery{$room}->{'source'} == $source ) {
                 if ( $zone_recovery{$room}->{'vsource'} ) {
-                    print_log
-                      "Speech:    returning $room to virtual source $zone_recovery{$room}->{'vsource'}";
-                    my $newsource = $audio_router->select_virtual_source(
-                        $zone_recovery{$room}->{'zone'},
-                        $zone_recovery{$room}->{'vsource'}
-                    );
+                    print_log "Speech:    returning $room to virtual source $zone_recovery{$room}->{'vsource'}";
+                    my $newsource = $audio_router->select_virtual_source( $zone_recovery{$room}->{'zone'}, $zone_recovery{$room}->{'vsource'} );
                     $zones_by_room{$room}->set_source($newsource)
                       if ( $newsource > 0 );
                 }

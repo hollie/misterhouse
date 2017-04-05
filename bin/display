@@ -7,7 +7,7 @@ my ( $Pgm_Path, $Pgm_Name );
 BEGIN {
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval "use lib '$Pgm_Path/../lib'";   # Use BEGIN eval to keep perl2exe happy
+    eval "use lib '$Pgm_Path/../lib'";    # Use BEGIN eval to keep perl2exe happy
 }
 
 use Getopt::Long;
@@ -36,8 +36,7 @@ End_of_Help
 # Find the path to the mh/bin directory.
 BEGIN {
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /^(.*?)[\\\/]?([^\\\/]+).bat/;
-    use Cwd
-      ; # perl2exe leaves $0=mh.bat, so assume/require current directory is mh/bin dir
+    use Cwd;    # perl2exe leaves $0=mh.bat, so assume/require current directory is mh/bin dir
     $Pgm_Path = cwd() unless ($Pgm_Path);
 }
 

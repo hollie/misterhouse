@@ -9,15 +9,9 @@
 
 # Sections names
 my %Sections_names = (
-    'Hoy',           'Hoy es noticia',
-    'Nacional',      'Nacional',
-    'Internacional', 'Internacional',
-    'Deportes',      "Deportes \/ Segundosfuera",
-    'Sociedad',      'Sociedad',
-    'Finanzas',      "Finanzas \/ Basefinanciera",
-    'Tecnología',    'Tecnología',
-    'Ciencia',       'Ciencia',
-    'Cultura',       'Cultura',
+    'Hoy',        'Hoy es noticia',            'Nacional', 'Nacional', 'Internacional', 'Internacional',
+    'Deportes',   "Deportes \/ Segundosfuera", 'Sociedad', 'Sociedad', 'Finanzas',      "Finanzas \/ Basefinanciera",
+    'Tecnología', 'Tecnología',                'Ciencia',  'Ciencia',  'Cultura',       'Cultura',
 );
 
 # Maximum number of news by section to show
@@ -27,9 +21,7 @@ my $f_news_data = "$config_parms{data_dir}/news_data";
 $f_news_file = new File_Item($f_news_data);
 
 $v_news = new Voice_Cmd('[Comprueba,Dime,Borra] las últimas noticias');
-$v_news->set_info(
-    "Muestra las últimas noticias de las categorias: $config_parms{news_sections}"
-);
+$v_news->set_info("Muestra las últimas noticias de las categorias: $config_parms{news_sections}");
 $v_news->set_authority('anyone');
 set_icon $v_news 'news';
 

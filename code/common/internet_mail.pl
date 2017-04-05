@@ -17,6 +17,9 @@
 #@ <p>The config param net_mail_scan_timeout_cycles prevents the process item
 #@ being killed if it didn't complete within a scan interval.
 
+#@ <p> The config param net_mail_command_disable globally disables scanning message
+#@ text looking for commands to execute
+
 #@ <p><a href="/email">Check here</a> after you have enabled and configured
 #@ this script to see your email messages.
 
@@ -25,8 +28,7 @@
 # Example on how to send an email command
 # - This string can be in either the subject or the body of the email
 #      Subject line is:  command:x y z  code:xyz
-$v_send_email_test =
-  new Voice_Cmd('Send test e mail [1,2,3,4,5,6,7,8,9,10,11,12]');
+$v_send_email_test = new Voice_Cmd('Send test e mail [1,2,3,4,5,6,7,8,9,10,11,12]');
 $v_send_email_test->set_info('Send commands to test remote email commands');
 
 $v_cell_phone_test = new Voice_Cmd 'Send test e mail to the cell phone';
@@ -39,9 +41,7 @@ $v_recent_email->set_info('Download and summarize new email headers');
 
 # List or read unread email
 $v_unread_email = new Voice_Cmd('[List,Read] unread e mail');
-$v_unread_email->set_info(
-    'Summarize unread email headers and optionally call Outlook to read the mail'
-);
+$v_unread_email->set_info('Summarize unread email headers and optionally call Outlook to read the mail');
 
 my $get_email_scan_file      = "$config_parms{data_dir}/get_email.scan";
 my $get_email_timeout_cycles = 0;
@@ -72,17 +72,14 @@ if ( said $v_send_email_test) {
 
         # Send a command in the subject
         &net_mail_send(
-            subject => "command:What time is it  code:"
-              . $config_parms{net_mail_command_code},
-            text => "I have been running for "
-              . &time_diff( $Time_Startup_time, time )
+            subject => "command:What time is it  code:" . $config_parms{net_mail_command_code},
+            text    => "I have been running for " . &time_diff( $Time_Startup_time, time )
         ) if $state == 2;
 
         # Send a command in the body
         &net_mail_send(
             subject => "test command in body of text",
-            text    => "command:get this weeks new dvds  \ncode:"
-              . $config_parms{net_mail_command_code}
+            text    => "command:get this weeks new dvds  \ncode:" . $config_parms{net_mail_command_code}
         ) if $state == 3;
 
         # Send attachements of different types
@@ -121,9 +118,7 @@ if ( said $v_send_email_test) {
         ) if $state == 9;
 
         # Test a request file via email
-        &net_mail_send(
-            subject => "command:request $config_parms{caller_id_file}  code:"
-              . $config_parms{net_mail_command_code} )
+        &net_mail_send( subject => "command:request $config_parms{caller_id_file}  code:" . $config_parms{net_mail_command_code} )
           if $state == 10;
 
         &net_mail_send(
@@ -137,9 +132,7 @@ if ( said $v_send_email_test) {
         $v_send_email_test->respond("app=email Test message has been sent.");
     }
     else {
-        $v_send_email_test->respond(
-            "app=email I am not logged on to the internet, so can't send mail."
-        );
+        $v_send_email_test->respond("app=email I am not logged on to the internet, so can't send mail.");
     }
 }
 
@@ -177,17 +170,14 @@ if (
     }
     else {
         if ( $get_email_timeout_cycles == $get_email_timeout_current ) {
-            print_log
-              "Internet_mail: Timeout expired getting email, killing process.";
+            print_log "Internet_mail: Timeout expired getting email, killing process.";
             $get_email_timeout_current = 0;
             start $p_get_email;
         }
         else {
             $get_email_timeout_current++;
-            my $cycles_left =
-              $get_email_timeout_cycles - $get_email_timeout_current;
-            print_log "Internet_mail: Request to check mail but process still"
-              . " running. $cycles_left scan intervals remain";
+            my $cycles_left = $get_email_timeout_cycles - $get_email_timeout_current;
+            print_log "Internet_mail: Request to check mail but process still" . " running. $cycles_left scan intervals remain";
         }
     }
 }
@@ -231,13 +221,7 @@ if ( $state = said $v_unread_email) {
 
         # *** Look up path in registry!  This is clearly Windows-only too...
 
-        if (
-            my $window = &sendkeys_find_window(
-                'Outlook',
-                'C:\Program Files\Microsoft Office\Office\OUTLOOK.EXE'
-            )
-          )
-        {
+        if ( my $window = &sendkeys_find_window( 'Outlook', 'C:\Program Files\Microsoft Office\Office\OUTLOOK.EXE' ) ) {
             my $keys = '\\alt\\te\\ret\\';    # For Outlook
             &SendKeys( $window, $keys, 1, 500 );
         }
@@ -266,10 +250,9 @@ sub scan_subjects {
     my ($file) = @_;
     return unless -e $file;
     for my $line ( file_read $file) {
-        my ( $from, $to, $subject_body ) =
-          $line =~ /From: *(.+) To: *(.+) Subject: *(.*)/;
-        if ( my ( $command, $code ) =
-            $subject_body =~ /command:(.+?)\s+code:(\S+)/i )
+        my ( $from, $to, $subject_body ) = $line =~ /From: *(.+) To: *(.+) Subject: *(.*)/;
+        if (   !( defined $config_parms{net_mail_command_disable} )
+            and ( my ( $command, $code ) = $subject_body =~ /command:(.+?)\s+code:(\S+)/i ) )
         {
             my $results;
             if (    $config_parms{net_mail_command_code}
@@ -294,15 +277,7 @@ sub scan_subjects {
                 }
                 else {
                     # The mh respond_email function will mail back the results
-                    if (
-                        &process_external_command(
-                            $command,
-                            1,
-                            "email [$from]",
-                            "email to='$from' subject='Results for: $command'"
-                        )
-                      )
-                    {
+                    if ( &process_external_command( $command, 1, "email [$from]", "email to='$from' subject='Results for: $command'" ) ) {
                         speak "Running email command: $command";
                         $results = "Command was run: $command";
                     }
@@ -316,8 +291,7 @@ sub scan_subjects {
                 speak "An unauthorized email command received: $command";
                 $results = "Command not authorized: $command code:$code";
             }
-            logit( "$config_parms{data_dir}/logs/email_command.log",
-                "From:$from  " . $results );
+            logit( "$config_parms{data_dir}/logs/email_command.log", "From:$from  " . $results );
             &net_mail_send( to => $from, subject => $results );
         }
     }
@@ -355,15 +329,13 @@ sub open_email_message_window {
     $parms{text}        = "Dear,";
     $parms{window_name} = "message";
     $parms{buttons}     = 2;
-    $parms{help} = 'Enter a message to send to the default email account.';
+    $parms{help}        = 'Enter a message to send to the default email account.';
     my $w_window = &load_child_window(%parms);
 
     if ( defined $w_window ) {
         unless ( $w_window->{activated} ) {
-            $w_window->{MW}{top_frame}->Label( -text => 'Re:' )
-              ->pack(qw/-side left/);
-            $w_window->{re} = $w_window->{MW}{top_frame}->Entry()
-              ->pack(qw/-expand yes -fill both -side left/);
+            $w_window->{MW}{top_frame}->Label( -text => 'Re:' )->pack(qw/-side left/);
+            $w_window->{re} = $w_window->{MW}{top_frame}->Entry()->pack(qw/-expand yes -fill both -side left/);
             $w_window->activate();
             $w_window->{re}->focus();
         }

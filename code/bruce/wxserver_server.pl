@@ -10,8 +10,7 @@
 #
 #my $WxServerVersionID = 'mh server_wxserver.pl V0.0.1';
 
-$ServerWxServer =
-  new Socket_Item( undef, undef, 'server_wxserver', undef, 'tcp', 'raw' );
+$ServerWxServer = new Socket_Item( undef, undef, 'server_wxserver', undef, 'tcp', 'raw' );
 
 #                                  Ref             m        b    Units  units
 my %WxCommandSet = (

@@ -177,8 +177,7 @@ else {
     # calculate size of image and text for offset
 
     my $textsize = length $text;
-    my $font     = gdMediumBoldFont
-      ;    # Choices: gdTinyFont, gdLargeFont, gdSmallFont, gdMediumBoldFont
+    my $font     = gdMediumBoldFont;    # Choices: gdTinyFont, gdLargeFont, gdSmallFont, gdMediumBoldFont
     $font = gdTinyFont if $textsize > 14;
 
     my ( $imwidth, $imheight ) = $image->getBounds();

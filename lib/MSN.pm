@@ -51,11 +51,7 @@ use IO::Select;
 #use DBI;
 use Digest::MD5 qw(md5 md5_hex md5_base64);
 
-my (
-    @Calls,    $Handle,     $Host,   $TrID,   $Port,
-    $Password, $CustomName, %Ignore, $Status, $Debug,
-    %Socks,    $Master,     $Funcs
-);
+my ( @Calls, $Handle, $Host, $TrID, $Port, $Password, $CustomName, %Ignore, $Status, $Debug, %Socks, $Master, $Funcs );
 
 $TrID = 0;
 $Port = 1863;
@@ -114,8 +110,7 @@ sub sendmsg {
     my $self = shift;
     my ($response) = @_;
 
-    my $header =
-      qq{MIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nX-MMS-IM-Format: FN=MS%20Shell%20Dlg; EF=; CO=0; CS=0; PF=0\n\n};
+    my $header = qq{MIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nX-MMS-IM-Format: FN=MS%20Shell%20Dlg; EF=; CO=0; CS=0; PF=0\n\n};
 
     $header .= $response;
     $header =~ s/\n/\r\n/gs;
@@ -174,8 +169,7 @@ sub buddystatus {
         open OUT, ">/tmp/msn.status";
         print OUT time, "\n";
         foreach ( keys %{ $self->{Buddies} } ) {
-            print OUT "$_ ", $self->{Buddies}->{$_}->{Status}, " ",
-              $self->{Buddies}->{$username}->{LastChange}, "\n";
+            print OUT "$_ ", $self->{Buddies}->{$_}->{Status}, " ", $self->{Buddies}->{$username}->{LastChange}, "\n";
         }
         close OUT;
     }
@@ -257,8 +251,7 @@ sub process {
                     }
                 }
                 else {
-                    die "Unsupported authentication method: \"",
-                      &join( " ", @data ), "\"\n";
+                    die "Unsupported authentication method: \"", &join( " ", @data ), "\"\n";
                 }
             }
             elsif ( $cmd eq 'XFR' ) {
@@ -281,28 +274,23 @@ sub process {
                     if ( $Calls[0] ) {
                         my ( $h, undef ) = split( /:/, $data[2] );
                         $$self->{Sessions}->{ $Calls[0] } = MSN->new('SB');
-                        $$self->{Sessions}->{ $Calls[0] }->{Socket} =
-                          IO::Socket::INET->new(
+                        $$self->{Sessions}->{ $Calls[0] }->{Socket} = IO::Socket::INET->new(
                             PeerAddr => $h,
                             PeerPort => $Port,
                             Proto    => 'tcp'
-                          ) or die "$!";
+                        ) or die "$!";
 
                         # Add the new connection to the Select structure.
-                        $Select->add(
-                            $$self->{Sessions}->{ $Calls[0] }->{Socket} );
-                        $Socks{ $$self->{Sessions}->{ $Calls[0] }->{Socket}
-                              ->fileno } = \$$self->{Sessions}->{ $Calls[0] };
+                        $Select->add( $$self->{Sessions}->{ $Calls[0] }->{Socket} );
+                        $Socks{ $$self->{Sessions}->{ $Calls[0] }->{Socket}->fileno } = \$$self->{Sessions}->{ $Calls[0] };
                         $$self->{Sessions}->{ $Calls[0] }->{Key} = $data[4];
-                        $$self->{Sessions}->{ $Calls[0] }
-                          ->send( 'USR', $Handle . ' ' . $data[4] );
+                        $$self->{Sessions}->{ $Calls[0] }->send( 'USR', $Handle . ' ' . $data[4] );
                         $$self->{Sessions}->{ $Calls[0] }->{Type}   = 'SB';
                         $$self->{Sessions}->{ $Calls[0] }->{Handle} = $Calls[0];
 
                     }
                     else {
-                        die
-                          "Huh? Recieved XFR SB request, but there are no pending calls!\n";
+                        die "Huh? Recieved XFR SB request, but there are no pending calls!\n";
                     }
                 }
             }
@@ -326,26 +314,23 @@ sub process {
                 my ( $sid, $addr, undef, $key, $chandle, $cname ) = @data;
                 my ( $h, undef ) = split( /:/, $addr );
                 $$self->{Sessions}->{$chandle} = MSN->new('SB');
-                $$self->{Sessions}->{$chandle}->{Socket} =
-                  IO::Socket::INET->new(
+                $$self->{Sessions}->{$chandle}->{Socket} = IO::Socket::INET->new(
                     PeerAddr => $h,
                     PeerPort => $Port,
                     Proto    => 'tcp'
-                  ) or die "$!";
+                ) or die "$!";
                 $Select->add( $$self->{Sessions}->{$chandle}->{Socket} );
                 $Socks{ $$self->{Sessions}->{$chandle}->{Socket}->fileno } =
                   \$$self->{Sessions}->{$chandle};
                 $$self->{Sessions}->{$chandle}->{Key}    = $key;
                 $$self->{Sessions}->{$chandle}->{Handle} = $chandle;
-                $$self->{Sessions}->{$chandle}
-                  ->send( 'ANS', "$Handle $key $sid" );
+                $$self->{Sessions}->{$chandle}->send( 'ANS', "$Handle $key $sid" );
             }
             elsif ( $cmd eq 'ANS' ) {
                 my ($response) = @data;
 
                 if ( defined $$Funcs{Answer} ) {
-                    &{ $$Funcs{Answer} }( $self, $response )
-                      ;    # bbw Added $response
+                    &{ $$Funcs{Answer} }( $self, $response );    # bbw Added $response
                 }
 
             }
@@ -358,8 +343,7 @@ sub process {
                     $msg = stripheader($msg);
                     if ( $$self->{Type} eq 'SB' ) {
                         if ( defined $$Funcs{Message} ) {
-                            &{ $$Funcs{Message} }
-                              ( $self, $user, $friendly, $msg );
+                            &{ $$Funcs{Message} }( $self, $user, $friendly, $msg );
                         }
 
                         #                  if ($msg =~ /seen/is) {

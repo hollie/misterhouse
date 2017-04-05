@@ -34,11 +34,9 @@ if ( state_now $alarm) {
 sub alarm_notify {
     my ($text) = @_;
 
-    my $p1 = new Process_Item(
-        "send_sprint_pcs -to danal -text \"$text $Date_Now $Time_Now\" ");
+    my $p1 = new Process_Item("send_sprint_pcs -to danal -text \"$text $Date_Now $Time_Now\" ");
     start $p1;    # Run externally so as not to hang MH process
-    my $p2 = new Process_Item(
-        "alpha_page -pin 1488774 -message \"$text $Date_Now $Time_Now\" ");
+    my $p2 = new Process_Item("alpha_page -pin 1488774 -message \"$text $Date_Now $Time_Now\" ");
     start $p2;    # Run externally so as not to hang MH process
     net_mail_send(
         account => 'DanalHome',

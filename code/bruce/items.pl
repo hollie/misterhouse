@@ -17,8 +17,7 @@ $all_lights_on_bed    = new Serial_Item('XPI');
 #$garage_movement_light= new Serial_Item('XI1');
 #$garage_movement      = new Serial_Item('XI2');   # Do not respond to XIJ (on), so do not use X10_Item
 $garage_movement_light = new Serial_Item('XJ1');
-$garage_movement =
-  new Serial_Item('XJ2');   # Do not respond to XIJ (on), so do not use X10_Item
+$garage_movement       = new Serial_Item('XJ2');    # Do not respond to XIJ (on), so do not use X10_Item
 $garage_movement->set_icon('motion');
 
 # These are the dark/light signals that the motions sensors send ... ignore them
@@ -31,12 +30,12 @@ $garage_movement->set_icon('motion');
 #$motion_sensor_ignore -> add            ('XAK');
 #$motion_sensor_ignore ->{no_log} = 1; # Avoid logging by mh/code/common/mh_control.pl
 
-$sensor_hall->{no_log}     = 1;  # Avoid logging by mh/code/common/mh_control.pl
-$sensor_bathroom->{no_log} = 1;  # Avoid logging by mh/code/common/mh_control.pl
-$garage_lights->{no_speak} = 1;  # Avoid speaking by pa_control.pl
+$sensor_hall->{no_log}     = 1;    # Avoid logging by mh/code/common/mh_control.pl
+$sensor_bathroom->{no_log} = 1;    # Avoid logging by mh/code/common/mh_control.pl
+$garage_lights->{no_speak} = 1;    # Avoid speaking by pa_control.pl
 
 $bathroom_light->set_icon('motion');
-$bathroom_light->{no_log} = 1;   # Avoid logging by mh/code/common/mh_control.pl
+$bathroom_light->{no_log} = 1;     # Avoid logging by mh/code/common/mh_control.pl
 $toggle_bathroom_light = new Serial_Item( 'XPE', 'toggle' );
 $toggle_bathroom_light->tie_items($bathroom_light);
 

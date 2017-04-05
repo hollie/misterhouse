@@ -17,12 +17,9 @@ $v_shut_up->set_info('Tell computer to stifle');
 
 # *** Remarks have spelling errors (and aren't particularly amusing.)
 
-$f_personal_remark_good =
-  new File_Item("$config_parms{data_dir}/remarks/personal_good.txt");
-$f_personal_remark_bad =
-  new File_Item("$config_parms{data_dir}/remarks/personal_bad.txt");
-$f_april_fools =
-  new File_Item("$config_parms{data_dir}/remarks/april_fools.txt");
+$f_personal_remark_good = new File_Item("$config_parms{data_dir}/remarks/personal_good.txt");
+$f_personal_remark_bad  = new File_Item("$config_parms{data_dir}/remarks/personal_bad.txt");
+$f_april_fools          = new File_Item("$config_parms{data_dir}/remarks/april_fools.txt");
 
 # Create trigger to play the annoying South Park sounds (needs updating)
 
@@ -30,8 +27,7 @@ if ($Reload) {
     &trigger_set(
         "time_random('* 18-22 * * 1-5', 240) or time_random('*  8-22 * * 0,6', 240)",
         "run_voice_cmd('Play a fun sound file')",
-        'NoExpire',
-        'play fun sound'
+        'NoExpire', 'play fun sound'
     ) unless &trigger_get('play fun sound');
 }
 
@@ -45,15 +41,13 @@ if ( said $v_shut_up) {
 }
 
 $v_why_here->respond(
-    "app=goofy Well, why are you here? Why are any of us here? I mean when you get down to it, it is all so meaningless. You know what I mean?"
-) if said $v_why_here;
+    "app=goofy Well, why are you here? Why are any of us here? I mean when you get down to it, it is all so meaningless. You know what I mean?")
+  if said $v_why_here;
 
 $v_go_away->respond("I would go away if I could.") if said $v_go_away;
-$v_personal_remark_good->respond(
-    "app=goofy " . read_next $f_personal_remark_good)
+$v_personal_remark_good->respond( "app=goofy " . read_next $f_personal_remark_good)
   if said $v_personal_remark_good;
-$v_personal_remark_bad->respond(
-    "app=goofy image=frown " . read_next $f_personal_remark_bad)
+$v_personal_remark_bad->respond( "app=goofy image=frown " . read_next $f_personal_remark_bad)
   if said $v_personal_remark_bad;
 
 # One a day random wav file (triggered)

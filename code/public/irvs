@@ -64,8 +64,7 @@ MAINMENU: while ( 1 == 1 ) {
                         $iv->addmsg("1");
                         $iv->addmsg("moment");
                         $iv->playfile || &closeall;
-                        &send_ivr_socket("lamp bedroom on")
-                          ;    #put in valid voicecommand
+                        &send_ivr_socket("lamp bedroom on");    #put in valid voicecommand
                         $iv->addmsg("lamp");
                         $iv->addmsg("is");
                         $iv->addmsg("on");
@@ -75,8 +74,7 @@ MAINMENU: while ( 1 == 1 ) {
                         $iv->addmsg("1");
                         $iv->addmsg("moment");
                         $iv->playfile || &closeall;
-                        &send_ivr_socket("lamp bedroom off")
-                          ;    #put in valid voicecommand
+                        &send_ivr_socket("lamp bedroom off");    #put in valid voicecommand
                         $iv->addmsg("lamp");
                         $iv->addmsg("is");
                         $iv->addmsg("off");
@@ -102,8 +100,7 @@ MAINMENU: while ( 1 == 1 ) {
                         $iv->addmsg("1");
                         $iv->addmsg("moment");
                         $iv->playfile || &closeall;
-                        &send_ivr_socket("testlamp on")
-                          ;    #put in valid voicecommand
+                        &send_ivr_socket("testlamp on");    #put in valid voicecommand
                         $iv->addmsg("lamp");
                         $iv->addmsg("is");
                         $iv->addmsg("on");
@@ -113,8 +110,7 @@ MAINMENU: while ( 1 == 1 ) {
                         $iv->addmsg("1");
                         $iv->addmsg("moment");
                         $iv->playfile || &closeall;
-                        &send_ivr_socket("testlamp off")
-                          ;    #put in valid voicecommand
+                        &send_ivr_socket("testlamp off");    #put in valid voicecommand
                         $iv->addmsg("lamp");
                         $iv->addmsg("is");
                         $iv->addmsg("off");
@@ -174,8 +170,7 @@ MAINMENU: while ( 1 == 1 ) {
                 $iv->addmsg("1");
                 $iv->addmsg("moment");
                 $iv->playfile || &closeall;
-                &send_ivr_socket("HEATING BEDROOM $dtmfin")
-                  ;    #put in valid voicecommand
+                &send_ivr_socket("HEATING BEDROOM $dtmfin");    #put in valid voicecommand
                 $iv->addmsg("bedroom");
                 $iv->addmsg("heating");
                 $iv->addmsg("set");

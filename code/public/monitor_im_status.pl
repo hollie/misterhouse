@@ -12,14 +12,12 @@ sub im_status {
         if ( $status eq 'on' and $Save{steve_at_work} == 0 ) {
             $Save{steve_at_work} = 1;
             &im_status_steve_changed
-              unless
-              active $timer_steve_leave_work; #Don't notify if I login within 5 minutes
+              unless active $timer_steve_leave_work;    #Don't notify if I login within 5 minutes
             unset $timer_steve_leave_work;
         }
         if ( $status eq 'off' and $Save{steve_at_work} == 1 ) {
             $Save{steve_at_work} = 0;
-            set $timer_steve_leave_work 300
-              ;    #make sure I logoff for at least 5 minutes
+            set $timer_steve_leave_work 300;            #make sure I logoff for at least 5 minutes
         }
     }
 }

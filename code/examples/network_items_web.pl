@@ -10,8 +10,7 @@ sub web_networkitems {
     my $nd_up     = 0;
 
     for my $net_item ( list $network_items) {
-        $html_data .=
-          "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>\n";
+        $html_data .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>\n";
         my $tmp_name = $net_item->{object_name};
         $tmp_name =~ s/\$//g;
         $html_data .= "<td nowrap>$net_item->{object_name}</td>";

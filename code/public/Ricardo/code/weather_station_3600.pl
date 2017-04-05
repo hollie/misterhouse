@@ -151,7 +151,7 @@ if ( $New_Minute and -r $f_weather_station ) {
             if (/^kmh=\"([\d\.]+)\"/) {
                 $Weather{WindGustSpeed} = $1;
                 push( @wind_speed, $Weather{WindGustSpeed} );
-                shift @wind_speed if ( $#wind_speed > 9 );  #limit to 10 samples
+                shift @wind_speed if ( $#wind_speed > 9 );    #limit to 10 samples
                 my ( $wind, $wind_tot, $wind_count );
                 $wind_count = $#wind_speed + 1;
                 $wind_tot   = 0;
@@ -206,21 +206,12 @@ if ( $New_Minute and -r $f_weather_station ) {
             }
         }
     }
-    $Weather{Summary_Short} = sprintf(
-        "%2d/%2d/%2d %3d%% %3d%%",
-        $Weather{TempIndoor},  $Weather{TempOutdoor}, $Weather{WindChill},
-        $Weather{HumidIndoor}, $Weather{HumidOutdoor}
-    );
-    $Weather{Summary} = sprintf(
-        "In/out/chill: %4.1f/%2d/%2d Humid:%3d%% %3d%%",
-        $Weather{TempIndoor},  $Weather{TempOutdoor}, $Weather{WindChill},
-        $Weather{HumidIndoor}, $Weather{HumidOutdoor}
-    );
+    $Weather{Summary_Short} =
+      sprintf( "%2d/%2d/%2d %3d%% %3d%%", $Weather{TempIndoor}, $Weather{TempOutdoor}, $Weather{WindChill}, $Weather{HumidIndoor}, $Weather{HumidOutdoor} );
+    $Weather{Summary} = sprintf( "In/out/chill: %4.1f/%2d/%2d Humid:%3d%% %3d%%",
+        $Weather{TempIndoor}, $Weather{TempOutdoor}, $Weather{WindChill}, $Weather{HumidIndoor}, $Weather{HumidOutdoor} );
 }
-$Weather{Wind} =
-    $wind_dir_lt . " "
-  . $Weather{WindAvgSpeed} . "/"
-  . $Weather{WindGustSpeed} . " km/h";
+$Weather{Wind} = $wind_dir_lt . " " . $Weather{WindAvgSpeed} . "/" . $Weather{WindGustSpeed} . " km/h";
 
 # This subroutine formats a speakable (well, mostly) summary of the current
 # weather conditions and short term forecast.
@@ -228,8 +219,7 @@ sub format_ws_data {
     my $data;
 
     $temp = $Weather{TempIndoor};
-    $data =
-      "La temperatura interior es de " . sprintf( "%d", $temp ) . " grados";
+    $data = "La temperatura interior es de " . sprintf( "%d", $temp ) . " grados";
     $temp = $Weather{TempOutdoor};
     $data .= ",y hay " . sprintf( "%d", $temp ) . " grados en el exterior";
     $data .= ", con sensación térmica de " . $Weather{WindChill} . " grados"
@@ -237,20 +227,11 @@ sub format_ws_data {
     $data .= ". ";
 
     if ( $Weather{TempOutdoor} > -10 ) {
-        $data .=
-            "La humedad es del "
-          . $Weather{HumidOutdoor}
-          . " %, y un punto de condensación de "
-          . $Weather{DewOutdoor}
-          . " grados. ";
+        $data .= "La humedad es del " . $Weather{HumidOutdoor} . " %, y un punto de condensación de " . $Weather{DewOutdoor} . " grados. ";
     }
 
     if ( $Weather{WindGustSpeed} ) {
-        $data .=
-            "Viento del "
-          . convert_direction( $Weather{WindGustDir} ) . " a "
-          . $Weather{WindGustSpeed}
-          . " kilometros por hora";
+        $data .= "Viento del " . convert_direction( $Weather{WindGustDir} ) . " a " . $Weather{WindGustSpeed} . " kilometros por hora";
         $data .= ". ";
     }
     else {
@@ -263,8 +244,7 @@ sub format_ws_data {
     }
 
     if ( $Weather{RainTotal} > 0.0 ) {
-        $data .=
-          "Han caido $Weather{RainTotal} litros por metro cuadrado en las últimas 24 horas. ";
+        $data .= "Han caido $Weather{RainTotal} litros por metro cuadrado en las últimas 24 horas. ";
     }
 
     return $data;

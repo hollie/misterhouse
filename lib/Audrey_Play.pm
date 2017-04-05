@@ -60,12 +60,7 @@ sub play {
     &::print_log("Called 'play' in Audrey_Play object...");
     my $MHWeb = $::Info{IPAddress_local} . ":" . $::config_parms{http_port};
     &::print_log($MHWeb);
-    &::run( "get_url -quiet http://"
-          . $self->{address}
-          . "/mhspeak.shtml?http://"
-          . $MHWeb . "/"
-          . $web_file
-          . " /dev/null" );
+    &::run( "get_url -quiet http://" . $self->{address} . "/mhspeak.shtml?http://" . $MHWeb . "/" . $web_file . " /dev/null" );
 }
 
 1;

@@ -41,8 +41,7 @@ sub CaptureWinTv32 {
     #my $KeyCommand = $string1.$FileName.$string2.$string3; # building command like this is versatile
     # WinTV32 must be running, but you can minimise it
     if ( my $window = &sendkeys_find_window( 'WinTV32', 'WinTV32' ) ) {
-        &SendKeys( $window, $KeyCommand, 0, 300 )
-          ;    # the 300 is a delay between key to give the program time,
+        &SendKeys( $window, $KeyCommand, 0, 300 );    # the 300 is a delay between key to give the program time,
 
         #adjust for your CPU speed, I'm running 1500MHz. Start with a bigger number to see how it works
         print_log "Picture captured";

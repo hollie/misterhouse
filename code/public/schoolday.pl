@@ -19,9 +19,8 @@ my %terms;
 
 my $date_format = "ddmmyy";    #config_parms{date_format};
 
-$v_is_school_day = new Voice_Cmd('Is today a school day [Churston,Chestnut]');
-$v_is_school_night =
-  new Voice_Cmd('Is tonight a school night [Churston,Chestnut]');
+$v_is_school_day   = new Voice_Cmd('Is today a school day [Churston,Chestnut]');
+$v_is_school_night = new Voice_Cmd('Is tonight a school night [Churston,Chestnut]');
 
 #---------------------------------------------
 sub Convert_To_ISO8601_Date {
@@ -115,11 +114,7 @@ if ($Reload) {
     my $school;
 
     for $school ( keys %school_terms ) {
-        LoadSchool(
-            $school,
-            $school_terms{$school}[0],
-            $school_terms{$school}[1]
-        );
+        LoadSchool( $school, $school_terms{$school}[0], $school_terms{$school}[1] );
     }
 
 }
@@ -138,8 +133,7 @@ sub IsSchoolDay {
     #print "Test Date (Day) = $testdate\n";
 
     # No school at the weekend
-    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
-      localtime($testdate);
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime($testdate);
     if ( ( $wday == 6 ) || ( $wday == 0 ) ) {
         return 0;
     }
@@ -149,8 +143,7 @@ sub IsSchoolDay {
     print "$#{ $terms{$school}{terms}}\n";
 
     for $j ( 0 .. $#{ $terms{$school}{terms} } ) {
-        print
-          "$j $terms{$school}{terms}[$j][0]] $terms{$school}{terms}[$j][1]\n";
+        print "$j $terms{$school}{terms}[$j][0]] $terms{$school}{terms}[$j][1]\n";
         if (    ( $testdate >= $terms{$school}{terms}[$j][0] )
             and ( $testdate <= $terms{$school}{terms}[$j][1] ) )
         {

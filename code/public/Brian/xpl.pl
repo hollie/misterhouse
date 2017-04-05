@@ -3,8 +3,7 @@
 my $xpllastcommand;
 my $xpljabberdevice;
 
-$xpl_balloon = new xPL_Item( 'medusa-balloon.klierpc',
-    'log.basic' => { speech => '$state' } );
+$xpl_balloon     = new xPL_Item( 'medusa-balloon.klierpc', 'log.basic' => { speech => '$state' } );
 $xpl_jabber      = new xPL_Item('doghouse-blabber.archeserver20');
 $xpl_jabber_resp = new xPL_Item(
     'doghouse-blabber.archestar20',

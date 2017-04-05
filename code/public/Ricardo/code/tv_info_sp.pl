@@ -5,17 +5,13 @@
 
 $f_tv_file = new File_Item("$config_parms{data_dir}/tv_info1.txt");
 
-$v_tv_movies1 =
-  new Voice_Cmd('Qué {comedias,dramas,ciencia-ficción} hay hoy en televisión');
-$v_tv_movies1->set_info(
-    'Busca peliculas en todos los canales entre las 21 y las 23');
+$v_tv_movies1 = new Voice_Cmd('Qué {comedias,dramas,ciencia-ficción} hay hoy en televisión');
+$v_tv_movies1->set_info('Busca peliculas en todos los canales entre las 21 y las 23');
 
 $v_tv_shows1 = new Voice_Cmd('Qué programas hay ahora en la televisión');
 $v_tv_shows2 = new Voice_Cmd('Qué programas favoritos hay hoy en televisión');
 $v_tv_shows1->set_info('Lista los programas que hay ahora mismo en cada canal');
-$v_tv_shows2->set_info(
-    "Comprueba si hay alguno de los siguientes programas hoy: $config_parms{favorite_tv_shows}"
-);
+$v_tv_shows2->set_info("Comprueba si hay alguno de los siguientes programas hoy: $config_parms{favorite_tv_shows}");
 
 if ( $state = said $v_tv_movies1) {
     run qq[get_tv_info_sp -times 21-23 -type $state];
@@ -28,8 +24,7 @@ if ( $state = said $v_tv_shows1) {
 }
 if ( said $v_tv_shows2) {
     print_log "Searching for favorite shows";
-    run
-      qq[get_tv_info_sp -times "$Time_Now-23.99" -keys "$config_parms{favorite_tv_shows}" -keyfile "$config_parms{favorite_tv_shows_file}" -title_only];
+    run qq[get_tv_info_sp -times "$Time_Now-23.99" -keys "$config_parms{favorite_tv_shows}" -keyfile "$config_parms{favorite_tv_shows_file}" -title_only];
     set_watch $f_tv_file 'favorites today';
 }
 
@@ -38,15 +33,13 @@ if ( said $v_tv_shows2) {
 if ( ( state $mode_mh eq 'normal' )
     and time_cron('0,5,10,15,20,25,30,35,40,45,50,55 * * * *') )
 {
-    run
-      qq[get_tv_info_sp -quiet -times +0.085 -keys "$config_parms{favorite_tv_shows}"  -keyfile "$config_parms{favorite_tv_shows_file}"  -title_only];
+    run qq[get_tv_info_sp -quiet -times +0.085 -keys "$config_parms{favorite_tv_shows}"  -keyfile "$config_parms{favorite_tv_shows_file}"  -title_only];
     set_watch $f_tv_file 'favorites now';
 }
 
 # Speak/show the results for all of the above requests
 
-$v_tv_results =
-  new Voice_Cmd 'Cuáles son los resultados de buscar programas de televisión';
+$v_tv_results = new Voice_Cmd 'Cuáles son los resultados de buscar programas de televisión';
 if ( $state = changed $f_tv_file or said $v_tv_results) {
     my $f_tv_info2 = "$config_parms{data_dir}/tv_info2.txt";
 
@@ -64,16 +57,14 @@ if ( $state = changed $f_tv_file or said $v_tv_results) {
         if (
             (
                 ( $title, $ch_name, $ch_key, $ch_num, $start, $end ) =
-                $line =~
-                /^\d+\|\s+(.+)\|\s*Canal (.+)\|\s*(.+)\|\s+Dial\s+(\d+)\|\s*De (\d+:\d+) hasta (\d+:\d+)\|/
+                $line =~ /^\d+\|\s+(.+)\|\s*Canal (.+)\|\s*(.+)\|\s+Dial\s+(\d+)\|\s*De (\d+:\d+) hasta (\d+:\d+)\|/
             )
             or
 
             # 1|  El Ala Oeste| Canal AXN| AXN| Dial 22|  El 12/11/04| De 21:30 hasta 22:20|
             (
-                ( $title, $ch_name, $ch_key, $ch_num, $pgm_date, $start, $end )
-                = $line =~
-                /^\d+\|\s+(.+)\|\s*Canal (.+)\|\s*(.+)\|\s+Dial\s+(\d+)\|\s*El (.+)\s*\|\s*De (\d+:\d+) hasta (\d+:\d+)\|/
+                ( $title, $ch_name, $ch_key, $ch_num, $pgm_date, $start, $end ) =
+                $line =~ /^\d+\|\s+(.+)\|\s*Canal (.+)\|\s*(.+)\|\s+Dial\s+(\d+)\|\s*El (.+)\s*\|\s*De (\d+:\d+) hasta (\d+:\d+)\|/
             )
           )
         {
@@ -91,8 +82,7 @@ if ( $state = changed $f_tv_file or said $v_tv_results) {
                 $aux .= "a las $start hasta $end, en $ch_name";
             }
             else {
-                $aux .=
-                  "a las $start hasta $end, en $ch_name, diál $ch_num de digital plus";
+                $aux .= "a las $start hasta $end, en $ch_name, diál $ch_num de digital plus";
             }
             $data[$i] = $aux;
         }
@@ -100,8 +90,7 @@ if ( $state = changed $f_tv_file or said $v_tv_results) {
     }
 
     my $msg = "Hoy emiten ";
-    $msg .= "$show_count"
-      . ( $show_count > 1 ? ' programas favoritos' : ' programa favorito' );
+    $msg .= "$show_count" . ( $show_count > 1 ? ' programas favoritos' : ' programa favorito' );
     if ( $state eq 'favorites today' ) {
         if ( $show_count > 0 ) {
             respond "$msg\: @data";
