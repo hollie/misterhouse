@@ -229,17 +229,14 @@ use Terminal_Menu;
 my %connections = ();
 my $clientid    = 0;
 
-$terminalmenu_server =
-  new Socket_Item( undef, undef, 'server_terminalmenu', undef, undef, undef,
-    "\n" );
+$terminalmenu_server = new Socket_Item( undef, undef, 'server_terminalmenu', undef, undef, undef, "\n" );
 
 #############################################################################
 #############################################################################
 if ($Reload) {
     print_log "Reloading terminal menu\n";
 
-    menu_parse scalar file_read("$config_parms{code_dir}/terminalmenu.menu"),
-      'terminal-menu';
+    menu_parse scalar file_read("$config_parms{code_dir}/terminalmenu.menu"), 'terminal-menu';
 }
 
 #############################################################################
@@ -306,11 +303,9 @@ sub new_connection {
     my ($client) = @_;
 
     ++$clientid;
-    $connections{$client}{id} = $clientid;
-    $connections{$client}{terminal_menu} =
-      eval "new Terminal_Menu('terminal-menu');";
-    $connections{$client}{terminal_menu}
-      ->tie_event("send_to_client $clientid, \$state");
+    $connections{$client}{id}            = $clientid;
+    $connections{$client}{terminal_menu} = eval "new Terminal_Menu('terminal-menu');";
+    $connections{$client}{terminal_menu}->tie_event("send_to_client $clientid, \$state");
 }
 
 #############################################################################

@@ -55,10 +55,7 @@ use Email::Simple::Creator;
 sub send_gmail {
 
     my %parms = @_;
-    my (
-        $from,    $to,   $subject, $text, $port,
-        $account, $mime, $baseref, $file, $filename
-    );
+    my ( $from, $to, $subject, $text, $port, $account, $mime, $baseref, $file, $filename );
     my ( $smtpusername, $smtppassword, $smtpencrypt );
 
     $port         = $parms{port};
@@ -89,8 +86,7 @@ sub send_gmail {
     $to = $main::config_parms{"net_mail_${account}_address"}
       unless ( defined $to );
 
-    my $timeout =
-      $main::config_parms{"net_mail_${account}_server_send_timeout"};
+    my $timeout = $main::config_parms{"net_mail_${account}_server_send_timeout"};
     $timeout = 20 unless $timeout;
 
     $smtpusername = $main::config_parms{"net_mail_${account}_user"}

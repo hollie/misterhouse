@@ -4,10 +4,8 @@
 
 $webcam_light = new X10_Item('B1');
 
-$v_webcam_light =
-  new Voice_Cmd("WebCam light [on,off,-30,-50,-80,+30,+50,+80]");
-$v_webcam_light->set_info(
-    'A light in our kitchen that is controllable by anyone on the internet');
+$v_webcam_light = new Voice_Cmd("WebCam light [on,off,-30,-50,-80,+30,+50,+80]");
+$v_webcam_light->set_info('A light in our kitchen that is controllable by anyone on the internet');
 
 if ( $state = said $v_webcam_light) {
     set $webcam_light $state;
@@ -30,8 +28,7 @@ if ( $Save{web_text1} ) {
     #    my $msg = "Internet message: " . &html_unescape($Save{web_text1});
     my $msg = "Internet message: " . $Save{web_text1};
     speak $msg;
-    &display( $msg, 120, 'webcam text' )
-      ;    # Number is how many seconds till autoclose
+    &display( $msg, 120, 'webcam text' );    # Number is how many seconds till autoclose
 
     #    display $msg;
     $Save{web_text1} = '';

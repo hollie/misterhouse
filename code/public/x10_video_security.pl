@@ -81,17 +81,14 @@ $VCR_Commander_Timer           = new Timer;
 
 #
 # Define Voice Commands
-$v_Back_Porch_Light = new Voice_Cmd "Turn Back Porch Lights [on,off]";
-$v_Back_Porch_Light_Timer =
-  new Voice_Cmd "Turn Back Porch Lights off in [1,5,10,30,60] minutes";
-$v_Surv_Item_Query = new Voice_Cmd "How long is [Back Porch Light,Camera] on?";
-$v_Which_Camera    = new Voice_Cmd "Which camera is on";
-$v_Show_Camera =
-  new Voice_Cmd "Show [Back Porch,Front Porch,Side Drive,Side Yard]";
-$v_Record_Camera =
-  new Voice_Cmd "Record [Back Porch,Front Porch,Side Drive,Side Yard]";
-$v_Camera_Status = new Voice_Cmd "What is the status of the Cameras";
-$v_Scan_Camera   = new Voice_Cmd "Scan Cameras";
+$v_Back_Porch_Light       = new Voice_Cmd "Turn Back Porch Lights [on,off]";
+$v_Back_Porch_Light_Timer = new Voice_Cmd "Turn Back Porch Lights off in [1,5,10,30,60] minutes";
+$v_Surv_Item_Query        = new Voice_Cmd "How long is [Back Porch Light,Camera] on?";
+$v_Which_Camera           = new Voice_Cmd "Which camera is on";
+$v_Show_Camera            = new Voice_Cmd "Show [Back Porch,Front Porch,Side Drive,Side Yard]";
+$v_Record_Camera          = new Voice_Cmd "Record [Back Porch,Front Porch,Side Drive,Side Yard]";
+$v_Camera_Status          = new Voice_Cmd "What is the status of the Cameras";
+$v_Scan_Camera            = new Voice_Cmd "Scan Cameras";
 
 #
 # Check each motion detector for change of state
@@ -117,10 +114,7 @@ if (   ( my $state = state_now $Camera_Motion)
         if ( ( 'Back Porch On' eq $state ) or ( 'Back Porch' eq $v_state ) ) {
             set $Camera_Back_Porch 'on' if ( 'off' eq state $Camera_Back_Porch);
             if (
-                (
-                        time_greater_than "$Time_Sunset"
-                    and time_less_than "11:59 PM"
-                )
+                ( time_greater_than "$Time_Sunset" and time_less_than "11:59 PM" )
                 or (    time_greater_than "12:00 AM"
                     and time_less_than "$Time_Sunrise" )
               )
@@ -131,12 +125,10 @@ if (   ( my $state = state_now $Camera_Motion)
             }
             if ( not active $Camera_Back_Porch_Timer) {
                 if ( 'Back Porch' eq $v_state ) {
-                    $remark =
-                      "Requested re cord of Back Porch. Turning on VCR and Camera.";
+                    $remark = "Requested re cord of Back Porch. Turning on VCR and Camera.";
                 }
                 else {
-                    $remark =
-                      "Motion on Back Porch. Turning on VCR and Camera.";
+                    $remark = "Motion on Back Porch. Turning on VCR and Camera.";
                 }
             }
             else {
@@ -159,12 +151,10 @@ if (   ( my $state = state_now $Camera_Motion)
             set $Camera_Front_Porch 'on';
             if ( not active $Camera_Front_Porch_Timer) {
                 if ( 'Front Porch' eq $v_state ) {
-                    $remark =
-                      "Requested re cord of Front Porch. Turning on VCR and Camera.";
+                    $remark = "Requested re cord of Front Porch. Turning on VCR and Camera.";
                 }
                 else {
-                    $remark =
-                      "Motion on Front Porch. Turning on VCR and Camera.";
+                    $remark = "Motion on Front Porch. Turning on VCR and Camera.";
                 }
             }
             else {
@@ -181,17 +171,14 @@ if (   ( my $state = state_now $Camera_Motion)
             set $Which_Camera_On 'FP';
             set $Camera_Status "Currently recording Front Porch.";
         }
-        elsif ( ( 'Side Drive On' eq $state ) or ( 'Side Drive' eq $v_state ) )
-        {
+        elsif ( ( 'Side Drive On' eq $state ) or ( 'Side Drive' eq $v_state ) ) {
             set $Camera_Side_Drive 'on';
             if ( not active $Camera_Side_Drive_Timer) {
                 if ( 'Side Drive' eq $v_state ) {
-                    $remark =
-                      "Requested re cord of Side Drive. Turning on VCR and Camera.";
+                    $remark = "Requested re cord of Side Drive. Turning on VCR and Camera.";
                 }
                 else {
-                    $remark =
-                      "Motion in Side Drive. Turning on VCR and Camera.";
+                    $remark = "Motion in Side Drive. Turning on VCR and Camera.";
                 }
             }
             else {
@@ -212,8 +199,7 @@ if (   ( my $state = state_now $Camera_Motion)
             set $Camera_Side_Yard 'on';
             if ( not active $Camera_Side_Yard_Timer) {
                 if ( 'Side Yard' eq $v_state ) {
-                    $remark =
-                      "Requested re cord of Side Yard. Turning on VCR and Camera.";
+                    $remark = "Requested re cord of Side Yard. Turning on VCR and Camera.";
                 }
                 else {
                     $remark = "Motion in Side Yard. Turning on VCR and Camera.";

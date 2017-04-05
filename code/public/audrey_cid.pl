@@ -51,8 +51,7 @@ if ($cid_number) {    # did we get anything?
     # If we have other callerID interfaces (e.g. phone_modem.pl)
     # lets not repeat ourselfs here.
     unless ( $Time - $Save{phone_callerid_Time} < 3 ) {
-        $Save{phone_callerid_nmbr} =
-          $cid_number;    # Save last caller for display in lcdproc.pl
+        $Save{phone_callerid_nmbr} = $cid_number;       # Save last caller for display in lcdproc.pl
         $Save{phone_callerid_time} = "$Hour:$Minute";
         $Save{phone_callerid_Time} = $Time;
 
@@ -61,10 +60,7 @@ if ($cid_number) {    # did we get anything?
         speak voice => 'Female', text => $cid_string;
 
         #  speak("rooms=all_and_out mode=unmuted $caller");
-        logit(
-            "$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log",
-            "$cid_number name=$cid_name data=NA line=W" );
-        logit_dbm( "$config_parms{data_dir}/phone/callerid.dbm",
-            $cid_number, "$Time_Now $Date_Now $Year name=$cid_name" );
+        logit( "$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log", "$cid_number name=$cid_name data=NA line=W" );
+        logit_dbm( "$config_parms{data_dir}/phone/callerid.dbm", $cid_number, "$Time_Now $Date_Now $Year name=$cid_name" );
     }
 }

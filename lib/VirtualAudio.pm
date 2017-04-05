@@ -488,9 +488,7 @@ sub new {
 
 sub _handle_resume {
     my ( $self, $vsource ) = @_;
-    &::print_log(
-        "VirtualAudio::Router::add_virtual_sources: attached_sources=$$self{attached_sources}"
-    );
+    &::print_log("VirtualAudio::Router::add_virtual_sources: attached_sources=$$self{attached_sources}");
     if ( $$self{'attached_sources'} =~ /\|$$vsource{name}=([^|]+)\|/ ) {
         unless ( $self->_is_source_being_used($1) ) {
             unless ( $self->get_real_source_number_for_vsource($vsource) ) {
@@ -538,9 +536,7 @@ sub remove_virtual_sources {
         if ( ref $vsource ) {
             $name = $vsource->{'name'};
         }
-        my $attached =
-          $self->get_real_source_number_for_vsource(
-            $$self{'virtual_sources'}{$name} );
+        my $attached = $self->get_real_source_number_for_vsource( $$self{'virtual_sources'}{$name} );
         if ( $attached > 0 ) {
             $self->_detach_virtual_source($attached);
         }
@@ -563,23 +559,18 @@ sub _is_source_being_used {
             }
         }
     }
-    &::print_log(
-        "VirtualAudio::Router::_is_source_being_used($source, $ignore_zone): returning $used"
-    );
+    &::print_log("VirtualAudio::Router::_is_source_being_used($source, $ignore_zone): returning $used");
     return $used;
 }
 
 sub _zone_started_using_source {
     my ( $self, $zone, $source ) = @_;
-    &::print_log(
-        "VirtualAudio::Router::_zone_started_using_source($zone, $source)");
+    &::print_log("VirtualAudio::Router::_zone_started_using_source($zone, $source)");
     unless ( $self->_is_source_being_used( $source, $zone ) ) {
 
         # Unless it was already being used, notify that it is in use
         if ( $$self{'sources'}->[$source] ) {
-            &::print_log(
-                "VirtualAudio::Router::_zone_started_using_source($zone, $source): Calling _in_use"
-            );
+            &::print_log("VirtualAudio::Router::_zone_started_using_source($zone, $source): Calling _in_use");
             $$self{'sources'}->[$source]->_in_use($source);
         }
     }
@@ -589,32 +580,21 @@ sub _zone_started_using_source {
 sub _detach_virtual_source {
     my ( $self, $source ) = @_;
     if ( $$self{'sources'}->[$source] ) {
-        $$self{'attached_sources'} =~
-          s/\|$$self{sources}->[$source]->{name}=[^|]+\|/|/g;
-        &::print_log(
-            "VirtualAudio::Router::_detach_virtual_source($$self{sources}->[$source]->{name}): attached_sources=$$self{attached_sources}"
-        );
-        &::print_log(
-            "VirtualAudio::Router::_detach_virtual_source($source): Calling _not_in_use"
-        );
+        $$self{'attached_sources'} =~ s/\|$$self{sources}->[$source]->{name}=[^|]+\|/|/g;
+        &::print_log("VirtualAudio::Router::_detach_virtual_source($$self{sources}->[$source]->{name}): attached_sources=$$self{attached_sources}");
+        &::print_log("VirtualAudio::Router::_detach_virtual_source($source): Calling _not_in_use");
         $$self{'sources'}->[$source]->_not_in_use($source);
-        &::print_log(
-            "VirtualAudio::Router::_detach_virtual_source($source): Calling _detach_from_source"
-        );
+        &::print_log("VirtualAudio::Router::_detach_virtual_source($source): Calling _detach_from_source");
         $$self{'sources'}->[$source]->_detach_from_source($source);
     }
 }
 
 sub _attach_virtual_source {
     my ( $self, $source, $vsource ) = @_;
-    &::print_log(
-        "VirtualAudio::Router::_attach_virtual_source($source, $$vsource{name})"
-    );
+    &::print_log("VirtualAudio::Router::_attach_virtual_source($source, $$vsource{name})");
     $self->_detach_virtual_source($source);
     $$self{'sources'}->[$source] = $vsource;
-    &::print_log(
-        "VirtualAudio::Router::_attach_virtual_source($source, $$vsource{name}): Calling _attach_to_source"
-    );
+    &::print_log("VirtualAudio::Router::_attach_virtual_source($source, $$vsource{name}): Calling _attach_to_source");
     $vsource->_attach_to_source($source);
 
     # Remember the assignment upon a restart
@@ -624,9 +604,7 @@ sub _attach_virtual_source {
     unless ( $$self{'attached_sources'} =~ /^\|/ ) {
         $$self{'attached_sources'} = "|$$self{'attached_sources'}";
     }
-    &::print_log(
-        "VirtualAudio::Router::_attach_virtual_source($$vsource{name}): attached_sources=$$self{attached_sources}"
-    );
+    &::print_log("VirtualAudio::Router::_attach_virtual_source($$vsource{name}): attached_sources=$$self{attached_sources}");
 }
 
 sub _find_unattached_preferred_source {
@@ -651,14 +629,11 @@ sub _find_unattached_preferred_source {
 
 sub _zone_stopped_using_source {
     my ( $self, $zone, $source ) = @_;
-    &::print_log(
-        "VirtualAudio::Router::_zone_stopped_using_source($zone, $source)");
+    &::print_log("VirtualAudio::Router::_zone_stopped_using_source($zone, $source)");
     $$self{'zones'}->[$zone] = 0;
     unless ( $self->_is_source_being_used($source) ) {
         if ( $$self{'sources'}->[$source] ) {
-            &::print_log(
-                "VirtualAudio::Router::_zone_stopped_using_source($zone, $source): Calling _not_in_use"
-            );
+            &::print_log("VirtualAudio::Router::_zone_stopped_using_source($zone, $source): Calling _not_in_use");
             $$self{'sources'}->[$source]->_not_in_use($source);
         }
         my $vsource = $self->_find_unattached_preferred_source();
@@ -745,21 +720,16 @@ sub _attach_best_vsource {
 
 sub specify_source_for_zone {
     my ( $self, $zone, $source ) = @_;
-    &::print_log(
-        "VirtualAudio::Router: zone $zone listening to source $source");
+    &::print_log("VirtualAudio::Router: zone $zone listening to source $source");
     if (   ( $zone !~ /^\d+$/ )
         or ( $zone < 1 )
         or ( $zone > $$self{'num_zones'} ) )
     {
-        &::print_log(
-            "VirtualAudio::Router::specify_source_for_zone(): ERROR: zone $zone out of range"
-        );
+        &::print_log("VirtualAudio::Router::specify_source_for_zone(): ERROR: zone $zone out of range");
         return;
     }
     if ( ( $source < 0 ) or ( $source > $$self{'num_sources'} ) ) {
-        &::print_log(
-            "VirtualAudio::Router::specify_source_for_zone(): ERROR: source $source out of range"
-        );
+        &::print_log("VirtualAudio::Router::specify_source_for_zone(): ERROR: source $source out of range");
         return;
     }
     return if ( $$self{'zones'}->[$zone] eq $source );
@@ -797,9 +767,7 @@ sub _attach_zone_to_source {
 sub select_virtual_source {
     my ( $self, $zone, $vsource ) = @_;
     if ( ( $zone < 1 ) or ( $zone > $$self{'num_zones'} ) ) {
-        &::print_log(
-            "VirtualAudio::Router::specify_source_for_zone(): ERROR: zone $zone out of range"
-        );
+        &::print_log("VirtualAudio::Router::specify_source_for_zone(): ERROR: zone $zone out of range");
         return 0;
     }
     unless ( ref $vsource and $vsource->isa('VirtualAudio::Source') ) {
@@ -807,28 +775,22 @@ sub select_virtual_source {
             $vsource = $$self{'virtual_sources'}{$vsource};
         }
         else {
-            &::print_log(
-                "VirtualAudio::Router::select_virtual_source(): ERROR: virtual source $vsource not found"
-            );
+            &::print_log("VirtualAudio::Router::select_virtual_source(): ERROR: virtual source $vsource not found");
             return 0;
         }
     }
-    &::print_log(
-        "VirtualAudio::Router: zone $zone requesting source $$vsource{name}");
+    &::print_log("VirtualAudio::Router: zone $zone requesting source $$vsource{name}");
     return $self->_attach_zone_to_source( $zone, $vsource );
 }
 
 sub _do_next_previous_virtual_source {
     my ( $self, $zone, @vsources ) = @_;
     if ( ( $zone < 1 ) or ( $zone > $$self{'num_zones'} ) ) {
-        &::print_log(
-            "VirtualAudio::Router::request_next/previous_virtual_source_for_zone(): ERROR: zone $zone out of range"
-        );
+        &::print_log("VirtualAudio::Router::request_next/previous_virtual_source_for_zone(): ERROR: zone $zone out of range");
         return 0;
     }
     my $curr_vsource = $self->get_virtual_source_obj_for_zone($zone);
-    &::print_log(
-        "VirtualAudio::Router: current source is $$curr_vsource{name}");
+    &::print_log("VirtualAudio::Router: current source is $$curr_vsource{name}");
     my $found = 0;
     foreach my $vsource (@vsources) {
         &::print_log("VirtualAudio::Router: checking source: $$vsource{name}");
@@ -836,22 +798,17 @@ sub _do_next_previous_virtual_source {
             if ($found) {
 
                 # Already found the current source, so take the next one...
-                &::print_log(
-                    "VirtualAudio::Router: found next source: $$vsource{name}");
+                &::print_log("VirtualAudio::Router: found next source: $$vsource{name}");
                 return $self->_attach_zone_to_source( $zone, $vsource );
             }
             elsif ( $curr_vsource eq $vsource ) {
-                &::print_log(
-                    "VirtualAudio::Router: found current source: $$vsource{name}"
-                );
+                &::print_log("VirtualAudio::Router: found current source: $$vsource{name}");
                 $found = 1;
             }
         }
         else {
             # No source currently selected... attach to first source found that is already attached
-            &::print_log(
-                "VirtualAudio::Router: attaching to first source: $$vsource{name}"
-            );
+            &::print_log("VirtualAudio::Router: attaching to first source: $$vsource{name}");
             if ( $self->get_real_source_number_for_vsource($vsource) ) {
                 return $self->_attach_zone_to_source( $zone, $vsource );
             }
@@ -860,8 +817,7 @@ sub _do_next_previous_virtual_source {
     if ($found) {
 
         # Found current source at end of list... give the first one
-        &::print_log(
-            "VirtualAudio::Router: looped around list: $vsources[0]->{name}");
+        &::print_log("VirtualAudio::Router: looped around list: $vsources[0]->{name}");
         return $self->_attach_zone_to_source( $zone, $vsources[0] );
     }
     return 0;
@@ -870,15 +826,13 @@ sub _do_next_previous_virtual_source {
 sub request_next_virtual_source_for_zone {
     my ( $self, $zone ) = @_;
     &::print_log("VirtualAudio::Router: zone $zone requesting next source");
-    return $self->_do_next_previous_virtual_source( $zone,
-        @{ $$self{'virtual_source_order'} } );
+    return $self->_do_next_previous_virtual_source( $zone, @{ $$self{'virtual_source_order'} } );
 }
 
 sub request_previous_virtual_source_for_zone {
     my ( $self, $zone ) = @_;
     &::print_log("VirtualAudio::Router: zone $zone requesting previous source");
-    return $self->_do_next_previous_virtual_source( $zone,
-        reverse @{ $$self{'virtual_source_order'} } );
+    return $self->_do_next_previous_virtual_source( $zone, reverse @{ $$self{'virtual_source_order'} } );
 }
 
 sub get_real_source_number_for_zone {

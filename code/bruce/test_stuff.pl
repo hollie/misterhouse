@@ -28,15 +28,13 @@ if ( $state = $test_input1 ) {
     elsif ( $state eq 'c' ) {
         print_log "testing sun_time";
         @ARGV = ();
-        my $results = do 'sun_time'
-          ;    # Use do so we can run from compiled mh, without perl installed
+        my $results = do 'sun_time';    # Use do so we can run from compiled mh, without perl installed
         print_msg "results=$results";
     }
 
     # Test read_next on a file of records
     elsif ( $state eq 'd' ) {
-        my $plant_talk =
-          new File_Item("$config_parms{data_dir}/remarks/list_plant_talk.txt");
+        my $plant_talk = new File_Item("$config_parms{data_dir}/remarks/list_plant_talk.txt");
         speak "Plant talk: " . read_next $plant_talk;
     }
 
@@ -97,14 +95,7 @@ if ( $state = $test_input1 ) {
 
     # Test the batch function
     elsif ( $state eq 'k' ) {
-        my @pgms = (
-            "echo 'starting'",
-            "sleep 5",
-            "call speak 'starting test'",
-            "sleep 5",
-            "call speak 'all done'",
-            "sleep 5"
-        );
+        my @pgms = ( "echo 'starting'", "sleep 5", "call speak 'starting test'", "sleep 5", "call speak 'all done'", "sleep 5" );
         batch(@pgms);
     }
     elsif ( $state eq 'l' and $Save{test_input2} ) {
@@ -136,8 +127,7 @@ if ( $state = $test_input1 ) {
         print_log "Testing Setupsup sendkeys to outlook";
         my $window;
         if ( &WaitForAnyWindow( 'Outlook', \$window, 1000, 100 ) ) {
-            &SendKeys( $window, "\\alt\\te\\ret\\", 1, 500 )
-              ;    # Send alt Tools sEnd Return (for all accounts)
+            &SendKeys( $window, "\\alt\\te\\ret\\", 1, 500 );    # Send alt Tools sEnd Return (for all accounts)
         }
         else {
             print_log "Outlook is not running";

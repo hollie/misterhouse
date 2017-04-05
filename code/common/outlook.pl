@@ -7,8 +7,7 @@
 my $outlook_file = "$Code_Dirs[0]/outlook_programing.pl";
 
 #p_outlook_read  = new Process_Item("outlook_read -version 98 -pl_file $outlook_file");
-$p_outlook_read =
-  new Process_Item("outlook_read             -pl_file $outlook_file");
+$p_outlook_read = new Process_Item("outlook_read             -pl_file $outlook_file");
 
 #f_outlook_data  = new File_Item 'c:\WIN98\Application data\Microsoft\Outlook\outlook.pst';
 $f_outlook_data = new File_Item $config_parms{outlook_file};
@@ -19,8 +18,7 @@ set_watch $f_outlook_data if $Reload;
 # check this periodically, as it probably changes
 # often when people are messing around with email
 $v_outlook_read = new Voice_Cmd 'Check the Outlook calendar';
-$v_outlook_read->set_info(
-    'This will check create mh events to announce Outlook calendar entries');
+$v_outlook_read->set_info('This will check create mh events to announce Outlook calendar entries');
 if ( said $v_outlook_read or ( new_minute 15 and changed $f_outlook_data) ) {
     start $p_outlook_read;
     set_watch $f_outlook_data;    # Reset so changed function works

@@ -19,9 +19,8 @@ my $filepath = $config_parms{data_dir} . "/homebridge_config.json";
 $filepath = $config_parms{homebridge_config_dir} . "/config.json"
   if ( defined $config_parms{homebridge_config_dir} );
 my $acc_count;
-$v_generate_hb_config =
-  new Voice_Cmd("Generate new Homebridge config.json file");
-$v_restart_hb_server = new Voice_Cmd("[start,stop,restart] Homebridge Server");
+$v_generate_hb_config = new Voice_Cmd("Generate new Homebridge config.json file");
+$v_restart_hb_server  = new Voice_Cmd("[start,stop,restart] Homebridge Server");
 my $units = "C";
 $units = $config_parms{homebridge_temp_units}
   if ( defined $config_parms{homebridge_temp_units} );
@@ -32,8 +31,7 @@ if ( my $action = said $v_restart_hb_server) {
         my $cmd = $config_parms{homebridge_service_path} . " " . $action;
         my $r   = system($cmd);
         if ( $r != 0 ) {
-            print_log
-              "[Homebridge]: Warning, couldn't control homebridge service: $r";
+            print_log "[Homebridge]: Warning, couldn't control homebridge service: $r";
         }
     }
     else {
@@ -47,10 +45,7 @@ if ( said $v_generate_hb_config) {
     $config_json .= "\t\t\"username\": \"" . $username . "\",\n";
     $config_json .= "\t\t\"port\": " . $port . ",\n";
     $config_json .= "\t\t\"pin\": \"" . $pin . "\"\n\t},\n";
-    $config_json .=
-        "\t\"description\": \"MH Generated HomeKit Configuration v"
-      . $version . " "
-      . &time_date_stamp(17) . "\",\n";
+    $config_json .= "\t\"description\": \"MH Generated HomeKit Configuration v" . $version . " " . &time_date_stamp(17) . "\",\n";
 
     $config_json .= "\n\t\"accessories\": [\n";
     $acc_count = 0;
@@ -63,9 +58,7 @@ if ( said $v_generate_hb_config) {
     $config_json .= add_group("thermostat");
 
     $config_json .= "\t\t}\n\t]\n}\n";
-    print_log "[Homebridge]: Writing configuration for server "
-      . $Info{IPAddress_local}
-      . " to $filepath...";
+    print_log "[Homebridge]: Writing configuration for server " . $Info{IPAddress_local} . " to $filepath...";
 
     #print_log $config_json;
     file_write( $filepath, $config_json );
@@ -96,8 +89,7 @@ sub add_group {
         $name =~ s/\$//g;
         $name = $member->{label} if ( defined $member->{label} );
         my $obj_name = $member->{object_name};
-        $obj_name =~
-          s/^\$//;   #remove $ since the web sub system doesn't seem to like it.
+        $obj_name =~ s/^\$//;    #remove $ since the web sub system doesn't seem to like it.
 
         $text .= "\t\t\"name\": \"" . $name . "\",\n";
         if ( $type eq "thermostat" ) {
@@ -234,8 +226,7 @@ sub hb_status {
         }
         print_log "[Homebridge]: Warning, no state data to return!"
           if ( $data eq "" );
-        print_log
-          "[Homebridge]: Status request: item=$item state=$state status=[$data] type=$type"
+        print_log "[Homebridge]: Status request: item=$item state=$state status=[$data] type=$type"
           if ($hb_debug);
     }
     return <<eof;
@@ -260,9 +251,7 @@ sub hb_thermo_get_state {
     else {
         if ( UNIVERSAL::isa( $object, 'Venstar_Colortouch' ) ) {
             $mode = $object->get_mode();
-            print_log "[Homebridge]: Thermostat Venstar Colortouch with mode "
-              . $mode
-              . " found";
+            print_log "[Homebridge]: Thermostat Venstar Colortouch with mode " . $mode . " found";
             if ( $mode =~ /^auto/i ) {
                 $data = "3";
             }
@@ -276,8 +265,7 @@ sub hb_thermo_get_state {
                 $data = "0";
             }
         }
-        print_log
-          "[Homebridge]: Thermostat State request: item=$item mode=$mode status=[$data]\n"
+        print_log "[Homebridge]: Thermostat State request: item=$item mode=$mode status=[$data]\n"
           if ($hb_debug);
     }
     return <<eof;
@@ -299,8 +287,7 @@ sub hb_thermo_set_state {
         print_log "[Homebridge]: Thermostat Venstar Colortouch found";
         my $sp_delay = 0;
         if ( $object->get_sched() eq "on" ) {
-            print_log
-              "[Homebridge]: Thermostat on a schedule, turning off schedule for override";
+            print_log "[Homebridge]: Thermostat on a schedule, turning off schedule for override";
             $object->set_schedule("off");
             $sp_delay = 5;
         }
@@ -316,8 +303,7 @@ sub hb_thermo_set_state {
         }
         print_log "[Homebridge]: Setting thermostat to $mode";
         if ($sp_delay) {
-            eval_with_timer '$' . $item . '->set_mode(' . $mode . ');',
-              $sp_delay;
+            eval_with_timer '$' . $item . '->set_mode(' . $mode . ');', $sp_delay;
         }
         else {
             $object->set_mode($mode);
@@ -344,15 +330,12 @@ sub hb_thermo_get_setpoint {
     my $mode   = "off";
     my $object = &get_object_by_name($item);
     unless ( defined $object ) {
-        print_log
-          "[Homebridge]: hb_thermo_get_setpoint]: Error, unknown object $item";
+        print_log "[Homebridge]: hb_thermo_get_setpoint]: Error, unknown object $item";
     }
     else {
         if ( UNIVERSAL::isa( $object, 'Venstar_Colortouch' ) ) {
             $object->get_mode();
-            print_log "[Homebridge]: Thermostat Venstar Colortouch with mode "
-              . $mode
-              . " found";
+            print_log "[Homebridge]: Thermostat Venstar Colortouch with mode " . $mode . " found";
             if ( $mode =~ /^cool/ ) {
                 $data = $object->get_sp_cool;
             }
@@ -361,8 +344,7 @@ sub hb_thermo_get_setpoint {
             }
         }
     }
-    print_log
-      "[Homebridge]: Thermostat Get Setpoint request: item=$item mode=$mode status=[$data]\n"
+    print_log "[Homebridge]: Thermostat Get Setpoint request: item=$item mode=$mode status=[$data]\n"
       if ($hb_debug);
     return <<eof;
 HTTP/1.0 200 OK
@@ -383,8 +365,7 @@ sub hb_thermo_set_setpoint {
         print_log "[Homebridge]: Thermostat Venstar Colortouch found";
         my $sp_delay = 0;
         if ( $object->get_sched() eq "on" ) {
-            print_log
-              "[Homebridge]: Thermostat on a schedule, turning off schedule for override";
+            print_log "[Homebridge]: Thermostat on a schedule, turning off schedule for override";
             $object->set_schedule("off");
             $sp_delay = 5;
         }
@@ -393,11 +374,9 @@ sub hb_thermo_set_setpoint {
           if ( $object->get_mode() eq "auto" );
         print_log "[Homebridge]: Thermostat calc mode is $auto_mode"
           if ($auto_mode);
-        if ( ( $object->get_mode() eq "cooling" ) or ( $auto_mode eq "cool" ) )
-        {
+        if ( ( $object->get_mode() eq "cooling" ) or ( $auto_mode eq "cool" ) ) {
             if ($sp_delay) {
-                eval_with_timer '$' . $item . '->set_cool_sp(' . $value . ');',
-                  $sp_delay;
+                eval_with_timer '$' . $item . '->set_cool_sp(' . $value . ');', $sp_delay;
             }
             else {
                 $object->set_cool_sp($value);
@@ -405,8 +384,7 @@ sub hb_thermo_set_setpoint {
         }
         else {
             if ($sp_delay) {
-                eval_with_timer '$' . $item . '->set_heat_sp(' . $value . ');',
-                  $sp_delay;
+                eval_with_timer '$' . $item . '->set_heat_sp(' . $value . ');', $sp_delay;
             }
             else {
                 $object->set_heat_sp($value);

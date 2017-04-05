@@ -435,8 +435,7 @@ sub color2attr {
         $fgcolor = $1
           if $element =~ m/^(black|cyan|blue|red|green|magenta|yellow|white)$/i;
         $bgcolor = $1
-          if $element =~
-          m/^on_(black|cyan|blue|red|green|magenta|yellow|white)$/i;
+          if $element =~ m/^on_(black|cyan|blue|red|green|magenta|yellow|white)$/i;
         $bold    = 1 if $element =~ m/^bold$/i;
         $reverse = 1 if $element =~ m/^reverse$/i;
     }

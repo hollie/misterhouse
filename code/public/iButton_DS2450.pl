@@ -15,8 +15,7 @@ $v_iButton_DS2450_setup = new Voice_Cmd "Setup DS2450";
 $v_iButton_DS2450_setup->set_info('Setup a specific DS2450');
 
 $v_iButton_DS2450_convert = new Voice_Cmd "Convert [A,B,C,D,all,BDA]";
-$v_iButton_DS2450_convert->set_info(
-    'Start conversion on the selected AD channel of a specific DS2450');
+$v_iButton_DS2450_convert->set_info('Start conversion on the selected AD channel of a specific DS2450');
 
 $v_iButton_DS2450_read = new Voice_Cmd "Read [A,B,C,D,all]";
 $v_iButton_DS2450_read->set_info('Read the conversion results from memory');
@@ -29,8 +28,7 @@ if ( $state = said $v_iButton_DS2450_list) {
     my @ib_2450_family_list = &iButton::scan('20');
     speak $#ib_2450_family_list + 1 . " DS2450 found";
     for my $ib (@ib_2450_family_list) {
-        print_log "ID:" . $ib->serial . "  CRC:" . $ib->crc,
-          ": " . $ib->model();
+        print_log "ID:" . $ib->serial . "  CRC:" . $ib->crc, ": " . $ib->model();
     }
 }
 
@@ -56,12 +54,7 @@ if ( $state = said $v_iButton_DS2450_setup) {
     $D{resolution} = 12;
     $D{range}      = 5.12;
 
-    if (
-        $ib_test->Hardware::iButton::Device::DS2450::setup(
-            $VCC, \%A, \%B, \%C, \%D
-        )
-      )
-    {
+    if ( $ib_test->Hardware::iButton::Device::DS2450::setup( $VCC, \%A, \%B, \%C, \%D ) ) {
         print_log "Success!";
     }
     else {
@@ -80,8 +73,7 @@ if ( $state = said $v_iButton_DS2450_convert) {
 
 if ( $state = said $v_iButton_DS2450_read) {
     if ( $state =~ m/all/i ) {
-        my ( $A, $B, $C, $D ) =
-          $ib_test->Hardware::iButton::Device::DS2450::readAD($state);
+        my ( $A, $B, $C, $D ) = $ib_test->Hardware::iButton::Device::DS2450::readAD($state);
         if ( defined $A ) {
             print_log "---Results---";
             print_log "A=$A V.";
@@ -94,8 +86,7 @@ if ( $state = said $v_iButton_DS2450_read) {
         }
     }
     else {
-        my $result =
-          $ib_test->Hardware::iButton::Device::DS2450::readAD($state);
+        my $result = $ib_test->Hardware::iButton::Device::DS2450::readAD($state);
         if ( defined $result ) {
             print_log "---Results---";
             print_log $state . "=" . $result . " V";
@@ -108,12 +99,7 @@ if ( $state = said $v_iButton_DS2450_read) {
 
 if ( $state = said $v_iButton_DS2450_setswitch) {
     my $channel = "A";
-    if (
-        $ib_test->Hardware::iButton::Device::DS2450::set_switch(
-            $channel, $state
-        )
-      )
-    {
+    if ( $ib_test->Hardware::iButton::Device::DS2450::set_switch( $channel, $state ) ) {
         print_log "Success!";
     }
     else {

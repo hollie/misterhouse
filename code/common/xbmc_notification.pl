@@ -30,9 +30,7 @@ sub display_xbmcosd {
     my ( $title, $text ) = @_;
 
     unless ( $config_parms{xbmc_notify_address} ) {
-        print_log(
-            "xbmc_notify_address has not been set in mh.ini, Unable to notify XBMC."
-        );
+        print_log("xbmc_notify_address has not been set in mh.ini, Unable to notify XBMC.");
         return;
     }
 
@@ -40,10 +38,7 @@ sub display_xbmcosd {
     $title =~ s/ /%20/g;
     $text =~ s/ /%20/g;
 
-    print_log( "Sending notification to XBMC at http://"
-          . $config_parms{xbmc_notify_address} . ":"
-          . $config_parms{xbmc_notify_port}
-          . "/jsonrpc" )
+    print_log( "Sending notification to XBMC at http://" . $config_parms{xbmc_notify_address} . ":" . $config_parms{xbmc_notify_port} . "/jsonrpc" )
       if $Debug{xbmc};
 
     # Doesnt support authentication (Yet)

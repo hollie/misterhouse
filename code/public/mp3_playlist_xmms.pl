@@ -6,9 +6,7 @@
 
 # Build the mp3 database
 $v_mp3_build_list = new Voice_Cmd '[Build,Load] the {mp3,m p 3} database', '';
-$v_mp3_build_list->set_info(
-    "Builds/loads an mp3 database for these directories: $config_parms{mp3_dir}"
-);
+$v_mp3_build_list->set_info("Builds/loads an mp3 database for these directories: $config_parms{mp3_dir}");
 
 $p_mp3_build_list = new Process_Item;
 
@@ -44,12 +42,10 @@ if ( $Tk_results{'MP3 Search'} or $Tk_results{'MP3 Genre'} ) {
     undef $Tk_results{'MP3 Genre'};
     my ( $results1, $results2, $count1, $count2 ) =
       &mp3_search( quotemeta $Save{mp3_search}, quotemeta $Save{mp3_Genre} );
-    print_log
-      "$count2 out of $count1 songs for search=$Save{mp3_search}, genre=$Save{mp3_Genre}";
+    print_log "$count2 out of $count1 songs for search=$Save{mp3_search}, genre=$Save{mp3_Genre}";
     if ($results1) {
         speak "Found $count2 songs";
-        display "Found $count2 (out of $count1) songs\n" . $results1, 30,
-          'MP3 Search Results', 'fixed';
+        display "Found $count2 (out of $count1) songs\n" . $results1, 30, 'MP3 Search Results', 'fixed';
         my $file = "$config_parms{data_dir}/search.m3u";
         file_write $file, $results2;
         run "$config_parms{mp3_program} -e $file";
@@ -93,8 +89,7 @@ sub mp3_search {
             $count2++;
             my $file = $files[$i];
             $results2 .= "$file\n";
-            $results1 .=
-              "Title: $titles[$i]   Album: $albums[$i]  Year: $years[$i]  Genre: $genres[$i]\n";
+            $results1 .= "Title: $titles[$i]   Album: $albums[$i]  Year: $years[$i]  Genre: $genres[$i]\n";
             $results1 .= "  - Artist: $artists[$i]  Comments:$comments[$i]\n";
             $results1 .= "  - File: $file\n\n";
         }
@@ -105,8 +100,7 @@ sub mp3_search {
 sub mp3_playlists {
     unless (%mp3_dbm) {
         print_log "Now Tieing to $mp3_file";
-        my $tie_code =
-          qq[tie %mp3_dbm, 'DB_File', "$mp3_file", O_RDWR|O_CREAT, 0666 or print_log "Error in tieing to $mp3_file"];
+        my $tie_code = qq[tie %mp3_dbm, 'DB_File', "$mp3_file", O_RDWR|O_CREAT, 0666 or print_log "Error in tieing to $mp3_file"];
         eval $tie_code;
         if ($@) {
             print_log "\n\nError in tieing to $mp3_file:\n  $@";
@@ -132,8 +126,7 @@ sub mp3_playlists {
     return $mp3names, %mp3files;
 }
 
-$v_mp3_playlist1 =
-  new Voice_Cmd("Set house mp3 player to playlist [$mp3names]");
+$v_mp3_playlist1 = new Voice_Cmd("Set house mp3 player to playlist [$mp3names]");
 
 #set_icon $v_mp3_playlist1 'playlist';
 

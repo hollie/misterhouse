@@ -21,26 +21,18 @@ On unix, it is in /etc/hosts
 
 =cut
 
-$v_audrey_led_on =
-  new Voice_Cmd("Set [,all,Kitchen,Piano,Bedroom] Audrey light on");
-$v_audrey_led_off =
-  new Voice_Cmd("Set [,all,Kitchen,Piano,Bedroom] Audrey light off");
-$v_audrey_led_blink =
-  new Voice_Cmd("Set [,all,Kitchen,Piano,Bedroom] Audrey light blink");
+$v_audrey_led_on    = new Voice_Cmd("Set [,all,Kitchen,Piano,Bedroom] Audrey light on");
+$v_audrey_led_off   = new Voice_Cmd("Set [,all,Kitchen,Piano,Bedroom] Audrey light off");
+$v_audrey_led_blink = new Voice_Cmd("Set [,all,Kitchen,Piano,Bedroom] Audrey light blink");
 
-$v_audrey_screen_on =
-  new Voice_Cmd("Set [,all,Kitchen,Piano,Bedroom] Audrey screen on");
-$v_audrey_screen_off =
-  new Voice_Cmd("Set [,all,Kitchen,Piano,Bedroom] Audrey screen off");
+$v_audrey_screen_on  = new Voice_Cmd("Set [,all,Kitchen,Piano,Bedroom] Audrey screen on");
+$v_audrey_screen_off = new Voice_Cmd("Set [,all,Kitchen,Piano,Bedroom] Audrey screen off");
 
-$v_audrey_photos =
-  new Voice_Cmd("Set [,all,Kitchen,Piano,Bedroom] Audrey to photo screen");
+$v_audrey_photos = new Voice_Cmd("Set [,all,Kitchen,Piano,Bedroom] Audrey to photo screen");
 
-$v_audrey_wav =
-  new Voice_Cmd("Set [,all,Kitchen,Piano,Bedroom] Audrey to a wav file");
+$v_audrey_wav = new Voice_Cmd("Set [,all,Kitchen,Piano,Bedroom] Audrey to a wav file");
 
-$v_audrey_tagline =
-  new Voice_Cmd("Read tag line to [,all,Kitchen,Piano,Bedroom] Audrey");
+$v_audrey_tagline = new Voice_Cmd("Read tag line to [,all,Kitchen,Piano,Bedroom] Audrey");
 
 &audrey( 'led', 'on',    $state ) if $state = said $v_audrey_led_on;
 &audrey( 'led', 'off',   $state ) if $state = said $v_audrey_led_off;
@@ -92,8 +84,7 @@ sub audrey {
         }
         elsif ( $mode eq 'photos' ) {
             print_log "$address Audrey to photo screen";
-            get
-              "http://$address/cgi-bin/SendMessage?M=GOTO_URL&S=http://$Info{IPAddress_local}:$config_parms{http_port}/misc/photos.html";
+            get "http://$address/cgi-bin/SendMessage?M=GOTO_URL&S=http://$Info{IPAddress_local}:$config_parms{http_port}/misc/photos.html";
         }
     }
 }

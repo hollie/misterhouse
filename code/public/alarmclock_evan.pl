@@ -34,8 +34,7 @@ if ( $state = state_now $XB_J6) {    # This is the Set/Snooze & Alarm Off Button
     if ( $state eq 'on' and $alarm_state eq 'off' ) {         # Set
         if ( $Wday < 5 ) {
             $alarm_switch = "set";
-            speak
-              "Good Night Maggie, Tomorrow is a school day. I have set your alarm for $Save{alarm1_time}";
+            speak "Good Night Maggie, Tomorrow is a school day. I have set your alarm for $Save{alarm1_time}";
         }
         speak "Good Night Maggie" if $Wday > 4;
 

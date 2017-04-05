@@ -1,10 +1,8 @@
 # Category = Weather
 
 my $wx_warnings = "$config_parms{data_dir}/web/wx_warnings";
-$p_wx_warnings = new Process_Item
-  "get_url http://www.weather.gov/alerts/mn.cap $wx_warnings.xml";
-$v_wx_warnings =
-  new Voice_Cmd '[Get,Show,Display,Read,Parse] the latest NWS Announcements';
+$p_wx_warnings = new Process_Item "get_url http://www.weather.gov/alerts/mn.cap $wx_warnings.xml";
+$v_wx_warnings = new Voice_Cmd '[Get,Show,Display,Read,Parse] the latest NWS Announcements';
 
 $state = said $v_wx_warnings;
 if ( $state eq 'Get'
@@ -17,8 +15,7 @@ display "$wx_warnings.txt" if $state eq 'Show' or $state eq 'Display';
 speak "$wx_warnings.txt" if $state eq 'Read';
 
 if ( done_now $p_wx_warnings or $state eq 'Parse' ) {
-    my ( $finalsummarytx, $finalsummary, $summary, $tempcode, $localwarnflag,
-        $i );
+    my ( $finalsummarytx, $finalsummary, $summary, $tempcode, $localwarnflag, $i );
     $localwarnflag = 0;
     for ( file_read "$wx_warnings.xml" ) {
         $summary = "";

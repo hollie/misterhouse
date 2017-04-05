@@ -2,11 +2,8 @@
 
 #@ Announces misc. reminders.
 
-$plant_talk =
-  new File_Item("$config_parms{data_dir}/remarks/list_plant_talk.txt");
-speak(
-    "rooms=all voice=Claire The plants want to be watered.  They gave me the following message:"
-      . &Voice_Text::set_voice( 'male', read_next $plant_talk) )
+$plant_talk = new File_Item("$config_parms{data_dir}/remarks/list_plant_talk.txt");
+speak( "rooms=all voice=Claire The plants want to be watered.  They gave me the following message:" . &Voice_Text::set_voice( 'male', read_next $plant_talk) )
   if time_cron('20 12,16,18 * * 0');
 
 $cat_talk = new File_Item("$config_parms{data_dir}/remarks/list_cat_talk.txt");
@@ -35,9 +32,7 @@ if ( time_cron('05 18,20 * * 0,3') ) {
 sub speak_anniversary {
     my ( $year, $person, $type ) = @_;
     my $years = &speakify_numbers( $Year - $year );
-    speak(
-        "voice=Claire Listen up everybody.  Today is ${person}'s $years $type!"
-    );
+    speak("voice=Claire Listen up everybody.  Today is ${person}'s $years $type!");
 }
 
 &speak_anniversary( 1953, 'Mal & Beth', 'anniversary' )

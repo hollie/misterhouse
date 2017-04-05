@@ -178,14 +178,8 @@ sub Ribbit {
         }
         else {               # deal with "00" command (identification)
             &CheckIdentification($Data);
-            &::logit(
-                "$::config_parms{data_dir}/logs/$FroggyFD.$::Year_Month_Now.log",
-                "Device $FroggyFD Initialized"
-            ) if ($HaveIdent);
-            &::logit(
-                "$::config_parms{data_dir}/logs/$FroggyFD.$::Year_Month_Now.log",
-                "Device $FroggyFD Reinitialized (bad data)"
-            ) if ( $BadData > 0 );
+            &::logit( "$::config_parms{data_dir}/logs/$FroggyFD.$::Year_Month_Now.log", "Device $FroggyFD Initialized" ) if ($HaveIdent);
+            &::logit( "$::config_parms{data_dir}/logs/$FroggyFD.$::Year_Month_Now.log", "Device $FroggyFD Reinitialized (bad data)" ) if ( $BadData > 0 );
             $self->SUPER::set( 'identify', 'serial' );
         }
 
@@ -193,13 +187,9 @@ sub Ribbit {
     else {
         my $timestamp = $main::Time_Date;
         $BadData++;
-        print
-          "FroggyRita.pm $timestamp : Invalid data received from Froggy [$Data] count=$BadData\n"
+        print "FroggyRita.pm $timestamp : Invalid data received from Froggy [$Data] count=$BadData\n"
           if ( ( $Main::Time_Startup_time + 60 ) < time() and $Data );
-        &::logit(
-            "$::config_parms{data_dir}/logs/$FroggyFD.$::Year_Month_Now.log",
-            "$timestamp : Invalid data received from Froggy device [$Data]"
-        ) if $Data;
+        &::logit( "$::config_parms{data_dir}/logs/$FroggyFD.$::Year_Month_Now.log", "$timestamp : Invalid data received from Froggy device [$Data]" ) if $Data;
     }
 
 }
@@ -222,10 +212,7 @@ sub new {
         init( $::Serial_Ports{$FroggyFD}{object} );
         print "FroggyRita.pm initialized FroggyRita on port $port at 300 baud\n"
           if $main::Debug{froggyrita};
-        &::logit(
-            "$::config_parms{data_dir}/logs/$FroggyFD.$::Year_Month_Now.log",
-            "Initializing FroggyRita on port $port at 300 baud"
-        );
+        &::logit( "$::config_parms{data_dir}/logs/$FroggyFD.$::Year_Month_Now.log", "Initializing FroggyRita on port $port at 300 baud" );
     }
 
     my $self = {};
@@ -245,8 +232,7 @@ sub CalcData {
 
     # validate identity string
     if ( CheckSum($Data) != 0 ) {
-        print
-          "FroggyRita.pm: checksum incorrect, invalid FroggyRita Data [$Data]\n"
+        print "FroggyRita.pm: checksum incorrect, invalid FroggyRita Data [$Data]\n"
           if $main::Debug{froggyrita};
         return;
     }
@@ -276,9 +262,7 @@ sub CalcData {
         $Temp = ( 200 + $DT * ( $C6 + 50 ) / 1024 ) / 10;
     }
     else {
-        $DT =
-          ( $D2 - $UT1 ) -
-          ( ( ( $D2 - $UT1 ) / 128 ) * ( ( $D2 - $UT1 ) / 128 ) ) / 4;
+        $DT = ( $D2 - $UT1 ) - ( ( ( $D2 - $UT1 ) / 128 ) * ( ( $D2 - $UT1 ) / 128 ) ) / 4;
         $Temp = ( 200 + $DT * ( $C6 + 50 ) / 1024 + $DT / 256 ) / 10;
     }
 
@@ -308,9 +292,7 @@ sub CalcData {
     }
     else {
 
-        my $Imped =
-          ( $Rs / 1000 ) /
-          ( ( ( 2**$NbBits ) / $Hmeasure ) - 1 - ( $Rs / $Rp ) );
+        my $Imped = ( $Rs / 1000 ) / ( ( ( 2**$NbBits ) / $Hmeasure ) - 1 - ( $Rs / $Rp ) );
 
         my $A = 1.0;
 
@@ -343,15 +325,9 @@ sub CalcData {
         $D4 = -2.454383e-6;
 
         $Hum = ( $A * $A1 ) + ( $B * $A2 ) + ( $C * $A3 ) + ( $D * $A4 );
-        $Hum +=
-          $Temp * $A * $B1 +
-          $Temp * $B * $B2 +
-          $Temp * $C * $B3 +
-          $Temp * $D * $B4;
-        $Hum +=
-          $T2 * $A * $C1 + $T2 * $B * $C2 + $T2 * $C * $C3 + $T2 * $D * $C4;
-        $Hum +=
-          $T3 * $A * $D1 + $T3 * $B * $D2 + $T3 * $C * $D3 + $T3 * $D * $D4;
+        $Hum += $Temp * $A * $B1 + $Temp * $B * $B2 + $Temp * $C * $B3 + $Temp * $D * $B4;
+        $Hum += $T2 * $A * $C1 + $T2 * $B * $C2 + $T2 * $C * $C3 + $T2 * $D * $C4;
+        $Hum += $T3 * $A * $D1 + $T3 * $B * $D2 + $T3 * $C * $D3 + $T3 * $D * $D4;
 
         if ( $Hum > 100.0 ) { $Hum = 100.0 }
         if ( $Hum < 0.0 )   { $Hum = 0.0 }
@@ -376,8 +352,7 @@ sub CheckIdentification {
 
     # validate identity string
     if ( CheckSum($Identity) != 0 ) {
-        print
-          "FroggyRita.pm: Checksum incorrect, invalid identification [$Identity]\n";
+        print "FroggyRita.pm: Checksum incorrect, invalid identification [$Identity]\n";
         return;
     }
 
@@ -426,8 +401,8 @@ sub CheckSum {
     return 1 if $Str !~ /G/;
     return 2 if $Str !~ /Z/;
 
-    my $Data     = substr( $Str, 1,  -3 );   # start from second to 3rd last ..Z
-    my $CkSumStr = substr( $Str, -3, 2 );    # start from second to 3rd last ..Z
+    my $Data     = substr( $Str, 1,  -3 );    # start from second to 3rd last ..Z
+    my $CkSumStr = substr( $Str, -3, 2 );     # start from second to 3rd last ..Z
 
     my $SLen = length($Str);
     return 3 if $SLen % 2 == 1;
