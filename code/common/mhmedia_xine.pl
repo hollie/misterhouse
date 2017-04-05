@@ -48,18 +48,16 @@
 #my $mediaState = "";
 # noloop=stop
 
-my $mediahost = $config_parms{media_server_host_port}
-  ;    #@ the server (localhost)  and port (6789) for the player
+my $mediahost = $config_parms{media_server_host_port};    #@ the server (localhost)  and port (6789) for the player
 $mediahost = "localhost:6789" unless $mediahost;
 
-my $mediaPlaylist = $config_parms{media_server_playlist}
-  ;    #@full path to the palylist including the name
+my $mediaPlaylist = $config_parms{media_server_playlist};    #@full path to the palylist including the name
 $mediaPlaylist = "/root/.xine/playlist.tox" unless $mediaPlaylist;
 
-my $mediaUser = $config_parms{media_server_user};    #optional login information
+my $mediaUser = $config_parms{media_server_user};            #optional login information
 my $mediaPass = $config_parms{media_server_pass};
 my $mediapath = ""
-  unless $config_parms{media_file_path};    #used in mhmedia_list web function
+  unless $config_parms{media_file_path};                     #used in mhmedia_list web function
 
 $mediacmd = new Socket_Item( undef, undef, $mediahost, 'media', 'tcp' );
 
@@ -108,8 +106,7 @@ my $cmdlist =
   . "Panel,Play DVD,Load Playlist,Playlist,track,"
   . "FastForward,Rewind,Slow,Fullscreen";
 
-$v_mhmedia_control_cmd =
-  new Voice_Cmd( "Set the house media player to [" . $cmdlist . "]" );
+$v_mhmedia_control_cmd = new Voice_Cmd( "Set the house media player to [" . $cmdlist . "]" );
 my $state;
 
 if ( $Reload or $Startup ) {
@@ -301,8 +298,7 @@ sub mhmedia_return {
 
             #if we want to authenticate here is where we do it
             if ( $config_parms{media_server_user} ) {
-                set $mediacmd
-                  "identify $config_parms{media_server_user}:$config_parms{media_server_pass}";
+                set $mediacmd "identify $config_parms{media_server_user}:$config_parms{media_server_pass}";
             }
             $mediaMode = '';
         }
@@ -540,9 +536,9 @@ sub mhmedia_get_playlist_pos {
         print "return $state \n";
         my ( $cmd2, $val ) = split( /\s+ /, $state );    # break ths line up
         my ( $ptr,  $cmd ) = split( /\s+/,  $val );
-        if ( $cmd2 eq "*>" ) {    # look current for the marker
-             # cmd-is the filename, val-fn ,ptr-list number, cmd2- current selection
-            $rtn = $ptr;    # return the pointer for the current selection
+        if ( $cmd2 eq "*>" ) {                           # look current for the marker
+                                                         # cmd-is the filename, val-fn ,ptr-list number, cmd2- current selection
+            $rtn = $ptr;                                 # return the pointer for the current selection
         }
     }
     return ($rtn);
@@ -552,7 +548,7 @@ sub mhmedia_get_playlist_pos {
 sub mhmedia_set_playlist_pos {
     my $cntr = &mhmedia_get_playlist_length();
     set $mediacmd 'playlist show';
-    select undef, undef, undef, .050;    # # Wait a while
+    select undef, undef, undef, .050;                    # # Wait a while
     my $rtn = 'No Playlist Title available';
     my $pos = 0;
     for ( $pos = 0, $pos < $cntr + 1, $pos++ ) {

@@ -60,7 +60,6 @@ else {
     $state2 = '' if defined $Cookies{$string} and $Cookies{$string} eq '0';
 
     my $image = "/graphics/${string}_${state1}.gif";
-    return
-      "<a href='/bin/set_cookie2.pl?$string=$state2'><img src='$image' alt='$string $state1' border=0></a>\n";
+    return "<a href='/bin/set_cookie2.pl?$string=$state2'><img src='$image' alt='$string $state1' border=0></a>\n";
 }
 

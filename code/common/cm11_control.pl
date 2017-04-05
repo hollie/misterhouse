@@ -11,8 +11,7 @@ if ( said $v_cm11_control1) {
         if ( $state eq 'Stop' or $state eq 'Reset' ) {
             if ( $main::Serial_Ports{'cm11'}{object}->close ) {
                 print "CM11 port was closed\n";
-                delete $Serial_Ports{object_by_port}
-                  { $Serial_Ports{'cm11'}{port} };
+                delete $Serial_Ports{object_by_port}{ $Serial_Ports{'cm11'}{port} };
             }
             else {
                 print "CM11 port failed to close\n";

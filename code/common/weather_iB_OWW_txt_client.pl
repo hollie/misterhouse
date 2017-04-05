@@ -100,16 +100,13 @@ $config_parms{owwserver_host_deadman_minutes} = 2
   unless defined $config_parms{owwserver_host_deadman_minutes};
 $config_parms{owwserver_host_txt_port} = "localhost:8891"
   unless defined $config_parms{owwserver_host_txt_port};
-$ibwstxt =
-  new Socket_Item( undef, undef, $config_parms{owwserver_host_txt_port},
-    'ibwstxt', 'tcp', 'raw' );
+$ibwstxt = new Socket_Item( undef, undef, $config_parms{owwserver_host_txt_port}, 'ibwstxt', 'tcp', 'raw' );
 
 # noloop=stop
 
 # Initialisation
 if ($Reload) {
-    $config_parms{temperature_sensor_keys} =
-      "outdoor => TempOutdoor, indoor => TempIndoor"
+    $config_parms{temperature_sensor_keys} = "outdoor => TempOutdoor, indoor => TempIndoor"
       unless defined $config_parms{temperature_sensor_keys};
 }
 
@@ -120,23 +117,19 @@ my $ibws_deadman;
 my %temp_sensor_keys;
 
 # read keys preserve case
-&main::read_parm_hash( \%temp_sensor_keys,
-    $main::config_parms{temperature_sensor_keys}, 1 );
+&main::read_parm_hash( \%temp_sensor_keys, $main::config_parms{temperature_sensor_keys}, 1 );
 
 my %humidity_sensor_keys;
 
 # read keys preserve case
-&main::read_parm_hash( \%humidity_sensor_keys,
-    $main::config_parms{humidity_sensor_keys}, 1 );
+&main::read_parm_hash( \%humidity_sensor_keys, $main::config_parms{humidity_sensor_keys}, 1 );
 
 my %dewpoint_sensor_keys;
 
 # read keys preserve case
-&main::read_parm_hash( \%dewpoint_sensor_keys,
-    $main::config_parms{dewpoint_sensor_keys}, 1 );
+&main::read_parm_hash( \%dewpoint_sensor_keys, $main::config_parms{dewpoint_sensor_keys}, 1 );
 
-$ibwstxt_v =
-  new Voice_Cmd "[Start,Stop,Speak] the ibutton weather station text client";
+$ibwstxt_v = new Voice_Cmd "[Start,Stop,Speak] the ibutton weather station text client";
 $ibwstxt_v->set_info('Connects to the ibutton weather station server');
 
 my $freezing = new Weather_Item 'TempOutdoor', '<', 32;
@@ -199,8 +192,7 @@ if ( my $data = said $ibwstxt) {
                 }
                 $Weather{$name} = $data[ $i + 1 ];
                 $temp_unit = $data[ $i + 2 ];
-                print_log
-                  "Temperature at $key ( $name ) is $Weather{$name} $temp_unit"
+                print_log "Temperature at $key ( $name ) is $Weather{$name} $temp_unit"
                   if $debug;
                 $i += 2;
                 last PARSE;
@@ -274,8 +266,7 @@ if ( my $data = said $ibwstxt) {
                 # Direction <Desc> <degrees>> <vane_number>
                 s/\[//;
                 s/]//;
-                print_log
-                  "Wind is $data[$i+1] degrees $data[$i+2] vane $data[$i+3]"
+                print_log "Wind is $data[$i+1] degrees $data[$i+2] vane $data[$i+3]"
                   if $debug;
 
                 # could convert to longer names...
@@ -322,8 +313,7 @@ if ( my $data = said $ibwstxt) {
 
     # this is the standard short summary for the web interfaces
     $Weather{Summary_Short} = "$Weather{TempOutdoor} $temp_unit ";
-    $Weather{Wind} =
-      " $Weather{WindAvgSpeed}/$Weather{WindSpeedHigh} $direction";
+    $Weather{Wind}          = " $Weather{WindAvgSpeed}/$Weather{WindSpeedHigh} $direction";
 
 }
 
@@ -340,10 +330,7 @@ if ($New_Minute) {
 
 # ----------------------------------------------------------------------------
 
-&tk_entry(
-    "temp",    \$Weather{TempOutdoor}, "Wind ", \$Weather{Wind},
-    "Wchill ", \$Weather{WindChill}
-);
+&tk_entry( "temp", \$Weather{TempOutdoor}, "Wind ", \$Weather{Wind}, "Wchill ", \$Weather{WindChill} );
 
 if ( $state = said $ibwstxt_v) {
     print_log "${state}ing the ibutton weather station client";
@@ -361,8 +348,7 @@ if ( $state = said $ibwstxt_v) {
 
     }
     elsif ( $state eq 'Speak' ) {
-        my $msg =
-          "\nThe Current temperature is $Weather{TempOutdoor}\nA high of $Weather{TempOutdoorHigh}\nA low of $Weather{TempOutdoorLow}.\n";
+        my $msg = "\nThe Current temperature is $Weather{TempOutdoor}\nA high of $Weather{TempOutdoorHigh}\nA low of $Weather{TempOutdoorLow}.\n";
         $msg .=
           "Current Wind Speed is $Weather{WindAvgSpeed} miles per hour\nGusts of $Weather{WindSpeedPeak}\nHigh of $Weather{WindSpeedHigh}.\nWind Direction is $direction.\n";
 

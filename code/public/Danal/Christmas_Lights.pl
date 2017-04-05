@@ -17,6 +17,6 @@ if ($New_Minute) {
         set $Christmas_Lights ON          if time_cron '* * * 11,12 *';
         set $Stairway_Christmas_Lights ON if time_cron '* * * 11,12 *';
     }
-    set $Christmas_Lights OFF if ( time_cron '3,6 0 * * *' );    # Midnight
-    set $Stairway_Christmas_Lights OFF if ( time_cron '4,7 1 * * *' );  # One AM
+    set $Christmas_Lights OFF          if ( time_cron '3,6 0 * * *' );    # Midnight
+    set $Stairway_Christmas_Lights OFF if ( time_cron '4,7 1 * * *' );    # One AM
 }    # End of New Minute code

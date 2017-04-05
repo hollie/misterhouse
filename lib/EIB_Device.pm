@@ -46,10 +46,9 @@ my $EibdProtoInfo;    # Protocol specific info
 
 sub startup {
     return if $started++;
-    die
-      "Parameter eib_device has changed to eib_connection!\nPlease change ini file!\n\n"
+    die "Parameter eib_device has changed to eib_connection!\nPlease change ini file!\n\n"
       if $::config_parms{eib_device};
-    return unless my $dev = $::config_parms{eib_connection};   # Is EIB enabled?
+    return unless my $dev = $::config_parms{eib_connection};    # Is EIB enabled?
     printf " - initializing EIB connection to '$dev' ...";
     &main::print_log("Initializing EIB connection");
     if ( $dev =~ /(.+):(.+)/ ) {
@@ -75,8 +74,7 @@ sub startup {
 # Initialize BCU device
 sub initdevice {
     writedev("\x46\x01\x00\x60\x12");    # access data link layer
-    writedev("\x46\x01\x01\x16\x00")
-      ;    # set zero length address mapping table, to snoop all datagrams
+    writedev("\x46\x01\x01\x16\x00");    # set zero length address mapping table, to snoop all datagrams
 }
 
 # Reset BCU device
@@ -91,8 +89,8 @@ sub writedev {
       unless syswrite( EIB, $str, bytes::length($str) );
 }
 
-my @outqueue = ();    # Queue of messages to be sent
-my $count    = 0;     # Number of passes since last message sent
+my @outqueue = ();                       # Queue of messages to be sent
+my $count    = 0;                        # Number of passes since last message sent
 
 # Handle device I/O: Read and write messages on the bus
 sub check_for_data {
@@ -133,8 +131,7 @@ sub addr2str {
     my $b = $_[1];    # 1 if local (group) address, else physical address
     my $str;
     if ( $b == 1 ) {    # logical address used
-        $str = sprintf "%d/%d/%d", ( $a >> 11 ) & 0xf, ( $a >> 8 ) & 0x7,
-          $a & 0xff;
+        $str = sprintf "%d/%d/%d", ( $a >> 11 ) & 0xf, ( $a >> 8 ) & 0x7, $a & 0xff;
     }
     else {              # physical address used
         $str = sprintf "%d.%d.%d", $a >> 12, ( $a >> 8 ) & 0xf, $a & 0xff;
@@ -220,7 +217,7 @@ sub encode {
         str2addr( $mref->{'dst'} ),    # Destination address
         0x60 | ( $#$data + 1 ) |       # Routing, length and
           ( addrIsLogical( $mref->{'dst'} ) << 7 ),    # address type
-        0x0 | ( $APCI >> 2 ),    # TPDU type, Sequence no, APCI (msb)
+        0x0 | ( $APCI >> 2 ),                          # TPDU type, Sequence no, APCI (msb)
         ( ( $APCI & 0x3 ) << 6 ) | $$data[0],
     );
     if ( $#$data > 0 ) {
@@ -396,8 +393,7 @@ sub check_for_eibddata {
 
                 # Modify data to make it compatible to data from BCU1
                 my @tmpdat = unpack( "nna*", $buf );
-                my $data = pack "CCnnCa*", 0xbc, 0x00, $tmpdat[0], $tmpdat[1],
-                  0xe1, $tmpdat[2];
+                my $data = pack "CCnnCa*", 0xbc, 0x00, $tmpdat[0], $tmpdat[1], 0xe1, $tmpdat[2];
 
                 #print "Modified packet: ", unpack("H*",$data), "\n";
                 my $msg = decode($data);

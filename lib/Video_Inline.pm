@@ -74,11 +74,7 @@ package InLine;
 @InLine::ISA = ('Serial_Item');
 
 sub serial_startup {
-    &main::serial_port_create(
-        'InLine',
-        $main::config_parms{InLine_serial_port},
-        $main::config_parms{InLine_baudrate}, 'none'
-    );
+    &main::serial_port_create( 'InLine', $main::config_parms{InLine_serial_port}, $main::config_parms{InLine_baudrate}, 'none' );
     &::MainLoop_pre_add_hook( \&InLine::check_for_data, 1 );
     &::print_log("InLine Serial Port Initialized");
 }

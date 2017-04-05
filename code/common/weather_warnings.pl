@@ -13,8 +13,7 @@
 
 # 01/05/2014 Created by Steve Switzer (steve@switzerny.org)
 
-$f_weather_forecast_warning =
-  new File_Item "$config_parms{data_dir}/web/weather_forecast.txt";
+$f_weather_forecast_warning = new File_Item "$config_parms{data_dir}/web/weather_forecast.txt";
 set_watch $f_weather_forecast_warning if $Reload;
 
 $v_get_weather_warning = new Voice_Cmd 'Get the weather warnings', 0;
@@ -27,8 +26,7 @@ $v_weather_warning->set_authority('anyone');
 if ( said $v_weather_warning) {
     my $response = $Weather{Warning};
     print_log($response);
-    $v_weather_warning->respond(
-        "app=weatherwarning important=1 Weather Warning: $response")
+    $v_weather_warning->respond("app=weatherwarning important=1 Weather Warning: $response")
       unless $response =~ /^$/i;
 }
 
@@ -65,12 +63,8 @@ if (   said $v_get_weather_warning
 
 # lets allow the user to control via triggers
 if ($Reload) {
-    &trigger_set(
-        "time_cron '11 8,11,16,19 * * *'",
-        "run_voice_cmd 'Read weather warnings'",
-        'NoExpire',
-        'read weather warnings'
-    ) unless &trigger_get('read weather warnings');
+    &trigger_set( "time_cron '11 8,11,16,19 * * *'", "run_voice_cmd 'Read weather warnings'", 'NoExpire', 'read weather warnings' )
+      unless &trigger_get('read weather warnings');
 }
 
 =begin comment

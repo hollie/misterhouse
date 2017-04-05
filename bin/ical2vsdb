@@ -43,9 +43,8 @@ my $progname = "ical2vsdb";
 my $progver  = "v4 01-2014";
 my $DB       = 0;
 
-my $days_before =
-  -180;    # defaults to avoid large vsdb databases, can be overriden
-my $days_after = 180;    #
+my $days_before = -180;    # defaults to avoid large vsdb databases, can be overriden
+my $days_after  = 180;     #
 
 my $config_file    = "";
 my $config_version = 2;
@@ -140,16 +139,11 @@ while (1) {
             print "Fetching via LWP:$method...";
             my $req = new HTTP::Request GET => $method . "://" . $calendar_loc;
             if ( $ical_data[$loop]->{username} ) {
-                $req->authorization_basic(
-                    $ical_data[$loop]->{username},
-                    $ical_data[$loop]->{password}
-                );
+                $req->authorization_basic( $ical_data[$loop]->{username}, $ical_data[$loop]->{password} );
             }
             my $results = $ua->request($req);
             if ( !( $results->is_success ) ) {
-                print
-                  "Error.\nThe calendar specified by $calendar_loc could not be retrieved: "
-                  . $results->status_line . "\n";
+                print "Error.\nThe calendar specified by $calendar_loc could not be retrieved: " . $results->status_line . "\n";
             }
             else {
                 $data = $results->content;
@@ -243,10 +237,8 @@ while (1) {
         print "Updating databases for @changed_icals ...\n";
 
         #print Dumper @master_cal;
-        update_db( "$output_dir/$vsdb_cal_file", \@changed_icals,
-            \@master_cal );
-        update_db( "$output_dir/$vsdb_todo_file", \@changed_icals,
-            \@master_todo );
+        update_db( "$output_dir/$vsdb_cal_file",  \@changed_icals, \@master_cal );
+        update_db( "$output_dir/$vsdb_todo_file", \@changed_icals, \@master_todo );
         print "done\n";
     }
 
@@ -298,9 +290,7 @@ sub update_db {
                       if ( $objDB->FieldValue('SOURCE') =~ m/ical=$ical/i );
                 }
                 if ($delete) {
-                    print "Deleting "
-                      . $objDB->FieldValue("ID")
-                      . " source=$delete\n"
+                    print "Deleting " . $objDB->FieldValue("ID") . " source=$delete\n"
                       if $DB;
                     $objDB->Delete();
                 }
@@ -358,8 +348,7 @@ sub parse_cal {
 
     my $caldesc = $cal->{cals}->[0]->{'X-WR-CALDESC'};
     $caldesc = "none" if !$caldesc;
-    my ( $lsec, $lmin, $lhour, $lday, $lmon, $lyear, $t4, $t5, $t6 ) =
-      localtime();
+    my ( $lsec, $lmin, $lhour, $lday, $lmon, $lyear, $t4, $t5, $t6 ) = localtime();
     $lyear += 1900;
     $lmon++;
     $lsec = "00" if ( $lsec == 0 );
@@ -367,20 +356,10 @@ sub parse_cal {
     my $source = "ical=$calname";
 
     if ( $date_format =~ /ddmm/i ) {
-        $source .=
-            " sync=$lday" . "/"
-          . $lmon . "/"
-          . "$lyear $lhour" . ":"
-          . $lmin . ":"
-          . $lsec;
+        $source .= " sync=$lday" . "/" . $lmon . "/" . "$lyear $lhour" . ":" . $lmin . ":" . $lsec;
     }
     else {
-        $source .=
-            " sync=$lmon" . "/"
-          . $lday . "/"
-          . "$lyear $lhour" . ":"
-          . $lmin . ":"
-          . $lsec;
+        $source .= " sync=$lmon" . "/" . $lday . "/" . "$lyear $lhour" . ":" . $lmin . ":" . $lsec;
     }
     push @out_info, $calname;
     push @out_info, $caldesc;
@@ -391,19 +370,14 @@ sub parse_cal {
         while ( my $month = each %{ $cal->{events}->{$year} } ) {
             while ( my $day = each %{ $cal->{events}->{$year}->{$month} } ) {
                 print ".";    #give some progress
-                while ( my $uid =
-                    each %{ $cal->{events}->{$year}->{$month}->{$day} } )
-                {
+                while ( my $uid = each %{ $cal->{events}->{$year}->{$month}->{$day} } ) {
                     my $delta;
 
                     #is this event in range?
                     if ( $days_before or $days_after ) {
-                        $delta =
-                          Delta_Days( $lyear, $lmon, $lday, $year, $month,
-                            $day );
+                        $delta = Delta_Days( $lyear, $lmon, $lday, $year, $month, $day );
                     }
-                    print
-                      "EventID:$uid, before=$days_before after=$days_after delta=$delta\n"
+                    print "EventID:$uid, before=$days_before after=$days_after delta=$delta\n"
                       if ( $DB > 2 );
 
                     #if not then skip the item
@@ -414,9 +388,8 @@ sub parse_cal {
                     print "Processing EventID:$uid\n" if ( $DB > 2 );
                     my $event_ref =
                       $cal->{events}->{$year}->{$month}->{$day}->{$uid};
-                    my $starttime = "12:00 am"
-                      ; # starttime and endtime are initialized the same if all day
-                    my $endtime = "12:00 am";
+                    my $starttime = "12:00 am";    # starttime and endtime are initialized the same if all day
+                    my $endtime   = "12:00 am";
 
                     #What is the time of the event, or is it all day?
                     if ( not defined( $event_ref->{allday} ) ) {
@@ -424,27 +397,18 @@ sub parse_cal {
                           $event_ref->{DTSTART}->{local_c}->{hour};
                         my $am_pm = ( $starthour >= 12 ) ? "pm" : "am";
                         $starthour = ( $starthour + 11 ) % 12 + 1;
-                        $starttime =
-                          sprintf( "%2s", $starthour ) . ":"
-                          . sprintf( "%02s",
-                            $event_ref->{DTSTART}->{local_c}->{minute} )
-                          . " $am_pm";
+                        $starttime = sprintf( "%2s", $starthour ) . ":" . sprintf( "%02s", $event_ref->{DTSTART}->{local_c}->{minute} ) . " $am_pm";
                         my $endhour = $event_ref->{DTEND}->{local_c}->{hour};
-                        $am_pm = ( $endhour >= 12 ) ? "pm" : "am";
+                        $am_pm   = ( $endhour >= 12 ) ? "pm" : "am";
                         $endhour = ( $endhour + 11 ) % 12 + 1;
-                        $endtime =
-                          sprintf( "%2s", $endhour ) . ":"
-                          . sprintf( "%02s",
-                            $event_ref->{DTEND}->{local_c}->{minute} )
-                          . " $am_pm";
+                        $endtime = sprintf( "%2s", $endhour ) . ":" . sprintf( "%02s", $event_ref->{DTEND}->{local_c}->{minute} ) . " $am_pm";
                     }
 
                     my $reminder = '';
                     if ( $event_ref->{VALARM} ) {
                         foreach my $alarm ( @{ $event_ref->{VALARM} } ) {
                             if ( $alarm->{when} && $event_ref->{DTSTART} ) {
-                                my $duration =
-                                  $event_ref->{DTSTART} - $alarm->{when};
+                                my $duration = $event_ref->{DTSTART} - $alarm->{when};
                                 $reminder .= ($reminder) ? ',' : '';
                                 if ( $duration->delta_days ) {
                                     $reminder .= $duration->delta_days . 'd';
@@ -476,8 +440,7 @@ sub parse_cal {
 
                     #package all the ical data up in a hash
 
-                    $out_cals[$count]->{DATE} =
-                      $year . "." . $month . "." . $day;
+                    $out_cals[$count]->{DATE}     = $year . "." . $month . "." . $day;
                     $out_cals[$count]->{TIME}     = $starttime;
                     $out_cals[$count]->{EVENT}    = $event_ref->{SUMMARY};
                     $out_cals[$count]->{CATEGORY} = $event_ref->{CATEGORIES};
@@ -505,8 +468,7 @@ sub parse_cal {
             $completed = "Yes" if ( $todo->{STATUS} eq "COMPLETED" );
         }
         $completed = "Yes"
-          if ( defined $todo->{COMPLETED} )
-          ;    #some older ical servers don't have status
+          if ( defined $todo->{COMPLETED} );    #some older ical servers don't have status
         print "db: task=" . $todo->{SUMMARY} . " status=" if ($DB);
         print $todo->{STATUS} if ( ( defined $todo->{STATUS} ) and ($DB) );
         print " complete=" if ($DB);
@@ -524,49 +486,31 @@ sub parse_cal {
         {
 
             if ( $date_format =~ /ddmm/i ) {
-                $duedate =
-                    $todo->{DUE}->{local_c}->{day} . "/"
-                  . $todo->{DUE}->{local_c}->{month} . "/"
-                  . $todo->{DUE}->{local_c}->{year};
+                $duedate = $todo->{DUE}->{local_c}->{day} . "/" . $todo->{DUE}->{local_c}->{month} . "/" . $todo->{DUE}->{local_c}->{year};
             }
             else {
-                $duedate =
-                    $todo->{DUE}->{local_c}->{month} . "/"
-                  . $todo->{DUE}->{local_c}->{day} . "/"
-                  . $todo->{DUE}->{local_c}->{year};
+                $duedate = $todo->{DUE}->{local_c}->{month} . "/" . $todo->{DUE}->{local_c}->{day} . "/" . $todo->{DUE}->{local_c}->{year};
             }
             if (    $todo->{DTSTART}->{local_c}->{day}
                 and $todo->{DTSTART}->{local_c}->{month}
                 and $todo->{DTSTART}->{local_c}->{year} )
             {
                 if ( $date_format =~ /ddmm/i ) {
-                    $startdate =
-                        $todo->{DTSTART}->{local_c}->{day} . "/"
-                      . $todo->{DTSTART}->{local_c}->{month} . "/"
-                      . $todo->{DTSTART}->{local_c}->{year};
+                    $startdate = $todo->{DTSTART}->{local_c}->{day} . "/" . $todo->{DTSTART}->{local_c}->{month} . "/" . $todo->{DTSTART}->{local_c}->{year};
                 }
                 else {
-                    $startdate =
-                        $todo->{DTSTART}->{local_c}->{month} . "/"
-                      . $todo->{DTSTART}->{local_c}->{day} . "/"
-                      . $todo->{DTSTART}->{local_c}->{year};
+                    $startdate = $todo->{DTSTART}->{local_c}->{month} . "/" . $todo->{DTSTART}->{local_c}->{day} . "/" . $todo->{DTSTART}->{local_c}->{year};
                 }
             }
             my $endhour = $todo->{DUE}->{local_c}->{hour};
             my $am_pm = ( $endhour >= 12 ) ? "pm" : "am";
             $endhour = ( $endhour + 11 ) % 12 + 1;
-            $duetime =
-                sprintf( "%2s", $endhour ) . ":"
-              . sprintf( "%02s", $todo->{DUE}->{local_c}->{minute} )
-              . " $am_pm";
+            $duetime = sprintf( "%2s", $endhour ) . ":" . sprintf( "%02s", $todo->{DUE}->{local_c}->{minute} ) . " $am_pm";
             $duetime = '' if $duetime =~ /0:00/;
             my $starthour = $todo->{DTSTART}->{local_c}->{hour};
-            $am_pm = ( $starthour >= 12 ) ? "pm" : "am";
+            $am_pm     = ( $starthour >= 12 ) ? "pm" : "am";
             $starthour = ( $starthour + 11 ) % 12 + 1;
-            $starttime =
-                sprintf( "%2s", $starthour ) . ":"
-              . sprintf( "%02s", $todo->{DTSTART}->{local_c}->{minute} )
-              . " $am_pm";
+            $starttime = sprintf( "%2s", $starthour ) . ":" . sprintf( "%02s", $todo->{DTSTART}->{local_c}->{minute} ) . " $am_pm";
             $starttime = '' if $duetime =~ /0:00/;
         }
         my $reminder = '';
@@ -667,17 +611,14 @@ sub init {
                 $ical_data[$count]->{options}->{$key} = $value;
             }
             $ical_data[$count]->{hash} = "none";
-            print
-              "Applying second level ical parsing (set nodscfix if this breaks anything) ...\n"
+            print "Applying second level ical parsing (set nodscfix if this breaks anything) ...\n"
               unless ( exists $ical_data[$count]->{options}->{nodcsfix} );
 
             my ( $method, $loc ) = split( /:\/\//, $url );
             if ($loc) {
-                my ( $username, $password, $uri ) =
-                  $loc =~ /^(\S+):(\S+)@(\S+)/i;
+                my ( $username, $password, $uri ) = $loc =~ /^(\S+):(\S+)@(\S+)/i;
                 if ( $username and $password ) {
-                    print
-                      "parsed username: $username and password: $password and uri: $uri\n"
+                    print "parsed username: $username and password: $password and uri: $uri\n"
                       if ($DB);
                     $loc                           = $uri;
                     $ical_data[$count]->{username} = $username;
@@ -710,14 +651,12 @@ sub init {
     print "Error: No iCals to Process!\n" if ( $count == 0 );
 
     if ( !-e "$output_dir/$vsdb_cal_file" ) {
-        print
-          "Error: Target Calendar file not found at $output_dir/$vsdb_cal_file!\n";
+        print "Error: Target Calendar file not found at $output_dir/$vsdb_cal_file!\n";
         $count = 0;
     }
 
     if ( !-e "$output_dir/$vsdb_todo_file" ) {
-        print
-          "Error: Target Todo file not found at $output_dir/$vsdb_todo_file!\n";
+        print "Error: Target Todo file not found at $output_dir/$vsdb_todo_file!\n";
         $count = 0;
     }
 
@@ -733,10 +672,8 @@ sub help {
     print " -- CONFIG FILE SYNTAX -- \n";
     print "TYPE<tab>VALUE<tab>option\n\n";
     print "TYPE = cfg_version|ical|days_before|days_after|sleep\n";
-    print
-      "VALUE = parameter value or ical location (http://, file://, dir://)\n";
-    print
-      "OPTION = comma delimited values (holiday,name=Joe User,speak_todos,vacation,\n";
+    print "VALUE = parameter value or ical location (http://, file://, dir://)\n";
+    print "OPTION = comma delimited values (holiday,name=Joe User,speak_todos,vacation,\n";
     print "			control, nodcsfix, nosync_dtstamp)\n";
     print "\n";
 
@@ -791,8 +728,7 @@ sub cache_local {
         return;
     }
     open( CACHE, ">$local_cache/$filename.ics" )
-      || warn
-      "Error: Cannot write local cache file $local_cache/$filename.ics!";
+      || warn "Error: Cannot write local cache file $local_cache/$filename.ics!";
     print CACHE $data;
 
     close(CACHE);
@@ -801,8 +737,7 @@ sub cache_local {
 sub purge_icals {
 
     my $output_dir = $ARGV[1];
-    my @vsdb_files =
-      ( "$output_dir/$vsdb_cal_file", "$output_dir/$vsdb_todo_file" );
+    my @vsdb_files = ( "$output_dir/$vsdb_cal_file", "$output_dir/$vsdb_todo_file" );
 
     foreach my $filename (@vsdb_files) {
         print "Purging iCal information from $filename...";

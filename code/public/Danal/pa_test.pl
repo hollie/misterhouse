@@ -20,9 +20,9 @@ speak(
     mode   => 'unmuted',
     volume => 100,
     text   => "rooms=Office This message in Office Only"
-)                                                     if said $v_to100;
-speak "rooms=Kitchen This message in Kitchen Only"    if said $v_tk;
-speak "rooms=Garage Test This message in Garage Only" if said $v_tg;
+)                                                               if said $v_to100;
+speak "rooms=Kitchen This message in Kitchen Only"              if said $v_tk;
+speak "rooms=Garage Test This message in Garage Only"           if said $v_tg;
 speak "rooms=Office,kitchen This message in Office and Kitchen" if said $v_tok;
 
 if ( said $v_tmult) {

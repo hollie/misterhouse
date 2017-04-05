@@ -49,8 +49,7 @@ sub read {
     foreach my $fh ( $sel->can_read(0) ) {
         $fh->recv( $data, 256, 0 );
         my ( $type, $port, $cid_name, $cid_number ) = &unfmt_udp_msg($data);
-        my ( $clientport, $client_ip_addr ) =
-          Socket::sockaddr_in( $fh->peername );
+        my ( $clientport, $client_ip_addr ) = Socket::sockaddr_in( $fh->peername );
         my ( $a, $b, $c, $d ) = unpack( 'C4', $client_ip_addr );
         my $dottedip = "$a.$b.$c.$d";
         if ( $type == &CID_TYPE_SUBSCRIBE ) {
@@ -89,10 +88,9 @@ sub write {
     print "Sending acid $PacketType , $CIDName , $CIDNumber\n"
       if $main::Debug{phone};
     foreach my $key ( keys %clientList ) {
-        my $ipaddr = Socket::inet_aton("$key");
+        my $ipaddr   = Socket::inet_aton("$key");
         my $portaddr = Socket::sockaddr_in( $clientList{$key}, $ipaddr );
-        my $buf = &fmt_udp_msg( $PacketType, $main::config_parms{Acid_UDP_Port},
-            $CIDName, $CIDNumber );
+        my $buf      = &fmt_udp_msg( $PacketType, $main::config_parms{Acid_UDP_Port}, $CIDName, $CIDNumber );
         print "Sending data to $ipaddr, $portaddr: $buf" if $main::Debug{phone};
         defined( send( $udp_fh, $buf, 0, $portaddr ) )
           || warn "send udp failed: $!";
@@ -134,9 +132,9 @@ sub CID_TYPE_UNSUBSCRIBE {
 }    # Param2 is client computer name/address
 sub CID_TYPE_INCOMING_CALL { return (3); }    # Param2 is caller's name
                                               # Param3 is caller's phone #
-sub CID_TYPE_ERROR_CALL { return (4); }   # Same as of ICallerIDNotify.OnError()
-                                          # Param2 is error message
-sub CID_TYPE_TEST { return (5); }    # same syntax as subscribe (ping request)
+sub CID_TYPE_ERROR_CALL    { return (4); }    # Same as of ICallerIDNotify.OnError()
+                                              # Param2 is error message
+sub CID_TYPE_TEST          { return (5); }    # same syntax as subscribe (ping request)
 
 1;
 

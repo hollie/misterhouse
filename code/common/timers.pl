@@ -59,15 +59,11 @@ sub expired_timer {
 }
 
 # Allow for limited voice command timers
-$v_minute_timer = new Voice_Cmd(
-    'Set a timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,25,30,45,60,90,120] minutes'
-);
-$v_minute_timer->set_info(
-    'Set a minute timer.  Time remaining will be periodically announced');
+$v_minute_timer = new Voice_Cmd('Set a timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,25,30,45,60,90,120] minutes');
+$v_minute_timer->set_info('Set a minute timer.  Time remaining will be periodically announced');
 if ( said $v_minute_timer) {
     my $state = $v_minute_timer->{state};
-    $v_minute_timer->respond(
-        "app=timer A timer has been set for $state minutes.");
+    $v_minute_timer->respond("app=timer A timer has been set for $state minutes.");
     set $timer_time "$state minutes";
 
     #   set $timer_text 'minite';
@@ -91,13 +87,10 @@ if ( $state = said $v_list_timers) {
             $time_left /= 3600 if $timer->{unit} eq 'hour';
             $time_left = round $time_left, 1;
             if ( $timer->{text} ) {
-                speak "app=timer $timer->{text} in "
-                  . &plural( $time_left, $timer->{unit} );
+                speak "app=timer $timer->{text} in " . &plural( $time_left, $timer->{unit} );
             }
             else {
-                speak "app=timer "
-                  . &plural( $time_left, $timer->{unit} )
-                  . " left on the timer.";
+                speak "app=timer " . &plural( $time_left, $timer->{unit} ) . " left on the timer.";
             }
         }
     }
@@ -131,13 +124,10 @@ if ($New_Second) {
         #       $time_left = int $time_left;
         if ( $timer_reminder_intervals{$time_left} ) {
             if ( $timer->{text} ) {
-                speak "app=timer pitch=$pitch $timer->{text} in "
-                  . &plural( $time_left, $timer->{unit} );
+                speak "app=timer pitch=$pitch $timer->{text} in " . &plural( $time_left, $timer->{unit} );
             }
             else {
-                speak "app=timer pitch=$pitch "
-                  . &plural( $time_left, $timer->{unit} )
-                  . " left on the timer.";
+                speak "app=timer pitch=$pitch " . &plural( $time_left, $timer->{unit} ) . " left on the timer.";
             }
         }
     }

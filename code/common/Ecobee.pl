@@ -59,8 +59,7 @@ if ( my $state = said $v_set_temp_hold) {
     $ecobee_thermo->set_hold("temperature_nextTransition_740_760");
 }
 
-$v_set_climate_hold =
-  new Voice_Cmd 'Set thermostat climate hold to [home,away,sleep]';
+$v_set_climate_hold = new Voice_Cmd 'Set thermostat climate hold to [home,away,sleep]';
 if ( my $state = said $v_set_climate_hold) {
     print_log "Setting a thermostat climate hold to $state";
     $ecobee_thermo->set_hold("climate_nextTransition_$state");

@@ -7,62 +7,20 @@ use vars '$thermostat';
 
 my ( $function, @parms ) = @ARGV;
 
-my (
-    $sun_0_time, $sun_0_temp, $sun_0_zone,
-    $sun_1_time, $sun_1_temp, $sun_1_zone
-);
-my (
-    $sun_2_time, $sun_2_temp, $sun_2_zone,
-    $sun_3_time, $sun_3_temp, $sun_3_zone
-);
-my (
-    $mon_0_time, $mon_0_temp, $mon_0_zone,
-    $mon_1_time, $mon_1_temp, $mon_1_zone
-);
-my (
-    $mon_2_time, $mon_2_temp, $mon_2_zone,
-    $mon_3_time, $mon_3_temp, $mon_3_zone
-);
-my (
-    $tue_0_time, $tue_0_temp, $tue_0_zone,
-    $tue_1_time, $tue_1_temp, $tue_1_zone
-);
-my (
-    $tue_2_time, $tue_2_temp, $tue_2_zone,
-    $tue_3_time, $tue_3_temp, $tue_3_zone
-);
-my (
-    $wed_0_time, $wed_0_temp, $wed_0_zone,
-    $wed_1_time, $wed_1_temp, $wed_1_zone
-);
-my (
-    $wed_2_time, $wed_2_temp, $wed_2_zone,
-    $wed_3_time, $wed_3_temp, $wed_3_zone
-);
-my (
-    $thu_0_time, $thu_0_temp, $thu_0_zone,
-    $thu_1_time, $thu_1_temp, $thu_1_zone
-);
-my (
-    $thu_2_time, $thu_2_temp, $thu_2_zone,
-    $thu_3_time, $thu_3_temp, $thu_3_zone
-);
-my (
-    $fri_0_time, $fri_0_temp, $fri_0_zone,
-    $fri_1_time, $fri_1_temp, $fri_1_zone
-);
-my (
-    $fri_2_time, $fri_2_temp, $fri_2_zone,
-    $fri_3_time, $fri_3_temp, $fri_3_zone
-);
-my (
-    $sat_0_time, $sat_0_temp, $sat_0_zone,
-    $sat_1_time, $sat_1_temp, $sat_1_zone
-);
-my (
-    $sat_2_time, $sat_2_temp, $sat_2_zone,
-    $sat_3_time, $sat_3_temp, $sat_3_zone
-);
+my ( $sun_0_time, $sun_0_temp, $sun_0_zone, $sun_1_time, $sun_1_temp, $sun_1_zone );
+my ( $sun_2_time, $sun_2_temp, $sun_2_zone, $sun_3_time, $sun_3_temp, $sun_3_zone );
+my ( $mon_0_time, $mon_0_temp, $mon_0_zone, $mon_1_time, $mon_1_temp, $mon_1_zone );
+my ( $mon_2_time, $mon_2_temp, $mon_2_zone, $mon_3_time, $mon_3_temp, $mon_3_zone );
+my ( $tue_0_time, $tue_0_temp, $tue_0_zone, $tue_1_time, $tue_1_temp, $tue_1_zone );
+my ( $tue_2_time, $tue_2_temp, $tue_2_zone, $tue_3_time, $tue_3_temp, $tue_3_zone );
+my ( $wed_0_time, $wed_0_temp, $wed_0_zone, $wed_1_time, $wed_1_temp, $wed_1_zone );
+my ( $wed_2_time, $wed_2_temp, $wed_2_zone, $wed_3_time, $wed_3_temp, $wed_3_zone );
+my ( $thu_0_time, $thu_0_temp, $thu_0_zone, $thu_1_time, $thu_1_temp, $thu_1_zone );
+my ( $thu_2_time, $thu_2_temp, $thu_2_zone, $thu_3_time, $thu_3_temp, $thu_3_zone );
+my ( $fri_0_time, $fri_0_temp, $fri_0_zone, $fri_1_time, $fri_1_temp, $fri_1_zone );
+my ( $fri_2_time, $fri_2_temp, $fri_2_zone, $fri_3_time, $fri_3_temp, $fri_3_zone );
+my ( $sat_0_time, $sat_0_temp, $sat_0_zone, $sat_1_time, $sat_1_temp, $sat_1_zone );
+my ( $sat_2_time, $sat_2_temp, $sat_2_zone, $sat_3_time, $sat_3_temp, $sat_3_zone );
 
 if ( $function eq 'set' ) {
     return &hvac_set();
@@ -292,10 +250,7 @@ sub hvac_ask {
         if ( $hold_timer eq "00:00" ) {
             $hold_timer_remain = "Forever";
         }
-        $state_disp .= "  "
-          . '<font style="color:red">HOLD '
-          . "$hold_timer_remain"
-          . '</font>';
+        $state_disp .= "  " . '<font style="color:red">HOLD ' . "$hold_timer_remain" . '</font>';
     }
 
     my %temps = $thermostat->get_temperatures();
@@ -350,8 +305,7 @@ $html
 |;
 
     if ($hold) {
-        $html .=
-          '<P>Click <a href="Owfs_hvac.pl?cancel">here to cancel the hold</a>.</P>';
+        $html .= '<P>Click <a href="Owfs_hvac.pl?cancel">here to cancel the hold</a>.</P>';
     }
     else {
         $html .= qq|

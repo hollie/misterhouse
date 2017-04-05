@@ -39,17 +39,8 @@ sub new {
     push( @mp3player_object_list, $self );
     push(
         @{ $$self{states} },
-        'play',
-        'pause',
-        'stop',
-        'next song',
-        'previous song',
-        'shuffle',
-        'repeat',
-        'volume up',
-        'volume down',
-        'clear list',
-        'random song'
+        'play', 'pause', 'stop', 'next song', 'previous song',
+        'shuffle', 'repeat', 'volume up', 'volume down', 'clear list', 'random song'
     );
 
     return $self;

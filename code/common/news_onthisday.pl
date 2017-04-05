@@ -7,9 +7,7 @@ my $f_onthisday       = "$config_parms{data_dir}/web/onthisday.txt";
 my $f_onthisday_html  = "$config_parms{data_dir}/web/onthisday.html";
 my $f_onthisday_html2 = "$config_parms{data_dir}/web/onthisday_pruned.html";
 
-$p_onthisday = new Process_Item(
-    "get_url http://www.nytimes.com/learning/general/onthisday/index.html $f_onthisday_html"
-);
+$p_onthisday = new Process_Item("get_url http://www.nytimes.com/learning/general/onthisday/index.html $f_onthisday_html");
 $v_onthisday = new Voice_Cmd('[Get,Show,Check] on this day');
 $v_onthisday->set_info('Get or display the daily calendar facts');
 $v_onthisday->set_authority('anyone');
@@ -20,9 +18,7 @@ if ( ( said $v_onthisday eq 'Get' ) or ( said $v_onthisday eq 'Check' ) ) {
         start $p_onthisday;
     }
     else {
-        $v_onthisday->respond(
-            "Cannot retrieve daily calendar facts when disconnected from the Internet."
-        );
+        $v_onthisday->respond("Cannot retrieve daily calendar facts when disconnected from the Internet.");
     }
 }
 
@@ -45,8 +41,7 @@ if ( done_now $p_onthisday) {
     $html =~ s|href="/|href="http://www.nytimes.com/|gi;
     $html =~ s|href="../|href="http://www.nytimes.com/learning/general/|gi;
     $html =~ s|src="/|src="http://www.nytimes.com/|gi;
-    $html =~
-      s|href="archive.html|href="http://www.nytimes.com/learning/general/onthisday/archive.html|gi;
+    $html =~ s|href="archive.html|href="http://www.nytimes.com/learning/general/onthisday/archive.html|gi;
 
     my $html2 = "<html><body><table>$date\n" . $html . "</table></body></html>";
 
@@ -70,19 +65,11 @@ if ( done_now $p_onthisday) {
 
 if ($Reload) {
     if ( $Run_Members{'internet_dialup'} ) {
-        &trigger_set(
-            "state_now \$net_connect eq 'connected'",
-            "run_voice_cmd 'Get on this day'",
-            'NoExpire',
-            'get calendar facts'
-        ) unless &trigger_get('get calendar facts');
+        &trigger_set( "state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get on this day'", 'NoExpire', 'get calendar facts' )
+          unless &trigger_get('get calendar facts');
     }
     else {
-        &trigger_set(
-            "time_cron '30 6 * * *' and net_connect_check",
-            "run_voice_cmd 'Get on this day'",
-            'NoExpire',
-            'get calendar facts'
-        ) unless &trigger_get('get calendar facts');
+        &trigger_set( "time_cron '30 6 * * *' and net_connect_check", "run_voice_cmd 'Get on this day'", 'NoExpire', 'get calendar facts' )
+          unless &trigger_get('get calendar facts');
     }
 }

@@ -6,8 +6,7 @@
 sub get_email_rule {
     my ( $from, $to, $subject, $from_full, $body ) = @_;
 
-    print
-      "Debug in get_email_rule: to=$to from=$from from_full=$from_full subject=$subject\n"
+    print "Debug in get_email_rule: to=$to from=$from from_full=$from_full subject=$subject\n"
       if $Debug{email};
 
     # Junk mail is out of control.   Filter only for good stuff
@@ -18,7 +17,7 @@ sub get_email_rule {
     return if $from =~ /^\s+$/;
 
     #   print "dbx1 email_rule f=$from. t=$to s=$subject\n";
-    return if $from_full =~ /newsletter/;    # Covers [newsletter@x10.com]
+    return                if $from_full =~ /newsletter/;              # Covers [newsletter@x10.com]
     return 'The S F gals' if $to =~ /FEM-SF/;
     return 'The S F gals' if $to =~ /sfpanet/;
     return                if $to =~ /par\@/;
@@ -59,17 +58,15 @@ sub get_email_rule {
     return 'filtered - klug'
       if $to =~ /klug/i;    # filtered -> will not be spoken (like blank)
     return 'filtered no store'
-      if $from =~ /\S+[0-9]{3,}/
-      ;    # If we get a joe#### type address, assume it is junk mail.
+      if $from =~ /\S+[0-9]{3,}/;    # If we get a joe#### type address, assume it is junk mail.
     return 'filtered no store'
-      if $from =~
-      /[0-9]{5,}/;   # If we get a ######  type address, assume it is junk mail.
+      if $from =~ /[0-9]{5,}/;       # If we get a ######  type address, assume it is junk mail.
     return 'filtered no store' if $from_words > 3;
 
     #   return 'junk mail'             if $from =~ /[0-9]{5,}/;    # If we get a ######  type address, assume it is junk mail.
 
-    $from =~ s/\./ Dot /g;    # ...change "." to the word "Dot"
-    $from =~ s/\@/ At /g;     # ...change \@  to the word "At"
+    $from =~ s/\./ Dot /g;           # ...change "." to the word "Dot"
+    $from =~ s/\@/ At /g;            # ...change \@  to the word "At"
 
     return $from;
 }

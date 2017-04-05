@@ -62,13 +62,12 @@ sub _get_data {
     for my $r (@calls) {
         $count++;
         next if ( $count < $start );
-        my ( $time, $num, $name, $line, $type ) =
-          $r =~ /date=(.+) number=(.+) name=(.+) line=(.*) type=(.*)/;
+        my ( $time, $num, $name, $line, $type ) = $r =~ /date=(.+) number=(.+) name=(.+) line=(.*) type=(.*)/;
         ( $time, $num, $name ) = $r =~ /(.+\d+:\d+:\d+) (\S+) (.+)/
           unless $name;
         my $display_name = $name;
-        $display_name =~ s/_/ /g;   # remove underscores to make it print pretty
-            #print "db: [$table] $count, $time, $num,$display_name\n";
+        $display_name =~ s/_/ /g;    # remove underscores to make it print pretty
+                                     #print "db: [$table] $count, $time, $num,$display_name\n";
         next unless $num;
 
         my $type_no = 3;
@@ -95,8 +94,7 @@ sub _new_call {
 
     #print "db: time=$time number=$number name=$name line=$line type=$type\n";
     #print "db:table=$json_table, data=[" . join(";", @data) . "]\n";
-    &json_table_insert_data_row( $json_table, 0, [@data] ) &
-      json_table_push($json_table);
+    &json_table_insert_data_row( $json_table, 0, [@data] ) & json_table_push($json_table);
 }
 
 sub get_phone_inbound_data {
