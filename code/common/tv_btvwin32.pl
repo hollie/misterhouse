@@ -106,17 +106,14 @@ sub snapstream_import {
 
     # TODO: need some kind of error checking here, in case the file is empty or we're using the ini file
     my @keys;
-    @keys = file_read( $config_parms{favorite_tv_shows_file} )
-      ;        # read data into @keys for processing later
+    @keys = file_read( $config_parms{favorite_tv_shows_file} );    # read data into @keys for processing later
 
     # format date/time search key to match snapstream format (yyyymmddhhmm). 4/25/04 @ 17:00 = 200404251700
-    my $snapstreamdate =
-      sprintf( "%04d%02d%02d%02d%02d", 1900 + $year, $mon, $mday, $hour, $min );
+    my $snapstreamdate = sprintf( "%04d%02d%02d%02d%02d", 1900 + $year, $mon, $mday, $hour, $min );
 
     # debug - when in doubt, hardcode and test :)
     # $snapstreamdate = "200404290000" ;
-    print
-      "\n\nsearching local snapstream db for shows starting at $snapstreamdate...\n"
+    print "\n\nsearching local snapstream db for shows starting at $snapstreamdate...\n"
       if $Debug{snapstream};
 
     my $msg    = "";    # we pass this back to the page
@@ -161,9 +158,8 @@ sub snapstream_import {
     for my $key (@keys) {
         $count++;
         next
-          if ( $key =~ /\#/ or $key !~ /\w/ )
-          ;   # drop comments and crap that hasn't been filtered out of the file
-         # escape the quotes (viva Win32::ODBC! :)) - stuff like Punk'd would break it otherwise :)
+          if ( $key =~ /\#/ or $key !~ /\w/ );    # drop comments and crap that hasn't been filtered out of the file
+                                                  # escape the quotes (viva Win32::ODBC! :)) - stuff like Punk'd would break it otherwise :)
         $key =~ s/\'/\'\'/g;
 
         # this is important for SQL syntax: add commas IF we're not at the end (last key) - otherwise we break real bad :)
@@ -197,11 +193,8 @@ sub snapstream_import {
         $rowcnt++;
 
         # parse the data from $HashRow()
-        my ( $progtitle, $episodetitle, $channel, $callsign, $scheduled ) = (
-            $HashRow{'progtitle'}, $HashRow{'episodetitle'},
-            $HashRow{'tmschan'},   $HashRow{'stationcallsign'},
-            $HashRow{'rec_scheduled'}
-        );
+        my ( $progtitle, $episodetitle, $channel, $callsign, $scheduled ) =
+          ( $HashRow{'progtitle'}, $HashRow{'episodetitle'}, $HashRow{'tmschan'}, $HashRow{'stationcallsign'}, $HashRow{'rec_scheduled'} );
         $count = 0 unless $count;
 
         # do something with the results
@@ -263,11 +256,7 @@ if ( changed $f_tv_file) {
 
     my $i = 0;
     foreach my $line (@data) {
-        if ( my ( $title, $channel, $start, $end ) =
-            $line =~
-            /^\d+\.\s+(.+)\.\s+\S+\s+Channel (\d+).+From ([0-9: APM]+) till ([0-9: APM]+)\./
-          )
-        {
+        if ( my ( $title, $channel, $start, $end ) = $line =~ /^\d+\.\s+(.+)\.\s+\S+\s+Channel (\d+).+From ([0-9: APM]+) till ([0-9: APM]+)\./ ) {
             if ( $state eq 'favorites now' ) {
                 $data[$i] = "$title Channel $channel.\n";
             }

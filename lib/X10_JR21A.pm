@@ -43,8 +43,7 @@ my $unit  = "1";
 sub startup {
 
     # The JR21A runs at 1200 N-8-1 DTR & RTS on
-    &main::serial_port_create( 'JR21A', $main::config_parms{JR21A_port},
-        1200, 'none', 'record' );
+    &main::serial_port_create( 'JR21A', $main::config_parms{JR21A_port}, 1200, 'none', 'record' );
 
     # Add hook only if serial port was created ok
     &::MainLoop_pre_add_hook( \&X10_JR21A::check_for_data, 1 )
@@ -61,8 +60,7 @@ sub startup {
 }
 
 # House codes A-P
-my %hcodes =
-  qw(6 A 7 B 4 C 5 D   8 E 9 F a G b H   e I f J c K d L   0 M 1 N 2 O 3 P );
+my %hcodes = qw(6 A 7 B 4 C 5 D   8 E 9 F a G b H   e I f J c K d L   0 M 1 N 2 O 3 P );
 
 # Unit codes: 1-9,A-G.  J/K => ON/OFF, O/P => All-ON/OFF L/M => bright/dim
 # Note on old keycahin remotes (HC40TX):
@@ -128,8 +126,7 @@ sub check_for_data {
         my $time = &main::get_tickcount;
         return
           if $hex eq $prev_data
-          and
-          ( $time < $prev_time + 600 or $main::Loop_Count < $prev_loop + 6 );
+          and ( $time < $prev_time + 600 or $main::Loop_Count < $prev_loop + 6 );
         $prev_data = $hex;
         $prev_time = $time;
         $prev_loop = $main::Loop_Count;

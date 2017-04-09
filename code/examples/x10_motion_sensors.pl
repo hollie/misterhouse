@@ -3,8 +3,7 @@
 
 $motion_sensor1 = new Serial_Item 'XA1AJ', 'garage';
 $motion_sensor1->add( 'XA2AJ', 'deck' );
-$motion_sensor1->tie_event(
-    '&net_mail_send(subject => "$state motion at $Time_Date")');
+$motion_sensor1->tie_event('&net_mail_send(subject => "$state motion at $Time_Date")');
 
 # Detects motion from an 2 X10 motion sensors, one on the stairs
 # and one in the hallway.

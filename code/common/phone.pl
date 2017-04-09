@@ -21,35 +21,28 @@ sub search_phone_calls {
     print_log "Searching for $string";
 
     # Search data logged from incoming caller id data.
-    my ( $count1, $count2, %results ) =
-      &dbm_search( "$config_parms{data_dir}/phone/callerid.dbm", $string );
+    my ( $count1, $count2, %results ) = &dbm_search( "$config_parms{data_dir}/phone/callerid.dbm", $string );
 
     # Also search in array created from mh.ini caller_id_file data
     while ( my ( $key, $value ) = each %Caller_ID::name_by_number ) {
         if ( $key =~ /$string/i or $value =~ /$string/i ) {
-            $value =
-              &dbm_read( "$config_parms{data_dir}/phone/callerid.dbm", $key )
-              ;    # Use dbm data for consistency
+            $value = &dbm_read( "$config_parms{data_dir}/phone/callerid.dbm", $key );    # Use dbm data for consistency
             $results{$key} = $value;
         }
     }
-    $count2 = keys %results;   # Reset count, in case Caller_ID search found any
+    $count2 = keys %results;                                                             # Reset count, in case Caller_ID search found any
 
     my $results;
     if ($count2) {
         for ( sort keys %results ) {
-            my ( $cid_number, $cid_date, $cid_name ) =
-              $results{$_} =~ /(\S+) (.+) name=(.+)/;
+            my ( $cid_number, $cid_date, $cid_name ) = $results{$_} =~ /(\S+) (.+) name=(.+)/;
             $cid_name = $Caller_ID::name_by_number{$_}
               if $Caller_ID::name_by_number{$_};
-            $results .= sprintf( "%13s calls=%3s last=%26s %s\n",
-                $_, $cid_number, $cid_date, $cid_name );
+            $results .= sprintf( "%13s calls=%3s last=%26s %s\n", $_, $cid_number, $cid_date, $cid_name );
         }
 
         #       map {$results .= "   $_: $results{$_}\n\n"} sort keys %results;
-        $results =
-          "Results:  $count2 out of $count1 records matched $string\n\n"
-          . $results;
+        $results = "Results:  $count2 out of $count1 records matched $string\n\n" . $results;
     }
     else {
         $results = "\n      No match found\n";
@@ -59,8 +52,7 @@ sub search_phone_calls {
 
 # Show phone logs
 $v_phone_log_tk = new Voice_Cmd('Show the tk phone log');
-$v_phone_log_tk->set_info(
-    'Display a tk popup of all the incoming and outgoing phone calls');
+$v_phone_log_tk->set_info('Display a tk popup of all the incoming and outgoing phone calls');
 
 if ( said $v_phone_log_tk) {
     print "running display_callers\n";

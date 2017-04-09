@@ -42,53 +42,40 @@ eBay_feedback_nag=1
 $v_check_ebay = new Voice_Cmd('Check eBay');
 $v_check_ebay->set_info('Checks current eBay status');
 
-$f_ebay_login1_headers =
-  new File_Item "$config_parms{data_dir}/web/ebay_login1.headers";
-$p_ebay_login1 = new Process_Item(
-    qq[get_url -header "$f_ebay_login1_headers->{file}" "https://signin.ebay.com/ws2/eBayISAPI.dll?SignIn" "/dev/null" ]
-);
+$f_ebay_login1_headers = new File_Item "$config_parms{data_dir}/web/ebay_login1.headers";
+$p_ebay_login1         = new Process_Item(qq[get_url -header "$f_ebay_login1_headers->{file}" "https://signin.ebay.com/ws2/eBayISAPI.dll?SignIn" "/dev/null" ]);
 
-$f_ebay_login2_html =
-  new File_Item "$config_parms{data_dir}/web/ebay_login2.html";
-$f_ebay_login2_headers =
-  new File_Item "$config_parms{data_dir}/web/ebay_login2.headers";
+$f_ebay_login2_html    = new File_Item "$config_parms{data_dir}/web/ebay_login2.html";
+$f_ebay_login2_headers = new File_Item "$config_parms{data_dir}/web/ebay_login2.headers";
 my $url_ebay_login2 = 'https://signin.ebay.com/ws/eBayISAPI.dll?UsingSSL=1';
 $p_ebay_login2 = new Process_Item;
 
-$f_ebay_watching =
-  new File_Item "$config_parms{data_dir}/web/ebay_watching.html";
-my $url_ebay_watching =
-  'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayWatching&ssPageName=STRK:ME:LNLK';
+$f_ebay_watching = new File_Item "$config_parms{data_dir}/web/ebay_watching.html";
+my $url_ebay_watching = 'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayWatching&ssPageName=STRK:ME:LNLK';
 $p_ebay_watching = new Process_Item;
 
 $f_ebay_bidding = new File_Item "$config_parms{data_dir}/web/ebay_bidding.html";
-my $url_ebay_bidding =
-  'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayBidding&ssPageName=STRK:ME:LNLK';
+my $url_ebay_bidding = 'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayBidding&ssPageName=STRK:ME:LNLK';
 $p_ebay_bidding = new Process_Item;
 
 $f_ebay_won = new File_Item "$config_parms{data_dir}/web/ebay_won.html";
-my $url_ebay_won =
-  'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayWon&ssPageName=STRK:ME:LNLK';
+my $url_ebay_won = 'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayWon&ssPageName=STRK:ME:LNLK';
 $p_ebay_won = new Process_Item;
 
 $f_ebay_selling = new File_Item "$config_parms{data_dir}/web/ebay_selling.html";
-my $url_ebay_selling =
-  'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBaySelling&ssPageName=STRK:ME:LNLK';
+my $url_ebay_selling = 'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBaySelling&ssPageName=STRK:ME:LNLK';
 $p_ebay_selling = new Process_Item;
 
 $f_ebay_sold = new File_Item "$config_parms{data_dir}/web/ebay_sold.html";
-my $url_ebay_sold =
-  'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBaySold&ssPageName=STRK:ME:LNLK';
+my $url_ebay_sold = 'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBaySold&ssPageName=STRK:ME:LNLK';
 $p_ebay_sold = new Process_Item;
 
 $f_ebay_unsold = new File_Item "$config_parms{data_dir}/web/ebay_unsold.html";
-my $url_ebay_unsold =
-  'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayUnsold&ssPageName=STRK:ME:LNLK';
+my $url_ebay_unsold = 'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayUnsold&ssPageName=STRK:ME:LNLK';
 $p_ebay_unsold = new Process_Item;
 
 $f_ebay_lost = new File_Item "$config_parms{data_dir}/web/ebay_lost.html";
-my $url_ebay_lost =
-  'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayLost&ssPageName=STRK:ME:LNLK';
+my $url_ebay_lost = 'http://my.ebay.com/ws/eBayISAPI.dll?MyeBay&LogUID=slidekb&CurrentPage=MyeBayLost&ssPageName=STRK:ME:LNLK';
 $p_ebay_lost = new Process_Item;
 
 my $ebay_cookies;
@@ -98,15 +85,8 @@ my $post_ebay_login2 =
 my $next_ebay_event          = 0;
 my $ebay_logging_in          = 0;
 my $ebay_last_error_reported = 0;
-my (
-    %ebay_watching, %ebay_bidding, %ebay_won,  %ebay_selling,
-    %ebay_sold,     %ebay_unsold,  %ebay_lost, %ebay_end_times
-);
-my (
-    %last_ebay_watching, %last_ebay_bidding, %last_ebay_won,
-    %last_ebay_selling,  %last_ebay_sold,    %last_ebay_unsold,
-    %last_ebay_lost
-);
+my ( %ebay_watching, %ebay_bidding, %ebay_won, %ebay_selling, %ebay_sold, %ebay_unsold, %ebay_lost, %ebay_end_times );
+my ( %last_ebay_watching, %last_ebay_bidding, %last_ebay_won, %last_ebay_selling, %last_ebay_sold, %last_ebay_unsold, %last_ebay_lost );
 
 sub report_ebay_error($) {
     print_log "eBay Error: $_[0]";
@@ -132,8 +112,7 @@ if ( said $v_check_ebay) {
             }
             else {
                 $proceed = 0;
-                print_log
-                  "Allowing previous login attempt more time to complete";
+                print_log "Allowing previous login attempt more time to complete";
             }
         }
         if ($proceed) {
@@ -164,25 +143,21 @@ if ( done_now $p_ebay_login1) {
     print_log 'eBay executing '
       . qq[get_url -header "$f_ebay_login2_headers->{file}" -cookies "$cookies" -post "$post_ebay_login2" "$url_ebay_login2" "$f_ebay_login2_html->{file}" ];
     $p_ebay_login2->set(
-        qq[get_url -header "$f_ebay_login2_headers->{file}" -cookies "$cookies" -post "$post_ebay_login2" "$url_ebay_login2" "$f_ebay_login2_html->{file}" ]
-    );
+        qq[get_url -header "$f_ebay_login2_headers->{file}" -cookies "$cookies" -post "$post_ebay_login2" "$url_ebay_login2" "$f_ebay_login2_html->{file}" ]);
     $p_ebay_login2->start();
 }
 
 sub get_ebay_data {
     print_log "eBay: Getting data...";
     unless ( $config_parms{eBay_check} ) {
-        $config_parms{eBay_check} =
-          'watching|bidding|won|selling|sold|unsold|lost';
+        $config_parms{eBay_check} = 'watching|bidding|won|selling|sold|unsold|lost';
     }
     if ( $config_parms{eBay_check} =~ /\bwatching\b/ ) {
 
         # Update watching
         unlink $f_ebay_watching->name;
         my $cookies = &cookies_generate($ebay_cookies);
-        $p_ebay_watching->set(
-            qq[get_url -cookies "$cookies" "$url_ebay_watching" "$f_ebay_watching->{file}"]
-        );
+        $p_ebay_watching->set(qq[get_url -cookies "$cookies" "$url_ebay_watching" "$f_ebay_watching->{file}"]);
         $p_ebay_watching->start();
     }
 
@@ -191,9 +166,7 @@ sub get_ebay_data {
         # Update bidding
         unlink $f_ebay_bidding->name;
         my $cookies = &cookies_generate($ebay_cookies);
-        $p_ebay_bidding->set(
-            qq[get_url -cookies "$cookies" "$url_ebay_bidding" "$f_ebay_bidding->{file}"]
-        );
+        $p_ebay_bidding->set(qq[get_url -cookies "$cookies" "$url_ebay_bidding" "$f_ebay_bidding->{file}"]);
         $p_ebay_bidding->start();
     }
 
@@ -202,9 +175,7 @@ sub get_ebay_data {
         # Update wins
         unlink $f_ebay_won->name;
         my $cookies = &cookies_generate($ebay_cookies);
-        $p_ebay_won->set(
-            qq[get_url -cookies "$cookies" "$url_ebay_won" "$f_ebay_won->{file}"]
-        );
+        $p_ebay_won->set(qq[get_url -cookies "$cookies" "$url_ebay_won" "$f_ebay_won->{file}"]);
         $p_ebay_won->start();
     }
 
@@ -213,9 +184,7 @@ sub get_ebay_data {
         # Update selling
         unlink $f_ebay_selling->name;
         my $cookies = &cookies_generate($ebay_cookies);
-        $p_ebay_selling->set(
-            qq[get_url -cookies "$cookies" "$url_ebay_selling" "$f_ebay_selling->{file}"]
-        );
+        $p_ebay_selling->set(qq[get_url -cookies "$cookies" "$url_ebay_selling" "$f_ebay_selling->{file}"]);
         $p_ebay_selling->start();
     }
 
@@ -224,9 +193,7 @@ sub get_ebay_data {
         # Update sold
         unlink $f_ebay_sold->name;
         my $cookies = &cookies_generate($ebay_cookies);
-        $p_ebay_sold->set(
-            qq[get_url -cookies "$cookies" "$url_ebay_sold" "$f_ebay_sold->{file}"]
-        );
+        $p_ebay_sold->set(qq[get_url -cookies "$cookies" "$url_ebay_sold" "$f_ebay_sold->{file}"]);
         $p_ebay_sold->start();
     }
 
@@ -235,9 +202,7 @@ sub get_ebay_data {
         # Update unsold
         unlink $f_ebay_unsold->name;
         my $cookies = &cookies_generate($ebay_cookies);
-        $p_ebay_unsold->set(
-            qq[get_url -cookies "$cookies" "$url_ebay_unsold" "$f_ebay_unsold->{file}"]
-        );
+        $p_ebay_unsold->set(qq[get_url -cookies "$cookies" "$url_ebay_unsold" "$f_ebay_unsold->{file}"]);
         $p_ebay_unsold->start();
     }
 
@@ -246,9 +211,7 @@ sub get_ebay_data {
         # Update not won
         unlink $f_ebay_lost->name;
         my $cookies = &cookies_generate($ebay_cookies);
-        $p_ebay_lost->set(
-            qq[get_url -cookies "$cookies" "$url_ebay_lost" "$f_ebay_lost->{file}"]
-        );
+        $p_ebay_lost->set(qq[get_url -cookies "$cookies" "$url_ebay_lost" "$f_ebay_lost->{file}"]);
         $p_ebay_lost->start();
     }
 }
@@ -275,16 +238,13 @@ sub parse_ebay_html_line ($$$$) {
         run_voice_cmd 'Check eBay';
         return 'NOT LOGGED IN';
     }
-    elsif ( $line =~
-        /<a href="http:\/\/cgi\.ebay\.com\/ws\/[^"]+&amp;item=(\d+)&amp;[^"]+">([^<]+)<\/a>/
-      )
-    {
+    elsif ( $line =~ /<a href="http:\/\/cgi\.ebay\.com\/ws\/[^"]+&amp;item=(\d+)&amp;[^"]+">([^<]+)<\/a>/ ) {
+
         # watching/bidding/selling/unsold/(lost?) page: item number and title
         # won/sold page: item title
         if ( ( $type eq 'won' ) or ( $type eq 'sold' ) ) {
             unless ( $lastitem == $1 ) {
-                &report_ebay_error(
-                    "Parse Error: Item $1 does not match $lastitem");
+                &report_ebay_error("Parse Error: Item $1 does not match $lastitem");
             }
         }
         else {
@@ -293,29 +253,24 @@ sub parse_ebay_html_line ($$$$) {
         $hashref->{$lastitem}{'title'} = &html_decode($2);
         print_log "eBay: $type item $lastitem ($hashref->{$lastitem}{'title'})";
     }
-    elsif ( $line =~
-        /<a href="http:\/\/feedback\.ebay\.com\/[^"]+&amp;item=(\d+)&amp;[^"]+"><strong>([^<]+)<\/strong><\/a>/
-      )
-    {
+    elsif ( $line =~ /<a href="http:\/\/feedback\.ebay\.com\/[^"]+&amp;item=(\d+)&amp;[^"]+"><strong>([^<]+)<\/strong><\/a>/ ) {
+
         # Won page: item number and seller
         # Sold page: item number and buyer
         $lastitem = $1;
         if ( $type eq 'won' ) {
             $hashref->{$lastitem}{'seller'} = &html_decode($2);
-            print_log
-              "eBay: Seller for item $lastitem is $hashref->{$lastitem}{'seller'}"
+            print_log "eBay: Seller for item $lastitem is $hashref->{$lastitem}{'seller'}"
               if $main::Debug{ebay};
         }
         elsif ( $type eq 'sold' ) {
             $hashref->{$lastitem}{'buyer'} = &html_decode($2);
-            print_log
-              "eBay: Buyer for item $lastitem is $hashref->{$lastitem}{'buyer'}"
+            print_log "eBay: Buyer for item $lastitem is $hashref->{$lastitem}{'buyer'}"
               if $main::Debug{ebay};
         }
     }
-    elsif ( $line =~
-        /^<td align="right" class="([^"]+)" nowrap="true">(\$\d+\.\d+)</ )
-    {
+    elsif ( $line =~ /^<td align="right" class="([^"]+)" nowrap="true">(\$\d+\.\d+)</ ) {
+
         # watching/bidding/selling page: price and status
         # Class is 'normal' if you have not bid yet
         # Class is 'failed' if you have bid and are losing
@@ -360,11 +315,8 @@ sub parse_ebay_html_line ($$$$) {
         # watching page: # of bids
         # selling page: # of bids (first) and number of questions
         # won/sold page: quantity won
-        if (
-               ( $type eq 'watching' )
-            or
-            ( ( $type eq 'selling' ) and ( not $hashref->{$lastitem}{'bids'} ) )
-          )
+        if (   ( $type eq 'watching' )
+            or ( ( $type eq 'selling' ) and ( not $hashref->{$lastitem}{'bids'} ) ) )
         {
             $hashref->{$lastitem}{'bids'} = $1;
             print_log "eBay: Number of bids for item $lastitem is $1"
@@ -381,10 +333,8 @@ sub parse_ebay_html_line ($$$$) {
               if $main::Debug{ebay};
         }
     }
-    elsif ( $line =~
-        /<a href="http:\/\/feedback\.ebay\.com\/[^"]+&amp;item=(\d+)&amp;[^"]+">([^<]+)<\/a>/
-      )
-    {
+    elsif ( $line =~ /<a href="http:\/\/feedback\.ebay\.com\/[^"]+&amp;item=(\d+)&amp;[^"]+">([^<]+)<\/a>/ ) {
+
         # watching page: seller id
         # selling page: high bidder id
         unless ( $lastitem == $1 ) {
@@ -392,14 +342,12 @@ sub parse_ebay_html_line ($$$$) {
         }
         if ( $type eq 'watching' ) {
             $hashref->{$lastitem}{'seller'} = &html_decode($2);
-            print_log
-              "eBay: Seller for item $lastitem is $hashref->{$lastitem}{'seller'}"
+            print_log "eBay: Seller for item $lastitem is $hashref->{$lastitem}{'seller'}"
               if $main::Debug{ebay};
         }
         elsif ( $type eq 'selling' ) {
             $hashref->{$lastitem}{'high_bidder'} = &html_decode($2);
-            print_log
-              "eBay: High bidder for item $lastitem is $hashref->{$lastitem}{'high_bidder'}"
+            print_log "eBay: High bidder for item $lastitem is $hashref->{$lastitem}{'high_bidder'}"
               if $main::Debug{ebay};
         }
     }
@@ -431,14 +379,11 @@ sub parse_ebay_html_line ($$$$) {
         if ( $ends =~ /^\s*(\d+)m\s*/ ) {
             $hashref->{$lastitem}{'mins_left'} = $1;
         }
-        print_log
-          "eBay: Days left for item $lastitem is $hashref->{$lastitem}{'days_left'}"
+        print_log "eBay: Days left for item $lastitem is $hashref->{$lastitem}{'days_left'}"
           if $main::Debug{ebay};
-        print_log
-          "eBay: Hours left for item $lastitem is $hashref->{$lastitem}{'hours_left'}"
+        print_log "eBay: Hours left for item $lastitem is $hashref->{$lastitem}{'hours_left'}"
           if $main::Debug{ebay};
-        print_log
-          "eBay: Minutes left for item $lastitem is $hashref->{$lastitem}{'mins_left'}"
+        print_log "eBay: Minutes left for item $lastitem is $hashref->{$lastitem}{'mins_left'}"
           if $main::Debug{ebay};
         $hashref->{$lastitem}{'end_time'} =
           $Time +
@@ -577,29 +522,21 @@ sub check_ebay_end_times($$$) {
     foreach my $item ( keys %ebay_end_times ) {
         if ( $ebay_end_times{$item} and $ebay_end_times{$item}{'end_time'} ) {
             my $ends_in = $ebay_end_times{$item}{'end_time'} - $Time;
-            print_log
-              "eBay: checking item $ebay_end_times{$item}{'title'}, $ends_in, $less_than"
+            print_log "eBay: checking item $ebay_end_times{$item}{'title'}, $ends_in, $less_than"
               if $main::Debug{ebay};
             if ( ( $ends_in > 0 ) and ( $ends_in < $less_than ) ) {
-                print_log
-                  "eBay: checking item $ebay_end_times{$item}{'title'}, $ebay_end_times{$item}{'last_reported'}, $frequency"
+                print_log "eBay: checking item $ebay_end_times{$item}{'title'}, $ebay_end_times{$item}{'last_reported'}, $frequency"
                   if $main::Debug{ebay};
-                if (
-                    not $ebay_end_times{$item}{'last_reported'}
-                    or ( ( $Time - $ebay_end_times{$item}{'last_reported'} ) >=
-                        $frequency )
-                  )
+                if ( not $ebay_end_times{$item}{'last_reported'}
+                    or ( ( $Time - $ebay_end_times{$item}{'last_reported'} ) >= $frequency ) )
                 {
                     speak(
                         rooms      => 'all',
                         importance => $importance,
-                        text =>
-                          "e-Bay Notice: item '$ebay_end_times{$item}{'title'}' that you are $ebay_end_times{$item}{'activity'} ends in "
+                        text       => "e-Bay Notice: item '$ebay_end_times{$item}{'title'}' that you are $ebay_end_times{$item}{'activity'} ends in "
                           . &speak_time($ends_in)
                     );
-                    print_log
-                      "eBay item $item ($ebay_end_times{$item}{'title'}) ends in "
-                      . &speak_time($ends_in);
+                    print_log "eBay item $item ($ebay_end_times{$item}{'title'}) ends in " . &speak_time($ends_in);
                     $ebay_end_times{$item}{'last_reported'} = $Time;
                 }
             }
@@ -643,8 +580,7 @@ if ( done_now $p_ebay_watching) {
     %ebay_watching = ();
     $ebay_watching{'populated'} = 1;
     foreach ( $f_ebay_watching->read_all() ) {
-        $lastitem =
-          &parse_ebay_html_line( $lastitem, \%ebay_watching, $_, 'watching' );
+        $lastitem = &parse_ebay_html_line( $lastitem, \%ebay_watching, $_, 'watching' );
         if ( $lastitem eq 'NOT LOGGED IN' ) {
             %ebay_watching = ();
             last;
@@ -658,23 +594,18 @@ if ( done_now $p_ebay_watching) {
         # 'shipping' will be undefined if fixed shipping cost was not specified for item
         foreach ( 'title', 'status', 'price', 'bids', 'seller', 'end_time' ) {
             unless ( defined( $ebay_watching{$item}{$_} ) ) {
-                &report_ebay_error(
-                    "Parse error for item $item, value '$_' not found!");
+                &report_ebay_error("Parse error for item $item, value '$_' not found!");
             }
         }
         &check_end_time( $item, \%ebay_watching, 'watching' );
         if ( $last_ebay_watching{'populated'} and $last_ebay_watching{$item} ) {
-            if ( $last_ebay_watching{$item}{'price'} ne
-                $ebay_watching{$item}{'price'} )
-            {
+            if ( $last_ebay_watching{$item}{'price'} ne $ebay_watching{$item}{'price'} ) {
                 speak(
                     rooms      => 'all',
                     importance => 'notice',
-                    text =>
-                      "e-Bay Notice: The price of item '$ebay_watching{$item}{'title'}' has changed to $ebay_watching{$item}{'price'}"
+                    text       => "e-Bay Notice: The price of item '$ebay_watching{$item}{'title'}' has changed to $ebay_watching{$item}{'price'}"
                 );
-                print_log
-                  "The price of eBay item $item ($ebay_watching{$item}{'title'}) has changed to $ebay_watching{$item}{'price'}";
+                print_log "The price of eBay item $item ($ebay_watching{$item}{'title'}) has changed to $ebay_watching{$item}{'price'}";
             }
             if (    ( $ebay_watching{$item}{'end_time'} == 0 )
                 and ( $last_ebay_watching{$item}{'end_time'} > 0 ) )
@@ -682,11 +613,9 @@ if ( done_now $p_ebay_watching) {
                 speak(
                     rooms      => 'all',
                     importance => 'notice',
-                    text =>
-                      "e-Bay Notice: Auction for item '$ebay_watching{$item}{'title'}' has ended"
+                    text       => "e-Bay Notice: Auction for item '$ebay_watching{$item}{'title'}' has ended"
                 );
-                print_log
-                  "The auction of eBay item $item ($ebay_watching{$item}{'title'}) has ended";
+                print_log "The auction of eBay item $item ($ebay_watching{$item}{'title'}) has ended";
             }
         }
         elsif ( $last_ebay_watching{'populated'}
@@ -696,11 +625,9 @@ if ( done_now $p_ebay_watching) {
             speak(
                 rooms      => 'all',
                 importance => 'notice',
-                text =>
-                  "e-Bay Notice: I am now watching item '$ebay_watching{$item}{'title'}'"
+                text       => "e-Bay Notice: I am now watching item '$ebay_watching{$item}{'title'}'"
             );
-            print_log
-              "I am now watching eBay item $item ($ebay_watching{$item}{'title'})";
+            print_log "I am now watching eBay item $item ($ebay_watching{$item}{'title'})";
         }
     }
     print_log "eBay: You are watching $count items.";
@@ -714,8 +641,7 @@ if ( done_now $p_ebay_bidding) {
     %ebay_bidding = ();
     $ebay_bidding{'populated'} = 1;
     foreach ( $f_ebay_bidding->read_all() ) {
-        $lastitem =
-          &parse_ebay_html_line( $lastitem, \%ebay_bidding, $_, 'bidding' );
+        $lastitem = &parse_ebay_html_line( $lastitem, \%ebay_bidding, $_, 'bidding' );
         if ( $lastitem eq 'NOT LOGGED IN' ) {
             %ebay_bidding = ();
             last;
@@ -729,26 +655,21 @@ if ( done_now $p_ebay_bidding) {
         # 'shipping' will be undefined if fixed shipping cost was not specified for item
         foreach ( 'title', 'status', 'price', 'maxbid', 'end_time' ) {
             unless ( defined( $ebay_bidding{$item}{$_} ) ) {
-                &report_ebay_error(
-                    "Parse error for item $item, value '$_' not found!");
+                &report_ebay_error("Parse error for item $item, value '$_' not found!");
             }
         }
         if ( $last_ebay_bidding{$item}{'status'} eq 'success' ) {
             &check_end_time( $item, \%ebay_bidding, 'winning' );
         }
         if ( $last_ebay_bidding{'populated'} and $last_ebay_bidding{$item} ) {
-            if ( $last_ebay_bidding{$item}{'status'} ne
-                $ebay_bidding{$item}{'status'} )
-            {
+            if ( $last_ebay_bidding{$item}{'status'} ne $ebay_bidding{$item}{'status'} ) {
                 if ( $last_ebay_bidding{$item}{'status'} eq 'success' ) {
                     speak(
                         rooms      => 'all',
                         importance => 'important',
-                        text =>
-                          "e-Bay Notice: You are no longer winning item '$ebay_bidding{$item}{'title'}'"
+                        text       => "e-Bay Notice: You are no longer winning item '$ebay_bidding{$item}{'title'}'"
                     );
-                    print_log
-                      "You are no longer winning eBay item $item ($ebay_bidding{$item}{'title'})";
+                    print_log "You are no longer winning eBay item $item ($ebay_bidding{$item}{'title'})";
                 }
             }
         }
@@ -760,21 +681,17 @@ if ( done_now $p_ebay_bidding) {
                 speak(
                     rooms      => 'all',
                     importance => 'notice',
-                    text =>
-                      "e-Bay Notice: You have bid on item '$ebay_bidding{$item}{'title'}' and you are winning"
+                    text       => "e-Bay Notice: You have bid on item '$ebay_bidding{$item}{'title'}' and you are winning"
                 );
-                print_log
-                  "You have bid on eBay item $item ($ebay_bidding{$item}{'title'}) and you are winning";
+                print_log "You have bid on eBay item $item ($ebay_bidding{$item}{'title'}) and you are winning";
             }
             else {
                 speak(
                     rooms      => 'all',
                     importance => 'notice',
-                    text =>
-                      "e-Bay Notice: You have bid on item '$ebay_bidding{$item}{'title'}' and you are not winning"
+                    text       => "e-Bay Notice: You have bid on item '$ebay_bidding{$item}{'title'}' and you are not winning"
                 );
-                print_log
-                  "You have bid on eBay item $item ($ebay_bidding{$item}{'title'}) and you are not winning";
+                print_log "You have bid on eBay item $item ($ebay_bidding{$item}{'title'}) and you are not winning";
             }
         }
     }
@@ -789,8 +706,7 @@ if ( done_now $p_ebay_selling) {
     %ebay_selling = ();
     $ebay_selling{'populated'} = 1;
     foreach ( $f_ebay_selling->read_all() ) {
-        $lastitem =
-          &parse_ebay_html_line( $lastitem, \%ebay_selling, $_, 'selling' );
+        $lastitem = &parse_ebay_html_line( $lastitem, \%ebay_selling, $_, 'selling' );
         if ( $lastitem eq 'NOT LOGGED IN' ) {
             %ebay_selling = ();
             last;
@@ -800,21 +716,14 @@ if ( done_now $p_ebay_selling) {
     foreach my $item ( keys %ebay_selling ) {
         next if $item eq 'populated';
         $count++;
-        foreach (
-            'title',       'status',   'price',     'bids',
-            'high_bidder', 'watchers', 'questions', 'end_time'
-          )
-        {
+        foreach ( 'title', 'status', 'price', 'bids', 'high_bidder', 'watchers', 'questions', 'end_time' ) {
             unless ( defined( $ebay_selling{$item}{$_} ) ) {
-                &report_ebay_error(
-                    "Parse error for item $item, value '$_' not found!");
+                &report_ebay_error("Parse error for item $item, value '$_' not found!");
             }
         }
         &check_end_time( $item, \%ebay_selling, 'selling' );
         if ( $last_ebay_selling{'populated'} and $last_ebay_selling{$item} ) {
-            if ( $last_ebay_selling{$item}{'price'} ne
-                $ebay_selling{$item}{'price'} )
-            {
+            if ( $last_ebay_selling{$item}{'price'} ne $ebay_selling{$item}{'price'} ) {
                 speak(
                     rooms      => 'all',
                     importance => 'notice',
@@ -824,42 +733,30 @@ if ( done_now $p_ebay_selling) {
                 print_log
                   "The price of eBay item $item ($ebay_selling{$item}{'title'}) has changed to $ebay_selling{$item}{'price'} (high bidder is $ebay_selling{$item}{'high_bidder'})";
             }
-            if ( $last_ebay_selling{$item}{'watchers'} <
-                $ebay_selling{$item}{'watchers'} )
-            {
+            if ( $last_ebay_selling{$item}{'watchers'} < $ebay_selling{$item}{'watchers'} ) {
                 speak(
                     rooms      => 'all',
                     importance => 'notice',
-                    text =>
-                      "e-Bay Notice: There are now $ebay_selling{$item}{'watchers'} people watching item '$ebay_selling{$item}{'title'}'"
+                    text       => "e-Bay Notice: There are now $ebay_selling{$item}{'watchers'} people watching item '$ebay_selling{$item}{'title'}'"
                 );
-                print_log
-                  "There are now $ebay_selling{$item}{'watchers'} people watching eBay item $item ($ebay_selling{$item}{'title'})";
+                print_log "There are now $ebay_selling{$item}{'watchers'} people watching eBay item $item ($ebay_selling{$item}{'title'})";
             }
-            if ( $last_ebay_selling{$item}{'questions'} <
-                $ebay_selling{$item}{'questions'} )
-            {
+            if ( $last_ebay_selling{$item}{'questions'} < $ebay_selling{$item}{'questions'} ) {
                 speak(
                     rooms      => 'all',
                     importance => 'notice',
-                    text =>
-                      "e-Bay Notice: There are new questions about item '$ebay_selling{$item}{'title'}' ($ebay_selling{$item}{'questions'} pending)"
+                    text       => "e-Bay Notice: There are new questions about item '$ebay_selling{$item}{'title'}' ($ebay_selling{$item}{'questions'} pending)"
                 );
-                print_log
-                  "There are new questions about eBay item $item ($ebay_selling{$item}{'title'}) ($ebay_selling{$item}{'questions'} pending)";
+                print_log "There are new questions about eBay item $item ($ebay_selling{$item}{'title'}) ($ebay_selling{$item}{'questions'} pending)";
             }
-            if ( $last_ebay_selling{$item}{'status'} ne
-                $ebay_selling{$item}{'status'} )
-            {
+            if ( $last_ebay_selling{$item}{'status'} ne $ebay_selling{$item}{'status'} ) {
                 if ( $ebay_selling{$item}{'status'} eq 'success' ) {
                     speak(
                         rooms      => 'all',
                         importance => 'important',
-                        text =>
-                          "e-Bay Notice: item '$ebay_selling{$item}{'title'}' is now going to sell"
+                        text       => "e-Bay Notice: item '$ebay_selling{$item}{'title'}' is now going to sell"
                     );
-                    print_log
-                      "eBay item $item ($ebay_selling{$item}{'title'}) is now going to sell";
+                    print_log "eBay item $item ($ebay_selling{$item}{'title'}) is now going to sell";
                 }
             }
         }
@@ -870,11 +767,9 @@ if ( done_now $p_ebay_selling) {
             speak(
                 rooms      => 'all',
                 importance => 'notice',
-                text =>
-                  "e-Bay Notice: You are now selling item '$ebay_selling{$item}{'title'}'"
+                text       => "e-Bay Notice: You are now selling item '$ebay_selling{$item}{'title'}'"
             );
-            print_log
-              "You are now selling eBay item $item ($ebay_selling{$item}{'title'})";
+            print_log "You are now selling eBay item $item ($ebay_selling{$item}{'title'})";
         }
     }
     print_log "eBay: You are selling $count items.";
@@ -898,40 +793,28 @@ if ( done_now $p_ebay_won) {
     foreach my $item ( keys %ebay_won ) {
         next if $item eq 'populated';
         $count++;
-        foreach (
-            'seller', 'quantity', 'sale_price',
-            'title',  'paid',     'feedback_left',
-            'feedback_received'
-          )
-        {
+        foreach ( 'seller', 'quantity', 'sale_price', 'title', 'paid', 'feedback_left', 'feedback_received' ) {
             unless ( defined( $ebay_won{$item}{$_} ) ) {
-                &report_ebay_error(
-                    "Parse error for item $item, value '$_' not found!");
+                &report_ebay_error("Parse error for item $item, value '$_' not found!");
             }
         }
         if ( $last_ebay_won{'populated'} and $last_ebay_won{$item} ) {
-            if ( $last_ebay_won{$item}{'feedback_received'} ne
-                $ebay_won{$item}{'feedback_received'} )
-            {
+            if ( $last_ebay_won{$item}{'feedback_received'} ne $ebay_won{$item}{'feedback_received'} ) {
                 if ( $ebay_won{$item}{'feedback_received'} eq 'Positive' ) {
                     speak(
                         rooms      => 'all',
                         importance => 'notice',
-                        text =>
-                          "e-Bay Notice: You have received positive feedback for item '$ebay_won{$item}{'title'}'"
+                        text       => "e-Bay Notice: You have received positive feedback for item '$ebay_won{$item}{'title'}'"
                     );
-                    print_log
-                      "You have received positive feedback for eBay item $item ($ebay_won{$item}{'title'})";
+                    print_log "You have received positive feedback for eBay item $item ($ebay_won{$item}{'title'})";
                 }
                 else {
                     speak(
                         rooms      => 'all',
                         importance => 'important',
-                        text =>
-                          "e-Bay Notice: Warning, you have received $ebay_won{$item}{'feedback_received'} feedback for item '$ebay_won{$item}{'title'}'"
+                        text => "e-Bay Notice: Warning, you have received $ebay_won{$item}{'feedback_received'} feedback for item '$ebay_won{$item}{'title'}'"
                     );
-                    print_log
-                      "Warning, you have received $ebay_won{$item}{'feedback_received'} feedback for eBay item $item ($ebay_won{$item}{'title'})";
+                    print_log "Warning, you have received $ebay_won{$item}{'feedback_received'} feedback for eBay item $item ($ebay_won{$item}{'title'})";
                 }
             }
         }
@@ -941,11 +824,9 @@ if ( done_now $p_ebay_won) {
             speak(
                 rooms      => 'all',
                 importance => 'important',
-                text =>
-                  "e-Bay Notice: You won item '$ebay_won{$item}{'title'}' for $ebay_won{$item}{'sale_price'}"
+                text       => "e-Bay Notice: You won item '$ebay_won{$item}{'title'}' for $ebay_won{$item}{'sale_price'}"
             );
-            print_log
-              "You won eBay item $item ($ebay_won{$item}{'title'}) for $ebay_won{$item}{'sale_price'}";
+            print_log "You won eBay item $item ($ebay_won{$item}{'title'}) for $ebay_won{$item}{'sale_price'}";
         }
     }
     print_log "eBay: You have won $count items.";
@@ -969,15 +850,9 @@ if ( done_now $p_ebay_sold) {
     foreach my $item ( keys %ebay_sold ) {
         next if $item eq 'populated';
         $count++;
-        foreach (
-            'buyer',             'quantity',           'sale_price',
-            'title',             'paid',               'feedback_left',
-            'feedback_received', 'completed_checkout', 'shipped'
-          )
-        {
+        foreach ( 'buyer', 'quantity', 'sale_price', 'title', 'paid', 'feedback_left', 'feedback_received', 'completed_checkout', 'shipped' ) {
             unless ( defined( $ebay_sold{$item}{$_} ) ) {
-                &report_ebay_error(
-                    "Parse error for item $item, value '$_' not found!");
+                &report_ebay_error("Parse error for item $item, value '$_' not found!");
             }
         }
         if ( $last_ebay_sold{'populated'} and $last_ebay_sold{$item} ) {
@@ -986,58 +861,44 @@ if ( done_now $p_ebay_sold) {
                     speak(
                         rooms      => 'all',
                         importance => 'notice',
-                        text =>
-                          "e-Bay Notice: A PayPal payment for item '$ebay_sold{$item}{'title'}' is pending and needs to be accepted or denied"
+                        text       => "e-Bay Notice: A PayPal payment for item '$ebay_sold{$item}{'title'}' is pending and needs to be accepted or denied"
                     );
-                    print_log
-                      "A PayPal payment for eBay item $item ($ebay_sold{$item}{'title'}) is pending and needs to be accepted or denied";
+                    print_log "A PayPal payment for eBay item $item ($ebay_sold{$item}{'title'}) is pending and needs to be accepted or denied";
                 }
                 elsif ( $ebay_sold{$item}{'paid'} eq 'paid' ) {
                     speak(
                         rooms      => 'all',
                         importance => 'notice',
-                        text =>
-                          "e-Bay Notice: The buyer has paid for item '$ebay_sold{$item}{'title'}'"
+                        text       => "e-Bay Notice: The buyer has paid for item '$ebay_sold{$item}{'title'}'"
                     );
-                    print_log
-                      "The buyer has paid for eBay item $item ($ebay_sold{$item}{'title'})";
+                    print_log "The buyer has paid for eBay item $item ($ebay_sold{$item}{'title'})";
                 }
             }
-            if ( $last_ebay_sold{$item}{'feedback_received'} ne
-                $ebay_sold{$item}{'feedback_received'} )
-            {
+            if ( $last_ebay_sold{$item}{'feedback_received'} ne $ebay_sold{$item}{'feedback_received'} ) {
                 if ( $ebay_sold{$item}{'feedback_received'} eq 'Positive' ) {
                     speak(
                         rooms      => 'all',
                         importance => 'notice',
-                        text =>
-                          "e-Bay Notice: You have received positive feedback for item '$ebay_sold{$item}{'title'}'"
+                        text       => "e-Bay Notice: You have received positive feedback for item '$ebay_sold{$item}{'title'}'"
                     );
-                    print_log
-                      "You have received positive feedback for eBay item $item ($ebay_sold{$item}{'title'})";
+                    print_log "You have received positive feedback for eBay item $item ($ebay_sold{$item}{'title'})";
                 }
                 else {
                     speak(
                         rooms      => 'all',
                         importance => 'important',
-                        text =>
-                          "e-Bay Warning: You have received $ebay_sold{$item}{'feedback_received'} feedback for item '$ebay_sold{$item}{'title'}'"
+                        text       => "e-Bay Warning: You have received $ebay_sold{$item}{'feedback_received'} feedback for item '$ebay_sold{$item}{'title'}'"
                     );
-                    print_log
-                      "Warning, you have received $ebay_sold{$item}{'feedback_received'} feedback for eBay item $item ($ebay_sold{$item}{'title'})";
+                    print_log "Warning, you have received $ebay_sold{$item}{'feedback_received'} feedback for eBay item $item ($ebay_sold{$item}{'title'})";
                 }
             }
-            if ( $last_ebay_sold{$item}{'completed_checkout'} !=
-                $ebay_sold{$item}{'completed_checkout'} )
-            {
+            if ( $last_ebay_sold{$item}{'completed_checkout'} != $ebay_sold{$item}{'completed_checkout'} ) {
                 speak(
                     rooms      => 'all',
                     importance => 'notice',
-                    text =>
-                      "e-Bay Notice: The buyer has completed checkout for item '$ebay_sold{$item}{'title'}'"
+                    text       => "e-Bay Notice: The buyer has completed checkout for item '$ebay_sold{$item}{'title'}'"
                 );
-                print_log
-                  "The buyer has completed checkout for eBay item $item ($ebay_sold{$item}{'title'}) is pending and needs to be accepted or denied";
+                print_log "The buyer has completed checkout for eBay item $item ($ebay_sold{$item}{'title'}) is pending and needs to be accepted or denied";
             }
         }
         elsif ( $last_ebay_sold{'populated'} and not $last_ebay_sold{$item} ) {
@@ -1046,11 +907,9 @@ if ( done_now $p_ebay_sold) {
             speak(
                 rooms      => 'all',
                 importance => 'notice',
-                text =>
-                  "e-Bay Notice: You sold item '$ebay_sold{$item}{'title'}' for $ebay_sold{$item}{'sale_price'} to $ebay_sold{$item}{'buyer'}"
+                text       => "e-Bay Notice: You sold item '$ebay_sold{$item}{'title'}' for $ebay_sold{$item}{'sale_price'} to $ebay_sold{$item}{'buyer'}"
             );
-            print_log
-              "You sold eBay item $item ($ebay_sold{$item}{'title'}) for $ebay_sold{$item}{'sale_price'} to $ebay_sold{$item}{'buyer'}";
+            print_log "You sold eBay item $item ($ebay_sold{$item}{'title'}) for $ebay_sold{$item}{'sale_price'} to $ebay_sold{$item}{'buyer'}";
         }
     }
     print_log "eBay: You have sold $count items.";
@@ -1064,8 +923,7 @@ if ( done_now $p_ebay_unsold) {
     %ebay_unsold = ();
     $ebay_unsold{'populated'} = 1;
     foreach ( $f_ebay_unsold->read_all() ) {
-        $lastitem =
-          &parse_ebay_html_line( $lastitem, \%ebay_unsold, $_, 'unsold' );
+        $lastitem = &parse_ebay_html_line( $lastitem, \%ebay_unsold, $_, 'unsold' );
         if ( $lastitem eq 'NOT LOGGED IN' ) {
             %ebay_unsold = ();
             last;
@@ -1077,8 +935,7 @@ if ( done_now $p_ebay_unsold) {
         $count++;
         foreach ('title') {
             unless ( defined( $ebay_unsold{$item}{$_} ) ) {
-                &report_ebay_error(
-                    "Parse error for item $item, value '$_' not found!");
+                &report_ebay_error("Parse error for item $item, value '$_' not found!");
             }
         }
         if ( $last_ebay_unsold{'populated'} and not $last_ebay_unsold{$item} ) {
@@ -1087,11 +944,9 @@ if ( done_now $p_ebay_unsold) {
             speak(
                 rooms      => 'all',
                 importance => 'notice',
-                text =>
-                  "e-Bay Notice: You did not sell item '$ebay_unsold{$item}{'title'}'"
+                text       => "e-Bay Notice: You did not sell item '$ebay_unsold{$item}{'title'}'"
             );
-            print_log
-              "You did not sell eBay item $item ($ebay_unsold{$item}{'title'})";
+            print_log "You did not sell eBay item $item ($ebay_unsold{$item}{'title'})";
         }
     }
     print_log "eBay: You have not sold $count items.";
@@ -1117,8 +972,7 @@ if ( done_now $p_ebay_lost) {
         $count++;
         foreach ('title') {
             unless ( defined( $ebay_lost{$item}{$_} ) ) {
-                &report_ebay_error(
-                    "Parse error for item $item, value '$_' not found!");
+                &report_ebay_error("Parse error for item $item, value '$_' not found!");
             }
         }
         if ( $last_ebay_lost{'populated'} and not $last_ebay_lost{$item} ) {
@@ -1127,11 +981,9 @@ if ( done_now $p_ebay_lost) {
             speak(
                 rooms      => 'all',
                 importance => 'important',
-                text =>
-                  "e-Bay Notice: You did not win item '$ebay_lost{$item}{'title'}'"
+                text       => "e-Bay Notice: You did not win item '$ebay_lost{$item}{'title'}'"
             );
-            print_log
-              "You did not win eBay item $item ($ebay_lost{$item}{'title'})";
+            print_log "You did not win eBay item $item ($ebay_lost{$item}{'title'})";
         }
     }
     print_log "eBay: You have not won $count items.";
@@ -1146,11 +998,9 @@ if ( $New_Hour and $config_parms{eBay_feedback_nag} ) {
             speak(
                 rooms      => 'all',
                 importance => 'notice',
-                text =>
-                  "e-Bay Feedback Reminder: You have received feedback for item '$ebay_sold{$item}{'title'}' but have not left any yourself"
+                text       => "e-Bay Feedback Reminder: You have received feedback for item '$ebay_sold{$item}{'title'}' but have not left any yourself"
             );
-            print_log
-              "You have received feedback for eBay item $item ($ebay_sold{$item}{'title'}) but have not left any yourself";
+            print_log "You have received feedback for eBay item $item ($ebay_sold{$item}{'title'}) but have not left any yourself";
         }
     }
     foreach my $item ( keys %ebay_won ) {
@@ -1161,11 +1011,9 @@ if ( $New_Hour and $config_parms{eBay_feedback_nag} ) {
             speak(
                 rooms      => 'all',
                 importance => 'notice',
-                text =>
-                  "e-Bay Feedback Reminder: You have received feedback for item '$ebay_won{$item}{'title'}' but have not left any yourself"
+                text       => "e-Bay Feedback Reminder: You have received feedback for item '$ebay_won{$item}{'title'}' but have not left any yourself"
             );
-            print_log
-              "You have received feedback for eBay item $item ($ebay_won{$item}{'title'}) but have not left any yourself";
+            print_log "You have received feedback for eBay item $item ($ebay_won{$item}{'title'}) but have not left any yourself";
         }
     }
 }

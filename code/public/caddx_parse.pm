@@ -20,68 +20,35 @@
                     $datum = $msgb[1];
                     push( @msgdata, [ '1:', 'Message number', $datum ] );
                     $datum = join( '', @msgb[ 2 .. 5 ] );
-                    push(
-                        @msgdata,
-                        [
-                            '2-5:', 'Firmware version (i.e. 1.00 (ASCII))',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '2-5:', 'Firmware version (i.e. 1.00 (ASCII))', $datum ] );
                     $datum = $msgb[6];
-                    push(
-                        @msgdata,
-                        [
-                            '6:', 'Supported transition message flags (1)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '6:', 'Supported transition message flags (1)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '0' );
                     push( @msgdata, [ '6:0', '(00h) Reserved', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '1' );
-                    push(
-                        @msgdata,
-                        [
-                            '6:1', '(01h) Interface Configuration Message',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '6:1', '(01h) Interface Configuration Message', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '2' );
                     push( @msgdata, [ '6:2', '(02h) Reserved', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '3' );
                     push( @msgdata, [ '6:3', '(03h) Reserved', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '4' );
-                    push( @msgdata,
-                        [ '6:4', '(04h) Zone Status Message', $datum ] );
+                    push( @msgdata, [ '6:4', '(04h) Zone Status Message', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '5' );
-                    push( @msgdata,
-                        [ '6:5', '(05h) Zones Snapshot Message', $datum ] );
+                    push( @msgdata, [ '6:5', '(05h) Zones Snapshot Message', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '6' );
-                    push( @msgdata,
-                        [ '6:6', '(06h) Partition Status Message', $datum ] );
+                    push( @msgdata, [ '6:6', '(06h) Partition Status Message', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '7' );
-                    push( @msgdata,
-                        [ '6:7', '(07h) Partitions Snapshot Message', $datum ]
-                    );
+                    push( @msgdata, [ '6:7', '(07h) Partitions Snapshot Message', $datum ] );
                     $datum = $msgb[7];
-                    push(
-                        @msgdata,
-                        [
-                            '7:', 'Supported transition message flags (2)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '7:', 'Supported transition message flags (2)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '0' );
-                    push( @msgdata,
-                        [ '7:0', '(08h) System Status Message', $datum ] );
+                    push( @msgdata, [ '7:0', '(08h) System Status Message', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '1' );
-                    push( @msgdata,
-                        [ '7:1', '(09h) X-10 Message Received', $datum ] );
+                    push( @msgdata, [ '7:1', '(09h) X-10 Message Received', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '2' );
-                    push( @msgdata,
-                        [ '7:2', '(0Ah) Log Event Message', $datum ] );
+                    push( @msgdata, [ '7:2', '(0Ah) Log Event Message', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '3' );
-                    push( @msgdata,
-                        [ '7:3', '(0Bh) Keypad Message Received', $datum ] );
+                    push( @msgdata, [ '7:3', '(0Bh) Keypad Message Received', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '4' );
                     push( @msgdata, [ '7:4', '(0Ch) Reserved', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '5' );
@@ -91,65 +58,35 @@
                     $datum = &caddx::parse::getbits( $msgb[7], '7' );
                     push( @msgdata, [ '7:7', '(0Fh) Reserved', $datum ] );
                     $datum = $msgb[8];
-                    push(
-                        @msgdata,
-                        [
-                            '8:', 'Supported request / command flags (1)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '8:', 'Supported request / command flags (1)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '0' );
                     push( @msgdata, [ '8:0', '(20h) Reserved', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '1' );
-                    push(
-                        @msgdata,
-                        [
-                            '8:1', '(21h) Interface Configuration Request',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '8:1', '(21h) Interface Configuration Request', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '2' );
                     push( @msgdata, [ '8:2', '(22h) Reserved', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '3' );
-                    push( @msgdata,
-                        [ '8:3', '(23h) Zone Name Request', $datum ] );
+                    push( @msgdata, [ '8:3', '(23h) Zone Name Request', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '4' );
-                    push( @msgdata,
-                        [ '8:4', '(24h) Zone Status Request', $datum ] );
+                    push( @msgdata, [ '8:4', '(24h) Zone Status Request', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '5' );
-                    push( @msgdata,
-                        [ '8:5', '(25h) Zones Snapshot Request', $datum ] );
+                    push( @msgdata, [ '8:5', '(25h) Zones Snapshot Request', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '6' );
-                    push( @msgdata,
-                        [ '8:6', '(26h) Partition Status Request', $datum ] );
+                    push( @msgdata, [ '8:6', '(26h) Partition Status Request', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '7' );
-                    push( @msgdata,
-                        [ '8:7', '(27h) Partitions Snapshot Request', $datum ]
-                    );
+                    push( @msgdata, [ '8:7', '(27h) Partitions Snapshot Request', $datum ] );
                     $datum = $msgb[9];
-                    push(
-                        @msgdata,
-                        [
-                            '9:', 'Supported request / command flags (2)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '9:', 'Supported request / command flags (2)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '0' );
-                    push( @msgdata,
-                        [ '9:0', '(28h) System Status Request', $datum ] );
+                    push( @msgdata, [ '9:0', '(28h) System Status Request', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '1' );
-                    push( @msgdata,
-                        [ '9:1', '(29h) Send X-10 Message', $datum ] );
+                    push( @msgdata, [ '9:1', '(29h) Send X-10 Message', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '2' );
-                    push( @msgdata,
-                        [ '9:2', '(2Ah) Log Event Request', $datum ] );
+                    push( @msgdata, [ '9:2', '(2Ah) Log Event Request', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '3' );
-                    push( @msgdata,
-                        [ '9:3', '(2Bh) Send Keypad Text Message', $datum ] );
+                    push( @msgdata, [ '9:3', '(2Bh) Send Keypad Text Message', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '4' );
-                    push( @msgdata,
-                        [ '9:4', '(2Ch) Keypad Terminal Mode Request', $datum ]
-                    );
+                    push( @msgdata, [ '9:4', '(2Ch) Keypad Terminal Mode Request', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '5' );
                     push( @msgdata, [ '9:5', '(2Dh) Reserved', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '6' );
@@ -157,122 +94,43 @@
                     $datum = &caddx::parse::getbits( $msgb[9], '7' );
                     push( @msgdata, [ '9:7', '(2Fh) Reserved', $datum ] );
                     $datum = $msgb[10];
-                    push(
-                        @msgdata,
-                        [
-                            '10:', 'Supported request / command flags (3)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '10:', 'Supported request / command flags (3)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '0' );
-                    push( @msgdata,
-                        [ '10:0', '(30h) Program Data Request', $datum ] );
+                    push( @msgdata, [ '10:0', '(30h) Program Data Request', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '1' );
-                    push( @msgdata,
-                        [ '10:1', '(31h) Program Data Command', $datum ] );
+                    push( @msgdata, [ '10:1', '(31h) Program Data Command', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '2' );
-                    push(
-                        @msgdata,
-                        [
-                            '10:2', '(32h) User Information Request with PIN',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '10:2', '(32h) User Information Request with PIN', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '3' );
-                    push(
-                        @msgdata,
-                        [
-                            '10:3',
-                            '(33h) User Information Request without PIN',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '10:3', '(33h) User Information Request without PIN', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '4' );
-                    push(
-                        @msgdata,
-                        [
-                            '10:4', '(34h) Set User Code Command with PIN',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '10:4', '(34h) Set User Code Command with PIN', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '5' );
-                    push(
-                        @msgdata,
-                        [
-                            '10:5', '(35h) Set User Code Command without PIN',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '10:5', '(35h) Set User Code Command without PIN', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '6' );
-                    push(
-                        @msgdata,
-                        [
-                            '10:6',
-                            '(36h) Set User Authorization Command with PIN',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '10:6', '(36h) Set User Authorization Command with PIN', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '7' );
-                    push(
-                        @msgdata,
-                        [
-                            '10:7',
-                            '(37h) Set User Authorization Command without PIN',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '10:7', '(37h) Set User Authorization Command without PIN', $datum ] );
                     $datum = $msgb[11];
-                    push(
-                        @msgdata,
-                        [
-                            '11:', 'Supported request / command flags (4)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '11:', 'Supported request / command flags (4)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[11], '0' );
                     push( @msgdata, [ '11:0', '(38h) Reserved', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[11], '1' );
                     push( @msgdata, [ '11:1', '(39h) Reserved', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[11], '2' );
-                    push(
-                        @msgdata,
-                        [
-                            '11:2', '(3Ah) Store Communication Event Command',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '11:2', '(3Ah) Store Communication Event Command', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[11], '3' );
-                    push(
-                        @msgdata,
-                        [
-                            '11:3', '(3Bh) Set Clock / Calendar Command',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '11:3', '(3Bh) Set Clock / Calendar Command', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[11], '4' );
-                    push(
-                        @msgdata,
-                        [
-                            '11:4', '(3Ch) Primary Keypad Function with PIN',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '11:4', '(3Ch) Primary Keypad Function with PIN', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[11], '5' );
-                    push(
-                        @msgdata,
-                        [
-                            '11:5',
-                            '(3Dh) Primary Keypad Function without PIN', $datum
-                        ]
-                    );
+                    push( @msgdata, [ '11:5', '(3Dh) Primary Keypad Function without PIN', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[11], '6' );
-                    push( @msgdata,
-                        [ '11:6', '(3Eh) Secondary Keypad Function', $datum ] );
+                    push( @msgdata, [ '11:6', '(3Eh) Secondary Keypad Function', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[11], '7' );
-                    push( @msgdata,
-                        [ '11:7', '(3Fh) Zone Bypass Toggle', $datum ] );
+                    push( @msgdata, [ '11:7', '(3Fh) Zone Bypass Toggle', $datum ] );
                     $msghash{_parsed_} = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                  # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [03H]
@@ -292,8 +150,7 @@
                     $datum = $msgb[1];
                     push( @msgdata, [ '1:', 'Message number', $datum ] );
                     $datum = $msgb[2];
-                    push( @msgdata,
-                        [ '2:', '{zone} number (0= zone 1)', $datum ] );
+                    push( @msgdata, [ '2:', '{zone} number (0= zone 1)', $datum ] );
                     $msghash{zone} = $datum;
                     $datum = $msgb[3];
                     push( @msgdata, [ '3:', 'Zone name character 1', $datum ] );
@@ -310,37 +167,28 @@
                     $datum = $msgb[9];
                     push( @msgdata, [ '9:', 'Zone name character 7', $datum ] );
                     $datum = $msgb[10];
-                    push( @msgdata,
-                        [ '10:', 'Zone name character 8', $datum ] );
+                    push( @msgdata, [ '10:', 'Zone name character 8', $datum ] );
                     $datum = $msgb[11];
-                    push( @msgdata,
-                        [ '11:', 'Zone name character 9', $datum ] );
+                    push( @msgdata, [ '11:', 'Zone name character 9', $datum ] );
                     $datum = $msgb[12];
-                    push( @msgdata,
-                        [ '12:', 'Zone name character 10', $datum ] );
+                    push( @msgdata, [ '12:', 'Zone name character 10', $datum ] );
                     $datum = $msgb[13];
-                    push( @msgdata,
-                        [ '13:', 'Zone name character 11', $datum ] );
+                    push( @msgdata, [ '13:', 'Zone name character 11', $datum ] );
                     $datum = $msgb[14];
-                    push( @msgdata,
-                        [ '14:', 'Zone name character 12', $datum ] );
+                    push( @msgdata, [ '14:', 'Zone name character 12', $datum ] );
                     $datum = $msgb[15];
-                    push( @msgdata,
-                        [ '15:', 'Zone name character 13', $datum ] );
+                    push( @msgdata, [ '15:', 'Zone name character 13', $datum ] );
                     $datum = $msgb[16];
-                    push( @msgdata,
-                        [ '16:', 'Zone name character 14', $datum ] );
+                    push( @msgdata, [ '16:', 'Zone name character 14', $datum ] );
                     $datum = $msgb[17];
-                    push( @msgdata,
-                        [ '17:', 'Zone name character 15', $datum ] );
+                    push( @msgdata, [ '17:', 'Zone name character 15', $datum ] );
                     $datum = $msgb[18];
-                    push( @msgdata,
-                        [ '18:', 'Zone name character 16', $datum ] );
+                    push( @msgdata, [ '18:', 'Zone name character 16', $datum ] );
                     $datum = join( '', @msgb[ 3 .. 18 ] );
                     push( @msgdata, [ '3-18:', '{zone_name}', $datum ] );
                     $msghash{zone_name} = $datum;
                     $msghash{_parsed_}  = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                   # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [04H]
@@ -360,8 +208,7 @@
                     $datum = $msgb[1];
                     push( @msgdata, [ '1:', 'Message number', $datum ] );
                     $datum = $msgb[2];
-                    push( @msgdata,
-                        [ '2:', '{zone} number (0= zone 1)', $datum ] );
+                    push( @msgdata, [ '2:', '{zone} number (0= zone 1)', $datum ] );
                     $msghash{zone} = $datum;
                     $datum = $msgb[3];
                     push( @msgdata, [ '3:', 'Partition mask', $datum ] );
@@ -392,8 +239,7 @@
                     $datum = &caddx::parse::getbits( $msgb[4], '3' );
                     push( @msgdata, [ '4:3', 'Follower', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '4' );
-                    push( @msgdata,
-                        [ '4:4', 'Entry / exit  delay 1', $datum ] );
+                    push( @msgdata, [ '4:4', 'Entry / exit  delay 1', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '5' );
                     push( @msgdata, [ '4:5', 'Entry / exit delay 2', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '6' );
@@ -437,16 +283,9 @@
                     $datum = &caddx::parse::getbits( $msgb[6], '7' );
                     push( @msgdata, [ '6:7', 'Listen in', $datum ] );
                     $datum = $msgb[7];
-                    push( @msgdata,
-                        [ '7:', 'Zone condition flags (1)', $datum ] );
+                    push( @msgdata, [ '7:', 'Zone condition flags (1)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '0' );
-                    push(
-                        @msgdata,
-                        [
-                            '7:0', '{faulted} Faulted (or delayed trip)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '7:0', '{faulted} Faulted (or delayed trip)', $datum ] );
                     $msghash{faulted} = $datum;
                     $datum = &caddx::parse::getbits( $msgb[7], '1' );
                     push( @msgdata, [ '7:1', '{tampered} Tampered', $datum ] );
@@ -458,8 +297,7 @@
                     push( @msgdata, [ '7:3', '{bypassed} Bypassed', $datum ] );
                     $msghash{bypassed} = $datum;
                     $datum = &caddx::parse::getbits( $msgb[7], '4' );
-                    push( @msgdata,
-                        [ '7:4', 'Inhibited (force armed)', $datum ] );
+                    push( @msgdata, [ '7:4', 'Inhibited (force armed)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '5' );
                     push( @msgdata, [ '7:5', 'Low battery', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '6' );
@@ -467,11 +305,9 @@
                     $datum = &caddx::parse::getbits( $msgb[7], '7' );
                     push( @msgdata, [ '7:7', 'Reserved', $datum ] );
                     $datum = $msgb[8];
-                    push( @msgdata,
-                        [ '8:', 'Zone condition flags (2)', $datum ] );
+                    push( @msgdata, [ '8:', 'Zone condition flags (2)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '0' );
-                    push( @msgdata,
-                        [ '8:0', '{alarm_memory} Alarm memory', $datum ] );
+                    push( @msgdata, [ '8:0', '{alarm_memory} Alarm memory', $datum ] );
                     $msghash{alarm_memory} = $datum;
                     $datum = &caddx::parse::getbits( $msgb[8], '1' );
                     push( @msgdata, [ '8:1', 'Bypass memory', $datum ] );
@@ -488,7 +324,7 @@
                     $datum = &caddx::parse::getbits( $msgb[8], '7' );
                     push( @msgdata, [ '8:7', 'Reserved', $datum ] );
                     $msghash{_parsed_} = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                  # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [05H]
@@ -508,87 +344,46 @@
                     $datum = $msgb[1];
                     push( @msgdata, [ '1:', 'Message number', $datum ] );
                     $datum = $msgb[2];
-                    push( @msgdata,
-                        [ '2:', '{zone_offset} (0= start at zone 1)', $datum ]
-                    );
+                    push( @msgdata, [ '2:', '{zone_offset} (0= start at zone 1)', $datum ] );
                     $msghash{zone_offset} = $datum;
                     $datum = $msgb[3];
-                    push( @msgdata,
-                        [ '3:', 'Zone 1 & 2 (+offset) status flags', $datum ] );
+                    push( @msgdata, [ '3:', 'Zone 1 & 2 (+offset) status flags', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '0' );
-                    push( @msgdata,
-                        [ '3:0', 'Zone 1 faulted (or delayed trip)', $datum ] );
+                    push( @msgdata, [ '3:0', 'Zone 1 faulted (or delayed trip)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '1' );
-                    push( @msgdata,
-                        [ '3:1', 'Zone 1 bypass (or inhibited)', $datum ] );
+                    push( @msgdata, [ '3:1', 'Zone 1 bypass (or inhibited)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '2' );
-                    push(
-                        @msgdata,
-                        [
-                            '3:2',
-                            'Zone 1 trouble (tamper, low battery, or lost)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '3:2', 'Zone 1 trouble (tamper, low battery, or lost)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '3' );
                     push( @msgdata, [ '3:3', 'Zone 1 alarm memory', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '4' );
-                    push( @msgdata,
-                        [ '3:4', 'Zone 2 faulted (or delayed trip)', $datum ] );
+                    push( @msgdata, [ '3:4', 'Zone 2 faulted (or delayed trip)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '5' );
-                    push( @msgdata,
-                        [ '3:5', 'Zone 2 bypass (or inhibited)', $datum ] );
+                    push( @msgdata, [ '3:5', 'Zone 2 bypass (or inhibited)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '6' );
-                    push(
-                        @msgdata,
-                        [
-                            '3:6',
-                            'Zone 2 trouble (tamper, low battery, or lost)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '3:6', 'Zone 2 trouble (tamper, low battery, or lost)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '7' );
                     push( @msgdata, [ '3:7', 'Zone 2 alarm memory', $datum ] );
                     $datum = $msgb[4];
-                    push( @msgdata,
-                        [ '4:', 'Zone 3 & 4 (+offset) status flags', $datum ] );
+                    push( @msgdata, [ '4:', 'Zone 3 & 4 (+offset) status flags', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '0' );
-                    push( @msgdata,
-                        [ '4:0', 'Zone 3 faulted (or delayed trip)', $datum ] );
+                    push( @msgdata, [ '4:0', 'Zone 3 faulted (or delayed trip)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '1' );
-                    push( @msgdata,
-                        [ '4:1', 'Zone 3 bypass (or inhibited)', $datum ] );
+                    push( @msgdata, [ '4:1', 'Zone 3 bypass (or inhibited)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '2' );
-                    push(
-                        @msgdata,
-                        [
-                            '4:2',
-                            'Zone 3 trouble (tamper, low battery, or lost)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '4:2', 'Zone 3 trouble (tamper, low battery, or lost)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '3' );
                     push( @msgdata, [ '4:3', 'Zone 3 alarm memory', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '4' );
-                    push( @msgdata,
-                        [ '4:4', 'Zone 4 faulted (or delayed trip)', $datum ] );
+                    push( @msgdata, [ '4:4', 'Zone 4 faulted (or delayed trip)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '5' );
-                    push( @msgdata,
-                        [ '4:5', 'Zone 4 bypass (or inhibited)', $datum ] );
+                    push( @msgdata, [ '4:5', 'Zone 4 bypass (or inhibited)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '6' );
-                    push(
-                        @msgdata,
-                        [
-                            '4:6',
-                            'Zone 4 trouble (tamper, low battery, or lost)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '4:6', 'Zone 4 trouble (tamper, low battery, or lost)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '7' );
                     push( @msgdata, [ '4:7', 'Zone 4 alarm memory', $datum ] );
                     $datum = $msgb[3];
-                    push( @msgdata,
-                        [ '3:', 'Zone 1 & 2 (+offset) status flags', $datum ] );
+                    push( @msgdata, [ '3:', 'Zone 1 & 2 (+offset) status flags', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '0-3' );
                     push( @msgdata, [ '3:0-3', '{Zone1} zsnap', $datum ] );
                     $msghash{Zone1} = $datum;
@@ -596,8 +391,7 @@
                     push( @msgdata, [ '3:4-7', '{Zone2} zsnap', $datum ] );
                     $msghash{Zone2} = $datum;
                     $datum = $msgb[4];
-                    push( @msgdata,
-                        [ '4:', 'Zone 3 & 4 (+offset) status flags', $datum ] );
+                    push( @msgdata, [ '4:', 'Zone 3 & 4 (+offset) status flags', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '0-3' );
                     push( @msgdata, [ '4:0-3', '{Zone3} zsnap', $datum ] );
                     $msghash{Zone3} = $datum;
@@ -605,8 +399,7 @@
                     push( @msgdata, [ '4:4-7', '{Zone4} zsnap', $datum ] );
                     $msghash{Zone4} = $datum;
                     $datum = $msgb[5];
-                    push( @msgdata,
-                        [ '5:', 'Zone 5 & 6 (+offset) status flags', $datum ] );
+                    push( @msgdata, [ '5:', 'Zone 5 & 6 (+offset) status flags', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[5], '0-3' );
                     push( @msgdata, [ '5:0-3', '{Zone5} zsnap', $datum ] );
                     $msghash{Zone5} = $datum;
@@ -614,8 +407,7 @@
                     push( @msgdata, [ '5:4-7', '{Zone6} zsnap', $datum ] );
                     $msghash{Zone6} = $datum;
                     $datum = $msgb[6];
-                    push( @msgdata,
-                        [ '6:', 'Zone 7 & 8 (+offset) status flags', $datum ] );
+                    push( @msgdata, [ '6:', 'Zone 7 & 8 (+offset) status flags', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '0-3' );
                     push( @msgdata, [ '6:0-3', '{Zone7} zsnap', $datum ] );
                     $msghash{Zone7} = $datum;
@@ -623,9 +415,7 @@
                     push( @msgdata, [ '6:4-7', '{Zone8} zsnap', $datum ] );
                     $msghash{Zone8} = $datum;
                     $datum = $msgb[7];
-                    push( @msgdata,
-                        [ '7:', 'Zone 9 & 10 (+offset) status flags', $datum ]
-                    );
+                    push( @msgdata, [ '7:', 'Zone 9 & 10 (+offset) status flags', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '0-3' );
                     push( @msgdata, [ '7:0-3', '{Zone9} zsnap', $datum ] );
                     $msghash{Zone9} = $datum;
@@ -633,9 +423,7 @@
                     push( @msgdata, [ '7:4-7', '{Zone10} zsnap', $datum ] );
                     $msghash{Zone10} = $datum;
                     $datum = $msgb[8];
-                    push( @msgdata,
-                        [ '8:', 'Zone 11 & 12 (+offset) status flags', $datum ]
-                    );
+                    push( @msgdata, [ '8:', 'Zone 11 & 12 (+offset) status flags', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '0-3' );
                     push( @msgdata, [ '8:0-3', '{Zone11} zsnap', $datum ] );
                     $msghash{Zone11} = $datum;
@@ -643,9 +431,7 @@
                     push( @msgdata, [ '8:4-7', '{Zone12} zsnap', $datum ] );
                     $msghash{Zone12} = $datum;
                     $datum = $msgb[9];
-                    push( @msgdata,
-                        [ '9:', 'Zone 13 & 14 (+offset) status flags', $datum ]
-                    );
+                    push( @msgdata, [ '9:', 'Zone 13 & 14 (+offset) status flags', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '0-3' );
                     push( @msgdata, [ '9:0-3', '{Zone13} zsnap', $datum ] );
                     $msghash{Zone13} = $datum;
@@ -653,13 +439,7 @@
                     push( @msgdata, [ '9:4-7', '{Zone14} zsnap', $datum ] );
                     $msghash{Zone14} = $datum;
                     $datum = $msgb[10];
-                    push(
-                        @msgdata,
-                        [
-                            '10:', 'Zone 15 & 16 (+offset) status flags',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '10:', 'Zone 15 & 16 (+offset) status flags', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '0-3' );
                     push( @msgdata, [ '10:0-3', '{Zone15} zsnap', $datum ] );
                     $msghash{Zone15} = $datum;
@@ -667,7 +447,7 @@
                     push( @msgdata, [ '10:4-7', '{Zone16} zsnap', $datum ] );
                     $msghash{Zone16}   = $datum;
                     $msghash{_parsed_} = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                  # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [06H]
@@ -687,18 +467,10 @@
                     $datum = $msgb[1];
                     push( @msgdata, [ '1:', 'Message number', $datum ] );
                     $datum = $msgb[2];
-                    push(
-                        @msgdata,
-                        [
-                            '2:',
-                            '{hex_partition} Partition number (0= partition 1)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '2:', '{hex_partition} Partition number (0= partition 1)', $datum ] );
                     $msghash{hex_partition} = $datum;
                     $datum = $msgb[3];
-                    push( @msgdata,
-                        [ '3:', 'Partition condition flags (1)', $datum ] );
+                    push( @msgdata, [ '3:', 'Partition condition flags (1)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '0' );
                     push( @msgdata, [ '3:0', 'Bypass code required', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '1' );
@@ -717,8 +489,7 @@
                     $datum = &caddx::parse::getbits( $msgb[3], '7' );
                     push( @msgdata, [ '3:7', 'Instant', $datum ] );
                     $datum = $msgb[4];
-                    push( @msgdata,
-                        [ '4:', 'Partition condition flags (2)', $datum ] );
+                    push( @msgdata, [ '4:', 'Partition condition flags (2)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '0' );
                     push( @msgdata, [ '4:0', 'Previous Alarm', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '1' );
@@ -730,22 +501,19 @@
                     $datum = &caddx::parse::getbits( $msgb[4], '4' );
                     push( @msgdata, [ '4:4', 'Tamper', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '5' );
-                    push( @msgdata,
-                        [ '4:5', 'Cancel command entered', $datum ] );
+                    push( @msgdata, [ '4:5', 'Cancel command entered', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '6' );
                     push( @msgdata, [ '4:6', 'Code entered', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '7' );
                     push( @msgdata, [ '4:7', 'Cancel pending', $datum ] );
                     $datum = $msgb[5];
-                    push( @msgdata,
-                        [ '5:', 'Partition condition flags (3)', $datum ] );
+                    push( @msgdata, [ '5:', 'Partition condition flags (3)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[5], '0' );
                     push( @msgdata, [ '5:0', 'Reserved', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[5], '1' );
                     push( @msgdata, [ '5:1', 'Silent exit enabled', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[5], '2' );
-                    push( @msgdata,
-                        [ '5:2', 'Entryguard ({stay} mode)', $datum ] );
+                    push( @msgdata, [ '5:2', 'Entryguard ({stay} mode)', $datum ] );
                     $msghash{stay} = $datum;
                     $datum = &caddx::parse::getbits( $msgb[5], '3' );
                     push( @msgdata, [ '5:3', '{chime} mode on', $datum ] );
@@ -753,22 +521,19 @@
                     $datum = &caddx::parse::getbits( $msgb[5], '4' );
                     push( @msgdata, [ '5:4', 'Entry', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[5], '5' );
-                    push( @msgdata,
-                        [ '5:5', 'Delay expiration warning', $datum ] );
+                    push( @msgdata, [ '5:5', 'Delay expiration warning', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[5], '6' );
                     push( @msgdata, [ '5:6', 'Exit1', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[5], '7' );
                     push( @msgdata, [ '5:7', 'Exit2', $datum ] );
                     $datum = $msgb[6];
-                    push( @msgdata,
-                        [ '6:', 'Partition condition flags (4)', $datum ] );
+                    push( @msgdata, [ '6:', 'Partition condition flags (4)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '0' );
                     push( @msgdata, [ '6:0', 'LED extinguish', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '1' );
                     push( @msgdata, [ '6:1', 'Cross timing', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '2' );
-                    push( @msgdata,
-                        [ '6:2', 'Recent closing being timed', $datum ] );
+                    push( @msgdata, [ '6:2', 'Recent closing being timed', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '3' );
                     push( @msgdata, [ '6:3', 'Reserved', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '4' );
@@ -778,18 +543,15 @@
                     $datum = &caddx::parse::getbits( $msgb[6], '6' );
                     push( @msgdata, [ '6:6', 'Sensor low battery', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '7' );
-                    push( @msgdata,
-                        [ '6:7', 'Sensor lost supervision', $datum ] );
+                    push( @msgdata, [ '6:7', 'Sensor lost supervision', $datum ] );
                     $datum = $msgb[7];
                     push( @msgdata, [ '7:', 'Last user number', $datum ] );
                     $datum = $msgb[8];
-                    push( @msgdata,
-                        [ '8:', 'Partition condition flags (5)', $datum ] );
+                    push( @msgdata, [ '8:', 'Partition condition flags (5)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '0' );
                     push( @msgdata, [ '8:0', 'Re-exit active', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '1' );
-                    push( @msgdata,
-                        [ '8:1', 'Force arm triggered by auto arm', $datum ] );
+                    push( @msgdata, [ '8:1', 'Force arm triggered by auto arm', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '2' );
                     push( @msgdata, [ '8:2', '{ready} to arm', $datum ] );
                     $msghash{ready} = $datum;
@@ -800,41 +562,29 @@
                     $datum = &caddx::parse::getbits( $msgb[8], '5' );
                     push( @msgdata, [ '8:5', 'Chime on (sounding)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '6' );
-                    push( @msgdata,
-                        [ '8:6', 'Error beep (triple beep)', $datum ] );
+                    push( @msgdata, [ '8:6', 'Error beep (triple beep)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '7' );
-                    push( @msgdata,
-                        [ '8:7', 'Tone on (activation tone)', $datum ] );
+                    push( @msgdata, [ '8:7', 'Tone on (activation tone)', $datum ] );
                     $datum = $msgb[9];
-                    push( @msgdata,
-                        [ '9:', 'Partition condition flags (6)', $datum ] );
+                    push( @msgdata, [ '9:', 'Partition condition flags (6)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '0' );
                     push( @msgdata, [ '9:0', 'Entry 1', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '1' );
                     push( @msgdata, [ '9:1', 'Open period', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '2' );
-                    push( @msgdata,
-                        [ '9:2', 'Alarm sent using phone number 1', $datum ] );
+                    push( @msgdata, [ '9:2', 'Alarm sent using phone number 1', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '3' );
-                    push( @msgdata,
-                        [ '9:3', 'Alarm sent using phone number 2', $datum ] );
+                    push( @msgdata, [ '9:3', 'Alarm sent using phone number 2', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '4' );
-                    push( @msgdata,
-                        [ '9:4', 'Alarm sent using phone number 3', $datum ] );
+                    push( @msgdata, [ '9:4', 'Alarm sent using phone number 3', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '5' );
                     push( @msgdata, [ '9:5', 'Zone bypassed', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '6' );
                     push( @msgdata, [ '9:6', 'Keyswitch armed', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '7' );
-                    push(
-                        @msgdata,
-                        [
-                            '9:7', 'Delay Trip in progress (common zone)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '9:7', 'Delay Trip in progress (common zone)', $datum ] );
                     $msghash{_parsed_} = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                  # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [07H]
@@ -854,47 +604,31 @@
                     $datum = $msgb[1];
                     push( @msgdata, [ '1:', 'Message number', $datum ] );
                     $datum = $msgb[2];
-                    push( @msgdata,
-                        [ '2:', '{partition1} psnap condition flags', $datum ]
-                    );
+                    push( @msgdata, [ '2:', '{partition1} psnap condition flags', $datum ] );
                     $msghash{partition1} = $datum;
                     $datum = $msgb[3];
-                    push( @msgdata,
-                        [ '3:', '{partition2} psnap condition flags', $datum ]
-                    );
+                    push( @msgdata, [ '3:', '{partition2} psnap condition flags', $datum ] );
                     $msghash{partition2} = $datum;
                     $datum = $msgb[4];
-                    push( @msgdata,
-                        [ '4:', '{partition3} psnap condition flags', $datum ]
-                    );
+                    push( @msgdata, [ '4:', '{partition3} psnap condition flags', $datum ] );
                     $msghash{partition3} = $datum;
                     $datum = $msgb[5];
-                    push( @msgdata,
-                        [ '5:', '{partition4} psnap condition flags', $datum ]
-                    );
+                    push( @msgdata, [ '5:', '{partition4} psnap condition flags', $datum ] );
                     $msghash{partition4} = $datum;
                     $datum = $msgb[6];
-                    push( @msgdata,
-                        [ '6:', '{partition5} psnap condition flags', $datum ]
-                    );
+                    push( @msgdata, [ '6:', '{partition5} psnap condition flags', $datum ] );
                     $msghash{partition5} = $datum;
                     $datum = $msgb[7];
-                    push( @msgdata,
-                        [ '7:', '{partition6} psnap condition flags', $datum ]
-                    );
+                    push( @msgdata, [ '7:', '{partition6} psnap condition flags', $datum ] );
                     $msghash{partition6} = $datum;
                     $datum = $msgb[8];
-                    push( @msgdata,
-                        [ '8:', '{partition7} psnap condition flags', $datum ]
-                    );
+                    push( @msgdata, [ '8:', '{partition7} psnap condition flags', $datum ] );
                     $msghash{partition7} = $datum;
                     $datum = $msgb[9];
-                    push( @msgdata,
-                        [ '9:', '{partition8} psnap condition flags', $datum ]
-                    );
+                    push( @msgdata, [ '9:', '{partition8} psnap condition flags', $datum ] );
                     $msghash{partition8} = $datum;
                     $msghash{_parsed_}   = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                    # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [08H]
@@ -922,13 +656,11 @@
                     $datum = &caddx::parse::getbits( $msgb[3], '1' );
                     push( @msgdata, [ '3:1', 'Off hook', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '2' );
-                    push( @msgdata,
-                        [ '3:2', 'Initial handshake received', $datum ] );
+                    push( @msgdata, [ '3:2', 'Initial handshake received', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '3' );
                     push( @msgdata, [ '3:3', 'Download in progress', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '4' );
-                    push( @msgdata,
-                        [ '3:4', 'Dialer delay in progress', $datum ] );
+                    push( @msgdata, [ '3:4', 'Dialer delay in progress', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '5' );
                     push( @msgdata, [ '3:5', 'Using backup phone', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '6' );
@@ -948,8 +680,7 @@
                     $datum = &caddx::parse::getbits( $msgb[4], '4' );
                     push( @msgdata, [ '4:4', 'Box tamper', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '5' );
-                    push( @msgdata,
-                        [ '4:5', 'Siren tamper / trouble', $datum ] );
+                    push( @msgdata, [ '4:5', 'Siren tamper / trouble', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '6' );
                     push( @msgdata, [ '4:6', 'Low Battery', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '7' );
@@ -963,24 +694,11 @@
                     $datum = &caddx::parse::getbits( $msgb[5], '2' );
                     push( @msgdata, [ '5:2', 'Expander low battery', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[5], '3' );
-                    push( @msgdata,
-                        [ '5:3', 'Expander loss of supervision', $datum ] );
+                    push( @msgdata, [ '5:3', 'Expander loss of supervision', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[5], '4' );
-                    push(
-                        @msgdata,
-                        [
-                            '5:4', 'Expander auxiliary output over current',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '5:4', 'Expander auxiliary output over current', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[5], '5' );
-                    push(
-                        @msgdata,
-                        [
-                            '5:5', 'Auxiliary communication channel failure',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '5:5', 'Auxiliary communication channel failure', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[5], '6' );
                     push( @msgdata, [ '5:6', 'Expander bell fault', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[5], '7' );
@@ -990,29 +708,19 @@
                     $datum = &caddx::parse::getbits( $msgb[6], '0' );
                     push( @msgdata, [ '6:0', '6 digit PIN enabled', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '1' );
-                    push( @msgdata,
-                        [ '6:1', 'Programming token in use', $datum ] );
+                    push( @msgdata, [ '6:1', 'Programming token in use', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '2' );
-                    push( @msgdata,
-                        [ '6:2', 'PIN required for local download', $datum ] );
+                    push( @msgdata, [ '6:2', 'PIN required for local download', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '3' );
-                    push( @msgdata,
-                        [ '6:3', 'Global pulsing buzzer', $datum ] );
+                    push( @msgdata, [ '6:3', 'Global pulsing buzzer', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '4' );
                     push( @msgdata, [ '6:4', 'Global Siren on', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '5' );
                     push( @msgdata, [ '6:5', 'Global steady siren ', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '6' );
-                    push( @msgdata,
-                        [ '6:6', 'Bus device has line seized', $datum ] );
+                    push( @msgdata, [ '6:6', 'Bus device has line seized', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '7' );
-                    push(
-                        @msgdata,
-                        [
-                            '6:7', 'Bus device has requested sniff mode',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '6:7', 'Bus device has requested sniff mode', $datum ] );
                     $datum = $msgb[7];
                     push( @msgdata, [ '7:', '', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '0' );
@@ -1024,35 +732,19 @@
                     $datum = &caddx::parse::getbits( $msgb[7], '3' );
                     push( @msgdata, [ '7:3', 'Ground fault memory', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '4' );
-                    push(
-                        @msgdata,
-                        [
-                            '7:4', 'Fire alarm verification being timed',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '7:4', 'Fire alarm verification being timed', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '5' );
                     push( @msgdata, [ '7:5', 'Smoke power reset', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '6' );
-                    push( @msgdata,
-                        [ '7:6', '50 Hz line power detected', $datum ] );
+                    push( @msgdata, [ '7:6', '50 Hz line power detected', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '7' );
-                    push(
-                        @msgdata,
-                        [
-                            '7:7', 'Timing a high voltage battery charge',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '7:7', 'Timing a high voltage battery charge', $datum ] );
                     $datum = $msgb[8];
                     push( @msgdata, [ '8:', '', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '0' );
-                    push( @msgdata,
-                        [ '8:0', 'Communication since last autotest', $datum ]
-                    );
+                    push( @msgdata, [ '8:0', 'Communication since last autotest', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '1' );
-                    push( @msgdata,
-                        [ '8:1', 'Power up delay in progress', $datum ] );
+                    push( @msgdata, [ '8:1', 'Power up delay in progress', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '2' );
                     push( @msgdata, [ '8:2', 'Walk test mode', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '3' );
@@ -1062,11 +754,9 @@
                     $datum = &caddx::parse::getbits( $msgb[8], '5' );
                     push( @msgdata, [ '8:5', 'Test fixture mode', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '6' );
-                    push( @msgdata,
-                        [ '8:6', 'Control shutdown mode', $datum ] );
+                    push( @msgdata, [ '8:6', 'Control shutdown mode', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[8], '7' );
-                    push( @msgdata,
-                        [ '8:7', 'Timing a cancel window', $datum ] );
+                    push( @msgdata, [ '8:7', 'Timing a cancel window', $datum ] );
                     $datum = $msgb[9];
                     push( @msgdata, [ '9:', '', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '0' );
@@ -1084,27 +774,21 @@
                     $datum = &caddx::parse::getbits( $msgb[9], '6' );
                     push( @msgdata, [ '9:6', 'reserved', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[9], '7' );
-                    push( @msgdata,
-                        [ '9:7', 'Call back in progress', $datum ] );
+                    push( @msgdata, [ '9:7', 'Call back in progress', $datum ] );
                     $datum = $msgb[10];
                     push( @msgdata, [ '10:', '', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '0' );
                     push( @msgdata, [ '10:0', 'Phone line faulted', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '1' );
-                    push( @msgdata,
-                        [ '10:1', 'Voltage present interrupt active', $datum ]
-                    );
+                    push( @msgdata, [ '10:1', 'Voltage present interrupt active', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '2' );
-                    push( @msgdata,
-                        [ '10:2', 'House phone off hook', $datum ] );
+                    push( @msgdata, [ '10:2', 'House phone off hook', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '3' );
-                    push( @msgdata,
-                        [ '10:3', 'Phone line monitor enabled', $datum ] );
+                    push( @msgdata, [ '10:3', 'Phone line monitor enabled', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '4' );
                     push( @msgdata, [ '10:4', 'Sniffing', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '5' );
-                    push( @msgdata,
-                        [ '10:5', 'Last read was off hook', $datum ] );
+                    push( @msgdata, [ '10:5', 'Last read was off hook', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '6' );
                     push( @msgdata, [ '10:6', 'Listen in requested', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[10], '7' );
@@ -1128,10 +812,9 @@
                     $datum = &caddx::parse::getbits( $msgb[11], '7' );
                     push( @msgdata, [ '11:7', 'Valid partition 8', $datum ] );
                     $datum = $msgb[12];
-                    push( @msgdata,
-                        [ '12:', 'Communicator stack pointer', $datum ] );
+                    push( @msgdata, [ '12:', 'Communicator stack pointer', $datum ] );
                     $msghash{_parsed_} = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                  # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [09H]
@@ -1151,20 +834,13 @@
                     $datum = $msgb[1];
                     push( @msgdata, [ '1:', 'Message number', $datum ] );
                     $datum = $msgb[2];
-                    push( @msgdata,
-                        [ '2:', 'House code (0=house A)', $datum ] );
+                    push( @msgdata, [ '2:', 'House code (0=house A)', $datum ] );
                     $datum = $msgb[3];
                     push( @msgdata, [ '3:', 'Unit code (0=unit 1)', $datum ] );
                     $datum = $msgb[4];
-                    push(
-                        @msgdata,
-                        [
-                            '4:', 'X-10 function code (see table that follows)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '4:', 'X-10 function code (see table that follows)', $datum ] );
                     $msghash{_parsed_} = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                  # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [0AH]
@@ -1184,43 +860,19 @@
                     $datum = $msgb[1];
                     push( @msgdata, [ '1:', 'Message number', $datum ] );
                     $datum = $msgb[2];
-                    push( @msgdata,
-                        [ '2:', 'Event number of this message', $datum ] );
+                    push( @msgdata, [ '2:', 'Event number of this message', $datum ] );
                     $datum = $msgb[3];
-                    push(
-                        @msgdata,
-                        [
-                            '3:',
-                            'Total log size (number of log entries allowed)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '3:', 'Total log size (number of log entries allowed)', $datum ] );
                     $datum = $msgb[4];
                     push( @msgdata, [ '4:', 'Event type', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '0-6' );
-                    push(
-                        @msgdata,
-                        [
-                            '4:0-6',
-                            'See type definitions in table that follows',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '4:0-6', 'See type definitions in table that follows', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[4], '7' );
-                    push( @msgdata,
-                        [ '4:7', 'Non-reporting event if not set', $datum ] );
+                    push( @msgdata, [ '4:7', 'Non-reporting event if not set', $datum ] );
                     $datum = $msgb[5];
-                    push( @msgdata,
-                        [ '5:', 'Zone / User / Device number', $datum ] );
+                    push( @msgdata, [ '5:', 'Zone / User / Device number', $datum ] );
                     $datum = $msgb[6];
-                    push(
-                        @msgdata,
-                        [
-                            '6:',
-                            'Partition number (0=partition 1, if relevant)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '6:', 'Partition number (0=partition 1, if relevant)', $datum ] );
                     $datum = $msgb[7];
                     push( @msgdata, [ '7:', 'Month (1-12)', $datum ] );
                     $datum = $msgb[8];
@@ -1230,7 +882,7 @@
                     $datum = $msgb[10];
                     push( @msgdata, [ '10:', 'Minute (0-59)', $datum ] );
                     $msghash{_parsed_} = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                  # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [0BH]
@@ -1254,7 +906,7 @@
                     $datum = $msgb[3];
                     push( @msgdata, [ '3:', 'Key value', $datum ] );
                     $msghash{_parsed_} = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                  # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [10H]
@@ -1276,46 +928,25 @@
                     $datum = $msgb[2];
                     push( @msgdata, [ '2:', 'Device’s buss address', $datum ] );
                     $datum = $msgb[3];
-                    push( @msgdata,
-                        [ '3:', 'Upper logical location / offset', $datum ] );
+                    push( @msgdata, [ '3:', 'Upper logical location / offset', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '0-3' );
-                    push( @msgdata,
-                        [ '3:0-3', 'Bits 8-11 of logical location', $datum ] );
+                    push( @msgdata, [ '3:0-3', 'Bits 8-11 of logical location', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '4' );
-                    push( @msgdata,
-                        [ '3:4', 'Segment size (0=byte, 1=nibble)', $datum ] );
+                    push( @msgdata, [ '3:4', 'Segment size (0=byte, 1=nibble)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '5' );
                     push( @msgdata, [ '3:5', 'Must be 0', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '6' );
-                    push( @msgdata,
-                        [ '3:6', 'Segment offset (0-none, 1=8 bytes)', $datum ]
-                    );
+                    push( @msgdata, [ '3:6', 'Segment offset (0-none, 1=8 bytes)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '7' );
                     push( @msgdata, [ '3:7', 'Must be 0', $datum ] );
                     $datum = $msgb[4];
-                    push( @msgdata,
-                        [ '4:', 'Bits 0-7 of logical location', $datum ] );
+                    push( @msgdata, [ '4:', 'Bits 0-7 of logical location', $datum ] );
                     $datum = $msgb[5];
-                    push( @msgdata,
-                        [ '5:', 'Location length / data type', $datum ] );
+                    push( @msgdata, [ '5:', 'Location length / data type', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[5], '0-4' );
-                    push(
-                        @msgdata,
-                        [
-                            '5:0-4',
-                            'Number of segments in location (0=1 segment)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '5:0-4', 'Number of segments in location (0=1 segment)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[5], '5-7' );
-                    push(
-                        @msgdata,
-                        [
-                            '5:5-7',
-                            'Data type : 0=Binary,1=Decimal,2=Hex,3=Asc',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '5:5-7', 'Data type : 0=Binary,1=Decimal,2=Hex,3=Asc', $datum ] );
                     $datum = $msgb[6];
                     push( @msgdata, [ '6:', 'Data byte ', $datum ] );
                     $datum = $msgb[7];
@@ -1333,7 +964,7 @@
                     $datum = $msgb[13];
                     push( @msgdata, [ '13:', 'Data byte ', $datum ] );
                     $msghash{_parsed_} = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                  # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [12H]
@@ -1353,8 +984,7 @@
                     $datum = $msgb[1];
                     push( @msgdata, [ '1:', 'Message number', $datum ] );
                     $datum = $msgb[2];
-                    push( @msgdata,
-                        [ '2:', 'User Number (1=user 1)', $datum ] );
+                    push( @msgdata, [ '2:', 'User Number (1=user 1)', $datum ] );
                     $datum = $msgb[3];
                     push( @msgdata, [ '3:', 'PIN digits 1 & 2', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[3], '0-3' );
@@ -1370,32 +1000,17 @@
                     $datum = $msgb[5];
                     push( @msgdata, [ '5:', 'PIN digits 5 & 6', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[5], '0-3' );
-                    push(
-                        @msgdata,
-                        [
-                            '5:0-3', 'PIN digit 5 (pad with 0 if 4 digit PIN)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '5:0-3', 'PIN digit 5 (pad with 0 if 4 digit PIN)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[5], '4-7' );
-                    push(
-                        @msgdata,
-                        [
-                            '5:4-7', 'PIN digit 6 (pad with 0 if 4 digit PIN)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '5:4-7', 'PIN digit 6 (pad with 0 if 4 digit PIN)', $datum ] );
                     $datum = $msgb[6];
-                    push( @msgdata,
-                        [ '6:', 'Authority flags (if bit 7 is clear)', $datum ]
-                    );
+                    push( @msgdata, [ '6:', 'Authority flags (if bit 7 is clear)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '0' );
                     push( @msgdata, [ '6:0', 'Reserved', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '1' );
                     push( @msgdata, [ '6:1', 'Arm only', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '2' );
-                    push( @msgdata,
-                        [ '6:2', 'Arm only (during close window) ', $datum ] );
+                    push( @msgdata, [ '6:2', 'Arm only (during close window) ', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '3' );
                     push( @msgdata, [ '6:3', 'Master / program ', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '4' );
@@ -1403,13 +1018,11 @@
                     $datum = &caddx::parse::getbits( $msgb[6], '5' );
                     push( @msgdata, [ '6:5', 'Bypass enable', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '6' );
-                    push( @msgdata,
-                        [ '6:6', 'Open / close report enable', $datum ] );
+                    push( @msgdata, [ '6:6', 'Open / close report enable', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '7' );
                     push( @msgdata, [ '6:7', 'Must be a 0', $datum ] );
                     $datum = $msgb[6];
-                    push( @msgdata,
-                        [ '6:', 'Authority flags (if bit 7 is set)', $datum ] );
+                    push( @msgdata, [ '6:', 'Authority flags (if bit 7 is set)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '0' );
                     push( @msgdata, [ '6:0', 'Output 1 enable', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '1' );
@@ -1423,39 +1036,29 @@
                     $datum = &caddx::parse::getbits( $msgb[6], '5' );
                     push( @msgdata, [ '6:5', 'Bypass enable', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '6' );
-                    push( @msgdata,
-                        [ '6:6', 'Open / close report enable', $datum ] );
+                    push( @msgdata, [ '6:6', 'Open / close report enable', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[6], '7' );
                     push( @msgdata, [ '6:7', 'Must be a 1', $datum ] );
                     $datum = $msgb[7];
-                    push( @msgdata,
-                        [ '7:', 'Authorized partition(s) mask', $datum ] );
+                    push( @msgdata, [ '7:', 'Authorized partition(s) mask', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '0' );
-                    push( @msgdata,
-                        [ '7:0', 'Authorized for partition 1', $datum ] );
+                    push( @msgdata, [ '7:0', 'Authorized for partition 1', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '1' );
-                    push( @msgdata,
-                        [ '7:1', 'Authorized for partition 2', $datum ] );
+                    push( @msgdata, [ '7:1', 'Authorized for partition 2', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '2' );
-                    push( @msgdata,
-                        [ '7:2', 'Authorized for partition 3', $datum ] );
+                    push( @msgdata, [ '7:2', 'Authorized for partition 3', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '3' );
-                    push( @msgdata,
-                        [ '7:3', 'Authorized for partition 4', $datum ] );
+                    push( @msgdata, [ '7:3', 'Authorized for partition 4', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '4' );
-                    push( @msgdata,
-                        [ '7:4', 'Authorized for partition 5', $datum ] );
+                    push( @msgdata, [ '7:4', 'Authorized for partition 5', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '5' );
-                    push( @msgdata,
-                        [ '7:5', 'Authorized for partition 6', $datum ] );
+                    push( @msgdata, [ '7:5', 'Authorized for partition 6', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '6' );
-                    push( @msgdata,
-                        [ '7:6', 'Authorized for partition 7', $datum ] );
+                    push( @msgdata, [ '7:6', 'Authorized for partition 7', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[7], '7' );
-                    push( @msgdata,
-                        [ '7:7', 'Authorized for partition 8', $datum ] );
+                    push( @msgdata, [ '7:7', 'Authorized for partition 8', $datum ] );
                     $msghash{_parsed_} = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                  # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [1CH]
@@ -1475,7 +1078,7 @@
                     $datum = $msgb[1];
                     push( @msgdata, [ '1:', 'Message Number', $datum ] );
                     $msghash{_parsed_} = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                  # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [1DH]
@@ -1495,7 +1098,7 @@
                     $datum = $msgb[1];
                     push( @msgdata, [ '1:', 'Message Number', $datum ] );
                     $msghash{_parsed_} = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                  # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [1EH]
@@ -1515,7 +1118,7 @@
                     $datum = $msgb[1];
                     push( @msgdata, [ '1:', 'Message Number', $datum ] );
                     $msghash{_parsed_} = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                  # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [1FH]
@@ -1535,7 +1138,7 @@
                     $datum = $msgb[1];
                     push( @msgdata, [ '1:', 'Message Number', $datum ] );
                     $msghash{_parsed_} = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                  # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [PSNAP]
@@ -1553,16 +1156,9 @@
                     }
                     print "\n";
                     $datum = $msgb[1];
-                    push(
-                        @msgdata,
-                        [
-                            '1:', 'Partition snapshot layout (msg 07h detail)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '1:', 'Partition snapshot layout (msg 07h detail)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[1], '0' );
-                    push( @msgdata,
-                        [ '1:0', 'Partition {valid} partition', $datum ] );
+                    push( @msgdata, [ '1:0', 'Partition {valid} partition', $datum ] );
                     $msghash{valid} = $datum;
                     $datum = &caddx::parse::getbits( $msgb[1], '1' );
                     push( @msgdata, [ '1:1', 'Partition {ready}', $datum ] );
@@ -1571,24 +1167,19 @@
                     push( @msgdata, [ '1:2', 'Partition {armed}', $datum ] );
                     $msghash{armed} = $datum;
                     $datum = &caddx::parse::getbits( $msgb[1], '3' );
-                    push( @msgdata,
-                        [ '1:3', 'Partition {stay} mode', $datum ] );
+                    push( @msgdata, [ '1:3', 'Partition {stay} mode', $datum ] );
                     $msghash{stay} = $datum;
                     $datum = &caddx::parse::getbits( $msgb[1], '4' );
-                    push( @msgdata,
-                        [ '1:4', 'Partition {chime} mode', $datum ] );
+                    push( @msgdata, [ '1:4', 'Partition {chime} mode', $datum ] );
                     $msghash{chime} = $datum;
                     $datum = &caddx::parse::getbits( $msgb[1], '5' );
-                    push( @msgdata,
-                        [ '1:5', 'Partition  {any entry} delay', $datum ] );
+                    push( @msgdata, [ '1:5', 'Partition  {any entry} delay', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[1], '6' );
-                    push( @msgdata,
-                        [ '1:6', 'Partition {any exit} delay', $datum ] );
+                    push( @msgdata, [ '1:6', 'Partition {any exit} delay', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[1], '7' );
-                    push( @msgdata,
-                        [ '1:7', 'Partition {previous alarm}', $datum ] );
+                    push( @msgdata, [ '1:7', 'Partition {previous alarm}', $datum ] );
                     $msghash{_parsed_} = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                  # send back a hash ref to all
                 }
                 ##################################################
                 ##  Dynamically generated code to parse layout [ZSNAP]
@@ -1606,36 +1197,21 @@
                     }
                     print "\n";
                     $datum = $msgb[1];
-                    push(
-                        @msgdata,
-                        [
-                            '1:', 'Zone snapshot nibble (msg 05h detail)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '1:', 'Zone snapshot nibble (msg 05h detail)', $datum ] );
                     $datum = &caddx::parse::getbits( $msgb[1], '0' );
-                    push( @msgdata,
-                        [ '1:0', 'Zone {faulted} (or delayed trip)', $datum ] );
+                    push( @msgdata, [ '1:0', 'Zone {faulted} (or delayed trip)', $datum ] );
                     $msghash{faulted} = $datum;
                     $datum = &caddx::parse::getbits( $msgb[1], '1' );
-                    push( @msgdata,
-                        [ '1:1', 'Zone {bypassed} (or inhibited)', $datum ] );
+                    push( @msgdata, [ '1:1', 'Zone {bypassed} (or inhibited)', $datum ] );
                     $msghash{bypassed} = $datum;
                     $datum = &caddx::parse::getbits( $msgb[1], '2' );
-                    push(
-                        @msgdata,
-                        [
-                            '1:2',
-                            'Zone {trouble} (tamper, low battery, or lost)',
-                            $datum
-                        ]
-                    );
+                    push( @msgdata, [ '1:2', 'Zone {trouble} (tamper, low battery, or lost)', $datum ] );
                     $msghash{trouble} = $datum;
                     $datum = &caddx::parse::getbits( $msgb[1], '3' );
                     push( @msgdata, [ '1:3', 'Zone {alarm_memory}', $datum ] );
                     $msghash{alarm_memory} = $datum;
                     $msghash{_parsed_}     = \@msgdata;    # stash verbose parse
-                    return \%msghash;    # send back a hash ref to all
+                    return \%msghash;                      # send back a hash ref to all
                 }
 
                 sub BEGIN {
@@ -1680,9 +1256,7 @@
                         }
                         my $rc = ( $msg & $mask );
                         $debug
-                          && printf(
-                            "getbits msg:[%02x] bits:[%s], gave:[%s]\n",
-                            $orig_msg, $bits, $rc );
+                          && printf( "getbits msg:[%02x] bits:[%s], gave:[%s]\n", $orig_msg, $bits, $rc );
                         return ($rc);
                     }
                     return (-1);

@@ -101,8 +101,7 @@ if ( $state = said $chess_h) {
 }
 
 #Chess movement variables part_numerical:
-$chess_moveto2 = new Voice_Cmd
-  '[rank one,rank two,rank three,rank four,rank five,rank six,rank seven,rank eight]';
+$chess_moveto2 = new Voice_Cmd '[rank one,rank two,rank three,rank four,rank five,rank six,rank seven,rank eight]';
 
 if ( $state = said $chess_moveto2) {
 

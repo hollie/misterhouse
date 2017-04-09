@@ -44,12 +44,7 @@
 # You will need to use the datapath parm to point it to your mh.ini data_dir directory
 #
 
-$v_mp3_control = new Voice_Cmd(
-    "music [Play,Stop,Pause,Next Song,"
-      . "Previous Song,Volume up,Volume down,"
-      . "Randomize on,Randomize off]",
-    ""
-);
+$v_mp3_control = new Voice_Cmd( "music [Play,Stop,Pause,Next Song," . "Previous Song,Volume up,Volume down," . "Randomize on,Randomize off]", "" );
 
 if ( $state = said $v_mp3_control) {
 

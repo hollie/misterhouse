@@ -151,8 +151,7 @@ sub _trigger_write_code {
     $trigger_write_code_flag = 0;
     my $script;
     foreach my $name ( trigger_list() ) {
-        my ( $trigger, $code, $type, $triggered, $trigger_error, $code_error )
-          = trigger_get($name);
+        my ( $trigger, $code, $type, $triggered, $trigger_error, $code_error ) = trigger_get($name);
         next unless $trigger;
         next if $trigger_error;
 
@@ -172,23 +171,20 @@ sub _trigger_write_code {
 # when Misterhouse is next started.
 #
 " . $script;
-        print_log "trigger_write_code: this sub was called, but triggers"
-          . " not changed", return
+        print_log "trigger_write_code: this sub was called, but triggers" . " not changed", return
           if $script eq $prev_script;
         $prev_script = $script;
         &file_write( $script_file, $script );
 
         # Replace (faster) or reload (if there was no file previously)
         if ( $main::Run_Members{'triggers_table'} ) {
-            print_log "trigger_write_code: trigger script $script_file"
-              . " written, running do_user_file"
+            print_log "trigger_write_code: trigger script $script_file" . " written, running do_user_file"
               if $Debug{'trigger'};
             &do_user_file("$::Code_Dirs[0]/triggers.mhp");
         }
         else {
             # Must be done before the user code eval
-            print_log "trigger_write_code: trigger script $script_file"
-              . " written, running read_code"
+            print_log "trigger_write_code: trigger script $script_file" . " written, running read_code"
               if $Debug{'trigger'};
             push @Nextpass_Actions, \&read_code;
         }
@@ -199,7 +195,7 @@ sub _trigger_write_code {
 
             # reload on next pass if we remove trigger script
             push @Nextpass_Actions, \&read_code;
-            unlink $script_file if -e $script_file;   # don't write empty script
+            unlink $script_file if -e $script_file;    # don't write empty script
         }
         $prev_script = "";
         return;
@@ -254,8 +250,8 @@ sub trigger_set {
     my ( $trigger, $code, $type, $name, $replace, $triggered, $new_name ) = @_;
 
     return unless $trigger and $code;
-    $trigger =~ s/[;\s\r\n]*$//g;   # in case trigger file was edited on windows
-    $code =~ s/[;\s\r\n]*$//g;      # So we can consistenly add ;\n when used
+    $trigger =~ s/[;\s\r\n]*$//g;    # in case trigger file was edited on windows
+    $code =~ s/[;\s\r\n]*$//g;       # So we can consistenly add ;\n when used
     $triggered = 0         unless $triggered;
     $type      = 'OneShot' unless $type;
 
@@ -361,8 +357,7 @@ sub trigger_rename {
     my $type      = $triggers{$name}{type};
     my $replace   = 1;
     my $triggered = $triggers{$name}{triggerd};
-    trigger_set( $trigger, $code, $type, $name, $replace, $triggered,
-        $new_name );
+    trigger_set( $trigger, $code, $type, $name, $replace, $triggered, $new_name );
     return;
 }
 

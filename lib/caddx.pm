@@ -128,8 +128,7 @@ sub process_msg {
     ##   number saved as part of the zone name:-(
     ################
     if ( length( $msg->{partition} ) > 0 ) {
-        print
-          "Partition Message: Partition $msg->{partition}: Armed $msg->{armed} : Stay $msg->{stay}"
+        print "Partition Message: Partition $msg->{partition}: Armed $msg->{armed} : Stay $msg->{stay}"
           if $main::Debug{caddx};
         my $prttn = $msg->{partition};
 
@@ -263,8 +262,7 @@ sub default_setstate {
 
         # if we're turning off (and not already in quiesce mode)
         my $sn = $self->state();
-        print
-          " caddx set $self->{object_name}: from: state_now [$sn] to: $state\n"
+        print " caddx set $self->{object_name}: from: state_now [$sn] to: $state\n"
           if $main::Debug{caddx};
         if ( $state =~ /off/i && $self->state() =~ /on/i ) {
             print " caddx set $self->{object_name} deferring: $state \n"

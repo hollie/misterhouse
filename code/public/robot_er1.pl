@@ -416,70 +416,68 @@ $colors = join( ',', @colors );
 
 use Math::Trig;
 
-my @moves
-  ; #this is set by strabo path call. used to hold values of @dir and @dis in order that the should be executed.... s,4,n,6....
+my @moves;    #this is set by strabo path call. used to hold values of @dir and @dis in order that the should be executed.... s,4,n,6....
 
 set $er1_moving 'stopped' if ($Reread);
 set $er1_direction 360
-  if ($Reread)
-  ; #not always true but gets me started   !!!!!!! need more work here!!!!!!! maybe put initial dir in ini
+  if ($Reread);    #not always true but gets me started   !!!!!!! need more work here!!!!!!! maybe put initial dir in ini
 set $er1_playing 'stopped' if ($Reread);
 
 ###############    items    #############
 
-$er1client           = new Socket_Item( undef, undef, $er1client_address );
-$er1_checkangle      = new ER1_Item;
-$digital_input_1     = new ER1_Item;
-$digital_input_2     = new ER1_Item;
-$digital_input_3     = new ER1_Item;
-$digital_input_4     = new ER1_Item;
-$digital_input_5     = new ER1_Item;
-$digital_input_6     = new ER1_Item;
-$digital_input_7     = new ER1_Item;
-$digital_input_8     = new ER1_Item;
-$digital_out_1       = new ER1_Item;
-$digital_out_2       = new ER1_Item;
-$digital_out_3       = new ER1_Item;
-$digital_out_4       = new ER1_Item;
-$digital_out_5       = new ER1_Item;
-$digital_out_6       = new ER1_Item;
-$digital_out_7       = new ER1_Item;
-$digital_out_8       = new ER1_Item;
-$soundlevel          = new ER1_Item;
-$speech_text         = new ER1_Item;
-$er1_object          = new ER1_Item;
-$features_matched    = new ER1_Item;
-$total_features      = new ER1_Item;
-$object_x            = new ER1_Item;
-$object_y            = new ER1_Item;
-$object_distance     = new ER1_Item;
-$coordinates_x       = new ER1_Item;
-$coordinates_y       = new ER1_Item;
-$analog_input_1      = new ER1_Item;
-$analog_input_2      = new ER1_Item;
-$analog_input_3      = new ER1_Item;
-$analog_input_4      = new ER1_Item;
-$analog_input_5      = new ER1_Item;
-$analog_input_6      = new ER1_Item;
-$analog_input_7      = new ER1_Item;
-$analog_input_8      = new ER1_Item;
-$analog_input_9      = new ER1_Item;
-$analog_input_10     = new ER1_Item;
-$analog_input_11     = new ER1_Item;
-$analog_input_12     = new ER1_Item;
-$analog_input_13     = new ER1_Item;
-$analog_input_14     = new ER1_Item;
-$analog_input_15     = new ER1_Item;
-$analog_input_16     = new ER1_Item;
-$battery_level       = new ER1_Item;
-$er1_moving          = new ER1_Item;
-$er1_playing         = new ER1_Item;
-$er1_direction       = new ER1_Item;
-$er1_move            = new ER1_Item;
-$ER1_speak           = new ER1_Item;
-$er1_stop_distance   = new ER1_Item;
-$er1_stop_percentage = new ER1_Item;
-$er1_turn            = new ER1_Item;
+$er1client                    = new Socket_Item( undef, undef, $er1client_address );
+$er1_checkangle               = new ER1_Item;
+$digital_input_1              = new ER1_Item;
+$digital_input_2              = new ER1_Item;
+$digital_input_3              = new ER1_Item;
+$digital_input_4              = new ER1_Item;
+$digital_input_5              = new ER1_Item;
+$digital_input_6              = new ER1_Item;
+$digital_input_7              = new ER1_Item;
+$digital_input_8              = new ER1_Item;
+$digital_out_1                = new ER1_Item;
+$digital_out_2                = new ER1_Item;
+$digital_out_3                = new ER1_Item;
+$digital_out_4                = new ER1_Item;
+$digital_out_5                = new ER1_Item;
+$digital_out_6                = new ER1_Item;
+$digital_out_7                = new ER1_Item;
+$digital_out_8                = new ER1_Item;
+$soundlevel                   = new ER1_Item;
+$speech_text                  = new ER1_Item;
+$er1_object                   = new ER1_Item;
+$features_matched             = new ER1_Item;
+$total_features               = new ER1_Item;
+$object_x                     = new ER1_Item;
+$object_y                     = new ER1_Item;
+$object_distance              = new ER1_Item;
+$coordinates_x                = new ER1_Item;
+$coordinates_y                = new ER1_Item;
+$analog_input_1               = new ER1_Item;
+$analog_input_2               = new ER1_Item;
+$analog_input_3               = new ER1_Item;
+$analog_input_4               = new ER1_Item;
+$analog_input_5               = new ER1_Item;
+$analog_input_6               = new ER1_Item;
+$analog_input_7               = new ER1_Item;
+$analog_input_8               = new ER1_Item;
+$analog_input_9               = new ER1_Item;
+$analog_input_10              = new ER1_Item;
+$analog_input_11              = new ER1_Item;
+$analog_input_12              = new ER1_Item;
+$analog_input_13              = new ER1_Item;
+$analog_input_14              = new ER1_Item;
+$analog_input_15              = new ER1_Item;
+$analog_input_16              = new ER1_Item;
+$battery_level                = new ER1_Item;
+$er1_moving                   = new ER1_Item;
+$er1_playing                  = new ER1_Item;
+$er1_direction                = new ER1_Item;
+$er1_move                     = new ER1_Item;
+$ER1_speak                    = new ER1_Item;
+$er1_stop_distance            = new ER1_Item;
+$er1_stop_percentage          = new ER1_Item;
+$er1_turn                     = new ER1_Item;
 $er1_collision_sensitivity    = new ER1_Item;
 $er1_ob_avoid_method          = new ER1_Item;
 $er1_ob_avoid_tolerance       = new ER1_Item;
@@ -502,21 +500,17 @@ if ( $state = said $v_er1_connection) {
         &er1_startup();
     }
 }
-if ( $state = state $v_er1_connection)
-{ #this will run every loop, if er1 is supposed to be connected and not, it will connect
-    if ( $state eq 'connect' ) {    #is er1 supposed to be connected?
+if ( $state = state $v_er1_connection) {    #this will run every loop, if er1 is supposed to be connected and not, it will connect
+    if ( $state eq 'connect' ) {            #is er1 supposed to be connected?
         &er1_startup()
-          if ( !$main::Socket_Ports{$er1client_address}{sock} )
-          ;                         #reconnect if not
+          if ( !$main::Socket_Ports{$er1client_address}{sock} );    #reconnect if not
     }
 }
 
 ## navigation
 
 #test moves
-$v_move_er1client = new Voice_Cmd(
-    "move: [forward 6 inches,forward 6 feet,backward 6 inches,backward 6 feet,turn left,turn left 45,turn right]"
-);
+$v_move_er1client = new Voice_Cmd("move: [forward 6 inches,forward 6 feet,backward 6 inches,backward 6 feet,turn left,turn left 45,turn right]");
 if ( $state = said $v_move_er1client) {
     print_log "Running $state";
     send_er1_data('move 6 i')   if ( $state eq 'forward 6 inches' );
@@ -555,8 +549,7 @@ if ( $state = said $v_er1_drive_toward) {
         my $stop = state $er1_stop_distance;
         print_log "driving toward $state";
         set $er1_moving "moving";
-        send_er1_data(
-            'move drive toward object "' . $state . '" stop ' . $stop . ' in' );
+        send_er1_data( 'move drive toward object "' . $state . '" stop ' . $stop . ' in' );
     }
 }
 
@@ -587,9 +580,7 @@ if ( $state = said $v_er1_drive_color) {
         my $stop = state $er1_stop_percentage;
         print_log "driving toward $state";
         set $er1_moving "moving";
-        send_er1_data(
-            "move drive toward color $colors{$state} stop $er1_stop_percentage"
-        );
+        send_er1_data("move drive toward color $colors{$state} stop $er1_stop_percentage");
     }
 }
 
@@ -684,20 +675,17 @@ if ( $state = said $v_er1_digital_out_8) {
 
 ## config
 
-$v_er1_stop_distance =
-  new Voice_Cmd("set stop distance [2,4,8,12,16,20,24,36] inches");
+$v_er1_stop_distance = new Voice_Cmd("set stop distance [2,4,8,12,16,20,24,36] inches");
 if ( $state = said $v_er1_stop_distance) {
     set $er1_stop_distance $state;
 }
 
-$v_er1_stop_percentage =
-  new Voice_Cmd("set stop percentage [10,20,30,40,50,60,70,80,90,100] %");
+$v_er1_stop_percentage = new Voice_Cmd("set stop percentage [10,20,30,40,50,60,70,80,90,100] %");
 if ( $state = said $v_er1_stop_percentage) {
     set $er1_stop_percentage $state;
 }
 
-$v_er1_collision_sensitivity =
-  new Voice_Cmd("set collision sensitivity [10,20,30,40,50,60,70,80,90,100]");
+$v_er1_collision_sensitivity = new Voice_Cmd("set collision sensitivity [10,20,30,40,50,60,70,80,90,100]");
 if ( $state = said $v_er1_collision_sensitivity) {
     set $er1_collision_sensitivity $state;
 }
@@ -714,55 +702,47 @@ if ( $state = said $v_er1_collision_detection) {
     }
 }
 
-$v_er1_angular_velocity =
-  new Voice_Cmd("set angular velocity: [5,10,20,30,45] degrees/sec");
+$v_er1_angular_velocity = new Voice_Cmd("set angular velocity: [5,10,20,30,45] degrees/sec");
 set_web_style $v_er1_angular_velocity 'dropdown';
 if ( $state = said $v_er1_angular_velocity) {
     send_er1_data("set angular velocity $state");
 }
 
-$v_er1_linear_velocity =
-  new Voice_Cmd("set linear velocity: [5,10,20,30,40,50] cm/sec");
+$v_er1_linear_velocity = new Voice_Cmd("set linear velocity: [5,10,20,30,40,50] cm/sec");
 set_web_style $v_er1_linear_velocity 'dropdown';
 if ( $state = said $v_er1_linear_velocity) {
     send_er1_data("set linear velocity $state");
 }
 
-$v_er1_power_stopped =
-  new Voice_Cmd("set power stopped: [zero,10,20,30,40,50,60,70,80,90,100] %");
+$v_er1_power_stopped = new Voice_Cmd("set power stopped: [zero,10,20,30,40,50,60,70,80,90,100] %");
 set_web_style $v_er1_power_stopped 'dropdown';
 if ( $state = said $v_er1_power_stopped) {
     send_er1_data("set power stopped 0") if ( $state eq "zero" );
     send_er1_data("set power stopped $state") if ( $state ne "zero" );
 }
 
-$v_er1_power_moving =
-  new Voice_Cmd("set power moving: [0,10,20,30,40,50,60,70,80,90,100] %");
+$v_er1_power_moving = new Voice_Cmd("set power moving: [0,10,20,30,40,50,60,70,80,90,100] %");
 set_web_style $v_er1_power_moving 'dropdown';
 if ( $state = said $v_er1_power_moving) {
     send_er1_data("set power moving $state");
 }
 
-$v_er1_ob_avoid_method =
-  new Voice_Cmd("set advoidance method [color,intensity]");
+$v_er1_ob_avoid_method = new Voice_Cmd("set advoidance method [color,intensity]");
 if ( $state = said $v_er1_ob_avoid_method) {
     set $er1_ob_avoid_method $state;
 }
 
-$v_er1_ob_avoid_tolerance =
-  new Voice_Cmd("set advoidance tolerance [1,10,20,40,50,60,70,80,90,100]");
+$v_er1_ob_avoid_tolerance = new Voice_Cmd("set advoidance tolerance [1,10,20,40,50,60,70,80,90,100]");
 if ( $state = said $v_er1_ob_avoid_tolerance) {
     set $er1_ob_avoid_tolerance $state;
 }
 
-$v_er1_ob_avoid_disable_dis = new Voice_Cmd(
-    "set advoidance disable distance [4,10,20,40,50,60,70,80,90,100] cm");
+$v_er1_ob_avoid_disable_dis = new Voice_Cmd("set advoidance disable distance [4,10,20,40,50,60,70,80,90,100] cm");
 if ( $state = said $v_er1_ob_avoid_disable_dis) {
     set $er1_ob_avoid_disable_dis $state;
 }
 
-$v_er1_ob_avoid_disable_percent =
-  new Voice_Cmd("set advoidance disable % [1,10,20,40,50,60,70,80,90,100] %");
+$v_er1_ob_avoid_disable_percent = new Voice_Cmd("set advoidance disable % [1,10,20,40,50,60,70,80,90,100] %");
 if ( $state = said $v_er1_ob_avoid_disable_percent) {
     set $er1_ob_avoid_disable_percent $state;
 }
@@ -781,29 +761,23 @@ if ( $state = said $v_er1_ob_avoidance) {
         $tolerance   = state $er1_ob_avoid_tolerance;
         $dis_dis     = state $er1_ob_avoid_disable_dis;
         $dis_percent = state $er1_ob_avoid_disable_percent;
-        send_er1_data(
-            "set obstacle avoidance on tolerance $tolerance method $method disable distance $dis_dis disable percentage $dis_percent"
-        );
+        send_er1_data("set obstacle avoidance on tolerance $tolerance method $method disable distance $dis_dis disable percentage $dis_percent");
     }
 }
 
-$v_er1_recognition_threshold =
-  new Voice_Cmd("set recognition threshold [1,10,20,40,50,60,70,80,90,100] %");
+$v_er1_recognition_threshold = new Voice_Cmd("set recognition threshold [1,10,20,40,50,60,70,80,90,100] %");
 send_er1_data("set confidence threshold $state")
   if ( $state = said $v_er1_recognition_threshold);
 
-$v_er1_color_tolerance =
-  new Voice_Cmd("set color tolerance [1,10,20,40,50,60,70,80,90,100]");
+$v_er1_color_tolerance = new Voice_Cmd("set color tolerance [1,10,20,40,50,60,70,80,90,100]");
 send_er1_data("set color tolerance $state")
   if ( $state = said $v_er1_color_tolerance);
 
-$v_er1_color_percent =
-  new Voice_Cmd("set color percent [1,10,20,40,50,60,70,80,90,100] %");
+$v_er1_color_percent = new Voice_Cmd("set color percent [1,10,20,40,50,60,70,80,90,100] %");
 send_er1_data("set color percentage $state")
   if ( $state = said $v_er1_color_percent);
 
-$v_er1_voice =
-  new Voice_Cmd("set voice [Microsoft Mary,Microsoft Mike,Microsoft Sam]");
+$v_er1_voice = new Voice_Cmd("set voice [Microsoft Mary,Microsoft Mike,Microsoft Sam]");
 if ( $state = said $v_er1_voice) {
     send_er1_data( 'set voice "' . $state . '"' );
 }
@@ -834,8 +808,7 @@ $ER1_speak->tie_event('&ER1_speak($state)') if $Reload;
 $er1_move->tie_event('&er1_move($state)')   if $Reload;
 $er1_turn->tie_event('&er1_turn($state)')   if $Reload;
 eval('$cid_item -> tie_event(\'Er1_cid($state, $object)\', \'cid\')')
-  if ( $Reload && $Run_Members{'callerid'} )
-  ;    #will announce callerid if you have it setup in misterhouse
+  if ( $Reload && $Run_Members{'callerid'} );    #will announce callerid if you have it setup in misterhouse
 &handle_er1_data($state) if $state = said $er1client;
 
 #move if @moves has elements, maybe can move this into move sub then use tie event
@@ -846,8 +819,7 @@ if ( state $er1_moving eq 'stopped' && @moves ) {
 
 ###############    subs  ##############
 
-sub er1_startup
-{ #used to start all the things you need to have mh run er1, this will be called with "connect"
+sub er1_startup {                                #used to start all the things you need to have mh run er1, this will be called with "connect"
     print_log "starting er1";
 
     #check Rcc running
@@ -868,8 +840,7 @@ sub er1_startup
             if ( $state eq 'ON' ) {
                 my $sensitivity;
                 $sensitivity = state $er1_collision_sensitivity;
-                send_er1_data(
-                    "set collision detection on sensitivity $sensitivity");
+                send_er1_data("set collision detection on sensitivity $sensitivity");
             }
         }
         send_er1_data("set angular velocity $state")
@@ -895,9 +866,7 @@ sub er1_startup
                 $tolerance   = state $er1_ob_avoid_tolerance;
                 $dis_dis     = state $er1_ob_avoid_disable_dis;
                 $dis_percent = state $er1_ob_avoid_disable_percent;
-                send_er1_data(
-                    "set obstacle avoidance on tolerance $tolerance method $method disable distance $dis_dis disable percentage $dis_percent"
-                );
+                send_er1_data("set obstacle avoidance on tolerance $tolerance method $method disable distance $dis_dis disable percentage $dis_percent");
             }
         }
         send_er1_data("set confidence threshold $state")
@@ -921,11 +890,10 @@ sub er1_startup
 
     }
     else {
-        print_log
-          "Can't find RCC, is it running and configured correctly? ...disconnecting";
-        set $v_er1_connection 'disconnect'
-          ; #don't keep trying to connect if cant find rcc, since this routine will be called every loop if connect set and no connection
-         #can start programs if running on local maching, but don't know how to start on another machine, for now just remind user that they are not running
+        print_log "Can't find RCC, is it running and configured correctly? ...disconnecting";
+        set $v_er1_connection
+          'disconnect';    #don't keep trying to connect if cant find rcc, since this routine will be called every loop if connect set and no connection
+            #can start programs if running on local maching, but don't know how to start on another machine, for now just remind user that they are not running
          #this part of sub a little ugly, if things not setup.  will try twice to connect, and disconnect if unable. gives you alot of errors because it is trying to do this twice.  Twice was not on purpose, mh gets throught 2 loops before all the stuff gets sorted out.  i left it so it would try again.
     }
 }
@@ -933,28 +901,26 @@ sub er1_startup
 sub get_er1_sounds {
 
     #get wav files for er1 if changed
-    my @er1_sound_files = &file_read_dir($er1_sound_dir)
-      ;    #used to get wav files in er1 sound directory
+    my @er1_sound_files = &file_read_dir($er1_sound_dir);    #used to get wav files in er1 sound directory
     if (@er1_sound_files) {
-        my $er1_sounds = "";       #build from scratch
-        shift @er1_sound_files;    #get rid of . and ..
+        my $er1_sounds = "";                                 #build from scratch
+        shift @er1_sound_files;                              #get rid of . and ..
         shift @er1_sound_files;
         shift @er1_sound_files;
         shift @er1_sound_files;
         my $er1_sound_files;
-        foreach $er1_sound_files (@er1_sound_files) {    #clean up
+        foreach $er1_sound_files (@er1_sound_files) {        #clean up
             $_ = $er1_sound_files;
 
             #print "cleaning up sound file $_ \n";
             $er1_sounds = "$er1_sounds" . ",$er1_sound_files"
               if !(m#$er1_sound_dir#);
         }
-        $er1_sounds =~ s/,//;    # removes the first the leading comma
+        $er1_sounds =~ s/,//;                                # removes the first the leading comma
         if ( $er1_sounds ne $Save{er1_sounds} ) {
             $Save{er1_sounds} = $er1_sounds;
             print_log "er1 sound files have changed, restarting mh code";
-            &read_code_forced
-              ; # have to reload code here because voice commands are autogenerated on startup
+            &read_code_forced;                               # have to reload code here because voice commands are autogenerated on startup
         }
         else {
             print_log "no change in sound files";
@@ -982,12 +948,11 @@ sub get_er1_visual_objects {
             $er1_objects =~ s/\|.*$//;
             $er1_object_items = "$er1_object_items" . ",$er1_objects";
         }
-        $er1_object_items =~ s/,//;    # removes the first the leading comma
+        $er1_object_items =~ s/,//;              # removes the first the leading comma
         if ( $er1_object_items ne $Save{er1_objects} ) {
             $Save{er1_objects} = $er1_object_items;
             print_log "er1 objects have changed, restarting mh code";
-            &read_code_forced
-              ; # have to reload code here because voice commands are autogenerated on startup
+            &read_code_forced;                   # have to reload code here because voice commands are autogenerated on startup
         }
         else {
             print_log "no change in visual objects";
@@ -1012,8 +977,7 @@ sub get_strabo_waypoints {
         if ( $waypoints ne $Save{waypoints} ) {
             $Save{waypoints} = $waypoints;
             print_log "waypoints have changed, restarting mh code";
-            &read_code_forced
-              ; # have to reload code here because voice commands are autogenerated on startup
+            &read_code_forced;    # have to reload code here because voice commands are autogenerated on startup
         }
         else {
             print_log "no change in waypoints";
@@ -1021,8 +985,7 @@ sub get_strabo_waypoints {
 
     }
     else {
-        print_log
-          "Can't find strabo, is it running and configured? waypoints not changed.";
+        print_log "Can't find strabo, is it running and configured? waypoints not changed.";
 
         #run 'X:\progra~1/strabo~1/strabo.exe'; # test start, starts it but on calling machine
     }
@@ -1030,8 +993,7 @@ sub get_strabo_waypoints {
 
 sub send_er1_data {
     &er1_startup()
-      if ( !$main::Socket_Ports{$er1client_address}{sock} )
-      ; #connect check, could not use regular net_connect_check. did funny things to rcc
+      if ( !$main::Socket_Ports{$er1client_address}{sock} );    #connect check, could not use regular net_connect_check. did funny things to rcc
     my $data = @_[0];
     print_log "sending er1 data = $data";
 
@@ -1077,8 +1039,7 @@ sub checkangle
     print_log "calculated angle = $angle\n";
 }
 
-sub handle_er1_data
-{ # parse into mh items, (almost) no action taken on events here, data just gathered
+sub handle_er1_data {    # parse into mh items, (almost) no action taken on events here, data just gathered
     my ($er1data) = @_;
     my @er1data = split( / /, $er1data );
     print_log "er1 data: @_ ";
@@ -1092,7 +1053,7 @@ sub handle_er1_data
     elsif ( @er1data[0] eq 'speech' ) {
         shift @er1data;
         set $speech_text $state if $state = "@er1data";    #works
-              #will keep text until replaced, use state_now for current pass
+                                                           #will keep text until replaced, use state_now for current pass
         print_log "heard speach $state";
     }
     elsif ( @er1data[0] eq 'object' ) {
@@ -1111,12 +1072,11 @@ sub handle_er1_data
         print_log "er1 sees $state" if $state = state_now $er1_object;
 
     }
-    elsif ( @er1data[0] eq 'OK' )
-    { #for some reason this works (to get position), even when nothing follows the 'OK'
-            #print_log "er1 data: @_";
+    elsif ( @er1data[0] eq 'OK' ) {    #for some reason this works (to get position), even when nothing follows the 'OK'
+                                       #print_log "er1 data: @_";
         my @oksplit = split( / /, @er1data );
         if ( @er1data == 4 )
-        { #true if position returned, !!! careful here, if you send a request for only 2 analog inputs, this will think they are x,y, really no need to do this
+        {  #true if position returned, !!! careful here, if you send a request for only 2 analog inputs, this will think they are x,y, really no need to do this
             print_log "updating positions";
             my $old_x = state $coordinates_x;    #use for checkangle sub
             my $old_y = state $coordinates_y;
@@ -1124,38 +1084,31 @@ sub handle_er1_data
             set $coordinates_y $state if $state = $er1data[2];
             &checkangle( $er1data[1], $er1data[2], $old_x, $old_y );
             my $x;
-            $x = ( $er1data[2] ) / ( $strabo_units * .51 ) +
-              $strabo_home_x;    #convert to units use on strabo map
+            $x = ( $er1data[2] ) / ( $strabo_units * .51 ) + $strabo_home_x;    #convert to units use on strabo map
             $x = round $x, 1;
             set $strabo_x "$x";
             my $y;
-            $y = ( $er1data[1] ) / ( $strabo_units * .51 ) +
-              $strabo_home_y;    #convert to units use on strabo map
+            $y = ( $er1data[1] ) / ( $strabo_units * .51 ) + $strabo_home_y;    #convert to units use on strabo map
             $y = round $y, 1;
             set $strabo_y "$y";
 
             if ( &net_socket_check("$strabo_ip:$strabo_port") ) {
-                my $strabo_html =
-                    get "http://$strabo_ip:$strabo_port/Setposition?"
-                  . $x . ","
-                  . $y;          #tells strabo to update position
-                print_log
-                  "position: er1($er1data[1],$er1data[2]) strabo ($x,$y)";
+                my $strabo_html = get "http://$strabo_ip:$strabo_port/Setposition?" . $x . "," . $y;    #tells strabo to update position
+                print_log "position: er1($er1data[1],$er1data[2]) strabo ($x,$y)";
             }
             else {
-                print_log
-                  "could not find strabo while trying to set strabo position";
+                print_log "could not find strabo while trying to set strabo position";
             }
         }
         if ( @er1data[0] eq 'Error:' ) {
             print_log "ER1 ERROR: @_";
         }
-        if ( @er1data == 2 ) {    #true if digital input
+        if ( @er1data == 2 ) {                                                                          #true if digital input
             print_log "er1: digitals inputs are set to $er1data[1]";
             my $hex_digital = $er1data[1];
             &digital($hex_digital);
         }
-        if ( @er1data == 17 ) {    #true if analog input
+        if ( @er1data == 17 ) {                                                                         #true if analog input
             set $analog_input_1 $state  if $state = $er1data[1];
             set $analog_input_2 $state  if $state = $er1data[2];
             set $analog_input_3 $state  if $state = $er1data[3];
@@ -1193,10 +1146,9 @@ sub handle_er1_data
     }
 }
 
-sub digital
-{ #this is to convert to binary, i am sure there is a better way, this is called from event handler
-        #digital input stuff done, not tested !!!!!!!!
-        #split $hex_digital and then convert, object for each pin
+sub digital {                         #this is to convert to binary, i am sure there is a better way, this is called from event handler
+                                      #digital input stuff done, not tested !!!!!!!!
+                                      #split $hex_digital and then convert, object for each pin
     my $first_char;
     my $second_char;
     my $bin_1;
@@ -1294,8 +1246,7 @@ sub digital
     }
 }
 
-sub digout
-{ #all digital outs sent at same time, so this checks all states and makes into hex for sending
+sub digout {    #all digital outs sent at same time, so this checks all states and makes into hex for sending
     my $bin1;
     my $bin2;
     my $bin3;
@@ -1385,31 +1336,23 @@ sub get_strabo_path {
     my $y;
     $y = state $strabo_y;
     print_log "Getting strabo path to $waypoint";
-    if ( &net_socket_check("$strabo_ip:$strabo_port") && $x && $y )
-    {    #is strabo connected and x,y defined?
-        my $strabo_html =
-            get "http://$strabo_ip:$strabo_port/getpath?"
-          . $x . ","
-          . $y . ","
-          . $waypoint;    #get route
+    if ( &net_socket_check("$strabo_ip:$strabo_port") && $x && $y ) {    #is strabo connected and x,y defined?
+        my $strabo_html = get "http://$strabo_ip:$strabo_port/getpath?" . $x . "," . $y . "," . $waypoint;    #get route
         $_ = $strabo_html;
         if (m/ERROR/) {
-            print_log
-              "ERROR:could not find strabo waypoint ($waypoint). check: proper map, or refresh waypoints";
+            print_log "ERROR:could not find strabo waypoint ($waypoint). check: proper map, or refresh waypoints";
             return;
         }
-        my @strabo_html = split( /\n/, $strabo_html );    #split into lines
-        $_ = $strabo_html[3];    #this line has cardinal directions
-        s/\[//;                  # get rid of [
-        s/\]//;                  # get rid of ]
-        my @dirs = split( /,/, $_ )
-          ;   #new array with elements = dir cardinal directions, without commas
+        my @strabo_html = split( /\n/, $strabo_html );                                                        #split into lines
+        $_ = $strabo_html[3];                                                                                 #this line has cardinal directions
+        s/\[//;                                                                                               # get rid of [
+        s/\]//;                                                                                               # get rid of ]
+        my @dirs = split( /,/, $_ );    #new array with elements = dir cardinal directions, without commas
         print_log "strabo path = @dirs";
 
         #sort through "smooth" data (not path), gets two arrays with directions and distance in that direction
-        my @dir = ();    #new array with each direction only once
-        my @dis =
-          ();    #array with distances corresponding to each element of @dir
+        my @dir    = ();                #new array with each direction only once
+        my @dis    = ();                #array with distances corresponding to each element of @dir
         my $olddir = $dirs[0];
         push( @dir, $dirs[0] );
         push( @dis, 0 );
@@ -1522,15 +1465,13 @@ sub er1_move {
     }
 }
 
-sub er1_turn
-{  #called with html from web page, you could make voice command to control this
+sub er1_turn {    #called with html from web page, you could make voice command to control this
     my ($deg) = @_;
     send_er1_data("move $deg d");
 }
 
-sub ER1_speak
-{  #called with html from web page, you could make voice command to control this
-        #need condition to not do this if we are asleep
+sub ER1_speak {    #called with html from web page, you could make voice command to control this
+                   #need condition to not do this if we are asleep
     my ($er1_text) = @_;
     if ( state $er1_playing eq "playing" ) {
         print_log "er1 is busy playing a sound";
@@ -1543,16 +1484,15 @@ sub ER1_speak
     }
 }
 
-sub Er1_cid {    #have to have callerid stuff working in mh
-                 #need way to not do this if we are asleep
+sub Er1_cid {                              #have to have callerid stuff working in mh
+                                           #need way to not do this if we are asleep
     my ( $p_state, $p_setby ) = @_;
     my $er1_cid;
     $er1_cid = "you have a call from " . $p_setby->cid_name();
     set $ER1_speak "$er1_cid";
 }
 
-sub web_icon_state
-{ #testing this, returns image to web pages that call it. this works if graphics are in the right place and named correctly
+sub web_icon_state {    #testing this, returns image to web pages that call it. this works if graphics are in the right place and named correctly
     my ($item) = @_;
     my $obj    = &get_object_by_name($item);
     my $state  = $obj->state;
@@ -1562,7 +1502,7 @@ sub web_icon_state
     return $image;
 }
 
-sub get_er1_state {    #use this to return data to web pages
+sub get_er1_state {     #use this to return data to web pages
     my ($object) = @_;
     my $state = eval "state $object";
     return $state;
@@ -1589,8 +1529,7 @@ my $er1_angle;
 $er1_angle = state $er1_direction;
 my $er1_label_position;
 $er1_label_position =
-  "Position: ER1: $er1_coordinates_x,$er1_coordinates_y  Angle set=$er1_angle measured=$angle | Strabo: $x,$y"
-  ;    # $x,y defined elsewhere in code
+  "Position: ER1: $er1_coordinates_x,$er1_coordinates_y  Angle set=$er1_angle measured=$angle | Strabo: $x,$y";    # $x,y defined elsewhere in code
 &tk_label( \$er1_label_position );
 
 my $er1_obj;
@@ -1615,8 +1554,7 @@ $er1_soundlevel = state $soundlevel;
 my $er1_speech_text;
 $er1_speech_text = state $speech_text;
 my $er1_label_sound;
-$er1_label_sound =
-  "Sound: Soundlevel $er1_soundlevel | Speech $er1_speech_text";
+$er1_label_sound = "Sound: Soundlevel $er1_soundlevel | Speech $er1_speech_text";
 &tk_label( \$er1_label_sound );
 
 my $er1_battery;
@@ -1657,10 +1595,8 @@ my $a15;
 $a15 = state $analog_input_15;
 my $er1_label_analog_a;
 my $er1_label_analog_b;
-$er1_label_analog_a =
-  "Anaolg Inputs:  A1:$a1  A2:$a2  A3:$a3  A4:$a4  A5:$a5  A6:$a6  A7:$a7  A8:$a8";
-$er1_label_analog_b =
-  "Anaolg Inputs:  A9:$a9  A10:$a10  A11:$a11  A12:$a12  A13:$a13  A14:$a14  A15:$a15";
+$er1_label_analog_a = "Anaolg Inputs:  A1:$a1  A2:$a2  A3:$a3  A4:$a4  A5:$a5  A6:$a6  A7:$a7  A8:$a8";
+$er1_label_analog_b = "Anaolg Inputs:  A9:$a9  A10:$a10  A11:$a11  A12:$a12  A13:$a13  A14:$a14  A15:$a15";
 &tk_label( \$er1_label_analog_a );
 &tk_label( \$er1_label_analog_b );
 
@@ -1682,6 +1618,5 @@ my $d8;
 $d8 = state $digital_input_8;
 
 my $er1_label_digital;
-$er1_label_digital =
-  "Digital Inputs:  D1:$d1  D2:$d2  D3:$d3  D4:$d4  D5:$d5  D6:$d6  D7:$d7  D8:$d8";
+$er1_label_digital = "Digital Inputs:  D1:$d1  D2:$d2  D3:$d3  D4:$d4  D5:$d5  D6:$d6  D7:$d7  D8:$d8";
 &tk_label( \$er1_label_digital );

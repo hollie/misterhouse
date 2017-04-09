@@ -73,25 +73,13 @@ if ($CurrentWxRequest) {
             $CurrentWxRequest = 0;
 
             #$WxServer->stop;
-            $Weather{Summary_Short} = sprintf(
-                "%4.1f/%2d/%2d %3d%% %3d%%",
-                $Weather{TempIndoor}, $Weather{TempOutdoor},
-                $Weather{WindChill},  $Weather{HumidIndoor},
-                $Weather{HumidOutdoor}
-            );
-            $Weather{Summary} = sprintf(
-                "In/out/chill: %4.1f/%2d/%2d Humid:%3d%% %3d%%",
-                $Weather{TempIndoor}, $Weather{TempOutdoor},
-                $Weather{WindChill},  $Weather{HumidIndoor},
-                $Weather{HumidOutdoor}
-            );
-            $Weather{SummaryRain} =
-              sprintf( "Rain Recent/Total: %3.1f / %4.1f  Barom: %4d",
-                $Weather{RainRate}, $Weather{RainTotal}, $Weather{Barom} );
-            $Weather{SummaryWind} =
-              sprintf( "Wind avg/gust:%3d /%3d  from the %s",
-                $Weather{WindAvgSpeed}, $Weather{WindGustSpeed},
-                &main::convert_direction( $Weather{WindAvgDir} ) );
+            $Weather{Summary_Short} = sprintf( "%4.1f/%2d/%2d %3d%% %3d%%",
+                $Weather{TempIndoor}, $Weather{TempOutdoor}, $Weather{WindChill}, $Weather{HumidIndoor}, $Weather{HumidOutdoor} );
+            $Weather{Summary} = sprintf( "In/out/chill: %4.1f/%2d/%2d Humid:%3d%% %3d%%",
+                $Weather{TempIndoor}, $Weather{TempOutdoor}, $Weather{WindChill}, $Weather{HumidIndoor}, $Weather{HumidOutdoor} );
+            $Weather{SummaryRain} = sprintf( "Rain Recent/Total: %3.1f / %4.1f  Barom: %4d", $Weather{RainRate}, $Weather{RainTotal}, $Weather{Barom} );
+            $Weather{SummaryWind} = sprintf( "Wind avg/gust:%3d /%3d  from the %s",
+                $Weather{WindAvgSpeed}, $Weather{WindGustSpeed}, &main::convert_direction( $Weather{WindAvgDir} ) );
         }
     }
 

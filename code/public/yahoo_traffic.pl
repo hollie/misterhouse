@@ -36,8 +36,7 @@ sub get_y_traffic {
         start $p_y_traffic;
     }
     else {
-        $response =
-          "Could not retrieve traffic from Yahoo (network connection is down.)";
+        $response = "Could not retrieve traffic from Yahoo (network connection is down.)";
     }
 
     $v_get_y_traffic->respond("app=traffic $response");
@@ -74,12 +73,7 @@ if ( done_now $p_y_traffic) {
             $i = $i + 1;
         }
 
-        $html .=
-            qq|<li><a href="|
-          . &recompose_uri( $item->{'link'} )
-          . qq|" title=$description>|
-          . $item->{'title'}
-          . qq|</a></li>|;
+        $html .= qq|<li><a href="| . &recompose_uri( $item->{'link'} ) . qq|" title=$description>| . $item->{'title'} . qq|</a></li>|;
 
     }
 
@@ -91,10 +85,7 @@ if ( done_now $p_y_traffic) {
 
     if ( $v_get_y_traffic->{state} eq 'Mail' ) {
         my $to = $config_parms{traffic_sendto} || "";
-        $v_get_y_traffic->respond(
-                "connected=0 image=mail Sending Yahoo traffic to "
-              . ( ($to) ? $to : $config_parms{net_mail_send_account} )
-              . '.' );
+        $v_get_y_traffic->respond( "connected=0 image=mail Sending Yahoo traffic to " . ( ($to) ? $to : $config_parms{net_mail_send_account} ) . '.' );
         &net_mail_send(
             subject => "Current traffic from Yahoo",
             to      => $to,
@@ -108,8 +99,7 @@ if ( done_now $p_y_traffic) {
         # *** Check return value
         my $to = $config_parms{cell_phone};
         if ($to) {
-            $v_get_y_traffic->respond(
-                "connected=0 image=mail Sending Yahoo traffic to cell phone.");
+            $v_get_y_traffic->respond("connected=0 image=mail Sending Yahoo traffic to cell phone.");
             &net_mail_send(
                 subject => "Current traffic from Yahoo",
                 to      => $to,
@@ -117,17 +107,14 @@ if ( done_now $p_y_traffic) {
             );
         }
         else {
-            $v_get_ap_news->respond(
-                "connected=0 app=error Mobile phone email address not found!");
+            $v_get_ap_news->respond("connected=0 app=error Mobile phone email address not found!");
         }
     }
 
-    elsif ( $v_get_y_traffic->{state} ne 'Check' )
-    {    # get responds with story count
-        $v_get_y_traffic->respond(
-            "connected=0 app=traffic Yahoo traffic retrieved $i reports.");
+    elsif ( $v_get_y_traffic->{state} ne 'Check' ) {    # get responds with story count
+        $v_get_y_traffic->respond("connected=0 app=traffic Yahoo traffic retrieved $i reports.");
     }
-    else {    # check responds with stories
+    else {                                              # check responds with stories
         $v_get_y_traffic->respond("connected=0 app=traffic $text");
     }
 
@@ -144,21 +131,13 @@ if ( $state = said $v_traffic) {
 
 if ($Reload) {
     if ( $Run_Members{'internet_dialup'} ) {
-        &trigger_set(
-            "state_now \$net_connect eq 'connected'",
-            "run_voice_cmd 'Get Yahoo traffic'",
-            'NoExpire',
-            'get Yahoo traffic'
-        ) unless &trigger_get('get Yahoo traffic');
+        &trigger_set( "state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get Yahoo traffic'", 'NoExpire', 'get Yahoo traffic' )
+          unless &trigger_get('get Yahoo traffic');
 
     }
     else {
-        &trigger_set(
-            "time_cron '4,34 * * * *' and net_connect_check",
-            "run_voice_cmd 'Get Yahoo traffic'",
-            'NoExpire',
-            'get Yahoo traffic'
-        ) unless &trigger_get('get Yahoo traffic');
+        &trigger_set( "time_cron '4,34 * * * *' and net_connect_check", "run_voice_cmd 'Get Yahoo traffic'", 'NoExpire', 'get Yahoo traffic' )
+          unless &trigger_get('get Yahoo traffic');
     }
 }
 

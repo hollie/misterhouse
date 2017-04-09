@@ -5,9 +5,7 @@ sub phrase_match1 {
     my $set1    = 'abcdefghijklmnopqrstuvwxyz0123456789';
     my @phrases = &Voice_Cmd::voice_items( 'mh', 'no_category' );
     for my $phrase2 ( sort @phrases ) {
-        my $d =
-          pdistance( $phrase, $phrase2, $set1, \&distance,
-            { -cost => [ 0.5, 0, 4 ], -mode => 'set' } );
+        my $d = pdistance( $phrase, $phrase2, $set1, \&distance, { -cost => [ 0.5, 0, 4 ], -mode => 'set' } );
 
         #       my $brianlendist = abs(length($phrase)-length($phrase2));
         #       $d = $brianlendist + $d;

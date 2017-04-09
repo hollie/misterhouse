@@ -32,8 +32,7 @@ use Eliza;
 my ($eliza);
 undef $eliza if $eliza and state_changed $eliza_rule;
 
-$f_eliza_deep_thoughts =
-  new File_Item("$config_parms{data_dir}/remarks/deep_thoughts.txt");
+$f_eliza_deep_thoughts = new File_Item("$config_parms{data_dir}/remarks/deep_thoughts.txt");
 
 if ( defined( $state = state_now $eliza_data) ) {
     my $msg = $state;
@@ -85,8 +84,7 @@ if ( defined( $state = state_now $eliza_data) ) {
       requestor   => $name;
 
     #    speak app => 'chatbot',  compression => $wavcomp, text => $msg;
-    logit( "$config_parms{data_dir}/logs/eliza_server.$Year.log",
-        "domain=$name text=$msg" );
+    logit( "$config_parms{data_dir}/logs/eliza_server.$Year.log", "domain=$name text=$msg" );
 }
 
 if ( my ( $name, $name_short ) = net_domain_name_done 'eliza_server' ) {

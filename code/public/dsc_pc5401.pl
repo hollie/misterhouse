@@ -73,8 +73,7 @@ if ($New_Day) {
         $LongHour = "$Hour";
     }
     &mh2dsc5401("010$LongHour$Minute$Month$Mday$ShortYear");
-    print_log
-      "MH ---> DSC PC5401 - Clock Adjust $LongHour:$Minute $Month/$Mday/$Year";
+    print_log "MH ---> DSC PC5401 - Clock Adjust $LongHour:$Minute $Month/$Mday/$Year";
 }    # END of new day
 
 #-----------------------------#
@@ -114,11 +113,9 @@ sub dsc_rx_data ($) {
     $dsc_rx_info =~ s/\s+$//;    # Remove endding spaces
     $dsc_tmp_length = length $dsc_rx_info;    # Calculate the string length
 
-    $dsc_tmp_code = substr( $dsc_rx_info, 0, 3 );  # Separation Command Code and
-    $dsc_tmp_data =
-      substr( $dsc_rx_info, 3, ( $dsc_tmp_length - 5 ) );    # data information
-    $dsc_tmp_cks =
-      substr( $dsc_rx_info, ( $dsc_tmp_length - 2 ), 2 );    # and Checksum
+    $dsc_tmp_code = substr( $dsc_rx_info, 0, 3 );    # Separation Command Code and
+    $dsc_tmp_data = substr( $dsc_rx_info, 3, ( $dsc_tmp_length - 5 ) );    # data information
+    $dsc_tmp_cks = substr( $dsc_rx_info, ( $dsc_tmp_length - 2 ), 2 );     # and Checksum
 
     #
     #- TODO: Add here verify received checksum before to processing information
@@ -131,8 +128,7 @@ sub dsc_rx_data ($) {
         $dsc_rx_out = "($dsc_tmp_code) Zone Open: $dsc_tmp_data";
     }
     elsif ( $dsc_tmp_code eq "500" ) {
-        $dsc_rx_out =
-          "($dsc_tmp_code) OK Last command received is : $dsc_tmp_data";
+        $dsc_rx_out = "($dsc_tmp_code) OK Last command received is : $dsc_tmp_data";
     }
     elsif ( $dsc_tmp_code eq "501" ) {
         $dsc_rx_out = "($dsc_tmp_code) Error! : Receive Bad CheckSum";

@@ -23,8 +23,7 @@ $config_parms{usb_uirt_module} $config_parms{usb_uirt_port}
 
 =cut
 
-my ( @devices, @functions, $prev_device, $current_device, $current_function,
-    $ofa_html );
+my ( @devices, @functions, $prev_device, $current_device, $current_function, $ofa_html );
 use vars '$usb_uirt_function_code';
 
 use USB_UIRT;
@@ -32,13 +31,11 @@ use IR_Utils;
 
 if ($Reload) {
     &IR_Utils::init_ir_utils;
-    $Included_HTML{'IR'} =
-      '<!--#include code="&usb_uirt_update_html"-->' . "\n\n\n";
+    $Included_HTML{'IR'} = '<!--#include code="&usb_uirt_update_html"-->' . "\n\n\n";
     $ofa_html = &ofa_html;
 }
 
-$usb_uirt_test = new Voice_Cmd(
-    "usb_uirt debug [version,raw,oldraw,uir,get config,learn,dump codes]");
+$usb_uirt_test = new Voice_Cmd("usb_uirt debug [version,raw,oldraw,uir,get config,learn,dump codes]");
 
 if ( my $state = said $usb_uirt_test) {
     USB_UIRT::get_version()    if $state eq 'version';
@@ -75,12 +72,7 @@ sub usb_uirt_update_html {
     $current_device = $devices[0] if $current_device eq '' and @devices;
     my $i = 0;
     foreach (@devices) {
-        $html .=
-            '<option value="'
-          . $i++
-          . ( $current_device eq $_ ? '" selected>' : '">' )
-          . $_
-          . "&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp\n";
+        $html .= '<option value="' . $i++ . ( $current_device eq $_ ? '" selected>' : '">' ) . $_ . "&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp\n";
     }
     $html .= '
       </select></td>
@@ -108,15 +100,9 @@ sub usb_uirt_update_html {
     $i           = 0;
 
     foreach (@functions) {
-        $html .=
-            '<option value="'
-          . $i++
-          . ( $current_function eq $_ ? '" selected>' : '">' )
-          . $_
-          . "&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp\n";
+        $html .= '<option value="' . $i++ . ( $current_function eq $_ ? '" selected>' : '">' ) . $_ . "&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp\n";
     }
-    my ( $frequency, $repeat, $code1, $code2 ) =
-      USB_UIRT::get_ir_code( $current_device, $current_function );
+    my ( $frequency, $repeat, $code1, $code2 ) = USB_UIRT::get_ir_code( $current_device, $current_function );
     my ( $pronto, $raw );
     if ( $code1 =~ /^0000 / ) {
         $pronto = lc $code1;
@@ -124,9 +110,7 @@ sub usb_uirt_update_html {
     else {
         $raw = $code1;
         $raw .= " $code2" if $code2;
-        ($pronto) =
-          USB_UIRT::raw_to_pronto(
-            USB_UIRT::struct_to_raw( $frequency, $repeat, $code1, $code2 ) );
+        ($pronto) = USB_UIRT::raw_to_pronto( USB_UIRT::struct_to_raw( $frequency, $repeat, $code1, $code2 ) );
     }
 
     #      <input type=submit value="Learn" name=$usb_uirt_function_learn>
@@ -141,8 +125,7 @@ sub usb_uirt_update_html {
       <input type=submit name=$usb_uirt_function_send value="Send"><br>
       Frequency <input size="3" value="'
       . $frequency . '" name=$usb_uirt_function_frequency>
-      &nbsp&nbsp&nbsp Repeat <input value="' . $repeat
-      . '" size="2" name=$usb_uirt_function_repeat>
+      &nbsp&nbsp&nbsp Repeat <input value="' . $repeat . '" size="2" name=$usb_uirt_function_repeat>
       &nbsp&nbsp&nbsp <input type=submit value="Modify" name=$usb_uirt_function_modify><br>
       </td></tr>
       <tr><td colspan=4>
@@ -258,9 +241,9 @@ $usb_uirt_function_raw       = new Generic_Item;
 if ( state_now $usb_uirt_function_learn) {
     my $dev = state $usb_uirt_device_list;
     my $device;
-    $device = $devices[$dev] if $dev =~ /\d+/;
-    $device = state $usb_uirt_device_text if state $usb_uirt_device_text;
-    $current_device = $device if $device;
+    $device         = $devices[$dev]              if $dev =~ /\d+/;
+    $device         = state $usb_uirt_device_text if state $usb_uirt_device_text;
+    $current_device = $device                     if $device;
     my $func = state $usb_uirt_function_list;
     my $function;
     $function = $functions[$func] if $func =~ /\d+/;
@@ -294,10 +277,8 @@ if ( state_now $usb_uirt_function_send) {
     my $function;
     $function         = $functions[$func] if $func =~ /\d+/;
     $current_function = $function         if $function;
-    my ( $frequency, $repeat, $code1, $code2 ) =
-      USB_UIRT::get_ir_code( $current_device, $current_function );
-    print_log
-      "Sending device $device function $function frequency $frequency repeat $repeat code1 $code1 code2 $code2";
+    my ( $frequency, $repeat, $code1, $code2 ) = USB_UIRT::get_ir_code( $current_device, $current_function );
+    print_log "Sending device $device function $function frequency $frequency repeat $repeat code1 $code1 code2 $code2";
     USB_UIRT::set( $device, $function );
 }
 
@@ -332,10 +313,8 @@ if ( state_now $usb_uirt_function_import) {
         $code1 =~ s/[\r\n]+//gs;
         ( $code1, $code2 ) = split ' ', $code1;
     }
-    print_log
-      "Importing device $device function $function code $usb_uirt_function_code";
-    USB_UIRT::set_ir_code( $device, $function, $frequency, $repeat, $code1,
-        $code2 );
+    print_log "Importing device $device function $function code $usb_uirt_function_code";
+    USB_UIRT::set_ir_code( $device, $function, $frequency, $repeat, $code1, $code2 );
 }
 
 if ( state_now $usb_uirt_function_new) {
@@ -360,22 +339,19 @@ if ( state_now $usb_uirt_function_new) {
         ( $code1, $code2 ) = split ' ', $code1;
     }
     print_log "Creating device $device function $funcnew";
-    USB_UIRT::set_ir_code( $device, $funcnew, $frequency, $repeat, $code1,
-        $code2 );
+    USB_UIRT::set_ir_code( $device, $funcnew, $frequency, $repeat, $code1, $code2 );
 }
 
 if ( state_now $usb_uirt_function_modify) {
     my $device   = $current_device;
     my $function = $current_function;
-    my ( $frequency, $repeat, $code1, $code2 ) =
-      USB_UIRT::get_ir_code( $current_device, $current_function );
+    my ( $frequency, $repeat, $code1, $code2 ) = USB_UIRT::get_ir_code( $current_device, $current_function );
     $frequency = state $usb_uirt_function_frequency;
     $repeat    = state $usb_uirt_function_repeat;
     $repeat    = 3 unless $repeat =~ /^\d+$/ and $repeat > 0;
     $repeat    = 50 unless $repeat =~ /^\d+$/ and $repeat < 50;
     print_log "Modifying device $device function $function";
-    USB_UIRT::set_ir_code( $device, $function, $frequency, $repeat, $code1,
-        $code2 );
+    USB_UIRT::set_ir_code( $device, $function, $frequency, $repeat, $code1, $code2 );
 }
 
 $usb_uirt_gen_protocol = new Generic_Item;
@@ -395,8 +371,7 @@ if ( state_now $usb_uirt_gen_commit) {
     my $gen_device   = state $usb_uirt_gen_device;
     my $gen_function = state $usb_uirt_gen_function;
     print_log "Generating device $device function $function";
-    my ( $pronto, $repeat ) =
-      &IR_Utils::generate_pronto( $gen_protocol, $gen_device, $gen_function );
+    my ( $pronto, $repeat ) = &IR_Utils::generate_pronto( $gen_protocol, $gen_device, $gen_function );
     USB_UIRT::set_ir_code( $device, $function, '', $repeat, $pronto );
 }
 
@@ -409,8 +384,7 @@ if ( state_now $usb_uirt_dvc_commit) {
     my ( $device, $repeat, %prontos ) = &IR_Utils::read_dvc_file($dvc_file);
     print_log "Generating device $device from DVC file $dvc_file";
     foreach my $function ( keys %prontos ) {
-        USB_UIRT::set_ir_code( $device, $function, '', $repeat,
-            $prontos{$function} );
+        USB_UIRT::set_ir_code( $device, $function, '', $repeat, $prontos{$function} );
     }
 }
 
@@ -424,18 +398,11 @@ autogenerate all the codes for that device.
 You do not need to create a device or function above.<p>';
     foreach (&IR_Utils::ofa_bysub) {
         my ( $sub, $type, $mfgs, $code ) = split "$;";
-        $list .= "<p>\n$sub ($type)" if "$sub$;$type" ne $sub_prev;
+        $list .= "<p>\n$sub ($type)"                  if "$sub$;$type" ne $sub_prev;
         $list .= "<br>\n\t&nbsp&nbsp&nbsp&nbsp$mfgs " if $mfgs ne $mfgs_prev;
-        $list .= ", " if $mfgs eq $mfgs_prev;
-        $list .=
-            "<a target='control' href=" . '"'
-          . "SUB;referer?usb_uirt_add_ofa_device('$mfgs $sub','$type','$code')"
-          . '"'
-          . ">$code</a>";
-        $list .=
-            " [<a target='speech' href=" . '"'
-          . "SUB;send_ofa_key('$type','$code','POWER')" . '"'
-          . ">test</a>]";
+        $list .= ", "                                 if $mfgs eq $mfgs_prev;
+        $list .= "<a target='control' href=" . '"' . "SUB;referer?usb_uirt_add_ofa_device('$mfgs $sub','$type','$code')" . '"' . ">$code</a>";
+        $list .= " [<a target='speech' href=" . '"' . "SUB;send_ofa_key('$type','$code','POWER')" . '"' . ">test</a>]";
         $sub_prev  = "$sub$;$type";
         $mfgs_prev = $mfgs;
     }
@@ -462,12 +429,9 @@ sub send_ofa_key {
     my $key  = shift;
     my %keys = &IR_Utils::get_ofa_keys( $type, $code );
     my $efc  = $keys{$key};
-    my ( $protocol, $device, $function ) =
-      &IR_Utils::get_function( $type, $code, $efc );
-    print
-      "$type $code $key protocol $protocol efc $efc device $device function $function\n";
-    my ( $pronto, $repeat ) =
-      &IR_Utils::generate_pronto( uc $protocol, $device, $function );
+    my ( $protocol, $device, $function ) = &IR_Utils::get_function( $type, $code, $efc );
+    print "$type $code $key protocol $protocol efc $efc device $device function $function\n";
+    my ( $pronto, $repeat ) = &IR_Utils::generate_pronto( uc $protocol, $device, $function );
     USB_UIRT::transmit_pronto( $pronto, $repeat );
 }
 

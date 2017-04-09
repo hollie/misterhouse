@@ -83,8 +83,7 @@ sub send {
     if ( my ( $house, $level ) = $data =~ /^X([A-P])&P(\d+)$/ ) {
         $house = unpack( 'C', $house ) - 65;    #Get code from ASCII
         $level = int($level) - 1;
-        ncpuxa::send_x10_leviton_level( $controlsock{$hostport},
-            $house, $save_unit, $level );
+        ncpuxa::send_x10_leviton_level( $controlsock{$hostport}, $house, $save_unit, $level );
         return;
     }
 
@@ -123,9 +122,7 @@ sub send {
     }
 
     #Send remote IR
-    if ( my ( $irnum, $module, $zone ) =
-        $data =~ /^IRSlot([0-9]+)@([0-9]+):([0-9]+)$/ )
-    {
+    if ( my ( $irnum, $module, $zone ) = $data =~ /^IRSlot([0-9]+)@([0-9]+):([0-9]+)$/ ) {
         $irnum  = int($irnum);
         $module = int($module);
         $zone   = int($zone);
@@ -134,9 +131,7 @@ sub send {
     }
 
     #Set Relay
-    if ( my ( $relay, $state, undef, $module ) =
-        $data =~ /^OUTPUT([0-9]+)(high|low)(@([0-9]+))?$/i )
-    {
+    if ( my ( $relay, $state, undef, $module ) = $data =~ /^OUTPUT([0-9]+)(high|low)(@([0-9]+))?$/i ) {
         $module = 1 unless defined $module;
         $relay  = int($relay);
         $state  = ( $state =~ /high/i ? "1" : "0" );
@@ -155,22 +150,14 @@ my $code;
 
 # 11/27/05, changed "All Lights Off" to report as O to be consistent with other modules
 my %funcs = (
-    '1',              '1',             '2',             '2',
-    '3',              '3',             '4',             '4',
-    '5',              '5',             '6',             '6',
-    '7',              '7',             '8',             '8',
-    '9',              '9',             '10',            'A',
-    '11',             'B',             '12',            'C',
-    '13',             'D',             '14',            'E',
-    '15',             'F',             '16',            'G',
-    'All Lights On',  'O',             'All Units Off', 'P',
-    'On',             'J',             'Off',           'K',
-    'Bright',         'L',             'Dim',           'M',
-    'Preset Dim 0',   'PRESET_DIM1',   'Preset Dim 1',  'PRESET_DIM2',
-    'All Lights Off', 'P',             'Extended Code', 'EXTENDED_CODE',
-    'Hail Request',   'HAIL_REQUEST',  'Hail Ack',      'HAIL_ACK',
-    'Extended Data',  'EXTENDED_DATA', 'Status On',     'STATUS_ON',
-    'Status Off',     'STATUS_OFF',    'Status',        'STATUS'
+    '1',              '1',             '2',             '2',             '3',            '3',            '4',            '4',
+    '5',              '5',             '6',             '6',             '7',            '7',            '8',            '8',
+    '9',              '9',             '10',            'A',             '11',           'B',            '12',           'C',
+    '13',             'D',             '14',            'E',             '15',           'F',            '16',           'G',
+    'All Lights On',  'O',             'All Units Off', 'P',             'On',           'J',            'Off',          'K',
+    'Bright',         'L',             'Dim',           'M',             'Preset Dim 0', 'PRESET_DIM1',  'Preset Dim 1', 'PRESET_DIM2',
+    'All Lights Off', 'P',             'Extended Code', 'EXTENDED_CODE', 'Hail Request', 'HAIL_REQUEST', 'Hail Ack',     'HAIL_ACK',
+    'Extended Data',  'EXTENDED_DATA', 'Status On',     'STATUS_ON',     'Status Off',   'STATUS_OFF',   'Status',       'STATUS'
 );
 
 sub read {

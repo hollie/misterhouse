@@ -47,8 +47,7 @@ if ( $state = said $speak_server) {
 
     # Detect where the message is from
     #   my ($name, $name_short) = net_domain_name('server_speak');
-    net_domain_name_start 'server_speak',
-      'server_speak';    # Background DNS search
+    net_domain_name_start 'server_speak', 'server_speak';    # Background DNS search
 }
 
 # This will be true when the DNS search started above finishes
@@ -91,21 +90,16 @@ if ( my ( $name, $name_short ) = net_domain_name_done 'server_speak' ) {
             $chatbot_rule = 'doctor' unless $chatbot_rule;
 
             #           $chatbot = new Chatbot::Eliza "Eliza", "$config_parms{data_dir}/eliza/$chatbot_rule.txt" unless $chatbot;
-            $chatbot = new Chatbot::Eliza "Eliza",
-              "../data/eliza/$chatbot_rule.txt"
+            $chatbot = new Chatbot::Eliza "Eliza", "../data/eliza/$chatbot_rule.txt"
               unless $chatbot;
             my $response = $chatbot->transform($msg);
 
-            $msg =
-              "$name_short said: " . &Voice_Text::set_voice( 'male2', $msg );
-            $msg .=
-              "  Eliza says: " . &Voice_Text::set_voice( 'female', $response );
+            $msg = "$name_short said: " . &Voice_Text::set_voice( 'male2', $msg );
+            $msg .= "  Eliza says: " . &Voice_Text::set_voice( 'female', $response );
         }
         else {
             #           $msg = "Internet message from $name_short: <voice required='gender=male'/>$msg" if $msg;
-            $msg =
-              "Internet message from $name_short: "
-              . &Voice_Text::set_voice( 'male2', $msg )
+            $msg = "Internet message from $name_short: " . &Voice_Text::set_voice( 'male2', $msg )
               if $msg;
         }
 
@@ -136,11 +130,8 @@ if ( my ( $name, $name_short ) = net_domain_name_done 'server_speak' ) {
         $html =~ s/<\/?voice.*?>//g unless $OS_win;    # Drop XML speech tags
 
         # Must use http_port, not Host, which has speak_server port
-        my $wav =
-          "http://$Http{Host_address}:$config_parms{http_port}/speak_server.wav";
-        $html .=
-            "\n<br><EMBED SRC='$wav' WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n"
-          . "<NOEMBED><BGSOUND SRC='$wav'></NOEMBED></EMBED>\n"
+        my $wav = "http://$Http{Host_address}:$config_parms{http_port}/speak_server.wav";
+        $html .= "\n<br><EMBED SRC='$wav' WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n" . "<NOEMBED><BGSOUND SRC='$wav'></NOEMBED></EMBED>\n"
           unless $webmute;
 
         #       display($html, 0);
@@ -150,18 +141,14 @@ if ( my ( $name, $name_short ) = net_domain_name_done 'server_speak' ) {
         #        display($msg, 120, "Internet Message from $name") unless
         #            $msg =~ /^Internet light set/;
 
-        logit( "$config_parms{data_dir}/logs/speak_server.$Year_Month_Now.log",
-            "domain=$name text=$msg" );
+        logit( "$config_parms{data_dir}/logs/speak_server.$Year_Month_Now.log", "domain=$name text=$msg" );
 
     }
 
     # Allow for other program to post display/log data
     elsif ( $speak_server_data =~ /^DATA / ) {
         display( $speak_server_data, 0, "Internet data from $name" );
-        logit(
-            "$config_parms{data_dir}/logs/speak_server.$Year_Month_Now.data.log",
-            "domain=$name text=$msg"
-        );
+        logit( "$config_parms{data_dir}/logs/speak_server.$Year_Month_Now.data.log", "domain=$name text=$msg" );
     }
 
     # Allow for other programs to send speak socket
@@ -174,8 +161,7 @@ if ( my ( $name, $name_short ) = net_domain_name_done 'server_speak' ) {
 
     $msg = substr $msg, 0, 600;
     if (   $config_parms{internet_speak_flag} eq 'all'
-        or $config_parms{internet_speak_flag} eq 'some'
-        and $speak_server_data =~ /^GET / )
+        or $config_parms{internet_speak_flag} eq 'some' and $speak_server_data =~ /^GET / )
     {
         speak voice => 'male', text => $msg;
     }
