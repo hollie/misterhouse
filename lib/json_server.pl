@@ -241,7 +241,7 @@ sub json_get {
           if ( defined $json_data{'rrd_config'}->{'prefs'}->{'path'} );
         my $rrd_file = "weather_data.rrd";
         $rrd_file = $config_parms{weather_data_rrd}
-          if ( defined $config_parms{weather_data_rrd} );
+          if ( ( defined $config_parms{weather_data_rrd} ) and ($config_parms{weather_data_rrd}));
         if ( $rrd_file =~ m/.*\/(.*\.rrd)/ ) {
             $rrd_file = $1;
         }
@@ -365,7 +365,12 @@ sub json_get {
                     $value1 =~ s/\.0*$//
                       unless ( $value1 == 0 );    #remove unneccessary trailing decimals
                     $value1 = "null" if ( lc $value1 eq "nan" );
-                    push @{ $dataset[$index]->{data} }, [ ( $db_start + ( $time_index * $step ) ) * 1000, $value1 ];
+                    if ($arg_time) {
+                        push @{ $dataset[$index]->{data} }, [ ( $db_start + ( $time_index * $step ) ) * 1000, $value1 ]
+                            if (($db_start + ( $time_index * $step ) ) * 1000 >= $arg_time ); #filter out all values less than time= if present
+                    } else {
+                        push @{ $dataset[$index]->{data} }, [ ( $db_start + ( $time_index * $step ) ) * 1000, $value1 ];
+                    }
                     $index++;
                 }
                 $time_index++;
