@@ -1,6 +1,6 @@
 package Nanoleaf_Aurora;
 
-# v1.0.001
+# v1.0.1
 
 use strict;
 use warnings;
@@ -13,17 +13,22 @@ use IO::Select;
 use IO::Socket::INET;
 
 # Nanoleaf_Aurora Objects
-# $aurora         = new NanoLeaf_Aurora(<location>,<poll>);
+# $aurora         = new NanoLeaf_Aurora(<id>,<nl_id>,<location>,<poll>,<options>);
 # $aurora_effects = new NanoLeaf_Aurora_Effects($aurora);
 # $aurora_static1 = new NanoLeaf_Aurora_Static($aurora);
 # $aurora_comm    = new Nanoleaf_Aurora_Comm($aurora);
 
+#NB: if any effect gets set, or another static is active, then other statics should be set to off.
+
 # Version History
-# v1.0 - initial
+# v1.0   - initial
+# v1.0.1 - static support
 
 # Notes
 
 # Issues
+
+#
 
 @Nanoleaf_Aurora::ISA = ('Generic_Item');
 
@@ -37,6 +42,7 @@ $rest{auth}       = "new";
 $rest{on}         = "state/on";
 $rest{off}        = "state/on";
 $rest{set_effect} = "effects/select";
+$rest{set_static} = "";
 
 our %opts;
 $opts{info}       = "-ua";
@@ -44,11 +50,12 @@ $opts{auth}       = "-json -post '{}'";
 $opts{on}         = "-json -put '{\"on\":true}'";
 $opts{off}        = "-json -put '{\"on\":false}'";
 $opts{set_effect} = "-json -put '{\"select\":";
+$opts{set_static} = "-json -put '{\"write\":{\"command\":\"display\",\"version\":\"1.0\",\"animType\":\"static\",\"animData\":";
 
 my $api_path = "/api/beta";
 
 sub new {
-    my ( $class, $id, $location, $poll, $options ) = @_;
+    my ( $class, $id, $nl_deviceid, $location, $poll, $options ) = @_;
     my $self = {};
     bless $self, $class;
     $self->{data}         = undef;
@@ -61,10 +68,13 @@ sub new {
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
     $self->{name}                   = "1";
+    $self->{module_version}         = "v1.0.1";
     $self->{ssdp_timeout}           = 4000;
-    $self->{name}     = $id if ($id);
-    $self->{location} = $location;
-    $self->{debug}    = 5;
+    $self->{name}        = $id if ($id);
+    $self->{nl_deviceid} = "";
+    $self->{nl_deviceid} = $nl_deviceid if ( defined $nl_deviceid );
+    $self->{location}    = $location;
+    $self->{debug}       = 5;
     ( $self->{debug} ) = ( $options =~ /debug\=(\d+)/i ) if ( $options =~ m/debug\=/i );
     $self->{debug}                   = 0 if ( $self->{debug} < 0 );
     $self->{loglevel}                = 5;
@@ -72,7 +82,7 @@ sub new {
     $self->{max_poll_queue}          = 3;
     $self->{max_cmd_queue}           = 5;
     $self->{cmd_process_retry_limit} = 6;
-    $self->{config_file}             = "$::config_parms{data_dir}/Aurora_config_" . $self->{name} . ".json";
+    $self->{config_file}             = "$::config_parms{data_dir}/Aurora_config.json";
 
     @{ $self->{poll_queue} } = ();
     $self->{poll_data_file} = "$::config_parms{data_dir}/Aurora_poll_" . $self->{name} . ".data";
@@ -112,18 +122,19 @@ sub get_data {
     my ($self) = @_;
 
     main::print_log( "[Aurora:" . $self->{name} . "] get_data initiated" ) if ( $self->{debug} );
+    print "db: self->{token} [$self->{token}] self->{location} [$self->{location}]\n";
 
     #Check that we have data
-    if ( ( !$self->{file} ) or ( !defined $self->{location} ) ) {
-        if ( -f $self->{config_file} ) {
-            main::print_log( "[Aurora:" . $self->{name} . "] get file data" ) if ( $self->{debug} );
-            $self->get_config_data();
-        }
-        else {
-            main::print_log( "[Aurora:" . $self->{name} . "] get ssdp data" ) if ( $self->{debug} );
-            $self->{location} = $self->get_ssdp_data();
-            $self->update_config_data();
-        }
+    if ( ( !$self->{file} ) and ( -f $self->{config_file} ) and ( !defined $self->{location} ) ) {
+        main::print_log( "[Aurora:" . $self->{name} . "] get file data" ) if ( $self->{debug} );
+        ( $self->{location}, $self->{nl_deviceid} ) = $self->get_config_data( $self->{nl_deviceid} );
+    }
+    if ( !defined $self->{location} ) {
+        main::print_log( "[Aurora:" . $self->{name} . "] get ssdp data" ) if ( $self->{debug} );
+
+        ( $self->{location}, $self->{nl_deviceid} ) = $self->get_ssdp_data( $self->{nl_deviceid} );
+
+        #TODO            $self->update_config_data() if ($self->{location});
     }
 
     #Check for a token
@@ -131,29 +142,21 @@ sub get_data {
         main::print_log( "[Aurora:" . $self->{name} . "] Location found ($self->{location})" );
         main::print_log( "[Aurora:" . $self->{name} . "] Please hold down power button to generate access token" );
         eval { ia7_notify( "[Aurora:" . $self->{name} . "] Please hold down power button to generate access token" ); };
-        if ( !defined $self->{auth_timeout} ) {
-            $self->{auth_timeout} = 0;
-            $self->get_auth();
-        }
-        else {
-            $self->{auth_timeout}++;
-            if ( $self->{auth_timeout} > 6 ) {
-                main::print_log( "[Aurora:" . $self->{name} . "] Retrying Authentication attempt" );
-                $self->{auth_timeout} = 0;
-                $self->get_auth();
-            }
-        }
+        $self->get_auth();
 
         #if we have a location and token, then get some data
     }
-    else {
+    elsif ( $self->{token} and $self->{location} ) {
         $self->poll();
 
         if ( ( defined $self->{data}->{panels} ) and ( $self->{init} == 0 ) ) {
-            main::print_log( "[Aurora:" . $self->{name} . "] Configuration Loaded" );
+            main::print_log( "[Aurora:" . $self->{name} . "] " . $self->{module_version} . "Configuration Loaded" );
             $self->print_info();
             $self->{init} = 1;
         }
+    }
+    else {
+        main::print_log( "[Aurora:" . $self->{name} . "] WARNING, Did not poll: location: $self->{location}, token: $self->{token}" ) if ( $self->{debug} );
     }
 }
 
@@ -188,7 +191,7 @@ sub process_check {
 
         return unless ($file_data);    #if there is no data, then don't process
         if ( $file_data =~ m/403 Forbidden/i ) {
-            main::print_log( "[Aurora:" . $self->{name} . "] Button not pressed, for auth token is incorrect" );
+            main::print_log( "[Aurora:" . $self->{name} . "] 403 Forbidden: Pair Button not pressed or auth token is incorrect" );
             return;
         }
 
@@ -228,8 +231,11 @@ sub process_check {
 
                 }
                 elsif ( $self->{poll_process_mode} eq "auth" ) {
+                    main::print_log( "[Aurora:" . $self->{name} . "] Authentication token found!" );
                     $self->{token} = $data->{auth_token};
-                    $self->update_config_data();
+                    main::print_log( "[Aurora:" . $self->{name} . "] Token $self->{token}" ) if ( $self->{debug} );
+
+                    #TODO                    #$self->update_config_data();
                 }
                 $self->process_data();
             }
@@ -424,6 +430,11 @@ sub _push_JSON_data {
 }
 
 sub get_ssdp_data {
+    my ( $self, $id, $timeout ) = @_;
+
+}
+
+sub scan_ssdp_data {
     my ( $self, $timeout ) = @_;
     $timeout = 500 unless ($timeout);
     my $addr = '239.255.255.250';
@@ -453,7 +464,8 @@ EOT
     my $dest = sockaddr_in( $port, inet_aton($addr) );
     send( $sock, $q, 0, $dest );
 
-    my @devices = ();
+    my @dev_locs = ();
+    my @dev_ids  = ();
     my $data;
     my $i;
     my $discovery = "Discovering >";
@@ -475,14 +487,21 @@ EOT
 
             #print "location " . $location;
             $location =~ s/[^a-zA-Z0-9\:\.\/]*//g;
-            push @devices, $location;
-            last;
+            push @dev_locs, $location;
+            my ($devid) = $data =~ /nl\-deviceid:\s+(.*)/;
+
+            #print "location " . $location;
+            $devid =~ s/[^a-zA-Z0-9\:\.\/]*//g;
+            push @dev_ids, $devid;
+
+            &main::print_log( "[Aurora:" . $self->{name} . "] Found Aurora: $location, nl-deviceid: $devid" );
+
+            #last;
         }
     }
-    $discovery .= "< [" . scalar @devices . "]\n";
+    $discovery .= "< [" . scalar @dev_locs . "]\n";
     &main::print_log( "[Aurora:" . $self->{name} . "] $discovery" );
-    &main::print_log("WARNING. Multiple Aurora's found. SSDP only will return one address") if ( scalar @devices > 1 );
-    return $devices[0];
+    return ( scalar @dev_locs, \@dev_locs, \@dev_ids );
 }
 
 sub _mcast_add {
@@ -513,7 +532,7 @@ sub _constant {
     return $ref->[$index];
 }
 
-sub get_config_data {
+sub read_config_data {
     my ($self) = @_;
 
     my $file_data = &main::file_read( $self->{config_file} );
@@ -531,18 +550,14 @@ sub get_config_data {
     }
     else {
         print Dumper $data if ( $self->{debug} );
-        $self->{location} = $data->{location};
-        $self->{token}    = $data->{auth_token};
-        $self->{file}     = 1;
+
+        return $data;
     }
 }
 
 sub write_config_data {
-    my ($self) = @_;
+    my ( $self, $data ) = @_;
 
-    my $data;
-    $data->{location}   = $self->{location} if ( defined $self->{location} );
-    $data->{auth_token} = $self->{token}    if ( defined $self->{token} );
     my $file_data;
     eval { $file_data = JSON::XS->new->encode($data); };
 
@@ -554,26 +569,76 @@ sub write_config_data {
         print Dumper $file_data if ( $self->{debug} );
         &main::file_write( $self->{config_file}, $file_data );
     }
+
+}
+
+sub get_config_data {
+    my ( $self, $id ) = @_;
+
+    my $data = $self->read_config_data();
+
+    if ($data) {
+        my $nid = $self->{name};
+
+        #override $nid if a $nl_device is specified
+        if ( ( defined $id ) and ($id) ) {
+            print "checking id=$id\n";
+            foreach my $key ( keys %$data ) {
+                if (   ( lc $self->{nl_deviceid} eq lc $data->{$key}->{device}->{nl_deviceid} )
+                    or ( lc $self->{location} eq lc $data->{$key}->{device}->{location} )
+                    or ( lc $self->{token} eq lc $data->{$key}->{device}->{token} ) )
+                {
+                    $nid = $key;
+                    last;
+                }
+            }
+        }
+        $self->{file} = 1;
+        print "nid=$nid, loc=$data->{$nid}->{device}->{location}\n";
+        return ( $data->{$nid}->{device}->{location}, $data->{$nid}->{device}->{nl_deviceid} );
+    }
+    else {
+        return;
+    }
 }
 
 sub update_config_data {
     my ($self) = @_;
 
-    my $current_loc = "";
-    $current_loc = $self->{location} if ( defined $self->{location} );
-    my $current_token = "";
-    $current_token = $self->{token} if ( defined $self->{token} );
-    $self->get_config_data() if ( -f $self->{config_file} );
+    my $nid = $self->{name};
+    my $data;
+    $data = $self->read_config_data();
 
-    if ( ( ( !defined $self->{location} ) and ( defined $current_loc ) ) or ( $self->{location} ne $current_loc ) ) {
-        main::print_log( "[Aurora:" . $self->{name} . "] Updating location ($current_loc) in config file" );
-        $self->{location} = $current_loc;
+    #override $nid if a $nl_device is specified
+    if ( defined $data ) {
+        foreach my $key ( keys %$data ) {
+            if (   ( lc $self->{nl_deviceid} eq lc $data->{$key}->{device}->{nl_deviceid} )
+                or ( lc $self->{location} eq lc $data->{$key}->{device}->{location} )
+                or ( lc $self->{token} eq lc $data->{$key}->{device}->{token} ) )
+            {
+                $nid = $key;
+                last;
+            }
+        }
     }
-    if ( ( ( !defined $self->{token} ) and ( defined $current_token ) ) or ( $self->{token} ne $current_token ) ) {
+
+    #TODO add static definitions
+
+    if ( ( defined $self->{location} ) and ( $data->{$nid}->{device}->{location} ne $self->{location} ) ) {
+        $data->{$nid}->{device}->{location} = $self->{location};
+        main::print_log( "[Aurora:" . $self->{name} . "] Updating location ($self->{location}) in config file" );
+
+    }
+    if ( ( defined $self->{token} ) and ( $data->{$nid}->{device}->{token} ne $self->{token} ) ) {
+        $data->{$nid}->{device}->{token} = $self->{token};
         main::print_log( "[Aurora:" . $self->{name} . "] Updating authentication token in config file" );
-        $self->{token} = $current_token;
+
     }
-    $self->write_config_data();
+    if ( ( defined $self->{nl_device} ) and ( $data->{$nid}->{device}->{nl_device} ne $self->{nl_device} ) and ( $self->{nl_device} ) ) {
+        $data->{$nid}->{device}->{nl_device} = $self->{nl_device};
+        main::print_log( "[Aurora:" . $self->{name} . "] Updating nl-device ($self->{nl_device} ) in config file" );
+    }
+    $self->write_config_data($data);
 }
 
 sub register {
@@ -697,7 +762,7 @@ sub process_data {
 
     main::print_log( "[Aurora:" . $self->{name} . "] Processing Data..." ) if ( $self->{debug} );
 
-    if ( !$self->{init_data} ) {
+    if ( ( !$self->{init_data} ) and ( defined $self->{data}->{info} ) ) {
         main::print_log( "[Aurora:" . $self->{name} . "] Init: Setting startup values" );
 
         foreach my $key ( keys $self->{data}->{info} ) {
@@ -801,6 +866,15 @@ sub get_effect {
 
 }
 
+sub check_panelid {
+    my ( $self, $id ) = @_;
+
+    my $found = 0;
+    $found = 1 if ( defined $self->{data}->{panel}->{$id} );
+
+    return $found;
+}
+
 sub get_debug {
     my ($self) = @_;
     return $self->{debug};
@@ -834,6 +908,16 @@ sub set_effect {
 
     my $params = $opts{set_effect} . '"' . $effect . '"}' . "'";
     $self->_push_JSON_data( 'set_effect', $params );
+    return ('1');
+}
+
+sub set_static {
+    my ( $self, $string, $loop ) = @_;
+
+    my $jloop = "false";
+    $jloop = "true" if ($loop);
+    my $params = $opts{set_static} . '"' . $string . '","loop":' . $jloop . "}}'";
+    $self->_push_JSON_data( 'set_static', $params );
     return ('1');
 }
 
@@ -885,14 +969,15 @@ package Nanoleaf_Aurora_Static;
 @Nanoleaf_Aurora_Static::ISA = ('Generic_Item');
 
 sub new {
-    my ( $class, $object ) = @_;
+    my ( $class, $object, $static_string ) = @_;
 
     my $self = {};
     bless $self, $class;
     @{ $$self{states} } = ( 'on', 'off' );
 
     $$self{master_object} = $object;
-
+    $$self{loop}          = 0;
+    $$self{static_string} = $static_string if ( defined $static_string );
     $object->register( $self, 'static' );
     return $self;
 
@@ -904,11 +989,40 @@ sub set {
     if ( $p_setby eq 'poll' ) {
         $self->SUPER::set($p_state);
     }
+    else {
+        #if ON then backup current configuration and set the new one.
+        #if OFF then check if current is same as static, and if so restore the old one.
+        if ( defined $$self{static_string} ) {
+            $$self{master_object}->set_static( $$self{static_string}, $$self{loop} );
+        }
+    }
 }
 
 sub configure {
-    my ( $self, $pid, $frames, $r, $g, $b, $w, $t ) = @_;
+    my ( $self, $pid, $frames, $frame, $r, $g, $b, $w, $t ) = @_;
+    if ( $$self{master_object}->check_panelid($pid) ) {
+        $$self{data}{$pid}{frames} = $frames;
+        $$self{data}{$pid}{$frame} = "$r $g $b $w $t";
+    }
+    else {
+        main::print_log("[Aurora Static] Error. Unknown panel ID $pid");
+    }
+}
 
+sub loop {
+    my ( $self, $value ) = @_;
+
+    if ( defined $value ) {
+        if ($value) {
+            $$self{loop} = 1;
+        }
+        else {
+            $$self{loop} = 0;
+        }
+    }
+    else {
+        return $$self{loop};
+    }
 }
 
 package Nanoleaf_Aurora_Comm;
