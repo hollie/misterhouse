@@ -1,6 +1,6 @@
 package Nanoleaf_Aurora;
 
-# v1.0.1
+# v1.0.2
 
 use strict;
 use warnings;
@@ -23,6 +23,7 @@ use IO::Socket::INET;
 # Version History
 # v1.0   - initial
 # v1.0.1 - static support
+# v1.0.2 - multiple auroras, brightness
 
 # Notes
 
@@ -36,21 +37,25 @@ use IO::Socket::INET;
 # --------------------------------------------------------------
 
 our %rest;
-$rest{info}       = "";
-$rest{effects}    = "effects";
-$rest{auth}       = "new";
-$rest{on}         = "state/on";
-$rest{off}        = "state/on";
-$rest{set_effect} = "effects/select";
-$rest{set_static} = "";
+$rest{info}        = "";
+$rest{effects}     = "effects";
+$rest{auth}        = "new";
+$rest{on}          = "state/on";
+$rest{off}         = "state/on";
+$rest{set_effect}  = "effects/select";
+$rest{set_static}  = "";
+$rest{brightness}  = "state/brightness";
+$rest{brightness2} = "state/brightness";
 
 our %opts;
-$opts{info}       = "-ua";
-$opts{auth}       = "-json -post '{}'";
-$opts{on}         = "-json -put '{\"on\":true}'";
-$opts{off}        = "-json -put '{\"on\":false}'";
-$opts{set_effect} = "-json -put '{\"select\":";
-$opts{set_static} = "-json -put '{\"write\":{\"command\":\"display\",\"version\":\"1.0\",\"animType\":\"static\",\"animData\":";
+$opts{info}        = "-ua";
+$opts{auth}        = "-json -post '{}'";
+$opts{on}          = "-json -put '{\"on\":true}'";
+$opts{off}         = "-json -put '{\"on\":false}'";
+$opts{set_effect}  = "-json -put '{\"select\":";
+$opts{set_static}  = "-json -put '{\"write\":{\"command\":\"display\",\"version\":\"1.0\",\"animType\":\"static\",\"animData\":";
+$opts{brightness}  = "-json -put '{\"value\":";
+$opts{brightness2} = "-json -put '{\"increment\":";
 
 my $api_path = "/api/beta";
 
@@ -68,7 +73,7 @@ sub new {
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
     $self->{name}                   = "1";
-    $self->{module_version}         = "v1.0.1";
+    $self->{module_version}         = "v1.0.2";
     $self->{ssdp_timeout}           = 4000;
     $self->{name}        = $id if ($id);
     $self->{nl_deviceid} = "";
@@ -99,7 +104,7 @@ sub new {
     $self->{init}      = 0;
     $self->{init_data} = 0;
     $self->{file}      = 0;
-    push( @{ $$self{states} }, 'off', 'on' );
+    push( @{ $$self{states} }, 'off', '20%', '40%', '60%', '80%', 'on' );
     $self->{timer} = new Timer;
     $self->start_timer;
     return $self;
@@ -127,7 +132,7 @@ sub get_data {
     #Check that we have data
     if ( ( !$self->{file} ) and ( -f $self->{config_file} ) and ( !defined $self->{location} ) ) {
         main::print_log( "[Aurora:" . $self->{name} . "] get file data" ) if ( $self->{debug} );
-        ( $self->{location}, $self->{nl_deviceid} ) = $self->get_config_data( $self->{nl_deviceid} );
+        ( $self->{location}, $self->{nl_deviceid}, $self->{token} ) = $self->get_config_data( $self->{nl_deviceid} );
     }
     if ( !defined $self->{location} ) {
         main::print_log( "[Aurora:" . $self->{name} . "] get ssdp data" ) if ( $self->{debug} );
@@ -595,7 +600,7 @@ sub get_config_data {
         }
         $self->{file} = 1;
         print "nid=$nid, loc=$data->{$nid}->{device}->{location}\n";
-        return ( $data->{$nid}->{device}->{location}, $data->{$nid}->{device}->{nl_deviceid} );
+        return ( $data->{$nid}->{device}->{location}, $data->{$nid}->{device}->{nl_deviceid}, $data->{$nid}->{device}->{token} );
     }
     else {
         return;
@@ -831,7 +836,23 @@ sub process_data {
               . "] State changed from $state{$self->{previous}->{info}->{state}->{on}->{value}} to $state{$self->{data}->{info}->{state}->{on}->{value}}" )
           if ( $self->{loglevel} );
         $self->{previous}->{info}->{state}->{on}->{value} = $self->{data}->{info}->{state}->{on}->{value};
-        $self->set( $state{ $self->{data}->{info}->{state}->{on}->{value} }, 'poll' );
+
+        #if on and brightness not 100 set brightness else set on or off
+        if ( ( $self->{data}->{info}->{state}->{on}->{value} ) and ( $self->{data}->{info}->{state}->{brightness}->{value} != 100 ) ) {
+            $self->set( $self->{data}->{info}->{state}->{brightness}->{value}, 'poll' );
+        }
+        else {
+            $self->set( $state{ $self->{data}->{info}->{state}->{on}->{value} }, 'poll' );
+        }
+    }
+
+    if ( $self->{previous}->{info}->{state}->{brightness}->{value} != $self->{data}->{info}->{state}->{brightness}->{value} ) {
+        main::print_log( "[Aurora:"
+              . $self->{name}
+              . "] Brightness changed from $state{$self->{previous}->{info}->{state}->{brightness}->{value}} to $state{$self->{data}->{info}->{state}->{brightness}->{value}}"
+        ) if ( $self->{loglevel} );
+        $self->{previous}->{info}->{state}->{brightness}->{value} = $self->{data}->{info}->{state}->{brightness}->{value};
+        $self->set( $self->{data}->{info}->{state}->{brightness}->{value}, 'poll' );
     }
 
     if ( $self->{previous}->{info}->{state}->{colorMode} ne $self->{data}->{info}->{state}->{colorMode} ) {
@@ -884,6 +905,7 @@ sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
     if ( $p_setby eq 'poll' ) {
+        $p_state .= "%" if ( $p_state =~ m/\d+(?!%)/ );
         main::print_log( "[Aurora:" . $self->{name} . "] DB super::set, in master set, p_state=$p_state, p_setby=$p_setby" ) if ( $self->{debug} );
         $self->SUPER::set($p_state);
         $self->start_timer;
@@ -894,6 +916,14 @@ sub set {
         my $mode = lc $p_state;
         if ( ( $mode eq "on" ) or ( $mode eq "off" ) ) {
             $self->_push_JSON_data($mode);
+        }
+        elsif ( $mode =~ /^(\d+)/ ) {
+            my $params = $opts{brightness} . $1 . '}' . "'";
+            $self->_push_JSON_data( 'brightness', $params );
+        }
+        elsif ( $mode =~ /^([-+]\d+)/ ) {
+            my $params = $opts{brightness2} . $1 . '}' . "'";
+            $self->_push_JSON_data( 'brightness2', $params );
         }
         else {
             main::print_log( "Aurora:" . $self->{name} . "] Error, unknown set state $p_state" );
