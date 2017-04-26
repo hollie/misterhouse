@@ -1,6 +1,9 @@
 package Nanoleaf_Aurora;
 
-# v1.0.2
+# v1.0.3
+
+#if any effect is changed, by definition the static child should be set to off.
+#cmd data returns, need to check by command
 
 use strict;
 use warnings;
@@ -22,8 +25,9 @@ use IO::Socket::INET;
 
 # Version History
 # v1.0   - initial
-# v1.0.1 - static support
+# v1.0.1 - initial support
 # v1.0.2 - multiple auroras, brightness
+# v1.0.3 - working static. turn on, overrides effect, turning off will restore previous effect
 
 # Notes
 
@@ -43,9 +47,10 @@ $rest{auth}        = "new";
 $rest{on}          = "state/on";
 $rest{off}         = "state/on";
 $rest{set_effect}  = "effects/select";
-$rest{set_static}  = "";
+$rest{set_static}  = "effects";
 $rest{brightness}  = "state/brightness";
 $rest{brightness2} = "state/brightness";
+$rest{get_static}  = "effects";
 
 our %opts;
 $opts{info}        = "-ua";
@@ -56,6 +61,7 @@ $opts{set_effect}  = "-json -put '{\"select\":";
 $opts{set_static}  = "-json -put '{\"write\":{\"command\":\"display\",\"version\":\"1.0\",\"animType\":\"static\",\"animData\":";
 $opts{brightness}  = "-json -put '{\"value\":";
 $opts{brightness2} = "-json -put '{\"increment\":";
+$opts{get_static}  = "-json -put '{\"write\":{\"command\":\"request\",\"version\":\"1.0\",\"animName\":\"*Static*\"}}'";
 
 my $api_path = "/api/beta";
 
@@ -104,7 +110,7 @@ sub new {
     $self->{init}      = 0;
     $self->{init_data} = 0;
     $self->{file}      = 0;
-    push( @{ $$self{states} }, 'off', '20%', '40%', '60%', '80%', 'on' );
+    push( @{ $$self{states} }, 'off', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', 'on' );
     $self->{timer} = new Timer;
     $self->start_timer;
     return $self;
@@ -278,7 +284,7 @@ sub process_check {
     return unless ( defined $self->{cmd_process} );
     if ( $self->{cmd_process}->done_now() ) {
         my $com_status = "online";
-        main::print_log( "[Aurora:" . $self->{name} . "] Background Command " . $self->{cmd_process_name} . " process completed" )
+        main::print_log( "[Aurora:" . $self->{name} . "] Background Command " . $self->{cmd_process_mode} . " process completed" )
           if ( $self->{debug} );
         $self->get_data();    #poll since the command is done to get a new state
 
@@ -304,6 +310,16 @@ sub process_check {
         else {
             #TODO - what are the possible command return strings
             if ( keys $data ) {
+
+                if ( $self->{cmd_process_mode} eq "get_static" ) {
+                    main::print_log( "[Aurora:" . $self->{name} . "] get_static returned" );
+                    print Dumper $data;
+                    print "string=$self->{static_check}->{string}\n";
+                    if ( ( defined $self->{static_check}->{string} ) and ( $self->{static_check}->{string} eq $data->{animData} ) ) {
+                        $self->set_effect( $self->{static_check}->{effect} );
+                    }
+                }
+
                 if ( $data->{success} eq "true" ) {
                     shift @{ $self->{cmd_queue} };    #remove the command from queue since it was successful
                     $self->{cmd_process_retry} = 0;
@@ -780,7 +796,12 @@ sub process_data {
             $self->{child_object}->{effects}->set( $self->{data}->{info}->{effects}->{select}, 'poll' );
         }
 
-        $self->set( $state{ $self->{data}->{info}->{state}->{on}->{value} }, 'poll' );
+        if ( ( $self->{data}->{info}->{state}->{on}->{value} ) and ( $self->{data}->{info}->{state}->{brightness}->{value} != 100 ) ) {
+            $self->set( $self->{data}->{info}->{state}->{brightness}->{value}, 'poll' );
+        }
+        else {
+            $self->set( $state{ $self->{data}->{info}->{state}->{on}->{value} }, 'poll' );
+        }
         $self->{init_data} = 1;
     }
 
@@ -875,6 +896,8 @@ sub process_data {
         }
     }
 
+    #ADD -- static stuff
+
 }
 
 #------------
@@ -949,6 +972,16 @@ sub set_static {
     my $params = $opts{set_static} . '"' . $string . '","loop":' . $jloop . "}}'";
     $self->_push_JSON_data( 'set_static', $params );
     return ('1');
+
+}
+
+sub check_static {
+    my ( $self, $string, $prev_effect ) = @_;
+
+    $self->{static_check}->{string} = $string;
+    $self->{static_check}->{effect} = $prev_effect;
+    $self->_push_JSON_data('get_static');
+    return ('1');
 }
 
 package Nanoleaf_Aurora_Effects;
@@ -1007,7 +1040,7 @@ sub new {
 
     $$self{master_object} = $object;
     $$self{loop}          = 0;
-    $$self{static_string} = $static_string if ( defined $static_string );
+    $$self{string}        = $static_string if ( defined $static_string );
     $object->register( $self, 'static' );
     return $self;
 
@@ -1016,16 +1049,25 @@ sub new {
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
-    if ( $p_setby eq 'poll' ) {
-        $self->SUPER::set($p_state);
+    #    if ( $p_setby eq 'poll' ) {
+    $self->SUPER::set($p_state);
+
+    #    } else {
+    #if ON then backup current configuration and set the new one.
+    if ( lc $p_state eq 'on' ) {
+        $$self{previous_effect} = $$self{master_object}->get_effect();
+        $$self{master_object}->set_static( $$self{string} );
+
+        #if OFF then check if current is same as static, and if so restore the old one.
+    }
+    elsif ( lc $p_state eq 'off' ) {
+        $$self{master_object}->check_static( $$self{string}, $$self{previous_effect} );
     }
     else {
-        #if ON then backup current configuration and set the new one.
-        #if OFF then check if current is same as static, and if so restore the old one.
-        if ( defined $$self{static_string} ) {
-            $$self{master_object}->set_static( $$self{static_string}, $$self{loop} );
-        }
+        main::print_log("[Aurora Static] Error. Unknown set mode $p_state");
     }
+
+    #    }
 }
 
 sub configure {
@@ -1053,6 +1095,12 @@ sub loop {
     else {
         return $$self{loop};
     }
+}
+
+sub write_static {
+    my ($self) = @_;
+
+    $$self{active} = $$self{master_object}->write_static( $$self{name}, $$self{static_string}, $$self{loop} );
 }
 
 package Nanoleaf_Aurora_Comm;
