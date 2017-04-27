@@ -1,9 +1,14 @@
 package Nanoleaf_Aurora;
 
-# v1.0.3
+# v1.0.5
 
 #if any effect is changed, by definition the static child should be set to off.
 #cmd data returns, need to check by command
+#NB: if any effect gets set, or another static is active, then other statics should be set to off.
+
+#effects, turn static off and clear out static_check
+
+#line 438 $mode|$cmd queue
 
 use strict;
 use warnings;
@@ -18,16 +23,16 @@ use IO::Socket::INET;
 # Nanoleaf_Aurora Objects
 # $aurora         = new NanoLeaf_Aurora(<id>,<nl_id>,<location>,<poll>,<options>);
 # $aurora_effects = new NanoLeaf_Aurora_Effects($aurora);
-# $aurora_static1 = new NanoLeaf_Aurora_Static($aurora);
+# $aurora_static1 = new NanoLeaf_Aurora_Static($aurora, "effect string");
 # $aurora_comm    = new Nanoleaf_Aurora_Comm($aurora);
-
-#NB: if any effect gets set, or another static is active, then other statics should be set to off.
 
 # Version History
 # v1.0   - initial
-# v1.0.1 - initial support
+# v1.0.1 - initial static support
 # v1.0.2 - multiple auroras, brightness
 # v1.0.3 - working static. turn on, overrides effect, turning off will restore previous effect
+# v1.0.4 - Voice Commands
+# v1.0.5 - working multi static
 
 # Notes
 
@@ -82,6 +87,7 @@ sub new {
     $self->{module_version}         = "v1.0.2";
     $self->{ssdp_timeout}           = 4000;
     $self->{name}        = $id if ($id);
+    $self->{last_static} = "";
     $self->{nl_deviceid} = "";
     $self->{nl_deviceid} = $nl_deviceid if ( defined $nl_deviceid );
     $self->{location}    = $location;
@@ -106,6 +112,7 @@ sub new {
     $self->{cmd_process} = new Process_Item;
     $self->{cmd_process}->set_output( $self->{cmd_data_file} );
     &::MainLoop_post_add_hook( \&Nanoleaf_Aurora::process_check, 0, $self );
+    &::Reload_post_add_hook( \&Nanoleaf_Aurora::generate_voice_commands, 1, $self );
     $self->get_data();
     $self->{init}      = 0;
     $self->{init_data} = 0;
@@ -309,70 +316,85 @@ sub process_check {
         }
         else {
             #TODO - what are the possible command return strings
+            print "returned data is---------====================\n";
+            print Dumper $data;
+
             if ( keys $data ) {
 
                 if ( $self->{cmd_process_mode} eq "get_static" ) {
                     main::print_log( "[Aurora:" . $self->{name} . "] get_static returned" );
-                    print Dumper $data;
+                    $self->{last_static} = $data->{animData} if ( defined $data->{animData} );    #just checked controller so update the static string
                     print "string=$self->{static_check}->{string}\n";
                     if ( ( defined $self->{static_check}->{string} ) and ( $self->{static_check}->{string} eq $data->{animData} ) ) {
                         $self->set_effect( $self->{static_check}->{effect} );
+                        $self->{static_check}->{string} = undef;
+                        $self->{static_check}->{effect} = undef;
                     }
+                    if ( ( defined $self->{static_check}->{print} ) and ( $self->{static_check}->{print} ) ) {
+                        main::print_log( "[Aurora:" . $self->{name} . "] Static details. Current configuration string is" );
+                        main::print_log( "[Aurora:" . $self->{name} . "] $data->{animData}" );
+                        $self->{static_check}->{print} = 0;
+                    }
+
                 }
 
-                if ( $data->{success} eq "true" ) {
-                    shift @{ $self->{cmd_queue} };    #remove the command from queue since it was successful
-                    $self->{cmd_process_retry} = 0;
-                    $self->poll;
-                }
-                else {
-                    if ( defined $data->{reason} ) {
-                        main::print_log( "[Aurora:" . $self->{name} . "] WARNING Issued command was unsuccessful (reason=" . $data->{reason} . ")" );
-                        shift @{ $self->{cmd_queue} };
+                # Successful commands should be [200 OK, 204 No Content]
+                shift @{ $self->{cmd_queue} };
+
+                #                if ( $data eq "true" ) {
+                #                    shift @{ $self->{cmd_queue} };    #remove the command from queue since it was successful
+                #                    $self->{cmd_process_retry} = 0;
+                #                    $self->poll;
+                #                }
+                #                else {
+                #                    if ( defined $data->{reason} ) {
+                #                        main::print_log("[Aurora:" . $self->{name} . "] WARNING Issued command was unsuccessful (reason=" . $data->{reason} . ")" );
+                #                        shift @{ $self->{cmd_queue} };
+                #                    }
+                #                    else {
+                #                        main::print_log( "[Aurora:" . $self->{name} . "] WARNING Issued command was unsuccessful with no returned reason , retrying..." );
+                #                        if ( $self->{cmd_process_retry} > $self->{cmd_process_retry_limit} ) {
+                #                            main::print_log("[Aurora:" . $self->{name} . "] ERROR Issued command max retries reached. Abandoning command attempt..." );
+                #                            shift @{ $self->{cmd_queue} };
+                #                            $self->{cmd_process_retry} = 0;
+                #                            $com_status = "offline";
+                #                        }
+                #                        else {
+                #                            $self->{cmd_process_retry}++;
+                #                        }
+                #                    }
+                #                }
+                #            }
+                #            else {
+                #                print_log( "[Aurora:" . $self->{name} . "] ERROR! Returned data not structured! Not processing..." );
+                #                $com_status = "offline";
+                #            }
+                #        }
+                #        if ( scalar @{ $self->{cmd_queue} } ) {
+                #            my $cmd = @{ $self->{cmd_queue} }[0];    #grab the first command, but don't take it off.
+                #            $self->{cmd_process}->set($cmd);
+                #            $self->{cmd_process}->start();
+                #            main::print_log( "[Aurora:" . $self->{name} . "] Command Queue " . $self->{cmd_process}->pid() . " cmd=$cmd" )
+                #              if ( ( $self->{debug} ) or ( $self->{cmd_process_retry} ) );
+                #        }
+                if ( defined $self->{child_object}->{comm} ) {
+                    if ( $self->{status} ne $com_status ) {
+                        main::print_log "[Aurora:"
+                          . $self->{name}
+                          . "] Communication Tracking object found. Updating from "
+                          . $self->{child_object}->{comm}->state() . " to "
+                          . $com_status . "..."
+                          if ( $self->{loglevel} );
+                        $self->{status} = $com_status;
+                        $self->{child_object}->{comm}->set( $com_status, 'poll' );
                     }
-                    else {
-                        main::print_log( "[Aurora:" . $self->{name} . "] WARNING Issued command was unsuccessful with no returned reason , retrying..." );
-                        if ( $self->{cmd_process_retry} > $self->{cmd_process_retry_limit} ) {
-                            main::print_log( "[Aurora:" . $self->{name} . "] ERROR Issued command max retries reached. Abandoning command attempt..." );
-                            shift @{ $self->{cmd_queue} };
-                            $self->{cmd_process_retry} = 0;
-                            $com_status = "offline";
-                        }
-                        else {
-                            $self->{cmd_process_retry}++;
-                        }
-                    }
                 }
-            }
-            else {
-                print_log( "[Aurora:" . $self->{name} . "] ERROR! Returned data not structured! Not processing..." );
-                $com_status = "offline";
-            }
-        }
-        if ( scalar @{ $self->{cmd_queue} } ) {
-            my $cmd = @{ $self->{cmd_queue} }[0];    #grab the first command, but don't take it off.
-            $self->{cmd_process}->set($cmd);
-            $self->{cmd_process}->start();
-            main::print_log( "[Aurora:" . $self->{name} . "] Command Queue " . $self->{cmd_process}->pid() . " cmd=$cmd" )
-              if ( ( $self->{debug} ) or ( $self->{cmd_process_retry} ) );
-        }
-        if ( defined $self->{child_object}->{comm} ) {
-            if ( $self->{status} ne $com_status ) {
-                main::print_log "[Aurora:"
-                  . $self->{name}
-                  . "] Communication Tracking object found. Updating from "
-                  . $self->{child_object}->{comm}->state() . " to "
-                  . $com_status . "..."
-                  if ( $self->{loglevel} );
-                $self->{status} = $com_status;
-                $self->{child_object}->{comm}->set( $com_status, 'poll' );
             }
         }
     }
-
 }
 
-#------------------------------------------------------------------------------------
+#polling process. Keep it separate from commands
 sub _get_JSON_data {
     my ( $self, $mode, $params ) = @_;
     $params = $opts{$mode} unless defined($params);
@@ -410,6 +432,7 @@ sub _get_JSON_data {
     }
 }
 
+#command process
 sub _push_JSON_data {
     my ( $self, $mode, $params ) = @_;
     $params = $opts{$mode} unless defined($params);
@@ -430,7 +453,7 @@ sub _push_JSON_data {
         if ( scalar @{ $self->{cmd_queue} } < $self->{max_cmd_queue} ) {
             main::print_log( "[Aurora:" . $self->{name} . "] Queue is " . scalar @{ $self->{cmd_queue} } . ". Queing command $mode, $cmd" )
               if ( $self->{debug} );
-            push @{ $self->{cmd_queue} }, "$mode|$cmd";
+##            push @{ $self->{cmd_queue} }, "$mode|$cmd";
         }
         else {
             main::print_log( "[Aurora:" . $self->{name} . "] WARNING. Queue has grown past " . $self->{max_cmd_queue} . ". Command discarded." );
@@ -643,7 +666,7 @@ sub update_config_data {
         }
     }
 
-    #TODO add static definitions
+    #TODO add static definitions ?
 
     if ( ( defined $self->{location} ) and ( $data->{$nid}->{device}->{location} ne $self->{location} ) ) {
         $data->{$nid}->{device}->{location} = $self->{location};
@@ -664,11 +687,23 @@ sub update_config_data {
 
 sub register {
     my ( $self, $object, $type ) = @_;
+    my $keys = "";
 
-    #my $name;
-    #$name = $$object{object_name};  #TODO: Why can't we get the name of the child object?
-    &main::print_log( "[Aurora:" . $self->{name} . "] Registering $type child object" );
-    $self->{child_object}->{$type} = $object;
+    #allow for multiple static entries
+    if ( lc $type eq 'static' ) {
+        if ( defined $self->{child_object}->{static} ) {
+            $keys = keys %{ $self->{child_object}->{static} };
+        }
+        else {
+            $keys = 0;
+        }
+        $self->{child_object}->{static}->{$keys} = $object;
+    }
+    else {
+        $self->{child_object}->{$type} = $object;
+    }
+    $type .= " (" . $keys . ")" if ( $keys ne "" );
+    &main::print_log( "[Aurora:" . $self->{name} . "] Registered $type child object" );
 
 }
 
@@ -685,21 +720,6 @@ sub stop_timer {
 
 sub print_info {
     my ($self) = @_;
-
-    #{"name":"Nanoleaf Aurora",
-    #"serialNo":"XXXXXXXXXXX",
-    #"manufacturer":"Nanoleaf",
-    #"firmwareVersion":"1.4.39",
-    #"model":"NL22",
-    #"state":{"on":{"value":true},
-    #"brightness":{"value":100,"max":100,"min":0},
-    #"hue":{"value":255,"max":360,"min":0},
-    #"sat":{"value":68,"max":100,"min":0},
-    #"ct":{"value":4000,"max":100,"min":0},
-    #"colorMode":"effect"},
-    #"effects":{"select":"Fireplace","list":["Color Burst","Flames","Forest","Inner Peace","Nemo","Northern Lights","Romantic","Snowfall","Fireplace","Sunset"]},
-    #"panelLayout":{"layout":{"layoutData":"2 150 195 -74 129 -120 149 -74 43 -60"},
-    #"globalOrientation":{"value":294,"max":360,"min":0}}}
 
     main::print_log( "[Aurora:" . $self->{name} . "] Name:             " . $self->{data}->{info}->{name} );
     main::print_log( "[Aurora:" . $self->{name} . "] Serial Number:    " . $self->{data}->{info}->{serialNo} );
@@ -794,6 +814,7 @@ sub process_data {
         if ( defined $self->{child_object}->{effects} ) {
             $self->{child_object}->{effects}->load_effects( @{ $self->{data}->{info}->{effects}->{list} } );
             $self->{child_object}->{effects}->set( $self->{data}->{info}->{effects}->{select}, 'poll' );
+            $self->print_static if ( lc $self->{data}->{info}->{effects}->{select} eq "*static*" );
         }
 
         if ( ( $self->{data}->{info}->{state}->{on}->{value} ) and ( $self->{data}->{info}->{state}->{brightness}->{value} != 100 ) ) {
@@ -804,23 +825,6 @@ sub process_data {
         }
         $self->{init_data} = 1;
     }
-
-    #print Dumper $self->{data};
-
-    #{"name":"Nanoleaf Aurora",
-    #"serialNo":"XXXXXXXXXXX",
-    #"manufacturer":"Nanoleaf",
-    #"firmwareVersion":"1.4.39",
-    #"model":"NL22",
-    #"state":{"on":{"value":true},
-    #"brightness":{"value":100,"max":100,"min":0},
-    #"hue":{"value":255,"max":360,"min":0},
-    #"sat":{"value":68,"max":100,"min":0},
-    #"ct":{"value":4000,"max":100,"min":0},
-    #"colorMode":"effect"},
-    #"effects":{"select":"Fireplace","list":["Color Burst","Flames","Forest","Inner Peace","Nemo","Northern Lights","Romantic","Snowfall","Fireplace","Sunset"]},
-    #"panelLayout":{"layout":{"layoutData":"2 150 195 -74 129 -120 149 -74 43 -60"},
-    #"globalOrientation":{"value":294,"max":360,"min":0}}}
 
     if ( $self->{previous}->{info}->{firmwareVersion} ne $self->{data}->{info}->{firmwareVersion} ) {
         main::print_log(
@@ -894,9 +898,34 @@ sub process_data {
             main::print_log "[Aurora:" . $self->{name} . "] Effects Child object found. Updating..." if ( $self->{loglevel} );
             $self->{child_object}->{effects}->set( $self->{data}->{info}->{effects}->{select}, 'poll' );
         }
+        if ( ( defined $self->{child_object}->{static} ) and ( lc $self->{data}->{info}->{effects}->{select} ne "*static*" ) ) {
+            main::print_log "[Aurora:" . $self->{name} . "] Static Child object(s) found. Updating..." if ( $self->{loglevel} );
+            foreach my $key ( keys %{ $self->{child_object}->{static} } ) {
+                $self->{child_object}->{static}->{$key}->set( 'off', 'poll' );
+            }
+        }
     }
 
-    #ADD -- static stuff
+    #if a non static effect is active, set all static items to off
+    #if it's set to *Static* then turn off all static entries that don't match the current key
+
+    if ( ( defined $self->{child_object}->{static} ) and ( lc $self->{data}->{info}->{effects}->{select} eq "*static*" ) ) {
+        foreach my $key ( keys %{ $self->{child_object}->{static} } ) {
+            print "key=$key, gs=" . $self->{child_object}->{static}->{$key}->get_string() . " ls=" . $self->{last_static} . "\n";
+            unless ( $self->{child_object}->{static}->{$key}->get_string() eq $self->{last_static} ) {
+                if ( lc $self->{child_object}->{static}->{$key}->state() ne 'off' ) {
+                    main::print_log "[Aurora:" . $self->{name} . "] Static Child object $key found. Updating..." if ( $self->{loglevel} );
+                    $self->{child_object}->{static}->{$key}->set( 'off', 'poll' );
+                }
+            }
+            else {
+                if ( lc $self->{child_object}->{static}->{$key}->state() ne 'on' ) {
+                    main::print_log "[Aurora:" . $self->{name} . "] Static Child object $key found. Updating..." if ( $self->{loglevel} );
+                    $self->{child_object}->{static}->{$key}->set( 'on', 'poll' );
+                }
+            }
+        }
+    }
 
 }
 
@@ -970,6 +999,7 @@ sub set_static {
     my $jloop = "false";
     $jloop = "true" if ($loop);
     my $params = $opts{set_static} . '"' . $string . '","loop":' . $jloop . "}}'";
+    $self->{last_static} = $string;
     $self->_push_JSON_data( 'set_static', $params );
     return ('1');
 
@@ -982,6 +1012,85 @@ sub check_static {
     $self->{static_check}->{effect} = $prev_effect;
     $self->_push_JSON_data('get_static');
     return ('1');
+}
+
+sub print_static {
+    my ($self) = @_;
+
+    $self->{static_check}->{print} = 1;
+    $self->_push_JSON_data('get_static');
+    return ('1');
+}
+
+sub get_static {
+    my ($self) = @_;
+
+    $self->_push_JSON_data('get_static');
+    return ('1');
+}
+
+sub print_discovery_info {
+    my ($self) = @_;
+
+    my ( $devices, $dev_locs, $dev_ids ) = $self->scan_ssdp_data();
+    main::print_log( "Aurora:" . $self->{name} . "] ------------------------------------------------------------------" );
+    main::print_log( "Aurora:" . $self->{name} . "] Found $devices Aurora Controller" );
+    for my $i ( 1 .. $devices ) {
+        main::print_log( "Aurora:" . $self->{name} . "] Device $i Location: " . @$dev_locs[ $i - 1 ] );
+        main::print_log( "Aurora:" . $self->{name} . "] Device $i ID: " . @$dev_ids[ $i - 1 ] );
+    }
+    main::print_log( "Aurora:" . $self->{name} . "] ------------------------------------------------------------------" );
+
+}
+
+sub generate_voice_commands {
+    my ($self) = @_;
+
+    my $object_string;
+    my $object_name = $self->get_object_name;
+    &main::print_log("Generating Voice commands for Nanoleaf Aurora Controller $object_name");
+
+    my $voice_cmds = $self->get_voice_cmds();
+    my $i          = 1;
+    foreach my $cmd ( keys %$voice_cmds ) {
+
+        #get object name to use as part of variable in voice command
+        my $object_name_v = $object_name . '_' . $i . '_v';
+        $object_string .= "use vars '${object_name}_${i}_v';\n";
+
+        #Convert object name into readable voice command words
+        my $command = $object_name;
+        $command =~ s/^\$//;
+        $command =~ tr/_/ /;
+
+        #Initialize the voice command with all of the possible device commands
+        $object_string .= $object_name . "_" . $i . "_v  = new Voice_Cmd '$command $cmd';\n";
+
+        #Tie the proper routine to each voice command
+        $object_string .= $object_name . "_" . $i . "_v -> tie_event('" . $voice_cmds->{$cmd} . "');\n\n";    #, '$command $cmd');\n\n";
+
+        #Add this object to the list of Insteon Voice Commands on the Web Interface
+        $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'Nanoleaf_Aurora', 'Controller_commands' );
+        $i++;
+    }
+
+    #Evaluate the resulting object generating string
+    package main;
+    print $object_string;
+    eval $object_string;
+    print "Error in nanoleaf_aurora_item_commands: $@\n" if $@;
+
+    package Nanoleaf_Aurora;
+}
+
+sub get_voice_cmds {
+    my ($self) = @_;
+    my %voice_cmds = (
+        'Discover Auroras to print log'    => $self->get_object_name . '->print_discovery_info',
+        'Print Static string to print log' => $self->get_object_name . '->print_static'
+    );
+
+    return \%voice_cmds;
 }
 
 package Nanoleaf_Aurora_Effects;
@@ -1049,25 +1158,24 @@ sub new {
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
-    #    if ( $p_setby eq 'poll' ) {
-    $self->SUPER::set($p_state);
-
-    #    } else {
-    #if ON then backup current configuration and set the new one.
-    if ( lc $p_state eq 'on' ) {
-        $$self{previous_effect} = $$self{master_object}->get_effect();
-        $$self{master_object}->set_static( $$self{string} );
-
-        #if OFF then check if current is same as static, and if so restore the old one.
-    }
-    elsif ( lc $p_state eq 'off' ) {
-        $$self{master_object}->check_static( $$self{string}, $$self{previous_effect} );
+    if ( $p_setby eq 'poll' ) {
+        $self->SUPER::set($p_state);
     }
     else {
-        main::print_log("[Aurora Static] Error. Unknown set mode $p_state");
-    }
+        #if ON then backup current configuration and set the new one.
+        if ( lc $p_state eq 'on' ) {
+            $$self{previous_effect} = $$self{master_object}->get_effect();
+            $$self{master_object}->set_static( $$self{string} );
 
-    #    }
+            #if OFF then check if current is same as static, and if so restore the old one.
+        }
+        elsif ( lc $p_state eq 'off' ) {
+            $$self{master_object}->check_static( $$self{string}, $$self{previous_effect} );
+        }
+        else {
+            main::print_log("[Aurora Static] Error. Unknown set mode $p_state");
+        }
+    }
 }
 
 sub configure {
@@ -1097,10 +1205,10 @@ sub loop {
     }
 }
 
-sub write_static {
+sub get_string {
     my ($self) = @_;
 
-    $$self{active} = $$self{master_object}->write_static( $$self{name}, $$self{static_string}, $$self{loop} );
+    return ( $$self{string} );
 }
 
 package Nanoleaf_Aurora_Comm;
