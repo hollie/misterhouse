@@ -1,4 +1,5 @@
-// v1.4.100
+// v1.4.200
+//TODO : floorplan on IOS8, pretty error screen if no data
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -13,6 +14,7 @@ var audio_init;
 var audioElement = document.getElementById('sound_element');
 var authorized = "false";
 var developer = false;
+var show_tooltips = true;
 
 var ctx; //audio context
 var buf; //audio buffer
@@ -145,6 +147,7 @@ function changePage (){
   		}
 		if (json_store.ia7_config.prefs.substate_percentages === undefined) json_store.ia7_config.prefs.substate_percentages = 20;
 		if (json_store.ia7_config.prefs.developer !== undefined) developer = json_store.ia7_config.prefs.developer;
+		if (json_store.ia7_config.prefs.tooltips !== undefined) show_tooltips = json_store.ia7_config.prefs.tooltips;
 		// First time loading, set the default speech notifications
 		if (speech_sound === undefined) {
 			if ((json_store.ia7_config.prefs.speech_default !== undefined) && (json_store.ia7_config.prefs.speech_default.search("audio") >= 0 )) {
@@ -191,7 +194,7 @@ function changePage (){
 		
 		// Remove the RRD Last Updated 
 		$('#Last_updated').remove();
-		
+				
 		//Trim leading and trailing slashes from path
 		var path = URLHash.path.replace(/^\/|\/$/g, "");
 		if (path.indexOf('objects') === 0){
@@ -248,6 +251,7 @@ function changePage (){
 		else { //default response is to load a collection
 			loadCollection(URLHash._collection_key);
 		}
+		
 		//update the breadcrumb: 
 		// Weird end-case, The Group from browse items is broken with parents on the URL
 		// Also have to change parents to type if the ending collection_keys are $<name>,
@@ -283,6 +287,7 @@ function changePage (){
 			}
 		}
 	}
+
 }
 
 function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_prefs if no arg then both
@@ -670,6 +675,7 @@ var loadList = function() {
 					$('#buffer'+row).append("<div id='row" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 				}
 				$('#row'+row).append("<div class='col-sm-4'>" + entity_arr[i] + "</div>");
+
 				if (column == 3){
 					column = 0;
 					row++;
@@ -682,6 +688,7 @@ var loadList = function() {
 				var button_group = $(this).parents('.btn-group');
 				button_group.find('.leadcontainer > .dropdown-lead >u').html($(this).text());
 				e.preventDefault();
+				generateTooltips();
 			});
 			$(".btn-voice-cmd").click( function () {
 				var voice_cmd = $(this).text().replace(/ /g, "_");
@@ -720,14 +727,36 @@ var loadList = function() {
 			$(".btn-state-cmd").mayTriggerLongClicks().on( 'longClick', function() {		
 				var entity = $(this).attr("entity");
 				create_state_modal(entity);
-			});						
-			
+			});	
+ 
+		    generateTooltips();
 		}
 	});
 	// Continuously check for updates if this was a group type request
 	updateList(URLHash.path);
 
 };//loadlistfunction
+
+ //Add tooltips to any truncated buttons
+var generateTooltips = function () {
+    if (show_tooltips) {
+	    $(".btn").each(function( index ) {
+	        if ($(this)[0].scrollWidth > 0) {
+	            //if scrollWidth is greater than outerWidth then bootstrap has truncated the button text
+		        if ($(this)[0].scrollWidth > $(this).outerWidth()) {
+                    $(this).attr('data-toggle', 'tooltip');
+                    $(this).attr('data-placement', 'auto bottom');
+                    $(this).attr('data-original-title', $(this).text());
+                    $(this).attr('title', $(this).text());
+                } else {
+                    $(this).attr('data-original-title', '');
+                    $(this).attr('title', '');                
+                }            
+	            $('[data-toggle="tooltip"]').tooltip(); 
+            }
+        });
+    }	
+}
 
 var getButtonColor = function (state) {
 	var color = "default";
@@ -998,7 +1027,9 @@ var updateStaticPage = function(link,time) {
 								}
 							});
 						}																
-					}			
+					}
+					generateTooltips();
+			
 				});
 			}
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
@@ -1145,6 +1176,9 @@ var loadCollection = function(collection_keys) {
 		}
 		column++;
 	}
+	
+	generateTooltips();	
+	
 	// if any items present, then create modals and activate updateItem...
 	if (items !== "") {
 		items = items.slice(0,-1); //remove last comma
@@ -1170,8 +1204,8 @@ var loadCollection = function(collection_keys) {
             else {
                 create_state_modal(entity);
             }
-        }
-        );
+        });
+        
         $(".btn-state-cmd").mayTriggerLongClicks().on( 'longClick', function() {		
             var entity = $(this).attr("entity");
             create_state_modal(entity);
@@ -1188,7 +1222,8 @@ var loadCollection = function(collection_keys) {
 					show: true
 				});
 			});
-		});		
+		});	
+			
 // test multiple items at some point
 		updateItem(items);
 	}	
@@ -1216,7 +1251,7 @@ function fixIA7Nav() {
 	var url = $(location).attr('href');
 	var collid = url.split("_collection_key=");
 	$('a').each(function() {
-		if ($(this).attr('href').match("^/ia7/")) {
+	    if (($(this).attr('href') !== undefined) && ($(this).attr('href').match("^/ia7/"))) {
   			this.href += '&_collection_key='+collid[1]+',';
   		}
 	});
@@ -1630,8 +1665,10 @@ var graph_rrd = function(start,group,time) {
 				//Call update again, if page is still here
 				//KRK best way to handle this is likely to check the URL hash
 				if ($('#top-graph').length !== 0){
-//TODO live updates
+
 					//If the graph  page is still active request more data
+					//Just manually pull a refresh since json_server constantly polling RRD data is a performance problem
+					
 					refresh_loop = setTimeout(function(){
 					    graph_rrd(start,group,0);
 					}, refresh * 1000);
@@ -2853,6 +2890,7 @@ var trigger = function() {
 
 $(document).ready(function() {
 	// Start
+	
 	changePage();
 	//Watch for future changes in hash
 	$(window).bind('hashchange', function() {
