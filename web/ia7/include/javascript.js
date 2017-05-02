@@ -1,4 +1,4 @@
-// v1.3.610
+// v1.4.100
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -266,7 +266,7 @@ function changePage (){
 				nav_link = '#path=/objects&parents='+nav_name;				
 				if (collection_keys_arr.length > 2 && collection_keys_arr[collection_keys_arr.length-2].substring(0,1) == "$") nav_link = '#path=/objects&type='+nav_name; 
 				if (nav_name == "Group") nav_link = '#path=objects&type=Group'; //Hardcode this use case
-				if (json_store.objects[nav_name] !== undefined && json_store.objects[nav_name].label !== undefined) nav_name = (json_store.objects[nav_name].label);
+				if (json_store.objects !== undefined && json_store.objects[nav_name] !== undefined && json_store.objects[nav_name].label !== undefined) nav_name = (json_store.objects[nav_name].label);
 
 			} else {
 				if (json_store.collections[collection_keys_arr[i]] == undefined) continue; //last breadcrumb duplicated so we don't need it.
@@ -1450,15 +1450,19 @@ var display_table = function(table,records,time) {
 var graph_rrd = function(start,group,time) {
 
 	var URLHash = URLToHash();
+	var new_data = 1;
 	if (typeof time === 'undefined'){
 		$('#list_content').html("<div id='top-graph' class='row top-buffer'>");
 		$('#top-graph').append("<div id='rrd-periods' class='row'>");
 		$('#top-graph').append("<div id='rrd-graph' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
 		$('#top-graph').append("<div id='rrd-legend' class='rrd-legend-class'><br>");
-
+        new_data = 0;
 		time = 0;
 	}
-		
+	var refresh = 20; //refresh data every 60 seconds by default
+	var refresh_loop;
+	if (json_store.ia7_config.prefs.rrd_graph_refresh !== undefined) refresh = json_store.ia7_config.prefs.rrd_graph_refresh;
+	
 	URLHash.time = time;
 	URLHash.long_poll = 'true';
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -1490,17 +1494,38 @@ var graph_rrd = function(start,group,time) {
 				$.each(json.data.periods, function(key, value) {
     				if (start === value.split(",")[1]) {
     					dropdown_current = value.split(",")[0]+"  ";
-    				} else {
-    					dropdown_html_list += '<li><a href="javascript: void(0)" id="rrdperiod_'+key+'" ';
-    					dropdown_html_list += '>'+value.split(",")[0]+'</a></li>';
- 
     				}
+    				dropdown_html_list += '<li><a href="javascript: void(0)" id="rrdperiod_'+key+'" ';
+    				dropdown_html_list += '>'+value.split(",")[0]+'</a></li>';
 				});
-				dropdown_html += dropdown_current+'<span class="caret"></span></button><ul class="dropdown-menu">';
+				
+//				dropdown_html += dropdown_current+'<span class="caret"></span></button><ul class="dropdown-menu">';
+				dropdown_html += '<span class="rrd-current"></span><span class="caret"></span></button><ul class="dropdown-menu">';
+    
 				dropdown_html += dropdown_html_list;
 				dropdown_html += '</ul></div>';
-				
-				$('#rrd-periods').append(dropdown_html);
+				console.log("1 new_data="+new_data+" start="+start);
+				if (new_data == 0) {
+				    $('#rrd-periods').append(dropdown_html);
+				    				//sort the legend
+				    json.data.data.sort(function(a, b){
+    				    if(a.label < b.label) return -1;
+    				    if(a.label > b.label) return 1;
+    				    return 0;
+				    })
+				    console.log('in init data section');
+				    					// put the selection list on the side.
+				    for (var i = 0; i < json.data.data.length; i++){
+					    var legli = $('<li style="list-style:none;"/>').appendTo('#rrd-legend');
+					    $('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
+					    $('<label>', {
+						    class: "rrd-legend-class",
+						    text: json.data.data[i].label,
+				    	    'for': json.data.data[i].label
+						    }).appendTo(legli);
+				    }
+				}
+				$('.dropdown').find('.rrd-current').text(dropdown_current);
 				
 				var last_timestamp = "unavailable";
 				if (json.data.last_update !== undefined) {
@@ -1516,26 +1541,9 @@ var graph_rrd = function(start,group,time) {
     				var period = $(this).attr("id").match(/rrdperiod_(.*)/)[1]; 
     				var new_start = json.data.periods[period].split(',')[1];
 					$('.open').removeClass('open');
-					graph_rrd(new_start,group);
+					clearTimeout(refresh_loop); //stop the old refresh since we have a new time period
+					graph_rrd(new_start,group,0);
 				});
-
-				//sort the legend
-				json.data.data.sort(function(a, b){
-    				if(a.label < b.label) return -1;
-    				if(a.label > b.label) return 1;
-    				return 0;
-				})
-
-					// put the selection list on the side.
-				for (var i = 0; i < json.data.data.length; i++){
-					var legli = $('<li style="list-style:none;"/>').appendTo('#rrd-legend');
-					$('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
-					$('<label>', {
-						class: "rrd-legend-class",
-						text: json.data.data[i].label,
-				    	'for': json.data.data[i].label
-						}).appendTo(legli);
-				}
  
 				function plotAccordingToChoices() {
     				var data = [];
@@ -1611,8 +1619,10 @@ var graph_rrd = function(start,group,time) {
 
 				$('.legendColorBox > div > div').each(function(i){
 					var color = $(this).css("border-left-color");
-    				$('#rrd-legend').find("li").eq(i).prepend('<span style="width:4px;height:4px;border: 0px;background: '+color+';">&nbsp;&nbsp;&nbsp;</span>&nbsp');
-					});
+					if (new_data == 0) {
+    				    $('#rrd-legend').find("li").eq(i).prepend('<span style="width:4px;height:4px;border: 0px;background: '+color+';">&nbsp;&nbsp;&nbsp;</span>&nbsp');
+    				}
+				});
 				requestTime = json.meta.time;
 
 			}
@@ -1622,7 +1632,9 @@ var graph_rrd = function(start,group,time) {
 				if ($('#top-graph').length !== 0){
 //TODO live updates
 					//If the graph  page is still active request more data
-//					graph_rrd(start,group,requestTime);
+					refresh_loop = setTimeout(function(){
+					    graph_rrd(start,group,0);
+					}, refresh * 1000);
 				}
 			}		
 		}
@@ -1833,6 +1845,7 @@ var object_history = function(items,start,days,time) {
 				//Call update again, if page is still here
 				//KRK best way to handle this is likely to check the URL hash
 //TODO live updates
+
 			}		
 		}
 	});
@@ -2405,8 +2418,8 @@ var floorplan = function(group,time) {
             }
             if (time === 0){
                 // hack to fix initial positions of the items
-                var wait = 50;
-                //console.log("FP: calling  fp in  " +wait+ "ms");
+                var wait = 500;
+                console.log("FP: calling  fp in  " +wait+ "ms");
                 setTimeout(function(){
                     //console.log("FP: calling fp after " +wait+ "ms");
                     fp_reposition_entities();
@@ -2746,11 +2759,13 @@ var authorize_modal = function(user) {
 	});	
 	$('#LoginModalpw').submit( function (e) {
 		e.preventDefault();
-		//console.log("Custom submit function");
+		var encoded_data = $(this).serialize();
+		encoded_data = encoded_data.replace(/\!/g,"%21"); //for some reason serialize doesn't encode a !...
+		//console.log("Custom submit function: "+$(this).serialize()+" "+encoded_data);
 		$.ajax({
 			type: "POST",
 			url: "/SET_PASSWORD_FORM",
-			data: $(this).serialize(),
+			data: encoded_data,
 			success: function(data){
 				var status=data.match(/\<b\>(.*)\<\/b\>/gm);
 				//console.log("match="+status[2]); //3rd match is password status

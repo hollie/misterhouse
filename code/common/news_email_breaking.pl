@@ -34,12 +34,11 @@ Subject: CNN Breaking News
 Body: 
 -- CNN confirms Sen. Barack Obama has chosen Delaware Sen. Joe Biden to be his vice-presidential running mate.
 
->+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
+>+...[line break removed as it breaks pod comments]
 CNN covers the conventions: the Democrats live from Denver starting
 Monday and the Republicans live from Minneapolis-St. Paul starting
 September 1 on CNN and CNN.com. http://www.cnnpolitics.com
->+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
-
+>+...[line break removed as it breaks pod comments]
 
 
 You have opted-in in to receive this e-mail from CNN.com.

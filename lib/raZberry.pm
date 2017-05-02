@@ -1,5 +1,5 @@
 
-=head1 B<raZberry> v2.0
+=head1 B<raZberry> v2.0.1
 
 =head2 SYNOPSIS
 
@@ -112,6 +112,9 @@ http calls can cause pauses. There are a few possible options around this;
 
 
 =head2 CHANGELOG
+v2.0.1
+- added full poll for getting battery data
+
 v2.0
 - added in authentication method for razberry 2.1.2+ support
 - supports a push method when used in conjunction with the HTTPGet automation module
@@ -192,6 +195,7 @@ sub new {
     my ( $class, $addr, $poll, $options ) = @_;
     my $self = {};
     bless $self, $class;
+    &main::print_log("[raZberry]: v2.0.1 Controller Initializing...");
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
     $self->{config}->{poll_seconds} = 5;
@@ -215,7 +219,7 @@ sub new {
     $self->{port}  = $port if ($port);
     $self->{debug} = 0;
     ( $self->{debug} ) = ( $options =~ /debug=(\s+)/i ) if ( ( defined $options ) and ( $options =~ m/debug=/i ) );
-    $self->{debug}           = $main::Debug{raZberry} if ( defined $main::Debug{raZberry} );
+    $self->{debug}           = $main::Debug{razberry} if ( defined $main::Debug{razberry} );
     $self->{lastupdate}      = undef;
     $self->{timeout}         = 2;
     $self->{timeout}         = $main::config_parms{raZberry_timeout} if ( defined $main::config_parms{raZberry_timeout} );
@@ -305,11 +309,13 @@ sub get_controllerdata {
 }
 
 sub poll {
-    my ($self) = @_;
+    my ( $self, $option ) = @_;
 
+    $option = "" unless ( defined $option );
     &main::print_log("[raZberry]: Polling initiated") if ( $self->{debug} );
     my $cmd = "";
     $cmd = "?since=" . $self->{lastupdate} if ( defined $self->{lastupdate} );
+    $cmd = "" if ( lc $option eq "full" );
     &main::print_log("[raZberry]: cmd=$cmd") if ( $self->{debug} > 1 );
 
     for my $dev ( keys %{ $self->{data}->{force_update} } ) {
@@ -335,10 +341,13 @@ sub poll {
             #my ($id) = ( split /_/, $item->{id} )[2];
             my ($id) = ( split /_/, $item->{id} )[-1];    #always just get the last element
             print "id=$id\n" if ( $self->{debug} > 1 );
+            &main::print_log("[raZberry]: WARNING: device $id level is undefined")
+              if ( ( !defined $item->{metrics}->{level} ) or ( lc $item->{metrics}->{level} eq "undefined" ) );
             my $battery_dev = 0;
             $battery_dev = 1 if ( $id =~ m/-0-128$/ );
             my $voltage_dev = 0;
             $voltage_dev = 1 if ( $id =~ m/-0-50-\d$/ );
+
             if ($battery_dev) {                           #for a battery, set a different object
                 $self->{data}->{devices}->{$id}->{battery_level} = $item->{metrics}->{level};
             }
@@ -987,9 +996,12 @@ sub battery_check {
         return;
     }
 
-    if ( $self->{battery_level} eq "" ) {
-        main::print_log("[raZberry_blind] INFO Battery level currently undefined");
-        return;
+    if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) ) {
+        $$self{master_object}->poll("full");
+        if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) ) {
+            main::print_log("[raZberry_blind] INFO Battery level currently undefined");
+            return;
+        }
     }
     main::print_log( "[raZberry_blind] INFO Battery currently at " . $self->{battery_level} . "%" );
     if ( ( $self->{battery_level} < 30 ) and ( $self->{battery_alert} == 0 ) ) {
@@ -999,6 +1011,7 @@ sub battery_check {
     else {
         $self->{battery_alert} = 0;
     }
+    return $self->{battery_level};
 }
 
 sub _battery_timer {
@@ -1009,7 +1022,7 @@ sub _battery_timer {
 
 sub battery_level {
     my ($self) = @_;
-
+    $$self{master_object}->poll("full") if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) );
     return ( $self->{battery_level} );
 }
 
@@ -1034,9 +1047,9 @@ sub new {
     $$self{devid}         = $devid;
     $$self{devid_battery} = $devid_battery;
     $$self{type}          = "Lock.Battery";
-
-    $object->register( $self, $devid,         $options );
     $object->register( $self, $devid_battery, $options );
+    $$self{type} = "Lock";
+    $object->register( $self, $devid, $options );
 
     #$self->set($object->get_dev_status,$devid,'poll');
     $self->{level}                = "";
@@ -1095,7 +1108,7 @@ sub level {
 
 sub battery_level {
     my ($self) = @_;
-
+    $$self{master_object}->poll("full") if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) );
     return ( $self->{battery_level} );
 }
 
@@ -1122,9 +1135,12 @@ sub update_data {
 
 sub battery_check {
     my ($self) = @_;
-    if ( $self->{battery_level} eq "" ) {
-        &main::print_log("[raZberry_lock] INFO Battery level currently undefined");
-        return;
+    if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) ) {
+        $$self{master_object}->poll("full");
+        if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) ) {
+            main::print_log("[raZberry_lock] INFO Battery level currently undefined");
+            return;
+        }
     }
     &main::print_log( "[raZberry_lock] INFO Battery currently at " . $self->{battery_level} . "%" );
     if ( ( $self->{battery_level} < 30 ) and ( $self->{battery_alert} == 0 ) ) {
@@ -1134,6 +1150,7 @@ sub battery_check {
     else {
         $self->{battery_alert} = 0;
     }
+    return $self->{battery_level};
 }
 
 sub enable_user {
@@ -1530,7 +1547,7 @@ sub new {
 
 sub battery_level {
     my ($self) = @_;
-
+    $$self{master_object}->poll("full") if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) );
     return ( $self->{battery_level} );
 }
 
@@ -1548,7 +1565,6 @@ sub isfailed {
 
 sub update_data {
     my ( $self, $data ) = @_;
-
     $self->{battery_level} = $data->{battery_level};
     $self->SUPER::set( $self->{battery_level} );
 
@@ -1556,9 +1572,12 @@ sub update_data {
 
 sub battery_check {
     my ($self) = @_;
-    if ( $self->{battery_level} eq "" ) {
-        main::print_log("[raZberry_battery] INFO Battery level currently undefined");
-        return;
+    if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) ) {
+        $$self{master_object}->poll("full");
+        if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) ) {
+            main::print_log("[raZberry_battery] INFO Battery level currently undefined");
+            return;
+        }
     }
     main::print_log( "[raZberry_battery] INFO Battery currently at " . $self->{battery_level} . "%" );
     if ( ( $self->{battery_level} < 30 ) and ( $self->{battery_alert} == 0 ) ) {
@@ -1568,6 +1587,7 @@ sub battery_check {
     else {
         $self->{battery_alert} = 0;
     }
+    return $self->{battery_level};
 }
 
 package raZberry_voltage;
