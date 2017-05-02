@@ -1,5 +1,5 @@
-// v1.4.200
-//TODO : floorplan on IOS8, pretty error screen if no data
+// v1.4.350
+//TODO : floorplan on IOS8
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -739,7 +739,7 @@ var loadList = function() {
 
  //Add tooltips to any truncated buttons
 var generateTooltips = function () {
-    if (show_tooltips) {
+    if ((show_tooltips) && (mobile_device() == "no") ){ //no sense in having tooltips on a touch device
 	    $(".btn").each(function( index ) {
 	        if ($(this)[0].scrollWidth > 0) {
 	            //if scrollWidth is greater than outerWidth then bootstrap has truncated the button text
@@ -1047,7 +1047,7 @@ var updateStaticPage = function(link,time) {
 
 function authDetails() {
 	if (json_store.collections[700] == undefined) {
-		alert("Warning, Collection ID 700: Authorize, is not defined in your collections.json!");
+		if ($(".alert-err").length == 0 ) something_went_wrong("Collections","Collection ID 700: Authorize, is not defined in your collections.json!");
 	} else {
 		if (json_store.collections[700].user !== undefined) {
    			if (json_store.collections[700].user == "0") {
@@ -1076,6 +1076,10 @@ var loadCollection = function(collection_keys) {
 	var entity_arr = [];
 	var items = "";
 	var entity_sort = json_store.collections[last_collection_key].children;
+	if (entity_sort == undefined) {
+	    something_went_wrong("Collections","Problem with collections.json. Check the print log");
+	    return;
+	}
 	if (entity_sort.length <= 0){
 		entity_arr.push("Childless Collection");
 	}
@@ -1304,6 +1308,24 @@ var print_log = function(type,time) {
 	});
 };
 
+var something_went_wrong = function(module,text) {
+
+    var type = "danger";
+	var mobile = "";
+	if ($(window).width() <= 768) { // override the responsive mobile top-buffer
+		mobile = "mobile-alert";
+	}
+    var html = "<div class='alert-err alert "+mobile+" alert-" + type + " fade in' data-alert>";
+    html += "<button type='button' class='close' data-dismiss='alert'>x</button>";
+    html += "<div class=''>";
+    html += "<i class='fa fa-exclamation-triangle icon-larger fa-2x fa-fw pull-left'></i>";
+    html += "<div class='sww-text'>";
+    html += "<h3 class='sww-text-msg'>ERROR</h3>" + module + " : " + text + " </div></div></div>";
+    
+	$("#alert-area").prepend($(html));
+	
+}
+
 
 var get_notifications = function(time) {
 	if (time === undefined) time = new Date().getTime();
@@ -1395,6 +1417,7 @@ function playWhenReady()
   } else if(audioElement.error) {
       var errorText=['(no error)','User interrupted download','Network error caused interruption','Miscellaneous problem with media data','Cannot actually decode this media'];
       console.log("Something went wrong!\n"+errorText[audioElement.error.code]);
+      something_went_wrong("audio","audioElement.error");
   } else { //check for media ready again in half a second
       setTimeout(playWhenReady,500);
   }
@@ -1486,6 +1509,7 @@ var graph_rrd = function(start,group,time) {
 
 	var URLHash = URLToHash();
 	var new_data = 1;
+	var data_timeout = 0;
 	if (typeof time === 'undefined'){
 		$('#list_content').html("<div id='top-graph' class='row top-buffer'>");
 		$('#top-graph').append("<div id='rrd-periods' class='row'>");
@@ -1520,7 +1544,12 @@ var graph_rrd = function(start,group,time) {
 				// HP jquery would allow selected values to be replaced in the future.
 
 				if (json.data.data !== undefined) {  //If no data, at least show the header and an error
-//TODO
+				    data_timeout++;
+				    //sometimes the first call for data doesn't return anything. Try a few times.
+				    if (data_timeout > 3) {
+                        something_went_wrong('RRD','No Data Returned by MH Json Server');
+                        return;
+                    }
 				}	
 				var dropdown_html = '<div class="dropdown"><button class="btn btn-default rrd-period-dropdown" data-target="#" type="button" data-toggle="dropdown">';
 				var dropdown_html_list = "";
@@ -1539,7 +1568,7 @@ var graph_rrd = function(start,group,time) {
     
 				dropdown_html += dropdown_html_list;
 				dropdown_html += '</ul></div>';
-				console.log("1 new_data="+new_data+" start="+start);
+				//console.log("1 new_data="+new_data+" start="+start);
 				if (new_data == 0) {
 				    $('#rrd-periods').append(dropdown_html);
 				    				//sort the legend
@@ -1548,7 +1577,6 @@ var graph_rrd = function(start,group,time) {
     				    if(a.label > b.label) return 1;
     				    return 0;
 				    })
-				    console.log('in init data section');
 				    					// put the selection list on the side.
 				    for (var i = 0; i < json.data.data.length; i++){
 					    var legli = $('<li style="list-style:none;"/>').appendTo('#rrd-legend');
@@ -1682,6 +1710,7 @@ var object_history = function(items,start,days,time) {
 
 	var URLHash = URLToHash();
 	var graph = 0;
+	var data_timeout = 0;
 	if (developer) graph = 1;  //right now only show the graph if in developer mode
 	if (typeof time === 'undefined'){
 		if (graph) {
@@ -1719,7 +1748,12 @@ var object_history = function(items,start,days,time) {
 				// HP jquery would allow selected values to be replaced in the future.
 
 				if (json.data.data !== undefined) {  //If no data, at least show the header and an error
-//TODO
+					data_timeout++;
+				    //sometimes the first call for data doesn't return anything. Try a few times.
+				    if (data_timeout > 3) {
+                        something_went_wrong('Object_History','No Data Returned by MH Json Server');
+                        return;
+                    }
 				}	
 				if (start == undefined) {
 					start = new Date().getTime();
@@ -1946,7 +1980,7 @@ var fp_resize_floorplan_image = function(){
 };
 
 var fp_reposition_entities = function(){
-    var t0 = performance.now();
+    //var t0 = performance.now();
     var fp_graphic_offset = $("#fp_graphic").offset();
 //    console.log("fp_graphic_offset: "+ JSON.stringify(fp_graphic_offset));
     var width = fp_display_width;
@@ -2009,7 +2043,7 @@ var fp_reposition_entities = function(){
 	$('.icon_select img').each(function(){
         $(this).width(fp_scale_percent + "%");
 	});
-    var t1 = performance.now();
+    //var t1 = performance.now();
     //console.log("FP: reposition and scale: " +Math.round(t1 - t0) + "ms ");
 };
 
@@ -2080,7 +2114,6 @@ var floorplan = function(group,time) {
         $('#fp_graphic').attr("src", base_img_dir+'/floorplan-'+group+'.png');
         return;
     }
-
     if (updateSocket !== undefined && updateSocket.readyState !== 4){
         // Only allow one update thread to run at once
         updateSocket.abort();
@@ -2098,7 +2131,6 @@ var floorplan = function(group,time) {
 
             //var pos =   Math.round((t/hight) *100) +"," + Math.round((l/width)*100);
             var pos =  (t/hight) *100 +"," + (l/width)*100;
-            //console.log("floorplanpos: " + pos );
             $('#debug_pos').text(pos);
             if (fp_grabbed_entity !== null){
                 //var itemCenterOffset = Math.round(fp_grabbed_entity.width/2);
@@ -2108,8 +2140,6 @@ var floorplan = function(group,time) {
                     "left": e.pageX - itemCenterOffset
                 };
                 fp_set_pos(fp_grabbed_entity.id, newPos);
-                //console.log(fp_grabbed_entity.id +" pos: " +newPos.top + " x " + newPos.left);
-                //fp_grabbed_entity.class.replace("coords=.*", "coords="+pos);
             }
         });
 
@@ -2195,6 +2225,7 @@ var floorplan = function(group,time) {
         $("#fp_pos_perl_code").text(newCode);
     };
 
+
     // reposition on window size change
     window.onresize = function(){
         if ($('#floorplan').length === 0)
@@ -2203,16 +2234,13 @@ var floorplan = function(group,time) {
             return;
         }
 
-//        console.log("FP: window resized");
         fp_resize_floorplan_image();
         fp_reposition_entities();
     };
 
     var path_str = "/objects";
     var fields = "fields=fp_location,state,states,fp_icons,schedule,logger_status,fp_icon_set,img,link,label,type";
-    if (json_store.ia7_config.prefs.state_log_show === "yes")
-        fields += ",state_log";
-
+    if (json_store.ia7_config.prefs.state_log_show === "yes") fields += ",state_log";
     var arg_str = "parents="+group+"&"+fields+"&long_poll=true&time="+time;
 
     updateSocket = $.ajax({
@@ -2220,13 +2248,12 @@ var floorplan = function(group,time) {
         url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
         dataType: "json",
         error: function(xhr, textStatus, errorThrown){
-            //   console.log('FP: request failed: "' + textStatus + '" "'+JSON.stringify(errorThrown, undefined,2)+'"');
+               console.log('FP: request failed: "' + textStatus + '" "'+JSON.stringify(errorThrown, undefined,2)+'"');
         },
         success: function( json, statusText, jqXHR ) {
-            //  console.log('FP: request succeeded: "' + statusText + '" "'+JSON.stringify(jqXHR, undefined,2)+'"');
             var requestTime = time;
             if (jqXHR.status === 200) {
-                var t0 = performance.now();
+                //var t0 = performance.now();
                 JSONStore(json);
                 for (var entity in json.data) {
                     if (developer && requestTime === 0){
@@ -2441,7 +2468,7 @@ var floorplan = function(group,time) {
                     });
                 }
                 requestTime = json.meta.time;
-                var t1 = performance.now();
+                //var t1 = performance.now();
             }
             if (jqXHR.status === 200 || jqXHR.status === 204) {
                 //Call update again, if page is still here
@@ -2456,7 +2483,7 @@ var floorplan = function(group,time) {
             if (time === 0){
                 // hack to fix initial positions of the items
                 var wait = 500;
-                console.log("FP: calling  fp in  " +wait+ "ms");
+                //console.log("FP: calling  fp in  " +wait+ "ms");
                 setTimeout(function(){
                     //console.log("FP: calling fp after " +wait+ "ms");
                     fp_reposition_entities();
@@ -2465,6 +2492,7 @@ var floorplan = function(group,time) {
         }
     });
 };
+
 var get_fp_image = function(item,size,orientation) {
   	var image_name;
 	var image_color = getButtonColor(item.state);
