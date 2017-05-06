@@ -1,6 +1,6 @@
 package Nanoleaf_Aurora;
 
-# v1.0.5
+# v1.0.9
 
 #if any effect is changed, by definition the static child should be set to off.
 #cmd data returns, need to check by command
@@ -8,7 +8,8 @@ package Nanoleaf_Aurora;
 
 #effects, turn static off and clear out static_check
 
-#line 438 $mode|$cmd queue
+#TODO
+#- confirm v1 API
 
 use strict;
 use warnings;
@@ -20,21 +21,49 @@ use Data::Dumper;
 use IO::Select;
 use IO::Socket::INET;
 
+# REQUIRES AURORA FIRMWARE v1.4.39+ For v1.4.39 pass the option api=beta.
+#
+# To set up, first pair with mobile app -- the Aurora needs to be set up initially with the app
+# to get it's wifi information. After it is successfully set up, it should be locatable via SSDP
+# If multiple new Aurora's are plugged in at the same time, the SSDP query may not return unique
+# addresses. Just add one at a time.
+#
+# To generate a token and allow local control, press and hold the power button for a few seconds
+# until the controller light blinks.
+# In a few seconds the MH print log should show that a token has been found.
+# the location URL and tokens are stored in the mh.ini file
+
 # Nanoleaf_Aurora Objects
-# $aurora         = new NanoLeaf_Aurora(<id>,<nl_id>,<location>,<poll>,<options>);
+#
+# $aurora         = new NanoLeaf_Aurora(<id>,<url>,<token>,<poll>,<options>);
 # $aurora_effects = new NanoLeaf_Aurora_Effects($aurora);
 # $aurora_static1 = new NanoLeaf_Aurora_Static($aurora, "effect string");
 # $aurora_comm    = new Nanoleaf_Aurora_Comm($aurora);
 
-# Version History
-# v1.0   - initial
-# v1.0.1 - initial static support
-# v1.0.2 - multiple auroras, brightness
-# v1.0.3 - working static. turn on, overrides effect, turning off will restore previous effect
-# v1.0.4 - Voice Commands
-# v1.0.5 - working multi static
+# MH.INI settings
+# If the token is auto generated, it will be written to the mh.ini. MH.INI settings can be used
+# instead of object defintions
+#
+# aurora_<ID>_url =
+# aurora_<ID>_token =
+# aurora_<ID>_poll =
+# aurora_<ID>_options =
+#
+# for example
+#aurora_1_url = http://10.10.0.20:16021
+#aurora_1_token = EfgrIHH887EHhftotNNSD818erhNWHR0
+#aurora_1_options = 'api=beta'
+
+# OPTIONS
+# current options that can be passed are;
+#  - api=<level>
+#  - debug=<level>
+#  - loglevel=<level>
 
 # Notes
+#
+# The best way to set up static strings is to configure them in the mobile app, and then use the voice command
+# get static string to print out the static configuration to the print log.
 
 # Issues
 
@@ -56,50 +85,67 @@ $rest{set_static}  = "effects";
 $rest{brightness}  = "state/brightness";
 $rest{brightness2} = "state/brightness";
 $rest{get_static}  = "effects";
+$rest{identify}    = "identify";
 
 our %opts;
 $opts{info}        = "-ua";
 $opts{auth}        = "-json -post '{}'";
-$opts{on}          = "-json -put '{\"on\":true}'";
-$opts{off}         = "-json -put '{\"on\":false}'";
-$opts{set_effect}  = "-json -put '{\"select\":";
-$opts{set_static}  = "-json -put '{\"write\":{\"command\":\"display\",\"version\":\"1.0\",\"animType\":\"static\",\"animData\":";
-$opts{brightness}  = "-json -put '{\"value\":";
-$opts{brightness2} = "-json -put '{\"increment\":";
-$opts{get_static}  = "-json -put '{\"write\":{\"command\":\"request\",\"version\":\"1.0\",\"animName\":\"*Static*\"}}'";
+$opts{on}          = "-response_code -json -put '{\"on\":true}'";
+$opts{off}         = "-response_code -json -put '{\"on\":false}'";
+$opts{set_effect}  = "-response_code -json -put '{\"select\":";
+$opts{set_static}  = "-response_code -json -put '{\"write\":{\"command\":\"display\",\"version\":\"1.0\",\"animType\":\"static\",\"animData\":";
+$opts{brightness}  = "-response_code -json -put '{\"value\":";
+$opts{brightness2} = "-response_code -json -put '{\"increment\":";
+$opts{get_static}  = "-response_code -json -put '{\"write\":{\"command\":\"request\",\"version\":\"1.0\",\"animName\":\"*Static*\"}}'";
+$opts{identify}    = "-response_code -json -put '{}'";
 
-my $api_path = "/api/beta";
+my $api_path = "/api/v1";
+our %active_auroras = ();
 
 sub new {
-    my ( $class, $id, $nl_deviceid, $location, $poll, $options ) = @_;
+    my ( $class, $id, $url, $token, $poll, $options ) = @_;
     my $self = {};
     bless $self, $class;
-    $self->{data}         = undef;
-    $self->{child_object} = undef;
-    $options = "" unless ( defined $options );
+    $self->{name} = "1";
+    $self->{name} = $id if ($id);
+
+    $self->{data}                   = undef;
+    $self->{child_object}           = undef;
     $self->{config}->{poll_seconds} = 10;
+    $self->{config}->{poll_seconds} = $::config_parms{ "aurora_" . $self->{name} . "_poll" }
+      if ( defined $::config_parms{ "aurora_" . $self->{name} . "_poll" } );
     $self->{config}->{poll_seconds} = $poll if ($poll);
-    $self->{config}->{poll_seconds} = 1 if ( $self->{config}->{poll_seconds} < 1 );
+    $self->{config}->{poll_seconds} = 1     if ( $self->{config}->{poll_seconds} < 1 );
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{name}                   = "1";
-    $self->{module_version}         = "v1.0.2";
+    $self->{module_version}         = "v1.0.9";
     $self->{ssdp_timeout}           = 4000;
-    $self->{name}        = $id if ($id);
-    $self->{last_static} = "";
-    $self->{nl_deviceid} = "";
-    $self->{nl_deviceid} = $nl_deviceid if ( defined $nl_deviceid );
-    $self->{location}    = $location;
-    $self->{debug}       = 5;
+    $self->{last_static}            = "";
+
+    $self->{url}   = $url;
+    $self->{url}   = $::config_parms{ "aurora_" . $self->{name} . "_url" } if ( $::config_parms{ "aurora_" . $self->{name} . "_url" } );
+    $self->{token} = $token;
+    $self->{token} = $::config_parms{ "aurora_" . $self->{name} . "_token" } if ( $::config_parms{ "aurora_" . $self->{name} . "_token" } );
+    $options = "" unless ( defined $options );
+    $options = $::config_parms{ "aurora_" . $self->{name} . "_options" } if ( $::config_parms{ "aurora_" . $self->{name} . "_options" } );
+
+    $self->{debug} = 0;
     ( $self->{debug} ) = ( $options =~ /debug\=(\d+)/i ) if ( $options =~ m/debug\=/i );
-    $self->{debug}                   = 0 if ( $self->{debug} < 0 );
-    $self->{loglevel}                = 5;
+    $self->{debug} = 0 if ( $self->{debug} < 0 );
+    ( $self->{debug} ) = ( $options =~ /debug\=(\d+)/i );
+    $self->{loglevel} = 5;
+    ( $self->{loglevel} ) = ( $options =~ /loglevel\=(\d+)/i );
+
+    $self->{api_path} = $api_path;
+    if ( $options =~ m/api\=/i ) {
+        my ($api_ver) = ( $options =~ /api\=(\w+)/i );
+        $self->{api_path} = "/api/" . $api_ver;
+    }
     $self->{poll_data_timestamp}     = 0;
     $self->{max_poll_queue}          = 3;
     $self->{max_cmd_queue}           = 5;
     $self->{cmd_process_retry_limit} = 6;
-    $self->{config_file}             = "$::config_parms{data_dir}/Aurora_config.json";
 
     @{ $self->{poll_queue} } = ();
     $self->{poll_data_file} = "$::config_parms{data_dir}/Aurora_poll_" . $self->{name} . ".data";
@@ -116,7 +162,6 @@ sub new {
     $self->get_data();
     $self->{init}      = 0;
     $self->{init_data} = 0;
-    $self->{file}      = 0;
     push( @{ $$self{states} }, 'off', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', 'on' );
     $self->{timer} = new Timer;
     $self->start_timer;
@@ -140,41 +185,41 @@ sub get_data {
     my ($self) = @_;
 
     main::print_log( "[Aurora:" . $self->{name} . "] get_data initiated" ) if ( $self->{debug} );
-    print "db: self->{token} [$self->{token}] self->{location} [$self->{location}]\n";
 
     #Check that we have data
-    if ( ( !$self->{file} ) and ( -f $self->{config_file} ) and ( !defined $self->{location} ) ) {
-        main::print_log( "[Aurora:" . $self->{name} . "] get file data" ) if ( $self->{debug} );
-        ( $self->{location}, $self->{nl_deviceid}, $self->{token} ) = $self->get_config_data( $self->{nl_deviceid} );
-    }
-    if ( !defined $self->{location} ) {
+
+    if ( !defined $self->{url} ) {
         main::print_log( "[Aurora:" . $self->{name} . "] get ssdp data" ) if ( $self->{debug} );
-
-        ( $self->{location}, $self->{nl_deviceid} ) = $self->get_ssdp_data( $self->{nl_deviceid} );
-
-        #TODO            $self->update_config_data() if ($self->{location});
+        $self->{url} = $self->get_ssdp_data();
+        $self->update_config_data() if ( $self->{url} );
     }
 
     #Check for a token
-    if ( ( !defined $self->{token} ) and ( defined $self->{location} ) ) {
-        main::print_log( "[Aurora:" . $self->{name} . "] Location found ($self->{location})" );
+    if ( ( !defined $self->{token} ) and ( defined $self->{url} ) ) {
+        main::print_log( "[Aurora:" . $self->{name} . "] Activating Location URL $self->{url}" );
         main::print_log( "[Aurora:" . $self->{name} . "] Please hold down power button to generate access token" );
-        eval { ia7_notify( "[Aurora:" . $self->{name} . "] Please hold down power button to generate access token" ); };
+        eval {
+            my %data;
+            $data{text}  = "[Aurora:" . $self->{name} . "] Please hold down power button to generate access token";
+            $data{color} = "yellow";
+            &json_notification( "banner", {%data} );
+        };
         $self->get_auth();
 
         #if we have a location and token, then get some data
     }
-    elsif ( $self->{token} and $self->{location} ) {
+    elsif ( $self->{token} and $self->{url} ) {
         $self->poll();
 
         if ( ( defined $self->{data}->{panels} ) and ( $self->{init} == 0 ) ) {
-            main::print_log( "[Aurora:" . $self->{name} . "] " . $self->{module_version} . "Configuration Loaded" );
+            main::print_log( "[Aurora:" . $self->{name} . "] " . $self->{module_version} . " Configuration Loaded" );
+            $active_auroras{ $self->{url} } = 1;
             $self->print_info();
             $self->{init} = 1;
         }
     }
     else {
-        main::print_log( "[Aurora:" . $self->{name} . "] WARNING, Did not poll: location: $self->{location}, token: $self->{token}" ) if ( $self->{debug} );
+        main::print_log( "[Aurora:" . $self->{name} . "] WARNING, Did not poll: location: $self->{url}, token: $self->{token}" ) if ( $self->{debug} );
     }
 }
 
@@ -212,6 +257,10 @@ sub process_check {
             main::print_log( "[Aurora:" . $self->{name} . "] 403 Forbidden: Pair Button not pressed or auth token is incorrect" );
             return;
         }
+        my ($responsecode) = $file_data =~ /^RESPONSECODE:(\d+)\n/;
+        $file_data =~ s/^RESPONSECODE:\d+\n// if ($responsecode);
+
+        #print "debug: code=$responsecode\n" if ( $self->{debug} );
 
         #for some reason get_url adds garbage to the output. Clean out the characters before and after the json
         print "debug: file_data=$file_data\n" if ( $self->{debug} );
@@ -219,7 +268,7 @@ sub process_check {
         print "debug: json_data=$json_data\n" if ( $self->{debug} );
         unless ( ($file_data) and ($json_data) ) {
             main::print_log( "[Aurora:" . $self->{name} . "] ERROR! bad data returned by poll" );
-            main::print_log( "[Aurora:" . $self->{name} . "] ERROR! file data is $file_data. json data is $json_data" );
+            main::print_log( "[Aurora:" . $self->{name} . "] ERROR! file data is [$file_data]. json data is [$json_data]" );
             return;
         }
         my $data;
@@ -239,23 +288,37 @@ sub process_check {
 
                     #                    ($self->{data}->{panels}, $self->{data}->{panel_size}) = substr($data->{panelLayout}->{layout}->{layoutData},0,1);
                     my $layout;
-                    ( $self->{data}->{panels}, $self->{data}->{panel_size}, $layout ) = $data->{panelLayout}->{layout}->{layoutData} =~ /^(\d+)\s+(\d+)\s+(.*)/;
-                    my @panels = split / /, $layout;
-                    for ( my $i = 0; $i < $self->{data}->{panels}; $i++ ) {
-                        $self->{data}->{panel}->{ $panels[ $i * 4 ] }->{x} = $panels[ ( $i * 4 ) + 1 ];
-                        $self->{data}->{panel}->{ $panels[ $i * 4 ] }->{y} = $panels[ ( $i * 4 ) + 2 ];
-                        $self->{data}->{panel}->{ $panels[ $i * 4 ] }->{o} = $panels[ ( $i * 4 ) + 3 ];
+                    if ( defined $data->{panelLayout}->{layout}->{layoutData} ) {    #v1.4.39
+                        ( $self->{data}->{panels}, $self->{data}->{panel_size}, $layout ) =
+                          $data->{panelLayout}->{layout}->{layoutData} =~ /^(\d+)\s+(\d+)\s+(.*)/;
+                        my @panels = split / /, $layout;
+                        for ( my $i = 0; $i < $self->{data}->{panels}; $i++ ) {
+                            $self->{data}->{panel}->{ $panels[ $i * 4 ] }->{x} = $panels[ ( $i * 4 ) + 1 ];
+                            $self->{data}->{panel}->{ $panels[ $i * 4 ] }->{y} = $panels[ ( $i * 4 ) + 2 ];
+                            $self->{data}->{panel}->{ $panels[ $i * 4 ] }->{o} = $panels[ ( $i * 4 ) + 3 ];
+                        }
+                    }
+                    else {
+                        $self->{data}->{panels}     = $data->{panelLayout}->{layout}->{numPanels};
+                        $self->{data}->{panel_size} = $data->{panelLayout}->{layout}->{sideLength};
+                        for ( my $i = 0; $i < $self->{data}->{panels}; $i++ ) {
+                            $self->{data}->{panel}->{ @{ $data->{panelLayout}->{layout}->{positionData} }[$i]->{panelId} }->{x} =
+                              @{ $data->{panelLayout}->{layout}->{positionData} }[$i]->{x};
+                            $self->{data}->{panel}->{ @{ $data->{panelLayout}->{layout}->{positionData} }[$i]->{panelId} }->{y} =
+                              @{ $data->{panelLayout}->{layout}->{positionData} }[$i]->{y};
+                            $self->{data}->{panel}->{ @{ $data->{panelLayout}->{layout}->{positionData} }[$i]->{panelId} }->{o} =
+                              @{ $data->{panelLayout}->{layout}->{positionData} }[$i]->{o};
+                        }
                     }
 
+                    $self->process_data();
                 }
                 elsif ( $self->{poll_process_mode} eq "auth" ) {
                     main::print_log( "[Aurora:" . $self->{name} . "] Authentication token found!" );
                     $self->{token} = $data->{auth_token};
                     main::print_log( "[Aurora:" . $self->{name} . "] Token $self->{token}" ) if ( $self->{debug} );
-
-                    #TODO                    #$self->update_config_data();
+                    $self->update_config_data();
                 }
-                $self->process_data();
             }
             else {
                 main::print_log( "[Aurora:" . $self->{name} . "] ERROR! Returned data not structured! Not processing..." );
@@ -290,105 +353,101 @@ sub process_check {
 
     return unless ( defined $self->{cmd_process} );
     if ( $self->{cmd_process}->done_now() ) {
-        my $com_status = "online";
         main::print_log( "[Aurora:" . $self->{name} . "] Background Command " . $self->{cmd_process_mode} . " process completed" )
           if ( $self->{debug} );
         $self->get_data();    #poll since the command is done to get a new state
 
         my $file_data = &main::file_read( $self->{cmd_data_file} );
-        unless ($file_data) {
-            main::print_log( "[Aurora:" . $self->{name} . "] ERROR! no data returned by command" );
-            return;
-        }
 
-        #for some reason get_url adds garbage to the output. Clean out the characters before and after the json
-        print "debug: file_data=$file_data\n" if ( $self->{debug} );
-        my ($json_data) = $file_data =~ /({.*})/;
-        print "debug: json_data=$json_data\n" if ( $self->{debug} );
-        my $data;
-        eval { $data = JSON::XS->new->decode($json_data); };
+        my ($responsecode) = $file_data =~ /^RESPONSECODE:(\d+)\n/;
+        $file_data =~ s/^RESPONSECODE:\d+\n// if ($responsecode);
+        print "debug: code=$responsecode\n" if ( $self->{debug} );
 
-        # catch crashes:
-        if ($@) {
-            main::print_log( "[Aurora:" . $self->{name} . "] ERROR! JSON file parser crashed! $@\n" );
-            $com_status = "offline";
+        #print "success\n\n" if (($responsecode == 204) or ($responsecode == 200));
+        my $com_status = "offline";
+
+        if ( ( $responsecode == 204 ) or ( $responsecode == 200 ) ) {
+            $com_status = "online";
+
+            # Successful commands should be [200 OK, 204 No Content]
+            shift @{ $self->{cmd_queue} };    #remove the command from queue since it was successful
+            $self->{cmd_process_retry} = 0;
+
+            if ($file_data) {
+
+                #for some reason get_url adds garbage to the output. Clean out the characters before and after the json
+                print "debug: file_data=$file_data\n" if ( $self->{debug} );
+                my ($json_data) = $file_data =~ /({.*})/;
+                print "debug: json_data=$json_data\n" if ( $self->{debug} );
+                my $data;
+                eval { $data = JSON::XS->new->decode($json_data); };
+
+                # catch crashes:
+                if ($@) {
+                    main::print_log( "[Aurora:" . $self->{name} . "] ERROR! JSON file parser crashed! $@\n" );
+                    $com_status = "offline";
+                }
+                else {
+
+                    #print Dumper $data;
+
+                    if ( keys $data ) {
+
+                        #Process any returned data from a command straing
+                        if ( $self->{cmd_process_mode} eq "get_static" ) {
+                            main::print_log( "[Aurora:" . $self->{name} . "] get_static returned" );
+                            $self->{last_static} = $data->{animData} if ( defined $data->{animData} );    #just checked controller so update the static string
+                            if ( ( defined $self->{static_check}->{string} ) and ( $self->{static_check}->{string} eq $data->{animData} ) ) {
+                                $self->set_effect( $self->{static_check}->{effect} );
+                                $self->{static_check}->{string} = undef;
+                                $self->{static_check}->{effect} = undef;
+                            }
+                            if ( ( defined $self->{static_check}->{print} ) and ( $self->{static_check}->{print} ) ) {
+                                main::print_log( "[Aurora:" . $self->{name} . "] Static details. Current configuration string is" );
+                                main::print_log( "[Aurora:" . $self->{name} . "] $data->{animData}" );
+                                $self->{static_check}->{print} = 0;
+                            }
+
+                        }
+                    }
+
+                    $self->poll;
+                }
+            }
+
+            if ( scalar @{ $self->{cmd_queue} } ) {
+                my $cmd = @{ $self->{cmd_queue} }[0];    #grab the first command, but don't take it off.
+                $self->{cmd_process}->set($cmd);
+                $self->{cmd_process}->start();
+                main::print_log( "[Aurora:" . $self->{name} . "] Command Queue " . $self->{cmd_process}->pid() . " cmd=$cmd" )
+                  if ( ( $self->{debug} ) or ( $self->{cmd_process_retry} ) );
+            }
 
         }
         else {
-            #TODO - what are the possible command return strings
-            print "returned data is---------====================\n";
-            print Dumper $data;
 
-            if ( keys $data ) {
-
-                if ( $self->{cmd_process_mode} eq "get_static" ) {
-                    main::print_log( "[Aurora:" . $self->{name} . "] get_static returned" );
-                    $self->{last_static} = $data->{animData} if ( defined $data->{animData} );    #just checked controller so update the static string
-                    print "string=$self->{static_check}->{string}\n";
-                    if ( ( defined $self->{static_check}->{string} ) and ( $self->{static_check}->{string} eq $data->{animData} ) ) {
-                        $self->set_effect( $self->{static_check}->{effect} );
-                        $self->{static_check}->{string} = undef;
-                        $self->{static_check}->{effect} = undef;
-                    }
-                    if ( ( defined $self->{static_check}->{print} ) and ( $self->{static_check}->{print} ) ) {
-                        main::print_log( "[Aurora:" . $self->{name} . "] Static details. Current configuration string is" );
-                        main::print_log( "[Aurora:" . $self->{name} . "] $data->{animData}" );
-                        $self->{static_check}->{print} = 0;
-                    }
-
-                }
-
-                # Successful commands should be [200 OK, 204 No Content]
+            main::print_log( "[Aurora:" . $self->{name} . "] WARNING Issued command was unsuccessful, retrying..." );
+            if ( $self->{cmd_process_retry} > $self->{cmd_process_retry_limit} ) {
+                main::print_log( "[Aurora:" . $self->{name} . "] ERROR Issued command max retries reached. Abandoning command attempt..." );
                 shift @{ $self->{cmd_queue} };
+                $self->{cmd_process_retry} = 0;
+                $com_status = "offline";
+            }
+            else {
+                $self->{cmd_process_retry}++;
+            }
+        }
 
-                #                if ( $data eq "true" ) {
-                #                    shift @{ $self->{cmd_queue} };    #remove the command from queue since it was successful
-                #                    $self->{cmd_process_retry} = 0;
-                #                    $self->poll;
-                #                }
-                #                else {
-                #                    if ( defined $data->{reason} ) {
-                #                        main::print_log("[Aurora:" . $self->{name} . "] WARNING Issued command was unsuccessful (reason=" . $data->{reason} . ")" );
-                #                        shift @{ $self->{cmd_queue} };
-                #                    }
-                #                    else {
-                #                        main::print_log( "[Aurora:" . $self->{name} . "] WARNING Issued command was unsuccessful with no returned reason , retrying..." );
-                #                        if ( $self->{cmd_process_retry} > $self->{cmd_process_retry_limit} ) {
-                #                            main::print_log("[Aurora:" . $self->{name} . "] ERROR Issued command max retries reached. Abandoning command attempt..." );
-                #                            shift @{ $self->{cmd_queue} };
-                #                            $self->{cmd_process_retry} = 0;
-                #                            $com_status = "offline";
-                #                        }
-                #                        else {
-                #                            $self->{cmd_process_retry}++;
-                #                        }
-                #                    }
-                #                }
-                #            }
-                #            else {
-                #                print_log( "[Aurora:" . $self->{name} . "] ERROR! Returned data not structured! Not processing..." );
-                #                $com_status = "offline";
-                #            }
-                #        }
-                #        if ( scalar @{ $self->{cmd_queue} } ) {
-                #            my $cmd = @{ $self->{cmd_queue} }[0];    #grab the first command, but don't take it off.
-                #            $self->{cmd_process}->set($cmd);
-                #            $self->{cmd_process}->start();
-                #            main::print_log( "[Aurora:" . $self->{name} . "] Command Queue " . $self->{cmd_process}->pid() . " cmd=$cmd" )
-                #              if ( ( $self->{debug} ) or ( $self->{cmd_process_retry} ) );
-                #        }
-                if ( defined $self->{child_object}->{comm} ) {
-                    if ( $self->{status} ne $com_status ) {
-                        main::print_log "[Aurora:"
-                          . $self->{name}
-                          . "] Communication Tracking object found. Updating from "
-                          . $self->{child_object}->{comm}->state() . " to "
-                          . $com_status . "..."
-                          if ( $self->{loglevel} );
-                        $self->{status} = $com_status;
-                        $self->{child_object}->{comm}->set( $com_status, 'poll' );
-                    }
-                }
+        if ( defined $self->{child_object}->{comm} ) {
+            if ( $self->{status} ne $com_status ) {
+                main::print_log "[Aurora:"
+                  . $self->{name}
+                  . "] Communication Tracking object found. Updating from "
+                  . $self->{child_object}->{comm}->state() . " to "
+                  . $com_status . "..."
+                  if ( $self->{loglevel} );
+                $self->{status} = $com_status;
+                $self->{child_object}->{comm}->set( $com_status, 'poll' );
             }
         }
     }
@@ -399,8 +458,8 @@ sub _get_JSON_data {
     my ( $self, $mode, $params ) = @_;
     $params = $opts{$mode} unless defined($params);
     my $token = "";
-    $token = "/" . $self->{token} if ( defined $self->{location} and lc $mode ne "auth" );
-    my $cmd = "get_url $params " . '"' . $self->{location} . $api_path . "$token/$rest{$mode}" . '"';
+    $token = "/" . $self->{token} if ( defined $self->{url} and lc $mode ne "auth" );
+    my $cmd = "get_url $params " . '"' . $self->{url} . $self->{api_path} . "$token/$rest{$mode}" . '"';
     if ( $self->{poll_process}->done() ) {
         $self->{poll_process}->set($cmd);
         $self->{poll_process}->start();
@@ -441,7 +500,7 @@ sub _push_JSON_data {
         return;
     }
 
-    my $cmd = "get_url $params" . ' "' . $self->{location} . $api_path . "/" . $self->{token} . "/$rest{$mode}" . '"';
+    my $cmd = "get_url $params" . ' "' . $self->{url} . $self->{api_path} . "/" . $self->{token} . "/$rest{$mode}" . '"';
     if ( $self->{cmd_process}->done() ) {
         $self->{cmd_process}->set($cmd);
         $self->{cmd_process}->start();
@@ -476,6 +535,17 @@ sub _push_JSON_data {
 sub get_ssdp_data {
     my ( $self, $id, $timeout ) = @_;
 
+    #return a location that isn't in the $active_auroras hash
+
+    my ( $devices, $locations, $serials ) = scan_ssdp_data($timeout);
+    &main::print_log( "[Aurora:" . $self->{name} . "] in get_ssdp_data devices=$devices" ) if ( $self->{debug} );
+    &main::print_log( "[Aurora:" . $self->{name} . "] locations: " . join( ", ", @{$locations} ) ) if ( $self->{debug} );
+    &main::print_log( "[Aurora:" . $self->{name} . "] nl_serials: " . join( ", ", @{$serials} ) ) if ( $self->{debug} );
+    foreach my $dev ( @{$locations} ) {
+        &main::print_log( "[Aurora:" . $self->{name} . "] dev=$dev active_auroras{$dev}=$active_auroras{$dev}" ) if ( $self->{debug} );
+        return $dev unless ( $active_auroras{$dev} );
+    }
+    return;
 }
 
 sub scan_ssdp_data {
@@ -508,7 +578,7 @@ EOT
     my $dest = sockaddr_in( $port, inet_aton($addr) );
     send( $sock, $q, 0, $dest );
 
-    my @dev_locs = ();
+    my @dev_urls = ();
     my @dev_ids  = ();
     my $data;
     my $i;
@@ -527,25 +597,25 @@ EOT
         if ( $data =~ m/ST: nanoleaf_aurora:light/ ) {
 
             #print "found" . $data;
-            my ($location) = $data =~ /Location:\s+(.*)/;
+            my ($url) = $data =~ /Location:\s+(.*)/;
 
-            #print "location " . $location;
-            $location =~ s/[^a-zA-Z0-9\:\.\/]*//g;
-            push @dev_locs, $location;
+            #print "location " . $url;
+            $url =~ s/[^a-zA-Z0-9\:\.\/]*//g;
+            push @dev_urls, $url;
             my ($devid) = $data =~ /nl\-deviceid:\s+(.*)/;
 
-            #print "location " . $location;
+            #print "location " . $url;
             $devid =~ s/[^a-zA-Z0-9\:\.\/]*//g;
             push @dev_ids, $devid;
 
-            &main::print_log( "[Aurora:" . $self->{name} . "] Found Aurora: $location, nl-deviceid: $devid" );
+            &main::print_log( "[Aurora:" . $self->{name} . "] Found Aurora: $url, nl-deviceid: $devid" );
 
             #last;
         }
     }
-    $discovery .= "< [" . scalar @dev_locs . "]\n";
+    $discovery .= "< [" . scalar @dev_urls . "]\n";
     &main::print_log( "[Aurora:" . $self->{name} . "] $discovery" );
-    return ( scalar @dev_locs, \@dev_locs, \@dev_ids );
+    return ( scalar @dev_urls, \@dev_urls, \@dev_ids );
 }
 
 sub _mcast_add {
@@ -576,113 +646,27 @@ sub _constant {
     return $ref->[$index];
 }
 
-sub read_config_data {
-    my ($self) = @_;
-
-    my $file_data = &main::file_read( $self->{config_file} );
-    unless ($file_data) {
-        main::print_log( "[Aurora:" . $self->{name} . "] WARNING! Cannot read config file $self->{config_file}" );
-        return;
-    }
-
-    my $data;
-    eval { $data = JSON::XS->new->decode($file_data); };
-
-    # catch crashes:
-    if ($@) {
-        main::print_log( "[Aurora:" . $self->{name} . "] ERROR! JSON file parser crashed when reading config file! $@\n" );
-    }
-    else {
-        print Dumper $data if ( $self->{debug} );
-
-        return $data;
-    }
-}
-
-sub write_config_data {
-    my ( $self, $data ) = @_;
-
-    my $file_data;
-    eval { $file_data = JSON::XS->new->encode($data); };
-
-    # catch crashes:
-    if ($@) {
-        main::print_log( "[Aurora:" . $self->{name} . "] ERROR! JSON file parser crashed when creating config file! $@\n" );
-    }
-    else {
-        print Dumper $file_data if ( $self->{debug} );
-        &main::file_write( $self->{config_file}, $file_data );
-    }
-
-}
-
-sub get_config_data {
-    my ( $self, $id ) = @_;
-
-    my $data = $self->read_config_data();
-
-    if ($data) {
-        my $nid = $self->{name};
-
-        #override $nid if a $nl_device is specified
-        if ( ( defined $id ) and ($id) ) {
-            print "checking id=$id\n";
-            foreach my $key ( keys %$data ) {
-                if (   ( lc $self->{nl_deviceid} eq lc $data->{$key}->{device}->{nl_deviceid} )
-                    or ( lc $self->{location} eq lc $data->{$key}->{device}->{location} )
-                    or ( lc $self->{token} eq lc $data->{$key}->{device}->{token} ) )
-                {
-                    $nid = $key;
-                    last;
-                }
-            }
-        }
-        $self->{file} = 1;
-        print "nid=$nid, loc=$data->{$nid}->{device}->{location}\n";
-        return ( $data->{$nid}->{device}->{location}, $data->{$nid}->{device}->{nl_deviceid}, $data->{$nid}->{device}->{token} );
-    }
-    else {
-        return;
-    }
-}
-
 sub update_config_data {
     my ($self) = @_;
 
-    my $nid = $self->{name};
-    my $data;
-    $data = $self->read_config_data();
+    my $write = 0;
+    my %parms;
 
-    #override $nid if a $nl_device is specified
-    if ( defined $data ) {
-        foreach my $key ( keys %$data ) {
-            if (   ( lc $self->{nl_deviceid} eq lc $data->{$key}->{device}->{nl_deviceid} )
-                or ( lc $self->{location} eq lc $data->{$key}->{device}->{location} )
-                or ( lc $self->{token} eq lc $data->{$key}->{device}->{token} ) )
-            {
-                $nid = $key;
-                last;
-            }
-        }
-    }
-
-    #TODO add static definitions ?
-
-    if ( ( defined $self->{location} ) and ( $data->{$nid}->{device}->{location} ne $self->{location} ) ) {
-        $data->{$nid}->{device}->{location} = $self->{location};
-        main::print_log( "[Aurora:" . $self->{name} . "] Updating location ($self->{location}) in config file" );
+    if ( ( defined $self->{url} ) and ( $::config_parms{ "aurora_" . $self->{name} . "_url" } ne $self->{url} ) ) {
+        $::config_parms{ "aurora_" . $self->{name} . "_url" } = $self->{url};
+        $parms{ "aurora_" . $self->{name} . "_url" }          = $self->{url};
+        main::print_log( "[Aurora:" . $self->{name} . "] Updating location URL ($self->{url}) in mh.ini file" );
+        $write = 1;
 
     }
-    if ( ( defined $self->{token} ) and ( $data->{$nid}->{device}->{token} ne $self->{token} ) ) {
-        $data->{$nid}->{device}->{token} = $self->{token};
-        main::print_log( "[Aurora:" . $self->{name} . "] Updating authentication token in config file" );
+    if ( ( defined $self->{token} ) and ( $::config_parms{ "aurora_" . $self->{name} . "_token" } ne $self->{token} ) ) {
+        $::config_parms{ "aurora_" . $self->{name} . "_token" } = $self->{token};
+        $parms{ "aurora_" . $self->{name} . "_url" }            = $self->{token};
+        main::print_log( "[Aurora:" . $self->{name} . "] Updating authentication token in mh.ini file" );
+        $write = 1;
+    }
 
-    }
-    if ( ( defined $self->{nl_device} ) and ( $data->{$nid}->{device}->{nl_device} ne $self->{nl_device} ) and ( $self->{nl_device} ) ) {
-        $data->{$nid}->{device}->{nl_device} = $self->{nl_device};
-        main::print_log( "[Aurora:" . $self->{name} . "] Updating nl-device ($self->{nl_device} ) in config file" );
-    }
-    $self->write_config_data($data);
+    &::write_mh_opts( \%parms ) if ($write);
 }
 
 sub register {
@@ -721,13 +705,15 @@ sub stop_timer {
 sub print_info {
     my ($self) = @_;
 
-    main::print_log( "[Aurora:" . $self->{name} . "] Name:             " . $self->{data}->{info}->{name} );
-    main::print_log( "[Aurora:" . $self->{name} . "] Serial Number:    " . $self->{data}->{info}->{serialNo} );
-    main::print_log( "[Aurora:" . $self->{name} . "] Manufacturer:     " . $self->{data}->{info}->{manufacturer} );
-    main::print_log( "[Aurora:" . $self->{name} . "] Model:            " . $self->{data}->{info}->{model} );
-    main::print_log( "[Aurora:" . $self->{name} . "] Firmware:         " . $self->{data}->{info}->{firmwareVersion} );
-    main::print_log( "[Aurora:" . $self->{name} . "] Connected Panels: " . $self->{data}->{panels} );
-    main::print_log( "[Aurora:" . $self->{name} . "] Panel Size:       " . $self->{data}->{panel_size} );
+    main::print_log( "[Aurora:" . $self->{name} . "] Name:              " . $self->{data}->{info}->{name} );
+    main::print_log( "[Aurora:" . $self->{name} . "] Serial Number:     " . $self->{data}->{info}->{serialNo} );
+    main::print_log( "[Aurora:" . $self->{name} . "] Manufacturer:      " . $self->{data}->{info}->{manufacturer} );
+    main::print_log( "[Aurora:" . $self->{name} . "] Model:             " . $self->{data}->{info}->{model} );
+    main::print_log( "[Aurora:" . $self->{name} . "] Firmware:          " . $self->{data}->{info}->{firmwareVersion} );
+    main::print_log( "[Aurora:" . $self->{name} . "] Connected Panels:  " . $self->{data}->{panels} );
+    main::print_log( "[Aurora:" . $self->{name} . "] Panel Size:        " . $self->{data}->{panel_size} );
+    main::print_log( "[Aurora:" . $self->{name} . "] API Path:          " . $self->{api_path} );
+    main::print_log( "[Aurora:" . $self->{name} . "] MH Module version: " . $self->{module_version} );
 
     main::print_log( "[Aurora:" . $self->{name} . "] -- Current Settings --" );
 
@@ -768,8 +754,16 @@ sub print_info {
           . $self->{data}->{info}->{state}->{brightness}->{max}
           . "]" );
     main::print_log( "[Aurora:" . $self->{name} . "] -- Active Effects --" );
-    foreach my $effect ( @{ $self->{data}->{info}->{effects}->{list} } ) {
-        main::print_log( "[Aurora:" . $self->{name} . "]   - $effect" );
+    if ( defined $self->{data}->{info}->{effects}->{list} ) {
+
+        foreach my $effect ( @{ $self->{data}->{info}->{effects}->{list} } ) {
+            main::print_log( "[Aurora:" . $self->{name} . "]   - $effect" );
+        }
+    }
+    else {
+        foreach my $effect ( @{ $self->{data}->{info}->{effects}->{effectsList} } ) {
+            main::print_log( "[Aurora:" . $self->{name} . "]   - $effect" );
+        }
     }
     main::print_log( "[Aurora:" . $self->{name} . "] -- Layout --" );
     main::print_log( "[Aurora:"
@@ -810,9 +804,14 @@ sub process_data {
             $self->{previous}->{info}->{$key} = $self->{data}->{info}->{$key};
         }
         $self->{previous}->{panels} = $self->{data}->{panels};
-        @{ $self->{previous}->{effects}->{list} } = @{ $self->{data}->{info}->{effects}->{list} };
+        if ( defined $self->{data}->{info}->{effects}->{list} ) {    #beta API
+            @{ $self->{previous}->{effects}->{list} } = @{ $self->{data}->{info}->{effects}->{list} };
+        }
+        else {
+            @{ $self->{previous}->{effects}->{list} } = @{ $self->{data}->{info}->{effects}->{effectsList} };
+        }
         if ( defined $self->{child_object}->{effects} ) {
-            $self->{child_object}->{effects}->load_effects( @{ $self->{data}->{info}->{effects}->{list} } );
+            $self->{child_object}->{effects}->load_effects( @{ $self->{previous}->{effects}->{list} } );
             $self->{child_object}->{effects}->set( $self->{data}->{info}->{effects}->{select}, 'poll' );
             $self->print_static if ( lc $self->{data}->{info}->{effects}->{select} eq "*static*" );
         }
@@ -874,8 +873,8 @@ sub process_data {
     if ( $self->{previous}->{info}->{state}->{brightness}->{value} != $self->{data}->{info}->{state}->{brightness}->{value} ) {
         main::print_log( "[Aurora:"
               . $self->{name}
-              . "] Brightness changed from $state{$self->{previous}->{info}->{state}->{brightness}->{value}} to $state{$self->{data}->{info}->{state}->{brightness}->{value}}"
-        ) if ( $self->{loglevel} );
+              . "] Brightness changed from $self->{previous}->{info}->{state}->{brightness}->{value} to $self->{data}->{info}->{state}->{brightness}->{value}" )
+          if ( $self->{loglevel} );
         $self->{previous}->{info}->{state}->{brightness}->{value} = $self->{data}->{info}->{state}->{brightness}->{value};
         $self->set( $self->{data}->{info}->{state}->{brightness}->{value}, 'poll' );
     }
@@ -911,7 +910,6 @@ sub process_data {
 
     if ( ( defined $self->{child_object}->{static} ) and ( lc $self->{data}->{info}->{effects}->{select} eq "*static*" ) ) {
         foreach my $key ( keys %{ $self->{child_object}->{static} } ) {
-            print "key=$key, gs=" . $self->{child_object}->{static}->{$key}->get_string() . " ls=" . $self->{last_static} . "\n";
             unless ( $self->{child_object}->{static}->{$key}->get_string() eq $self->{last_static} ) {
                 if ( lc $self->{child_object}->{static}->{$key}->state() ne 'off' ) {
                     main::print_log "[Aurora:" . $self->{name} . "] Static Child object $key found. Updating..." if ( $self->{loglevel} );
@@ -1032,15 +1030,22 @@ sub get_static {
 sub print_discovery_info {
     my ($self) = @_;
 
-    my ( $devices, $dev_locs, $dev_ids ) = $self->scan_ssdp_data();
+    my ( $devices, $dev_urls, $dev_ids ) = $self->scan_ssdp_data();
     main::print_log( "Aurora:" . $self->{name} . "] ------------------------------------------------------------------" );
     main::print_log( "Aurora:" . $self->{name} . "] Found $devices Aurora Controller" );
     for my $i ( 1 .. $devices ) {
-        main::print_log( "Aurora:" . $self->{name} . "] Device $i Location: " . @$dev_locs[ $i - 1 ] );
+        main::print_log( "Aurora:" . $self->{name} . "] Device $i Location URL: " . @$dev_urls[ $i - 1 ] );
         main::print_log( "Aurora:" . $self->{name} . "] Device $i ID: " . @$dev_ids[ $i - 1 ] );
     }
     main::print_log( "Aurora:" . $self->{name} . "] ------------------------------------------------------------------" );
 
+}
+
+sub identify {
+    my ($self) = @_;
+
+    $self->_push_JSON_data('identify');
+    return ('1');
 }
 
 sub generate_voice_commands {
@@ -1076,7 +1081,6 @@ sub generate_voice_commands {
 
     #Evaluate the resulting object generating string
     package main;
-    print $object_string;
     eval $object_string;
     print "Error in nanoleaf_aurora_item_commands: $@\n" if $@;
 
@@ -1086,8 +1090,9 @@ sub generate_voice_commands {
 sub get_voice_cmds {
     my ($self) = @_;
     my %voice_cmds = (
-        'Discover Auroras to print log'    => $self->get_object_name . '->print_discovery_info',
-        'Print Static string to print log' => $self->get_object_name . '->print_static'
+        'Discover Auroras to print log'                                         => $self->get_object_name . '->print_discovery_info',
+        'Print Static string to print log'                                      => $self->get_object_name . '->print_static',
+        'Identify Aurora ' . $self->{name} . '(' . $self->get_object_name . ')' => $self->get_object_name . '->identify'
     );
 
     return \%voice_cmds;
@@ -1237,3 +1242,16 @@ sub set {
 }
 
 1;
+
+# Version History
+# v1.0.0  - initial module
+# v1.0.1  - initial static support
+# v1.0.2  - multiple auroras, brightness
+# v1.0.3  - working static. turn on, overrides effect, turning off will restore previous effect
+# v1.0.4  - Voice Commands
+# v1.0.5  - working multi static
+# v1.0.6  - better processing
+# v1.0.7  - ability to specify API as an option
+# v1.0.8  - initial v1.5.0 API v1 support
+# v1.0.9  - use config_parms (mh.ini) instead of dedicated config file
+
