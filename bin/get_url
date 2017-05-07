@@ -19,7 +19,7 @@ use Getopt::Long;
 #print "get_url: @ARGV\n";
 if (
     !&GetOptions( \%parms, 'h', 'help', 'quiet', 'cookies=s', 'cookie_file_in=s', 'cookie_file_out=s', 'post=s', 'header=s', 'userid=s', 'password=s', 'ua',
-        'put=s', 'json' )
+        'put=s', 'json', 'response_code' )
     or !@ARGV
     or $parms{h}
     or $parms{help}
@@ -56,6 +56,8 @@ Usage:
     -ua: use UserAgent
 
     -header 'header_file': HTTP headers from the server are stored in this file
+    
+    -response_code: STDOUT only: Prepend output with RESPONSECODE: <response code>\n
 
 
     If local_file is specified, data is stored there.
@@ -180,6 +182,7 @@ sub use_ua {
     }
     else {
         $response = $ua->request($request);
+        print "RESPONSECODE:" . $response->code() . "\n" if ( $parms{response_code} );
         print $response->content();
     }
     if ( $response->is_error() ) {
