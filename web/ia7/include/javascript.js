@@ -200,7 +200,7 @@ function changePage (){
 		if (path.indexOf('objects') === 0){
 			loadList();
 		}
-		else if (path.indexOf('vars') === 0){
+		else if ((path.indexOf('vars') === 0) || (path.indexOf('vars_global') === 0) || (path.indexOf('vars_save') === 0)){
 			loadVars();
 		}
 		else if (path.indexOf('prefs') === 0){
@@ -465,18 +465,36 @@ function loadVars (){ //variables list
 		dataType: "json",
 		success: function( json ) {
 			JSONStore(json);
+			var table = false;
+			if (json.meta.path[0] != 'vars') table = true;
 			var list_output = "";
 			var keys = [];
 			for (var key in json.data) {
 				keys.push(key);
 			}
 			keys.sort ();
-			for (var i = 0; i < keys.length; i++){
-				var value = variableList(json.data[keys[i]]);
-				var name = keys[i];
-				var list_html = "<ul><li><b>" + name + ":</b>" + value+"</li></ul>";
-				list_output += (list_html);
+			
+			if (table) {
+			    list_output = "<table class='table table-curved'><thead><tr>";
+		        list_output += "<th>Variable</th><th>Value</th>";
+		        list_output += "</tr></thead><tbody>";
+
+		        for (var i = 0; i < keys.length; i++){
+				    var value = json.data[keys[i]];
+				    var name = keys[i];
+				    var list_html
+				    list_output += "<tr><td>"+name+"</td><td>"+value+"</td></tr>";
+				}
+				list_output += "</tbody></table>";			
+			} else {
+			    for (var i = 0; i < keys.length; i++){
+				    var value = variableList(json.data[keys[i]]);
+				    var name = keys[i];
+				    var list_html
+				    list_output += "<ul><li><b>" + name + ":</b>" + value+"</li></ul>";
+				}
 			}
+			//list_output += (list_html);
 		
 			//Print list output if exists;
 			if (list_output !== ""){

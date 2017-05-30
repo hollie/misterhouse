@@ -58,6 +58,7 @@ sub json {
         $request_type = $HTTP_REQ_TYPE;
     }
     my %arg_hash = %HTTP_ARGV;
+
     if ( $arguments ne '' ) {
         %arg_hash = ();
 
@@ -93,13 +94,19 @@ sub json {
     # Split Path into Array
     $path_str =~ s/^\/json//i;    # Remove leading 'json' path
     $path_str =~ s/^\/|\/$//g;    # Remove leadin trailing slash.
+
     my @path = split( '/', $path_str );
 
-    if ( lc($request_type) eq "get" ) {
-        return json_get( $request_type, \@path, \%args, $body );
-    }
-    elsif ( lc($request_type) eq "put" ) {
-        json_put( $request_type, \@path, \%args, $body );
+    if ($path_str eq '') {
+            print_log "Json_Server.pl: WARNING: null json request received. Ignoring...";
+    } else {
+
+        if ( lc($request_type) eq "get" ) {
+            return json_get( $request_type, \@path, \%args, $body );
+        }
+        elsif ( lc($request_type) eq "put" ) {
+            json_put( $request_type, \@path, \%args, $body );
+        }
     }
 }
 
@@ -162,7 +169,7 @@ sub json_get {
         }
     }
     $fields{all} = 1 unless %fields;
-
+    
     # List defined collections
     if ( $path[0] eq 'collections' || $path[0] eq '' ) {
         my $collection_file = "$Pgm_Root/data/web/collections.json";
@@ -600,6 +607,7 @@ sub json_get {
             next if $key eq 'INC';
             next if $key eq 'ISA';
             next if $key eq 'SIG';
+            next if $key eq 'User_Code';
             my $iref = ${$ref}{$key};
 
             # this is for constants
@@ -608,6 +616,52 @@ sub json_get {
         }
         $json_data{vars} = \%json_vars;
     }
+    
+   if ( $path[0] eq 'vars_global' || $path[0] eq '' ) {
+        my %json_vars_global;
+        for my $key ( sort keys %main:: ) {
+
+            # Assume all the global vars we care about are $Ab...
+            next if $key !~ /^[A-Z][a-z]/ or $key =~ /\:/;
+            next if $key eq 'Save'        or $key eq 'Tk_objects';    # Covered elsewhere
+            next if $key eq 'Socket_Ports';
+            next if $key eq 'User_Code';
+
+            my $glob = $main::{$key};
+            if ( ${$glob} ) {
+                my $value = ${$glob};
+                next if $value =~ /HASH/;                             # Skip object pointers
+                next if $key eq 'Password';
+                $value =~ s/[\r\n]+$//;
+                #print "db: [$key -> $value]\n";
+                $json_vars_global{$key} = $value;
+            }
+            elsif ( %{$glob} ) {
+                for my $key2 ( sort keys %{$glob} ) {
+                    my $value = ${$glob}{$key2};# . "\n";
+                    $value = '' unless $value;                        # Avoid -w uninitialized value msg
+                    $value =~ s/[\r\n]+$//;
+                    next if $value =~ /HASH\(/;                         # Skip object pointers
+                    next if $value =~ /ARRAY\(/;
+                    #print "db: [$key\{$key2\} -> $value]\n";
+                    $json_vars_global{"$key\{$key2\}"} = $value;
+                }
+            }
+        }
+        $json_data{vars_global} = \%json_vars_global;
+    }
+
+   if ( $path[0] eq 'vars_save' || $path[0] eq '' ) {
+        my %json_vars_save;
+        
+        for my $key ( sort keys %Save ) {
+            my $value = ( $Save{$key} ) ? $Save{$key} : '';
+            $value =~ s/[\r\n]+$//;
+            $json_vars_save{$key} = $value;
+        }
+ 
+        $json_data{vars_save} = \%json_vars_save;
+    }    
 
     if ( $path[0] eq 'notifications' ) {
 
