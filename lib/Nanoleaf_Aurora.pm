@@ -1,6 +1,6 @@
 package Nanoleaf_Aurora;
 
-# v1.0.10
+# v1.0.12
 
 #if any effect is changed, by definition the static child should be set to off.
 #cmd data returns, need to check by command
@@ -104,10 +104,10 @@ our %active_auroras = ();
 
 sub new {
     my ( $class, $id, $url, $token, $poll, $options ) = @_;
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     $self->{name} = "1";
-    $self->{name} = $id if ($id);
+    $self->{name} = $id if ( ( defined $id ) and ($id) );
 
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
@@ -119,7 +119,7 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.0.10";
+    $self->{module_version}         = "v1.0.12";
     $self->{ssdp_timeout}           = 4000;
     $self->{last_static}            = "";
 
@@ -652,14 +652,22 @@ sub update_config_data {
     my $write = 0;
     my %parms;
 
-    if ( ( defined $self->{url} ) and ( $::config_parms{ "aurora_" . $self->{name} . "_url" } ne $self->{url} ) ) {
+    if (    ( defined $self->{url} )
+        and ( ( !defined $::config_parms{ "aurora_" . $self->{name} . "_url" } ) or ( $::config_parms{ "aurora_" . $self->{name} . "_url" } ne $self->{url} ) )
+      )
+    {
         $::config_parms{ "aurora_" . $self->{name} . "_url" } = $self->{url};
         $parms{ "aurora_" . $self->{name} . "_url" }          = $self->{url};
         main::print_log( "[Aurora:" . $self->{name} . "] Updating location URL ($self->{url}) in mh.ini file" );
         $write = 1;
 
     }
-    if ( ( defined $self->{token} ) and ( $::config_parms{ "aurora_" . $self->{name} . "_token" } ne $self->{token} ) ) {
+    if (
+        ( defined $self->{token} )
+        and (  ( !defined $::config_parms{ "aurora_" . $self->{name} . "_token" } )
+            or ( $::config_parms{ "aurora_" . $self->{name} . "_token" } ne $self->{token} ) )
+      )
+    {
         $::config_parms{ "aurora_" . $self->{name} . "_token" } = $self->{token};
         $parms{ "aurora_" . $self->{name} . "_token" }          = $self->{token};
         main::print_log( "[Aurora:" . $self->{name} . "] Updating authentication token in mh.ini file" );
@@ -800,7 +808,7 @@ sub process_data {
     if ( ( !$self->{init_data} ) and ( defined $self->{data}->{info} ) ) {
         main::print_log( "[Aurora:" . $self->{name} . "] Init: Setting startup values" );
 
-        foreach my $key ( keys %{$self->{data}->{info}} ) {
+        foreach my $key ( keys %{ $self->{data}->{info} } ) {
             $self->{previous}->{info}->{$key} = $self->{data}->{info}->{$key};
         }
         $self->{previous}->{panels} = $self->{data}->{panels};
@@ -935,6 +943,19 @@ sub get_effect {
 
     return ( $self->{data}->{info}->{effects}->{select} );
 
+}
+
+sub get_effects {
+    my ($self) = @_;
+    my @effect_array = ();
+
+    if ( defined $self->{data}->{info}->{effects}->{list} ) {    #beta structure
+        @effect_array = @{ $self->{data}->{info}->{effects}->{list} };
+    }
+    else {
+        @effect_array = @{ $self->{data}->{info}->{effects}->{effectsList} };
+    }
+    return @effect_array;
 }
 
 sub check_panelid {
@@ -1105,7 +1126,7 @@ package Nanoleaf_Aurora_Effects;
 sub new {
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -1135,10 +1156,19 @@ sub set {
     }
 }
 
+#doesn't do anything yet
 sub load_effects {
     my ( $self, @effect_states ) = @_;
 
     @{ $$self{states} } = @effect_states;
+}
+
+sub get_effects {
+    my ($self) = @_;
+    my @effects = $$self{master_object}->get_effects();
+
+    return @effects;
+
 }
 
 package Nanoleaf_Aurora_Static;
@@ -1148,7 +1178,7 @@ package Nanoleaf_Aurora_Static;
 sub new {
     my ( $class, $object, $static_string ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     @{ $$self{states} } = ( 'on', 'off' );
 
@@ -1223,7 +1253,7 @@ package Nanoleaf_Aurora_Comm;
 sub new {
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -1255,3 +1285,5 @@ sub set {
 # v1.0.8  - initial v1.5.0 API v1 support
 # v1.0.9  - use config_parms (mh.ini) instead of dedicated config file
 # v1.0.10 - Updated to work with other versions of perl, typo with mh.ini
+# v1.0.11 - cosmetic fixes for undefined variables
+# v1.0.12 - get_effects method to get array of available effects
