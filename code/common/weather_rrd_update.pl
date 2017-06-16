@@ -2,7 +2,7 @@
 # $Date$
 # $Revision$
 #####################################################################
-#  NOM		: weather_rrd_update.pl
+#  NAME		    : weather_rrd_update.pl
 #  DESCRIPTION 	:
 #@ Create/update RRD database with the weather informations,
 #@ Create/update CSV file database with the weather informations,
@@ -73,6 +73,8 @@
 #  - Initialize the altitude of the local weather station,
 #    In feet, used to calculate the sea level barometric pressure
 #    altitude = 0
+#  - Don't convert a set of RRDs to Celcius
+#   rrd_noconvert = list,of,rrd,DS,names
 #--------------------------------------------------------------------
 # 				HISTORY
 #--------------------------------------------------------------------
@@ -126,6 +128,9 @@
 # - calculation for In/Hg when $config_params{weather_uom_baro} = "in"
 # - changed format for Sealevel pressure in In/Hg to have two (2)
 # - decimal places
+# 6/20/17    2.1  H Plato
+# - added in support for 35 new DSs. Also enabled a config_parm
+#   rrd_noconvert for any RRDS that shouldn't be converted to C automatically
 #####################################################################
 use RRDs;
 
@@ -171,6 +176,41 @@ my @rrd_sensors = qw(
   HumidSpare9
   TempSpare10
   HumidSpare10
+  TempSpare11
+  TempSpare12
+  TempSpare13
+  TempSpare14
+  TempSpare15
+  DSGauge001
+  DSGauge002
+  DSGauge003
+  DSGauge004
+  DSGauge005
+  DSGauge006
+  DSGauge007
+  DSGauge008
+  DSGauge009
+  DSGauge010
+  DSGauge011
+  DSGauge012
+  DSGauge013
+  DSGauge014
+  DSGauge015
+  DSGauge016
+  DSGauge017                            
+  DSGauge018
+  DSGauge019
+  DSGauge020
+  DSDerive001
+  DSDerive002
+  DSDerive003
+  DSDerive004
+  DSDerive005
+  DSDerive006
+  DSDerive007
+  DSDerive008
+  DSDerive009
+  DSDerive010
 );
 
 my $rrdDataTransferFile = $config_parms{data_dir} . '/rrdtransfer.pl';
@@ -247,7 +287,12 @@ if ($New_Minute) {
         $rrd_HumidSpare2,   $rrd_DewSpare2,    $rrd_TempSpare3,          $rrd_HumidSpare3, $rrd_DewSpare3,   $rrd_TempSpare4,
         $rrd_HumidSpare4,   $rrd_TempSpare5,   $rrd_HumidSpare5,         $rrd_TempSpare6,  $rrd_HumidSpare6, $rrd_TempSpare7,
         $rrd_HumidSpare7,   $rrd_TempSpare8,   $rrd_HumidSpare8,         $rrd_TempSpare9,  $rrd_HumidSpare9, $rrd_TempSpare10,
-        $rrd_HumidSpare10
+        $rrd_HumidSpare10,  $rrd_TempSpare11,  $rrd_TempSpare12,         $rrd_TempSpare13, $rrd_TempSpare14, $rrd_TempSpare15,
+        $rrd_DSGauge001,    $rrd_DSGauge002,    $rrd_DSGauge003,         $rrd_DSGauge004,   $rrd_DSGauge005,    $rrd_DSGauge006,
+        $rrd_DSGauge007,    $rrd_DSGauge008,    $rrd_DSGauge009,        $rrd_DSGauge010,    $rrd_DSGauge011,    $rrd_DSGauge012,
+        $rrd_DSGauge013,    $rrd_DSGauge014,    $rrd_DSGauge015,        $rrd_DSGauge016,    $rrd_DSGauge017,    $rrd_DSGauge018,
+        $rrd_DSGauge019,    $rrd_DSGauge020,    $rrd_DSDerive001,       $rrd_DSDerive002,   $rrd_DSDerive003,   $rrd_DSDerive004,
+        $rrd_DSDerive005,   $rrd_DSDerive006,   $rrd_DSDerive007,       $rrd_DSDerive008,   $rrd_DSDerive009,   $rrd_DSDerive010  
     );
 
     foreach my $sensor (@rrd_sensors) {
@@ -264,12 +309,28 @@ if ($New_Minute) {
     my @d;
 
     &create_rrd($time) unless -e $RRD;
-
     if ( $config_parms{weather_uom_temp} eq 'C' ) {
-        grep { $_ = convert_c2f($_) unless $_ eq 'U' } (
-            $rrd_TempOutdoor, $rrd_TempIndoor, $rrd_TempSpare1, $rrd_TempSpare2, $rrd_TempSpare3, $rrd_TempSpare4,
-            $rrd_TempSpare5,  $rrd_TempSpare6, $rrd_TempSpare7, $rrd_TempSpare8, $rrd_TempSpare9, $rrd_TempSpare10,
-            $rrd_DewOutdoor,  $rrd_DewIndoor,  $rrd_DewSpare1,  $rrd_DewSpare2,  $rrd_DewSpare3,  $rrd_TempOutdoorApparent
+        my $i = 0;
+        my @conv =  (
+            'rrd_TempOutdoor', 'rrd_TempIndoor', 'rrd_TempSpare1',  'rrd_TempSpare2',  'rrd_TempSpare3',  'rrd_TempSpare4',
+            'rrd_TempSpare5',  'rrd_TempSpare6', 'rrd_TempSpare7', 'rrd_TempSpare8', 'rrd_TempSpare9', 'rrd_TempSpare10',
+            'rrd_TempSpare11',  'rrd_TempSpare12', 'rrd_TempSpare13', 'rrd_TempSpare14', 'rrd_TempSpare15',
+            'rrd_DewOutdoor',  'rrd_DewIndoor',  'rrd_DewSpare1',   'rrd_DewSpare2',   'rrd_DewSpare3',   'rrd_TempOutdoorApparent',
+            'rrd_DSGauge001',    'rrd_DSGauge002',    'rrd_DSGauge003',         'rrd_DSGauge004',   'rrd_DSGauge005',    'rrd_DSGauge006',
+            'rrd_DSGauge007',    'rrd_DSGauge008',    'rrd_DSGauge009',        'rrd_DSGauge010',    'rrd_DSGauge011',    'rrd_DSGauge012',
+            'rrd_DSGauge013',    'rrd_DSGauge014',    'rrd_DSGauge015',        'rrd_DSGauge016',    'rrd_DSGauge017',    'rrd_DSGauge018',
+            'rrd_DSGauge019',    'rrd_DSGauge020',    'rrd_DSDerive001',       'rrd_DSDerive002',   'rrd_DSDerive003',   'rrd_DSDerive004',
+            'rrd_DSDerive005',   'rrd_DSDerive006',   'rrd_DSDerive007',       'rrd_DSDerive008',   'rrd_DSDerive009',   'rrd_DSDerive010'              
+        );        
+        grep { $_ = convert_c2f($_) unless ($_ eq 'U' or &noconvert($conv[$i++]))} (
+            $rrd_TempOutdoor, $rrd_TempIndoor, $rrd_TempSpare1,  $rrd_TempSpare2,  $rrd_TempSpare3,  $rrd_TempSpare4,
+            $rrd_TempSpare5,  $rrd_TempSpare6, $rrd_TempSpare12, $rrd_TempSpare13, $rrd_TempSpare14, $rrd_TempSpare15,
+            $rrd_DewOutdoor,  $rrd_DewIndoor,  $rrd_DewSpare1,   $rrd_DewSpare2,   $rrd_DewSpare3,   $rrd_TempOutdoorApparent,
+            $rrd_DSGauge001,    $rrd_DSGauge002,    $rrd_DSGauge003,         $rrd_DSGauge004,   $rrd_DSGauge005,    $rrd_DSGauge006,
+            $rrd_DSGauge007,    $rrd_DSGauge008,    $rrd_DSGauge009,        $rrd_DSGauge010,    $rrd_DSGauge011,    $rrd_DSGauge012,
+            $rrd_DSGauge013,    $rrd_DSGauge014,    $rrd_DSGauge015,        $rrd_DSGauge016,    $rrd_DSGauge017,    $rrd_DSGauge018,
+            $rrd_DSGauge019,    $rrd_DSGauge020,    $rrd_DSDerive001,       $rrd_DSDerive002,   $rrd_DSDerive003,   $rrd_DSDerive004,
+            $rrd_DSDerive005,   $rrd_DSDerive006,   $rrd_DSDerive007,       $rrd_DSDerive008,   $rrd_DSDerive009,   $rrd_DSDerive010              
         );
     }
 
@@ -300,7 +361,12 @@ if ($New_Minute) {
         $rrd_HumidSpare2,   $rrd_DewSpare2,    $rrd_TempSpare3,          $rrd_HumidSpare3, $rrd_DewSpare3,   $rrd_TempSpare4,
         $rrd_HumidSpare4,   $rrd_TempSpare5,   $rrd_HumidSpare5,         $rrd_TempSpare6,  $rrd_HumidSpare6, $rrd_TempSpare7,
         $rrd_HumidSpare7,   $rrd_TempSpare8,   $rrd_HumidSpare8,         $rrd_TempSpare9,  $rrd_HumidSpare9, $rrd_TempSpare10,
-        $rrd_HumidSpare10
+        $rrd_HumidSpare10,  $rrd_TempSpare11,  $rrd_TempSpare12,         $rrd_TempSpare13, $rrd_TempSpare14, $rrd_TempSpare15,
+        $rrd_DSGauge001,    $rrd_DSGauge002,    $rrd_DSGauge003,         $rrd_DSGauge004,   $rrd_DSGauge005,    $rrd_DSGauge006,
+        $rrd_DSGauge007,    $rrd_DSGauge008,    $rrd_DSGauge009,        $rrd_DSGauge010,    $rrd_DSGauge011,    $rrd_DSGauge012,
+        $rrd_DSGauge013,    $rrd_DSGauge014,    $rrd_DSGauge015,        $rrd_DSGauge016,    $rrd_DSGauge017,    $rrd_DSGauge018,
+        $rrd_DSGauge019,    $rrd_DSGauge020,    $rrd_DSDerive001,       $rrd_DSDerive002,   $rrd_DSDerive003,   $rrd_DSDerive004,
+        $rrd_DSDerive005,   $rrd_DSDerive006,   $rrd_DSDerive007,       $rrd_DSDerive008,   $rrd_DSDerive009,   $rrd_DSDerive010  
     );
 
     #print "@d\n";
@@ -443,6 +509,41 @@ sub create_rrd {
       "DS:humidspare9:GAUGE:$RRD_HEARTBEAT:0:100",
       "DS:tempspare10:GAUGE:$RRD_HEARTBEAT:-150:150",
       "DS:humidspare10:GAUGE:$RRD_HEARTBEAT:0:100",
+      "DS:tempspare11:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:tempspare12:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:tempspare13:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:tempspare14:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:tempspare15:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge001:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge002:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge003:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge004:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge005:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge006:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge007:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge008:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge009:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge010:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge011:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge012:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge013:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge014:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge015:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge016:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge017:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge018:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge019:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsgauge020:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsderive001:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsderive002:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsderive003:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsderive004:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsderive005:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsderive006:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsderive007:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsderive008:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsderive009:GAUGE:$RRD_HEARTBEAT:-150:150",
+      "DS:dsderive010:GAUGE:$RRD_HEARTBEAT:-150:150",
 
       'RRA:AVERAGE:0.5:1:801',    # details for 6 hours (agregate 1 minute)
 
@@ -599,19 +700,76 @@ sub update_csv {
             'Humidity module 9',
             'Temperature 10',
             'Humidity module 10',
+            'Temperature 11',
+            'Temperature 12',
+            'Temperature 13',
+            'Temperature 14',
+            'Temperature 15',
+            'Gauge 001',
+            'Gauge 002',
+            'Gauge 003',
+            'Gauge 004',
+            'Gauge 005',
+            'Gauge 006',
+            'Gauge 007',
+            'Gauge 008',
+            'Gauge 009',
+            'Gauge 010',
+            'Gauge 011',
+            'Gauge 012',
+            'Gauge 013',
+            'Gauge 014',
+            'Gauge 015',
+            'Gauge 016',
+            'Gauge 017',
+            'Gauge 018',
+            'Gauge 019',
+            'Gauge 020',
+            'Derive 001',
+            'Derive 002',
+            'Derive 003',
+            'Derive 004',
+            'Derive 005',
+            'Derive 006',
+            'Derive 007',
+            'Derive 008',
+            'Derive 009',
+            'Derive 010',
             "\n" );
 
         &logit( "$config_parms{weather_data_csv}.$Year_Month_Now", $row_header, 0 );
     }
     $row_data = join( ";",
-        $time,     $log_annee, $log_mois, $log_jour, $log_heure, $log_minute, $log_seconde, $data[0],  $data[1],
-        $data[2],  $data[3],   $data[4],  $data[5],  $data[6],   $data[7],    $data[8],     $data[9],  $data[10],
-        $data[11], $data[12],  $data[13], $data[14], $data[15],  $data[16],   $data[17],    $data[18], $data[19],
-        $data[20], $data[21],  $data[22], $data[23], $data[24],  $data[25],   $data[26],    $data[27], $data[28],
-        $data[29], $data[30],  $data[31], $data[32], $data[33],  $data[34],   $data[35],    $data[36], "\n" );
+        $time,     $log_annee, $log_mois, $log_jour, $log_heure, $log_minute, $log_seconde, $data[0],  $data[1],  $data[2],
+        $data[3],  $data[4],   $data[5],  $data[6],  $data[7],   $data[8],    $data[9],     $data[10], $data[11], $data[12],
+        $data[13], $data[14],  $data[15], $data[16], $data[17],  $data[18],   $data[19],    $data[20], $data[21], $data[22],
+        $data[23], $data[24],  $data[25], $data[26], $data[27],  $data[28],   $data[29],    $data[30], $data[31], $data[32],
+        $data[33], $data[34],  $data[35], $data[36], $data[37],  $data[38],   $data[39],    $data[40], $data[41], $data[42],
+        $data[43], $data[44],  $data[45], $data[46], $data[47],  $data[48],   $data[49],    $data[50], $data[51], $data[52],
+        $data[53], $data[54],  $data[55], $data[56], $data[57],  $data[58],   $data[59],    $data[60], $data[61], $data[62],
+        $data[63], $data[64],  $data[65], $data[66], $data[67],  $data[68],   $data[69],    $data[70], $data[71], $data[72],             
+        "\n" );
 
     &logit( "$config_parms{weather_data_csv}.$Year_Month_Now", $row_data, 0 );
 }
+
+#==============================================================================
+# Check if data source needs to be converted to C
+#==============================================================================
+sub noconvert {
+    my ($ds) = @_;
+    my $return = 0;
+
+    $ds =~ s/^rrd_//;
+    
+    if (defined $config_parms{rrd_noconvert}) {
+        my $string = $config_parms{rrd_noconvert};
+        $return = 1 if ($string =~ m/$ds/i);
+    }
+    print_log("test: ds=$ds, return=$return") if $debug;
+    return $return
+}
+
 
 sub analyze_rrd_rain {
     my $RRD = "$config_parms{weather_data_rrd}";
