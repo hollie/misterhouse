@@ -58,12 +58,13 @@ use Data::Dumper;
 # TODO
 #	- be nice to pull runtimes and store it into a dbm file, or maybe RRD?
 #	- disabling the opensprinkler doesn't turn off any running stations.
-#	- the architecture can create pauses -- long term adopt Kevin's approach w/ Nests
+#	- the architecture can create pauses -- long term adopt Venstar process_item model
 #	- no ability to print logs. The built-in web interface does this well already
 
 # v1.0 release
 # v1.1 (May 2016) - added ability to change program runtimes
 # v1.11 (May 2016) - removed JSON::XS dependancy
+# v1.11.1 (May 2017) - changed to support logger
 
 @OpenSprinkler::ISA = ('Generic_Item');
 
@@ -99,7 +100,7 @@ $result{9} = "unknown error";
 
 sub new {
     my ( $class, $host, $pwd, $poll ) = @_;
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     $self->{data}                 = undef;
     $self->{child_object}         = undef;
@@ -150,8 +151,7 @@ sub _init {
             for my $index ( 0 .. $#{ $stations->{snames} } ) {
 
                 #print "$index: $stations->{snames}[$index]\n";
-                $self->{data}->{stations}->[$index]->{name} =
-                  $stations->{snames}[$index];
+                $self->{data}->{stations}->[$index]->{name} = $stations->{snames}[$index];
             }
 
             # Check to see if station is disabled, Bitwise operation
@@ -160,8 +160,7 @@ sub _init {
                 for my $bit ( 0 .. 7 ) {
                     my $station_id = ( ( $stn_dis * 8 ) + $bit );
                     my $disabled = substr $bin, ( 7 - $bit ), 1;
-                    $self->{data}->{stations}->[$station_id]->{status} =
-                      ( $disabled == 0 ) ? "enabled" : "disabled";
+                    $self->{data}->{stations}->[$station_id]->{status} = ( $disabled == 0 ) ? "enabled" : "disabled";
                 }
             }
 
@@ -214,20 +213,16 @@ sub poll {
         $self->{data}->{loc}     = $vars->{loc};
         $self->{data}->{options} = $options;
         $self->{data}->{vars}    = $vars;
-        $self->{data}->{info}->{state} =
-          ( $vars->{en} == 0 ) ? "disabled" : "enabled";
-        $self->{data}->{info}->{waterlevel} = $options->{wl};
-        $self->{data}->{info}->{adjustment_method} =
-          ( $options->{uwt} == 0 ) ? "manual" : "zimmerman";
-        $self->{data}->{info}->{rain_sensor_status} =
-          ( $vars->{rs} == 0 ) ? "off" : "on";
-        $self->{data}->{info}->{sunrise} = $vars->{sunrise};
-        $self->{data}->{info}->{sunset}  = $vars->{sunset};
+        $self->{data}->{info}->{state}              = ( $vars->{en} == 0 ) ? "disabled" : "enabled";
+        $self->{data}->{info}->{waterlevel}         = $options->{wl};
+        $self->{data}->{info}->{adjustment_method}  = ( $options->{uwt} == 0 ) ? "manual" : "zimmerman";
+        $self->{data}->{info}->{rain_sensor_status} = ( $vars->{rs} == 0 ) ? "off" : "on";
+        $self->{data}->{info}->{sunrise}            = $vars->{sunrise};
+        $self->{data}->{info}->{sunset}             = $vars->{sunset};
 
         for my $index ( 0 .. $#{ $stations->{sn} } ) {
             print "$index: $stations->{sn}[$index]\n" if ( $self->{debug} );
-            $self->{data}->{stations}->[$index]->{state} =
-              ( $stations->{sn}[$index] == 0 ) ? "off" : "on";
+            $self->{data}->{stations}->[$index]->{state} = ( $stations->{sn}[$index] == 0 ) ? "off" : "on";
         }
         for my $index ( 0 .. $#{ $programs->{pd} } ) {
             my $name = $programs->{pd}[$index][5];
@@ -237,9 +232,8 @@ sub poll {
               ( $programs->{pd}[$index][0] % 2 == 1 )
               ? "enabled"
               : "disabled";    #if number is odd, then bit 0 set and disabled
-            $self->{data}->{programs}->{$name}->{flag} =
-              $programs->{pd}[$index][0];
-            $self->{data}->{programs}->{$name}->{pid} = $index;
+            $self->{data}->{programs}->{$name}->{flag} = $programs->{pd}[$index][0];
+            $self->{data}->{programs}->{$name}->{pid}  = $index;
             $self->{data}->{programs}->{$name}->{data} =
                 "$programs->{pd}[$index][1],$programs->{pd}[$index][2],["
               . join( ",", @{ $programs->{pd}[$index][3] } ) . "],["
@@ -509,8 +503,7 @@ sub process_data {
             main::print_log(
                 "[OpenSprinkler] Station $index $self->{data}->{stations}->[$index]->{name} changed from $previous to $self->{data}->{stations}->[$index]->{state}"
             ) if ( $self->{loglevel} );
-            $self->{previous}->{data}->{stations}->[$index]->{state} =
-              $self->{data}->{stations}->[$index]->{state};
+            $self->{previous}->{data}->{stations}->[$index]->{state} = $self->{data}->{stations}->[$index]->{state};
             if ( defined $self->{child_object}->{station}->{$index} ) {
                 main::print_log "Child object found. Updating..."
                   if ( $self->{loglevel} );
@@ -525,8 +518,7 @@ sub process_data {
           if ( defined $self->{previous}->{data}->{programs}->{$key}->{status} );
         if ( $previous ne $self->{data}->{programs}->{$key}->{status} ) {
             main::print_log("[OpenSprinkler] Program $key changed from $previous to $self->{data}->{programs}->{$key}->{status}") if ( $self->{loglevel} );
-            $self->{previous}->{data}->{programs}->{$key}->{status} =
-              $self->{data}->{programs}->{$key}->{status};
+            $self->{previous}->{data}->{programs}->{$key}->{status} = $self->{data}->{programs}->{$key}->{status};
             if ( defined $self->{child_object}->{program}->{$key} ) {
                 main::print_log "Child object found. Updating..."
                   if ( $self->{loglevel} );
@@ -544,8 +536,7 @@ sub process_data {
     if ( $self->{previous}->{info}->{waterlevel} != $self->{data}->{info}->{waterlevel} ) {
         main::print_log("[OpenSprinkler] Waterlevel changed from $self->{previous}->{info}->{waterlevel} to $self->{data}->{info}->{waterlevel}")
           if ( $self->{loglevel} );
-        $self->{previous}->{info}->{waterlevel} =
-          $self->{data}->{info}->{waterlevel};
+        $self->{previous}->{info}->{waterlevel} = $self->{data}->{info}->{waterlevel};
         if ( defined $self->{child_object}->{waterlevel} ) {
             main::print_log "Child object found. Updating..."
               if ( $self->{loglevel} );
@@ -557,8 +548,7 @@ sub process_data {
         main::print_log(
             "[OpenSprinkler] Rain Sensor changed from $self->{previous}->{info}->{rain_sensor_status} to $self->{data}->{info}->{rain_sensor_status}")
           if ( $self->{loglevel} );
-        $self->{previous}->{info}->{rain_sensor_status} =
-          $self->{data}->{info}->{rain_sensor_status};
+        $self->{previous}->{info}->{rain_sensor_status} = $self->{data}->{info}->{rain_sensor_status};
         if ( defined $self->{child_object}->{rain_sensor_status} ) {
             main::print_log "Child object found. Updating..."
               if ( $self->{loglevel} );
@@ -582,8 +572,7 @@ sub process_data {
         main::print_log(
             "[OpenSprinkler] Adjustment Method changed from $self->{previous}->{info}->{adjustment_method} to $self->{data}->{info}->{adjustment_method}")
           if ( $self->{loglevel} );
-        $self->{previous}->{info}->{adjustment_method} =
-          $self->{data}->{info}->{adjustment_method};
+        $self->{previous}->{info}->{adjustment_method} = $self->{data}->{info}->{adjustment_method};
     }
 
 }
@@ -680,9 +669,9 @@ sub set_program_data {
     #intervals can always come later.
 
     return unless ( defined $self->{data}->{programs}->{$name} );
-    $days =~ s/\s//g;    #remove whitespace
+    $days  =~ s/\s//g;    #remove whitespace
     $start =~ s/\s//g;
-    $run =~ s/\s//g;
+    $run   =~ s/\s//g;
 
     #set the program to schedule weekday , fixed time
     my $bin = sprintf "%08b", $self->{data}->{programs}->{$name}->{flag};
@@ -885,7 +874,7 @@ package OpenSprinkler_Station;
 sub new {
     my ( $class, $object, $number, $on_timeout ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -921,7 +910,7 @@ package OpenSprinkler_Program;
 sub new {
     my ( $class, $object, $name, $maxlimit ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -977,7 +966,7 @@ package OpenSprinkler_Comm;
 sub new {
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -1003,7 +992,7 @@ package OpenSprinkler_Waterlevel;
 sub new {
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -1030,7 +1019,7 @@ package OpenSprinkler_Rainstatus;
 sub new {
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;

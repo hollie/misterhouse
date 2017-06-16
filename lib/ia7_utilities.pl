@@ -24,7 +24,7 @@ sub main::ia7_update_schedule {
 
 sub ia7_update_collection {
     &main::print_log("[IA7_Collection_Updater] : Starting");
-    my $ia7_coll_current_ver = 1.2;
+    my $ia7_coll_current_ver = 1.3;
 
     my @collection_files = (
         "$main::Pgm_Root/data/web/collections.json",
@@ -36,6 +36,7 @@ sub ia7_update_collection {
             &main::print_log("[IA7_Collection_Updater] : Reviewing $file to current version $ia7_coll_current_ver");
             my $json_data;
             my $file_data;
+            my $updated;
             eval {
                 $file_data = &main::file_read($file);
                 $json_data = decode_json($file_data);    #HP, wrap this in eval to prevent MH crashes
@@ -45,11 +46,11 @@ sub ia7_update_collection {
                 &main::print_log("[IA7_Collection_Updater] : WARNING: decode_json failed for $file. Please check this file!");
             }
             else {
-                my $updated = 0;
+                $updated = 0;
 
                 if (   ( !defined $json_data->{meta}->{version} )
                     or ( $json_data->{meta}->{version} < 1.2 ) )
-                {                                        #IA7 v1.2 required change
+                {                                #IA7 v1.2 required change
                     $json_data->{700}->{user} = '$Authorized'
                       unless ( defined $json_data->{700}->{user} );
                     my $found = 0;
@@ -59,9 +60,26 @@ sub ia7_update_collection {
                     push( @{ $json_data->{500}->{children} }, 700 )
                       unless ($found);
                     $json_data->{meta}->{version} = "1.2";
-                    &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.2");
+                    &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.2 (MH 4.2 IA7 v1.2.100 support)");
                     $updated = 1;
                 }
+                if ( $json_data->{meta}->{version} < 1.3 )  {
+                #IA7 v1.4 required change
+                #convert back to a file so we can globally change links
+                my $file_data2 = to_json( $json_data, { utf8 => 1, pretty => 1 } );    
+                $file_data2 =~ s/\"link\"[\s+]:[\s+]\"\/ia7\/\#path=\/vars\"/\"link\" : \"\/ia7\/\#path\=\/vars_global\"/g;
+                $file_data2 =~ s/\"link\"[\s+]:[\s+]\"\/ia7\/\#path=\/vars\/Save\"/\"link\" : \"\/ia7\/\#path\=\/vars_save\"/g;
+                eval {
+                    $json_data = decode_json($file_data2);    #HP, wrap this in eval to prevent MH crashes
+                };
+                if ($@) {
+                    &main::print_log("[IA7_Collection_Updater] : WARNING: decode_json failed for v1.3 update.");
+                } else {           
+                    $json_data->{meta}->{version} = "1.3";
+                    &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.3 (MH 4.3 IA7 v1.4.400 support)");
+                    $updated = 1; 
+                } 
+                }           
                 if ($updated) {
                     my $json_newdata = to_json( $json_data, { utf8 => 1, pretty => 1 } );
                     my $backup_file = $file . ".t" . int( ::get_tickcount() / 1000 ) . ".backup";
