@@ -12,8 +12,6 @@ sub upgrade_checks {
     &rrd_new_datasources();
   }
 }
-    
-}
 
 sub rrd_new_datasources {
     &main::print_log("[Updater] : Checking RRD Schemas");
