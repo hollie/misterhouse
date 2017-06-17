@@ -1,19 +1,23 @@
 package upgrade_utilities;
 
 #set of subroutines that will store code that perform system-wide updates for new MH versions
-use strict; 
-use RRD::Simple; 
 #added dependancy lib/site/RRD/Simple.pm
-#weather_rrd_update.pl
-#update 06/15/17 12:24:00 PM Oops2: /Users/howard/Develop/mh/data/rrd/weather_data.rrd: expected 107 data source readings (got 37) from 1497551040
 
 sub upgrade_checks {
 
+  eval("use RRDs");
+  if ($@) {
+    &main::print_log("[Updater] : RRDs module not installed, skipping databse update");
+  } else {
     &rrd_new_datasources();
+  }
+}
+    
 }
 
 sub rrd_new_datasources {
     &main::print_log("[Updater] : Checking RRD Schemas");
+    use RRD::Simple; 
     my $rrd = RRD::Simple->new();
     
     my @sources = ($main::config_parms{data_dir} . "/rrd/weather_data.rrd");

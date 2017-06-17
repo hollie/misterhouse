@@ -10,20 +10,11 @@
 #@ - temperature graphs
 #@ - others graphs for next release
 #@ To allow for logging of data into a RRD (Round Robin) database,
-#@ install the perl RRDs.pm module, and fill in the mh.ini parm.
-#@
-#@ Windows users can install RRD by extracting the files in
-#@ http://people.ee.ethz.ch/~oetiker/webtools/rrdtool/pub/
-#@ rrdtool-1.0.40.x86distr.zip-5.8.zip,
-#@ (or similar) then cd to perl-shared and type: ppm install rrds.ppd
-#@ RRD is available from
-#@ http://ee-staff.ethz.ch/~oetiker/webtools/rrdtool
-#@ Examples graphs : http://www.domotix.net
 #  Script inspired from T. Oetiker wx200 monitor
 #  http://wx200d.sourceforge.net
 #--------------------------------------------------------------------
 # If you use the graphs on an Internet Web site, please add a link
-# to www.misterhouse.net and www.domotix.net for your contribution
+# to www.misterhouse.net for your contribution
 #--------------------------------------------------------------------
 # In input, mh variables $Weather{...} are in the unit of measure :
 #    Temperature	°F
@@ -230,7 +221,7 @@ if ($Reread) {
       unless $config_parms{weather_data_rrd};
     $config_parms{weather_graph_dir} = "$config_parms{data_dir}/rrd"
       unless $config_parms{weather_graph_dir};
-    $config_parms{weather_graph_footer} = 'Last updated $Time_Date, Dominique Benoliel, www.domotix.net'
+    $config_parms{weather_graph_footer} = 'Last updated $Time_Date, Dominique Benoliel'
       unless $config_parms{weather_graph_footer};
     mkdir $config_parms{weather_graph_dir}
       unless -d $config_parms{weather_graph_dir};
