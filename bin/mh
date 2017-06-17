@@ -1247,7 +1247,6 @@ sub setup {
     print "Done with setup\n\n";
 
     &ia7_utilities::ia7_update_collection;    #Check if the collections need updating.
-
 }
 
 # Called from generic item *** and undo sub
