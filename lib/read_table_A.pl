@@ -1492,7 +1492,7 @@ sub read_table_A {
 
     #-------------- End AD2 Objects -------------
     #-------------- Alexa Objects -----------------
-    elsif ( $type eq "ALEX_BRIDGE" ) {
+    elsif (( $type eq "ALEX_BRIDGE" ) or ( $type eq "ALEXA_BRIDGE" )) {
         require 'AlexaBridge.pm';
         ($name) = @item_info;
         $object = "AlexaBridge('$other')";
