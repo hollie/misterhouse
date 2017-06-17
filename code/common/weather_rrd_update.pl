@@ -904,3 +904,58 @@ if ($Reload) {
       unless &trigger_get('update rain totals from RRD database');
     &analyze_rrd_rain;
 }
+
+if ($Startup) {
+
+    &update_rrd_database();
+}
+
+sub update_rrd_database {
+    &main::print_log("Checking RRD Schemas");
+    use RRD::Simple; 
+    my $rrd = RRD::Simple->new();
+    
+    my @sources = ($config_parms{data_dir} . "/rrd/weather_data.rrd");
+    push @sources, $config_parms{weather_data_rrd} if (defined $config_parms{weather_data_rrd} and $config_parms{weather_data_rrd});
+    
+    my %dschk;
+    my %newds;
+    #for MH 4.3, add in some TempSpares as well as 30 placeholders
+    $dschk{'4.3'} = "dsgauge020";
+    @{$newds{'4.3'}} = ({"NAME" => 'tempspare11', "TYPE" => "GAUGE"}, 
+            {"NAME" =>'tempspare12',"TYPE" => "GAUGE"},
+            {"NAME" =>'tempspare13', "TYPE" => "GAUGE"},
+            {"NAME" =>'tempspare14', "TYPE" => "GAUGE"},
+            {"NAME" =>'tempspare15', "TYPE" => "GAUGE"});
+    for (my $i=1; $i<21; $i++) {
+        push @{$newds{'4.3'}}, {"NAME" => 'dsgauge' . sprintf("%03d",$i), "TYPE" => "GAUGE"};
+    }
+    for (my $i=1; $i<11; $i++) {
+        push @{$newds{'4.3'}}, {"NAME" => 'dsderive' . sprintf("%03d",$i), "TYPE" => "DERIVE"};
+    }    
+    
+
+    foreach my $rrdfile (@sources) {
+        if (-e $rrdfile) {
+            &main::print_log("RRD: Checking file $rrdfile...");
+
+            my %rrd_ds = map { $_ => 1 } $rrd->sources($rrdfile);
+    
+            foreach my $key (keys %dschk) {
+    
+                unless (exists $rrd_ds{$dschk{$key}}) {
+                    foreach my $ds (@{$newds{$key}}) {
+                        unless (exists $rrd_ds{$ds->{NAME}}) {
+                            &main::print_log("RRD: v$key Adding new Data Source name:$ds->{NAME} type:$ds->{TYPE}");
+                            $rrd->add_source($rrdfile, $ds->{NAME} => $ds->{TYPE}); #could also be DERIVE
+                        } else {
+                            &main::print_log("RRD: v$key Skipping Existing Data Source $ds->{NAME}");
+
+                        }
+                       
+                    } 
+                }
+            }
+        }
+    }
+}

@@ -790,7 +790,6 @@ sub setup {
     require 'xml_server.pl';
     require 'menu_code.pl';
     require 'trigger_code.pl';
-    require 'upgrade_utilities.pl';
 
     eval "use JSON";    # Used in mh/lib/json_server.pl JSON Web Attributes
     if ($@) {
@@ -1248,8 +1247,6 @@ sub setup {
     print "Done with setup\n\n";
 
     &ia7_utilities::ia7_update_collection;    #Check if the collections need updating.
-    &upgrade_utilities::upgrade_checks;
-
 }
 
 # Called from generic item *** and undo sub
