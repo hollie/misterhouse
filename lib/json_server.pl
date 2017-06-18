@@ -249,6 +249,11 @@ sub json_get {
         my $rrd_file = "weather_data.rrd";
         $rrd_file = $config_parms{weather_data_rrd}
           if ( ( defined $config_parms{weather_data_rrd} ) and ($config_parms{weather_data_rrd}));
+        my $rrd_source = "";
+        $rrd_source = $args{source}[0] if (defined $args{source}[0]);
+        $rrd_file = $config_parms{"rrd_source_" . $rrd_source} if (defined $config_parms{"rrd_source_" . $rrd_source} and $config_parms{"rrd_source_" . $rrd_source});
+        $path = $config_parms{"rrd_source_" .$rrd_source . "_path"} if (defined $config_parms{"rrd_source_" . $rrd_source . "_path"} and $config_parms{"rrd_source_" . $rrd_source . "_path"});
+#print "JSON: source=$rrd_source path=$path file=$rrd_file\n";
         if ( $rrd_file =~ m/.*\/(.*\.rrd)/ ) {
             $rrd_file = $1;
         }
