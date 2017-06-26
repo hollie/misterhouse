@@ -915,8 +915,8 @@ sub update_rrd_database {
     use RRD::Simple; 
     my $rrd = RRD::Simple->new();
     
-    my @sources = ($config_parms{data_dir} . "/rrd/weather_data.rrd");
-    push @sources, $config_parms{weather_data_rrd} if (defined $config_parms{weather_data_rrd} and $config_parms{weather_data_rrd});
+    my @sources = ("$config_parms{data_dir}/rrd/weather_data.rrd");
+    push @sources, $config_parms{weather_data_rrd} if (defined $config_parms{weather_data_rrd} and $config_parms{weather_data_rrd} and ($config_parms{weather_data_rrd} ne "$config_parms{data_dir}/rrd/weather_data.rrd"));
     
     my %dschk;
     my %newds;

@@ -1,5 +1,4 @@
-// v1.4.350
-//TODO : floorplan on IOS8
+// v1.4.500
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -1547,8 +1546,14 @@ var graph_rrd = function(start,group,time) {
 		updateSocket.abort();
 	}	
 	var path_str = "/rrd"  
-	//var arg_str = "start="+start+"&group="+group+"&long_poll=true&time="+time;
-	var arg_str = "start="+start+"&group="+group+"&time="+time;
+	//if the group has a dot, then it is a separate source
+	var source = "&group="+group;
+	if (group.indexOf(".") !== -1) {
+	    var rrd_source = group.split(".");
+	    source = "&source="+rrd_source[0]+"&group="+rrd_source[1];
+	    //console.log("source found:"+source);
+	}
+	var arg_str = "start="+start+source+"&time="+time;
 	updateSocket = $.ajax({
 		type: "GET",
 		//url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",

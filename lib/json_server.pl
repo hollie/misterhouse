@@ -266,6 +266,8 @@ sub json_get {
         $default_timestamp = $json_data{'rrd_config'}->{'prefs'}->{'get_last_update'}
           if ( defined $json_data{'rrd_config'}->{'prefs'}->{'get_last_update'} );
 
+        &main::print_log("json_server.pl: WARNING. could not find ds.$rrd_source section in ia7_rrd_config.json!") if (($rrd_source) and !(defined $json_data{'rrd_config'}->{'ds.' . $rrd_source}));
+
         my @dss      = ();
         my @defs     = ();
         my @xports   = ();
@@ -296,11 +298,12 @@ sub json_get {
 
             if ( defined $args{group}[0] ) {
                 @{ $args{ds} } = ();    #override any DSs specified in the URL
-                for my $dsg ( keys %{ $json_data{'rrd_config'}->{'ds'} } ) {
-                    if ( defined $json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'} ) {
-                        foreach my $group ( split /,/, $json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'} ) {
-                            push @{ $args{ds} }, $dsg
-                              if ( lc $group ) eq ( lc $args{group}[0] );
+                my $ds_config = $json_data{'rrd_config'}->{'ds'};
+                $ds_config = $json_data{'rrd_config'}->{'ds.' . $rrd_source} if ($rrd_source); #use ds.<name> if an external source is specified
+                for my $dsg ( keys %{ $ds_config } ) {
+                    if ( defined $ds_config->{$dsg}->{'group'} ) {
+                        foreach my $group ( split /,/, $ds_config->{$dsg}->{'group'} ) {
+                            push @{ $args{ds} }, $dsg if ( lc $group ) eq ( lc $args{group}[0] );
                         }
                     }
                 }
@@ -309,17 +312,17 @@ sub json_get {
             foreach my $ds ( @{ $args{ds} } ) {
                 push @dss, $ds;
 
+                my $ds_config = $json_data{'rrd_config'}->{'ds'};
+                $ds_config = $json_data{'rrd_config'}->{'ds.' . $rrd_source} if ($rrd_source); #use ds.<name> if an external source is specified
+
                 #if it doesn't exist as a ds then skip
                 my $cf = $default_cf;
-                $cf = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'cf'}
-                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'cf'} );
+                $cf = $ds_config->{$ds}->{'cf'} if ( defined $ds_config->{$ds}->{'cf'} );
                 push @defs,   "DEF:$ds=$path/$rrd_file:$ds:$cf";
                 push @xports, "XPORT:$ds";
-                $dataset[$index]->{'label'} = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'}
-                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'} );
-                $dataset[$index]->{'color'} = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'}
-                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'} );
-                if ( lc $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} eq "bar" ) {
+                $dataset[$index]->{'label'} = $ds_config->{$ds}->{'label'} if ( defined $ds_config->{$ds}->{'label'} );
+                $dataset[$index]->{'color'} = $ds_config->{$ds}->{'color'} if ( defined $ds_config->{$ds}->{'color'} );
+                if ( lc $ds_config->{$ds}->{'type'} eq "bar" ) {
                     $dataset[$index]->{'bars'}->{'show'}      = "true";
                     $dataset[$index]->{'bars'}->{'fill'}      = "0";
                     $dataset[$index]->{'bars'}->{'lineWidth'} = 0;
@@ -333,10 +336,8 @@ sub json_get {
                 else {
                     $dataset[$index]->{'lines'}->{'show'} = "true";
                 }
-                $round[$index] = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'}
-                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'} );
-                $type[$index] = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'}
-                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} );
+                $round[$index] = $ds_config->{$ds}->{'round'} if ( defined $ds_config->{$ds}->{'round'} );
+                $type[$index] = $ds_config->{$ds}->{'type'} if ( defined $ds_config->{$ds}->{'type'} );
                 $index++;
             }
 
