@@ -149,7 +149,9 @@ sub json_put {
 
     # Translate special characters
     $json_raw = $json_raw->pretty->encode( \%json );
-    return &json_page($json_raw);
+    my $options = "";
+    $options = "compress" if ($Http{'Accept-Encoding'} =~ m/gzip/);
+    return &json_page($json_raw,$options);
 }
 
 # Handles Get (READ) Requests
@@ -810,7 +812,9 @@ sub json_get {
     # Translate special characters
     $json_raw->canonical(1);    #Order the data so that objects show alphabetically
     $json_raw = $json_raw->pretty->encode( \%json );
-    return &json_page($json_raw);
+    my $options = "";
+    $options = "compress" if ($Http{'Accept-Encoding'} =~ m/gzip/);
+    return &json_page($json_raw,$options);
 
 }
 
@@ -1146,18 +1150,23 @@ sub filter_object {
 }
 
 sub json_page {
-    my ($json_raw) = @_;
-    my $json;
+    my ($json_raw,$options) = @_;
 
 ##    utf8::encode( $json_raw ); #may need to wrap gzip in an eval and encode it if errors develop. It crashes if a < is in the text
-    gzip \$json_raw => \$json;
     my $output = "HTTP/1.0 200 OK\r\n";
     $output .= "Server: MisterHouse\r\n";
     $output .= "Content-type: application/json\r\n";
-    $output .= "Content-Encoding: gzip\r\n";
-    $output .= "\r\n";
-    $output .= $json;
-##    $output .= $json_raw;
+    if ($options =~ m/compress/) {
+        print_log("json_server.pl: DEBUG: Compressing Data as requested by client") if $Debug{json};
+        my $json;
+        gzip \$json_raw => \$json;
+        $output .= "Content-Encoding: gzip\r\n";
+        $output .= "\r\n";
+        $output .= $json;
+    } else {
+        $output .= "\r\n";
+        $output .= $json_raw;
+    }
 
     return $output;
 }
