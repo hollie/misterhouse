@@ -21,7 +21,7 @@
 	<link href="/ia7/include/tables.css" rel="stylesheet">
 	
 	<!-- Jquery -->
-	<script src="/ia7/include/jquery.1.10.2.min.js"></script>
+	<script src="/ia7/include/jquery.1.12.4.min.js"></script>
 	<script src="/ia7/include/jquery.longclick-1.0.min.js"></script>
 	
 	<!--Bootstrap-->
@@ -44,7 +44,10 @@
     <script src="/ia7/include/jquery.alerts.js"></script>
 	
 	<!-- A custom jquery UI script to enable sortable items -->
-	<!-- <script src="include/jquery-ui-1.11.1.custom.min.js"></script> -->
+	<!-- ui 1.12.1 used for slider -->
+	<script src="include/jquery-ui-1.12.1.min.js"></script>
+	<link rel="stylesheet" href="include/jquery-ui.smoothness.1.12.1.css">
+
 	
 	<!-- Enables Jquery UI functions to work on touch interfaces -->
   	<!-- <script src="/ia7/include/jquery.ui.touch-punch.0.2.3.min.js"></script> -->
@@ -214,6 +217,13 @@
 	}
 	.sched-dropdown-menu {
 		margin-left: 14px !important;	
+	}
+	
+	.brightness-slider {
+	    margin-left: 5px;
+	    margin-right: 5px;
+	    margin-top: 10px;
+	    margin-bottom: -20px;
 	}
 	
 	</style>

@@ -1,4 +1,4 @@
-// v1.4.500
+// v1.5.100
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -854,7 +854,17 @@ var filterSubstate = function (state) {
     return filter;
 };
         
+var brightnessStates = function (states) {
 
+    for(var i = 0; i < states.length; i++)
+        {
+        if(states[i].indexOf('%') != -1)
+        {
+            return 1
+        }
+    }
+    return 0;
+}
 
 var sortArrayByArray = function (listArray, sortArray){
 	listArray.sort(function(a,b) {
@@ -2570,11 +2580,12 @@ var create_state_modal = function(entity) {
 		if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
 		$('#control').modal('show');
 		var modal_state = json_store.objects[entity].state;
-		$('#control').find('.object-title').html(name + " - " + json_store.objects[entity].state);
+		$('#control').find('.object-title').html(name + " - <span class='object-state'>" + json_store.objects[entity].state + "</span>");
 		$('#control').find('.control-dialog').attr("entity", entity);
 		var modal_states = json_store.objects[entity].states;
 		// HP need to have at least 2 states to be a controllable object...
 		if (modal_states == undefined) modal_states = 1;
+		console.log("brightness obj :"+brightnessStates(json_store.objects[entity].states));
 		if (modal_states.length > 1) {
 			$('#control').find('.states').html('<div class="btn-group stategrp0 btn-block"></div>');
 			var modal_states = json_store.objects[entity].states;
@@ -2596,45 +2607,93 @@ var create_state_modal = function(entity) {
 				grid_buttons = 4;
 				group_buttons = 3;
 			}
-			
-			for (var i = 0; i < modal_states.length; i++){
-				if (filterSubstate(modal_states[i]) == 1) {
-					advanced_html += "<button class='btn btn-default col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" hidden'>"+modal_states[i]+"</button>";
-					continue 
-				} else {
-					//buttonlength += 2 + modal_states[i].length 
-					buttonlength ++;
-				}
-				//if (buttonlength >= 25) {
-				if (buttonlength > group_buttons) {
-					stategrp++;
-					$('#control').find('.states').append("<div class='btn-group btn-block stategrp"+stategrp+"'></div>");
-					buttonlength = 1;
-				}
-				var color = getButtonColor(modal_states[i])
-				var disabled = ""
-				if (modal_states[i] == json_store.objects[entity].state) {
-					disabled = "disabled";
-				}
-				//global override
-				if (json_store.ia7_config.prefs.disable_current_state !== undefined && json_store.ia7_config.prefs.disable_current_state == "no") {
-            		disabled = "";
-				}
-				//per object override
-				if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
-                	if (json_store.ia7_config.objects[entity].disable_current_state !== undefined && json_store.ia7_config.objects[entity].disable_current_state == "yes") {
-                    	disabled = "disabled";
-                	} else {
+			//if it's a brightness object then put ON/OFF and a slider unless overriden in the prefs file
+            if (!brightnessStates(json_store.objects[entity].states) || (json_store.ia7_config.prefs.brightness_slider !== undefined && json_store.ia7_config.prefs.brightness_slider == "no"))	{		
+                for (var i = 0; i < modal_states.length; i++){
+                    if (filterSubstate(modal_states[i]) == 1) {
+                        advanced_html += "<button class='btn btn-default col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" hidden'>"+modal_states[i]+"</button>";
+                        continue 
+                    } else {
+                        //buttonlength += 2 + modal_states[i].length 
+                        buttonlength ++;
+                    }
+                    //if (buttonlength >= 25) {
+                    if (buttonlength > group_buttons) {
+                        stategrp++;
+                        $('#control').find('.states').append("<div class='btn-group btn-block stategrp"+stategrp+"'></div>");
+                        buttonlength = 1;
+                    }
+                    var color = getButtonColor(modal_states[i])
+                    var disabled = ""
+                    if (modal_states[i] == json_store.objects[entity].state) {
+                        disabled = "disabled";
+                    }
+                    //global override
+                    if (json_store.ia7_config.prefs.disable_current_state !== undefined && json_store.ia7_config.prefs.disable_current_state == "no") {
                         disabled = "";
-                	}
-				}
-			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");					
-			}
+                    }
+                    //per object override
+                    if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                        if (json_store.ia7_config.objects[entity].disable_current_state !== undefined && json_store.ia7_config.objects[entity].disable_current_state == "yes") {
+                            disabled = "disabled";
+                        } else {
+                            disabled = "";
+                        }
+                    }
+                $('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");					
+                }
+            } else {
+                $('#control').find('.states').find(".stategrp0").append("<button class='btn col-sm-6 col-xs-6 btn-success'>on</button>");					                
+                $('#control').find('.states').find(".stategrp0").append("<button class='btn col-sm-6 col-xs-6 btn-default'>off</button>");					                
+                $('#control').find('.states').append("<div id='slider' class='brightness-slider'></div>");					
+                var val = $(".object-state").text();
+                if (val == "on") {
+                     val = 100;
+                } else if (val == "off") {
+                    val = 0;
+                } else {
+                    val = parseInt(val);
+                }
+                $('#slider' ).slider({
+                    min: 0,
+                    max: 100,
+                    value: val,
+                });
+                $( "#slider" ).on( "slide", function(event, ui) {
+                    var sliderstate = ui.value;
+                    if (sliderstate == "100") {
+                        sliderstate = "on";
+                    } else if (sliderstate == "0") {
+                         sliderstate = "off";
+                    } else {
+                        sliderstate += "%";
+                    }
+                    //console.log("Slider Change "+ui.value+":"+sliderstate); 
+                    $('#control').find('.object-state').text(sliderstate);
+
+                });
+                $( "#slider" ).on( "slidechange", function(event, ui) {
+                    var sliderstate = ui.value;
+                    if (sliderstate == "100") {
+                        sliderstate = "on";
+                    } else if (sliderstate == "0") {
+                         sliderstate = "off";
+                    } else {
+                        sliderstate += "%";
+                    }
+                    url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+sliderstate;
+			        $('#control').modal('hide');
+			        $.get( url);
+			        console.log("Slider Value "+url); 
+                });
+
+            }
 		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
 		$('#control').find('.states').find('.btn').click(function (){
 			url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
 			$('#control').modal('hide');
 			$.get( url);
+		    console.log("button Value "+url); 
 		});
 		} else {
 			//remove states from anything that doesn't have more than 1 state
