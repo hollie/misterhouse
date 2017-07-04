@@ -415,7 +415,7 @@ sub set {
     #have mh_control.pl enabled (multiple check http server commands will run)
     #if xAP voice commands need to execute, then turn on $config_parms{xap_enable_voice_cmds} = 1
 
-    return if (($set_by =~ m/^xAP/) and ((defined $::config_parms{xap_enable_voice_cmds}) and ($::config_parms{xap_enable_voice_cmds} == 0)));
+    return if (($set_by =~ m/^xAP/) and ((!defined $::config_parms{xap_enable_voice_cmds}) or ((defined $::config_parms{xap_enable_voice_cmds}) and ($::config_parms{xap_enable_voice_cmds} == 0))));
 
     &main::print_log("DB Voice_Cmd : executing $cmd") if $main::Debug{voice};
 
