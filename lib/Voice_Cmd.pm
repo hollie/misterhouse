@@ -409,6 +409,16 @@ sub set {
     }
     return if &main::check_for_tied_filters( $self, $state );
 
+    &main::print_log("DB Voice_Cmd : state=$state, set_by=$set_by, no_log=$no_log, respond=$respond") if $main::Debug{voice};
+
+    #don't process voice command if via xAP, this can cause scalability issues if all MH instances
+    #have mh_control.pl enabled (multiple check http server commands will run)
+    #if xAP voice commands need to execute, then turn on $config_parms{xap_enable_voice_cmds} = 1
+
+    return if (($set_by =~ m/^xAP/) and ((!defined $::config_parms{xap_enable_voice_cmds}) or ((defined $::config_parms{xap_enable_voice_cmds}) and ($::config_parms{xap_enable_voice_cmds} == 0))));
+
+    &main::print_log("DB Voice_Cmd : executing $cmd") if $main::Debug{voice};
+
     # Cannot do this!  Respond_Target is shared by everything and its brother!
     # if app passes explicit targets, then they are passed along and eventually responded to
     # otherwise set_by is used
