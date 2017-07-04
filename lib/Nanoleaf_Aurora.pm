@@ -1,6 +1,9 @@
 package Nanoleaf_Aurora;
 
-# v1.0.9
+#todo if poll queue exceeds 3, then just empty the queue
+#print and purge the command queue
+
+# v1.0.13
 
 #if any effect is changed, by definition the static child should be set to off.
 #cmd data returns, need to check by command
@@ -21,8 +24,6 @@ use Data::Dumper;
 use IO::Select;
 use IO::Socket::INET;
 
-# REQUIRES AURORA FIRMWARE v1.4.39+ For v1.4.39 pass the option api=beta.
-#
 # To set up, first pair with mobile app -- the Aurora needs to be set up initially with the app
 # to get it's wifi information. After it is successfully set up, it should be locatable via SSDP
 # If multiple new Aurora's are plugged in at the same time, the SSDP query may not return unique
@@ -33,16 +34,22 @@ use IO::Socket::INET;
 # In a few seconds the MH print log should show that a token has been found.
 # the location URL and tokens are stored in the mh.ini file
 
+# Firmware supported
+# 1.4.38 or earlier - no
+# 1.4.39            - pass the option api=beta
+# 1.5.0             - yes
+# 1.5.1             - yes
+
 # Nanoleaf_Aurora Objects
 #
-# $aurora         = new NanoLeaf_Aurora(<id>,<url>,<token>,<poll>,<options>);
-# $aurora_effects = new NanoLeaf_Aurora_Effects($aurora);
-# $aurora_static1 = new NanoLeaf_Aurora_Static($aurora, "effect string");
+# $aurora         = new Nanoleaf_Aurora('1');
+# $aurora_effects = new Nanoleaf_Aurora_Effects($aurora);
+# $aurora_static1 = new Nanoleaf_Aurora_Static($aurora, "effect string");
 # $aurora_comm    = new Nanoleaf_Aurora_Comm($aurora);
 
 # MH.INI settings
 # If the token is auto generated, it will be written to the mh.ini. MH.INI settings can be used
-# instead of object defintions
+# instead of object definitions
 #
 # aurora_<ID>_url =
 # aurora_<ID>_token =
@@ -104,10 +111,10 @@ our %active_auroras = ();
 
 sub new {
     my ( $class, $id, $url, $token, $poll, $options ) = @_;
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     $self->{name} = "1";
-    $self->{name} = $id if ($id);
+    $self->{name} = $id if ((defined $id) and ($id));
 
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
@@ -119,7 +126,7 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.0.9";
+    $self->{module_version}         = "v1.0.13";
     $self->{ssdp_timeout}           = 4000;
     $self->{last_static}            = "";
 
@@ -280,7 +287,7 @@ sub process_check {
             $com_status = "offline";
         }
         else {
-            if ( keys $data ) {
+            if ( keys %{$data} ) {
                 if ( $self->{poll_process_mode} eq "info" ) {
 
                     #{"name":"Nanoleaf Aurora","serialNo":"XXXXXXXX","manufacturer":"Nanoleaf","firmwareVersion":"1.4.39","model":"NL22","state":{"on":{"value":true},"brightness":{"value":100,"max":100,"min":0},"hue":{"value":255,"max":360,"min":0},"sat":{"value":68,"max":100,"min":0},"ct":{"value":4000,"max":100,"min":0},"colorMode":"effect"},"effects":{"select":"Fireplace","list":["Color Burst","Flames","Forest","Inner Peace","Nemo","Northern Lights","Romantic","Snowfall","Fireplace","Sunset"]},"panelLayout":{"layout":{"layoutData":"2 150 195 -74 129 -120 149 -74 43 -60"},"globalOrientation":{"value":294,"max":360,"min":0}
@@ -391,7 +398,7 @@ sub process_check {
 
                     #print Dumper $data;
 
-                    if ( keys $data ) {
+                    if ( keys %{$data} ) {
 
                         #Process any returned data from a command straing
                         if ( $self->{cmd_process_mode} eq "get_static" ) {
@@ -474,7 +481,8 @@ sub _get_JSON_data {
             push @{ $self->{poll_queue} }, "$mode|$cmd";
         }
         else {
-            main::print_log( "[Aurora:" . $self->{name} . "] WARNING. Queue has grown past " . $self->{max_poll_queue} . ". Command discarded." );
+            main::print_log( "[Aurora:" . $self->{name} . "] WARNING. Queue has grown past " . $self->{max_poll_queue} . ". Clearing Polling Queue." );
+            @{ $self->{poll_queue} } = (); #Polls are disposable
             if ( defined $self->{child_object}->{comm} ) {
                 if ( $self->{status} ne "offline" ) {
                     main::print_log "[Aurora:"
@@ -652,16 +660,16 @@ sub update_config_data {
     my $write = 0;
     my %parms;
 
-    if ( ( defined $self->{url} ) and ( $::config_parms{ "aurora_" . $self->{name} . "_url" } ne $self->{url} ) ) {
+    if ( ( defined $self->{url} ) and ((! defined $::config_parms{ "aurora_" . $self->{name} . "_url" }) or ( $::config_parms{ "aurora_" . $self->{name} . "_url" } ne $self->{url} ) ) ){
         $::config_parms{ "aurora_" . $self->{name} . "_url" } = $self->{url};
         $parms{ "aurora_" . $self->{name} . "_url" }          = $self->{url};
         main::print_log( "[Aurora:" . $self->{name} . "] Updating location URL ($self->{url}) in mh.ini file" );
         $write = 1;
 
     }
-    if ( ( defined $self->{token} ) and ( $::config_parms{ "aurora_" . $self->{name} . "_token" } ne $self->{token} ) ) {
+    if ( ( defined $self->{token} ) and ((! defined $::config_parms{ "aurora_" . $self->{name} . "_token" }) or ( $::config_parms{ "aurora_" . $self->{name} . "_token" } ne $self->{token} ) ) ){
         $::config_parms{ "aurora_" . $self->{name} . "_token" } = $self->{token};
-        $parms{ "aurora_" . $self->{name} . "_url" }            = $self->{token};
+        $parms{ "aurora_" . $self->{name} . "_token" }          = $self->{token};
         main::print_log( "[Aurora:" . $self->{name} . "] Updating authentication token in mh.ini file" );
         $write = 1;
     }
@@ -800,7 +808,7 @@ sub process_data {
     if ( ( !$self->{init_data} ) and ( defined $self->{data}->{info} ) ) {
         main::print_log( "[Aurora:" . $self->{name} . "] Init: Setting startup values" );
 
-        foreach my $key ( keys $self->{data}->{info} ) {
+        foreach my $key ( keys %{$self->{data}->{info}} ) {
             $self->{previous}->{info}->{$key} = $self->{data}->{info}->{$key};
         }
         $self->{previous}->{panels} = $self->{data}->{panels};
@@ -927,6 +935,27 @@ sub process_data {
 
 }
 
+sub print_command_queue {
+    my ($self) = @_;
+    main::print_log( "Aurora:" . $self->{name} . "] ------------------------------------------------------------------" );
+    my $commands = scalar @{ $self->{cmd_queue} };
+    my $name = "$commands commands";
+    $name = "empty" if ($commands == 0);
+    main::print_log( "Aurora:" . $self->{name} . "] Current Command Queue: $name" );
+    for my $i ( 1 .. $commands ) {
+        main::print_log( "Aurora:" . $self->{name} . "] Command $i: " . @{ $self->{cmd_queue} }[$i - 1] );
+    }
+    main::print_log( "Aurora:" . $self->{name} . "] ------------------------------------------------------------------" );
+    
+}
+
+sub purge_command_queue {
+    my ($self) = @_;
+    my $commands = scalar @{ $self->{cmd_queue} };
+    main::print_log( "Aurora:" . $self->{name} . "] Purging Command Queue of $commands commands" );
+    @{ $self->{cmd_queue} } = ();
+}
+
 #------------
 # User access methods
 
@@ -936,6 +965,19 @@ sub get_effect {
     return ( $self->{data}->{info}->{effects}->{select} );
 
 }
+
+sub get_effects {
+    my ($self) = @_;
+    my @effect_array = ();
+    
+    if ( defined $self->{data}->{info}->{effects}->{list} ) { #beta structure
+        @effect_array = @{ $self->{data}->{info}->{effects}->{list} };
+    } else {
+        @effect_array = @{ $self->{data}->{info}->{effects}->{effectsList} };
+    }
+    return @effect_array;
+}
+    
 
 sub check_panelid {
     my ( $self, $id ) = @_;
@@ -1092,7 +1134,10 @@ sub get_voice_cmds {
     my %voice_cmds = (
         'Discover Auroras to print log'                                         => $self->get_object_name . '->print_discovery_info',
         'Print Static string to print log'                                      => $self->get_object_name . '->print_static',
-        'Identify Aurora ' . $self->{name} . '(' . $self->get_object_name . ')' => $self->get_object_name . '->identify'
+        'Identify Aurora ' . $self->{name} . '(' . $self->get_object_name . ')' => $self->get_object_name . '->identify',
+        'Print Command Queue to print log'                                      => $self->get_object_name . '->print_command_queue',
+        'Purge Command Queue'                                                   => $self->get_object_name . '->purge_command_queue'
+       
     );
 
     return \%voice_cmds;
@@ -1105,7 +1150,7 @@ package Nanoleaf_Aurora_Effects;
 sub new {
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -1135,10 +1180,19 @@ sub set {
     }
 }
 
+#doesn't do anything yet
 sub load_effects {
     my ( $self, @effect_states ) = @_;
 
     @{ $$self{states} } = @effect_states;
+}
+
+sub get_effects {
+    my ( $self ) = @_;
+    my @effects = $$self{master_object}->get_effects();
+    
+    return @effects;
+
 }
 
 package Nanoleaf_Aurora_Static;
@@ -1148,7 +1202,7 @@ package Nanoleaf_Aurora_Static;
 sub new {
     my ( $class, $object, $static_string ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     @{ $$self{states} } = ( 'on', 'off' );
 
@@ -1223,7 +1277,7 @@ package Nanoleaf_Aurora_Comm;
 sub new {
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -1254,4 +1308,7 @@ sub set {
 # v1.0.7  - ability to specify API as an option
 # v1.0.8  - initial v1.5.0 API v1 support
 # v1.0.9  - use config_parms (mh.ini) instead of dedicated config file
-
+# v1.0.10 - Updated to work with other versions of perl, typo with mh.ini
+# v1.0.11 - cosmetic fixes for undefined variables
+# v1.0.12 - get_effects method to get array of available effects
+# v1.0.13 - ability to print and purge the command queue in case a network error prevents clearing, empty poll queue if max reached

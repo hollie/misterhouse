@@ -1,5 +1,5 @@
 
-=head1 B<raZberry> v2.0.1
+=head1 B<raZberry> v2.0.2
 
 =head2 SYNOPSIS
 
@@ -112,6 +112,9 @@ http calls can cause pauses. There are a few possible options around this;
 
 
 =head2 CHANGELOG
+v2.0.2
+- add generic items for logger
+
 v2.0.1
 - added full poll for getting battery data
 
@@ -193,9 +196,9 @@ $rest{controller}    = "Data/*";
 
 sub new {
     my ( $class, $addr, $poll, $options ) = @_;
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
-    &main::print_log("[raZberry]: v2.0.1 Controller Initializing...");
+    &main::print_log("[raZberry]: v2.0.2 Controller Initializing...");
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
     $self->{config}->{poll_seconds} = 5;
@@ -694,7 +697,7 @@ package raZberry_dimmer;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     push( @{ $$self{states} }, 'off', 'low', 'med', 'high', 'on', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%' );
 
@@ -792,7 +795,7 @@ package raZberry_switch;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     push( @{ $$self{states} }, 'off', 'on', );
 
@@ -865,7 +868,7 @@ package raZberry_blind;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -1037,7 +1040,7 @@ package raZberry_lock;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     push( @{ $$self{states} }, 'locked', 'unlocked' );
 
@@ -1267,7 +1270,7 @@ sub new {
 
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -1390,7 +1393,7 @@ package raZberry_temp_sensor;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -1442,7 +1445,7 @@ package raZberry_binary_sensor;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     #push( @{ $$self{states} }, 'on', 'off'); I'm not sure we should set the states here, since it's not a controlable item?
@@ -1523,7 +1526,7 @@ package raZberry_battery;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     push( @{ $$self{states} }, 'locked', 'unlocked' );
 
@@ -1596,7 +1599,7 @@ package raZberry_voltage;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     #ZWayVDev_zway_x-0-50-0 - Power Meter kWh
@@ -1671,7 +1674,7 @@ package raZberry_generic;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;

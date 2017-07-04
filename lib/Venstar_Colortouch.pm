@@ -1,6 +1,6 @@
 package Venstar_Colortouch;
 
-# v2.1
+# v2.1.1
 
 #added in https support and don't retry commands that have a valid error reason code. Only retry if the device doesn't respond. (ie error 500)
 
@@ -41,6 +41,7 @@ use Data::Dumper;
 # v1.4.1 - API v5, working schedule, humidity setpoints
 # v2.0 - Background process
 # v2.1 - fixed up some problems reconnecting to stat
+# v2.1.1 - added in logger ability
 
 # Notes
 #  - State can only be set by stat. Set mode will change the mode.
@@ -78,7 +79,7 @@ $rest{settings} = "settings";
 sub new {
     my ( $class, $host, $poll, $options ) = @_;
     $options = "" unless ( defined $options );
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     $self->{data}                 = undef;
     $self->{api_ver}              = 0;
@@ -2020,7 +2021,7 @@ package Venstar_Colortouch_Temp;
 sub new {
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -2050,7 +2051,7 @@ package Venstar_Colortouch_Fan;
 sub new {
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     push( @{ $$self{states} }, 'off', 'on' );
     $self->{current_mode} = "";
@@ -2099,7 +2100,7 @@ package Venstar_Colortouch_Humidity;
 sub new {
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -2125,7 +2126,7 @@ package Venstar_Colortouch_Humidity_sp;
 sub new {
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -2160,7 +2161,7 @@ package Venstar_Colortouch_Schedule;
 sub new {
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -2194,7 +2195,7 @@ package Venstar_Colortouch_Comm;
 sub new {
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -2219,7 +2220,7 @@ package Venstar_Colortouch_Mode;
 sub new {
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -2259,7 +2260,7 @@ package Venstar_Colortouch_Heat_sp;
 sub new {
     my ( $class, $object, $scale ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -2311,7 +2312,7 @@ package Venstar_Colortouch_Cool_sp;
 sub new {
     my ( $class, $object, $scale ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
