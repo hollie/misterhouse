@@ -659,6 +659,44 @@ sub json_get {
         $json_data{vars_global} = \%json_vars_global;
     }
 
+   if ( $path[0] eq 'tagline' || $path[0] eq '' ) {
+        my $file;
+        if ( -e "$config_parms{data_dir}/remarks/1100tags.txt" ) {
+            $file = "$config_parms{data_dir}/remarks/1100tags.txt";
+        } else {
+            $file = "$Pgm_Root/data/remarks/1100tags.txt";
+        }
+        srand;
+        my $tagline = "could not retrieve tagline";
+        
+        eval {
+            open FILE, "<$file" or warn "Could not open filename: $!\n";
+            rand($.)<1 and ($tagline=$_) while <FILE>;
+            close FILE;
+        };
+        if ($@) {
+            print_log "Json_Server.pl: WARNING: Could not open tagline file!";
+        }        
+        
+        $json_data{tagline} = $tagline
+   }
+
+   if ( $path[0] eq 'stats' || $path[0] eq '' ) {
+   #13:28  up 48 days,  2:19, 8 users, load averages: 3.15 3.30 2.78
+        my $uptime;
+        if ( $OS_win or $^O eq 'cygwin' ) {
+            $uptime = "$Tk_objects{label_uptime_mh} &nbsp;&nbsp; $Tk_objects{label_uptime_cpu}";
+        } else {
+            $uptime = `uptime`;
+        }
+        my ($time,$upt,$users,$load) = $uptime =~ /^(\S+)\s+up\s(.*),\s(\d+)\susers,\s+load\saverages?:\s(.*)/;
+        $json_data{stats}{time} = $time;
+        $json_data{stats}{uptime} = $upt;
+        $json_data{stats}{users} = $users;
+        $json_data{stats}{load} = $load;
+        $json_data{stats}{web_counter} = $Save{"web_count_default"};
+   }
+
    if ( $path[0] eq 'vars_save' || $path[0] eq '' ) {
         my %json_vars_save;
         

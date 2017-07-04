@@ -1,4 +1,4 @@
-// v1.5.100
+// v1.5.300
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -14,6 +14,9 @@ var audioElement = document.getElementById('sound_element');
 var authorized = "false";
 var developer = false;
 var show_tooltips = true;
+var rrd_refresh_loop;
+var stats_loop;
+var stat_refresh = 60;
 
 var ctx; //audio context
 var buf; //audio buffer
@@ -140,6 +143,8 @@ function changePage (){
 			}
 		});
 	} else {
+        if ((json_store.ia7_config.prefs.static_tagline !== undefined) &&  json_store.ia7_config.prefs.static_tagline == "yes") clearTimeout(stats_loop);
+        if (json_store.ia7_config.prefs.stat_refresh !== undefined) stat_refresh = json_store.ia7_config.prefs.stat_refresh;
 		if (json_store.ia7_config.prefs.header_button == "no") $("#mhstatus").remove();
 		if (json_store.ia7_config.prefs.audio_controls !== undefined && json_store.ia7_config.prefs.audio_controls == "yes") {
   			$("#sound_element").attr("controls", "controls");  //Show audio Controls
@@ -1353,6 +1358,42 @@ var something_went_wrong = function(module,text) {
 	
 }
 
+var get_stats = function(tagline) {
+	var URLHash = URLToHash();
+
+	if (tagline === undefined){
+		$.ajax({
+			type: "GET",
+			url: "/json/tagline",
+			dataType: "json",
+			success: function( json ) {
+				JSONStore(json);
+				get_stats(json.data);
+			}
+		});
+		return;
+	}
+	$.ajax({
+		type: "GET",
+		url: "/json/stats",
+		dataType: "json",
+		success: function( json, statusText, jqXHR  ) {
+			if (jqXHR.status == 200) {
+			    //console.log("tagline="+tagline);
+			    $('.tagline').text(tagline);
+			    $('.uptime').text(json.data.time+" Up "+json.data.uptime+", "+json.data.users+" users, load averages: "+json.data.load);
+			    $('.counter').text("Page Views: "+json.data.web_counter);
+			    //console.log("uptime="+json.data.uptime);
+		    }
+		    if (jqXHR.status == 200 || jqXHR.status == 204) {
+				stats_loop = setTimeout(function(){
+					    get_stats();
+					}, stat_refresh * 1000);			}
+		}
+	});
+}
+
+
 
 var get_notifications = function(time) {
 	if (time === undefined) time = new Date().getTime();
@@ -1537,6 +1578,10 @@ var graph_rrd = function(start,group,time) {
 	var URLHash = URLToHash();
 	var new_data = 1;
 	var data_timeout = 0;
+	var refresh = 60; //refresh data every 60 seconds by default
+
+	if (json_store.ia7_config.prefs.rrd_refresh !== undefined) refresh = json_store.ia7_config.prefs.rrd_refresh;
+
 	if (typeof time === 'undefined'){
 		$('#list_content').html("<div id='top-graph' class='row top-buffer'>");
 		$('#top-graph').append("<div id='rrd-periods' class='row'>");
@@ -1544,9 +1589,9 @@ var graph_rrd = function(start,group,time) {
 		$('#top-graph').append("<div id='rrd-legend' class='rrd-legend-class'><br>");
         new_data = 0;
 		time = 0;
+		clearTimeout(rrd_refresh_loop); //prevent any previous loops from updating.
 	}
-	var refresh = 20; //refresh data every 60 seconds by default
-	var refresh_loop;
+
 	if (json_store.ia7_config.prefs.rrd_graph_refresh !== undefined) refresh = json_store.ia7_config.prefs.rrd_graph_refresh;
 	
 	URLHash.time = time;
@@ -1572,7 +1617,6 @@ var graph_rrd = function(start,group,time) {
 		success: function( json, statusText, jqXHR ) {
 			var requestTime = time;
 			if (jqXHR.status == 200) {
-				JSONStore(json);
 				// HP should probably use jquery, but couldn't get sequencing right.
 				// HP jquery would allow selected values to be replaced in the future.
 
@@ -1584,6 +1628,7 @@ var graph_rrd = function(start,group,time) {
                         return;
                     }
 				}	
+				JSONStore(json);
 				var dropdown_html = '<div class="dropdown"><button class="btn btn-default rrd-period-dropdown" data-target="#" type="button" data-toggle="dropdown">';
 				var dropdown_html_list = "";
 				var dropdown_current = "Unknown  ";
@@ -1730,7 +1775,7 @@ var graph_rrd = function(start,group,time) {
 					//If the graph  page is still active request more data
 					//Just manually pull a refresh since json_server constantly polling RRD data is a performance problem
 					
-					refresh_loop = setTimeout(function(){
+					rrd_refresh_loop = setTimeout(function(){
 					    graph_rrd(start,group,0);
 					}, refresh * 1000);
 				}
@@ -2585,7 +2630,6 @@ var create_state_modal = function(entity) {
 		var modal_states = json_store.objects[entity].states;
 		// HP need to have at least 2 states to be a controllable object...
 		if (modal_states == undefined) modal_states = 1;
-		console.log("brightness obj :"+brightnessStates(json_store.objects[entity].states));
 		if (modal_states.length > 1) {
 			$('#control').find('.states').html('<div class="btn-group stategrp0 btn-block"></div>');
 			var modal_states = json_store.objects[entity].states;
@@ -2684,7 +2728,6 @@ var create_state_modal = function(entity) {
                     url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+sliderstate;
 			        $('#control').modal('hide');
 			        $.get( url);
-			        console.log("Slider Value "+url); 
                 });
 
             }
@@ -2693,7 +2736,6 @@ var create_state_modal = function(entity) {
 			url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
 			$('#control').modal('hide');
 			$.get( url);
-		    console.log("button Value "+url); 
 		});
 		} else {
 			//remove states from anything that doesn't have more than 1 state
@@ -3015,8 +3057,8 @@ $(document).ready(function() {
 	
 	// Load up 'globals' -- notification and the status
 	updateItem("ia7_status");	
-	get_notifications();	
-
+	get_notifications();
+    get_stats();
 	$("#toolButton").click( function () {
 		// Need a 'click' event to turn on sound for mobile devices
 		if (mobile_device() == "ios" ) {
