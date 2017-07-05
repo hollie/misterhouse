@@ -21,8 +21,16 @@
 	<link href="/ia7/include/tables.css" rel="stylesheet">
 	
 	<!-- Jquery -->
-	<script src="/ia7/include/jquery.1.10.2.min.js"></script>
+	<script src="/ia7/include/jquery.1.12.4.min.js"></script>
 	<script src="/ia7/include/jquery.longclick-1.0.min.js"></script>
+
+	<!-- A custom jquery UI script to enable sortable items -->
+	<!-- ui 1.12.1 used for slider -->
+	<script src="include/jquery-ui-1.12.1.min.js"></script>
+	<link rel="stylesheet" href="include/jquery-ui.smoothness.1.12.1.css">
+
+	<!-- Enables Jquery UI functions to work on touch interfaces -->
+  	<!-- <script src="/ia7/include/jquery.ui.touch-punch.0.2.3.min.js"></script> -->
 	
 	<!--Bootstrap-->
 	<!-- Latest compiled and minified CSS -->
@@ -42,13 +50,7 @@
 	<!-- Nicer Dialog Boxes -->
 	<link href="/ia7/include/jquery.alerts.css" rel="stylesheet"/>	
     <script src="/ia7/include/jquery.alerts.js"></script>
-	
-	<!-- A custom jquery UI script to enable sortable items -->
-	<!-- <script src="include/jquery-ui-1.11.1.custom.min.js"></script> -->
-	
-	<!-- Enables Jquery UI functions to work on touch interfaces -->
-  	<!-- <script src="/ia7/include/jquery.ui.touch-punch.0.2.3.min.js"></script> -->
-	
+		
 	<!-- Flot libraries for graphing RRDs -->
 	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.min.js"></script>
 	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.selection.min.js"></script>
@@ -216,6 +218,13 @@
 		margin-left: 14px !important;	
 	}
 	
+	.brightness-slider {
+	    margin-left: 5px;
+	    margin-right: 5px;
+	    margin-top: 10px;
+	    margin-bottom: -20px;
+	}
+	
 	</style>
 </head>
 <body>
@@ -246,8 +255,8 @@
         <div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
                 <div id="footer_stuff" class='col-sm-12 col-center'>
                         <!-- Put Footer Stuff Here -->
-                        <!--#include file="/bin/tagline.pl"--><br>
-                        <!--#include file="/bin/uptime.pl"-->&nbsp;&nbsp;<!--#include file="$config_parms{web_href_counter}"-->
+                        <span class="tagline"></span><br>
+                        <span class="uptime"></span>&nbsp;&nbsp;<span class="counter"></span>
                 </div>
                 <div id="sound_stuff" class='col-sm-12 col-center'>                
                 		<audio id="sound_element" name="sound_element" preload="auto"><source id="sound_element2" name="sound_element2"></audio>
