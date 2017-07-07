@@ -1682,7 +1682,7 @@ var graph_rrd = function(start,group,time) {
     				var period = $(this).attr("id").match(/rrdperiod_(.*)/)[1]; 
     				var new_start = json.data.periods[period].split(',')[1];
 					$('.open').removeClass('open');
-					clearTimeout(refresh_loop); //stop the old refresh since we have a new time period
+					clearTimeout(rrd_refresh_loop); //stop the old refresh since we have a new time period
 					graph_rrd(new_start,group,0);
 				});
  
