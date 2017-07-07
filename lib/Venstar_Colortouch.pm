@@ -1,6 +1,6 @@
 package Venstar_Colortouch;
 
-# v2.1.1
+# v2.1.2
 
 #added in https support and don't retry commands that have a valid error reason code. Only retry if the device doesn't respond. (ie error 500)
 
@@ -1267,7 +1267,7 @@ sub process_data {
     {
         my $away = "home mode";
         $away = "away mode" if ( $self->{data}->{info}->{away} );
-        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Thermostat occupancy changed to" . $away )
+        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Thermostat occupancy changed to " . $away )
           if ( $self->{loglevel} );
         $self->{previous}->{info}->{away} = $self->{data}->{info}->{away};
     }
@@ -1277,7 +1277,7 @@ sub process_data {
     {
         my $holiday = "observing holiday";
         $holiday = "no holiday" if ( $self->{data}->{info}->{holiday} );
-        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Thermostat holiday changed to" . $holiday )
+        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Thermostat holiday changed to " . $holiday )
           if ( $self->{loglevel} );
         $self->{previous}->{info}->{holiday} = $self->{data}->{info}->{holiday};
     }
@@ -1287,7 +1287,7 @@ sub process_data {
     {
         my $override = "off";
         $override = "on" if ( $self->{data}->{info}->{override} );
-        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Thermostat override changed to" . $override )
+        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Thermostat override changed to " . $override )
           if ( $self->{loglevel} );
         $self->{previous}->{info}->{override} = $self->{data}->{info}->{override};
     }
@@ -1295,7 +1295,7 @@ sub process_data {
     if (    $self->{type} eq "commercial"
         and $self->{previous}->{info}->{overridetime} != $self->{data}->{info}->{overridetime} )
     {
-        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Thermostat overridetime changed to" . $self->{data}->{info}->{overridetime} )
+        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Thermostat overridetime changed to " . $self->{data}->{info}->{overridetime} )
           if ( $self->{loglevel} );
         $self->{previous}->{info}->{overridetime} = $self->{data}->{info}->{overridetime};
     }
@@ -1305,7 +1305,7 @@ sub process_data {
     {
         my $forceunocc = "off";
         $forceunocc = "on" if ( $self->{data}->{info}->{forceunocc} );
-        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Thermostat forceunocc changed to" . $forceunocc )
+        main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Thermostat forceunocc changed to " . $forceunocc )
           if ( $self->{loglevel} );
         $self->{previous}->{info}->{forceunocc} = $self->{data}->{info}->{forceunocc};
     }
