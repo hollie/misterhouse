@@ -1,4 +1,4 @@
-// v1.5.300
+// v1.5.400
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -1368,7 +1368,7 @@ var get_stats = function(tagline) {
 			dataType: "json",
 			success: function( json ) {
 				JSONStore(json);
-				get_stats(json.data);
+				get_stats(json.data.tagline);
 			}
 		});
 		return;
@@ -1381,7 +1381,26 @@ var get_stats = function(tagline) {
 			if (jqXHR.status == 200) {
 			    //console.log("tagline="+tagline);
 			    $('.tagline').text(tagline);
-			    $('.uptime').text(json.data.time+" Up "+json.data.uptime+", "+json.data.users+" users, load averages: "+json.data.load);
+			    var load_avg = "";;
+			    if (json.data.cores !== undefined && json.data.cores !== null) {
+			        var loads = json.data.load.split(" ");
+			        for (var i = 0; i < loads.length; i++) {
+			            var load = loads[i] / json.data.cores;
+			            if (load < 1) {
+			                load_avg += "<span class='text-success'>";
+			            } else if (load < 2) {
+			                load_avg += "<span class='text-warning'>";
+			            } else {
+			            	load_avg += "<span class='text-danger'>";
+                        }
+                        load_avg += loads[i]+" </span>";
+			            //console.log("cores="+json.data.cores+" load="+load+" load_avg="+load_avg);
+                        
+			        }
+			    } else {
+			        load_avg = json.data.load;
+			    }
+			    $('.uptime').html(json.data.time+" Up "+json.data.uptime+", "+json.data.users+" users, load averages: "+load_avg);
 			    $('.counter').text("Page Views: "+json.data.web_counter);
 			    //console.log("uptime="+json.data.uptime);
 		    }
@@ -1592,6 +1611,11 @@ var graph_rrd = function(start,group,time) {
 		clearTimeout(rrd_refresh_loop); //prevent any previous loops from updating.
 	}
 
+	//if ($('#top-graph').length == 0){
+	//    //This might be because the user has changed page and the refresh has come in. If the top-graph isn't there then just return
+	//    return;
+	//}
+
 	if (json_store.ia7_config.prefs.rrd_graph_refresh !== undefined) refresh = json_store.ia7_config.prefs.rrd_graph_refresh;
 	
 	URLHash.time = time;
@@ -1673,9 +1697,10 @@ var graph_rrd = function(start,group,time) {
 					last_timestamp = new Date(json.data.last_update);
 				}
 				//Update the footer database updated time
-				$('#Last_updated').remove();		
-				$('#footer_stuff').prepend("<div id='Last_updated'>RRD Database Last Updated:"+last_timestamp+"</div>");
-				
+				if ($('#top-graph').length !== 0){
+				    $('#Last_updated').remove();		
+				    $('#footer_stuff').prepend("<div id='Last_updated'>RRD Database Last Updated:"+last_timestamp+"</div>");
+				}
 
 				$('.dropdown').on('click', '.dropdown-menu li a', function(e){
 					e.stopPropagation();
@@ -2383,44 +2408,112 @@ var floorplan = function(group,time) {
                                             var name = fp_entity;
                                             if (json_store.objects[fp_entity].label !== undefined) name = json_store.objects[fp_entity].label;
                                             var ackt = E.offset();
-                                            return name+ " - "+json_store.objects[fp_entity].state;
+                                            return "<span class='entity-name'>"+name+ "</span> - <span class='object-state'>"+json_store.objects[fp_entity].state + "</span>";
                                         },
+                                        trigger: 'manual',
                                         html: 'true', //needed to show html of course
                                         content : function() {
                                             var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
                                             var po_states = json_store.objects[fp_entity].states;
                                             var html = '<div id="popOverBox">';
                                             // HP need to have at least 2 states to be a controllable object...
-                                            if (po_states.length > 1) {
-                                                html = '<div class="btn-group stategrp0 btn-block">';
-                                                var buttons = 0;
-                                                var stategrp = 0;
-                                                for (var i = 0; i < po_states.length; i++){
-                                                    if (filterSubstate(po_states[i]) !== 1) {
-                                                        buttons++;
-                                                        if (buttons > 2) {
-                                                            stategrp++;
-                                                            html += "</div><div class='btn-group btn-block stategrp"+stategrp+"'>";
-                                                            buttons = 1;
-                                                        }
+                                            if (!brightnessStates(json_store.objects[fp_entity].states) || (json_store.ia7_config.prefs.brightness_slider !== undefined && json_store.ia7_config.prefs.brightness_slider == "no")) {		
 
-                                                        var color = getButtonColor(po_states[i]);
-                                                        //TODO disabled override
-                                                        var disabled = "";
-                                                        if (po_states[i] === json_store.objects[fp_entity].state) {
-                                                            disabled = "disabled";
+                                                if (po_states.length > 1) {
+                                                    html = '<div class="btn-group stategrp0 btn-block">';
+                                                    var buttons = 0;
+                                                    var stategrp = 0;
+                                                    for (var i = 0; i < po_states.length; i++){
+                                                        if (filterSubstate(po_states[i]) !== 1) {
+                                                            buttons++;
+                                                            if (buttons > 2) {
+                                                                stategrp++;
+                                                                html += "</div><div class='btn-group btn-block stategrp"+stategrp+"'>";
+                                                                buttons = 1;
+                                                            }
+
+                                                            var color = getButtonColor(po_states[i]);
+                                                            //TODO disabled override
+                                                            var disabled = "";
+                                                            if (po_states[i] === json_store.objects[fp_entity].state) {
+                                                                disabled = "disabled";
+                                                            }
+                                                            html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-"+color+" "+disabled+"'";
+                                                            var url= '/SET;none?select_item='+fp_entity+'&select_state='+po_states[i];
+                                                            //html += ' onclick="$.get(';
+                                                            //html += "'"+url+"')";
+                                                            html += '">'+po_states[i]+'</button>';
                                                         }
-                                                        html += "<button class='btn col-sm-6 col-xs-6 btn-"+color+" "+disabled+"'";
-                                                        var url= '/SET;none?select_item='+fp_entity+'&select_state='+po_states[i];
-                                                        html += ' onclick="$.get(';
-                                                        html += "'"+url+"')";
-                                                        html += '">'+po_states[i]+'</button>';
                                                     }
+                                                    html += "</div></div>";
                                                 }
-                                                html += "</div></div>";
+                                            } else {
+                                                html = '<div class="btn-group stategrp0 btn-block">';
+                                                html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-success'>on</button>";					                
+                                                html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-default'>off</button></div>";					                
+                                                html += "<div id='slider' class='brightness-slider'></div>";					
+                                                html += "<br>";
+
+                                                console.log("slider ");
                                             }
                                             return html;
                                         }
+                                    }).click(function (e) {
+                                        $(this).popover('show');
+                                        var val = $(".object-state").text();
+                                        if (val == "on") {
+                                            val = 100;
+                                        } else if (val == "off") {
+                                            val = 0;
+                                        } else {
+                                            val = parseInt(val);
+                                        }
+                                        $('#slider' ).slider({
+                                            min: 0,
+                                            max: 100,
+                                            value: val
+                                        });
+                                        
+                                        $( "#slider" ).on( "slide", function(event, ui) {
+                                            $('#PopOverBox').popover('show');
+                                            var sliderstate = ui.value;
+                                            if (sliderstate == "100") {
+                                                sliderstate = "on";
+                                            } else if (sliderstate == "0") {
+                                                 sliderstate = "off";
+                                            } else {
+                                                sliderstate += "%";
+                                            }
+
+                                            console.log("Slider Change "+ui.value+":"+sliderstate); 
+                                            $('.object-state').text(sliderstate);
+
+                                        });
+                                        $( "#slider" ).on( "slidechange", function(event, ui) {
+                                            if ($('#slider').length == 0) return
+                                            var sliderstate = ui.value;
+                                            if (sliderstate == "100") {
+                                                sliderstate = "on";
+                                            } else if (sliderstate == "0") {
+                                                 sliderstate = "off";
+                                            } else {
+                                                sliderstate += "%";
+                                            }
+                                            url= '/SET;none?select_item='+$(".entity-name").text()+'&select_state='+sliderstate;
+                                            console.log("slidechange url="+url);
+                                            $('.popover').popover('hide');
+                                        });
+                                        $('.btn-state-cmd').click( function () {
+                                            var url= '/SET;none?select_item='+$(".entity-name").text()+'&select_state='+$(this).text();
+                                            console.log("button click "+url);
+                                            $('.popover').popover('hide');
+                                        });
+                                        $('[data-toggle="popover"]').on("blur",function(evt){
+                                            //$(this).popover('hide');
+                                            console.log("on blur "+evt.target.id);
+                                            //if ($(this).target
+                                            if ($('#slider').length == 0) $(this).popover('hide');
+                                        });
                                     });
                                 } else {
                                     E.click( function () {
@@ -2623,6 +2716,7 @@ var create_state_popover = function(entity) {
 var create_state_modal = function(entity) {
 		var name = entity;
 		if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
+		$('#slider').remove();
 		$('#control').modal('show');
 		var modal_state = json_store.objects[entity].state;
 		$('#control').find('.object-title').html(name + " - <span class='object-state'>" + json_store.objects[entity].state + "</span>");
@@ -3058,6 +3152,7 @@ $(document).ready(function() {
 	// Load up 'globals' -- notification and the status
 	updateItem("ia7_status");	
 	get_notifications();
+	$('#Last_updated').remove();		
     get_stats();
 	$("#toolButton").click( function () {
 		// Need a 'click' event to turn on sound for mobile devices
