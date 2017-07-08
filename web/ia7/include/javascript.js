@@ -1,4 +1,4 @@
-// v1.5.400
+// v1.5.410
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -17,6 +17,7 @@ var show_tooltips = true;
 var rrd_refresh_loop;
 var stats_loop;
 var stat_refresh = 60;
+var fp_popover_close = true ;
 
 var ctx; //audio context
 var buf; //audio buffer
@@ -2453,7 +2454,7 @@ var floorplan = function(group,time) {
                                                 html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-default'>off</button></div>";					                
                                                 html += "<div id='slider' class='brightness-slider'></div>";					
                                                 html += "<br>";
-
+                                                fp_popover_close = false;
                                                 console.log("slider ");
                                             }
                                             return html;
@@ -2508,12 +2509,22 @@ var floorplan = function(group,time) {
                                             console.log("button click "+url);
                                             $('.popover').popover('hide');
                                         });
+                                        
                                         $('[data-toggle="popover"]').on("blur",function(evt){
+                                            if(fp_popover_close)
+                                                $(this).popover('hide');
+                                            else {
+                                                $(this).focus();
+                                                fp_poppver_close = true;
+                                             }
                                             //$(this).popover('hide');
-                                            console.log("on blur "+evt.target.id);
+                                            //console.log("on blur "+evt.target.id);
                                             //if ($(this).target
-                                            if ($('#slider').length == 0) $(this).popover('hide');
+                                            //if ($('#slider').length == 0) $(this).popover('hide');
                                         });
+                                        $('[data-toggle="popover"]').on("focus",function(){
+                                            if (fp_popover_close) $(this).popover('show'); 
+                                            });
                                     });
                                 } else {
                                     E.click( function () {
@@ -3304,6 +3315,12 @@ $(document).ready(function() {
 			$('#optionsModal').modal('hide');
 		});
 	});
+	$(document).on('mousedown', function (e) {
+        if($(e.target).hasClass('popover-content'))
+            fp_popover_close = false;
+        else
+            fp_popover_close = true; 
+    });
 	
 //TODO remove me?	
 	$('#mhresponse').click( function (e) {
