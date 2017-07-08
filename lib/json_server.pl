@@ -689,7 +689,7 @@ sub json_get {
         } else {
             $uptime = `uptime`;
         }
-        my ($time,$upt,$users,$load) = $uptime =~ /^(\S+)\s+up\s(.*),\s(\d+)\susers,\s+load\saverages?:\s(.*)/;
+        my ($time,$upt,$users,$load) = $uptime =~ /(\S+)\s+up\s(.*),\s+(\d+)\susers,\s+load\saverages?:\s(.*)/;
         $json_data{stats}{time} = $time;
         $json_data{stats}{uptime} = $upt;
         $json_data{stats}{users} = $users;

@@ -1,6 +1,9 @@
 package Nanoleaf_Aurora;
 
-# v1.0.12
+#todo if poll queue exceeds 3, then just empty the queue
+#print and purge the command queue
+
+# v1.0.13
 
 #if any effect is changed, by definition the static child should be set to off.
 #cmd data returns, need to check by command
@@ -21,8 +24,6 @@ use Data::Dumper;
 use IO::Select;
 use IO::Socket::INET;
 
-# REQUIRES AURORA FIRMWARE v1.4.39+ For v1.4.39 pass the option api=beta.
-#
 # To set up, first pair with mobile app -- the Aurora needs to be set up initially with the app
 # to get it's wifi information. After it is successfully set up, it should be locatable via SSDP
 # If multiple new Aurora's are plugged in at the same time, the SSDP query may not return unique
@@ -32,6 +33,12 @@ use IO::Socket::INET;
 # until the controller light blinks.
 # In a few seconds the MH print log should show that a token has been found.
 # the location URL and tokens are stored in the mh.ini file
+
+# Firmware supported
+# 1.4.38 or earlier - no
+# 1.4.39            - pass the option api=beta
+# 1.5.0             - yes
+# 1.5.1             - yes
 
 # Nanoleaf_Aurora Objects
 #
@@ -107,7 +114,7 @@ sub new {
     my $self = new Generic_Item();
     bless $self, $class;
     $self->{name} = "1";
-    $self->{name} = $id if ( ( defined $id ) and ($id) );
+    $self->{name} = $id if ((defined $id) and ($id));
 
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
@@ -119,7 +126,7 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.0.12";
+    $self->{module_version}         = "v1.0.13";
     $self->{ssdp_timeout}           = 4000;
     $self->{last_static}            = "";
 
@@ -474,7 +481,8 @@ sub _get_JSON_data {
             push @{ $self->{poll_queue} }, "$mode|$cmd";
         }
         else {
-            main::print_log( "[Aurora:" . $self->{name} . "] WARNING. Queue has grown past " . $self->{max_poll_queue} . ". Command discarded." );
+            main::print_log( "[Aurora:" . $self->{name} . "] WARNING. Queue has grown past " . $self->{max_poll_queue} . ". Clearing Polling Queue." );
+            @{ $self->{poll_queue} } = (); #Polls are disposable
             if ( defined $self->{child_object}->{comm} ) {
                 if ( $self->{status} ne "offline" ) {
                     main::print_log "[Aurora:"
@@ -652,22 +660,14 @@ sub update_config_data {
     my $write = 0;
     my %parms;
 
-    if (    ( defined $self->{url} )
-        and ( ( !defined $::config_parms{ "aurora_" . $self->{name} . "_url" } ) or ( $::config_parms{ "aurora_" . $self->{name} . "_url" } ne $self->{url} ) )
-      )
-    {
+    if ( ( defined $self->{url} ) and ((! defined $::config_parms{ "aurora_" . $self->{name} . "_url" }) or ( $::config_parms{ "aurora_" . $self->{name} . "_url" } ne $self->{url} ) ) ){
         $::config_parms{ "aurora_" . $self->{name} . "_url" } = $self->{url};
         $parms{ "aurora_" . $self->{name} . "_url" }          = $self->{url};
         main::print_log( "[Aurora:" . $self->{name} . "] Updating location URL ($self->{url}) in mh.ini file" );
         $write = 1;
 
     }
-    if (
-        ( defined $self->{token} )
-        and (  ( !defined $::config_parms{ "aurora_" . $self->{name} . "_token" } )
-            or ( $::config_parms{ "aurora_" . $self->{name} . "_token" } ne $self->{token} ) )
-      )
-    {
+    if ( ( defined $self->{token} ) and ((! defined $::config_parms{ "aurora_" . $self->{name} . "_token" }) or ( $::config_parms{ "aurora_" . $self->{name} . "_token" } ne $self->{token} ) ) ){
         $::config_parms{ "aurora_" . $self->{name} . "_token" } = $self->{token};
         $parms{ "aurora_" . $self->{name} . "_token" }          = $self->{token};
         main::print_log( "[Aurora:" . $self->{name} . "] Updating authentication token in mh.ini file" );
@@ -808,7 +808,7 @@ sub process_data {
     if ( ( !$self->{init_data} ) and ( defined $self->{data}->{info} ) ) {
         main::print_log( "[Aurora:" . $self->{name} . "] Init: Setting startup values" );
 
-        foreach my $key ( keys %{ $self->{data}->{info} } ) {
+        foreach my $key ( keys %{$self->{data}->{info}} ) {
             $self->{previous}->{info}->{$key} = $self->{data}->{info}->{$key};
         }
         $self->{previous}->{panels} = $self->{data}->{panels};
@@ -935,6 +935,27 @@ sub process_data {
 
 }
 
+sub print_command_queue {
+    my ($self) = @_;
+    main::print_log( "Aurora:" . $self->{name} . "] ------------------------------------------------------------------" );
+    my $commands = scalar @{ $self->{cmd_queue} };
+    my $name = "$commands commands";
+    $name = "empty" if ($commands == 0);
+    main::print_log( "Aurora:" . $self->{name} . "] Current Command Queue: $name" );
+    for my $i ( 1 .. $commands ) {
+        main::print_log( "Aurora:" . $self->{name} . "] Command $i: " . @{ $self->{cmd_queue} }[$i - 1] );
+    }
+    main::print_log( "Aurora:" . $self->{name} . "] ------------------------------------------------------------------" );
+    
+}
+
+sub purge_command_queue {
+    my ($self) = @_;
+    my $commands = scalar @{ $self->{cmd_queue} };
+    main::print_log( "Aurora:" . $self->{name} . "] Purging Command Queue of $commands commands" );
+    @{ $self->{cmd_queue} } = ();
+}
+
 #------------
 # User access methods
 
@@ -948,15 +969,15 @@ sub get_effect {
 sub get_effects {
     my ($self) = @_;
     my @effect_array = ();
-
-    if ( defined $self->{data}->{info}->{effects}->{list} ) {    #beta structure
+    
+    if ( defined $self->{data}->{info}->{effects}->{list} ) { #beta structure
         @effect_array = @{ $self->{data}->{info}->{effects}->{list} };
-    }
-    else {
+    } else {
         @effect_array = @{ $self->{data}->{info}->{effects}->{effectsList} };
     }
     return @effect_array;
 }
+    
 
 sub check_panelid {
     my ( $self, $id ) = @_;
@@ -1113,7 +1134,10 @@ sub get_voice_cmds {
     my %voice_cmds = (
         'Discover Auroras to print log'                                         => $self->get_object_name . '->print_discovery_info',
         'Print Static string to print log'                                      => $self->get_object_name . '->print_static',
-        'Identify Aurora ' . $self->{name} . '(' . $self->get_object_name . ')' => $self->get_object_name . '->identify'
+        'Identify Aurora ' . $self->{name} . '(' . $self->get_object_name . ')' => $self->get_object_name . '->identify',
+        'Print Command Queue to print log'                                      => $self->get_object_name . '->print_command_queue',
+        'Purge Command Queue'                                                   => $self->get_object_name . '->purge_command_queue'
+       
     );
 
     return \%voice_cmds;
@@ -1164,9 +1188,9 @@ sub load_effects {
 }
 
 sub get_effects {
-    my ($self) = @_;
+    my ( $self ) = @_;
     my @effects = $$self{master_object}->get_effects();
-
+    
     return @effects;
 
 }
@@ -1287,3 +1311,4 @@ sub set {
 # v1.0.10 - Updated to work with other versions of perl, typo with mh.ini
 # v1.0.11 - cosmetic fixes for undefined variables
 # v1.0.12 - get_effects method to get array of available effects
+# v1.0.13 - ability to print and purge the command queue in case a network error prevents clearing, empty poll queue if max reached
