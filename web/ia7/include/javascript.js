@@ -1,4 +1,4 @@
-// v1.5.410
+// v1.5.500D
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -813,17 +813,21 @@ var getButtonColor = function (state) {
 	return color;
 };
 
-var filterSubstate = function (state) {
+var filterSubstate = function (state, slider) {
  	// ideally the gear icon on the set page will remove the filter
+ 	// slider=1 will filter out all numeric states
     var filter = 0
     // remove 11,12,13... all the mod 10 states
     if (state.indexOf('%') >= 0) {
     
        var number = parseInt(state, 10)
-       if (number % json_store.ia7_config.prefs.substate_percentages != 0) {
+//       if (number % json_store.ia7_config.prefs.substate_percentages != 0) {
+       if ((number % json_store.ia7_config.prefs.substate_percentages != 0) || (slider !== undefined && slider == 1)) {
          filter = 1
         }
     }
+    if ((slider !== undefined && slider == 1) && !isNaN(state)) filter = 1;
+    
 	if (state !== undefined) state = state.toLowerCase();    
     if (state == "manual" ||
     	state == "double on" ||
@@ -860,16 +864,44 @@ var filterSubstate = function (state) {
     return filter;
 };
         
-var brightnessStates = function (states) {
+var sliderObject = function (states) {
 
+    //if an object has at least 4 numeric values, return yes
+    var count = 0;
     for(var i = 0; i < states.length; i++)
         {
-        if(states[i].indexOf('%') != -1)
-        {
-            return 1
+        if ( (!isNaN(states[i])) ||  (states[i].indexOf('%') != -1)) count++;
+        }
+    if (count > 3) return 1;
+
+    return 0;
+}
+
+var sliderDetails = function (states) {
+//TODO, steps for decimals? //return sorted array of numeric values
+
+    var pct = 0;
+    var slider_array = [];
+    for(var i = 0; i < states.length; i++) {
+        var val = states[i];
+        if(states[i].indexOf('%') != -1) pct=1;
+        val = val.replace(/\%/g,'');
+        if (!isNaN(val)) {
+            console.log("v="+val)
+            slider_array.push(val)
         }
     }
-    return 0;
+    var values = slider_array.sort(function(a, b){return a-b});
+    var min = 0; //values[0];
+    var max = values.length -1;
+    var steps = parseInt((max - min) / (values.length - 1));
+    return {
+        min: min,
+        max: max,
+        values: values,
+        steps: steps,
+        pct: pct
+    };
 }
 
 var sortArrayByArray = function (listArray, sortArray){
@@ -2418,7 +2450,7 @@ var floorplan = function(group,time) {
                                             var po_states = json_store.objects[fp_entity].states;
                                             var html = '<div id="popOverBox">';
                                             // HP need to have at least 2 states to be a controllable object...
-                                            if (!brightnessStates(json_store.objects[fp_entity].states) || (json_store.ia7_config.prefs.brightness_slider !== undefined && json_store.ia7_config.prefs.brightness_slider == "no")) {		
+                                            if (!sliderObject(json_store.objects[fp_entity].states) || (json_store.ia7_config.prefs.floorplan_slider == undefined) || (json_store.ia7_config.prefs.floorplan_slider !== undefined && json_store.ia7_config.prefs.floorplan_slider !== "yes")) {		
 
                                                 if (po_states.length > 1) {
                                                     html = '<div class="btn-group stategrp0 btn-block">';
@@ -2447,6 +2479,7 @@ var floorplan = function(group,time) {
                                                         }
                                                     }
                                                     html += "</div></div>";
+                                                    fp_popover_close = true;
                                                 }
                                             } else {
                                                 html = '<div class="btn-group stategrp0 btn-block">';
@@ -2459,7 +2492,9 @@ var floorplan = function(group,time) {
                                             }
                                             return html;
                                         }
-                                    }).click(function (e) {
+                                    }).off().on('click', function (e) {
+console.log("in click "+fp_popover_close);
+//                                        $('popover').popover('hide');
                                         $(this).popover('show');
                                         var val = $(".object-state").text();
                                         if (val == "on") {
@@ -2474,9 +2509,8 @@ var floorplan = function(group,time) {
                                             max: 100,
                                             value: val
                                         });
-                                        
                                         $( "#slider" ).on( "slide", function(event, ui) {
-                                            $('#PopOverBox').popover('show');
+                                            //$('#PopOverBox').popover('show');
                                             var sliderstate = ui.value;
                                             if (sliderstate == "100") {
                                                 sliderstate = "on";
@@ -2502,20 +2536,26 @@ var floorplan = function(group,time) {
                                             }
                                             url= '/SET;none?select_item='+$(".entity-name").text()+'&select_state='+sliderstate;
                                             console.log("slidechange url="+url);
+                                            $.get( url);
+                                            fp_popover_close = true;
                                             $('.popover').popover('hide');
+                                            $('#floorplan').focusout()
                                         });
-                                        $('.btn-state-cmd').click( function () {
+                                        $('.btn-state-cmd').on('click', function () {
                                             var url= '/SET;none?select_item='+$(".entity-name").text()+'&select_state='+$(this).text();
                                             console.log("button click "+url);
+                                            if (!$(this).hasClass("disabled")) $.get( url);
+                                            fp_popover_close = true;
                                             $('.popover').popover('hide');
                                         });
-                                        
-                                        $('[data-toggle="popover"]').on("blur",function(evt){
+                                    });   
+                                        $('[data-toggle="popover"]').on('blur',function(){
+console.log("in blur "+fp_popover_close);
                                             if(fp_popover_close)
                                                 $(this).popover('hide');
                                             else {
                                                 $(this).focus();
-                                                fp_poppver_close = true;
+                                                fp_popover_close = true;
                                              }
                                             //$(this).popover('hide');
                                             //console.log("on blur "+evt.target.id);
@@ -2523,9 +2563,11 @@ var floorplan = function(group,time) {
                                             //if ($('#slider').length == 0) $(this).popover('hide');
                                         });
                                         $('[data-toggle="popover"]').on("focus",function(){
-                                            if (fp_popover_close) $(this).popover('show'); 
+console.log("in focus "+fp_popover_close);
+                                            if (fp_popover_close) $(this).popover('show')
+//                                             else $(this).popover('hide'); 
                                             });
-                                    });
+
                                 } else {
                                     E.click( function () {
                                         var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
@@ -2757,7 +2799,9 @@ var create_state_modal = function(entity) {
 				group_buttons = 3;
 			}
 			//if it's a brightness object then put ON/OFF and a slider unless overriden in the prefs file
-            if (!brightnessStates(json_store.objects[entity].states) || (json_store.ia7_config.prefs.brightness_slider !== undefined && json_store.ia7_config.prefs.brightness_slider == "no"))	{		
+			//move this so non numeric states get printed
+			var slider_active = 0;
+            if (!sliderObject(modal_states) || (json_store.ia7_config.prefs.state_slider !== undefined && json_store.ia7_config.prefs.state_slider == "no"))	{		
                 for (var i = 0; i < modal_states.length; i++){
                     if (filterSubstate(modal_states[i]) == 1) {
                         advanced_html += "<button class='btn btn-default col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" hidden'>"+modal_states[i]+"</button>";
@@ -2793,45 +2837,47 @@ var create_state_modal = function(entity) {
                 }
             } else {
                 $('#control').find('.states').find(".stategrp0").append("<button class='btn col-sm-6 col-xs-6 btn-success'>on</button>");					                
-                $('#control').find('.states').find(".stategrp0").append("<button class='btn col-sm-6 col-xs-6 btn-default'>off</button>");					                
+                $('#control').find('.states').find(".stategrp0").append("<button class='btn col-sm-6 col-xs-6 btn-default'>off</button>");	
+                var slider_data = sliderDetails(modal_states);		                
+                console.log("max="+slider_data.max+" min="+slider_data.min+" steps="+slider_data.steps);
+                console.log("array="+slider_data.values.toString());
                 $('#control').find('.states').append("<div id='slider' class='brightness-slider'></div>");					
-                var val = $(".object-state").text();
-                if (val == "on") {
-                     val = 100;
-                } else if (val == "off") {
-                    val = 0;
-                } else {
-                    val = parseInt(val);
-                }
+                var val = $(".object-state").text().replace(/\%/,'');
+                
+                var position = slider_data.values.indexOf(val);
+                if (val == "on") position = slider_data.max;
+                if (val == "off") position = slider_data.min;
+                if (position == undefined || position < 0) position = 0;
                 $('#slider' ).slider({
-                    min: 0,
-                    max: 100,
-                    value: val,
+                    min: slider_data.min,
+                    max: slider_data.max,
+                    value: position
                 });
                 $( "#slider" ).on( "slide", function(event, ui) {
-                    var sliderstate = ui.value;
-                    if (sliderstate == "100") {
+                    var sliderstate = slider_data.values[ui.value];
+                    if ((sliderstate == "100") && (slider_data.pct)) {
                         sliderstate = "on";
-                    } else if (sliderstate == "0") {
+                    } else if ((sliderstate == "0") && (slider_data.pct)) {
                          sliderstate = "off";
                     } else {
-                        sliderstate += "%";
+                        if (slider_data.pct) sliderstate += "%";
                     }
                     //console.log("Slider Change "+ui.value+":"+sliderstate); 
                     $('#control').find('.object-state').text(sliderstate);
 
                 });
                 $( "#slider" ).on( "slidechange", function(event, ui) {
-                    var sliderstate = ui.value;
-                    if (sliderstate == "100") {
+                    var sliderstate = slider_data.values[ui.value];
+                    if ((sliderstate == "100") && (slider_data.pct)) {
                         sliderstate = "on";
-                    } else if (sliderstate == "0") {
+                    } else if ((sliderstate == "0") && (slider_data.pct)) {
                          sliderstate = "off";
                     } else {
-                        sliderstate += "%";
+                        if (slider_data.pct) sliderstate += "%";
                     }
                     url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+sliderstate;
 			        $('#control').modal('hide');
+			        console.log("url="+url);
 			        $.get( url);
                 });
 
@@ -3315,10 +3361,13 @@ $(document).ready(function() {
 			$('#optionsModal').modal('hide');
 		});
 	});
+
+//TODO - does this work?
 	$(document).on('mousedown', function (e) {
-        if($(e.target).hasClass('popover-content'))
+        if($(e.target).hasClass('popover-content')) {
+            console.log("document mousedown");
             fp_popover_close = false;
-        else
+        } else
             fp_popover_close = true; 
     });
 	
@@ -3336,6 +3385,8 @@ $(document).ready(function() {
 		//	});
 	});		
 });
+
+
 
 //
 // LICENSE
