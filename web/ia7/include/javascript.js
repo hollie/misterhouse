@@ -1,4 +1,4 @@
-// v1.5.500D
+// v1.5.510D
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -2786,9 +2786,13 @@ var create_state_modal = function(entity) {
 			var display_buttons = 0;
 			var grid_buttons = 3;
 			var group_buttons = 4;
+
+			var slider_active = 1;
+            if (!sliderObject(modal_states) || (json_store.ia7_config.prefs.state_slider !== undefined && json_store.ia7_config.prefs.state_slider == "no")) slider_active = 0;
+
 			// get number of displayed buttons so we can display nicely.
 			for (var i = 0; i < modal_states.length; i++){
-				if (filterSubstate(modal_states[i]) !== 1) display_buttons++
+				if (filterSubstate(modal_states[i],slider_active) !== 1) display_buttons++
 			}
 			if (display_buttons == 2) {
 				grid_buttons = 6;
@@ -2798,12 +2802,9 @@ var create_state_modal = function(entity) {
 				grid_buttons = 4;
 				group_buttons = 3;
 			}
-			//if it's a brightness object then put ON/OFF and a slider unless overriden in the prefs file
-			//move this so non numeric states get printed
-			var slider_active = 0;
-            if (!sliderObject(modal_states) || (json_store.ia7_config.prefs.state_slider !== undefined && json_store.ia7_config.prefs.state_slider == "no"))	{		
+//            if (!sliderObject(modal_states) || (json_store.ia7_config.prefs.state_slider !== undefined && json_store.ia7_config.prefs.state_slider == "no"))	{		
                 for (var i = 0; i < modal_states.length; i++){
-                    if (filterSubstate(modal_states[i]) == 1) {
+                    if (filterSubstate(modal_states[i],slider_active) == 1) {
                         advanced_html += "<button class='btn btn-default col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" hidden'>"+modal_states[i]+"</button>";
                         continue 
                     } else {
@@ -2835,9 +2836,11 @@ var create_state_modal = function(entity) {
                     }
                 $('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");					
                 }
-            } else {
-                $('#control').find('.states').find(".stategrp0").append("<button class='btn col-sm-6 col-xs-6 btn-success'>on</button>");					                
-                $('#control').find('.states').find(".stategrp0").append("<button class='btn col-sm-6 col-xs-6 btn-default'>off</button>");	
+//            } else {
+//                $('#control').find('.states').find(".stategrp0").append("<button class='btn col-sm-6 col-xs-6 btn-success'>on</button>");					                
+//                $('#control').find('.states').find(".stategrp0").append("<button class='btn col-sm-6 col-xs-6 btn-default'>off</button>");	
+console.log("sliderA="+slider_active);
+if (slider_active) {
                 var slider_data = sliderDetails(modal_states);		                
                 console.log("max="+slider_data.max+" min="+slider_data.min+" steps="+slider_data.steps);
                 console.log("array="+slider_data.values.toString());
