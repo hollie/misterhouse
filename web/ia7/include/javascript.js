@@ -1,4 +1,4 @@
-// v1.5.300
+// v1.5.520D
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -17,6 +17,7 @@ var show_tooltips = true;
 var rrd_refresh_loop;
 var stats_loop;
 var stat_refresh = 60;
+var fp_popover_close = true ;
 
 var ctx; //audio context
 var buf; //audio buffer
@@ -812,17 +813,21 @@ var getButtonColor = function (state) {
 	return color;
 };
 
-var filterSubstate = function (state) {
+var filterSubstate = function (state, slider) {
  	// ideally the gear icon on the set page will remove the filter
+ 	// slider=1 will filter out all numeric states
     var filter = 0
     // remove 11,12,13... all the mod 10 states
     if (state.indexOf('%') >= 0) {
     
        var number = parseInt(state, 10)
-       if (number % json_store.ia7_config.prefs.substate_percentages != 0) {
+//       if (number % json_store.ia7_config.prefs.substate_percentages != 0) {
+       if ((number % json_store.ia7_config.prefs.substate_percentages != 0) || (slider !== undefined && slider == 1)) {
          filter = 1
         }
     }
+    if ((slider !== undefined && slider == 1) && !isNaN(state)) filter = 1;
+    
 	if (state !== undefined) state = state.toLowerCase();    
     if (state == "manual" ||
     	state == "double on" ||
@@ -859,16 +864,44 @@ var filterSubstate = function (state) {
     return filter;
 };
         
-var brightnessStates = function (states) {
+var sliderObject = function (states) {
 
+    //if an object has at least 4 numeric values, return yes
+    var count = 0;
     for(var i = 0; i < states.length; i++)
         {
-        if(states[i].indexOf('%') != -1)
-        {
-            return 1
+        if ( (!isNaN(states[i])) ||  (states[i].indexOf('%') != -1)) count++;
+        }
+    if (count > 3) return 1;
+
+    return 0;
+}
+
+var sliderDetails = function (states) {
+//TODO, steps for decimals? //return sorted array of numeric values
+
+    var pct = 0;
+    var slider_array = [];
+    for(var i = 0; i < states.length; i++) {
+        var val = states[i];
+        if(states[i].indexOf('%') != -1) pct=1;
+        val = val.replace(/\%/g,'');
+        if (!isNaN(val)) {
+            console.log("v="+val)
+            slider_array.push(val)
         }
     }
-    return 0;
+    var values = slider_array.sort(function(a, b){return a-b});
+    var min = 0; //values[0];
+    var max = values.length -1;
+    var steps = parseInt((max - min) / (values.length - 1));
+    return {
+        min: min,
+        max: max,
+        values: values,
+        steps: steps,
+        pct: pct
+    };
 }
 
 var sortArrayByArray = function (listArray, sortArray){
@@ -1361,27 +1394,50 @@ var something_went_wrong = function(module,text) {
 var get_stats = function(tagline) {
 	var URLHash = URLToHash();
 
-	if (tagline === undefined){
-		$.ajax({
-			type: "GET",
-			url: "/json/tagline",
-			dataType: "json",
-			success: function( json ) {
-				JSONStore(json);
-				get_stats(json.data);
-			}
-		});
-		return;
-	}
+//	if (tagline === undefined){
+//		$.ajax({
+//			type: "GET",
+//			url: "/json/tagline",
+//			dataType: "json",
+//			success: function( json ) {
+//				JSONStore(json);
+//				get_stats(json.data.tagline);
+//			}
+//		});
+//		return;
+//	}
 	$.ajax({
 		type: "GET",
-		url: "/json/stats",
+		url: "/json/misc",
 		dataType: "json",
 		success: function( json, statusText, jqXHR  ) {
 			if (jqXHR.status == 200) {
 			    //console.log("tagline="+tagline);
-			    $('.tagline').text(tagline);
-			    $('.uptime').text(json.data.time+" Up "+json.data.uptime+", "+json.data.users+" users, load averages: "+json.data.load);
+			    $('.tagline').text(json.data.tagline);
+			    var load_avg = "";;
+			    if (json.data.cores !== undefined && json.data.cores !== null) {
+			        var loads = json.data.load.split(" ");
+			        for (var i = 0; i < loads.length; i++) {
+			            var load = loads[i] / json.data.cores;
+			            if (load < 1) {
+			                load_avg += "<span class='text-success'>";
+			            } else if (load < 2) {
+			                load_avg += "<span class='text-warning'>";
+			            } else {
+			            	load_avg += "<span class='text-danger'>";
+                        }
+                        load_avg += loads[i]+" </span>";
+			            //console.log("cores="+json.data.cores+" load="+load+" load_avg="+load_avg);
+                        
+			        }
+			    } else {
+			        load_avg = json.data.load;
+			    }
+			    if (json.data.uptime) {
+			        $('.uptime').html(json.data.time+" Up "+json.data.uptime+", "+json.data.users+" users, load averages: "+load_avg);
+			    } else {
+			        $('.uptime').html("System uptime data not available");
+			    }
 			    $('.counter').text("Page Views: "+json.data.web_counter);
 			    //console.log("uptime="+json.data.uptime);
 		    }
@@ -1592,6 +1648,11 @@ var graph_rrd = function(start,group,time) {
 		clearTimeout(rrd_refresh_loop); //prevent any previous loops from updating.
 	}
 
+	//if ($('#top-graph').length == 0){
+	//    //This might be because the user has changed page and the refresh has come in. If the top-graph isn't there then just return
+	//    return;
+	//}
+
 	if (json_store.ia7_config.prefs.rrd_graph_refresh !== undefined) refresh = json_store.ia7_config.prefs.rrd_graph_refresh;
 	
 	URLHash.time = time;
@@ -1673,9 +1734,10 @@ var graph_rrd = function(start,group,time) {
 					last_timestamp = new Date(json.data.last_update);
 				}
 				//Update the footer database updated time
-				$('#Last_updated').remove();		
-				$('#footer_stuff').prepend("<div id='Last_updated'>RRD Database Last Updated:"+last_timestamp+"</div>");
-				
+				if ($('#top-graph').length !== 0){
+				    $('#Last_updated').remove();		
+				    $('#footer_stuff').prepend("<div id='Last_updated'>RRD Database Last Updated:"+last_timestamp+"</div>");
+				}
 
 				$('.dropdown').on('click', '.dropdown-menu li a', function(e){
 					e.stopPropagation();
@@ -2330,6 +2392,8 @@ var floorplan = function(group,time) {
         },
         success: function( json, statusText, jqXHR ) {
             var requestTime = time;
+            var last_slider_popover;
+//           var force_focus = false;
             if (jqXHR.status === 200) {
                 //var t0 = performance.now();
                 JSONStore(json);
@@ -2383,45 +2447,155 @@ var floorplan = function(group,time) {
                                             var name = fp_entity;
                                             if (json_store.objects[fp_entity].label !== undefined) name = json_store.objects[fp_entity].label;
                                             var ackt = E.offset();
-                                            return name+ " - "+json_store.objects[fp_entity].state;
+                                            return "<span class='entity-name'>"+name+ "</span> - <span class='object-state'>"+json_store.objects[fp_entity].state + "</span>";
                                         },
+                                        trigger: 'manual',
                                         html: 'true', //needed to show html of course
                                         content : function() {
                                             var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
                                             var po_states = json_store.objects[fp_entity].states;
                                             var html = '<div id="popOverBox">';
                                             // HP need to have at least 2 states to be a controllable object...
-                                            if (po_states.length > 1) {
-                                                html = '<div class="btn-group stategrp0 btn-block">';
-                                                var buttons = 0;
-                                                var stategrp = 0;
-                                                for (var i = 0; i < po_states.length; i++){
-                                                    if (filterSubstate(po_states[i]) !== 1) {
-                                                        buttons++;
-                                                        if (buttons > 2) {
-                                                            stategrp++;
-                                                            html += "</div><div class='btn-group btn-block stategrp"+stategrp+"'>";
-                                                            buttons = 1;
-                                                        }
+                                            if (!sliderObject(json_store.objects[fp_entity].states) || (json_store.ia7_config.prefs.floorplan_slider == undefined) || (json_store.ia7_config.prefs.floorplan_slider !== undefined && json_store.ia7_config.prefs.floorplan_slider !== "yes")) {		
 
-                                                        var color = getButtonColor(po_states[i]);
-                                                        //TODO disabled override
-                                                        var disabled = "";
-                                                        if (po_states[i] === json_store.objects[fp_entity].state) {
-                                                            disabled = "disabled";
+                                                if (po_states.length > 1) {
+                                                    html = '<div class="btn-group stategrp0 btn-block">';
+                                                    var buttons = 0;
+                                                    var stategrp = 0;
+                                                    for (var i = 0; i < po_states.length; i++){
+                                                        if (filterSubstate(po_states[i]) !== 1) {
+                                                            buttons++;
+                                                            if (buttons > 2) {
+                                                                stategrp++;
+                                                                html += "</div><div class='btn-group btn-block stategrp"+stategrp+"'>";
+                                                                buttons = 1;
+                                                            }
+
+                                                            var color = getButtonColor(po_states[i]);
+                                                            //TODO disabled override
+                                                            var disabled = "";
+                                                            if (po_states[i] === json_store.objects[fp_entity].state) {
+                                                                disabled = "disabled";
+                                                            }
+                                                            html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-"+color+" "+disabled+"'";
+                                                            var url= '/SET;none?select_item='+fp_entity+'&select_state='+po_states[i];
+                                                            //html += ' onclick="$.get(';
+                                                            //html += "'"+url+"')";
+                                                            html += '">'+po_states[i]+'</button>';
                                                         }
-                                                        html += "<button class='btn col-sm-6 col-xs-6 btn-"+color+" "+disabled+"'";
-                                                        var url= '/SET;none?select_item='+fp_entity+'&select_state='+po_states[i];
-                                                        html += ' onclick="$.get(';
-                                                        html += "'"+url+"')";
-                                                        html += '">'+po_states[i]+'</button>';
                                                     }
+                                                    html += "</div></div>";
+                                                    fp_popover_close = true;
                                                 }
-                                                html += "</div></div>";
+                                            } else {
+                                                html = '<div class="btn-group stategrp0 btn-block">';
+                                                html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-success'>on</button>";					                
+                                                html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-default'>off</button></div>";					                
+                                                html += "<div id='slider' class='brightness-slider'></div>";					
+                                                html += "<br>";
+                                                fp_popover_close = false;
+                                                console.log("slider ");
                                             }
                                             return html;
                                         }
-                                    });
+                                    }).off().on('click', function (e) {
+                                    var src = $(this).attr('id').match(/entity_(.*)_\d+$/)[1];
+ //                                   var en=$( "a[title='"+src+"']" ).find(".entity-name").text();
+ //                                   var os=$( "a[title='"+src+"']" ).find(".object-state").text();
+                                    last_slider_popover = src;
+//console.log("in click "+fp_popover_close+" src:"+src+" entity-name:"+en+" object-state:"+os);
+//                                      $('popover').popover('hide');
+//                                      $(this).popover('show');
+                                        $( "a[title='"+src+"']" ).find(".popover-content").popover('show');
+                                        var val = $( "a[title='"+src+"']" ).find(".object-state").text();
+                                        if (val == "on") {
+                                            val = 100;
+                                        } else if (val == "off") {
+                                            val = 0;
+                                        } else {
+                                            val = parseInt(val);
+                                        }
+                                        $('#slider' ).slider({
+                                            min: 0,
+                                            max: 100,
+                                            value: val
+                                        });
+                                        $( "#slider" ).on( "slide", function(event, ui) {
+//                                            //$('#PopOverBox').popover('show');
+                                            var sliderstate = ui.value;
+                                            if (sliderstate == "100") {
+                                                sliderstate = "on";
+                                            } else if (sliderstate == "0") {
+                                                 sliderstate = "off";
+                                            } else {
+                                                sliderstate += "%";
+                                            }
+//                                            console.log("Slider Change "+ui.value+":"+sliderstate); 
+                                            $('.object-state').text(sliderstate);
+
+                                        });
+                                        $( "#slider" ).on( "slidechange", function(event, ui) {
+                                            if ($('#slider').length == 0) return
+                                            var fp_entity = $(this).parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
+                                            var sliderstate = ui.value;
+                                            if (sliderstate == "100") {
+                                                sliderstate = "on";
+                                            } else if (sliderstate == "0") {
+                                                 sliderstate = "off";
+                                            } else {
+                                                sliderstate += "%";
+                                            }
+//                                            console.log("entity-name="+$(".entity-name").text()+" entity="+fp_entity);
+//                                            console.log("slidechange url="+url);
+                                            if ($(".entity-name").text() == fp_entity) {
+                                                url= '/SET;none?select_item='+$(".entity-name").text()+'&select_state='+sliderstate;
+                                                $.get( url);
+                                                fp_popover_close = true;
+                                                last_slider_popover = fp_entity;
+                                                $('.popover').popover('hide');
+                                                $( "a[title='"+fp_entity+"']" ).find('[data-toggle="popover"]').blur();
+                                            }
+                                        });
+                                        $('.btn-state-cmd').on('click', function () {
+                                            var url= '/SET;none?select_item='+$(".entity-name").text()+'&select_state='+$(this).text();
+                                            console.log("button click "+url);
+                                            if (!$(this).hasClass("disabled")) $.get( url);
+                                            fp_popover_close = true;
+                                            $('.popover').popover('hide');
+                                        });
+                                    });   
+                                        $('[data-toggle="popover"]').on('blur',function(e){
+//var src = $(this).attr('id').match(/entity_(.*)_\d+$/)[1];
+//var en=$( "a[title='"+src+"']" ).find(".entity-name").text();
+//var os=$( "a[title='"+src+"']" ).find(".object-state").text();
+//console.log("in blur "+fp_popover_close+" src:"+src+" entity-name:"+en+" object-state:"+os+" last_slider_popover:"+last_slider_popover);
+                                            if(fp_popover_close) {
+                                                    $(this).popover('hide');
+//                                                    console.log("force_focus="+force_focus);
+                                                //$(".entity-name").text("")
+                                                //$(".entity-state").text("")
+                                            } else {
+                                                $(this).focus();
+                                                fp_popover_close = false; //true
+                                             }
+//                                            if ((src == en) && (last_slider_popover !== undefined) && (src != last_slider_popover)) {
+//                                                console.log("*****************show popover "+en);
+//                                                force_focus = true;
+//                                                //$( "a[title='"+en+"']" ).find('[data-toggle="popover"]').popover('toggle');
+//                                            }
+                                            //$(this).popover('hide');
+                                            //console.log("on blur "+evt.target.id);
+                                            //if ($(this).target
+                                            //if ($('#slider').length == 0) $(this).popover('hide');
+                                        });
+                                        $('[data-toggle="popover"]').on("focus",function(){
+//console.log("in focus "+fp_popover_close);
+                                            if (fp_popover_close) $(this).popover('show')
+//                                             else $(this).popover('hide'); 
+//                                            force_focus = false;
+
+                                            });
+
                                 } else {
                                     E.click( function () {
                                         var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
@@ -2623,6 +2797,7 @@ var create_state_popover = function(entity) {
 var create_state_modal = function(entity) {
 		var name = entity;
 		if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
+		$('#slider').remove();
 		$('#control').modal('show');
 		var modal_state = json_store.objects[entity].state;
 		$('#control').find('.object-title').html(name + " - <span class='object-state'>" + json_store.objects[entity].state + "</span>");
@@ -2639,9 +2814,13 @@ var create_state_modal = function(entity) {
 			var display_buttons = 0;
 			var grid_buttons = 3;
 			var group_buttons = 4;
+
+			var slider_active = 1;
+            if (!sliderObject(modal_states) || (json_store.ia7_config.prefs.state_slider !== undefined && json_store.ia7_config.prefs.state_slider == "no")) slider_active = 0;
+
 			// get number of displayed buttons so we can display nicely.
 			for (var i = 0; i < modal_states.length; i++){
-				if (filterSubstate(modal_states[i]) !== 1) display_buttons++
+				if (filterSubstate(modal_states[i],slider_active) !== 1) display_buttons++
 			}
 			if (display_buttons == 2) {
 				grid_buttons = 6;
@@ -2651,10 +2830,9 @@ var create_state_modal = function(entity) {
 				grid_buttons = 4;
 				group_buttons = 3;
 			}
-			//if it's a brightness object then put ON/OFF and a slider unless overriden in the prefs file
-            if (!brightnessStates(json_store.objects[entity].states) || (json_store.ia7_config.prefs.brightness_slider !== undefined && json_store.ia7_config.prefs.brightness_slider == "no"))	{		
+//            if (!sliderObject(modal_states) || (json_store.ia7_config.prefs.state_slider !== undefined && json_store.ia7_config.prefs.state_slider == "no"))	{		
                 for (var i = 0; i < modal_states.length; i++){
-                    if (filterSubstate(modal_states[i]) == 1) {
+                    if (filterSubstate(modal_states[i],slider_active) == 1) {
                         advanced_html += "<button class='btn btn-default col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" hidden'>"+modal_states[i]+"</button>";
                         continue 
                     } else {
@@ -2686,47 +2864,51 @@ var create_state_modal = function(entity) {
                     }
                 $('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");					
                 }
-            } else {
-                $('#control').find('.states').find(".stategrp0").append("<button class='btn col-sm-6 col-xs-6 btn-success'>on</button>");					                
-                $('#control').find('.states').find(".stategrp0").append("<button class='btn col-sm-6 col-xs-6 btn-default'>off</button>");					                
+//            } else {
+//                $('#control').find('.states').find(".stategrp0").append("<button class='btn col-sm-6 col-xs-6 btn-success'>on</button>");					                
+//                $('#control').find('.states').find(".stategrp0").append("<button class='btn col-sm-6 col-xs-6 btn-default'>off</button>");	
+console.log("sliderA="+slider_active);
+if (slider_active) {
+                var slider_data = sliderDetails(modal_states);		                
+                console.log("max="+slider_data.max+" min="+slider_data.min+" steps="+slider_data.steps);
+                console.log("array="+slider_data.values.toString());
                 $('#control').find('.states').append("<div id='slider' class='brightness-slider'></div>");					
-                var val = $(".object-state").text();
-                if (val == "on") {
-                     val = 100;
-                } else if (val == "off") {
-                    val = 0;
-                } else {
-                    val = parseInt(val);
-                }
+                var val = $(".object-state").text().replace(/\%/,'');
+                
+                var position = slider_data.values.indexOf(val);
+                if (val == "on") position = slider_data.max;
+                if (val == "off") position = slider_data.min;
+                if (position == undefined || position < 0) position = 0;
                 $('#slider' ).slider({
-                    min: 0,
-                    max: 100,
-                    value: val,
+                    min: slider_data.min,
+                    max: slider_data.max,
+                    value: position
                 });
                 $( "#slider" ).on( "slide", function(event, ui) {
-                    var sliderstate = ui.value;
-                    if (sliderstate == "100") {
+                    var sliderstate = slider_data.values[ui.value];
+                    if ((sliderstate == "100") && (slider_data.pct)) {
                         sliderstate = "on";
-                    } else if (sliderstate == "0") {
+                    } else if ((sliderstate == "0") && (slider_data.pct)) {
                          sliderstate = "off";
                     } else {
-                        sliderstate += "%";
+                        if (slider_data.pct) sliderstate += "%";
                     }
                     //console.log("Slider Change "+ui.value+":"+sliderstate); 
                     $('#control').find('.object-state').text(sliderstate);
 
                 });
                 $( "#slider" ).on( "slidechange", function(event, ui) {
-                    var sliderstate = ui.value;
-                    if (sliderstate == "100") {
+                    var sliderstate = slider_data.values[ui.value];
+                    if ((sliderstate == "100") && (slider_data.pct)) {
                         sliderstate = "on";
-                    } else if (sliderstate == "0") {
+                    } else if ((sliderstate == "0") && (slider_data.pct)) {
                          sliderstate = "off";
                     } else {
-                        sliderstate += "%";
+                        if (slider_data.pct) sliderstate += "%";
                     }
                     url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+sliderstate;
 			        $('#control').modal('hide');
+			        console.log("url="+url);
 			        $.get( url);
                 });
 
@@ -3058,6 +3240,7 @@ $(document).ready(function() {
 	// Load up 'globals' -- notification and the status
 	updateItem("ia7_status");	
 	get_notifications();
+	$('#Last_updated').remove();		
     get_stats();
 	$("#toolButton").click( function () {
 		// Need a 'click' event to turn on sound for mobile devices
@@ -3209,6 +3392,15 @@ $(document).ready(function() {
 			$('#optionsModal').modal('hide');
 		});
 	});
+
+//TODO - does this work?
+	$(document).on('mousedown', function (e) {
+        if($(e.target).hasClass('popover-content')) {
+            console.log("document mousedown");
+            fp_popover_close = false;
+        } else
+            fp_popover_close = true; 
+    });
 	
 //TODO remove me?	
 	$('#mhresponse').click( function (e) {
@@ -3224,6 +3416,8 @@ $(document).ready(function() {
 		//	});
 	});		
 });
+
+
 
 //
 // LICENSE

@@ -27,7 +27,7 @@
 	<!-- A custom jquery UI script to enable sortable items -->
 	<!-- ui 1.12.1 used for slider -->
 	<script src="include/jquery-ui-1.12.1.min.js"></script>
-	<link rel="stylesheet" href="include/jquery-ui.smoothness.1.12.1.css">
+	<link rel="stylesheet" href="include/jquery-ui.smoothness.1.12.1.min.css">
 
 	<!-- Enables Jquery UI functions to work on touch interfaces -->
   	<!-- <script src="/ia7/include/jquery.ui.touch-punch.0.2.3.min.js"></script> -->
