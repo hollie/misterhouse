@@ -1,4 +1,4 @@
-// v1.5.510D
+// v1.5.520D
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -1394,26 +1394,26 @@ var something_went_wrong = function(module,text) {
 var get_stats = function(tagline) {
 	var URLHash = URLToHash();
 
-	if (tagline === undefined){
-		$.ajax({
-			type: "GET",
-			url: "/json/tagline",
-			dataType: "json",
-			success: function( json ) {
-				JSONStore(json);
-				get_stats(json.data.tagline);
-			}
-		});
-		return;
-	}
+//	if (tagline === undefined){
+//		$.ajax({
+//			type: "GET",
+//			url: "/json/tagline",
+//			dataType: "json",
+//			success: function( json ) {
+//				JSONStore(json);
+//				get_stats(json.data.tagline);
+//			}
+//		});
+//		return;
+//	}
 	$.ajax({
 		type: "GET",
-		url: "/json/stats",
+		url: "/json/misc",
 		dataType: "json",
 		success: function( json, statusText, jqXHR  ) {
 			if (jqXHR.status == 200) {
 			    //console.log("tagline="+tagline);
-			    $('.tagline').text(tagline);
+			    $('.tagline').text(json.data.tagline);
 			    var load_avg = "";;
 			    if (json.data.cores !== undefined && json.data.cores !== null) {
 			        var loads = json.data.load.split(" ");
@@ -1433,7 +1433,11 @@ var get_stats = function(tagline) {
 			    } else {
 			        load_avg = json.data.load;
 			    }
-			    $('.uptime').html(json.data.time+" Up "+json.data.uptime+", "+json.data.users+" users, load averages: "+load_avg);
+			    if (json.data.uptime) {
+			        $('.uptime').html(json.data.time+" Up "+json.data.uptime+", "+json.data.users+" users, load averages: "+load_avg);
+			    } else {
+			        $('.uptime').html("System uptime data not available");
+			    }
 			    $('.counter').text("Page Views: "+json.data.web_counter);
 			    //console.log("uptime="+json.data.uptime);
 		    }
@@ -2388,6 +2392,8 @@ var floorplan = function(group,time) {
         },
         success: function( json, statusText, jqXHR ) {
             var requestTime = time;
+            var last_slider_popover;
+//           var force_focus = false;
             if (jqXHR.status === 200) {
                 //var t0 = performance.now();
                 JSONStore(json);
@@ -2493,10 +2499,15 @@ var floorplan = function(group,time) {
                                             return html;
                                         }
                                     }).off().on('click', function (e) {
-console.log("in click "+fp_popover_close);
-//                                        $('popover').popover('hide');
-                                        $(this).popover('show');
-                                        var val = $(".object-state").text();
+                                    var src = $(this).attr('id').match(/entity_(.*)_\d+$/)[1];
+ //                                   var en=$( "a[title='"+src+"']" ).find(".entity-name").text();
+ //                                   var os=$( "a[title='"+src+"']" ).find(".object-state").text();
+                                    last_slider_popover = src;
+//console.log("in click "+fp_popover_close+" src:"+src+" entity-name:"+en+" object-state:"+os);
+//                                      $('popover').popover('hide');
+//                                      $(this).popover('show');
+                                        $( "a[title='"+src+"']" ).find(".popover-content").popover('show');
+                                        var val = $( "a[title='"+src+"']" ).find(".object-state").text();
                                         if (val == "on") {
                                             val = 100;
                                         } else if (val == "off") {
@@ -2510,7 +2521,7 @@ console.log("in click "+fp_popover_close);
                                             value: val
                                         });
                                         $( "#slider" ).on( "slide", function(event, ui) {
-                                            //$('#PopOverBox').popover('show');
+//                                            //$('#PopOverBox').popover('show');
                                             var sliderstate = ui.value;
                                             if (sliderstate == "100") {
                                                 sliderstate = "on";
@@ -2519,13 +2530,13 @@ console.log("in click "+fp_popover_close);
                                             } else {
                                                 sliderstate += "%";
                                             }
-
-                                            console.log("Slider Change "+ui.value+":"+sliderstate); 
+//                                            console.log("Slider Change "+ui.value+":"+sliderstate); 
                                             $('.object-state').text(sliderstate);
 
                                         });
                                         $( "#slider" ).on( "slidechange", function(event, ui) {
                                             if ($('#slider').length == 0) return
+                                            var fp_entity = $(this).parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
                                             var sliderstate = ui.value;
                                             if (sliderstate == "100") {
                                                 sliderstate = "on";
@@ -2534,12 +2545,16 @@ console.log("in click "+fp_popover_close);
                                             } else {
                                                 sliderstate += "%";
                                             }
-                                            url= '/SET;none?select_item='+$(".entity-name").text()+'&select_state='+sliderstate;
-                                            console.log("slidechange url="+url);
-                                            $.get( url);
-                                            fp_popover_close = true;
-                                            $('.popover').popover('hide');
-                                            $('#floorplan').focusout()
+//                                            console.log("entity-name="+$(".entity-name").text()+" entity="+fp_entity);
+//                                            console.log("slidechange url="+url);
+                                            if ($(".entity-name").text() == fp_entity) {
+                                                url= '/SET;none?select_item='+$(".entity-name").text()+'&select_state='+sliderstate;
+                                                $.get( url);
+                                                fp_popover_close = true;
+                                                last_slider_popover = fp_entity;
+                                                $('.popover').popover('hide');
+                                                $( "a[title='"+fp_entity+"']" ).find('[data-toggle="popover"]').blur();
+                                            }
                                         });
                                         $('.btn-state-cmd').on('click', function () {
                                             var url= '/SET;none?select_item='+$(".entity-name").text()+'&select_state='+$(this).text();
@@ -2549,23 +2564,36 @@ console.log("in click "+fp_popover_close);
                                             $('.popover').popover('hide');
                                         });
                                     });   
-                                        $('[data-toggle="popover"]').on('blur',function(){
-console.log("in blur "+fp_popover_close);
-                                            if(fp_popover_close)
-                                                $(this).popover('hide');
-                                            else {
+                                        $('[data-toggle="popover"]').on('blur',function(e){
+//var src = $(this).attr('id').match(/entity_(.*)_\d+$/)[1];
+//var en=$( "a[title='"+src+"']" ).find(".entity-name").text();
+//var os=$( "a[title='"+src+"']" ).find(".object-state").text();
+//console.log("in blur "+fp_popover_close+" src:"+src+" entity-name:"+en+" object-state:"+os+" last_slider_popover:"+last_slider_popover);
+                                            if(fp_popover_close) {
+                                                    $(this).popover('hide');
+//                                                    console.log("force_focus="+force_focus);
+                                                //$(".entity-name").text("")
+                                                //$(".entity-state").text("")
+                                            } else {
                                                 $(this).focus();
-                                                fp_popover_close = true;
+                                                fp_popover_close = false; //true
                                              }
+//                                            if ((src == en) && (last_slider_popover !== undefined) && (src != last_slider_popover)) {
+//                                                console.log("*****************show popover "+en);
+//                                                force_focus = true;
+//                                                //$( "a[title='"+en+"']" ).find('[data-toggle="popover"]').popover('toggle');
+//                                            }
                                             //$(this).popover('hide');
                                             //console.log("on blur "+evt.target.id);
                                             //if ($(this).target
                                             //if ($('#slider').length == 0) $(this).popover('hide');
                                         });
                                         $('[data-toggle="popover"]').on("focus",function(){
-console.log("in focus "+fp_popover_close);
+//console.log("in focus "+fp_popover_close);
                                             if (fp_popover_close) $(this).popover('show')
 //                                             else $(this).popover('hide'); 
+//                                            force_focus = false;
+
                                             });
 
                                 } else {
