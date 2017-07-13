@@ -1,4 +1,4 @@
-// v1.5.520D
+// v1.5.530
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -448,7 +448,6 @@ function parseLinkData (link,data) {
 	});
 	$('#mhresponse :input:not(:text)').change(function() {
 //TODO - don't submit when a text field changes
-//	console.log("in input not text");
 		$('#mhresponse').submit();
  	});			
 	$('#mhexec a').click( function (e) {
@@ -821,7 +820,6 @@ var filterSubstate = function (state, slider) {
     if (state.indexOf('%') >= 0) {
     
        var number = parseInt(state, 10)
-//       if (number % json_store.ia7_config.prefs.substate_percentages != 0) {
        if ((number % json_store.ia7_config.prefs.substate_percentages != 0) || (slider !== undefined && slider == 1)) {
          filter = 1
         }
@@ -878,7 +876,6 @@ var sliderObject = function (states) {
 }
 
 var sliderDetails = function (states) {
-//TODO, steps for decimals? //return sorted array of numeric values
 
     var pct = 0;
     var slider_array = [];
@@ -887,7 +884,6 @@ var sliderDetails = function (states) {
         if(states[i].indexOf('%') != -1) pct=1;
         val = val.replace(/\%/g,'');
         if (!isNaN(val)) {
-            console.log("v="+val)
             slider_array.push(val)
         }
     }
@@ -1394,25 +1390,12 @@ var something_went_wrong = function(module,text) {
 var get_stats = function(tagline) {
 	var URLHash = URLToHash();
 
-//	if (tagline === undefined){
-//		$.ajax({
-//			type: "GET",
-//			url: "/json/tagline",
-//			dataType: "json",
-//			success: function( json ) {
-//				JSONStore(json);
-//				get_stats(json.data.tagline);
-//			}
-//		});
-//		return;
-//	}
 	$.ajax({
 		type: "GET",
 		url: "/json/misc",
 		dataType: "json",
 		success: function( json, statusText, jqXHR  ) {
 			if (jqXHR.status == 200) {
-			    //console.log("tagline="+tagline);
 			    $('.tagline').text(json.data.tagline);
 			    var load_avg = "";;
 			    if (json.data.cores !== undefined && json.data.cores !== null) {
@@ -1427,7 +1410,6 @@ var get_stats = function(tagline) {
 			            	load_avg += "<span class='text-danger'>";
                         }
                         load_avg += loads[i]+" </span>";
-			            //console.log("cores="+json.data.cores+" load="+load+" load_avg="+load_avg);
                         
 			        }
 			    } else {
@@ -1439,7 +1421,6 @@ var get_stats = function(tagline) {
 			        $('.uptime').html("System uptime data not available");
 			    }
 			    $('.counter').text("Page Views: "+json.data.web_counter);
-			    //console.log("uptime="+json.data.uptime);
 		    }
 		    if (jqXHR.status == 200 || jqXHR.status == 204) {
 				stats_loop = setTimeout(function(){
@@ -1492,7 +1473,6 @@ var get_notifications = function(time) {
 							var mobile = "";
 							if ($(window).width() <= 768) { // override the responsive mobile top-buffer
 							  mobile = "mobile-alert";
-							  //console.log ("mobile notification");
 							}
 							$("#alert-area").append($("<div class='alert-message alert alerts "+mobile+" alert-" + alert_type + " fade in' data-alert><p><i class='fa fa-info-circle'></i><strong>  Notification:</strong> " + text + " </p></div>"));
    	 						$(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
@@ -1667,7 +1647,6 @@ var graph_rrd = function(start,group,time) {
 	if (group.indexOf(".") !== -1) {
 	    var rrd_source = group.split(".");
 	    source = "&source="+rrd_source[0]+"&group="+rrd_source[1];
-	    //console.log("source found:"+source);
 	}
 	var arg_str = "start="+start+source+"&time="+time;
 	updateSocket = $.ajax({
@@ -1702,12 +1681,10 @@ var graph_rrd = function(start,group,time) {
     				dropdown_html_list += '>'+value.split(",")[0]+'</a></li>';
 				});
 				
-//				dropdown_html += dropdown_current+'<span class="caret"></span></button><ul class="dropdown-menu">';
 				dropdown_html += '<span class="rrd-current"></span><span class="caret"></span></button><ul class="dropdown-menu">';
     
 				dropdown_html += dropdown_html_list;
 				dropdown_html += '</ul></div>';
-				//console.log("1 new_data="+new_data+" start="+start);
 				if (new_data == 0) {
 				    $('#rrd-periods').append(dropdown_html);
 				    				//sort the legend
@@ -2120,9 +2097,7 @@ var fp_resize_floorplan_image = function(){
 };
 
 var fp_reposition_entities = function(){
-    //var t0 = performance.now();
     var fp_graphic_offset = $("#fp_graphic").offset();
-//    console.log("fp_graphic_offset: "+ JSON.stringify(fp_graphic_offset));
     var width = fp_display_width;
     var hight = fp_display_height;
     var onePercentWidthInPx = width/100;
@@ -2137,8 +2112,7 @@ var fp_reposition_entities = function(){
             "left": newx
         };
     };
-//    var nwidth = $("#fp_graphic").get(0).naturalWidth;
-//    var nwidth = $("#fp_graphic").width();
+
     var nwidth;
 //There are 2 sizing jumps in bootstrap.min.css one at 992 and another at 1200
 //Scale icons if less than 991
@@ -2183,8 +2157,6 @@ var fp_reposition_entities = function(){
 	$('.icon_select img').each(function(){
         $(this).width(fp_scale_percent + "%");
 	});
-    //var t1 = performance.now();
-    //console.log("FP: reposition and scale: " +Math.round(t1 - t0) + "ms ");
 };
 
 var fp_show_all_icons = function() {
@@ -2245,7 +2217,6 @@ var floorplan = function(group,time) {
             $('#list_content').append("<pre id='fp_pos_perl_code' />");
         }
         $('#fp_graphic').bind("load", function () {
-//            console.log("FP: background loaded.");
             fp_resize_floorplan_image();
             floorplan(group, time);
         });
@@ -2479,8 +2450,6 @@ var floorplan = function(group,time) {
                                                             }
                                                             html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-"+color+" "+disabled+"'";
                                                             var url= '/SET;none?select_item='+fp_entity+'&select_state='+po_states[i];
-                                                            //html += ' onclick="$.get(';
-                                                            //html += "'"+url+"')";
                                                             html += '">'+po_states[i]+'</button>';
                                                         }
                                                     }
@@ -2494,18 +2463,13 @@ var floorplan = function(group,time) {
                                                 html += "<div id='slider' class='brightness-slider'></div>";					
                                                 html += "<br>";
                                                 fp_popover_close = false;
-                                                console.log("slider ");
                                             }
                                             return html;
                                         }
                                     }).off().on('click', function (e) {
                                     var src = $(this).attr('id').match(/entity_(.*)_\d+$/)[1];
- //                                   var en=$( "a[title='"+src+"']" ).find(".entity-name").text();
- //                                   var os=$( "a[title='"+src+"']" ).find(".object-state").text();
                                     last_slider_popover = src;
-//console.log("in click "+fp_popover_close+" src:"+src+" entity-name:"+en+" object-state:"+os);
-//                                      $('popover').popover('hide');
-//                                      $(this).popover('show');
+
                                         $( "a[title='"+src+"']" ).find(".popover-content").popover('show');
                                         var val = $( "a[title='"+src+"']" ).find(".object-state").text();
                                         if (val == "on") {
@@ -2521,7 +2485,6 @@ var floorplan = function(group,time) {
                                             value: val
                                         });
                                         $( "#slider" ).on( "slide", function(event, ui) {
-//                                            //$('#PopOverBox').popover('show');
                                             var sliderstate = ui.value;
                                             if (sliderstate == "100") {
                                                 sliderstate = "on";
@@ -2530,7 +2493,6 @@ var floorplan = function(group,time) {
                                             } else {
                                                 sliderstate += "%";
                                             }
-//                                            console.log("Slider Change "+ui.value+":"+sliderstate); 
                                             $('.object-state').text(sliderstate);
 
                                         });
@@ -2538,6 +2500,7 @@ var floorplan = function(group,time) {
                                             if ($('#slider').length == 0) return
                                             var fp_entity = $(this).parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
                                             var sliderstate = ui.value;
+                                            if (isNaN(ui.value)) return; //if there isn't a numeric value then bail out of sending a set comment
                                             if (sliderstate == "100") {
                                                 sliderstate = "on";
                                             } else if (sliderstate == "0") {
@@ -2545,8 +2508,6 @@ var floorplan = function(group,time) {
                                             } else {
                                                 sliderstate += "%";
                                             }
-//                                            console.log("entity-name="+$(".entity-name").text()+" entity="+fp_entity);
-//                                            console.log("slidechange url="+url);
                                             if ($(".entity-name").text() == fp_entity) {
                                                 url= '/SET;none?select_item='+$(".entity-name").text()+'&select_state='+sliderstate;
                                                 $.get( url);
@@ -2558,44 +2519,23 @@ var floorplan = function(group,time) {
                                         });
                                         $('.btn-state-cmd').on('click', function () {
                                             var url= '/SET;none?select_item='+$(".entity-name").text()+'&select_state='+$(this).text();
-                                            console.log("button click "+url);
                                             if (!$(this).hasClass("disabled")) $.get( url);
                                             fp_popover_close = true;
                                             $('.popover').popover('hide');
                                         });
                                     });   
                                         $('[data-toggle="popover"]').on('blur',function(e){
-//var src = $(this).attr('id').match(/entity_(.*)_\d+$/)[1];
-//var en=$( "a[title='"+src+"']" ).find(".entity-name").text();
-//var os=$( "a[title='"+src+"']" ).find(".object-state").text();
-//console.log("in blur "+fp_popover_close+" src:"+src+" entity-name:"+en+" object-state:"+os+" last_slider_popover:"+last_slider_popover);
                                             if(fp_popover_close) {
                                                     $(this).popover('hide');
-//                                                    console.log("force_focus="+force_focus);
-                                                //$(".entity-name").text("")
-                                                //$(".entity-state").text("")
                                             } else {
                                                 $(this).focus();
                                                 fp_popover_close = false; //true
                                              }
-//                                            if ((src == en) && (last_slider_popover !== undefined) && (src != last_slider_popover)) {
-//                                                console.log("*****************show popover "+en);
-//                                                force_focus = true;
-//                                                //$( "a[title='"+en+"']" ).find('[data-toggle="popover"]').popover('toggle');
-//                                            }
-                                            //$(this).popover('hide');
-                                            //console.log("on blur "+evt.target.id);
-                                            //if ($(this).target
-                                            //if ($('#slider').length == 0) $(this).popover('hide');
                                         });
                                         $('[data-toggle="popover"]').on("focus",function(){
-//console.log("in focus "+fp_popover_close);
                                             if (fp_popover_close) $(this).popover('show')
-//                                             else $(this).popover('hide'); 
-//                                            force_focus = false;
 
-                                            });
-
+                                        });
                                 } else {
                                     E.click( function () {
                                         var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
@@ -2735,9 +2675,7 @@ var floorplan = function(group,time) {
             if (time === 0){
                 // hack to fix initial positions of the items
                 var wait = 500;
-                //console.log("FP: calling  fp in  " +wait+ "ms");
                 setTimeout(function(){
-                    //console.log("FP: calling fp after " +wait+ "ms");
                     fp_reposition_entities();
                 }, wait);
             }            
@@ -2864,55 +2802,47 @@ var create_state_modal = function(entity) {
                     }
                 $('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");					
                 }
-//            } else {
-//                $('#control').find('.states').find(".stategrp0").append("<button class='btn col-sm-6 col-xs-6 btn-success'>on</button>");					                
-//                $('#control').find('.states').find(".stategrp0").append("<button class='btn col-sm-6 col-xs-6 btn-default'>off</button>");	
-console.log("sliderA="+slider_active);
-if (slider_active) {
-                var slider_data = sliderDetails(modal_states);		                
-                console.log("max="+slider_data.max+" min="+slider_data.min+" steps="+slider_data.steps);
-                console.log("array="+slider_data.values.toString());
-                $('#control').find('.states').append("<div id='slider' class='brightness-slider'></div>");					
-                var val = $(".object-state").text().replace(/\%/,'');
-                
-                var position = slider_data.values.indexOf(val);
-                if (val == "on") position = slider_data.max;
-                if (val == "off") position = slider_data.min;
-                if (position == undefined || position < 0) position = 0;
-                $('#slider' ).slider({
-                    min: slider_data.min,
-                    max: slider_data.max,
-                    value: position
-                });
-                $( "#slider" ).on( "slide", function(event, ui) {
-                    var sliderstate = slider_data.values[ui.value];
-                    if ((sliderstate == "100") && (slider_data.pct)) {
-                        sliderstate = "on";
-                    } else if ((sliderstate == "0") && (slider_data.pct)) {
-                         sliderstate = "off";
-                    } else {
-                        if (slider_data.pct) sliderstate += "%";
-                    }
-                    //console.log("Slider Change "+ui.value+":"+sliderstate); 
-                    $('#control').find('.object-state').text(sliderstate);
+                if (slider_active) {
+                   var slider_data = sliderDetails(modal_states);		                
+                   $('#control').find('.states').append("<div id='slider' class='brightness-slider'></div>");					
+                   var val = $(".object-state").text().replace(/\%/,'');
+              
+                   var position = slider_data.values.indexOf(val);
+                   if (val == "on") position = slider_data.max;
+                   if (val == "off") position = slider_data.min;
+                   if (position == undefined || position < 0) position = 0;
+                   $('#slider' ).slider({
+                       min: slider_data.min,
+                       max: slider_data.max,
+                       value: position
+                   });
+                   $( "#slider" ).on( "slide", function(event, ui) {
+                       var sliderstate = slider_data.values[ui.value];
+                       if ((sliderstate == "100") && (slider_data.pct)) {
+                           sliderstate = "on";
+                       } else if ((sliderstate == "0") && (slider_data.pct)) {
+                            sliderstate = "off";
+                       } else {
+                           if (slider_data.pct) sliderstate += "%";
+                       }
+                       $('#control').find('.object-state').text(sliderstate);
 
-                });
-                $( "#slider" ).on( "slidechange", function(event, ui) {
-                    var sliderstate = slider_data.values[ui.value];
-                    if ((sliderstate == "100") && (slider_data.pct)) {
-                        sliderstate = "on";
-                    } else if ((sliderstate == "0") && (slider_data.pct)) {
-                         sliderstate = "off";
-                    } else {
-                        if (slider_data.pct) sliderstate += "%";
-                    }
-                    url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+sliderstate;
-			        $('#control').modal('hide');
-			        console.log("url="+url);
-			        $.get( url);
-                });
+                   });
+                   $( "#slider" ).on( "slidechange", function(event, ui) {
+                       var sliderstate = slider_data.values[ui.value];
+                       if ((sliderstate == "100") && (slider_data.pct)) {
+                           sliderstate = "on";
+                       } else if ((sliderstate == "0") && (slider_data.pct)) {
+                            sliderstate = "off";
+                       } else {
+                           if (slider_data.pct) sliderstate += "%";
+                       }
+                       url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+sliderstate;
+                       $('#control').modal('hide');
+                       $.get( url);
+                   });
 
-            }
+                 }
 		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
 		$('#control').find('.states').find('.btn').click(function (){
 			url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
@@ -3132,14 +3062,12 @@ var authorize_modal = function(user) {
 		e.preventDefault();
 		var encoded_data = $(this).serialize();
 		encoded_data = encoded_data.replace(/\!/g,"%21"); //for some reason serialize doesn't encode a !...
-		//console.log("Custom submit function: "+$(this).serialize()+" "+encoded_data);
 		$.ajax({
 			type: "POST",
 			url: "/SET_PASSWORD_FORM",
 			data: encoded_data,
 			success: function(data){
 				var status=data.match(/\<b\>(.*)\<\/b\>/gm);
-				//console.log("match="+status[2]); //3rd match is password status
 				if (status[2] == "<b>Password was incorrect</b>") {
 					//alert("Password was incorrect");
 					$('#loginModal').find('#pwstatus').html("Password was incorrect");
@@ -3393,10 +3321,9 @@ $(document).ready(function() {
 		});
 	});
 
-//TODO - does this work?
+//Needed to floorplan sliders to work.
 	$(document).on('mousedown', function (e) {
         if($(e.target).hasClass('popover-content')) {
-            console.log("document mousedown");
             fp_popover_close = false;
         } else
             fp_popover_close = true; 
