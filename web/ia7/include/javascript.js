@@ -1,4 +1,4 @@
-// v1.5.530
+// v1.5.550
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -785,7 +785,7 @@ var getButtonColor = function (state) {
 	if (state !== undefined) state = state.toLowerCase();
 	if (state == "on" || state == "open" || state == "disarmed" || state == "unarmed" || state == "ready" || state == "dry" || state == "up" || state == "100%" || state == "online" || state == "unlocked") {
 		 color = "success";
-	} else if (state == "motion" || state == "closed" || state == "armed" || state == "wet" || state == "fault" || state == "down" || state == "offline" || state == "locked") {
+	} else if (state == "motion" || state == "armed" || state == "wet" || state == "fault" || state == "down" || state == "offline" || state == "locked") {
 		 color = "danger";
 	} else if (state == undefined || state == "unknown" ) {
 		 color = "purple";
@@ -1397,11 +1397,11 @@ var get_stats = function(tagline) {
 		success: function( json, statusText, jqXHR  ) {
 			if (jqXHR.status == 200) {
 			    $('.tagline').text(json.data.tagline);
-			    var load_avg = "";;
+			    var load_avg = "";
 			    if (json.data.cores !== undefined && json.data.cores !== null) {
 			        var loads = json.data.load.split(" ");
 			        for (var i = 0; i < loads.length; i++) {
-			            var load = loads[i] / json.data.cores;
+			            var load = parseFloat(loads[i]) / json.data.cores;
 			            if (load < 1) {
 			                load_avg += "<span class='text-success'>";
 			            } else if (load < 2) {
@@ -3012,7 +3012,13 @@ var create_state_modal = function(entity) {
 				var slog = json_store.objects[entity].state_log[i].split("set_by=");
 				$('#control').find('.obj_log').append(slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br>");
 			}
-		}		
+		}
+		
+		if (developer) 
+		    $('.mhstatemode').show();
+		else
+		    $('.mhstatemode').hide();
+		
 		$('.mhstatemode').on('click', function(){
 			$('#control').find('.states').find('.btn').removeClass('hidden');
 			$('#control').find('.mh_set_by').removeClass('hidden');
