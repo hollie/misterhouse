@@ -3,7 +3,7 @@ package Nanoleaf_Aurora;
 #todo if poll queue exceeds 3, then just empty the queue
 #print and purge the command queue
 
-# v1.0.13
+# v1.0.14
 
 #if any effect is changed, by definition the static child should be set to off.
 #cmd data returns, need to check by command
@@ -12,7 +12,6 @@ package Nanoleaf_Aurora;
 #effects, turn static off and clear out static_check
 
 #TODO
-#- confirm v1 API
 
 use strict;
 use warnings;
@@ -126,7 +125,7 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.0.13";
+    $self->{module_version}         = "v1.0.14";
     $self->{ssdp_timeout}           = 4000;
     $self->{last_static}            = "";
 
@@ -141,6 +140,7 @@ sub new {
     ( $self->{debug} ) = ( $options =~ /debug\=(\d+)/i ) if ( $options =~ m/debug\=/i );
     $self->{debug} = 0 if ( $self->{debug} < 0 );
     ( $self->{debug} ) = ( $options =~ /debug\=(\d+)/i );
+
     $self->{loglevel} = 5;
     ( $self->{loglevel} ) = ( $options =~ /loglevel\=(\d+)/i );
 
@@ -169,7 +169,10 @@ sub new {
     $self->get_data();
     $self->{init}      = 0;
     $self->{init_data} = 0;
-    push( @{ $$self{states} }, 'off', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', 'on' );
+    #push( @{ $$self{states} }, 'off', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', 'on' );
+    push( @{ $$self{states} }, 'off');
+    for my $i (1..99) { push @{ $$self{states} }, "$i%"; }
+    push( @{ $$self{states} }, 'on');
     $self->{timer} = new Timer;
     $self->start_timer;
     return $self;
@@ -254,6 +257,9 @@ sub process_check {
     return unless ( defined $self->{poll_process} );
 
     if ( $self->{poll_process}->done_now() ) {
+    
+        shift @{ $self->{poll_queue} };    #remove the poll since they are expendable.
+
         my $com_status = "online";
         main::print_log( "[Aurora:" . $self->{name} . "] Background poll " . $self->{poll_process_mode} . " process completed" ) if ( $self->{debug} );
 
@@ -270,9 +276,9 @@ sub process_check {
         #print "debug: code=$responsecode\n" if ( $self->{debug} );
 
         #for some reason get_url adds garbage to the output. Clean out the characters before and after the json
-        print "debug: file_data=$file_data\n" if ( $self->{debug} );
+        print "debug: file_data=$file_data\n" if ( $self->{debug} > 2);
         my ($json_data) = $file_data =~ /({.*})/;
-        print "debug: json_data=$json_data\n" if ( $self->{debug} );
+        print "debug: json_data=$json_data\n" if ( $self->{debug} > 2);
         unless ( ($file_data) and ($json_data) ) {
             main::print_log( "[Aurora:" . $self->{name} . "] ERROR! bad data returned by poll" );
             main::print_log( "[Aurora:" . $self->{name} . "] ERROR! file data is [$file_data]. json data is [$json_data]" );
@@ -333,17 +339,18 @@ sub process_check {
             }
         }
 
-        if ( scalar @{ $self->{poll_queue} } ) {
-            my $cmd_string = shift @{ $self->{poll_queue} };
-            my ( $mode, $cmd ) = split /\|/, $cmd_string;
-            $self->{poll_process}->set($cmd);
-            $self->{poll_process}->start();
-            $self->{poll_process_pid}->{ $self->{poll_process}->pid() } = $mode;    #capture the type of information requested in order to parse;
-            $self->{poll_process_mode} = $mode;
-            main::print_log( "[Aurora:" . $self->{name} . "] Poll Queue " . $self->{poll_process}->pid() . " mode=$mode cmd=$cmd" )
-              if ( $self->{debug} );
-
-        }
+#polls are expendable and will always trigger on the timer, so don't keep a queue
+#        if ( scalar @{ $self->{poll_queue} } ) {
+#            my $cmd_string = shift @{ $self->{poll_queue} };
+#            my ( $mode, $cmd ) = split /\|/, $cmd_string;
+#            $self->{poll_process}->set($cmd);
+#            $self->{poll_process}->start();
+#            $self->{poll_process_pid}->{ $self->{poll_process}->pid() } = $mode;    #capture the type of information requested in order to parse;
+#            $self->{poll_process_mode} = $mode;
+#            main::print_log( "[Aurora:" . $self->{name} . "] Poll Queue " . $self->{poll_process}->pid() . " mode=$mode cmd=$cmd" )
+#              if ( $self->{debug} );
+#
+#        }
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{status} ne $com_status ) {
                 main::print_log "[Aurora:"
@@ -383,9 +390,9 @@ sub process_check {
             if ($file_data) {
 
                 #for some reason get_url adds garbage to the output. Clean out the characters before and after the json
-                print "debug: file_data=$file_data\n" if ( $self->{debug} );
+                print "debug: file_data=$file_data\n" if ( $self->{debug} > 2);
                 my ($json_data) = $file_data =~ /({.*})/;
-                print "debug: json_data=$json_data\n" if ( $self->{debug} );
+                print "debug: json_data=$json_data\n" if ( $self->{debug} > 2);
                 my $data;
                 eval { $data = JSON::XS->new->decode($json_data); };
 
@@ -423,6 +430,7 @@ sub process_check {
             }
 
             if ( scalar @{ $self->{cmd_queue} } ) {
+                main::print_log( "[Aurora:" . $self->{name} . "] Command Queue found" );            
                 my $cmd = @{ $self->{cmd_queue} }[0];    #grab the first command, but don't take it off.
                 $self->{cmd_process}->set($cmd);
                 $self->{cmd_process}->start();
@@ -514,13 +522,15 @@ sub _push_JSON_data {
         $self->{cmd_process}->start();
         $self->{cmd_process_pid}->{ $self->{cmd_process}->pid() } = $mode;    #capture the type of information requested in order to parse;
         $self->{cmd_process_mode} = $mode;
+        push @{ $self->{cmd_queue} }, "$cmd";
+
         main::print_log( "[Aurora:" . $self->{name} . "] Backgrounding " . $self->{cmd_process}->pid() . " command $mode, $cmd" ) if ( $self->{debug} );
     }
     else {
         if ( scalar @{ $self->{cmd_queue} } < $self->{max_cmd_queue} ) {
             main::print_log( "[Aurora:" . $self->{name} . "] Queue is " . scalar @{ $self->{cmd_queue} } . ". Queing command $mode, $cmd" )
               if ( $self->{debug} );
-##            push @{ $self->{cmd_queue} }, "$mode|$cmd";
+            push @{ $self->{cmd_queue} }, "$cmd";
         }
         else {
             main::print_log( "[Aurora:" . $self->{name} . "] WARNING. Queue has grown past " . $self->{max_cmd_queue} . ". Command discarded." );
@@ -722,6 +732,7 @@ sub print_info {
     main::print_log( "[Aurora:" . $self->{name} . "] Panel Size:        " . $self->{data}->{panel_size} );
     main::print_log( "[Aurora:" . $self->{name} . "] API Path:          " . $self->{api_path} );
     main::print_log( "[Aurora:" . $self->{name} . "] MH Module version: " . $self->{module_version} );
+    main::print_log( "[Aurora:" . $self->{name} . "] *** DEBUG MODE ENABLED ***") if ( $self->{debug} );
 
     main::print_log( "[Aurora:" . $self->{name} . "] -- Current Settings --" );
 
@@ -1312,3 +1323,4 @@ sub set {
 # v1.0.11 - cosmetic fixes for undefined variables
 # v1.0.12 - get_effects method to get array of available effects
 # v1.0.13 - ability to print and purge the command queue in case a network error prevents clearing, empty poll queue if max reached
+# v1.0.14 - commands now queue properly
