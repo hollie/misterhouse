@@ -1,18 +1,27 @@
 # Change Log
 
-## [4.3](https://github.com/hollie/misterhouse/tree/HEAD)
+## 4.3 (https://github.com/hollie/misterhouse/tree/HEAD)
 
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v4.2...HEAD)
 
 **Closed issues:**
 
 - Ia7 browse types generates 6-10 json calls/s [\#680](https://github.com/hollie/misterhouse/issues/680)
+- Mh 4.3 ia7 floorplan icon placement still needs work [\#679](https://github.com/hollie/misterhouse/issues/679)
 - IA7 Weather Station 2 doesn't pull live data [\#538](https://github.com/hollie/misterhouse/issues/538)
+- IA7 Legacy Items - Weather Station [\#533](https://github.com/hollie/misterhouse/issues/533)
 - Get better icons for the IA7 Floorplan [\#515](https://github.com/hollie/misterhouse/issues/515)
 - insteon: $kpl-\>level returns off or on, not the actual percentage, but $lamp-\>level works [\#494](https://github.com/hollie/misterhouse/issues/494)
 
 **Merged pull requests:**
 
+- IA7 v1.5.550 - fix for dynamic load, closed color, remove modal gear [\#711](https://github.com/hollie/misterhouse/pull/711) ([hplato](https://github.com/hplato))
+- v1.0.14 - fixed command queue [\#710](https://github.com/hollie/misterhouse/pull/710) ([hplato](https://github.com/hplato))
+- IA7 v1.5.530 [\#709](https://github.com/hollie/misterhouse/pull/709) ([hplato](https://github.com/hplato))
+- IA7 v1.5.520 - floorplan sliders [\#708](https://github.com/hollie/misterhouse/pull/708) ([hplato](https://github.com/hplato))
+- v2.1.2 - cosmetic fix to print lines [\#707](https://github.com/hollie/misterhouse/pull/707) ([hplato](https://github.com/hplato))
+- update uptime regex [\#706](https://github.com/hollie/misterhouse/pull/706) ([hplato](https://github.com/hplato))
+- IA7 1.5.310 - fixed a typo [\#705](https://github.com/hollie/misterhouse/pull/705) ([hplato](https://github.com/hplato))
 - Fixed $kpl-\>level not returning dimming level. [\#704](https://github.com/hollie/misterhouse/pull/704) ([marcmerlin](https://github.com/marcmerlin))
 - Ia7 v1.5.300 [\#703](https://github.com/hollie/misterhouse/pull/703) ([hplato](https://github.com/hplato))
 - Nanoleaf aurora [\#702](https://github.com/hollie/misterhouse/pull/702) ([hplato](https://github.com/hplato))
