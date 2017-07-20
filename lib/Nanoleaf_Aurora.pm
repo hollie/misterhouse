@@ -139,10 +139,9 @@ sub new {
     $self->{debug} = 0;
     ( $self->{debug} ) = ( $options =~ /debug\=(\d+)/i ) if ( $options =~ m/debug\=/i );
     $self->{debug} = 0 if ( $self->{debug} < 0 );
-    ( $self->{debug} ) = ( $options =~ /debug\=(\d+)/i );
 
     $self->{loglevel} = 5;
-    ( $self->{loglevel} ) = ( $options =~ /loglevel\=(\d+)/i );
+    ( $self->{loglevel} ) = ( $options =~ /loglevel\=(\d+)/i ) if ($options =~ m/loglevel\=/i );
 
     $self->{api_path} = $api_path;
     if ( $options =~ m/api\=/i ) {
