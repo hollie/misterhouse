@@ -1,4 +1,4 @@
-// v1.5.550
+// v1.5.560
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -2508,8 +2508,8 @@ var floorplan = function(group,time) {
                                             } else {
                                                 sliderstate += "%";
                                             }
-                                            if ($(".entity-name").text() == fp_entity) {
-                                                url= '/SET;none?select_item='+$(".entity-name").text()+'&select_state='+sliderstate;
+                                            if ($(".entity-name").length == 1) {
+                                                url= '/SET;none?select_item='+fp_entity+'&select_state='+sliderstate;
                                                 $.get( url);
                                                 fp_popover_close = true;
                                                 last_slider_popover = fp_entity;
@@ -2518,7 +2518,8 @@ var floorplan = function(group,time) {
                                             }
                                         });
                                         $('.btn-state-cmd').on('click', function () {
-                                            var url= '/SET;none?select_item='+$(".entity-name").text()+'&select_state='+$(this).text();
+                                            var fp_entity = $(this).parent().parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
+                                            var url= '/SET;none?select_item='+fp_entity+'&select_state='+$(this).text();
                                             if (!$(this).hasClass("disabled")) $.get( url);
                                             fp_popover_close = true;
                                             $('.popover').popover('hide');
