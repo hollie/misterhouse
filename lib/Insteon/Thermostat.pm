@@ -1633,7 +1633,9 @@ sub new {
     my $self = new Generic_Item();
     bless $self, $class;
     $$self{parent} = $parent;
-    @{ $$self{states} } = ( 'Cooler', 'Warmer' );
+    push @{ $$self{states} }, 'Warmer';
+    push @{ $$self{states} }, 'Cooler';
+    for my $i (50..85) { push @{ $$self{states} }, "$i"; }
     $$self{parent}{child_setpoint_h} = $self;
     $$self{parent}->tie_event( '$object->parent_event("$state")', "heat_setpoint_change" );
     return $self;
@@ -1641,21 +1643,21 @@ sub new {
 
 sub set {
     my ( $self, $p_state, $p_setby, $p_response ) = @_;
-    my $found_state = 0;
-    foreach my $test_state ( @{ $$self{states} } ) {
-        if ( lc($test_state) eq lc($p_state) ) {
-            $found_state = 1;
-        }
-    }
-    if ($found_state) {
-        ::print_log( "[Insteon::Thermo_i2CS] Received request to set heat setpoint " . $p_state . " for device " . $self->get_object_name );
+    my $message = "[Insteon::Thermo_i2CS] Received request to set heat setpoint " . $p_state . " for device " . $self->get_object_name;
+
         if ( lc($p_state) eq 'cooler' ) {
+            ::print_log( $message );
             $$self{parent}->heat_setpoint( $$self{parent}->get_heat_sp - 1 );
         }
         elsif ( lc($p_state) eq 'warmer' ) {
+            ::print_log( $message );
             $$self{parent}->heat_setpoint( $$self{parent}->get_heat_sp + 1 );
         }
-    }
+        elsif ( $p_state =~ /(\d+)/ ) {
+            $p_state =~ s/\%//;
+            ::print_log( $message );
+            $$self{parent}->heat_setpoint( $p_state );
+        }
 }
 
 sub set_receive {
@@ -1699,7 +1701,9 @@ sub new {
     my $self = new Generic_Item();
     bless $self, $class;
     $$self{parent} = $parent;
-    @{ $$self{states} } = ( 'Cooler', 'Warmer' );
+    push @{ $$self{states} }, 'Warmer';
+    push @{ $$self{states} }, 'Cooler';
+    for my $i (50..85) { push @{ $$self{states} }, "$i"; }
     $$self{parent}{child_setpoint_c} = $self;
     $$self{parent}->tie_event( '$object->parent_event("$state")', "cool_setpoint_change" );
     return $self;
@@ -1707,21 +1711,21 @@ sub new {
 
 sub set {
     my ( $self, $p_state, $p_setby, $p_response ) = @_;
-    my $found_state = 0;
-    foreach my $test_state ( @{ $$self{states} } ) {
-        if ( lc($test_state) eq lc($p_state) ) {
-            $found_state = 1;
-        }
-    }
-    if ($found_state) {
-        ::print_log( "[Insteon::Thermo_i2CS] Received request to set cool setpoint " . $p_state . " for device " . $self->get_object_name );
+    my $message = "[Insteon::Thermo_i2CS] Received request to set cool setpoint " . $p_state . " for device " . $self->get_object_name;
+
         if ( lc($p_state) eq 'cooler' ) {
+            ::print_log( $message );
             $$self{parent}->cool_setpoint( $$self{parent}->get_cool_sp - 1 );
         }
         elsif ( lc($p_state) eq 'warmer' ) {
+            ::print_log( $message );
             $$self{parent}->cool_setpoint( $$self{parent}->get_cool_sp + 1 );
         }
-    }
+        elsif ( $p_state =~ /(\d+)/ ) {
+            $p_state =~ s/\%//;
+            ::print_log( $message );
+            $$self{parent}->cool_setpoint( $p_state );
+        }
 }
 
 sub set_receive {
