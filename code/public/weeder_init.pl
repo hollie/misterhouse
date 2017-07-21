@@ -47,10 +47,8 @@ set $v_init_weeder 1 if $Startup;
 # Init each bit on the weeder board
 if ( said $v_init_weeder or $Startup ) {
     for my $ref (
-        $WeedA_InC_DownFoyer_Motion, $WeedA_InD_Office_Motion,
-        $WeedA_InE_Garage_Motion,    $WeedA_InF_Car_Sensor,
-        $WeedA_OutG_RearBell,        $WeedA_InH_Pool_Mo,
-        $WeedA_InI_Pantry_Door,      $WeedA_OutJ_Garage_DoorN
+        $WeedA_InC_DownFoyer_Motion, $WeedA_InD_Office_Motion, $WeedA_InE_Garage_Motion, $WeedA_InF_Car_Sensor,
+        $WeedA_OutG_RearBell,        $WeedA_InH_Pool_Mo,       $WeedA_InI_Pantry_Door,   $WeedA_OutJ_Garage_DoorN
       )
     {
         set $ref 'init';
@@ -66,11 +64,8 @@ if ( said $v_init_weeder or $Startup ) {
         select( undef, undef, undef, 0.025 );
     }
 
-    for my $ref (
-        $WeedA_InC_DownFoyer_Motion, $WeedA_InD_Office_Motion,
-        $WeedA_InE_Garage_Motion,    $WeedA_InF_Car_Sensor,
-        $WeedA_InH_Pool_Mo,          $WeedA_InI_Pantry_Door
-      )
+    for my $ref ( $WeedA_InC_DownFoyer_Motion, $WeedA_InD_Office_Motion, $WeedA_InE_Garage_Motion, $WeedA_InF_Car_Sensor,
+        $WeedA_InH_Pool_Mo, $WeedA_InI_Pantry_Door )
     {
         set $ref 'read';
 

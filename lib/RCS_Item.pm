@@ -79,19 +79,9 @@ sub new {
         "Decode Table 4"
     );
 
-    my @RCS_table_req_status = (
-        "Request Temp",
-        "Request Setpoint",
-        "Request Mode",
-        "Request Fan",
-        "Request SB Mode",
-        "Request SB Delta"
-    );
+    my @RCS_table_req_status = ( "Request Temp", "Request Setpoint", "Request Mode", "Request Fan", "Request SB Mode", "Request SB Delta" );
 
-    my @RCS_table_report_status = (
-        "Off",       "Heat",       "Cool",          "Auto",
-        "Fan is On", "Fan is Off", "Setback is On", "Setback is Off"
-    );
+    my @RCS_table_report_status = ( "Off", "Heat", "Cool", "Auto", "Fan is On", "Fan is Off", "Setback is On", "Setback is Off" );
 
     my $i = 0;
     for my $hc (qw(M N O P C D A B E F G H K L I J)) {
@@ -101,38 +91,27 @@ sub new {
         #       $self -> add ($id . '1' . $hc . 'PRESET_DIM1',   4 + $i . ' degrees', 'setpoint');
         #       $self -> add ($id . '1' . $hc . 'PRESET_DIM2',  20 + $i . ' degrees', 'setpoint');
         #       $self -> add ($id . '2' . $hc . 'PRESET_DIM1',  36 + $i . ' degrees', 'setpoint');
-        $self->add( $id . '2' . $hc . 'PRESET_DIM2',
-            52 + $i . ' degrees', 'setpoint' );
-        $self->add( $id . '3' . $hc . 'PRESET_DIM1',
-            68 + $i . ' degrees', 'setpoint' );
-        $self->add( $id . '3' . $hc . 'PRESET_DIM2',
-            84 + $i . ' degrees', 'setpoint' );
-        $self->add( $id . '9' . $hc . 'PRESET_DIM1',
-            100 + $i . ' degrees', 'setpoint' );
-        $self->add( $id . '9' . $hc . 'PRESET_DIM2',
-            116 + $i . ' degrees', 'setpoint' );
+        $self->add( $id . '2' . $hc . 'PRESET_DIM2', 52 + $i . ' degrees',  'setpoint' );
+        $self->add( $id . '3' . $hc . 'PRESET_DIM1', 68 + $i . ' degrees',  'setpoint' );
+        $self->add( $id . '3' . $hc . 'PRESET_DIM2', 84 + $i . ' degrees',  'setpoint' );
+        $self->add( $id . '9' . $hc . 'PRESET_DIM1', 100 + $i . ' degrees', 'setpoint' );
+        $self->add( $id . '9' . $hc . 'PRESET_DIM2', 116 + $i . ' degrees', 'setpoint' );
 
         # unit 4 -> send command
-        $self->add( $id . '4' . $hc . 'PRESET_DIM1',
-            $RCS_table_send_cmd[$i], 'cmd' );
-        $self->add( $id . '4' . $hc . 'PRESET_DIM2',
-            $RCS_table_send_cmd[ 16 + $i ], 'cmd' );
+        $self->add( $id . '4' . $hc . 'PRESET_DIM1', $RCS_table_send_cmd[$i],        'cmd' );
+        $self->add( $id . '4' . $hc . 'PRESET_DIM2', $RCS_table_send_cmd[ 16 + $i ], 'cmd' );
 
         # unit 5 -> request status
-        $self->add( $id . '5' . $hc . 'PRESET_DIM1',
-            $RCS_table_req_status[$i], 'request' )
+        $self->add( $id . '5' . $hc . 'PRESET_DIM1', $RCS_table_req_status[$i], 'request' )
           if $i < 6;
 
         # unit 6 -> report status
-        $self->add( $id . '6' . $hc . 'PRESET_DIM1',
-            $RCS_table_report_status[$i], 'status' )
+        $self->add( $id . '6' . $hc . 'PRESET_DIM1', $RCS_table_report_status[$i], 'status' )
           if $i < 8;
 
         # unit 10 -> echo responses
-        $self->add( $id . 'A' . $hc . 'PRESET_DIM1',
-            'Echo:' . $RCS_table_send_cmd[$i], 'echo' );
-        $self->add( $id . 'A' . $hc . 'PRESET_DIM2',
-            'Echo:' . $RCS_table_send_cmd[ 16 + $i ], 'echo' );
+        $self->add( $id . 'A' . $hc . 'PRESET_DIM1', 'Echo:' . $RCS_table_send_cmd[$i],        'echo' );
+        $self->add( $id . 'A' . $hc . 'PRESET_DIM2', 'Echo:' . $RCS_table_send_cmd[ 16 + $i ], 'echo' );
 
         # unit 11,12,13,14,15,16 -> report temperature
         # Disabled by default to minimize menu select lists size (do you really want to set your thermostat to -60?
@@ -140,22 +119,14 @@ sub new {
         #        $self -> add ($id . 'B' . $hc . 'PRESET_DIM2', -44 + $i . " degrees ", 'temp');
         #        $self -> add ($id . 'C' . $hc . 'PRESET_DIM1', -28 + $i . " degrees ", 'temp');
         #        $self -> add ($id . 'C' . $hc . 'PRESET_DIM2', -12 + $i . " degrees ", 'temp');
-        $self->add( $id . 'D' . $hc . 'PRESET_DIM1',
-            4 + $i . " degrees ", 'temp' );
-        $self->add( $id . 'D' . $hc . 'PRESET_DIM2',
-            20 + $i . " degrees ", 'temp' );
-        $self->add( $id . 'E' . $hc . 'PRESET_DIM1',
-            36 + $i . " degrees ", 'temp' );
-        $self->add( $id . 'E' . $hc . 'PRESET_DIM2',
-            52 + $i . " degrees ", 'temp' );
-        $self->add( $id . 'F' . $hc . 'PRESET_DIM1',
-            68 + $i . " degrees ", 'temp' );
-        $self->add( $id . 'F' . $hc . 'PRESET_DIM2',
-            84 + $i . " degrees ", 'temp' );
-        $self->add( $id . 'G' . $hc . 'PRESET_DIM1',
-            100 + $i . " degrees ", 'temp' );
-        $self->add( $id . 'G' . $hc . 'PRESET_DIM2',
-            116 + $i . " degrees ", 'temp' );
+        $self->add( $id . 'D' . $hc . 'PRESET_DIM1', 4 + $i . " degrees ",   'temp' );
+        $self->add( $id . 'D' . $hc . 'PRESET_DIM2', 20 + $i . " degrees ",  'temp' );
+        $self->add( $id . 'E' . $hc . 'PRESET_DIM1', 36 + $i . " degrees ",  'temp' );
+        $self->add( $id . 'E' . $hc . 'PRESET_DIM2', 52 + $i . " degrees ",  'temp' );
+        $self->add( $id . 'F' . $hc . 'PRESET_DIM1', 68 + $i . " degrees ",  'temp' );
+        $self->add( $id . 'F' . $hc . 'PRESET_DIM2', 84 + $i . " degrees ",  'temp' );
+        $self->add( $id . 'G' . $hc . 'PRESET_DIM1', 100 + $i . " degrees ", 'temp' );
+        $self->add( $id . 'G' . $hc . 'PRESET_DIM2', 116 + $i . " degrees ", 'temp' );
 
         $i++;
     }
@@ -216,8 +187,7 @@ sub list {
 
 sub list_by_type {
     my ( $self, $cmd_type ) = @_;
-    print
-      "RCS_item list: self=$self members=@{$$self{members_by_type}{$cmd_type}}\n"
+    print "RCS_item list: self=$self members=@{$$self{members_by_type}{$cmd_type}}\n"
       if $main::Debug{rcs};
     return sort @{ $$self{members_by_type}{$cmd_type} };
 }

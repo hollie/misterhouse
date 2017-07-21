@@ -48,8 +48,7 @@ use Telephony_Item;
 package Telephony_Interface;
 @Telephony_Interface::ISA = ('Telephony_Item');
 
-my ( $hooks_added, @list_ports, %list_objects, %type_by_port, %caller_id_data,
-    $cid_server_connect, $cid_server_timer );
+my ( $hooks_added, @list_ports, %list_objects, %type_by_port, %caller_id_data, $cid_server_connect, $cid_server_timer );
 
 # US Robotics 56k Voice model 0525 -> rockewell
 
@@ -123,8 +122,7 @@ sub open_port {
         return if $main::Socket_Ports{$name};    # Already open
         &::print_log("Telephony_Interface port open:  n=$name t=$type p=$port")
           if $main::Debug{phone};
-        $cid_server_connect =
-          new Socket_Item( undef, undef, $port, $name, 'tcp', 'record' );
+        $cid_server_connect = new Socket_Item( undef, undef, $port, $name, 'tcp', 'record' );
         start $cid_server_connect;
         $cid_server_timer = new Timer;
         set $cid_server_timer 10;
@@ -141,9 +139,7 @@ sub open_port {
             $baudrate  = $table{$type}[1];
             $handshake = $table{$type}[2];
         }
-        &::print_log(
-            "Telephony_Interface port open:  n=$name t=$type p=$port b=$baudrate h=$handshake"
-        ) if $main::Debug{phone};
+        &::print_log("Telephony_Interface port open:  n=$name t=$type p=$port b=$baudrate h=$handshake") if $main::Debug{phone};
         if ($port) {
             &::serial_port_create( $name, $port, $baudrate, $handshake );
             push( @::Generic_Serial_Ports, $name );
@@ -164,8 +160,7 @@ sub init {
     my $type   = lc $$self{type};
     if ( $table{$type} and my $init = $table{$type}[0] ) {
         &Serial_Item::send_serial_data( $name, $init );
-        &::print_log(
-            "$name interface, type=$type, has been initialized with $init");
+        &::print_log("$name interface, type=$type, has been initialized with $init");
     }
 }
 
@@ -201,11 +196,9 @@ sub check_for_data {
             elsif ( !( active $cid_server_connect)
                 && ( expired $cid_server_timer) )
             {
-                &::print_log(
-                    "Callerid: Socket is not active, attempting to reconnect.");
+                &::print_log("Callerid: Socket is not active, attempting to reconnect.");
                 start $cid_server_connect;
-                set $cid_server_timer 10
-                  ; # Set the timer for 10 seconds before we try again so we don't thrash
+                set $cid_server_timer 10;    # Set the timer for 10 seconds before we try again so we don't thrash
             }
         }
         elsif ( my $data = $main::Serial_Ports{$port}{data_record} ) {
@@ -249,11 +242,9 @@ sub process_phone_data {
 
     # Set all objects monitoring this port
     for my $object ( @{ $list_objects{$port} } ) {
-        &::print_log(
-            "Setting Telephony_Interface object $$object{name} to $data.");
+        &::print_log("Setting Telephony_Interface object $$object{name} to $data.");
         $object->SUPER::set('ring') if $data eq 'ring';
-        $object->ring_count( $object->ring_count() + 1 )
-          ;    # Where/when does this get reset??
+        $object->ring_count( $object->ring_count() + 1 );    # Where/when does this get reset??
     }
 }
 
@@ -287,8 +278,7 @@ sub process_cid_data {
         #  ###DATE01061252...NMBR...NAME-UNKNOWN CALLER-+++
         #  ###DATE01061252...NMBR...NAME-PRIVATE CALLER-+++
         #  ###DATE...NMBR...NAME MESSAGE WAITING+++
-        ( $date, $time, $number, $name ) =
-          $data =~ /DATE(\d{4})(\d{4})\.{3}NMBR(.*)\.{3}NAME(.*?)\++$/;
+        ( $date, $time, $number, $name ) = $data =~ /DATE(\d{4})(\d{4})\.{3}NMBR(.*)\.{3}NAME(.*?)\++$/;
         ($name)   = $data =~ /NAME(.*?)\++$/ unless $date;
         ($number) = $data =~ /NMBR(.+)\.{3}/ unless $name;
     }
@@ -299,11 +289,8 @@ sub process_cid_data {
     # NCID data=CID: *DATE*03272014*TIME*1734*LINE*1234*NMBR*2125551212*MESG*NONE*NAME*OUT-OF-AREA*
     # http://ncid.sourceforge.net/
     elsif ( $type eq 'ncid' ) {
-        ( $date, $time, $number, $name ) = $data =~
-          /CID:\s\*DATE\*(\d{8})\*TIME\*(\d{4})\*LINE\*[^\*]+\*NMBR\*(\d*)\*MESG\*.*\*NAME\*([^\*]+)\*$/;
-        &::print_log(
-            "Phone NCID: date='$date', time='$time', number='$number', name='$name'."
-        ) if $main::Debug{phone};
+        ( $date, $time, $number, $name ) = $data =~ /CID:\s\*DATE\*(\d{8})\*TIME\*(\d{4})\*LINE\*[^\*]+\*NMBR\*(\d*)\*MESG\*.*\*NAME\*([^\*]+)\*$/;
+        &::print_log("Phone NCID: date='$date', time='$time', number='$number', name='$name'.") if $main::Debug{phone};
     }
     elsif ( $type eq 'zyxel' or $type eq 'motorola' ) {
         ($date)   = $data =~ /TIME: *(\S+)\s\S+/s;
@@ -334,9 +321,7 @@ sub process_cid_data {
     $number = '' unless $number;
 
     unless ( $name or $number ) {
-        &::print_log(
-            "Callerid data not parsed: p=$port t=$type d=$data date=$date time=$time number=$number name=$name"
-        );
+        &::print_log("Callerid data not parsed: p=$port t=$type d=$data date=$date time=$time number=$number name=$name");
         return;
     }
 
@@ -347,19 +332,16 @@ sub process_cid_data {
     my $cid_type = 'N';
     $cid_type = 'P' if $name =~ /private/i or uc $name eq 'P';
     $cid_type = 'U' if $name =~ /unknown/i or uc $name =~ /unavailable/i;
-    if ( $name =~ /-unknown name-/i )
-    {    #Netcallerid reports "-UNKNOWN NAME-"when it knows number, but not name
+    if ( $name =~ /-unknown name-/i ) {    #Netcallerid reports "-UNKNOWN NAME-"when it knows number, but not name
         $cid_type = 'N';
         $name     = '';
     }
     $cid_type = 'U' if uc $name eq 'O' or $number eq 'O';
     $cid_type = 'N'
-      if $number =~ /^[\d\- ]+$/;    # Override the type if the number is known
+      if $number =~ /^[\d\- ]+$/;          # Override the type if the number is known
 
     if ( $main::Debug{phone} ) {
-        &::print_log(
-            "Callerid data1: port=$port type=$type cid_type=$cid_type name=$name number=$number date=$date time=$time"
-        );
+        &::print_log("Callerid data1: port=$port type=$type cid_type=$cid_type name=$name number=$number date=$date time=$time");
         &::print_log("Callerid data2: data=$data.");
     }
 

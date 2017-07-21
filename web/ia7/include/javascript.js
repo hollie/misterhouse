@@ -1,4 +1,4 @@
-// v1.3
+// v1.5.560
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -13,6 +13,11 @@ var audio_init;
 var audioElement = document.getElementById('sound_element');
 var authorized = "false";
 var developer = false;
+var show_tooltips = true;
+var rrd_refresh_loop;
+var stats_loop;
+var stat_refresh = 60;
+var fp_popover_close = true ;
 
 var ctx; //audio context
 var buf; //audio buffer
@@ -139,12 +144,15 @@ function changePage (){
 			}
 		});
 	} else {
+        if ((json_store.ia7_config.prefs.static_tagline !== undefined) &&  json_store.ia7_config.prefs.static_tagline == "yes") clearTimeout(stats_loop);
+        if (json_store.ia7_config.prefs.stat_refresh !== undefined) stat_refresh = json_store.ia7_config.prefs.stat_refresh;
 		if (json_store.ia7_config.prefs.header_button == "no") $("#mhstatus").remove();
 		if (json_store.ia7_config.prefs.audio_controls !== undefined && json_store.ia7_config.prefs.audio_controls == "yes") {
   			$("#sound_element").attr("controls", "controls");  //Show audio Controls
   		}
 		if (json_store.ia7_config.prefs.substate_percentages === undefined) json_store.ia7_config.prefs.substate_percentages = 20;
 		if (json_store.ia7_config.prefs.developer !== undefined) developer = json_store.ia7_config.prefs.developer;
+		if (json_store.ia7_config.prefs.tooltips !== undefined) show_tooltips = json_store.ia7_config.prefs.tooltips;
 		// First time loading, set the default speech notifications
 		if (speech_sound === undefined) {
 			if ((json_store.ia7_config.prefs.speech_default !== undefined) && (json_store.ia7_config.prefs.speech_default.search("audio") >= 0 )) {
@@ -191,18 +199,17 @@ function changePage (){
 		
 		// Remove the RRD Last Updated 
 		$('#Last_updated').remove();
-		
+				
 		//Trim leading and trailing slashes from path
 		var path = URLHash.path.replace(/^\/|\/$/g, "");
 		if (path.indexOf('objects') === 0){
 			loadList();
 		}
-		else if (path.indexOf('vars') === 0){
+		else if ((path.indexOf('vars') === 0) || (path.indexOf('vars_global') === 0) || (path.indexOf('vars_save') === 0)){
 			loadVars();
 		}
 		else if (path.indexOf('prefs') === 0){
 			var pref_name = path.replace(/\prefs\/?/,'');
-			console.log("loadprefs() "+pref_name);
 			loadPrefs(pref_name);
 		}		
 		else if(URLHash._request == 'page'){
@@ -249,6 +256,7 @@ function changePage (){
 		else { //default response is to load a collection
 			loadCollection(URLHash._collection_key);
 		}
+		
 		//update the breadcrumb: 
 		// Weird end-case, The Group from browse items is broken with parents on the URL
 		// Also have to change parents to type if the ending collection_keys are $<name>,
@@ -267,10 +275,10 @@ function changePage (){
 				nav_link = '#path=/objects&parents='+nav_name;				
 				if (collection_keys_arr.length > 2 && collection_keys_arr[collection_keys_arr.length-2].substring(0,1) == "$") nav_link = '#path=/objects&type='+nav_name; 
 				if (nav_name == "Group") nav_link = '#path=objects&type=Group'; //Hardcode this use case
-				if (json_store.objects[nav_name].label !== undefined) nav_name = (json_store.objects[nav_name].label);
+				if (json_store.objects !== undefined && json_store.objects[nav_name] !== undefined && json_store.objects[nav_name].label !== undefined) nav_name = (json_store.objects[nav_name].label);
 
-			}
-			else {
+			} else {
+				if (json_store.collections[collection_keys_arr[i]] == undefined) continue; //last breadcrumb duplicated so we don't need it.
 				nav_link = json_store.collections[collection_keys_arr[i]].link;
 				nav_name = json_store.collections[collection_keys_arr[i]].name;
 			}
@@ -279,12 +287,12 @@ function changePage (){
 			if (i == (collection_keys_arr.length-1)){
 				$('#nav').append('<li class="active">' + nav_name + '</a></li>');
 				$('title').html("MisterHouse - " + nav_name);
-			} 
-			else {
+			} else {
 				$('#nav').append('<li><a href="' + nav_link + '">' + nav_name + '</a></li>');
 			}
 		}
 	}
+
 }
 
 function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_prefs if no arg then both
@@ -308,31 +316,19 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 		});
 	}		
 	html += "<th>"+ config_name + "_config.json </th></tr></thead><tbody>";
-	console.log(config_data);
-	console.log("in prefs="+config_data.length);
 	for (var i in config_data){
 		if ( typeof config_data[i] === 'object') {
-			console.log("i "+i+":");
 			html += "<tr class='info'><td><b>"+ i + "</b></td></tr>";
 			for (var j in config_data[i]) {
 				if ( typeof config_data[i][j] === 'object') {
-					//console.log("j      "+j+":");
 					html += "<tr class='info'><td style='padding-left:40px'>"+ j + "</td></tr>";
-
 					for (var k in config_data[i][j]){
-						//console.log("k             "+k+" = "+json_store.ia7_config[i][j][k]);
 						 html += "<tr><td style='padding-left:80px'>"+k+" = "+config_data[i][j][k]+"</td></tr>";
 					}
-				//html +="<tr>";
 				} else {
-					//console.log("j      "+j+" = "+json_store.ia7_config[i][j]);
 					html += "<tr><td style='padding-left:40px'>"+j+" = "+config_data[i][j]+"</td></tr>"
 				}
 			}
-			//html +="<tr>";
-		} else {
-			//console.log("i "+i+" : "+json_store.ia7_config[i]);
-			//html += "<th>"+ String(json_store.ia7_config[i]) + "</th></tr></thead><tbody>";
 		}	
 	}
 
@@ -358,7 +354,6 @@ function parseLinkData (link,data) {
 		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
 		}
 	if (link == "/bin/items.pl") {
-		console.log("items data="+data);
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))		
 		data = data.replace(/href=\/bin\/items.pl/img, 'onclick="changePage()"');		
 		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
@@ -377,14 +372,11 @@ function parseLinkData (link,data) {
 	}	
 	if (link == "/bin/triggers.pl") { //fix links in the triggers modules
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
-		//data = data.replace(/href=\/bin\/triggers.pl/img, 'href=/ia7/#_request=page&link=/bin/triggers.pl&'+coll_key);
 		data = data.replace(/href=\/bin\/triggers.pl/img, 'onclick="changePage()"');
 		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
 		data = data.replace(/Trigger Index:/img,'');
 		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
-		//data = data.replace(/onChange=\'form.submit\(\)\'/img,'onChange=\'this\.form\.submit\(\)\'');
 		data = data.replace(/input name='resp' value="\/bin\/triggers.pl"/img, 'input name=\'resp\' value=\"/ia7/#_request=page&link=/bin/triggers.pl&'+coll_key+'\"');
-		//console.log(data);
 	}				
 	if (link == "/ia5/news/main.shtml") { //fix links in the email module 1
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
@@ -427,18 +419,11 @@ function parseLinkData (link,data) {
   		if (btn.attr('name') !== undefined) {
   			form_data.push({name : btn.attr('name'), value : btn.attr('value')});
   		}		
-		console.log("MHResponse Custom submit function "+ form.attr('action'));
- 		console.log( $(this).serializeArray() );
-  		console.log( "btn: "+btn.attr('name')+"="+btn.attr('value'));
-//  		if (btn.attr('value') !== undefined) {
-//  			console.log("executing data!");
-// unless the btn attribute has a name, then don't push the data (prevent text fields
 			$.ajax({
 				type: "POST",
 				url: form.attr('action'),
 				data: form_data,
 				success: function(data){
-					console.log(data)
 					data = data.replace(/<link[^>]*>/img, ''); //Remove stylesheets
 					data = data.replace(/<title[^>]*>((\r|\n|.)*?)<\/title[^>]*>/img, ''); //Remove title
 					data = data.replace(/<meta[^>]*>/img, ''); //Remove meta refresh
@@ -448,12 +433,9 @@ function parseLinkData (link,data) {
 					var end = data.toLowerCase().indexOf('</body>');
 
 					if (form.attr('action') === "/bin/triggers.pl?add" && ! data.match(/Not authorized to make updates/))  {
-						//location.reload();
 						changePage();
 					} else if (form.attr('action') === "/bin/iniedit.pl") {
-//						var pdata = parseLinkData("/bin/iniedit.pl",data);
 						parseLinkData("/bin/iniedit.pl",data);
-//						$('#row_page').html(pdata);
 //TODO parse data							 
 					} else {
 						$('#lastResponse').find('.modal-body').html(data.substring(start, end));
@@ -463,11 +445,9 @@ function parseLinkData (link,data) {
 					}
 				}
 			});
-//		}
 	});
 	$('#mhresponse :input:not(:text)').change(function() {
 //TODO - don't submit when a text field changes
-//	console.log("in input not text");
 		$('#mhresponse').submit();
  	});			
 	$('#mhexec a').click( function (e) {
@@ -489,18 +469,36 @@ function loadVars (){ //variables list
 		dataType: "json",
 		success: function( json ) {
 			JSONStore(json);
+			var table = false;
+			if (json.meta.path[0] != 'vars') table = true;
 			var list_output = "";
 			var keys = [];
 			for (var key in json.data) {
 				keys.push(key);
 			}
 			keys.sort ();
-			for (var i = 0; i < keys.length; i++){
-				var value = variableList(json.data[keys[i]]);
-				var name = keys[i];
-				var list_html = "<ul><li><b>" + name + ":</b>" + value+"</li></ul>";
-				list_output += (list_html);
+			
+			if (table) {
+			    list_output = "<table class='table table-curved'><thead><tr>";
+		        list_output += "<th>Variable</th><th>Value</th>";
+		        list_output += "</tr></thead><tbody>";
+
+		        for (var i = 0; i < keys.length; i++){
+				    var value = json.data[keys[i]];
+				    var name = keys[i];
+				    var list_html
+				    list_output += "<tr><td>"+name+"</td><td>"+value+"</td></tr>";
+				}
+				list_output += "</tbody></table>";			
+			} else {
+			    for (var i = 0; i < keys.length; i++){
+				    var value = variableList(json.data[keys[i]]);
+				    var name = keys[i];
+				    var list_html
+				    list_output += "<ul><li><b>" + name + ":</b>" + value+"</li></ul>";
+				}
 			}
+			//list_output += (list_html);
 		
 			//Print list output if exists;
 			if (list_output !== ""){
@@ -699,6 +697,7 @@ var loadList = function() {
 					$('#buffer'+row).append("<div id='row" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 				}
 				$('#row'+row).append("<div class='col-sm-4'>" + entity_arr[i] + "</div>");
+
 				if (column == 3){
 					column = 0;
 					row++;
@@ -711,6 +710,7 @@ var loadList = function() {
 				var button_group = $(this).parents('.btn-group');
 				button_group.find('.leadcontainer > .dropdown-lead >u').html($(this).text());
 				e.preventDefault();
+				generateTooltips();
 			});
 			$(".btn-voice-cmd").click( function () {
 				var voice_cmd = $(this).text().replace(/ /g, "_");
@@ -749,8 +749,9 @@ var loadList = function() {
 			$(".btn-state-cmd").mayTriggerLongClicks().on( 'longClick', function() {		
 				var entity = $(this).attr("entity");
 				create_state_modal(entity);
-			});						
-			
+			});	
+ 
+		    generateTooltips();
 		}
 	});
 	// Continuously check for updates if this was a group type request
@@ -758,12 +759,33 @@ var loadList = function() {
 
 };//loadlistfunction
 
+ //Add tooltips to any truncated buttons
+var generateTooltips = function () {
+    if ((show_tooltips) && (mobile_device() == "no") ){ //no sense in having tooltips on a touch device
+	    $(".btn").each(function( index ) {
+	        if ($(this)[0].scrollWidth > 0) {
+	            //if scrollWidth is greater than outerWidth then bootstrap has truncated the button text
+		        if ($(this)[0].scrollWidth > $(this).outerWidth()) {
+                    $(this).attr('data-toggle', 'tooltip');
+                    $(this).attr('data-placement', 'auto bottom');
+                    $(this).attr('data-original-title', $(this).text());
+                    $(this).attr('title', $(this).text());
+                } else {
+                    $(this).attr('data-original-title', '');
+                    $(this).attr('title', '');                
+                }            
+	            $('[data-toggle="tooltip"]').tooltip(); 
+            }
+        });
+    }	
+}
+
 var getButtonColor = function (state) {
 	var color = "default";
 	if (state !== undefined) state = state.toLowerCase();
 	if (state == "on" || state == "open" || state == "disarmed" || state == "unarmed" || state == "ready" || state == "dry" || state == "up" || state == "100%" || state == "online" || state == "unlocked") {
 		 color = "success";
-	} else if (state == "motion" || state == "closed" || state == "armed" || state == "wet" || state == "fault" || state == "down" || state == "offline" || state == "locked") {
+	} else if (state == "motion" || state == "armed" || state == "wet" || state == "fault" || state == "down" || state == "offline" || state == "locked") {
 		 color = "danger";
 	} else if (state == undefined || state == "unknown" ) {
 		 color = "purple";
@@ -790,17 +812,20 @@ var getButtonColor = function (state) {
 	return color;
 };
 
-var filterSubstate = function (state) {
+var filterSubstate = function (state, slider) {
  	// ideally the gear icon on the set page will remove the filter
+ 	// slider=1 will filter out all numeric states
     var filter = 0
     // remove 11,12,13... all the mod 10 states
     if (state.indexOf('%') >= 0) {
     
        var number = parseInt(state, 10)
-       if (number % json_store.ia7_config.prefs.substate_percentages != 0) {
+       if ((number % json_store.ia7_config.prefs.substate_percentages != 0) || (slider !== undefined && slider == 1)) {
          filter = 1
         }
     }
+    if ((slider !== undefined && slider == 1) && !isNaN(state)) filter = 1;
+    
 	if (state !== undefined) state = state.toLowerCase();    
     if (state == "manual" ||
     	state == "double on" ||
@@ -837,7 +862,43 @@ var filterSubstate = function (state) {
     return filter;
 };
         
+var sliderObject = function (states) {
 
+    //if an object has at least 4 numeric values, return yes
+    var count = 0;
+    for(var i = 0; i < states.length; i++)
+        {
+        if ( (!isNaN(states[i])) ||  (states[i].indexOf('%') != -1)) count++;
+        }
+    if (count > 3) return 1;
+
+    return 0;
+}
+
+var sliderDetails = function (states) {
+
+    var pct = 0;
+    var slider_array = [];
+    for(var i = 0; i < states.length; i++) {
+        var val = states[i];
+        if(states[i].indexOf('%') != -1) pct=1;
+        val = val.replace(/\%/g,'');
+        if (!isNaN(val)) {
+            slider_array.push(val)
+        }
+    }
+    var values = slider_array.sort(function(a, b){return a-b});
+    var min = 0; //values[0];
+    var max = values.length -1;
+    var steps = parseInt((max - min) / (values.length - 1));
+    return {
+        min: min,
+        max: max,
+        values: values,
+        steps: steps,
+        pct: pct
+    };
+}
 
 var sortArrayByArray = function (listArray, sortArray){
 	listArray.sort(function(a,b) {
@@ -911,7 +972,6 @@ var updateItem = function(item,link,time) {
 	//URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
 		// Only allow one update thread to run at once
-		//console.log("updateItem: Aborting update. updateSocket="+updateSocket.readyState);
 		updateSocket.abort();
 	}
 	if (time === undefined) {
@@ -999,15 +1059,38 @@ var updateStaticPage = function(link,time) {
 						$('button[entity="'+entity+'"]').removeClass("btn-danger");
 						$('button[entity="'+entity+'"]').removeClass("btn-info");
 						$('button[entity="'+entity+'"]').addClass("btn-"+color);
-				
+						if (json_store.ia7_config.objects[entity] !== undefined && 
+						    json_store.ia7_config.objects[entity].direct_control !== undefined && 
+						    json_store.ia7_config.objects[entity].direct_control == "yes") $('button[entity="'+entity+'"]').addClass("btn-direct");
+						
 						//don't run this if stategrp0 exists	
 						if (states_loaded == 0) {
 			                $(".btn-state-cmd").click( function () {
-                                var entity = $(this).attr("entity");			
-								create_state_modal(entity);
+								var entity = $(this).attr("entity");
+								if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                					if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
+                         				var new_state = "";
+                         				var possible_states = 0;
+                         				for (var i = 0; i < json_store.objects[entity].states.length; i++){
+                         					if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
+                         					possible_states++;
+											if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i];
+
+                         				}
+										if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
+										url= '/SET;none?select_item='+entity+'&select_state='+new_state;
+										$.get( url);
+                					} else {
+                					create_state_modal(entity);
+                					}
+								} else {				
+									create_state_modal(entity);
+								}
 							});
 						}																
-					}			
+					}
+					generateTooltips();
+			
 				});
 			}
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
@@ -1025,10 +1108,9 @@ var updateStaticPage = function(link,time) {
 
 function authDetails() {
 	if (json_store.collections[700] == undefined) {
-		alert("Warning, Collection ID 700: Authorize, is not defined in your collections.json!");
+		if ($(".alert-err").length == 0 ) something_went_wrong("Collections","Collection ID 700: Authorize, is not defined in your collections.json!");
 	} else {
 		if (json_store.collections[700].user !== undefined) {
-//			console.log ("user found "+json_store.collections[700].user+".");
    			if (json_store.collections[700].user == "0") {
     			json_store.collections[700].name = "Log in";
     			json_store.collections[700].icon = "fa-lock";
@@ -1055,20 +1137,17 @@ var loadCollection = function(collection_keys) {
 	var entity_arr = [];
 	var items = "";
 	var entity_sort = json_store.collections[last_collection_key].children;
+	if (entity_sort == undefined) {
+	    something_went_wrong("Collections","Problem with collections.json. Check the print log");
+	    return;
+	}
 	if (entity_sort.length <= 0){
 		entity_arr.push("Childless Collection");
 	}
-//	if (json_store.collections[700] == undefined) {
-//		alert("Warning, Collection ID 700: Authorize, is not defined in your collections.json!");
-//	} else {
-//		authDetails();
-//	}
 
 	for (var i = 0; i < entity_sort.length; i++){
 		var collection = entity_sort[i];
-//		console.log ("col="+collection);
 		if (!(collection in json_store.collections)) continue;
-//		console.log ("starting");
 
 		var link = json_store.collections[collection].link;
 		var icon = json_store.collections[collection].icon;
@@ -1078,7 +1157,7 @@ var loadCollection = function(collection_keys) {
 		var item = json_store.collections[collection].item;
 		
 		if (item !== undefined) {
-			if (json_store.objects[item] === undefined) {
+			if (json_store.objects === undefined || json_store.objects[item] === undefined) {
 				var path_str = "/objects";
 				var arg_str = "fields=state,states,label,state_log,schedule,logger_status,&items="+item;
 				$.ajax({
@@ -1091,13 +1170,21 @@ var loadCollection = function(collection_keys) {
 						}
 				});
 			} else {
+                var btn_direct = "";
+                if (json_store.ia7_config.objects !== undefined 
+                        && json_store.ia7_config.objects[item] !== undefined
+                        && json_store.ia7_config.objects[item].direct_control !== undefined 
+                        && json_store.ia7_config.objects[item].direct_control == "yes") {
+                    btn_direct = "btn-direct";
+                }
+
 				var name = item;
 				var color = getButtonColor(json_store.objects[item].state);
 				if (json_store.objects[item].label !== undefined) name = json_store.objects[item].label;
 				var dbl_btn = "";
 				if (name.length < 30) dbl_btn = "<br>"; 
 				var button_html = "<div style='vertical-align:middle'><button entity='"+item+"' ";
-				button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover btn-state-cmd navbutton-padding'>";
+				button_html += "class='btn  btn-"+color+" btn-lg btn-block btn-list btn-popover "+ btn_direct +" btn-state-cmd navbutton-padding'>";
 				button_html += name+dbl_btn+"<span class='pull-right'>"+json_store.objects[item].state+"</span></button></div>";
 				entity_arr.push(button_html);
 				items += item+",";		
@@ -1154,13 +1241,41 @@ var loadCollection = function(collection_keys) {
 		}
 		column++;
 	}
+	
+	generateTooltips();	
+	
 	// if any items present, then create modals and activate updateItem...
 	if (items !== "") {
 		items = items.slice(0,-1); //remove last comma
-		$('.btn-state-cmd').click( function () {			
-			var entity = $(this).attr("entity");
-			create_state_modal(entity);
-		});
+        $('.btn-state-cmd').click( function () {			
+            var entity = $(this).attr("entity");
+            if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
+                    var new_state = "";
+                    var possible_states = 0;
+                    for (var i = 0; i < json_store.objects[entity].states.length; i++){
+                        if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
+                        possible_states++;
+                        if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i];
+
+                    }
+                    if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
+                    url= '/SET;none?select_item='+entity+'&select_state='+new_state;
+                    $.get( url);
+                } else {
+                    create_state_modal(entity);
+                }
+            }
+            else {
+                create_state_modal(entity);
+            }
+        });
+        
+        $(".btn-state-cmd").mayTriggerLongClicks().on( 'longClick', function() {		
+            var entity = $(this).attr("entity");
+            create_state_modal(entity);
+        });						
+			
 		$('.btn-resp-modal').click( function () {			
 			var url = $(this).attr('href');
 			alert("resp-model. opening url="+url);
@@ -1172,7 +1287,8 @@ var loadCollection = function(collection_keys) {
 					show: true
 				});
 			});
-		});		
+		});	
+			
 // test multiple items at some point
 		updateItem(items);
 	}	
@@ -1199,9 +1315,8 @@ function fixIA7Nav() {
 
 	var url = $(location).attr('href');
 	var collid = url.split("_collection_key=");
-	console.log("fixing nav..."+url+" "+collid[1]);
 	$('a').each(function() {
-		if ($(this).attr('href').match("^/ia7/")) {
+	    if (($(this).attr('href') !== undefined) && ($(this).attr('href').match("^/ia7/"))) {
   			this.href += '&_collection_key='+collid[1]+',';
   		}
 	});
@@ -1254,6 +1369,68 @@ var print_log = function(type,time) {
 	});
 };
 
+var something_went_wrong = function(module,text) {
+
+    var type = "danger";
+	var mobile = "";
+	if ($(window).width() <= 768) { // override the responsive mobile top-buffer
+		mobile = "mobile-alert";
+	}
+    var html = "<div class='alert-err alert "+mobile+" alert-" + type + " fade in' data-alert>";
+    html += "<button type='button' class='close' data-dismiss='alert'>x</button>";
+    html += "<div class=''>";
+    html += "<i class='fa fa-exclamation-triangle icon-larger fa-2x fa-fw pull-left'></i>";
+    html += "<div class='sww-text'>";
+    html += "<h3 class='sww-text-msg'>ERROR</h3>" + module + " : " + text + " </div></div></div>";
+    
+	$("#alert-area").prepend($(html));
+	
+}
+
+var get_stats = function(tagline) {
+	var URLHash = URLToHash();
+
+	$.ajax({
+		type: "GET",
+		url: "/json/misc",
+		dataType: "json",
+		success: function( json, statusText, jqXHR  ) {
+			if (jqXHR.status == 200) {
+			    $('.tagline').text(json.data.tagline);
+			    var load_avg = "";
+			    if (json.data.cores !== undefined && json.data.cores !== null) {
+			        var loads = json.data.load.split(" ");
+			        for (var i = 0; i < loads.length; i++) {
+			            var load = parseFloat(loads[i]) / json.data.cores;
+			            if (load < 1) {
+			                load_avg += "<span class='text-success'>";
+			            } else if (load < 2) {
+			                load_avg += "<span class='text-warning'>";
+			            } else {
+			            	load_avg += "<span class='text-danger'>";
+                        }
+                        load_avg += loads[i]+" </span>";
+                        
+			        }
+			    } else {
+			        load_avg = json.data.load;
+			    }
+			    if (json.data.uptime) {
+			        $('.uptime').html(json.data.time+" Up "+json.data.uptime+", "+json.data.users+" users, load averages: "+load_avg);
+			    } else {
+			        $('.uptime').html("System uptime data not available");
+			    }
+			    $('.counter').text("Page Views: "+json.data.web_counter);
+		    }
+		    if (jqXHR.status == 200 || jqXHR.status == 204) {
+				stats_loop = setTimeout(function(){
+					    get_stats();
+					}, stat_refresh * 1000);			}
+		}
+	});
+}
+
+
 
 var get_notifications = function(time) {
 	if (time === undefined) time = new Date().getTime();
@@ -1296,7 +1473,6 @@ var get_notifications = function(time) {
 							var mobile = "";
 							if ($(window).width() <= 768) { // override the responsive mobile top-buffer
 							  mobile = "mobile-alert";
-							  //console.log ("mobile notification");
 							}
 							$("#alert-area").append($("<div class='alert-message alert alerts "+mobile+" alert-" + alert_type + " fade in' data-alert><p><i class='fa fa-info-circle'></i><strong>  Notification:</strong> " + text + " </p></div>"));
    	 						$(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
@@ -1327,7 +1503,6 @@ var mobile_device = function() {
 
 function audio_play(audioElement,srcUrl)
 {
-  //console.log ("in audio_play:"+srcUrl);
   audioElement.pause();
   audioElement.src=''; //force playback to stop and quit buffering. Not sure if this is strictly necessary.
   $("#sound_element2").attr("src", srcUrl);  //needed for mobile
@@ -1341,12 +1516,12 @@ function playWhenReady()
 {//wait for media element to be ready, then play
   audioElement=document.getElementById('sound_element');
   var audioReady=audioElement.readyState;
-  //console.log("playWhenReady = "+audioReady);
   if(audioReady>2) {
     audioElement.play();
   } else if(audioElement.error) {
       var errorText=['(no error)','User interrupted download','Network error caused interruption','Miscellaneous problem with media data','Cannot actually decode this media'];
       console.log("Something went wrong!\n"+errorText[audioElement.error.code]);
+      something_went_wrong("audio","audioElement.error");
   } else { //check for media ready again in half a second
       setTimeout(playWhenReady,500);
   }
@@ -1437,15 +1612,29 @@ var display_table = function(table,records,time) {
 var graph_rrd = function(start,group,time) {
 
 	var URLHash = URLToHash();
+	var new_data = 1;
+	var data_timeout = 0;
+	var refresh = 60; //refresh data every 60 seconds by default
+
+	if (json_store.ia7_config.prefs.rrd_refresh !== undefined) refresh = json_store.ia7_config.prefs.rrd_refresh;
+
 	if (typeof time === 'undefined'){
 		$('#list_content').html("<div id='top-graph' class='row top-buffer'>");
 		$('#top-graph').append("<div id='rrd-periods' class='row'>");
 		$('#top-graph').append("<div id='rrd-graph' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
 		$('#top-graph').append("<div id='rrd-legend' class='rrd-legend-class'><br>");
-
+        new_data = 0;
 		time = 0;
+		clearTimeout(rrd_refresh_loop); //prevent any previous loops from updating.
 	}
-		
+
+	//if ($('#top-graph').length == 0){
+	//    //This might be because the user has changed page and the refresh has come in. If the top-graph isn't there then just return
+	//    return;
+	//}
+
+	if (json_store.ia7_config.prefs.rrd_graph_refresh !== undefined) refresh = json_store.ia7_config.prefs.rrd_graph_refresh;
+	
 	URLHash.time = time;
 	URLHash.long_poll = 'true';
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -1453,8 +1642,13 @@ var graph_rrd = function(start,group,time) {
 		updateSocket.abort();
 	}	
 	var path_str = "/rrd"  
-	//var arg_str = "start="+start+"&group="+group+"&long_poll=true&time="+time;
-	var arg_str = "start="+start+"&group="+group+"&time="+time;
+	//if the group has a dot, then it is a separate source
+	var source = "&group="+group;
+	if (group.indexOf(".") !== -1) {
+	    var rrd_source = group.split(".");
+	    source = "&source="+rrd_source[0]+"&group="+rrd_source[1];
+	}
+	var arg_str = "start="+start+source+"&time="+time;
 	updateSocket = $.ajax({
 		type: "GET",
 		//url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
@@ -1463,13 +1657,18 @@ var graph_rrd = function(start,group,time) {
 		success: function( json, statusText, jqXHR ) {
 			var requestTime = time;
 			if (jqXHR.status == 200) {
-				JSONStore(json);
 				// HP should probably use jquery, but couldn't get sequencing right.
 				// HP jquery would allow selected values to be replaced in the future.
 
 				if (json.data.data !== undefined) {  //If no data, at least show the header and an error
-//TODO
+				    data_timeout++;
+				    //sometimes the first call for data doesn't return anything. Try a few times.
+				    if (data_timeout > 3) {
+                        something_went_wrong('RRD','No Data Returned by MH Json Server');
+                        return;
+                    }
 				}	
+				JSONStore(json);
 				var dropdown_html = '<div class="dropdown"><button class="btn btn-default rrd-period-dropdown" data-target="#" type="button" data-toggle="dropdown">';
 				var dropdown_html_list = "";
 				var dropdown_current = "Unknown  ";
@@ -1477,53 +1676,54 @@ var graph_rrd = function(start,group,time) {
 				$.each(json.data.periods, function(key, value) {
     				if (start === value.split(",")[1]) {
     					dropdown_current = value.split(",")[0]+"  ";
-    				} else {
-    					dropdown_html_list += '<li><a href="javascript: void(0)" id="rrdperiod_'+key+'" ';
-    					dropdown_html_list += '>'+value.split(",")[0]+'</a></li>';
- 
     				}
+    				dropdown_html_list += '<li><a href="javascript: void(0)" id="rrdperiod_'+key+'" ';
+    				dropdown_html_list += '>'+value.split(",")[0]+'</a></li>';
 				});
-				dropdown_html += dropdown_current+'<span class="caret"></span></button><ul class="dropdown-menu">';
+				
+				dropdown_html += '<span class="rrd-current"></span><span class="caret"></span></button><ul class="dropdown-menu">';
+    
 				dropdown_html += dropdown_html_list;
 				dropdown_html += '</ul></div>';
-				
-				$('#rrd-periods').append(dropdown_html);
+				if (new_data == 0) {
+				    $('#rrd-periods').append(dropdown_html);
+				    				//sort the legend
+				    json.data.data.sort(function(a, b){
+    				    if(a.label < b.label) return -1;
+    				    if(a.label > b.label) return 1;
+    				    return 0;
+				    })
+				    					// put the selection list on the side.
+				    for (var i = 0; i < json.data.data.length; i++){
+					    var legli = $('<li style="list-style:none;"/>').appendTo('#rrd-legend');
+					    $('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
+					    $('<label>', {
+						    class: "rrd-legend-class",
+						    text: json.data.data[i].label,
+				    	    'for': json.data.data[i].label
+						    }).appendTo(legli);
+				    }
+				}
+				$('.dropdown').find('.rrd-current').text(dropdown_current);
 				
 				var last_timestamp = "unavailable";
 				if (json.data.last_update !== undefined) {
 					last_timestamp = new Date(json.data.last_update);
 				}
 				//Update the footer database updated time
-				console.log ("Last Updated:"+last_timestamp);
-				$('#Last_updated').remove();		
-				$('#footer_stuff').prepend("<div id='Last_updated'>RRD Database Last Updated:"+last_timestamp+"</div>");
-				
+				if ($('#top-graph').length !== 0){
+				    $('#Last_updated').remove();		
+				    $('#footer_stuff').prepend("<div id='Last_updated'>RRD Database Last Updated:"+last_timestamp+"</div>");
+				}
 
 				$('.dropdown').on('click', '.dropdown-menu li a', function(e){
 					e.stopPropagation();
     				var period = $(this).attr("id").match(/rrdperiod_(.*)/)[1]; 
     				var new_start = json.data.periods[period].split(',')[1];
 					$('.open').removeClass('open');
-					graph_rrd(new_start,group);
+					clearTimeout(rrd_refresh_loop); //stop the old refresh since we have a new time period
+					graph_rrd(new_start,group,0);
 				});
-
-				//sort the legend
-				json.data.data.sort(function(a, b){
-    				if(a.label < b.label) return -1;
-    				if(a.label > b.label) return 1;
-    				return 0;
-				})
-
-					// put the selection list on the side.
-				for (var i = 0; i < json.data.data.length; i++){
-					var legli = $('<li style="list-style:none;"/>').appendTo('#rrd-legend');
-					$('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
-					$('<label>', {
-						class: "rrd-legend-class",
-						text: json.data.data[i].label,
-				    	'for': json.data.data[i].label
-						}).appendTo(legli);
-				}
  
 				function plotAccordingToChoices() {
     				var data = [];
@@ -1599,8 +1799,10 @@ var graph_rrd = function(start,group,time) {
 
 				$('.legendColorBox > div > div').each(function(i){
 					var color = $(this).css("border-left-color");
-    				$('#rrd-legend').find("li").eq(i).prepend('<span style="width:4px;height:4px;border: 0px;background: '+color+';">&nbsp;&nbsp;&nbsp;</span>&nbsp');
-					});
+					if (new_data == 0) {
+    				    $('#rrd-legend').find("li").eq(i).prepend('<span style="width:4px;height:4px;border: 0px;background: '+color+';">&nbsp;&nbsp;&nbsp;</span>&nbsp');
+    				}
+				});
 				requestTime = json.meta.time;
 
 			}
@@ -1608,9 +1810,13 @@ var graph_rrd = function(start,group,time) {
 				//Call update again, if page is still here
 				//KRK best way to handle this is likely to check the URL hash
 				if ($('#top-graph').length !== 0){
-//TODO live updates
+
 					//If the graph  page is still active request more data
-//					graph_rrd(start,group,requestTime);
+					//Just manually pull a refresh since json_server constantly polling RRD data is a performance problem
+					
+					rrd_refresh_loop = setTimeout(function(){
+					    graph_rrd(start,group,0);
+					}, refresh * 1000);
 				}
 			}		
 		}
@@ -1621,6 +1827,7 @@ var object_history = function(items,start,days,time) {
 
 	var URLHash = URLToHash();
 	var graph = 0;
+	var data_timeout = 0;
 	if (developer) graph = 1;  //right now only show the graph if in developer mode
 	if (typeof time === 'undefined'){
 		if (graph) {
@@ -1658,7 +1865,12 @@ var object_history = function(items,start,days,time) {
 				// HP jquery would allow selected values to be replaced in the future.
 
 				if (json.data.data !== undefined) {  //If no data, at least show the header and an error
-//TODO
+					data_timeout++;
+				    //sometimes the first call for data doesn't return anything. Try a few times.
+				    if (data_timeout > 3) {
+                        something_went_wrong('Object_History','No Data Returned by MH Json Server');
+                        return;
+                    }
 				}	
 				if (start == undefined) {
 					start = new Date().getTime();
@@ -1689,11 +1901,9 @@ var object_history = function(items,start,days,time) {
 				});
 				
 				$('.update_history').click(function() {
-					console.log ("start="+$('.hist_start').val()+" end="+$('.hist_end').val());
-//					var new_start = new Date($('.hist_start').val()).getTime();
-//					var new_end = new Date($('.hist_end').val()).getTime();
-					var new_start = new Date($('.hist_start').val().split('-')).getTime();
-					var new_end = new Date($('.hist_end').val().split('-')).getTime();					
+					//var new_start = new Date($('.hist_start').val().split('-')).getTime();
+					var new_start = new Date($('.hist_start').val().replace(/-/g, "/")).getTime();
+					var new_end = new Date($('.hist_end').val().replace(/-/g, "/")).getTime();					
 					var end_days = (new_start - new_end) / (24 * 60 * 60 * 1000)
 					new_start = new_start / 1000;
 					object_history(items,new_start,end_days);
@@ -1731,13 +1941,9 @@ var object_history = function(items,start,days,time) {
     					// take away the border so that it looks better and span the graph from start to end.
     					json.data.options.grid.borderWidth = 0;
 
-//    					json.data.options.xaxis.min = new Date($('.hist_end').val()).getTime();
-//                		json.data.options.xaxis.max = new Date($('.hist_start').val()).getTime() + (24 * 60 * 60 * 1000);
 						json.data.options.xaxis.min = new Date($('.hist_end').val().split('-')).getTime();
  						json.data.options.xaxis.max = new Date($('.hist_start').val().split('-')).getTime() + (24 * 60 * 60 * 1000);
                 		
-//console.log("data="+JSON.stringify(data));
-//console.log("xmin="+json.data.options.xaxis.min+" xmax="+json.data.options.xaxis.max);
     					$.plot($("#hist-graph"), data, json.data.options);
     					$('.legend').hide();	
 					}
@@ -1803,13 +2009,15 @@ var object_history = function(items,start,days,time) {
     					$('#hist-legend').find("li").eq(i).prepend('<span style="width:4px;height:4px;border: 0px;background: '+color+';">&nbsp;&nbsp;&nbsp;</span>&nbsp');
 					});
 				} else {
+					// table
 					var html = "<table class='table table-curved'><thead><tr>";
 					html += "<th>Time</th><th>State</th><th>Set By</th>";
 					html += "</tr></thead><tbody>";
 					if (json.data.data !== undefined) {  //If no data, at least show the header
+						json.data.data.reverse();
 						for (var i = 0; i < json.data.data.length; i++){
 							html +="<tr>";
-					  		html += "<td data-title='Time'>"+new Date(json.data.data[i][0]).toUTCString()+"</td>";
+					  		html += "<td data-title='Time'>"+new Date(json.data.data[i][0]).toString().replace(/GMT-\d\d\d\d/,"")+"</td>";
 					  		html += "<td data-title='State'>"+String(json.data.data[i][1])+"</td>";
 					  		html += "<td data-title='Setby'>"+String(json.data.data[i][2])+"</td>";
 							html += "</tr>";
@@ -1825,6 +2033,7 @@ var object_history = function(items,start,days,time) {
 				//Call update again, if page is still here
 				//KRK best way to handle this is likely to check the URL hash
 //TODO live updates
+
 			}		
 		}
 	});
@@ -1883,15 +2092,12 @@ var fp_resize_floorplan_image = function(){
     $("#fp_graphic").attr("width", "1px");
 
     fp_display_width = $("#graphic").width();
-    console.log("FP: resize "+ floor_width + " => " + fp_display_width);
     $('#fp_graphic').attr("width",fp_display_width+"px");
     fp_display_height = $("#fp_graphic").height();
 };
 
 var fp_reposition_entities = function(){
-    var t0 = performance.now();
     var fp_graphic_offset = $("#fp_graphic").offset();
-    console.log("fp_graphic_offset: "+ JSON.stringify(fp_graphic_offset));
     var width = fp_display_width;
     var hight = fp_display_height;
     var onePercentWidthInPx = width/100;
@@ -1906,8 +2112,7 @@ var fp_reposition_entities = function(){
             "left": newx
         };
     };
-//    var nwidth = $("#fp_graphic").get(0).naturalWidth;
-//    var nwidth = $("#fp_graphic").width();
+
     var nwidth;
 //There are 2 sizing jumps in bootstrap.min.css one at 992 and another at 1200
 //Scale icons if less than 991
@@ -1928,7 +2133,6 @@ var fp_reposition_entities = function(){
     var fp_scale =  width/nwidth;
     var fp_scale_percent = Math.round( fp_scale * 100);
     
-	console.log("width="+width+" nwidth="+nwidth+" scale="+fp_scale_percent);
     // update the location of all the objects...
     $(".floorplan_item").each(function(index) {
         var classstr = $(this).attr("class");
@@ -1940,19 +2144,9 @@ var fp_reposition_entities = function(){
         }
         var fp_location = coords.split(/x/);
         var fp_offset =  fp_get_offset_from_location(fp_location);
-		console.log("coords="+coords);       
 
-        // this seems to make the repositioning slow
-        // ~ 300+ms on my nexus7 firefox-beta vs <100ms with this code commented out
-        // var baseimg_width = $("#fp_graphic").width();
-        // if (baseimg_width < 500) {
-        //     $(this).attr('src',$(this).attr('src').replace('48.png','32.png'));
-        // } else {
-        //     $(this).attr('src',$(this).attr('src').replace('32.png','48.png'));
-        // }
         var element_id = $(this).attr('id');
         var adjust = fp_icon_image_size*fp_scale/2;
-		console.log("adjust="+adjust+" fp_offset.top="+fp_offset.top+" fp_offset.left="+fp_offset.left);       
         var fp_off_center = {
             "top":  fp_offset.top - adjust,
             "left": fp_offset.left - adjust
@@ -1961,33 +2155,23 @@ var fp_reposition_entities = function(){
     });
 
 	$('.icon_select img').each(function(){
-        $(this).width(fp_scale + "%");
+        $(this).width(fp_scale_percent + "%");
 	});
-    var t1 = performance.now();
-    console.log("FP: reposition and scale: " +Math.round(t1 - t0) + "ms ");
+};
+
+var fp_show_all_icons = function() {
+
+    $(".floorplan_item").each(function(index) {
+		$(this).show();
+	});
 };
 
 var fp_set_pos = function(id, offset){
     var item =  $('#' + id);
     // do not move the span, this make the popup to narrow somehow
     // item.closest("span").offset(offset);
-    var left11 = item.css("left");
-    var left12 = item[0].style.left;
-    var top11 = item.css("top");
-    var top12 = item[0].style.top;    
-    var before = item.offset();
-    var init = false
-    if (item.css("left") == "auto") {
-    	console.log("auto found, fixing left property");
-    	offset.left = 0 - fp_icon_image_size/2;
-    }
     item.offset(offset);
-    var after = item.offset();
-    var left21 = item.css("left");
-    var left22 = item[0].style.left;        
-    console.log("offset.top="+offset.top+" offset.left="+offset.left+" before.top="+before.top+" before.left="+before.left+" after.top="+after.top+" after.left="+after.left);
-	console.log("top11="+top11+" top12="+top12);
-	console.log("left11="+left11+" left12="+left12+" left21="+left21+" left22="+left22);    
+
 };
 
 var fp_is_point_on_fp = function (p){
@@ -2033,7 +2217,6 @@ var floorplan = function(group,time) {
             $('#list_content').append("<pre id='fp_pos_perl_code' />");
         }
         $('#fp_graphic').bind("load", function () {
-            console.log("FP: background loaded.");
             fp_resize_floorplan_image();
             floorplan(group, time);
         });
@@ -2042,7 +2225,6 @@ var floorplan = function(group,time) {
         $('#fp_graphic').attr("src", base_img_dir+'/floorplan-'+group+'.png');
         return;
     }
-
     if (updateSocket !== undefined && updateSocket.readyState !== 4){
         // Only allow one update thread to run at once
         updateSocket.abort();
@@ -2060,7 +2242,6 @@ var floorplan = function(group,time) {
 
             //var pos =   Math.round((t/hight) *100) +"," + Math.round((l/width)*100);
             var pos =  (t/hight) *100 +"," + (l/width)*100;
-            //console.log("floorplanpos: " + pos );
             $('#debug_pos').text(pos);
             if (fp_grabbed_entity !== null){
                 //var itemCenterOffset = Math.round(fp_grabbed_entity.width/2);
@@ -2070,8 +2251,6 @@ var floorplan = function(group,time) {
                     "left": e.pageX - itemCenterOffset
                 };
                 fp_set_pos(fp_grabbed_entity.id, newPos);
-                //console.log(fp_grabbed_entity.id +" pos: " +newPos.top + " x " + newPos.left);
-                //fp_grabbed_entity.class.replace("coords=.*", "coords="+pos);
             }
         });
 
@@ -2157,6 +2336,7 @@ var floorplan = function(group,time) {
         $("#fp_pos_perl_code").text(newCode);
     };
 
+
     // reposition on window size change
     window.onresize = function(){
         if ($('#floorplan').length === 0)
@@ -2165,16 +2345,13 @@ var floorplan = function(group,time) {
             return;
         }
 
-        console.log("FP: window resized");
         fp_resize_floorplan_image();
         fp_reposition_entities();
     };
 
     var path_str = "/objects";
     var fields = "fields=fp_location,state,states,fp_icons,schedule,logger_status,fp_icon_set,img,link,label,type";
-    if (json_store.ia7_config.prefs.state_log_show === "yes")
-        fields += ",state_log";
-
+    if (json_store.ia7_config.prefs.state_log_show === "yes") fields += ",state_log";
     var arg_str = "parents="+group+"&"+fields+"&long_poll=true&time="+time;
 
     updateSocket = $.ajax({
@@ -2182,13 +2359,14 @@ var floorplan = function(group,time) {
         url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
         dataType: "json",
         error: function(xhr, textStatus, errorThrown){
-            //   console.log('FP: request failed: "' + textStatus + '" "'+JSON.stringify(errorThrown, undefined,2)+'"');
+               console.log('FP: request failed: "' + textStatus + '" "'+JSON.stringify(errorThrown, undefined,2)+'"');
         },
         success: function( json, statusText, jqXHR ) {
-            //  console.log('FP: request succeeded: "' + statusText + '" "'+JSON.stringify(jqXHR, undefined,2)+'"');
             var requestTime = time;
+            var last_slider_popover;
+//           var force_focus = false;
             if (jqXHR.status === 200) {
-                var t0 = performance.now();
+                //var t0 = performance.now();
                 JSONStore(json);
                 for (var entity in json.data) {
                     if (developer && requestTime === 0){
@@ -2240,51 +2418,128 @@ var floorplan = function(group,time) {
                                             var name = fp_entity;
                                             if (json_store.objects[fp_entity].label !== undefined) name = json_store.objects[fp_entity].label;
                                             var ackt = E.offset();
-                                            return name+ " - "+json_store.objects[fp_entity].state;
+                                            return "<span class='entity-name'>"+name+ "</span> - <span class='object-state'>"+json_store.objects[fp_entity].state + "</span>";
                                         },
+                                        trigger: 'manual',
                                         html: 'true', //needed to show html of course
                                         content : function() {
                                             var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
                                             var po_states = json_store.objects[fp_entity].states;
                                             var html = '<div id="popOverBox">';
                                             // HP need to have at least 2 states to be a controllable object...
-                                            if (po_states.length > 1) {
-                                                html = '<div class="btn-group stategrp0 btn-block">';
-                                                var buttons = 0;
-                                                var stategrp = 0;
-                                                for (var i = 0; i < po_states.length; i++){
-                                                    if (filterSubstate(po_states[i]) !== 1) {
-                                                        buttons++;
-                                                        if (buttons > 2) {
-                                                            stategrp++;
-                                                            html += "</div><div class='btn-group btn-block stategrp"+stategrp+"'>";
-                                                            buttons = 1;
-                                                        }
+                                            if (!sliderObject(json_store.objects[fp_entity].states) || (json_store.ia7_config.prefs.floorplan_slider == undefined) || (json_store.ia7_config.prefs.floorplan_slider !== undefined && json_store.ia7_config.prefs.floorplan_slider !== "yes")) {		
 
-                                                        var color = getButtonColor(po_states[i]);
-                                                        //TODO disabled override
-                                                        var disabled = "";
-                                                        if (po_states[i] === json_store.objects[fp_entity].state) {
-                                                            disabled = "disabled";
+                                                if (po_states.length > 1) {
+                                                    html = '<div class="btn-group stategrp0 btn-block">';
+                                                    var buttons = 0;
+                                                    var stategrp = 0;
+                                                    for (var i = 0; i < po_states.length; i++){
+                                                        if (filterSubstate(po_states[i]) !== 1) {
+                                                            buttons++;
+                                                            if (buttons > 2) {
+                                                                stategrp++;
+                                                                html += "</div><div class='btn-group btn-block stategrp"+stategrp+"'>";
+                                                                buttons = 1;
+                                                            }
+
+                                                            var color = getButtonColor(po_states[i]);
+                                                            //TODO disabled override
+                                                            var disabled = "";
+                                                            if (po_states[i] === json_store.objects[fp_entity].state) {
+                                                                disabled = "disabled";
+                                                            }
+                                                            html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-"+color+" "+disabled+"'";
+                                                            var url= '/SET;none?select_item='+fp_entity+'&select_state='+po_states[i];
+                                                            html += '">'+po_states[i]+'</button>';
                                                         }
-                                                        html += "<button class='btn col-sm-6 col-xs-6 btn-"+color+" "+disabled+"'";
-                                                        var url= '/SET;none?select_item='+fp_entity+'&select_state='+po_states[i];
-                                                        html += ' onclick="$.get(';
-                                                        html += "'"+url+"')";
-                                                        html += '">'+po_states[i]+'</button>';
                                                     }
+                                                    html += "</div></div>";
+                                                    fp_popover_close = true;
                                                 }
-                                                html += "</div></div>";
-                                                //console.log("html="+html)
+                                            } else {
+                                                html = '<div class="btn-group stategrp0 btn-block">';
+                                                html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-success'>on</button>";					                
+                                                html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-default'>off</button></div>";					                
+                                                html += "<div id='slider' class='brightness-slider'></div>";					
+                                                html += "<br>";
+                                                fp_popover_close = false;
                                             }
                                             return html;
                                         }
-                                    });
+                                    }).off().on('click', function (e) {
+                                    var src = $(this).attr('id').match(/entity_(.*)_\d+$/)[1];
+                                    last_slider_popover = src;
+
+                                        $( "a[title='"+src+"']" ).find(".popover-content").popover('show');
+                                        var val = $( "a[title='"+src+"']" ).find(".object-state").text();
+                                        if (val == "on") {
+                                            val = 100;
+                                        } else if (val == "off") {
+                                            val = 0;
+                                        } else {
+                                            val = parseInt(val);
+                                        }
+                                        $('#slider' ).slider({
+                                            min: 0,
+                                            max: 100,
+                                            value: val
+                                        });
+                                        $( "#slider" ).on( "slide", function(event, ui) {
+                                            var sliderstate = ui.value;
+                                            if (sliderstate == "100") {
+                                                sliderstate = "on";
+                                            } else if (sliderstate == "0") {
+                                                 sliderstate = "off";
+                                            } else {
+                                                sliderstate += "%";
+                                            }
+                                            $('.object-state').text(sliderstate);
+
+                                        });
+                                        $( "#slider" ).on( "slidechange", function(event, ui) {
+                                            if ($('#slider').length == 0) return
+                                            var fp_entity = $(this).parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
+                                            var sliderstate = ui.value;
+                                            if (isNaN(ui.value)) return; //if there isn't a numeric value then bail out of sending a set comment
+                                            if (sliderstate == "100") {
+                                                sliderstate = "on";
+                                            } else if (sliderstate == "0") {
+                                                 sliderstate = "off";
+                                            } else {
+                                                sliderstate += "%";
+                                            }
+                                            if ($(".entity-name").length == 1) {
+                                                url= '/SET;none?select_item='+fp_entity+'&select_state='+sliderstate;
+                                                $.get( url);
+                                                fp_popover_close = true;
+                                                last_slider_popover = fp_entity;
+                                                $('.popover').popover('hide');
+                                                $( "a[title='"+fp_entity+"']" ).find('[data-toggle="popover"]').blur();
+                                            }
+                                        });
+                                        $('.btn-state-cmd').on('click', function () {
+                                            var fp_entity = $(this).parent().parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
+                                            var url= '/SET;none?select_item='+fp_entity+'&select_state='+$(this).text();
+                                            if (!$(this).hasClass("disabled")) $.get( url);
+                                            fp_popover_close = true;
+                                            $('.popover').popover('hide');
+                                        });
+                                    });   
+                                        $('[data-toggle="popover"]').on('blur',function(e){
+                                            if(fp_popover_close) {
+                                                    $(this).popover('hide');
+                                            } else {
+                                                $(this).focus();
+                                                fp_popover_close = false; //true
+                                             }
+                                        });
+                                        $('[data-toggle="popover"]').on("focus",function(){
+                                            if (fp_popover_close) $(this).popover('show')
+
+                                        });
                                 } else {
                                     E.click( function () {
-                                        //var fp_entity = $(this).attr("id").split(/entity_/)[1]; //
                                         var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
-                                        //alert("entity="+fp_entity);
                                         create_state_modal(fp_entity);
                                     });
                                 }
@@ -2328,10 +2583,8 @@ var floorplan = function(group,time) {
                         url: "/LONG_POLL?json('GET','fp_icon_sets','px=48')",
                         dataType: "json",
                         error: function(xhr, textStatus, errorThrown){
-                            console.log('FP: request iconsets failed: "' + textStatus + '" "'+JSON.stringify(errorThrown, undefined,2)+'"');
                         },
                         success: function( json, statusText, jqXHR ) {
-                            console.log('FP: request iconsets: "' + statusText + '" "'+JSON.stringify(jqXHR, undefined,2)+'"');
                             var requestTime = time;
                             if (jqXHR.status === 200) {
                                 var iconlist = '<ul class="icon_select" style="display:none;z-index:1000;position:absolute;overflow:hidden;border:1px solid #CCC; background: #FFF; border-radius: 5px; padding: 0;">\n';
@@ -2408,8 +2661,7 @@ var floorplan = function(group,time) {
                     });
                 }
                 requestTime = json.meta.time;
-                var t1 = performance.now();
-                console.log("FP: long poll " +Math.round(t1 - t0) + "ms");
+                //var t1 = performance.now();
             }
             if (jqXHR.status === 200 || jqXHR.status === 204) {
                 //Call update again, if page is still here
@@ -2421,9 +2673,17 @@ var floorplan = function(group,time) {
                         floorplan(group,requestTime);
                 }
             }
+            if (time === 0){
+                // hack to fix initial positions of the items
+                var wait = 500;
+                setTimeout(function(){
+                    fp_reposition_entities();
+                }, wait);
+            }            
         }
     });
 };
+
 var get_fp_image = function(item,size,orientation) {
   	var image_name;
 	var image_color = getButtonColor(item.state);
@@ -2476,9 +2736,10 @@ var create_state_popover = function(entity) {
 var create_state_modal = function(entity) {
 		var name = entity;
 		if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
+		$('#slider').remove();
 		$('#control').modal('show');
 		var modal_state = json_store.objects[entity].state;
-		$('#control').find('.object-title').html(name + " - " + json_store.objects[entity].state);
+		$('#control').find('.object-title').html(name + " - <span class='object-state'>" + json_store.objects[entity].state + "</span>");
 		$('#control').find('.control-dialog').attr("entity", entity);
 		var modal_states = json_store.objects[entity].states;
 		// HP need to have at least 2 states to be a controllable object...
@@ -2492,9 +2753,13 @@ var create_state_modal = function(entity) {
 			var display_buttons = 0;
 			var grid_buttons = 3;
 			var group_buttons = 4;
+
+			var slider_active = 1;
+            if (!sliderObject(modal_states) || (json_store.ia7_config.prefs.state_slider !== undefined && json_store.ia7_config.prefs.state_slider == "no")) slider_active = 0;
+
 			// get number of displayed buttons so we can display nicely.
 			for (var i = 0; i < modal_states.length; i++){
-				if (filterSubstate(modal_states[i]) !== 1) display_buttons++
+				if (filterSubstate(modal_states[i],slider_active) !== 1) display_buttons++
 			}
 			if (display_buttons == 2) {
 				grid_buttons = 6;
@@ -2504,41 +2769,81 @@ var create_state_modal = function(entity) {
 				grid_buttons = 4;
 				group_buttons = 3;
 			}
-			
-			for (var i = 0; i < modal_states.length; i++){
-				if (filterSubstate(modal_states[i]) == 1) {
-				advanced_html += "<button class='btn btn-default col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" hidden'>"+modal_states[i]+"</button>";
-				continue 
-			} else {
-				//buttonlength += 2 + modal_states[i].length 
-				buttonlength ++;
-			}
-			//if (buttonlength >= 25) {
-			if (buttonlength > group_buttons) {
-				stategrp++;
-				$('#control').find('.states').append("<div class='btn-group btn-block stategrp"+stategrp+"'></div>");
-				buttonlength = 1;
-			}
-			var color = getButtonColor(modal_states[i])
-			var disabled = ""
-			if (modal_states[i] == json_store.objects[entity].state) {
-				disabled = "disabled";
-			}
-			//global override
-			if (json_store.ia7_config.prefs.disable_current_state !== undefined && json_store.ia7_config.prefs.disable_current_state == "no") {
-            	disabled = "";
-			}
-			//per object override
-			if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
-                if (json_store.ia7_config.objects[entity].disable_current_state !== undefined && json_store.ia7_config.objects[entity].disable_current_state == "yes") {
-                                disabled = "disabled";
-                } else {
-                                disabled = "";
+//            if (!sliderObject(modal_states) || (json_store.ia7_config.prefs.state_slider !== undefined && json_store.ia7_config.prefs.state_slider == "no"))	{		
+                for (var i = 0; i < modal_states.length; i++){
+                    if (filterSubstate(modal_states[i],slider_active) == 1) {
+                        advanced_html += "<button class='btn btn-default col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" hidden'>"+modal_states[i]+"</button>";
+                        continue 
+                    } else {
+                        //buttonlength += 2 + modal_states[i].length 
+                        buttonlength ++;
+                    }
+                    //if (buttonlength >= 25) {
+                    if (buttonlength > group_buttons) {
+                        stategrp++;
+                        $('#control').find('.states').append("<div class='btn-group btn-block stategrp"+stategrp+"'></div>");
+                        buttonlength = 1;
+                    }
+                    var color = getButtonColor(modal_states[i])
+                    var disabled = ""
+                    if (modal_states[i] == json_store.objects[entity].state) {
+                        disabled = "disabled";
+                    }
+                    //global override
+                    if (json_store.ia7_config.prefs.disable_current_state !== undefined && json_store.ia7_config.prefs.disable_current_state == "no") {
+                        disabled = "";
+                    }
+                    //per object override
+                    if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                        if (json_store.ia7_config.objects[entity].disable_current_state !== undefined && json_store.ia7_config.objects[entity].disable_current_state == "yes") {
+                            disabled = "disabled";
+                        } else {
+                            disabled = "";
+                        }
+                    }
+                $('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");					
                 }
-			}
-			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
-						
-		}
+                if (slider_active) {
+                   var slider_data = sliderDetails(modal_states);		                
+                   $('#control').find('.states').append("<div id='slider' class='brightness-slider'></div>");					
+                   var val = $(".object-state").text().replace(/\%/,'');
+              
+                   var position = slider_data.values.indexOf(val);
+                   if (val == "on") position = slider_data.max;
+                   if (val == "off") position = slider_data.min;
+                   if (position == undefined || position < 0) position = 0;
+                   $('#slider' ).slider({
+                       min: slider_data.min,
+                       max: slider_data.max,
+                       value: position
+                   });
+                   $( "#slider" ).on( "slide", function(event, ui) {
+                       var sliderstate = slider_data.values[ui.value];
+                       if ((sliderstate == "100") && (slider_data.pct)) {
+                           sliderstate = "on";
+                       } else if ((sliderstate == "0") && (slider_data.pct)) {
+                            sliderstate = "off";
+                       } else {
+                           if (slider_data.pct) sliderstate += "%";
+                       }
+                       $('#control').find('.object-state').text(sliderstate);
+
+                   });
+                   $( "#slider" ).on( "slidechange", function(event, ui) {
+                       var sliderstate = slider_data.values[ui.value];
+                       if ((sliderstate == "100") && (slider_data.pct)) {
+                           sliderstate = "on";
+                       } else if ((sliderstate == "0") && (slider_data.pct)) {
+                            sliderstate = "off";
+                       } else {
+                           if (slider_data.pct) sliderstate += "%";
+                       }
+                       url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+sliderstate;
+                       $('#control').modal('hide');
+                       $.get( url);
+                   });
+
+                 }
 		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
 		$('#control').find('.states').find('.btn').click(function (){
 			url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
@@ -2557,12 +2862,9 @@ var create_state_modal = function(entity) {
 
 			var modify_jqcon_dow = function(cronstr,offset) {
 				var cron = cronstr.split(/\s+/);
-				console.log("dow="+cron[cron.length-1]);
 				cron[cron.length-1] = cron[cron.length-1].replace(/\d/gi, function adjust(x) { 
-					console.log("x="+x+" offset="+offset);
 					return parseInt(x) + parseInt(offset); 
 				});;			
-				console.log("dow="+cron[cron.length-1]);
 				return cron.join(" ");
 				}	
 
@@ -2641,12 +2943,10 @@ var create_state_modal = function(entity) {
 
 			$('#control').find('.modal-body').append("<div class='sched_control'><span><h4>Schedule Control<button type='button' class='pull-right btn btn-success btn-xs schedadd'><i class='fa fa-plus'></i></button></h4></span>");
 			var sched_states = json_store.objects[entity].schedule[0][3];
-			console.log("schedule.length="+json_store.objects[entity].schedule.length);
 			for (var i = 1; i < json_store.objects[entity].schedule.length; i++){
 				var sched_index = json_store.objects[entity].schedule[i][0];
 				var sched_cron = modify_jqcon_dow(json_store.objects[entity].schedule[i][1],1);
 				var sched_label = json_store.objects[entity].schedule[i][2];
-				console.log("si="+sched_index+",sc="+sched_cron+",sl="+sched_label+",ss="+sched_states);	
 				add_schedule(sched_index,sched_cron,sched_label,sched_states);	
 			}
 			
@@ -2657,7 +2957,6 @@ var create_state_modal = function(entity) {
 				if (isNaN(newid)) newid=1;
 				var newlabel = newid;
 				if (sched_states[0] !== null) newlabel=sched_states[0];
-				console.log("add new schedule, index should be "+newid+" states are"+sched_states);
 				add_schedule(newid,'0 0 * * 1-7',newlabel,sched_states);
             	$('.sched_submit').removeClass('disabled');  
             	$('.sched_submit').removeClass('btn-default');  
@@ -2668,14 +2967,10 @@ var create_state_modal = function(entity) {
 				if ($(this).hasClass("disabled")) return;
 				var string = "";
 				$('.mhsched').each(function(index,value) {
-					console.log("string="+string);
-//					string += $( this ).attr("id") + ',"' + $( this ).text() + '",' + $( this ).attr("label") + ',';
 					string += $( this ).attr("id") + ',"' + modify_jqcon_dow($(this).text(),"-1") + '",' + $( this ).attr("label") + ',';
-					console.log("string="+string);					
 				});
 				string = string.replace(/,\s*$/, ""); //remove the last comma
 				var url="/SUB?ia7_update_schedule"+encodeURI("("+$(this).parents('.control-dialog').attr("entity")+","+string+")");
-				console.log("url="+url);
 				$.get(url);
             	$('.sched_submit').addClass('disabled');  
             	$('.sched_submit').removeClass('btn-success');  
@@ -2718,14 +3013,19 @@ var create_state_modal = function(entity) {
 				var slog = json_store.objects[entity].state_log[i].split("set_by=");
 				$('#control').find('.obj_log').append(slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br>");
 			}
-		}		
+		}
+		
+		if (developer) 
+		    $('.mhstatemode').show();
+		else
+		    $('.mhstatemode').hide();
+		
 		$('.mhstatemode').on('click', function(){
 			$('#control').find('.states').find('.btn').removeClass('hidden');
 			$('#control').find('.mh_set_by').removeClass('hidden');
 		});
 		$('.logger_data').on('click',function() {
 			$('#control').modal('hide');
-			console.log('url='+$(location).attr('href'));
 		});
 }	
 
@@ -2762,21 +3062,19 @@ var authorize_modal = function(user) {
     });
 	$('.btn-login-logoff').click( function () {
 		$.get ("/UNSET_PASSWORD");
-		console.log("in logoff");
 		location.reload();
 		$('#loginModal').modal('hide');
 	});	
 	$('#LoginModalpw').submit( function (e) {
 		e.preventDefault();
-		//console.log("Custom submit function");
+		var encoded_data = $(this).serialize();
+		encoded_data = encoded_data.replace(/\!/g,"%21"); //for some reason serialize doesn't encode a !...
 		$.ajax({
 			type: "POST",
 			url: "/SET_PASSWORD_FORM",
-			data: $(this).serialize(),
+			data: encoded_data,
 			success: function(data){
-				console.log(data) 
 				var status=data.match(/\<b\>(.*)\<\/b\>/gm);
-				//console.log("match="+status[2]); //3rd match is password status
 				if (status[2] == "<b>Password was incorrect</b>") {
 					//alert("Password was incorrect");
 					$('#loginModal').find('#pwstatus').html("Password was incorrect");
@@ -2861,6 +3159,7 @@ var trigger = function() {
 
 $(document).ready(function() {
 	// Start
+	
 	changePage();
 	//Watch for future changes in hash
 	$(window).bind('hashchange', function() {
@@ -2875,8 +3174,9 @@ $(document).ready(function() {
 	
 	// Load up 'globals' -- notification and the status
 	updateItem("ia7_status");	
-	get_notifications();	
-
+	get_notifications();
+	$('#Last_updated').remove();		
+    get_stats();
 	$("#toolButton").click( function () {
 		// Need a 'click' event to turn on sound for mobile devices
 		if (mobile_device() == "ios" ) {
@@ -3027,12 +3327,19 @@ $(document).ready(function() {
 			$('#optionsModal').modal('hide');
 		});
 	});
+
+//Needed to floorplan sliders to work.
+	$(document).on('mousedown', function (e) {
+        if($(e.target).hasClass('popover-content')) {
+            fp_popover_close = false;
+        } else
+            fp_popover_close = true; 
+    });
 	
 //TODO remove me?	
 	$('#mhresponse').click( function (e) {
 		e.preventDefault();
 		$form = $(this);
-		console.log("MHResponse Custom submit function "+ form.attr('action'));
 		//$.ajax({
 		//	type: "POST",
 		//	url: "/SET_PASSWORD_FORM",
@@ -3043,6 +3350,8 @@ $(document).ready(function() {
 		//	});
 	});		
 });
+
+
 
 //
 // LICENSE

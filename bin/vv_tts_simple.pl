@@ -22,8 +22,7 @@ my %parms;
 
 my $text = shift @ARGV;
 
-print
-  "VOICE! t=$text v=$parms{voice} f=$parms{to_file} r=$parms{right} l=$parms{left}\n";
+print "VOICE! t=$text v=$parms{voice} f=$parms{to_file} r=$parms{right} l=$parms{left}\n";
 
 if ( $parms{to_file} ) {
     print "Saving text to $parms{to_file}\n";

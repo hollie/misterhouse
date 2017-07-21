@@ -1,8 +1,7 @@
 
 # This code shows how to use a Generic_Item and tk button to store/test/change a state
 
-my $alarm_states =
-  "Disarmed,Disarming,Arming,Armed,Violated,Exit Delay,Entry Delay";
+my $alarm_states = "Disarmed,Disarming,Arming,Armed,Violated,Exit Delay,Entry Delay";
 my @alarm_states = split ',', $alarm_states;
 
 $alarm_status   = new Generic_Item;

@@ -23,8 +23,7 @@ if ( $state = said $v_myth_osd) {
     &display_mythosd("This is a test notice !!");
 }
 
-$myth_osd = new Socket_Item( undef, undef, $config_parms{myth_notify_address},
-    'mythtv', 'udp' );
+$myth_osd = new Socket_Item( undef, undef, $config_parms{myth_notify_address}, 'mythtv', 'udp' );
 
 sub display_mythosd {
     my ($text) = @_;

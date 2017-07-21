@@ -10,8 +10,7 @@
 $cm11_monitor         = new Generic_Item();
 $timer_x10_inactivity = new Timer();
 $v_cm11_control       = new Voice_Cmd "[Start,Stop,Reset] the CM11 port";
-$v_cm11_control->set_info(
-    'Controls the CM11 X10 controller. Reset if it sticks.');
+$v_cm11_control->set_info('Controls the CM11 X10 controller. Reset if it sticks.');
 if ($Reload) {
     Serial_data_add_hook( \&cm11_monitor );
     my $timeout = $config_parms{cm11_timeout};
@@ -33,8 +32,7 @@ sub cm11_monitor {
 
     print_log "Reset cm11 inactivity timer $current_unit $state"
       if $config_parms{x10_errata} >= 3;
-    set $timer_x10_inactivity 1800, \&cm11_unstick
-      ; #every half hour without activity triggers a restart.  Otherwise cm11 remains lost in space."
+    set $timer_x10_inactivity 1800, \&cm11_unstick;    #every half hour without activity triggers a restart.  Otherwise cm11 remains lost in space."
 }
 
 sub cm11_unstick {
@@ -61,8 +59,7 @@ sub cm11_control {
         if ( $state eq 'Stop' or $state eq 'Reset' ) {
             if ( $main::Serial_Ports{'cm11'}{object}->close ) {
                 print "CM11 port was closed\n" if $Debug{cm11};
-                delete $Serial_Ports{object_by_port}
-                  { $Serial_Ports{'cm11'}{port} };
+                delete $Serial_Ports{object_by_port}{ $Serial_Ports{'cm11'}{port} };
             }
             else {
                 print "CM11 port failed to close\n" if $Debug{cm11};

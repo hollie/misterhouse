@@ -44,7 +44,7 @@ $bsc_info_interval = 10
 
 my $bsc_prefer_abstract = $::config_parms{bsc_prefer_abstract};
 $bsc_prefer_abstract = 0
-  unless $bsc_prefer_abstract;   # support x10 devices in favor of abstract ones
+  unless $bsc_prefer_abstract;    # support x10 devices in favor of abstract ones
 
 if ($::Startup) {
     $bsc_x10_device      = new BSCMH_Item(BSCMH_Item::DEVICE_TYPE_X10);
@@ -61,8 +61,7 @@ if ($::Startup) {
         $bsc_x10_device->register_device_type(BSCMH_Item::X10_TRANSMITTER);
         $bsc_x10_device->register_device_type(BSCMH_Item::X10_RF_RECEIVER);
         $bsc_x10_device->register_device_type(BSCMH_Item::X10_GARAGE_DOOR);
-        $bsc_x10_device
-          ->register_device_type(BSCMH_Item::X10_IRRIGATION_CONTROLLER);
+        $bsc_x10_device->register_device_type(BSCMH_Item::X10_IRRIGATION_CONTROLLER);
         $bsc_x10_device->register_device_type(BSCMH_Item::X10_SWITCHLINC);
         $bsc_x10_device->register_device_type(BSCMH_Item::X10_TEMPLINC);
         $bsc_x10_device->register_device_type(BSCMH_Item::X10_OTE);
@@ -76,8 +75,7 @@ if ($::Startup) {
 
     # TO-DO handle ability to enable/disable presence monitoring
     if ( 1 == 1 ) {
-        $bsc_presence_device
-          ->register_device_type(BSCMH_Item::PRESENCE_MONITOR);
+        $bsc_presence_device->register_device_type(BSCMH_Item::PRESENCE_MONITOR);
     }
 
     # initiate sending a block of info messages for all devices handled by this BSCMH item

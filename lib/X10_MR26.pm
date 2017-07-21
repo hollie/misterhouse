@@ -46,8 +46,7 @@ sub startup {
     $main::config_parms{"MR26_break"} = pack( 'C', 0xad );
 
     #   &main::serial_port_create('MR26', $main::config_parms{MR26_port}, 9600, 'none', 'raw');
-    &main::serial_port_create( 'MR26', $main::config_parms{MR26_port},
-        9600, 'none' );
+    &main::serial_port_create( 'MR26', $main::config_parms{MR26_port}, 9600, 'none' );
 
     # Add hook only if serial port was created ok
     &::MainLoop_pre_add_hook( \&X10_MR26::check_for_data, 1 )

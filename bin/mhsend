@@ -21,17 +21,10 @@ use strict;
 
 my ( $Pgm_Path, $Pgm_Name, %parms );
 use Getopt::Long;
-if (
-    !&GetOptions(
-        \%parms,  "h",         "help",       "host=s",
-        "port=s", "stdin",     "password=s", "log:s",
-        "file=s", "display:n", "state",      "speak",
-        "run"
-    )
+if (   !&GetOptions( \%parms, "h", "help", "host=s", "port=s", "stdin", "password=s", "log:s", "file=s", "display:n", "state", "speak", "run" )
     or ( @ARGV == 0 and !$parms{stdin} )
     or $parms{h}
-    or $parms{help}
-  )
+    or $parms{help} )
 {
     print <<eof;
 
@@ -83,8 +76,7 @@ sub setup {
     BEGIN {
         ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
         ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-        eval
-          "use lib '$Pgm_Path/../lib'";  # Use BEGIN eval to keep perl2exe happy
+        eval "use lib '$Pgm_Path/../lib'";    # Use BEGIN eval to keep perl2exe happy
     }
 
     $parms{host} = 'localhost' unless $parms{host};

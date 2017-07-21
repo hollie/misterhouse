@@ -63,12 +63,9 @@ if ( done_now $p_mp3_build_list) {
 }
 
 $v_mp3_control_cmd = new Voice_Cmd(
-    "Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off,track]"
-);
-$v_mp3_vol_control = new Voice_Cmd(
-    "Set the house mp3 volume to [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]"
-);
-$v_mpd_control = new Voice_Cmd("[Regenerate,Restart] MPD");
+    "Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off,track]");
+$v_mp3_vol_control = new Voice_Cmd("Set the house mp3 volume to [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]");
+$v_mpd_control     = new Voice_Cmd("[Regenerate,Restart] MPD");
 
 my $state;
 mp3_control($state)     if $state = said $v_mp3_control_cmd;
@@ -100,8 +97,7 @@ sub mpd_control {
             speak "M P D configuration file successfully generated";
         }
         else {
-            speak
-              "There was an error generating the configuration file for M P D";
+            speak "There was an error generating the configuration file for M P D";
         }
     }
 }

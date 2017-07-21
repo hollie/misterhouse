@@ -46,8 +46,7 @@ use strict;
 my ( $Pgm_Path, $Pgm_Name, $Version );
 
 BEGIN {
-    ($Version) =
-      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
@@ -109,20 +108,13 @@ sub wmi_processes {
       defwatch rtvscan stisvc vptray OSA msgsys mgabg pdesk);
 
     my $count = 0;
-    if (
-        my $WMI = Win32::OLE->GetObject(
-            "WinMgmts:{impersonationLevel=impersonate}!//$box")
-      )
-    {
-        for my $process ( Win32::OLE::in( $WMI->InstancesOf('Win32_Process') ) )
-        {
+    if ( my $WMI = Win32::OLE->GetObject("WinMgmts:{impersonationLevel=impersonate}!//$box") ) {
+        for my $process ( Win32::OLE::in( $WMI->InstancesOf('Win32_Process') ) ) {
             my $name = $process->{Name};
             $count++;
             next if !$parms{all} and grep $name =~ /$_/i, @ignore_list;
             next if $find and $name !~ /$find/i;
-            $list .=
-              sprintf
-              " PID:%5d,%5d Pgm:%-15s Threads:%3s Mem:%6.2f,%6.2f Date: %s\n",
+            $list .= sprintf " PID:%5d,%5d Pgm:%-15s Threads:%3s Mem:%6.2f,%6.2f Date: %s\n",
               $process->{ProcessID}, $process->{ParentProcessID},
               $process->{Name},      $process->{ThreadCount},
               $process->{WorkingSetSize} / 10**6,
@@ -130,8 +122,7 @@ sub wmi_processes {
         }
     }
     else {
-        print "WMI unable to connect to \\$box:"
-          . Win32::OLE->LastError() . "\n";
+        print "WMI unable to connect to \\$box:" . Win32::OLE->LastError() . "\n";
     }
     return ( $count, $list );
 }

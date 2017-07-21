@@ -16,8 +16,7 @@ if ( done_now $p_get_email and -e $get_email_scan_file ) {
     my @msgs;
     for my $line ( file_read $get_email_scan_file) {
         print "email_motion: mail =$line\n" if $Debug{email};
-        my ( $msg, $from, $to, $subject, $body ) =
-          $line =~ /Msg: (\d+) From:(.+?) To:(.+?) Subject:(.+?) Body:(.+)/;
+        my ( $msg, $from, $to, $subject, $body ) = $line =~ /Msg: (\d+) From:(.+?) To:(.+?) Subject:(.+?) Body:(.+)/;
         if ( $subject =~ /^ *Motion\:? /i ) {
             print "email_motion: Found mail: $subject\n" if $Debug{email};
             push @msgs, $msg;
@@ -27,8 +26,7 @@ if ( done_now $p_get_email and -e $get_email_scan_file ) {
     # Read in picture emails in the background
     if (@msgs) {
         print_log "Reading email_motion msgs @msgs";
-        set $p_email_motion
-          qq[read_email -account bruce -msgnum "@msgs" -file "$config_parms{data_dir}/email_motion.txt"];
+        set $p_email_motion qq[read_email -account bruce -msgnum "@msgs" -file "$config_parms{data_dir}/email_motion.txt"];
         start $p_email_motion;
     }
 }
@@ -44,11 +42,10 @@ sub process_email_images {
         my $r = shift @data;
         $camera = $1 if $r =~ /^ *Subject\: Motion\: (\S+)/;
         next
-          unless $r =~ /^ *Content-Disposition/
-          ;    # Assume this is the last record before the data
+          unless $r =~ /^ *Content-Disposition/;    # Assume this is the last record before the data
         print " - reading data for $r\n" if $Debug{email};
         shift @data;
-        shift @data;    # Assume 2 blank blank header lines
+        shift @data;                                # Assume 2 blank blank header lines
         my $data;
         while (@data) {
             $r = shift @data;
@@ -61,8 +58,7 @@ sub process_email_images {
         my $file = "$config_parms{data_dir}/web/motion/$member";
         print " - writing to $file\n" if $Debug{email};
         file_write $file, MIME::Base64::decode($data);
-        copy "$config_parms{data_dir}/web/motion/latest1.jpg",
-          "$config_parms{data_dir}/web/motion/latest2.jpg";
+        copy "$config_parms{data_dir}/web/motion/latest1.jpg", "$config_parms{data_dir}/web/motion/latest2.jpg";
         copy $file, "$config_parms{data_dir}/web/motion/latest1.jpg";
     }
 }

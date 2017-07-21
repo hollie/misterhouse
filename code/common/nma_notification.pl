@@ -18,8 +18,7 @@ my $nma_api_key = $config_parms{nma_api_key};
 
 # Notify the on startup / restart
 if ($Startup) {
-    print_log( "System Restarted, Notifying NMA -- using api key: ",
-        $nma_api_key );
+    print_log( "System Restarted, Notifying NMA -- using api key: ", $nma_api_key );
     nma_notify_b( "$nma_api_key", "Misterhouse has been restarted" );
 }
 
@@ -41,12 +40,7 @@ sub nma_notify_b {
 
     # NMA allows you to print to 3 lines
     # I prefer printing to the main line which is listed as application in the below url.  This works great fot GTV since the event pops up over whatever you are watching
-    my $url =
-        'https://www.notifymyandroid.com/publicapi/notify?apikey='
-      . $nma_api_key
-      . '&application='
-      . $text
-      . '&event=&description=&priority=0';
+    my $url = 'https://www.notifymyandroid.com/publicapi/notify?apikey=' . $nma_api_key . '&application=' . $text . '&event=&description=&priority=0';
 
     # If you prefer the main line to list MisterHouse and have your event appear on the second line, uncomment the following line and comment out the line above this
     #  my $url = 'https://www.notifymyandroid.com/publicapi/notify?apikey='.$nma_api_key.'&application=MisterHouse&event='.$text.'&description=&priority=0';

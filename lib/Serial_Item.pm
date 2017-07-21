@@ -58,8 +58,7 @@ sub new {
     $self->{mainHash} = $mainHash;
     $self->set_standard_config;
     $self->set_interface($device_name) if $id and $id =~ /^X/;
-    $self->state_overload('off')
-      ;    # By default, do not process ~;: strings as substate/multistate
+    $self->state_overload('off');    # By default, do not process ~;: strings as substate/multistate
 
     return $self;
 }
@@ -100,8 +99,7 @@ sub stop {
         #       &Win32::SerialPort::debug(0);
     }
     else {
-        print
-          "Error in Serial_Item stop for port $port_name: Port is not started\n";
+        print "Error in Serial_Item stop for port $port_name: Port is not started\n";
     }
 }
 
@@ -121,8 +119,7 @@ sub set_dtr {
           if $main::Debug{serial};
     }
     else {
-        print
-          "Error, serial port set_dtr for $port_name failed, port has not been set\n";
+        print "Error, serial port set_dtr for $port_name failed, port has not been set\n";
     }
 }
 
@@ -145,8 +142,7 @@ sub set_rts {
           if $main::Debug{serial};
     }
     else {
-        print
-          "Error, serial port set_rts for $port_name failed, port has not been set\n";
+        print "Error, serial port set_rts for $port_name failed, port has not been set\n";
     }
 }
 
@@ -166,15 +162,13 @@ sub send_serial_data {
     unless ( $main::Serial_Ports{$port_name}{object}
         or lc $port_name eq 'ncpuxa' )
     {
-        print
-          "Error, serial port for $port_name has not been set: data=$serial_data\n";
+        print "Error, serial port for $port_name has not been set: data=$serial_data\n";
         return;
     }
 
     if ( lc $port_name eq 'homevision' ) {
         print "Using homevision to send: $serial_data\n";
-        &Homevision::send( $main::Serial_Ports{Homevision}{object},
-            $serial_data );
+        &Homevision::send( $main::Serial_Ports{Homevision}{object}, $serial_data );
     }
     elsif ( lc $port_name eq 'ncpuxa' ) {
         &main::print_log("Using ncpuxa to send: $serial_data");
@@ -212,8 +206,7 @@ sub send_x10_data {
 
     # Use proxy mh if present (avoids mh pauses for slow X10 xmits)
     return
-      if &main::proxy_send( $interface, 'send_x10_data', $serial_data,
-        $module_type );
+      if &main::proxy_send( $interface, 'send_x10_data', $serial_data, $module_type );
 
     # This function can either be called as a class method or a library function
 
@@ -224,8 +217,7 @@ sub send_x10_data {
     else {
         $isfunc = 1;
     }
-    print
-      "X10: interface=$interface isfunc=$isfunc save_unit=$x10_save_unit data=$serial_data\n"
+    print "X10: interface=$interface isfunc=$isfunc save_unit=$x10_save_unit data=$serial_data\n"
       if $main::Debug{x10};
 
     if ( $interface eq 'cm11' ) {
@@ -236,8 +228,7 @@ sub send_x10_data {
 
         # Standard 1-cm11 code
         if ( !$main::config_parms{cm11_bak_port} ) {
-            &ControlX10::CM11::send( $main::Serial_Ports{cm11}{object},
-                substr( $serial_data, 1 ) );
+            &ControlX10::CM11::send( $main::Serial_Ports{cm11}{object}, substr( $serial_data, 1 ) );
         }
 
         # Dual cm11 code
@@ -248,33 +239,22 @@ sub send_x10_data {
             if (   ( $main::cm11_objects{active}->state() eq 'on' )
                 && ( $main::cm11_objects{bak_active}->state() eq 'on' ) )
             {
-                if ( $main::cm11_objects{timer}->seconds_remaining() >=
-                    $main::cm11_objects{bak_timer}->seconds_remaining() )
-                {
+                if ( $main::cm11_objects{timer}->seconds_remaining() >= $main::cm11_objects{bak_timer}->seconds_remaining() ) {
                     print "db CM11: using primary cm11\n" if $main::Debug{cm11};
-                    &ControlX10::CM11::send(
-                        $main::Serial_Ports{cm11}{object},
-                        substr( $serial_data, 1 )
-                    );
+                    &ControlX10::CM11::send( $main::Serial_Ports{cm11}{object}, substr( $serial_data, 1 ) );
                 }
                 else {
                     print "db CM11: using backup cm11\n" if $main::Debug{cm11};
-                    &ControlX10::CM11::send(
-                        $main::Serial_Ports{cm11_bak}{object},
-                        substr( $serial_data, 1 ) );
+                    &ControlX10::CM11::send( $main::Serial_Ports{cm11_bak}{object}, substr( $serial_data, 1 ) );
                 }
             }
             elsif ( $main::cm11_objects{active}->state() eq 'on' ) {
                 print "db CM11: using primary cm11\n" if $main::Debug{cm11};
-                &ControlX10::CM11::send(
-                    $main::Serial_Ports{cm11}{object},
-                    substr( $serial_data, 1 )
-                );
+                &ControlX10::CM11::send( $main::Serial_Ports{cm11}{object}, substr( $serial_data, 1 ) );
             }
             elsif ( $main::cm11_objects{bak_active}->state() eq 'on' ) {
                 print "db CM11: using backup cm11\n" if $main::Debug{cm11};
-                &ControlX10::CM11::send( $main::Serial_Ports{cm11_bak}{object},
-                    substr( $serial_data, 1 ) );
+                &ControlX10::CM11::send( $main::Serial_Ports{cm11_bak}{object}, substr( $serial_data, 1 ) );
             }
             else {
                 print "db CM11: Error - no cm11's are working ...\n"
@@ -288,8 +268,7 @@ sub send_x10_data {
         # TI103 wants individual codes without X
         print "db1 TI103: Sending x10 data: $serial_data\n"
           if $main::Debug{ti103};
-        &ControlX10::TI103::send( $main::Serial_Ports{ti103}{object},
-            substr( $serial_data, 1 ) );
+        &ControlX10::TI103::send( $main::Serial_Ports{ti103}{object}, substr( $serial_data, 1 ) );
     }
 
     elsif ( $interface eq 'bx24' ) {
@@ -301,67 +280,48 @@ sub send_x10_data {
     elsif ( $interface eq 'lynx10plc' ) {
 
         # lynx10plc wants individual codes without X
-        &Lynx10PLC::send_plc( $main::Serial_Ports{Lynx10PLC}{object},
-            $serial_data, $module_type );
+        &Lynx10PLC::send_plc( $main::Serial_Ports{Lynx10PLC}{object}, $serial_data, $module_type );
     }
     elsif ( $interface eq 'cm17' ) {
 
         # cm17 wants A1K, not XA1AK
-        &ControlX10::CM17::send( $main::Serial_Ports{cm17}{object},
-            substr( $x10_save_unit, 1 ) . substr( $serial_data, 2 ) )
+        &ControlX10::CM17::send( $main::Serial_Ports{cm17}{object}, substr( $x10_save_unit, 1 ) . substr( $serial_data, 2 ) )
           if $isfunc;
     }
     elsif ( $interface eq 'homevision' ) {
 
         # homevision wants XA1AK
         if ($isfunc) {
-            print "Using homevision to send: "
-              . $x10_save_unit
-              . substr( $serial_data, 1 ) . "\n";
-            &Homevision::send(
-                $main::Serial_Ports{Homevision}{object},
-                $x10_save_unit . substr( $serial_data, 1 )
-            );
+            print "Using homevision to send: " . $x10_save_unit . substr( $serial_data, 1 ) . "\n";
+            &Homevision::send( $main::Serial_Ports{Homevision}{object}, $x10_save_unit . substr( $serial_data, 1 ) );
         }
     }
     elsif ( $interface eq 'homebase' ) {
 
         # homebase wants individual codes without X
         print "Using homebase to send: $serial_data\n";
-        &HomeBase::send_X10( $main::Serial_Ports{HomeBase}{object},
-            substr( $serial_data, 1 ) );
+        &HomeBase::send_X10( $main::Serial_Ports{HomeBase}{object}, substr( $serial_data, 1 ) );
     }
     elsif ( $interface eq 'stargate' ) {
 
         # Stargate wants individual codes without X
         print "Using stargate to send: $serial_data\n";
-        &Stargate::send_X10( $main::Serial_Ports{Stargate}{object},
-            substr( $serial_data, 1 ) );
+        &Stargate::send_X10( $main::Serial_Ports{Stargate}{object}, substr( $serial_data, 1 ) );
     }
     elsif ( $interface eq 'houselinc' ) {
 
         # houselinc wants XA1AK
         if ($isfunc) {
-            print "Using houselinc to send: "
-              . $x10_save_unit
-              . substr( $serial_data, 1 ) . "\n";
-            &HouseLinc::send_X10(
-                $main::Serial_Ports{HouseLinc}{object},
-                $x10_save_unit . substr( $serial_data, 1 )
-            );
+            print "Using houselinc to send: " . $x10_save_unit . substr( $serial_data, 1 ) . "\n";
+            &HouseLinc::send_X10( $main::Serial_Ports{HouseLinc}{object}, $x10_save_unit . substr( $serial_data, 1 ) );
         }
     }
     elsif ( $interface eq 'marrick' ) {
 
         # marrick wants XA1AK
         if ($isfunc) {
-            print "Using marrick to send: "
-              . $x10_save_unit
-              . substr( $serial_data, 1 ) . "\n";
-            &Marrick::send_X10(
-                $main::Serial_Ports{Marrick}{object},
-                $x10_save_unit . substr( $serial_data, 1 )
-            );
+            print "Using marrick to send: " . $x10_save_unit . substr( $serial_data, 1 ) . "\n";
+            &Marrick::send_X10( $main::Serial_Ports{Marrick}{object}, $x10_save_unit . substr( $serial_data, 1 ) );
         }
     }
     elsif ( $interface eq 'ncpuxa' ) {
@@ -378,8 +338,7 @@ sub send_x10_data {
         # Allow for +-xx%
         my $dim_amount = 3;
         if ( $command =~ /[\+\-]\d+/ ) {
-            $dim_amount =
-              int( 10 * abs($command) / 100 );    # about 10 levels to 100%
+            $dim_amount = int( 10 * abs($command) / 100 );    # about 10 levels to 100%
             $command = ( $command > 0 ) ? 'L' : 'M';
         }
 
@@ -412,8 +371,7 @@ sub send_x10_data {
         &X10_Wish::send( substr( $serial_data, 1 ) );
     }
     else {
-        print
-          "\nError, X10 interface not found: interface=$interface, data=$serial_data\n";
+        print "\nError, X10 interface not found: interface=$interface, data=$serial_data\n";
     }
 
 }

@@ -70,8 +70,7 @@ $EXPORT_TAGS{ALL} = \@EXPORT_OK;
 # @X10_Wish::ISA = ('Generic_Item');
 
 my %last_dev;
-my %hex2int =
-  qw( 0 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 A 10 B 11 C 12 D 13 E 14 F 15 G 16 );
+my %hex2int    = qw( 0 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 A 10 B 11 C 12 D 13 E 14 F 15 G 16 );
 my $readlength = 512;
 
 # file handle of log device file
@@ -129,8 +128,7 @@ sub startup {
 
         # set us up to check for data
         &::MainLoop_pre_add_hook( \&X10_Wish::check_for_data, 1 );
-        &main::print_log(
-            "Added X10_Wish::check_for_data hook in X10_Wish::startup")
+        &main::print_log("Added X10_Wish::check_for_data hook in X10_Wish::startup")
           if checkDebug();
     }
     else {

@@ -6,8 +6,7 @@
 # get_email_scan_file and $p_get_email are created by internet_mail.pl
 if ( done_now $p_get_email and -e $get_email_scan_file ) {
     for my $line ( file_read $get_email_scan_file) {
-        my ( $from, $to, $subject, $body ) =
-          $line =~ /From:(.+?) To:(.+?) Subject:(.+?) Body:(.+)/;
+        my ( $from, $to, $subject, $body ) = $line =~ /From:(.+?) To:(.+?) Subject:(.+?) Body:(.+)/;
 
         # Detect mh http server port is down from NetWhistle mail
         #       display  text => "$Time_Date: $subject\n", time => 0, window_name => 'debug', append => 'top';
@@ -15,8 +14,7 @@ if ( done_now $p_get_email and -e $get_email_scan_file ) {
             socket_close 'http';
 
             #           &socket_restart('http');
-            my $msg =
-              "Notice, http server was detected down, so I just restarted it.  $subject\n  $body";
+            my $msg = "Notice, http server was detected down, so I just restarted it.  $subject\n  $body";
             display text => $msg, time => 0, font => 'fixed';
             speak rooms => 'all', text => 'HTTP server was just restarted';
         }

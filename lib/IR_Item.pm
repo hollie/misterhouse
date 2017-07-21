@@ -97,8 +97,7 @@ sub check_xap {
           unless $$xap_data{'xap-header'}{class}
           and $$xap_data{'xap-header'}{class} eq 'ir.receive';
         for my $o (@objects_xap) {
-            print
-              "IR_Item xap: $$xap_data{'ir.signal'}{device} = $$xap_data{'ir.signal'}{signal}\n";
+            print "IR_Item xap: $$xap_data{'ir.signal'}{device} = $$xap_data{'ir.signal'}{signal}\n";
             next unless uc $$xap_data{'ir.signal'}{device} eq $$o{device};
             $o->SUPER::set( $$xap_data{'ir.signal'}{signal}, 'xap' );
         }
@@ -161,8 +160,7 @@ sub default_setstate {
 
         # Lets build our own delay
         if ( $command eq 'DELAY' ) {
-            select undef, undef, undef,
-              0.3;   # Give it a chance to get going before doing other commands
+            select undef, undef, undef, 0.3;    # Give it a chance to get going before doing other commands
             next;
         }
 
@@ -180,13 +178,11 @@ sub default_setstate {
             $device_prev = $$self{device};
             return
               if &main::proxy_send( 'cm17', 'send_ir', "$device $command" );
-            &ControlX10::CM17::send_ir( $main::Serial_Ports{cm17}{object},
-                "$device $command" );
+            &ControlX10::CM17::send_ir( $main::Serial_Ports{cm17}{object}, "$device $command" );
             $device = '';    # Use device only on the first command
         }
         elsif ( $$self{interface} eq 'homevision' ) {
-            &Homevision::send( $main::Serial_Ports{Homevision}{object},
-                $command );
+            &Homevision::send( $main::Serial_Ports{Homevision}{object}, $command );
         }
         elsif ( $$self{interface} eq 'ncpuxa' ) {
             &ncpuxa_mh::send( $main::config_parms{ncpuxa_port}, $command );
@@ -204,8 +200,7 @@ sub default_setstate {
             &ninja_mh::send( $device, $command );
         }
         elsif ( $$self{interface} eq 'xap' ) {
-            &xAP::send( 'xAP', 'IR.Transmit',
-                'IR.Signal' => { Device => $device, Signal => $command } );
+            &xAP::send( 'xAP', 'IR.Transmit', 'IR.Signal' => { Device => $device, Signal => $command } );
         }
         else {
             print "IR_Item::set Interface $$self{interface} not supported.\n";

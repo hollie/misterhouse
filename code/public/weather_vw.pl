@@ -42,8 +42,7 @@ $RainHour        = new Weather_Item 'RainHour';
 $Pressure        = new Generic_Item;
 $Pressure->restore_data( 'PressureLastHour', 'Trend' );
 $CumRain = new Generic_Item;
-$CumRain->restore_data( 'WeeklyRain', 'MonthlyRain', 'DailyRain',
-    'HourlyRain' );
+$CumRain->restore_data( 'WeeklyRain', 'MonthlyRain', 'DailyRain', 'HourlyRain' );
 $DailyTemp = new Generic_Item;
 $DailyTemp->restore_data( 'High', 'Low' );
 $v_WeatherReport = new Voice_Cmd "What is the current weather?";
@@ -88,20 +87,11 @@ if ( defined $Weather{TempOutdoor} and $Weather{TempOutdoor} ne 'unknown' ) {
     if (    ( state $Windy)
         and ( new_minute 15 ) )
     {
-        print_msg "The wind is "
-          . round( $Weather{WindAvgSpeed} )
-          . " mph from the "
-          . convert_direction( $Weather{WindAvgDir} ) . " \n";
+        print_msg "The wind is " . round( $Weather{WindAvgSpeed} ) . " mph from the " . convert_direction( $Weather{WindAvgDir} ) . " \n";
     }
-    print_msg "Wind gust of "
-      . round( $Weather{WindGustSpeed} )
-      . " mph from the "
-      . convert_direction( $Weather{WindAvgDir} ) . " \n"
+    print_msg "Wind gust of " . round( $Weather{WindGustSpeed} ) . " mph from the " . convert_direction( $Weather{WindAvgDir} ) . " \n"
       if state_now $Gusty;
-    speak "Wind gust of "
-      . round( $Weather{WindGustSpeed} )
-      . " mph from the "
-      . convert_direction( $Weather{WindAvgDir} ) . " \n"
+    speak "Wind gust of " . round( $Weather{WindGustSpeed} ) . " mph from the " . convert_direction( $Weather{WindAvgDir} ) . " \n"
       if state_now $Stormy;
     print_msg "It is raining $Weather{RainRate} \n" if state_now $Rainy;
 }
@@ -140,17 +130,14 @@ if ( time_cron '5,20,35,50 * * * *' ) {
         $adj_humidity = $humidity;
     }
     $pressure_mb = ( $Weather{Barom} / $mb_conv_factor ) * 10;
-    $aprs_data =
-      sprintf
-      "your_call>APRS,TCPIP*:@%02d%02d%02dzDDMM.ddN/DDDMM.ddW_%03d/%03dg%03dt%03dr%03dP%03dh%02db%05d/station type\n",
+    $aprs_data   = sprintf "your_call>APRS,TCPIP*:@%02d%02d%02dzDDMM.ddN/DDDMM.ddW_%03d/%03dg%03dt%03dr%03dP%03dh%02db%05d/station type\n",
       $hh, $mm, $ss, $Weather{WindAvgDir}, $Weather{WindAvgSpeed},
       $Weather{WindGustSpeed}, $temp, $hourly_rain * 100, $daily_rain * 100,
       $adj_humidity, $pressure_mb;
     logit( "$config_parms{data_dir}/aprs.log", $aprs_data );
     unless ( active $aprs_net) {
         start $aprs_net;
-        set $aprs_net
-          "user your_call pass your_password vers misterhouse linux .01";
+        set $aprs_net "user your_call pass your_password vers misterhouse linux .01";
     }
     if ( $aprs_in = said $aprs_net) { }
     set $aprs_net $aprs_data;

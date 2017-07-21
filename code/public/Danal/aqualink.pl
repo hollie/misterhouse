@@ -118,8 +118,7 @@ if ( $data = said $aqualink ) {
         if ( $command eq 'AIRTMP' ) {
             &aqualinklog("Air Temp $value $AIRTMPmode");
             $Save{PoolAIRTMP} = $value;
-            speak
-              "Djeeni says: Pool Air temperature is currently $value degrees."
+            speak "Djeeni says: Pool Air temperature is currently $value degrees."
               if $AIRTMPmode ne '';
             $AIRTMPmode = '';
         }
@@ -191,8 +190,7 @@ if ( $data = said $aqualink ) {
         if ( $command eq 'OPMODE' ) {
             &aqualinklog("OPMODE $value $OPMODEmode");
             $Save{PoolOPMODE} = $value;
-            speak
-              "Djeeni says: Aqualink system operation mode is currently $value."
+            speak "Djeeni says: Aqualink system operation mode is currently $value."
               if $OPMODEmode ne '';
             $OPMODEmode = '';
         }
@@ -343,8 +341,7 @@ if ( $data = said $aqualink ) {
             &aqualinklog("SPA $value $SPAmode");
             $value = ( $value eq 'on' ) ? 'Spa' : 'Pool';
             $Save{PoolSPA} = $value;
-            speak
-              "Djeeni says: The Pool Spa mode is currently $value. Repeat $value"
+            speak "Djeeni says: The Pool Spa mode is currently $value. Repeat $value"
               if $SPAmode ne '';
             $SPAmode = '';
         }
@@ -383,8 +380,7 @@ if ( $data = said $aqualink ) {
                 $value = $value / 100;
                 &aqualinklog("VBAT $value $VBATmode");
                 $Save{PoolVBAT} = $value;
-                speak
-                  "Djeeni says: The Pool backup battery voltage is currently $value."
+                speak "Djeeni says: The Pool backup battery voltage is currently $value."
                   if $VBATmode ne '';
                 $VBATmode = '';
             }
@@ -407,8 +403,7 @@ if ( $data = said $aqualink ) {
 
     #Check for a reset of the RS Serial Adapter
     if ( $data =~ m#^Jandy Products.*# ) {
-        run_after_delay 2,
-          sub { set $aqualink "#ECHO=0"; set $aqualink "#COSMSGS=1"; };
+        run_after_delay 2, sub { set $aqualink "#ECHO=0"; set $aqualink "#COSMSGS=1"; };
     }
 
 }    # End of data from aqualink
@@ -556,14 +551,12 @@ set_order $v_pool_display_status '16';
 set_icon $v_pool_aux5_speak 'info';
 if ( $state = said $v_pool_display_status) {
     print_log "Display Pool Status";
-    my $results =
-      "<pre>Pool Settings, all as of last explicit query or notification:\n";
+    my $results = "<pre>Pool Settings, all as of last explicit query or notification:\n";
     $results .= "\n";
     $results .= "Pool area Air Temperature = $Save{PoolAIRTMP}\n";
     $results .= "            Pool/Spa Mode = $Save{PoolSPA}\n";
     $results .= "       Main (filter) Pump = $Save{PoolPUMP}\n";
-    $results .=
-      "     Cleaner (sweep) Pump = $Save{PoolCLEANR} (a.k.a $CLEANR)\n";
+    $results .= "     Cleaner (sweep) Pump = $Save{PoolCLEANR} (a.k.a $CLEANR)\n";
     $results .= "\n";
     $results .= "   Pool Water Temperature = $Save{PoolPOOLTMP}\n";
     $results .= "     Pool Water Set Point = $Save{PoolPOOLSP}\n";
@@ -720,8 +713,7 @@ if ( $state = said $v_pool_AUX4_set) {
 ##########################################################################
 # Category=Pool SysDiag
 
-$v_pool_diag =
-  new Voice_Cmd("Run the Aqualink serial adapter diagnostics (bad/fails)");
+$v_pool_diag = new Voice_Cmd("Run the Aqualink serial adapter diagnostics (bad/fails)");
 set_icon $v_pool_diag 'debug';
 if ( $state = said $v_pool_diag) { set $aqualink "#DIAG"; }
 
@@ -778,8 +770,7 @@ if ( $state = said $v_pool_battery) {
 
 sub aqualinklog {
     my ($text) = @_;
-    &::logit( "$::config_parms{data_dir}/logs/aqualink.$::Year_Month_Now.log",
-        "Aqualink: $text" );
+    &::logit( "$::config_parms{data_dir}/logs/aqualink.$::Year_Month_Now.log", "Aqualink: $text" );
 }
 
 #Commands

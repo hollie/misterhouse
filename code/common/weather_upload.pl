@@ -39,10 +39,8 @@
 #use POSIX qw(strftime);
 
 $p_weather_update = new Process_Item;
-$v_weather_update =
-  new Voice_Cmd '[Show results from,Run] wunderground.com upload';
-my $weather_update_html_path =
-  "$config_parms{data_dir}/web/wu-result.html";    #noloop
+$v_weather_update = new Voice_Cmd '[Show results from,Run] wunderground.com upload';
+my $weather_update_html_path = "$config_parms{data_dir}/web/wu-result.html";    #noloop
 
 # Create trigger
 
@@ -54,8 +52,7 @@ if ($Reload) {
         : 10
       );
 
-    &trigger_set( $command, "run_voice_cmd('Run wunderground.com upload')",
-        'NoExpire', 'upload weather' )
+    &trigger_set( $command, "run_voice_cmd('Run wunderground.com upload')", 'NoExpire', 'upload weather' )
       unless &trigger_get('upload weather');
 }
 
@@ -81,8 +78,7 @@ if ( said $v_weather_update eq 'Run' ) {
     my $weather_dewoutdoor  = $Weather{DewOutdoor};
 
     if ( $config_parms{weather_uom_temp} eq 'C' ) {
-        grep { $_ = convert_c2f($_) if defined $_; }
-          ( $weather_tempoutdoor, $weather_dewoutdoor );
+        grep { $_ = convert_c2f($_) if defined $_; } ( $weather_tempoutdoor, $weather_dewoutdoor );
     }
 
     my $weather_baromsea = $Weather{BaromSea};
@@ -96,8 +92,7 @@ if ( said $v_weather_update eq 'Run' ) {
         }
     }
 
-    if ( defined $weather_baromsea and $config_parms{weather_uom_baro} eq 'mb' )
-    {
+    if ( defined $weather_baromsea and $config_parms{weather_uom_baro} eq 'mb' ) {
         $weather_baromsea = convert_mb2in($weather_baromsea);
     }
 
@@ -105,12 +100,10 @@ if ( said $v_weather_update eq 'Run' ) {
     my $weather_windavgspeed  = $Weather{WindAvgSpeed};
 
     if ( $config_parms{weather_uom_wind} eq 'kph' ) {
-        grep { $_ = convert_km2mile($_) if defined $_; }
-          ( $weather_windgustspeed, $weather_windavgspeed );
+        grep { $_ = convert_km2mile($_) if defined $_; } ( $weather_windgustspeed, $weather_windavgspeed );
     }
     if ( $config_parms{weather_uom_wind} eq 'm/s' ) {
-        grep { $_ = convert_mps2mph($_) if defined $_; }
-          ( $weather_windgustspeed, $weather_windavgspeed );
+        grep { $_ = convert_mps2mph($_) if defined $_; } ( $weather_windgustspeed, $weather_windavgspeed );
     }
 
     my $weather_rainrate = $Weather{RainRate};
@@ -136,8 +129,7 @@ if ( said $v_weather_update eq 'Run' ) {
             if ( $weather_rainrate >= 1 ) {    # 1+ inches per hour sounds heavy
                 $weather_conditions = '+RA';
             }
-            if ( $weather_rainrate <= 0.1 )
-            {    # 0.1- inches per hour sounds light
+            if ( $weather_rainrate <= 0.1 ) {    # 0.1- inches per hour sounds light
                 $weather_conditions = '-RA';
             }
         }
@@ -162,15 +154,12 @@ if ( said $v_weather_update eq 'Run' ) {
         }
     }
 
-    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
-      gmtime();
-    my $utc = sprintf "%s-%02d-%02d %02d:%02d:%02d", $year + 1900, $mon + 1,
-      $mday, $hour, $min, $sec;
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = gmtime();
+    my $utc = sprintf "%s-%02d-%02d %02d:%02d:%02d", $year + 1900, $mon + 1, $mday, $hour, $min, $sec;
     $utc = &escape($utc);
 
     my $url =
-      sprintf
-      'http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php?ID=%s&dateutc=%s&softwaretype=Misterhouse&action=updateraw',
+      sprintf 'http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php?ID=%s&dateutc=%s&softwaretype=Misterhouse&action=updateraw',
       $stationid, $utc;
 
     $url .= "&winddir=$weather_winddir" if defined $weather_winddir;
@@ -198,8 +187,7 @@ if ( said $v_weather_update eq 'Run' ) {
 # *** Need to parse the response to look for errors
 
 if ( done_now $p_weather_update) {
-    $v_weather_update->respond(
-        'app=wunderground connected=0 Weather upload completed.');
+    $v_weather_update->respond('app=wunderground connected=0 Weather upload completed.');
 
 }
 

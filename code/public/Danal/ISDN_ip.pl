@@ -21,13 +21,10 @@
 my $f_ISDN_addr = "$config_parms{data_dir}/web/ISDN_addr.txt";
 my $f_ISDN_html = "$config_parms{data_dir}/web/ISDN_addr.html";
 
-$p_ISDN_addr =
-  new Process_Item("get_url http://lanmodem/stat3.htm $f_ISDN_html");
+$p_ISDN_addr = new Process_Item("get_url http://lanmodem/stat3.htm $f_ISDN_html");
 
-$v_ISDN_addr =
-  new Voice_Cmd('[Get,Read,Show] the 3Com ISDN Lan Modem Internet IP address');
-$v_ISDN_addr->set_info(
-    "The IP address of the other end of the call; our public IP");
+$v_ISDN_addr = new Voice_Cmd('[Get,Read,Show] the 3Com ISDN Lan Modem Internet IP address');
+$v_ISDN_addr->set_info("The IP address of the other end of the call; our public IP");
 
 speak($f_ISDN_addr)   if said $v_ISDN_addr eq 'Read';
 display($f_ISDN_addr) if said $v_ISDN_addr eq 'Show';
@@ -47,8 +44,8 @@ if ( done_now $p_ISDN_addr) {
     $text =~ s/<td>IP address in use.*?<\/td>//s;
 
     # Pick next four table data elements as name/address pairs
-    my ( $n1, $n2, $a1, $a2 ) = $text =~
-      /(?:<td>)(.*?)(?:<\/td>)(?:.*?)(?:<td>)(.*?)(?:<\/td>)(?:.*?)(?:<td>)(.*?)(?:<\/td>)(?:.*?)(?:<td>)(.*?)(?:<\/td>)(?:.*?)/s;
+    my ( $n1, $n2, $a1, $a2 ) =
+      $text =~ /(?:<td>)(.*?)(?:<\/td>)(?:.*?)(?:<td>)(.*?)(?:<\/td>)(?:.*?)(?:<td>)(.*?)(?:<\/td>)(?:.*?)(?:<td>)(.*?)(?:<\/td>)(?:.*?)/s;
 
     $n1 = 'No Call' if !$n1;
     $n2 = 'No Call' if !$n2;

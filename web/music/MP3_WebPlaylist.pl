@@ -44,8 +44,7 @@ if ( $Cmd eq "list" ) {
         $DisplayName =~ tr/_/ /;
         $DisplayName =~ s/-/ - /g;
         $DisplayName =~ s/.m3u$//;
-        $HTTP = $HTTP
-          . "<td><a href=/music/MP3_WebPlaylist.pl?Add=$playfiles{$playlist} target=MP3_Playlist>$DisplayName</a></td><tr>\n";
+        $HTTP = $HTTP . "<td><a href=/music/MP3_WebPlaylist.pl?Add=$playfiles{$playlist} target=MP3_Playlist>$DisplayName</a></td><tr>\n";
     }
     $HTTP = $HTTP . "</table>\n";
 }
@@ -63,8 +62,7 @@ return $HTTP;
 sub DisplayPlaylist {
     my $titles = &mp3_get_playlist();
     if ( @$titles == 0 ) {
-        $HTTP = $HTTP
-          . "<H1><CENTER>There is no track in the playlist</CENTER></H1>\n";
+        $HTTP = $HTTP . "<H1><CENTER>There is no track in the playlist</CENTER></H1>\n";
     }
     else {
         $HTTP = $HTTP . "<table width=100% borders=0>\n";
@@ -72,11 +70,9 @@ sub DisplayPlaylist {
 
         foreach my $item (@$titles) {
             my $Time = &mp3_get_playlist_timestr( $pos - 1 );
-            my $Str =
-              "                                                            ";
+            my $Str  = "                                                            ";
             $Str = substr( "$pos. $item", 1 );
-            $HTTP = $HTTP
-              . "<td><a href=/music/MP3_WebPlaylist.pl?Jump=$pos target=MP3_Playlist>$pos. $item</a><right> .... $Time</right></td><tr>\n";
+            $HTTP = $HTTP . "<td><a href=/music/MP3_WebPlaylist.pl?Jump=$pos target=MP3_Playlist>$pos. $item</a><right> .... $Time</right></td><tr>\n";
             $pos++;
         }
         $HTTP = $HTTP . "</table>\n";
@@ -88,8 +84,7 @@ sub Header {
     my $HTTP = "<html><body>\n";
     $HTTP = $HTTP . "<meta http-equiv='Pragma' content='no-cache'>\n";
     $HTTP = $HTTP . "<meta http-equiv='Expires' content='-1'>\n";
-    $HTTP = $HTTP
-      . "<meta http-equiv='Refresh' content='60;url=/music/MP3_WebPlaylist.pl'>\n";
+    $HTTP = $HTTP . "<meta http-equiv='Refresh' content='60;url=/music/MP3_WebPlaylist.pl'>\n";
     $HTTP = $HTTP . "<base target ='MP3_Playlist'>\n";
     return $HTTP;
 }

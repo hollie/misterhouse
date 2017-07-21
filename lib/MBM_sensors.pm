@@ -119,7 +119,7 @@ sub get {
       'l' .                               # ssCount of readout
       'x4' .                              # ssPad2
       'H20'
-      . # ssTotal - Note: Perl unpack has no equivalent to Delphi "Extended" 10 byte floating; So return ssTotal in hex for further processing in the parser
+      .    # ssTotal - Note: Perl unpack has no equivalent to Delphi "Extended" 10 byte floating; So return ssTotal in hex for further processing in the parser
       'x6' .    # ssPad3
       'd' .     # ssAlarm1 Temp&Fan: high alarm; voltage: %off
       'd';      # ssAlarm2 Temp: low alarm
@@ -129,23 +129,20 @@ sub get {
 
     my $MBMSharedInfoPattern = 'S' .    # siSMB_Base SMBus base address
       'C' .                             # siSMB_Type SMBus how accessed
-      'C' .      # siSMB_Code SMBus sub type Intel, AMD, ALi, etc.
-      'C' .      # siSMB_Addr Address of sensor chip on bus
-      'A41' .    # siSMB_Name Nice name for SMBus
-      'S' .      # siISA_Base ISA base address of sensor chip
-      'N' .      # siChipType
-      'C';       # siVoltageSubType
+      'C' .                             # siSMB_Code SMBus sub type Intel, AMD, ALi, etc.
+      'C' .                             # siSMB_Addr Address of sensor chip on bus
+      'A41' .                           # siSMB_Name Nice name for SMBus
+      'S' .                             # siISA_Base ISA base address of sensor chip
+      'N' .                             # siChipType
+      'C';                              # siVoltageSubType
     my $MBMSharedInfoLen = length pack $MBMSharedInfoPattern;
     $MBMSharedInfoLen += 4 - ( $MBMSharedInfoLen % 4 )
       if ( $MBMSharedInfoLen % 4 );
 
-    my $MBMSharedMemPattern = 'd' .    # sdVersion
-      $MBMSharedIndexPattern x 10
-      . $MBMSharedSensorPattern x 100
-      . $MBMSharedInfoPattern . 'A41'
-      .                                # sdStart    Start Time
-      'A41' .                          # sdCurrent  Current Time
-      'A256C';                         # sdPath
+    my $MBMSharedMemPattern = 'd' .                                                                    # sdVersion
+      $MBMSharedIndexPattern x 10 . $MBMSharedSensorPattern x 100 . $MBMSharedInfoPattern . 'A41' .    # sdStart    Start Time
+      'A41' .                                                                                          # sdCurrent  Current Time
+      'A256C';                                                                                         # sdPath
 
     # Due to Delphi field alignment, overall length not equal length pack $MBMSharedMemPattern
     # Instead, it is:
@@ -166,8 +163,7 @@ sub get {
     # Create objects for all the API calls we need
 ##
 
-    my $OpenFileMapping =
-      new Win32::API( 'kernel32', 'OpenFileMapping', 'NNP', 'N' );
+    my $OpenFileMapping = new Win32::API( 'kernel32', 'OpenFileMapping', 'NNP', 'N' );
     if ( not defined $OpenFileMapping ) {
         die "MBM_sensors.pm: Can't import 'OpenFileMapping' API";
     }
@@ -177,20 +173,17 @@ sub get {
         die "MBM_sensors.pm: Can't import 'CloseHandle' API";
     }
 
-    my $MapViewOfFile =
-      new Win32::API( 'kernel32', 'MapViewOfFile', 'NNNNN', 'N' );
+    my $MapViewOfFile = new Win32::API( 'kernel32', 'MapViewOfFile', 'NNNNN', 'N' );
     if ( not defined $MapViewOfFile ) {
         die "MBM_sensors.pm: Can't import 'MapViewOfFile' API";
     }
 
-    my $UnmapViewOfFile =
-      new Win32::API( 'kernel32', 'UnmapViewOfFile', 'N', 'N' );
+    my $UnmapViewOfFile = new Win32::API( 'kernel32', 'UnmapViewOfFile', 'N', 'N' );
     if ( not defined $UnmapViewOfFile ) {
         die "MBM_sensors.pm: Can't import 'UnmapViewOfFile' API";
     }
 
-    my $RtlMoveMemory =
-      new Win32::API( 'kernel32', 'RtlMoveMemory', 'PNN', 'V' );
+    my $RtlMoveMemory = new Win32::API( 'kernel32', 'RtlMoveMemory', 'PNN', 'V' );
     if ( not defined $RtlMoveMemory ) {
         die "MBM_sensors.pm: Can't import 'RtlMoveMemory' API";
     }
@@ -203,8 +196,7 @@ sub get {
 
     #print "MBM_sensors.pm: MBM Handle " . $MBMhandle . "\n";
     if ( !$MBMhandle ) {
-        $MBM_sensors{error} =
-          "MBM_sensors.pm: Could not obtain MBM shared memory handle. Is MBM running?";
+        $MBM_sensors{error} = "MBM_sensors.pm: Could not obtain MBM shared memory handle. Is MBM running?";
         warn $MBM_sensors{error};
         return %MBM_sensors;
     }
@@ -250,8 +242,7 @@ sub get {
 
     my $SensorTotalCount = 0;
     for ( $i = 0; $i < 10; $i++ ) {
-        my ( $iType, $iCount ) = unpack "x$offset$MBMSharedIndexPattern",
-          $MBMSharedMem;
+        my ( $iType, $iCount ) = unpack "x$offset$MBMSharedIndexPattern", $MBMSharedMem;
 
         #printf "MBM_sensors.pm: At offset of %2.1d: iType=%2.2X, iCount=%2.1d\n", $offset, $iType, $iCount;
         $offset           += $MBMSharedIndexLen;
@@ -259,10 +250,8 @@ sub get {
     }
 
     for ( $i = 0; $i < $SensorTotalCount; $i++ ) {
-        my (
-            $ssType,  $ssName,  $ssCurrent, $ssLow, $ssHigh,
-            $ssCount, $ssTotal, $ssAlarm1,  $ssAlarm2
-        ) = unpack "x$offset$MBMSharedSensorPattern", $MBMSharedMem;
+        my ( $ssType, $ssName, $ssCurrent, $ssLow, $ssHigh, $ssCount, $ssTotal, $ssAlarm1, $ssAlarm2 ) = unpack "x$offset$MBMSharedSensorPattern",
+          $MBMSharedMem;
 
         #print "MBM_sensors.pm: $ssType, $ssName, $ssCurrent, $ssLow, $ssHigh, $ssCount, $ssTotal, $ssAlarm1, $ssAlarm2\n";
         $offset += $MBMSharedSensorLen;
@@ -282,16 +271,13 @@ sub get {
     # Restart the offset, as we did not necessarily loop through all possible sensor slots.
     $offset = 8 + $MBMSharedIndexLen * 10 + $MBMSharedSensorLen * 100;
 
-    my (
-        $siSMB_Base, $siSMB_Type, $siSMBCode,  $siSMB_Addr,
-        $siSMB_Name, $siISA_Base, $siChipType, $siVoltageSubType
-    ) = unpack "x$offset$MBMSharedInfoPattern", $MBMSharedMem;
+    my ( $siSMB_Base, $siSMB_Type, $siSMBCode, $siSMB_Addr, $siSMB_Name, $siISA_Base, $siChipType, $siVoltageSubType ) = unpack "x$offset$MBMSharedInfoPattern",
+      $MBMSharedMem;
 
     #print "MBM_sensors.pm: Shared Info $siSMB_Base, $siSMB_Type, $siSMBCode, $siSMB_Addr, $siSMB_Name, $siISA_Base, $siChipType, $siVoltageSubType\n";
     $offset += $MBMSharedInfoLen;
 
-    my ( $sdStart, $sdCurrent, $sdPath ) = unpack "x$offset" . "A41A41A256",
-      $MBMSharedMem;
+    my ( $sdStart, $sdCurrent, $sdPath ) = unpack "x$offset" . "A41A41A256", $MBMSharedMem;
 
     #print "MBM_sensors.pm: Shared last part $sdStart, $sdCurrent, $sdPath\n";
     $MBM_sensors{timestart}   = $sdStart;

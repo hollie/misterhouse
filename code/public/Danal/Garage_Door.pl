@@ -11,11 +11,9 @@
 #                                                                #
 ##################################################################
 
-use vars '$door1_old', '$door2_old', '$door3_old', '$warning_sent',
-  '$door_moved';
+use vars '$door1_old', '$door2_old', '$door3_old', '$warning_sent', '$door_moved';
 
-$garage_doors =
-  new X10_Garage_Door('D');   # CHANGE THIS to housecode of your RF Vehicle Link
+$garage_doors      = new X10_Garage_Door('D');    # CHANGE THIS to housecode of your RF Vehicle Link
 $timer_garage_door = new Timer();
 $timer_garage_annc = new Timer();
 
@@ -35,8 +33,7 @@ $timer_garage_override = new Timer();
 # Transmission received from door(s)
 if ( state_now $garage_doors) {
     my $state = state $garage_doors;
-    my ( $en1, $en2, $en3, $which, $door1, $door2, $door3 ) =
-      $state =~ /(\S)(\S)(\S)(\S)(\S)(\S)(\S)/;
+    my ( $en1, $en2, $en3, $which, $door1, $door2, $door3 ) = $state =~ /(\S)(\S)(\S)(\S)(\S)(\S)(\S)/;
     my %table_dcode = qw(O Open C Closed);
 
     my $debug = 1 if $config_parms{debug} eq 'garage';
@@ -52,42 +49,36 @@ if ( state_now $garage_doors) {
 
     if ( $which eq '1' ) {
         if ( $door1 eq $door1_old ) {
-            print_log
-              "Door 1 timer or retransmit update, door1 $table_dcode{$door1}\n"
+            print_log "Door 1 timer or retransmit update, door1 $table_dcode{$door1}\n"
               if $debug;
         }
         else {
             $door_moved = 1;
-            print_log
-              "Door 1 status change, old $table_dcode{$door1_old}, new $table_dcode{$door1}\n";
+            print_log "Door 1 status change, old $table_dcode{$door1_old}, new $table_dcode{$door1}\n";
             &garage_speak("Door <emph>1</emph> is $table_dcode{$door1}");
         }
     }
 
     if ( $which eq '2' ) {
         if ( $door2 eq $door2_old ) {
-            print_log
-              "Door 2 timer or retransmit update, door2 $table_dcode{$door2}\n"
+            print_log "Door 2 timer or retransmit update, door2 $table_dcode{$door2}\n"
               if $debug;
         }
         else {
             $door_moved = 1;
-            print_log
-              "Door 2 status change, old $table_dcode{$door2_old}, new $table_dcode{$door2}\n";
+            print_log "Door 2 status change, old $table_dcode{$door2_old}, new $table_dcode{$door2}\n";
             &garage_speak("Door <emph>2</emph> is $table_dcode{$door2}");
         }
     }
 
     if ( $which eq '3' ) {
         if ( $door3 eq $door3_old ) {
-            print_log
-              "Door 3 timer or retransmit update, door3 $table_dcode{$door3}\n"
+            print_log "Door 3 timer or retransmit update, door3 $table_dcode{$door3}\n"
               if $debug;
         }
         else {
             $door_moved = 1;
-            print_log
-              "Door 3 status change, old $table_dcode{$door3_old}, new $table_dcode{$door3}\n";
+            print_log "Door 3 status change, old $table_dcode{$door3_old}, new $table_dcode{$door3}\n";
             &garage_speak("Door <emph>3<emph> is $table_dcode{$door3}");
         }
     }
@@ -100,8 +91,7 @@ if ( state_now $garage_doors) {
 # If a door actually moved (as opposed to a re-transmit), set/check some timers.
 if ($door_moved) {
     my $state = state $garage_doors;
-    if ( substr( $state, 4, 3 ) eq "CCC" )
-    {    # All Doors Closed, cancel any timers; undo any warnings.
+    if ( substr( $state, 4, 3 ) eq "CCC" ) {    # All Doors Closed, cancel any timers; undo any warnings.
         unset $timer_garage_door;
         unset $timer_garage_annc;
         if ($warning_sent) {
@@ -109,7 +99,7 @@ if ($door_moved) {
             $warning_sent = 0;
         }
     }
-    else {    # Start (or push out) a timer if anything is open
+    else {                                      # Start (or push out) a timer if anything is open
         set $timer_garage_door 60 * 5;
         set $timer_garage_annc 60 * 4;
     }
@@ -153,8 +143,7 @@ if ( state_now $Garage_Control) {
     if ( $c_state eq 'GC6' ) {
         print_log "Garage Door Override timer cancelled";
         &garage_speak("Garage command cancel acknowledged");
-        set $timer_garage_override 1
-          ;    # Set to 1 second to force 'expired' check soon.
+        set $timer_garage_override 1;    # Set to 1 second to force 'expired' check soon.
         unset $timer_garage_annc;
     }
 }    # End of Garage Control button pushed
@@ -177,8 +166,7 @@ if ( ( expired $timer_garage_door) and ( inactive $timer_garage_override) ) {
     $state = substr( $state, 4, 3 );
     if ( $state ne "CCC" ) {
         if ( !$warning_sent ) {
-            &garage_notify(
-                "Warning, Garage doors open too long <spell>$state</spell>");
+            &garage_notify("Warning, Garage doors open too long <spell>$state</spell>");
             $warning_sent = 1;
         }
         else {
@@ -196,9 +184,7 @@ if ( expired $timer_garage_override) {
     my $state = state $garage_doors;
     $state = substr( $state, 4, 3 );
     if ( $state ne "CCC" ) {
-        &garage_notify(
-            "Warning, Garage override expired with doors <spell>$state</spell>"
-        );
+        &garage_notify("Warning, Garage override expired with doors <spell>$state</spell>");
         $warning_sent = 1;
         set $timer_garage_door 60 * 2;
     }
@@ -211,8 +197,7 @@ $v_Garage_Query->set_info('Print log of garage door status info');
 
 if ( said $v_Garage_Query) {
     my $state = state $garage_doors;
-    my ( $en1, $en2, $en3, $which, $door1, $door2, $door3 ) =
-      $state =~ /(\S)(\S)(\S)(\S)(\S)(\S)(\S)/;
+    my ( $en1, $en2, $en3, $which, $door1, $door2, $door3 ) = $state =~ /(\S)(\S)(\S)(\S)(\S)(\S)(\S)/;
     my %table_dcode = qw(O Open C Closed);
 
     print_log "State=$state\n";
@@ -253,11 +238,9 @@ if (   ($Startup)
 sub garage_notify {
     my ($text) = @_;
 
-    my $p1 = new Process_Item(
-        "send_sprint_pcs -to danal -text \"$text $Date_Now $Time_Now\" ");
+    my $p1 = new Process_Item("send_sprint_pcs -to danal -text \"$text $Date_Now $Time_Now\" ");
     start $p1;    # Run externally so as not to hang MH process
-    my $p2 = new Process_Item(
-        "alpha_page -pin 1488774 -message \"$text $Date_Now $Time_Now\" ");
+    my $p2 = new Process_Item("alpha_page -pin 1488774 -message \"$text $Date_Now $Time_Now\" ");
     start $p2;    # Run externally so as not to hang MH process
 
     print_log "Garage notification sent, text = $text";
