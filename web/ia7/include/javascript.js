@@ -1,4 +1,4 @@
-// v1.5.560
+// v1.5.570
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -2463,14 +2463,17 @@ var floorplan = function(group,time) {
                                                 html += "<div id='slider' class='brightness-slider'></div>";					
                                                 html += "<br>";
                                                 fp_popover_close = false;
+console.log('slider created');
                                             }
                                             return html;
                                         }
                                     }).off().on('click', function (e) {
                                     var src = $(this).attr('id').match(/entity_(.*)_\d+$/)[1];
                                     last_slider_popover = src;
+console.log('src='+src);
+console.log($("a[title='"+src+"']"));
 
-                                        $( "a[title='"+src+"']" ).find(".popover-content").popover('show');
+console.log('vis='+$('.ui-slider').is(':visible'));                                        
                                         var val = $( "a[title='"+src+"']" ).find(".object-state").text();
                                         if (val == "on") {
                                             val = 100;
@@ -2479,11 +2482,15 @@ var floorplan = function(group,time) {
                                         } else {
                                             val = parseInt(val);
                                         }
+//TODO: slider get values from object
                                         $('#slider' ).slider({
                                             min: 0,
                                             max: 100,
                                             value: val
                                         });
+                                        
+                                        $( "a[title='"+src+"']" ).find(".popover-content").popover('show');
+                                        
                                         $( "#slider" ).on( "slide", function(event, ui) {
                                             var sliderstate = ui.value;
                                             if (sliderstate == "100") {
@@ -2536,6 +2543,11 @@ var floorplan = function(group,time) {
                                         $('[data-toggle="popover"]').on("focus",function(){
                                             if (fp_popover_close) $(this).popover('show')
 
+                                        });
+                                        $('[data-toggle="popover"]').mayTriggerLongClicks().on('longClick', function() {
+                                            $(this).popover('hide');
+                                            var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+                                            create_state_modal(fp_entity);
                                         });
                                 } else {
                                     E.click( function () {
