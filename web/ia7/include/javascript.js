@@ -1,4 +1,4 @@
-// v1.5.600D
+// v1.5.610D
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -2418,7 +2418,7 @@ var floorplan = function(group,time) {
                                             var name = fp_entity;
                                             if (json_store.objects[fp_entity].label !== undefined) name = json_store.objects[fp_entity].label;
                                             var ackt = E.offset();
-                                            return "<span class='entity-name'>"+name+ "</span> - <span class='object-state'>"+json_store.objects[fp_entity].state + "</span>";
+                                            return "<span class='entity-name'>"+name+ "</span> - <span class='fp-object-state'>"+json_store.objects[fp_entity].state + "</span>";
                                         },
                                         trigger: 'manual',
                                         html: 'true', //needed to show html of course
@@ -2464,7 +2464,7 @@ var floorplan = function(group,time) {
                                                     html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-default'>off</button>";	
                                                 }	
                                                 html += "</div>";			                
-                                                html += "<div id='slider' class='brightness-slider'></div>";					
+                                                html += "<div id='sliderFP' class='brightness-slider'></div>";					
                                                 html += "<br>";
                                                 fp_popover_close = false;
 console.log('slider created');
@@ -2478,17 +2478,17 @@ console.log('src='+src);
 console.log($("a[title='"+src+"']"));
 
 console.log('vis='+$('.ui-slider').is(':visible'));   
-console.log('slider_div='+$('#slider').is(':visible'))     
+console.log('slider_div='+$('#sliderFP').is(':visible'))     
 
 
                                     var slider_data = sliderDetails(json_store.objects[src].states);		                
-                                    var val = $( "a[title='"+src+"']" ).find(".object-state").text().replace(/\%/,'');
+                                    var val = $( "a[title='"+src+"']" ).find(".fp-object-state").text().replace(/\%/,'');
               
                                     var position = slider_data.values.indexOf(val);
                                     if (val == "on") position = slider_data.max;
                                     if (val == "off") position = slider_data.min;
                                     if (position == undefined || position < 0) position = 0;
-                                    $('#slider' ).slider({
+                                    $('#sliderFP' ).slider({
                                         min: slider_data.min,
                                         max: slider_data.max,
                                         value: position
@@ -2515,10 +2515,10 @@ console.log('slider_div='+$('#slider').is(':visible'))
 //                                            max: 100,
 //                                            value: val
 //                                        });
-console.log($( "#slider" ).slider( "instance" ));
+console.log($( "#sliderFP" ).slider( "instance" ));
                                         $( "a[title='"+src+"']" ).find(".popover-content").popover('show');
                                         
-                                        $( "#slider" ).on( "slide", function(event, ui) {
+                                        $( "#sliderFP" ).on( "slide", function(event, ui) {
                                             var sliderstate = slider_data.values[ui.value];
                                             if ((sliderstate == "100") && (slider_data.pct)) {
                                                 sliderstate = "on";
@@ -2527,7 +2527,7 @@ console.log($( "#slider" ).slider( "instance" ));
                                             } else {
                                                 if (slider_data.pct) sliderstate += "%";
                                             }
-                                            $('.object-state').text(sliderstate);
+                                            $('.fp-object-state').text(sliderstate);
                                         });
                                         
                                         
@@ -2544,8 +2544,8 @@ console.log($( "#slider" ).slider( "instance" ));
 //
 //                                        });
                                         
-                                        $( "#slider" ).on( "slidechange", function(event, ui) {
-                                            if ($('#slider').length == 0) return
+                                        $( "#sliderFP" ).on( "slidechange", function(event, ui) {
+                                            if ($('#sliderFP').length == 0) return
                                             var fp_entity = $(this).parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
                                             var sliderstate = slider_data.values[ui.value];
                                             if (isNaN(sliderstate)) {
@@ -2566,7 +2566,7 @@ console.log("url="+url)
                                                 fp_popover_close = true;
                                                 last_slider_popover = fp_entity;
                                                 $('.popover').popover('hide');
-                                                $('#slider').remove();
+                                                $('#sliderFP').remove();
                                                 $( "a[title='"+fp_entity+"']" ).find('[data-toggle="popover"]').blur();
                                             }
                                         });
@@ -2601,7 +2601,7 @@ console.log("url="+url)
                                             if (!$(this).hasClass("disabled")) $.get( url);
                                             fp_popover_close = true;
                                             $('.popover').popover('hide');
-                                            $('#slider').remove();
+                                            $('#sliderFP').remove();
                                         });
                                     });   
                                         $('[data-toggle="popover"]').on('blur',function(e){
@@ -2610,7 +2610,7 @@ console.log("url="+url)
 //slider div sticks around
 
                                                     $(this).popover('hide');
-                                                    $('#slider').remove();
+                                                    $('#sliderFP').remove();
                                             } else {
                                                 $(this).focus();
                                                 fp_popover_close = false; //true
@@ -2622,8 +2622,9 @@ console.log("url="+url)
                                         });
                                         $('[data-toggle="popover"]').mayTriggerLongClicks().on('longClick', function() {
                                             $(this).popover('hide');
-                                            $('#slider').remove();
+                                            $('#sliderFP').remove();
                                             var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+console.log("creating Modal="+fp_entity);
                                             create_state_modal(fp_entity);
                                         });
                                 } else {
@@ -2893,6 +2894,7 @@ var create_state_modal = function(entity) {
                 $('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");					
                 }
                 if (slider_active) {
+console.log("in slider_active");
                    var slider_data = sliderDetails(modal_states);		                
                    $('#control').find('.states').append("<div id='slider' class='brightness-slider'></div>");					
                    var val = $(".object-state").text().replace(/\%/,'');
@@ -2901,11 +2903,13 @@ var create_state_modal = function(entity) {
                    if (val == "on") position = slider_data.max;
                    if (val == "off") position = slider_data.min;
                    if (position == undefined || position < 0) position = 0;
+console.log("min: "+slider_data.min+" max: "+slider_data.max+" value: "+position);
                    $('#slider' ).slider({
                        min: slider_data.min,
                        max: slider_data.max,
                        value: position
                    });
+console.log("post slider");
                    $( "#slider" ).on( "slide", function(event, ui) {
                        var sliderstate = slider_data.values[ui.value];
                        if ((sliderstate == "100") && (slider_data.pct)) {
