@@ -29,8 +29,8 @@
 	<script src="include/jquery-ui-1.12.1.min.js"></script>
 	<link rel="stylesheet" href="include/jquery-ui.smoothness.1.12.1.min.css">
 
-	<!-- Enables Jquery UI functions to work on touch interfaces -->
-  	<!-- <script src="/ia7/include/jquery.ui.touch-punch.0.2.3.min.js"></script> -->
+	<!-- Enables Jquery UI functions (like slider) to work on touch interfaces -->
+  	<script src="/ia7/include/jquery.ui.touch-punch.0.2.3.min.js"></script>
 	
 	<!--Bootstrap-->
 	<!-- Latest compiled and minified CSS -->

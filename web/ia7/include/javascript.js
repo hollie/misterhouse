@@ -1,4 +1,4 @@
-// v1.5.560
+// v1.5.600D
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -2458,76 +2458,159 @@ var floorplan = function(group,time) {
                                                 }
                                             } else {
                                                 html = '<div class="btn-group stategrp0 btn-block">';
-                                                html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-success'>on</button>";					                
-                                                html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-default'>off</button></div>";					                
+                                                //if button doesn't have on and off don't display
+                                                if ($.inArray("on", json_store.objects[fp_entity].states) !== -1 && $.inArray("off", json_store.objects[fp_entity].states) !== -1) {
+                                                    html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-success'>on</button>";					                
+                                                    html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-default'>off</button>";	
+                                                }	
+                                                html += "</div>";			                
                                                 html += "<div id='slider' class='brightness-slider'></div>";					
                                                 html += "<br>";
                                                 fp_popover_close = false;
+console.log('slider created');
                                             }
                                             return html;
                                         }
                                     }).off().on('click', function (e) {
                                     var src = $(this).attr('id').match(/entity_(.*)_\d+$/)[1];
                                     last_slider_popover = src;
+console.log('src='+src);
+console.log($("a[title='"+src+"']"));
 
+console.log('vis='+$('.ui-slider').is(':visible'));   
+console.log('slider_div='+$('#slider').is(':visible'))     
+
+
+                                    var slider_data = sliderDetails(json_store.objects[src].states);		                
+                                    var val = $( "a[title='"+src+"']" ).find(".object-state").text().replace(/\%/,'');
+              
+                                    var position = slider_data.values.indexOf(val);
+                                    if (val == "on") position = slider_data.max;
+                                    if (val == "off") position = slider_data.min;
+                                    if (position == undefined || position < 0) position = 0;
+                                    $('#slider' ).slider({
+                                        min: slider_data.min,
+                                        max: slider_data.max,
+                                        value: position
+                                    });
+                                    
+
+
+                                
+//                                        var val = $( "a[title='"+src+"']" ).find(".object-state").text();
+//                                        if (val == "on") {
+//                                            val = 100;
+//                                        } else if (val == "off") {
+//                                            val = 0;
+//                                        } else {
+//                                            val = parseInt(val);
+//                                        }
+//TODO: new sliders always get made
+//                                        if ($( "#slider" ).slider( "instance" ) !== undefined) {
+//                                            $('#slider').slider("destroy");
+//console.log("sliders out there");
+//                                        }
+//                                        $('#slider' ).slider({
+//                                            min: 0,
+//                                            max: 100,
+//                                            value: val
+//                                        });
+console.log($( "#slider" ).slider( "instance" ));
                                         $( "a[title='"+src+"']" ).find(".popover-content").popover('show');
-                                        var val = $( "a[title='"+src+"']" ).find(".object-state").text();
-                                        if (val == "on") {
-                                            val = 100;
-                                        } else if (val == "off") {
-                                            val = 0;
-                                        } else {
-                                            val = parseInt(val);
-                                        }
-                                        $('#slider' ).slider({
-                                            min: 0,
-                                            max: 100,
-                                            value: val
-                                        });
+                                        
                                         $( "#slider" ).on( "slide", function(event, ui) {
-                                            var sliderstate = ui.value;
-                                            if (sliderstate == "100") {
+                                            var sliderstate = slider_data.values[ui.value];
+                                            if ((sliderstate == "100") && (slider_data.pct)) {
                                                 sliderstate = "on";
-                                            } else if (sliderstate == "0") {
-                                                 sliderstate = "off";
+                                            } else if ((sliderstate == "0") && (slider_data.pct)) {
+                                                sliderstate = "off";
                                             } else {
-                                                sliderstate += "%";
+                                                if (slider_data.pct) sliderstate += "%";
                                             }
                                             $('.object-state').text(sliderstate);
-
                                         });
+                                        
+                                        
+//                                        $( "#slider" ).on( "slide", function(event, ui) {
+//                                            var sliderstate = ui.value;
+//                                            if (sliderstate == "100") {
+//                                                sliderstate = "on";
+//                                            } else if (sliderstate == "0") {
+//                                                 sliderstate = "off";
+//                                            } else {
+//                                                sliderstate += "%";
+//                                            }
+//                                            $('.object-state').text(sliderstate);
+//
+//                                        });
+                                        
                                         $( "#slider" ).on( "slidechange", function(event, ui) {
                                             if ($('#slider').length == 0) return
                                             var fp_entity = $(this).parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
-                                            var sliderstate = ui.value;
-                                            if (isNaN(ui.value)) return; //if there isn't a numeric value then bail out of sending a set comment
-                                            if (sliderstate == "100") {
+                                            var sliderstate = slider_data.values[ui.value];
+                                            if (isNaN(sliderstate)) {
+                                                console.log("Warning: Slider value isn't a number:"+sliderstate);
+                                                return; //if there isn't a numeric value then bail out of sending a set comment
+                                            }
+                                            if ((sliderstate == "100") && (slider_data.pct)) {
                                                 sliderstate = "on";
-                                            } else if (sliderstate == "0") {
-                                                 sliderstate = "off";
+                                            } else if ((sliderstate == "0") && (slider_data.pct)) {
+                                                sliderstate = "off";
                                             } else {
-                                                sliderstate += "%";
+                                                if (slider_data.pct) sliderstate += "%";
                                             }
                                             if ($(".entity-name").length == 1) {
                                                 url= '/SET;none?select_item='+fp_entity+'&select_state='+sliderstate;
+console.log("url="+url)
                                                 $.get( url);
                                                 fp_popover_close = true;
                                                 last_slider_popover = fp_entity;
                                                 $('.popover').popover('hide');
+                                                $('#slider').remove();
                                                 $( "a[title='"+fp_entity+"']" ).find('[data-toggle="popover"]').blur();
                                             }
                                         });
+                                                
+                                        
+//                                        $( "#slider" ).on( "slidechange", function(event, ui) {
+//                                            if ($('#slider').length == 0) return
+//                                            var fp_entity = $(this).parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
+//                                            var sliderstate = ui.value;
+//                                            if (isNaN(ui.value)) return; //if there isn't a numeric value then bail out of sending a set comment
+//                                            if (sliderstate == "100") {
+//                                                sliderstate = "on";
+//                                            } else if (sliderstate == "0") {
+//                                                 sliderstate = "off";
+//                                            } else {
+//                                                sliderstate += "%";
+//                                            }
+//                                            if ($(".entity-name").length == 1) {
+//                                                url= '/SET;none?select_item='+fp_entity+'&select_state='+sliderstate;
+//                                                $.get( url);
+//                                                fp_popover_close = true;
+//                                                last_slider_popover = fp_entity;
+//                                                $('.popover').popover('hide');
+//                                                $('#slider').remove();
+ //                                               $( "a[title='"+fp_entity+"']" ).find('[data-toggle="popover"]').blur();
+//                                            }
+//                                        });
+
                                         $('.btn-state-cmd').on('click', function () {
                                             var fp_entity = $(this).parent().parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
                                             var url= '/SET;none?select_item='+fp_entity+'&select_state='+$(this).text();
                                             if (!$(this).hasClass("disabled")) $.get( url);
                                             fp_popover_close = true;
                                             $('.popover').popover('hide');
+                                            $('#slider').remove();
                                         });
                                     });   
                                         $('[data-toggle="popover"]').on('blur',function(e){
                                             if(fp_popover_close) {
+//                                                    if ($( "#slider" ).slider( "instance" ) !== undefined) $('#slider').slider("destroy");
+//slider div sticks around
+
                                                     $(this).popover('hide');
+                                                    $('#slider').remove();
                                             } else {
                                                 $(this).focus();
                                                 fp_popover_close = false; //true
@@ -2536,6 +2619,12 @@ var floorplan = function(group,time) {
                                         $('[data-toggle="popover"]').on("focus",function(){
                                             if (fp_popover_close) $(this).popover('show')
 
+                                        });
+                                        $('[data-toggle="popover"]').mayTriggerLongClicks().on('longClick', function() {
+                                            $(this).popover('hide');
+                                            $('#slider').remove();
+                                            var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+                                            create_state_modal(fp_entity);
                                         });
                                 } else {
                                     E.click( function () {
@@ -2727,11 +2816,11 @@ var get_fp_image = function(item,size,orientation) {
 	return "fp_unknown_info_"+fp_icon_image_size+".png";
 };
 
-var create_img_popover = function(entity) {
-}
+//var create_img_popover = function(entity) {
+//}
 
-var create_state_popover = function(entity) {
-}
+//var create_state_popover = function(entity) {
+//}
 
 var create_state_modal = function(entity) {
 		var name = entity;
