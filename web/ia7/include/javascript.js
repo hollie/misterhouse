@@ -1,4 +1,4 @@
-// v1.5.600D
+// v1.5.620
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -637,7 +637,6 @@ var loadList = function() {
 				else if(json_store.objects[entity].type == "Group" ||
 					    json_store.objects[entity].type == "Type" ||
 					    json_store.objects[entity].type == "Category"){
-					//??json_store.objects[entity] = json_store.objects[entity];
 					var object = json_store.objects[entity];
 					button_text = entity;
 					if (object.label !== undefined) button_text = object.label;
@@ -1049,8 +1048,6 @@ var updateStaticPage = function(link,time) {
 				$('button[entity]').each(function(index) {
 					if ($(this).attr('entity') != '' && json.data[$(this).attr('entity')] != undefined ) { //need an entity item for this to work.
 						entity = $(this).attr('entity');
-						//alert ("entity="+entity+" this="+$(this).attr('entity'));
-						//alert ("state "+json.data[entity].state)
 						var color = getButtonColor(json.data[entity].state);
 						$('button[entity="'+entity+'"]').find('.pull-right').text(json.data[entity].state);
 						$('button[entity="'+entity+'"]').removeClass("btn-default");
@@ -1628,11 +1625,6 @@ var graph_rrd = function(start,group,time) {
 		clearTimeout(rrd_refresh_loop); //prevent any previous loops from updating.
 	}
 
-	//if ($('#top-graph').length == 0){
-	//    //This might be because the user has changed page and the refresh has come in. If the top-graph isn't there then just return
-	//    return;
-	//}
-
 	if (json_store.ia7_config.prefs.rrd_graph_refresh !== undefined) refresh = json_store.ia7_config.prefs.rrd_graph_refresh;
 	
 	URLHash.time = time;
@@ -1901,7 +1893,6 @@ var object_history = function(items,start,days,time) {
 				});
 				
 				$('.update_history').click(function() {
-					//var new_start = new Date($('.hist_start').val().split('-')).getTime();
 					var new_start = new Date($('.hist_start').val().replace(/-/g, "/")).getTime();
 					var new_end = new Date($('.hist_end').val().replace(/-/g, "/")).getTime();					
 					var end_days = (new_start - new_end) / (24 * 60 * 60 * 1000)
@@ -2364,7 +2355,6 @@ var floorplan = function(group,time) {
         success: function( json, statusText, jqXHR ) {
             var requestTime = time;
             var last_slider_popover;
-//           var force_focus = false;
             if (jqXHR.status === 200) {
                 //var t0 = performance.now();
                 JSONStore(json);
@@ -2418,7 +2408,7 @@ var floorplan = function(group,time) {
                                             var name = fp_entity;
                                             if (json_store.objects[fp_entity].label !== undefined) name = json_store.objects[fp_entity].label;
                                             var ackt = E.offset();
-                                            return "<span class='entity-name'>"+name+ "</span> - <span class='object-state'>"+json_store.objects[fp_entity].state + "</span>";
+                                            return "<span class='entity-name'>"+name+ "</span> - <span class='fp-object-state'>"+json_store.objects[fp_entity].state + "</span>";
                                         },
                                         trigger: 'manual',
                                         html: 'true', //needed to show html of course
@@ -2427,7 +2417,7 @@ var floorplan = function(group,time) {
                                             var po_states = json_store.objects[fp_entity].states;
                                             var html = '<div id="popOverBox">';
                                             // HP need to have at least 2 states to be a controllable object...
-                                            if (!sliderObject(json_store.objects[fp_entity].states) || (json_store.ia7_config.prefs.floorplan_slider == undefined) || (json_store.ia7_config.prefs.floorplan_slider !== undefined && json_store.ia7_config.prefs.floorplan_slider !== "yes")) {		
+                                            if (!sliderObject(json_store.objects[fp_entity].states) || (json_store.ia7_config.prefs.floorplan_slider !== undefined && json_store.ia7_config.prefs.floorplan_slider == "no")) {		
 
                                                 if (po_states.length > 1) {
                                                     html = '<div class="btn-group stategrp0 btn-block">';
@@ -2464,61 +2454,32 @@ var floorplan = function(group,time) {
                                                     html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-default'>off</button>";	
                                                 }	
                                                 html += "</div>";			                
-                                                html += "<div id='slider' class='brightness-slider'></div>";					
+                                                html += "<div id='sliderFP' class='brightness-slider'></div>";					
                                                 html += "<br>";
                                                 fp_popover_close = false;
-console.log('slider created');
                                             }
                                             return html;
                                         }
                                     }).off().on('click', function (e) {
-                                    var src = $(this).attr('id').match(/entity_(.*)_\d+$/)[1];
-                                    last_slider_popover = src;
-console.log('src='+src);
-console.log($("a[title='"+src+"']"));
-
-console.log('vis='+$('.ui-slider').is(':visible'));   
-console.log('slider_div='+$('#slider').is(':visible'))     
-
-
-                                    var slider_data = sliderDetails(json_store.objects[src].states);		                
-                                    var val = $( "a[title='"+src+"']" ).find(".object-state").text().replace(/\%/,'');
+                                        var src = $(this).attr('id').match(/entity_(.*)_\d+$/)[1];
+                                        last_slider_popover = src;
+     
+                                        var slider_data = sliderDetails(json_store.objects[src].states);		                
+                                        var val = $( "a[title='"+src+"']" ).find(".fp-object-state").text().replace(/\%/,'');
               
-                                    var position = slider_data.values.indexOf(val);
-                                    if (val == "on") position = slider_data.max;
-                                    if (val == "off") position = slider_data.min;
-                                    if (position == undefined || position < 0) position = 0;
-                                    $('#slider' ).slider({
-                                        min: slider_data.min,
-                                        max: slider_data.max,
-                                        value: position
-                                    });
-                                    
+                                        var position = slider_data.values.indexOf(val);
+                                        if (val == "on") position = slider_data.max;
+                                        if (val == "off") position = slider_data.min;
+                                        if (position == undefined || position < 0) position = 0;
+                                        $('#sliderFP' ).slider({
+                                            min: slider_data.min,
+                                            max: slider_data.max,
+                                            value: position
+                                        });
 
-
-                                
-//                                        var val = $( "a[title='"+src+"']" ).find(".object-state").text();
-//                                        if (val == "on") {
-//                                            val = 100;
-//                                        } else if (val == "off") {
-//                                            val = 0;
-//                                        } else {
-//                                            val = parseInt(val);
-//                                        }
-//TODO: new sliders always get made
-//                                        if ($( "#slider" ).slider( "instance" ) !== undefined) {
-//                                            $('#slider').slider("destroy");
-//console.log("sliders out there");
-//                                        }
-//                                        $('#slider' ).slider({
-//                                            min: 0,
-//                                            max: 100,
-//                                            value: val
-//                                        });
-console.log($( "#slider" ).slider( "instance" ));
                                         $( "a[title='"+src+"']" ).find(".popover-content").popover('show');
                                         
-                                        $( "#slider" ).on( "slide", function(event, ui) {
+                                        $( "#sliderFP" ).on( "slide", function(event, ui) {
                                             var sliderstate = slider_data.values[ui.value];
                                             if ((sliderstate == "100") && (slider_data.pct)) {
                                                 sliderstate = "on";
@@ -2527,25 +2488,11 @@ console.log($( "#slider" ).slider( "instance" ));
                                             } else {
                                                 if (slider_data.pct) sliderstate += "%";
                                             }
-                                            $('.object-state').text(sliderstate);
+                                            $('.fp-object-state').text(sliderstate);
                                         });
                                         
-                                        
-//                                        $( "#slider" ).on( "slide", function(event, ui) {
-//                                            var sliderstate = ui.value;
-//                                            if (sliderstate == "100") {
-//                                                sliderstate = "on";
-//                                            } else if (sliderstate == "0") {
-//                                                 sliderstate = "off";
-//                                            } else {
-//                                                sliderstate += "%";
-//                                            }
-//                                            $('.object-state').text(sliderstate);
-//
-//                                        });
-                                        
-                                        $( "#slider" ).on( "slidechange", function(event, ui) {
-                                            if ($('#slider').length == 0) return
+                                        $( "#sliderFP" ).on( "slidechange", function(event, ui) {
+                                            if ($('#sliderFP').length == 0) return
                                             var fp_entity = $(this).parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
                                             var sliderstate = slider_data.values[ui.value];
                                             if (isNaN(sliderstate)) {
@@ -2561,39 +2508,14 @@ console.log($( "#slider" ).slider( "instance" ));
                                             }
                                             if ($(".entity-name").length == 1) {
                                                 url= '/SET;none?select_item='+fp_entity+'&select_state='+sliderstate;
-console.log("url="+url)
                                                 $.get( url);
                                                 fp_popover_close = true;
                                                 last_slider_popover = fp_entity;
                                                 $('.popover').popover('hide');
-                                                $('#slider').remove();
+                                                $('#sliderFP').remove();
                                                 $( "a[title='"+fp_entity+"']" ).find('[data-toggle="popover"]').blur();
                                             }
                                         });
-                                                
-                                        
-//                                        $( "#slider" ).on( "slidechange", function(event, ui) {
-//                                            if ($('#slider').length == 0) return
-//                                            var fp_entity = $(this).parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
-//                                            var sliderstate = ui.value;
-//                                            if (isNaN(ui.value)) return; //if there isn't a numeric value then bail out of sending a set comment
-//                                            if (sliderstate == "100") {
-//                                                sliderstate = "on";
-//                                            } else if (sliderstate == "0") {
-//                                                 sliderstate = "off";
-//                                            } else {
-//                                                sliderstate += "%";
-//                                            }
-//                                            if ($(".entity-name").length == 1) {
-//                                                url= '/SET;none?select_item='+fp_entity+'&select_state='+sliderstate;
-//                                                $.get( url);
-//                                                fp_popover_close = true;
-//                                                last_slider_popover = fp_entity;
-//                                                $('.popover').popover('hide');
-//                                                $('#slider').remove();
- //                                               $( "a[title='"+fp_entity+"']" ).find('[data-toggle="popover"]').blur();
-//                                            }
-//                                        });
 
                                         $('.btn-state-cmd').on('click', function () {
                                             var fp_entity = $(this).parent().parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
@@ -2601,16 +2523,13 @@ console.log("url="+url)
                                             if (!$(this).hasClass("disabled")) $.get( url);
                                             fp_popover_close = true;
                                             $('.popover').popover('hide');
-                                            $('#slider').remove();
+                                            $('#sliderFP').remove();
                                         });
                                     });   
                                         $('[data-toggle="popover"]').on('blur',function(e){
                                             if(fp_popover_close) {
-//                                                    if ($( "#slider" ).slider( "instance" ) !== undefined) $('#slider').slider("destroy");
-//slider div sticks around
-
-                                                    $(this).popover('hide');
-                                                    $('#slider').remove();
+                                                $(this).popover('hide');
+                                                $('#sliderFP').remove();
                                             } else {
                                                 $(this).focus();
                                                 fp_popover_close = false; //true
@@ -2622,7 +2541,7 @@ console.log("url="+url)
                                         });
                                         $('[data-toggle="popover"]').mayTriggerLongClicks().on('longClick', function() {
                                             $(this).popover('hide');
-                                            $('#slider').remove();
+                                            $('#sliderFP').remove();
                                             var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
                                             create_state_modal(fp_entity);
                                         });
