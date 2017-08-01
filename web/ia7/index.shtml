@@ -12,10 +12,12 @@
 	<link rel="shortcut icon" href="/touch-icon_76.png" type="image/x-icon">
 	
 	<!--Font Awesome-->
-	<link href="/ia7/include/font-awesome.4.3.0.min.css" rel="stylesheet">
+	<link href="/ia7/include/font-awesome.4.7.0.min.css" rel="stylesheet">
 
 	<!--Weather Icons-->
-	<link href="/ia7/include/weather-icons.1.3.css" rel="stylesheet">
+	<link href="/ia7/include/weather-icons.2.0.10.min.css" rel="stylesheet">
+	<link href="/ia7/include/weather-icons-wind.2.0.10.min.css" rel="stylesheet">
+
 	
 	<!--Responsive Tables-->
 	<link href="/ia7/include/tables.css" rel="stylesheet">
@@ -34,14 +36,14 @@
 	
 	<!--Bootstrap-->
 	<!-- Latest compiled and minified CSS -->
-	<link rel="stylesheet" href="/ia7/include/bootstrap-custom-button.3.3.5.css">
-	<link rel="stylesheet" href="/ia7/include/bootstrap.3.3.5.min.css">
+	<link rel="stylesheet" href="/ia7/include/bootstrap-custom-button.css">
+	<link rel="stylesheet" href="/ia7/include/bootstrap.3.3.7.min.css">
 	
 	<!-- Optional theme -->
-	<link rel="stylesheet" href="/ia7/include/bootstrap-theme.3.3.5.min.css">
+	<link rel="stylesheet" href="/ia7/include/bootstrap-theme.3.3.7.min.css">
 	
 	<!-- Latest compiled and minified bootstrap JavaScript -->
-	<script src="/ia7/include/bootstrap.3.3.5.min.js"></script>
+	<script src="/ia7/include/bootstrap.3.3.7.min.js"></script>
 	
 	<!-- bootstrap editable -->
 	<link href="/ia7/include/bootstrap3-editable.1.5.0.css" rel="stylesheet"/>
@@ -98,11 +100,18 @@
       outline: none !important;
 	}
 	
-	@media (min-width: 450px) {
+	@media (min-width: 417px) {
 		.control-dialog {
 			width: 400px;
-		}	
+		}
+		.options-dialog {
+			width: 420px;
+		}		
 	}
+    .btn:focus,.btn:active:focus,.btn.active:focus,
+    .btn.focus,.btn:active.focus,.btn.active.focus {
+        outline: none;
+    }	
 	.col-center {
 		text-align: center;
 	}
