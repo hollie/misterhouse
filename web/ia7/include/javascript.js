@@ -2750,25 +2750,15 @@ var create_state_modal = function(entity) {
 
         //make sure the modal is centered on all devices
         $("#control").modal('show').css({
-//            'margin-top': function () { //vertical centering
-//console.log(-($(this).height() / 2));
-//                return ($(this).height() / 2);
-//            },
             'margin-left': function () { //Horizontal centering
-console.log($(window).width());
-// if less than 768 then mobile device and pass the left margin
-//TODO: Add this to option modal
                 var offset = "auto";
                 if ($(window).width() < 768) {
-                offset = 0;
-                if (($(window).width() / 2 - 210) > 0) offset = ($(window).width() / 2 - 210);
-console.log("adapt "+offset); 
+                    offset = 0;
+                    if (($(window).width() / 2 - 210) > 0) offset = ($(window).width() / 2 - 210);
                 }
                 return offset;               
-//                return ($(this).width() / 2);
              }
         });		
-
         $( '.modal-backdrop').click(function(){
             $("#control").modal('hide');
         });
@@ -3226,23 +3216,14 @@ $(document).ready(function() {
 		var entity = $("#toolButton").attr('entity');
 //		$('#optionsModal').modal('show');
 
-
         $("#optionsModal").modal('show').css({
-//            'margin-top': function () { //vertical centering
-//console.log(-($(this).height() / 2));
-//                return ($(this).height() / 2);
-//            },
             'margin-left': function () { //Horizontal centering
-console.log($(window).width());
-// if less than 768 then mobile device and pass the left margin
-                offset = "auto";
+                var offset = "auto";
                 if ($(window).width() < 768) {
-                var offset = 0;
-                if (($(window).width() / 2 - 210) > 0) offset = ($(window).width() / 2 - 210);
-console.log("adapt "+offset); 
-                }
+                    offset = 0;
+                    if (($(window).width() / 2 - 210) > 0) offset = ($(window).width() / 2 - 210);
+                    }
                 return offset;               
-//                return ($(this).width() / 2);
              }
         });	
         
