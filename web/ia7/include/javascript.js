@@ -1,4 +1,4 @@
-// v1.5.620
+// v1.5.640
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -2353,6 +2353,7 @@ var floorplan = function(group,time) {
                console.log('FP: request failed: "' + textStatus + '" "'+JSON.stringify(errorThrown, undefined,2)+'"');
         },
         success: function( json, statusText, jqXHR ) {
+
             var requestTime = time;
             var last_slider_popover;
             if (jqXHR.status === 200) {
@@ -2745,7 +2746,34 @@ var create_state_modal = function(entity) {
 		var name = entity;
 		if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
 		$('#slider').remove();
-		$('#control').modal('show');
+//		$('#control').modal('show');
+
+        //make sure the modal is centered on all devices
+        $("#control").modal('show').css({
+//            'margin-top': function () { //vertical centering
+//console.log(-($(this).height() / 2));
+//                return ($(this).height() / 2);
+//            },
+            'margin-left': function () { //Horizontal centering
+console.log($(window).width());
+// if less than 768 then mobile device and pass the left margin
+//TODO: Add this to option modal
+                var offset = "auto";
+                if ($(window).width() < 768) {
+                offset = 0;
+                if (($(window).width() / 2 - 210) > 0) offset = ($(window).width() / 2 - 210);
+console.log("adapt "+offset); 
+                }
+                return offset;               
+//                return ($(this).width() / 2);
+             }
+        });		
+
+        $( '.modal-backdrop').click(function(){
+            $("#control").modal('hide');
+        });
+
+		
 		var modal_state = json_store.objects[entity].state;
 		$('#control').find('.object-title').html(name + " - <span class='object-state'>" + json_store.objects[entity].state + "</span>");
 		$('#control').find('.control-dialog').attr("entity", entity);
@@ -2879,17 +2907,17 @@ var create_state_modal = function(entity) {
 			var add_schedule = function(index,cron,label,state_sets) {
 				if (cron === null) return;
 				if (label == undefined) label = index;
-				var sched_label_html = "<div class='col-md-3 sched_label' value='"+cron+"'><input type='text' class='form-control sched"+index+"label' id='"+index+"' value='"+label+"'></div>"
+				var sched_label_html = "<div class='col-xs-3 sched_label' value='"+cron+"'><input type='text' class='form-control sched"+index+"label' id='"+index+"' value='"+label+"'></div>"
 				if (state_sets[0] !== null) {
 					var display_label = label
 					if (display_label.length > 7) display_label = display_label.substring(0,6)+"..";
-					sched_label_html = "<div class='col-md-3 sched_label dropdown'><button type='button' class='btn btn-default btn-list-dropdown dropdown-toggle sched_dropdown sched"+index+"label' id='"+index+"' value='"+label+"' style='width: 100%;' data-target='#' data-toggle='dropdown'>"+display_label+"</button><ul class='dropdown-menu sched-dropdown-menu'>";					
+					sched_label_html = "<div class='col-xs-3 sched_label dropdown'><button type='button' class='btn btn-default btn-list-dropdown dropdown-toggle sched_dropdown sched"+index+"label' id='"+index+"' value='"+label+"' style='width: 100%;' data-target='#' data-toggle='dropdown'>"+display_label+"</button><ul class='dropdown-menu sched-dropdown-menu'>";					
 					for (var i = 0; i < state_sets.length; i++){
 					    sched_label_html += "<li><a href='javascript: void(0)'id='"+index+"'>"+state_sets[i]+"</a></li>";
 					}
 					sched_label_html += "</ul></div>";
 				}
-				var sched_row_html = "<div class='row schedule_row schedule"+index+"entry'>"+sched_label_html+"<div id='"+index+"' class='schedule"+index+" sched_cron col-md-8 cron-data'></div><div class='sched_rmbutton col-md-1 sched"+index+"button'><button type='button' id='schedule"+index+"' class='pull-left btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></div></div>"
+				var sched_row_html = "<div class='row schedule_row schedule"+index+"entry'>"+sched_label_html+"<div id='"+index+"' class='schedule"+index+" sched_cron col-xs-8 cron-data'></div><div class='sched_rmbutton col-xs-1 sched"+index+"button'><button type='button' id='schedule"+index+"' class='pull-left btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></div></div>"
 				$('#control').find('.sched_control').append("<div class='cron_entry' id='"+index+"' value='"+cron+"'><span style='display:none' id='"+index+"' label='"+label+"' class='mhsched schedule"+index+"value'></span></div>");	
 				$('#control').find('.sched_control').append(sched_row_html);
 
@@ -3196,7 +3224,32 @@ $(document).ready(function() {
 		}
 		//
 		var entity = $("#toolButton").attr('entity');
-		$('#optionsModal').modal('show');
+//		$('#optionsModal').modal('show');
+
+
+        $("#optionsModal").modal('show').css({
+//            'margin-top': function () { //vertical centering
+//console.log(-($(this).height() / 2));
+//                return ($(this).height() / 2);
+//            },
+            'margin-left': function () { //Horizontal centering
+console.log($(window).width());
+// if less than 768 then mobile device and pass the left margin
+                offset = "auto";
+                if ($(window).width() < 768) {
+                var offset = 0;
+                if (($(window).width() / 2 - 210) > 0) offset = ($(window).width() / 2 - 210);
+console.log("adapt "+offset); 
+                }
+                return offset;               
+//                return ($(this).width() / 2);
+             }
+        });	
+        
+        $( '.modal-backdrop').click(function(){
+            $("#optionsModal").modal('hide');
+        });
+
 		$('#optionsModal').find('.object-title').html("Mr.House Options");
 		$('#optionsModal').find('.options-dialog').attr("entity", "options");
 		
