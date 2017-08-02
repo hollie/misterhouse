@@ -228,11 +228,20 @@
 	}
 	
 	.brightness-slider {
-	    margin-left: 5px;
-	    margin-right: 5px;
+	    margin-left: 16px;
+	    margin-right: 16px;
 	    margin-top: 10px;
-	    margin-bottom: -20px;
+	    margin-bottom: -15px;
 	}
+	.ui-slider-horizontal {
+        padding-top: 15px;
+        height: 24px;
+    }
+	.ui-slider .ui-slider-handle {
+        height: 32px;
+        width: 32px;
+        margin-left: -16px
+    }  
 	
 	</style>
 </head>
