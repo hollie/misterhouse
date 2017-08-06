@@ -121,7 +121,7 @@ sub new {
 
     #for my $index (1..$self->{'schedule_count'}) {
     for my $index ( 1 .. 20 ) {
-        $self->restore_data( 'schedule_' . $index, 'schedule_label_' . $index, 'schedule_once_' . $index );
+	$self->restore_data( 'schedule_' . $index, 'schedule_label_' . $index, 'schedule_once_' . $index );
     }
     return $self;
 }
@@ -137,7 +137,7 @@ sub set_schedule {
     if ( $index > $self->{'schedule_count'} ) { $self->{'schedule_count'} = $index }
     $self->{ 'schedule_' . $index }       = $entry if ( defined($entry) );
     $self->{ 'schedule_label_' . $index } = $label if ( defined($label) );
-    if ( defined( $self->{ 'schedule_' . $index } ) ) {    # the UI deletes all entries and adds them back which sets this flag to 2.
+    if ( defined( $self->{ 'schedule_' . $index } ) ) { # the UI deletes all entries and adds them back which sets this flag to 2.
         $self->{ 'schedule_once_' . $index } = 1 if ( $self->{ 'schedule_once_' . $index } eq 2 );    # We only want real deleted entries set to 2, so set to 1.
     }
     unless ($entry) {
@@ -151,7 +151,7 @@ sub set_schedule {
 sub set_schedule_default {
     my ( $self, $index, $entry, $label ) = @_;
     unless ( $self->{ 'schedule_once_' . $index } eq 1 ) {
-        if ( ( defined( $self->{ 'set_timer_' . $index } ) ) && ( $self->{ 'set_timer_' . $index }->expired ) ) {
+        if (   ( defined( $self->{ 'set_timer_' . $index } ) ) && ( $self->{ 'set_timer_' . $index }->expired ) ) {
             $self->{ 'schedule_once_' . $index } = 1;
             $self->set_schedule( $index, $entry, $label );
         }
@@ -221,18 +221,22 @@ sub get_schedule {
             }
         }
 
-        if ( defined( $self->{ 'schedule_' . $index } ) ) {    # the UI deletes all entries and adds them back which sets this flag to 2.
+        if ( defined( $self->{ 'schedule_' . $index } ) ) { # the UI deletes all entries and adds them back which sets this flag to 2.
             $self->{ 'schedule_once_' . $index } = 1
               if ( $self->{ 'schedule_once_' . $index } eq 2 );    # We only want real deleted entries set to 2, so set to 1.
         }
 
         if ( ( defined( $self->{ 'schedule_' . $index } ) ) || ( $self->{ 'schedule_once_' . $index } eq 2 ) ) {
-            $self->{ 'schedule_' .       ( $index - $nullcount ) } = $self->{ 'schedule_' . $index };
-            $self->{ 'schedule_label_' . ( $index - $nullcount ) } = $self->{ 'schedule_label_' . $index };
-            $self->{ 'schedule_once_' .  ( $index - $nullcount ) } = $self->{ 'schedule_once_' . $index };
-            $schedule[ ( $index - $nullcount ) ][0] = ( $index - $nullcount );
-            if   ( $self->{ 'schedule_once_' . $index } eq 2 ) { $schedule[ ( $index - $nullcount ) ][1] = undef }
-            else                                               { $schedule[ ( $index - $nullcount ) ][1] = $self->{ 'schedule_' . $index } }
+             $self->{ 'schedule_' .       ( $index - $nullcount ) } = $self->{ 'schedule_' . $index };
+             $self->{ 'schedule_label_' . ( $index - $nullcount ) } = $self->{ 'schedule_label_' . $index };
+             $self->{ 'schedule_once_' .  ( $index - $nullcount ) } = $self->{ 'schedule_once_' . $index };
+             $schedule[ ( $index - $nullcount ) ][0] = ( $index - $nullcount );
+            if ( $self->{ 'schedule_once_' . $index } eq 2 ) {
+                $schedule[ ( $index - $nullcount ) ][1] = undef;
+            }
+            else {
+                $schedule[ ( $index - $nullcount ) ][1] = $self->{ 'schedule_' . $index };
+            }
 
             if ( defined( $self->{ 'schedule_label_' . $index } ) ) {
                 $schedule[ ( $index - $nullcount - $schoncecnt ) ][2] = $self->{ 'schedule_label_' . $index };
@@ -253,14 +257,11 @@ sub get_schedule {
 sub am_i_active_object {
     my ( $self, $instance ) = @_;
     unless ( defined($instance) ) { return 1 }
-    ::print_log( "[SCHEDULE] - DEBUG - am_i_active_object - current active object: "
-          . $Interfaces{$instance}->get_object_name
-          . " checked object: "
-          . $self->get_object_name )
-      if ( ( defined( $Interfaces{$instance} ) ) && ( $main::Debug{'schedule'} ) );
+    ::print_log("[SCHEDULE] - DEBUG - am_i_active_object - current active object: ".$Interfaces{$instance}->get_object_name." checked object: ".$self->get_object_name ) if ( ( defined( $Interfaces{$instance} ) )
+        && ( $main::Debug{'schedule'} ) );
     if ( defined( $Interfaces{$instance} ) ) {
-        if   ( $Interfaces{$instance}->get_object_name eq $self->get_object_name ) { return 1 }
-        else                                                                       { $self->{'active_object'} = 0; return 0; }
+        if ( $Interfaces{$instance}->get_object_name eq $self->get_object_name ) { return 1 }
+        else { $self->{'active_object'} = 0; return 0; }
     }
     elsif ( $self->{'active_object'} ) {    #This is for a restart to get the saved active object.
         my $action = $self->{'active_action'} if defined( $self->{'active_action'} );
@@ -286,6 +287,16 @@ sub _set_instance_active_object {
     $self->{'active_action'} = $action if defined($action);
     $Interfaces{$instance} = $self if defined($instance);
     $Interfaces{$instance}{'action'} = $action if defined($action);
+    my $active_schedule_name = $self->get_object_name if defined($instance);
+    $active_schedule_name =~ s/\$//;
+    ::print_log( "[SCHEDULE] - Tracking object - ".$Tracking_object{$instance}->get_object_name." Active schedule: ".$active_schedule_name." Instance: ".$instance );
+    $Tracking_object{$instance}->set("$active_schedule_name") if ( defined( $Tracking_object{$instance} ) );
+}
+
+sub _set_instance_active_tracking_object {
+    my ( $child, $instance ) = @_;
+    ::print_log( "Registering a SCHEDULE_Temp Child Object type SCHEDULE_Temp_Active");
+    $Tracking_object{$instance} = $child;
 }
 
 sub get_objects_for_instance {
@@ -306,7 +317,7 @@ sub register {
     $object->{schedule_object} = 1;
     $child->{schedule_object}  = 1;
     if ( $object->isa('SCHEDULE_Generic') ) {
-        ::print_log("Registering a SCHEDULE Child Object type SCHEDULE_Generic");
+        ::print_log( "Registering a SCHEDULE Child Object type SCHEDULE_Generic");
         push @{ $self->{generic_object} }, $object;
 
         #::MainLoop_pre_add_hook( sub {SCHEDULE::check_date($self,$object);}, 'persistent');
@@ -315,8 +326,7 @@ sub register {
     if ( $object->isa('SCHEDULE_Temp') ) {
         ::print_log("Registering a SCHEDULE Child Object type SCHEDULE_Temp");
         $self->{temp_object}{$HorC} = $object;
-        if ( ( defined( $self->{temp_object}{'cool'} ) ) && ( defined( $self->{temp_object}{'heat'} ) ) ) {
-
+        if (   ( defined( $self->{temp_object}{'cool'} ) ) && ( defined( $self->{temp_object}{'heat'} ) ) ) {
             #::MainLoop_pre_add_hook( sub {SCHEDULE::check_date($self,$self->{temp_object}{'cool'});}, 'persistent' );
             ::MainLoop_pre_add_hook( sub { SCHEDULE::check_date( $self, $self->{temp_object}{'cool'} ); } );
         }
@@ -327,23 +337,18 @@ sub check_date {
     my ( $self, $object ) = @_;
     my $occupied_state = ( $$self{occupied}->state_now ) if ( defined( $$self{occupied} ) );
 
-    if ($occupied_state) { $self->CheckOverRide if ( ( $self->am_i_active_object( $$self{instance} ) ) && ( lc( state $self) eq 'on' ) ) }
+    if ($occupied_state) {
+        $self->CheckOverRide if ( ( $self->am_i_active_object( $$self{instance} ) ) && ( lc( state $self) eq 'on' ) );
+    }
     elsif ( $$self{winter_mode_type} eq 'track' ) {
         if ( $self->CheckTempOutdoor ) {
-            $self->CheckOverRide('temp_track')
-              if ( ( $self->am_i_active_object( $$self{instance} ) ) && ( lc( state $self) eq 'on' ) );
+            $self->CheckOverRide('temp_track') if ( ( $self->am_i_active_object( $$self{instance} ) ) && ( lc( state $self) eq 'on' ) );
         }
     }
 
     if ($::New_Minute) {
         $self->am_i_active_object( $$self{instance} ) if ( defined( $$self{instance} ) );
-        ::print_log( "[SCHEDULE] - DEBUG - Checking schedule for "
-              . $self->get_object_name
-              . " State is "
-              . ( state $self)
-              . " Child object is "
-              . $object->get_object_name )
-          if $main::Debug{'schedule'};
+        ::print_log( "[SCHEDULE] - DEBUG - Checking schedule for ".$self->get_object_name." State is ".( state $self)." Child object is ".$object->get_object_name ) if $main::Debug{'schedule'};
         if ( lc( state $self) eq 'on' ) {
             for my $index ( 1 .. $self->{'schedule_count'} ) {
                 if ( defined( $self->{ 'schedule_' . $index } ) ) {
@@ -364,13 +369,13 @@ sub setACSetpoint {
     my $heat_temp_control     = $object->{temp_object}{'heat'}{child};
     my $heat_temp_control_sub = $object->{temp_object}{'heat'}{sub};
     $cool_temp_control->$cool_temp_control_sub($cool_sp);
-    ::print_log( "[SCHEDULE] running " . $cool_temp_control->get_object_name . "->" . $cool_temp_control_sub . "(" . $cool_sp . ")" );
+    ::print_log( "[SCHEDULE] running ".$cool_temp_control->get_object_name."->".$cool_temp_control_sub."(".$cool_sp.")");
     $self->{'set_temp_timer'} = ::Timer::new();
     $self->{'set_temp_timer'}->set(
         '7',
         sub {
             $heat_temp_control->$heat_temp_control_sub($heat_sp);
-            ::print_log( "[SCHEDULE] running " . $heat_temp_control->get_object_name . "->" . $heat_temp_control_sub . "(" . $heat_sp . ")" );
+            ::print_log( "[SCHEDULE] running ".$heat_temp_control->get_object_name."->".$heat_temp_control_sub."(".$heat_sp.")");
         }
     );
 }
@@ -380,13 +385,13 @@ sub set_action {
     if ( $object->isa('SCHEDULE_Generic') ) {
         my $sub = 'set';
         $sub = $$self{sub} if defined( $$self{sub} );
-        ::print_log( "[SCHEDULE] Running " . $object->{child}->get_object_name . "->" . $sub . "(" . $self->{ 'schedule_label_' . $index } . ")" );
+        ::print_log( "[SCHEDULE] Running ".$object->{child}->get_object_name."->".$sub."(".$self->{ 'schedule_label_'.$index }.")" );
         $self->_set_instance_active_object( $$self{instance}, $index ) if ( defined( $$self{instance} ) );
         $object->{child}->$sub( $self->{ 'schedule_label_' . $index }, $self->get_object_name, 1 );
     }
     elsif ( $object->isa('SCHEDULE_Temp') ) {
-        ::print_log( "[SCHEDULE] - DEBUG - set_action -  Temp object: " . $object->get_object_name . " Parent object: " . $self->get_object_name )
-          if $main::Debug{'schedule'};
+	::print_log( "[SCHEDULE] - DEBUG - set_action -  Temp object: ".$object->get_object_name." Parent object: ".$self->get_object_name ) 
+           if $main::Debug{'schedule'};
         $self->_set_instance_active_object( $$self{instance} ) if ( defined( $$self{instance} ) );
         $$self{winter_mode_track_flag} = 0;    # reset the temp track flag because the schedule changed.
         $self->CheckOverRide;
@@ -394,7 +399,7 @@ sub set_action {
 }
 
 sub set_occpuancy {
-    my ( $self, $normal_state, $setback_state, $setback_object, $delay, $delay_setback, $tracked_object ) = @_;
+    my ( $self, $normal_state, $setback_state, $setback_object, $delay,$delay_setback, $tracked_object ) = @_;
     $$self{occ_state}                  = $normal_state;
     $$self{occ_setback_state}          = $setback_state;
     $$self{occ_setback_object}         = $setback_object;
@@ -402,16 +407,16 @@ sub set_occpuancy {
     $$self{thermo_timer_delay}         = $delay if ( defined $delay );
     $$self{thermo_timer_delay_setback} = '60';
     $$self{thermo_timer_delay_setback} = $delay_setback if ( defined $delay_setback );
-    $$self{occupied}                   = $::mode_occupied unless ( defined $$self{occupied} );
-    $$self{occupied}                   = $tracked_object if ( defined $tracked_object );
-    $$self{thermo_timer}               = ::Timer::new();
+    $$self{occupied} = $::mode_occupied unless ( defined $$self{occupied} );
+    $$self{occupied} = $tracked_object if ( defined $tracked_object );
+    $$self{thermo_timer} = ::Timer::new();
 }
 
 sub set_winter {
     my ( $self, $object, $temp, $type, $high ) = @_;
-    $$self{winter_mode_object}    = $object;
-    $$self{winter_mode_temp}      = $temp;
-    $$self{winter_mode_type}      = lc($type);                          # night, day, now
+    $$self{winter_mode_object} = $object;
+    $$self{winter_mode_temp}   = $temp;
+    $$self{winter_mode_type}   = lc($type);    # night, day, now
     $$self{winter_mode_type}      = 'night' unless ( defined $type );
     $$self{winter_mode_temp_high} = $high;
 }
@@ -425,14 +430,20 @@ sub set_vacation {
 
 sub CheckTempOutdoor {
     unless ( defined( $::Weather{'TempOutdoor'} ) ) { return 0 }
-    unless ( defined( $$self{LastTempOutdoor} ) ) { $$self{LastTempOutdoor} = $::Weather{'TempOutdoor'}; return 0 }
-    if ( $$self{LastTempOutdoor} ne $::Weather{'TempOutdoor'} ) { $$self{LastTempOutdoor} = $::Weather{'TempOutdoor'}; return 1 }
+    unless ( defined( $$self{LastTempOutdoor} ) ) {
+        $$self{LastTempOutdoor} = $::Weather{'TempOutdoor'};
+        return 0;
+    }
+    if ( $$self{LastTempOutdoor} ne $::Weather{'TempOutdoor'} ) {
+        $$self{LastTempOutdoor} = $::Weather{'TempOutdoor'};
+        return 1;
+    }
 }
 
 sub CheckOverRide {
     my ( $self, $checktype ) = @_;
     unless ( $self->am_i_active_object( $$self{instance} ) ) { return 0 }
-    my $action             = $self->get_instance_active_action( $$self{instance} );
+    my $action = $self->get_instance_active_action( $$self{instance} );
     my $occ_setback_object = $$self{occ_setback_object};
     my $occ_setback_state  = $$self{occ_setback_state};
     my $occ_state          = $$self{occ_state};
@@ -440,22 +451,18 @@ sub CheckOverRide {
     my $occupied_state     = ( $$self{occupied}->state ) if ( defined( $$self{occupied} ) );
 
     if ( $self->OverRide ) {
-        $occ_setback_object = $$self{override_mode_setback_object} if defined( $$self{override_mode_setback_object} );
-        $occ_setback_state  = $$self{override_mode_setback_state}  if defined( $$self{override_mode_setback_state} );
-        $occ_state          = $$self{override_mode_occ_state}      if defined( $$self{override_mode_occ_state} );
-        $object             = $$self{override_mode_object}         if defined( $$self{override_mode_object} );
+         $occ_setback_object = $$self{override_mode_setback_object} if defined( $$self{override_mode_setback_object} );
+         $occ_setback_state  = $$self{override_mode_setback_state}  if defined( $$self{override_mode_setback_state} );
+         $occ_state          = $$self{override_mode_occ_state}      if defined( $$self{override_mode_occ_state} );
+         $object             = $$self{override_mode_object}         if defined( $$self{override_mode_object} );
     }
     elsif ( $checktype eq 'temp_track' ) { return }
     elsif ( $$self{winter_mode_track_flag} ) { $object = $$self{winter_mode_object} }
 
-    ::print_log( "[SCHEDULE] - INFO - CheckOverRide - Current occupied state:"
-          . $occupied_state
-          . " Current active object:"
-          . $object->get_object_name
-          . " state to match: $occ_state" );
-    if ( ( defined( $$self{occupied} ) ) && ( $$self{occupied}->state eq $occ_state ) ) {
+    ::print_log( "[SCHEDULE] - INFO - CheckOverRide - Current occupied state:".$occupied_state." Current active object:".$object->get_object_name." state to match: $occ_state" );
+    if (   ( defined( $$self{occupied} ) ) && ( $$self{occupied}->state eq $occ_state ) ) {
         if ( $$self{thermo_timer}->expired ) {
-            ::print_log( "[SCHEDULE] - INFO - setting " . $object->get_object_name . " setpoints, you are now $occ_state" );
+            ::print_log( "[SCHEDULE] - INFO - setting ".$object->get_object_name." setpoints, you are now $occ_state" );
             $self->setACSetpoint($object);
         }
         else {
@@ -467,9 +474,9 @@ sub CheckOverRide {
             );
         }
     }
-    elsif ( ( defined( $$self{occupied} ) ) && ( $$self{occupied}->state eq $occ_setback_state ) ) {
+    elsif (( defined( $$self{occupied} ) ) && ( $$self{occupied}->state eq $occ_setback_state ) ) {
         if ( $$self{thermo_timer}->expired ) {
-            ::print_log( "[SCHEDULE] - INFO - setting setback " . $occ_setback_object->get_object_name . " setpoints, you are now $occ_setback_state" );
+            ::print_log( "[SCHEDULE] - INFO - setting setback ".$occ_setback_object->get_object_name." setpoints, you are now $occ_setback_state" );
             $self->setACSetpoint($occ_setback_object);
         }
         else {
@@ -495,7 +502,7 @@ sub OverRide {
     undef $$self{override_mode_object};
     ::print_log("[SCHEDULE] - DEBUG --- IN OVERRIDE") if $main::Debug{'schedule'};
     if ( $occupied_state eq $$self{vacation_mode_state} ) {
-        ::print_log("[SCHEDULE] - DEBUG --- IN OVERRIDE --- VACATION") if $main::Debug{'schedule'};
+        ::print_log("[SCHEDULE] - DEBUG --- IN OVERRIDE --- VACATION")  if $main::Debug{'schedule'};
         $$self{override_mode_object} = $$self{vacation_mode_object};    # override the setpoint if in vacation mode
         return 1;
     }
@@ -509,15 +516,15 @@ sub WinterMode {
     #$::Weather{'Forecast Today'} = 'Sunny. Patchy fog in the morning. Highs in the lower 90s. East winds to 10 mph.';
     my ($self) = @_;
     ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE") if $main::Debug{'schedule'};
-    if ( ( $$self{winter_mode_type} eq 'night' ) && ( $::Weather{'Forecast Tonight'} =~ /lows in the ([\w ]+) (\d+)/i ) ) {
-        ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE --- FORCAST --- $1 $2") if $main::Debug{'schedule'};
+    if (   ( $$self{winter_mode_type} eq 'night' ) && ( $::Weather{'Forecast Tonight'} =~ /lows in the ([\w ]+) (\d+)/i ) ) {
+        ::print_log( "[SCHEDULE] - DEBUG --- IN WINTERMODE --- FORCAST --- $1 $2") if $main::Debug{'schedule'};
         my $fc = $2;
         if ( lc($1) =~ /mid/ ) { $fc = $fc + 3 }    # Translate low, mid, and upper to a value
-        if ( lc($1) =~ /up/ )  { $fc = $fc + 6 }
+        if ( lc($1) =~ /up/ ) { $fc = $fc + 6 }
         ##if the value we got from the weather script is equal
         #or lower than our defined value, return the defined winter mode
         if ( $fc <= ( $$self{winter_mode_temp} ) ) {
-            ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE  ---- M1 --- LOWS -- $fc -- $$self{winter_mode_temp}") if $main::Debug{'schedule'};
+            ::print_log( "[SCHEDULE] - DEBUG --- IN WINTERMODE  ---- M1 --- LOWS -- $fc -- $$self{winter_mode_temp}" ) if $main::Debug{'schedule'};
             $$self{override_mode_object} = $$self{winter_mode_object};    # override the setpoint if forcast temp is below config
             return 1;
         }
@@ -525,21 +532,21 @@ sub WinterMode {
     }
     if (
         ( $$self{winter_mode_type} eq 'day' )
-        && (   ( $::Weather{'Forecast Today'} =~ /Highs in the ([\w ]+) (\d+)/i )
+        && ( ( $::Weather{'Forecast Today'} =~ /Highs in the ([\w ]+) (\d+)/i )
             || ( $::Weather{'Forecast Today'} =~ /Highs ([\w ]+) (\d+)/i ) )
       )
     {
-        ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE --- FORCAST --- $1 $2") if $main::Debug{'schedule'};
+        ::print_log( "[SCHEDULE] - DEBUG --- IN WINTERMODE --- FORCAST --- $1 $2") if $main::Debug{'schedule'};
         my $fc = $2;
         if    ( lc($1) =~ /around/ ) { $fc = $fc + 0 }
         elsif ( lc($1) =~ /low/ )    { $fc = $fc + 0 }
-        elsif ( lc($1) =~ /mid/ )    { $fc = $fc + 3 }    # Translate low, mid, and upper to a value
-        elsif ( lc($1) =~ /up/ )     { $fc = $fc + 6 }
-        else { ::print_log("[SCHEDULE] - NOTICE --- WINTERMODE --- Unknown forecast modifier: $1 -- full text: $::Weather{'Forecast Today'}") }
+        elsif ( lc($1) =~ /mid/ ) { $fc = $fc + 3 }    # Translate low, mid, and upper to a value
+        elsif ( lc($1) =~ /up/ ) { $fc = $fc + 6 }
+        else { ::print_log( "[SCHEDULE] - NOTICE --- WINTERMODE --- Unknown forecast modifier: $1 -- full text: $::Weather{'Forecast Today'}" ) }
         ##if the value we got from the weather script is equal
         #or lower than our defined value, return the defined winter mode
         if ( $fc <= ( $$self{winter_mode_temp} ) ) {
-            ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE  ---- M1 --- LOWS -- $fc -- $$self{winter_mode_temp}") if $main::Debug{'schedule'};
+            ::print_log( "[SCHEDULE] - DEBUG --- IN WINTERMODE  ---- M1 --- LOWS -- $fc -- $$self{winter_mode_temp}") if $main::Debug{'schedule'};
             $$self{override_mode_object} = $$self{winter_mode_object};    # override the setpoint if forcast temp is below config
             return 1;
         }
@@ -549,27 +556,27 @@ sub WinterMode {
         ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE --- TEMP NOW --- $1") if $main::Debug{'schedule'};
         my $fc = $1;
         if ( $fc <= ( $$self{winter_mode_temp} ) ) {
-            ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE  --- TEMP NOW -- $fc -- $$self{winter_mode_temp}") if $main::Debug{'schedule'};
+            ::print_log( "[SCHEDULE] - DEBUG --- IN WINTERMODE  --- TEMP NOW -- $fc -- $$self{winter_mode_temp}" ) if $main::Debug{'schedule'};
             $$self{override_mode_object} = $$self{winter_mode_object};    # override the setpoint if current temp is below config
             return 1;
         }
         return 0;
     }
-    if ( ( $$self{winter_mode_type} eq 'track' ) && ( $::Weather{'TempOutdoor'} =~ /(\d+)/i ) ) {
+    if (   ( $$self{winter_mode_type} eq 'track' ) && ( $::Weather{'TempOutdoor'} =~ /(\d+)/i ) ) {
         ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE --- TEMP TRACK --- $1") if $main::Debug{'schedule'};
         my $fc = $1;
-        if ( ( $fc <= ( $$self{winter_mode_temp} ) ) && ( not $$self{winter_mode_track_flag} ) ) {
+        if (   ( $fc <= ( $$self{winter_mode_temp} ) ) && ( not $$self{winter_mode_track_flag} ) ) {
             $$self{winter_mode_track_flag} = 1;
-            ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE  --- TEMP TRACK -- TempOutdoor: $fc -- Config low: $$self{winter_mode_temp}")
-              if $main::Debug{'schedule'};
+            ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE  --- TEMP TRACK -- TempOutdoor: $fc -- Config low: $$self{winter_mode_temp}") 
+               if $main::Debug{'schedule'};
             $$self{override_mode_object} = $$self{winter_mode_object};    # override the setpoint if current temp is below config
             return 1;
         }
-        elsif ( ( $fc > ( $$self{winter_mode_temp_high} ) ) && ( $$self{winter_mode_track_flag} ) ) {
+        elsif (( $fc > ( $$self{winter_mode_temp_high} ) ) && ( $$self{winter_mode_track_flag} ) ) {
             $$self{winter_mode_track_flag} = 0;
-            ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE  --- TEMP TRACK -- TempOutdoor: $fc -- Config high: $$self{winter_mode_temp}")
-              if $main::Debug{'schedule'};
-            $$self{override_mode_object} = $self;                         # set the setpoint back to normal if temp is higher than config
+            ::print_log("[SCHEDULE] - DEBUG --- IN WINTERMODE  --- TEMP TRACK -- TempOutdoor: $fc -- Config high: $$self{winter_mode_temp}") 
+               if $main::Debug{'schedule'};
+            $$self{override_mode_object} = $self;  # set the setpoint back to normal if temp is higher than config
             return 1;
         }
         return 0;
@@ -624,6 +631,7 @@ sub new {
     $$self{state_count} = ( ( scalar @_ ) - 3 );
     my @states;
     for my $i ( 3 .. ( scalar @_ ) ) {
+
         if ( defined @_[$i] ) { $self->{ $i - 2 } = @_[$i]; push( @states, @_[$i] ); }
     }
     @{ $$self{states} } = @states if (@states);
@@ -703,7 +711,10 @@ sub new {
     $$self{child}       = $child;
     $$self{sub}         = $sub;
     $$self{state_count} = 7;
-    @{ $$self{states} } = ( 'up', 'down' );
+    #@{ $$self{states} } = ( 'up', 'down' );
+    push @{ $$self{states} }, 'up';
+    push @{ $$self{states} }, 'down';
+    for my $i (50..85) { push @{ $$self{states} }, "$i"; } # so the UI will add the slider in the object.
     $parent->register( $self, $child, $HorC );
     return $self;
 }
@@ -713,17 +724,18 @@ sub set {
     my $current_state = $self->state;
     unless ( defined($current_state) ) { $current_state = '70' }
     if ( $p_state eq 'up' ) {
-        ::print_log( "[SCHEDULE::TEMP] Received request " . $p_state . " for " . $self->get_object_name );
+        ::print_log( "[SCHEDULE::TEMP] Received request ".$p_state." for ".$self->get_object_name );
         $p_state = $current_state + 1;
         $self->SUPER::set( $p_state, $p_setby, 1 );
     }
     if ( $p_state eq 'down' ) {
-        ::print_log( "[SCHEDULE::TEMP] Received request " . $p_state . " for " . $self->get_object_name );
+        ::print_log( "[SCHEDULE::TEMP] Received request ".$p_state." for ".$self->get_object_name );
         $p_state = $current_state - 1;
         $self->SUPER::set( $p_state, $p_setby, 1 );
     }
     if ( $p_state =~ /(\d+)/ ) {
-        ::print_log( "[SCHEDULE::TEMP] Received request " . $p_state . " for " . $self->get_object_name, 1 );
+	 $p_state =~ s/\%//;
+        ::print_log( "[SCHEDULE::TEMP] Received request ".$p_state." for ".$self->get_object_name, 1);
         $self->SUPER::set( $p_state, $p_setby, 1 );
     }
 }
@@ -745,6 +757,51 @@ User code:
 sub set_sub {
     my ( $self, $sub ) = @_;
     $$self{sub} = $sub;
+}
+
+=back
+
+=head1 B<SCHEDULE_Temp_Active>
+
+=head2 SYNOPSIS
+
+User code:
+
+    $TEMP1_ACTIVE = new SCHEDULE_Temp_Active('THERMO1');
+
+     Wherein the format for the definition is:
+    $TEMP1_ACTIVE = new SCHEDULE_Temp_Active(INSTANCE);
+
+
+=head2 NOTES
+
+
+The SCHEDULE_Temp_Active object is used to track the active temp schedule for the defined instance.
+
+=head2 DESCRIPTION
+
+
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
+package SCHEDULE_Temp_Active;
+@SCHEDULE_Temp_Active::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $instance ) = @_;
+    my $self = new Generic_Item();
+    bless $self, $class;
+    ::SCHEDULE::_set_instance_active_tracking_object( $self, $instance );
+
+    #$Interfaces{$instance}{'temp_active_object'} = $self;
+    return $self;
 }
 
 =back

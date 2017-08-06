@@ -1,5 +1,5 @@
 
-=head1 B<raZberry> v2.0
+=head1 B<raZberry> v2.0.2
 
 =head2 SYNOPSIS
 
@@ -112,6 +112,12 @@ http calls can cause pauses. There are a few possible options around this;
 
 
 =head2 CHANGELOG
+v2.0.2
+- add generic items for logger
+
+v2.0.1
+- added full poll for getting battery data
+
 v2.0
 - added in authentication method for razberry 2.1.2+ support
 - supports a push method when used in conjunction with the HTTPGet automation module
@@ -190,8 +196,9 @@ $rest{controller}    = "Data/*";
 
 sub new {
     my ( $class, $addr, $poll, $options ) = @_;
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
+    &main::print_log("[raZberry]: v2.0.2 Controller Initializing...");
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
     $self->{config}->{poll_seconds} = 5;
@@ -305,11 +312,13 @@ sub get_controllerdata {
 }
 
 sub poll {
-    my ($self) = @_;
+    my ( $self, $option ) = @_;
 
+    $option = "" unless ( defined $option );
     &main::print_log("[raZberry]: Polling initiated") if ( $self->{debug} );
     my $cmd = "";
     $cmd = "?since=" . $self->{lastupdate} if ( defined $self->{lastupdate} );
+    $cmd = "" if ( lc $option eq "full" );
     &main::print_log("[raZberry]: cmd=$cmd") if ( $self->{debug} > 1 );
 
     for my $dev ( keys %{ $self->{data}->{force_update} } ) {
@@ -335,10 +344,13 @@ sub poll {
             #my ($id) = ( split /_/, $item->{id} )[2];
             my ($id) = ( split /_/, $item->{id} )[-1];    #always just get the last element
             print "id=$id\n" if ( $self->{debug} > 1 );
+            &main::print_log("[raZberry]: WARNING: device $id level is undefined")
+              if ( ( !defined $item->{metrics}->{level} ) or ( lc $item->{metrics}->{level} eq "undefined" ) );
             my $battery_dev = 0;
             $battery_dev = 1 if ( $id =~ m/-0-128$/ );
             my $voltage_dev = 0;
             $voltage_dev = 1 if ( $id =~ m/-0-50-\d$/ );
+
             if ($battery_dev) {                           #for a battery, set a different object
                 $self->{data}->{devices}->{$id}->{battery_level} = $item->{metrics}->{level};
             }
@@ -685,7 +697,7 @@ package raZberry_dimmer;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     push( @{ $$self{states} }, 'off', 'low', 'med', 'high', 'on', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%' );
 
@@ -783,7 +795,7 @@ package raZberry_switch;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     push( @{ $$self{states} }, 'off', 'on', );
 
@@ -870,7 +882,7 @@ package raZberry_blind;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -1001,9 +1013,12 @@ sub battery_check {
         return;
     }
 
-    if ( $self->{battery_level} eq "" ) {
-        main::print_log("[raZberry_blind] INFO Battery level currently undefined");
-        return;
+    if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) ) {
+        $$self{master_object}->poll("full");
+        if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) ) {
+            main::print_log("[raZberry_blind] INFO Battery level currently undefined");
+            return;
+        }
     }
     main::print_log( "[raZberry_blind] INFO Battery currently at " . $self->{battery_level} . "%" );
     if ( ( $self->{battery_level} < 30 ) and ( $self->{battery_alert} == 0 ) ) {
@@ -1013,6 +1028,7 @@ sub battery_check {
     else {
         $self->{battery_alert} = 0;
     }
+    return $self->{battery_level};
 }
 
 sub _battery_timer {
@@ -1023,7 +1039,7 @@ sub _battery_timer {
 
 sub battery_level {
     my ($self) = @_;
-
+    $$self{master_object}->poll("full") if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) );
     return ( $self->{battery_level} );
 }
 
@@ -1038,7 +1054,7 @@ package raZberry_lock;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     push( @{ $$self{states} }, 'locked', 'unlocked' );
 
@@ -1048,9 +1064,9 @@ sub new {
     $$self{devid}         = $devid;
     $$self{devid_battery} = $devid_battery;
     $$self{type}          = "Lock.Battery";
-
-    $object->register( $self, $devid,         $options );
     $object->register( $self, $devid_battery, $options );
+    $$self{type} = "Lock";
+    $object->register( $self, $devid, $options );
 
     #$self->set($object->get_dev_status,$devid,'poll');
     $self->{level}                = "";
@@ -1109,7 +1125,7 @@ sub level {
 
 sub battery_level {
     my ($self) = @_;
-
+    $$self{master_object}->poll("full") if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) );
     return ( $self->{battery_level} );
 }
 
@@ -1136,9 +1152,12 @@ sub update_data {
 
 sub battery_check {
     my ($self) = @_;
-    if ( $self->{battery_level} eq "" ) {
-        &main::print_log("[raZberry_lock] INFO Battery level currently undefined");
-        return;
+    if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) ) {
+        $$self{master_object}->poll("full");
+        if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) ) {
+            main::print_log("[raZberry_lock] INFO Battery level currently undefined");
+            return;
+        }
     }
     &main::print_log( "[raZberry_lock] INFO Battery currently at " . $self->{battery_level} . "%" );
     if ( ( $self->{battery_level} < 30 ) and ( $self->{battery_alert} == 0 ) ) {
@@ -1148,6 +1167,7 @@ sub battery_check {
     else {
         $self->{battery_alert} = 0;
     }
+    return $self->{battery_level};
 }
 
 sub enable_user {
@@ -1264,7 +1284,7 @@ sub new {
 
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -1387,7 +1407,7 @@ package raZberry_temp_sensor;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -1439,7 +1459,7 @@ package raZberry_binary_sensor;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     #push( @{ $$self{states} }, 'on', 'off'); I'm not sure we should set the states here, since it's not a controlable item?
@@ -1520,7 +1540,7 @@ package raZberry_battery;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     push( @{ $$self{states} }, 'locked', 'unlocked' );
 
@@ -1544,7 +1564,7 @@ sub new {
 
 sub battery_level {
     my ($self) = @_;
-
+    $$self{master_object}->poll("full") if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) );
     return ( $self->{battery_level} );
 }
 
@@ -1562,7 +1582,6 @@ sub isfailed {
 
 sub update_data {
     my ( $self, $data ) = @_;
-
     $self->{battery_level} = $data->{battery_level};
     $self->SUPER::set( $self->{battery_level} );
 
@@ -1570,9 +1589,12 @@ sub update_data {
 
 sub battery_check {
     my ($self) = @_;
-    if ( $self->{battery_level} eq "" ) {
-        main::print_log("[raZberry_battery] INFO Battery level currently undefined");
-        return;
+    if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) ) {
+        $$self{master_object}->poll("full");
+        if ( ( $self->{battery_level} eq "" ) or ( !defined $self->{battery_level} ) ) {
+            main::print_log("[raZberry_battery] INFO Battery level currently undefined");
+            return;
+        }
     }
     main::print_log( "[raZberry_battery] INFO Battery currently at " . $self->{battery_level} . "%" );
     if ( ( $self->{battery_level} < 30 ) and ( $self->{battery_alert} == 0 ) ) {
@@ -1582,6 +1604,7 @@ sub battery_check {
     else {
         $self->{battery_alert} = 0;
     }
+    return $self->{battery_level};
 }
 
 package raZberry_voltage;
@@ -1590,7 +1613,7 @@ package raZberry_voltage;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     #ZWayVDev_zway_x-0-50-0 - Power Meter kWh
@@ -1665,7 +1688,7 @@ package raZberry_generic;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;

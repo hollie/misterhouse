@@ -17,10 +17,13 @@ my ( %config_parms, %parms );
 use Getopt::Long;
 
 #print "get_url: @ARGV\n";
-if (   !&GetOptions( \%parms, 'h', 'help', 'quiet', 'cookies=s', 'cookie_file_in=s', 'cookie_file_out=s', 'post=s', 'header=s', 'userid=s', 'password=s' )
+if (
+    !&GetOptions( \%parms, 'h', 'help', 'quiet', 'cookies=s', 'cookie_file_in=s', 'cookie_file_out=s', 'post=s', 'header=s', 'userid=s', 'password=s', 'ua',
+        'put=s', 'json', 'response_code' )
     or !@ARGV
     or $parms{h}
-    or $parms{help} )
+    or $parms{help}
+  )
 {
 
     print <<eof;
@@ -42,10 +45,19 @@ Usage:
     -userid 'userid'    :  Use these 2 parms if your web page is protected by
     -password 'password':  'basic credentials' (i.e. you get a browser popup).
 
-    -post 'poststr': Makes this a post request with the specified name/value pairs
+    -post 'poststr': Makes this a POST request with the specified name/value pairs
+      as the form data, such as: 'name1=val1&name2=val2'
+      
+    -put 'putstr': Makes this a PUT request with the specified name/value pairs
       as the form data, such as: 'name1=val1&name2=val2'
 
+    -json: Changes content_type to ('application/json')
+    
+    -ua: use UserAgent
+
     -header 'header_file': HTTP headers from the server are stored in this file
+    
+    -response_code: STDOUT only: Prepend output with RESPONSECODE: <response code>\n
 
 
     If local_file is specified, data is stored there.
@@ -73,8 +85,10 @@ $parms{cookies} = &file_read( $parms{cookie_file_in} )
 
 if (   ( $config_parms{get_url} eq 'useragent' )
     or $parms{post}
+    or $parms{put}
     or $parms{header}
     or $parms{cookies}
+    or $parms{ua}
     or $parms{cookie_file_out}
     or $parms{password} )
 {
@@ -105,8 +119,23 @@ sub use_ua {
     my $request;
     if ( $parms{post} ) {
         $request = new HTTP::Request( 'POST' => $url );
-        $request->content_type('application/x-www-form-urlencoded');
+        if ( $parms{json} ) {
+            $request->content_type('application/json');
+        }
+        else {
+            $request->content_type('application/x-www-form-urlencoded');
+        }
         $request->content( $parms{post} );
+    }
+    elsif ( $parms{put} ) {
+        $request = new HTTP::Request( 'PUT' => $url );
+        if ( $parms{json} ) {
+            $request->content_type('application/json');
+        }
+        else {
+            $request->content_type('application/x-www-form-urlencoded');
+        }
+        $request->content( $parms{put} );
     }
     else {
         $request = new HTTP::Request( 'GET', $url );
@@ -153,6 +182,7 @@ sub use_ua {
     }
     else {
         $response = $ua->request($request);
+        print "RESPONSECODE:" . $response->code() . "\n" if ( $parms{response_code} );
         print $response->content();
     }
     if ( $response->is_error() ) {
