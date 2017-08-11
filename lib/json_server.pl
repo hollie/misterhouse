@@ -738,7 +738,6 @@ sub json_get {
     }    
 
     if ( $path[0] eq 'notifications' ) {
-
         for my $i ( 0 .. $#json_notifications ) {
             my $n_time = int( $json_notifications[$i]{time} );
             my $x      = $args{time}[0];                         #Weird, does nothing, but notifications doesn't work if removed...
@@ -1241,7 +1240,7 @@ sub json_page {
     my ($json_raw,$options) = @_;
 
 ##    utf8::encode( $json_raw ); #may need to wrap gzip in an eval and encode it if errors develop. It crashes if a < is in the text
-    my $output = "HTTP/1.0 200 OK\r\n";
+    my $output = "HTTP/1.1 200 OK\r\n";
     $output .= "Server: MisterHouse\r\n";
     $output .= "Content-type: application/json\r\n";
     if ($options =~ m/compress/) {
@@ -1249,9 +1248,13 @@ sub json_page {
         my $json;
         gzip \$json_raw => \$json;
         $output .= "Content-Encoding: gzip\r\n";
+        $output .= "Content-Length: " . ( length $json ) . "\r\n";
+        $output .= "Date: " . time2str(time) . "\r\n";
         $output .= "\r\n";
         $output .= $json;
     } else {
+        $output .= "Content-Length: " . ( length $json_raw ) . "\r\n";
+        $output .= "Date: " . time2str(time) . "\r\n";
         $output .= "\r\n";
         $output .= $json_raw;
     }
@@ -1483,14 +1486,14 @@ sub json_notification {
     for my $i ( 0 .. $#json_notifications ) {
 
         #clean up any old notifications, or empty entries (ie less than 5 seconds old)
-        my $n_time = int( $json_notifications[$i]{time} );
+        my $n_time = int( $json_notifications[$i]{time} );    
         if (   ( &get_tickcount > $n_time + 5000 )
             or ( !defined $json_notifications[$i]{time} ) )
         {
             splice @json_notifications, $i, 1;
         }
     }
-    push @json_notifications, $data;
+    push (@json_notifications, $data);
 }
 
 sub config_checker {

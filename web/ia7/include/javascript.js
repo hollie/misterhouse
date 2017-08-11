@@ -1,4 +1,4 @@
-// v1.5.640
+// v1.5.650
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -1368,19 +1368,26 @@ var print_log = function(type,time) {
 
 var something_went_wrong = function(module,text) {
 
-    var type = "danger";
-	var mobile = "";
-	if ($(window).width() <= 768) { // override the responsive mobile top-buffer
-		mobile = "mobile-alert";
-	}
-    var html = "<div class='alert-err alert "+mobile+" alert-" + type + " fade in' data-alert>";
-    html += "<button type='button' class='close' data-dismiss='alert'>x</button>";
-    html += "<div class=''>";
-    html += "<i class='fa fa-exclamation-triangle icon-larger fa-2x fa-fw pull-left'></i>";
-    html += "<div class='sww-text'>";
-    html += "<h3 class='sww-text-msg'>ERROR</h3>" + module + " : " + text + " </div></div></div>";
+    if ((json_store.ia7_config.prefs.show_errors !== undefined) &&  json_store.ia7_config.prefs.show_errors == "yes") {
+
+       var type = "danger";
+       var mobile = "";
+       if ($(window).width() <= 768) { // override the responsive mobile top-buffer
+           mobile = "mobile-alert";
+       }
+       var html = "<div class='alert-err alert "+mobile+" alert-" + type + " fade in' data-alert>";
+       html += "<button type='button' class='close' data-dismiss='alert'>x</button>";
+       html += "<div class=''>";
+       html += "<i class='fa fa-exclamation-triangle icon-larger fa-2x fa-fw pull-left'></i>";
+       html += "<div class='sww-text'>";
+       html += "<h3 class='sww-text-msg'>ERROR</h3>" + module + " : " + text + " </div></div></div>";
     
-	$("#alert-area").prepend($(html));
+       $("#alert-area").prepend($(html));
+       
+    } else {
+    
+        console.log("Something went Wrong: "+module+" : " + text);
+    }
 	
 }
 

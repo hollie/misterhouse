@@ -87,19 +87,15 @@ sub checkForUpdate {
 
     my $xml = eval ${ $$self{sub} };
     if ($@) {
-        &main::print_log("checkForUpdate syntax error in sub ${$$self{sub}}\n\t$@")
-          if $main::Debug{ajax};
+        &main::print_log("checkForUpdate syntax error in sub ${$$self{sub}}\n\t$@") if $main::Debug{ajax};
         return 1;
     }
 
     if ($xml) {
-        &main::print_log("checkForUpdate sub ${$$self{sub}} returned $xml")
-          if $main::Debug{ajax};
+        &main::print_log("checkForUpdate sub ${$$self{sub}} returned $xml") if $main::Debug{ajax};
         &::print_socket_fork( ${ $$self{waitingSocket} }, $xml );
-        &main::print_log( "Closing Socket " . ${ $$self{waitingSocket} } )
-          if $main::Debug{ajax};
-        ${ $$self{waitingSocket} }->shutdown(2)
-          ;    #Changed this from close() to shutdown(2). In some cases, the parent port wasn't being closed -- ie. speech events
+        &main::print_log( "Closing Socket " . ${ $$self{waitingSocket} } ) if $main::Debug{ajax};
+        #${ $$self{waitingSocket} }->shutdown(2);    #Changed this from close() to shutdown(2). In some cases, the parent port wasn't being closed -- ie. speech events
         ${ $$self{changed} } = 1;
     }
     else {
