@@ -620,7 +620,14 @@ sub json_get {
 
             # this is for constants
             $iref = $$iref if ref $iref eq 'SCALAR';
-            %json_vars = ( %json_vars, &json_walk_var( $iref, $key ) );
+            
+            
+            eval {
+                %json_vars = ( %json_vars, &json_walk_var( $iref, $key ) ); #wrap this in eval in case there is weird data
+            };
+            if ($@) {
+                print_log "Json_Server.pl: WARNING: JSON variable parsing: $key failed to process";
+            }
         }
         $json_data{vars} = \%json_vars;
     }
@@ -925,7 +932,12 @@ sub json_walk_var {
                 and not defined $$iref
                 and ( *{$ref}{ARRAY} or *{$ref}{CODE} or *{$ref}{HASH} ) )
             {
-                %json_vars = &json_walk_var( $iref, $name, @types );
+                eval {
+                    %json_vars = &json_walk_var( $iref, $name, @types ); #wrap this in eval in case there is weird data
+                };
+                if ($@) {
+                    print_log "Json_Server.pl: WARNING: JSON variable parsing: $name failed to process";
+                }
             }
         }
         return %json_vars;
@@ -971,7 +983,13 @@ sub json_walk_var {
             $iname = "$name$key";
             $iref  = ${$ref}{$key};
             $iref  = \${$ref}{$key} unless ref $iref;
-            my ( $k, $r ) = &json_walk_var( $iref, $iname, @types );
+            my ( $k, $r );
+            eval {
+                ($k, $r)  = &json_walk_var( $iref, $iname, @types );; #wrap this in eval in case there is weird data
+            };
+            if ($@) {
+                print_log "Json_Server.pl: WARNING: JSON variable parsing: $iname failed to process";
+            }
             $json_vars{$name} = $r if $k ne "";
         }
     }
@@ -980,7 +998,13 @@ sub json_walk_var {
             $iname = "$name\[$key\]";
             $iref  = \${$ref}[$key];
             $iref  = ${$ref}[$key] if ref $iref eq 'REF';
-            my ( $k, $r ) = &json_walk_var( $iref, $iname, @types );
+            my ( $k, $r );
+            eval {
+                ($k, $r)  = &json_walk_var( $iref, $iname, @types );; #wrap this in eval in case there is weird data
+            };
+            if ($@) {
+                print_log "Json_Server.pl: WARNING: JSON variable parsing: $iname failed to process";
+            }
             $json_vars{$name}{$k} = $r;
         }
     }
@@ -989,8 +1013,13 @@ sub json_walk_var {
             $iname = "$name\{'$key'\}";
             $iref  = \${$ref}{$key};
             $iref  = ${$ref}{$key} if ref $iref eq 'REF';
-            my ( $k, $r ) = &json_walk_var( $iref, $iname, @types );
-            $json_vars{$name}{$key} = $r;
+            my ( $k, $r );
+            eval {
+                ($k, $r)  = &json_walk_var( $iref, $iname, @types );; #wrap this in eval in case there is weird data
+            };
+            if ($@) {
+                print_log "Json_Server.pl: WARNING: JSON variable parsing: $iname failed to process";
+            }            $json_vars{$name}{$key} = $r;
         }
     }
     elsif ( $type eq 'CODE' ) {

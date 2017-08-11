@@ -321,6 +321,7 @@ sub hb_thermo_set_state {
     else {
         print_log "Unsupported Thermostat type";
     }
+    return "";
 }
 
 sub hb_thermo_get_setpoint {
@@ -414,6 +415,7 @@ sub hb_thermo_set_setpoint {
     else {
         print_log "Unsupported Thermostat type";
     }
+    return "";
 }
 
 sub calc_auto_mode {

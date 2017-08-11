@@ -4730,7 +4730,7 @@ sub print_speaklog_current_time {
     # Return the time of most recent speak phrase
 
     #print "db/mh/curr: time=" . &get_tickcount . " plt=$Print_Log_Time[0] slt=$Speak_Log_Time[0]\n";
-    return $Print_Log_Time[0]
+    return $Speak_Log_Time[0]
       unless ( scalar @Speak_Log_Time <= 0 );    #TODO HP should return $Speak_Log_Time
                                                  #return $Speak_Log_Time[0] unless (scalar @Speak_Log_Time <= 0); #TODO HP should return $Speak_Log_Time
     return 0;
