@@ -1,4 +1,4 @@
-// v1.5.650
+// v1.5.670
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -1459,13 +1459,21 @@ var get_notifications = function(time) {
 						var text = String(json.data[i].text);
 						var type = String(json.data[i].type);
 						var color = String(json.data[i].color);
-
+                        var close = "";
+                        var alert_class = "alert-message";
+                        if (json.data[i].persistent !== undefined && json.data[i].persistent == "yes") {
+                            close = "<button type='button' class='close' data-dismiss='alert'>x</button>";
+                            alert_class = "alert-message-persist";
+                        }
 						if ((type == "sound" ) || ((type == "speech") && (speech_sound == "yes"))) {
-							audio_play(document.getElementById('sound_element'),url)	
+							if (url !== "undefined") {
+								console.log("in undefined url="+url);
+							    audio_play(document.getElementById('sound_element'),url);
+							}	
 						}
 						if (type == "banner" || ((type == "speech") && (speech_banner == "yes"))) {
 							var alert_type = "info";
-							if (color !== undefined) {
+							if (color !== "undefined") {
 								if (color == "green") {
 									alert_type = "success";
 								} else if (color == "red") {
@@ -1478,8 +1486,11 @@ var get_notifications = function(time) {
 							if ($(window).width() <= 768) { // override the responsive mobile top-buffer
 							  mobile = "mobile-alert";
 							}
-							$("#alert-area").append($("<div class='alert-message alert alerts "+mobile+" alert-" + alert_type + " fade in' data-alert><p><i class='fa fa-info-circle'></i><strong>  Notification:</strong> " + text + " </p></div>"));
-   	 						$(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+
+							$("#alert-area").append($("<div class='"+alert_class+" alert alerts "+mobile+" alert-" + alert_type + " fade in' data-alert>"+close+"<p><i class='fa fa-info-circle'></i><strong>  Notification:</strong> " + text + " </p></div>"));
+							if (json.data[i].persistent == undefined || (json.data[i].persistent !== undefined && json.data[i].persistent == "no")) {
+   	 						    $(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+   	 						}
 						}
 						if (type == "alert") {
 							jAlert(text,'MH Notifications');
