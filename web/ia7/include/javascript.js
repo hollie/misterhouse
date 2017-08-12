@@ -1,4 +1,4 @@
-// v1.5.560
+// v1.5.700
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -175,6 +175,25 @@ function changePage (){
 		} else {
 				notifications = "enabled";
 		}
+		//cookies override default config.
+//TODO use_cookies option
+        if (json_store.ia7_config.prefs.use_cookies == undefined || (json_store.ia7_config.prefs.use_cookies !== undefined && json_store.ia7_config.prefs.use_cookies == "yes")) {
+            var decodedCookie = decodeURIComponent(document.cookie);
+            var ca = decodedCookie.split(';');
+            for (var i = 0; i <ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) == ' ') {
+                    c = c.substring(1);
+                }
+                if (c.indexOf("speech_sound") == 0) {
+                    speech_sound = c.substring(13, c.length);
+                }
+                if (c.indexOf("speech_banner") == 0) {
+                    speech_banner = c.substring(14, c.length);
+                }            
+            }
+        }
+
 	}
 	if (getJSONDataByPath("collections") === undefined){
 		// We need at minimum the basic collections data to render all pages
@@ -637,7 +656,6 @@ var loadList = function() {
 				else if(json_store.objects[entity].type == "Group" ||
 					    json_store.objects[entity].type == "Type" ||
 					    json_store.objects[entity].type == "Category"){
-					//??json_store.objects[entity] = json_store.objects[entity];
 					var object = json_store.objects[entity];
 					button_text = entity;
 					if (object.label !== undefined) button_text = object.label;
@@ -1049,8 +1067,6 @@ var updateStaticPage = function(link,time) {
 				$('button[entity]').each(function(index) {
 					if ($(this).attr('entity') != '' && json.data[$(this).attr('entity')] != undefined ) { //need an entity item for this to work.
 						entity = $(this).attr('entity');
-						//alert ("entity="+entity+" this="+$(this).attr('entity'));
-						//alert ("state "+json.data[entity].state)
 						var color = getButtonColor(json.data[entity].state);
 						$('button[entity="'+entity+'"]').find('.pull-right').text(json.data[entity].state);
 						$('button[entity="'+entity+'"]').removeClass("btn-default");
@@ -1371,19 +1387,26 @@ var print_log = function(type,time) {
 
 var something_went_wrong = function(module,text) {
 
-    var type = "danger";
-	var mobile = "";
-	if ($(window).width() <= 768) { // override the responsive mobile top-buffer
-		mobile = "mobile-alert";
-	}
-    var html = "<div class='alert-err alert "+mobile+" alert-" + type + " fade in' data-alert>";
-    html += "<button type='button' class='close' data-dismiss='alert'>x</button>";
-    html += "<div class=''>";
-    html += "<i class='fa fa-exclamation-triangle icon-larger fa-2x fa-fw pull-left'></i>";
-    html += "<div class='sww-text'>";
-    html += "<h3 class='sww-text-msg'>ERROR</h3>" + module + " : " + text + " </div></div></div>";
+    if ((json_store.ia7_config.prefs.show_errors !== undefined) &&  json_store.ia7_config.prefs.show_errors == "yes") {
+
+       var type = "danger";
+       var mobile = "";
+       if ($(window).width() <= 768) { // override the responsive mobile top-buffer
+           mobile = "mobile-alert";
+       }
+       var html = "<div class='alert-err alert "+mobile+" alert-" + type + " fade in' data-alert>";
+       html += "<button type='button' class='close' data-dismiss='alert'>x</button>";
+       html += "<div class=''>";
+       html += "<i class='fa fa-exclamation-triangle icon-larger fa-2x fa-fw pull-left'></i>";
+       html += "<div class='sww-text'>";
+       html += "<h3 class='sww-text-msg'>ERROR</h3>" + module + " : " + text + " </div></div></div>";
     
-	$("#alert-area").prepend($(html));
+       $("#alert-area").prepend($(html));
+       
+    } else {
+    
+        console.log("Something went Wrong: "+module+" : " + text);
+    }
 	
 }
 
@@ -1455,13 +1478,21 @@ var get_notifications = function(time) {
 						var text = String(json.data[i].text);
 						var type = String(json.data[i].type);
 						var color = String(json.data[i].color);
-
+                        var close = "";
+                        var alert_class = "alert-message";
+                        if (json.data[i].persistent !== undefined && json.data[i].persistent == "yes") {
+                            close = "<button type='button' class='close' data-dismiss='alert'>x</button>";
+                            alert_class = "alert-message-persist";
+                        }
 						if ((type == "sound" ) || ((type == "speech") && (speech_sound == "yes"))) {
-							audio_play(document.getElementById('sound_element'),url)	
+							if (url !== "undefined") {
+								console.log("in undefined url="+url);
+							    audio_play(document.getElementById('sound_element'),url);
+							}	
 						}
 						if (type == "banner" || ((type == "speech") && (speech_banner == "yes"))) {
 							var alert_type = "info";
-							if (color !== undefined) {
+							if (color !== "undefined") {
 								if (color == "green") {
 									alert_type = "success";
 								} else if (color == "red") {
@@ -1474,8 +1505,11 @@ var get_notifications = function(time) {
 							if ($(window).width() <= 768) { // override the responsive mobile top-buffer
 							  mobile = "mobile-alert";
 							}
-							$("#alert-area").append($("<div class='alert-message alert alerts "+mobile+" alert-" + alert_type + " fade in' data-alert><p><i class='fa fa-info-circle'></i><strong>  Notification:</strong> " + text + " </p></div>"));
-   	 						$(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+
+							$("#alert-area").append($("<div class='"+alert_class+" alert alerts "+mobile+" alert-" + alert_type + " fade in' data-alert>"+close+"<p><i class='fa fa-info-circle'></i><strong>  Notification:</strong> " + text + " </p></div>"));
+							if (json.data[i].persistent == undefined || (json.data[i].persistent !== undefined && json.data[i].persistent == "no")) {
+   	 						    $(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+   	 						}
 						}
 						if (type == "alert") {
 							jAlert(text,'MH Notifications');
@@ -1627,11 +1661,6 @@ var graph_rrd = function(start,group,time) {
 		time = 0;
 		clearTimeout(rrd_refresh_loop); //prevent any previous loops from updating.
 	}
-
-	//if ($('#top-graph').length == 0){
-	//    //This might be because the user has changed page and the refresh has come in. If the top-graph isn't there then just return
-	//    return;
-	//}
 
 	if (json_store.ia7_config.prefs.rrd_graph_refresh !== undefined) refresh = json_store.ia7_config.prefs.rrd_graph_refresh;
 	
@@ -1901,7 +1930,6 @@ var object_history = function(items,start,days,time) {
 				});
 				
 				$('.update_history').click(function() {
-					//var new_start = new Date($('.hist_start').val().split('-')).getTime();
 					var new_start = new Date($('.hist_start').val().replace(/-/g, "/")).getTime();
 					var new_end = new Date($('.hist_end').val().replace(/-/g, "/")).getTime();					
 					var end_days = (new_start - new_end) / (24 * 60 * 60 * 1000)
@@ -2362,9 +2390,9 @@ var floorplan = function(group,time) {
                console.log('FP: request failed: "' + textStatus + '" "'+JSON.stringify(errorThrown, undefined,2)+'"');
         },
         success: function( json, statusText, jqXHR ) {
+
             var requestTime = time;
             var last_slider_popover;
-//           var force_focus = false;
             if (jqXHR.status === 200) {
                 //var t0 = performance.now();
                 JSONStore(json);
@@ -2418,7 +2446,7 @@ var floorplan = function(group,time) {
                                             var name = fp_entity;
                                             if (json_store.objects[fp_entity].label !== undefined) name = json_store.objects[fp_entity].label;
                                             var ackt = E.offset();
-                                            return "<span class='entity-name'>"+name+ "</span> - <span class='object-state'>"+json_store.objects[fp_entity].state + "</span>";
+                                            return "<span class='entity-name'>"+name+ "</span> - <span class='fp-object-state'>"+json_store.objects[fp_entity].state + "</span>";
                                         },
                                         trigger: 'manual',
                                         html: 'true', //needed to show html of course
@@ -2427,7 +2455,7 @@ var floorplan = function(group,time) {
                                             var po_states = json_store.objects[fp_entity].states;
                                             var html = '<div id="popOverBox">';
                                             // HP need to have at least 2 states to be a controllable object...
-                                            if (!sliderObject(json_store.objects[fp_entity].states) || (json_store.ia7_config.prefs.floorplan_slider == undefined) || (json_store.ia7_config.prefs.floorplan_slider !== undefined && json_store.ia7_config.prefs.floorplan_slider !== "yes")) {		
+                                            if (!sliderObject(json_store.objects[fp_entity].states) || (json_store.ia7_config.prefs.floorplan_slider !== undefined && json_store.ia7_config.prefs.floorplan_slider == "no")) {		
 
                                                 if (po_states.length > 1) {
                                                     html = '<div class="btn-group stategrp0 btn-block">';
@@ -2458,55 +2486,63 @@ var floorplan = function(group,time) {
                                                 }
                                             } else {
                                                 html = '<div class="btn-group stategrp0 btn-block">';
-                                                html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-success'>on</button>";					                
-                                                html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-default'>off</button></div>";					                
-                                                html += "<div id='slider' class='brightness-slider'></div>";					
+                                                //if button doesn't have on and off don't display
+                                                if ($.inArray("on", json_store.objects[fp_entity].states) !== -1 && $.inArray("off", json_store.objects[fp_entity].states) !== -1) {
+                                                    html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-success'>on</button>";					                
+                                                    html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-default'>off</button>";	
+                                                }	
+                                                html += "</div>";			                
+                                                html += "<div id='sliderFP' class='brightness-slider'></div>";					
                                                 html += "<br>";
                                                 fp_popover_close = false;
                                             }
                                             return html;
                                         }
                                     }).off().on('click', function (e) {
-                                    var src = $(this).attr('id').match(/entity_(.*)_\d+$/)[1];
-                                    last_slider_popover = src;
+                                        var src = $(this).attr('id').match(/entity_(.*)_\d+$/)[1];
+                                        last_slider_popover = src;
+     
+                                        var slider_data = sliderDetails(json_store.objects[src].states);		                
+                                        var val = $( "a[title='"+src+"']" ).find(".fp-object-state").text().replace(/\%/,'');
+              
+                                        var position = slider_data.values.indexOf(val);
+                                        if (val == "on") position = slider_data.max;
+                                        if (val == "off") position = slider_data.min;
+                                        if (position == undefined || position < 0) position = 0;
+                                        $('#sliderFP' ).slider({
+                                            min: slider_data.min,
+                                            max: slider_data.max,
+                                            value: position
+                                        });
 
                                         $( "a[title='"+src+"']" ).find(".popover-content").popover('show');
-                                        var val = $( "a[title='"+src+"']" ).find(".object-state").text();
-                                        if (val == "on") {
-                                            val = 100;
-                                        } else if (val == "off") {
-                                            val = 0;
-                                        } else {
-                                            val = parseInt(val);
-                                        }
-                                        $('#slider' ).slider({
-                                            min: 0,
-                                            max: 100,
-                                            value: val
-                                        });
-                                        $( "#slider" ).on( "slide", function(event, ui) {
-                                            var sliderstate = ui.value;
-                                            if (sliderstate == "100") {
+                                        
+                                        $( "#sliderFP" ).on( "slide", function(event, ui) {
+                                            var sliderstate = slider_data.values[ui.value];
+                                            if ((sliderstate == "100") && (slider_data.pct)) {
                                                 sliderstate = "on";
-                                            } else if (sliderstate == "0") {
-                                                 sliderstate = "off";
+                                            } else if ((sliderstate == "0") && (slider_data.pct)) {
+                                                sliderstate = "off";
                                             } else {
-                                                sliderstate += "%";
+                                                if (slider_data.pct) sliderstate += "%";
                                             }
-                                            $('.object-state').text(sliderstate);
-
+                                            $('.fp-object-state').text(sliderstate);
                                         });
-                                        $( "#slider" ).on( "slidechange", function(event, ui) {
-                                            if ($('#slider').length == 0) return
+                                        
+                                        $( "#sliderFP" ).on( "slidechange", function(event, ui) {
+                                            if ($('#sliderFP').length == 0) return
                                             var fp_entity = $(this).parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
-                                            var sliderstate = ui.value;
-                                            if (isNaN(ui.value)) return; //if there isn't a numeric value then bail out of sending a set comment
-                                            if (sliderstate == "100") {
+                                            var sliderstate = slider_data.values[ui.value];
+                                            if (isNaN(sliderstate)) {
+                                                console.log("Warning: Slider value isn't a number:"+sliderstate);
+                                                return; //if there isn't a numeric value then bail out of sending a set comment
+                                            }
+                                            if ((sliderstate == "100") && (slider_data.pct)) {
                                                 sliderstate = "on";
-                                            } else if (sliderstate == "0") {
-                                                 sliderstate = "off";
+                                            } else if ((sliderstate == "0") && (slider_data.pct)) {
+                                                sliderstate = "off";
                                             } else {
-                                                sliderstate += "%";
+                                                if (slider_data.pct) sliderstate += "%";
                                             }
                                             if ($(".entity-name").length == 1) {
                                                 url= '/SET;none?select_item='+fp_entity+'&select_state='+sliderstate;
@@ -2514,20 +2550,24 @@ var floorplan = function(group,time) {
                                                 fp_popover_close = true;
                                                 last_slider_popover = fp_entity;
                                                 $('.popover').popover('hide');
+                                                $('#sliderFP').remove();
                                                 $( "a[title='"+fp_entity+"']" ).find('[data-toggle="popover"]').blur();
                                             }
                                         });
+
                                         $('.btn-state-cmd').on('click', function () {
                                             var fp_entity = $(this).parent().parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
                                             var url= '/SET;none?select_item='+fp_entity+'&select_state='+$(this).text();
                                             if (!$(this).hasClass("disabled")) $.get( url);
                                             fp_popover_close = true;
                                             $('.popover').popover('hide');
+                                            $('#sliderFP').remove();
                                         });
                                     });   
                                         $('[data-toggle="popover"]').on('blur',function(e){
                                             if(fp_popover_close) {
-                                                    $(this).popover('hide');
+                                                $(this).popover('hide');
+                                                $('#sliderFP').remove();
                                             } else {
                                                 $(this).focus();
                                                 fp_popover_close = false; //true
@@ -2536,6 +2576,12 @@ var floorplan = function(group,time) {
                                         $('[data-toggle="popover"]').on("focus",function(){
                                             if (fp_popover_close) $(this).popover('show')
 
+                                        });
+                                        $('[data-toggle="popover"]').mayTriggerLongClicks().on('longClick', function() {
+                                            $(this).popover('hide');
+                                            $('#sliderFP').remove();
+                                            var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+                                            create_state_modal(fp_entity);
                                         });
                                 } else {
                                     E.click( function () {
@@ -2727,17 +2773,34 @@ var get_fp_image = function(item,size,orientation) {
 	return "fp_unknown_info_"+fp_icon_image_size+".png";
 };
 
-var create_img_popover = function(entity) {
-}
+//var create_img_popover = function(entity) {
+//}
 
-var create_state_popover = function(entity) {
-}
+//var create_state_popover = function(entity) {
+//}
 
 var create_state_modal = function(entity) {
 		var name = entity;
 		if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
 		$('#slider').remove();
-		$('#control').modal('show');
+//		$('#control').modal('show');
+
+        //make sure the modal is centered on all devices
+        $("#control").modal('show').css({
+            'margin-left': function () { //Horizontal centering
+                var offset = "auto";
+                if ($(window).width() < 768) {
+                    offset = 0;
+                    if (($(window).width() / 2 - 210) > 0) offset = ($(window).width() / 2 - 210);
+                }
+                return offset;               
+             }
+        });		
+        $( '.modal-backdrop').click(function(){
+            $("#control").modal('hide');
+        });
+
+		
 		var modal_state = json_store.objects[entity].state;
 		$('#control').find('.object-title').html(name + " - <span class='object-state'>" + json_store.objects[entity].state + "</span>");
 		$('#control').find('.control-dialog').attr("entity", entity);
@@ -2871,17 +2934,17 @@ var create_state_modal = function(entity) {
 			var add_schedule = function(index,cron,label,state_sets) {
 				if (cron === null) return;
 				if (label == undefined) label = index;
-				var sched_label_html = "<div class='col-md-3 sched_label' value='"+cron+"'><input type='text' class='form-control sched"+index+"label' id='"+index+"' value='"+label+"'></div>"
+				var sched_label_html = "<div class='col-xs-3 sched_label' value='"+cron+"'><input type='text' class='form-control sched"+index+"label' id='"+index+"' value='"+label+"'></div>"
 				if (state_sets[0] !== null) {
 					var display_label = label
 					if (display_label.length > 7) display_label = display_label.substring(0,6)+"..";
-					sched_label_html = "<div class='col-md-3 sched_label dropdown'><button type='button' class='btn btn-default btn-list-dropdown dropdown-toggle sched_dropdown sched"+index+"label' id='"+index+"' value='"+label+"' style='width: 100%;' data-target='#' data-toggle='dropdown'>"+display_label+"</button><ul class='dropdown-menu sched-dropdown-menu'>";					
+					sched_label_html = "<div class='col-xs-3 sched_label dropdown'><button type='button' class='btn btn-default btn-list-dropdown dropdown-toggle sched_dropdown sched"+index+"label' id='"+index+"' value='"+label+"' style='width: 100%;' data-target='#' data-toggle='dropdown'>"+display_label+"</button><ul class='dropdown-menu sched-dropdown-menu'>";					
 					for (var i = 0; i < state_sets.length; i++){
 					    sched_label_html += "<li><a href='javascript: void(0)'id='"+index+"'>"+state_sets[i]+"</a></li>";
 					}
 					sched_label_html += "</ul></div>";
 				}
-				var sched_row_html = "<div class='row schedule_row schedule"+index+"entry'>"+sched_label_html+"<div id='"+index+"' class='schedule"+index+" sched_cron col-md-8 cron-data'></div><div class='sched_rmbutton col-md-1 sched"+index+"button'><button type='button' id='schedule"+index+"' class='pull-left btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></div></div>"
+				var sched_row_html = "<div class='row schedule_row schedule"+index+"entry'>"+sched_label_html+"<div id='"+index+"' class='schedule"+index+" sched_cron col-xs-8 cron-data'></div><div class='sched_rmbutton col-xs-1 sched"+index+"button'><button type='button' id='schedule"+index+"' class='pull-left btn btn-danger btn-xs schedrm'><i class='fa fa-minus'></i></button></div></div>"
 				$('#control').find('.sched_control').append("<div class='cron_entry' id='"+index+"' value='"+cron+"'><span style='display:none' id='"+index+"' label='"+label+"' class='mhsched schedule"+index+"value'></span></div>");	
 				$('#control').find('.sched_control').append(sched_row_html);
 
@@ -3188,7 +3251,23 @@ $(document).ready(function() {
 		}
 		//
 		var entity = $("#toolButton").attr('entity');
-		$('#optionsModal').modal('show');
+//		$('#optionsModal').modal('show');
+
+        $("#optionsModal").modal('show').css({
+            'margin-left': function () { //Horizontal centering
+                var offset = "auto";
+                if ($(window).width() < 768) {
+                    offset = 0;
+                    if (($(window).width() / 2 - 210) > 0) offset = ($(window).width() / 2 - 210);
+                    }
+                return offset;               
+             }
+        });	
+        
+        $( '.modal-backdrop').click(function(){
+            $("#optionsModal").modal('hide');
+        });
+
 		$('#optionsModal').find('.object-title').html("Mr.House Options");
 		$('#optionsModal').find('.options-dialog').attr("entity", "options");
 		
@@ -3283,6 +3362,8 @@ $(document).ready(function() {
 				$('.mhnotifyoff').removeClass('active');
 				if ((speech_banner === "no") && (speech_sound === "no")) $('.mhnotifyoff').addClass('active');
 			}
+			document.cookie = "speech_sound="+speech_sound;
+			document.cookie = "speech_banner="+speech_banner;
 			//if off, then unselect others
   		});  		
 		// parse the collection ID 500 and build a list of buttons

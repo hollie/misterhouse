@@ -620,7 +620,14 @@ sub json_get {
 
             # this is for constants
             $iref = $$iref if ref $iref eq 'SCALAR';
-            %json_vars = ( %json_vars, &json_walk_var( $iref, $key ) );
+            
+            
+            eval {
+                %json_vars = ( %json_vars, &json_walk_var( $iref, $key ) ); #wrap this in eval in case there is weird data
+            };
+            if ($@) {
+                print_log "Json_Server.pl: WARNING: JSON variable parsing: $key failed to process";
+            }
         }
         $json_data{vars} = \%json_vars;
     }
@@ -731,7 +738,6 @@ sub json_get {
     }    
 
     if ( $path[0] eq 'notifications' ) {
-
         for my $i ( 0 .. $#json_notifications ) {
             my $n_time = int( $json_notifications[$i]{time} );
             my $x      = $args{time}[0];                         #Weird, does nothing, but notifications doesn't work if removed...
@@ -925,7 +931,12 @@ sub json_walk_var {
                 and not defined $$iref
                 and ( *{$ref}{ARRAY} or *{$ref}{CODE} or *{$ref}{HASH} ) )
             {
-                %json_vars = &json_walk_var( $iref, $name, @types );
+                eval {
+                    %json_vars = &json_walk_var( $iref, $name, @types ); #wrap this in eval in case there is weird data
+                };
+                if ($@) {
+                    print_log "Json_Server.pl: WARNING: JSON variable parsing: $name failed to process";
+                }
             }
         }
         return %json_vars;
@@ -971,7 +982,13 @@ sub json_walk_var {
             $iname = "$name$key";
             $iref  = ${$ref}{$key};
             $iref  = \${$ref}{$key} unless ref $iref;
-            my ( $k, $r ) = &json_walk_var( $iref, $iname, @types );
+            my ( $k, $r );
+            eval {
+                ($k, $r)  = &json_walk_var( $iref, $iname, @types );; #wrap this in eval in case there is weird data
+            };
+            if ($@) {
+                print_log "Json_Server.pl: WARNING: JSON variable parsing: $iname failed to process";
+            }
             $json_vars{$name} = $r if $k ne "";
         }
     }
@@ -980,7 +997,13 @@ sub json_walk_var {
             $iname = "$name\[$key\]";
             $iref  = \${$ref}[$key];
             $iref  = ${$ref}[$key] if ref $iref eq 'REF';
-            my ( $k, $r ) = &json_walk_var( $iref, $iname, @types );
+            my ( $k, $r );
+            eval {
+                ($k, $r)  = &json_walk_var( $iref, $iname, @types );; #wrap this in eval in case there is weird data
+            };
+            if ($@) {
+                print_log "Json_Server.pl: WARNING: JSON variable parsing: $iname failed to process";
+            }
             $json_vars{$name}{$k} = $r;
         }
     }
@@ -989,8 +1012,13 @@ sub json_walk_var {
             $iname = "$name\{'$key'\}";
             $iref  = \${$ref}{$key};
             $iref  = ${$ref}{$key} if ref $iref eq 'REF';
-            my ( $k, $r ) = &json_walk_var( $iref, $iname, @types );
-            $json_vars{$name}{$key} = $r;
+            my ( $k, $r );
+            eval {
+                ($k, $r)  = &json_walk_var( $iref, $iname, @types );; #wrap this in eval in case there is weird data
+            };
+            if ($@) {
+                print_log "Json_Server.pl: WARNING: JSON variable parsing: $iname failed to process";
+            }            $json_vars{$name}{$key} = $r;
         }
     }
     elsif ( $type eq 'CODE' ) {
@@ -1212,7 +1240,7 @@ sub json_page {
     my ($json_raw,$options) = @_;
 
 ##    utf8::encode( $json_raw ); #may need to wrap gzip in an eval and encode it if errors develop. It crashes if a < is in the text
-    my $output = "HTTP/1.0 200 OK\r\n";
+    my $output = "HTTP/1.1 200 OK\r\n";
     $output .= "Server: MisterHouse\r\n";
     $output .= "Content-type: application/json\r\n";
     if ($options =~ m/compress/) {
@@ -1220,9 +1248,13 @@ sub json_page {
         my $json;
         gzip \$json_raw => \$json;
         $output .= "Content-Encoding: gzip\r\n";
+        $output .= "Content-Length: " . ( length $json ) . "\r\n";
+        $output .= "Date: " . time2str(time) . "\r\n";
         $output .= "\r\n";
         $output .= $json;
     } else {
+        $output .= "Content-Length: " . ( length $json_raw ) . "\r\n";
+        $output .= "Date: " . time2str(time) . "\r\n";
         $output .= "\r\n";
         $output .= $json_raw;
     }
@@ -1454,14 +1486,14 @@ sub json_notification {
     for my $i ( 0 .. $#json_notifications ) {
 
         #clean up any old notifications, or empty entries (ie less than 5 seconds old)
-        my $n_time = int( $json_notifications[$i]{time} );
+        my $n_time = int( $json_notifications[$i]{time} );    
         if (   ( &get_tickcount > $n_time + 5000 )
             or ( !defined $json_notifications[$i]{time} ) )
         {
             splice @json_notifications, $i, 1;
         }
     }
-    push @json_notifications, $data;
+    push (@json_notifications, $data);
 }
 
 sub config_checker {
