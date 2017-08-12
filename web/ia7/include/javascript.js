@@ -1,4 +1,4 @@
-// v1.5.670
+// v1.5.700
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -175,6 +175,25 @@ function changePage (){
 		} else {
 				notifications = "enabled";
 		}
+		//cookies override default config.
+//TODO use_cookies option
+        if (json_store.ia7_config.prefs.use_cookies == undefined || (json_store.ia7_config.prefs.use_cookies !== undefined && json_store.ia7_config.prefs.use_cookies == "yes")) {
+            var decodedCookie = decodeURIComponent(document.cookie);
+            var ca = decodedCookie.split(';');
+            for (var i = 0; i <ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) == ' ') {
+                    c = c.substring(1);
+                }
+                if (c.indexOf("speech_sound") == 0) {
+                    speech_sound = c.substring(13, c.length);
+                }
+                if (c.indexOf("speech_banner") == 0) {
+                    speech_banner = c.substring(14, c.length);
+                }            
+            }
+        }
+
 	}
 	if (getJSONDataByPath("collections") === undefined){
 		// We need at minimum the basic collections data to render all pages
@@ -3343,6 +3362,8 @@ $(document).ready(function() {
 				$('.mhnotifyoff').removeClass('active');
 				if ((speech_banner === "no") && (speech_sound === "no")) $('.mhnotifyoff').addClass('active');
 			}
+			document.cookie = "speech_sound="+speech_sound;
+			document.cookie = "speech_banner="+speech_banner;
 			//if off, then unselect others
   		});  		
 		// parse the collection ID 500 and build a list of buttons
