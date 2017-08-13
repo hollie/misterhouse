@@ -1620,7 +1620,10 @@ sub html_file {
         print "db web file cache check: f=$file t=$time2/$time3\n"
           if $main::Debug{http};
         if ( $time3 <= $time2 ) {
-            return "HTTP/1.0 304 Not Modified\nServer: MisterHouse\n\n";
+ 		my $html_head = "HTTP/1.1 304 Not Modified\r\n";
+ 		$html_head .= "Server: MisterHouse\r\n";
+ 		$html_head .= "Date: " . time2str(time) . "\r\n";
+ 		$html_head .= "\r\n";
         }
     }
 
@@ -1889,7 +1892,7 @@ sub mime_header {
     }
 
     #   print "dbx2 m=$mime f=$file_or_type\n";
-    my $code = "HTTP/1.0 200 OK";
+    my $code = "HTTP/1.1 200 OK";
     $code = "HTTP/1.1 206 Partial Content" if $range;
     my $header = "$code\nServer: MisterHouse\nContent-Type: $mime\n";
 
@@ -1933,21 +1936,18 @@ sub html_alias {
 
 # Responses documented here: http://www.w3.org/Protocols/HTTP/HTRESP.html
 sub html_no_response {
-
-    return <<eof;
-HTTP/1.0 204 No Response
-Server: MisterHouse
-Content-Type: text/html
-
-
-eof
+ my $html_head = "HTTP/1.1 204 No Content\r\n";
+ $html_head .= "Server: MisterHouse\r\n";
+ $html_head .= "Content-type: text/html\r\n";
+ $html_head .= "Date: " . time2str(time) . "\r\n";
+ $html_head .= "\r\n";
+return $html_head;
 }
 
 sub html_page {
     my ( $title, $body, $style, $script, $frame ) = @_;
 
-    my $date = time2str(time);
-
+    my $html_head;
     # Allow for fully formated html
     if ( $body =~ /^\s*<(!doctype\s*)?(html|\?xml)/i ) {
         $body =~ s/\n/\n\r/g;    # Bill S. says this is required to be standards compiliant
@@ -1958,20 +1958,15 @@ sub html_page {
             $contenttype = "text/xml";
         }
 
-        # Content-Length is only for binary data!
-        #        my $length = length $body;
-        # Content-Length: $length
+	$html_head = "HTTP/1.1 200 OK\r\n";
+	$html_head .= "Server: MisterHouse\r\n";
+	$html_head .= "Content-type: $contenttype\r\n";
+	$html_head .= "Content-Length: " . ( length $body ) . "\r\n";
+	$html_head .= "Date: " . time2str(time) . "\r\n";
+	$html_head .= "Cache-Control: no-cache\r\n";
+	$html_head .= "\r\n";
 
-        #Cache-Control: max-age=1000000
-        return <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Date: $date
-Content-Type: $contenttype
-Cache-Control: no-cache
-
-$body
-eof
+	return $html_head.$body;
     }
 
     $body = 'No data' unless $body;
@@ -2001,7 +1996,7 @@ eof
           unless $script =~ / script /i;
         $html = $script . "\n";
     }
-    $html .= "<HTML>
+$html .= "<HTML>
 <HEAD>
 $style
 <TITLE>$title</TITLE>
@@ -2013,22 +2008,20 @@ $body
 </HTML>
 ";
 
-    my $extraheaders = '';
-    $extraheaders .= $Cookie . "\n\r" if $Cookie;
-    $extraheaders .= $frame . "\n\r"  if $frame;
-    $extraheaders .= "\n\r"           if $extraheaders;
 
-    # Not sure how important length is, but pretty cheap and easy to do
-    $html =~ s/\n/\n\r/g;    # Bill S. says this is required to be standards compiliant
-    return <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-Type: text/html
-Cache-Control: no-cache
-$extraheaders
+ $html =~ s/\n/\n\r/g;    # Bill S. says this is required to be standards compiliant
 
-$html
-eof
+ $html_head = "HTTP/1.1 200 OK\r\n";
+ $html_head .= "Server: MisterHouse\r\n";
+ $html_head .= "Content-type: text/html\r\n";
+ $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
+ $html_head .= "Date: " . time2str(time) . "\r\n";
+ $html_head .= "Cache-Control: no-cache\r\n";
+ $html_head .= $Cookie . "\n\r" if $Cookie;
+ $html_head .= $frame . "\n\r"  if $frame;
+ $html_head .= "\r\n";
+
+ return $html_head.$html;
 }
 
 sub http_redirect {
@@ -3266,14 +3259,7 @@ sub vars_global {
 sub vxml_page {
     my ($vxml) = @_;
 
-    my $header = "Content-type: text/xml";
-
-    #   $header    = $Cookie . $header if $Cookie;
-
-    return <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-$header
+my $html = <<eof;
 <?xml version="1.0" encoding="UTF-8"?>
 
 <vxml version="2.0"
@@ -3284,6 +3270,14 @@ $vxml
 </vxml>
 eof
 
+my $html_head = "HTTP/1.1 200 OK\r\n";
+$html_head .= "Server: MisterHouse\r\n";
+$html_head .= "Content-type: text/xml\r\n";
+$html_head .= "Content-Length: " . ( length $html ) . "\r\n";
+$html_head .= "Date: " . time2str(time) . "\r\n";
+$html_head .= "\r\n";
+
+return $html_head.$html;
 }
 
 # vxml for audio text/wav followed by a goto
@@ -3645,9 +3639,6 @@ sub dir_index {
 sub wml_page {
     my ($wml) = @_;
     $wml = <<"eof";
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-Type: text/vnd.wap.wml
 
 <?xml version="1.0"?>
 <!DOCTYPE wml PUBLIC "-//PHONE.COM//DTD WML 1.1//EN"
@@ -3656,7 +3647,15 @@ Content-Type: text/vnd.wap.wml
   $wml
 </wml>
 eof
-    return $wml;
+
+ my $html_head = "HTTP/1.1 200 OK\r\n";
+ $html_head .= "Server: MisterHouse\r\n";
+ $html_head .= "Content-type: text/vnd.wap.wml\r\n";
+ $html_head .= "Content-Length: " . ( length $wml ) . "\r\n";
+ $html_head .= "Date: " . time2str(time) . "\r\n";
+ $html_head .= "\r\n";
+
+    return $html_head.$wml;
 }
 
 return 1;    # Make require happy
