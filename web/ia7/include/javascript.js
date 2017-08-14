@@ -1,4 +1,4 @@
-// v1.5.700
+// v1.5.720
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -155,28 +155,28 @@ function changePage (){
 		if (json_store.ia7_config.prefs.tooltips !== undefined) show_tooltips = json_store.ia7_config.prefs.tooltips;
 		// First time loading, set the default speech notifications
 		if (speech_sound === undefined) {
-			if ((json_store.ia7_config.prefs.speech_default !== undefined) && (json_store.ia7_config.prefs.speech_default.search("audio") >= 0 )) {
+			if ((json_store.ia7_config.prefs.speech_default_audio !== undefined) && (json_store.ia7_config.prefs.speech_default_audio == "yes" )) {
 				speech_sound = "yes";
 			} else {
 				speech_sound = "no";
 			}
 		}
+		//by default show speech banners
 		if (speech_banner === undefined) {
-			if ((json_store.ia7_config.prefs.speech_default !== undefined) && (json_store.ia7_config.prefs.speech_default.search("banner") >= 0 )) {
-				speech_banner = "yes";
-			} else {
+			if ((json_store.ia7_config.prefs.speech_default_banner !== undefined) && (json_store.ia7_config.prefs.speech_default_banner == "no" )) {
 				speech_banner = "no";
+			} else {
+				speech_banner = "yes";
 			}
 		}
-		if ((json_store.ia7_config.prefs.notifications == undefined) || ((json_store.ia7_config.prefs.notifications !== undefined) && (json_store.ia7_config.prefs.notifications == "no" ))) {
+		if ((json_store.ia7_config.prefs.notifications !== undefined) && (json_store.ia7_config.prefs.notifications == "no" )) {
 			  	notifications = "disabled";
 			  	speech_sound = "no";
 			  	speech_banner = "no";
 		} else {
 				notifications = "enabled";
 		}
-		//cookies override default config.
-//TODO use_cookies option
+		//cookies override default config unless use_cookies : no
         if (json_store.ia7_config.prefs.use_cookies == undefined || (json_store.ia7_config.prefs.use_cookies !== undefined && json_store.ia7_config.prefs.use_cookies == "yes")) {
             var decodedCookie = decodeURIComponent(document.cookie);
             var ca = decodedCookie.split(';');
@@ -190,7 +190,13 @@ function changePage (){
                 }
                 if (c.indexOf("speech_banner") == 0) {
                     speech_banner = c.substring(14, c.length);
-                }            
+                }
+                if (c.indexOf("display_mode") == 0) {
+                    display_mode = c.substring(13, c.length);
+                } 
+                if (c.indexOf("developer") == 0) {
+                    developer = c.substring(10, c.length);
+                }                                           
             }
         }
 
@@ -1486,7 +1492,6 @@ var get_notifications = function(time) {
                         }
 						if ((type == "sound" ) || ((type == "speech") && (speech_sound == "yes"))) {
 							if (url !== "undefined") {
-								console.log("in undefined url="+url);
 							    audio_play(document.getElementById('sound_element'),url);
 							}	
 						}
@@ -2489,7 +2494,8 @@ var floorplan = function(group,time) {
                                                 //if button doesn't have on and off don't display
                                                 if ($.inArray("on", json_store.objects[fp_entity].states) !== -1 && $.inArray("off", json_store.objects[fp_entity].states) !== -1) {
                                                     html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-success'>on</button>";					                
-                                                    html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-default'>off</button>";	
+                                                    html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-default'>off</button>";
+                                                    subbuttons = 1;	
                                                 }	
                                                 html += "</div>";			                
                                                 html += "<div id='sliderFP' class='brightness-slider'></div>";					
@@ -2514,6 +2520,10 @@ var floorplan = function(group,time) {
                                             max: slider_data.max,
                                             value: position
                                         });
+
+                                        if ($(".stategrp0").children().length == 0) {  
+                                            $(".stategrp0").remove();
+                                        }
 
                                         $( "a[title='"+src+"']" ).find(".popover-content").popover('show');
                                         
@@ -2867,6 +2877,9 @@ var create_state_modal = function(entity) {
                 $('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");					
                 }
                 if (slider_active) {
+                    if ($(".stategrp0").children().length == 0) {  
+                        $(".stategrp0").remove();
+                    }
                    var slider_data = sliderDetails(modal_states);		                
                    $('#control').find('.states').append("<div id='slider' class='brightness-slider'></div>");					
                    var val = $(".object-state").text().replace(/\%/,'');
@@ -3258,7 +3271,7 @@ $(document).ready(function() {
                 var offset = "auto";
                 if ($(window).width() < 768) {
                     offset = 0;
-                    if (($(window).width() / 2 - 210) > 0) offset = ($(window).width() / 2 - 210);
+                    if (($(window).width() / 2 - 210) > 0) offset = ($(window).width() / 2 - 220);
                     }
                 return offset;               
              }
@@ -3306,7 +3319,10 @@ $(document).ready(function() {
 			} else {
 				display_mode = $(this).find('input').attr('id');
 				developer = false;
-			}	
+			}
+			document.cookie = "display_mode="+display_mode;
+			document.cookie = "developer="+developer;
+	
 			changePage();
   		});
   		

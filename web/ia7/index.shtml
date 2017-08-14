@@ -242,6 +242,9 @@
         width: 32px;
         margin-left: -16px
     }  
+	.popover {
+	    min-width: 200px;
+	}
 	
 	</style>
 </head>
