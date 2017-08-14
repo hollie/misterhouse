@@ -80,7 +80,11 @@ sub checkForUpdate {
 
         # Sending a status code makes it easier to distinish No Content from a lost
         # connection on the client end.
-        &::print_socket_fork( ${ $$self{waitingSocket} }, "HTTP/1.0 204 No Content\n\n" );
+	 my $html_head = "HTTP/1.1 204 No Content\r\n";
+	 $html_head .= "Server: MisterHouse\r\n";
+	 $html_head .= "Date: " . ::time2str(time) . "\r\n";
+	 $html_head .= "\r\n";
+        &::print_socket_fork( ${ $$self{waitingSocket} }, $html_head );
         ${ $$self{waitingSocket} }->close;
         return 1;
     }
@@ -94,7 +98,8 @@ sub checkForUpdate {
     if ($xml) {
         &main::print_log("checkForUpdate sub ${$$self{sub}} returned $xml") if $main::Debug{ajax};
         &::print_socket_fork( ${ $$self{waitingSocket} }, $xml );
-        &main::print_log( "Closing Socket " . ${ $$self{waitingSocket} } ) if $main::Debug{ajax};
+        # No need to close the socket with HTTP1.1, also this causes issues with a forked socket
+        #&main::print_log( "Closing Socket " . ${ $$self{waitingSocket} } ) if $main::Debug{ajax};
         #${ $$self{waitingSocket} }->shutdown(2);    #Changed this from close() to shutdown(2). In some cases, the parent port wasn't being closed -- ie. speech events
         ${ $$self{changed} } = 1;
     }

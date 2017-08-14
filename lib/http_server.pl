@@ -531,7 +531,7 @@ sub http_process_request {
     }
 
     # See if the request was for a file
-    if ( &test_for_file( $socket, $get_req, $get_arg ) ) {
+    if ( &test_for_file( $socket, $get_req, $get_arg ) ) { 
     }
     elsif ( $get_req =~ /^\/JSON/i ) {
         &print_socket_fork( $socket, json() );
@@ -934,6 +934,8 @@ sub test_for_file {
             return $html;
         }
         else {
+	    print "http: Test_for_file printing\n";
+	    $html = AddContentLength($html); 
             &print_socket_fork( $socket, $html );
             return 1;
         }
@@ -941,6 +943,26 @@ sub test_for_file {
     else {
         return 0;    # No file found ... check for other types of http requests
     }
+}
+
+sub AddContentLength {
+ my ($html) = @_;
+ my $original_html = $html;
+ my $html_head;
+   if ( ($html =~ /HTTP\/1\.1 200 OK/) and !($html =~ /Content-Length:/) ) {
+       print "http: header match!\n";
+	unless ($html =~ s/^HTTP.+?^\r\n//smi) { return $original_html }
+	print "http: header striped\n";
+
+	my $length = length($html);
+	return $original_html unless $length;
+
+	if ($original_html =~ s/(Server: MisterHouse)\r\n/$1\r\nContent-Length: $length\r\n/) { return $original_html }
+	print "http: server not found in header\n";
+	return $original_html;
+   } else { 
+	return $original_html;
+  }
 }
 
 # Check for illicit or password protected dirs
@@ -1810,45 +1832,14 @@ sub shtml_include {
     return $html;
 }
 
+
 sub html_cgi {
     my ( $socket, $code, $arg ) = @_;
     my $html;
 
-    # Need to redirect print/printf from STDOUT to $socket
-
-    # Method 1.  Works except on Win95/98
-    $config_parms{http_cgi_method} = 1 unless $config_parms{http_cgi_method};
-    if ( $config_parms{http_cgi_method} == 1 ) {
-        open OLD_HANDLE, ">&STDOUT"
-          or print "\nhttp .pl error: can not backup STDOUT: $!\n";
-        if ( my $fileno = $socket->fileno() ) {
-            print "http: cgi redirecting socket fn=$fileno s=$socket\n"
-              if $main::Debug{http};
-
-            # This is the step that fails on win98 :(
-            open STDOUT, ">&$fileno"
-              or warn "http .pl error: Can not redirect STDOUT to $fileno: $!\n";
-        }
-    }
-
-    # Method 2.  If CGI is used (e.g. organizer scripts), this
-    #    gives this error on eval: Undefined subroutine CGI::delete
-    else {
-
-        package Override_print;
-        sub TIEHANDLE { bless $_[1], $_[0]; }
-        sub PRINT  { my $coderef = shift; $coderef->(@_); }
-        sub PRINTF { my $coderef = shift; $coderef->(@_); }
-
-        #       sub DELETE { }
-        sub define_print (&) { tie( *STDOUT, "Override_print", @_ ); }
-        sub undefine_print (&) { untie(*STDOUT); }
-
-        package Main;
-        Override_print::define_print { $html .= shift };
-    }
-
-    print "HTTP/1.0 200 OK\nServer: MisterHouse\nCache-Control: no-cache\n";
+    open(my $outputFH, '>', \$html) or print "\nhttp Error: opening file handle in html_cgi sub $!\n";
+    my $oldFH = select $outputFH;
+     
 
     # Setup up vars so pgms like CGI.pm work ok
     $arg =~ s/&&/&/g;
@@ -1859,20 +1850,25 @@ sub html_cgi {
     eval '&CGI::initialize_globals';    # Need this or else CGI.pm global vars are not reset
     local $^W = 0;                      # Avoid redefined sub msgs
     eval $code;
+    select $oldFH;
+    close $outputFH;
+    my $extraheaders;
+    if ($html =~ s/(^.+?)\n\n//) { $extraheaders = $1 } 
+    elsif ($html =~ s/(^.+?)\r\n//) { $extraheaders = $1 }
+
     print "Error in http cgi eval: $@" if $@;
 
-    if ( $config_parms{http_cgi_method} == 1 ) {
-        $socket->close();
-        open STDOUT, ">&OLD_HANDLE"
-          or print "\nhttp .pl error: can not redir STDIN to orig value: $!\n";
-        close OLD_HANDLE;
-    }
-    else {
-        Override_print::undefine_print { };
-        print $socket $html;
-        $socket->close();
-    }
+    my $html_head = "HTTP/1.1 200 OK\r\n";
+    $html_head .= "Server: MisterHouse\r\n";
+    $html_head .= "Cache-Control: no-cache\r\n";
+    $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
+    $html_head .= $extraheaders."\r\n" if $extraheaders;
+    $html_head .= "Date: " . time2str(time) . "\r\n";
+    $html_head .= "\r\n";
+
+    &::print_socket_fork($socket,$html_head.$html);
 }
+
 
 sub mime_header {
     my ( $file_or_type, $cache, $length, $range, $full_length ) = @_;
@@ -1894,18 +1890,18 @@ sub mime_header {
     #   print "dbx2 m=$mime f=$file_or_type\n";
     my $code = "HTTP/1.1 200 OK";
     $code = "HTTP/1.1 206 Partial Content" if $range;
-    my $header = "$code\nServer: MisterHouse\nContent-Type: $mime\n";
+    my $header = "$code\r\nServer: MisterHouse\r\nContent-Type: $mime\r\n";
 
     #   $header .= ($cache) ? "Cache-Control: max-age=1000000\n" : "Cache-Control: no-cache\n";
     if ($cache) {
-        $header .= "Last-Modified: $date\n";
+        $header .= "Last-Modified: $date\r\n";
     }
     else {
-        $header .= "Cache-Control: no-cache\n";
+        $header .= "Cache-Control: no-cache\r\n";
     }
 
     # Allow for a length header, as this allows for faster 'persistant' connections
-    $header .= "Content-Length: $length\n" if $length;
+    $header .= "Content-Length: $length\r\n" if $length;
 
     #(my $range_bytes) = $range =~ /bytes=(.*)/;
     my ( $start, $end ) = $range =~ /bytes=(\d*)-(\d*)/;
@@ -1913,16 +1909,16 @@ sub mime_header {
 
     #$header .= "Content-Range: bytes " . $range_bytes . "/" . $full_length . "\n" if $range_bytes;
     #print "http: Server responds: bytes " . $range_bytes . "/" . $full_length . "\n" if $range_bytes;
-    $header .= "Content-Range: bytes " . $start . "-" . $end . "/" . $full_length . "\n"
+    $header .= "Content-Range: bytes " . $start . "-" . $end . "/" . $full_length . "\r\n"
       if $range;
-    print "http: Server responds: HTTP/1.1 206; bytes " . $start . "-" . $end . "/" . $full_length . "\n"
+    print "http: Server responds: HTTP/1.1 206; bytes " . $start . "-" . $end . "/" . $full_length . "\r\n"
       if $range;
 
-    $header .= "Accept-Ranges: bytes\n";
+    $header .= "Accept-Ranges: bytes\r\n";
 
     print "returned header = $header\n" if ( $main::Debug{http} );
 
-    return $header . "\n";
+    return $header . "\r\n";
 
     #Expires: Mon, 01 Jul 2002 08:00:00 GMT
 }
@@ -1938,7 +1934,6 @@ sub html_alias {
 sub html_no_response {
  my $html_head = "HTTP/1.1 204 No Content\r\n";
  $html_head .= "Server: MisterHouse\r\n";
- $html_head .= "Content-type: text/html\r\n";
  $html_head .= "Date: " . time2str(time) . "\r\n";
  $html_head .= "\r\n";
 return $html_head;
@@ -2017,21 +2012,25 @@ $body
  $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
  $html_head .= "Date: " . time2str(time) . "\r\n";
  $html_head .= "Cache-Control: no-cache\r\n";
- $html_head .= $Cookie . "\n\r" if $Cookie;
- $html_head .= $frame . "\n\r"  if $frame;
+ $html_head .= $Cookie . "\r\n" if $Cookie;
+ $html_head .= $frame . "\r\n"  if $frame;
  $html_head .= "\r\n";
 
  return $html_head.$html;
 }
 
 sub http_redirect {
-    my ($url) = @_;
-    print "http_redirect Location: $url\n" if $main::Debug{http};
-    return <<eof;
-HTTP/1.0 302 Moved Temporarily
-Location: $url
-$Cookie
-eof
+ my ($url) = @_;
+ print "http_redirect Location: $url\n" if $main::Debug{http};
+
+ my $html_head = "HTTP/1.1 302 Moved Temporarily\r\n";
+ $html_head .= "Server: MisterHouse\r\n";
+ $html_head .= "Location: $url\r\n";
+ $html_head .= "Connection: close\r\n";
+ $html_head .= "Cache-Control: no-cache\r\n";
+ $html_head .= "\r\n";
+
+ return $html_head;
 }
 
 sub http_agent_size {

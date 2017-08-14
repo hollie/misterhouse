@@ -1273,11 +1273,7 @@ sub json_entities_encode {
 }
 
 sub json_usage {
-    my $html = <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: text/html
-
+my $html = <<eof;
 <html>
 <head>
 </head>
@@ -1315,8 +1311,16 @@ eof
 </body>
 </html>
 eof
+ my $html_head = "HTTP/1.1 200 OK\r\n";
+ $html_head .= "Server: MisterHouse\r\n";
+ $html_head .= "Content-type: application/json\r\n";
+ $html_head .= "Content-Encoding: gzip\r\n";
+ $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
+ $html_head .= "Date: " . time2str(time) . "\r\n";
+ $html_head .= "\r\n";
 
-    return $html;
+
+    return $html_head.$html;
 }
 
 sub json_table_create {
