@@ -55,6 +55,7 @@ sub new {
     ${ $$self{changed} }       = 0;                                                # Flag if at least on state is changed
     ${ $$self{event} }         = "&ChangeChecker::setWaiterToChanged ('$self')";
     ${ $$self{sub} }           = $sub;
+    ${ $$self{checkTime} }     = 1;
 
     return $self;
 }
@@ -82,10 +83,11 @@ sub checkForUpdate {
         # connection on the client end.
 	 my $html_head = "HTTP/1.1 204 No Content\r\n";
 	 $html_head .= "Server: MisterHouse\r\n";
+	 $html_head .= "Connection: close\r\n";
 	 $html_head .= "Date: " . ::time2str(time) . "\r\n";
 	 $html_head .= "\r\n";
-        &::print_socket_fork( ${ $$self{waitingSocket} }, $html_head );
-        ${ $$self{waitingSocket} }->close;
+        &::print_socket_fork( ${ $$self{waitingSocket} }, $html_head, 1 );
+        #${ $$self{waitingSocket} }->close;
         return 1;
     }
 
@@ -97,7 +99,7 @@ sub checkForUpdate {
 
     if ($xml) {
         &main::print_log("checkForUpdate sub ${$$self{sub}} returned $xml") if $main::Debug{ajax};
-        &::print_socket_fork( ${ $$self{waitingSocket} }, $xml );
+        &::print_socket_fork( ${ $$self{waitingSocket} }, $xml, 1 );
         # No need to close the socket with HTTP1.1, also this causes issues with a forked socket
         #&main::print_log( "Closing Socket " . ${ $$self{waitingSocket} } ) if $main::Debug{ajax};
         #${ $$self{waitingSocket} }->shutdown(2);    #Changed this from close() to shutdown(2). In some cases, the parent port wasn't being closed -- ie. speech events
@@ -184,10 +186,14 @@ sub addWaiter {
 
 sub checkWaiters {
     my ($class) = @_;
-
+    my $delay = 250;
+    my $currenttime = &main::get_tickcount;
     foreach my $key ( keys %waiters ) {
+	my $self = $waiters{$key};
+	next unless ( ($currenttime - ${ $$self{checkTime} }) >= $delay );
+	${ $$self{checkTime} } = $currenttime; 
+	#&main::print_log("waiter: checkWaiters checking sub sub ".${$$self{sub}} ) if $main::Debug{ajax};
         if ( $waiters{$key}->checkForUpdate ) {
-
             # waiter can be removed
             delete $waiters{$key};
             &main::print_log("waiter '$key' removed") if $main::Debug{ajax};

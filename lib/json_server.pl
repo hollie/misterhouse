@@ -1243,6 +1243,7 @@ sub json_page {
     my $output = "HTTP/1.1 200 OK\r\n";
     $output .= "Server: MisterHouse\r\n";
     $output .= "Content-type: application/json\r\n";
+    $output .= "Connection: close\r\n";
     if ($options =~ m/compress/) {
         print_log("json_server.pl: DEBUG: Compressing Data as requested by client") if $Debug{json};
         my $json;
@@ -1314,7 +1315,7 @@ eof
  my $html_head = "HTTP/1.1 200 OK\r\n";
  $html_head .= "Server: MisterHouse\r\n";
  $html_head .= "Content-type: application/json\r\n";
- $html_head .= "Content-Encoding: gzip\r\n";
+ $html_head .= "Connection: close\r\n";
  $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
  $html_head .= "Date: " . time2str(time) . "\r\n";
  $html_head .= "\r\n";
