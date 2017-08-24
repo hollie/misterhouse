@@ -1,4 +1,4 @@
-// v1.5.720
+// v1.5.800
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -296,12 +296,14 @@ function changePage (){
 				//We are browsing the contents of an object, currently only 
 				//group objects can be browsed recursively.  Possibly use different
 				//prefix if other recursively browsable formats are later added
-				nav_name = collection_keys_arr[i].replace("$", '');
+			
+				nav_name = collection_keys_arr[i].replace("$", '');				    
 				nav_link = '#path=/objects&parents='+nav_name;				
 				if (collection_keys_arr.length > 2 && collection_keys_arr[collection_keys_arr.length-2].substring(0,1) == "$") nav_link = '#path=/objects&type='+nav_name; 
 				if (nav_name == "Group") nav_link = '#path=objects&type=Group'; //Hardcode this use case
+                //if type=Voice_Cmd, then we need to keep it for voice links to have a nice breadcrumb
+				if (collection_keys_arr[i+1] !== undefined && collection_keys_arr[i+1] == "Voice_Cmd") nav_link = '#path=/objects&type=Voice_Cmd&category='+nav_name;
 				if (json_store.objects !== undefined && json_store.objects[nav_name] !== undefined && json_store.objects[nav_name].label !== undefined) nav_name = (json_store.objects[nav_name].label);
-
 			} else {
 				if (json_store.collections[collection_keys_arr[i]] == undefined) continue; //last breadcrumb duplicated so we don't need it.
 				nav_link = json_store.collections[collection_keys_arr[i]].link;
@@ -309,6 +311,7 @@ function changePage (){
 			}
 			nav_link = buildLink (nav_link, breadcrumb + collection_keys_arr[i]);
 			breadcrumb += collection_keys_arr[i] + ",";
+
 			if (i == (collection_keys_arr.length-1)){
 				$('#nav').append('<li class="active">' + nav_name + '</a></li>');
 				$('title').html("MisterHouse - " + nav_name);
@@ -574,7 +577,7 @@ var loadList = function() {
 	var button_text = '';
 	var button_html = '';
 	var entity_arr = [];
-	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status";
+	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status,link";
 	$.ajax({
 		type: "GET",
 		url: "/json/"+HashtoJSONArgs(URLHash),
@@ -654,7 +657,7 @@ var loadList = function() {
 						button_html += '</div>';
 					}
 					else {
-						button_html = "<div style='vertical-align:middle'><button type='button' class='btn btn-default btn-lg btn-block btn-list btn-voice-cmd navbutton-padding'>";
+						button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' type='button' class='btn btn-default btn-lg btn-block btn-list btn-voice-cmd navbutton-padding'>";
 						button_html += "" +button_text+"</button></div>";
 					}
 					entity_arr.push(button_html);
@@ -739,13 +742,21 @@ var loadList = function() {
 			$(".btn-voice-cmd").click( function () {
 				var voice_cmd = $(this).text().replace(/ /g, "_");
 				var url = '/RUN;last_response?select_cmd=' + voice_cmd;
+				var entity=$(this).attr("entity");
 				$.get( url, function(data) {
-					var start = data.toLowerCase().indexOf('<body>') + 6;
-					var end = data.toLowerCase().indexOf('</body>');
-					$('#lastResponse').find('.modal-body').html(data.substring(start, end));
-					$('#lastResponse').modal({
-						show: true
-					});
+				    if (json_store.objects[entity].link !== undefined) {
+				    //if link starts with /ia7/#path= then it is an IA7 redirect
+				        var collid = $(location).attr('href').split("_collection_key=");
+				        var link = json_store.objects[entity].link+"&type=Voice_Cmd&_collection_key="+collid[1]+",Voice_Cmd";
+				        window.location.assign(link);
+				    } else {
+					    var start = data.toLowerCase().indexOf('<body>') + 6;
+					    var end = data.toLowerCase().indexOf('</body>');
+					    $('#lastResponse').find('.modal-body').html(data.substring(start, end));
+					    $('#lastResponse').modal({
+						    show: true
+					    });
+					}
 				});
 			});
 			$(".btn-state-cmd").click( function () {

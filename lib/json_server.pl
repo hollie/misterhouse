@@ -1130,6 +1130,12 @@ sub json_object_detail {
                   unless ( exists $a{""} );    #don't return a null value
             }
 
+            elsif ( $f eq 'link' ) {
+                my $a = $object->$method;
+
+                $value = $a if ( defined $a and $a ne "" );    #don't return a null value
+            }
+
             #if ( $f eq 'hidden' ) {
             #	my $a = $object->$method;
             #	if ($a == 1 or $a eq "1") {
