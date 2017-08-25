@@ -1244,6 +1244,7 @@ sub json_page {
 ##    utf8::encode( $json_raw ); #may need to wrap gzip in an eval and encode it if errors develop. It crashes if a < is in the text
     my $output = "HTTP/1.1 200 OK\r\n";
     $output .= "Server: MisterHouse\r\n";
+    $output .= "Connection: close\r\n";    
     $output .= "Content-type: application/json\r\n";
     $output .= "Connection: close\r\n";
     if ($options =~ m/compress/) {
