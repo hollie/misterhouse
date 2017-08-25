@@ -738,7 +738,6 @@ sub json_get {
     }    
 
     if ( $path[0] eq 'notifications' ) {
-
         for my $i ( 0 .. $#json_notifications ) {
             my $n_time = int( $json_notifications[$i]{time} );
             my $x      = $args{time}[0];                         #Weird, does nothing, but notifications doesn't work if removed...
@@ -759,41 +758,37 @@ sub json_get {
 
             #need to check if vars and keys exist
 
+
             my $start = 0;
             $start = $args{start}[0] if ( $args{start}[0] );
             my $records = 0;
             my $page    = 0;
-            my $page    = $json_table{ $args{var}[0] }{page}
-              if ( defined $json_table{ $args{var}[0] }{page} );
+            my $page    = $json_table{ $args{var}[0] }{page} if ( defined $json_table{ $args{var}[0] }{page} );
             $records = $args{records}[0] if ( $args{records}[0] );
 
             # TODO: At some point have a hook that pulls in more data into the table if it's missing
             #  ie read a file
 
             my $jt_time = int( $json_table{ $args{var}[0] }{time} );
-            if (   ( $args{time} && int( $args{time}[0] ) < $jt_time )
-                or ( !$args{time} ) )
-            {
+            if (   ( $args{time} && int( $args{time}[0] ) < $jt_time ) or ( !$args{time} ) ) {
                 #need to copy all the data since we can adjust starts and records
 
-                $json_data{'table_data'}{exist} =
-                  $json_table{ $args{var}[0] }{exist};
-                $json_data{'table_data'}{head} =
-                  $json_table{ $args{var}[0] }{head};
-                $json_data{'table_data'}{page_size} =
-                  $json_table{ $args{var}[0] }{page_size};
-                $json_data{'table_data'}{hook} =
-                  $json_table{ $args{var}[0] }{hook};
-                $json_data{'table_data'}{page} = $page;
-                @{ $json_data{'table_data'}->{data} } =
-                  map { [@$_] } @{ $json_table{ $args{var}[0] }->{data} };
-
-                splice @{ $json_data{'table_data'}->{data} }, 0, $args{start}[0]
-                  if ( $args{start}[0] );
-                splice @{ $json_data{'table_data'}->{data} }, $args{records}[0]
-                  if ( $args{records}[0] );
-                $json_data{'table_data'}{records} =
-                  scalar @{ $json_data{'table_data'}->{data} };
+                $json_data{'table_data'}{exist}       = $json_table{ $args{var}[0] }{exist};
+                $json_data{'table_data'}{head}        = $json_table{ $args{var}[0] }{head};
+                $json_data{'table_data'}{page_size}   = $json_table{ $args{var}[0] }{page_size};
+                $json_data{'table_data'}{hook}        = $json_table{ $args{var}[0] }{hook};
+                $json_data{'table_data'}{page}        = $page;
+                #wrap this in an eval in case the data is bad to prevent crashes"
+                eval {
+                    @{ $json_data{'table_data'}->{data} } = map { [@$_] } @{ $json_table{ $args{var}[0] }->{data} };
+                };
+                if ($@) {
+                    &::print_log("Json_Server.pl: ERROR: problems parsing table data for " . $args{var}[0]);
+                } else {
+                    splice @{ $json_data{'table_data'}->{data} }, 0, $args{start}[0] if ( $args{start}[0] );
+                    splice @{ $json_data{'table_data'}->{data} }, $args{records}[0] if ( $args{records}[0] );
+                    $json_data{'table_data'}{records} = scalar @{ $json_data{'table_data'}->{data} };
+                }
             }
         }
     }
@@ -1131,6 +1126,12 @@ sub json_object_detail {
                   unless ( exists $a{""} );    #don't return a null value
             }
 
+            elsif ( $f eq 'link' ) {
+                my $a = $object->$method;
+
+                $value = $a if ( defined $a and $a ne "" );    #don't return a null value
+            }
+
             #if ( $f eq 'hidden' ) {
             #	my $a = $object->$method;
             #	if ($a == 1 or $a eq "1") {
@@ -1241,7 +1242,7 @@ sub json_page {
     my ($json_raw,$options) = @_;
 
 ##    utf8::encode( $json_raw ); #may need to wrap gzip in an eval and encode it if errors develop. It crashes if a < is in the text
-    my $output = "HTTP/1.0 200 OK\r\n";
+    my $output = "HTTP/1.1 200 OK\r\n";
     $output .= "Server: MisterHouse\r\n";
     $output .= "Content-type: application/json\r\n";
     if ($options =~ m/compress/) {
@@ -1249,9 +1250,13 @@ sub json_page {
         my $json;
         gzip \$json_raw => \$json;
         $output .= "Content-Encoding: gzip\r\n";
+        $output .= "Content-Length: " . ( length $json ) . "\r\n";
+        $output .= "Date: " . time2str(time) . "\r\n";
         $output .= "\r\n";
         $output .= $json;
     } else {
+        $output .= "Content-Length: " . ( length $json_raw ) . "\r\n";
+        $output .= "Date: " . time2str(time) . "\r\n";
         $output .= "\r\n";
         $output .= $json_raw;
     }
@@ -1270,11 +1275,7 @@ sub json_entities_encode {
 }
 
 sub json_usage {
-    my $html = <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: text/html
-
+my $html = <<eof;
 <html>
 <head>
 </head>
@@ -1312,8 +1313,16 @@ eof
 </body>
 </html>
 eof
+ my $html_head = "HTTP/1.1 200 OK\r\n";
+ $html_head .= "Server: MisterHouse\r\n";
+ $html_head .= "Content-type: application/json\r\n";
+ $html_head .= "Content-Encoding: gzip\r\n";
+ $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
+ $html_head .= "Date: " . time2str(time) . "\r\n";
+ $html_head .= "\r\n";
 
-    return $html;
+
+    return $html_head.$html;
 }
 
 sub json_table_create {
@@ -1483,14 +1492,14 @@ sub json_notification {
     for my $i ( 0 .. $#json_notifications ) {
 
         #clean up any old notifications, or empty entries (ie less than 5 seconds old)
-        my $n_time = int( $json_notifications[$i]{time} );
+        my $n_time = int( $json_notifications[$i]{time} );    
         if (   ( &get_tickcount > $n_time + 5000 )
             or ( !defined $json_notifications[$i]{time} ) )
         {
             splice @json_notifications, $i, 1;
         }
     }
-    push @json_notifications, $data;
+    push (@json_notifications, $data);
 }
 
 sub config_checker {
