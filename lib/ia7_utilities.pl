@@ -44,7 +44,7 @@ sub main::file_ready_for_ia7 {
     my (%parms) = @_;
     my %data;
     $data{mode}   = $parms{mode};
-    $data{url}    = "http://" . $main::Info{IPAddress_local} . ":" . $main::config_parms{http_port} . "/" . $parms{web_file};
+    $data{url}    = "http://" . $main::Info{IPAddress_local} . ":" . $main::config_parms{http_port} . "/" . $parms{web_file} if (defined $parms{web_file}) ;
     $data{text}   = $parms{raw_text};
     $data{client} = $parms{requestor};
     if (defined $main::Info{IPAddress_local}) {
@@ -116,22 +116,40 @@ sub ia7_update_collection {
                     $updated = 1;
                 }
                 if ( $json_data->{meta}->{version} < 1.3 )  {
-                #IA7 v1.4 required change
-                #convert back to a file so we can globally change links
-                my $file_data2 = to_json( $json_data, { utf8 => 1, pretty => 1 } );    
-                $file_data2 =~ s/\"link\"[\s+]:[\s+]\"\/ia7\/\#path=\/vars\"/\"link\" : \"\/ia7\/\#path\=\/vars_global\"/g;
-                $file_data2 =~ s/\"link\"[\s+]:[\s+]\"\/ia7\/\#path=\/vars\/Save\"/\"link\" : \"\/ia7\/\#path\=\/vars_save\"/g;
-                eval {
-                    $json_data = decode_json($file_data2);    #HP, wrap this in eval to prevent MH crashes
-                };
-                if ($@) {
-                    &main::print_log("[IA7_Collection_Updater] : WARNING: decode_json failed for v1.3 update.");
-                } else {           
-                    $json_data->{meta}->{version} = "1.3";
-                    &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.3 (MH 4.3 IA7 v1.4.400 support)");
-                    $updated = 1; 
-                } 
-                }           
+                    #IA7 v1.4 required change
+                    #convert back to a file so we can globally change links
+                    my $file_data2 = to_json( $json_data, { utf8 => 1, pretty => 1 } );    
+                    $file_data2 =~ s/\"link\"[\s+]:[\s+]\"\/ia7\/\#path=\/vars\"/\"link\" : \"\/ia7\/\#path\=\/vars_global\"/g;
+                    $file_data2 =~ s/\"link\"[\s+]:[\s+]\"\/ia7\/\#path=\/vars\/Save\"/\"link\" : \"\/ia7\/\#path\=\/vars_save\"/g;
+                    eval {
+                        $json_data = decode_json($file_data2);    #HP, wrap this in eval to prevent MH crashes
+                    };
+                    if ($@) {
+                        &main::print_log("[IA7_Collection_Updater] : WARNING: decode_json failed for v1.3 update.");
+                    } else {           
+                        $json_data->{meta}->{version} = "1.3";
+                        &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.3 (MH 4.3 IA7 v1.4.400 support)");
+                        $updated = 1; 
+                    } 
+                }  
+                if ( $json_data->{meta}->{version} < 1.4 )  {
+                    #IA7 v1.4 required change
+                    #weather icons v2 changed wi-sprinkles to wi-humidity
+                    my $file_data2 = to_json( $json_data, { utf8 => 1, pretty => 1 } );    
+                    $file_data2 =~ s/wi-sprinkles/wi-humidity/g;
+                    eval {
+                        $json_data = decode_json($file_data2);    #HP, wrap this in eval to prevent MH crashes
+                    };
+                    if ($@) {
+                        &main::print_log("[IA7_Collection_Updater] : WARNING: decode_json failed for v1.4 update.");
+                    } else {           
+                        $json_data->{meta}->{version} = "1.4";
+                        &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.4 (MH 4.3 IA7 v1.5.800 weathericon change)");
+                        $updated = 1; 
+                    }
+                }
+
+         
                 if ($updated) {
                     my $json_newdata = to_json( $json_data, { utf8 => 1, pretty => 1 } );
                     my $backup_file = $file . ".t" . int( ::get_tickcount() / 1000 ) . ".backup";
