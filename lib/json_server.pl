@@ -1246,7 +1246,6 @@ sub json_page {
     $output .= "Server: MisterHouse\r\n";
     $output .= "Connection: close\r\n";    
     $output .= "Content-type: application/json\r\n";
-    $output .= "Connection: close\r\n";
     if ($options =~ m/compress/) {
         print_log("json_server.pl: DEBUG: Compressing Data as requested by client") if $Debug{json};
         my $json;

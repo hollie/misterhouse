@@ -168,10 +168,11 @@
 		margin-left: 10px;
 	}
     #hist-table {
-    	margin-left: 10px;
+    	margin-left: 5px;
     }
     .hist-table-margin {
-    	padding-right: 35px;
+        padding-right: 0px !important;
+        padding-left: 0px !important;
     }	
 	#rrd-graph {
     	width:700px;

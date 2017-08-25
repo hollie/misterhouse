@@ -1,4 +1,4 @@
-// v1.5.810
+// v1.5.830
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -151,7 +151,7 @@ function changePage (){
   			$("#sound_element").attr("controls", "controls");  //Show audio Controls
   		}
 		if (json_store.ia7_config.prefs.substate_percentages === undefined) json_store.ia7_config.prefs.substate_percentages = 20;
-		if (json_store.ia7_config.prefs.developer !== undefined) developer = json_store.ia7_config.prefs.developer;
+//TODO		if (json_store.ia7_config.prefs.developer !== undefined) developer = json_store.ia7_config.prefs.developer;
 		if (json_store.ia7_config.prefs.tooltips !== undefined) show_tooltips = json_store.ia7_config.prefs.tooltips;
 		// First time loading, set the default speech notifications
 		if (speech_sound === undefined) {
@@ -195,7 +195,7 @@ function changePage (){
                     display_mode = c.substring(13, c.length);
                 } 
                 if (c.indexOf("developer") == 0) {
-                    developer = c.substring(10, c.length);
+//TODO                    developer = c.substring(10, c.length);
                 }                                           
             }
         }
@@ -415,7 +415,9 @@ function parseLinkData (link,data) {
 		data = data.replace(/<a href=\"SET;&dir_index\(.*?\)\">(.*?)<\/a>/img, function (path,r1,r2) {
 			return r1;
 		});
-		data = data.replace(/href='RUN;\/ia5\/news\/main.shtml\?Check_for_e_mail'/img, 'class="btn-voice-cmd" voice_cmd="Check_for_e_mail"');				
+		data = data.replace(/<a href='RUN;\/ia5\/news\/main.shtml\?Check_for_e_mail'>Check for new e mail<\/a>/img, '<button type="button" class="btn btn-default btn-voice-cmd" voice_cmd="Check_for_e_mail" onclick="\$.get(\'/RUN;last_response?select_cmd=Check_for_e_mail\')">Check for new email<\/button>');				
+		data = data.replace(/<td>\+ Sort by /img,'<td>');		
+
 	}
 	if (link.indexOf('/email/') === 0) { //fix links in the email module 2
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
@@ -1873,7 +1875,7 @@ var object_history = function(items,start,days,time) {
 	var URLHash = URLToHash();
 	var graph = 0;
 	var data_timeout = 0;
-	if (developer) graph = 1;  //right now only show the graph if in developer mode
+	if (developer == true) graph = 1;  //right now only show the graph if in developer mode
 	if (typeof time === 'undefined'){
 		if (graph) {
 			$('#list_content').html("<div id='top-graph' class='row top-buffer'>");
@@ -2125,7 +2127,7 @@ var fp_getOrCreateIcon = function (json, entity, i, coords){
     E.bind("dragstart", noDragDrop);
     var image = get_fp_image(json.data[entity]);
     E.attr('src',"/ia7/graphics/"+image);
-    if (developer)
+    if (developer == true)
         E.css("border","1px solid black");
 
     return E;
@@ -2240,7 +2242,7 @@ var floorplan = function(group,time) {
     if (typeof time === 'undefined'){
         //var window_width = $(window).width();
         $('#list_content').html("<div id='floorplan' class='row top-buffer'>");
-        if (developer){
+        if (developer === true){
             // add elememnts to show current position on floorplan
             $('#floorplan').append("<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'><ol>" +
                     "<li>grab icon and drop it on apropriate position on the flooplan</li>" +
@@ -2255,7 +2257,7 @@ var floorplan = function(group,time) {
         $('#floorplan').append("<div id='graphic' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
         time = 0;
         $('#graphic').prepend('<center><img id="fp_graphic" border="1"  /></center>');
-        if (developer){
+        if (developer === true){
             $('#fp_graphic').css("border","1px solid black");
             $('#list_content').append("<div id='fp_positionless_items' />");
             $('#list_content').append("<pre id='fp_pos_perl_code' />");
@@ -2274,9 +2276,8 @@ var floorplan = function(group,time) {
         updateSocket.abort();
     }
 
-    if (developer){
+    if (developer === true){
         // update positon
-
         $(document).mousemove(function(e){
             var offset = $("#fp_graphic").offset();
             var width = $("#fp_graphic").width();
@@ -2413,7 +2414,7 @@ var floorplan = function(group,time) {
                 //var t0 = performance.now();
                 JSONStore(json);
                 for (var entity in json.data) {
-                    if (developer && requestTime === 0){
+                    if (developer === true && requestTime === 0){
                         perl_pos_coords = "";
                     }
                     for (var i=0 ; i < json.data[entity].fp_location.length-1; i=i+2){ //allow for multiple graphics
@@ -2421,7 +2422,7 @@ var floorplan = function(group,time) {
                         if ((json.data[entity].type === "FPCamera_Item") || (json_store.ia7_config.prefs.fp_state_popovers === "yes"))
                             popover = 1;
 
-                        if (developer && requestTime === 0){
+                        if (developer === true && requestTime === 0){
                             if (perl_pos_coords.length !== 0){
                                 perl_pos_coords += ", ";
                             }
@@ -2618,7 +2619,7 @@ var floorplan = function(group,time) {
                         }
                     }
 
-                    if (developer && requestTime === 0){
+                    if (developer === true && requestTime === 0){
                         if (perl_pos_coords.length===0)
                         {
                             fp_getOrCreateIcon(json, entity, 0, "");
@@ -2643,7 +2644,7 @@ var floorplan = function(group,time) {
                     }
                 }
                 fp_reposition_entities();
-                if (requestTime === 0 && developer){
+                if (requestTime === 0 && developer === true){
                     $('#list_content').append("<p>&nbsp;</p>");
                     $.ajax({
                         type: "GET",
@@ -3102,7 +3103,7 @@ var create_state_modal = function(entity) {
 			}
 		}
 		
-		if (developer) 
+		if (developer === true) 
 		    $('.mhstatemode').show();
 		else
 		    $('.mhstatemode').hide();
@@ -3310,7 +3311,7 @@ $(document).ready(function() {
 			develop_active = "";
 			develop_checked = "";
 		}
-		if (display_mode == "advanced" && developer == true)  {
+		if (display_mode == "advanced" && developer === true)  {
 			simple_active = "";
 			simple_checked = "";
 			advanced_active = "";
