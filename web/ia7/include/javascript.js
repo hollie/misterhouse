@@ -1,4 +1,4 @@
-// v1.5.800
+// v1.5.810
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -248,7 +248,7 @@ function changePage (){
 			$.get(link, function( data ) {
 				
 				$('#list_content').html("<div id='buffer_page' class='row top-buffer'>");
-				$('#buffer_page').append("<div id='row_page' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+				$('#buffer_page').append("<div id='row_page' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 mh-page-link'>");
 				parseLinkData(link,data); //remove css & fix up Mr.House setup stuff
 		
 			});

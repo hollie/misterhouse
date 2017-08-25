@@ -246,6 +246,10 @@
 	    min-width: 200px;
 	}
 	
+	.mh-page-link {
+	    padding-left: 30px;
+	}
+	
 	</style>
 </head>
 <body>
