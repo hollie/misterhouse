@@ -514,15 +514,20 @@ sub json_get {
         }
         else {
 
-            # Restrict object list by type here to make things faster
-            if ( $args{type} ) {
-                for ( @{ $args{type} } ) {
-                    push @objects, &list_objects_by_type($_);
-                }
-            }
-            elsif ( $args{parents} ) {
+
+            if ( $args{parents} ) { # Restrict object list by group here to make things faster
                 for ( @{ $args{parents} } ) {
                     push @objects, &list_objects_by_group( $_, 1 )
+                }
+            }
+            elsif ( $args{category} ) {
+                for ( @{ $args{category} } ) {
+                    push @objects, &list_objects_by_webname( $_ )
+                }
+            }
+            elsif ( $args{type} ) { # Restrict object list by type here to make things faster
+                for ( @{ $args{type} } ) {
+                    push @objects, &list_objects_by_type($_);
                 }
             }
             else {
