@@ -98,7 +98,8 @@ sub checkForUpdate {
     }
 
     if ($xml) {
-        &main::print_log("checkForUpdate sub ${$$self{sub}} returned $xml") if $main::Debug{ajax};
+        #&main::print_log("checkForUpdate sub ${$$self{sub}} returned $xml") if $main::Debug{ajax};
+        &main::print_log("checkForUpdate sub ${$$self{sub}} returned data") if $main::Debug{ajax};
         &::print_socket_fork( ${ $$self{waitingSocket} }, $xml, 1 );
         # No need to close the socket with HTTP1.1, also this causes issues with a forked socket
         #&main::print_log( "Closing Socket " . ${ $$self{waitingSocket} } ) if $main::Debug{ajax};
@@ -188,17 +189,19 @@ sub checkWaiters {
     my ($class) = @_;
     my $delay = 250;
     my $currenttime = &main::get_tickcount;
+    my $push_flag = &::get_waiter_flags('push_flag');
     foreach my $key ( keys %waiters ) {
 	my $self = $waiters{$key};
-	next unless ( ($currenttime - ${ $$self{checkTime} }) >= $delay );
+	next unless ( ( ($currenttime - ${ $$self{checkTime} }) >= $delay ) || $push_flag );
 	${ $$self{checkTime} } = $currenttime; 
-	#&main::print_log("waiter: checkWaiters checking sub sub ".${$$self{sub}} ) if $main::Debug{ajax};
+	#&main::print_log("waiter: checkWaiters Push flag: $push_flag checking sub sub ".${$$self{sub}} ) if $main::Debug{ajax} and $push_flag;
         if ( $waiters{$key}->checkForUpdate ) {
             # waiter can be removed
             delete $waiters{$key};
             &main::print_log("waiter '$key' removed") if $main::Debug{ajax};
         }
     }
+  &::set_waiter_flags('push_flag',0);
 }
 
 sub setWaiterToChanged {

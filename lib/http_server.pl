@@ -928,17 +928,17 @@ sub test_for_file {
     }
 
     if ( -e $file ) {
-        my $html = &html_file( $socket, $file, $get_arg, $no_header )
-          if &test_file_req( $socket, $get_req, $http_dir );
+        my $html = &html_file( $socket, $file, $get_arg, $no_header ) if &test_file_req( $socket, $get_req, $http_dir );
+
         if ($no_print) {
             return $html;
         }
         else {
-	    print "http: Test_for_file printing\n";
 	    $html = AddContentLength($html); 
             &print_socket_fork( $socket, $html );
             return 1;
         }
+
     }
     else {
         return 0;    # No file found ... check for other types of http requests
@@ -950,15 +950,15 @@ sub AddContentLength {
  my $original_html = $html;
  my $html_head;
    if ( ($html =~ /HTTP\/1\.1 200 OK/) and !($html =~ /Content-Length:/) ) {
-       print "http: header match!\n";
+       print "http: AddContentLength found http 1.1 header with out Content-Length\n" if $main::Debug{http};
 	unless ($html =~ s/^HTTP.+?^\r\n//smi) { return $original_html }
-	print "http: header striped\n";
+	print "http: AddContentLength removed header to caculate Content-Length\n" if $main::Debug{http};
 
 	my $length = length($html);
 	return $original_html unless $length;
 
 	if ($original_html =~ s/(Server: MisterHouse)\r\n/$1\r\nContent-Length: $length\r\n/) { return $original_html }
-	print "http: server not found in header\n";
+	print "http: \"Server: MisterHouse\" was not found in header so Content-Length could not be added\n" if $main::Debug{http};
 	return $original_html;
    } else { 
 	return $original_html;
@@ -2964,7 +2964,7 @@ sub pretty_object_name {
 
 # Avoid mh pauses by printing to slow remote clients with a 'forked' program
 sub print_socket_fork {
-    my ( $socket, $html ) = @_;
+    my ( $socket, $html, $close ) = @_;
     return unless $html;
     my $length = length $html;
     $socket_fork_data{length} = $length;
@@ -3015,13 +3015,15 @@ sub print_socket_fork {
             $keep_alive = 1
               if (  ( defined $Http{Connection} )
                 and ( $Http{Connection} eq "keep-alive" ) );
-            &print_socket_fork_unix( $socket, $html );
+            &print_socket_fork_unix( $socket, $html, $close );
         }
     }
     else {
         print "http: printing with regular socket l=$length s=$socket\n"
           if $main::Debug{http};
         print $socket $html;
+	$socket->shutdown(2) if $close;
+	#$leave_socket_open_passes = -1;    # This will not close the socket
     }
 }
 
@@ -3094,12 +3096,13 @@ sub print_socket_fork_win {
 
 # Forks are MUCH easier in unix :)
 sub print_socket_fork_unix {
-    my ( $socket, $html ) = @_;
+    my ( $socket, $html, $close ) = @_;
 
     my $pid = fork;
     if ( defined $pid && $pid == 0 ) {
         print $socket $html;
-        $socket->close;
+	$socket->shutdown(2) if $close;
+        $socket->close unless $close;
 
         # This avoids 'Unexpected async reply' if mh -tk 1
         &POSIX::_exit(0)

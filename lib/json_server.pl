@@ -47,6 +47,7 @@ use HTML::Entities;    # So we can encode characters like <>& etc
 use JSON qw(decode_json);
 use IO::Compress::Gzip qw(gzip);
 use vars qw(%json_table);
+my %json_cache;
 my @json_notifications = ();    #noloop
 
 sub json {
@@ -499,16 +500,14 @@ sub json_get {
         # we could use &::list_groups_by_object() for each object, but that sub
         # is time consuming, particularly when called numerous times.  Instead,
         # we create a lookup table one time, saving a lot of processing time.
-        my $parent_table = build_parent_table();
-
+	$json_cache{parent_table} = build_parent_table() if ( !($json_cache{parent_table}) || $Reload );
         if ( $args{items} && $args{items}[0] ne "" ) {
             foreach my $name ( @{ $args{items} } ) {
 
                 #$name =~ s/\$|\%|\&|\@//g;
                 my $o = &get_object_by_name($name);
-                print_log "json: object name=$name ref=" . ref $o
-                  if $Debug{json};
-                if ( my $data = &json_object_detail( $o, \%args, \%fields, $parent_table ) ) {
+                print_log "json: object name=$name ref=" . ref $o if $Debug{json};
+                if ( my $data = &json_object_detail( $o, \%args, \%fields, $json_cache{parent_table} ) ) {
                     $json_data{objects}{$name} = $data;
                 }
             }
@@ -519,6 +518,11 @@ sub json_get {
             if ( $args{type} ) {
                 for ( @{ $args{type} } ) {
                     push @objects, &list_objects_by_type($_);
+                }
+            }
+            elsif ( $args{parents} ) {
+                for ( @{ $args{parents} } ) {
+                    push @objects, &list_objects_by_group( $_, 1 )
                 }
             }
             else {
@@ -533,9 +537,8 @@ sub json_get {
                 my $name = $o;
                 $name = $o->{object_name};
                 $name =~ s/\$|\%|\&|\@//g;
-                print_log "json: object name=$name ref=" . ref $o
-                  if $Debug{json};
-                if ( my $data = &json_object_detail( $o, \%args, \%fields, $parent_table ) ) {
+                print_log "json: (map) object name=$name ref=" . ref $o if $Debug{json};
+                if ( my $data = &json_object_detail( $o, \%args, \%fields, $json_cache{parent_table} ) ) {
                     $json_data{objects}{$name} = $data;
                 }
             }
@@ -643,6 +646,7 @@ sub json_get {
             next if $key eq 'User_Code';
 
             my $glob = $main::{$key};
+	    next if (ref($glob) eq "CODE"); 			# Fix for MH crash 
             if ( ${$glob} ) {
                 my $value = ${$glob};
                 next if $value =~ /HASH/;                             # Skip object pointers
@@ -1030,8 +1034,7 @@ sub build_parent_table {
         my $group = &get_object_by_name($group_name);
         $group_name =~ s/\$|\%|\&|\@//g;
         unless ( defined $group ) {
-            print_log "json: build_parent_table, group_name $group_name doesn't have an object?"
-              if $Debug{json};
+            print_log "json: build_parent_table, group_name $group_name doesn't have an object?" if $Debug{json};
             next;
         }
         else {
@@ -1382,7 +1385,7 @@ sub json_table_push {
     my ($key) = @_;
 
     return 0 if ( !defined $json_table{$key} );
-
+    	
     $json_table{$key}{time} = &get_tickcount;
     return 1;
 }
