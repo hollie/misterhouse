@@ -1,5 +1,5 @@
 
-=head1 B<raZberry> v2.1.0
+=head1 B<raZberry> v2.1.1
 
 =head2 SYNOPSIS
 
@@ -115,6 +115,9 @@ http calls can cause pauses. There are a few possible options around this;
 v2.1.0
 - added support for secondary controllers
 
+v2.0.2
+- added generic_item support for loggers
+
 v2.0.1
 - added full poll for getting battery data
 
@@ -196,9 +199,9 @@ $rest{controller}    = "Data/*";
 
 sub new {
     my ( $class, $addr, $poll, $options ) = @_;
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
-    &main::print_log("[raZberry]: v2.1.0 Controller Initializing...");
+    &main::print_log("[raZberry]: v2.1.1 Controller Initializing...");
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
     $self->{config}->{poll_seconds} = 5;
@@ -260,6 +263,7 @@ sub new {
     $self->{timer} = new Timer;
     $self->poll;
     $self->start_timer;
+    $self->{generate_voice_cmds} = 0;    
     &::Reload_post_add_hook( \&raZberry::generate_voice_commands, 1, $self );
     &main::print_log("[raZberry:" . $self->{host} . "]: Controller Initialization Complete");
     return $self;
@@ -801,41 +805,43 @@ sub purge_command_queue {
 
 sub generate_voice_commands {
     my ($self) = @_;
+    unless ($self->{generate_voice_cmds}) {
 
-    my $object_string;
-    my $object_name = $self->get_object_name;
-    &main::print_log("[raZberry:" . $self->{host} . "]: Generating Voice commands for Controller $object_name");
+         my $object_string;
+         my $object_name = $self->get_object_name;
+         &main::print_log("[raZberry:" . $self->{host} . "]: Generating Voice commands for Controller $object_name");
 
-    my $voice_cmds = $self->get_voice_cmds();
-    my $i          = 1;
-    foreach my $cmd ( keys %$voice_cmds ) {
+         my $voice_cmds = $self->get_voice_cmds();
+         my $i          = 1;
+         foreach my $cmd ( keys %$voice_cmds ) {
 
-        #get object name to use as part of variable in voice command
-        my $object_name_v = $object_name . '_' . $i . '_v';
-        $object_string .= "use vars '${object_name}_${i}_v';\n";
+             #get object name to use as part of variable in voice command
+             my $object_name_v = $object_name . '_' . $i . '_v';
+             $object_string .= "use vars '${object_name}_${i}_v';\n";
 
-        #Convert object name into readable voice command words
-        my $command = $object_name;
-        $command =~ s/^\$//;
-        $command =~ tr/_/ /;
+             #Convert object name into readable voice command words
+             my $command = $object_name;
+             $command =~ s/^\$//;
+             $command =~ tr/_/ /;
 
-        #Initialize the voice command with all of the possible device commands
-        $object_string .= $object_name . "_" . $i . "_v  = new Voice_Cmd '$command $cmd';\n";
+             #Initialize the voice command with all of the possible device commands
+             $object_string .= $object_name . "_" . $i . "_v  = new Voice_Cmd '$command $cmd';\n";
 
-        #Tie the proper routine to each voice command
-        $object_string .= $object_name . "_" . $i . "_v -> tie_event('" . $voice_cmds->{$cmd} . "');\n\n";    #, '$command $cmd');\n\n";
+             #Tie the proper routine to each voice command
+             $object_string .= $object_name . "_" . $i . "_v -> tie_event('" . $voice_cmds->{$cmd} . "');\n\n";    #, '$command $cmd');\n\n";
 
-        #Add this object to the list of raZberry Voice Commands on the Web Interface
-        $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'raZberry', 'Controller_commands' );
-        $i++;
+             #Add this object to the list of raZberry Voice Commands on the Web Interface
+             $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'raZberry', 'Controller_commands' );
+             $i++;
+         }
+
+         #Evaluate the resulting object generating string
+         package main;
+         eval $object_string;
+         print "Error in razBerry voice command string: $@\n" if $@;
+
+         package raZberry;
     }
-
-    #Evaluate the resulting object generating string
-    package main;
-    eval $object_string;
-    print "Error in razBerry voice command string: $@\n" if $@;
-
-    package raZberry;
 }
 
 sub get_voice_cmds {
@@ -864,7 +870,7 @@ package raZberry_dimmer;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     push( @{ $$self{states} }, 'off', 'low', 'med', 'high', 'on', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%' );
 
@@ -962,7 +968,7 @@ package raZberry_switch;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     push( @{ $$self{states} }, 'off', 'on', );
 
@@ -1049,7 +1055,7 @@ package raZberry_blind;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -1221,7 +1227,7 @@ package raZberry_lock;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     push( @{ $$self{states} }, 'locked', 'unlocked' );
 
@@ -1451,7 +1457,7 @@ sub new {
 
     my ( $class, $object ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -1480,7 +1486,7 @@ package raZberry_thermostat;
 sub new {
     my ( $class, $object, $devid, $options, $deg ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     if ( ( defined $deg ) and ( lc $deg eq "f" ) ) {
         push( @{ $$self{states} }, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80 );
@@ -1574,7 +1580,7 @@ package raZberry_temp_sensor;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
@@ -1626,7 +1632,7 @@ package raZberry_binary_sensor;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     #push( @{ $$self{states} }, 'on', 'off'); I'm not sure we should set the states here, since it's not a controlable item?
@@ -1707,7 +1713,7 @@ package raZberry_battery;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
     push( @{ $$self{states} }, 'locked', 'unlocked' );
 
@@ -1780,7 +1786,7 @@ package raZberry_voltage;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     #ZWayVDev_zway_x-0-50-0 - Power Meter kWh
@@ -1855,7 +1861,7 @@ package raZberry_generic;
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
 
-    my $self = {};
+    my $self = new Generic_Item();
     bless $self, $class;
 
     $$self{master_object} = $object;
