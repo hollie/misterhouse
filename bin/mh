@@ -6703,9 +6703,13 @@ sub sig_child_death {
      # print "reaped $pid" . ($? ? " with exit $?" : '');
     # Harvest potentially more than one dead child
     use POSIX ":sys_wait_h";
+    local ($!, $?);
+
     my $pid;
     do {
         $pid = waitpid( -1, WNOHANG );
+        print "***PID MH reaped $pid" . ($? ? " with exit $?" : '') . "\n" if $Debug{fork};
+
     } until $pid <= 0;
 
     #       $pid = waitpid(-1, &WNOHANG);
