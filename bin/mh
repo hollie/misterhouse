@@ -133,7 +133,7 @@ my ( $user_code,              $user_code_last_good );
 my ( %objects_by_object_name, %file_by_object_name, %files_by_webname );
 my ( %object_names_by_file,   %object_names_by_type, %object_names_by_webname, $pause_mode );
 my ( @Server_Ports,           @Generic_Devices, %Local_Addresses, @Local_Addresses, %Passwords, @Password_Allow_Clients );
-my ( %proxy_servers,          %app_parms );
+my ( %proxy_servers,          %app_parms, %waiter_flags );
 my ( $CON_IN,                 $CON_OUT );
 
 my ( $state, $temp );        # Some generic useful vars
@@ -2556,16 +2556,20 @@ sub check_for_socket_data_http {
 
         # See if there is a http request
         my $nfound = &socket_has_data( $Socket_Ports{http}{sock} );
+	#print "http: below nfound ....\n" if $Debug{http};
         last unless $nfound > 0;            # nfound = -1 means an error occurred
+	#print "http: below last unless  nfound ....\n" if $Debug{http};
         my $sock = $Socket_Ports{http}{sock}->accept();
+	#print "http: below sock ....\n" if $Debug{http};
         last unless $sock;                  # Can be undef it socket was killed
+	#print "http: below last unless sock ....\n" if $Debug{http};
         $sock->autoflush(1);                # Not sure if this does anything?
         $Socket_Ports{http}{socka} = $sock;
 
         ( $leave_socket_open_passes, $leave_socket_open_action ) = &http_process_request($sock);
 
         my $time_diff = time - $time_check;
-        print "http: c=$loop_count td=$time_diff sop=$leave_socket_open_passes soa=$leave_socket_open_action.\n"
+        print "http: c=$loop_count td=$time_diff sop=$leave_socket_open_passes soa=$leave_socket_open_action. while loop\n"
           if $Debug{http};
 
         if ($leave_socket_open_action) {
@@ -2580,6 +2584,7 @@ sub check_for_socket_data_http {
                 # We must sleep here for a bit, or else Netscape sometimes
                 # says 'Document contains no data'.  Guess we don't need this anymore :)
                 #               select undef, undef, undef, .010;
+		#print "http: closing socket - ". $Info{'http_socket'}->peer ." ....\n" if $Debug{http};
                 &socket_close('http');
             }
         }
@@ -6695,12 +6700,16 @@ sub sig_handler_pipe {
 sub sig_child_death {
 
     #   my $pid = wait;
-    #   print "reaped $pid" . ($? ? " with exit $?" : '');
+     # print "reaped $pid" . ($? ? " with exit $?" : '');
     # Harvest potentially more than one dead child
     use POSIX ":sys_wait_h";
+    local ($!, $?);
+
     my $pid;
     do {
         $pid = waitpid( -1, WNOHANG );
+        print "***PID MH reaped $pid" . ($? ? " with exit $?" : '') . "\n" if $Debug{fork};
+
     } until $pid <= 0;
 
     #       $pid = waitpid(-1, &WNOHANG);
@@ -6813,9 +6822,8 @@ sub socket_has_data {
     my $loopmax = 8;
     do {
         ($nfound) = select( $rbit, undef, undef, $timeout );
-        last
-          if $nfound == -1
-          and !( $!{EINTR} );                # break out of the retry loop if an error did occur but not EINTR
+	#&::print_log("http: in socket_has_data do loop");
+        last if $nfound == -1 and !( $!{EINTR} );          # break out of the retry loop if an error did occur but not EINTR
         $loopmax--;
     } until ( $loopmax == 0 or ( $nfound >= 0 ) );
 
@@ -7756,6 +7764,18 @@ sub x10_dim_level_decode {
 sub log_inc {
     print_log( 'Perl @INC contains: ' . join( ", ", @INC ) );
 }
+
+sub set_waiter_flags {
+    my ($flag,$value) = @_; 
+    $waiter_flags{$flag} = $value;
+}
+
+sub get_waiter_flags {
+   my ($flag) = @_;
+   $waiter_flags{$flag} = 0 unless (exists $waiter_flags{$flag});
+   return $waiter_flags{$flag};
+}
+
 
 #---------------------------------------------------------------------------
 

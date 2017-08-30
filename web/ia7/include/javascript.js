@@ -1,4 +1,4 @@
-// v1.5.640
+// v1.5.830
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -151,30 +151,55 @@ function changePage (){
   			$("#sound_element").attr("controls", "controls");  //Show audio Controls
   		}
 		if (json_store.ia7_config.prefs.substate_percentages === undefined) json_store.ia7_config.prefs.substate_percentages = 20;
-		if (json_store.ia7_config.prefs.developer !== undefined) developer = json_store.ia7_config.prefs.developer;
+//TODO		if (json_store.ia7_config.prefs.developer !== undefined) developer = json_store.ia7_config.prefs.developer;
 		if (json_store.ia7_config.prefs.tooltips !== undefined) show_tooltips = json_store.ia7_config.prefs.tooltips;
 		// First time loading, set the default speech notifications
 		if (speech_sound === undefined) {
-			if ((json_store.ia7_config.prefs.speech_default !== undefined) && (json_store.ia7_config.prefs.speech_default.search("audio") >= 0 )) {
+			if ((json_store.ia7_config.prefs.speech_default_audio !== undefined) && (json_store.ia7_config.prefs.speech_default_audio == "yes" )) {
 				speech_sound = "yes";
 			} else {
 				speech_sound = "no";
 			}
 		}
+		//by default show speech banners
 		if (speech_banner === undefined) {
-			if ((json_store.ia7_config.prefs.speech_default !== undefined) && (json_store.ia7_config.prefs.speech_default.search("banner") >= 0 )) {
-				speech_banner = "yes";
-			} else {
+			if ((json_store.ia7_config.prefs.speech_default_banner !== undefined) && (json_store.ia7_config.prefs.speech_default_banner == "no" )) {
 				speech_banner = "no";
+			} else {
+				speech_banner = "yes";
 			}
 		}
-		if ((json_store.ia7_config.prefs.notifications == undefined) || ((json_store.ia7_config.prefs.notifications !== undefined) && (json_store.ia7_config.prefs.notifications == "no" ))) {
+		if ((json_store.ia7_config.prefs.notifications !== undefined) && (json_store.ia7_config.prefs.notifications == "no" )) {
 			  	notifications = "disabled";
 			  	speech_sound = "no";
 			  	speech_banner = "no";
 		} else {
 				notifications = "enabled";
 		}
+		//cookies override default config unless use_cookies : no
+        if (json_store.ia7_config.prefs.use_cookies == undefined || (json_store.ia7_config.prefs.use_cookies !== undefined && json_store.ia7_config.prefs.use_cookies == "yes")) {
+            var decodedCookie = decodeURIComponent(document.cookie);
+            var ca = decodedCookie.split(';');
+            for (var i = 0; i <ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) == ' ') {
+                    c = c.substring(1);
+                }
+                if (c.indexOf("speech_sound") == 0) {
+                    speech_sound = c.substring(13, c.length);
+                }
+                if (c.indexOf("speech_banner") == 0) {
+                    speech_banner = c.substring(14, c.length);
+                }
+                if (c.indexOf("display_mode") == 0) {
+                    display_mode = c.substring(13, c.length);
+                } 
+                if (c.indexOf("developer") == 0) {
+//TODO                    developer = c.substring(10, c.length);
+                }                                           
+            }
+        }
+
 	}
 	if (getJSONDataByPath("collections") === undefined){
 		// We need at minimum the basic collections data to render all pages
@@ -223,7 +248,7 @@ function changePage (){
 			$.get(link, function( data ) {
 				
 				$('#list_content').html("<div id='buffer_page' class='row top-buffer'>");
-				$('#buffer_page').append("<div id='row_page' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+				$('#buffer_page').append("<div id='row_page' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 mh-page-link'>");
 				parseLinkData(link,data); //remove css & fix up Mr.House setup stuff
 		
 			});
@@ -271,12 +296,14 @@ function changePage (){
 				//We are browsing the contents of an object, currently only 
 				//group objects can be browsed recursively.  Possibly use different
 				//prefix if other recursively browsable formats are later added
-				nav_name = collection_keys_arr[i].replace("$", '');
+			
+				nav_name = collection_keys_arr[i].replace("$", '');				    
 				nav_link = '#path=/objects&parents='+nav_name;				
 				if (collection_keys_arr.length > 2 && collection_keys_arr[collection_keys_arr.length-2].substring(0,1) == "$") nav_link = '#path=/objects&type='+nav_name; 
 				if (nav_name == "Group") nav_link = '#path=objects&type=Group'; //Hardcode this use case
+                //if type=Voice_Cmd, then we need to keep it for voice links to have a nice breadcrumb
+				if (collection_keys_arr[i+1] !== undefined && collection_keys_arr[i+1] == "Voice_Cmd") nav_link = '#path=/objects&type=Voice_Cmd&category='+nav_name;
 				if (json_store.objects !== undefined && json_store.objects[nav_name] !== undefined && json_store.objects[nav_name].label !== undefined) nav_name = (json_store.objects[nav_name].label);
-
 			} else {
 				if (json_store.collections[collection_keys_arr[i]] == undefined) continue; //last breadcrumb duplicated so we don't need it.
 				nav_link = json_store.collections[collection_keys_arr[i]].link;
@@ -284,6 +311,7 @@ function changePage (){
 			}
 			nav_link = buildLink (nav_link, breadcrumb + collection_keys_arr[i]);
 			breadcrumb += collection_keys_arr[i] + ",";
+
 			if (i == (collection_keys_arr.length-1)){
 				$('#nav').append('<li class="active">' + nav_name + '</a></li>');
 				$('title').html("MisterHouse - " + nav_name);
@@ -387,7 +415,9 @@ function parseLinkData (link,data) {
 		data = data.replace(/<a href=\"SET;&dir_index\(.*?\)\">(.*?)<\/a>/img, function (path,r1,r2) {
 			return r1;
 		});
-		data = data.replace(/href='RUN;\/ia5\/news\/main.shtml\?Check_for_e_mail'/img, 'class="btn-voice-cmd" voice_cmd="Check_for_e_mail"');				
+		data = data.replace(/<a href='RUN;\/ia5\/news\/main.shtml\?Check_for_e_mail'>Check for new e mail<\/a>/img, '<button type="button" class="btn btn-default btn-voice-cmd" voice_cmd="Check_for_e_mail" onclick="\$.get(\'/RUN;last_response?select_cmd=Check_for_e_mail\')">Check for new email<\/button>');				
+		data = data.replace(/<td>\+ Sort by /img,'<td>');		
+
 	}
 	if (link.indexOf('/email/') === 0) { //fix links in the email module 2
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
@@ -549,7 +579,7 @@ var loadList = function() {
 	var button_text = '';
 	var button_html = '';
 	var entity_arr = [];
-	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status";
+	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status,link";
 	$.ajax({
 		type: "GET",
 		url: "/json/"+HashtoJSONArgs(URLHash),
@@ -629,7 +659,7 @@ var loadList = function() {
 						button_html += '</div>';
 					}
 					else {
-						button_html = "<div style='vertical-align:middle'><button type='button' class='btn btn-default btn-lg btn-block btn-list btn-voice-cmd navbutton-padding'>";
+						button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' type='button' class='btn btn-default btn-lg btn-block btn-list btn-voice-cmd navbutton-padding'>";
 						button_html += "" +button_text+"</button></div>";
 					}
 					entity_arr.push(button_html);
@@ -714,13 +744,21 @@ var loadList = function() {
 			$(".btn-voice-cmd").click( function () {
 				var voice_cmd = $(this).text().replace(/ /g, "_");
 				var url = '/RUN;last_response?select_cmd=' + voice_cmd;
+				var entity=$(this).attr("entity");
 				$.get( url, function(data) {
-					var start = data.toLowerCase().indexOf('<body>') + 6;
-					var end = data.toLowerCase().indexOf('</body>');
-					$('#lastResponse').find('.modal-body').html(data.substring(start, end));
-					$('#lastResponse').modal({
-						show: true
-					});
+				    if (json_store.objects[entity].link !== undefined) {
+				    //if link starts with /ia7/#path= then it is an IA7 redirect
+				        var collid = $(location).attr('href').split("_collection_key=");
+				        var link = json_store.objects[entity].link+"&type=Voice_Cmd&_collection_key="+collid[1]+",Voice_Cmd";
+				        window.location.assign(link);
+				    } else {
+					    var start = data.toLowerCase().indexOf('<body>') + 6;
+					    var end = data.toLowerCase().indexOf('</body>');
+					    $('#lastResponse').find('.modal-body').html(data.substring(start, end));
+					    $('#lastResponse').modal({
+						    show: true
+					    });
+					}
 				});
 			});
 			$(".btn-state-cmd").click( function () {
@@ -1368,19 +1406,26 @@ var print_log = function(type,time) {
 
 var something_went_wrong = function(module,text) {
 
-    var type = "danger";
-	var mobile = "";
-	if ($(window).width() <= 768) { // override the responsive mobile top-buffer
-		mobile = "mobile-alert";
-	}
-    var html = "<div class='alert-err alert "+mobile+" alert-" + type + " fade in' data-alert>";
-    html += "<button type='button' class='close' data-dismiss='alert'>x</button>";
-    html += "<div class=''>";
-    html += "<i class='fa fa-exclamation-triangle icon-larger fa-2x fa-fw pull-left'></i>";
-    html += "<div class='sww-text'>";
-    html += "<h3 class='sww-text-msg'>ERROR</h3>" + module + " : " + text + " </div></div></div>";
+    if ((json_store.ia7_config.prefs.show_errors !== undefined) &&  json_store.ia7_config.prefs.show_errors == "yes") {
+
+       var type = "danger";
+       var mobile = "";
+       if ($(window).width() <= 768) { // override the responsive mobile top-buffer
+           mobile = "mobile-alert";
+       }
+       var html = "<div class='alert-err alert "+mobile+" alert-" + type + " fade in' data-alert>";
+       html += "<button type='button' class='close' data-dismiss='alert'>x</button>";
+       html += "<div class=''>";
+       html += "<i class='fa fa-exclamation-triangle icon-larger fa-2x fa-fw pull-left'></i>";
+       html += "<div class='sww-text'>";
+       html += "<h3 class='sww-text-msg'>ERROR</h3>" + module + " : " + text + " </div></div></div>";
     
-	$("#alert-area").prepend($(html));
+       $("#alert-area").prepend($(html));
+       
+    } else {
+    
+        console.log("Something went Wrong: "+module+" : " + text);
+    }
 	
 }
 
@@ -1452,13 +1497,20 @@ var get_notifications = function(time) {
 						var text = String(json.data[i].text);
 						var type = String(json.data[i].type);
 						var color = String(json.data[i].color);
-
+                        var close = "";
+                        var alert_class = "alert-message";
+                        if (json.data[i].persistent !== undefined && json.data[i].persistent == "yes") {
+                            close = "<button type='button' class='close' data-dismiss='alert'>x</button>";
+                            alert_class = "alert-message-persist";
+                        }
 						if ((type == "sound" ) || ((type == "speech") && (speech_sound == "yes"))) {
-							audio_play(document.getElementById('sound_element'),url)	
+							if (url !== "undefined") {
+							    audio_play(document.getElementById('sound_element'),url);
+							}	
 						}
 						if (type == "banner" || ((type == "speech") && (speech_banner == "yes"))) {
 							var alert_type = "info";
-							if (color !== undefined) {
+							if (color !== "undefined") {
 								if (color == "green") {
 									alert_type = "success";
 								} else if (color == "red") {
@@ -1471,8 +1523,11 @@ var get_notifications = function(time) {
 							if ($(window).width() <= 768) { // override the responsive mobile top-buffer
 							  mobile = "mobile-alert";
 							}
-							$("#alert-area").append($("<div class='alert-message alert alerts "+mobile+" alert-" + alert_type + " fade in' data-alert><p><i class='fa fa-info-circle'></i><strong>  Notification:</strong> " + text + " </p></div>"));
-   	 						$(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+
+							$("#alert-area").append($("<div class='"+alert_class+" alert alerts "+mobile+" alert-" + alert_type + " fade in' data-alert>"+close+"<p><i class='fa fa-info-circle'></i><strong>  Notification:</strong> " + text + " </p></div>"));
+							if (json.data[i].persistent == undefined || (json.data[i].persistent !== undefined && json.data[i].persistent == "no")) {
+   	 						    $(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+   	 						}
 						}
 						if (type == "alert") {
 							jAlert(text,'MH Notifications');
@@ -1820,7 +1875,7 @@ var object_history = function(items,start,days,time) {
 	var URLHash = URLToHash();
 	var graph = 0;
 	var data_timeout = 0;
-	if (developer) graph = 1;  //right now only show the graph if in developer mode
+	if (developer == true) graph = 1;  //right now only show the graph if in developer mode
 	if (typeof time === 'undefined'){
 		if (graph) {
 			$('#list_content').html("<div id='top-graph' class='row top-buffer'>");
@@ -2072,7 +2127,7 @@ var fp_getOrCreateIcon = function (json, entity, i, coords){
     E.bind("dragstart", noDragDrop);
     var image = get_fp_image(json.data[entity]);
     E.attr('src',"/ia7/graphics/"+image);
-    if (developer)
+    if (developer == true)
         E.css("border","1px solid black");
 
     return E;
@@ -2187,7 +2242,7 @@ var floorplan = function(group,time) {
     if (typeof time === 'undefined'){
         //var window_width = $(window).width();
         $('#list_content').html("<div id='floorplan' class='row top-buffer'>");
-        if (developer){
+        if (developer === true){
             // add elememnts to show current position on floorplan
             $('#floorplan').append("<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'><ol>" +
                     "<li>grab icon and drop it on apropriate position on the flooplan</li>" +
@@ -2202,7 +2257,7 @@ var floorplan = function(group,time) {
         $('#floorplan').append("<div id='graphic' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
         time = 0;
         $('#graphic').prepend('<center><img id="fp_graphic" border="1"  /></center>');
-        if (developer){
+        if (developer === true){
             $('#fp_graphic').css("border","1px solid black");
             $('#list_content').append("<div id='fp_positionless_items' />");
             $('#list_content').append("<pre id='fp_pos_perl_code' />");
@@ -2221,9 +2276,8 @@ var floorplan = function(group,time) {
         updateSocket.abort();
     }
 
-    if (developer){
+    if (developer === true){
         // update positon
-
         $(document).mousemove(function(e){
             var offset = $("#fp_graphic").offset();
             var width = $("#fp_graphic").width();
@@ -2360,7 +2414,7 @@ var floorplan = function(group,time) {
                 //var t0 = performance.now();
                 JSONStore(json);
                 for (var entity in json.data) {
-                    if (developer && requestTime === 0){
+                    if (developer === true && requestTime === 0){
                         perl_pos_coords = "";
                     }
                     for (var i=0 ; i < json.data[entity].fp_location.length-1; i=i+2){ //allow for multiple graphics
@@ -2368,7 +2422,7 @@ var floorplan = function(group,time) {
                         if ((json.data[entity].type === "FPCamera_Item") || (json_store.ia7_config.prefs.fp_state_popovers === "yes"))
                             popover = 1;
 
-                        if (developer && requestTime === 0){
+                        if (developer === true && requestTime === 0){
                             if (perl_pos_coords.length !== 0){
                                 perl_pos_coords += ", ";
                             }
@@ -2452,7 +2506,8 @@ var floorplan = function(group,time) {
                                                 //if button doesn't have on and off don't display
                                                 if ($.inArray("on", json_store.objects[fp_entity].states) !== -1 && $.inArray("off", json_store.objects[fp_entity].states) !== -1) {
                                                     html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-success'>on</button>";					                
-                                                    html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-default'>off</button>";	
+                                                    html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-default'>off</button>";
+                                                    subbuttons = 1;	
                                                 }	
                                                 html += "</div>";			                
                                                 html += "<div id='sliderFP' class='brightness-slider'></div>";					
@@ -2477,6 +2532,10 @@ var floorplan = function(group,time) {
                                             max: slider_data.max,
                                             value: position
                                         });
+
+                                        if ($(".stategrp0").children().length == 0) {  
+                                            $(".stategrp0").remove();
+                                        }
 
                                         $( "a[title='"+src+"']" ).find(".popover-content").popover('show');
                                         
@@ -2560,7 +2619,7 @@ var floorplan = function(group,time) {
                         }
                     }
 
-                    if (developer && requestTime === 0){
+                    if (developer === true && requestTime === 0){
                         if (perl_pos_coords.length===0)
                         {
                             fp_getOrCreateIcon(json, entity, 0, "");
@@ -2585,7 +2644,7 @@ var floorplan = function(group,time) {
                     }
                 }
                 fp_reposition_entities();
-                if (requestTime === 0 && developer){
+                if (requestTime === 0 && developer === true){
                     $('#list_content').append("<p>&nbsp;</p>");
                     $.ajax({
                         type: "GET",
@@ -2830,6 +2889,9 @@ var create_state_modal = function(entity) {
                 $('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");					
                 }
                 if (slider_active) {
+                    if ($(".stategrp0").children().length == 0) {  
+                        $(".stategrp0").remove();
+                    }
                    var slider_data = sliderDetails(modal_states);		                
                    $('#control').find('.states').append("<div id='slider' class='brightness-slider'></div>");					
                    var val = $(".object-state").text().replace(/\%/,'');
@@ -3041,7 +3103,7 @@ var create_state_modal = function(entity) {
 			}
 		}
 		
-		if (developer) 
+		if (developer === true) 
 		    $('.mhstatemode').show();
 		else
 		    $('.mhstatemode').hide();
@@ -3221,7 +3283,7 @@ $(document).ready(function() {
                 var offset = "auto";
                 if ($(window).width() < 768) {
                     offset = 0;
-                    if (($(window).width() / 2 - 210) > 0) offset = ($(window).width() / 2 - 210);
+                    if (($(window).width() / 2 - 210) > 0) offset = ($(window).width() / 2 - 220);
                     }
                 return offset;               
              }
@@ -3249,7 +3311,7 @@ $(document).ready(function() {
 			develop_active = "";
 			develop_checked = "";
 		}
-		if (display_mode == "advanced" && developer == true)  {
+		if (display_mode == "advanced" && developer === true)  {
 			simple_active = "";
 			simple_checked = "";
 			advanced_active = "";
@@ -3269,7 +3331,10 @@ $(document).ready(function() {
 			} else {
 				display_mode = $(this).find('input').attr('id');
 				developer = false;
-			}	
+			}
+			document.cookie = "display_mode="+display_mode;
+			document.cookie = "developer="+developer;
+	
 			changePage();
   		});
   		
@@ -3325,6 +3390,8 @@ $(document).ready(function() {
 				$('.mhnotifyoff').removeClass('active');
 				if ((speech_banner === "no") && (speech_sound === "no")) $('.mhnotifyoff').addClass('active');
 			}
+			document.cookie = "speech_sound="+speech_sound;
+			document.cookie = "speech_banner="+speech_banner;
 			//if off, then unselect others
   		});  		
 		// parse the collection ID 500 and build a list of buttons

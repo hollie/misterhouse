@@ -47,6 +47,7 @@ use HTML::Entities;    # So we can encode characters like <>& etc
 use JSON qw(decode_json);
 use IO::Compress::Gzip qw(gzip);
 use vars qw(%json_table);
+my %json_cache;
 my @json_notifications = ();    #noloop
 
 sub json {
@@ -499,24 +500,32 @@ sub json_get {
         # we could use &::list_groups_by_object() for each object, but that sub
         # is time consuming, particularly when called numerous times.  Instead,
         # we create a lookup table one time, saving a lot of processing time.
-        my $parent_table = build_parent_table();
-
+	$json_cache{parent_table} = build_parent_table() if ( !($json_cache{parent_table}) || $Reload );
         if ( $args{items} && $args{items}[0] ne "" ) {
             foreach my $name ( @{ $args{items} } ) {
 
                 #$name =~ s/\$|\%|\&|\@//g;
                 my $o = &get_object_by_name($name);
-                print_log "json: object name=$name ref=" . ref $o
-                  if $Debug{json};
-                if ( my $data = &json_object_detail( $o, \%args, \%fields, $parent_table ) ) {
+                print_log "json: object name=$name ref=" . ref $o if $Debug{json};
+                if ( my $data = &json_object_detail( $o, \%args, \%fields, $json_cache{parent_table} ) ) {
                     $json_data{objects}{$name} = $data;
                 }
             }
         }
         else {
 
-            # Restrict object list by type here to make things faster
-            if ( $args{type} ) {
+
+            if ( $args{parents} ) { # Restrict object list by group here to make things faster
+                for ( @{ $args{parents} } ) {
+                    push @objects, &list_objects_by_group( $_, 1 )
+                }
+            }
+            elsif ( $args{category} ) {
+                for ( @{ $args{category} } ) {
+                    push @objects, &list_objects_by_webname( $_ )
+                }
+            }
+            elsif ( $args{type} ) { # Restrict object list by type here to make things faster
                 for ( @{ $args{type} } ) {
                     push @objects, &list_objects_by_type($_);
                 }
@@ -533,9 +542,8 @@ sub json_get {
                 my $name = $o;
                 $name = $o->{object_name};
                 $name =~ s/\$|\%|\&|\@//g;
-                print_log "json: object name=$name ref=" . ref $o
-                  if $Debug{json};
-                if ( my $data = &json_object_detail( $o, \%args, \%fields, $parent_table ) ) {
+                print_log "json: (map) object name=$name ref=" . ref $o if $Debug{json};
+                if ( my $data = &json_object_detail( $o, \%args, \%fields, $json_cache{parent_table} ) ) {
                     $json_data{objects}{$name} = $data;
                 }
             }
@@ -643,6 +651,7 @@ sub json_get {
             next if $key eq 'User_Code';
 
             my $glob = $main::{$key};
+	    next if (ref($glob) eq "CODE"); 			# Fix for MH crash 
             if ( ${$glob} ) {
                 my $value = ${$glob};
                 next if $value =~ /HASH/;                             # Skip object pointers
@@ -738,7 +747,6 @@ sub json_get {
     }    
 
     if ( $path[0] eq 'notifications' ) {
-
         for my $i ( 0 .. $#json_notifications ) {
             my $n_time = int( $json_notifications[$i]{time} );
             my $x      = $args{time}[0];                         #Weird, does nothing, but notifications doesn't work if removed...
@@ -759,41 +767,37 @@ sub json_get {
 
             #need to check if vars and keys exist
 
+
             my $start = 0;
             $start = $args{start}[0] if ( $args{start}[0] );
             my $records = 0;
             my $page    = 0;
-            my $page    = $json_table{ $args{var}[0] }{page}
-              if ( defined $json_table{ $args{var}[0] }{page} );
+            my $page    = $json_table{ $args{var}[0] }{page} if ( defined $json_table{ $args{var}[0] }{page} );
             $records = $args{records}[0] if ( $args{records}[0] );
 
             # TODO: At some point have a hook that pulls in more data into the table if it's missing
             #  ie read a file
 
             my $jt_time = int( $json_table{ $args{var}[0] }{time} );
-            if (   ( $args{time} && int( $args{time}[0] ) < $jt_time )
-                or ( !$args{time} ) )
-            {
+            if (   ( $args{time} && int( $args{time}[0] ) < $jt_time ) or ( !$args{time} ) ) {
                 #need to copy all the data since we can adjust starts and records
 
-                $json_data{'table_data'}{exist} =
-                  $json_table{ $args{var}[0] }{exist};
-                $json_data{'table_data'}{head} =
-                  $json_table{ $args{var}[0] }{head};
-                $json_data{'table_data'}{page_size} =
-                  $json_table{ $args{var}[0] }{page_size};
-                $json_data{'table_data'}{hook} =
-                  $json_table{ $args{var}[0] }{hook};
-                $json_data{'table_data'}{page} = $page;
-                @{ $json_data{'table_data'}->{data} } =
-                  map { [@$_] } @{ $json_table{ $args{var}[0] }->{data} };
-
-                splice @{ $json_data{'table_data'}->{data} }, 0, $args{start}[0]
-                  if ( $args{start}[0] );
-                splice @{ $json_data{'table_data'}->{data} }, $args{records}[0]
-                  if ( $args{records}[0] );
-                $json_data{'table_data'}{records} =
-                  scalar @{ $json_data{'table_data'}->{data} };
+                $json_data{'table_data'}{exist}       = $json_table{ $args{var}[0] }{exist};
+                $json_data{'table_data'}{head}        = $json_table{ $args{var}[0] }{head};
+                $json_data{'table_data'}{page_size}   = $json_table{ $args{var}[0] }{page_size};
+                $json_data{'table_data'}{hook}        = $json_table{ $args{var}[0] }{hook};
+                $json_data{'table_data'}{page}        = $page;
+                #wrap this in an eval in case the data is bad to prevent crashes"
+                eval {
+                    @{ $json_data{'table_data'}->{data} } = map { [@$_] } @{ $json_table{ $args{var}[0] }->{data} };
+                };
+                if ($@) {
+                    &::print_log("Json_Server.pl: ERROR: problems parsing table data for " . $args{var}[0]);
+                } else {
+                    splice @{ $json_data{'table_data'}->{data} }, 0, $args{start}[0] if ( $args{start}[0] );
+                    splice @{ $json_data{'table_data'}->{data} }, $args{records}[0] if ( $args{records}[0] );
+                    $json_data{'table_data'}{records} = scalar @{ $json_data{'table_data'}->{data} };
+                }
             }
         }
     }
@@ -1035,8 +1039,7 @@ sub build_parent_table {
         my $group = &get_object_by_name($group_name);
         $group_name =~ s/\$|\%|\&|\@//g;
         unless ( defined $group ) {
-            print_log "json: build_parent_table, group_name $group_name doesn't have an object?"
-              if $Debug{json};
+            print_log "json: build_parent_table, group_name $group_name doesn't have an object?" if $Debug{json};
             next;
         }
         else {
@@ -1129,6 +1132,12 @@ sub json_object_detail {
                 #}
                 $value = \%a
                   unless ( exists $a{""} );    #don't return a null value
+            }
+
+            elsif ( $f eq 'link' ) {
+                my $a = $object->$method;
+
+                $value = $a if ( defined $a and $a ne "" );    #don't return a null value
             }
 
             #if ( $f eq 'hidden' ) {
@@ -1241,17 +1250,22 @@ sub json_page {
     my ($json_raw,$options) = @_;
 
 ##    utf8::encode( $json_raw ); #may need to wrap gzip in an eval and encode it if errors develop. It crashes if a < is in the text
-    my $output = "HTTP/1.0 200 OK\r\n";
+    my $output = "HTTP/1.1 200 OK\r\n";
     $output .= "Server: MisterHouse\r\n";
+    $output .= "Connection: close\r\n";    
     $output .= "Content-type: application/json\r\n";
     if ($options =~ m/compress/) {
         print_log("json_server.pl: DEBUG: Compressing Data as requested by client") if $Debug{json};
         my $json;
         gzip \$json_raw => \$json;
         $output .= "Content-Encoding: gzip\r\n";
+        $output .= "Content-Length: " . ( length $json ) . "\r\n";
+        $output .= "Date: " . time2str(time) . "\r\n";
         $output .= "\r\n";
         $output .= $json;
     } else {
+        $output .= "Content-Length: " . ( length $json_raw ) . "\r\n";
+        $output .= "Date: " . time2str(time) . "\r\n";
         $output .= "\r\n";
         $output .= $json_raw;
     }
@@ -1270,11 +1284,7 @@ sub json_entities_encode {
 }
 
 sub json_usage {
-    my $html = <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: text/html
-
+my $html = <<eof;
 <html>
 <head>
 </head>
@@ -1312,8 +1322,16 @@ eof
 </body>
 </html>
 eof
+ my $html_head = "HTTP/1.1 200 OK\r\n";
+ $html_head .= "Server: MisterHouse\r\n";
+ $html_head .= "Content-type: application/json\r\n";
+ $html_head .= "Connection: close\r\n";
+ $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
+ $html_head .= "Date: " . time2str(time) . "\r\n";
+ $html_head .= "\r\n";
 
-    return $html;
+
+    return $html_head.$html;
 }
 
 sub json_table_create {
@@ -1372,7 +1390,7 @@ sub json_table_push {
     my ($key) = @_;
 
     return 0 if ( !defined $json_table{$key} );
-
+    	
     $json_table{$key}{time} = &get_tickcount;
     return 1;
 }
@@ -1483,14 +1501,14 @@ sub json_notification {
     for my $i ( 0 .. $#json_notifications ) {
 
         #clean up any old notifications, or empty entries (ie less than 5 seconds old)
-        my $n_time = int( $json_notifications[$i]{time} );
+        my $n_time = int( $json_notifications[$i]{time} );    
         if (   ( &get_tickcount > $n_time + 5000 )
             or ( !defined $json_notifications[$i]{time} ) )
         {
             splice @json_notifications, $i, 1;
         }
     }
-    push @json_notifications, $data;
+    push (@json_notifications, $data);
 }
 
 sub config_checker {
