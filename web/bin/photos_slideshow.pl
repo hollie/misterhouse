@@ -94,6 +94,7 @@ eof
 
 my $html_head = "HTTP/1.1 200 OK\r\n";
 $html_head .= "Server: MisterHouse\r\n";
+$html_head .= "Connection: close\r\n";
 $html_head .= "Content-type: application/x-javascript\r\n";
 $html_head .= "Content-Length: " . ( length $js ) . "\r\n";
 $html_head .= "Date: " . time2str(time) . "\r\n";
