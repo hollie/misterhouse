@@ -3,7 +3,7 @@ package Nanoleaf_Aurora;
 #todo if poll queue exceeds 3, then just empty the queue
 #print and purge the command queue
 
-# v1.0.14
+# v1.0.15
 
 #if any effect is changed, by definition the static child should be set to off.
 #cmd data returns, need to check by command
@@ -125,7 +125,7 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.0.14";
+    $self->{module_version}         = "v1.0.15";
     $self->{ssdp_timeout}           = 4000;
     $self->{last_static}            = "";
 
@@ -163,6 +163,7 @@ sub new {
     unlink "$::config_parms{data_dir}/Auroroa_cmd_" . $self->{name} . ".data";
     $self->{cmd_process} = new Process_Item;
     $self->{cmd_process}->set_output( $self->{cmd_data_file} );
+    $self->{generate_voice_cmds} = 0;
     &::MainLoop_post_add_hook( \&Nanoleaf_Aurora::process_check, 0, $self );
     &::Reload_post_add_hook( \&Nanoleaf_Aurora::generate_voice_commands, 1, $self );
     $self->get_data();
@@ -440,7 +441,8 @@ sub process_check {
         }
         else {
 
-            main::print_log( "[Aurora:" . $self->{name} . "] WARNING Issued command was unsuccessful, retrying..." );
+            main::print_log( "[Aurora:" . $self->{name} . "] WARNING Issued command was unsuccessful, file data is " . $file_data );
+            main::print_log( "[Aurora:" . $self->{name} . "] Retrying command..." );            
             if ( $self->{cmd_process_retry} > $self->{cmd_process_retry_limit} ) {
                 main::print_log( "[Aurora:" . $self->{name} . "] ERROR Issued command max retries reached. Abandoning command attempt..." );
                 shift @{ $self->{cmd_queue} };
@@ -1102,41 +1104,43 @@ sub identify {
 
 sub generate_voice_commands {
     my ($self) = @_;
+    unless ($self->{generate_voice_cmds}) {
+         my $object_string;
+         $self->{generate_voice_cmds} = 1;         
+         my $object_name = $self->get_object_name;
+         &main::print_log("Generating Voice commands for Nanoleaf Aurora Controller $object_name");
 
-    my $object_string;
-    my $object_name = $self->get_object_name;
-    &main::print_log("Generating Voice commands for Nanoleaf Aurora Controller $object_name");
+         my $voice_cmds = $self->get_voice_cmds();
+         my $i          = 1;
+         foreach my $cmd ( keys %$voice_cmds ) {
 
-    my $voice_cmds = $self->get_voice_cmds();
-    my $i          = 1;
-    foreach my $cmd ( keys %$voice_cmds ) {
+             #get object name to use as part of variable in voice command
+             my $object_name_v = $object_name . '_' . $i . '_v';
+             $object_string .= "use vars '${object_name}_${i}_v';\n";
 
-        #get object name to use as part of variable in voice command
-        my $object_name_v = $object_name . '_' . $i . '_v';
-        $object_string .= "use vars '${object_name}_${i}_v';\n";
+             #Convert object name into readable voice command words
+             my $command = $object_name;
+             $command =~ s/^\$//;
+             $command =~ tr/_/ /;
 
-        #Convert object name into readable voice command words
-        my $command = $object_name;
-        $command =~ s/^\$//;
-        $command =~ tr/_/ /;
+             #Initialize the voice command with all of the possible device commands
+             $object_string .= $object_name . "_" . $i . "_v  = new Voice_Cmd '$command $cmd';\n";
 
-        #Initialize the voice command with all of the possible device commands
-        $object_string .= $object_name . "_" . $i . "_v  = new Voice_Cmd '$command $cmd';\n";
+             #Tie the proper routine to each voice command
+             $object_string .= $object_name . "_" . $i . "_v -> tie_event('" . $voice_cmds->{$cmd} . "');\n\n";    #, '$command $cmd');\n\n";
 
-        #Tie the proper routine to each voice command
-        $object_string .= $object_name . "_" . $i . "_v -> tie_event('" . $voice_cmds->{$cmd} . "');\n\n";    #, '$command $cmd');\n\n";
+             #Add this object to the list of Insteon Voice Commands on the Web Interface
+             $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'Nanoleaf_Aurora', 'Controller_commands' );
+             $i++;
+         }
 
-        #Add this object to the list of Insteon Voice Commands on the Web Interface
-        $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'Nanoleaf_Aurora', 'Controller_commands' );
-        $i++;
+         #Evaluate the resulting object generating string
+         package main;
+         eval $object_string;
+         print "Error in nanoleaf_aurora_item_commands: $@\n" if $@;
+
+         package Nanoleaf_Aurora;
     }
-
-    #Evaluate the resulting object generating string
-    package main;
-    eval $object_string;
-    print "Error in nanoleaf_aurora_item_commands: $@\n" if $@;
-
-    package Nanoleaf_Aurora;
 }
 
 sub get_voice_cmds {
@@ -1323,3 +1327,4 @@ sub set {
 # v1.0.12 - get_effects method to get array of available effects
 # v1.0.13 - ability to print and purge the command queue in case a network error prevents clearing, empty poll queue if max reached
 # v1.0.14 - commands now queue properly
+# v1.0.15 - only load voice commands at startup
