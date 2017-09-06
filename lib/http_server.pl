@@ -1644,6 +1644,7 @@ sub html_file {
         if ( $time3 <= $time2 ) {
  		my $html_head = "HTTP/1.1 304 Not Modified\r\n";
  		$html_head .= "Server: MisterHouse\r\n";
+		$html_head .= "Connection: close\r\n";
  		$html_head .= "Date: " . time2str(time) . "\r\n";
  		$html_head .= "\r\n";
         }
@@ -1860,6 +1861,7 @@ sub html_cgi {
 
     my $html_head = "HTTP/1.1 200 OK\r\n";
     $html_head .= "Server: MisterHouse\r\n";
+    $html_head .= "Connection: close\r\n";
     $html_head .= "Cache-Control: no-cache\r\n";
     $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
     $html_head .= $extraheaders."\r\n" if $extraheaders;
@@ -1888,9 +1890,13 @@ sub mime_header {
     }
 
     #   print "dbx2 m=$mime f=$file_or_type\n";
-    my $code = "HTTP/1.1 200 OK";
-    $code = "HTTP/1.1 206 Partial Content" if $range;
-    my $header = "$code\r\nServer: MisterHouse\r\nContent-Type: $mime\r\n";
+    my $header;
+    $header = "HTTP/1.1 200 OK\r\n";
+    $header = "HTTP/1.1 206 Partial Content\r\n" if $range;
+    $header .= "Server: MisterHouse\r\n";
+    $header .= "Connection: close\r\n";
+    $header .= "Date: " . time2str(time) . "\r\n";
+    $header .= "Content-Type: $mime\r\n";
 
     #   $header .= ($cache) ? "Cache-Control: max-age=1000000\n" : "Cache-Control: no-cache\n";
     if ($cache) {
@@ -1934,6 +1940,7 @@ sub html_alias {
 sub html_no_response {
  my $html_head = "HTTP/1.1 204 No Content\r\n";
  $html_head .= "Server: MisterHouse\r\n";
+ $html_head .= "Connection: close\r\n";
  $html_head .= "Date: " . time2str(time) . "\r\n";
  $html_head .= "\r\n";
 return $html_head;
@@ -1955,6 +1962,7 @@ sub html_page {
 
 	$html_head = "HTTP/1.1 200 OK\r\n";
 	$html_head .= "Server: MisterHouse\r\n";
+	$html_head .= "Connection: close\r\n";
 	$html_head .= "Content-type: $contenttype\r\n";
 	$html_head .= "Content-Length: " . ( length $body ) . "\r\n";
 	$html_head .= "Date: " . time2str(time) . "\r\n";
@@ -2008,6 +2016,7 @@ $body
 
  $html_head = "HTTP/1.1 200 OK\r\n";
  $html_head .= "Server: MisterHouse\r\n";
+ $html_head .= "Connection: close\r\n";
  $html_head .= "Content-type: text/html\r\n";
  $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
  $html_head .= "Date: " . time2str(time) . "\r\n";
@@ -3022,8 +3031,7 @@ sub print_socket_fork {
         print "http: printing with regular socket l=$length s=$socket\n"
           if $main::Debug{http};
         print $socket $html;
-	$socket->shutdown(2) if $close;
-	#$leave_socket_open_passes = -1;    # This will not close the socket
+        $socket->shutdown(2) if $close;
     }
 }
 
@@ -3099,19 +3107,29 @@ sub print_socket_fork_unix {
     my ( $socket, $html, $close ) = @_;
 
     my $pid = fork;
+    if    ( $? == -1  ) { 
+        print "***PID http_server_print_socket_fork_unix $pid - Can't launch child: $!\n" if $::Debug{fork}; 
+    } elsif ( $? & 0x7F ) { 
+        print "***PID http_server_print_socket_fork_unix $pid - Child killed by signal ".( $? & 0x7F )."\n" if $::Debug{fork}; 
+    } elsif ( $? >> 8   ) { 
+        print "***PID http_server_print_socket_fork_unix $pid - Child exited with error ".( $? >> 8 )."\n" if $::Debug{fork}; 
+    } else { 
+        print "***PID http_server_print_socket_fork_unix $pid - Child executed successfully\n" if $::Debug{fork}; 
+    }
     if ( defined $pid && $pid == 0 ) {
         print $socket $html;
-	$socket->shutdown(2) if $close;
+	    $socket->shutdown(2) if $close;
         $socket->close unless $close;
+        print "***PID http_server_print_socket_fork_unix $pid exiting process\n" if $::Debug{fork}; 
 
         # This avoids 'Unexpected async reply' if mh -tk 1
         &POSIX::_exit(0)
 
           #       exit;
-    }
-    else {
+    } else {
         # Not sure why, but I get a broken pipe if I shutdown send or both.
         shutdown( $socket, 0 );    # "how":  0=no more receives, 1=sends, 2=both
+        print "***PID http_server_print_socket_fork_unix $pid shutdown socket\n" if $::Debug{fork}; 
 
         #       $socket->close;
     }
@@ -3274,6 +3292,7 @@ eof
 
 my $html_head = "HTTP/1.1 200 OK\r\n";
 $html_head .= "Server: MisterHouse\r\n";
+$html_head .= "Connection: close\r\n";
 $html_head .= "Content-type: text/xml\r\n";
 $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
 $html_head .= "Date: " . time2str(time) . "\r\n";
@@ -3652,6 +3671,7 @@ eof
 
  my $html_head = "HTTP/1.1 200 OK\r\n";
  $html_head .= "Server: MisterHouse\r\n";
+ $html_head .= "Connection: close\r\n";
  $html_head .= "Content-type: text/vnd.wap.wml\r\n";
  $html_head .= "Content-Length: " . ( length $wml ) . "\r\n";
  $html_head .= "Date: " . time2str(time) . "\r\n";

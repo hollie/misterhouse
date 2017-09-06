@@ -501,14 +501,12 @@ sub json_get {
         # is time consuming, particularly when called numerous times.  Instead,
         # we create a lookup table one time, saving a lot of processing time.
 	$json_cache{parent_table} = build_parent_table() if ( !($json_cache{parent_table}) || $Reload );
-
         if ( $args{items} && $args{items}[0] ne "" ) {
             foreach my $name ( @{ $args{items} } ) {
 
                 #$name =~ s/\$|\%|\&|\@//g;
                 my $o = &get_object_by_name($name);
-                print_log "json: object name=$name ref=" . ref $o
-                  if $Debug{json};
+                print_log "json: object name=$name ref=" . ref $o if $Debug{json};
                 if ( my $data = &json_object_detail( $o, \%args, \%fields, $json_cache{parent_table} ) ) {
                     $json_data{objects}{$name} = $data;
                 }
@@ -516,8 +514,18 @@ sub json_get {
         }
         else {
 
-            # Restrict object list by type here to make things faster
-            if ( $args{type} ) {
+
+            if ( $args{parents} ) { # Restrict object list by group here to make things faster
+                for ( @{ $args{parents} } ) {
+                    push @objects, &list_objects_by_group( $_, 1 )
+                }
+            }
+            elsif ( $args{category} ) {
+                for ( @{ $args{category} } ) {
+                    push @objects, &list_objects_by_webname( $_ )
+                }
+            }
+            elsif ( $args{type} ) { # Restrict object list by type here to make things faster
                 for ( @{ $args{type} } ) {
                     push @objects, &list_objects_by_type($_);
                 }
@@ -534,8 +542,7 @@ sub json_get {
                 my $name = $o;
                 $name = $o->{object_name};
                 $name =~ s/\$|\%|\&|\@//g;
-                print_log "json: object name=$name ref=" . ref $o
-                  if $Debug{json};
+                print_log "json: (map) object name=$name ref=" . ref $o if $Debug{json};
                 if ( my $data = &json_object_detail( $o, \%args, \%fields, $json_cache{parent_table} ) ) {
                     $json_data{objects}{$name} = $data;
                 }
@@ -1026,16 +1033,13 @@ sub json_walk_var {
 }
 
 sub build_parent_table {
-	print_log "json: build_parent_table running";
     my @groups;
     my %parent_table;
     for my $group_name ( &list_objects_by_type('Group') ) {
         my $group = &get_object_by_name($group_name);
         $group_name =~ s/\$|\%|\&|\@//g;
-	 print_log "json: build_parent_table group: $group_name";
         unless ( defined $group ) {
-            print_log "json: build_parent_table, group_name $group_name doesn't have an object?"
-              if $Debug{json};
+            print_log "json: build_parent_table, group_name $group_name doesn't have an object?" if $Debug{json};
             next;
         }
         else {
@@ -1388,7 +1392,6 @@ sub json_table_push {
     return 0 if ( !defined $json_table{$key} );
     	
     $json_table{$key}{time} = &get_tickcount;
-    &::set_waiter_flags('push_flag',1);
     return 1;
 }
 

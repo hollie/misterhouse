@@ -2584,7 +2584,7 @@ sub check_for_socket_data_http {
                 # We must sleep here for a bit, or else Netscape sometimes
                 # says 'Document contains no data'.  Guess we don't need this anymore :)
                 #               select undef, undef, undef, .010;
-		print "http: closing socket - ". $Info{'http_socket'}->peer ." ....\n" if $Debug{http};
+		#print "http: closing socket - ". $Info{'http_socket'}->peer ." ....\n" if $Debug{http};
                 &socket_close('http');
             }
         }
@@ -6700,12 +6700,16 @@ sub sig_handler_pipe {
 sub sig_child_death {
 
     #   my $pid = wait;
-    #   print "reaped $pid" . ($? ? " with exit $?" : '');
+     # print "reaped $pid" . ($? ? " with exit $?" : '');
     # Harvest potentially more than one dead child
     use POSIX ":sys_wait_h";
+    local ($!, $?);
+
     my $pid;
     do {
         $pid = waitpid( -1, WNOHANG );
+        print "***PID MH reaped $pid" . ($? ? " with exit $?" : '') . "\n" if $Debug{fork};
+
     } until $pid <= 0;
 
     #       $pid = waitpid(-1, &WNOHANG);
