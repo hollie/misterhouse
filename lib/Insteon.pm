@@ -942,48 +942,53 @@ so that each class can have its own unique set of voice commands.
 =cut
 
 sub generate_voice_commands {
+    my ($self) = @_;
 
-    &main::print_log("Generating Voice commands for all Insteon objects");
-    my $object_string;
-    for my $object (&main::list_all_objects) {
-        next unless ref $object;
-        next
-          unless $object->isa('Insteon::BaseInterface')
-          or $object->isa('Insteon::BaseObject');
+    unless ($self->{generate_voice_cmds}) {
+        &main::print_log("Generating Voice commands for all Insteon objects");
+        my $object_string;
+        $self->{generate_voice_cmds} = 1;         
+        
+        for my $object (&main::list_all_objects) {
+            next unless ref $object;
+            next
+              unless $object->isa('Insteon::BaseInterface')
+              or $object->isa('Insteon::BaseObject');
 
-        #get object name to use as part of variable in voice command
-        my $object_name   = $object->get_object_name;
-        my $object_name_v = $object_name . '_v';
-        $object_string .= "use vars '${object_name}_v';\n";
+            #get object name to use as part of variable in voice command
+            my $object_name   = $object->get_object_name;
+            my $object_name_v = $object_name . '_v';
+            $object_string .= "use vars '${object_name}_v';\n";
 
-        #Convert object name into readable voice command words
-        my $command = $object_name;
-        $command =~ s/^\$//;
-        $command =~ tr/_/ /;
+            #Convert object name into readable voice command words
+            my $command = $object_name;
+            $command =~ s/^\$//;
+            $command =~ tr/_/ /;
 
-        my $group = ( $object->isa('Insteon_PLM') ) ? '' : $object->group;
+            my $group = ( $object->isa('Insteon_PLM') ) ? '' : $object->group;
 
-        #Get list of all voice commands from the object
-        my $voice_cmds = $object->get_voice_cmds();
+            #Get list of all voice commands from the object
+            my $voice_cmds = $object->get_voice_cmds();
 
-        #Initialize the voice command with all of the possible device commands
-        $object_string .= "$object_name_v  = new Voice_Cmd '$command [" . join( ",", sort keys %$voice_cmds ) . "]';\n";
+            #Initialize the voice command with all of the possible device commands
+            $object_string .= "$object_name_v  = new Voice_Cmd '$command [" . join( ",", sort keys %$voice_cmds ) . "]';\n";
 
-        #Tie the proper routine to each voice command
-        foreach ( keys %$voice_cmds ) {
-            $object_string .= "$object_name_v -> tie_event('" . $voice_cmds->{$_} . "', '$_');\n\n";
+            #Tie the proper routine to each voice command
+            foreach ( keys %$voice_cmds ) {
+                $object_string .= "$object_name_v -> tie_event('" . $voice_cmds->{$_} . "', '$_');\n\n";
+            }
+
+            #Add this object to the list of Insteon Voice Commands on the Web Interface
+            $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands' );
         }
 
-        #Add this object to the list of Insteon Voice Commands on the Web Interface
-        $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands' );
+        #Evaluate the resulting object generating string
+        package main;
+        eval $object_string;
+        print "Error in insteon_item_commands: $@\n" if $@;
+
+        package Insteon;
     }
-
-    #Evaluate the resulting object generating string
-    package main;
-    eval $object_string;
-    print "Error in insteon_item_commands: $@\n" if $@;
-
-    package Insteon;
 }
 
 =item C<add(object)>
@@ -1215,6 +1220,7 @@ sub _active_interface {
         &main::Reload_post_add_hook( \&Insteon::check_all_aldb_versions, 1 );
         &main::Reload_post_add_hook( \&Insteon::BaseInterface::poll_all, 1 );
         $init_complete = 0;
+        $self->{generate_voice_cmds} = 0;     #prevent duplicate commands at startup     
         &main::MainLoop_pre_add_hook( \&Insteon::init, 1 );
         &main::Reload_post_add_hook( \&Insteon::check_thermo_versions,   1 );
         &main::Reload_post_add_hook( \&Insteon::generate_voice_commands, 1 );
