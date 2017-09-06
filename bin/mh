@@ -6712,6 +6712,8 @@ sub sig_child_death {
 
     } until $pid <= 0;
 
+    $SIG{CHLD} = \&sig_child_death;
+
     #       $pid = waitpid(-1, &WNOHANG);
     #   } until $pid == -1;
 }
