@@ -660,8 +660,9 @@ sub speak_text {
                   unless $main::Debug{voice} and $main::Debug{voice} > 1;
             }
             elsif ( $speak_pgm eq 'say' ) {
-                system "say $parms{text}";
-
+                #I don't know why mac does a system say, and then another system qq[ later on. Comment this out
+                #system "say $parms{text}";
+                $speak_pgm_arg = $parms{text};
                 #my $volume_reset = GetDefaultOutputVolume();
                 #SetDefaultOutputVolume(2**$parms{volume}) if $parms{volume};
                 #SpeakText($VTxt_mac, $parms{text});
@@ -729,7 +730,6 @@ sub speak_text {
                 open VOICE, "| $speak_pgm $speak_pgm_arg";
                 print VOICE $parms{text};
                 close VOICE;
-
                 #                exit 0 if $fork;
                 if ($fork) {
                     if ($main::OS_win) {
@@ -741,6 +741,7 @@ sub speak_text {
                 }
             }
             elsif ($fork) {
+
                 system qq[$speak_pgm $speak_pgm_arg];
 
                 # if ($? == -1) {
@@ -748,6 +749,10 @@ sub speak_text {
                 # 	exit;
                 #	}
                 # Send voice text to waiting web clients
+
+                #if the process is forked, need to send speech via the webservice method
+                $parms{forked} = 1 unless ( $fork and $pid );
+             
                 &web_hook_callback(%parms);
 
                 if ($main::OS_win) {

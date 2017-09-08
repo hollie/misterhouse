@@ -620,7 +620,14 @@ sub json_get {
 
             # this is for constants
             $iref = $$iref if ref $iref eq 'SCALAR';
-            %json_vars = ( %json_vars, &json_walk_var( $iref, $key ) );
+            
+            
+            eval {
+                %json_vars = ( %json_vars, &json_walk_var( $iref, $key ) ); #wrap this in eval in case there is weird data
+            };
+            if ($@) {
+                print_log "Json_Server.pl: WARNING: JSON variable parsing: $key failed to process";
+            }
         }
         $json_data{vars} = \%json_vars;
     }
@@ -658,6 +665,65 @@ sub json_get {
         }
         $json_data{vars_global} = \%json_vars_global;
     }
+    
+   if ($path[0] eq 'tagline' || $path[0] eq 'misc' || $path[0] eq '') {
+        my $source = "tagline";
+        $source = "misc" if ($path[0] eq 'misc');
+        my $file;
+        if ( -e "$config_parms{data_dir}/remarks/1100tags.txt" ) {
+            $file = "$config_parms{data_dir}/remarks/1100tags.txt";
+        } else {
+            $file = "$Pgm_Root/data/remarks/1100tags.txt";
+        }
+        srand;
+        my $tagline = "could not retrieve tagline";
+        
+        eval {
+            open FILE, "<$file" or warn "Could not open filename: $!\n";
+            rand($.)<1 and ($tagline=$_) while <FILE>;
+            close FILE;
+        };
+        if ($@) {
+            print_log "Json_Server.pl: WARNING: Could not open tagline file!";
+        }        
+        
+        $json_data{$source}{tagline} = $tagline
+   }
+
+   if ( $path[0] eq 'stats' || $path[0] eq 'misc' || $path[0] eq '' ) {
+        my $source = "stats";
+        $source = "misc" if ($path[0] eq 'misc');
+   #13:28  up 48 days,  2:19, 8 users, load averages: 3.15 3.30 2.78
+   # 18:29:27 up 26 days,  2:40,  4 users,  load average: 0.46, 0.52, 0.50
+        my $uptime;
+        if ( $OS_win or $^O eq 'cygwin' ) {
+            $uptime = "$Tk_objects{label_uptime_mh} &nbsp;&nbsp; $Tk_objects{label_uptime_cpu}";
+        } else {
+            $uptime = `uptime`;
+        }
+        my ($time,$upt,$users,$load) = $uptime =~ /(\S+)\s+up\s(.*),\s+(\d+)\susers,\s+load\saverages?:\s(.*)/;
+        $json_data{$source}{time} = $time;
+        $json_data{$source}{uptime} = $upt;
+        $json_data{$source}{users} = $users;
+        $json_data{$source}{load} = $load;
+        $json_data{$source}{cores} = $System_cores;
+        $json_data{$source}{time_of_day} = $Time_Of_Day;
+        $json_data{$source}{web_counter} = $Save{"web_count_default"};
+   }
+
+   if ( $path[0] eq 'weather' || $path[0] eq 'misc' || $path[0] eq '' ) {
+        my $source = "weather";
+        $source = "misc" if ($path[0] eq 'misc');
+        $json_data{$source}{Barom} = $Weather{"Barom"};
+        $json_data{$source}{Summary} = $Weather{"Summary_Short"};
+        $json_data{$source}{TempIndoor} = $Weather{"TempIndoor"};
+        $json_data{$source}{TempOutdoor} = $Weather{"TempOutdoor"};
+        $json_data{$source}{Wind} = $Weather{"Wind"};
+        $json_data{$source}{Clouds} = $Weather{"Clouds"};
+        $json_data{$source}{Raining} = $Weather{"IsRaining"};
+        $json_data{$source}{Snowing} = $Weather{"IsSnowing"};
+             
+   }
 
    if ( $path[0] eq 'vars_save' || $path[0] eq '' ) {
         my %json_vars_save;
@@ -866,7 +932,12 @@ sub json_walk_var {
                 and not defined $$iref
                 and ( *{$ref}{ARRAY} or *{$ref}{CODE} or *{$ref}{HASH} ) )
             {
-                %json_vars = &json_walk_var( $iref, $name, @types );
+                eval {
+                    %json_vars = &json_walk_var( $iref, $name, @types ); #wrap this in eval in case there is weird data
+                };
+                if ($@) {
+                    print_log "Json_Server.pl: WARNING: JSON variable parsing: $name failed to process";
+                }
             }
         }
         return %json_vars;
@@ -912,7 +983,13 @@ sub json_walk_var {
             $iname = "$name$key";
             $iref  = ${$ref}{$key};
             $iref  = \${$ref}{$key} unless ref $iref;
-            my ( $k, $r ) = &json_walk_var( $iref, $iname, @types );
+            my ( $k, $r );
+            eval {
+                ($k, $r)  = &json_walk_var( $iref, $iname, @types );; #wrap this in eval in case there is weird data
+            };
+            if ($@) {
+                print_log "Json_Server.pl: WARNING: JSON variable parsing: $iname failed to process";
+            }
             $json_vars{$name} = $r if $k ne "";
         }
     }
@@ -921,7 +998,13 @@ sub json_walk_var {
             $iname = "$name\[$key\]";
             $iref  = \${$ref}[$key];
             $iref  = ${$ref}[$key] if ref $iref eq 'REF';
-            my ( $k, $r ) = &json_walk_var( $iref, $iname, @types );
+            my ( $k, $r );
+            eval {
+                ($k, $r)  = &json_walk_var( $iref, $iname, @types );; #wrap this in eval in case there is weird data
+            };
+            if ($@) {
+                print_log "Json_Server.pl: WARNING: JSON variable parsing: $iname failed to process";
+            }
             $json_vars{$name}{$k} = $r;
         }
     }
@@ -930,8 +1013,13 @@ sub json_walk_var {
             $iname = "$name\{'$key'\}";
             $iref  = \${$ref}{$key};
             $iref  = ${$ref}{$key} if ref $iref eq 'REF';
-            my ( $k, $r ) = &json_walk_var( $iref, $iname, @types );
-            $json_vars{$name}{$key} = $r;
+            my ( $k, $r );
+            eval {
+                ($k, $r)  = &json_walk_var( $iref, $iname, @types );; #wrap this in eval in case there is weird data
+            };
+            if ($@) {
+                print_log "Json_Server.pl: WARNING: JSON variable parsing: $iname failed to process";
+            }            $json_vars{$name}{$key} = $r;
         }
     }
     elsif ( $type eq 'CODE' ) {

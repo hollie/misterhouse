@@ -112,7 +112,7 @@ eof
 }
 
 # Use var instead of my so we can get these in the http_server.pl scripts
-use vars qw($Time_Start_time $Time_Stop_time $Time_Increment $Time_Startup $Time_Startup_time $Time_Boot_time $Time_Uptime_Seconds);
+use vars qw($Time_Start_time $Time_Stop_time $Time_Increment $Time_Startup $Time_Startup_time $Time_Boot_time $Time_Uptime_Seconds $System_cores);
 use vars qw($Time_Sunrise $Time_Sunrise_Twilight $Time_Sunset $Time_Sunset_Twilight %Moon $Time_Now $Time_Date $Date_Now $Date_Now_Speakable $Year_Month_Now);
 use vars qw($Time $Second $Minute $Hour $Mday $Wday $Day $Month $Year);
 use vars qw($New_Second $New_Msecond_500 $New_Msecond_250 $New_Msecond_100 $New_Minute $New_Hour $New_Day $New_Week $New_Month $New_Year);
@@ -1114,9 +1114,11 @@ sub setup {
         print " - object logging disabled\n";
     }
 
-    # Store boot time in seconds since epoc
+    $System_cores = 1; #default in case we can't determine from system calls
+    # Store boot time in seconds since epoc, and the system cores
     if ($OS_win) {
         $Time_Boot_time = time - &get_tickcount / 1000;    # Gettickcount starts at computer boot
+        $System_cores = $ENV{"NUMBER_OF_PROCESSORS"};
     }
     elsif ( $^O eq 'linux' or $^O eq 'cygwin' ) {
 
@@ -1130,6 +1132,9 @@ sub setup {
         my ( $uptime, $idletime ) = ( <UPTIME> =~ /(\S+) (\S+)/ );
         close UPTIME;
         $Time_Boot_time = time - $uptime;
+        open CPUINFO, "/proc/cpuinfo" or print "\nError: Can't open /proc/cpuinfo ($!)\n";
+        $System_cores =  scalar (map /^processor/, <CPUINFO>) ; 
+        close CPUINFO;
     }
     elsif ( $^O eq 'freebsd' ) {
         open( SYSCTL, "/sbin/sysctl -a |" )
@@ -1137,6 +1142,10 @@ sub setup {
         while (<SYSCTL>) { last if (/boottime/) }
         $Time_Boot_time = $1 if (/ sec[ =]+(\d+)/);
         close(SYSCTL);
+        open( SYSCTLCPU, "/sbin/sysctl hw.ncpu" )
+          or print "\nError: can't open /sbin/sysctl hw.ncpu: $!";
+        $System_cores = $1 if (/hw\.ncpu\s(\d+)/);
+        close(SYSCTLCPU);
     }
     elsif ( $^O eq 'darwin' ) {
 
@@ -1146,6 +1155,8 @@ sub setup {
         use vars qw($sysctl);
         $sysctl         = '/usr/sbin/sysctl';
         $Time_Boot_time = `$sysctl -n kern.boottime`;
+        $System_cores = `$sysctl -n machdep.cpu.core_count`;
+        $System_cores =~ s/\n//;
     }
     else {
         #Sets boot time to a sane value for unknown OSs
@@ -4719,7 +4730,7 @@ sub print_speaklog_current_time {
     # Return the time of most recent speak phrase
 
     #print "db/mh/curr: time=" . &get_tickcount . " plt=$Print_Log_Time[0] slt=$Speak_Log_Time[0]\n";
-    return $Print_Log_Time[0]
+    return $Speak_Log_Time[0]
       unless ( scalar @Speak_Log_Time <= 0 );    #TODO HP should return $Speak_Log_Time
                                                  #return $Speak_Log_Time[0] unless (scalar @Speak_Log_Time <= 0); #TODO HP should return $Speak_Log_Time
     return 0;
