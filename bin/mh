@@ -6672,11 +6672,18 @@ sub sig_child_death2 {
     # Harvest potentially more than one dead child
     use POSIX ":sys_wait_h";
     local ($!, $?);
+
     my $pid;
     do {
         $pid = waitpid( -1, WNOHANG );
+        print "***PID MH reaped $pid" . ($? ? " with exit $?" : '') . "\n" if $Debug{fork};
+
     } until $pid <= 0;
-    $SIG{CHLD} = \&sig_child_death;          # in case of unreliable signals
+
+    $SIG{CHLD} = \&sig_child_death;
+
+    #       $pid = waitpid(-1, &WNOHANG);
+    #   } until $pid == -1;
 }
 
 # This will close either client or server active socket

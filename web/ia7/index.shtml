@@ -168,10 +168,11 @@
 		margin-left: 10px;
 	}
     #hist-table {
-    	margin-left: 10px;
+    	margin-left: 5px;
     }
     .hist-table-margin {
-    	padding-right: 35px;
+        padding-right: 0px !important;
+        padding-left: 0px !important;
     }	
 	#rrd-graph {
     	width:700px;
@@ -242,6 +243,13 @@
         width: 32px;
         margin-left: -16px
     }  
+	.popover {
+	    min-width: 200px;
+	}
+	
+	.mh-page-link {
+	    padding-left: 30px;
+	}
 	
 	</style>
 </head>
