@@ -968,7 +968,7 @@ sub json_walk_var {
         elsif ( $name =~ m/.*?\{'(.*?)'\}$/ ) {
             my $cls = $1;
             if ( $cls =~ m/\}\{/ ) {
-                my @values = split( '\'}{\'', $cls );
+                my @values = split( '\'}\{\'', $cls );
                 foreach my $val (@values) {
                     $value = "Unusable Object" if ref $value;
                     return $val, $value;
