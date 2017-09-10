@@ -771,41 +771,37 @@ sub json_get {
 
             #need to check if vars and keys exist
 
+
             my $start = 0;
             $start = $args{start}[0] if ( $args{start}[0] );
             my $records = 0;
             my $page    = 0;
-            my $page    = $json_table{ $args{var}[0] }{page}
-              if ( defined $json_table{ $args{var}[0] }{page} );
+            my $page    = $json_table{ $args{var}[0] }{page} if ( defined $json_table{ $args{var}[0] }{page} );
             $records = $args{records}[0] if ( $args{records}[0] );
 
             # TODO: At some point have a hook that pulls in more data into the table if it's missing
             #  ie read a file
 
             my $jt_time = int( $json_table{ $args{var}[0] }{time} );
-            if (   ( $args{time} && int( $args{time}[0] ) < $jt_time )
-                or ( !$args{time} ) )
-            {
+            if (   ( $args{time} && int( $args{time}[0] ) < $jt_time ) or ( !$args{time} ) ) {
                 #need to copy all the data since we can adjust starts and records
 
-                $json_data{'table_data'}{exist} =
-                  $json_table{ $args{var}[0] }{exist};
-                $json_data{'table_data'}{head} =
-                  $json_table{ $args{var}[0] }{head};
-                $json_data{'table_data'}{page_size} =
-                  $json_table{ $args{var}[0] }{page_size};
-                $json_data{'table_data'}{hook} =
-                  $json_table{ $args{var}[0] }{hook};
-                $json_data{'table_data'}{page} = $page;
-                @{ $json_data{'table_data'}->{data} } =
-                  map { [@$_] } @{ $json_table{ $args{var}[0] }->{data} };
-
-                splice @{ $json_data{'table_data'}->{data} }, 0, $args{start}[0]
-                  if ( $args{start}[0] );
-                splice @{ $json_data{'table_data'}->{data} }, $args{records}[0]
-                  if ( $args{records}[0] );
-                $json_data{'table_data'}{records} =
-                  scalar @{ $json_data{'table_data'}->{data} };
+                $json_data{'table_data'}{exist}       = $json_table{ $args{var}[0] }{exist};
+                $json_data{'table_data'}{head}        = $json_table{ $args{var}[0] }{head};
+                $json_data{'table_data'}{page_size}   = $json_table{ $args{var}[0] }{page_size};
+                $json_data{'table_data'}{hook}        = $json_table{ $args{var}[0] }{hook};
+                $json_data{'table_data'}{page}        = $page;
+                #wrap this in an eval in case the data is bad to prevent crashes"
+                eval {
+                    @{ $json_data{'table_data'}->{data} } = map { [@$_] } @{ $json_table{ $args{var}[0] }->{data} };
+                };
+                if ($@) {
+                    &::print_log("Json_Server.pl: ERROR: problems parsing table data for " . $args{var}[0]);
+                } else {
+                    splice @{ $json_data{'table_data'}->{data} }, 0, $args{start}[0] if ( $args{start}[0] );
+                    splice @{ $json_data{'table_data'}->{data} }, $args{records}[0] if ( $args{records}[0] );
+                    $json_data{'table_data'}{records} = scalar @{ $json_data{'table_data'}->{data} };
+                }
             }
         }
     }
@@ -1140,6 +1136,12 @@ sub json_object_detail {
                   unless ( exists $a{""} );    #don't return a null value
             }
 
+            elsif ( $f eq 'link' ) {
+                my $a = $object->$method;
+
+                $value = $a if ( defined $a and $a ne "" );    #don't return a null value
+            }
+
             #if ( $f eq 'hidden' ) {
             #	my $a = $object->$method;
             #	if ($a == 1 or $a eq "1") {
@@ -1255,6 +1257,7 @@ sub json_page {
 ##    utf8::encode( $json_raw ); #may need to wrap gzip in an eval and encode it if errors develop. It crashes if a < is in the text
     my $output = "HTTP/1.1 200 OK\r\n";
     $output .= "Server: MisterHouse\r\n";
+    $output .= "Connection: close\r\n";    
     $output .= "Content-type: application/json\r\n";
     $output .= "Connection: close\r\n" if &http_close_socket(%HttpHeader);
     $output .= "Content-Encoding: gzip\r\n" if &::http_gzip(%HttpHeader);

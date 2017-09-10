@@ -3314,16 +3314,16 @@ sub print_socket_fork_unix {
     else                { &main::print_log( "***PID http 1 $pid - Child executed successfully with exit: $?\n" ) if $::Debug{fork} }
     if ( defined $pid && $pid == 0 ) {
         print $socket $html;
-	$socket->shutdown(2); # we shoould shutdown the socket before we close the handle 
+	      $socket->shutdown(2); # we shoould shutdown the socket before we close the handle 
         $socket->close;
-	&main::print_log( "***PID http_server_print_socket_fork_unix $pid exiting process\n" ) if $::Debug{fork}; 
+	      &main::print_log( "***PID http_server_print_socket_fork_unix $pid exiting process\n" ) if $::Debug{fork}; 
         # This avoids 'Unexpected async reply' if mh -tk 1
         &POSIX::_exit(0)
     }
     else {
         # Not sure why, but I get a broken pipe if I shutdown send or both.
         shutdown( $socket, 0 );    # "how":  0=no more receives, 1=sends, 2=both
-	&main::print_log( "***PID http_server_print_socket_fork_unix $pid shutdown socket\n" ) if $::Debug{fork};
+	      &main::print_log( "***PID http_server_print_socket_fork_unix $pid shutdown socket\n" ) if $::Debug{fork};
     }
 }
 
