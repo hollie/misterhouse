@@ -62,7 +62,8 @@ sub socket_item_by_id {
 
 sub new {
     my ( $class, $id, $state, $host_port, $port_name, $host_proto, $datatype, $break, $broadcast ) = @_;
-
+    &::print_log("[Socket_Item] creating object id: $id state: $state  host_port: $host_port port_name: $port_name host_proto $host_proto datatype: $datatype")
+         if $main::Debug{socket};
     #    print "dbx1 creating socket on port $host_port name=$port_name\n";
     my $self = { state => '' };
 
@@ -297,10 +298,11 @@ sub said {
     my $data;
     my $datatype = $main::Socket_Ports{$port_name}{datatype};
     if ( $datatype and $datatype eq 'raw' ) {
+	return if ( ($port_name eq 'http') && !( $_[1] eq 'http_server') ); #Only allow http_server to call said for http.
         $data = $main::Socket_Ports{$port_name}{data};
-
         #       $main::Socket_Ports{$port_name}{data} = '';
         $main::Socket_Ports{$port_name}{data} = undef;
+	#print "Socket_Item port: $port_name called from $_[1] data: $data\n" if $port_name eq 'http';
     }
     else {
         $data = $main::Socket_Ports{$port_name}{data_record};

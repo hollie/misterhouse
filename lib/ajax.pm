@@ -114,19 +114,11 @@ sub checkForUpdate {
 
     if ( ${$$self{sub}} =~ /(.*\:\:json\(\'.*\',\'.*\',\'.*\',\'.*\')\)/ ) {  
         ${$$self{sub}} = $1.',$client_number,$requestnum )'; 
-         if ( $main::Debug{ajax} ) {
-           &main::print_log ("ajax: checkForUpdate - Compression header: ".%HttpHeader{'Accept-Encoding'} );
-           &main::print_log ("ajax: checkForUpdate - Connection header: ".%HttpHeader{'Connection'} );
-           &main::print_log ("ajax: checkForUpdate - sub updated to ${$$self{sub}}")
-         }
+        &main::print_log ("ajax: checkForUpdate - sub updated to ${$$self{sub}}") if $main::Debug{ajax};
     }
     elsif ( ${$$self{sub}} =~ /(.*\:\:json\(\'.*\',\'.*\',\'.*\')\)/ ) {  
-        ${$$self{sub}} = $1.',undef,$client_number,$requestnum )';
-         if ( $main::Debug{ajax} ) {
-           &main::print_log ("ajax: checkForUpdate - Compression header: ".%HttpHeader{'Accept-Encoding'} );
-	   &main::print_log ("ajax: checkForUpdate - Connection header: ".%HttpHeader{'Connection'} );
-           &main::print_log ("ajax: checkForUpdate - sub updated to ${$$self{sub}}")
-	 } 
+        ${$$self{sub}} = $1.',"",$client_number,$requestnum )';
+        &main::print_log ("ajax: checkForUpdate - sub updated to ${$$self{sub}}") if $main::Debug{ajax};
     }
 
     my $xml = eval ${ $$self{sub} };
