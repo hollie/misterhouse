@@ -47,6 +47,7 @@ use HTML::Entities;    # So we can encode characters like <>& etc
 use JSON qw(decode_json);
 use IO::Compress::Gzip qw(gzip);
 use vars qw(%json_table);
+my %json_cache;
 my @json_notifications = ();    #noloop
 
 sub json {
@@ -58,6 +59,7 @@ sub json {
         $request_type = $HTTP_REQ_TYPE;
     }
     my %arg_hash = %HTTP_ARGV;
+
     if ( $arguments ne '' ) {
         %arg_hash = ();
 
@@ -93,13 +95,19 @@ sub json {
     # Split Path into Array
     $path_str =~ s/^\/json//i;    # Remove leading 'json' path
     $path_str =~ s/^\/|\/$//g;    # Remove leadin trailing slash.
+
     my @path = split( '/', $path_str );
 
-    if ( lc($request_type) eq "get" ) {
-        return json_get( $request_type, \@path, \%args, $body );
-    }
-    elsif ( lc($request_type) eq "put" ) {
-        json_put( $request_type, \@path, \%args, $body );
+    if ($path_str eq '') {
+            print_log "Json_Server.pl: WARNING: null json request received. Ignoring...";
+    } else {
+
+        if ( lc($request_type) eq "get" ) {
+            return json_get( $request_type, \@path, \%args, $body );
+        }
+        elsif ( lc($request_type) eq "put" ) {
+            json_put( $request_type, \@path, \%args, $body );
+        }
     }
 }
 
@@ -142,7 +150,9 @@ sub json_put {
 
     # Translate special characters
     $json_raw = $json_raw->pretty->encode( \%json );
-    return &json_page($json_raw);
+    my $options = "";
+    $options = "compress" if ($Http{'Accept-Encoding'} =~ m/gzip/);
+    return &json_page($json_raw,$options);
 }
 
 # Handles Get (READ) Requests
@@ -162,7 +172,7 @@ sub json_get {
         }
     }
     $fields{all} = 1 unless %fields;
-
+    
     # List defined collections
     if ( $path[0] eq 'collections' || $path[0] eq '' ) {
         my $collection_file = "$Pgm_Root/data/web/collections.json";
@@ -241,7 +251,12 @@ sub json_get {
           if ( defined $json_data{'rrd_config'}->{'prefs'}->{'path'} );
         my $rrd_file = "weather_data.rrd";
         $rrd_file = $config_parms{weather_data_rrd}
-          if ( defined $config_parms{weather_data_rrd} );
+          if ( ( defined $config_parms{weather_data_rrd} ) and ($config_parms{weather_data_rrd}));
+        my $rrd_source = "";
+        $rrd_source = $args{source}[0] if (defined $args{source}[0]);
+        $rrd_file = $config_parms{"rrd_source_" . $rrd_source} if (defined $config_parms{"rrd_source_" . $rrd_source} and $config_parms{"rrd_source_" . $rrd_source});
+        $path = $config_parms{"rrd_source_" .$rrd_source . "_path"} if (defined $config_parms{"rrd_source_" . $rrd_source . "_path"} and $config_parms{"rrd_source_" . $rrd_source . "_path"});
+#print "JSON: source=$rrd_source path=$path file=$rrd_file\n";
         if ( $rrd_file =~ m/.*\/(.*\.rrd)/ ) {
             $rrd_file = $1;
         }
@@ -253,6 +268,8 @@ sub json_get {
         my $default_timestamp = "true";
         $default_timestamp = $json_data{'rrd_config'}->{'prefs'}->{'get_last_update'}
           if ( defined $json_data{'rrd_config'}->{'prefs'}->{'get_last_update'} );
+
+        &main::print_log("json_server.pl: WARNING. could not find ds.$rrd_source section in ia7_rrd_config.json!") if (($rrd_source) and !(defined $json_data{'rrd_config'}->{'ds.' . $rrd_source}));
 
         my @dss      = ();
         my @defs     = ();
@@ -284,11 +301,12 @@ sub json_get {
 
             if ( defined $args{group}[0] ) {
                 @{ $args{ds} } = ();    #override any DSs specified in the URL
-                for my $dsg ( keys %{ $json_data{'rrd_config'}->{'ds'} } ) {
-                    if ( defined $json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'} ) {
-                        foreach my $group ( split /,/, $json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'} ) {
-                            push @{ $args{ds} }, $dsg
-                              if ( lc $group ) eq ( lc $args{group}[0] );
+                my $ds_config = $json_data{'rrd_config'}->{'ds'};
+                $ds_config = $json_data{'rrd_config'}->{'ds.' . $rrd_source} if ($rrd_source); #use ds.<name> if an external source is specified
+                for my $dsg ( keys %{ $ds_config } ) {
+                    if ( defined $ds_config->{$dsg}->{'group'} ) {
+                        foreach my $group ( split /,/, $ds_config->{$dsg}->{'group'} ) {
+                            push @{ $args{ds} }, $dsg if ( lc $group ) eq ( lc $args{group}[0] );
                         }
                     }
                 }
@@ -297,17 +315,17 @@ sub json_get {
             foreach my $ds ( @{ $args{ds} } ) {
                 push @dss, $ds;
 
+                my $ds_config = $json_data{'rrd_config'}->{'ds'};
+                $ds_config = $json_data{'rrd_config'}->{'ds.' . $rrd_source} if ($rrd_source); #use ds.<name> if an external source is specified
+
                 #if it doesn't exist as a ds then skip
                 my $cf = $default_cf;
-                $cf = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'cf'}
-                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'cf'} );
+                $cf = $ds_config->{$ds}->{'cf'} if ( defined $ds_config->{$ds}->{'cf'} );
                 push @defs,   "DEF:$ds=$path/$rrd_file:$ds:$cf";
                 push @xports, "XPORT:$ds";
-                $dataset[$index]->{'label'} = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'}
-                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'} );
-                $dataset[$index]->{'color'} = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'}
-                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'} );
-                if ( lc $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} eq "bar" ) {
+                $dataset[$index]->{'label'} = $ds_config->{$ds}->{'label'} if ( defined $ds_config->{$ds}->{'label'} );
+                $dataset[$index]->{'color'} = $ds_config->{$ds}->{'color'} if ( defined $ds_config->{$ds}->{'color'} );
+                if ( lc $ds_config->{$ds}->{'type'} eq "bar" ) {
                     $dataset[$index]->{'bars'}->{'show'}      = "true";
                     $dataset[$index]->{'bars'}->{'fill'}      = "0";
                     $dataset[$index]->{'bars'}->{'lineWidth'} = 0;
@@ -321,10 +339,8 @@ sub json_get {
                 else {
                     $dataset[$index]->{'lines'}->{'show'} = "true";
                 }
-                $round[$index] = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'}
-                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'} );
-                $type[$index] = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'}
-                  if ( defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} );
+                $round[$index] = $ds_config->{$ds}->{'round'} if ( defined $ds_config->{$ds}->{'round'} );
+                $type[$index] = $ds_config->{$ds}->{'type'} if ( defined $ds_config->{$ds}->{'type'} );
                 $index++;
             }
 
@@ -365,7 +381,12 @@ sub json_get {
                     $value1 =~ s/\.0*$//
                       unless ( $value1 == 0 );    #remove unneccessary trailing decimals
                     $value1 = "null" if ( lc $value1 eq "nan" );
-                    push @{ $dataset[$index]->{data} }, [ ( $db_start + ( $time_index * $step ) ) * 1000, $value1 ];
+                    if ($arg_time) {
+                        push @{ $dataset[$index]->{data} }, [ ( $db_start + ( $time_index * $step ) ) * 1000, $value1 ]
+                            if (($db_start + ( $time_index * $step ) ) * 1000 >= $arg_time ); #filter out all values less than time= if present
+                    } else {
+                        push @{ $dataset[$index]->{data} }, [ ( $db_start + ( $time_index * $step ) ) * 1000, $value1 ];
+                    }
                     $index++;
                 }
                 $time_index++;
@@ -479,24 +500,32 @@ sub json_get {
         # we could use &::list_groups_by_object() for each object, but that sub
         # is time consuming, particularly when called numerous times.  Instead,
         # we create a lookup table one time, saving a lot of processing time.
-        my $parent_table = build_parent_table();
-
+	$json_cache{parent_table} = build_parent_table() if ( !($json_cache{parent_table}) || $Reload );
         if ( $args{items} && $args{items}[0] ne "" ) {
             foreach my $name ( @{ $args{items} } ) {
 
                 #$name =~ s/\$|\%|\&|\@//g;
                 my $o = &get_object_by_name($name);
-                print_log "json: object name=$name ref=" . ref $o
-                  if $Debug{json};
-                if ( my $data = &json_object_detail( $o, \%args, \%fields, $parent_table ) ) {
+                print_log "json: object name=$name ref=" . ref $o if $Debug{json};
+                if ( my $data = &json_object_detail( $o, \%args, \%fields, $json_cache{parent_table} ) ) {
                     $json_data{objects}{$name} = $data;
                 }
             }
         }
         else {
 
-            # Restrict object list by type here to make things faster
-            if ( $args{type} ) {
+
+            if ( $args{parents} ) { # Restrict object list by group here to make things faster
+                for ( @{ $args{parents} } ) {
+                    push @objects, &list_objects_by_group( $_, 1 )
+                }
+            }
+            elsif ( $args{category} ) {
+                for ( @{ $args{category} } ) {
+                    push @objects, &list_objects_by_webname( $_ )
+                }
+            }
+            elsif ( $args{type} ) { # Restrict object list by type here to make things faster
                 for ( @{ $args{type} } ) {
                     push @objects, &list_objects_by_type($_);
                 }
@@ -513,9 +542,8 @@ sub json_get {
                 my $name = $o;
                 $name = $o->{object_name};
                 $name =~ s/\$|\%|\&|\@//g;
-                print_log "json: object name=$name ref=" . ref $o
-                  if $Debug{json};
-                if ( my $data = &json_object_detail( $o, \%args, \%fields, $parent_table ) ) {
+                print_log "json: (map) object name=$name ref=" . ref $o if $Debug{json};
+                if ( my $data = &json_object_detail( $o, \%args, \%fields, $json_cache{parent_table} ) ) {
                     $json_data{objects}{$name} = $data;
                 }
             }
@@ -595,17 +623,130 @@ sub json_get {
             next if $key eq 'INC';
             next if $key eq 'ISA';
             next if $key eq 'SIG';
+            next if $key eq 'User_Code';
             my $iref = ${$ref}{$key};
 
             # this is for constants
             $iref = $$iref if ref $iref eq 'SCALAR';
-            %json_vars = ( %json_vars, &json_walk_var( $iref, $key ) );
+            
+            
+            eval {
+                %json_vars = ( %json_vars, &json_walk_var( $iref, $key ) ); #wrap this in eval in case there is weird data
+            };
+            if ($@) {
+                print_log "Json_Server.pl: WARNING: JSON variable parsing: $key failed to process";
+            }
         }
         $json_data{vars} = \%json_vars;
     }
+    
+   if ( $path[0] eq 'vars_global' || $path[0] eq '' ) {
+        my %json_vars_global;
+        for my $key ( sort keys %main:: ) {
+
+            # Assume all the global vars we care about are $Ab...
+            next if $key !~ /^[A-Z][a-z]/ or $key =~ /\:/;
+            next if $key eq 'Save'        or $key eq 'Tk_objects';    # Covered elsewhere
+            next if $key eq 'Socket_Ports';
+            next if $key eq 'User_Code';
+
+            my $glob = $main::{$key};
+	    next if (ref($glob) eq "CODE"); 			# Fix for MH crash 
+            if ( ${$glob} ) {
+                my $value = ${$glob};
+                next if $value =~ /HASH/;                             # Skip object pointers
+                next if $key eq 'Password';
+                $value =~ s/[\r\n]+$//;
+                #print "db: [$key -> $value]\n";
+                $json_vars_global{$key} = $value;
+            }
+            elsif ( %{$glob} ) {
+                for my $key2 ( sort keys %{$glob} ) {
+                    my $value = ${$glob}{$key2};# . "\n";
+                    $value = '' unless $value;                        # Avoid -w uninitialized value msg
+                    $value =~ s/[\r\n]+$//;
+                    next if $value =~ /HASH\(/;                         # Skip object pointers
+                    next if $value =~ /ARRAY\(/;
+                    #print "db: [$key\{$key2\} -> $value]\n";
+                    $json_vars_global{"$key\{$key2\}"} = $value;
+                }
+            }
+        }
+        $json_data{vars_global} = \%json_vars_global;
+    }
+    
+   if ($path[0] eq 'tagline' || $path[0] eq 'misc' || $path[0] eq '') {
+        my $source = "tagline";
+        $source = "misc" if ($path[0] eq 'misc');
+        my $file;
+        if ( -e "$config_parms{data_dir}/remarks/1100tags.txt" ) {
+            $file = "$config_parms{data_dir}/remarks/1100tags.txt";
+        } else {
+            $file = "$Pgm_Root/data/remarks/1100tags.txt";
+        }
+        srand;
+        my $tagline = "could not retrieve tagline";
+        
+        eval {
+            open FILE, "<$file" or warn "Could not open filename: $!\n";
+            rand($.)<1 and ($tagline=$_) while <FILE>;
+            close FILE;
+        };
+        if ($@) {
+            print_log "Json_Server.pl: WARNING: Could not open tagline file!";
+        }        
+        
+        $json_data{$source}{tagline} = $tagline
+   }
+
+   if ( $path[0] eq 'stats' || $path[0] eq 'misc' || $path[0] eq '' ) {
+        my $source = "stats";
+        $source = "misc" if ($path[0] eq 'misc');
+   #13:28  up 48 days,  2:19, 8 users, load averages: 3.15 3.30 2.78
+   # 18:29:27 up 26 days,  2:40,  4 users,  load average: 0.46, 0.52, 0.50
+        my $uptime;
+        if ( $OS_win or $^O eq 'cygwin' ) {
+            $uptime = "$Tk_objects{label_uptime_mh} &nbsp;&nbsp; $Tk_objects{label_uptime_cpu}";
+        } else {
+            $uptime = `uptime`;
+        }
+        my ($time,$upt,$users,$load) = $uptime =~ /(\S+)\s+up\s(.*),\s+(\d+)\susers,\s+load\saverages?:\s(.*)/;
+        $json_data{$source}{time} = $time;
+        $json_data{$source}{uptime} = $upt;
+        $json_data{$source}{users} = $users;
+        $json_data{$source}{load} = $load;
+        $json_data{$source}{cores} = $System_cores;
+        $json_data{$source}{time_of_day} = $Time_Of_Day;
+        $json_data{$source}{web_counter} = $Save{"web_count_default"};
+   }
+
+   if ( $path[0] eq 'weather' || $path[0] eq 'misc' || $path[0] eq '' ) {
+        my $source = "weather";
+        $source = "misc" if ($path[0] eq 'misc');
+        $json_data{$source}{Barom} = $Weather{"Barom"};
+        $json_data{$source}{Summary} = $Weather{"Summary_Short"};
+        $json_data{$source}{TempIndoor} = $Weather{"TempIndoor"};
+        $json_data{$source}{TempOutdoor} = $Weather{"TempOutdoor"};
+        $json_data{$source}{Wind} = $Weather{"Wind"};
+        $json_data{$source}{Clouds} = $Weather{"Clouds"};
+        $json_data{$source}{Raining} = $Weather{"IsRaining"};
+        $json_data{$source}{Snowing} = $Weather{"IsSnowing"};
+             
+   }
+
+   if ( $path[0] eq 'vars_save' || $path[0] eq '' ) {
+        my %json_vars_save;
+        
+        for my $key ( sort keys %Save ) {
+            my $value = ( $Save{$key} ) ? $Save{$key} : '';
+            $value =~ s/[\r\n]+$//;
+            $json_vars_save{$key} = $value;
+        }
+ 
+        $json_data{vars_save} = \%json_vars_save;
+    }    
 
     if ( $path[0] eq 'notifications' ) {
-
         for my $i ( 0 .. $#json_notifications ) {
             my $n_time = int( $json_notifications[$i]{time} );
             my $x      = $args{time}[0];                         #Weird, does nothing, but notifications doesn't work if removed...
@@ -626,41 +767,37 @@ sub json_get {
 
             #need to check if vars and keys exist
 
+
             my $start = 0;
             $start = $args{start}[0] if ( $args{start}[0] );
             my $records = 0;
             my $page    = 0;
-            my $page    = $json_table{ $args{var}[0] }{page}
-              if ( defined $json_table{ $args{var}[0] }{page} );
+            my $page    = $json_table{ $args{var}[0] }{page} if ( defined $json_table{ $args{var}[0] }{page} );
             $records = $args{records}[0] if ( $args{records}[0] );
 
             # TODO: At some point have a hook that pulls in more data into the table if it's missing
             #  ie read a file
 
             my $jt_time = int( $json_table{ $args{var}[0] }{time} );
-            if (   ( $args{time} && int( $args{time}[0] ) < $jt_time )
-                or ( !$args{time} ) )
-            {
+            if (   ( $args{time} && int( $args{time}[0] ) < $jt_time ) or ( !$args{time} ) ) {
                 #need to copy all the data since we can adjust starts and records
 
-                $json_data{'table_data'}{exist} =
-                  $json_table{ $args{var}[0] }{exist};
-                $json_data{'table_data'}{head} =
-                  $json_table{ $args{var}[0] }{head};
-                $json_data{'table_data'}{page_size} =
-                  $json_table{ $args{var}[0] }{page_size};
-                $json_data{'table_data'}{hook} =
-                  $json_table{ $args{var}[0] }{hook};
-                $json_data{'table_data'}{page} = $page;
-                @{ $json_data{'table_data'}->{data} } =
-                  map { [@$_] } @{ $json_table{ $args{var}[0] }->{data} };
-
-                splice @{ $json_data{'table_data'}->{data} }, 0, $args{start}[0]
-                  if ( $args{start}[0] );
-                splice @{ $json_data{'table_data'}->{data} }, $args{records}[0]
-                  if ( $args{records}[0] );
-                $json_data{'table_data'}{records} =
-                  scalar @{ $json_data{'table_data'}->{data} };
+                $json_data{'table_data'}{exist}       = $json_table{ $args{var}[0] }{exist};
+                $json_data{'table_data'}{head}        = $json_table{ $args{var}[0] }{head};
+                $json_data{'table_data'}{page_size}   = $json_table{ $args{var}[0] }{page_size};
+                $json_data{'table_data'}{hook}        = $json_table{ $args{var}[0] }{hook};
+                $json_data{'table_data'}{page}        = $page;
+                #wrap this in an eval in case the data is bad to prevent crashes"
+                eval {
+                    @{ $json_data{'table_data'}->{data} } = map { [@$_] } @{ $json_table{ $args{var}[0] }->{data} };
+                };
+                if ($@) {
+                    &::print_log("Json_Server.pl: ERROR: problems parsing table data for " . $args{var}[0]);
+                } else {
+                    splice @{ $json_data{'table_data'}->{data} }, 0, $args{start}[0] if ( $args{start}[0] );
+                    splice @{ $json_data{'table_data'}->{data} }, $args{records}[0] if ( $args{records}[0] );
+                    $json_data{'table_data'}{records} = scalar @{ $json_data{'table_data'}->{data} };
+                }
             }
         }
     }
@@ -745,7 +882,9 @@ sub json_get {
     # Translate special characters
     $json_raw->canonical(1);    #Order the data so that objects show alphabetically
     $json_raw = $json_raw->pretty->encode( \%json );
-    return &json_page($json_raw);
+    my $options = "";
+    $options = "compress" if ($Http{'Accept-Encoding'} =~ m/gzip/);
+    return &json_page($json_raw,$options);
 
 }
 
@@ -797,7 +936,12 @@ sub json_walk_var {
                 and not defined $$iref
                 and ( *{$ref}{ARRAY} or *{$ref}{CODE} or *{$ref}{HASH} ) )
             {
-                %json_vars = &json_walk_var( $iref, $name, @types );
+                eval {
+                    %json_vars = &json_walk_var( $iref, $name, @types ); #wrap this in eval in case there is weird data
+                };
+                if ($@) {
+                    print_log "Json_Server.pl: WARNING: JSON variable parsing: $name failed to process";
+                }
             }
         }
         return %json_vars;
@@ -843,7 +987,13 @@ sub json_walk_var {
             $iname = "$name$key";
             $iref  = ${$ref}{$key};
             $iref  = \${$ref}{$key} unless ref $iref;
-            my ( $k, $r ) = &json_walk_var( $iref, $iname, @types );
+            my ( $k, $r );
+            eval {
+                ($k, $r)  = &json_walk_var( $iref, $iname, @types );; #wrap this in eval in case there is weird data
+            };
+            if ($@) {
+                print_log "Json_Server.pl: WARNING: JSON variable parsing: $iname failed to process";
+            }
             $json_vars{$name} = $r if $k ne "";
         }
     }
@@ -852,7 +1002,13 @@ sub json_walk_var {
             $iname = "$name\[$key\]";
             $iref  = \${$ref}[$key];
             $iref  = ${$ref}[$key] if ref $iref eq 'REF';
-            my ( $k, $r ) = &json_walk_var( $iref, $iname, @types );
+            my ( $k, $r );
+            eval {
+                ($k, $r)  = &json_walk_var( $iref, $iname, @types );; #wrap this in eval in case there is weird data
+            };
+            if ($@) {
+                print_log "Json_Server.pl: WARNING: JSON variable parsing: $iname failed to process";
+            }
             $json_vars{$name}{$k} = $r;
         }
     }
@@ -861,8 +1017,13 @@ sub json_walk_var {
             $iname = "$name\{'$key'\}";
             $iref  = \${$ref}{$key};
             $iref  = ${$ref}{$key} if ref $iref eq 'REF';
-            my ( $k, $r ) = &json_walk_var( $iref, $iname, @types );
-            $json_vars{$name}{$key} = $r;
+            my ( $k, $r );
+            eval {
+                ($k, $r)  = &json_walk_var( $iref, $iname, @types );; #wrap this in eval in case there is weird data
+            };
+            if ($@) {
+                print_log "Json_Server.pl: WARNING: JSON variable parsing: $iname failed to process";
+            }            $json_vars{$name}{$key} = $r;
         }
     }
     elsif ( $type eq 'CODE' ) {
@@ -878,8 +1039,7 @@ sub build_parent_table {
         my $group = &get_object_by_name($group_name);
         $group_name =~ s/\$|\%|\&|\@//g;
         unless ( defined $group ) {
-            print_log "json: build_parent_table, group_name $group_name doesn't have an object?"
-              if $Debug{json};
+            print_log "json: build_parent_table, group_name $group_name doesn't have an object?" if $Debug{json};
             next;
         }
         else {
@@ -972,6 +1132,12 @@ sub json_object_detail {
                 #}
                 $value = \%a
                   unless ( exists $a{""} );    #don't return a null value
+            }
+
+            elsif ( $f eq 'link' ) {
+                my $a = $object->$method;
+
+                $value = $a if ( defined $a and $a ne "" );    #don't return a null value
             }
 
             #if ( $f eq 'hidden' ) {
@@ -1081,18 +1247,28 @@ sub filter_object {
 }
 
 sub json_page {
-    my ($json_raw) = @_;
-    my $json;
+    my ($json_raw,$options) = @_;
 
 ##    utf8::encode( $json_raw ); #may need to wrap gzip in an eval and encode it if errors develop. It crashes if a < is in the text
-    gzip \$json_raw => \$json;
-    my $output = "HTTP/1.0 200 OK\r\n";
+    my $output = "HTTP/1.1 200 OK\r\n";
     $output .= "Server: MisterHouse\r\n";
+    $output .= "Connection: close\r\n";    
     $output .= "Content-type: application/json\r\n";
-    $output .= "Content-Encoding: gzip\r\n";
-    $output .= "\r\n";
-    $output .= $json;
-##    $output .= $json_raw;
+    if ($options =~ m/compress/) {
+        print_log("json_server.pl: DEBUG: Compressing Data as requested by client") if $Debug{json};
+        my $json;
+        gzip \$json_raw => \$json;
+        $output .= "Content-Encoding: gzip\r\n";
+        $output .= "Content-Length: " . ( length $json ) . "\r\n";
+        $output .= "Date: " . time2str(time) . "\r\n";
+        $output .= "\r\n";
+        $output .= $json;
+    } else {
+        $output .= "Content-Length: " . ( length $json_raw ) . "\r\n";
+        $output .= "Date: " . time2str(time) . "\r\n";
+        $output .= "\r\n";
+        $output .= $json_raw;
+    }
 
     return $output;
 }
@@ -1108,11 +1284,7 @@ sub json_entities_encode {
 }
 
 sub json_usage {
-    my $html = <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: text/html
-
+my $html = <<eof;
 <html>
 <head>
 </head>
@@ -1150,8 +1322,16 @@ eof
 </body>
 </html>
 eof
+ my $html_head = "HTTP/1.1 200 OK\r\n";
+ $html_head .= "Server: MisterHouse\r\n";
+ $html_head .= "Content-type: application/json\r\n";
+ $html_head .= "Connection: close\r\n";
+ $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
+ $html_head .= "Date: " . time2str(time) . "\r\n";
+ $html_head .= "\r\n";
 
-    return $html;
+
+    return $html_head.$html;
 }
 
 sub json_table_create {
@@ -1210,7 +1390,7 @@ sub json_table_push {
     my ($key) = @_;
 
     return 0 if ( !defined $json_table{$key} );
-
+    	
     $json_table{$key}{time} = &get_tickcount;
     return 1;
 }
@@ -1321,14 +1501,14 @@ sub json_notification {
     for my $i ( 0 .. $#json_notifications ) {
 
         #clean up any old notifications, or empty entries (ie less than 5 seconds old)
-        my $n_time = int( $json_notifications[$i]{time} );
+        my $n_time = int( $json_notifications[$i]{time} );    
         if (   ( &get_tickcount > $n_time + 5000 )
             or ( !defined $json_notifications[$i]{time} ) )
         {
             splice @json_notifications, $i, 1;
         }
     }
-    push @json_notifications, $data;
+    push (@json_notifications, $data);
 }
 
 sub config_checker {

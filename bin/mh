@@ -112,7 +112,7 @@ eof
 }
 
 # Use var instead of my so we can get these in the http_server.pl scripts
-use vars qw($Time_Start_time $Time_Stop_time $Time_Increment $Time_Startup $Time_Startup_time $Time_Boot_time $Time_Uptime_Seconds);
+use vars qw($Time_Start_time $Time_Stop_time $Time_Increment $Time_Startup $Time_Startup_time $Time_Boot_time $Time_Uptime_Seconds $System_cores);
 use vars qw($Time_Sunrise $Time_Sunrise_Twilight $Time_Sunset $Time_Sunset_Twilight %Moon $Time_Now $Time_Date $Date_Now $Date_Now_Speakable $Year_Month_Now);
 use vars qw($Time $Second $Minute $Hour $Mday $Wday $Day $Month $Year);
 use vars qw($New_Second $New_Msecond_500 $New_Msecond_250 $New_Msecond_100 $New_Minute $New_Hour $New_Day $New_Week $New_Month $New_Year);
@@ -133,7 +133,7 @@ my ( $user_code,              $user_code_last_good );
 my ( %objects_by_object_name, %file_by_object_name, %files_by_webname );
 my ( %object_names_by_file,   %object_names_by_type, %object_names_by_webname, $pause_mode );
 my ( @Server_Ports,           @Generic_Devices, %Local_Addresses, @Local_Addresses, %Passwords, @Password_Allow_Clients );
-my ( %proxy_servers,          %app_parms );
+my ( %proxy_servers,          %app_parms, %waiter_flags );
 my ( $CON_IN,                 $CON_OUT );
 
 my ( $state, $temp );        # Some generic useful vars
@@ -1114,9 +1114,11 @@ sub setup {
         print " - object logging disabled\n";
     }
 
-    # Store boot time in seconds since epoc
+    $System_cores = 1; #default in case we can't determine from system calls
+    # Store boot time in seconds since epoc, and the system cores
     if ($OS_win) {
         $Time_Boot_time = time - &get_tickcount / 1000;    # Gettickcount starts at computer boot
+        $System_cores = $ENV{"NUMBER_OF_PROCESSORS"};
     }
     elsif ( $^O eq 'linux' or $^O eq 'cygwin' ) {
 
@@ -1130,6 +1132,9 @@ sub setup {
         my ( $uptime, $idletime ) = ( <UPTIME> =~ /(\S+) (\S+)/ );
         close UPTIME;
         $Time_Boot_time = time - $uptime;
+        open CPUINFO, "/proc/cpuinfo" or print "\nError: Can't open /proc/cpuinfo ($!)\n";
+        $System_cores =  scalar (map /^processor/, <CPUINFO>) ; 
+        close CPUINFO;
     }
     elsif ( $^O eq 'freebsd' ) {
         open( SYSCTL, "/sbin/sysctl -a |" )
@@ -1137,6 +1142,10 @@ sub setup {
         while (<SYSCTL>) { last if (/boottime/) }
         $Time_Boot_time = $1 if (/ sec[ =]+(\d+)/);
         close(SYSCTL);
+        open( SYSCTLCPU, "/sbin/sysctl hw.ncpu" )
+          or print "\nError: can't open /sbin/sysctl hw.ncpu: $!";
+        $System_cores = $1 if (/hw\.ncpu\s(\d+)/);
+        close(SYSCTLCPU);
     }
     elsif ( $^O eq 'darwin' ) {
 
@@ -1146,6 +1155,8 @@ sub setup {
         use vars qw($sysctl);
         $sysctl         = '/usr/sbin/sysctl';
         $Time_Boot_time = `$sysctl -n kern.boottime`;
+        $System_cores = `$sysctl -n machdep.cpu.core_count`;
+        $System_cores =~ s/\n//;
     }
     else {
         #Sets boot time to a sane value for unknown OSs
@@ -1247,7 +1258,6 @@ sub setup {
     print "Done with setup\n\n";
 
     &ia7_utilities::ia7_update_collection;    #Check if the collections need updating.
-
 }
 
 # Called from generic item *** and undo sub
@@ -2546,16 +2556,20 @@ sub check_for_socket_data_http {
 
         # See if there is a http request
         my $nfound = &socket_has_data( $Socket_Ports{http}{sock} );
+	#print "http: below nfound ....\n" if $Debug{http};
         last unless $nfound > 0;            # nfound = -1 means an error occurred
+	#print "http: below last unless  nfound ....\n" if $Debug{http};
         my $sock = $Socket_Ports{http}{sock}->accept();
+	#print "http: below sock ....\n" if $Debug{http};
         last unless $sock;                  # Can be undef it socket was killed
+	#print "http: below last unless sock ....\n" if $Debug{http};
         $sock->autoflush(1);                # Not sure if this does anything?
         $Socket_Ports{http}{socka} = $sock;
 
         ( $leave_socket_open_passes, $leave_socket_open_action ) = &http_process_request($sock);
 
         my $time_diff = time - $time_check;
-        print "http: c=$loop_count td=$time_diff sop=$leave_socket_open_passes soa=$leave_socket_open_action.\n"
+        print "http: c=$loop_count td=$time_diff sop=$leave_socket_open_passes soa=$leave_socket_open_action. while loop\n"
           if $Debug{http};
 
         if ($leave_socket_open_action) {
@@ -2570,6 +2584,7 @@ sub check_for_socket_data_http {
                 # We must sleep here for a bit, or else Netscape sometimes
                 # says 'Document contains no data'.  Guess we don't need this anymore :)
                 #               select undef, undef, undef, .010;
+		#print "http: closing socket - ". $Info{'http_socket'}->peer ." ....\n" if $Debug{http};
                 &socket_close('http');
             }
         }
@@ -4720,7 +4735,7 @@ sub print_speaklog_current_time {
     # Return the time of most recent speak phrase
 
     #print "db/mh/curr: time=" . &get_tickcount . " plt=$Print_Log_Time[0] slt=$Speak_Log_Time[0]\n";
-    return $Print_Log_Time[0]
+    return $Speak_Log_Time[0]
       unless ( scalar @Speak_Log_Time <= 0 );    #TODO HP should return $Speak_Log_Time
                                                  #return $Speak_Log_Time[0] unless (scalar @Speak_Log_Time <= 0); #TODO HP should return $Speak_Log_Time
     return 0;
@@ -6685,12 +6700,16 @@ sub sig_handler_pipe {
 sub sig_child_death {
 
     #   my $pid = wait;
-    #   print "reaped $pid" . ($? ? " with exit $?" : '');
+     # print "reaped $pid" . ($? ? " with exit $?" : '');
     # Harvest potentially more than one dead child
     use POSIX ":sys_wait_h";
+    local ($!, $?);
+
     my $pid;
     do {
         $pid = waitpid( -1, WNOHANG );
+        print "***PID MH reaped $pid" . ($? ? " with exit $?" : '') . "\n" if $Debug{fork};
+
     } until $pid <= 0;
 
     #       $pid = waitpid(-1, &WNOHANG);
@@ -6803,9 +6822,8 @@ sub socket_has_data {
     my $loopmax = 8;
     do {
         ($nfound) = select( $rbit, undef, undef, $timeout );
-        last
-          if $nfound == -1
-          and !( $!{EINTR} );                # break out of the retry loop if an error did occur but not EINTR
+	#&::print_log("http: in socket_has_data do loop");
+        last if $nfound == -1 and !( $!{EINTR} );          # break out of the retry loop if an error did occur but not EINTR
         $loopmax--;
     } until ( $loopmax == 0 or ( $nfound >= 0 ) );
 
@@ -7746,6 +7764,18 @@ sub x10_dim_level_decode {
 sub log_inc {
     print_log( 'Perl @INC contains: ' . join( ", ", @INC ) );
 }
+
+sub set_waiter_flags {
+    my ($flag,$value) = @_; 
+    $waiter_flags{$flag} = $value;
+}
+
+sub get_waiter_flags {
+   my ($flag) = @_;
+   $waiter_flags{$flag} = 0 unless (exists $waiter_flags{$flag});
+   return $waiter_flags{$flag};
+}
+
 
 #---------------------------------------------------------------------------
 

@@ -332,6 +332,8 @@ sub speak_text {
 
                 if ($fork) {
                     my $pid = fork;
+                    print "***PID created voice_text 1: $pid" . ($? ? " with exit $?" : '') . "\n" if $::Debug{fork};
+
 
                     # we are the parent
                     if ( $fork and $pid ) {
@@ -342,7 +344,7 @@ sub speak_text {
                 # Wait for server to respond that it is done
                 my $sock = $main::Socket_Ports{festival}{sock};
                 my $i;
-                while ( $i++ < 100 ) {
+                while ( $i++ < 200 ) {
                     print '-' if $main::Debug{voice};
                     select undef, undef, undef, .1;
                     my $nfound = &main::socket_has_data($sock);
@@ -376,6 +378,8 @@ sub speak_text {
                 my $fork = $parms{async};
                 if ($fork) {
                     my $pid = fork;
+                    print "***PID created voice_text 2: $pid" . ($? ? " with exit $?" : '') . "\n" if $::Debug{fork};
+
 
                     # we are the parent
                     if ( $fork and $pid ) {
@@ -435,6 +439,8 @@ sub speak_text {
             my $fork = $parms{async};
             if ($fork) {
                 my $pid = fork;
+                print "***PID created voice_text 3: $pid" . ($? ? " with exit $?" : '') ."\n" if $::Debug{fork};
+
 
                 # we are the parnet
                 if ( $fork and $pid ) {
@@ -469,6 +475,7 @@ sub speak_text {
             my $fork = $parms{async};
             if ($fork) {
                 my $pid = fork;
+                print "***PID created voice_text 4: $pid" . ($? ? " with exit $?" : '') . "\n" if $::Debug{fork};
 
                 # we are the parnet
                 if ( $fork and $pid ) {
@@ -544,6 +551,7 @@ sub speak_text {
           and !$parms{async};    # Must wait for to_file requests, so http requests work
 
         my $pid = fork if $fork;
+        print "***PID created voice_text 5: $pid" . ($? ? " with exit $?" : '') . "\n" if ($fork and $::Debug{fork});
 
         #       $SIG{CHLD}  = "IGNORE";                   # eliminate zombies created by FORK() ... we do this in bin/mh
         if ( $fork and $pid ) {
@@ -660,8 +668,9 @@ sub speak_text {
                   unless $main::Debug{voice} and $main::Debug{voice} > 1;
             }
             elsif ( $speak_pgm eq 'say' ) {
-                system "say $parms{text}";
-
+                #I don't know why mac does a system say, and then another system qq[ later on. Comment this out
+                #system "say $parms{text}";
+                $speak_pgm_arg = $parms{text};
                 #my $volume_reset = GetDefaultOutputVolume();
                 #SetDefaultOutputVolume(2**$parms{volume}) if $parms{volume};
                 #SpeakText($VTxt_mac, $parms{text});
@@ -729,7 +738,6 @@ sub speak_text {
                 open VOICE, "| $speak_pgm $speak_pgm_arg";
                 print VOICE $parms{text};
                 close VOICE;
-
                 #                exit 0 if $fork;
                 if ($fork) {
                     if ($main::OS_win) {
@@ -741,6 +749,7 @@ sub speak_text {
                 }
             }
             elsif ($fork) {
+
                 system qq[$speak_pgm $speak_pgm_arg];
 
                 # if ($? == -1) {
@@ -748,6 +757,10 @@ sub speak_text {
                 # 	exit;
                 #	}
                 # Send voice text to waiting web clients
+
+                #if the process is forked, need to send speech via the webservice method
+                $parms{forked} = 1 unless ( $fork and $pid );
+             
                 &web_hook_callback(%parms);
 
                 if ($main::OS_win) {
@@ -816,6 +829,7 @@ sub speak_text {
 
                 if ($webFork) {
                     my $pid = fork;
+                    print "***PID created voice_text 6: $pid" . ($? ? " with exit $?" : '') . "\n" if $::Debug{fork};
 
                     # if we are the child
                     if ( !defined($pid) ) {

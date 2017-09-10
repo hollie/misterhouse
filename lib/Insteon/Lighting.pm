@@ -1165,7 +1165,9 @@ sub new {
 sub derive_link_state {
     my ( $self, $p_state ) = @_;
     if ( $self->group eq '01' ) {
-        return $self->SUPER::derive_link_state($p_state);
+	# https://github.com/hollie/misterhouse/issues/494 says SUPER isn't working
+	#return $self->SUPER::derive_link_state($p_state);
+        return return $self->Insteon::DimmableLight::derive_link_state($p_state);
     }
     else {
         return $self->Insteon::BaseObject::derive_link_state($p_state);

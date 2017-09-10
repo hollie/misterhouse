@@ -413,6 +413,15 @@ sub set {
     # if app passes explicit targets, then they are passed along and eventually responded to
     # otherwise set_by is used
 
+&main::print_log("DB Voice_Cmd : state=$state, set_by=$set_by, no_log=$no_log, respond=$respond") if $main::Debug{voice};
+
+    #don't process voice command if via xAP, this can cause scalability issues if all MH instances
+    #have mh_control.pl enabled (multiple check http server commands will run)
+    #if xAP voice commands need to execute, then turn on $config_parms{xap_enable_voice_cmds} = 1
+
+    return if (($set_by =~ m/^xAP/) and (!(defined $::config_parms{xap_enable_voice_cmds}) and ($::config_parms{xap_enable_voice_cmds} == 0)));
+
+
     #    $respond = $main::Respond_Target unless $respond; # Pass default target along
     if ( $$self{xap_target} ) {
         my $xap_target    = $$self{xap_target};
@@ -547,6 +556,7 @@ sub new {
         response => $response,
         confirm  => $confirm,
         vocab    => $vocab,
+        link     => '',
         state    => ''
     };
     &_register($self);
@@ -867,6 +877,18 @@ sub android_xml {
     }
     return $xml_objects;
 }
+
+#Used in v4.3 to allow IA7 to link to a page after a voice commnand is clicked
+sub set_link {
+    my ($self,$link) = @_;
+    $self->{link} = $link;
+}
+
+sub get_link {
+    my ($self) = @_;
+    return $self->{link} if ($self->{link});
+}
+
 
 1;
 
