@@ -1,4 +1,4 @@
-// v1.5.830
+// v1.5.850
 
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -1458,7 +1458,8 @@ var get_stats = function(tagline) {
 			        load_avg = json.data.load;
 			    }
 			    if (json.data.uptime) {
-			        $('.uptime').html(json.data.time+" Up "+json.data.uptime+", "+json.data.users+" users, load averages: "+load_avg);
+			        var server_time = json.data.time.split(':'); //split off seconds since we don't update every second
+			        $('.uptime').html(server_time[0]+":"+server_time[1]+" Up "+json.data.uptime+", "+json.data.users+" users, load averages: "+load_avg);
 			    } else {
 			        $('.uptime').html("System uptime data not available");
 			    }
@@ -2113,7 +2114,8 @@ var fp_getOrCreateIcon = function (json, entity, i, coords){
         var html = '<span style="display: inline-block">'  + // this span somehow magically make resizing the icons work
                 '<a title="'+entity+'"><img '+popover_html+' ' +
                 'id="'+entityId+'"' +
-                'class="entity='+entityId+' floorplan_item coords='+coords+'" '+
+                'class="entity='+entityId+' floorplan_item coords='+coords+'" ' +
+                'style="display:none;" ' +
                 '></img></a>'+
                 '</span>';
         if (coords !== ""){
@@ -2198,6 +2200,7 @@ var fp_reposition_entities = function(){
             "left": fp_offset.left - adjust
         };
         fp_set_pos(element_id, fp_off_center);
+        $(this).show();
     });
 
 	$('.icon_select img').each(function(){
@@ -2643,6 +2646,7 @@ var floorplan = function(group,time) {
                         }
                     }
                 }
+//todo is this needed?
                 fp_reposition_entities();
                 if (requestTime === 0 && developer === true){
                     $('#list_content').append("<p>&nbsp;</p>");

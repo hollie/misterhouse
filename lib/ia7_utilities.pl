@@ -76,7 +76,7 @@ sub main::ia7_notify {
 
 sub ia7_update_collection {
     &main::print_log("[IA7_Collection_Updater] : Starting");
-    my $ia7_coll_current_ver = 1.3;
+    my $ia7_coll_current_ver = 1.4;
 
     my @collection_files = (
         "$main::Pgm_Root/data/web/collections.json",
@@ -148,7 +148,6 @@ sub ia7_update_collection {
                         $updated = 1; 
                     }
                 }
-
          
                 if ($updated) {
                     my $json_newdata = to_json( $json_data, { utf8 => 1, pretty => 1 } );
