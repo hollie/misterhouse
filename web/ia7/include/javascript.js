@@ -1,5 +1,5 @@
-// v1.5.850
 
+var ia7_ver = "v1.5.860";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -281,7 +281,7 @@ function changePage (){
 		else { //default response is to load a collection
 			loadCollection(URLHash._collection_key);
 		}
-		
+
 		//update the breadcrumb: 
 		// Weird end-case, The Group from browse items is broken with parents on the URL
 		// Also have to change parents to type if the ending collection_keys are $<name>,
@@ -320,7 +320,6 @@ function changePage (){
 			}
 		}
 	}
-
 }
 
 function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_prefs if no arg then both
@@ -433,7 +432,8 @@ function parseLinkData (link,data) {
 		data = data.replace(/<img src="(.*?)"/img,function (path,r1) {
 			return '<img src="/comics/'+r1+'"';
 		});							
-	}			
+	}
+	data = data.replace(/replace_current_ia7_version/img,ia7_ver); //this should really be a jquery call			
 	data = data.replace(/href="\/bin\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function
 	data = data.replace(/href="\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function 
 //TODO clean up this regex?
@@ -2108,14 +2108,13 @@ var fp_getOrCreateIcon = function (json, entity, i, coords){
     var popover_html = "";
     if (popover)
         popover_html = 'data-toggle="popover" data-trigger="focus" tabindex="0"';
-
     var entityId = 'entity_'+entity+'_'+i;
     if ($('#' + entityId).length === 0) {
         var html = '<span style="display: inline-block">'  + // this span somehow magically make resizing the icons work
                 '<a title="'+entity+'"><img '+popover_html+' ' +
                 'id="'+entityId+'"' +
                 'class="entity='+entityId+' floorplan_item coords='+coords+'" ' +
-                'style="display:none;" ' +
+                'style="display: none" ' +
                 '></img></a>'+
                 '</span>';
         if (coords !== ""){
@@ -2131,14 +2130,12 @@ var fp_getOrCreateIcon = function (json, entity, i, coords){
     E.attr('src',"/ia7/graphics/"+image);
     if (developer == true)
         E.css("border","1px solid black");
-
     return E;
 };
 
 var fp_resize_floorplan_image = function(){
     var floor_width = $("#fp_graphic").width();
-    $("#fp_graphic").attr("width", "1px");
-
+    //$("#fp_graphic").attr("width", "1px");
     fp_display_width = $("#graphic").width();
     $('#fp_graphic').attr("width",fp_display_width+"px");
     fp_display_height = $("#fp_graphic").height();
@@ -2199,8 +2196,8 @@ var fp_reposition_entities = function(){
             "top":  fp_offset.top - adjust,
             "left": fp_offset.left - adjust
         };
-        fp_set_pos(element_id, fp_off_center);
         $(this).show();
+        fp_set_pos(element_id, fp_off_center);
     });
 
 	$('.icon_select img').each(function(){
@@ -2646,8 +2643,8 @@ var floorplan = function(group,time) {
                         }
                     }
                 }
-//todo is this needed?
-                fp_reposition_entities();
+                //This one makes the proper placement
+                //fp_reposition_entities();
                 if (requestTime === 0 && developer === true){
                     $('#list_content').append("<p>&nbsp;</p>");
                     $.ajax({
@@ -2747,7 +2744,7 @@ var floorplan = function(group,time) {
             }
             if (time === 0){
                 // hack to fix initial positions of the items
-                var wait = 500;
+                var wait = 400;
                 setTimeout(function(){
                     fp_reposition_entities();
                 }, wait);
@@ -2799,11 +2796,6 @@ var get_fp_image = function(item,size,orientation) {
 	return "fp_unknown_info_"+fp_icon_image_size+".png";
 };
 
-//var create_img_popover = function(entity) {
-//}
-
-//var create_state_popover = function(entity) {
-//}
 
 var create_state_modal = function(entity) {
 		var name = entity;
@@ -3267,7 +3259,7 @@ $(document).ready(function() {
 	// Load up 'globals' -- notification and the status
 	updateItem("ia7_status");	
 	get_notifications();
-	$('#Last_updated').remove();		
+	$('#Last_updated').remove();	
     get_stats();
 	$("#toolButton").click( function () {
 		// Need a 'click' event to turn on sound for mobile devices
