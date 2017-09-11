@@ -907,7 +907,6 @@ sub setup {
         $Socket_Ports{$port_name}{address}  = $address if $address;
 
         #       $Socket_Ports{$port_name}{break}    = $break;
-
         &socket_open($port_name);
 	$Socket_Ports{$port_name}{Socket_Item} = new Socket_Item( undef, undef, $port_name ) if $port_name eq 'http';
     }
@@ -2533,9 +2532,8 @@ sub check_for_socket_data_http {
     }
 
 
- 
 	my $http_socket = $Socket_Ports{http}{Socket_Item};
-        if ( ( $http_socket ) && ( my $http_data = said $http_socket ) ) {
+        if ( ( $http_socket ) && ( my $http_data = $http_socket->said('http_server') ) ) {
            ( $leave_socket_open_passes, $Close_Socket ) = &http_process_request($Socket_Ports{http}{socka},$http_data);
 	    if ( $main::Debug{http} ) {
                my $peer = $Socket_Ports{http}{socka}->peername;
@@ -2543,7 +2541,7 @@ sub check_for_socket_data_http {
                my $client_ip_address = &main::inet_ntoa($iaddr) if $iaddr;
                print "http: Got data lsop=$leave_socket_open_passes cs=$Close_Socket ip=$client_ip_address p=$port\n";
              }
-         }
+          }
 	 # We only close sockets for legacy http 1.0 clients or if we see the "Connection: close" header - "$Close_Socket"
          if ( $Close_Socket && $Socket_Ports{http}{socka} && !($leave_socket_open_passes eq -1) ) {
             if ( $main::Debug{http} ) {
@@ -2715,7 +2713,7 @@ sub check_for_socket_data {
         }
         else {
             $Socket_Ports{$port_name}{data} .= $data if defined $data;
-            print "socket: port=$port_name data=$data.\n" if $Debug{$port_name} && $Debug{'socket'};
+            print "socket: port=$port_name data=".$Socket_Ports{$port_name}{data}."\n" if $Debug{$port_name};
 
             if ( my $echo = $config_parms{"${port_name}_echo"} ) {
 
