@@ -57,7 +57,7 @@ sub new {
     ${ $$self{passes} }        = 0;
     ${ $$self{client_number} } = $client_number;
     ${ $$self{requestnum} }    = $requestnum;
-    ${ $$self{delay_passes} }    = $delay_passes;
+    ${ $$self{delay_passes} }  = $delay_passes;
 
 
     return $self;
@@ -108,7 +108,7 @@ sub checkForUpdate {
 	 $html_head .= "Connection: close\r\n" if &::http_close_socket(%HttpHeader);
 	 $html_head .= "Date: " . ::time2str(time) . "\r\n";
 	 $html_head .= "\r\n";
-         &::print_socket_fork( ${ $$self{waitingSocket} }, $html_head, $client_number, $requestnum );
+         &::print_socket_fork( ${ $$self{waitingSocket} }, $html_head, $client_number, $requestnum, &::http_close_socket(%HttpHeader) );
         return 1;
     }
 
@@ -136,7 +136,7 @@ sub checkForUpdate {
            }
         }
 
-        &::print_socket_fork( ${ $$self{waitingSocket} }, $xml, $client_number, $requestnum );
+        &::print_socket_fork( ${ $$self{waitingSocket} }, $xml, $client_number, $requestnum, &::http_close_socket(%HttpHeader) );
         ${ $$self{changed} } = 1;
     }
     else {
