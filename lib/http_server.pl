@@ -173,7 +173,7 @@ sub http_process_request {
 	print "$http_data\n"if $main::Debug{http};
 	print "----------------------end http data-------------------------\n" if $main::Debug{http};
    
-      open my $http_fh, '<', \$http_data;
+    open my $http_fh, '<', \$http_data;
 
     while (1) {
         $_ = <$http_fh>;
@@ -184,11 +184,16 @@ sub http_process_request {
             $header = $_;
         }
         elsif ( my ( $key, $value ) = /(\S+?)\: ?(.+?)[\n\r]+/ ) {
+	    if ( ($key eq 'Content-length') || ($key eq 'content-length') ) { $key = 'Content-Length' }	
+            if ( $key eq 'connection' ) { $key = 'Connection' }
             $Http{$key} = $value;
             print "http:   header key=$key value=$value.\n"
               if $main::Debug{http2};
         }
     }
+
+    close $http_fh;
+
     unless ($header) {
 
         # Ignore empty requests, like from 'check the http server' command
@@ -334,13 +339,14 @@ sub http_process_request {
     print "http: gr=$get_req ga=$get_arg " . "A=$Authorized format=$Http{format} ua=$Http{'User-Agent'} v=$Http{'version'} h=$header"
       if $main::Debug{http};
     if ( $req_typ eq "POST" || $req_typ eq "PUT" ) {
-        my $cl =
-             $Http{'Content-Length'}
-          || $Http{'Content-length'}
-          || $Http{'content-length'};     # Netscape uses lower case l
+	$http_data =~ s/^(POST|PUT).+?^\R//smi;
+        my $cl = $Http{'Content-Length'};
         print "http POST query has $cl bytes of args\n"  if $main::Debug{http};
         my $buf;
-        read $http_fh, $buf, $cl;
+	$cl = $cl - length($http_data);
+        read $socket, $buf, $cl;
+	$buf = $http_data.$buf if $http_data;
+	$http_data = '';
 
         # Save the body into the global var
         $HTTP_BODY = $buf;
@@ -646,6 +652,8 @@ sub http_process_request {
             }
             elsif ($response) {
 		print "http: SUB - print_socket_fork response: $response c#=$client_number r#=$requestnum\n" if $main::Debug{http};
+		&CloseResponseCheck($response);
+		$response = &Http10ResponseCheck($response);
                 &print_socket_fork( $socket, $response, $client_number, $requestnum );
                 #               print $socket $response;
             }
@@ -1072,13 +1080,16 @@ sub test_for_file {
     }
 
     if ( -e $file ) {
+	print "http: test_for_file running html_file for $file, $get_arg, $no_header\n" if $main::Debug{http};
         my $html = &html_file( $socket, $file, $get_arg, $no_header ) if &test_file_req( $socket, $get_req, $http_dir );
 
         if ($no_print) {
             return $html;
         }
         else {
-	    $html = AddContentLength($html); 
+	    &CloseResponseCheck($html);
+	    $html = &Http10ResponseCheck($html,1);
+	    $html = &AddContentLength($html); # We add Content-Length to every response here if its needed.
             &print_socket_fork( $socket, $html, $client_number, $requestnum );
             return 1;
         }
@@ -1094,16 +1105,24 @@ sub AddContentLength {
  my ($html) = @_;
  my $original_html = $html;
  my $html_head;
-   if ( ($html =~ /HTTP\/1\.1 200 OK/) and !($html =~ /Content-Length:/) ) {
-       print "http: AddContentLength found http 1.1 header with out Content-Length\n" if $main::Debug{http};
-	unless ($html =~ s/^HTTP.+?^\r\n//smi) { return $original_html }
+   if ( ($html =~ /\A^HTTP\/1\.1/) and !($html =~ /Content-Length:/) ) {
+        print "http: AddContentLength found http 1.1 header with out Content-Length\n" if $main::Debug{http};
+
+	unless ($html =~ s/^HTTP.+?^\R//smi) { 
+		print "http: AddContentLength Error removing header so Content-Length could not be added.\n" if $main::Debug{http};
+		return $original_html 
+	}
+
 	print "http: AddContentLength removed header to caculate Content-Length\n" if $main::Debug{http};
 
 	my $length = length($html);
 	return $original_html unless $length;
 
-	if ($original_html =~ s/(Server: MisterHouse)\r\n/$1\r\nContent-Length: $length\r\n/) { return $original_html }
-	print "http: \"Server: MisterHouse\" was not found in header so Content-Length could not be added\n" if $main::Debug{http};
+	if ($original_html =~ s/\A^(HTTP\/1\.1 .*?)\R/$1\r\nContent-Length: $length\r\n/) { 
+		print "http: AddContentLength adding Content-Length: $length header\n" if $main::Debug{http};
+		return $original_html 
+	}
+	print "http: AddContentLength Error parsing header so Content-Length could not be added.\n" if $main::Debug{http};
 	return $original_html;
    } else { 
 	return $original_html;
@@ -1114,18 +1133,55 @@ sub AddContentLength {
 sub AddConnectionClose {
 # Add Connection: close to http 1.1 header when needed
  my ($html) = @_;
-   if ($html =~ /HTTP\/1\.1/) {       
-	    if ($html =~ s/Connection: .*\r\n/Connection: close\r\n/) { 
+   if ($html =~ /\A^HTTP\/1\.1/) {       
+	if ($html =~ s/Connection: .*?\R/Connection: close\r\n/) { 
 		  print "http: AddConnectionClose found http 1.1 header, updating Connection: header to close\n" if $main::Debug{http};
 		  return $html; 
-	    }
-        elsif ($html =~ s/(Server: MisterHouse)\r\n/$1\r\nConnection: close\r\n/) {
+	}
+        elsif ($html =~ s/\A^(HTTP\/1\.1 .*?)\R/$1\r\nConnection: close\r\n/) {
 		   print "http: AddConnectionClose found http 1.1 header, adding Connection: close header\n" if $main::Debug{http};
 		   return $html; 
-		}
-        print "http: AddConnectionClose \"Server: MisterHouse\" or \"Connection:\" was not found in header so Connection: header could not be updated to close\n" if $main::Debug{http};
-	    return $html;
-    }
+	}
+        print "http: AddConnectionClose Error parsing header so Connection header could not be updated to close\n" if $main::Debug{http};
+ 	return $html;
+   }
+}
+
+sub Http10ResponseCheck {
+# Check for a HTTP 1.0 response from Misterhouse.
+# This is for old or custom code that has not been updated
+# with a HTTP 1.1 header.
+
+ my ($html, $NoContentLength) = @_;
+
+ 	if ($html =~ s/\A^HTTP\/1\.0 (.*?)\R/HTTP\/1\.1 $1\r\n/) {
+		print "http: Http10ResponseCheck found http 1.0 header, updating header to http 1.1\n" if $main::Debug{http};
+		$html = &AddConnectionClose($html) if &http_close_socket;
+                $html = &AddContentLength($html) unless $NoContentLength; # Add content-length unless requested not to, we sometimes do it outside here.
+		return $html;
+	}
+
+return $html;
+}
+
+
+sub CloseResponseCheck {
+# Check for a response from Misterhouse that contains a
+# Connection: close header and set that connection to be closed.
+# Basically, this is a way to make MH close all connections 
+# from any custom code after the response.
+
+
+ return if &http_close_socket; # We are already set to close the connection based on the request headers, nothing to do.
+ 
+ my ($html) = @_;
+
+        if ($html =~ /Connection: close?\R/) {
+        	 print "http: CloseResponseCheck found Connection: close header, setting connection for close after response\n" if $main::Debug{http};
+		 $Http{Connection} = 'close';
+	}
+
+return;
 }
 
 
@@ -2233,7 +2289,8 @@ sub http_redirect {
  my $html_head = "HTTP/1.1 302 Moved Temporarily\r\n";
  $html_head .= "Server: MisterHouse\r\n";
  $html_head .= "Location: $url\r\n";
- $html_head .= "Connection: close\r\n";
+ $html_head .= "Content-Length: 0\r\n";
+ $html_head .= "Connection: close\r\n " if &http_close_socket;
  $html_head .= "Cache-Control: no-cache\r\n";
  $html_head .= "\r\n";
 
@@ -3171,7 +3228,7 @@ sub pretty_object_name {
 
 # Avoid mh pauses by printing to slow remote clients with a 'forked' program
 sub print_socket_fork {
-    my ( $socket, $html, $client_number, $requestnum ) = @_;
+    my ( $socket, $html, $client_number, $requestnum, $close_socket ) = @_;
     return unless $html;
     my $length = length $html;
     $socket_fork_data{length} = $length;
@@ -3185,6 +3242,7 @@ sub print_socket_fork {
     {
         print "http: printing with forked socket: l=$length s=$socket\n"
           if $main::Debug{http};
+	$html = &AddConnectionClose($html);
         if ($OS_win) {
             if ( $main::config_parms{http_fork} eq 'memmap' ) {
                 $http_fork_count = ( $http_fork_count % 65535 ) + 1;    # more than enough :^)
@@ -3211,18 +3269,15 @@ sub print_socket_fork {
                 if ( $socket_fork_data{process} ) {
                     print "http: defering socket_fork s=$socket\n"
                       if $main::Debug{http};
-		    &AddConnectionClose($html);
                     push @{ $socket_fork_data{next} }, [ $socket, \$html ];
                     $leave_socket_open_passes = -1;    # This will not close the socket
                 }
                 else {
-		    &AddConnectionClose($html);
                     &print_socket_fork_win( $socket, \$html );
                 }
             }
         }
         else {
-	    &AddConnectionClose($html);
             &print_socket_fork_unix( $socket, $html );
         }
     }
@@ -3230,8 +3285,8 @@ sub print_socket_fork {
         print "http: printing with regular socket l=$length s=$socket\n"
           if $main::Debug{http};
         print $socket $html;
-	print "http: Closing socket in print_socket_fork due to close request\n" if ( &http_close_socket(%HttpHeader) && $main::Debug{http} );
-        $socket->shutdown(2) if &http_close_socket(%HttpHeader);
+	print "http: Closing socket in print_socket_fork due to close request\n" if ( $close_socket && $main::Debug{http} );
+        $socket->shutdown(2) if $close_socket;
     }
  &http_delete_headers($client_number,$requestnum); # delete the headers for the request once we have responded.
 }
@@ -3314,16 +3369,16 @@ sub print_socket_fork_unix {
     else                { &main::print_log( "***PID http 1 $pid - Child executed successfully with exit: $?\n" ) if $::Debug{fork} }
     if ( defined $pid && $pid == 0 ) {
         print $socket $html;
-	      $socket->shutdown(2); # we shoould shutdown the socket before we close the handle 
+	$socket->shutdown(2); # we shoould shutdown the socket before we close the handle 
         $socket->close;
-	      &main::print_log( "***PID http_server_print_socket_fork_unix $pid exiting process\n" ) if $::Debug{fork}; 
+	&main::print_log( "***PID http_server_print_socket_fork_unix $pid exiting process\n" ) if $::Debug{fork}; 
         # This avoids 'Unexpected async reply' if mh -tk 1
         &POSIX::_exit(0)
     }
     else {
         # Not sure why, but I get a broken pipe if I shutdown send or both.
         shutdown( $socket, 0 );    # "how":  0=no more receives, 1=sends, 2=both
-	      &main::print_log( "***PID http_server_print_socket_fork_unix $pid shutdown socket\n" ) if $::Debug{fork};
+	&main::print_log( "***PID http_server_print_socket_fork_unix $pid shutdown socket\n" ) if $::Debug{fork};
     }
 }
 
