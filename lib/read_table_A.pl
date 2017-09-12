@@ -277,7 +277,7 @@ sub read_table_A {
             $object = "Insteon::IOLinc(\'$address\', $other)";
         }
     }
-    elsif($type eq "INSTEON_EZIO8SA") {
+    elsif ( $type eq "INSTEON_EZIO8SA" ) {
 	#<,INSTEON_EZIO8SA,Address,Name,Groups>#
         require Insteon::EZIO8SA;
         if (
@@ -296,14 +296,14 @@ sub read_table_A {
             $object = "Insteon::EZIO8SA(\'$address\', $other)";
         }
     }
-    elsif($type eq "INSTEON_EZIO8SA_RELAY") {
+    elsif ( $type eq "INSTEON_EZIO8SA_RELAY" ) {
 	#<,INSTEON_EZIO8SA_RELAY,Address,Name,Groups>#
         require Insteon::EZIO8SA;
         ($address, $object, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::EZIO8SA_relay($address, $object, $other)";
     }
-    elsif($type eq "INSTEON_EZIO8SA_INPUT") {
+    elsif ( $type eq "INSTEON_EZIO8SA_INPUT" ) {
 	#<,INSTEON_EZIO8SA_INPUT,Address,Name,Groups>#
         require Insteon::Lighting;
         if (
@@ -397,8 +397,7 @@ sub read_table_A {
     }
     elsif ( $type eq "X10A" ) {
 	#<X10 Appliance (X10A),X10A,Address,Name,Groups,Interface>#
-        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) )
-        {
+        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
             $other = join ', ', ( map { "'$_'" } @other );          # Quote data
             $object = "X10_Appliance('$address', $other)";
@@ -406,8 +405,7 @@ sub read_table_A {
     }
     elsif ( $type eq "X10I" ) {
 	#<X10 Light (X10I),X10I,Address,Name,Groups,Interface,Options>#
-        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) )
-        {
+        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
             $other = join ', ', ( map { "'$_'" } @other );          # Quote data
             $object = "X10_Item('$address', $other)";
@@ -427,8 +425,7 @@ sub read_table_A {
     }
     elsif ( $type eq "X10SL" ) {
 	#<X10 SwitchLinc (X10SL),X10SL,Address,Name,Groups,Interface,Options>#
-        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) )
-        {
+        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
             $other = join ', ', ( map { "'$_'" } @other );
             $object = "X10_Switchlinc('$address', $other)";
@@ -436,8 +433,8 @@ sub read_table_A {
     }
     elsif ( $type eq "X10AL" ) {
 	#<X10 Appliancelinc (X10AL),X10AL,Address,Name,Groups,Interface>#
-        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) )
-        {
+        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
+
             ( $address, $name, $grouplist, @other ) = @item_info;
             $other = join ', ', ( map { "'$_'" } @other );
             $object = "X10_Appliancelinc('$address', $other)";
@@ -451,8 +448,7 @@ sub read_table_A {
     }
     elsif ( $type eq "X10LL" ) {
 	#<X10 Lamplinc (X10LL),X10LL,Address,Name,Groups,Interface,Options>#
-        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) )
-        {
+        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
             $other = join ', ', ( map { "'$_'" } @other );
             $object = "X10_Lamplinc('$address', $other)";
@@ -490,8 +486,7 @@ sub read_table_A {
     }
     elsif ( $type eq "X10MS" ) {
 	#<X10 Motion Sensor (X10MS),X10MS,Address,Name,Groups,Type>#
-        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) )
-        {
+        if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
             $other = join ', ', ( map { "'$_'" } @other );          # Quote data
             $object = "X10_Sensor('$address', '$name', $other)";
@@ -505,9 +500,8 @@ sub read_table_A {
     }
     elsif ( $type eq "COMPOOL" ) {
 	#<,COMPOOL,>#
-        ( $address, $name, $grouplist ) = @item_info;
-        ( $address, $comparison, $limit ) =
-          $address =~ /\s*(\w+)\s*(\<|\>|\=)*\s*(\d*)/;
+        ( $address, $name,       $grouplist ) = @item_info;
+        ( $address, $comparison, $limit )     = $address =~ /\s*(\w+)\s*(\<|\>|\=)*\s*(\d*)/;
         $object = "Compool_Item('$address', '$comparison', '$limit')"
           if $comparison ne undef;
         $object = "Compool_Item('$address')" if $comparison eq undef;
@@ -589,21 +583,21 @@ sub read_table_A {
         ( $name, $grouplist, @other ) = @item_info;
         $object = "Occupancy_Monitor( $other)";
     }
-    elsif($type eq "DSC") {
+    elsif ( $type eq "DSC" ) {
 	#<,DSC,>#
         require 'dsc.pm';
         ($name, $grouplist, @other) = @item_info;
         # $grouplist translates to $type in the new object definition call
         $object = "DSC('$name', '$grouplist')";
     }
-    elsif($type eq "DSC_PARTITION") {
+    elsif ( $type eq "DSC_PARTITION" ) {
 	#<,DSC_PARTITION,>#
-        ($name, $object, $address, $other, $grouplist, @other) = @item_info;
+        ( $name, $object, $address, $other, $grouplist, @other ) = @item_info;
         $object = "DSC::Partition(\$$object, '$address')";
     }
-    elsif($type eq "DSC_ZONE") {
+    elsif ( $type eq "DSC_ZONE" ) {
 	#<,DSC_ZONE,>#
-        ($name, $object, $address, $other, $grouplist, @other) = @item_info;
+        ( $name, $object, $address, $other, $grouplist, @other ) = @item_info;
         $object = "DSC::Zone(\$$object, '$address', '$other')";
     }
     elsif ( $type eq "MUSICA" ) {
@@ -997,7 +991,7 @@ sub read_table_A {
     }
     elsif ( $type eq "ANALOG_SENSOR" ) {
 	#<xAP Analog Sensor (ANALOG_SENSOR),ANALOG_SENSOR,Identifier,Name,Conduit,Groups,Type,Tokens>#
-        my $xc_name;                          #xap conduit
+        my $xc_name;                                      #xap conduit
         my $sensor_type;
 
         #ANALOG_SENSOR, xap source, object name, xap conduit name, groups, xap sensor type, tokens...
@@ -1033,7 +1027,7 @@ sub read_table_A {
     }
     elsif ( $type eq "ANALOG_SENSOR_R" ) {
 	#<xAP Analog Sensor R (ANALOG_SENSOR_R),ANALOG_SENSOR_R,Identifier,Name,Conduit,Groups,Type,Tokens>#
-        my $xc_name;                  #xap conduit
+        my $xc_name;                                          #xap conduit
         my $sensor_type;
 
         #ANALOG_SENSOR_R, xap source, object name, xap conduit name, groups, xap sensor type, tokens...
@@ -1070,6 +1064,7 @@ sub read_table_A {
         $object = '';
     }
     elsif ( $type eq "ANALOG_AVERAGE" ) {
+	#<xAP Analog Sensor AVG (ANALOG_AVERAGE),ANALOG_SENSOR_R,Identifier,Name,Conduit,Groups,Type,Tokens>#
         my $sensor_name;
 	#<xAP Analog Sensor AVG (ANALOG_AVERAGE),ANALOG_SENSOR_R,Identifier,Name,Conduit,Groups,Type,Tokens>#
         #ANALOG_SENSOR, xap source, object name, xap conduit name, groups, xap sensor type, tokens...
@@ -1105,6 +1100,7 @@ sub read_table_A {
         }
     }
     elsif ( $type eq "SDX" ) {
+	#<xAP SysDiag (SDX),SDX,XapInstance,Name,PsixcServerName>#
         my $server;
 	#<xAP SysDiag (SDX),SDX,XapInstance,Name,PsixcServerName>#
         #SDX, xap instance, object name, psixc server name
@@ -1457,10 +1453,8 @@ sub read_table_A {
           )
         {
 
-            (
-                $name, $scene_member, $is_scene_controller,
-                $is_scene_responder, $on_level, $ramp_rate
-            ) = @item_info;
+
+            ( $name, $scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate ) = @item_info;
 
             if ( !$packages{Scene}++ ) {    # first time for this object type?
                 $code .= "use Scene;\n";
@@ -1505,9 +1499,10 @@ sub read_table_A {
     }
     #-------------- RaZberry Objects -----------------
     elsif ( $type eq "RAZBERRY_CONTROLLER" ) {
-	#<,RAZBERRY_CONTROLLER,>#
-     	($address, $name, $grouplist, @other ) = @item_info;
-     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+	#<Razberry Z-Wave(RAZBERRY_CONTROLLER),RAZBERRY_CONTROLLER,IpAddress,Controller_name,Groups,Poll (time/push),Options>#
+        my $poll;
+        ( $address, $name, $grouplist, $poll, @other ) = @item_info;
+        $other = join ',', ( map { "$_" } @other );       # Quote data
         if ($other) {
      		$object = "raZberry('$address','$other')";
         }
@@ -1517,17 +1512,17 @@ sub read_table_A {
         $code .= "use raZberry;\n";
 	} 
     elsif ( $type eq "RAZBERRY_COMM" ) {
-	#<,RAZBERRY_COMM,>#
-    	my ($controller);
-     	($name, $controller, $grouplist ) = @item_info;
-     	$object = "raZberry_comm(\$" . $controller . ")";
+	#<Razberry Z-Wave(RAZBERRY_COMM),RAZBERRY_COMM,Device_id,Name,Groups,Controller,Options>#
+        my ($controller);
+        ( $name, $controller, $grouplist ) = @item_info;
+        $object = "raZberry_comm(\$" . $controller . ")";
 
 	}
     elsif ( $type eq "RAZBERRY_DIMMER" ) {
-	#<,RAZBERRY_DIMMER,>#
-    	my ($devid, $controller);
-     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
-     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+	#<Razberry Z-Wave(RAZBERRY_DIMMER),RAZBERRY_DIMMER,Device_id,Name,Groups,Controller,Options>#
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         if ($other) {
      		$object = "raZberry_dimmer(\$" . $controller . ",'$devid','$other')";
         }
@@ -1536,10 +1531,10 @@ sub read_table_A {
         }    
 	}
     elsif ( $type eq "RAZBERRY_SWITCH" ) {
-	#<,RAZBERRY_SWITCH,>#
-    	my ($devid, $controller);
-     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
-     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+	#<Razberry Z-Wave(RAZBERRY_SWITCH),RAZBERRY_SWITCH,Device_id,Name,Groups,Controller,Options>#
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         if ($other) {
      		$object = "raZberry_switch(\$" . $controller . ",'$devid','$other')";
         }
@@ -1548,10 +1543,11 @@ sub read_table_A {
         }    
 	}	
     elsif ( $type eq "RAZBERRY_BLIND" ) {
-	#<,RAZBERRY_BLIND,>#
-    	my ($devid, $controller);
-     	($devid, $name, $grouplist, $controller, $other ) = @item_info;
-     	#$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+	#<Razberry Z-Wave(RAZBERRY_BLIND),RAZBERRY_BLIND,Device_id,Name,Groups,Controller,Options>#
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, $other ) = @item_info;
+
+        #$other = join ', ', ( map { "'$_'" } @other );    # Quote data
         if ($other) {
      		$object = "raZberry_blind(\$" . $controller . ",'$devid','$other')";
         }
@@ -1560,10 +1556,10 @@ sub read_table_A {
         }    
 	}
     elsif ( $type eq "RAZBERRY_LOCK" ) {
-	#<,RAZBERRY_LOCK,>#
-    	my ($devid, $controller);
-     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
-     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+	#<Razberry Z-Wave(RAZBERRY_LOCK),RAZBERRY_LOCK,Device_id,Name,Groups,Controller,Options>#
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         if ($other) {
      		$object = "raZberry_lock(\$" . $controller . ",'$devid','$other')";
         }
@@ -1572,10 +1568,10 @@ sub read_table_A {
         }    
 	}	
     elsif ( $type eq "RAZBERRY_THERMOSTAT" ) {
-	#<,RAZBERRY_THERMOSTAT,>#
-    	my ($devid, $controller);
-     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
-     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+	#<Razberry Z-Wave(RAZBERRY_THERMOSTAT),RAZBERRY_THERMOSTAT,Device_id,Name,Groups,Controller,Options>#
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         if ($other) {
      		$object = "raZberry_thermostat(\$" . $controller . ",'$devid','$other')";
         }
@@ -1584,10 +1580,10 @@ sub read_table_A {
         }    
 	}	
     elsif ( $type eq "RAZBERRY_TEMP_SENSOR" ) {
-	#<,RAZBERRY_TEMP_SENSOR,>#
-    	my ($devid, $controller);
-     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
-     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+	#<Razberry Z-Wave(RAZBERRY_TEMP_SENSOR),RAZBERRY_TEMP_SENSOR,Device_id,Name,Groups,Controller,Options>#
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         if ($other) {
      		$object = "raZberry_temp_sensor(\$" . $controller . ",'$devid','$other')";
         }
@@ -1596,29 +1592,54 @@ sub read_table_A {
         }    
 	}
     elsif ( $type eq "RAZBERRY_BINARY_SENSOR" ) {
-	#<,RAZBERRY_BINARY_SENSOR,>#
-    	my ($devid, $controller);
-     	($devid, $name, $grouplist, $controller, @other ) = @item_info;
-     	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+	#<Razberry Z-Wave(RAZBERRY_BINARY_SENSOR),RAZBERRY_BINARY_SENSOR,Device_id,Name,Groups,Controller,Options>#
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         if ($other) {
      		$object = "raZberry_binary_sensor(\$" . $controller . ",'$devid','$other')";
         }
         else {
-     		$object = "raZberry_binary_sensor(\$" . $controller . ",'$devid')";
-        }    
-	}	
-     elsif ( $type eq "RAZBERRY_BATTERY" ) {
-	#<,RAZBERRY_BATTERY,>#
-     	my ($devid, $controller);
-      	($devid, $name, $grouplist, $controller, @other ) = @item_info;
-      	$other = join ', ', ( map { "'$_'" } @other );    # Quote data
-         if ($other) {
-      		$object = "raZberry_battery(\$" . $controller . ",'$devid','$other')";
-         }
-         else {
-      		$object = "raZberry_battery(\$" . $controller . ",'$devid')";
-         }    
- 	}
+            $object = "raZberry_binary_sensor(\$" . $controller . ",'$devid')";
+        }
+    }
+    elsif ( $type eq "RAZBERRY_BATTERY" ) {
+	#<Razberry Z-Wave(RAZBERRY_BATTERY),RAZBERRY_BATTERY,Device_id,Name,Groups,Controller,Options>#
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+            $object = "raZberry_battery(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+            $object = "raZberry_battery(\$" . $controller . ",'$devid')";
+        }
+    }
+    elsif ( $type eq "RAZBERRY_GENERIC" ) {
+	#<Razberry Z-Wave(RAZBERRY_GENERIC),RAZBERRY_GENERIC,Device_id (Full Device ID),Name,Groups,Controller,Options>#
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+            $object = "raZberry_generic(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+            $object = "raZberry_generic(\$" . $controller . ",'$devid')";
+        }
+    }
+    elsif ( $type eq "RAZBERRY_VOLTAGE" ) {
+	#<Razberry Z-Wave(RAZBERRY_VOLTAGE),RAZBERRY_VOLTAGE,Device_id (Major Number),Name,Groups,Controller,Options>#
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+            $object = "raZberry_voltage(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+            $object = "raZberry_voltage(\$" . $controller . ",'$devid')";
+        }
+    }
+
     #-------------- End of RaZberry Objects -----------------
 
     # -[ MySensors ]------------------------------------------------------
@@ -1675,8 +1696,16 @@ sub read_table_A {
         require 'MySensors.pm';
         my ( $parent, $long_name );
         ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
-       $object = "MySensors::Humidity($address, '$long_name', $parent, $other)";
+        $other = join ', ', ( map { "'$_'" } @other );                                 # Quote data
+        $object = "MySensors::Humidity($address, '$long_name', $parent, $other)";
+    }
+    elsif ( $type eq "MYS_MULTIMETER" ) {
+	#<MySensors (MYS_MULTIMETER),MYS_MULTIMETER,>#
+        require 'MySensors.pm';
+        my ( $parent, $long_name );
+        ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );                                 # Quote data
+        $object = "MySensors::Multimeter($address, '$long_name', $parent, $other)";
     }
 			
     #-------------- AD2 Objects -----------------
@@ -1689,7 +1718,7 @@ sub read_table_A {
         $object = "AD2('$instance','$other')";
     }
     elsif ( $type eq "AD2_DOOR_ITEM" ) {
-	#<Ademco Alarm (AD2_DOOR_ITEM),AD2_DOOR_ITEM,Name,Instance,Zone,Partition,Other>#
+	#<Ademco Alarm (AD2_DOOR_ITEM),AD2_DOOR_ITEM,Name,Instance,Zone,Partition,Address (type=address)>#
         require AD2;
         my ( $instance, $expander, $relay, $wireless, $zone, $partition );
         ( $name, $instance, $zone, $partition, $address, $grouplist, @other ) =
@@ -1703,7 +1732,7 @@ sub read_table_A {
           "AD2_Item('door','$instance','$zone','$partition','$expander','$relay','$wireless','$other')";
     }
     elsif ( $type eq "AD2_MOTION_ITEM" ) {
-	#<Ademco Alarm (AD2_MOTION_ITEM),AD2_MOTION_ITEM,Name,Instance,Zone,Partition,Other>#
+	#<Ademco Alarm (AD2_MOTION_ITEM),AD2_MOTION_ITEM,Name,Instance,Zone,Partition,Address (type=address)>#
         require AD2;
         my ( $instance, $expander, $relay, $wireless, $zone, $partition );
         ( $name, $instance, $zone, $partition, $address, $grouplist, @other ) =
@@ -1717,7 +1746,7 @@ sub read_table_A {
           "AD2_Item('motion','$instance','$zone','$partition','$expander','$relay','$wireless','$other')";
     }
     elsif ( $type eq "AD2_GENERIC_ITEM" ) {
-	#<Ademco Alarm (AD2_GENERIC_ITEM),AD2_GENERIC_ITEM,Name,Instance,Zone,Partition,Other>#
+	#<Ademco Alarm (AD2_GENERIC_ITEM),AD2_GENERIC_ITEM,Name,Instance,Zone,Partition,Address (type=address)>#
         require AD2;
         my ( $instance, $expander, $relay, $wireless, $zone, $partition );
         ( $name, $instance, $zone, $partition, $address, $grouplist, @other ) =
@@ -1740,7 +1769,7 @@ sub read_table_A {
         $object = "AD2_Partition('$instance','$number','$address','$other')";
     }
     elsif ( $type eq "AD2_OUTPUT" ) {
-	#<Ademco Alarm (AD2_OUTPUT),AD2_OUTPUT,Name,Instance,Output,Other>#
+	#<Ademco Alarm (AD2_OUTPUT),AD2_OUTPUT,Name,Instance,Output_Number (Zero Padded),Other>#
         require AD2;
         my ( $instance, $output );
         ( $name, $instance, $output, $grouplist, @other ) = @item_info;
@@ -1787,20 +1816,21 @@ sub read_table_A {
     #-------------- End Alexa Objects ----------------
 
     elsif ( $type =~ /PLCBUS_.*/ ) {
+	#<,PLCBUS_Scene,Address,Name,Groups,Default|Scenes>#
         require PLCBUS;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        ( $object, $grouplist, $additional_code ) =
-          PLCBUS->generate_code( $type, @item_info );
+        ( $object, $grouplist, $additional_code ) = PLCBUS->generate_code( $type, @item_info );
     }
-	elsif ($type eq "WINK"){
-		($address, $name, $grouplist, @other) = @item_info;
-		$other = join ', ', (map {"'$_'"} @other); # Quote data
-		$object = "Wink('$address',$other)";
-		if( ! $packages{Wink}++ ) {   # first time for this object type?
-			$code .= "use Wink;\n";
-			&::MainLoop_pre_add_hook( \&Wink::GetDevicesAndStatus, 1 );
-			}
-	}    
+    elsif ( $type eq "WINK" ) {
+	#<,WINK,>#
+        ( $address, $name, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $object = "Wink('$address',$other)";
+        if ( !$packages{Wink}++ ) {                       # first time for this object type?
+            $code .= "use Wink;\n";
+            &::MainLoop_pre_add_hook( \&Wink::GetDevicesAndStatus, 1 );
+        }
+    }
     else {
         print "\nUnrecognized .mht entry: $record\n";
         return;
