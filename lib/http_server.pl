@@ -339,14 +339,14 @@ sub http_process_request {
     print "http: gr=$get_req ga=$get_arg " . "A=$Authorized format=$Http{format} ua=$Http{'User-Agent'} v=$Http{'version'} h=$header"
       if $main::Debug{http};
     if ( $req_typ eq "POST" || $req_typ eq "PUT" ) {
-	$http_data =~ s/^(POST|PUT).+?^\R//smi;
+	      $http_data =~ s/^(POST|PUT).+?^\R//smi;
         my $cl = $Http{'Content-Length'};
         print "http POST query has $cl bytes of args\n"  if $main::Debug{http};
         my $buf;
-	$cl = $cl - length($http_data);
-        read $main::Socket_Ports{http}{socka}, $buf, $cl;
-	$buf = $http_data.$buf if $http_data;
-	$http_data = '';
+	      $cl = $cl - length($http_data);
+        read $socket, $buf, $cl;
+	      $buf = $http_data.$buf if $http_data;
+	      $http_data = '';
 
         # Save the body into the global var
         $HTTP_BODY = $buf;
@@ -2289,7 +2289,8 @@ sub http_redirect {
  my $html_head = "HTTP/1.1 302 Moved Temporarily\r\n";
  $html_head .= "Server: MisterHouse\r\n";
  $html_head .= "Location: $url\r\n";
- $html_head .= "Connection: close\r\n";
+ $html_head .= "Content-Length: 0\r\n";
+ $html_head .= "Connection: close\r\n " if &http_close_socket;
  $html_head .= "Cache-Control: no-cache\r\n";
  $html_head .= "\r\n";
 
