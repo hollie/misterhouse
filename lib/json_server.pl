@@ -721,7 +721,9 @@ sub json_get {
         $json_data{$source}{load} = $load;
         $json_data{$source}{cores} = $System_cores;
         $json_data{$source}{time_of_day} = $Time_Of_Day;
-        $json_data{$source}{web_counter} = $Save{"web_count_default"};
+        $json_data{$source}{web_counter_session} = $ia7_utilities::ia7_count_session;
+        $json_data{$source}{web_counter_total} = $Save{"ia7_count_total"};
+
    }
 
    if ( $path[0] eq 'weather' || $path[0] eq 'misc' || $path[0] eq '' ) {

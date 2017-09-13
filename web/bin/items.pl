@@ -16,8 +16,7 @@ $^W = 0;    # Avoid redefined sub msgs
 
 return &web_items_list();
 
-use vars '$web_item_file_name'
-  ;         # Avoid my, so we can keep the same name between web calls
+use vars '$web_item_file_name';         # Avoid my, so we can keep the same name between web calls
 
 my (@file_data);
 
@@ -65,7 +64,7 @@ function openparmhelp(parm1){
 
     # Create a form to pick which file
     $html .=
-      "<table border width='100%'><tr><form action=/bin/items.pl method=post><td>Which .mht file to edit?\n";
+      "<table border width='100%'><tr><td><form id='mhfile' action=/bin/items.pl method=post> Which .mht file to edit?\n";
     $html .= &html_form_select( 'file', 1, $web_item_file_name, @file_paths )
       . "</td></form></tr>\n";
 

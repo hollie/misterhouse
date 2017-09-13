@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.5.860";
+var ia7_ver = "v1.5.900";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -382,11 +382,14 @@ function parseLinkData (link,data) {
 		}
 	if (link == "/bin/items.pl") {
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))		
-		data = data.replace(/href=\/bin\/items.pl/img, 'onclick="changePage()"');		
+		data = data.replace(/href=\/bin\/items.pl/img, 'onclick="changePage()"');	
+		data = data.replace(/action=\/bin\/items.pl/img, ''); // /ia7/#_request=page&link=/bin/items.pl&'+coll_key);
+		data = data.replace(/form.submit\(\)/img, ''); // 'this.form.submit()');					
 		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
 		data = data.replace(/Item Index:/img,'');
 		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
 		data = data.replace(/input name='resp' value="\/bin\/items.pl"/img, 'input name=\'resp\' value=\"/ia7/#_request=page&link=/bin/items.pl&'+coll_key+'\"');
+		data = data.replace(/<a href=\/RUN;\/bin\/items.pl\?Reload_code>/img, '<a onclick="\$.get(\'/RUN;last_response?Reload_code\')">');				
 		
 	}
 	if (link == "/bin/iniedit.pl") {
@@ -419,7 +422,6 @@ function parseLinkData (link,data) {
 
 	}
 	if (link.indexOf('/email/') === 0) { //fix links in the email module 2
-		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
 		data = data.replace(/<a href='#top'>Previous<\/a>.*?<br>/img, '');
 		data = data.replace(/<a name='.*?' href='#top'>Back to Index<\/a>.*?<b>/img,'<b>');
 		data = data.replace(/href='#\d+'/img,'');
@@ -475,6 +477,21 @@ function parseLinkData (link,data) {
 					}
 				}
 			});
+	});
+	$('#mhfile').change( function (e) { //item fix
+		e.preventDefault();
+		var form = $(this);
+        var name = $(this).find(":selected").text();
+	    //console.log("mhfile launch "+name);
+        var form_data = $(this).serializeArray();
+        $.ajax({
+            type: "POST",
+            url: "/bin/items.pl",
+            data: form_data,
+            success: function(data){
+                    parseLinkData("/bin/items.pl",data);
+            }
+        });
 	});
 	$('#mhresponse :input:not(:text)').change(function() {
 //TODO - don't submit when a text field changes
@@ -1463,7 +1480,7 @@ var get_stats = function(tagline) {
 			    } else {
 			        $('.uptime').html("System uptime data not available");
 			    }
-			    $('.counter').text("Page Views: "+json.data.web_counter);
+			    $('.counter').text("Accessed: "+json.data.web_counter_session+"/"+json.data.web_counter_total);
 		    }
 		    if (jqXHR.status == 200 || jqXHR.status == 204) {
 				stats_loop = setTimeout(function(){
@@ -3243,6 +3260,9 @@ var trigger = function() {
 
 $(document).ready(function() {
 	// Start
+	
+	// Increment the counter
+	$.get("/SUB?ia7_update_counter");
 	
 	changePage();
 	//Watch for future changes in hash
