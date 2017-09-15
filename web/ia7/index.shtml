@@ -251,21 +251,32 @@
 	    padding-left: 30px;
 	}
 	
+	.mh-wi-text {
+        font-size: 15px;
+        margin-top: 13px;
+    }
+    
+    .mh-wi-icon {
+        margin-top: 2px;
+    }
+	
 	</style>
 </head>
 <body>
 <div class='row'>
 	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
-		  <h3>
+		<h3>
 		  	&nbsp;&nbsp;&nbsp;MisterHouse
-		  	  <button id="toolButton" type="button" class="btn btn-default toolbar-btn toolbar-right-end pull-right">
-  				<i class="fa fa-gear"></i>
-				</button>
-				
-			  <button id="mhstatus" entity="ia7_status" type="button" class="btn btn-info toolbar-btn pull-right">
-  				<span class='pull-right'>checking</span>
-				</button>		  	
-		  </h3>
+            <button id="toolButton" type="button" class="btn btn-default toolbar-btn toolbar-right-end pull-right">
+                <i class="fa fa-gear"></i>
+                </button>
+                
+            <button id="mhstatus" entity="ia7_status" type="button" class="btn btn-info toolbar-btn pull-right">
+                <span class='pull-right'>checking</span>
+                </button>		
+                <span id="wtemp" class='pull-right mh-wi-text'></span>
+                <i id="wicon" class='pull-right mh-wi-icon wi'></i>
+		</h3>
 		<ol id='nav' class="breadcrumb">
 		</ol>
 			<div id="alert-area"></div>

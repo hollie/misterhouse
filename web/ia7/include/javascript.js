@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.5.900";
+var ia7_ver = "v1.6.100";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -198,6 +198,10 @@ function changePage (){
 //TODO                    developer = c.substring(10, c.length);
                 }                                           
             }
+        }
+        if (json_store.ia7_config.prefs.show_weather !== undefined  && json_store.ia7_config.prefs.show_weather == "no") {
+            $('.mh-wi-text').hide();
+            $('.mh-wi-icon').hide();
         }
 
 	}
@@ -1480,7 +1484,26 @@ var get_stats = function(tagline) {
 			    } else {
 			        $('.uptime').html("System uptime data not available");
 			    }
-			    $('.counter').text("Accessed: "+json.data.web_counter_session+"/"+json.data.web_counter_total);
+			    $('.counter').text("Site views: "+json.data.web_counter_session+"/"+json.data.web_counter_total);
+
+                if (json.data.tempoutdoor !== undefined) {
+                    $('.mh-wi-text').html("&nbsp;"+json.data.tempoutdoor+"&deg;&nbsp;");
+                    $('.mh-wi-icon').removeClass(function (index, classname) {
+                        return (classname.match (/(^|\s)wi-\S+/g) || []).join(' ');
+                    });
+                    var raining = 0;
+                    var snowing = 0;
+                    var night = 0;
+                    if (json.data.raining !== undefined && json.data.raining) raining = 1;
+                    if (json.data.snowing !== undefined && json.data.snowing) snowing = 1;
+                    if (json.data.night !== undefined && json.data.night) night = 1;			        
+                    if (json.data.clouds !== undefined) {
+                        $('.mh-wi-icon').addClass(get_wi_icon(json.data.clouds,raining,snowing,night));
+                    } else {
+                         $('.mh-wi-icon').addClass("wi-na");
+
+                    }
+                }
 		    }
 		    if (jqXHR.status == 200 || jqXHR.status == 204) {
 				stats_loop = setTimeout(function(){
@@ -1490,6 +1513,40 @@ var get_stats = function(tagline) {
 	});
 }
 
+var get_wi_icon = function (conditions,rain,snow,night) {
+
+    var icon = "wi-";
+    
+    if (night) {
+        icon += "night-";
+    } else {
+        icon += "day-";
+    }
+                   
+    if (conditions == "overcast") {
+        icon = "wi-cloudy";       
+        if (rain) icon = "wi-rain";
+        if (snow) icon = "wi-snow";
+    } else if (conditions == "sky clear") {
+        if (night) {
+            icon = "wi-night-clear";
+        } else {
+            icon = "wi-day-sunny";
+        }
+    } else if (conditions == "few clouds" || conditions == "scattered clouds" || conditions == "broken clouds") {
+        if (rain) {
+            icon += "rain";
+        } else if (snow) {
+            icon += "snow";
+        } else {
+            icon += "cloudy";
+        }
+    } else {
+        icon = "wi-na";
+    }
+    
+    return icon;
+}
 
 
 var get_notifications = function(time) {
