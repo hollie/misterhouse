@@ -259,6 +259,7 @@
     .mh-wi-icon {
         margin-top: 2px;
     }
+    
 	
 	</style>
 </head>
@@ -271,11 +272,11 @@
                 <i class="fa fa-gear"></i>
                 </button>
                 
-            <button id="mhstatus" entity="ia7_status" type="button" class="btn btn-info toolbar-btn pull-right">
+            <button id="mhstatus" entity="ia7_status" type="button" class="btn btn-info toolbar-btn pull-right" style="display:none">
                 <span class='pull-right'>checking</span>
                 </button>		
-                <span id="wtemp" class='pull-right mh-wi-text'></span>
-                <i id="wicon" class='pull-right mh-wi-icon wi'></i>
+            <span id="wtemp" class='pull-right mh-wi text-muted mh-wi-text'></span>
+            <i id="wicon" class='pull-right mh-wi text-muted mh-wi-icon wi'></i>
 		</h3>
 		<ol id='nav' class="breadcrumb">
 		</ol>

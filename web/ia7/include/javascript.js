@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.100";
+var ia7_ver = "v1.6.110";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -146,7 +146,12 @@ function changePage (){
 	} else {
         if ((json_store.ia7_config.prefs.static_tagline !== undefined) &&  json_store.ia7_config.prefs.static_tagline == "yes") clearTimeout(stats_loop);
         if (json_store.ia7_config.prefs.stat_refresh !== undefined) stat_refresh = json_store.ia7_config.prefs.stat_refresh;
-		if (json_store.ia7_config.prefs.header_button == "no") $("#mhstatus").remove();
+		if (json_store.ia7_config.prefs.header_button == "no") {
+		    $("#mhstatus").hide();
+		} else {
+		    $("#mhstatus").show();
+		}
+		
 		if (json_store.ia7_config.prefs.audio_controls !== undefined && json_store.ia7_config.prefs.audio_controls == "yes") {
   			$("#sound_element").attr("controls", "controls");  //Show audio Controls
   		}
@@ -202,7 +207,10 @@ function changePage (){
         if (json_store.ia7_config.prefs.show_weather !== undefined  && json_store.ia7_config.prefs.show_weather == "no") {
             $('.mh-wi-text').hide();
             $('.mh-wi-icon').hide();
-        }
+        } else {
+            $('.mh-wi-text').show();
+            $('.mh-wi-icon').show();   
+        }     
 
 	}
 	if (getJSONDataByPath("collections") === undefined){
@@ -486,7 +494,6 @@ function parseLinkData (link,data) {
 		e.preventDefault();
 		var form = $(this);
         var name = $(this).find(":selected").text();
-	    //console.log("mhfile launch "+name);
         var form_data = $(this).serializeArray();
         $.ajax({
             type: "POST",
@@ -1486,6 +1493,11 @@ var get_stats = function(tagline) {
 			    }
 			    $('.counter').text("Site views: "+json.data.web_counter_session+"/"+json.data.web_counter_total);
 
+                if (json_store.ia7_config == undefined) {
+                    $('.mh-wi-text').hide();
+                    $('.mh-wi-icon').hide(); 
+                }      
+
                 if (json.data.tempoutdoor !== undefined) {
                     $('.mh-wi-text').html("&nbsp;"+json.data.tempoutdoor+"&deg;&nbsp;");
                     $('.mh-wi-icon').removeClass(function (index, classname) {
@@ -1494,7 +1506,7 @@ var get_stats = function(tagline) {
                     var raining = 0;
                     var snowing = 0;
                     var night = 0;
-                    if (json.data.raining !== undefined && json.data.raining) raining = 1;
+                    if (json.data.raining !== undefined && json.data.raining ) raining = 1;
                     if (json.data.snowing !== undefined && json.data.snowing) snowing = 1;
                     if (json.data.night !== undefined && json.data.night) night = 1;			        
                     if (json.data.clouds !== undefined) {
@@ -1504,6 +1516,14 @@ var get_stats = function(tagline) {
 
                     }
                 }
+                
+                $('.mh-wi').click( function () {
+                	$('#lastResponse').find('.modal-body').html(json.data.summary);
+					$('#lastResponse').modal({
+						    show: true
+					});
+                });
+                
 		    }
 		    if (jqXHR.status == 200 || jqXHR.status == 204) {
 				stats_loop = setTimeout(function(){
@@ -1522,7 +1542,7 @@ var get_wi_icon = function (conditions,rain,snow,night) {
     } else {
         icon += "day-";
     }
-                   
+
     if (conditions == "overcast") {
         icon = "wi-cloudy";       
         if (rain) icon = "wi-rain";
