@@ -734,9 +734,11 @@ sub json_get {
         $json_data{$source}{tempoutdoor} = $Weather{"TempOutdoor"};
         $json_data{$source}{wind} = $Weather{"Wind"};
         $json_data{$source}{clouds} = $Weather{"Clouds"};
+        $json_data{$source}{clouds} =~ s/^\s+|\s+$//g; #remove leading/trailing spaces
         $json_data{$source}{raining} = int($Weather{"IsRaining"});
         $json_data{$source}{snowing} = int($Weather{"IsSnowing"});
         $json_data{$source}{night} = $Dark;
+        $json_data{$source}{weather_lastupdated} = $Weather{"LastUpdated"};
              
    }
 
