@@ -125,7 +125,8 @@ sub process_metar {
                 $minutes = "0" . $minutes if ($minutes < 10);
                 $metar{LastUpdated} = "$month_name{$Month} $1, " . $time->hour_12() . ":" . $minutes. " " . $ampm;
             } else {
-                last;
+                print_log "Skipping METAR report: $last_report";
+                next;
             }
         }  
         print_log "Parsing METAR report: $last_report";
