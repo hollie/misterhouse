@@ -1160,6 +1160,10 @@ sub Http10ResponseCheck {
                 $html = &AddContentLength($html) unless $NoContentLength; # Add content-length unless requested not to, we sometimes do it outside here.
 		return $html;
 	}
+        elsif ($html =~ /\A^HTTP\/1\.0/) {
+                 print "http: Http10ResponseCheck found http 1.0 header, setting connection for close after response\n" if $main::Debug{http};
+                 $Http{Connection} = 'close';
+        }
 
 return $html;
 }
@@ -1873,7 +1877,7 @@ sub html_form_select_set_var {
 
 sub html_file {
     my ( $socket, $file, $arg, $no_header ) = @_;
-    print "http: print html file=$file arg=$arg\n" if $main::Debug{http};
+    print "http: print html file=$file arg=$arg no_header=$no_header\n" if $main::Debug{http};
 
     # Do not cach shtml files
     my ($cache) = ( $file =~ /\.shtm?l?$/ or $file =~ /\.vxml?$/ ) ? 0 : 1;
@@ -1958,6 +1962,7 @@ sub html_file {
         }
         else {
             $html = eval $code;
+	    print "http: html_file - eval file: $file\n" if $main::Debug{http};
             if ($@) {
                 my $msg = "http error in http eval of $file: $@";
                 $html = &html_page( '', $msg );
@@ -1968,9 +1973,10 @@ sub html_file {
         }
 
         # Drop the http header if no_header
-        $html =~ s/^HTTP.+?^$//smi if $no_header;
+        #$html =~ s/^HTTP.+?^$//smi if $no_header;
+	$html =~ s/\A^HTTP.+?^\R//smi if $no_header;
 
-        #       print "Http_server  .pl file results:$html.\n" if $main::Debug{http};
+        #print "http: .pl file results:$html.\n" if $main::Debug{http};
     }
     else {
         print "http: Reading file: $file\n" if $main::Debug{http};
@@ -2204,6 +2210,10 @@ sub html_page {
     # are sent later by the changeChecker
     my %HttpHeader = &::http_get_headers($client_number,$requestnum);
 
+    print "http: html_page - title: $title style: $style script: $script 
+           frame: $frame client#: $client_number req#: $requestnum\n"
+	   if $main::Debug{http};;
+
     # Allow for fully formated html
     if ( $body =~ /^\s*<(!doctype\s*)?(html|\?xml)/i ) {
         $body =~ s/\n/\n\r/g;    # Bill S. says this is required to be standards compiliant
@@ -2222,7 +2232,7 @@ sub html_page {
 	$html_head .= "Date: " . time2str(time) . "\r\n";
 	$html_head .= "Cache-Control: no-cache\r\n";
 	$html_head .= "\r\n";
-
+	
 	return $html_head.$body;
     }
 
@@ -2280,6 +2290,7 @@ $body
  $html_head .= "\r\n";
 
  return $html_head.$html;
+
 }
 
 sub http_redirect {
