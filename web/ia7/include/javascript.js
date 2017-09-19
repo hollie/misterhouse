@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.140";
+var ia7_ver = "v1.6.150";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -1498,7 +1498,7 @@ var get_stats = function(tagline) {
                     $('.mh-wi-icon').hide(); 
                 }      
 
-                if (json.data.tempoutdoor !== undefined) {
+                if ((json.data.tempoutdoor !== undefined && json.data.tempoutdoor !== null) && (json.data.weather_enabled !== undefined && json.data.weather_enabled == 1)) {
                     $('.mh-wi-text').html("&nbsp;"+json.data.tempoutdoor+"&deg;&nbsp;");
                     $('.mh-wi-icon').removeClass(function (index, classname) {
                         return (classname.match (/(^|\s)wi-\S+/g) || []).join(' ');
@@ -1518,7 +1518,7 @@ var get_stats = function(tagline) {
                 }
                 
                 $('.mh-wi').click( function () {
-                    var summary = "<strong>Summary:</strong>&nbsp;&nbsp;"+json.data.summary+"<br>";
+                    var summary = "<strong>Summary:</strong>&nbsp;&nbsp;"+json.data.summary_long+"<br>";
                     summary += "<strong>Last Updated:</strong>&nbsp;&nbsp;"+json.data.weather_lastupdated;
                     
                 	$('#lastResponse').find('.modal-body').html(summary);
@@ -1550,20 +1550,46 @@ var get_wi_icon = function (conditions,rain,snow,night) {
         icon = "wi-cloudy";       
         if (rain) icon = "wi-rain";
         if (snow) icon = "wi-snow";
+        
     } else if (conditions == "sky clear" || conditions == "" ) {
         if (night) {
             icon = "wi-night-clear";
         } else {
             icon = "wi-day-sunny";
         }
-    } else if (conditions == "few clouds" || conditions == "scattered clouds" || conditions == "broken clouds") {
+        
+    } else if (conditions.includes("thunderstorm")) {
+        icon = "wi-thunderstorm";
+        
+    } else if ((conditions.includes("mist") || conditions.includes("fog"))
+        icon += "fog";  
+
+    } else if (conditions.includes("breezy")) {
+        if (conditions.includes("cloud")) {
+            if (night) {
+                icon = "wi-night-cloudy-windy"
+            } else {
+                icon = "wi-day-cloudy-gusts";
+            }
+        else if (conditions.includes("overcast") {
+            icon = "wi-cloudy-gusts";
+        } else {
+            if (night) {
+                icon = "wi-strong-wind"
+            } else {
+                icon = "wi-day-windy";
+            }
+        }
+                
+    } else if (condition.includes("few clouds") || conditions == "scattered clouds" || conditions == "broken clouds") {
         if (rain) {
             icon += "rain";
         } else if (snow) {
             icon += "snow";
         } else {
             icon += "cloudy";
-        }
+        }     
+            
     } else {
         icon = "wi-na";
     }
