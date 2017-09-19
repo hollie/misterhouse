@@ -675,7 +675,7 @@ var loadList = function() {
 						button_html += '<div class="leadcontainer">';
 						button_html += '<button entity="'+entity+'" type="button" class="btn btn-default dropdown-lead btn-lg btn-list btn-voice-cmd navbutton-padding">'+button_text_start + "<u>" + options[0] + "</u>" + button_text_end+'</button>';
 						button_html += '</div>';
-						button_html += '<button entity="'+entity+'" type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown navbutton-padding" data-toggle="dropdown">';						
+						button_html += '<button type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown navbutton-padding" data-toggle="dropdown">';						
 						button_html += '<span class="caret dropdown-caret"></span>';
 						button_html += '<span class="sr-only">Toggle Dropdown</span>';
 						button_html += '</button>';

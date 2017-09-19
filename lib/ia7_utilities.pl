@@ -142,7 +142,7 @@ sub ia7_update_collection {
                         &main::print_log("[IA7_Collection_Updater] : WARNING: decode_json failed for v1.3 update.");
                     } else {           
                         $json_data->{meta}->{version} = "1.3";
-                        &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.3 (MH 4.3 IA7 v1.4.400 support)");
+                        &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.3 (MH 5.0 IA7 v1.4.400 support)");
                         $updated = 1; 
                     } 
                 }  
@@ -158,7 +158,7 @@ sub ia7_update_collection {
                         &main::print_log("[IA7_Collection_Updater] : WARNING: decode_json failed for v1.4 update.");
                     } else {           
                         $json_data->{meta}->{version} = "1.4";
-                        &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.4 (MH 4.3 IA7 v1.5.800 weathericon change)");
+                        &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.4 (MH 5.0 IA7 v1.5.800 weathericon change)");
                         $updated = 1; 
                     }
                 }
