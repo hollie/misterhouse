@@ -93,7 +93,7 @@ sub new {
 
         # Save weather hash keys in member list (to be checked for existence in state sub before expression is evaluated)
 
-        while ( $type =~ /\$::Weather{(.*?)}/g ) {
+        while ( $type =~ /\$::Weather\{(.*?)}/g ) {
             push @members, $1 if !grep $1 eq $_, @members;
         }
 

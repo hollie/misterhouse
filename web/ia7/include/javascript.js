@@ -1,5 +1,5 @@
-// v1.5.850
 
+var ia7_ver = "v1.6.140";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -146,7 +146,12 @@ function changePage (){
 	} else {
         if ((json_store.ia7_config.prefs.static_tagline !== undefined) &&  json_store.ia7_config.prefs.static_tagline == "yes") clearTimeout(stats_loop);
         if (json_store.ia7_config.prefs.stat_refresh !== undefined) stat_refresh = json_store.ia7_config.prefs.stat_refresh;
-		if (json_store.ia7_config.prefs.header_button == "no") $("#mhstatus").remove();
+		if (json_store.ia7_config.prefs.header_button == "no") {
+		    $("#mhstatus").hide();
+		} else {
+		    $("#mhstatus").show();
+		}
+		
 		if (json_store.ia7_config.prefs.audio_controls !== undefined && json_store.ia7_config.prefs.audio_controls == "yes") {
   			$("#sound_element").attr("controls", "controls");  //Show audio Controls
   		}
@@ -199,6 +204,13 @@ function changePage (){
                 }                                           
             }
         }
+        if (json_store.ia7_config.prefs.show_weather !== undefined  && json_store.ia7_config.prefs.show_weather == "no") {
+            $('.mh-wi-text').hide();
+            $('.mh-wi-icon').hide();
+        } else {
+            $('.mh-wi-text').show();
+            $('.mh-wi-icon').show();   
+        }     
 
 	}
 	if (getJSONDataByPath("collections") === undefined){
@@ -281,7 +293,7 @@ function changePage (){
 		else { //default response is to load a collection
 			loadCollection(URLHash._collection_key);
 		}
-		
+
 		//update the breadcrumb: 
 		// Weird end-case, The Group from browse items is broken with parents on the URL
 		// Also have to change parents to type if the ending collection_keys are $<name>,
@@ -320,7 +332,6 @@ function changePage (){
 			}
 		}
 	}
-
 }
 
 function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_prefs if no arg then both
@@ -383,11 +394,14 @@ function parseLinkData (link,data) {
 		}
 	if (link == "/bin/items.pl") {
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))		
-		data = data.replace(/href=\/bin\/items.pl/img, 'onclick="changePage()"');		
+		data = data.replace(/href=\/bin\/items.pl/img, 'onclick="changePage()"');	
+		data = data.replace(/action=\/bin\/items.pl/img, ''); // /ia7/#_request=page&link=/bin/items.pl&'+coll_key);
+		data = data.replace(/form.submit\(\)/img, ''); // 'this.form.submit()');					
 		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
 		data = data.replace(/Item Index:/img,'');
 		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
 		data = data.replace(/input name='resp' value="\/bin\/items.pl"/img, 'input name=\'resp\' value=\"/ia7/#_request=page&link=/bin/items.pl&'+coll_key+'\"');
+		data = data.replace(/<a href=\/RUN;\/bin\/items.pl\?Reload_code>/img, '<a onclick="\$.get(\'/RUN;last_response?Reload_code\')">');				
 		
 	}
 	if (link == "/bin/iniedit.pl") {
@@ -420,7 +434,6 @@ function parseLinkData (link,data) {
 
 	}
 	if (link.indexOf('/email/') === 0) { //fix links in the email module 2
-		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
 		data = data.replace(/<a href='#top'>Previous<\/a>.*?<br>/img, '');
 		data = data.replace(/<a name='.*?' href='#top'>Back to Index<\/a>.*?<b>/img,'<b>');
 		data = data.replace(/href='#\d+'/img,'');
@@ -433,7 +446,8 @@ function parseLinkData (link,data) {
 		data = data.replace(/<img src="(.*?)"/img,function (path,r1) {
 			return '<img src="/comics/'+r1+'"';
 		});							
-	}			
+	}
+	data = data.replace(/replace_current_ia7_version/img,ia7_ver); //this should really be a jquery call			
 	data = data.replace(/href="\/bin\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function
 	data = data.replace(/href="\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function 
 //TODO clean up this regex?
@@ -475,6 +489,20 @@ function parseLinkData (link,data) {
 					}
 				}
 			});
+	});
+	$('#mhfile').change( function (e) { //item fix
+		e.preventDefault();
+		var form = $(this);
+        var name = $(this).find(":selected").text();
+        var form_data = $(this).serializeArray();
+        $.ajax({
+            type: "POST",
+            url: "/bin/items.pl",
+            data: form_data,
+            success: function(data){
+                    parseLinkData("/bin/items.pl",data);
+            }
+        });
 	});
 	$('#mhresponse :input:not(:text)').change(function() {
 //TODO - don't submit when a text field changes
@@ -645,9 +673,9 @@ var loadList = function() {
 						options = options.split(',');
 						button_html = '<div class="btn-group btn-block fillsplit">';
 						button_html += '<div class="leadcontainer">';
-						button_html += '<button type="button" class="btn btn-default dropdown-lead btn-lg btn-list btn-voice-cmd navbutton-padding">'+button_text_start + "<u>" + options[0] + "</u>" + button_text_end+'</button>';
+						button_html += '<button entity="'+entity+'" type="button" class="btn btn-default dropdown-lead btn-lg btn-list btn-voice-cmd navbutton-padding">'+button_text_start + "<u>" + options[0] + "</u>" + button_text_end+'</button>';
 						button_html += '</div>';
-						button_html += '<button type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown navbutton-padding" data-toggle="dropdown">';						
+						button_html += '<button entity="'+entity+'" type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown navbutton-padding" data-toggle="dropdown">';						
 						button_html += '<span class="caret dropdown-caret"></span>';
 						button_html += '<span class="sr-only">Toggle Dropdown</span>';
 						button_html += '</button>';
@@ -1463,7 +1491,42 @@ var get_stats = function(tagline) {
 			    } else {
 			        $('.uptime').html("System uptime data not available");
 			    }
-			    $('.counter').text("Page Views: "+json.data.web_counter);
+			    $('.counter').text("Site views: "+json.data.web_counter_session+"/"+json.data.web_counter_total);
+
+                if (json_store.ia7_config == undefined) {
+                    $('.mh-wi-text').hide();
+                    $('.mh-wi-icon').hide(); 
+                }      
+
+                if (json.data.tempoutdoor !== undefined) {
+                    $('.mh-wi-text').html("&nbsp;"+json.data.tempoutdoor+"&deg;&nbsp;");
+                    $('.mh-wi-icon').removeClass(function (index, classname) {
+                        return (classname.match (/(^|\s)wi-\S+/g) || []).join(' ');
+                    });
+                    var raining = 0;
+                    var snowing = 0;
+                    var night = 0;
+                    if (json.data.raining !== undefined && json.data.raining ) raining = 1;
+                    if (json.data.snowing !== undefined && json.data.snowing) snowing = 1;
+                    if (json.data.night !== undefined && json.data.night) night = 1;			        
+                    if (json.data.clouds !== undefined) {
+                        $('.mh-wi-icon').addClass(get_wi_icon(json.data.clouds,raining,snowing,night));
+                    } else {
+                         $('.mh-wi-icon').addClass("wi-na");
+
+                    }
+                }
+                
+                $('.mh-wi').click( function () {
+                    var summary = "<strong>Summary:</strong>&nbsp;&nbsp;"+json.data.summary+"<br>";
+                    summary += "<strong>Last Updated:</strong>&nbsp;&nbsp;"+json.data.weather_lastupdated;
+                    
+                	$('#lastResponse').find('.modal-body').html(summary);
+					$('#lastResponse').modal({
+						    show: true
+					});
+                });
+                
 		    }
 		    if (jqXHR.status == 200 || jqXHR.status == 204) {
 				stats_loop = setTimeout(function(){
@@ -1473,6 +1536,40 @@ var get_stats = function(tagline) {
 	});
 }
 
+var get_wi_icon = function (conditions,rain,snow,night) {
+
+    var icon = "wi-";
+    
+    if (night) {
+        icon += "night-";
+    } else {
+        icon += "day-";
+    }
+
+    if (conditions == "overcast") {
+        icon = "wi-cloudy";       
+        if (rain) icon = "wi-rain";
+        if (snow) icon = "wi-snow";
+    } else if (conditions == "sky clear" || conditions == "" ) {
+        if (night) {
+            icon = "wi-night-clear";
+        } else {
+            icon = "wi-day-sunny";
+        }
+    } else if (conditions == "few clouds" || conditions == "scattered clouds" || conditions == "broken clouds") {
+        if (rain) {
+            icon += "rain";
+        } else if (snow) {
+            icon += "snow";
+        } else {
+            icon += "cloudy";
+        }
+    } else {
+        icon = "wi-na";
+    }
+    
+    return icon;
+}
 
 
 var get_notifications = function(time) {
@@ -2108,14 +2205,13 @@ var fp_getOrCreateIcon = function (json, entity, i, coords){
     var popover_html = "";
     if (popover)
         popover_html = 'data-toggle="popover" data-trigger="focus" tabindex="0"';
-
     var entityId = 'entity_'+entity+'_'+i;
     if ($('#' + entityId).length === 0) {
         var html = '<span style="display: inline-block">'  + // this span somehow magically make resizing the icons work
                 '<a title="'+entity+'"><img '+popover_html+' ' +
                 'id="'+entityId+'"' +
                 'class="entity='+entityId+' floorplan_item coords='+coords+'" ' +
-                'style="display:none;" ' +
+                'style="display: none" ' +
                 '></img></a>'+
                 '</span>';
         if (coords !== ""){
@@ -2131,14 +2227,12 @@ var fp_getOrCreateIcon = function (json, entity, i, coords){
     E.attr('src',"/ia7/graphics/"+image);
     if (developer == true)
         E.css("border","1px solid black");
-
     return E;
 };
 
 var fp_resize_floorplan_image = function(){
     var floor_width = $("#fp_graphic").width();
-    $("#fp_graphic").attr("width", "1px");
-
+    //$("#fp_graphic").attr("width", "1px");
     fp_display_width = $("#graphic").width();
     $('#fp_graphic').attr("width",fp_display_width+"px");
     fp_display_height = $("#fp_graphic").height();
@@ -2199,8 +2293,8 @@ var fp_reposition_entities = function(){
             "top":  fp_offset.top - adjust,
             "left": fp_offset.left - adjust
         };
-        fp_set_pos(element_id, fp_off_center);
         $(this).show();
+        fp_set_pos(element_id, fp_off_center);
     });
 
 	$('.icon_select img').each(function(){
@@ -2646,8 +2740,8 @@ var floorplan = function(group,time) {
                         }
                     }
                 }
-//todo is this needed?
-                fp_reposition_entities();
+                //This one makes the proper placement
+                //fp_reposition_entities();
                 if (requestTime === 0 && developer === true){
                     $('#list_content').append("<p>&nbsp;</p>");
                     $.ajax({
@@ -2747,7 +2841,7 @@ var floorplan = function(group,time) {
             }
             if (time === 0){
                 // hack to fix initial positions of the items
-                var wait = 500;
+                var wait = 400;
                 setTimeout(function(){
                     fp_reposition_entities();
                 }, wait);
@@ -2799,11 +2893,6 @@ var get_fp_image = function(item,size,orientation) {
 	return "fp_unknown_info_"+fp_icon_image_size+".png";
 };
 
-//var create_img_popover = function(entity) {
-//}
-
-//var create_state_popover = function(entity) {
-//}
 
 var create_state_modal = function(entity) {
 		var name = entity;
@@ -3252,6 +3341,9 @@ var trigger = function() {
 $(document).ready(function() {
 	// Start
 	
+	// Increment the counter
+	$.get("/SUB?ia7_update_counter");
+	
 	changePage();
 	//Watch for future changes in hash
 	$(window).bind('hashchange', function() {
@@ -3267,7 +3359,7 @@ $(document).ready(function() {
 	// Load up 'globals' -- notification and the status
 	updateItem("ia7_status");	
 	get_notifications();
-	$('#Last_updated').remove();		
+	$('#Last_updated').remove();	
     get_stats();
 	$("#toolButton").click( function () {
 		// Need a 'click' event to turn on sound for mobile devices

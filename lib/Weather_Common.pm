@@ -454,6 +454,7 @@ sub populate_internet_weather {
               IsSnowing
               RainTotal
               RainRate
+              LastUpdated
             );
         }
         else {

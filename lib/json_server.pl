@@ -706,8 +706,6 @@ sub json_get {
    if ( $path[0] eq 'stats' || $path[0] eq 'misc' || $path[0] eq '' ) {
         my $source = "stats";
         $source = "misc" if ($path[0] eq 'misc');
-   #13:28  up 48 days,  2:19, 8 users, load averages: 3.15 3.30 2.78
-   # 18:29:27 up 26 days,  2:40,  4 users,  load average: 0.46, 0.52, 0.50
         my $uptime;
         if ( $OS_win or $^O eq 'cygwin' ) {
             $uptime = "$Tk_objects{label_uptime_mh} &nbsp;&nbsp; $Tk_objects{label_uptime_cpu}";
@@ -721,20 +719,26 @@ sub json_get {
         $json_data{$source}{load} = $load;
         $json_data{$source}{cores} = $System_cores;
         $json_data{$source}{time_of_day} = $Time_Of_Day;
-        $json_data{$source}{web_counter} = $Save{"web_count_default"};
+        $json_data{$source}{web_counter_session} = $ia7_utilities::ia7_count_session;
+        $json_data{$source}{web_counter_total} = $Save{"ia7_count_total"};
+
    }
 
    if ( $path[0] eq 'weather' || $path[0] eq 'misc' || $path[0] eq '' ) {
         my $source = "weather";
         $source = "misc" if ($path[0] eq 'misc');
-        $json_data{$source}{Barom} = $Weather{"Barom"};
-        $json_data{$source}{Summary} = $Weather{"Summary_Short"};
-        $json_data{$source}{TempIndoor} = $Weather{"TempIndoor"};
-        $json_data{$source}{TempOutdoor} = $Weather{"TempOutdoor"};
-        $json_data{$source}{Wind} = $Weather{"Wind"};
-        $json_data{$source}{Clouds} = $Weather{"Clouds"};
-        $json_data{$source}{Raining} = $Weather{"IsRaining"};
-        $json_data{$source}{Snowing} = $Weather{"IsSnowing"};
+        $json_data{$source}{barom} = $Weather{"Barom"};
+        $json_data{$source}{summary} = $Weather{"Summary"};
+        $json_data{$source}{summary_long} = $Weather{"Summary_Long"};
+        $json_data{$source}{tempindoor} = $Weather{"TempIndoor"};
+        $json_data{$source}{tempoutdoor} = $Weather{"TempOutdoor"};
+        $json_data{$source}{wind} = $Weather{"Wind"};
+        $json_data{$source}{clouds} = $Weather{"Clouds"};
+        $json_data{$source}{clouds} =~ s/^\s+|\s+$//g; #remove leading/trailing spaces
+        $json_data{$source}{raining} = int($Weather{"IsRaining"});
+        $json_data{$source}{snowing} = int($Weather{"IsSnowing"});
+        $json_data{$source}{night} = $Dark;
+        $json_data{$source}{weather_lastupdated} = $Weather{"LastUpdated"};
              
    }
 
@@ -970,7 +974,7 @@ sub json_walk_var {
         elsif ( $name =~ m/.*?\{'(.*?)'\}$/ ) {
             my $cls = $1;
             if ( $cls =~ m/\}\{/ ) {
-                my @values = split( '\'}{\'', $cls );
+                my @values = split( '\'}\{\'', $cls );
                 foreach my $val (@values) {
                     $value = "Unusable Object" if ref $value;
                     return $val, $value;
