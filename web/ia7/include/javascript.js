@@ -1561,7 +1561,7 @@ var get_wi_icon = function (conditions,rain,snow,night) {
     } else if (conditions.includes("thunderstorm")) {
         icon = "wi-thunderstorm";
         
-    } else if ((conditions.includes("mist") || conditions.includes("fog"))
+    } else if (conditions.includes("mist") || conditions.includes("fog")) {
         icon += "fog";  
 
     } else if (conditions.includes("breezy")) {
@@ -1571,7 +1571,7 @@ var get_wi_icon = function (conditions,rain,snow,night) {
             } else {
                 icon = "wi-day-cloudy-gusts";
             }
-        else if (conditions.includes("overcast") {
+        } else if (conditions.includes("overcast")) {
             icon = "wi-cloudy-gusts";
         } else {
             if (night) {
