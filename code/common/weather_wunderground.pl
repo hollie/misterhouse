@@ -150,11 +150,11 @@ if ( done_now $p_weather_wunderground_getweather or 'parsefile' eq said $v_wunde
         #HumidOutdoor
         weather_wunderground_addelem( $channel, 'HumidOutdoor', 'relative_humidity' );
 
-#        #IsRaining
+        #IsRaining
         my $israining = 0;
         $israining = 1 if ($wunderground_data{Conditions} =~ m/rain/i);
 
-#        #IsSnowing
+        #IsSnowing
         my $issnowing = 0;
         $issnowing = 1 if ($wunderground_data{Conditions} =~ m/snow/i);
         
@@ -167,8 +167,7 @@ if ( done_now $p_weather_wunderground_getweather or 'parsefile' eq said $v_wunde
         weather_wunderground_addelem( $channel, 'LastUpdated', 'observation_time' );
         $wunderground_data{LastUpdated} =~ s/^Last Updated on //;
 
-        print_log "[WUnderground] " . Dumper %wunderground_data; ## if $Debug{weather} >= 5;
-#TODO
+        print_log "[WUnderground] " . Dumper %wunderground_data if $Debug{weather} >= 5;
         print_log "[WUnderground] Using elements: $config_parms{weather_wunderground_elements}" if $Debug{weather};
         &Weather_Common::populate_internet_weather( \%wunderground_data, $config_parms{weather_wunderground_elements} );
         &Weather_Common::weather_updated;
