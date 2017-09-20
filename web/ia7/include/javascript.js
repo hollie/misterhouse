@@ -1551,7 +1551,7 @@ var get_wi_icon = function (conditions,rain,snow,night) {
         if (rain) icon = "wi-rain";
         if (snow) icon = "wi-snow";
         
-    } else if (conditions == "sky clear" || conditions == "" ) {
+    } else if (conditions == "sky clear" || conditions == "" || conditions == "clear") {
         if (night) {
             icon = "wi-night-clear";
         } else {
@@ -1581,7 +1581,7 @@ var get_wi_icon = function (conditions,rain,snow,night) {
             }
         }
                 
-    } else if (condition.includes("few clouds") || conditions == "scattered clouds" || conditions == "broken clouds") {
+    } else if (conditions.includes("few clouds") || conditions == "scattered clouds" || conditions == "broken clouds") {
         if (rain) {
             icon += "rain";
         } else if (snow) {
