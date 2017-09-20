@@ -151,12 +151,12 @@ if ( done_now $p_weather_wunderground_getweather or 'parsefile' eq said $v_wunde
         weather_wunderground_addelem( $channel, 'HumidOutdoor', 'relative_humidity' );
 
         #IsRaining
-        my $israining = 0;
-        $israining = 1 if ($wunderground_data{Conditions} =~ m/rain/i);
+        $wunderground_data{IsRaining} = 0;
+        $wunderground_data{IsRaining} = 1 if ($wunderground_data{Conditions} =~ m/rain/i);
 
         #IsSnowing
-        my $issnowing = 0;
-        $issnowing = 1 if ($wunderground_data{Conditions} =~ m/snow/i);
+        $wunderground_data{IsSnowing} = 0;
+        $wunderground_data{IsSnowing} = 1 if ($wunderground_data{Conditions} =~ m/snow/i);
         
         weather_wunderground_addelem( $channel, 'Clouds', 'weather' );
 
