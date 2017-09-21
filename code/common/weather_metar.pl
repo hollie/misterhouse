@@ -3,7 +3,7 @@
 # $Revision$
 # $Date$
 #
-#@ Weather METAR parser
+#@ Weather METAR parser (MH5 Updated)
 #@
 #@ $Revision$
 #@
@@ -50,6 +50,7 @@ $v_get_metar_weather = new Voice_Cmd('get metar weather');
 if ($Reload) {
     &trigger_set( '$New_Minute and $Minute == 5', '$p_weather_metar_page->start', 'NoExpire', 'Update weather information via METAR' )
       unless &trigger_get('Update weather information via METAR');
+    $Weather_Common::weather_module_enabled = 1;
 }
 
 if ( said $v_get_metar_weather) {

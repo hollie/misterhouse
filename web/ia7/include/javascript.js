@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.140";
+var ia7_ver = "v1.6.200";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -675,7 +675,7 @@ var loadList = function() {
 						button_html += '<div class="leadcontainer">';
 						button_html += '<button entity="'+entity+'" type="button" class="btn btn-default dropdown-lead btn-lg btn-list btn-voice-cmd navbutton-padding">'+button_text_start + "<u>" + options[0] + "</u>" + button_text_end+'</button>';
 						button_html += '</div>';
-						button_html += '<button entity="'+entity+'" type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown navbutton-padding" data-toggle="dropdown">';						
+						button_html += '<button type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown navbutton-padding" data-toggle="dropdown">';						
 						button_html += '<span class="caret dropdown-caret"></span>';
 						button_html += '<span class="sr-only">Toggle Dropdown</span>';
 						button_html += '</button>';
@@ -1249,6 +1249,7 @@ var loadCollection = function(collection_keys) {
 				var button_html = "<div style='vertical-align:middle'><button entity='"+item+"' ";
 				button_html += "class='btn  btn-"+color+" btn-lg btn-block btn-list btn-popover "+ btn_direct +" btn-state-cmd navbutton-padding'>";
 				button_html += name+dbl_btn+"<span class='pull-right'>"+json_store.objects[item].state+"</span></button></div>";
+			    button_html = "<div class='col-sm-4' colid='"+i+"'>" + button_html + "</div>";
 				entity_arr.push(button_html);
 				items += item+",";		
 			}
@@ -1283,6 +1284,7 @@ var loadCollection = function(collection_keys) {
 			} else {			
 				button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list "+hidden+" navbutton-padding' role='button'><i class='"+icon_set+" "+icon+" icon-larger fa-2x fa-fw'></i>"+name+"</a>";
 			}
+			button_html = "<div class='col-sm-4' colid='"+collection+"'>" + button_html + "</div>";
 			entity_arr.push(button_html);
 		}
 	}
@@ -1297,7 +1299,9 @@ var loadCollection = function(collection_keys) {
 			$('#list_content').append("<div id='buffer"+row+"' class='row top-buffer'>");
 			$('#buffer'+row).append("<div id='row" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 		}
-		$('#row'+row).append("<div class='col-sm-4'>" + entity_arr[i] + "</div>");
+//		$('#row'+row).append("<div class='col-sm-4' colid='"+i+"'>" + entity_arr[i] + "</div>");
+		$('#row'+row).append(entity_arr[i]);
+
 		if (column == 3){
 			column = 0;
 			row++;
@@ -1498,7 +1502,7 @@ var get_stats = function(tagline) {
                     $('.mh-wi-icon').hide(); 
                 }      
 
-                if (json.data.tempoutdoor !== undefined) {
+                if ((json.data.tempoutdoor !== undefined && json.data.tempoutdoor !== null) && (json.data.weather_enabled !== undefined && json.data.weather_enabled == 1)) {
                     $('.mh-wi-text').html("&nbsp;"+json.data.tempoutdoor+"&deg;&nbsp;");
                     $('.mh-wi-icon').removeClass(function (index, classname) {
                         return (classname.match (/(^|\s)wi-\S+/g) || []).join(' ');
@@ -1518,9 +1522,11 @@ var get_stats = function(tagline) {
                 }
                 
                 $('.mh-wi').click( function () {
-                    var summary = "<strong>Summary:</strong>&nbsp;&nbsp;"+json.data.summary+"<br>";
+                    var summary = "<strong>Summary:</strong>&nbsp;&nbsp;"+json.data.summary_long+"<br>";
                     summary += "<strong>Last Updated:</strong>&nbsp;&nbsp;"+json.data.weather_lastupdated;
-                    
+                    if ($('.mh-wi-icon').hasClass("wi-na")) {
+                        summary += "<br><strong>Clouds:</strong>&nbsp;&nbsp"+json.data.clouds;
+                    }
                 	$('#lastResponse').find('.modal-body').html(summary);
 					$('#lastResponse').modal({
 						    show: true
@@ -1550,24 +1556,55 @@ var get_wi_icon = function (conditions,rain,snow,night) {
         icon = "wi-cloudy";       
         if (rain) icon = "wi-rain";
         if (snow) icon = "wi-snow";
-    } else if (conditions == "sky clear" || conditions == "" ) {
+ 
+    } else if (conditions == "rain") {
+            icon += "rain";
+     
+    } else if (conditions == "snow") {
+            icon += "snow";     
+        
+    } else if (conditions == "sky clear" || conditions == "" || conditions == "clear") {
         if (night) {
             icon = "wi-night-clear";
         } else {
             icon = "wi-day-sunny";
         }
-    } else if (conditions == "few clouds" || conditions == "scattered clouds" || conditions == "broken clouds") {
+        
+    } else if (conditions.includes("thunderstorm")) {
+        icon = "wi-thunderstorm";
+        
+    } else if (conditions.includes("mist") || conditions.includes("fog")) {
+        icon += "fog";  
+
+    } else if (conditions.includes("breezy")) {
+        if (conditions.includes("cloud")) {
+            if (night) {
+                icon = "wi-night-cloudy-windy"
+            } else {
+                icon = "wi-day-cloudy-gusts";
+            }
+        } else if (conditions.includes("overcast")) {
+            icon = "wi-cloudy-gusts";
+        } else {
+            if (night) {
+                icon = "wi-strong-wind"
+            } else {
+                icon = "wi-day-windy";
+            }
+        }
+                
+    } else if (conditions.includes("few clouds") || conditions == "scattered clouds" || conditions == "broken clouds" || conditions == "cloudy") {
         if (rain) {
             icon += "rain";
         } else if (snow) {
             icon += "snow";
         } else {
             icon += "cloudy";
-        }
+        }     
+            
     } else {
         icon = "wi-na";
     }
-    
     return icon;
 }
 
@@ -3427,6 +3464,46 @@ $(document).ready(function() {
 			} else {
 				display_mode = $(this).find('input').attr('id');
 				developer = false;
+			}
+			
+			if (developer == true) {
+			    //turn on collections drag-n-dropping
+				$("#list_content").sortable({
+				    tolerance: "pointer",
+                    items: ".col-sm-4",
+				    update: function( event, ui ) {
+		  	            var URLHash = URLToHash();
+                        //Get Sorted Array of Entities
+                        var outputJSON = $( "#list_content" ).sortable( "toArray", { attribute: "colid" } );
+                        //outputJSON = '["' + outputJSON.join('","') + '"]';
+                        //URLHash.path = "/objects/" + entity + "/sort_order";
+                        //delete URLHash.parents;
+                        console.log("outputJSON="+JSON.stringify(outputJSON));
+                        //URLHash={"_collection_key":"0,6"}
+                        console.log("URLHash="+JSON.stringify(URLHash));
+                        console.log("Key="+URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1));
+
+                    },
+                    //to prevent long clicks from firing while dragging
+                    start: function(event, ui) {
+                    //    $("#list_content").mayTriggerLongClicks().off();
+                    },
+                    stop: function(event, ui) {
+                    //    $("#list_content").mayTriggerLongClicks().on( 'longClick', function() {		
+                    //        var entity = $(this).attr("entity");
+                    //        console.log("long_click="+JSON.stringify($(this)));
+                    //    });
+                    }
+				});	
+				//$('#list_content').disableSelection();	
+				$("#list_content").mayTriggerLongClicks().on( 'longClick', function() {		
+                        var entity = $(this).attr("entity");
+                        console.log("long_click="+JSON.stringify($(this)));
+                });						
+			} else {
+			    $("#list_content").sortable("destroy");
+			    //$("#list_content").enableSelection();	
+			    $("#list_content").mayTriggerLongClicks().off();
 			}
 			document.cookie = "display_mode="+display_mode;
 			document.cookie = "developer="+developer;

@@ -727,18 +727,22 @@ sub json_get {
    if ( $path[0] eq 'weather' || $path[0] eq 'misc' || $path[0] eq '' ) {
         my $source = "weather";
         $source = "misc" if ($path[0] eq 'misc');
+        my $enabled = 0;
+        $enabled = 1 if (defined $Weather_Common::weather_module_enabled and $Weather_Common::weather_module_enabled=1);
         $json_data{$source}{barom} = $Weather{"Barom"};
         $json_data{$source}{summary} = $Weather{"Summary"};
         $json_data{$source}{summary_long} = $Weather{"Summary_Long"};
         $json_data{$source}{tempindoor} = $Weather{"TempIndoor"};
         $json_data{$source}{tempoutdoor} = $Weather{"TempOutdoor"};
         $json_data{$source}{wind} = $Weather{"Wind"};
-        $json_data{$source}{clouds} = $Weather{"Clouds"};
+        $json_data{$source}{clouds} = (lc $Weather{"Clouds"});
         $json_data{$source}{clouds} =~ s/^\s+|\s+$//g; #remove leading/trailing spaces
         $json_data{$source}{raining} = int($Weather{"IsRaining"});
         $json_data{$source}{snowing} = int($Weather{"IsSnowing"});
         $json_data{$source}{night} = $Dark;
         $json_data{$source}{weather_lastupdated} = $Weather{"LastUpdated"};
+        $json_data{$source}{weather_enabled} = $enabled;
+       
              
    }
 
