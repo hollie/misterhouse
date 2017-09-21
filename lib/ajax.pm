@@ -55,6 +55,7 @@ sub new {
     ${ $$self{changed} }       = 0;                                                # Flag if at least on state is changed
     ${ $$self{event} }         = "&ChangeChecker::setWaiterToChanged ('$self')";
     ${ $$self{sub} }           = $sub;
+    ${ $$self{checkTime} }     = 1;
 
     return $self;
 }
@@ -80,26 +81,29 @@ sub checkForUpdate {
 
         # Sending a status code makes it easier to distinish No Content from a lost
         # connection on the client end.
-        &::print_socket_fork( ${ $$self{waitingSocket} }, "HTTP/1.0 204 No Content\n\n" );
-        ${ $$self{waitingSocket} }->close;
+	 my $html_head = "HTTP/1.1 204 No Content\r\n";
+	 $html_head .= "Server: MisterHouse\r\n";
+	 $html_head .= "Connection: close\r\n";
+	 $html_head .= "Date: " . ::time2str(time) . "\r\n";
+	 $html_head .= "\r\n";
+        &::print_socket_fork( ${ $$self{waitingSocket} }, $html_head, 1 );
+        #${ $$self{waitingSocket} }->close;
         return 1;
     }
 
     my $xml = eval ${ $$self{sub} };
     if ($@) {
-        &main::print_log("checkForUpdate syntax error in sub ${$$self{sub}}\n\t$@")
-          if $main::Debug{ajax};
+        &main::print_log("checkForUpdate syntax error in sub ${$$self{sub}}\n\t$@") if $main::Debug{ajax};
         return 1;
     }
 
     if ($xml) {
-        &main::print_log("checkForUpdate sub ${$$self{sub}} returned $xml")
-          if $main::Debug{ajax};
-        &::print_socket_fork( ${ $$self{waitingSocket} }, $xml );
-        &main::print_log( "Closing Socket " . ${ $$self{waitingSocket} } )
-          if $main::Debug{ajax};
-        ${ $$self{waitingSocket} }->shutdown(2)
-          ;    #Changed this from close() to shutdown(2). In some cases, the parent port wasn't being closed -- ie. speech events
+        #&main::print_log("checkForUpdate sub ${$$self{sub}} returned $xml") if $main::Debug{ajax};
+        &main::print_log("checkForUpdate sub ${$$self{sub}} returned data") if $main::Debug{ajax};
+        &::print_socket_fork( ${ $$self{waitingSocket} }, $xml, 1 );
+        # No need to close the socket with HTTP1.1, also this causes issues with a forked socket
+        #&main::print_log( "Closing Socket " . ${ $$self{waitingSocket} } ) if $main::Debug{ajax};
+        #${ $$self{waitingSocket} }->shutdown(2);    #Changed this from close() to shutdown(2). In some cases, the parent port wasn't being closed -- ie. speech events
         ${ $$self{changed} } = 1;
     }
     else {
@@ -183,15 +187,21 @@ sub addWaiter {
 
 sub checkWaiters {
     my ($class) = @_;
-
+    my $delay = 250;
+    my $currenttime = &main::get_tickcount;
+    my $push_flag = &::get_waiter_flags('push_flag');
     foreach my $key ( keys %waiters ) {
+	my $self = $waiters{$key};
+	next unless ( ( ($currenttime - ${ $$self{checkTime} }) >= $delay ) || $push_flag );
+	${ $$self{checkTime} } = $currenttime; 
+	#&main::print_log("waiter: checkWaiters Push flag: $push_flag checking sub sub ".${$$self{sub}} ) if $main::Debug{ajax} and $push_flag;
         if ( $waiters{$key}->checkForUpdate ) {
-
             # waiter can be removed
             delete $waiters{$key};
             &main::print_log("waiter '$key' removed") if $main::Debug{ajax};
         }
     }
+  &::set_waiter_flags('push_flag',0);
 }
 
 sub setWaiterToChanged {
