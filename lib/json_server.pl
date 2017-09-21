@@ -51,8 +51,10 @@ my %json_cache;
 my @json_notifications = ();    #noloop
 
 sub json {
-    my ( $request_type, $path_str, $arguments, $body ) = @_;
-
+    my ( $request_type, $path_str, $arguments, $body, $client_number, $requestnum ) = @_;
+ 
+    my %HttpHeader = &::http_get_headers($client_number, $requestnum);
+    print_log ("json: Compression header: ". $HttpHeader{'Accept-Encoding'} ." - Connection header: ". $HttpHeader{'Connection'} ."Client: $client_number Req: $requestnum" ) if $Debug{json};
     # Passed arguments can be used to override the global parameters
     # This is necessary for using the LONG_POLL interface
     if ( $request_type eq '' ) {
@@ -103,22 +105,23 @@ sub json {
     } else {
 
         if ( lc($request_type) eq "get" ) {
-            return json_get( $request_type, \@path, \%args, $body );
+            return json_get( $request_type, \@path, \%args, $body, %HttpHeader );
         }
         elsif ( lc($request_type) eq "put" ) {
-            json_put( $request_type, \@path, \%args, $body );
+            json_put( $request_type, \@path, \%args, $body, %HttpHeader );
         }
     }
 }
 
 # Handles Put (UPDATE) Requests
 sub json_put {
-    my ( $request_type, $path, $arguments, $body ) = @_;
+    my ( $request_type, $path, $arguments, $body, %HttpHeader ) = @_;
     my (%json);
     my %args        = %{$arguments};
     my @path        = @{$path};
     my $output_time = ::get_tickcount();
     $body = decode_json($body);
+    %HttpHeader = %Http unless %HttpHeader;
 
     # Currently we only know how to do things with objects
     if ( $path[0] eq 'objects' ) {
@@ -150,19 +153,18 @@ sub json_put {
 
     # Translate special characters
     $json_raw = $json_raw->pretty->encode( \%json );
-    my $options = "";
-    $options = "compress" if ($Http{'Accept-Encoding'} =~ m/gzip/);
-    return &json_page($json_raw,$options);
+    return &json_page($json_raw,%HttpHeader);
 }
 
 # Handles Get (READ) Requests
 sub json_get {
-    my ( $request_type, $path, $arguments, $body ) = @_;
+    my ( $request_type, $path, $arguments, $body, %HttpHeader ) = @_;
 
     my %args = %{$arguments};
     my @path = @{$path};
     my ( %json, %json_data, $json_vars, $json_objects );
     my $output_time = ::get_tickcount();
+    %HttpHeader = %Http unless %HttpHeader;
 
     # Build hash of fields requested for easy reference
     my %fields;
@@ -213,12 +215,12 @@ sub json_get {
         }
 
         # Look at the client ip overrides, and replace any pref key with the client_ip specific item
-        if ( defined $json_data{'ia7_config'}->{clients}->{ $Http{Client_address} } ) {
-            print_log "Json_Server.pl: Client override section for $Http{Client_address} found";
-            for my $key ( keys %{ $json_data{'ia7_config'}->{clients}->{ $Http{Client_address} } } ) {
-                print_log "Json_Server.pl: Client key=$key, value = $json_data{'ia7_config'}->{clients}->{$Http{Client_address}}->{$key}";
+        if ( defined $json_data{'ia7_config'}->{clients}->{ $HttpHeader{Client_address} } ) {
+            print_log "Json_Server.pl: Client override section for $HttpHeader{Client_address} found";
+            for my $key ( keys %{ $json_data{'ia7_config'}->{clients}->{ $HttpHeader{Client_address} } } ) {
+                print_log "Json_Server.pl: Client key=$key, value = $json_data{'ia7_config'}->{clients}->{$HttpHeader{Client_address}}->{$key}";
                 print_log "Json_Server.pl: Master value = $json_data{'ia7_config'}->{prefs}->{$key}";
-                $json_data{'ia7_config'}->{prefs}->{$key} = $json_data{'ia7_config'}->{clients}->{ $Http{Client_address} }->{$key};
+                $json_data{'ia7_config'}->{prefs}->{$key} = $json_data{'ia7_config'}->{clients}->{ $HttpHeader{Client_address} }->{$key};
             }
             delete $json_data{'ia7_config'}->{clients};
         }
@@ -414,6 +416,7 @@ sub json_get {
                 'enable'   => 100,
                 'enabled'  => 100,
                 'online'   => 100,
+                'ready'    => 100,
                 'off'      => -100,
                 'close'    => -100,
                 'closed'   => -100,
@@ -421,6 +424,7 @@ sub json_get {
                 'disable'  => -100,
                 'disabled' => -100,
                 'offline'  => -100,
+                'fault'    => -100,
                 'dim'      => 50,
             );
             my $unknown_value = 40;
@@ -702,8 +706,6 @@ sub json_get {
    if ( $path[0] eq 'stats' || $path[0] eq 'misc' || $path[0] eq '' ) {
         my $source = "stats";
         $source = "misc" if ($path[0] eq 'misc');
-   #13:28  up 48 days,  2:19, 8 users, load averages: 3.15 3.30 2.78
-   # 18:29:27 up 26 days,  2:40,  4 users,  load average: 0.46, 0.52, 0.50
         my $uptime;
         if ( $OS_win or $^O eq 'cygwin' ) {
             $uptime = "$Tk_objects{label_uptime_mh} &nbsp;&nbsp; $Tk_objects{label_uptime_cpu}";
@@ -717,20 +719,30 @@ sub json_get {
         $json_data{$source}{load} = $load;
         $json_data{$source}{cores} = $System_cores;
         $json_data{$source}{time_of_day} = $Time_Of_Day;
-        $json_data{$source}{web_counter} = $Save{"web_count_default"};
+        $json_data{$source}{web_counter_session} = $ia7_utilities::ia7_count_session;
+        $json_data{$source}{web_counter_total} = $Save{"ia7_count_total"};
+
    }
 
    if ( $path[0] eq 'weather' || $path[0] eq 'misc' || $path[0] eq '' ) {
         my $source = "weather";
         $source = "misc" if ($path[0] eq 'misc');
-        $json_data{$source}{Barom} = $Weather{"Barom"};
-        $json_data{$source}{Summary} = $Weather{"Summary_Short"};
-        $json_data{$source}{TempIndoor} = $Weather{"TempIndoor"};
-        $json_data{$source}{TempOutdoor} = $Weather{"TempOutdoor"};
-        $json_data{$source}{Wind} = $Weather{"Wind"};
-        $json_data{$source}{Clouds} = $Weather{"Clouds"};
-        $json_data{$source}{Raining} = $Weather{"IsRaining"};
-        $json_data{$source}{Snowing} = $Weather{"IsSnowing"};
+        my $enabled = 0;
+        $enabled = 1 if (defined $Weather_Common::weather_module_enabled and $Weather_Common::weather_module_enabled=1);
+        $json_data{$source}{barom} = $Weather{"Barom"};
+        $json_data{$source}{summary} = $Weather{"Summary"};
+        $json_data{$source}{summary_long} = $Weather{"Summary_Long"};
+        $json_data{$source}{tempindoor} = $Weather{"TempIndoor"};
+        $json_data{$source}{tempoutdoor} = $Weather{"TempOutdoor"};
+        $json_data{$source}{wind} = $Weather{"Wind"};
+        $json_data{$source}{clouds} = (lc $Weather{"Clouds"});
+        $json_data{$source}{clouds} =~ s/^\s+|\s+$//g; #remove leading/trailing spaces
+        $json_data{$source}{raining} = int($Weather{"IsRaining"});
+        $json_data{$source}{snowing} = int($Weather{"IsSnowing"});
+        $json_data{$source}{night} = $Dark;
+        $json_data{$source}{weather_lastupdated} = $Weather{"LastUpdated"};
+        $json_data{$source}{weather_enabled} = $enabled;
+       
              
    }
 
@@ -875,16 +887,14 @@ sub json_get {
     $json{meta}{time}      = $output_time;
     $json{meta}{path}      = \@path;
     $json{meta}{args}      = \%args;
-    $json{meta}{client_ip} = $Http{Client_address};
+    $json{meta}{client_ip} = $HttpHeader{Client_address};
 
     my $json_raw = JSON->new->allow_nonref;
 
     # Translate special characters
     $json_raw->canonical(1);    #Order the data so that objects show alphabetically
     $json_raw = $json_raw->pretty->encode( \%json );
-    my $options = "";
-    $options = "compress" if ($Http{'Accept-Encoding'} =~ m/gzip/);
-    return &json_page($json_raw,$options);
+    return &json_page($json_raw,%HttpHeader);
 
 }
 
@@ -968,7 +978,7 @@ sub json_walk_var {
         elsif ( $name =~ m/.*?\{'(.*?)'\}$/ ) {
             my $cls = $1;
             if ( $cls =~ m/\}\{/ ) {
-                my @values = split( '\'}{\'', $cls );
+                my @values = split( '\'}\{\'', $cls );
                 foreach my $val (@values) {
                     $value = "Unusable Object" if ref $value;
                     return $val, $value;
@@ -1247,28 +1257,22 @@ sub filter_object {
 }
 
 sub json_page {
-    my ($json_raw,$options) = @_;
+    my ($json_raw,%HttpHeader) = @_;
+    my $json = $json_raw;
+    gzip \$json_raw => \$json if &::http_gzip(%HttpHeader);
+
 
 ##    utf8::encode( $json_raw ); #may need to wrap gzip in an eval and encode it if errors develop. It crashes if a < is in the text
     my $output = "HTTP/1.1 200 OK\r\n";
     $output .= "Server: MisterHouse\r\n";
     $output .= "Connection: close\r\n";    
     $output .= "Content-type: application/json\r\n";
-    if ($options =~ m/compress/) {
-        print_log("json_server.pl: DEBUG: Compressing Data as requested by client") if $Debug{json};
-        my $json;
-        gzip \$json_raw => \$json;
-        $output .= "Content-Encoding: gzip\r\n";
-        $output .= "Content-Length: " . ( length $json ) . "\r\n";
-        $output .= "Date: " . time2str(time) . "\r\n";
-        $output .= "\r\n";
-        $output .= $json;
-    } else {
-        $output .= "Content-Length: " . ( length $json_raw ) . "\r\n";
-        $output .= "Date: " . time2str(time) . "\r\n";
-        $output .= "\r\n";
-        $output .= $json_raw;
-    }
+    $output .= "Connection: close\r\n" if &http_close_socket(%HttpHeader);
+    $output .= "Content-Encoding: gzip\r\n" if &::http_gzip(%HttpHeader);
+    $output .= "Content-Length: " . ( length $json ) . "\r\n";
+    $output .= "Date: " . time2str(time) . "\r\n";
+    $output .= "\r\n";
+    $output .= $json;
 
     return $output;
 }
@@ -1325,7 +1329,7 @@ eof
  my $html_head = "HTTP/1.1 200 OK\r\n";
  $html_head .= "Server: MisterHouse\r\n";
  $html_head .= "Content-type: application/json\r\n";
- $html_head .= "Connection: close\r\n";
+ $html_head .= "Connection: close\r\n" if &http_close_socket;
  $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
  $html_head .= "Date: " . time2str(time) . "\r\n";
  $html_head .= "\r\n";

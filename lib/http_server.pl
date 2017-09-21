@@ -10,7 +10,6 @@ use Text::ParseWords;
 use AlexaBridge;
 require 'http_utils.pl';
 
-#require 'alexa_server.pl';
 
 #use Data::Dumper;
 #$main::Debug{http} = 4;
@@ -19,7 +18,7 @@ require 'http_utils.pl';
 use vars qw(%Http %Cookies %Included_HTML %HTTP_ARGV $HTTP_REQUEST $HTTP_BODY $HTTP_REQ_TYPE);
 $Authorized = 0;
 
-my ( $leave_socket_open_passes, $leave_socket_open_action );
+my ( $leave_socket_open_passes );
 my ( $Cookie, $H_Response, $html_pointer_cnt, %html_pointers );
 
 my %mime_types = (
@@ -140,15 +139,15 @@ sub http_read_parms {
 }
 
 sub http_process_request {
-    my ($socket) = @_;
+    my ($socket,$http_data) = @_;
 
     my $time_check = time;
 
     $leave_socket_open_passes = 0;
-    $leave_socket_open_action = '';
+    #$leave_socket_open_action = '';
     $socket_fork_data{length} = 0;
 
-    my ( $header, $text, $h_response, $h_index, $h_list, $item, $state );
+    my ( $header, $text, $h_response, $h_index, $h_list, $item, $state, $client_number, $requestnum );
     $H_Response = 'last_response';
 
     # Find ip address (used to bypass password check)
@@ -167,22 +166,34 @@ sub http_process_request {
     undef %Http;
     my $temp;
 
-    # Must wait for the new socket to become active
-    my $nfound = &socket_has_data( $socket, $main::config_parms{http_client_timeout} );
-    return unless $nfound > 0;                         # nfound == -1 means an error
+      return unless length($http_data) > 0;
+
+	print "---------------------start http data------------------------\n" if $main::Debug{http};
+	print "Request from Client: $client_ip_address Port: $port\n" if $main::Debug{http};
+	print "$http_data\n"if $main::Debug{http};
+	print "----------------------end http data-------------------------\n" if $main::Debug{http};
+   
+    open my $http_fh, '<', \$http_data;
+
     while (1) {
-        $_ = <$socket>;
+        $_ = <$http_fh>;
         last unless $_ and /\S/;
         $temp .= $_;
+	if ( /HTTP\/(\d)\.(\d)/ ) { $Http{version} = $1.$2 }
         if (/^ *(GET|POST|PUT) /) {
             $header = $_;
         }
         elsif ( my ( $key, $value ) = /(\S+?)\: ?(.+?)[\n\r]+/ ) {
+	    if ( ($key eq 'Content-length') || ($key eq 'content-length') ) { $key = 'Content-Length' }	
+            if ( $key eq 'connection' ) { $key = 'Connection' }
             $Http{$key} = $value;
             print "http:   header key=$key value=$value.\n"
               if $main::Debug{http2};
         }
     }
+
+    close $http_fh;
+
     unless ($header) {
 
         # Ignore empty requests, like from 'check the http server' command
@@ -196,13 +207,17 @@ sub http_process_request {
         }
         return;
     }
+     
+     # Save the request headers and get the client# and request# back
+     ($client_number,$requestnum) = &http_save_headers;
+     print "http: socket close: ". &http_close_socket ." Client#: $client_number Request#: $requestnum \n" if $main::Debug{http}; 
+
 
     $Socket_Ports{http}{data_record} = $header;
     print "http: Header = $header\n" if $main::Debug{http};
 
-    #print Dumper %Http if $main::Debug{http};
     print "http: Range Header $Http{Range} encountered for $header"
-      if ( defined $Http{Range} );
+      if ( defined $Http{Range} && $main::Debug{http} );
     $Http{loop}    = $Loop_Count;                 # Track which pass we last processes a web request
     $Http{request} = $header;
     $Http{Referer} = '' unless $Http{Referer};    # Avoid uninitilized var errors
@@ -321,16 +336,17 @@ sub http_process_request {
 
     logit "$config_parms{data_dir}/logs/server_header.$Year_Month_Now.log", "$header data:$temp"
       if $main::Debug{http};
-    print "http: gr=$get_req ga=$get_arg " . "A=$Authorized format=$Http{format} ua=$Http{'User-Agent'} h=$header"
+    print "http: gr=$get_req ga=$get_arg " . "A=$Authorized format=$Http{format} ua=$Http{'User-Agent'} v=$Http{'version'} h=$header"
       if $main::Debug{http};
     if ( $req_typ eq "POST" || $req_typ eq "PUT" ) {
-        my $cl =
-             $Http{'Content-Length'}
-          || $Http{'Content-length'}
-          || $Http{'content-length'};     # Netscape uses lower case l
+	      $http_data =~ s/^(POST|PUT).+?^\R//smi;
+        my $cl = $Http{'Content-Length'};
         print "http POST query has $cl bytes of args\n"  if $main::Debug{http};
         my $buf;
+	      $cl = $cl - length($http_data);
         read $socket, $buf, $cl;
+	      $buf = $http_data.$buf if $http_data;
+	      $http_data = '';
 
         # Save the body into the global var
         $HTTP_BODY = $buf;
@@ -373,6 +389,7 @@ sub http_process_request {
           if $config_parms{http_port} and $referer !~ /\:\d+$/;
         $referer .= $get_req;
         print $socket &http_redirect($referer);
+	&http_delete_headers($client_number,$requestnum);
         return;
     }
 
@@ -444,6 +461,7 @@ sub http_process_request {
               unless ( lc $mode eq "ia7" );
             $html .= &html_password('') . '<br>';
             print $socket &html_page( undef, $html, undef, undef, undef, undef );
+	    &http_delete_headers($client_number,$requestnum);
         }
         else {
             my $html = &html_authorized;
@@ -459,12 +477,14 @@ sub http_process_request {
                 #               &speak("app=admin $Authorized password accepted for $name_short");
                 $html .= "<br><b>$Authorized password accepted</b>";
                 print $socket &html_page( undef, $html );
+		&http_delete_headers($client_number,$requestnum);
             }
             else {
                 # No good way to un-Authorized here, so just re-do the pop-up window till it gives up?
                 #               print "dbx requestor=$name, get_req=$get_req, Authorized=$Authorized\n";
                 print $socket &html_password('');
                 print $socket &html_page( undef, "requestor=$name, get_req=$get_req, Authorized=$Authorized" );
+		&http_delete_headers($client_number,$requestnum);
             }
         }
         return;
@@ -509,32 +529,35 @@ sub http_process_request {
         }
 
         print $socket &html_page( undef, $html );
-
+	&http_delete_headers($client_number,$requestnum);
         return;
     }
 
     elsif ( !$Authorized and lc $main::config_parms{password_protect} eq 'all' ) {
         if ( $get_req =~ /wml/ ) {
             print $socket &html_password('browser');    # wml requires browser login ... no form/cookies for now
+	    &http_delete_headers($client_number,$requestnum);
         }
         else {
             $h_response = "<center><h3>MisterHouse password_protect set to all.  Password required for all functions</h3>\n";
             $h_response .= "<h3><a href=/SET_PASSWORD>Login</a></h3></center>";
             print $socket &html_page( "", $h_response );
+	    &http_delete_headers($client_number,$requestnum);
         }
         return;
     }
 
     if ( my $alexa_response = &AlexaBridge::process_http( $get_req, $req_typ, $HTTP_BODY, $socket, %Http ) ) {
         print $socket $alexa_response unless $alexa_response eq ' ';
+	&http_delete_headers($client_number,$requestnum);
         return;
     }
 
     # See if the request was for a file
-    if ( &test_for_file( $socket, $get_req, $get_arg ) ) { 
+    if ( &test_for_file( $socket, $get_req, $get_arg, undef, undef, $client_number, $requestnum ) ) { 
     }
     elsif ( $get_req =~ /^\/JSON/i ) {
-        &print_socket_fork( $socket, json() );
+        &print_socket_fork( $socket, json(), $client_number, $requestnum );
     }
 
     # Test for RUN commands
@@ -568,10 +591,10 @@ sub http_process_request {
 
             # Allow for RUN;&func  (response function like &dir_sort, with no action)
             if ( !$get_arg ) {
-                &html_response( $socket, $h_response );
+                &html_response( $socket, $h_response, $client_number, $requestnum );
             }
             elsif ( &run_voice_cmd( $get_arg, undef, "web [$client_ip_address]" ) ) {
-                &html_response( $socket, $h_response );
+                &html_response( $socket, $h_response, $client_number, $requestnum );
             }
             else {
                 my $msg = "The Web RUN command not found: $get_arg.\n";
@@ -580,11 +603,13 @@ sub http_process_request {
 
                 #               print $socket &html_page("", $msg, undef, undef, "control");
                 print $socket &html_page( "", "<br><b>$msg</b>" );
+		&http_delete_headers($client_number,$requestnum);
                 print_log $msg;
             }
         }
         else {
             print $socket &html_page( "", &html_unauthorized( $get_arg, $h_response ) );
+	    &http_delete_headers($client_number,$requestnum);
         }
     }
 
@@ -598,34 +623,48 @@ sub http_process_request {
         my ( $msg, $action ) = &html_sub( $get_arg, 1 );
         if ($msg) {
             print $socket &html_page( "", $msg );
+	    &http_delete_headers($client_number,$requestnum);
             return;    # No need anything else ?
         }
         elsif ($action) {
+	    print "http: SUB - action found: $action\n" if $main::Debug{http};
             my $response = eval $action;
             print "\nError in html SUB: $@\n" if $@;
 
             # Check for a response sub
             if ( my ( $msg, $action ) = &html_sub($response) ) {
+		print "http: SUB - response sub msg: $msg action: $action\n" if $main::Debug{http};
+		
                 if ($msg) {
+		    print "http: SUB - response sub msg: $msg\n" if $main::Debug{http};
                     print $socket &html_page( "", $msg );
+		    &http_delete_headers($client_number,$requestnum);
                 }
                 else {
-                    $leave_socket_open_action = $action;
-                    $leave_socket_open_passes = 3;         # Wait a few passes, so multi-pass events can settle (e.g. barcode_web.pl)
+		    print "http: SUB - html_ajax_long_poll action: $action\n" if $main::Debug{http};
+	            my $sub = "html_page( \"\", ($action), \"\", \"\", \"\", $client_number, $requestnum )";
+         	    &html_ajax_long_poll( $socket, undef, $sub, $client_number, $requestnum, 3);
+               	    $leave_socket_open_passes = -1;    # don't close the socket
+		    return;
+                    #$leave_socket_open_action = $action;
+                    #$leave_socket_open_passes = 3;         # Wait a few passes, so multi-pass events can settle (e.g. barcode_web.pl)
                 }
             }
             elsif ($response) {
-                &print_socket_fork( $socket, $response );
-
+		print "http: SUB - print_socket_fork response: $response c#=$client_number r#=$requestnum\n" if $main::Debug{http};
+		&CloseResponseCheck($response);
+		$response = &Http10ResponseCheck($response);
+                &print_socket_fork( $socket, $response, $client_number, $requestnum );
                 #               print $socket $response;
             }
             elsif ( !$h_response ) {
+		print "http: SUB - last_response\n" if $main::Debug{http};
                 $h_response = 'last_response';
             }
         }
 
         # Generate a response IF requested (i.e. no default)
-        &html_response( $socket, $h_response ) if $h_response;
+        &html_response( $socket, $h_response, $client_number, $requestnum ) if $h_response;
     }
 
     # Allow for either SET or SET_VAR
@@ -719,16 +758,18 @@ sub http_process_request {
                     print "SET eval error.  cmd=$eval_cmd  error=$@\n" if $@;
                 }
             }
-            &html_response( $socket, $h_response );
+            &html_response( $socket, $h_response, $client_number, $requestnum );
         }
         else {
             if ( $h_response =~ /^last_/ ) {
                 print $socket &html_page( "", &html_unauthorized( $get_arg, $h_response ) );
+		&http_delete_headers($client_number,$requestnum);
             }
             else {
                 # Just refresh the screen, don't give a bad boy msg
                 #  - this way we don't mess up the Items display frame
-                &html_response( $socket, $h_response, undef, undef );
+                #&html_response( $socket, $h_response, undef, undef );
+                &html_response( $socket, $h_response, $client_number, $requestnum );
             }
         }
 
@@ -736,7 +777,7 @@ sub http_process_request {
 
     # Test for ajax "long poll" subroutine call.  Note, the response option is not supported
     elsif ( $get_req =~ /\/LONG_POLL$/i ) {
-        &html_ajax_long_poll( $socket, $get_req, $get_arg );
+        &html_ajax_long_poll( $socket, $get_req, $get_arg, $client_number, $requestnum);
         $leave_socket_open_passes = -1;    # don't close the socket
         return:
     }
@@ -744,7 +785,7 @@ sub http_process_request {
     # See if request was for an auto-generated page
     elsif ( my ( $html, $style ) = &html_mh_generated( $get_req, $get_arg, 1 ) ) {
         my $time_check2 = time;
-        &print_socket_fork( $socket, &html_page( "", $html, $style ) );
+        &print_socket_fork( $socket, &html_page( "", $html, $style ), $client_number, $requestnum );
 
         #        print $socket &html_page("", $html, $style);
         $time_check2 = time - $time_check2;
@@ -762,6 +803,7 @@ sub http_process_request {
         $Misc{missing_url} = $get_req;
 
         print $socket &http_redirect("/misc/failed_request.shtml");
+	&http_delete_headers($client_number,$requestnum);
     }
 
     $time_check = time - $time_check;
@@ -776,7 +818,7 @@ sub http_process_request {
         #       &speak("app=admin web sleep of $time_check seconds");
     }
 
-    return ( $leave_socket_open_passes, $leave_socket_open_action );
+    return ( $leave_socket_open_passes, &http_close_socket );
 }
 
 sub html_password {
@@ -843,6 +885,116 @@ sub html_unauthorized {
     }
 }
 
+sub http_close_socket {
+# Check if we should close the socket after we respond
+
+my %HttpHeader = @_; # Use headers passed to us if they are there.
+
+    #print "http: http_close_socket check - Headers: Connection=". $HttpHeader{Connection} . " version=". $HttpHeader{version} . " Config: http_persist=". $config_parms{http_persist}."\n" 
+	#if $main::Debug{http} && %HttpHeader;
+    #print "http: http_close_socket check - Headers: Connection=". $Http{Connection} . " version=". $Http{version} . " Config: http_persist=". $config_parms{http_persist}."\n"
+        #if $main::Debug{http} && %Http; 
+    if ( ( ($HttpHeader{Connection}) && (lc($HttpHeader{Connection}) eq 'close') ) ||
+         ( ($HttpHeader{version})&& ($HttpHeader{version} < 11) ) ||
+	 ( ($Http{Connection}) && (lc($Http{Connection}) eq 'close') ) ||
+         ( ($Http{version})&& ($Http{version} < 11) ) ||
+         !($config_parms{http_persist}) ) {
+              return 1;
+    }
+  return 0;
+}
+
+sub http_gzip { 
+# Check if we should compress the response
+my %HttpHeader = @_; # Use headers passed to us if they are there.
+
+ return 1 if $HttpHeader{'Accept-Encoding'} =~ m/gzip/;
+ return 1 if $Http{'Accept-Encoding'} =~ m/gzip/;
+
+ return 0;
+}
+
+
+sub http_save_headers { 
+# Save http headers with the client# and return client# and request#
+#
+# This is needed for http requests where we do not respond to the client on 
+# the first pass through http_process_request, because if a new request 
+# comes in before we respond then the headers in %Http are for the new
+# request and not the one we are responding for.
+
+my $client_number = $Socket_Ports{http}{client_number};
+
+    my $rec;
+    foreach my $key ( keys %Http )
+    {
+      $rec->{$key} = $Http{$key};
+    }
+
+    push @{ ${ ${ $Socket_Ports{http}{clients} }[$client_number] }[4] }, $rec;
+    my $requestnum = scalar  @{ ${ ${ $Socket_Ports{http}{clients} }[$client_number] }[4] } - 1;
+    $Socket_Ports{http}{requestnum} = $requestnum;
+    
+    if ( $main::Debug{http} ) {
+      print "------http: http_save_headers - Client Lookup--------\n";
+      print Dumper @{ $Socket_Ports{http}{clients} }[$client_number];
+      print "-------http: http_save_headers - Client Lookup--------\n";
+      print "http: http_save_headers client#: $client_number req#: $requestnum \n";
+    }
+
+  return ($client_number,$requestnum);
+}
+
+
+sub http_get_headers { 
+# Get saved http headers by client# and request#
+#
+# This is needed for http requests where we do not respond to the client on
+# the first pass through http_process_request, because if a new request
+# comes in before we respond then the headers in %Http are for the new
+# request and not the one we are responding for.
+
+my ($client_number,$requestnum) = @_;
+return %Http unless ( ($client_number) && ($requestnum) );
+ 
+  if ( defined(${ $Socket_Ports{http}{clients} }[$client_number] ) ) {
+   
+    my %HttpHeader;
+    foreach my $key ( keys %{ ${ ${ ${ $Socket_Ports{http}{clients} }[$client_number] }[4] }[$requestnum] } )
+    {
+      $HttpHeader{$key} = ${ ${ ${ $Socket_Ports{http}{clients} }[$client_number] }[4] }[$requestnum]->{$key};
+    }
+    return %HttpHeader if %HttpHeader;
+
+  }
+
+return %Http;
+}
+
+
+sub http_delete_headers {
+# Delete saved http headers 
+my ($client_number,$requestnum) = @_;
+
+# Using the stored client# and request# in $Socket_Ports{http} is OK as long 
+# as we are on the first pass through http_process_request for the http request. 
+# We should only use them when its impossible to pass the client# and request# 
+# from http_process_request. 
+$client_number = $Socket_Ports{http}{client_number} unless $client_number;
+$requestnum = $Socket_Ports{http}{requestnum} unless $requestnum;
+
+ if ( defined(${ $Socket_Ports{http}{clients} }[$client_number] ) ) {
+    if ( defined(${ $Socket_Ports{http}{clients} }[$client_number][4] ) ) {
+	print "http: http_delete_headers deleting client#: $client_number req#: $requestnum\n" if $main::Debug{http};	
+        ${ ${ ${ $Socket_Ports{http}{clients} }[$client_number] }[4] }[$requestnum] = undef;
+
+    }
+ }
+return;
+}
+
+
+
 sub http_get_local_file {
     my ( $get_req, $get_alias_index ) = @_;
     my ( $file, $http_dir, $http_member );
@@ -890,7 +1042,7 @@ sub http_get_local_file {
 }
 
 sub test_for_file {
-    my ( $socket, $get_req, $get_arg, $no_header, $no_print ) = @_;
+    my ( $socket, $get_req, $get_arg, $no_header, $no_print, $client_number, $requestnum ) = @_;
 
     $get_req =~ s!//!/!g;    # remove double slashes in request
 
@@ -928,14 +1080,17 @@ sub test_for_file {
     }
 
     if ( -e $file ) {
+	print "http: test_for_file running html_file for $file, $get_arg, $no_header\n" if $main::Debug{http};
         my $html = &html_file( $socket, $file, $get_arg, $no_header ) if &test_file_req( $socket, $get_req, $http_dir );
 
         if ($no_print) {
             return $html;
         }
         else {
-	    $html = AddContentLength($html); 
-            &print_socket_fork( $socket, $html );
+	    &CloseResponseCheck($html);
+	    $html = &Http10ResponseCheck($html,1);
+	    $html = &AddContentLength($html); # We add Content-Length to every response here if its needed.
+            &print_socket_fork( $socket, $html, $client_number, $requestnum );
             return 1;
         }
 
@@ -946,24 +1101,93 @@ sub test_for_file {
 }
 
 sub AddContentLength {
+# Add Content-Length: to http 1.1 header when needed 
  my ($html) = @_;
  my $original_html = $html;
  my $html_head;
-   if ( ($html =~ /HTTP\/1\.1 200 OK/) and !($html =~ /Content-Length:/) ) {
-       print "http: AddContentLength found http 1.1 header with out Content-Length\n" if $main::Debug{http};
-	unless ($html =~ s/^HTTP.+?^\r\n//smi) { return $original_html }
+   if ( ($html =~ /\A^HTTP\/1\.1/) and !($html =~ /Content-Length:/) ) {
+        print "http: AddContentLength found http 1.1 header with out Content-Length\n" if $main::Debug{http};
+
+	unless ($html =~ s/^HTTP.+?^\R//smi) { 
+		print "http: AddContentLength Error removing header so Content-Length could not be added.\n" if $main::Debug{http};
+		return $original_html 
+	}
+
 	print "http: AddContentLength removed header to caculate Content-Length\n" if $main::Debug{http};
 
 	my $length = length($html);
 	return $original_html unless $length;
 
-	if ($original_html =~ s/(Server: MisterHouse)\r\n/$1\r\nContent-Length: $length\r\n/) { return $original_html }
-	print "http: \"Server: MisterHouse\" was not found in header so Content-Length could not be added\n" if $main::Debug{http};
+	if ($original_html =~ s/\A^(HTTP\/1\.1 .*?)\R/$1\r\nContent-Length: $length\r\n/) { 
+		print "http: AddContentLength adding Content-Length: $length header\n" if $main::Debug{http};
+		return $original_html 
+	}
+	print "http: AddContentLength Error parsing header so Content-Length could not be added.\n" if $main::Debug{http};
 	return $original_html;
    } else { 
 	return $original_html;
   }
 }
+
+
+sub AddConnectionClose {
+# Add Connection: close to http 1.1 header when needed
+ my ($html) = @_;
+   if ($html =~ /\A^HTTP\/1\.1/) {       
+	if ($html =~ s/Connection: .*?\R/Connection: close\r\n/) { 
+		  print "http: AddConnectionClose found http 1.1 header, updating Connection: header to close\n" if $main::Debug{http};
+		  return $html; 
+	}
+        elsif ($html =~ s/\A^(HTTP\/1\.1 .*?)\R/$1\r\nConnection: close\r\n/) {
+		   print "http: AddConnectionClose found http 1.1 header, adding Connection: close header\n" if $main::Debug{http};
+		   return $html; 
+	}
+        print "http: AddConnectionClose Error parsing header so Connection header could not be updated to close\n" if $main::Debug{http};
+ 	return $html;
+   }
+}
+
+sub Http10ResponseCheck {
+# Check for a HTTP 1.0 response from Misterhouse.
+# This is for old or custom code that has not been updated
+# with a HTTP 1.1 header.
+
+ my ($html, $NoContentLength) = @_;
+
+ 	if ($html =~ s/\A^HTTP\/1\.0 (.*?)\R/HTTP\/1\.1 $1\r\n/) {
+		print "http: Http10ResponseCheck found http 1.0 header, updating header to http 1.1\n" if $main::Debug{http};
+		$html = &AddConnectionClose($html) if &http_close_socket;
+                $html = &AddContentLength($html) unless $NoContentLength; # Add content-length unless requested not to, we sometimes do it outside here.
+		return $html;
+	}
+        elsif ($html =~ /\A^HTTP\/1\.0/) {
+                 print "http: Http10ResponseCheck found http 1.0 header, setting connection for close after response\n" if $main::Debug{http};
+                 $Http{Connection} = 'close';
+        }
+
+return $html;
+}
+
+
+sub CloseResponseCheck {
+# Check for a response from Misterhouse that contains a
+# Connection: close header and set that connection to be closed.
+# Basically, this is a way to make MH close all connections 
+# from any custom code after the response.
+
+
+ return if &http_close_socket; # We are already set to close the connection based on the request headers, nothing to do.
+ 
+ my ($html) = @_;
+
+        if ($html =~ /Connection: close?\R/) {
+        	 print "http: CloseResponseCheck found Connection: close header, setting connection for close after response\n" if $main::Debug{http};
+		 $Http{Connection} = 'close';
+	}
+
+return;
+}
+
 
 # Check for illicit or password protected dirs
 sub test_file_req {
@@ -1101,7 +1325,7 @@ sub html_sub {
 
         # The %main:: array will have a glob for all subs (and vars)
         if ( $main::{$sub_name} ) {
-            print "html_sub: a=$Authorized pa=$Password_Allow{'&$sub_name'} data=$data sn=$sub_name sa=$sub_arg sr=$sub_ref\n"
+            print "http: html_sub: a=$Authorized pa=$Password_Allow{'&$sub_name'} data=$data sn=$sub_name sa=$sub_arg sr=$sub_ref\n"
               if $main::Debug{http};
 
             # Check for authorization
@@ -1110,7 +1334,7 @@ sub html_sub {
                 # If not quoted, split to multiple argument according to ,
                 my @args = parse_line( ',', 0, $sub_arg );
                 $sub_arg = join ',', map { "'$_'" } @args;
-                return ( undef, "&$sub_name($sub_arg)" );
+                return ( undef, "&main::$sub_name($sub_arg)" );
             }
             else {
                 return ("Web response function not authorized: &$sub_name $sub_arg");
@@ -1126,7 +1350,7 @@ sub html_sub {
 }
 
 sub html_response {
-    my ( $socket, $h_response ) = @_;
+    my ( $socket, $h_response, $client_number, $requestnum ) = @_;
     my $file;
 
     print "http: html response: $h_response\n" if $main::Debug{http};
@@ -1139,16 +1363,29 @@ sub html_response {
             # By default, we shouldn't put a long time here or
             # we way too many passes for the 'no response message'
             # from many commands that do not respond
-            $leave_socket_open_passes = 3;
-            $leave_socket_open_action = qq|&html_last_response('$Http{"User-Agent"}', $1)|;
+            #$leave_socket_open_passes = 3;
+            #$leave_socket_open_action = qq|&html_last_response('$Http{"User-Agent"}', $1)|;
+            my $sub = qq|&main::html_last_response('$Http{"User-Agent"}', $1)|;
+	    $sub = "html_page( \"\", ($sub), \"\", \"\", \"\", $client_number, $requestnum )";
+            &html_ajax_long_poll( $socket, undef, $sub, $client_number, $requestnum, 200);
+            $leave_socket_open_passes = -1;    # don't close the socket
+            return;
         }
         elsif ( $h_response eq 'last_displayed' ) {
-            $leave_socket_open_passes = 200;
-            $leave_socket_open_action = "&html_last_displayed";
+	    my $sub = "html_page( \"\", (&main::html_last_displayed), \"\", \"\", \"\", $client_number, $requestnum )";
+	    &html_ajax_long_poll( $socket, undef, $sub, $client_number, $requestnum, 200);
+	    $leave_socket_open_passes = -1;    # don't close the socket
+	    return;
+            #$leave_socket_open_passes = 200;
+            #$leave_socket_open_action = "&html_last_displayed";
         }
         elsif ( $h_response eq 'last_spoken' ) {
-            $leave_socket_open_passes = 3;
-            $leave_socket_open_action = "&html_last_spoken";    # Only show the last spoken text
+	    my $sub = "html_page( \"\", (&main::html_last_spoken), \"\", \"\", \"\", $client_number, $requestnum )";
+	    &html_ajax_long_poll( $socket, undef, $sub, $client_number, $requestnum, 3);
+	    $leave_socket_open_passes = -1;    # don't close the socket
+	    return;
+            #$leave_socket_open_passes = 3;
+            #$leave_socket_open_action = "&html_last_spoken";    # Only show the last spoken text
 
             #           $leave_socket_open_action = "&speak_log_last(1)"; # Only show the last spoken text
             #           $leave_socket_open_action = "&Voice_Text::last_spoken(1)"; # Only show the last spoken text
@@ -1167,20 +1404,31 @@ sub html_response {
             }
 
             # Wait a few passes before refreshing page, in case mh states changed
-            #           $leave_socket_open_action = "&http_redirect('$h_response')"; # mh uses &html_page, so this does not work
-            $leave_socket_open_action = "'$h_response'";    # &html_page will use referer if only a url is given
-            $leave_socket_open_passes = 3;
+            ##           $leave_socket_open_action = "&http_redirect('$h_response')"; # mh uses &html_page, so this does not work
+            #$leave_socket_open_action = "'$h_response'";    # &html_page will use referer if only a url is given
+            #$leave_socket_open_passes = 3;
+            my $sub = "html_page( \"\", '$h_response', \"\", \"\", \"\", $client_number, $requestnum)";
+            &html_ajax_long_poll( $socket, undef, $sub, $client_number, $requestnum, 3);
+            $leave_socket_open_passes = -1;    # don't close the socket
+            return;
+
         }
         elsif ( my ( $msg, $action ) = &html_sub($h_response) ) {
             if ($msg) {
                 print $socket &html_page( "", $msg );
+		&http_delete_headers($client_number,$requestnum);
             }
             else {
-                $leave_socket_open_action = $action;
-                $leave_socket_open_passes = 3;              # Wait a few passes, so multi-pass events can settle (e.g. barcode_web.pl)
+		#$action =~ s/\&/&main::/g;
+		my $sub = "html_page( \"\", ($action), \"\", \"\", \"\", $client_number, $requestnum )";
+	        &html_ajax_long_poll( $socket, undef, $sub, $client_number, $requestnum, 3);
+       		$leave_socket_open_passes = -1;    # don't close the socket
+		return;
+                #$leave_socket_open_action = $action;
+                #$leave_socket_open_passes = 3;              # Wait a few passes, so multi-pass events can settle (e.g. barcode_web.pl)
             }
         }
-        elsif ( &test_for_file( $socket, $h_response ) ) {
+        elsif ( &test_for_file( $socket, $h_response, undef, undef, undef, $client_number, $requestnum ) ) {
 
             # Allow for files to be modified on the fly, so wait a pass
             #  ... naw, use &file_read if you need to wait (e.g. barcode_scan.shtml)
@@ -1192,11 +1440,13 @@ sub html_response {
         }
         elsif ( $h_response eq 'no_response' ) {
             print $socket &html_no_response;
+	    &http_delete_headers($client_number,$requestnum);
         }
         else {
             $h_response =~ tr/\_/ /;    # Put blanks back
             $h_response =~ tr/\~/_/;    # Put _ back
             print $socket &html_page( "", $h_response );
+	    &http_delete_headers($client_number,$requestnum);
         }
     }
 
@@ -1204,9 +1454,12 @@ sub html_response {
     #  - don't set this big.  Many things will have no response
     #    so we don't want to wait for them.
     else {
-        $leave_socket_open_passes = 3;
-        $leave_socket_open_action = "&html_last_spoken";
-
+	my $sub = "html_page( \"\", (&main::html_last_spoken), \"\", \"\", \"\", $client_number, $requestnum )";
+	&html_ajax_long_poll( $socket, undef, $sub, $client_number, $requestnum, 3);
+	$leave_socket_open_passes = -1;    # don't close the socket
+	return;
+        #$leave_socket_open_passes = 3;
+        #$leave_socket_open_action = "&html_last_spoken";
     }
 }
 
@@ -1624,11 +1877,12 @@ sub html_form_select_set_var {
 
 sub html_file {
     my ( $socket, $file, $arg, $no_header ) = @_;
-    print "http: print html file=$file arg=$arg\n" if $main::Debug{http};
+    print "http: print html file=$file arg=$arg no_header=$no_header\n" if $main::Debug{http};
 
     # Do not cach shtml files
     my ($cache) = ( $file =~ /\.shtm?l?$/ or $file =~ /\.vxml?$/ ) ? 0 : 1;
     ($cache) = ( defined $Http{Range} ) ? 0 : 1;
+
 
     # Return right away if the file has not changed, don't return a cache entry if there is
     # a http Range header though...
@@ -1644,7 +1898,7 @@ sub html_file {
         if ( $time3 <= $time2 ) {
  		my $html_head = "HTTP/1.1 304 Not Modified\r\n";
  		$html_head .= "Server: MisterHouse\r\n";
-		$html_head .= "Connection: close\r\n";
+		$html_head .= "Connection: close\r\n" if &http_close_socket;
  		$html_head .= "Date: " . time2str(time) . "\r\n";
  		$html_head .= "\r\n";
         }
@@ -1708,6 +1962,7 @@ sub html_file {
         }
         else {
             $html = eval $code;
+	    print "http: html_file - eval file: $file\n" if $main::Debug{http};
             if ($@) {
                 my $msg = "http error in http eval of $file: $@";
                 $html = &html_page( '', $msg );
@@ -1718,9 +1973,10 @@ sub html_file {
         }
 
         # Drop the http header if no_header
-        $html =~ s/^HTTP.+?^$//smi if $no_header;
+        #$html =~ s/^HTTP.+?^$//smi if $no_header;
+	$html =~ s/\A^HTTP.+?^\R//smi if $no_header;
 
-        #       print "Http_server  .pl file results:$html.\n" if $main::Debug{http};
+        #print "http: .pl file results:$html.\n" if $main::Debug{http};
     }
     else {
         print "http: Reading file: $file\n" if $main::Debug{http};
@@ -1861,7 +2117,7 @@ sub html_cgi {
 
     my $html_head = "HTTP/1.1 200 OK\r\n";
     $html_head .= "Server: MisterHouse\r\n";
-    $html_head .= "Connection: close\r\n";
+    $html_head .= "Connection: close\r\n" if &http_close_socket;
     $html_head .= "Cache-Control: no-cache\r\n";
     $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
     $html_head .= $extraheaders."\r\n" if $extraheaders;
@@ -1894,7 +2150,7 @@ sub mime_header {
     $header = "HTTP/1.1 200 OK\r\n";
     $header = "HTTP/1.1 206 Partial Content\r\n" if $range;
     $header .= "Server: MisterHouse\r\n";
-    $header .= "Connection: close\r\n";
+    $header .= "Connection: close\r\n" if &http_close_socket;
     $header .= "Date: " . time2str(time) . "\r\n";
     $header .= "Content-Type: $mime\r\n";
 
@@ -1918,11 +2174,11 @@ sub mime_header {
     $header .= "Content-Range: bytes " . $start . "-" . $end . "/" . $full_length . "\r\n"
       if $range;
     print "http: Server responds: HTTP/1.1 206; bytes " . $start . "-" . $end . "/" . $full_length . "\r\n"
-      if $range;
+      if ( $range && $main::Debug{http} );
 
     $header .= "Accept-Ranges: bytes\r\n";
 
-    print "returned header = $header\n" if ( $main::Debug{http} );
+    print "http: mime_header - len: $length range: $range full_len: $full_length returned header = $header\n" if ( $main::Debug{http} );
 
     return $header . "\r\n";
 
@@ -1940,16 +2196,24 @@ sub html_alias {
 sub html_no_response {
  my $html_head = "HTTP/1.1 204 No Content\r\n";
  $html_head .= "Server: MisterHouse\r\n";
- $html_head .= "Connection: close\r\n";
+ $html_head .= "Connection: close\r\n" if &http_close_socket;
  $html_head .= "Date: " . time2str(time) . "\r\n";
  $html_head .= "\r\n";
 return $html_head;
 }
 
 sub html_page {
-    my ( $title, $body, $style, $script, $frame ) = @_;
+    my ( $title, $body, $style, $script, $frame, $client_number, $requestnum ) = @_;
 
     my $html_head;
+    # We have to look up the original request headers for responses that 
+    # are sent later by the changeChecker
+    my %HttpHeader = &::http_get_headers($client_number,$requestnum);
+
+    print "http: html_page - title: $title style: $style script: $script 
+           frame: $frame client#: $client_number req#: $requestnum\n"
+	   if $main::Debug{http};;
+
     # Allow for fully formated html
     if ( $body =~ /^\s*<(!doctype\s*)?(html|\?xml)/i ) {
         $body =~ s/\n/\n\r/g;    # Bill S. says this is required to be standards compiliant
@@ -1962,13 +2226,13 @@ sub html_page {
 
 	$html_head = "HTTP/1.1 200 OK\r\n";
 	$html_head .= "Server: MisterHouse\r\n";
-	$html_head .= "Connection: close\r\n";
+	$html_head .= "Connection: close\r\n" if &http_close_socket(%HttpHeader);
 	$html_head .= "Content-type: $contenttype\r\n";
 	$html_head .= "Content-Length: " . ( length $body ) . "\r\n";
 	$html_head .= "Date: " . time2str(time) . "\r\n";
 	$html_head .= "Cache-Control: no-cache\r\n";
 	$html_head .= "\r\n";
-
+	
 	return $html_head.$body;
     }
 
@@ -2016,7 +2280,7 @@ $body
 
  $html_head = "HTTP/1.1 200 OK\r\n";
  $html_head .= "Server: MisterHouse\r\n";
- $html_head .= "Connection: close\r\n";
+ $html_head .= "Connection: close\r\n" if &http_close_socket(%HttpHeader);
  $html_head .= "Content-type: text/html\r\n";
  $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
  $html_head .= "Date: " . time2str(time) . "\r\n";
@@ -2026,6 +2290,7 @@ $body
  $html_head .= "\r\n";
 
  return $html_head.$html;
+
 }
 
 sub http_redirect {
@@ -2035,7 +2300,8 @@ sub http_redirect {
  my $html_head = "HTTP/1.1 302 Moved Temporarily\r\n";
  $html_head .= "Server: MisterHouse\r\n";
  $html_head .= "Location: $url\r\n";
- $html_head .= "Connection: close\r\n";
+ $html_head .= "Content-Length: 0\r\n";
+ $html_head .= "Connection: close\r\n " if &http_close_socket;
  $html_head .= "Cache-Control: no-cache\r\n";
  $html_head .= "\r\n";
 
@@ -2973,10 +3239,12 @@ sub pretty_object_name {
 
 # Avoid mh pauses by printing to slow remote clients with a 'forked' program
 sub print_socket_fork {
-    my ( $socket, $html, $close ) = @_;
+    my ( $socket, $html, $client_number, $requestnum, $close_socket ) = @_;
     return unless $html;
     my $length = length $html;
     $socket_fork_data{length} = $length;
+    my %HttpHeader = &::http_get_headers($client_number,$requestnum);
+        
 
     # These sizes are picked a bit randomly.  Don't need to fork on small files
     #  - A few Win98 users had problems, but unix is ok
@@ -2985,6 +3253,7 @@ sub print_socket_fork {
     {
         print "http: printing with forked socket: l=$length s=$socket\n"
           if $main::Debug{http};
+	$html = &AddConnectionClose($html);
         if ($OS_win) {
             if ( $main::config_parms{http_fork} eq 'memmap' ) {
                 $http_fork_count = ( $http_fork_count % 65535 ) + 1;    # more than enough :^)
@@ -3020,19 +3289,17 @@ sub print_socket_fork {
             }
         }
         else {
-            my $keep_alive = 0;
-            $keep_alive = 1
-              if (  ( defined $Http{Connection} )
-                and ( $Http{Connection} eq "keep-alive" ) );
-            &print_socket_fork_unix( $socket, $html, $close );
+            &print_socket_fork_unix( $socket, $html );
         }
     }
     else {
         print "http: printing with regular socket l=$length s=$socket\n"
           if $main::Debug{http};
         print $socket $html;
-        $socket->shutdown(2) if $close;
+	print "http: Closing socket in print_socket_fork due to close request\n" if ( $close_socket && $main::Debug{http} );
+        $socket->shutdown(2) if $close_socket;
     }
+ &http_delete_headers($client_number,$requestnum); # delete the headers for the request once we have responded.
 }
 
 # Magic simulated fork using copied file handles from
@@ -3104,34 +3371,25 @@ sub print_socket_fork_win {
 
 # Forks are MUCH easier in unix :)
 sub print_socket_fork_unix {
-    my ( $socket, $html, $close ) = @_;
+    my ( $socket, $html ) = @_;
 
     my $pid = fork;
-    if    ( $? == -1  ) { 
-        print "***PID http_server_print_socket_fork_unix $pid - Can't launch child: $!\n" if $::Debug{fork}; 
-    } elsif ( $? & 0x7F ) { 
-        print "***PID http_server_print_socket_fork_unix $pid - Child killed by signal ".( $? & 0x7F )."\n" if $::Debug{fork}; 
-    } elsif ( $? >> 8   ) { 
-        print "***PID http_server_print_socket_fork_unix $pid - Child exited with error ".( $? >> 8 )."\n" if $::Debug{fork}; 
-    } else { 
-        print "***PID http_server_print_socket_fork_unix $pid - Child executed successfully\n" if $::Debug{fork}; 
-    }
+    if    ( $? == -1  ) { &main::print_log( "***PID http 1 $pid - Can't launch child: $!\n" ) if $::Debug{fork} }
+    elsif ( $? & 0x7F ) { &main::print_log( "***PID http 1 $pid - Child killed by signal ".( $? & 0x7F )."\n" ) if $::Debug{fork} }
+    elsif ( $? >> 8   ) { &main::print_log( "***PID http 1 $pid - Child exited with error ".( $? >> 8 )."\n" ) if $::Debug{fork} }
+    else                { &main::print_log( "***PID http 1 $pid - Child executed successfully with exit: $?\n" ) if $::Debug{fork} }
     if ( defined $pid && $pid == 0 ) {
         print $socket $html;
-	    $socket->shutdown(2) if $close;
-        $socket->close unless $close;
-        print "***PID http_server_print_socket_fork_unix $pid exiting process\n" if $::Debug{fork}; 
-
+	$socket->shutdown(2); # we shoould shutdown the socket before we close the handle 
+        $socket->close;
+	&main::print_log( "***PID http_server_print_socket_fork_unix $pid exiting process\n" ) if $::Debug{fork}; 
         # This avoids 'Unexpected async reply' if mh -tk 1
         &POSIX::_exit(0)
-
-          #       exit;
-    } else {
+    }
+    else {
         # Not sure why, but I get a broken pipe if I shutdown send or both.
         shutdown( $socket, 0 );    # "how":  0=no more receives, 1=sends, 2=both
-        print "***PID http_server_print_socket_fork_unix $pid shutdown socket\n" if $::Debug{fork}; 
-
-        #       $socket->close;
+	&main::print_log( "***PID http_server_print_socket_fork_unix $pid shutdown socket\n" ) if $::Debug{fork};
     }
 }
 
@@ -3292,7 +3550,7 @@ eof
 
 my $html_head = "HTTP/1.1 200 OK\r\n";
 $html_head .= "Server: MisterHouse\r\n";
-$html_head .= "Connection: close\r\n";
+$html_head .= "Connection: close\r\n" if &http_close_socket;
 $html_head .= "Content-type: text/xml\r\n";
 $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
 $html_head .= "Date: " . time2str(time) . "\r\n";
@@ -3671,7 +3929,7 @@ eof
 
  my $html_head = "HTTP/1.1 200 OK\r\n";
  $html_head .= "Server: MisterHouse\r\n";
- $html_head .= "Connection: close\r\n";
+ $html_head .= "Connection: close\r\n" if &http_close_socket;
  $html_head .= "Content-type: text/vnd.wap.wml\r\n";
  $html_head .= "Content-Length: " . ( length $wml ) . "\r\n";
  $html_head .= "Date: " . time2str(time) . "\r\n";
