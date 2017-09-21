@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.200";
+var ia7_ver = "v1.6.250";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -638,14 +638,6 @@ var loadList = function() {
 			if (URLHash.parents !== undefined) {
 				$("#toolButton").attr('entity', URLHash.parents);
 			}			
-			
-			// Sort that list if a sort exists, probably exists a shorter way to
-			// write the sort
-			// Sorting code removed. Original design idea that buttons could be moved
-			// Around by the end user. Possible function for the future.
-//			if (sort_list !== undefined){
-//				entity_list = sortArrayByArray(entity_list, sort_list);
-//			}
 
 			for (var i = 0; i < entity_list.length; i++) {
 				var entity = entity_list[i];
@@ -1310,6 +1302,27 @@ var loadCollection = function(collection_keys) {
 	}
 	
 	generateTooltips();	
+
+    //turn on long clicks on all buttons if in developer mode
+	$('.btn').mayTriggerLongClicks().on( 'longClick', function() {		
+         if (developer === true) {
+            var cls = $(this).parent().attr('class');
+            if (!cls.match('ui-sortable-helper')) {
+                var colid = $(this).parent().attr("colid");
+                var URLHash=URLToHash();
+                var html = "<strong>CollectionID:</strong>&nbsp;&nbsp;"+colid+"<br>";
+                html += "<strong>Parent:</strong>&nbsp;&nbsp;"+URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1)+"<br>";
+                for (var prop in json_store.collections[colid]) {
+                    if (json_store.collections[colid].hasOwnProperty(prop)) html += "<strong>"+prop+":</strong>&nbsp;&nbsp;"+json_store.collections[colid][prop]+"<br>";
+                }
+                //html += JSON.stringify(json_store.collections[colid]);
+                $('#devModal').find('.modal-body').html(html);
+				$('#devModal').modal({
+					show: true
+					});
+            }
+        }
+    });
 	
 	// if any items present, then create modals and activate updateItem...
 	if (items !== "") {
@@ -1593,7 +1606,7 @@ var get_wi_icon = function (conditions,rain,snow,night) {
             }
         }
                 
-    } else if (conditions.includes("few clouds") || conditions == "scattered clouds" || conditions == "broken clouds" || conditions == "cloudy") {
+    } else if (conditions.includes("clouds") || conditions.includes("cloudy")) {
         if (rain) {
             icon += "rain";
         } else if (snow) {
@@ -3471,39 +3484,24 @@ $(document).ready(function() {
 				$("#list_content").sortable({
 				    tolerance: "pointer",
                     items: ".col-sm-4",
+                    cursor: "move",
 				    update: function( event, ui ) {
 		  	            var URLHash = URLToHash();
                         //Get Sorted Array of Entities
-                        var outputJSON = $( "#list_content" ).sortable( "toArray", { attribute: "colid" } );
-                        //outputJSON = '["' + outputJSON.join('","') + '"]';
-                        //URLHash.path = "/objects/" + entity + "/sort_order";
-                        //delete URLHash.parents;
-                        console.log("outputJSON="+JSON.stringify(outputJSON));
-                        //URLHash={"_collection_key":"0,6"}
-                        console.log("URLHash="+JSON.stringify(URLHash));
-                        console.log("Key="+URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1));
-
-                    },
-                    //to prevent long clicks from firing while dragging
-                    start: function(event, ui) {
-                    //    $("#list_content").mayTriggerLongClicks().off();
-                    },
-                    stop: function(event, ui) {
-                    //    $("#list_content").mayTriggerLongClicks().on( 'longClick', function() {		
-                    //        var entity = $(this).attr("entity");
-                    //        console.log("long_click="+JSON.stringify($(this)));
-                    //    });
+                        var colids = $( "#list_content" ).sortable( "toArray", { attribute: "colid" } );
+                        //convert strings to ints
+                        var new_order = colids.map(function (x) { 
+                            return parseInt(x, 10); 
+                        });
+                        //get the collection key
+                        var col_key = URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1);
+                        json_store.collections[col_key].children = new_order;
                     }
 				});	
-				//$('#list_content').disableSelection();	
-				$("#list_content").mayTriggerLongClicks().on( 'longClick', function() {		
-                        var entity = $(this).attr("entity");
-                        console.log("long_click="+JSON.stringify($(this)));
-                });						
+				$('#list_content').disableSelection();					
 			} else {
 			    $("#list_content").sortable("destroy");
-			    //$("#list_content").enableSelection();	
-			    $("#list_content").mayTriggerLongClicks().off();
+			    $("#list_content").enableSelection();	
 			}
 			document.cookie = "display_mode="+display_mode;
 			document.cookie = "developer="+developer;
