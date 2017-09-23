@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.250";
+var ia7_ver = "v1.6.300";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -18,6 +18,7 @@ var rrd_refresh_loop;
 var stats_loop;
 var stat_refresh = 60;
 var fp_popover_close = true ;
+var dev_changes = 0;
 
 var ctx; //audio context
 var buf; //audio buffer
@@ -1304,19 +1305,103 @@ var loadCollection = function(collection_keys) {
 	generateTooltips();	
 
     //turn on long clicks on all buttons if in developer mode
+//TODO error checking on fields
 	$('.btn').mayTriggerLongClicks().on( 'longClick', function() {		
          if (developer === true) {
             var cls = $(this).parent().attr('class');
             if (!cls.match('ui-sortable-helper')) {
                 var colid = $(this).parent().attr("colid");
                 var URLHash=URLToHash();
-                var html = "<strong>CollectionID:</strong>&nbsp;&nbsp;"+colid+"<br>";
-                html += "<strong>Parent:</strong>&nbsp;&nbsp;"+URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1)+"<br>";
-                for (var prop in json_store.collections[colid]) {
-                    if (json_store.collections[colid].hasOwnProperty(prop)) html += "<strong>"+prop+":</strong>&nbsp;&nbsp;"+json_store.collections[colid][prop]+"<br>";
+                var col_parent = URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1);
+
+                var html = "<form class='form-horizontal'>";
+                html +=  '<div class="form-group"><label for="col_id" class="control-label col-sm-2">CollectionID</label><div class="col-sm-10">';
+                html += '<input type="text" class="form-control" id="col_id" name="cid" value="'+colid+'" readonly></div></div>';
+
+                var parent;
+                if (col_parent == 0) {
+                    parent = "Home";
+                } else {
+                    parent = json_store.collections[col_parent].name;
+                }                
+                html +=  '<div class="form-group"><label for="col_parent" class="control-label col-sm-2">Page</label><div class="col-sm-10">';
+                html += '<select class="form-control" id="col_parent" name="cparent">';
+
+                var cids=0;
+                for (var key in json_store.collections){
+                    if (json_store.collections.hasOwnProperty(key)) {
+                        if (json_store.collections[key].children !== undefined) {
+                            var name = "Home";
+                            if (json_store.collections[key].name !== undefined) name = json_store.collections[key].name
+                            var selected = "";
+                            if (key == col_parent) selected = "selected";
+                            html += '<option value="'+key+'" '+selected+'>'+key+' ('+name+')</option>';
+                        }
+                    }
                 }
+
+                html += '</select></div></div>'
+                if (json_store.collections[colid].children !== undefined) {
+                    html +=  '<div class="form-group"><label for="col_children" class="control-label col-sm-2">Children</label><div class="col-sm-10">';
+                    html += '<input type="text" class="form-control" id="col_children" name="cchild" value="'+json_store.collections[colid].children+'" readonly></div></div>';
+                }
+
+                html += '<div class="form-group"><label for="col_name" class="control-label col-sm-2">Name</label><div class="col-sm-10">';
+                var name = '';
+                if (json_store.collections[colid].name !== undefined) name = json_store.collections[colid].name;
+			    html += '<input type="text" class="form-control" id="col_name" name="name" value="'+name+'"></div></div>';
+
+                //var icos = get_icons;
+			    var icon_set = "fa";
+			    var icon = json_store.collections[colid].icon
+			    if (icon.indexOf("wi-") !=-1) icon_set = "wi";
+                html +=  '<div class="form-group"><label for="col_icon" class="control-label col-sm-2">Icon</label><div>';
+                html += '<select class="form-group selectpicker col-sm-10">';
+//                html += '<option data-icon="'+json_store.collections[colid].icon+'" value="'+json_store.collections[colid].icon+'" selected>'+json_store.collections[colid].icon+'</option>';
+                html += "<option data-content='<span><i class=&quot;"+icon_set+' '+icon+"&quot;></i></span>&nbsp;&nbsp;"+icon+"' value='"+icon+"' selected>"+icon+"</option>";
+
+//                html += '<input type="text" class="form-control" id="col_icon" name="cicon" value="'+json_store.collections[colid].icon+'" readonly></div></div>';
+                html += '</select></div></div>'
+
+                var mode = "simple";
+                if (json_store.collections[colid].mode !== undefined) mode = json_store.collections[colid].mode;
+
+                var checked = ""
+                if (mode == "advanced") checked = "checked";
+                html += '<div class="form-group"><label for="col_mode" class="control-label col-sm-2">Mode</label><div class="col-sm-10"><div class="checkbox">';
+                html += '<label><input type="checkbox" id="col_mode" name="cmode" value="Advanced" '+checked+'>Advanced</label></div></div></div>';
+               		    
+			        
+                for (var prop in json_store.collections[colid]) {
+                    if (json_store.collections[colid].hasOwnProperty(prop)) {
+                         if (!(prop == "name" || prop == "children" || prop == "icon" || prop == "mode")) {
+                             html +=  '<div class="form-group"><label for="col_'+prop+'+" class="control-label col-sm-2">'+prop+'</label><div class="col-sm-10">';
+                             html += '<input type="text" class="form-control" id="col_'+prop+'" name="c'+prop+'" value="'+json_store.collections[colid][prop]+'" readonly></div></div>';
+                         }
+                    }                    
+                }
+                html += "</form>";		
+
+                
                 //html += JSON.stringify(json_store.collections[colid]);
                 $('#devModal').find('.modal-body').html(html);
+                //	- simple/advanced mode
+	            //- change collection group (ie move icon to a different page)
+	            //- change name
+                //create footer buttons
+	            $('#devModal').find('.modal-footer').html('<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>');  
+		        $('#devModal').find('.modal-footer').prepend('<button type="button" class="btn disabled btn-success btn-dev-apply">Apply</button>');      	
+		        $('#devModal').find('.modal-footer').prepend('<button type="button" class="btn disabled btn-danger btn-dev-write pull-left">Write to MH</button>');      	
+                $('.selectpicker').selectpicker({
+                    iconBase: 'fa',
+                    tickIcon: 'fa-check'
+                });
+
+	            if (dev_changes !== 0) {			
+                    $('.btn-dev-apply').removeClass('disabled');
+                    $('.btn-dev-write').removeClass('disabled');
+                }
+
 				$('#devModal').modal({
 					show: true
 					});
@@ -1606,7 +1691,7 @@ var get_wi_icon = function (conditions,rain,snow,night) {
             }
         }
                 
-    } else if (conditions.includes("clouds") || conditions.includes("cloudy")) {
+    } else if (conditions.includes("clouds") || conditions.includes("cloudy") || conditions.includes("partly sunny")) {
         if (rain) {
             icon += "rain";
         } else if (snow) {
@@ -3496,6 +3581,7 @@ $(document).ready(function() {
                         //get the collection key
                         var col_key = URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1);
                         json_store.collections[col_key].children = new_order;
+                        dev_changes++;
                     }
 				});	
 				$('#list_content').disableSelection();					
