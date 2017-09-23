@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.300";
+var ia7_ver = "v1.6.310";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -1314,7 +1314,7 @@ var loadCollection = function(collection_keys) {
                 var URLHash=URLToHash();
                 var col_parent = URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1);
 
-                var html = "<form class='form-horizontal'>";
+                var html = "<form class='form-horizontal dev-collection-edit'>";
                 html +=  '<div class="form-group"><label for="col_id" class="control-label col-sm-2">CollectionID</label><div class="col-sm-10">';
                 html += '<input type="text" class="form-control" id="col_id" name="cid" value="'+colid+'" readonly></div></div>';
 
@@ -1356,7 +1356,7 @@ var loadCollection = function(collection_keys) {
 			    var icon = json_store.collections[colid].icon
 			    if (icon.indexOf("wi-") !=-1) icon_set = "wi";
                 html +=  '<div class="form-group"><label for="col_icon" class="control-label col-sm-2">Icon</label><div>';
-                html += '<select class="form-group selectpicker col-sm-10">';
+                html += '<select class="form-group selectpicker col-sm-10" id="col_icon">';
 //                html += '<option data-icon="'+json_store.collections[colid].icon+'" value="'+json_store.collections[colid].icon+'" selected>'+json_store.collections[colid].icon+'</option>';
                 html += "<option data-content='<span><i class=&quot;"+icon_set+' '+icon+"&quot;></i></span>&nbsp;&nbsp;"+icon+"' value='"+icon+"' selected>"+icon+"</option>";
 
@@ -1389,7 +1389,7 @@ var loadCollection = function(collection_keys) {
 	            //- change collection group (ie move icon to a different page)
 	            //- change name
                 //create footer buttons
-	            $('#devModal').find('.modal-footer').html('<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>');  
+	            $('#devModal').find('.modal-footer').html('<button type="button" class="btn btn-default btn-dev-cancel" data-dismiss="modal">Cancel</button>');  
 		        $('#devModal').find('.modal-footer').prepend('<button type="button" class="btn disabled btn-success btn-dev-apply">Apply</button>');      	
 		        $('#devModal').find('.modal-footer').prepend('<button type="button" class="btn disabled btn-danger btn-dev-write pull-left">Write to MH</button>');      	
                 $('.selectpicker').selectpicker({
@@ -1401,7 +1401,78 @@ var loadCollection = function(collection_keys) {
                     $('.btn-dev-apply').removeClass('disabled');
                     $('.btn-dev-write').removeClass('disabled');
                 }
-
+                
+                $('.dev-collection-edit').on('change', function () {
+                    $('.btn-dev-apply').removeClass('disabled');
+                    $('.btn-dev-write').removeClass('disabled');
+                    dev_changes++;
+                });
+ 
+                 $('.dev-collection-edit').on('input', function () {
+                    $('.btn-dev-apply').removeClass('disabled');
+                    $('.btn-dev-write').removeClass('disabled');
+                    dev_changes++;
+                });
+                
+                function update_collection_array () {
+                    var id = $('#col_id').val();
+                    var name = $('#col_name').val();
+                    var parent = $('#col_parent').val();
+                    var icon = $('#col_icon').val();
+                    var mode = $('#col_mode').is(":checked");
+                    console.log("id="+id+" name="+name+" parent="+parent+" icon="+icon+" mode="+mode);
+                    json_store.collections[id].name = name; 
+                    json_store.collections[id].icon = icon;
+                    if (mode == true) {
+                        json_store.collections[id].mode = "advanced";
+                    } else {
+                        delete json_store.collections[id].mode;
+                    }    
+                    if (col_parent !== parent) {
+                        if (json_store.collections[parent].children !== undefined && json_store.collections[col_parent].children !== undefined) {
+                            json_store.collections[parent].children.push(id);
+                            json_store.collections[col_parent].children.splice( json_store.collections[col_parent].children.indexOf(id), 1 );
+                        } else {
+                            console.log("Object Parent or New Parent Children undefined!!")
+                        }
+                    }            
+                }
+                
+                $('.btn-dev-apply').click( function () {
+                    if (!($('.btn-dev-apply').hasClass('disabled'))) {
+                        update_collection_array();
+                        changePage();     
+                        $('.btn-dev-cancel').text("Close");
+                        $('.btn-dev-apply').addClass('disabled');
+                    } else {
+                        console.log("disabled");
+                    }
+                });
+                
+                $('.btn-dev-write').click( function () {
+                     update_collection_array();
+                     //after apply and cancel change the cancel button text to close
+                     var data = JSON.stringify(json_store.collections);
+//                     var url="/SUB?ia7_update_collections"+encodeURI("("+data+")");
+                     url="/SUB?ia7_update_collections";
+                     //$.post(url,data);
+                      $.ajax({
+                          url: url,
+                          dataType: 'json',
+                          type: 'post',
+                          contentType: 'application/json',
+                          data: data,
+                          success: function( data, textStatus, jQxhr ){
+                              console.log("success");
+                          },
+                          error: function( jqXhr, textStatus, errorThrown ){
+                              console.log("fail"+errorThrown );
+                          }
+                      });
+                     console.log("writing to server"+encodeURI("("+data+")"));
+                     //$.get(url);
+                });
+                
 				$('#devModal').modal({
 					show: true
 					});
@@ -3586,8 +3657,10 @@ $(document).ready(function() {
 				});	
 				$('#list_content').disableSelection();					
 			} else {
-			    $("#list_content").sortable("destroy");
-			    $("#list_content").enableSelection();	
+			    if ($('#list_content').hasClass('ui-sortable')) {
+			        $("#list_content").sortable("destroy");
+			        $("#list_content").enableSelection();	
+			    }
 			}
 			document.cookie = "display_mode="+display_mode;
 			document.cookie = "developer="+developer;

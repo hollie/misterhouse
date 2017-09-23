@@ -29,6 +29,28 @@ sub main::ia7_update_schedule {
     return ""; #needed to prevent an action from being executed
 }
 
+sub main::ia7_update_collections {
+    my ( $json_data) = @_;
+
+    my @collection_files = (
+        "$main::Pgm_Root/data/web/collections.json",
+        "$main::config_parms{data_dir}/web/collections.json",
+        "$main::config_parms{ia7_data_dir}/collections.json"
+        );
+
+    &main::print_log( "Updating Collections.json");
+    &main::print_log( "data is [$json_data]");
+
+
+## check if file exists, and first one found update.
+## take incoming data and deserialize it.
+## do a json_decode to ensure it is parsed
+## back a backup of the current collections file.
+##
+
+    return ""; #needed to prevent an action from being executed
+}
+
 sub main::ia7_update_counter {
 
     $ia7_count_session++;
