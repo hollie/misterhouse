@@ -49,6 +49,7 @@ $city                 = $config_parms{nws_city} if defined $config_parms{nws_cit
 $p_weather_data       = new Process_Item;
 $p_weather_conditions = new Process_Item;
 $p_weather_forecast   = new Process_Item;
+$Weather_Common::weather_module_enabled = 1;
 
 #noloop=stop
 
