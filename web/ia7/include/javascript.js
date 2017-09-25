@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.350";
+var ia7_ver = "v1.6.360";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -3500,32 +3500,40 @@ var create_develop_item_modal = function(colid,col_parent) {
             $('.btn-dev-apply').removeClass('disabled');
             $('.btn-dev-write').removeClass('disabled');
         }
+          
+        $('#col_icon').iconpicker().on('iconpickerSelect', function(e) {
+            $('.btn-dev-apply').removeClass('disabled');
+            $('.btn-dev-write').removeClass('disabled'); 
+            $('#col_icon').css('border-color', '');           
+            dev_changes++;            
+        });
     
         $('.dev-collection-edit').on('change input', function () {
             $('.btn-dev-apply').removeClass('disabled');
             $('.btn-dev-write').removeClass('disabled');
+            //if name is empty put a red box around, otherwise blue
+            if ($('#col_name').val() == '') {
+                $('#col_name').css('border-color', 'red');
+            } else {
+                $('#col_name').css('border-color', '');
+            }
+            if ($('#col_icon').val() == '') {
+                $('#col_icon').css('border-color', 'red');
+            } else {
+                $('#col_icon').css('border-color', '');
+            }
             dev_changes++;
         });
     
-        $('#col_icon').on('focusout', function () {
-            console.log("val="+$('#col_icon').val()+" text="+$('#col_icon').text()+" orig="+icon_orig);
-            if ($('#col_icon').val() !== icon_orig) {
-                console.log("icon changed");
-                //trigger?
-            }
-        });
-    
-    //                $('#col_icon').data('iconpicker').update("NameIcon", true);
                     
         function update_collection_array () {
-    //                   var id = $('#col_id').val();
             var name = $('#col_name').val();
             var parent = $('#col_parent').val();
             var icon = $('#col_icon').val();
             var mode = $('#col_mode').is(":checked");
-            console.log("2 id="+colid+" name="+name+" parent="+parent+" col_parent="+col_parent+" icon="+icon+" mode="+mode);
-            json_store.collections[colid].name = name; 
-            json_store.collections[colid].icon = icon;
+            console.log("id="+colid+" name="+name+" parent="+parent+" col_parent="+col_parent+" icon="+icon+" mode="+mode);
+            if (name !== '') json_store.collections[colid].name = name; 
+            if (icon !== '') json_store.collections[colid].icon = icon;
             if (mode == true) {
                 json_store.collections[colid].mode = "advanced";
             } else {
@@ -3535,7 +3543,7 @@ var create_develop_item_modal = function(colid,col_parent) {
                 if (json_store.collections[parent].children !== undefined && json_store.collections[col_parent].children !== undefined) {
                 //use parseInt to ensure they are writing as numbers and not strings
                     json_store.collections[parent].children.push(parseInt(colid,10));
-                     json_store.collections[col_parent].children.splice( json_store.collections[col_parent].children.indexOf(parseInt(colid,10)), 1 );
+                    json_store.collections[col_parent].children.splice( json_store.collections[col_parent].children.indexOf(parseInt(colid,10)), 1 );
                 } else {
                     console.log("Object Parent or New Parent Children undefined!!")
                 }
@@ -3957,7 +3965,6 @@ $(document).ready(function() {
                             return parseInt(x, 10); 
                         });
                         //get the collection key
-                        console.log("new_order="+JSON.stringify(new_order));
                         var col_key = 500
                         json_store.collections[col_key].children = new_order;
                         dev_changes++;
