@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.360";
+var ia7_ver = "v1.6.400";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -338,6 +338,7 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 	$('#prefs_table').append("<div id='prtable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
 	var html = "<table class='table table-curved'><thead><tr>";
 	var config_data;
+	console.log(ia7_defaults.prefs.header_button[0]);
 	if (config_name === undefined || config_name === '')  config_name="ia7";
 	if (config_name == "ia7") {
 		config_data = json_store.ia7_config;
@@ -352,26 +353,47 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 			}
 		});
 	}		
-	html += "<th>"+ config_name + "_config.json </th></tr></thead><tbody>";
+	html += "<th colspan='2'>"+ config_name + "_config.json </th></tr></thead><tbody>";
 	for (var i in config_data){
 		if ( typeof config_data[i] === 'object') {
-			html += "<tr class='info'><td><b>"+ i + "</b></td></tr>";
+			html += "<tr class='info'><td colspan='2'><b>"+ i + "</b></td></tr>";
 			for (var j in config_data[i]) {
 				if ( typeof config_data[i][j] === 'object') {
-					html += "<tr class='info'><td style='padding-left:40px'>"+ j + "</td></tr>";
+					html += "<tr class='info'><td style='padding-left:40px' colspan='2'>"+ j + "</td></tr>";
 					for (var k in config_data[i][j]){
-						 html += "<tr><td style='padding-left:80px'>"+k+" = "+config_data[i][j][k]+"</td></tr>";
+					    html += "<tr><td style='padding-left:80px'>"+k+"</td>";	
+						html += "<td style='padding-left:80px'>"+config_data[i][j][k]+"</td></tr>";
 					}
 				} else {
-					html += "<tr><td style='padding-left:40px'>"+j+" = "+config_data[i][j]+"</td></tr>"
+					html += "<tr><td style='padding-left:40px'>"+j+"</td>";
+                    //if developer and config_name=ia7 and entry exists in ia7_prefs.json, then present a select list.
+                    console.log("1="+ia7_defaults.prefs.hasOwnProperty(k)+" j="+j+" developer ="+developer+" config_name="+config_name);					    
+                    
+                    if (ia7_defaults.prefs.hasOwnProperty(j) && i == "prefs" && developer == true && config_name == "ia7") {	
+                        console.log("in option="+j);				    
+                        html += "<td><select id='"+j+"' class='form-control'><option value='"+config_data[i][j]+"'>"+config_data[i][j]+"</option></select></td></tr>";
+                    } else {
+                        html += "<td style='padding-left:80px'>"+config_data[i][j]+"</td></tr>";
+                    }
+										
 				}
 			}
 		}	
 	}
-
+    if (developer == true) {
+        html += '<tr><td colspan=2>';
+        html += '<button type="button" class="btn disabled btn-success btn-config-apply pull-right">Apply</button>';      	
+        html += '<button type="button" class="btn disabled btn-danger btn-config-write pull-left">Write to MH</button>';      	
+    }
 	html += "</tbody></table></div>";
 	$('#prtable').html(html);
-
+    //if developer then show a Write to MH and Apply buttons.
+    $('.btn-config-apply').on('click', function () {
+        console.log('click');
+    });
+    $('.btn-config-write').on('click', function () {
+        console.log('write');
+    });  
 }
 
 function parseLinkData (link,data) {
