@@ -3841,6 +3841,10 @@ $(document).ready(function() {
 			        $("#list_content").sortable("destroy");
 			        $("#list_content").enableSelection();	
 			    }
+			    if ($('#option_collection').hasClass('ui-sortable')) {
+			        $("#option_collection").sortable("destroy");
+			        $("#option_collection").enableSelection();	
+			    }
 			}
 			document.cookie = "display_mode="+display_mode;
 			document.cookie = "developer="+developer;
@@ -3906,10 +3910,10 @@ $(document).ready(function() {
   		});  		
 		// parse the collection ID 500 and build a list of buttons
 		var opt_collection_keys = 0;
-		var opt_entity_html = "";
+		var opt_entity_html = "<div id='option_collection'>";
 		var opt_entity_sort = json_store.collections[500].children;
 		if (opt_entity_sort.length <= 0){
-		opt_entity_html = "Childless Collection";
+		opt_entity_html += "Childless Collection";
 		} else {
 		    for (var i = 0; i < opt_entity_sort.length; i++){
 				var collection = opt_entity_sort[i];
@@ -3930,13 +3934,37 @@ $(document).ready(function() {
 //					if (name == undefined) {
 //						authDetails();
 //					} 
-					opt_entity_html += "<a link-type='collection' user='"+json_store.collections[collection].user+"' class='btn btn-default btn-lg btn-block btn-list btn-login-modal' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
+					opt_entity_html += "<a link-type='collection' user='"+json_store.collections[collection].user+"' class='btn btn-default btn-lg btn-block btn-list btn-login-modal' colid='"+collection+"' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 				} else {	
 					opt_entity_html += "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list btn-option' colid='"+collection+"' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 				}
 			}
 		}
+		opt_entity_html += "</div>";
 		$('#optionsModal').find('.modal-body').append(opt_entity_html);	
+		
+					if (developer == true) {
+			    //turn on collections drag-n-dropping
+				$("#option_collection").sortable({
+				    tolerance: "pointer",
+                    cursor: "move",
+				    update: function( event, ui ) {
+		  	            var URLHash = URLToHash();
+                        //Get Sorted Array of Entities
+                        var colids = $( "#option_collection" ).sortable( "toArray", { attribute: "colid" } );
+                        //convert strings to ints
+                        var new_order = colids.map(function (x) { 
+                            return parseInt(x, 10); 
+                        });
+                        //get the collection key
+                        console.log("new_order="+JSON.stringify(new_order));
+                        var col_key = 500
+                        json_store.collections[col_key].children = new_order;
+                        dev_changes++;
+                    }
+				});	
+				$('#option_collection').disableSelection();					
+			} 
 		$('.btn-login-modal').click( function () {
 			$('#optionsModal').modal('hide');			
 			var user = $(this).attr('user')
@@ -3948,13 +3976,14 @@ $(document).ready(function() {
 		
 		$('.btn-option').mayTriggerLongClicks().on( 'longClick', function() {		
             if (developer === true) {
-            var cls = $(this).attr('class');
-        //    if (!cls.match('ui-sortable-helper')) {
-                var colid = $(this).attr("colid");
-                var col_parent=500;
-                console.log("option colid="+colid+" col_parent="+col_parent);
-                create_develop_item_modal(colid,col_parent);
-			    $('#optionsModal').modal('hide');                
+                var cls = $(this).attr('class');
+                if (!cls.match('ui-sortable-helper')) {
+                    var colid = $(this).attr("colid");
+                    var col_parent=500;
+                    console.log("option colid="+colid+" col_parent="+col_parent);
+                    create_develop_item_modal(colid,col_parent);
+                    $('#optionsModal').modal('hide');    
+                }            
 		    }
 		});
 		

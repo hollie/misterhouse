@@ -264,6 +264,9 @@
         margin-top: 2px;
     }
     
+    #option_collection {
+        margin-top: 5px;
+    }
 	
 	</style>
 </head>
