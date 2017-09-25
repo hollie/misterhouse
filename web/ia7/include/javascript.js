@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.330";
+var ia7_ver = "v1.6.350";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -1305,170 +1305,174 @@ var loadCollection = function(collection_keys) {
 	$('.btn').mayTriggerLongClicks().on( 'longClick', function() {		
          if (developer === true) {
             var cls = $(this).parent().attr('class');
-            if (!cls.match('ui-sortable-helper')) {
+            if (cls !== undefined && (!cls.match('ui-sortable-helper'))) {
                 var colid = $(this).parent().attr("colid");
                 var URLHash=URLToHash();
                 var col_parent = URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1);
-                $('#devModal').find('.modal-title').html("Edit Collection ID: <strong>"+colid+"</colid>");
-                var html = "<form class='form-horizontal dev-collection-edit'>";
-                //html += '<div class="form-group"><label for="col_id" class="control-label col-sm-2">CollectionID</label><div class="col-sm-10">';
-                //html += '<input type="text" class="form-control" id="col_id" name="cid" value="'+colid+'" readonly></div></div>';
-                var icon_orig = json_store.collections[colid].icon;
+                create_develop_item_modal(colid,col_parent);
                 
-                html += '<div class="form-group"><label for="col_icon" class="control-label col-sm-2">Icon</label><div class="col-sm-10">';
-                html += '<div class="input-group dev-collection-icon"><span class="input-group-addon" id="icon_gylph">X</span>'
-                html += '<input type="text" class="form-control iconpicker" id="col_icon" value="'+json_store.collections[colid].icon+'"></div></div></div>';
-
-                html += '<div class="form-group"><label for="col_name" class="control-label col-sm-2">Name</label><div class="col-sm-10">';
-                var name = '';
-                if (json_store.collections[colid].name !== undefined) name = json_store.collections[colid].name;
-			    html += '<input type="text" class="form-control" id="col_name" name="name" value="'+name+'"></div></div>';
-
-
-                var parent;
-                if (col_parent == 0) {
-                    parent = "Home";
-                } else {
-                    parent = json_store.collections[col_parent].name;
-                }                
-                html +=  '<div class="form-group"><label for="col_parent" class="control-label col-sm-2">Page</label><div class="col-sm-10">';
-                html += '<select class="form-control" id="col_parent" name="cparent">';
-
-                var cids=0;
-                for (var key in json_store.collections){
-                    if (json_store.collections.hasOwnProperty(key)) {
-                        if (json_store.collections[key].children !== undefined) {
-                            var name = "Home";
-                            if (json_store.collections[key].name !== undefined) name = json_store.collections[key].name
-                            var selected = "";
-                            if (key == col_parent) selected = "selected";
-                            html += '<option value="'+key+'" '+selected+'>'+key+' ('+name+')</option>';
-                        }
-                    }
-                }
-                html += '</select></div></div>'
-
-                var mode = "simple";
-                if (json_store.collections[colid].mode !== undefined) mode = json_store.collections[colid].mode;
-
-                var checked = ""
-                if (mode == "advanced") checked = "checked";
-                html += '<div class="form-group"><label for="col_mode" class="control-label col-sm-2">Mode</label><div class="col-sm-10"><div class="checkbox">';
-                html += '<label><input type="checkbox" id="col_mode" name="cmode" value="Advanced" '+checked+'>Advanced</label></div></div></div>';
-               		    
-			    var html1 = '<hr>';  
-			    var options = 0;
-                for (var prop in json_store.collections[colid]) {
-                    if (json_store.collections[colid].hasOwnProperty(prop)) {
-                         if (!(prop == "name" || prop == "icon" || prop == "mode")) {
-                             options = 1;
-                             html1 +=  '<div class="form-group"><label for="col_'+prop+'+" class="control-label col-sm-2">'+prop+'</label><div class="col-sm-10">';
-                             html1 += '<input type="text" class="form-control" id="col_'+prop+'" name="c'+prop+'" value="'+json_store.collections[colid][prop]+'" readonly></div></div>';
-                         }
-                    }                    
-                }
-                if (options == 1) html += html1;
-                html += "</form>";		
-
-                $('#devModal').find('.modal-body').html(html);
-	            $('#devModal').find('.modal-footer').html('<button type="button" class="btn btn-default btn-dev-cancel" data-dismiss="modal">Cancel</button>');  
-		        $('#devModal').find('.modal-footer').prepend('<button type="button" class="btn disabled btn-success btn-dev-apply">Apply</button>');      	
-		        $('#devModal').find('.modal-footer').prepend('<button type="button" class="btn disabled btn-danger btn-dev-write pull-left">Write to MH</button>');      	
-
-                var wi_icons = [ "wi-day-sunny","wi-day-cloudy","wi-day-cloudy-gusts","wi-day-cloudy-windy","wi-day-fog","wi-day-hail","wi-day-haze","wi-day-lightning","wi-day-rain","wi-day-rain-mix","wi-day-rain-wind","wi-day-showers","wi-day-sleet","wi-day-sleet-storm","wi-day-snow","wi-day-snow-thunderstorm","wi-day-snow-wind","wi-day-sprinkle","wi-day-storm-showers","wi-day-sunny-overcast","wi-day-thunderstorm","wi-day-windy","wi-solar-eclipse","wi-hot","wi-day-cloudy-high","wi-day-light-wind","wi-night-clear","wi-night-alt-cloudy","wi-night-alt-cloudy-gusts","wi-night-alt-cloudy-windy","wi-night-alt-hail","wi-night-alt-lightning","wi-night-alt-rain","wi-night-alt-rain-mix","wi-night-alt-rain-wind","wi-night-alt-showers","wi-night-alt-sleet","wi-night-alt-sleet-storm","wi-night-alt-snow","wi-night-alt-snow-thunderstorm","wi-night-alt-snow-wind","wi-night-alt-sprinkle","wi-night-alt-storm-showers","wi-night-alt-thunderstorm","wi-night-cloudy","wi-night-cloudy-gusts","wi-night-cloudy-windy","wi-night-fog","wi-night-hail","wi-night-lightning","wi-night-partly-cloudy","wi-night-rain","wi-night-rain-mix","wi-night-rain-wind","wi-night-showers","wi-night-sleet","wi-night-sleet-storm","wi-night-snow","wi-night-snow-thunderstorm","wi-night-snow-wind","wi-night-sprinkle","wi-night-storm-showers","wi-night-thunderstorm","wi-lunar-eclipse","wi-stars","wi-storm-showers","wi-thunderstorm","wi-night-alt-cloudy-high","wi-night-cloudy-high","wi-night-alt-partly-cloudy","wi-cloud","wi-cloudy","wi-cloudy-gusts","wi-cloudy-windy","wi-fog","wi-hail","wi-rain","wi-rain-mix","wi-rain-wind","wi-showers","wi-sleet","wi-snow","wi-sprinkle","wi-storm-showers","wi-thunderstorm","wi-snow-wind","wi-snow","wi-smog","wi-smoke","wi-lightning","wi-raindrops","wi-raindrop","wi-dust","wi-snowflake-cold","wi-windy","wi-strong-wind","wi-sandstorm","wi-earthquake","wi-fire","wi-flood","wi-meteor","wi-tsunami","wi-volcano","wi-hurricane","wi-tornado","wi-small-craft-advisory","wi-gale-warning","wi-storm-warning","wi-hurricane-warning","wi-wind-direction","wi-alien","wi-celsius","wi-fahrenheit","wi-degrees","wi-thermometer","wi-thermometer-exterior","wi-thermometer-internal","wi-cloud-down","wi-cloud-up","wi-cloud-refresh","wi-horizon","wi-horizon-alt","wi-sunrise","wi-sunset","wi-moonrise","wi-moonset","wi-refresh","wi-refresh-alt","wi-umbrella","wi-barometer","wi-humidity","wi-na","wi-train","wi-moon-new","wi-moon-waxing-crescent-1","wi-moon-waxing-crescent-2","wi-moon-waxing-crescent-3","wi-moon-waxing-crescent-4","wi-moon-waxing-crescent-5","wi-moon-waxing-crescent-6","wi-moon-first-quarter","wi-moon-waxing-gibbous-1","wi-moon-waxing-gibbous-2","wi-moon-waxing-gibbous-3","wi-moon-waxing-gibbous-4","wi-moon-waxing-gibbous-5","wi-moon-waxing-gibbous-6","wi-moon-full","wi-moon-waning-gibbous-1","wi-moon-waning-gibbous-2","wi-moon-waning-gibbous-3","wi-moon-waning-gibbous-4","wi-moon-waning-gibbous-5","wi-moon-waning-gibbous-6","wi-moon-third-quarter","wi-moon-waning-crescent-1","wi-moon-waning-crescent-2","wi-moon-waning-crescent-3","wi-moon-waning-crescent-4","wi-moon-waning-crescent-5","wi-moon-waning-crescent-6","wi-moon-alt-new","wi-moon-alt-waxing-crescent-1","wi-moon-alt-waxing-crescent-2","wi-moon-alt-waxing-crescent-3","wi-moon-alt-waxing-crescent-4","wi-moon-alt-waxing-crescent-5","wi-moon-alt-waxing-crescent-6","wi-moon-alt-first-quarter","wi-moon-alt-waxing-gibbous-1","wi-moon-alt-waxing-gibbous-2","wi-moon-alt-waxing-gibbous-3","wi-moon-alt-waxing-gibbous-4","wi-moon-alt-waxing-gibbous-5","wi-moon-alt-waxing-gibbous-6","wi-moon-alt-full","wi-moon-alt-waning-gibbous-1","wi-moon-alt-waning-gibbous-2","wi-moon-alt-waning-gibbous-3","wi-moon-alt-waning-gibbous-4","wi-moon-alt-waning-gibbous-5","wi-moon-alt-waning-gibbous-6","wi-moon-alt-third-quarter","wi-moon-alt-waning-crescent-1","wi-moon-alt-waning-crescent-2","wi-moon-alt-waning-crescent-3","wi-moon-alt-waning-crescent-4","wi-moon-alt-waning-crescent-5","wi-moon-alt-waning-crescent-6","wi-time-1","wi-time-2","wi-time-3","wi-time-4","wi-time-5","wi-time-6","wi-time-7","wi-time-8","wi-time-9","wi-time-10","wi-time-11","wi-time-12","wi-direction-up","wi-direction-up-right","wi-direction-right","wi-direction-down-right","wi-direction-down","wi-direction-down-left","wi-direction-left","wi-direction-up-left","wi-wind-beaufort-0","wi-wind-beaufort-1","wi-wind-beaufort-2","wi-wind-beaufort-3","wi-wind-beaufort-4","wi-wind-beaufort-5","wi-wind-beaufort-6","wi-wind-beaufort-7","wi-wind-beaufort-8","wi-wind-beaufort-9","wi-wind-beaufort-10","wi-wind-beaufort-11","wi-wind-beaufort-12" ];
-                $('#col_icon').iconpicker({
-                    hideOnSelect: true,
-                    icons: $.merge($.iconpicker.defaultOptions.icons,wi_icons),
-                    fullClassFormatter: function(a) {
-                        if (a.match(/^wi-/)) {
-                            return 'wi ' + a;
-                        } else {
-                            return 'fa ' + a;
-                        }
-                    }
-                });
-	            if (dev_changes !== 0) {			
-                    $('.btn-dev-apply').removeClass('disabled');
-                    $('.btn-dev-write').removeClass('disabled');
-                }
-                
-                $('.dev-collection-edit').on('change input', function () {
-                    $('.btn-dev-apply').removeClass('disabled');
-                    $('.btn-dev-write').removeClass('disabled');
-                    dev_changes++;
-                });
-                
-                $('#col_icon').on('focusout', function () {
-                    console.log("val="+$('#col_icon').val()+" orig="+icon_orig);
-                    if ($('#col_icon').val() !== icon_orig) {
-                        console.log("icon changed");
-                        //trigger?
-                    }
-                });
-                                
-                function update_collection_array () {
- //                   var id = $('#col_id').val();
-                    var name = $('#col_name').val();
-                    var parent = $('#col_parent').val();
-                    var icon = $('#col_icon').val();
-                    var mode = $('#col_mode').is(":checked");
-                    console.log("id="+colid+" name="+name+" parent="+parent+" icon="+icon+" mode="+mode);
-                    json_store.collections[colid].name = name; 
-                    json_store.collections[colid].icon = icon;
-                    if (mode == true) {
-                        json_store.collections[colid].mode = "advanced";
-                    } else {
-                        delete json_store.collections[colid].mode;
-                    }    
-                    if (col_parent !== parent) {
-                        if (json_store.collections[parent].children !== undefined && json_store.collections[col_parent].children !== undefined) {
-                            json_store.collections[parent].children.push(colid);
-                            json_store.collections[col_parent].children.splice( json_store.collections[col_parent].children.indexOf(colid), 1 );
-                        } else {
-                            console.log("Object Parent or New Parent Children undefined!!")
-                        }
-                    }            
-                }
-                
-                $('.btn-dev-apply').click( function () {
-                    if (!($('.btn-dev-apply').hasClass('disabled'))) {
-                        update_collection_array();
-                        changePage();     
-                        $('.btn-dev-cancel').text("Close");
-                        $('.btn-dev-apply').addClass('disabled');
-                    } else {
-                        console.log("disabled");
-                    }
-                });
-                
-                $('.btn-dev-write').click( function () {
-                     update_collection_array();
-                     //after apply and cancel change the cancel button text to close
-                     var data = JSON.stringify(json_store.collections);
-//                     var url="/SUB?ia7_update_collections"+encodeURI("("+data+")");
-                     url="/SUB?ia7_update_collections";
-                     //$.post(url,data);
-                      $.ajax({
-                          url: url,
-                          dataType: 'json',
-                          type: 'post',
-                          contentType: 'application/json',
-                          data: data,
-                          success: function( data, textStatus, jQxhr ){
-                              console.log("success");
-                          },
-                          error: function( jqXhr, textStatus, errorThrown ){
-                              console.log("fail"+errorThrown );
-                          }
-                      });
-                     console.log("writing to server"+encodeURI("("+data+")"));
-                     //$.get(url);
-                    // dev_changes=0; if successful
-                });
-                
-				$('#devModal').modal({
-					show: true
-					});
+//                $('#devModal').find('.modal-title').html("Edit Collection ID: <strong>"+colid+"</colid>");
+//                var html = "<form class='form-horizontal dev-collection-edit'>";
+//                //html += '<div class="form-group"><label for="col_id" class="control-label col-sm-2">CollectionID</label><div class="col-sm-10">';
+//                //html += '<input type="text" class="form-control" id="col_id" name="cid" value="'+colid+'" readonly></div></div>';
+//                var icon_orig = json_store.collections[colid].icon;
+//                
+//                html += '<div class="form-group"><label for="col_icon" class="control-label col-sm-2">Icon</label><div class="col-sm-10">';
+//                html += '<div class="input-group dev-collection-icon"><span class="input-group-addon" id="icon_gylph">X</span>'
+//                html += '<input type="text" class="form-control iconpicker" id="col_icon" value="'+json_store.collections[colid].icon+'"></div></div></div>';
+//
+//                html += '<div class="form-group"><label for="col_name" class="control-label col-sm-2">Name</label><div class="col-sm-10">';
+//                var name = '';
+//                if (json_store.collections[colid].name !== undefined) name = json_store.collections[colid].name;
+//			    html += '<input type="text" class="form-control" id="col_name" name="name" value="'+name+'"></div></div>';
+//
+//
+//                var parent;
+//                if (col_parent == 0) {
+//                    parent = "Home";
+//                } else {
+//                    parent = json_store.collections[col_parent].name;
+//                }                
+//                html +=  '<div class="form-group"><label for="col_parent" class="control-label col-sm-2">Page</label><div class="col-sm-10">';
+//                html += '<select class="form-control" id="col_parent" name="cparent">';
+//
+//                var cids=0;
+//                for (var key in json_store.collections){
+//                    if (json_store.collections.hasOwnProperty(key)) {
+//                        if (json_store.collections[key].children !== undefined) {
+//                            var name = "Home";
+//                            if (json_store.collections[key].name !== undefined) name = json_store.collections[key].name
+//                            var selected = "";
+//                            if (key == col_parent) selected = "selected";
+//                            html += '<option value="'+key+'" '+selected+'>'+key+' ('+name+')</option>';
+//                        }
+//                    }
+//                }
+//                html += '</select></div></div>'
+//
+//                var mode = "simple";
+//                if (json_store.collections[colid].mode !== undefined) mode = json_store.collections[colid].mode;
+//
+//                var checked = ""
+//                if (mode == "advanced") checked = "checked";
+//                html += '<div class="form-group"><label for="col_mode" class="control-label col-sm-2">Mode</label><div class="col-sm-10"><div class="checkbox">';
+//                html += '<label><input type="checkbox" id="col_mode" name="cmode" value="Advanced" '+checked+'>Advanced</label></div></div></div>';
+//               		    
+//			    var html1 = '<hr>';  
+//			    var options = 0;
+//                for (var prop in json_store.collections[colid]) {
+//                    if (json_store.collections[colid].hasOwnProperty(prop)) {
+//                         if (!(prop == "name" || prop == "icon" || prop == "mode")) {
+//                             options = 1;
+//                             html1 +=  '<div class="form-group"><label for="col_'+prop+'+" class="control-label col-sm-2">'+prop+'</label><div class="col-sm-10">';
+//                             html1 += '<input type="text" class="form-control" id="col_'+prop+'" name="c'+prop+'" value="'+json_store.collections[colid][prop]+'" readonly></div></div>';
+//                         }
+//                    }                    
+//                }
+//                if (options == 1) html += html1;
+//                html += "</form>";		
+//
+//                $('#devModal').find('.modal-body').html(html);
+//	            $('#devModal').find('.modal-footer').html('<button type="button" class="btn btn-default btn-dev-cancel" data-dismiss="modal">Cancel</button>');  
+//		        $('#devModal').find('.modal-footer').prepend('<button type="button" class="btn disabled btn-success btn-dev-apply">Apply</button>');      	
+//		        $('#devModal').find('.modal-footer').prepend('<button type="button" class="btn disabled btn-danger btn-dev-write pull-left">Write to MH</button>');      	
+//
+//                var wi_icons = [ "wi-day-sunny","wi-day-cloudy","wi-day-cloudy-gusts","wi-day-cloudy-windy","wi-day-fog","wi-day-hail","wi-day-haze","wi-day-lightning","wi-day-rain","wi-day-rain-mix","wi-day-rain-wind","wi-day-showers","wi-day-sleet","wi-day-sleet-storm","wi-day-snow","wi-day-snow-thunderstorm","wi-day-snow-wind","wi-day-sprinkle","wi-day-storm-showers","wi-day-sunny-overcast","wi-day-thunderstorm","wi-day-windy","wi-solar-eclipse","wi-hot","wi-day-cloudy-high","wi-day-light-wind","wi-night-clear","wi-night-alt-cloudy","wi-night-alt-cloudy-gusts","wi-night-alt-cloudy-windy","wi-night-alt-hail","wi-night-alt-lightning","wi-night-alt-rain","wi-night-alt-rain-mix","wi-night-alt-rain-wind","wi-night-alt-showers","wi-night-alt-sleet","wi-night-alt-sleet-storm","wi-night-alt-snow","wi-night-alt-snow-thunderstorm","wi-night-alt-snow-wind","wi-night-alt-sprinkle","wi-night-alt-storm-showers","wi-night-alt-thunderstorm","wi-night-cloudy","wi-night-cloudy-gusts","wi-night-cloudy-windy","wi-night-fog","wi-night-hail","wi-night-lightning","wi-night-partly-cloudy","wi-night-rain","wi-night-rain-mix","wi-night-rain-wind","wi-night-showers","wi-night-sleet","wi-night-sleet-storm","wi-night-snow","wi-night-snow-thunderstorm","wi-night-snow-wind","wi-night-sprinkle","wi-night-storm-showers","wi-night-thunderstorm","wi-lunar-eclipse","wi-stars","wi-storm-showers","wi-thunderstorm","wi-night-alt-cloudy-high","wi-night-cloudy-high","wi-night-alt-partly-cloudy","wi-cloud","wi-cloudy","wi-cloudy-gusts","wi-cloudy-windy","wi-fog","wi-hail","wi-rain","wi-rain-mix","wi-rain-wind","wi-showers","wi-sleet","wi-snow","wi-sprinkle","wi-storm-showers","wi-thunderstorm","wi-snow-wind","wi-snow","wi-smog","wi-smoke","wi-lightning","wi-raindrops","wi-raindrop","wi-dust","wi-snowflake-cold","wi-windy","wi-strong-wind","wi-sandstorm","wi-earthquake","wi-fire","wi-flood","wi-meteor","wi-tsunami","wi-volcano","wi-hurricane","wi-tornado","wi-small-craft-advisory","wi-gale-warning","wi-storm-warning","wi-hurricane-warning","wi-wind-direction","wi-alien","wi-celsius","wi-fahrenheit","wi-degrees","wi-thermometer","wi-thermometer-exterior","wi-thermometer-internal","wi-cloud-down","wi-cloud-up","wi-cloud-refresh","wi-horizon","wi-horizon-alt","wi-sunrise","wi-sunset","wi-moonrise","wi-moonset","wi-refresh","wi-refresh-alt","wi-umbrella","wi-barometer","wi-humidity","wi-na","wi-train","wi-moon-new","wi-moon-waxing-crescent-1","wi-moon-waxing-crescent-2","wi-moon-waxing-crescent-3","wi-moon-waxing-crescent-4","wi-moon-waxing-crescent-5","wi-moon-waxing-crescent-6","wi-moon-first-quarter","wi-moon-waxing-gibbous-1","wi-moon-waxing-gibbous-2","wi-moon-waxing-gibbous-3","wi-moon-waxing-gibbous-4","wi-moon-waxing-gibbous-5","wi-moon-waxing-gibbous-6","wi-moon-full","wi-moon-waning-gibbous-1","wi-moon-waning-gibbous-2","wi-moon-waning-gibbous-3","wi-moon-waning-gibbous-4","wi-moon-waning-gibbous-5","wi-moon-waning-gibbous-6","wi-moon-third-quarter","wi-moon-waning-crescent-1","wi-moon-waning-crescent-2","wi-moon-waning-crescent-3","wi-moon-waning-crescent-4","wi-moon-waning-crescent-5","wi-moon-waning-crescent-6","wi-moon-alt-new","wi-moon-alt-waxing-crescent-1","wi-moon-alt-waxing-crescent-2","wi-moon-alt-waxing-crescent-3","wi-moon-alt-waxing-crescent-4","wi-moon-alt-waxing-crescent-5","wi-moon-alt-waxing-crescent-6","wi-moon-alt-first-quarter","wi-moon-alt-waxing-gibbous-1","wi-moon-alt-waxing-gibbous-2","wi-moon-alt-waxing-gibbous-3","wi-moon-alt-waxing-gibbous-4","wi-moon-alt-waxing-gibbous-5","wi-moon-alt-waxing-gibbous-6","wi-moon-alt-full","wi-moon-alt-waning-gibbous-1","wi-moon-alt-waning-gibbous-2","wi-moon-alt-waning-gibbous-3","wi-moon-alt-waning-gibbous-4","wi-moon-alt-waning-gibbous-5","wi-moon-alt-waning-gibbous-6","wi-moon-alt-third-quarter","wi-moon-alt-waning-crescent-1","wi-moon-alt-waning-crescent-2","wi-moon-alt-waning-crescent-3","wi-moon-alt-waning-crescent-4","wi-moon-alt-waning-crescent-5","wi-moon-alt-waning-crescent-6","wi-time-1","wi-time-2","wi-time-3","wi-time-4","wi-time-5","wi-time-6","wi-time-7","wi-time-8","wi-time-9","wi-time-10","wi-time-11","wi-time-12","wi-direction-up","wi-direction-up-right","wi-direction-right","wi-direction-down-right","wi-direction-down","wi-direction-down-left","wi-direction-left","wi-direction-up-left","wi-wind-beaufort-0","wi-wind-beaufort-1","wi-wind-beaufort-2","wi-wind-beaufort-3","wi-wind-beaufort-4","wi-wind-beaufort-5","wi-wind-beaufort-6","wi-wind-beaufort-7","wi-wind-beaufort-8","wi-wind-beaufort-9","wi-wind-beaufort-10","wi-wind-beaufort-11","wi-wind-beaufort-12" ];
+//                $('#col_icon').iconpicker({
+//                    hideOnSelect: true,
+//                    icons: $.merge($.iconpicker.defaultOptions.icons,wi_icons),
+//                    fullClassFormatter: function(a) {
+//                        if (a.match(/^wi-/)) {
+//                            return 'wi ' + a;
+//                        } else {
+//                            return 'fa ' + a;
+//                        }
+//                    }
+//                });
+//	            if (dev_changes !== 0) {			
+//                    $('.btn-dev-apply').removeClass('disabled');
+//                    $('.btn-dev-write').removeClass('disabled');
+//                }
+//                
+//                $('.dev-collection-edit').on('change input', function () {
+//                    $('.btn-dev-apply').removeClass('disabled');
+//                    $('.btn-dev-write').removeClass('disabled');
+//                    dev_changes++;
+//                });
+//                
+//                $('#col_icon').on('focusout', function () {
+//                    console.log("val="+$('#col_icon').val()+" text="+$('#col_icon').text()+" orig="+icon_orig);
+//                    if ($('#col_icon').val() !== icon_orig) {
+//                        console.log("icon changed");
+//                        //trigger?
+//                    }
+//                });
+//                
+////                $('#col_icon').data('iconpicker').update("NameIcon", true);
+//                                
+//                function update_collection_array () {
+// //                   var id = $('#col_id').val();
+//                    var name = $('#col_name').val();
+//                    var parent = $('#col_parent').val();
+//                    var icon = $('#col_icon').val();
+//                    var mode = $('#col_mode').is(":checked");
+//                    console.log("id="+colid+" name="+name+" parent="+parent+" icon="+icon+" mode="+mode);
+//                    json_store.collections[colid].name = name; 
+//                    json_store.collections[colid].icon = icon;
+//                    if (mode == true) {
+//                        json_store.collections[colid].mode = "advanced";
+//                    } else {
+//                        delete json_store.collections[colid].mode;
+//                    }    
+//                    if (col_parent !== parent) {
+//                        if (json_store.collections[parent].children !== undefined && json_store.collections[col_parent].children !== undefined) {
+//                            json_store.collections[parent].children.push(colid);
+//                            json_store.collections[col_parent].children.splice( json_store.collections[col_parent].children.indexOf(colid), 1 );
+//                        } else {
+//                            console.log("Object Parent or New Parent Children undefined!!")
+//                        }
+//                    }            
+//                }
+//                
+//                $('.btn-dev-apply').click( function () {
+//                    if (!($('.btn-dev-apply').hasClass('disabled'))) {
+//                        update_collection_array();
+//                        changePage();     
+//                        $('.btn-dev-cancel').text("Close");
+//                        $('.btn-dev-apply').addClass('disabled');
+//                    } else {
+//                        console.log("disabled");
+//                    }
+//                });
+//                
+//                $('.btn-dev-write').click( function () {
+//                     update_collection_array();
+//                     //after apply and cancel change the cancel button text to close
+//                     var data = JSON.stringify(json_store.collections);
+////                     var url="/SUB?ia7_update_collections"+encodeURI("("+data+")");
+//                     url="/SUB?ia7_update_collections";
+//                     //$.post(url,data);
+//                      $.ajax({
+//                          url: url,
+//                          dataType: 'json',
+//                          type: 'post',
+//                          contentType: 'application/json',
+//                          data: data,
+//                          success: function( data, textStatus, jQxhr ){
+//                              console.log("success");
+//                          },
+//                          error: function( jqXhr, textStatus, errorThrown ){
+//                              console.log("fail"+errorThrown );
+//                          }
+//                      });
+//                     console.log("writing to server"+encodeURI("("+data+")"));
+//                     //$.get(url);
+//                    // dev_changes=0; if successful
+//                });
+//                
+//				$('#devModal').modal({
+//					show: true
+//					});
             }
         }
     });
@@ -3409,6 +3413,177 @@ var create_state_modal = function(entity) {
 		});
 }	
 
+var create_develop_item_modal = function(colid,col_parent) {
+
+    if (colid == undefined || col_parent == undefined) {
+        console.log("create develop modal, colid="+colid+" col_parent="+col_parent);
+    } else {        
+        $('#devModal').find('.modal-title').html("Edit Collection ID: <strong>"+colid+"</colid>");
+        var html = "<form class='form-horizontal dev-collection-edit'>";
+        //html += '<div class="form-group"><label for="col_id" class="control-label col-sm-2">CollectionID</label><div class="col-sm-10">';
+        //html += '<input type="text" class="form-control" id="col_id" name="cid" value="'+colid+'" readonly></div></div>';
+        var icon_orig = json_store.collections[colid].icon;
+    
+        html += '<div class="form-group"><label for="col_icon" class="control-label col-sm-2">Icon</label><div class="col-sm-10">';
+        html += '<div class="input-group dev-collection-icon"><span class="input-group-addon" id="icon_gylph">X</span>'
+        html += '<input type="text" class="form-control iconpicker" id="col_icon" value="'+json_store.collections[colid].icon+'"></div></div></div>';
+
+        html += '<div class="form-group"><label for="col_name" class="control-label col-sm-2">Name</label><div class="col-sm-10">';
+        var name = '';
+        if (json_store.collections[colid].name !== undefined) name = json_store.collections[colid].name;
+        html += '<input type="text" class="form-control" id="col_name" name="name" value="'+name+'"></div></div>';
+
+
+        var parent;
+        if (col_parent == 0) {
+            parent = "Home";
+        } else {
+            parent = json_store.collections[col_parent].name;
+        }                
+        html +=  '<div class="form-group"><label for="col_parent" class="control-label col-sm-2">Page</label><div class="col-sm-10">';
+        html += '<select class="form-control" id="col_parent" name="cparent">';
+
+        var cids=0;
+        for (var key in json_store.collections){
+            if (json_store.collections.hasOwnProperty(key)) {
+                if (json_store.collections[key].children !== undefined) {
+                    var name = "Home";
+                    if (json_store.collections[key].name !== undefined) name = json_store.collections[key].name
+                    var selected = "";
+                    if (key == col_parent) selected = "selected";
+                    html += '<option value="'+key+'" '+selected+'>'+key+' ('+name+')</option>';
+                }
+            }
+        }
+        html += '</select></div></div>'
+
+        var mode = "simple";
+        if (json_store.collections[colid].mode !== undefined) mode = json_store.collections[colid].mode;
+
+        var checked = ""
+        if (mode == "advanced") checked = "checked";
+        html += '<div class="form-group"><label for="col_mode" class="control-label col-sm-2">Mode</label><div class="col-sm-10"><div class="checkbox">';
+        html += '<label><input type="checkbox" id="col_mode" name="cmode" value="Advanced" '+checked+'>Advanced</label></div></div></div>';
+            
+        var html1 = '<hr>';  
+        var options = 0;
+        for (var prop in json_store.collections[colid]) {
+            if (json_store.collections[colid].hasOwnProperty(prop)) {
+                 if (!(prop == "name" || prop == "icon" || prop == "mode")) {
+                     options = 1;
+                     html1 +=  '<div class="form-group"><label for="col_'+prop+'+" class="control-label col-sm-2">'+prop+'</label><div class="col-sm-10">';
+                     html1 += '<input type="text" class="form-control" id="col_'+prop+'" name="c'+prop+'" value="'+json_store.collections[colid][prop]+'" readonly></div></div>';
+                 }
+            }                    
+        }
+        if (options == 1) html += html1;
+        html += "</form>";		
+
+        $('#devModal').find('.modal-body').html(html);
+        $('#devModal').find('.modal-footer').html('<button type="button" class="btn btn-default btn-dev-cancel" data-dismiss="modal">Cancel</button>');  
+        $('#devModal').find('.modal-footer').prepend('<button type="button" class="btn disabled btn-success btn-dev-apply">Apply</button>');      	
+        $('#devModal').find('.modal-footer').prepend('<button type="button" class="btn disabled btn-danger btn-dev-write pull-left">Write to MH</button>');      	
+
+        var wi_icons = [ "wi-day-sunny","wi-day-cloudy","wi-day-cloudy-gusts","wi-day-cloudy-windy","wi-day-fog","wi-day-hail","wi-day-haze","wi-day-lightning","wi-day-rain","wi-day-rain-mix","wi-day-rain-wind","wi-day-showers","wi-day-sleet","wi-day-sleet-storm","wi-day-snow","wi-day-snow-thunderstorm","wi-day-snow-wind","wi-day-sprinkle","wi-day-storm-showers","wi-day-sunny-overcast","wi-day-thunderstorm","wi-day-windy","wi-solar-eclipse","wi-hot","wi-day-cloudy-high","wi-day-light-wind","wi-night-clear","wi-night-alt-cloudy","wi-night-alt-cloudy-gusts","wi-night-alt-cloudy-windy","wi-night-alt-hail","wi-night-alt-lightning","wi-night-alt-rain","wi-night-alt-rain-mix","wi-night-alt-rain-wind","wi-night-alt-showers","wi-night-alt-sleet","wi-night-alt-sleet-storm","wi-night-alt-snow","wi-night-alt-snow-thunderstorm","wi-night-alt-snow-wind","wi-night-alt-sprinkle","wi-night-alt-storm-showers","wi-night-alt-thunderstorm","wi-night-cloudy","wi-night-cloudy-gusts","wi-night-cloudy-windy","wi-night-fog","wi-night-hail","wi-night-lightning","wi-night-partly-cloudy","wi-night-rain","wi-night-rain-mix","wi-night-rain-wind","wi-night-showers","wi-night-sleet","wi-night-sleet-storm","wi-night-snow","wi-night-snow-thunderstorm","wi-night-snow-wind","wi-night-sprinkle","wi-night-storm-showers","wi-night-thunderstorm","wi-lunar-eclipse","wi-stars","wi-storm-showers","wi-thunderstorm","wi-night-alt-cloudy-high","wi-night-cloudy-high","wi-night-alt-partly-cloudy","wi-cloud","wi-cloudy","wi-cloudy-gusts","wi-cloudy-windy","wi-fog","wi-hail","wi-rain","wi-rain-mix","wi-rain-wind","wi-showers","wi-sleet","wi-snow","wi-sprinkle","wi-storm-showers","wi-thunderstorm","wi-snow-wind","wi-snow","wi-smog","wi-smoke","wi-lightning","wi-raindrops","wi-raindrop","wi-dust","wi-snowflake-cold","wi-windy","wi-strong-wind","wi-sandstorm","wi-earthquake","wi-fire","wi-flood","wi-meteor","wi-tsunami","wi-volcano","wi-hurricane","wi-tornado","wi-small-craft-advisory","wi-gale-warning","wi-storm-warning","wi-hurricane-warning","wi-wind-direction","wi-alien","wi-celsius","wi-fahrenheit","wi-degrees","wi-thermometer","wi-thermometer-exterior","wi-thermometer-internal","wi-cloud-down","wi-cloud-up","wi-cloud-refresh","wi-horizon","wi-horizon-alt","wi-sunrise","wi-sunset","wi-moonrise","wi-moonset","wi-refresh","wi-refresh-alt","wi-umbrella","wi-barometer","wi-humidity","wi-na","wi-train","wi-moon-new","wi-moon-waxing-crescent-1","wi-moon-waxing-crescent-2","wi-moon-waxing-crescent-3","wi-moon-waxing-crescent-4","wi-moon-waxing-crescent-5","wi-moon-waxing-crescent-6","wi-moon-first-quarter","wi-moon-waxing-gibbous-1","wi-moon-waxing-gibbous-2","wi-moon-waxing-gibbous-3","wi-moon-waxing-gibbous-4","wi-moon-waxing-gibbous-5","wi-moon-waxing-gibbous-6","wi-moon-full","wi-moon-waning-gibbous-1","wi-moon-waning-gibbous-2","wi-moon-waning-gibbous-3","wi-moon-waning-gibbous-4","wi-moon-waning-gibbous-5","wi-moon-waning-gibbous-6","wi-moon-third-quarter","wi-moon-waning-crescent-1","wi-moon-waning-crescent-2","wi-moon-waning-crescent-3","wi-moon-waning-crescent-4","wi-moon-waning-crescent-5","wi-moon-waning-crescent-6","wi-moon-alt-new","wi-moon-alt-waxing-crescent-1","wi-moon-alt-waxing-crescent-2","wi-moon-alt-waxing-crescent-3","wi-moon-alt-waxing-crescent-4","wi-moon-alt-waxing-crescent-5","wi-moon-alt-waxing-crescent-6","wi-moon-alt-first-quarter","wi-moon-alt-waxing-gibbous-1","wi-moon-alt-waxing-gibbous-2","wi-moon-alt-waxing-gibbous-3","wi-moon-alt-waxing-gibbous-4","wi-moon-alt-waxing-gibbous-5","wi-moon-alt-waxing-gibbous-6","wi-moon-alt-full","wi-moon-alt-waning-gibbous-1","wi-moon-alt-waning-gibbous-2","wi-moon-alt-waning-gibbous-3","wi-moon-alt-waning-gibbous-4","wi-moon-alt-waning-gibbous-5","wi-moon-alt-waning-gibbous-6","wi-moon-alt-third-quarter","wi-moon-alt-waning-crescent-1","wi-moon-alt-waning-crescent-2","wi-moon-alt-waning-crescent-3","wi-moon-alt-waning-crescent-4","wi-moon-alt-waning-crescent-5","wi-moon-alt-waning-crescent-6","wi-time-1","wi-time-2","wi-time-3","wi-time-4","wi-time-5","wi-time-6","wi-time-7","wi-time-8","wi-time-9","wi-time-10","wi-time-11","wi-time-12","wi-direction-up","wi-direction-up-right","wi-direction-right","wi-direction-down-right","wi-direction-down","wi-direction-down-left","wi-direction-left","wi-direction-up-left","wi-wind-beaufort-0","wi-wind-beaufort-1","wi-wind-beaufort-2","wi-wind-beaufort-3","wi-wind-beaufort-4","wi-wind-beaufort-5","wi-wind-beaufort-6","wi-wind-beaufort-7","wi-wind-beaufort-8","wi-wind-beaufort-9","wi-wind-beaufort-10","wi-wind-beaufort-11","wi-wind-beaufort-12" ];
+        $('#col_icon').iconpicker({
+            hideOnSelect: true,
+            icons: $.merge($.iconpicker.defaultOptions.icons,wi_icons),
+            fullClassFormatter: function(a) {
+                if (a.match(/^wi-/)) {
+                    return 'wi ' + a;
+                } else {
+                    return 'fa ' + a;
+                }
+            }
+        });
+        if (dev_changes !== 0) {			
+            $('.btn-dev-apply').removeClass('disabled');
+            $('.btn-dev-write').removeClass('disabled');
+        }
+    
+        $('.dev-collection-edit').on('change input', function () {
+            $('.btn-dev-apply').removeClass('disabled');
+            $('.btn-dev-write').removeClass('disabled');
+            dev_changes++;
+        });
+    
+        $('#col_icon').on('focusout', function () {
+            console.log("val="+$('#col_icon').val()+" text="+$('#col_icon').text()+" orig="+icon_orig);
+            if ($('#col_icon').val() !== icon_orig) {
+                console.log("icon changed");
+                //trigger?
+            }
+        });
+    
+    //                $('#col_icon').data('iconpicker').update("NameIcon", true);
+                    
+        function update_collection_array () {
+    //                   var id = $('#col_id').val();
+            var name = $('#col_name').val();
+            var parent = $('#col_parent').val();
+            var icon = $('#col_icon').val();
+            var mode = $('#col_mode').is(":checked");
+            console.log("2 id="+colid+" name="+name+" parent="+parent+" col_parent="+col_parent+" icon="+icon+" mode="+mode);
+            json_store.collections[colid].name = name; 
+            json_store.collections[colid].icon = icon;
+            if (mode == true) {
+                json_store.collections[colid].mode = "advanced";
+            } else {
+                delete json_store.collections[colid].mode;
+            }    
+            if (col_parent !== parent) {
+                if (json_store.collections[parent].children !== undefined && json_store.collections[col_parent].children !== undefined) {
+                //use parseInt to ensure they are writing as numbers and not strings
+                    json_store.collections[parent].children.push(parseInt(colid,10));
+                     json_store.collections[col_parent].children.splice( json_store.collections[col_parent].children.indexOf(parseInt(colid,10)), 1 );
+                } else {
+                    console.log("Object Parent or New Parent Children undefined!!")
+                }
+            }            
+        }
+    
+        $('.btn-dev-apply').click( function () {
+            if (!($('.btn-dev-apply').hasClass('disabled'))) {
+                update_collection_array();
+                changePage();     
+                $('.btn-dev-cancel').text("Close");
+                $('.btn-dev-apply').addClass('disabled');
+            } else {
+                console.log("disabled");
+            }
+        });
+    
+        $('.btn-dev-write').click( function () {
+             update_collection_array();
+             //after apply and cancel change the cancel button text to close
+             var data = JSON.stringify(json_store.collections);
+    //                     var url="/SUB?ia7_update_collections"+encodeURI("("+data+")");
+             url="/SUB?ia7_update_collections";
+             //$.post(url,data);
+              $.ajax({
+                  url: url,
+                  dataType: 'json',
+                  type: 'post',
+                  contentType: 'application/json',
+                  data: data,
+                  success: function( data, textStatus, jQxhr ){
+                      console.log("success");
+                  },
+                  error: function( jqXhr, textStatus, errorThrown ){
+                      console.log("fail"+errorThrown );
+                  }
+              });
+             console.log("writing to server"+encodeURI("("+data+")"));
+             //$.get(url);
+            // dev_changes=0; if successful
+        });
+    
+        $('#devModal').modal({
+            show: true
+            });
+    }
+}
+
 var authorize_modal = function(user) {
 
 	//alert(user);
@@ -3757,7 +3932,7 @@ $(document).ready(function() {
 //					} 
 					opt_entity_html += "<a link-type='collection' user='"+json_store.collections[collection].user+"' class='btn btn-default btn-lg btn-block btn-list btn-login-modal' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 				} else {	
-					opt_entity_html += "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
+					opt_entity_html += "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list btn-option' colid='"+collection+"' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 				}
 			}
 		}
@@ -3770,6 +3945,19 @@ $(document).ready(function() {
 		$('#optionsModal').find('.btn-list').click(function (){
 			$('#optionsModal').modal('hide');
 		});
+		
+		$('.btn-option').mayTriggerLongClicks().on( 'longClick', function() {		
+            if (developer === true) {
+            var cls = $(this).attr('class');
+        //    if (!cls.match('ui-sortable-helper')) {
+                var colid = $(this).attr("colid");
+                var col_parent=500;
+                console.log("option colid="+colid+" col_parent="+col_parent);
+                create_develop_item_modal(colid,col_parent);
+			    $('#optionsModal').modal('hide');                
+		    }
+		});
+		
 	});
 
 //Needed to floorplan sliders to work.
