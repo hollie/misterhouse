@@ -204,6 +204,14 @@
   		left: 17px;
   		right: 17px;
 	}
+	
+	.alerts-modal {
+  		position: absolute;
+  		top: 3px;
+  		left: 3px;
+  		right: 3px;
+	}	
+	
 	.mobile-alert {
 		margin-top:-22px !important;
 	}

@@ -110,6 +110,9 @@ sub json {
         elsif ( lc($request_type) eq "put" ) {
             json_put( $request_type, \@path, \%args, $body, %HttpHeader );
         }
+        elsif ( lc($request_type) eq "post" ) {
+            json_post( $request_type, \@path, \%args, $body, %HttpHeader );
+        }
     }
 }
 
@@ -155,6 +158,34 @@ sub json_put {
     $json_raw = $json_raw->pretty->encode( \%json );
     return &json_page($json_raw,%HttpHeader);
 }
+
+ sub json_post {
+    my ( $request_type, $path, $arguments, $body, %HttpHeader ) = @_;
+    my (%json);
+    my %args        = %{$arguments};
+    my @path        = @{$path};
+    #$body = decode_json($body);
+    %HttpHeader = %Http unless %HttpHeader;
+    if ( $path[0] eq 'collections' ) {
+       my @collection_files = (
+         "$main::Pgm_Root/data/web/collections.json",
+         "$main::config_parms{data_dir}/web/collections.json",
+         "$main::config_parms{ia7_data_dir}/collections.json"
+        );
+
+        &main::print_log( "Updating Collections.json");
+        &main::print_log( "data is [$body]");
+        &main::print_log( "auth is [$Authorized]");
+        my $html_head = "HTTP/1.1 200 OK\r\n";
+        $html_head .= "Server: MisterHouse\r\n";
+        $html_head .= "Content-Length: 0\r\n";
+        $html_head .= "Date: " . time2str(time) . "\r\n";
+        $html_head .= "\r\n";
+
+        return $html_head;
+    }
+}
+
 
 # Handles Get (READ) Requests
 sub json_get {
