@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.400";
+var ia7_ver = "v1.6.410";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -338,7 +338,6 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 	$('#prefs_table').append("<div id='prtable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
 	var html = "<table class='table table-curved'><thead><tr>";
 	var config_data;
-	console.log(ia7_defaults.prefs.header_button[0]);
 	if (config_name === undefined || config_name === '')  config_name="ia7";
 	if (config_name == "ia7") {
 		config_data = json_store.ia7_config;
@@ -354,8 +353,30 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 		});
 	}		
 	html += "<th colspan='2'>"+ config_name + "_config.json </th></tr></thead><tbody>";
+	var pref_items = [];
 	for (var i in config_data){
 		if ( typeof config_data[i] === 'object') {
+		
+            if (i !== "prefs" && pref_items.length > 0) {
+                for (var xi in ia7_defaults.prefs) { 
+                    if (!(config_data.prefs.hasOwnProperty(xi))) {
+
+                        html += "<tr class='text-info' ><td style='padding-left:40px'>"+xi+"</td>";
+                        if (developer == true && config_name == "ia7") {	
+                            html += "<td><select id='"+xi+"' class='form-control config-edit'>";
+                            for (var di2 = 0; di2 < ia7_defaults.prefs[xi].length; di2++) {
+                                html += "<option value='"+ia7_defaults.prefs[xi][di2]+"'>"+ia7_defaults.prefs[xi][di2]+"</option>";
+                            }
+                            html += "</select></td></tr>";
+                        } else {
+                            html += "<td style='padding-left:80px'>"+ia7_defaults.prefs[xi][0]+"</td></tr>";
+                        }
+
+                    }    
+                }
+            }
+            pref_items = [];
+		
 			html += "<tr class='info'><td colspan='2'><b>"+ i + "</b></td></tr>";
 			for (var j in config_data[i]) {
 				if ( typeof config_data[i][j] === 'object') {
@@ -366,16 +387,20 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 					}
 				} else {
 					html += "<tr><td style='padding-left:40px'>"+j+"</td>";
-                    //if developer and config_name=ia7 and entry exists in ia7_prefs.json, then present a select list.
-                    console.log("1="+ia7_defaults.prefs.hasOwnProperty(k)+" j="+j+" developer ="+developer+" config_name="+config_name);					    
-                    
+                  
                     if (ia7_defaults.prefs.hasOwnProperty(j) && i == "prefs" && developer == true && config_name == "ia7") {	
-                        console.log("in option="+j);				    
-                        html += "<td><select id='"+j+"' class='form-control'><option value='"+config_data[i][j]+"'>"+config_data[i][j]+"</option></select></td></tr>";
+                        html += "<td><select id='"+j+"' class='form-control config-edit'>";
+                        for (var di = 0; di < ia7_defaults.prefs[j].length; di++) {
+                            var selected = "";
+                            if (ia7_defaults.prefs[j][di] == config_data[i][j]) selected = "selected";
+//                            html += "<option value='"+config_data[i][j]+"'>"+config_data[i][j]+"</option>
+                            html += "<option value='"+ia7_defaults.prefs[j][di]+"' "+selected+">"+ia7_defaults.prefs[j][di]+"</option>";
+                        }
+                        html += "</select></td></tr>";
                     } else {
                         html += "<td style='padding-left:80px'>"+config_data[i][j]+"</td></tr>";
                     }
-										
+                     if (i == "prefs") pref_items.push(j);
 				}
 			}
 		}	
@@ -387,10 +412,31 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
     }
 	html += "</tbody></table></div>";
 	$('#prtable').html(html);
-    //if developer then show a Write to MH and Apply buttons.
-    $('.btn-config-apply').on('click', function () {
-        console.log('click');
-    });
+
+    $('.config-edit').on('change input', function () {
+         $('.btn-config-apply').removeClass('disabled');
+         $('.btn-config-write').removeClass('disabled');
+     }); 
+                 
+     function update_pref_array () {
+        console.log("update pref array");
+        $('.config-edit').each( function () {
+            var item = $(this).attr('id');
+            var value = $(this).val();
+            console.log("id="+$(this).attr('id'));
+            console.log("val="+$(this).val());
+            json_store.ia7_config.prefs[item] = value;
+            changePage();
+        });
+     }
+ 
+     $('.btn-config-apply').click( function () {
+         if (!($('.btn-config-apply').hasClass('disabled'))) {
+             update_pref_array();  
+             $('.btn-config-apply').addClass('disabled');
+         } 
+     });
+
     $('.btn-config-write').on('click', function () {
         console.log('write');
     });  
