@@ -47,6 +47,7 @@ use HTML::Entities;    # So we can encode characters like <>& etc
 use JSON qw(decode_json);
 use IO::Compress::Gzip qw(gzip);
 use vars qw(%json_table);
+use File::Copy;
 my %json_cache;
 my @json_notifications = ();    #noloop
 
@@ -179,30 +180,54 @@ sub json_put {
         
     } elsif ( $path[0] eq 'collections' ) {
         my @collection_files = (
-         "$main::Pgm_Root/data/web/collections.json",
+         "$main::config_parms{ia7_data_dir}/collections.json",
          "$main::config_parms{data_dir}/web/collections.json",
-         "$main::config_parms{ia7_data_dir}/collections.json"
+         "$main::Pgm_Root/data/web/collections.json"
         );
 
-        &main::print_log( "Updating Collections.json");
+        &main::print_log( "Json_Server.pl: Updating Collections.json");
 
         if (lc $Authorized ne "admin") {
             $response_code = "HTTP/1.1 401 Unauthorized\r\n";
             $response_text->{status} = "error";
             $response_text->{text} = "Administative Access required";
+            &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+
         } else {
-        
-        
-        
-           $response_code = "HTTP/1.1 200 OK\r\n";
-           $response_text->{status} = "success";
-           $response_text->{text} = "";        
+            my $file_found = 0;
+            my $file_error = 0;
+            foreach my $file (@collection_files) {
+                &main::print_log( "Checking $file...");
+                if (-x $file) {
+                    my $file_data = to_json( $body, { utf8 => 1, pretty => 1 } );
+                    my $backup_file = $file . ".t" . int( ::get_tickcount() / 1000 ) . ".backup";
+                    copy ($file, $backup_file) or $file_error = 1;
+                    unless ($file_error) {
+                        &main::file_write( $file, $file_data );
+                    }
+                    $file_found = 1;
+                    last;
+                }
+            }
+            if ($file_error) {
+                $response_code = "HTTP/1.1 500 Internal Server Error OK\r\n";
+                $response_text->{status} = "error";
+                $response_text->{text} = "Error saving file or backup"; 
+                &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+            
+            } else {
+                 if ($file_found) {
+                     $response_code = "HTTP/1.1 200 OK\r\n";
+                     $response_text->{status} = "success";
+                     $response_text->{text} = "";             
+                 } else {
+                     $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                     $response_text->{status} = "error";
+                     $response_text->{text} = "Could not find collections file";    
+                     &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});                           
+                 }  
+            }  
         }
-
-
-
-        #status:error, text:"Could not write data to file"
-        #status:error, text:"Could not create backup file, collections not saved"
 
     } elsif ( $path[0] eq 'ia7_config' ) {
     
@@ -210,18 +235,17 @@ sub json_put {
         $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
         $response_text->{status} = "error";
         $response_text->{text} = "Unknown path " . $path[0];
+        &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+        
     }    
 
-    my $html_body = to_json( $response_text, { utf8 => 1, pretty => 1 } );
+    my $html_body = to_json( $response_text, { utf8 => 1} );
 
     my $html_head = $response_code;
     $html_head .= "Server: MisterHouse\r\n";
     $html_head .= "Content-Length: " . length($html_body) . "\r\n";
     $html_head .= "Date: " . time2str(time) . "\r\n";
     $html_head .= "\r\n";  
-
-
-print  "****" . $html_head . $html_body . "****\n";
  
     return $html_head . $html_body;
       

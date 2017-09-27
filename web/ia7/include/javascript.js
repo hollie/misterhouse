@@ -3493,9 +3493,10 @@ var create_develop_item_modal = function(colid,col_parent) {
                   },
                   error: function( xhr, status, error ){
                         var message = "Unknown ajax request error";
-                        if (xhr.responseText !== undefined) message = xhr.responseText;
+                        if (xhr.responseText.text !== undefined) message = xhr.responseText.text;
                         console.log("status="+status);
                         console.log("error="+error);
+                        console.log("data"+JSON.stringify(xhr));
                         // should be JSON.parse(xhr.responseText); since json_server should respond back with JSON data??
                         $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
    	 		            $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
