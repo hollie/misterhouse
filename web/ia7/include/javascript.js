@@ -3476,20 +3476,28 @@ var create_develop_item_modal = function(colid,col_parent) {
                   contentType: 'application/json',
                   data: JSON.stringify(json_store.collections),
                   success: function( data, status, error ){
-                        console.log("data="+data);
+                        console.log("data="+data+" status="+status+" error="+error);
                         //throw up red warning if the response isn't good from MH
-                        $(".modal-header").append($("<div class='write-status alert alerts-modal alert-success fade in' data-alert><p><i class='fa fa-info-circle'></i>&nbsp;<strong>Success:</strong>&nbsp;Data successfully written to MH</p></div>"));
-   	 		            $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
-   	 		            $('.btn-dev-cancel').text("Close");
-                        $('.btn-dev-apply').addClass('disabled');
-   	 		            dev_changes = 0;
+                        if (data.status !== undefined || data.status == "error") {
+                            var message = "Unknown server error";
+                            if (data.text !== undefined) message = data.text
+                            $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+   	 		                $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                         } else {   
+                            $(".modal-header").append($("<div class='write-status alert alerts-modal alert-success fade in' data-alert><p><i class='fa fa-info-circle'></i>&nbsp;<strong>Success:</strong>&nbsp;Data successfully written to MH</p></div>"));
+                            $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                            $('.btn-dev-cancel').text("Close");
+                            $('.btn-dev-apply').addClass('disabled');
+                            dev_changes = 0;
+                        }
                   },
                   error: function( xhr, status, error ){
-                        console.log(xhr.responseText);
+                        var message = "Unknown ajax request error";
+                        if (xhr.responseText !== undefined) message = xhr.responseText;
                         console.log("status="+status);
                         console.log("error="+error);
                         // should be JSON.parse(xhr.responseText); since json_server should respond back with JSON data??
-                        $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+xhr.responseText+"</p></div>"));
+                        $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
    	 		            $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
                   }
               });

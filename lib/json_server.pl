@@ -185,30 +185,44 @@ sub json_put {
         );
 
         &main::print_log( "Updating Collections.json");
-        &main::print_log( "data is [$body]");
-        &main::print_log( "auth is [$Authorized]");
-        $response_code = "HTTP/1.1 200 OK\r\n";
-        $response_text->{status} = "success";
-        $response_text->{text} = "";
 
-        #should return
-        # 200
-        #status:success, text:"" 
-        # 500
-        #status:error, text:"Not authorized"
+        if (lc $Authorized ne "admin") {
+            $response_code = "HTTP/1.1 401 Unauthorized\r\n";
+            $response_text->{status} = "error";
+            $response_text->{text} = "Administative Access required";
+        } else {
+        
+        
+        
+           $response_code = "HTTP/1.1 200 OK\r\n";
+           $response_text->{status} = "success";
+           $response_text->{text} = "";        
+        }
+
+
+
         #status:error, text:"Could not write data to file"
         #status:error, text:"Could not create backup file, collections not saved"
 
-    }
+    } elsif ( $path[0] eq 'ia7_config' ) {
     
+    } else {
+        $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+        $response_text->{status} = "error";
+        $response_text->{text} = "Unknown path " . $path[0];
+    }    
+
+    my $html_body = to_json( $response_text, { utf8 => 1, pretty => 1 } );
+
     my $html_head = $response_code;
     $html_head .= "Server: MisterHouse\r\n";
-    $html_head .= "Content-Length: 0\r\n";
+    $html_head .= "Content-Length: " . length($html_body) . "\r\n";
     $html_head .= "Date: " . time2str(time) . "\r\n";
     $html_head .= "\r\n";  
 
-    my $html_body = to_json( $response_text, { utf8 => 1, pretty => 1 } );
-    
+
+print  "****" . $html_head . $html_body . "****\n";
+ 
     return $html_head . $html_body;
       
 }
