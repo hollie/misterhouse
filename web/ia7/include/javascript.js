@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.430";
+var ia7_ver = "v1.6.450";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -437,9 +437,41 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
          } 
      });
 
-    $('.btn-config-write').on('click', function () {
-        console.log('write');
-    });  
+     $('.btn-config-write').click( function () {
+          update_pref_array();
+          //after apply and cancel change the cancel button text to close
+           $.ajax({
+               url: "/json/ia7_config",
+//what data is returned?                  dataType: 'json',
+               type: 'post',
+               contentType: 'application/json',
+               data: JSON.stringify(json_store.ia7_config),
+               success: function( data, status, error ){
+                     console.log("data="+data+" status="+status+" error="+error);
+                     //throw up red warning if the response isn't good from MH
+                     if (data.status !== undefined || data.status == "error") {
+                         var message = "Unknown server error";
+                         if (data.text !== undefined) message = data.text
+                         $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+                         $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                      } else {   
+                         $(".modal-header").append($("<div class='write-status alert alerts-modal alert-success fade in' data-alert><p><i class='fa fa-info-circle'></i>&nbsp;<strong>Success:</strong>&nbsp;Data successfully written to MH</p></div>"));
+                         $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                         $('.btn-config-apply').addClass('disabled');
+                         $('.btn-config-write').addClass('disabled');
+                     }
+               },
+               error: function( xhr, status, error ){
+                     var message = "Unknown ajax request error";
+                     var data = JSON.parse(xhr.responseText);
+                     if (data !== undefined && data.text !== undefined) message = data.text;
+                     console.log("status="+status);
+                     console.log("error="+error);
+                     $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+                     $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+               }
+           });
+     }); 
 }
 
 function parseLinkData (link,data) {

@@ -194,44 +194,31 @@ sub json_put {
             &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
 
         } else {
-            my $file_found = 0;
-            my $file_error = 0;
-            foreach my $file (@collection_files) {
-                &main::print_log( "Checking $file...");
-                if (-e $file) {
-                    my $file_data = to_json( $body, { utf8 => 1, pretty => 1 } );
-                    my $backup_file = $file . ".J" . int( ::get_tickcount() / 1000 ) . ".backup";
-                    copy ($file, $backup_file) or $file_error = 1;
-                    unless ($file_error) {
-                        &main::print_log( "Writing to $file...");
-                        &main::file_write( $file, $file_data );
-#TODO get error code from file_write
-                    }
-                    $file_found = 1;
-                    last;
-                }
-            }
-            if ($file_error) {
-                $response_code = "HTTP/1.1 500 Internal Server Error OK\r\n";
-                $response_text->{status} = "error";
-                $response_text->{text} = "Error saving file or backup"; 
-                &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
-            
-            } else {
-                 if ($file_found) {
-                     $response_code = "HTTP/1.1 200 OK\r\n";
-                     $response_text->{status} = "success";
-                     $response_text->{text} = "";             
-                 } else {
-                     $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
-                     $response_text->{status} = "error";
-                     $response_text->{text} = "Could not find collections file";    
-                     &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});                           
-                 }  
-            }  
+        
+            ($response_code, $response_text) = &json_write_file('collections',$body,@collection_files);
+ 
         }
 
     } elsif ( $path[0] eq 'ia7_config' ) {
+
+        my @config_files = (
+         "$config_parms{ia7_data_dir}/ia7_config.json",
+         "$config_parms{data_dir}/web/ia7_config.json",
+         "$Pgm_Root/data/web/ia7_config.json"
+        );
+
+        &main::print_log( "Json_Server.pl: Updating ia7_config.json");
+
+        if (lc $Authorized ne "admin") {
+            $response_code = "HTTP/1.1 401 Unauthorized\r\n";
+            $response_text->{status} = "error";
+            $response_text->{text} = "Administative Access required";
+            &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+
+        } else {
+        
+            ($response_code, $response_text) = &json_write_file('ia7_config',$body,@config_files);
+        }
     
     } else {
         $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
@@ -1435,6 +1422,48 @@ eof
 
     return $html_head.$html;
 }
+
+sub json_write_file {
+    my ($name,$body, @files) = @_; 
+        my $response_code;
+        my $response_text;  
+        my $file_found = 0;
+        my $file_error = 0;
+        foreach my $file (@files) {
+            &main::print_log( "Checking $file...");
+            if (-e $file) {
+                my $file_data = to_json( $body, { utf8 => 1, pretty => 1 } );
+                my $backup_file = $file . ".J" . int( ::get_tickcount() / 1000 ) . ".backup";
+                copy ($file, $backup_file) or $file_error = 1;
+                unless ($file_error) {
+                    &main::print_log( "Writing to $file...");
+                    &main::file_write( $file, $file_data );
+#TODO get error code from file_write
+                }
+                $file_found = 1;
+                last;
+            }
+        }
+        if ($file_error) {
+            $response_code = "HTTP/1.1 500 Internal Server Error OK\r\n";
+            $response_text->{status} = "error";
+            $response_text->{text} = "Error saving file or backup"; 
+            &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+        
+        } else {
+             if ($file_found) {
+                 $response_code = "HTTP/1.1 200 OK\r\n";
+                 $response_text->{status} = "success";
+                 $response_text->{text} = "";             
+             } else {
+                 $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                 $response_text->{status} = "error";
+                 $response_text->{text} = "Could not find " . $name . " file";    
+                 &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});                           
+             }  
+        }
+    return ($response_code, $response_text);
+}      
 
 sub json_table_create {
     my ($key) = @_;
