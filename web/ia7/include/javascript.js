@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.450";
+var ia7_ver = "v1.6.460";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -19,6 +19,7 @@ var stats_loop;
 var stat_refresh = 60;
 var fp_popover_close = true ;
 var dev_changes = 0;
+var config_modal_loop;
 
 var ctx; //audio context
 var buf; //audio buffer
@@ -408,7 +409,7 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
     if (developer == true) {
         html += '<tr><td colspan=2>';
         html += '<button type="button" class="btn disabled btn-success btn-config-apply pull-right">Apply</button>';      	
-        html += '<button type="button" class="btn disabled btn-danger btn-config-write pull-left">Write to MH</button>';      	
+        html += '<button type="button" class="btn disabled btn-danger btn-config-write pull-left">Write to MH</button></tr>';      	
     }
 	html += "</tbody></table></div>";
 	$('#prtable').html(html);
@@ -419,26 +420,28 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
      }); 
                  
      function update_pref_array () {
-        console.log("update pref array");
+//        console.log("update pref array");
         $('.config-edit').each( function () {
             var item = $(this).attr('id');
             var value = $(this).val();
-            console.log("id="+$(this).attr('id'));
-            console.log("val="+$(this).val());
+//            console.log("id="+$(this).attr('id'));
+//            console.log("val="+$(this).val());
             json_store.ia7_config.prefs[item] = value;
-            changePage();
         });
+        changePage();        
      }
  
      $('.btn-config-apply').click( function () {
          if (!($('.btn-config-apply').hasClass('disabled'))) {
              update_pref_array();  
              $('.btn-config-apply').addClass('disabled');
+             $('.btn-config-write').removeClass('disabled');            
          } 
      });
 
      $('.btn-config-write').click( function () {
           update_pref_array();
+          config_modal_loop = clearTimeout();
           //after apply and cancel change the cancel button text to close
            $.ajax({
                url: "/json/ia7_config",
@@ -449,6 +452,12 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
                success: function( data, status, error ){
                      console.log("data="+data+" status="+status+" error="+error);
                      //throw up red warning if the response isn't good from MH
+                     $('#lastResponse').modal({
+						    show: true
+					    });
+					config_modal_loop = setTimeout(function(){
+					    $('#lastResponse').modal('hide');
+				    }, 3000);	   
                      if (data.status !== undefined || data.status == "error") {
                          var message = "Unknown server error";
                          if (data.text !== undefined) message = data.text
@@ -465,6 +474,9 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
                      var message = "Unknown ajax request error";
                      var data = JSON.parse(xhr.responseText);
                      if (data !== undefined && data.text !== undefined) message = data.text;
+                     config_modal_loop = setTimeout(function(){
+					    $('#lastResponse').modal('hide');
+				     }, 3000);
                      console.log("status="+status);
                      console.log("error="+error);
                      $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
