@@ -3471,11 +3471,13 @@ var create_develop_item_modal = function(colid,col_parent) {
              //after apply and cancel change the cancel button text to close
               $.ajax({
                   url: "/json/collections",
-                  dataType: 'json',
+//what data is returned?                  dataType: 'json',
                   type: 'post',
                   contentType: 'application/json',
                   data: JSON.stringify(json_store.collections),
                   success: function( data, status, error ){
+                        console.log("data="+data);
+                        //throw up red warning if the response isn't good from MH
                         $(".modal-header").append($("<div class='write-status alert alerts-modal alert-success fade in' data-alert><p><i class='fa fa-info-circle'></i>&nbsp;<strong>Success:</strong>&nbsp;Data successfully written to MH</p></div>"));
    	 		            $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
    	 		            $('.btn-dev-cancel').text("Close");
@@ -3484,6 +3486,8 @@ var create_develop_item_modal = function(colid,col_parent) {
                   },
                   error: function( xhr, status, error ){
                         console.log(xhr.responseText);
+                        console.log("status="+status);
+                        console.log("error="+error);
                         // should be JSON.parse(xhr.responseText); since json_server should respond back with JSON data??
                         $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+xhr.responseText+"</p></div>"));
    	 		            $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });

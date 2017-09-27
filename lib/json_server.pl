@@ -164,10 +164,21 @@ sub json_put {
     my (%json);
     my %args        = %{$arguments};
     my @path        = @{$path};
-    #$body = decode_json($body);
+    my $response_code = "HTTP/1.1 200 OK\r\n";
+    my $response_text = ();
     %HttpHeader = %Http unless %HttpHeader;
-    if ( $path[0] eq 'collections' ) {
-       my @collection_files = (
+    
+    eval {
+        $body = decode_json($body);    #HP, wrap this in eval to prevent MH crashes
+    };
+    if ($@) {
+        &main::print_log( "Json_Server.pl: WARNING: decode_json failed for json POST!" );
+        $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+        $response_text->{status} = "error";
+        $response_text->{text} = "Failed to decode JSON file";
+        
+    } elsif ( $path[0] eq 'collections' ) {
+        my @collection_files = (
          "$main::Pgm_Root/data/web/collections.json",
          "$main::config_parms{data_dir}/web/collections.json",
          "$main::config_parms{ia7_data_dir}/collections.json"
@@ -176,14 +187,30 @@ sub json_put {
         &main::print_log( "Updating Collections.json");
         &main::print_log( "data is [$body]");
         &main::print_log( "auth is [$Authorized]");
-        my $html_head = "HTTP/1.1 200 OK\r\n";
-        $html_head .= "Server: MisterHouse\r\n";
-        $html_head .= "Content-Length: 0\r\n";
-        $html_head .= "Date: " . time2str(time) . "\r\n";
-        $html_head .= "\r\n";
+        $response_code = "HTTP/1.1 200 OK\r\n";
+        $response_text->{status} = "success";
+        $response_text->{text} = "";
 
-        return $html_head;
+        #should return
+        # 200
+        #status:success, text:"" 
+        # 500
+        #status:error, text:"Not authorized"
+        #status:error, text:"Could not write data to file"
+        #status:error, text:"Could not create backup file, collections not saved"
+
     }
+    
+    my $html_head = $response_code;
+    $html_head .= "Server: MisterHouse\r\n";
+    $html_head .= "Content-Length: 0\r\n";
+    $html_head .= "Date: " . time2str(time) . "\r\n";
+    $html_head .= "\r\n";  
+
+    my $html_body = to_json( $response_text, { utf8 => 1, pretty => 1 } );
+    
+    return $html_head . $html_body;
+      
 }
 
 
@@ -270,7 +297,7 @@ sub json_get {
             $json_data{'rrd_config'} = decode_json($prefs);    #HP, wrap this in eval to prevent MH crashes
         };
         if ($@) {
-            print_log "Json_Server.pl: WARNING: decode_json failed for ia7_rrd_config.json. Please check this file!";
+            &main::print_log("Json_Server.pl: WARNING: decode_json failed for ia7_rrd_config.json. Please check this file!");
         }
     }
 
