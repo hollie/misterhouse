@@ -180,9 +180,9 @@ sub json_put {
         
     } elsif ( $path[0] eq 'collections' ) {
         my @collection_files = (
-         "$main::config_parms{ia7_data_dir}/collections.json",
-         "$main::config_parms{data_dir}/web/collections.json",
-         "$main::Pgm_Root/data/web/collections.json"
+         "$config_parms{ia7_data_dir}/collections.json",
+         "$config_parms{data_dir}/web/collections.json",
+         "$Pgm_Root/data/web/collections.json"
         );
 
         &main::print_log( "Json_Server.pl: Updating Collections.json");
@@ -198,12 +198,14 @@ sub json_put {
             my $file_error = 0;
             foreach my $file (@collection_files) {
                 &main::print_log( "Checking $file...");
-                if (-x $file) {
+                if (-e $file) {
                     my $file_data = to_json( $body, { utf8 => 1, pretty => 1 } );
-                    my $backup_file = $file . ".t" . int( ::get_tickcount() / 1000 ) . ".backup";
+                    my $backup_file = $file . ".J" . int( ::get_tickcount() / 1000 ) . ".backup";
                     copy ($file, $backup_file) or $file_error = 1;
                     unless ($file_error) {
+                        &main::print_log( "Writing to $file...");
                         &main::file_write( $file, $file_data );
+#TODO get error code from file_write
                     }
                     $file_found = 1;
                     last;
