@@ -6,28 +6,6 @@ $main::Save{"ia7_count_total"} = 0 if (not defined $main::Save{"ia7_count_total"
 
 &::Reload_post_add_hook( \&ia7_utilities::speech_startup, 1 ); #noloop
 
-sub main::ia7_update_collections {
-    my ( $json_data) = @_;
-
-    my @collection_files = (
-        "$main::Pgm_Root/data/web/collections.json",
-        "$main::config_parms{data_dir}/web/collections.json",
-        "$main::config_parms{ia7_data_dir}/collections.json"
-        );
-
-    &main::print_log( "Updating Collections.json");
-    &main::print_log( "data is [$json_data]");
-
-
-## check if file exists, and first one found update.
-## take incoming data and deserialize it.
-## do a json_decode to ensure it is parsed
-## back a backup of the current collections file.
-##
-
-    return ""; #needed to prevent an action from being executed
-}
-
 sub speech_startup {
     if ( !defined $main::Info{IPAddress_local} ) {
         &::print_log("WARNING \$Info{IPAddress_local} not defined. Json speech disabled");

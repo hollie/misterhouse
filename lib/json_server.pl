@@ -235,28 +235,37 @@ sub json_put {
         #print "**** DB: " . Dumper \$body;
         ## objects come is as OBJ -> FIELD -> Data
         my $obj_found = 0;
+        my $error = 0;
         foreach my $object (keys $body) {
             foreach my $field (keys $body->{$object}) {
                 if ($field == "schedule") {
-                    # data id, cron, label
-                    $obj_found = 1;
-                    my $obj = &main::get_object_by_name($object);
-                    $obj->reset_schedule();
-                    foreach my $schedule (@{$body->{$object}->{$field}}) {
-                    $obj->set_schedule( $schedule->{id}, $schedule->{cron}, $schedule->{label} );
+                    if (!$Authorized) {
+                        $response_code = "HTTP/1.1 401 Unauthorized\r\n";
+                        $response_text->{status} = "error";
+                        $response_text->{text} = "Authenticated Access required";
+                        &main::print_log( "Json_Server.pl: Error modifying schedule for $object:" . $response_text->{text});
+                        $error = 1;
+                    } else {
+                        $obj_found = 1;
+                        my $obj = &main::get_object_by_name($object);
+                        $obj->reset_schedule();
+                        foreach my $schedule (@{$body->{$object}->{$field}}) {
+                        $obj->set_schedule( $schedule->{id}, $schedule->{cron}, $schedule->{label} );
+                        }
                     }
                 }
             }
         } 
-        
-        if ($obj_found) {
-            $response_code = "HTTP/1.1 200 OK\r\n";
-            $response_text->{status} = "success";
-            $response_text->{text} = "";  
-        } else {
-            $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
-            $response_text->{status} = "error";
-            $response_text->{text} = "Object not found";
+        unless ($error) {
+            if ($obj_found) {
+                $response_code = "HTTP/1.1 200 OK\r\n";
+                $response_text->{status} = "success";
+                $response_text->{text} = "";  
+            } else {
+                $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                $response_text->{status} = "error";
+                $response_text->{text} = "Object not found";
+            }
         }
          
     } else {

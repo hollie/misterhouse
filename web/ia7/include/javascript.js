@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.500";
+var ia7_ver = "v1.6.510";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -3549,12 +3549,15 @@ var create_develop_item_modal = function(colid,col_parent) {
     
         $('.btn-dev-write').click( function () {
              update_collection_array();
+             //item 700 is special, it needs to be user = $Authorized for the MH authentication piece to work.
+             var data = json_store.collections;
+             data[700].user = "$Authorized";
              //after apply and cancel change the cancel button text to close
               $.ajax({
                   url: "/json/collections",
                   type: 'post',
                   contentType: 'application/json',
-                  data: JSON.stringify(json_store.collections),
+                  data: JSON.stringify(data),
                   success: function( data, status, error ){
                         console.log("data="+data+" status="+status+" error="+error);
                         //throw up red warning if the response isn't good from MH
