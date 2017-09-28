@@ -50,6 +50,7 @@ use vars qw(%json_table);
 use File::Copy;
 my %json_cache;
 my @json_notifications = ();    #noloop
+my $web_counter; #noloop;
 
 sub json {
     my ( $request_type, $path_str, $arguments, $body, $client_number, $requestnum ) = @_;
@@ -219,16 +220,63 @@ sub json_put {
         
             ($response_code, $response_text) = &json_write_file('ia7_config',$body,@config_files);
         }
-    
+
+    } elsif ( $path[0] eq 'web_counter' ) {
+
+        $web_counter = 0 if (not defined $web_counter);
+        $web_counter++;
+        $main::Save{"ia7_count_total"}++;
+        $response_code = "HTTP/1.1 200 OK\r\n";
+        $response_text->{status} = "success";
+        $response_text->{text} = "";  
+        #print "**** DB: web_counter=$web_counter\n";
+
+    } elsif ( $path[0] eq 'objects' ) {
+        #print "**** DB: " . Dumper \$body;
+        ## objects come is as OBJ -> FIELD -> Data
+        my $obj_found = 0;
+        foreach my $object (keys $body) {
+            foreach my $field (keys $body->{$object}) {
+                if ($field == "schedule") {
+                    # data id, cron, label
+                    $obj_found = 1;
+                    my $obj = &main::get_object_by_name($object);
+                    $obj->reset_schedule();
+                    foreach my $schedule (@{$body->{$object}->{$field}}) {
+                    $obj->set_schedule( $schedule->{id}, $schedule->{cron}, $schedule->{label} );
+                    }
+                }
+            }
+        } 
+        
+        if ($obj_found) {
+            $response_code = "HTTP/1.1 200 OK\r\n";
+            $response_text->{status} = "success";
+            $response_text->{text} = "";  
+        } else {
+            $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+            $response_text->{status} = "error";
+            $response_text->{text} = "Object not found";
+        }
+         
     } else {
         $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
         $response_text->{status} = "error";
         $response_text->{text} = "Unknown path " . $path[0];
         &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
         
-    }    
-
-    my $html_body = to_json( $response_text, { utf8 => 1} );
+    }  
+    my $html_body;  
+    eval {
+        $html_body = to_json( $response_text, { utf8 => 1} );
+    };
+    if ($@) {
+        &main::print_log( "Json_Server.pl: WARNING: to_json failed for json POST!" );
+        $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+        $response_text->{status} = "error";
+        $response_text->{text} = "Failed to encode JSON data";
+        
+    }
 
     my $html_head = $response_code;
     $html_head .= "Server: MisterHouse\r\n";
@@ -788,6 +836,16 @@ sub json_get {
         $json_data{$source}{tagline} = $tagline
    }
 
+   if ( $path[0] eq 'web_counter' || $path[0] eq 'misc' || $path[0] eq '' ) {
+        my $source = "web_counter";
+        $source = "misc" if ($path[0] eq 'misc');
+
+        $web_counter = 0 if (not defined $web_counter);
+        $json_data{$source}{web_counter_session} = $web_counter;
+        $json_data{$source}{web_counter_total} = $main::Save{"ia7_count_total"};
+
+   }
+
    if ( $path[0] eq 'stats' || $path[0] eq 'misc' || $path[0] eq '' ) {
         my $source = "stats";
         $source = "misc" if ($path[0] eq 'misc');
@@ -804,8 +862,6 @@ sub json_get {
         $json_data{$source}{load} = $load;
         $json_data{$source}{cores} = $System_cores;
         $json_data{$source}{time_of_day} = $Time_Of_Day;
-        $json_data{$source}{web_counter_session} = $ia7_utilities::ia7_count_session;
-        $json_data{$source}{web_counter_total} = $Save{"ia7_count_total"};
 
    }
 

@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.460";
+var ia7_ver = "v1.6.500";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -3298,18 +3298,55 @@ var create_state_modal = function(entity) {
 		
 			$('.sched_submit').on('click', function(){
 				if ($(this).hasClass("disabled")) return;
-				var string = "";
-				$('.mhsched').each(function(index,value) {
-					string += $( this ).attr("id") + ',"' + modify_jqcon_dow($(this).text(),"-1") + '",' + $( this ).attr("label") + ',';
+				var data = {};
+	
+                if ($(this).parents('.control-dialog').attr("entity") == undefined) return;	
+				data[$(this).parents('.control-dialog').attr("entity")] = {};
+				data[$(this).parents('.control-dialog').attr("entity")].schedule = [];
+				
+				$('.mhsched').each(function(index,value) {					
+					var sched_data = {};
+					sched_data.id = $( this ).attr("id");
+					sched_data.cron = modify_jqcon_dow($(this).text(),"-1");
+					sched_data.label = $( this ).attr("label");
+                    data[$(this).parents('.control-dialog').attr("entity")]['schedule'].push(sched_data);				
 				});
-				string = string.replace(/,\s*$/, ""); //remove the last comma
-				var url="/SUB?ia7_update_schedule"+encodeURI("("+$(this).parents('.control-dialog').attr("entity")+","+string+")");
-				$.get(url);
-            	$('.sched_submit').addClass('disabled');  
-            	$('.sched_submit').removeClass('btn-success');  
-            	$('.sched_submit').addClass('btn-default');  
-            	//emtpy the array since the long_poll should get the updated schedules.
-            	json_store.objects[entity].schedule.length = 0; 			
+
+                $.ajax({
+                    url: "/json/objects",
+                    type: 'post',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function( data, status, error ){
+                          console.log("data="+data+" status="+status+" error="+error);
+                          //throw up red warning if the response isn't good from MH
+                          if (data.status !== undefined || data.status == "error") {
+                              var message = "Unknown server error";
+                              if (data.text !== undefined) message = data.text
+                              $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+                              $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                           } else {   
+                              $(".modal-header").append($("<div class='write-status alert alerts-modal alert-success fade in' data-alert><p><i class='fa fa-info-circle'></i>&nbsp;<strong>Success:</strong>&nbsp;Object successfully updated</p></div>"));
+                              $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                              $('.sched_submit').addClass('disabled');  
+                              $('.sched_submit').removeClass('btn-success');  
+                              $('.sched_submit').addClass('btn-default');  
+                              //emtpy the array since the long_poll should get the updated schedules.
+                              json_store.objects[entity].schedule.length = 0; 
+                          }
+                    },
+                    error: function( xhr, status, error ){
+                          var message = "Unknown ajax request error";
+                          var data = JSON.parse(xhr.responseText);
+                          if (data !== undefined && data.text !== undefined) message = data.text;
+                          console.log("status="+status);
+                          console.log("error="+error);
+                          $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+                          $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                  }                    
+                });
+			
+			
 			});			
 			//hide the schedule controls if in simple mode
 			if 	(display_mode == "simple") {
@@ -3515,7 +3552,6 @@ var create_develop_item_modal = function(colid,col_parent) {
              //after apply and cancel change the cancel button text to close
               $.ajax({
                   url: "/json/collections",
-//what data is returned?                  dataType: 'json',
                   type: 'post',
                   contentType: 'application/json',
                   data: JSON.stringify(json_store.collections),
@@ -3685,7 +3721,12 @@ $(document).ready(function() {
 	// Start
 	
 	// Increment the counter
-	$.get("/SUB?ia7_update_counter");
+    $.ajax({
+        url: "/json/web_counter",
+        type: 'post',
+        contentType: 'application/json',
+        data: "{\"1\":\"1\"}"           //json can't be blank otherwise the decode check will fail
+    });
 	
 	changePage();
 	//Watch for future changes in hash

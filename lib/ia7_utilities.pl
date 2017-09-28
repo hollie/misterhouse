@@ -1,33 +1,10 @@
 package ia7_utilities;
 use strict;
 use JSON qw(decode_json to_json);
-our $ia7_count_session;
 
-$ia7_count_session = 0; #noloop
 $main::Save{"ia7_count_total"} = 0 if (not defined $main::Save{"ia7_count_total"}); #noloop
 
 &::Reload_post_add_hook( \&ia7_utilities::speech_startup, 1 ); #noloop
-
-sub main::ia7_update_schedule {
-    my ( $object, @schedules ) = @_;
-
-    &main::print_log( "Updating Schedule for object $object, schedule size is " . scalar(@schedules) );
-
-    my $obj = &main::get_object_by_name($object);
-    my $s   = 0;
-    my $index;
-    my @curr_schedule = $obj->get_schedule;
-    $obj->reset_schedule();
-    for ( my $i = 1; $i <= ( scalar(@schedules) / 3 ); $i++ ) {
-        my $jqCron = $schedules[ $i * 3 - 2 ];
-
-        #jqCron uses 1-7 for Sat - Sunday, MH uses 0-6, so shift all the numbers
-        &main::print_log(
-            "Adding Schedule (id=" . $schedules[ $i * 3 - 3 ] . " cron=" . $schedules[ $i * 3 - 2 ] . " label=" . $schedules[ $i * 3 - 1 ] . ")" );
-        $obj->set_schedule( $schedules[ $i * 3 - 3 ], $schedules[ $i * 3 - 2 ], $schedules[ $i * 3 - 1 ] );
-    }
-    return ""; #needed to prevent an action from being executed
-}
 
 sub main::ia7_update_collections {
     my ( $json_data) = @_;
@@ -49,16 +26,6 @@ sub main::ia7_update_collections {
 ##
 
     return ""; #needed to prevent an action from being executed
-}
-
-sub main::ia7_update_counter {
-
-    $ia7_count_session++;
-    $main::Save{"ia7_count_total"}++;
-
-#    &main::print_log( "Updating Counter [" . $ia7_count_session . "/" . $main::Save{"ia7_count_total"} . "]");
-    return "";
-       
 }
 
 sub speech_startup {
