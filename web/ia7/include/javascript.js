@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.510";
+var ia7_ver = "v1.6.520";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -358,25 +358,6 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 	for (var i in config_data){
 		if ( typeof config_data[i] === 'object') {
 		
-            if (i !== "prefs" && pref_items.length > 0) {
-                for (var xi in ia7_defaults.prefs) { 
-                    if (!(config_data.prefs.hasOwnProperty(xi))) {
-
-                        html += "<tr class='text-info' ><td style='padding-left:40px'>"+xi+"</td>";
-                        if (developer == true && config_name == "ia7") {	
-                            html += "<td><select id='"+xi+"' class='form-control config-edit'>";
-                            for (var di2 = 0; di2 < ia7_defaults.prefs[xi].length; di2++) {
-                                html += "<option value='"+ia7_defaults.prefs[xi][di2]+"'>"+ia7_defaults.prefs[xi][di2]+"</option>";
-                            }
-                            html += "</select></td></tr>";
-                        } else {
-                            html += "<td style='padding-left:80px'>"+ia7_defaults.prefs[xi][0]+"</td></tr>";
-                        }
-
-                    }    
-                }
-            }
-            pref_items = [];
 		
 			html += "<tr class='info'><td colspan='2'><b>"+ i + "</b></td></tr>";
 			for (var j in config_data[i]) {
@@ -404,6 +385,28 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
                      if (i == "prefs") pref_items.push(j);
 				}
 			}
+			
+			if (i == "prefs" && pref_items.length > 0) {
+                for (var xi in ia7_defaults.prefs) { 
+                    if (!(config_data.prefs.hasOwnProperty(xi))) {
+
+                        html += "<tr class='text-info' ><td style='padding-left:40px'>"+xi+"</td>";
+                        if (developer == true && config_name == "ia7") {	
+                            html += "<td><select id='"+xi+"' class='form-control config-edit'>";
+                            for (var di2 = 0; di2 < ia7_defaults.prefs[xi].length; di2++) {
+                                html += "<option value='"+ia7_defaults.prefs[xi][di2]+"'>"+ia7_defaults.prefs[xi][di2]+"</option>";
+                            }
+                            html += "</select></td></tr>";
+                        } else {
+                            html += "<td style='padding-left:80px'>"+ia7_defaults.prefs[xi][0]+"</td></tr>";
+                        }
+
+                    }    
+                }
+            }
+            pref_items = [];
+			
+			
 		}	
 	}
     if (developer == true) {
@@ -2993,7 +2996,7 @@ var floorplan = function(group,time) {
             }
             if (time === 0){
                 // hack to fix initial positions of the items
-                var wait = 400;
+                var wait = 800;
                 setTimeout(function(){
                     fp_reposition_entities();
                 }, wait);
