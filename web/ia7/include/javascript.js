@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.520";
+var ia7_ver = "v1.6.530";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -3849,6 +3849,7 @@ $(document).ready(function() {
                         var col_key = URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1);
                         json_store.collections[col_key].children = new_order;
                         dev_changes++;
+                        changePage();
                     }
 				});	
 				$('#list_content').disableSelection();					
