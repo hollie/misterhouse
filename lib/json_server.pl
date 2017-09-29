@@ -350,6 +350,7 @@ sub json_get {
             my $prefs = file_read($prefs_file);
             $json_data{'ia7_config'} = decode_json($prefs);    #HP, wrap this in eval to prevent MH crashes
         };
+
         if ($@) {
             print_log "Json_Server.pl: WARNING: decode_json failed for ia7_config.json. Please check this file!";
             $json_data{'ia7_config'} = decode_json('{ "prefs" : { "status" : "error" } }');    #write a blank collection
@@ -357,15 +358,18 @@ sub json_get {
         }
 
         # Look at the client ip overrides, and replace any pref key with the client_ip specific item
-        if ( defined $json_data{'ia7_config'}->{clients}->{ $HttpHeader{Client_address} } ) {
-            print_log "Json_Server.pl: Client override section for $HttpHeader{Client_address} found";
-            for my $key ( keys %{ $json_data{'ia7_config'}->{clients}->{ $HttpHeader{Client_address} } } ) {
-                print_log "Json_Server.pl: Client key=$key, value = $json_data{'ia7_config'}->{clients}->{$HttpHeader{Client_address}}->{$key}";
-                print_log "Json_Server.pl: Master value = $json_data{'ia7_config'}->{prefs}->{$key}";
-                $json_data{'ia7_config'}->{prefs}->{$key} = $json_data{'ia7_config'}->{clients}->{ $HttpHeader{Client_address} }->{$key};
-            }
-            delete $json_data{'ia7_config'}->{clients};
-        }
+        # have to first check for {clients} since checking for $HttpHeader seems to create a null $clients key
+        if (defined $json_data{'ia7_config'}->{clients}) {       
+             if ( defined $json_data{'ia7_config'}->{clients}->{ $HttpHeader{Client_address} } ) {
+                 print_log "Json_Server.pl: Client override section for $HttpHeader{Client_address} found";
+                 for my $key ( keys %{ $json_data{'ia7_config'}->{clients}->{ $HttpHeader{Client_address} } } ) {
+                     print_log "Json_Server.pl: Client key=$key, value = $json_data{'ia7_config'}->{clients}->{$HttpHeader{Client_address}}->{$key}";
+                     print_log "Json_Server.pl: Master value = $json_data{'ia7_config'}->{prefs}->{$key}";
+                     $json_data{'ia7_config'}->{prefs}->{$key} = $json_data{'ia7_config'}->{clients}->{ $HttpHeader{Client_address} }->{$key};
+                 }
+                 delete $json_data{'ia7_config'}->{clients};
+             }
+        }        
     }
 
     # List rrd config settings

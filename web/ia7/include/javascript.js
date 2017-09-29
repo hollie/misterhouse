@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.530";
+var ia7_ver = "v1.6.540";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -362,13 +362,13 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 			html += "<tr class='info'><td colspan='2'><b>"+ i + "</b></td></tr>";
 			for (var j in config_data[i]) {
 				if ( typeof config_data[i][j] === 'object') {
-					html += "<tr class='info'><td style='padding-left:40px' colspan='2'>"+ j + "</td></tr>";
+					html += "<tr class='info'><td style='padding-left:25px' colspan='2'>"+ j + "</td></tr>";
 					for (var k in config_data[i][j]){
-					    html += "<tr><td style='padding-left:80px'>"+k+"</td>";	
-						html += "<td style='padding-left:80px'>"+config_data[i][j][k]+"</td></tr>";
+					    html += "<tr><td style='padding-left:50px'>"+k+"</td>";	
+						html += "<td style='padding-left:25px'>"+config_data[i][j][k]+"</td></tr>";
 					}
 				} else {
-					html += "<tr><td style='padding-left:40px'>"+j+"</td>";
+					html += "<tr><td style='padding-left:25px'>"+j+"</td>";
                   
                     if (ia7_defaults.prefs.hasOwnProperty(j) && i == "prefs" && developer == true && config_name == "ia7") {	
                         html += "<td><select id='"+j+"' class='form-control config-edit'>";
@@ -380,17 +380,17 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
                         }
                         html += "</select></td></tr>";
                     } else {
-                        html += "<td style='padding-left:80px'>"+config_data[i][j]+"</td></tr>";
+                        html += "<td style='padding-left:25px'>"+config_data[i][j]+"</td></tr>";
                     }
                      if (i == "prefs") pref_items.push(j);
 				}
 			}
-			
-			if (i == "prefs" && pref_items.length > 0) {
+
+			if (i == "prefs" && config_name == "ia7" && pref_items.length > 0) {
                 for (var xi in ia7_defaults.prefs) { 
                     if (!(config_data.prefs.hasOwnProperty(xi))) {
 
-                        html += "<tr class='text-info' ><td style='padding-left:40px'>"+xi+"</td>";
+                        html += "<tr class='text-info' ><td style='padding-left:25px'>"+xi+"</td>";
                         if (developer == true && config_name == "ia7") {	
                             html += "<td><select id='"+xi+"' class='form-control config-edit'>";
                             for (var di2 = 0; di2 < ia7_defaults.prefs[xi].length; di2++) {
@@ -398,7 +398,7 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
                             }
                             html += "</select></td></tr>";
                         } else {
-                            html += "<td style='padding-left:80px'>"+ia7_defaults.prefs[xi][0]+"</td></tr>";
+                            html += "<td style='padding-left:25px'>"+ia7_defaults.prefs[xi][0]+"</td></tr>";
                         }
 
                     }    
@@ -3183,8 +3183,10 @@ var create_state_modal = function(entity) {
 		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
 		$('#control').find('.states').find('.btn').click(function (){
 			url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
-			$('#control').modal('hide');
-			$.get( url);
+			if (!$(this).hasClass("disabled")) {
+			    $('#control').modal('hide');
+			    $.get( url);
+			}
 		});
 		} else {
 			//remove states from anything that doesn't have more than 1 state
