@@ -574,11 +574,7 @@ sub android_page {
     # handle blank xsl name
     my $style;
     $style = qq|<?xml-stylesheet type="text/xsl" href="$xsl"?>| if $xsl;
-    return <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: text/xml
-
+my $body = <<eof;
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 $style
 <misterhouse>
@@ -586,14 +582,19 @@ $xml</misterhouse>
 
 eof
 
+    my $output = "HTTP/1.1 200 OK\r\n";
+    $output .= "Server: MisterHouse\r\n";
+    $output .= "Content-type: text/xml\r\n";
+    $output .= "Connection: close\r\n" if &http_close_socket;
+    $output .= "Content-Length: " . ( length $body ) . "\r\n";
+    $output .= "Date: " . time2str(time) . "\r\n";
+    $output .= "\r\n";
+    $output .= $body;
+    return $output;
 }
 
 sub android_usage {
     my $html = <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: text/html
-
 <html>
 <head>
 </head>
@@ -637,5 +638,13 @@ eof
 </html>
 eof
 
-    return $html;
+    my $output = "HTTP/1.1 200 OK\r\n";
+    $output .= "Server: MisterHouse\r\n";
+    $output .= "Content-type: text/html\r\n";
+    $output .= "Connection: close\r\n" if &http_close_socket;
+    $output .= "Content-Length: " . ( length $html ) . "\r\n";
+    $output .= "Date: " . time2str(time) . "\r\n";
+    $output .= "\r\n";
+    $output .= $html;
+    return $output;
 }

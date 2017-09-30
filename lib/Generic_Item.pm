@@ -2003,7 +2003,8 @@ sub check_date {
                       . " schedule is "
                       . $self->{ 'schedule_' . $index }
                       . " time_cron return "
-                      . &main::time_cron( $self->{ 'schedule_' . $index } ) );
+                      . &main::time_cron( $self->{ 'schedule_' . $index } ) )
+			if $main::Debug{'schedule'};
                 if ( &main::time_cron( $self->{ 'schedule_' . $index } ) ) {
                     $self->set_action( $self->{ 'schedule_label_' . $index } );
                 }

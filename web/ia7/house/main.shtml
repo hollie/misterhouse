@@ -6,15 +6,16 @@
 			<strong>OS:</strong> <!--#include var="$^O"--><br>
 			<strong>Perl:</strong> <!--#include code="sprintf '%vd', $^V;"--><br>
 			<strong>User:</strong> <!--#include var="$Info{User}"--><br>
+			<strong>IA7:</strong> <span id='ia7_ver'>replace_current_ia7_version</span>
 		</div>
 		<div class='col-sm-6'>
 			<div class='col-sm-8'>
 				<a href="/ia7/#path=/prefs/ia7" style='margin-bottom:5px' class='btn btn-default btn-md btn-block btn-list' role='button'>
-					<i class='fa fa-file-text-o fa-2x fa-fw'></i> IA7 Prefs File</a>
+					<i class='fa fa-file-text-o fa-2x fa-fw'></i> IA7 Preferences</a>
 			</div>
 			<div class='col-sm-8'>
 				<a href="/ia7/#path=/prefs/ia7_rrd" style='margin-bottom:5px' class='btn btn-default btn-md btn-block btn-list' role='button'>
-					<i class='fa fa-file-text-o fa-2x fa-fw'></i> RRD Prefs File</a>
+					<i class='fa fa-file-text-o fa-2x fa-fw'></i> RRD Preferences</a>
 			</div>		
 		</div>		
 	</div>
@@ -82,7 +83,7 @@
 	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
 		<div class='col-sm-12'>
 			<p class="text-muted"><small> MisterHouse was created by Bruce Winter.  Ron Klinkien developed the v2.3 web interface.  Kevin Robert Keegan 
-			designed the IA7 web prototype, updates by H.Plato. IA7 v1.5.830 Font Awesome by Dave Gandy - http://fontawesome.io</small></p>
+			designed the IA7 web prototype, updates by H.Plato. Font Awesome by Dave Gandy.</small></p>
 		</div>
 	</div>
 </div>

@@ -1,5 +1,5 @@
 # Category = Weather
-#@ Updates live weather variables from http://api.wunderground.com.
+#@ Updates live weather variables from http://api.wunderground.com. (Updated MH5)
 
 =begin
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -36,6 +36,11 @@ use XML::Twig;
 my $wunderground_getweather_file;
 my $wunderground_stationid = $config_parms{wunderground_stationid};
 my $wunderground_apikey    = $config_parms{wunderground_apikey};
+my $wunderground_units     = "f";
+$wunderground_units        = $config_parms{wunderground_units} if (defined $config_parms{wunderground_units});
+my $wunderground_units2    = "mph";
+$wunderground_units2       = "kph" if ((defined $config_parms{wunderground_units}) and (lc $config_parms{wunderground_units} eq "c"));
+
 my $wunderground_url;
 my %wunderground_data;
 my @wunderground_keys;
@@ -43,6 +48,7 @@ $p_weather_wunderground_getweather = new Process_Item();
 
 my $wunderground_states = 'getweather,parsefile,debug';
 $v_wunderground = new Voice_Cmd("wunderground [$wunderground_states]");
+$Weather_Common::weather_module_enabled = 1;
 
 # noloop=stop
 
@@ -114,25 +120,26 @@ if ( done_now $p_weather_wunderground_getweather or 'parsefile' eq said $v_wunde
         @wunderground_keys = [];
 
         #TempOutdoor
-        weather_wunderground_addelem( $channel, 'TempOutdoor', 'temp_f' );
+        weather_wunderground_addelem( $channel, 'TempOutdoor', 'temp_' . $wunderground_units );
 
         #DewOutdoor
-        weather_wunderground_addelem( $channel, 'DewOutdoor', 'dewpoint_f' );
+        weather_wunderground_addelem( $channel, 'DewOutdoor', 'dewpoint_' . $wunderground_units );
 
         #WindAvgDir
         weather_wunderground_addelem( $channel, 'WindAvgDir', 'wind_dir' );
 
         #WindAvgSpeed
-        weather_wunderground_addelem( $channel, 'WindAvgSpeed', 'wind_mph' );
+        weather_wunderground_addelem( $channel, 'WindAvgSpeed', 'wind_' . $wunderground_units2 );
 
         #WindGustDir
         #WindGustSpeed
-        weather_wunderground_addelem( $channel, 'WindGustSpeed', 'wind_gust_mph' );
+        weather_wunderground_addelem( $channel, 'WindGustSpeed', 'wind_gust' . $wunderground_units2 );
 
         #WindGustTime
-        #Clouds
         #Conditions
         weather_wunderground_addelem( $channel, 'Conditions', 'weather' );
+        #Clouds
+        weather_wunderground_addelem( $channel, 'Clouds', 'weather' );
 
         #Barom
         weather_wunderground_addelem( $channel, 'Barom', 'pressure_mb' );
@@ -144,14 +151,23 @@ if ( done_now $p_weather_wunderground_getweather or 'parsefile' eq said $v_wunde
         weather_wunderground_addelem( $channel, 'HumidOutdoor', 'relative_humidity' );
 
         #IsRaining
+        $wunderground_data{IsRaining} = 0;
+        $wunderground_data{IsRaining} = 1 if ($wunderground_data{Conditions} =~ m/rain/i);
+
         #IsSnowing
+        $wunderground_data{IsSnowing} = 0;
+        $wunderground_data{IsSnowing} = 1 if ($wunderground_data{Conditions} =~ m/snow/i);
+        
+        weather_wunderground_addelem( $channel, 'Clouds', 'weather' );
+
         #RainTotal
         weather_wunderground_addelem( $channel, 'RainTotal', 'precip_today_in' );
 
         #RainRate
+        weather_wunderground_addelem( $channel, 'LastUpdated', 'observation_time' );
+        $wunderground_data{LastUpdated} =~ s/^Last Updated on //;
 
         print_log "[WUnderground] " . Dumper %wunderground_data if $Debug{weather} >= 5;
-
         print_log "[WUnderground] Using elements: $config_parms{weather_wunderground_elements}" if $Debug{weather};
         &Weather_Common::populate_internet_weather( \%wunderground_data, $config_parms{weather_wunderground_elements} );
         &Weather_Common::weather_updated;

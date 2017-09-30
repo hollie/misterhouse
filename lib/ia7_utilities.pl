@@ -2,28 +2,9 @@ package ia7_utilities;
 use strict;
 use JSON qw(decode_json to_json);
 
+$main::Save{"ia7_count_total"} = 0 if (not defined $main::Save{"ia7_count_total"}); #noloop
+
 &::Reload_post_add_hook( \&ia7_utilities::speech_startup, 1 ); #noloop
-
-sub main::ia7_update_schedule {
-    my ( $object, @schedules ) = @_;
-
-    &main::print_log( "Updating Schedule for object $object, schedule size is " . scalar(@schedules) );
-
-    my $obj = &main::get_object_by_name($object);
-    my $s   = 0;
-    my $index;
-    my @curr_schedule = $obj->get_schedule;
-    $obj->reset_schedule();
-    for ( my $i = 1; $i <= ( scalar(@schedules) / 3 ); $i++ ) {
-        my $jqCron = $schedules[ $i * 3 - 2 ];
-
-        #jqCron uses 1-7 for Sat - Sunday, MH uses 0-6, so shift all the numbers
-        &main::print_log(
-            "Adding Schedule (id=" . $schedules[ $i * 3 - 3 ] . " cron=" . $schedules[ $i * 3 - 2 ] . " label=" . $schedules[ $i * 3 - 1 ] . ")" );
-        $obj->set_schedule( $schedules[ $i * 3 - 3 ], $schedules[ $i * 3 - 2 ], $schedules[ $i * 3 - 1 ] );
-    }
-    return ""; #needed to prevent an action from being executed
-}
 
 sub speech_startup {
     if ( !defined $main::Info{IPAddress_local} ) {
@@ -76,7 +57,7 @@ sub main::ia7_notify {
 
 sub ia7_update_collection {
     &main::print_log("[IA7_Collection_Updater] : Starting");
-    my $ia7_coll_current_ver = 1.3;
+    my $ia7_coll_current_ver = 1.4;
 
     my @collection_files = (
         "$main::Pgm_Root/data/web/collections.json",
@@ -128,7 +109,7 @@ sub ia7_update_collection {
                         &main::print_log("[IA7_Collection_Updater] : WARNING: decode_json failed for v1.3 update.");
                     } else {           
                         $json_data->{meta}->{version} = "1.3";
-                        &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.3 (MH 4.3 IA7 v1.4.400 support)");
+                        &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.3 (MH 5.0 IA7 v1.4.400 support)");
                         $updated = 1; 
                     } 
                 }  
@@ -144,11 +125,10 @@ sub ia7_update_collection {
                         &main::print_log("[IA7_Collection_Updater] : WARNING: decode_json failed for v1.4 update.");
                     } else {           
                         $json_data->{meta}->{version} = "1.4";
-                        &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.4 (MH 4.3 IA7 v1.5.800 weathericon change)");
+                        &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.4 (MH 5.0 IA7 v1.5.800 weathericon change)");
                         $updated = 1; 
                     }
                 }
-
          
                 if ($updated) {
                     my $json_newdata = to_json( $json_data, { utf8 => 1, pretty => 1 } );

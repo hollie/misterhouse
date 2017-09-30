@@ -37,6 +37,7 @@ BEGIN {
 }
 
 our @weather_hooks;
+our $weather_module_enabled;  #used to display an icon on web interface if a weather module is enabled
 
 # this should be called whenever a client has FINISHED updating %main::Weather
 
@@ -454,6 +455,7 @@ sub populate_internet_weather {
               IsSnowing
               RainTotal
               RainRate
+              LastUpdated
             );
         }
         else {
