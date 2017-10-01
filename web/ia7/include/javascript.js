@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.540";
+var ia7_ver = "v1.6.600";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -1105,7 +1105,7 @@ var updateList = function(path) {
 			if (jqXHR.status == 200) {
 				JSONStore(json);
 				for (var entity in json.data){
-					if (json.data[entity].type === undefined){
+					if (json.data[entity] === undefined && json.data[entity].type === undefined){
 						// This is not an entity, skip it
 						continue;
 					}
@@ -3462,8 +3462,10 @@ var create_develop_item_modal = function(colid,col_parent) {
             if (json_store.collections[colid].hasOwnProperty(prop)) {
                  if (!(prop == "name" || prop == "icon" || prop == "mode")) {
                      options = 1;
-                     html1 +=  '<div class="form-group"><label for="col_'+prop+'+" class="control-label col-sm-2">'+prop+'</label><div class="col-sm-10">';
-                     html1 += '<input type="text" class="form-control" id="col_'+prop+'" name="c'+prop+'" value="'+json_store.collections[colid][prop]+'" readonly></div></div>';
+                     var readonly = "";
+                     if (prop == "children") readonly = "readonly";
+                     html1 +=  '<div class="form-group"><label for="col_'+prop+'" class="control-label col-sm-2">'+prop+'</label><div class="col-sm-10">';
+                     html1 += '<input type="text" class="form-control" id="col_'+prop+'" name="c'+prop+'" value="'+json_store.collections[colid][prop]+'" '+readonly+'></div></div>';
                  }
             }                    
         }
@@ -3518,13 +3520,20 @@ var create_develop_item_modal = function(colid,col_parent) {
     
                     
         function update_collection_array () {
-            var name = $('#col_name').val();
+        
             var parent = $('#col_parent').val();
-            var icon = $('#col_icon').val();
             var mode = $('#col_mode').is(":checked");
-            console.log("id="+colid+" name="+name+" parent="+parent+" col_parent="+col_parent+" icon="+icon+" mode="+mode);
-            if (name !== '') json_store.collections[colid].name = name; 
-            if (icon !== '') json_store.collections[colid].icon = icon;
+            
+            for (var prop in json_store.collections[colid]) {
+                if (json_store.collections[colid].hasOwnProperty(prop)) {
+                     if (!(prop == "mode")) {
+                        // loop through properties
+                          if ($('#col_'+prop).val() !== '') json_store.collections[colid][prop] = $('#col_'+prop).val();                      
+                          console.log("prop="+prop+" val="+$('#col_'+prop).val());
+                    }
+                }
+            }
+
             if (mode == true) {
                 json_store.collections[colid].mode = "advanced";
             } else {
@@ -3553,9 +3562,11 @@ var create_develop_item_modal = function(colid,col_parent) {
         });
     
         $('.btn-dev-write').click( function () {
+            if ($('.btn-dev-write').hasClass('disabled')) return;        
              update_collection_array();
              //item 700 is special, it needs to be user = $Authorized for the MH authentication piece to work.
              var data = json_store.collections;
+             var current_user = data[700].user;
              data[700].user = "$Authorized";
              //after apply and cancel change the cancel button text to close
               $.ajax({
@@ -3578,6 +3589,7 @@ var create_develop_item_modal = function(colid,col_parent) {
                             $('.btn-dev-apply').addClass('disabled');
                             dev_changes = 0;
                         }
+                        data[700].user = current_user;
                   },
                   error: function( xhr, status, error ){
                         var message = "Unknown ajax request error";
@@ -3587,6 +3599,7 @@ var create_develop_item_modal = function(colid,col_parent) {
                         console.log("error="+error);
                         $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
    	 		            $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+   	 		            data[700].user = current_user;
                   }
               });
         });
@@ -3733,7 +3746,7 @@ $(document).ready(function() {
         url: "/json/web_counter",
         type: 'post',
         contentType: 'application/json',
-        data: "{\"1\":\"1\"}"           //json can't be blank otherwise the decode check will fail
+        data: "{}"           //just post empty json
     });
 	
 	changePage();
@@ -3866,7 +3879,6 @@ $(document).ready(function() {
 			    }
 			}
 			document.cookie = "display_mode="+display_mode;
-			document.cookie = "developer="+developer;
 	
 			changePage();
   		});
