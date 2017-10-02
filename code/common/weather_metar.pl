@@ -97,8 +97,8 @@ sub process_metar {
         $weather = '';
         $clouds  = '';
         my $notCurrent = 0;
-        $metar{IsRaining} = 0;
-        $metar{IsSnowing} = 0;
+        $metar{IsRaining} = 0 unless (defined $metar{IsRaining} and $metar{IsRaining} == 1);
+        $metar{IsSnowing} = 0 unless (defined $metar{IsSnowing} and $metar{IsSnowing} == 1);
 
 
         ( $metar{WindAvgDir}, $metar{WindAvgSpeed}, $metar{WindGustSpeed} ) =
