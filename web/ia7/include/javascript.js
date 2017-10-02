@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.600";
+var ia7_ver = "v1.6.610";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -1130,7 +1130,7 @@ var updateList = function(path) {
 					updateList(path);
 				}
 			}
-		}, // End success
+		} // End success
 	});  //ajax request
 };//loadlistfunction
 
@@ -1139,16 +1139,17 @@ var updateItem = function(item,link,time) {
 	URLHash.fields = "state";
 	URLHash.long_poll = 'true';
 	//URLHash.time = json_store.meta.time;
-	if (updateSocket !== undefined && updateSocket.readyState != 4){
-		// Only allow one update thread to run at once
-		updateSocket.abort();
-	}
+	//remove socket all together so that status will operate independant of other content.
+//	if (updateSocket !== undefined && updateSocket.readyState != 4){
+//		// Only allow one update thread to run at once
+//		updateSocket.abort();
+//	}
 	if (time === undefined) {
 		time = "";
 	}
 	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
 	var arg_str = "fields=state,states,label,state_log,schedule,logger_status&long_poll=true&items="+item+"&time="+time;
-	updateSocket = $.ajax({
+	$.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
 		dataType: "json",
@@ -1169,14 +1170,14 @@ var updateItem = function(item,link,time) {
 			}
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
 
-				if (URLHash.link == link || link == undefined){
+				if (URLHash.link == link || link == undefined || item == "ia7_status"){
 //					//While we don't anticipate handling a list of groups, this 
 //					//may error out if a list was used
 					//testingObj(json_store.meta.time);
 				updateItem(item,URLHash.link,requestTime);
 				}
 			}
-		}, // End success
+		} // End success
 	});  //ajax request
 }
 
@@ -1269,7 +1270,7 @@ var updateStaticPage = function(link,time) {
 					updateStaticPage(URLHash.link,requestTime);
 				}
 			}
-		}, 
+		} 
 	});  
 }
 
@@ -1384,9 +1385,9 @@ var loadCollection = function(collection_keys) {
 				if (json_store.collections[collection].reload_modal !== undefined) {
 					reload_modal = json_store.collections[collection].reload_modal;
 				}
-				button_html = "<a link-type='collection' modal='"+link+"' reload_modal='"+reload_modal+"' class='btn btn-default btn-lg btn-block btn-list btn-resp-modal "+hidden+" navbutton-padding' role='button'><i class='"+icon_set+" "+icon+" icon-larger fa-2x fa-fw'></i>"+name+"</a>";
+				button_html = "<a link-type='collection' modal='"+link+"' reload_modal='"+reload_modal+"' class='btn btn-default btn-lg btn-block btn-list btn-resp-modal "+hidden+" navbutton-padding collection-item-icon' role='button'><i class='"+icon_set+" "+icon+" icon-2-5x fa-fw'></i>"+name+"</a>";
 			} else {			
-				button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list "+hidden+" navbutton-padding' role='button'><i class='"+icon_set+" "+icon+" icon-larger fa-2x fa-fw'></i>"+name+"</a>";
+				button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list "+hidden+" navbutton-padding collection-item-icon' role='button'><i class='"+icon_set+" "+icon+" icon-2-5x fa-fw'></i>"+name+"</a>";
 			}
 			button_html = "<div class='col-sm-4' colid='"+collection+"'>" + button_html + "</div>";
 			entity_arr.push(button_html);
@@ -1475,6 +1476,7 @@ var loadCollection = function(collection_keys) {
 		});	
 			
 // test multiple items at some point
+        console.log("items="+items);
 		updateItem(items);
 	}	
 	
@@ -1566,7 +1568,7 @@ var something_went_wrong = function(module,text) {
        var html = "<div class='alert-err alert "+mobile+" alert-" + type + " fade in' data-alert>";
        html += "<button type='button' class='close' data-dismiss='alert'>x</button>";
        html += "<div class=''>";
-       html += "<i class='fa fa-exclamation-triangle icon-larger fa-2x fa-fw pull-left'></i>";
+       html += "<i class='fa fa-exclamation-triangle icon-2-5x fa-fw pull-left'></i>";
        html += "<div class='sww-text'>";
        html += "<h3 class='sww-text-msg'>ERROR</h3>" + module + " : " + text + " </div></div></div>";
     
@@ -1998,7 +2000,7 @@ var graph_rrd = function(start,group,time) {
 					    var legli = $('<li style="list-style:none;"/>').appendTo('#rrd-legend');
 					    $('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
 					    $('<label>', {
-						    class: "rrd-legend-class",
+						    'class': "rrd-legend-class",
 						    text: json.data.data[i].label,
 				    	    'for': json.data.data[i].label
 						    }).appendTo(legli);
@@ -2220,7 +2222,7 @@ var object_history = function(items,start,days,time) {
 						var legli = $('<li style="list-style:none;"/>').appendTo('#hist-legend');
 						$('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
 						$('<label>', {
-							class: "rrd-legend-class",
+							'class': "rrd-legend-class",
 							text: json.data.data[i].label,
 				    		'for': json.data.data[i].label
 							}).appendTo(legli);
