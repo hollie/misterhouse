@@ -169,56 +169,76 @@ sub json_put {
     my $response_code = "HTTP/1.1 200 OK\r\n";
     my $response_text = ();
     %HttpHeader = %Http unless %HttpHeader;
+    my $empty_json = 0;
+    $empty_json = 1 if ($body =~ m/^\{(\s*)\}$/);
     
     eval {
         $body = decode_json($body);    #HP, wrap this in eval to prevent MH crashes
     };
-    if ($@) {
+    if ($@ and !$empty_json) {
         &main::print_log( "Json_Server.pl: WARNING: decode_json failed for json POST!" );
         $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
         $response_text->{status} = "error";
         $response_text->{text} = "Failed to decode JSON file";
         
     } elsif ( $path[0] eq 'collections' ) {
-        my @collection_files = (
-         "$config_parms{ia7_data_dir}/collections.json",
-         "$config_parms{data_dir}/web/collections.json",
-         "$Pgm_Root/data/web/collections.json"
-        );
-
-        &main::print_log( "Json_Server.pl: Updating Collections.json");
-
-        if (lc $Authorized ne "admin") {
-            $response_code = "HTTP/1.1 401 Unauthorized\r\n";
-            $response_text->{status} = "error";
-            $response_text->{text} = "Administative Access required";
-            &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+    
+        if ($empty_json) {
+                $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                $response_text->{status} = "error";
+                $response_text->{text} = "Empty JSON string posted";
+                &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
 
         } else {
+             my @collection_files = (
+              "$config_parms{ia7_data_dir}/collections.json",
+              "$config_parms{data_dir}/web/collections.json",
+              "$Pgm_Root/data/web/collections.json"
+             );
+
+             &main::print_log( "Json_Server.pl: Updating Collections.json");
+
+             if (lc $Authorized ne "admin") {
+                 $response_code = "HTTP/1.1 401 Unauthorized\r\n";
+                 $response_text->{status} = "error";
+                 $response_text->{text} = "Administative Access required";
+                 &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+
+             } else {
         
-            ($response_code, $response_text) = &json_write_file('collections',$body,@collection_files);
+                 ($response_code, $response_text) = &json_write_file('collections',$body,@collection_files);
  
+             }
         }
 
     } elsif ( $path[0] eq 'ia7_config' ) {
 
-        my @config_files = (
-         "$config_parms{ia7_data_dir}/ia7_config.json",
-         "$config_parms{data_dir}/web/ia7_config.json",
-         "$Pgm_Root/data/web/ia7_config.json"
-        );
-
-        &main::print_log( "Json_Server.pl: Updating ia7_config.json");
-
-        if (lc $Authorized ne "admin") {
-            $response_code = "HTTP/1.1 401 Unauthorized\r\n";
-            $response_text->{status} = "error";
-            $response_text->{text} = "Administative Access required";
-            &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+        if ($empty_json) {
+                $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                $response_text->{status} = "error";
+                $response_text->{text} = "Empty JSON string posted";
+                &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
 
         } else {
+
+             my @config_files = (
+              "$config_parms{ia7_data_dir}/ia7_config.json",
+              "$config_parms{data_dir}/web/ia7_config.json",
+              "$Pgm_Root/data/web/ia7_config.json"
+             );
+
+             &main::print_log( "Json_Server.pl: Updating ia7_config.json");
+
+             if (lc $Authorized ne "admin") {
+                 $response_code = "HTTP/1.1 401 Unauthorized\r\n";
+                 $response_text->{status} = "error";
+                 $response_text->{text} = "Administative Access required";
+                 &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+
+             } else {
         
-            ($response_code, $response_text) = &json_write_file('ia7_config',$body,@config_files);
+                 ($response_code, $response_text) = &json_write_file('ia7_config',$body,@config_files);
+             }
         }
 
     } elsif ( $path[0] eq 'web_counter' ) {
@@ -229,43 +249,50 @@ sub json_put {
         $response_code = "HTTP/1.1 200 OK\r\n";
         $response_text->{status} = "success";
         $response_text->{text} = "";  
-        #print "**** DB: web_counter=$web_counter\n";
 
     } elsif ( $path[0] eq 'objects' ) {
-        #print "**** DB: " . Dumper \$body;
-        ## objects come is as OBJ -> FIELD -> Data
-        my $obj_found = 0;
-        my $error = 0;
-        foreach my $object (keys $body) {
-            foreach my $field (keys $body->{$object}) {
-                if ($field == "schedule") {
-                    if (!$Authorized) {
-                        $response_code = "HTTP/1.1 401 Unauthorized\r\n";
-                        $response_text->{status} = "error";
-                        $response_text->{text} = "Authenticated Access required";
-                        &main::print_log( "Json_Server.pl: Error modifying schedule for $object:" . $response_text->{text});
-                        $error = 1;
-                    } else {
-                        $obj_found = 1;
-                        my $obj = &main::get_object_by_name($object);
-                        $obj->reset_schedule();
-                        foreach my $schedule (@{$body->{$object}->{$field}}) {
-                        $obj->set_schedule( $schedule->{id}, $schedule->{cron}, $schedule->{label} );
-                        }
-                    }
-                }
-            }
-        } 
-        unless ($error) {
-            if ($obj_found) {
-                $response_code = "HTTP/1.1 200 OK\r\n";
-                $response_text->{status} = "success";
-                $response_text->{text} = "";  
-            } else {
+
+        if ($empty_json) {
                 $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
                 $response_text->{status} = "error";
-                $response_text->{text} = "Object not found";
-            }
+                $response_text->{text} = "Empty JSON string posted";
+                &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+
+        } else {
+        
+             my $obj_found = 0;
+             my $error = 0;
+             foreach my $object (keys $body) {
+                 foreach my $field (keys $body->{$object}) {
+                     if ($field == "schedule") {
+                         if (!$Authorized) {
+                             $response_code = "HTTP/1.1 401 Unauthorized\r\n";
+                             $response_text->{status} = "error";
+                             $response_text->{text} = "Authenticated Access required";
+                             &main::print_log( "Json_Server.pl: Error modifying schedule for $object:" . $response_text->{text});
+                             $error = 1;
+                         } else {
+                             $obj_found = 1;
+                             my $obj = &main::get_object_by_name($object);
+                             $obj->reset_schedule();
+                             foreach my $schedule (@{$body->{$object}->{$field}}) {
+                             $obj->set_schedule( $schedule->{id}, $schedule->{cron}, $schedule->{label} );
+                             }
+                         }
+                     }
+                 }
+             } 
+             unless ($error) {
+                 if ($obj_found) {
+                     $response_code = "HTTP/1.1 200 OK\r\n";
+                     $response_text->{status} = "success";
+                     $response_text->{text} = "";  
+                 } else {
+                     $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                     $response_text->{status} = "error";
+                     $response_text->{text} = "Object not found";
+                 }
+             }
         }
          
     } else {
@@ -275,6 +302,7 @@ sub json_put {
         &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
         
     }  
+    
     my $html_body;  
     eval {
         $html_body = to_json( $response_text, { utf8 => 1} );
