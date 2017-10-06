@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.610";
+var ia7_ver = "v1.6.700";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -1652,7 +1652,11 @@ var get_stats = function(tagline) {
 						    show: true
 					});
                 });
-                
+               
+                //if json.data.web_counter_total == 0 then first time running stable release. Redirect to the whatsnew page
+                if (json.data.web_counter_total !== undefined && json.data.web_counter_total == 0) {
+                    window.location.href = '/ia7/#_request=page&link=/ia7/house/whatsnew.shtml&_collection_key=0,'
+                }
 		    }
 		    if (jqXHR.status == 200 || jqXHR.status == 204) {
 				stats_loop = setTimeout(function(){
@@ -2532,7 +2536,7 @@ var floorplan = function(group,time) {
 
     if (developer === true){
         // update positon
-        $(document).mousemove(function(e){
+        $(document).bind('mousemove.fpdev', function(e) {
             var offset = $("#fp_graphic").offset();
             var width = $("#fp_graphic").width();
             var hight = $("#fp_graphic").height();
@@ -2570,6 +2574,8 @@ var floorplan = function(group,time) {
             fp_grabbed_entity = null;
         });
 
+    } else {
+        $(document).unbind('mousemove');
     }
 
     var set_coordinates_from_offset = function (id)
@@ -3863,7 +3869,12 @@ $(document).ready(function() {
                             return parseInt(x, 10); 
                         });
                         //get the collection key
-                        var col_key = URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1);
+                        var col_key;
+                        if (URLHash._collection_key == undefined) {
+                            col_key = 0;
+                        } else {
+                            col_key = URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1);
+                        }
                         json_store.collections[col_key].children = new_order;
                         dev_changes++;
                         changePage();

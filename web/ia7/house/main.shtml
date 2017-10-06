@@ -17,6 +17,10 @@
 				<a href="/ia7/#path=/prefs/ia7_rrd" style='margin-bottom:5px' class='btn btn-default btn-md btn-block btn-list' role='button'>
 					<i class='fa fa-file-text-o fa-2x fa-fw'></i> RRD Preferences</a>
 			</div>		
+			<div class='col-sm-8'>
+				<a href="/ia7/#_request=page&link=/ia7/house/whatsnew.shtml" style='margin-bottom:5px' class='btn btn-default btn-md btn-block btn-list' role='button'>
+					<i class='fa fa-star fa-2x fa-fw'></i> What's new</a>
+			</div>				
 		</div>		
 	</div>
 </div>
