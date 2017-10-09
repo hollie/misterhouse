@@ -151,7 +151,7 @@
    "44" : {
       "name" : "Read CNN",
       "icon" : "fa-book",
-      "external" : "//www.cnn.com"
+      "external" : "http://www.cnn.com"
    },
    "30" : {
       "link" : "/ia7/#path=/vars_save",
@@ -740,7 +740,7 @@
       "link" : "/bin/iniedit.pl"
    },
    "45" : {
-      "external" : "//groups.google.com/grphp",
+      "external" : "http://groups.google.com/grphp",
       "icon" : "fa-group",
       "name" : "Newsgroups"
    },
