@@ -55,6 +55,7 @@ $f_weather_forecast   = new File_Item($weather_forecast_path);
 $p_weather_data = new Process_Item;
 $p_weather_conditions = new Process_Item;
 $p_weather_forecast   = new Process_Item;
+$Weather_Common::weather_module_enabled = 1;
 
 #noloop=stop
 
@@ -199,6 +200,11 @@ if ( done_now $p_weather_data or done_now $p_weather_conditions) {
         if ( $conditions =~ /conditions were (clear|cloudy|partly cloudy|mostly cloudy|sunny|mostly sunny|partly sunny)/ ) {
             $w{Clouds} = lc($1);
         }
+        
+        #be nice to have a full date, but GEO::WeatherNOAA only puts $in->{TIME} in the conditions output
+        if ( $conditions =~ /^At\s(\d\d:\d\d\s\S\S)/ ) {
+            $w{LastUpdated} = lc($1);
+        }        
 
         $w{WindAvgDir} =
           &Weather_Common::convert_wind_dir_text_to_num( $w{WindAvgDir} );

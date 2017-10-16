@@ -229,14 +229,16 @@ sub hb_status {
         print_log "[Homebridge]: Status request: item=$item state=$state status=[$data] type=$type"
           if ($hb_debug);
     }
-    return <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-Type: text/html
-Cache-Control: no-cache
-
-$data
-eof
+    my $output = "HTTP/1.1 200 OK\r\n";
+    $output .= "Server: MisterHouse\r\n";
+    $output .= "Content-type: text/html\r\n";
+    $output .= "Connection: close\r\n" if &http_close_socket;
+    $output .= "Content-Length: " . ( length $data ) . "\r\n";
+    $output .= "Cache-Control: no-cache\r\n";
+    $output .= "Date: " . time2str(time) . "\r\n";
+    $output .= "\r\n";
+    $output .= $data;
+    return $output;
 }
 
 sub hb_thermo_get_state {
@@ -268,14 +270,16 @@ sub hb_thermo_get_state {
         print_log "[Homebridge]: Thermostat State request: item=$item mode=$mode status=[$data]\n"
           if ($hb_debug);
     }
-    return <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-Type: text/html
-Cache-Control: no-cache
-
-$data
-eof
+    my $output = "HTTP/1.1 200 OK\r\n";
+    $output .= "Server: MisterHouse\r\n";
+    $output .= "Content-type: text/html\r\n";
+    $output .= "Connection: close\r\n" if &http_close_socket;
+    $output .= "Content-Length: " . ( length $data ) . "\r\n";
+    $output .= "Cache-Control: no-cache\r\n";
+    $output .= "Date: " . time2str(time) . "\r\n";
+    $output .= "\r\n";
+    $output .= $data;
+    return $output;
 }
 
 sub hb_thermo_set_state {
@@ -321,6 +325,7 @@ sub hb_thermo_set_state {
     else {
         print_log "Unsupported Thermostat type";
     }
+    return "";
 }
 
 sub hb_thermo_get_setpoint {
@@ -346,14 +351,16 @@ sub hb_thermo_get_setpoint {
     }
     print_log "[Homebridge]: Thermostat Get Setpoint request: item=$item mode=$mode status=[$data]\n"
       if ($hb_debug);
-    return <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-Type: text/html
-Cache-Control: no-cache
-
-$data
-eof
+    my $output = "HTTP/1.1 200 OK\r\n";
+    $output .= "Server: MisterHouse\r\n";
+    $output .= "Content-type: text/html\r\n";
+    $output .= "Connection: close\r\n" if &http_close_socket;
+    $output .= "Content-Length: " . ( length $data ) . "\r\n";
+    $output .= "Cache-Control: no-cache\r\n";
+    $output .= "Date: " . time2str(time) . "\r\n";
+    $output .= "\r\n";
+    $output .= $data;
+    return $output;
 }
 
 sub hb_thermo_set_setpoint {
@@ -414,6 +421,7 @@ sub hb_thermo_set_setpoint {
     else {
         print_log "Unsupported Thermostat type";
     }
+    return "";
 }
 
 sub calc_auto_mode {

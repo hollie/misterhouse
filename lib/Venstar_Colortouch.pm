@@ -474,7 +474,7 @@ sub _get_JSON_data {
             my $isSuccessResponse = $responseCode < 400;
             $self->{updating} = 0;
             if ( !$isSuccessResponse ) {
-                main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Warning, failed to get data. Response code $responseCode" );
+                main::print_log( "[Venstar Colortouch: (" . $self->{host} . ")] Warning, failed to get data. Response code $responseCode" );
                 print "Venstar. status=" . $self->{status};
                 if ( defined $self->{child_object}->{comm} ) {
                     print " Tracker defined\n";

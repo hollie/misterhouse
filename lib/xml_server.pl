@@ -496,10 +496,7 @@ sub xml_page {
     # handle blank xsl name
     my $style;
     $style = qq|<?xml-stylesheet type="text/xsl" href="$xsl"?>| if $xsl;
-    return <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: text/xml
+my $html = <<eof;
 
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 $style
@@ -508,6 +505,15 @@ $xml</misterhouse>
 
 eof
 
+my $html_head = "HTTP/1.1 200 OK\r\n";
+$html_head .= "Server: MisterHouse\r\n";
+$html_head .= "Connection: close\r\n" if &http_close_socket;
+$html_head .= "Content-type: text/xml\r\n";
+$html_head .= "Content-Length: " . ( length $html ) . "\r\n";
+$html_head .= "Date: " . time2str(time) . "\r\n";
+$html_head .= "\r\n";
+
+return $html_head.$html;
 }
 
 sub xml_entities_encode {
@@ -522,22 +528,24 @@ sub xml_entities_encode {
 
 sub svg_page {
     my ($svg) = @_;
-    return <<eof;
-HTTP/1.0 200 OK
-Server: Homegrow
-Content-type: image/svg+xml
+my $html = <<eof;
 
 $svg
 eof
 
+my $html_head = "HTTP/1.1 200 OK\r\n";
+$html_head .= "Server: MisterHouse\r\n";
+$html_head .= "Connection: close\r\n" if &http_close_socket;
+$html_head .= "Content-type: image/svg+xml\r\n";
+$html_head .= "Content-Length: " . ( length $html ) . "\r\n";
+$html_head .= "Date: " . time2str(time) . "\r\n";
+$html_head .= "\r\n";
+
+return $html_head.$html;
 }
 
 sub xml_usage {
     my $html = <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: text/html
-
 <html>
 <head>
 </head>
@@ -582,7 +590,15 @@ eof
 </html>
 eof
 
-    return $html;
+ my $html_head = "HTTP/1.1 200 OK\r\n";
+ $html_head .= "Server: MisterHouse\r\n";
+$html_head .= "Connection: close\r\n" if &http_close_socket;
+ $html_head .= "Content-type: text/html\r\n";
+ $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
+ $html_head .= "Date: " . time2str(time) . "\r\n";
+ $html_head .= "\r\n";
+
+ return $html_head.$html;
 }
 
 return 1;    # Make require happy
