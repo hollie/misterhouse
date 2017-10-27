@@ -47,8 +47,10 @@ use HTML::Entities;    # So we can encode characters like <>& etc
 use JSON qw(decode_json);
 use IO::Compress::Gzip qw(gzip);
 use vars qw(%json_table);
+use File::Copy;
 my %json_cache;
 my @json_notifications = ();    #noloop
+my $web_counter; #noloop;
 
 sub json {
     my ( $request_type, $path_str, $arguments, $body, $client_number, $requestnum ) = @_;
@@ -110,6 +112,9 @@ sub json {
         elsif ( lc($request_type) eq "put" ) {
             json_put( $request_type, \@path, \%args, $body, %HttpHeader );
         }
+        elsif ( lc($request_type) eq "post" ) {
+            json_post( $request_type, \@path, \%args, $body, %HttpHeader );
+        }
     }
 }
 
@@ -155,6 +160,171 @@ sub json_put {
     $json_raw = $json_raw->pretty->encode( \%json );
     return &json_page($json_raw,%HttpHeader);
 }
+
+ sub json_post {
+    my ( $request_type, $path, $arguments, $body, %HttpHeader ) = @_;
+    my (%json);
+    my %args        = %{$arguments};
+    my @path        = @{$path};
+    my $response_code = "HTTP/1.1 200 OK\r\n";
+    my $response_text = ();
+    %HttpHeader = %Http unless %HttpHeader;
+    my $empty_json = 0;
+    $empty_json = 1 if ($body =~ m/^\{(\s*)\}$/);
+    
+    eval {
+        $body = decode_json($body);    #HP, wrap this in eval to prevent MH crashes
+    };
+    if ($@ and !$empty_json) {
+        &main::print_log( "Json_Server.pl: WARNING: decode_json failed for json POST!" );
+        $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+        $response_text->{status} = "error";
+        $response_text->{text} = "Failed to decode JSON file";
+        
+    } elsif ( $path[0] eq 'collections' ) {
+    
+        if ($empty_json) {
+                $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                $response_text->{status} = "error";
+                $response_text->{text} = "Empty JSON string posted";
+                &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+
+        } else {
+             my @collection_files = (
+              "$config_parms{ia7_data_dir}/collections.json",
+              "$config_parms{data_dir}/web/collections.json",
+              "$Pgm_Root/data/web/collections.json"
+             );
+
+             &main::print_log( "Json_Server.pl: Updating Collections.json");
+
+             if (lc $Authorized ne "admin") {
+                 $response_code = "HTTP/1.1 401 Unauthorized\r\n";
+                 $response_text->{status} = "error";
+                 $response_text->{text} = "Administative Access required";
+                 &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+
+             } else {
+        
+                 ($response_code, $response_text) = &json_write_file('collections',$body,@collection_files);
+ 
+             }
+        }
+
+    } elsif ( $path[0] eq 'ia7_config' ) {
+
+        if ($empty_json) {
+                $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                $response_text->{status} = "error";
+                $response_text->{text} = "Empty JSON string posted";
+                &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+
+        } else {
+
+             my @config_files = (
+              "$config_parms{ia7_data_dir}/ia7_config.json",
+              "$config_parms{data_dir}/web/ia7_config.json",
+              "$Pgm_Root/data/web/ia7_config.json"
+             );
+
+             &main::print_log( "Json_Server.pl: Updating ia7_config.json");
+
+             if (lc $Authorized ne "admin") {
+                 $response_code = "HTTP/1.1 401 Unauthorized\r\n";
+                 $response_text->{status} = "error";
+                 $response_text->{text} = "Administative Access required";
+                 &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+
+             } else {
+        
+                 ($response_code, $response_text) = &json_write_file('ia7_config',$body,@config_files);
+             }
+        }
+
+    } elsif ( $path[0] eq 'web_counter' ) {
+
+        $web_counter = 0 if (not defined $web_counter);
+        $web_counter++;
+        $main::Save{"ia7_count_total"}++;
+        $response_code = "HTTP/1.1 200 OK\r\n";
+        $response_text->{status} = "success";
+        $response_text->{text} = "";  
+
+    } elsif ( $path[0] eq 'objects' ) {
+
+        if ($empty_json) {
+                $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                $response_text->{status} = "error";
+                $response_text->{text} = "Empty JSON string posted";
+                &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+
+        } else {
+        
+             my $obj_found = 0;
+             my $error = 0;
+             foreach my $object (keys $body) {
+                 foreach my $field (keys $body->{$object}) {
+                     if ($field == "schedule") {
+                         if (!$Authorized) {
+                             $response_code = "HTTP/1.1 401 Unauthorized\r\n";
+                             $response_text->{status} = "error";
+                             $response_text->{text} = "Authenticated Access required";
+                             &main::print_log( "Json_Server.pl: Error modifying schedule for $object:" . $response_text->{text});
+                             $error = 1;
+                         } else {
+                             $obj_found = 1;
+                             my $obj = &main::get_object_by_name($object);
+                             $obj->reset_schedule();
+                             foreach my $schedule (@{$body->{$object}->{$field}}) {
+                             $obj->set_schedule( $schedule->{id}, $schedule->{cron}, $schedule->{label} );
+                             }
+                         }
+                     }
+                 }
+             } 
+             unless ($error) {
+                 if ($obj_found) {
+                     $response_code = "HTTP/1.1 200 OK\r\n";
+                     $response_text->{status} = "success";
+                     $response_text->{text} = "";  
+                 } else {
+                     $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                     $response_text->{status} = "error";
+                     $response_text->{text} = "Object not found";
+                 }
+             }
+        }
+         
+    } else {
+        $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+        $response_text->{status} = "error";
+        $response_text->{text} = "Unknown path " . $path[0];
+        &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+        
+    }  
+    
+    my $html_body;  
+    eval {
+        $html_body = to_json( $response_text, { utf8 => 1} );
+    };
+    if ($@) {
+        &main::print_log( "Json_Server.pl: WARNING: to_json failed for json POST!" );
+        $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+        $response_text->{status} = "error";
+        $response_text->{text} = "Failed to encode JSON data";
+        
+    }
+
+    my $html_head = $response_code;
+    $html_head .= "Server: MisterHouse\r\n";
+    $html_head .= "Content-Length: " . length($html_body) . "\r\n";
+    $html_head .= "Date: " . time2str(time) . "\r\n";
+    $html_head .= "\r\n";  
+ 
+    return $html_head . $html_body;
+      
+}
+
 
 # Handles Get (READ) Requests
 sub json_get {
@@ -208,6 +378,7 @@ sub json_get {
             my $prefs = file_read($prefs_file);
             $json_data{'ia7_config'} = decode_json($prefs);    #HP, wrap this in eval to prevent MH crashes
         };
+
         if ($@) {
             print_log "Json_Server.pl: WARNING: decode_json failed for ia7_config.json. Please check this file!";
             $json_data{'ia7_config'} = decode_json('{ "prefs" : { "status" : "error" } }');    #write a blank collection
@@ -215,15 +386,18 @@ sub json_get {
         }
 
         # Look at the client ip overrides, and replace any pref key with the client_ip specific item
-        if ( defined $json_data{'ia7_config'}->{clients}->{ $HttpHeader{Client_address} } ) {
-            print_log "Json_Server.pl: Client override section for $HttpHeader{Client_address} found";
-            for my $key ( keys %{ $json_data{'ia7_config'}->{clients}->{ $HttpHeader{Client_address} } } ) {
-                print_log "Json_Server.pl: Client key=$key, value = $json_data{'ia7_config'}->{clients}->{$HttpHeader{Client_address}}->{$key}";
-                print_log "Json_Server.pl: Master value = $json_data{'ia7_config'}->{prefs}->{$key}";
-                $json_data{'ia7_config'}->{prefs}->{$key} = $json_data{'ia7_config'}->{clients}->{ $HttpHeader{Client_address} }->{$key};
-            }
-            delete $json_data{'ia7_config'}->{clients};
-        }
+        # have to first check for {clients} since checking for $HttpHeader seems to create a null $clients key
+        if (defined $json_data{'ia7_config'}->{clients}) {       
+             if ( defined $json_data{'ia7_config'}->{clients}->{ $HttpHeader{Client_address} } ) {
+                 print_log "Json_Server.pl: Client override section for $HttpHeader{Client_address} found";
+                 for my $key ( keys %{ $json_data{'ia7_config'}->{clients}->{ $HttpHeader{Client_address} } } ) {
+                     print_log "Json_Server.pl: Client key=$key, value = $json_data{'ia7_config'}->{clients}->{$HttpHeader{Client_address}}->{$key}";
+                     print_log "Json_Server.pl: Master value = $json_data{'ia7_config'}->{prefs}->{$key}";
+                     $json_data{'ia7_config'}->{prefs}->{$key} = $json_data{'ia7_config'}->{clients}->{ $HttpHeader{Client_address} }->{$key};
+                 }
+                 delete $json_data{'ia7_config'}->{clients};
+             }
+        }        
     }
 
     # List rrd config settings
@@ -239,7 +413,7 @@ sub json_get {
             $json_data{'rrd_config'} = decode_json($prefs);    #HP, wrap this in eval to prevent MH crashes
         };
         if ($@) {
-            print_log "Json_Server.pl: WARNING: decode_json failed for ia7_rrd_config.json. Please check this file!";
+            &main::print_log("Json_Server.pl: WARNING: decode_json failed for ia7_rrd_config.json. Please check this file!");
         }
     }
 
@@ -703,6 +877,16 @@ sub json_get {
         $json_data{$source}{tagline} = $tagline
    }
 
+   if ( $path[0] eq 'web_counter' || $path[0] eq 'misc' || $path[0] eq '' ) {
+        my $source = "web_counter";
+        $source = "misc" if ($path[0] eq 'misc');
+
+        $web_counter = 0 if (not defined $web_counter);
+        $json_data{$source}{web_counter_session} = $web_counter;
+        $json_data{$source}{web_counter_total} = $main::Save{"ia7_count_total"};
+
+   }
+
    if ( $path[0] eq 'stats' || $path[0] eq 'misc' || $path[0] eq '' ) {
         my $source = "stats";
         $source = "misc" if ($path[0] eq 'misc');
@@ -719,8 +903,6 @@ sub json_get {
         $json_data{$source}{load} = $load;
         $json_data{$source}{cores} = $System_cores;
         $json_data{$source}{time_of_day} = $Time_Of_Day;
-        $json_data{$source}{web_counter_session} = $ia7_utilities::ia7_count_session;
-        $json_data{$source}{web_counter_total} = $Save{"ia7_count_total"};
 
    }
 
@@ -1337,6 +1519,48 @@ eof
 
     return $html_head.$html;
 }
+
+sub json_write_file {
+    my ($name,$body, @files) = @_; 
+        my $response_code;
+        my $response_text;  
+        my $file_found = 0;
+        my $file_error = 0;
+        foreach my $file (@files) {
+            &main::print_log( "Checking $file...");
+            if (-e $file) {
+                my $file_data = to_json( $body, { utf8 => 1, pretty => 1 } );
+                my $backup_file = $file . ".J" . int( ::get_tickcount() / 1000 ) . ".backup";
+                copy ($file, $backup_file) or $file_error = 1;
+                unless ($file_error) {
+                    &main::print_log( "Writing to $file...");
+                    &main::file_write( $file, $file_data );
+#TODO get error code from file_write
+                }
+                $file_found = 1;
+                last;
+            }
+        }
+        if ($file_error) {
+            $response_code = "HTTP/1.1 500 Internal Server Error OK\r\n";
+            $response_text->{status} = "error";
+            $response_text->{text} = "Error saving file or backup"; 
+            &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+        
+        } else {
+             if ($file_found) {
+                 $response_code = "HTTP/1.1 200 OK\r\n";
+                 $response_text->{status} = "success";
+                 $response_text->{text} = "";             
+             } else {
+                 $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                 $response_text->{status} = "error";
+                 $response_text->{text} = "Could not find " . $name . " file";    
+                 &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});                           
+             }  
+        }
+    return ($response_code, $response_text);
+}      
 
 sub json_table_create {
     my ($key) = @_;

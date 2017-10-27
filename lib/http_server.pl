@@ -362,8 +362,11 @@ sub http_process_request {
             print "http POST in loop\n" if $main::Debug{http};
             $get_arg .= "&" if ( $get_arg ne '' );
             $get_arg .= $buf;
-        }
-        else {
+            
+        } elsif ( ( lc($Http{'Content-Type'}) eq lc('application/json') ) && ( $HTTP_BODY =~ /^\{/ ) ) {
+             print "[http_server.pl]: posting json data\n" if $main::Debug{http};        
+             
+        } else {
             &main::print_log("[http_server.pl]: Warning, invalid argument string detected ($buf)\n");
         }
         print "http POST get_arg=$get_arg\n" if $main::Debug{http};

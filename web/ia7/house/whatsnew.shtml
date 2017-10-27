@@ -1,0 +1,69 @@
+<h1>Misterhouse Version 5.0 - Release date:</h1><br>
+
+<div class="panel-group whatsnew-panel">
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse1">Add live Weather to the header</a>
+      </h4>
+    </div>
+    <div id="collapse1" class="panel-collapse collapse">
+      <div class="panel-body">Panel Body</div>
+      <div class="panel-footer">Panel Footer</div>
+    </div>
+  </div>
+    
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse2">Change the layout from the web interface</a>
+      </h4>
+    </div>
+    <div id="collapse2" class="panel-collapse collapse">
+      <div class="panel-body">
+
+       <ul class="fa-ul">
+         <li><i class="fa-li fa fa-chevron-right"></i>Toggle developer mode in the 'options menu' (<i class="fa fa-gear"></i>)</li>
+         <li><i class="fa-li fa fa-chevron-right"></i>Drag and Drop any collections item to the new location</li>
+         <li><i class="fa-li fa fa-chevron-right"></i>To write the new layout to misterhouse, hold any collection button until an edit dialog box appears</li>
+         <li><i class="fa-li fa fa-chevron-right"></i>This dialog box also allows you to edit the button properties, such as icon, name, link</li>
+         <li><i class="fa-li fa fa-chevron-right"></i>If expert mode is checked, that item will be hidden in the simple view</li>         
+         <li><i class="fa-li fa fa-chevron-right"></i>To move the button to another page, pick a new parent.</li>
+         <li><i class="fa-li fa fa-chevron-right"></i>Apply will save the changes to the current browser session. Write to MH will save the new layout to the server</li>       
+         <li><i class="fa-li fa fa-chevron-right"></i>Write to MH requires logging in as admin. Note, logging out will revert any changes, so make sure to log in as admin before making changes</li>       
+         <li><i class="fa-li fa fa-chevron-right"></i>You can see if you're logged in as admin as the gear icon will be purple</li>  
+         <li><i class="fa-li fa fa-chevron-right"></i>Developer mode also allows you to drag around icons on the floorplan view and will show the MH usercode needed.</li>                
+
+       </ul>  
+    
+      </div>
+
+    </div>
+  </div>
+
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse3">Add a dynamic floorplan</a>
+      </h4>
+    </div>
+    <div id="collapse3" class="panel-collapse collapse">
+      <div class="panel-body">Panel Body</div>
+      <div class="panel-footer">Panel Footer</div>
+    </div>
+  </div>
+ 
+ 
+   <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse3">Add dynamic RRD graphs</a>
+      </h4>
+    </div>
+    <div id="collapse3" class="panel-collapse collapse">
+      <div class="panel-body">Panel Body</div>
+      <div class="panel-footer">Panel Footer</div>
+    </div>
+  </div> 
+  
+</div>

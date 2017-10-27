@@ -1,5 +1,5 @@
 
-var ia7_ver = "v1.6.200";
+var ia7_ver = "v1.6.700";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -18,6 +18,8 @@ var rrd_refresh_loop;
 var stats_loop;
 var stat_refresh = 60;
 var fp_popover_close = true ;
+var dev_changes = 0;
+var config_modal_loop;
 
 var ctx; //audio context
 var buf; //audio buffer
@@ -156,7 +158,6 @@ function changePage (){
   			$("#sound_element").attr("controls", "controls");  //Show audio Controls
   		}
 		if (json_store.ia7_config.prefs.substate_percentages === undefined) json_store.ia7_config.prefs.substate_percentages = 20;
-//TODO		if (json_store.ia7_config.prefs.developer !== undefined) developer = json_store.ia7_config.prefs.developer;
 		if (json_store.ia7_config.prefs.tooltips !== undefined) show_tooltips = json_store.ia7_config.prefs.tooltips;
 		// First time loading, set the default speech notifications
 		if (speech_sound === undefined) {
@@ -199,9 +200,7 @@ function changePage (){
                 if (c.indexOf("display_mode") == 0) {
                     display_mode = c.substring(13, c.length);
                 } 
-                if (c.indexOf("developer") == 0) {
-//TODO                    developer = c.substring(10, c.length);
-                }                                           
+                // We don't want developer stored since it needs authentication                                         
             }
         }
         if (json_store.ia7_config.prefs.show_weather !== undefined  && json_store.ia7_config.prefs.show_weather == "no") {
@@ -354,26 +353,140 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 			}
 		});
 	}		
-	html += "<th>"+ config_name + "_config.json </th></tr></thead><tbody>";
+	html += "<th colspan='2'>"+ config_name + "_config.json </th></tr></thead><tbody>";
+	var pref_items = [];
 	for (var i in config_data){
 		if ( typeof config_data[i] === 'object') {
-			html += "<tr class='info'><td><b>"+ i + "</b></td></tr>";
+		
+		
+			html += "<tr class='info'><td colspan='2'><b>"+ i + "</b></td></tr>";
 			for (var j in config_data[i]) {
 				if ( typeof config_data[i][j] === 'object') {
-					html += "<tr class='info'><td style='padding-left:40px'>"+ j + "</td></tr>";
+					html += "<tr class='info'><td style='padding-left:25px' colspan='2'>"+ j + "</td></tr>";
 					for (var k in config_data[i][j]){
-						 html += "<tr><td style='padding-left:80px'>"+k+" = "+config_data[i][j][k]+"</td></tr>";
+					    html += "<tr><td style='padding-left:50px'>"+k+"</td>";	
+						html += "<td style='padding-left:25px'>"+config_data[i][j][k]+"</td></tr>";
 					}
 				} else {
-					html += "<tr><td style='padding-left:40px'>"+j+" = "+config_data[i][j]+"</td></tr>"
+					html += "<tr><td style='padding-left:25px'>"+j+"</td>";
+                  
+                    if (ia7_defaults.prefs.hasOwnProperty(j) && i == "prefs" && developer == true && config_name == "ia7") {	
+                        html += "<td><select id='"+j+"' class='form-control config-edit'>";
+                        for (var di = 0; di < ia7_defaults.prefs[j].length; di++) {
+                            var selected = "";
+                            if (ia7_defaults.prefs[j][di] == config_data[i][j]) selected = "selected";
+//                            html += "<option value='"+config_data[i][j]+"'>"+config_data[i][j]+"</option>
+                            html += "<option value='"+ia7_defaults.prefs[j][di]+"' "+selected+">"+ia7_defaults.prefs[j][di]+"</option>";
+                        }
+                        html += "</select></td></tr>";
+                    } else {
+                        html += "<td style='padding-left:25px'>"+config_data[i][j]+"</td></tr>";
+                    }
+                     if (i == "prefs") pref_items.push(j);
 				}
 			}
+
+			if (i == "prefs" && config_name == "ia7" && pref_items.length > 0) {
+                for (var xi in ia7_defaults.prefs) { 
+                    if (!(config_data.prefs.hasOwnProperty(xi))) {
+
+                        html += "<tr class='text-info' ><td style='padding-left:25px'>"+xi+"</td>";
+                        if (developer == true && config_name == "ia7") {	
+                            html += "<td><select id='"+xi+"' class='form-control config-edit'>";
+                            for (var di2 = 0; di2 < ia7_defaults.prefs[xi].length; di2++) {
+                                html += "<option value='"+ia7_defaults.prefs[xi][di2]+"'>"+ia7_defaults.prefs[xi][di2]+"</option>";
+                            }
+                            html += "</select></td></tr>";
+                        } else {
+                            html += "<td style='padding-left:25px'>"+ia7_defaults.prefs[xi][0]+"</td></tr>";
+                        }
+
+                    }    
+                }
+            }
+            pref_items = [];
+			
+			
 		}	
 	}
-
+    if (developer == true) {
+        html += '<tr><td colspan=2>';
+        html += '<button type="button" class="btn disabled btn-success btn-config-apply pull-right">Apply</button>';      	
+        html += '<button type="button" class="btn disabled btn-danger btn-config-write pull-left">Write to MH</button></tr>';      	
+    }
 	html += "</tbody></table></div>";
 	$('#prtable').html(html);
 
+    $('.config-edit').on('change input', function () {
+         $('.btn-config-apply').removeClass('disabled');
+         $('.btn-config-write').removeClass('disabled');
+     }); 
+                 
+     function update_pref_array () {
+//        console.log("update pref array");
+        $('.config-edit').each( function () {
+            var item = $(this).attr('id');
+            var value = $(this).val();
+//            console.log("id="+$(this).attr('id'));
+//            console.log("val="+$(this).val());
+            json_store.ia7_config.prefs[item] = value;
+        });
+        changePage();        
+     }
+ 
+     $('.btn-config-apply').click( function () {
+         if (!($('.btn-config-apply').hasClass('disabled'))) {
+             update_pref_array();  
+             $('.btn-config-apply').addClass('disabled');
+             $('.btn-config-write').removeClass('disabled');            
+         } 
+     });
+
+     $('.btn-config-write').click( function () {
+          update_pref_array();
+          config_modal_loop = clearTimeout();
+          //after apply and cancel change the cancel button text to close
+           $.ajax({
+               url: "/json/ia7_config",
+//what data is returned?                  dataType: 'json',
+               type: 'post',
+               contentType: 'application/json',
+               data: JSON.stringify(json_store.ia7_config),
+               success: function( data, status, error ){
+                     console.log("data="+data+" status="+status+" error="+error);
+                     //throw up red warning if the response isn't good from MH
+                     $('#lastResponse').modal({
+						    show: true
+					    });
+					config_modal_loop = setTimeout(function(){
+					    $('#lastResponse').modal('hide');
+				    }, 3000);	   
+                     if (data.status !== undefined || data.status == "error") {
+                         var message = "Unknown server error";
+                         if (data.text !== undefined) message = data.text
+                         $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+                         $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                      } else {   
+                         $(".modal-header").append($("<div class='write-status alert alerts-modal alert-success fade in' data-alert><p><i class='fa fa-info-circle'></i>&nbsp;<strong>Success:</strong>&nbsp;Data successfully written to MH</p></div>"));
+                         $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                         $('.btn-config-apply').addClass('disabled');
+                         $('.btn-config-write').addClass('disabled');
+                     }
+               },
+               error: function( xhr, status, error ){
+                     var message = "Unknown ajax request error";
+                     var data = JSON.parse(xhr.responseText);
+                     if (data !== undefined && data.text !== undefined) message = data.text;
+                     config_modal_loop = setTimeout(function(){
+					    $('#lastResponse').modal('hide');
+				     }, 3000);
+                     console.log("status="+status);
+                     console.log("error="+error);
+                     $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+                     $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+               }
+           });
+     }); 
 }
 
 function parseLinkData (link,data) {
@@ -452,7 +565,6 @@ function parseLinkData (link,data) {
 	data = data.replace(/href="\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function 
 //TODO clean up this regex?
 	data = data.replace(/href=SET_PASSWORD/img,'onclick=\'authorize_modal("0")\''); //Special case, setup Mr.House without being logged in 
-
 
 	$('#row_page').html(data);
 	$('#mhresponse').submit( function (e) { //allow for forms with id=mhresponse to show data returned in modal
@@ -638,14 +750,6 @@ var loadList = function() {
 			if (URLHash.parents !== undefined) {
 				$("#toolButton").attr('entity', URLHash.parents);
 			}			
-			
-			// Sort that list if a sort exists, probably exists a shorter way to
-			// write the sort
-			// Sorting code removed. Original design idea that buttons could be moved
-			// Around by the end user. Possible function for the future.
-//			if (sort_list !== undefined){
-//				entity_list = sortArrayByArray(entity_list, sort_list);
-//			}
 
 			for (var i = 0; i < entity_list.length; i++) {
 				var entity = entity_list[i];
@@ -1001,7 +1105,7 @@ var updateList = function(path) {
 			if (jqXHR.status == 200) {
 				JSONStore(json);
 				for (var entity in json.data){
-					if (json.data[entity].type === undefined){
+					if (json.data[entity] === undefined && json.data[entity].type === undefined){
 						// This is not an entity, skip it
 						continue;
 					}
@@ -1026,7 +1130,7 @@ var updateList = function(path) {
 					updateList(path);
 				}
 			}
-		}, // End success
+		} // End success
 	});  //ajax request
 };//loadlistfunction
 
@@ -1035,16 +1139,17 @@ var updateItem = function(item,link,time) {
 	URLHash.fields = "state";
 	URLHash.long_poll = 'true';
 	//URLHash.time = json_store.meta.time;
-	if (updateSocket !== undefined && updateSocket.readyState != 4){
-		// Only allow one update thread to run at once
-		updateSocket.abort();
-	}
+	//remove socket all together so that status will operate independant of other content.
+//	if (updateSocket !== undefined && updateSocket.readyState != 4){
+//		// Only allow one update thread to run at once
+//		updateSocket.abort();
+//	}
 	if (time === undefined) {
 		time = "";
 	}
 	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
 	var arg_str = "fields=state,states,label,state_log,schedule,logger_status&long_poll=true&items="+item+"&time="+time;
-	updateSocket = $.ajax({
+	$.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
 		dataType: "json",
@@ -1065,14 +1170,14 @@ var updateItem = function(item,link,time) {
 			}
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
 
-				if (URLHash.link == link || link == undefined){
+				if (URLHash.link == link || link == undefined || item == "ia7_status"){
 //					//While we don't anticipate handling a list of groups, this 
 //					//may error out if a list was used
 					//testingObj(json_store.meta.time);
 				updateItem(item,URLHash.link,requestTime);
 				}
 			}
-		}, // End success
+		} // End success
 	});  //ajax request
 }
 
@@ -1165,7 +1270,7 @@ var updateStaticPage = function(link,time) {
 					updateStaticPage(URLHash.link,requestTime);
 				}
 			}
-		}, 
+		} 
 	});  
 }
 
@@ -1177,12 +1282,12 @@ function authDetails() {
    			if (json_store.collections[700].user == "0") {
     			json_store.collections[700].name = "Log in";
     			json_store.collections[700].icon = "fa-lock";
-    			authorized = false;
+    			authorized = "false";
    				$(".fa-gear").css("color", "red");
    			} else {
     			json_store.collections[700].name = "Log out "+json_store.collections[700].user+"...";
     			json_store.collections[700].icon = "fa-unlock";   		   		
-    			authorized = true;
+    			authorized = "true";
     			$(".fa-gear").css("color", "green");
     			if (json_store.collections[700].user == "admin") {
         			$(".fa-gear").css("color", "purple");
@@ -1280,9 +1385,9 @@ var loadCollection = function(collection_keys) {
 				if (json_store.collections[collection].reload_modal !== undefined) {
 					reload_modal = json_store.collections[collection].reload_modal;
 				}
-				button_html = "<a link-type='collection' modal='"+link+"' reload_modal='"+reload_modal+"' class='btn btn-default btn-lg btn-block btn-list btn-resp-modal "+hidden+" navbutton-padding' role='button'><i class='"+icon_set+" "+icon+" icon-larger fa-2x fa-fw'></i>"+name+"</a>";
+				button_html = "<a link-type='collection' modal='"+link+"' reload_modal='"+reload_modal+"' class='btn btn-default btn-lg btn-block btn-list btn-resp-modal "+hidden+" navbutton-padding collection-item-icon' role='button'><i class='"+icon_set+" "+icon+" icon-2-5x fa-fw'></i>"+name+"</a>";
 			} else {			
-				button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list "+hidden+" navbutton-padding' role='button'><i class='"+icon_set+" "+icon+" icon-larger fa-2x fa-fw'></i>"+name+"</a>";
+				button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list "+hidden+" navbutton-padding collection-item-icon' role='button'><i class='"+icon_set+" "+icon+" icon-2-5x fa-fw'></i>"+name+"</a>";
 			}
 			button_html = "<div class='col-sm-4' colid='"+collection+"'>" + button_html + "</div>";
 			entity_arr.push(button_html);
@@ -1310,6 +1415,20 @@ var loadCollection = function(collection_keys) {
 	}
 	
 	generateTooltips();	
+
+    //turn on long clicks on all buttons if in developer mode
+//TODO error checking on fields
+	$('.btn').mayTriggerLongClicks().on( 'longClick', function() {		
+         if (developer === true) {
+            var cls = $(this).parent().attr('class');
+            if (cls !== undefined && (!cls.match('ui-sortable-helper'))) {
+                var colid = $(this).parent().attr("colid");
+                var URLHash=URLToHash();
+                var col_parent = URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1);
+                create_develop_item_modal(colid,col_parent);
+            }
+        }
+    });
 	
 	// if any items present, then create modals and activate updateItem...
 	if (items !== "") {
@@ -1357,6 +1476,7 @@ var loadCollection = function(collection_keys) {
 		});	
 			
 // test multiple items at some point
+        console.log("items="+items);
 		updateItem(items);
 	}	
 	
@@ -1448,7 +1568,7 @@ var something_went_wrong = function(module,text) {
        var html = "<div class='alert-err alert "+mobile+" alert-" + type + " fade in' data-alert>";
        html += "<button type='button' class='close' data-dismiss='alert'>x</button>";
        html += "<div class=''>";
-       html += "<i class='fa fa-exclamation-triangle icon-larger fa-2x fa-fw pull-left'></i>";
+       html += "<i class='fa fa-exclamation-triangle icon-2-5x fa-fw pull-left'></i>";
        html += "<div class='sww-text'>";
        html += "<h3 class='sww-text-msg'>ERROR</h3>" + module + " : " + text + " </div></div></div>";
     
@@ -1532,7 +1652,11 @@ var get_stats = function(tagline) {
 						    show: true
 					});
                 });
-                
+               
+                //if json.data.web_counter_total == 0 then first time running stable release. Redirect to the whatsnew page
+                if (json.data.web_counter_total !== undefined && json.data.web_counter_total == 0) {
+                    window.location.href = '/ia7/#_request=page&link=/ia7/house/whatsnew.shtml&_collection_key=0,'
+                }
 		    }
 		    if (jqXHR.status == 200 || jqXHR.status == 204) {
 				stats_loop = setTimeout(function(){
@@ -1563,7 +1687,7 @@ var get_wi_icon = function (conditions,rain,snow,night) {
     } else if (conditions == "snow") {
             icon += "snow";     
         
-    } else if (conditions == "sky clear" || conditions == "" || conditions == "clear") {
+    } else if (conditions == "sky clear" || conditions == "" || conditions == "clear" || conditions == "sunny" || conditions == "mostly sunny") {
         if (night) {
             icon = "wi-night-clear";
         } else {
@@ -1593,7 +1717,7 @@ var get_wi_icon = function (conditions,rain,snow,night) {
             }
         }
                 
-    } else if (conditions.includes("few clouds") || conditions == "scattered clouds" || conditions == "broken clouds" || conditions == "cloudy") {
+    } else if (conditions.includes("clouds") || conditions.includes("cloudy") || conditions.includes("partly sunny")) {
         if (rain) {
             icon += "rain";
         } else if (snow) {
@@ -1880,7 +2004,7 @@ var graph_rrd = function(start,group,time) {
 					    var legli = $('<li style="list-style:none;"/>').appendTo('#rrd-legend');
 					    $('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
 					    $('<label>', {
-						    class: "rrd-legend-class",
+						    'class': "rrd-legend-class",
 						    text: json.data.data[i].label,
 				    	    'for': json.data.data[i].label
 						    }).appendTo(legli);
@@ -2102,7 +2226,7 @@ var object_history = function(items,start,days,time) {
 						var legli = $('<li style="list-style:none;"/>').appendTo('#hist-legend');
 						$('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
 						$('<label>', {
-							class: "rrd-legend-class",
+							'class': "rrd-legend-class",
 							text: json.data.data[i].label,
 				    		'for': json.data.data[i].label
 							}).appendTo(legli);
@@ -2412,7 +2536,7 @@ var floorplan = function(group,time) {
 
     if (developer === true){
         // update positon
-        $(document).mousemove(function(e){
+        $(document).bind('mousemove.fpdev', function(e) {
             var offset = $("#fp_graphic").offset();
             var width = $("#fp_graphic").width();
             var hight = $("#fp_graphic").height();
@@ -2450,6 +2574,8 @@ var floorplan = function(group,time) {
             fp_grabbed_entity = null;
         });
 
+    } else {
+        $(document).unbind('mousemove');
     }
 
     var set_coordinates_from_offset = function (id)
@@ -2878,7 +3004,7 @@ var floorplan = function(group,time) {
             }
             if (time === 0){
                 // hack to fix initial positions of the items
-                var wait = 400;
+                var wait = 800;
                 setTimeout(function(){
                     fp_reposition_entities();
                 }, wait);
@@ -3065,8 +3191,10 @@ var create_state_modal = function(entity) {
 		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
 		$('#control').find('.states').find('.btn').click(function (){
 			url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
-			$('#control').modal('hide');
-			$.get( url);
+			if (!$(this).hasClass("disabled")) {
+			    $('#control').modal('hide');
+			    $.get( url);
+			}
 		});
 		} else {
 			//remove states from anything that doesn't have more than 1 state
@@ -3183,18 +3311,55 @@ var create_state_modal = function(entity) {
 		
 			$('.sched_submit').on('click', function(){
 				if ($(this).hasClass("disabled")) return;
-				var string = "";
-				$('.mhsched').each(function(index,value) {
-					string += $( this ).attr("id") + ',"' + modify_jqcon_dow($(this).text(),"-1") + '",' + $( this ).attr("label") + ',';
+				var data = {};
+	
+                if ($(this).parents('.control-dialog').attr("entity") == undefined) return;	
+				data[$(this).parents('.control-dialog').attr("entity")] = {};
+				data[$(this).parents('.control-dialog').attr("entity")].schedule = [];
+				
+				$('.mhsched').each(function(index,value) {					
+					var sched_data = {};
+					sched_data.id = $( this ).attr("id");
+					sched_data.cron = modify_jqcon_dow($(this).text(),"-1");
+					sched_data.label = $( this ).attr("label");
+                    data[$(this).parents('.control-dialog').attr("entity")]['schedule'].push(sched_data);				
 				});
-				string = string.replace(/,\s*$/, ""); //remove the last comma
-				var url="/SUB?ia7_update_schedule"+encodeURI("("+$(this).parents('.control-dialog').attr("entity")+","+string+")");
-				$.get(url);
-            	$('.sched_submit').addClass('disabled');  
-            	$('.sched_submit').removeClass('btn-success');  
-            	$('.sched_submit').addClass('btn-default');  
-            	//emtpy the array since the long_poll should get the updated schedules.
-            	json_store.objects[entity].schedule.length = 0; 			
+
+                $.ajax({
+                    url: "/json/objects",
+                    type: 'post',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function( data, status, error ){
+                          console.log("data="+data+" status="+status+" error="+error);
+                          //throw up red warning if the response isn't good from MH
+                          if (data.status !== undefined || data.status == "error") {
+                              var message = "Unknown server error";
+                              if (data.text !== undefined) message = data.text
+                              $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+                              $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                           } else {   
+                              $(".modal-header").append($("<div class='write-status alert alerts-modal alert-success fade in' data-alert><p><i class='fa fa-info-circle'></i>&nbsp;<strong>Success:</strong>&nbsp;Object successfully updated</p></div>"));
+                              $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                              $('.sched_submit').addClass('disabled');  
+                              $('.sched_submit').removeClass('btn-success');  
+                              $('.sched_submit').addClass('btn-default');  
+                              //emtpy the array since the long_poll should get the updated schedules.
+                              json_store.objects[entity].schedule.length = 0; 
+                          }
+                    },
+                    error: function( xhr, status, error ){
+                          var message = "Unknown ajax request error";
+                          var data = JSON.parse(xhr.responseText);
+                          if (data !== undefined && data.text !== undefined) message = data.text;
+                          console.log("status="+status);
+                          console.log("error="+error);
+                          $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+                          $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                  }                    
+                });
+			
+			
 			});			
 			//hide the schedule controls if in simple mode
 			if 	(display_mode == "simple") {
@@ -3246,6 +3411,212 @@ var create_state_modal = function(entity) {
 			$('#control').modal('hide');
 		});
 }	
+
+var create_develop_item_modal = function(colid,col_parent) {
+
+    if (colid == undefined || col_parent == undefined) {
+        console.log("create develop modal, colid="+colid+" col_parent="+col_parent);
+    } else {        
+        $('#devModal').find('.modal-title').html("Edit Collection ID: <strong>"+colid+"</colid>");
+        var html = "<form class='form-horizontal dev-collection-edit'>";
+        //html += '<div class="form-group"><label for="col_id" class="control-label col-sm-2">CollectionID</label><div class="col-sm-10">';
+        //html += '<input type="text" class="form-control" id="col_id" name="cid" value="'+colid+'" readonly></div></div>';
+        var icon_orig = json_store.collections[colid].icon;
+    
+        html += '<div class="form-group"><label for="col_icon" class="control-label col-sm-2">Icon</label><div class="col-sm-10">';
+        html += '<div class="input-group dev-collection-icon"><span class="input-group-addon" id="icon_gylph">X</span>'
+        html += '<input type="text" class="form-control iconpicker" id="col_icon" value="'+json_store.collections[colid].icon+'"></div></div></div>';
+
+        html += '<div class="form-group"><label for="col_name" class="control-label col-sm-2">Name</label><div class="col-sm-10">';
+        var name = '';
+        if (json_store.collections[colid].name !== undefined) name = json_store.collections[colid].name;
+        html += '<input type="text" class="form-control" id="col_name" name="name" value="'+name+'"></div></div>';
+
+
+        var parent;
+        if (col_parent == 0) {
+            parent = "Home";
+        } else {
+            parent = json_store.collections[col_parent].name;
+        }                
+        html +=  '<div class="form-group"><label for="col_parent" class="control-label col-sm-2">Page</label><div class="col-sm-10">';
+        html += '<select class="form-control" id="col_parent" name="cparent">';
+
+        var cids=0;
+        for (var key in json_store.collections){
+            if (json_store.collections.hasOwnProperty(key)) {
+                if (json_store.collections[key].children !== undefined) {
+                    var name = "Home";
+                    if (json_store.collections[key].name !== undefined) name = json_store.collections[key].name
+                    var selected = "";
+                    if (key == col_parent) selected = "selected";
+                    html += '<option value="'+key+'" '+selected+'>'+key+' ('+name+')</option>';
+                }
+            }
+        }
+        html += '</select></div></div>'
+
+        var mode = "simple";
+        if (json_store.collections[colid].mode !== undefined) mode = json_store.collections[colid].mode;
+
+        var checked = ""
+        if (mode == "advanced") checked = "checked";
+        html += '<div class="form-group"><label for="col_mode" class="control-label col-sm-2">Mode</label><div class="col-sm-10"><div class="checkbox">';
+        html += '<label><input type="checkbox" id="col_mode" name="cmode" value="Advanced" '+checked+'>Advanced</label></div></div></div>';
+            
+        var html1 = '<hr>';  
+        var options = 0;
+        for (var prop in json_store.collections[colid]) {
+            if (json_store.collections[colid].hasOwnProperty(prop)) {
+                 if (!(prop == "name" || prop == "icon" || prop == "mode")) {
+                     options = 1;
+                     var readonly = "";
+                     if (prop == "children") readonly = "readonly";
+                     html1 +=  '<div class="form-group"><label for="col_'+prop+'" class="control-label col-sm-2">'+prop+'</label><div class="col-sm-10">';
+                     html1 += '<input type="text" class="form-control" id="col_'+prop+'" name="c'+prop+'" value="'+json_store.collections[colid][prop]+'" '+readonly+'></div></div>';
+                 }
+            }                    
+        }
+        if (options == 1) html += html1;
+        html += "</form>";		
+
+        $('#devModal').find('.modal-body').html(html);
+        $('#devModal').find('.modal-footer').html('<button type="button" class="btn btn-default btn-dev-cancel" data-dismiss="modal">Cancel</button>');  
+        $('#devModal').find('.modal-footer').prepend('<button type="button" class="btn disabled btn-success btn-dev-apply">Apply</button>');      	
+        $('#devModal').find('.modal-footer').prepend('<button type="button" class="btn disabled btn-danger btn-dev-write pull-left">Write to MH</button>');      	
+
+        var wi_icons = [ "wi-day-sunny","wi-day-cloudy","wi-day-cloudy-gusts","wi-day-cloudy-windy","wi-day-fog","wi-day-hail","wi-day-haze","wi-day-lightning","wi-day-rain","wi-day-rain-mix","wi-day-rain-wind","wi-day-showers","wi-day-sleet","wi-day-sleet-storm","wi-day-snow","wi-day-snow-thunderstorm","wi-day-snow-wind","wi-day-sprinkle","wi-day-storm-showers","wi-day-sunny-overcast","wi-day-thunderstorm","wi-day-windy","wi-solar-eclipse","wi-hot","wi-day-cloudy-high","wi-day-light-wind","wi-night-clear","wi-night-alt-cloudy","wi-night-alt-cloudy-gusts","wi-night-alt-cloudy-windy","wi-night-alt-hail","wi-night-alt-lightning","wi-night-alt-rain","wi-night-alt-rain-mix","wi-night-alt-rain-wind","wi-night-alt-showers","wi-night-alt-sleet","wi-night-alt-sleet-storm","wi-night-alt-snow","wi-night-alt-snow-thunderstorm","wi-night-alt-snow-wind","wi-night-alt-sprinkle","wi-night-alt-storm-showers","wi-night-alt-thunderstorm","wi-night-cloudy","wi-night-cloudy-gusts","wi-night-cloudy-windy","wi-night-fog","wi-night-hail","wi-night-lightning","wi-night-partly-cloudy","wi-night-rain","wi-night-rain-mix","wi-night-rain-wind","wi-night-showers","wi-night-sleet","wi-night-sleet-storm","wi-night-snow","wi-night-snow-thunderstorm","wi-night-snow-wind","wi-night-sprinkle","wi-night-storm-showers","wi-night-thunderstorm","wi-lunar-eclipse","wi-stars","wi-storm-showers","wi-thunderstorm","wi-night-alt-cloudy-high","wi-night-cloudy-high","wi-night-alt-partly-cloudy","wi-cloud","wi-cloudy","wi-cloudy-gusts","wi-cloudy-windy","wi-fog","wi-hail","wi-rain","wi-rain-mix","wi-rain-wind","wi-showers","wi-sleet","wi-snow","wi-sprinkle","wi-storm-showers","wi-thunderstorm","wi-snow-wind","wi-snow","wi-smog","wi-smoke","wi-lightning","wi-raindrops","wi-raindrop","wi-dust","wi-snowflake-cold","wi-windy","wi-strong-wind","wi-sandstorm","wi-earthquake","wi-fire","wi-flood","wi-meteor","wi-tsunami","wi-volcano","wi-hurricane","wi-tornado","wi-small-craft-advisory","wi-gale-warning","wi-storm-warning","wi-hurricane-warning","wi-wind-direction","wi-alien","wi-celsius","wi-fahrenheit","wi-degrees","wi-thermometer","wi-thermometer-exterior","wi-thermometer-internal","wi-cloud-down","wi-cloud-up","wi-cloud-refresh","wi-horizon","wi-horizon-alt","wi-sunrise","wi-sunset","wi-moonrise","wi-moonset","wi-refresh","wi-refresh-alt","wi-umbrella","wi-barometer","wi-humidity","wi-na","wi-train","wi-moon-new","wi-moon-waxing-crescent-1","wi-moon-waxing-crescent-2","wi-moon-waxing-crescent-3","wi-moon-waxing-crescent-4","wi-moon-waxing-crescent-5","wi-moon-waxing-crescent-6","wi-moon-first-quarter","wi-moon-waxing-gibbous-1","wi-moon-waxing-gibbous-2","wi-moon-waxing-gibbous-3","wi-moon-waxing-gibbous-4","wi-moon-waxing-gibbous-5","wi-moon-waxing-gibbous-6","wi-moon-full","wi-moon-waning-gibbous-1","wi-moon-waning-gibbous-2","wi-moon-waning-gibbous-3","wi-moon-waning-gibbous-4","wi-moon-waning-gibbous-5","wi-moon-waning-gibbous-6","wi-moon-third-quarter","wi-moon-waning-crescent-1","wi-moon-waning-crescent-2","wi-moon-waning-crescent-3","wi-moon-waning-crescent-4","wi-moon-waning-crescent-5","wi-moon-waning-crescent-6","wi-moon-alt-new","wi-moon-alt-waxing-crescent-1","wi-moon-alt-waxing-crescent-2","wi-moon-alt-waxing-crescent-3","wi-moon-alt-waxing-crescent-4","wi-moon-alt-waxing-crescent-5","wi-moon-alt-waxing-crescent-6","wi-moon-alt-first-quarter","wi-moon-alt-waxing-gibbous-1","wi-moon-alt-waxing-gibbous-2","wi-moon-alt-waxing-gibbous-3","wi-moon-alt-waxing-gibbous-4","wi-moon-alt-waxing-gibbous-5","wi-moon-alt-waxing-gibbous-6","wi-moon-alt-full","wi-moon-alt-waning-gibbous-1","wi-moon-alt-waning-gibbous-2","wi-moon-alt-waning-gibbous-3","wi-moon-alt-waning-gibbous-4","wi-moon-alt-waning-gibbous-5","wi-moon-alt-waning-gibbous-6","wi-moon-alt-third-quarter","wi-moon-alt-waning-crescent-1","wi-moon-alt-waning-crescent-2","wi-moon-alt-waning-crescent-3","wi-moon-alt-waning-crescent-4","wi-moon-alt-waning-crescent-5","wi-moon-alt-waning-crescent-6","wi-time-1","wi-time-2","wi-time-3","wi-time-4","wi-time-5","wi-time-6","wi-time-7","wi-time-8","wi-time-9","wi-time-10","wi-time-11","wi-time-12","wi-direction-up","wi-direction-up-right","wi-direction-right","wi-direction-down-right","wi-direction-down","wi-direction-down-left","wi-direction-left","wi-direction-up-left","wi-wind-beaufort-0","wi-wind-beaufort-1","wi-wind-beaufort-2","wi-wind-beaufort-3","wi-wind-beaufort-4","wi-wind-beaufort-5","wi-wind-beaufort-6","wi-wind-beaufort-7","wi-wind-beaufort-8","wi-wind-beaufort-9","wi-wind-beaufort-10","wi-wind-beaufort-11","wi-wind-beaufort-12" ];
+        $('#col_icon').iconpicker({
+            hideOnSelect: true,
+            icons: $.merge($.iconpicker.defaultOptions.icons,wi_icons),
+            fullClassFormatter: function(a) {
+                if (a.match(/^wi-/)) {
+                    return 'wi ' + a;
+                } else {
+                    return 'fa ' + a;
+                }
+            }
+        });
+        if (dev_changes !== 0) {			
+            $('.btn-dev-apply').removeClass('disabled');
+            $('.btn-dev-write').removeClass('disabled');
+        }
+          
+        $('#col_icon').iconpicker().on('iconpickerSelect', function(e) {
+            $('.btn-dev-apply').removeClass('disabled');
+            $('.btn-dev-write').removeClass('disabled'); 
+            $('#col_icon').css('border-color', '');           
+            dev_changes++;            
+        });
+    
+        $('.dev-collection-edit').on('change input', function () {
+            $('.btn-dev-apply').removeClass('disabled');
+            $('.btn-dev-write').removeClass('disabled');
+            //if name is empty put a red box around, otherwise blue
+            if ($('#col_name').val() == '') {
+                $('#col_name').css('border-color', 'red');
+            } else {
+                $('#col_name').css('border-color', '');
+            }
+            if ($('#col_icon').val() == '') {
+                $('#col_icon').css('border-color', 'red');
+            } else {
+                $('#col_icon').css('border-color', '');
+            }
+            dev_changes++;
+        });
+    
+                    
+        function update_collection_array () {
+        
+            var parent = $('#col_parent').val();
+            var mode = $('#col_mode').is(":checked");
+            
+            for (var prop in json_store.collections[colid]) {
+                if (json_store.collections[colid].hasOwnProperty(prop)) {
+                     if (!(prop == "mode")) {
+                        // loop through properties
+                          if ($('#col_'+prop).val() !== '') json_store.collections[colid][prop] = $('#col_'+prop).val();                      
+                          console.log("prop="+prop+" val="+$('#col_'+prop).val());
+                    }
+                }
+            }
+
+            if (mode == true) {
+                json_store.collections[colid].mode = "advanced";
+            } else {
+                delete json_store.collections[colid].mode;
+            }    
+            if (col_parent !== parent) {
+                if (json_store.collections[parent].children !== undefined && json_store.collections[col_parent].children !== undefined) {
+                //use parseInt to ensure they are writing as numbers and not strings
+                    json_store.collections[parent].children.push(parseInt(colid,10));
+                    json_store.collections[col_parent].children.splice( json_store.collections[col_parent].children.indexOf(parseInt(colid,10)), 1 );
+                } else {
+                    console.log("Object Parent or New Parent Children undefined!!")
+                }
+            }   
+        }
+    
+        $('.btn-dev-apply').click( function () {
+            if (!($('.btn-dev-apply').hasClass('disabled'))) {
+                update_collection_array();
+                changePage();     
+                $('.btn-dev-cancel').text("Close");
+                $('.btn-dev-apply').addClass('disabled');
+                dev_changes = 0;
+
+            } 
+        });
+    
+        $('.btn-dev-write').click( function () {
+            if ($('.btn-dev-write').hasClass('disabled')) return;        
+             update_collection_array();
+             //item 700 is special, it needs to be user = $Authorized for the MH authentication piece to work.
+             var data = json_store.collections;
+             var current_user = data[700].user;
+             data[700].user = "$Authorized";
+             //after apply and cancel change the cancel button text to close
+              $.ajax({
+                  url: "/json/collections",
+                  type: 'post',
+                  contentType: 'application/json',
+                  data: JSON.stringify(data),
+                  success: function( data, status, error ){
+                        console.log("data="+data+" status="+status+" error="+error);
+                        //throw up red warning if the response isn't good from MH
+                        if (data.status !== undefined || data.status == "error") {
+                            var message = "Unknown server error";
+                            if (data.text !== undefined) message = data.text
+                            $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+   	 		                $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                         } else {   
+                            $(".modal-header").append($("<div class='write-status alert alerts-modal alert-success fade in' data-alert><p><i class='fa fa-info-circle'></i>&nbsp;<strong>Success:</strong>&nbsp;Data successfully written to MH</p></div>"));
+                            $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                            $('.btn-dev-cancel').text("Close");
+                            $('.btn-dev-apply').addClass('disabled');
+                            dev_changes = 0;
+                        }
+                        data[700].user = current_user;
+                  },
+                  error: function( xhr, status, error ){
+                        var message = "Unknown ajax request error";
+                        var data = JSON.parse(xhr.responseText);
+                        if (data !== undefined && data.text !== undefined) message = data.text;
+                        console.log("status="+status);
+                        console.log("error="+error);
+                        $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+   	 		            $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+   	 		            data[700].user = current_user;
+                  }
+              });
+        });
+    
+        $('#devModal').modal({
+            show: true
+            });
+    }
+}
 
 var authorize_modal = function(user) {
 
@@ -3379,7 +3750,12 @@ $(document).ready(function() {
 	// Start
 	
 	// Increment the counter
-	$.get("/SUB?ia7_update_counter");
+    $.ajax({
+        url: "/json/web_counter",
+        type: 'post',
+        contentType: 'application/json',
+        data: "{}"           //just post empty json
+    });
 	
 	changePage();
 	//Watch for future changes in hash
@@ -3450,17 +3826,29 @@ $(document).ready(function() {
 			advanced_active = "";
 			advanced_checked = ""
 			develop_active = "active";
-			developed_checked = "checked"
-		}		
-		
+			develop_checked = "checked"
+		}
+		var develop_auth = "";	
+		var develop_type = "radio";
+		if (authorized == "false") {
+		    develop_checked = "";
+		    develop_active = "";
+		    if (advanced_active !== "active") simple_active = "active";
+		    develop_auth = "disabled";
+		    develop_type = "checkbox";
+		    console.log("no auth");
+		}
+		    
 		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-4 col-sm-4 "+simple_active+"'><input type='radio' name='mhmode2' id='simple' autocomplete='off'"+simple_checked+">simple</label>");
 		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-4 col-sm-4 "+advanced_active+"'><input type='radio' name='mhmode2' id='advanced' autocomplete='off'"+advanced_checked+">expert</label>");
-		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-4 col-sm-4 "+develop_active+"'><input type='radio' name='mhmode2' id='developer' autocomplete='off'"+develop_checked+">developer</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-4 col-sm-4 "+develop_active+" "+develop_auth+"'><input type='"+develop_type+"' name='mhmode2' id='developer' autocomplete='off'"+develop_checked+" "+develop_auth+">developer</label>");
 
 		$('.mhmode').on('click', function(){
 			if ($(this).find('input').attr('id') == "developer") {
-				display_mode = "advanced";
-				developer = true;
+			    if (!($(this).hasClass('disabled'))) {
+				    display_mode = "advanced";
+				    developer = true;
+				}
 			} else {
 				display_mode = $(this).find('input').attr('id');
 				developer = false;
@@ -3471,42 +3859,39 @@ $(document).ready(function() {
 				$("#list_content").sortable({
 				    tolerance: "pointer",
                     items: ".col-sm-4",
+                    cursor: "move",
 				    update: function( event, ui ) {
 		  	            var URLHash = URLToHash();
                         //Get Sorted Array of Entities
-                        var outputJSON = $( "#list_content" ).sortable( "toArray", { attribute: "colid" } );
-                        //outputJSON = '["' + outputJSON.join('","') + '"]';
-                        //URLHash.path = "/objects/" + entity + "/sort_order";
-                        //delete URLHash.parents;
-                        console.log("outputJSON="+JSON.stringify(outputJSON));
-                        //URLHash={"_collection_key":"0,6"}
-                        console.log("URLHash="+JSON.stringify(URLHash));
-                        console.log("Key="+URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1));
-
-                    },
-                    //to prevent long clicks from firing while dragging
-                    start: function(event, ui) {
-                    //    $("#list_content").mayTriggerLongClicks().off();
-                    },
-                    stop: function(event, ui) {
-                    //    $("#list_content").mayTriggerLongClicks().on( 'longClick', function() {		
-                    //        var entity = $(this).attr("entity");
-                    //        console.log("long_click="+JSON.stringify($(this)));
-                    //    });
+                        var colids = $( "#list_content" ).sortable( "toArray", { attribute: "colid" } );
+                        //convert strings to ints
+                        var new_order = colids.map(function (x) { 
+                            return parseInt(x, 10); 
+                        });
+                        //get the collection key
+                        var col_key;
+                        if (URLHash._collection_key == undefined) {
+                            col_key = 0;
+                        } else {
+                            col_key = URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1);
+                        }
+                        json_store.collections[col_key].children = new_order;
+                        dev_changes++;
+                        changePage();
                     }
 				});	
-				//$('#list_content').disableSelection();	
-				$("#list_content").mayTriggerLongClicks().on( 'longClick', function() {		
-                        var entity = $(this).attr("entity");
-                        console.log("long_click="+JSON.stringify($(this)));
-                });						
+				$('#list_content').disableSelection();					
 			} else {
-			    $("#list_content").sortable("destroy");
-			    //$("#list_content").enableSelection();	
-			    $("#list_content").mayTriggerLongClicks().off();
+			    if ($('#list_content').hasClass('ui-sortable')) {
+			        $("#list_content").sortable("destroy");
+			        $("#list_content").enableSelection();	
+			    }
+			    if ($('#option_collection').hasClass('ui-sortable')) {
+			        $("#option_collection").sortable("destroy");
+			        $("#option_collection").enableSelection();	
+			    }
 			}
 			document.cookie = "display_mode="+display_mode;
-			document.cookie = "developer="+developer;
 	
 			changePage();
   		});
@@ -3569,10 +3954,10 @@ $(document).ready(function() {
   		});  		
 		// parse the collection ID 500 and build a list of buttons
 		var opt_collection_keys = 0;
-		var opt_entity_html = "";
+		var opt_entity_html = "<div id='option_collection'>";
 		var opt_entity_sort = json_store.collections[500].children;
 		if (opt_entity_sort.length <= 0){
-		opt_entity_html = "Childless Collection";
+		opt_entity_html += "Childless Collection";
 		} else {
 		    for (var i = 0; i < opt_entity_sort.length; i++){
 				var collection = opt_entity_sort[i];
@@ -3593,13 +3978,36 @@ $(document).ready(function() {
 //					if (name == undefined) {
 //						authDetails();
 //					} 
-					opt_entity_html += "<a link-type='collection' user='"+json_store.collections[collection].user+"' class='btn btn-default btn-lg btn-block btn-list btn-login-modal' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
+					opt_entity_html += "<a link-type='collection' user='"+json_store.collections[collection].user+"' class='btn btn-default btn-lg btn-block btn-list btn-login-modal' colid='"+collection+"' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 				} else {	
-					opt_entity_html += "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
+					opt_entity_html += "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list btn-option' colid='"+collection+"' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 				}
 			}
 		}
+		opt_entity_html += "</div>";
 		$('#optionsModal').find('.modal-body').append(opt_entity_html);	
+		
+					if (developer == true) {
+			    //turn on collections drag-n-dropping
+				$("#option_collection").sortable({
+				    tolerance: "pointer",
+                    cursor: "move",
+				    update: function( event, ui ) {
+		  	            var URLHash = URLToHash();
+                        //Get Sorted Array of Entities
+                        var colids = $( "#option_collection" ).sortable( "toArray", { attribute: "colid" } );
+                        //convert strings to ints
+                        var new_order = colids.map(function (x) { 
+                            return parseInt(x, 10); 
+                        });
+                        //get the collection key
+                        var col_key = 500
+                        json_store.collections[col_key].children = new_order;
+                        dev_changes++;
+                    }
+				});	
+				$('#option_collection').disableSelection();					
+			} 
 		$('.btn-login-modal').click( function () {
 			$('#optionsModal').modal('hide');			
 			var user = $(this).attr('user')
@@ -3608,6 +4016,20 @@ $(document).ready(function() {
 		$('#optionsModal').find('.btn-list').click(function (){
 			$('#optionsModal').modal('hide');
 		});
+		
+		$('.btn-option').mayTriggerLongClicks().on( 'longClick', function() {		
+            if (developer === true) {
+                var cls = $(this).attr('class');
+                if (!cls.match('ui-sortable-helper')) {
+                    var colid = $(this).attr("colid");
+                    var col_parent=500;
+                    console.log("option colid="+colid+" col_parent="+col_parent);
+                    create_develop_item_modal(colid,col_parent);
+                    $('#optionsModal').modal('hide');    
+                }            
+		    }
+		});
+		
 	});
 
 //Needed to floorplan sliders to work.
