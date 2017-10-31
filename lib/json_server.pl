@@ -262,8 +262,8 @@ sub json_put {
         
              my $obj_found = 0;
              my $error = 0;
-             foreach my $object (keys $body) {
-                 foreach my $field (keys $body->{$object}) {
+             foreach my $object (keys %{$body}) {
+                 foreach my $field (keys %{$body->{$object}}) {             
                      if ($field == "schedule") {
                          if (!$Authorized) {
                              $response_code = "HTTP/1.1 401 Unauthorized\r\n";
