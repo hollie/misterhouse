@@ -10,7 +10,7 @@ modify the code/common/mh_release.pl file to search the new format!!
 
 =head1 Current Stable
 
-B<Version 4.2> - released on 03/08/2017
+B<Version 5.0> - released on 10/31/2017
 
 =over
 
@@ -28,7 +28,7 @@ A large (30MB) zip of optional files (mainly sound files) is here: L<http://mist
 
 =head1 Previous Stable
 
-B<Version 4.1> - released on 02/28/2016 
+B<Version 4.2> - released on 03/08/2017
 
 =over
 
@@ -37,7 +37,7 @@ B<Version 4.1> - released on 02/28/2016
 =begin HTML
 
 <strong>
-<a href='https://api.github.com/repos/hollie/misterhouse/zipball/v3.0' target='_blank'>https://api.github.com/repos/hollie/misterhouse/zipball/v3.0</a>
+<a href='https://api.github.com/repos/hollie/misterhouse/zipball/v3.0' target='_blank'>https://api.github.com/repos/hollie/misterhouse/zipball/v4.2</a>
 </strong>
 
 =end HTML
@@ -68,6 +68,6 @@ Subscribe to the Misterhouse release announcement mailing list here:  L<http://l
 
 Or join the Misterhouse community mailing list here: L<http://lists.sourceforge.net/mailman/listinfo/misterhouse-users>
 
-Last modified 03/02/2013 11:03:55
+Last modified 10/31/2017 
 
 =cut
