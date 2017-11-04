@@ -577,6 +577,18 @@ EOF
    "$device->{'id'}": {
 EOF
 
+	# Check whether the device is on so we can populate the "on" state
+	# for the "OnOff" trait. A device is also "on" if the brightness level
+	# is non-zero. Note that all lights have the "OnOff" trait so we
+	# unconditionally send the "on" state.
+	my $on = $devstate eq "on" || $devstate > 0 ? 'true' : 'false';
+
+	$response .= <<EOF;
+    "on": $on,
+EOF
+
+	# If the device is dimmable we provided the "Brightness" trait, so we
+	# have to supply the "brightness" state.
 	my $mh_object = ::get_object_by_name($self->{'uuids'}->{$device->{'id'} }->{'realname'});
 	if ($mh_object->isa('Insteon::DimmableLight')
 	    || $mh_object->can('state_level') ) {
@@ -591,12 +603,6 @@ EOF
 
 	    $response .= <<EOF;
     "brightness": $devstate,
-EOF
-	} else {
-	    my $on = $devstate eq "on" ? 'true' : 'false';
-
-	    $response .= <<EOF;
-    "on": $on,
 EOF
 	}
 
