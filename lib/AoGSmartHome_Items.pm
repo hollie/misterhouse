@@ -625,141 +625,52 @@ EOF
 
 sub execute_OnOff {
     my ( $self, $command ) = @_;
-    my %desired_states;
-    my $response = '';
+
+    my $response = '   {
+    "ids": [';
 
     my $turn_on = $command->{'execution'}->[0]->{'params'}->{'on'} eq "true" ? 1 : 0;
 
     foreach my $device ( @{ $command->{'devices'} } ) {
-        $desired_states{ $device->{'id'} } = $turn_on ? 'on' : 'off';
-
         get_set_state( $self, $device->{'id'}, 'set', $turn_on ? 'on' : 'off' );
+	$response .= qq["$device->{'id'}",];
     }
 
-    my @successes_on;
-    my @successes_off;
+    # Remove extra ',' at the end
+    $response =~ s/,$//;
 
-    #
-    # Second, check the state of each device.
-    #
-    #    for (my $t0 = [gettimeofday()]; tv_interval($t0) < 5.0;) {
-    #	foreach my $devid (keys %desired_states) {
-    #	    my $devstate = get_set_state($self, $devid, 'get');
-    #	    if ($devstate eq $desired_states{$devid}) {
-    #		if ($desired_states{$devid} eq "on") {
-    #		    push @successes_on, $devid;
-    #		} else {
-    #		    push @successes_off, $devid;
-    #		}
-    #
-    #		delete $desired_states{$devid};
-    #	    }
-    #	}
-    #    }
+    $response .= "],\n";
 
-    #
-    # Now generate the response...
-    #
-
-    if (@successes_on) {
-        $response .= qq(   {\n    "ids": [);
-
-        foreach my $devid (@successes_on) {
-            $response .= qq["$devid",];
-        }
-
-        # Remove extra ',' at the end
-        $response =~ s/,$//;
-
-        $response .= "],\n";
-
-        $response .= <<EOF;
-   "status": "SUCCESS",
-   "states": {
-    "on": true
-    "online": true
-   }
-  },
-EOF
-    }
-
-    if (@successes_off) {
-        $response .= qq(   {\n    "ids": [);
-
-        foreach my $devid (@successes_off) {
-            $response .= qq["$devid",];
-        }
-
-        # Remove extra ',' at the end
-        $response =~ s/,$//;
-
-        $response .= "],\n";
-
-        $response .= <<EOF;
-   "status": "SUCCESS",
-   "states": {
-    "on": false
-    "online": true
-   }
-  },
-EOF
-    }
-
-    #
-    # For whatever is left without confirmation after waiting for a little
-    # bit we send "PENDING".
-    #
-    if ( keys %desired_states ) {
-        $response .= qq(   {\n    "ids": [);
-
-        foreach my $devid ( keys %desired_states ) {
-            $response .= qq["$devid",];
-        }
-
-        # Remove extra ',' at the end
-        $response =~ s/,$//;
-
-        $response .= "],\n";
-
-        $response .= <<EOF;
+    $response .= <<EOF;
     "status": "SUCCESS"
    },
 EOF
-    }
 
     return $response;
 }
 
 sub execute_BrightnessAbsolute {
     my ( $self, $command ) = @_;
-    my %desired_states;
-    my $response = '';
+
+    my $response = '   {
+    "ids": [';
 
     my $brightness = $command->{'execution'}->[0]->{'params'}->{'brightness'};
 
     foreach my $device ( @{ $command->{'devices'} } ) {
-        $desired_states{ $device->{'id'} } = $brightness;
-
         get_set_state( $self, $device->{'id'}, 'set', $brightness);
+	$response .= qq["$device->{'id'}",];
     }
 
-    if ( keys %desired_states ) {
-        $response .= qq(   {\n    "ids": [);
+    # Remove extra ',' at the end
+    $response =~ s/,$//;
 
-        foreach my $devid ( keys %desired_states ) {
-            $response .= qq["$devid",];
-        }
+    $response .= "],\n";
 
-        # Remove extra ',' at the end
-        $response =~ s/,$//;
-
-        $response .= "],\n";
-
-        $response .= <<EOF;
+    $response .= <<EOF;
     "status": "SUCCESS"
    },
 EOF
-    }
 
     return $response;
 }
@@ -767,25 +678,13 @@ EOF
 sub execute_ActivateScene {
     my ( $self, $command ) = @_;
     my $response = '';
-    my %scenes_ids;
+
+    my $response = '   {
+    "ids": [';
 
     foreach my $device ( @{ $command->{'devices'} } ) {
-
-        # Just a marker to generate output later
-        $scene_ids{ $device->{'id'} } = undef;
-
         get_set_state( $self, $device->{'id'}, 'set' );
-    }
-
-    #
-    # Now generate the response...
-    #
-
-    $response .= qq(   {\n);
-    $response .= qq(    "ids": [);
-
-    foreach my $devid ( keys %scene_ids ) {
-        $response .= qq["$devid",];
+	$response .= qq["$device->{'id'}",];
     }
 
     # Remove extra ',' at the end
