@@ -797,6 +797,10 @@ sub setup {
     }
     else {
         require 'json_server.pl';
+
+	# Actions on Google HTTP helper
+	require 'http_server_aog.pl';
+	http_server_aog_startup();
     }
 
     if ($OS_win) {
@@ -2686,7 +2690,9 @@ sub check_for_socket_data {
         }
         else {
             # 1500 is ethernet packet size
-            my $from_saddr = recv( $sock, $data, 1500, 0 );
+	    # FIXME. Breaks when receiving more than 1500. Who's at fault?
+	    # peloy@chapus.net
+            my $from_saddr = recv( $sock, $data, 4500, 0 );
 
             # Store udp from_* data
             if (    $Socket_Ports{$port_name}{protocol}

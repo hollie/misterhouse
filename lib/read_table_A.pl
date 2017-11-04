@@ -1815,6 +1815,28 @@ sub read_table_A {
     }
     #-------------- End Alexa Objects ----------------
 
+    #-------------- AoGSmartHome Objects -----------------
+    elsif ( $type eq "AOGSMARTHOME_ITEMS" ) {
+        require 'AoGSmartHome_Items.pm';
+        ($name) = @item_info;
+        $object = "AoGSmartHome_Items()";
+    }
+    elsif ( $type eq "AOGSMARTHOME_ITEM" ) {
+        my ($parent, $realname, $name, $sub, $on, $off, $statesub, @other) = @item_info;
+        $sub =~ s/&/\\&/ if $sub =~ /^&/;
+        $sub =~ s/\\// if $sub =~ /^\\\\&/;
+        $realname =~ s/_/ /g if $sub =~ /run_voice_cmd/;
+        $realname = "\$$realname" if $realname && $sub !~ /&|run_voice_cmd/;
+        $sub = qq|'$sub'| if $sub !~ /&/;
+        my $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if (!$packages{AoGSmartHome_Items}++ ) { # first time for this object type?
+            $code .= "use AoGSmartHome_Items;\n";
+        }
+        $code .= sprintf "\$%-35s -> add('$realname','$name',$sub,'$on','$off','$statesub',$other);\n", $parent;
+        $object = '';
+    }
+    #-------------- End AoGSmartHome Objects ----------------
+
     elsif ( $type =~ /PLCBUS_.*/ ) {
 	#<,PLCBUS_Scene,Address,Name,Groups,Default|Scenes>#
         require PLCBUS;
