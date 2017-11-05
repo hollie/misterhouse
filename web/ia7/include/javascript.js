@@ -20,6 +20,7 @@ var stat_refresh = 60;
 var fp_popover_close = true ;
 var dev_changes = 0;
 var config_modal_loop;
+var zm_init = undefined;
 
 var ctx; //audio context
 var buf; //audio buffer
@@ -143,6 +144,7 @@ function changePage (){
 			success: function( json ) {
 				JSONStore(json);
 				changePage();
+                zoneminder();
 			}
 		});
 	} else {
@@ -1339,7 +1341,8 @@ var loadCollection = function(collection_keys) {
 				});
 			} else {
                 var btn_direct = "";
-                if (json_store.ia7_config.objects !== undefined 
+                if ( json_store.ia7_config !== undefined
+                        && json_store.ia7_config.objects !== undefined 
                         && json_store.ia7_config.objects[item] !== undefined
                         && json_store.ia7_config.objects[item].direct_control !== undefined 
                         && json_store.ia7_config.objects[item].direct_control == "yes") {
@@ -4054,6 +4057,56 @@ $(document).ready(function() {
 		//	});
 	});		
 });
+
+// method to dynamically load additional js script on the fly.
+// this custom approach is used instead of jquery.getScript to
+// improve the debugging experience (this solution is gratefully
+// lent from stackoverflow at https://stackoverflow.com/a/28002292 )
+function getScript(source, callback) {
+    var script = document.createElement('script');
+    var prior = document.getElementsByTagName('script')[0];
+    script.async = 1;
+
+    script.onload = script.onreadystatechange = function( _, isAbort ) {
+        if(isAbort || !script.readyState || /loaded|complete/.test(script.readyState) ) {
+            script.onload = script.onreadystatechange = null;
+            script = undefined;
+
+            if(!isAbort) { if(callback) callback(); }
+        }
+    };
+
+    script.src = source;
+    prior.parentNode.insertBefore(script, prior);
+}
+
+// checks Wether a zoneminder configuration exists,
+// loads the zoneminder zm.js and connects the configured zmeventservers
+// more info on zoneminder integration is found in ./zm.js.md
+var zoneminder = function()
+{
+    var config = json_store.ia7_config.zoneminder;
+    if (config === undefined)
+    {
+        console.log("no zoneminder config...");
+        return;
+    }
+    if (zm_init !== undefined)
+    {
+        console.log("zoneminder connection exists config...");
+        return;
+    }
+
+    console.log("loading Zoneminder zm.js.");
+	zm_init = true;
+
+    getScript("/ia7/include/zm.js", function(){
+        zm.init();
+        for (i = 0; i < config.length; ++i) {
+            zm.connect_server(config[i]);
+        }
+    });
+};
 
 
 
