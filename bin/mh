@@ -2689,10 +2689,14 @@ sub check_for_socket_data {
             $data = <$sock>;
         }
         else {
-            # 1500 is ethernet packet size
-	    # FIXME. Breaks when receiving more than 1500. Who's at fault?
-	    # peloy@chapus.net
-            my $from_saddr = recv( $sock, $data, 4500, 0 );
+            # We used to read 1500 bytes here because that is the default
+	    # MTU for Ethernet. However, larger MTUs can be in use. In fact,
+	    # the MTU of the loopback interface is set in a modern Linux
+	    # distribution at 65535 bytes. Reading only 1500 can break
+	    # things when the traffic comes to the MisterHouse HTTP server
+	    # via the loopback interface and in packets larger than 1500
+	    # bytes.
+            my $from_saddr = recv( $sock, $data, 65535, 0 );
 
             # Store udp from_* data
             if (    $Socket_Ports{$port_name}{protocol}
