@@ -213,10 +213,9 @@ package AoGSmartHome_Items;
 
 use Data::Dumper;
 use Storable;
-use Time::HiRes qw(gettimeofday tv_interval);
 
-sub get_set_state {
-    my ( $self, $uuid, $action, $state ) = @_;
+sub set_state {
+    my ( $self, $uuid, $state ) = @_;
 
     my $name     = $self->{'uuids'}->{$uuid}->{'name'};
     my $realname = $self->{'uuids'}->{$uuid}->{'realname'};
@@ -226,45 +225,27 @@ sub get_set_state {
     # ???
     $state = $self->{'uuids'}->{$uuid}->{ lc($state) } if $self->{'uuids'}->{$uuid}->{ lc($state) };
 
-    print STDERR "[AoGSmartHome] Debug: get_set_state(uuid='$uuid', action='$action', state='$state', name='$name' realname='$realname' sub='$sub')\n"
+    print STDERR "[AoGSmartHome] Debug: set_state(uuid='$uuid', state='$state', name='$name' realname='$realname' sub='$sub')\n"
       if $main::Debug{'aog'} > 2;
 
     if ( $sub =~ /^voice[_-]cmd:\s*(.+)\s*$/ ) {
         my $voice_cmd = $1;
 
-        if ( $action eq 'set' ) {
-            $voice_cmd =~ s/[#!]/$state/;
+	$voice_cmd =~ s/[#!]/$state/;
 
-            print STDERR "[AoGSmartHome] Debug: running voice command \'$voice_cmd\'\n"
-              if $main::Debug{'aog'};
-            &main::run_voice_cmd("$voice_cmd");
+	print STDERR "[AoGSmartHome] Debug: running voice command \'$voice_cmd\'\n"
+	  if $main::Debug{'aog'};
+	&main::run_voice_cmd("$voice_cmd");
 
-            return;
-        }
-        elsif ( $action eq 'get' ) {
-
-            # FIXME -- "get" on voice command? Hhhmmm
-            return qq["on":true,"bri":254];
-        }
+	return;
     }
     elsif ( ref $sub eq 'CODE' ) {
-        if ( $action eq 'set' ) {
-            print "[AoGSmartHome] Debug: running sub $sub(set, $state)\n" if $main::Debug{'aog'};
-            &{$sub}( 'set', $state );
-            return;
-        }
-        elsif ( $action eq 'get' ) {
-            my $debug = "[AoGSmartHome] Debug: get_state running sub: $sub( state, $state ) - ";
-            my $state = &{$sub}('state');
-            if ( $state =~ /\d+/ ) {
-                $state = ( &roundoff( ( $state * 2.54 ) ) );
-                my $return = qq["on":true,"bri":$state];
-                print STDERR "$debug returning - $return\n" if $main::Debug{'aog'};
-                return $return;
-            }
+        my $mh_object = ::get_object_by_name($realname);
+        return undef if !defined $mh_object;
 
-            return qq["on":true,"bri":254];
-        }
+	print STDERR "[AoGSmartHome] Debug: running sub $sub(set, $state)\n" if $main::Debug{'aog'};
+	&{$sub}($mh_object, $state, 'AoGSmartHome');
+	return;
     }
     else {
         #
@@ -274,44 +255,73 @@ sub get_set_state {
         my $mh_object = ::get_object_by_name($realname);
         return undef if !defined $mh_object;
 
-        if ( $action eq 'get' ) {
-            my $cstate = $mh_object->$statesub();
-            $cstate =~ s/\%//;
-            my $type  = $mh_object->get_type();
-            my $debug = "[AoGSmartHome] Debug: get state -- actual object state: $cstate, object type: $type, ";
+	if ( ($mh_object->isa('Insteon::DimmableLight')
+	      || $mh_object->can('state_level') ) && $state =~ /\d+/ ) {
+	    $state = $state . '%';
+	}
 
-            if ( $type =~ /X10/i ) {
-                $cstate = 'on' if $cstate =~ /\d+/ || $cstate =~ /dim/ || $cstate =~ /bright/;
-                $debug .= "determined state: $cstate, ";
-            }
+	print STDERR "[AoGSmartHome] Debug: setting object $realname to state '$state'\n"
+	  if $main::Debug{'aog'};
 
-	    $debug .= "$debug returning $cstate\n";
+	$mh_object->$sub( $state, 'AoGSmartHome' );
 
-            print STDERR $debug if $main::Debug{'aog'} > 2;
-
-            return $cstate;
-        }
-        elsif ( $action eq 'set' ) {
-	    if ( ($mh_object->isa('Insteon::DimmableLight')
-		  || $mh_object->can('state_level') ) && $state =~ /\d+/ ) {
-                $state = $state . '%';
-            }
-
-            print STDERR "[AoGSmartHome] Debug: setting object ($realname) to state ($state)\n"
-              if $main::Debug{'aog'};
-
-            $mh_object->$sub( $state, 'AoGSmartHome' );
-
-            return;
-        }
+	return;
     }
 }
 
-sub roundoff {
-    my $num = shift;
-    my $roundto = shift || 1;
+sub get_state {
+    my ( $self, $uuid, $state ) = @_;
 
-    return int( $num / $roundto + 0.5 ) * $roundto;
+    my $name     = $self->{'uuids'}->{$uuid}->{'name'};
+    my $realname = $self->{'uuids'}->{$uuid}->{'realname'};
+    my $sub      = $self->{'uuids'}->{$uuid}->{'sub'};
+    my $statesub = $self->{'uuids'}->{$uuid}->{'statesub'};
+
+    # ???
+    $state = $self->{'uuids'}->{$uuid}->{ lc($state) } if $self->{'uuids'}->{$uuid}->{ lc($state) };
+
+    print STDERR "[AoGSmartHome] Debug: get_state(uuid='$uuid', state='$state', name='$name' realname='$realname' sub='$sub')\n"
+      if $main::Debug{'aog'} > 2;
+
+    if ( $sub =~ /^voice[_-]cmd:\s*(.+)\s*$/ ) {
+        my $voice_cmd = $1;
+
+	# FIXME -- "get" on voice command? Hhhmmm
+	return qq["on":true,"bri":254];
+    }
+    elsif ( ref $statesub eq 'CODE' ) {
+        my $mh_object = ::get_object_by_name($realname);
+        return undef if !defined $mh_object;
+
+	my $debug = "[AoGSmartHome] Debug: get_state() running sub: $statesub('$realname') - ";
+	my $state = &{$statesub}($mh_object);
+	print STDERR "$debug returning - $state\n" if $main::Debug{'aog'};
+	return $state;
+    }
+    else {
+        #
+        # Treat as a MisterHouse object, using $statesub as the 'state' function.
+        #
+
+        my $mh_object = ::get_object_by_name($realname);
+        return undef if !defined $mh_object;
+
+	my $cstate = $mh_object->$statesub();
+	$cstate =~ s/\%//;
+	my $type  = $mh_object->get_type();
+	my $debug = "[AoGSmartHome] Debug: get state() -- actual object state: $cstate, object type: $type, ";
+
+	if ( $type =~ /X10/i ) {
+	    $cstate = 'on' if $cstate =~ /\d+/ || $cstate =~ /dim/ || $cstate =~ /bright/;
+	    $debug .= "determined state: $cstate, ";
+	}
+
+	$debug .= "$debug returning $cstate\n";
+
+	print STDERR $debug if $main::Debug{'aog'} > 2;
+
+	return $cstate;
+    }
 }
 
 sub new {
@@ -563,7 +573,7 @@ EOF
         # The device is a light.
         #
 
-        my $devstate = get_set_state( $self, $device->{'id'}, 'get' );
+        my $devstate = get_state( $self, $device->{'id'} );
         if ( !defined $devstate ) {
             $response .= <<EOF;
    "$device->{'id'}": {
@@ -638,7 +648,7 @@ sub execute_OnOff {
     my $turn_on = $command->{'execution'}->[0]->{'params'}->{'on'} eq "true" ? 1 : 0;
 
     foreach my $device ( @{ $command->{'devices'} } ) {
-        get_set_state( $self, $device->{'id'}, 'set', $turn_on ? 'on' : 'off' );
+        set_state( $self, $device->{'id'}, $turn_on ? 'on' : 'off' );
 	$response .= qq["$device->{'id'}",];
     }
 
@@ -664,7 +674,7 @@ sub execute_BrightnessAbsolute {
     my $brightness = $command->{'execution'}->[0]->{'params'}->{'brightness'};
 
     foreach my $device ( @{ $command->{'devices'} } ) {
-        get_set_state( $self, $device->{'id'}, 'set', $brightness);
+        set_state( $self, $device->{'id'}, $brightness);
 	$response .= qq["$device->{'id'}",];
     }
 
@@ -689,7 +699,7 @@ sub execute_ActivateScene {
     "ids": [';
 
     foreach my $device ( @{ $command->{'devices'} } ) {
-        get_set_state( $self, $device->{'id'}, 'set' );
+        set_state( $self, $device->{'id'});
 	$response .= qq["$device->{'id'}",];
     }
 

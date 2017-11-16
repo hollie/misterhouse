@@ -1823,11 +1823,10 @@ sub read_table_A {
     }
     elsif ( $type eq "AOGSMARTHOME_ITEM" ) {
         my ($parent, $realname, $name, $sub, $on, $off, $statesub, @other) = @item_info;
-        $sub =~ s/&/\\&/ if $sub =~ /^&/;
-        $sub =~ s/\\// if $sub =~ /^\\\\&/;
-        $realname =~ s/_/ /g if $sub =~ /run_voice_cmd/;
-        $realname = "\$$realname" if $realname && $sub !~ /&|run_voice_cmd/;
-        $sub = qq|'$sub'| if $sub !~ /&/;
+        $sub =~ s%^&%\\&%; # "&my_subroutine" -> "\&my_subroutine"
+        $sub =~ s%^\\\\&%\\&%; # "\\&my_subroutine" -> "\&my_subroutine"
+        $sub = "'$sub'" if $sub !~ /&/;
+        $realname = "\$$realname" if $realname;
         my $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         if (!$packages{AoGSmartHome_Items}++ ) { # first time for this object type?
             $code .= "use AoGSmartHome_Items;\n";
