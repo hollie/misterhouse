@@ -42,28 +42,42 @@ use constant RAND_MAX => 2**RANDBITS;
 my $oauth_tokens;
 
 sub http_server_aog_startup {
-    &main::print_log("Actions on Google Smart Home Provider HTTP server helper startup:")
-      if $main::Debug{'aog'};
+    if ( !$::config_parms{'aog_enable'}) {
+	&main::print_log("[AoGSmartHome] AoG is disabled.");
+	return;
+    } else {
+	&main::print_log("\n[AoGSmartHome] AoG is enabled; will look for AoG requests via HTTP.");
+    }
 
-    $::config_parms{'aog_auth_path'} = 'oauth'
-      if !defined $::config_parms{'aog_auth_path'};
-    &main::print_log("aog_auth_path = $::config_parms{'aog_auth_path'}")
-      if $main::Debug{'aog'};
-
-    my $oauth_tokens_file = $config_parms{'aog_oauth_tokens_file'};
+    # We don't want defaults for these important parameters so we disable
+    # AoG integration if one or more are missing.
+    if (   !defined $::config_parms{'aog_auth_path'}
+	|| !defined $::config_parms{'aog_fulfillment_url'}
+	|| !defined $::config_parms{'aog_client_id'}
+	|| !defined $::config_parms{'aog_project_id'} )
+    {
+        print STDERR "[AoGSmartHome] AoG is enabled but one or more .ini file parameters are missing; disabling AoG!\n";
+        print STDERR "[AoGSmartHome] Required .ini file parameters: aog_auth_path aog_fulfillment_url aog_client_id aog_project_id\n";
+        $::config_parms{'aog_enable'} = 0;
+        return;
+    }
 
     $::config_parms{'aog_oauth_tokens_file'} = "$config_parms{data_dir}/.aog_tokens"
       if !defined $::config_parms{'aog_oauth_tokens_file'};
-    &main::print_log("aog_oauth_tokens_file = $::config_parms{'aog_oauth_tokens_file'}")
-      if $main::Debug{'aog'};
 
     if ( -e $::config_parms{'aog_oauth_tokens_file'} ) {
         $oauth_tokens = retrieve( $::config_parms{'aog_oauth_tokens_file'} );
     }
+
     if ( $main::Debug{'aog'} ) {
-        print "[AoGSmartHome] Debug: Dumping \$oauth_tokens...\n";
-        print Dumper $oauth_tokens;
-        print "Done.\n";
+	print STDERR <<EOF;
+[AoGSmartHome] Debug: aog_auth_path = $::config_parms{'aog_auth_path'}
+[AoGSmartHome] Debug: aog_fulfillment_url = $::config_parms{'aog_fulfillment_url'}
+[AoGSmartHome] Debug: aog_oauth_tokens_file = $::config_parms{'aog_oauth_tokens_file'}
+[AoGSmartHome] Debug: Dumping \$oauth_tokens...
+EOF
+        print STDERR Dumper $oauth_tokens;
+        print STDERR "[AoGSmartHome] Debug: done.\n";
     }
 }
 
@@ -117,7 +131,7 @@ sub process_http_aog {
     if ( $::config_parms{'aog_enable'}
         && !scalar list_objects_by_type('AoGSmartHome_Items') )
     {
-        print "[AoGSmartHome] AoG is enabled but there are no AoG items. Disabling AoG!\n";
+        print STDERR "[AoGSmartHome] AoG is enabled but there are no AoG items; disabling AoG!\n";
         $::config_parms{'aog_enable'} = 0;
         return 0;
     }

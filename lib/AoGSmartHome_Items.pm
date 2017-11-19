@@ -366,7 +366,7 @@ sub add {
     if ( !$name ) {
         $name = $realname;
         $name =~ s/\$//g;
-        $name =~ s/_/ /g;    # Otherwise the Google Assistant witll say
+        $name =~ s/_/ /g;    # Otherwise the Google Assistant will say
                              # "kitchen-underscore-light" instead of
                              # "kitchen light".
         $name =~ s/#//g;
@@ -396,6 +396,7 @@ sub add {
     $self->{'uuids'}->{$uuid}->{'on'}       = lc($on) || 'on';
     $self->{'uuids'}->{$uuid}->{'off'}      = lc($off) || 'off';
     $self->{'uuids'}->{$uuid}->{'statesub'} = $statesub || 'state';
+    # If no device type is provided we default to 'light'
     $self->{'uuids'}->{$uuid}->{'type'}     = lc($type) || 'light';
     $self->{'uuids'}->{$uuid}->{'room'}     = $room if $room;
 }
