@@ -19,7 +19,7 @@ Zoneminder servers.
     		"scale": "50",
     		"timeout": 12000,
     		"debug": true,
-    		"browsernotifications": true 
+    		"browsernotifications": true
     	}
     ]
 
@@ -28,7 +28,7 @@ Zoneminder servers.
 Hostname or IP of the server where zmeventserver instance is reachable.
 Falls back to 'localhost' if omitted.
 
-`port:` 
+`port:`
 Port zmeventserver is listening for web socket connections.
 Falls back to '9000' if omitted.
 
@@ -38,16 +38,12 @@ secured connection.
 Falls back to "wss" if omitted.
 
 `user:`
-Your zoneminder username. 
-Can be empty if you use zmeventserver from
-https://github.com/tobser/zmeventserver.git and set the "noauth" configuration
-flag to '1'
+Your zoneminder username.
+Can be empty if zmeventserver has the the "noauth" configuration flag to '1'
 
 `password:`
 Your zoneminder password
-Can be empty if you use zmeventserver from
-https://github.com/tobser/zmeventserver.git and set the "noauth" configuration
-flag to '1'
+Can be empty if zmeventserver has the the "noauth" configuration flag to '1'
 
 `scale:`
 Imager scale for the live image in percent.
@@ -69,17 +65,11 @@ event.
 
 ## zmeventserver
 To enable zoneminder live events you need to setup zmeventserver on your
-zoneminder instances. 
-The original zmeventserver and its setup instructions can be found at
-https://github.com/pliablepixels/zmeventserver
-
-I have currently a pull request pending to fix a small issue to cleanup dead
-web socket connections. It also adds a setting to disable authentication. You
-can get the patched zmeventserver from
-https://github.com/tobser/zmeventserver.git 
+zoneminder instances. The original zmeventserver and its setup instructions can
+be found at https://github.com/pliablepixels/zmeventserver
 
 ## Notes/ToDo
 - for some setups it may be useful if we could ignore specific zm monitors
-  because they produce to many events. 
+  because they produce to many events.
 - It may be useful to disable zoneminder pop-ups entirely on specific
   parts of ia7 (e.g. if the site already displays your zoneminder monitors..)
