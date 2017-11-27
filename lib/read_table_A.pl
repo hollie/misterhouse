@@ -1852,6 +1852,11 @@ sub read_table_A {
             next;
         }
 
+        if ( $group eq ''){
+            &::print_log("grouplist '$grouplist' contains empty group!");
+            next;
+        }
+
         if ( $name eq $group ) {
             &::print_log(
                 "mht object and group name are the same: $name  Bad idea!");
