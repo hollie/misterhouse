@@ -1,8 +1,12 @@
 # Change Log
 
-## [Unreleased](https://github.com/hollie/misterhouse/tree/HEAD)
+## [5.0](https://github.com/hollie/misterhouse/tree/5.0) (2017-10-31)
 
-[Full Changelog](https://github.com/hollie/misterhouse/compare/v4.2...HEAD)
+[Full Changelog](https://github.com/hollie/misterhouse/compare/v4.2...v5.0)
+
+**Fixed bugs:**
+
+- "Keys on Scalar" Syntax in json\_server.pl Causes Fatal Error in Later Perl Versions [\#737](https://github.com/hollie/misterhouse/issues/737)
 
 **Closed issues:**
 
@@ -20,6 +24,9 @@
 
 **Merged pull requests:**
 
+- removed nanolead poll queue, updated MH5 whatsnew page [\#739](https://github.com/hollie/misterhouse/pull/739) ([hplato](https://github.com/hplato))
+- Fix lines in json\_server.pl that use deprecated "keys on scalar" syntax [\#738](https://github.com/hollie/misterhouse/pull/738) ([JaredF](https://github.com/JaredF))
+-  IA7 v1.6.700 - whats new, bugfixes [\#736](https://github.com/hollie/misterhouse/pull/736) ([hplato](https://github.com/hplato))
 - Ia7 [\#735](https://github.com/hollie/misterhouse/pull/735) ([hplato](https://github.com/hplato))
 - Ia7 v1.6.540 / mh5.0 [\#734](https://github.com/hollie/misterhouse/pull/734) ([hplato](https://github.com/hplato))
 - Razberry [\#731](https://github.com/hollie/misterhouse/pull/731) ([hplato](https://github.com/hplato))
