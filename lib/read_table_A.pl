@@ -1817,11 +1817,13 @@ sub read_table_A {
 
     #-------------- AoGSmartHome Objects -----------------
     elsif ( $type eq "AOGSMARTHOME_ITEMS" ) {
+	#<Actions on Google (AOGSMARTHOME_ITEMS),AOGSMARTHOME_ITEMS,Name>#
         require 'AoGSmartHome_Items.pm';
         ($name) = @item_info;
         $object = "AoGSmartHome_Items()";
     }
     elsif ( $type eq "AOGSMARTHOME_ITEM" ) {
+	#<Actions on Google (AOGSMARTHOME_ITEM),AOGSMARTHOME_ITEM,Parent,Realname,Name,Sub,On,Off,Statesub,Properties>#
         my ($parent, $realname, $name, $sub, $on, $off, $statesub, @other) = @item_info;
         $sub =~ s%^&%\\&%; # "&my_subroutine" -> "\&my_subroutine"
         $sub =~ s%^\\\\&%\\&%; # "\\&my_subroutine" -> "\&my_subroutine"
