@@ -380,10 +380,18 @@ sub add {
 
 	    if ($parm eq 'type') {
 		$type = $value;
+
+		# Check that the type is a supported one
+		if ($type ne 'light' && $type ne 'scene' && $type ne 'switch'
+		    && $type ne 'outlet'&& $type ne 'thermostat') {
+		    &main::print_log("[AoGSmartHome] Invalid device type '$type'; ignoring AoG item.");
+		    return;
+		}
 	    } elsif ($parm eq 'room') {
 		$room = $value;
 	    } else {
-		&main::print_log("[AoGSmartHome] Invalid device property '$parm'; ignoring.");
+		&main::print_log("[AoGSmartHome] Invalid device property '$parm'; ignoring AoG item.");
+		return;
 	    }
 	}
     }
@@ -472,11 +480,19 @@ EOF
    },
 EOF
         }
-	elsif ( $type eq 'switch' ) {
+	elsif ( $type eq 'switch' || $type eq 'outlet' ) {
+	    #
+	    # action.devices.types.SWITCH and action.devices.types.OUTLET
+	    # are basically the same type of device; as far as I can
+	    # tell the only difference is the icon they get in the apps.
+	    #
+
+	    $type = uc $type;
+
             $response .= <<EOF;
    {
     "id": "$uuid",
-    "type": "action.devices.types.SWITCH",
+    "type": "action.devices.types.$type",
     "traits": [
      "action.devices.traits.OnOff"
     ],
@@ -498,6 +514,42 @@ EOF
    },
 EOF
         }
+	elsif ( $type eq 'thermostat') {
+	    my $mh_object = ::get_object_by_name($self->{'uuids'}->{$uuid}->{'realname'});
+	    if (!$mh_object->isa('Insteon::Thermostat') ) {
+		&main::print_log("[AoGSmartHome] '$self->{'uuids'}->{$uuid}->{'realname'} is an unsupported thermostat; ignoring AoG item.");
+		next;
+	    }
+
+            $response .= <<EOF;
+   {
+    "id": "$uuid",
+    "type": "action.devices.types.THERMOSTAT",
+    "traits": [
+     "action.devices.traits.TemperatureSetting"
+    ],
+    "name": {
+     "name": "$self->{'uuids'}->{$uuid}->{'name'}"
+    },
+    "willReportState": false,
+    "attributes": {
+     "availableThermostatModes": "off,heat,cool,on",
+     "thermostatTemperatureUnit": "F"
+    },
+EOF
+
+	    if (exists $self->{'uuids'}->{$uuid}->{'room'}) {
+		$response .= <<EOF;
+    "roomHint": "$self->{'uuids'}->{$uuid}->{'room'}",
+EOF
+	    }
+
+	    $response =~ s/,$//;    # Remove extra ','
+
+	    $response .= <<EOF;
+   },
+EOF
+	}
         elsif ( $type eq 'scene' ) {
             $response .= <<EOF;
    {
@@ -552,32 +604,62 @@ sub query {
 EOF
 
     foreach my $device ( @{ $body->{'inputs'}->[0]->{'payload'}->{'devices'} } ) {
-        if ( !exists $self->{'uuids'}->{ $device->{'id'} } ) {
+	my $uuid = $device->{'id'}; # Makes things easier below...
+
+        if ( !exists $self->{'uuids'}->{$uuid} ) {
             $response .= <<EOF;
-   "$device->{'id'}": {
+   "$uuid": {
     "errorCode": "deviceNotFound"
    },
 EOF
             next;
         }
 
-        if ( $self->{'uuids'}->{ $device->{'id'} }->{'type'} eq 'scene' ) {
+        if ( $self->{'uuids'}->{$uuid}->{'type'} eq 'scene' ) {
             $response .= <<EOF;
-   "$device->{'id'}": {
+   "$uuid": {
     "online": true
    },
 EOF
             next;
         }
+        elsif ( $self->{'uuids'}->{$uuid}->{'type'} eq 'thermostat' ) {
+	    my $mh_object = ::get_object_by_name($self->{'uuids'}->{$uuid}->{'realname'});
+	    if ($mh_object->isa('Insteon::Thermostat') ) {
+		my $mode = $mh_object->get_mode();
+
+		my $temp_setpoint;
+		if ($mode eq 'cool') {
+		    $temp_setpoint = $mh_object->get_cool_sp();
+		} else {
+		    $temp_setpoint = $mh_object->get_heat_sp();
+		}
+
+		my $temp_ambient = $mh_object->get_temp();
+
+		$response .= <<EOF;
+   "$uuid": {
+    "online": true,
+    "thermostatMode": "$mode",
+    "thermostatTemperatureSetpoint": "$temp_setpoint",
+    "thermostatTemperatureAmbient": "$temp_ambient",
+   },
+EOF
+	    }
+	    # No "else" -- unsupported thermostats are not included in
+	    # "sync" response
+
+	    next;
+	}
 
         #
-        # The device is a light.
+        # The device is a light, a switch, or an outlet.
         #
 
-        my $devstate = get_state( $self, $device->{'id'} );
+        my $devstate = get_state( $self, $uuid );
         if ( !defined $devstate ) {
             $response .= <<EOF;
-   "$device->{'id'}": {
+   "$uuid": {
     "errorCode": "deviceNotFound"
    },
 EOF
@@ -585,7 +667,7 @@ EOF
         }
 
 	$response .= <<EOF;
-   "$device->{'id'}": {
+   "$uuid": {
 EOF
 
 	# Check whether the device is on so we can populate the "on" state
@@ -600,7 +682,7 @@ EOF
 
 	# If the device is dimmable we provided the "Brightness" trait, so we
 	# have to supply the "brightness" state.
-	my $mh_object = ::get_object_by_name($self->{'uuids'}->{$device->{'id'} }->{'realname'});
+	my $mh_object = ::get_object_by_name($self->{'uuids'}->{$uuid}->{'realname'});
 	if ($mh_object->isa('Insteon::DimmableLight')
 	    || $mh_object->can('state_level') ) {
 
@@ -694,7 +776,6 @@ EOF
 
 sub execute_ActivateScene {
     my ( $self, $command ) = @_;
-    my $response = '';
 
     my $response = '   {
     "ids": [';
@@ -713,6 +794,65 @@ sub execute_ActivateScene {
     "status": "SUCCESS"
    },
 EOF
+
+    return $response;
+}
+
+sub execute_ThermostatX {
+    my ( $self, $command, $exec_command ) = @_;
+
+    my $response;
+
+    my $execution_command = $command->{'execution'}->[0]->{'command'};
+
+    foreach my $device ( @{ $command->{'devices'} } ) {
+	my $realname = $self->{'uuids'}->{$device->{'id'} }->{'realname'};
+
+        my $mh_object = ::get_object_by_name($realname);
+        return undef if !defined $mh_object;
+
+	if ($mh_object->isa('Insteon::Thermostat') ) {
+	    if ( $execution_command =~ /TemperatureSetpoint/ ) {
+		my $setpoint = $command->{'execution'}->[0]->{'params'}->{'thermostatTemperatureSetpoint'};
+		if ($mh_object->get_mode() eq 'cool') {
+		    $mh_object->cool_setpoint($setpoint);
+		} else {
+		    $mh_object->heat_setpoint($setpoint);
+		}
+	    } elsif ( $execution_command =~ /ThermostatSetMode/ ) {
+		my $mode = $command->{'execution'}->[0]->{'params'}->{'thermostatMode'};
+		$mh_object->mode($mode);
+	    }
+
+	    my $mode = $mh_object->get_mode();
+
+	    my $temp_setpoint;
+	    if ($mode eq 'cool') {
+		$temp_setpoint = $mh_object->get_cool_sp();
+	    } else {
+		$temp_setpoint = $mh_object->get_heat_sp();
+	    }
+
+	    my $temp_ambient = $mh_object->get_temp();
+
+	    $response .= "   {";
+	    $response .= <<EOF
+    "ids": ["$device->{'id'}"],
+    "status": "SUCCESS",
+    "states": {
+     "thermostatMode": "$mode",
+     "thermostatTemperatureSetpoint": "$temp_setpoint",
+     "thermostatTemperatureAmbient": "$temp_ambient",
+    }
+  },
+EOF
+	}
+	# No "else" -- unsupported thermostats are not included in
+	# "sync" response
+    }
+
+    # Remove extra ',' at the end
+    $response =~ s/,$//;
 
     return $response;
 }
@@ -755,6 +895,9 @@ EOF
         elsif ( $execution_command eq "action.devices.commands.ActivateScene" ) {
             $response .= execute_ActivateScene( $self, $command );
         }
+        elsif ( $execution_command =~ /^action\.devices\.commands\.Thermostat.+$/ ) {
+	    $response .= execute_ThermostatX( $self, $command );
+	}
     }
 
     # Remove extra ',' at the end
