@@ -12,20 +12,36 @@ The current version supports Ethernet and serial gateways.
 
 The interface must be defined with 3 parameters: a type (serial or ethernet),
 an address (/dev/tty or an IP address:TCP port number) and a name used to
-easily identify the interface.
+easily identify the interface.  In an MHT file the order is name, type,
+address and (optionally) groups.
 
 The node must be defined with 3 parameters: a node ID, name and gateway
-object.
+object.  In an MHT file the order is node ID, object, then name, gateway,
+and (optionally) groups.
 
 The sensors must also be defined with 3 parameters: a sensor ID, name and
-node object.
+node object.  In an MHT file the order is node ID, object, then name, node,
+and (optionally) groups.
 
 Debugging information can be enabled by setting:
 debug=MySensors
 
 in a Misterhouse INI file.
 
-In user code:
+Define objects in an MHT file:
+
+# MYS gateways
+MYS_INTERFACE,          Basement_GW,            Basement Gateway, serial, /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AJ03J18F-if00-port0,       Basement
+
+# MYS nodes and sensors
+MYS_NODE,       0,      Basement_GW_ND,         Basement Gateway Node,                  $Basement_GW,           Basement
+MYS_BINARY,     1,      Humidifier_Flush_Pump,  Humidifier Flush Pump,                  $Basement_GW_ND,        Basement
+
+MYS_NODE,       2,      Basement_MS_ND,         Basement Motion Sensor Node,            $Basement_GW,           Basement
+MYS_MOTION,     0,      Basement_Laundry_MS,    Basement Laundry Motion Sensor,         $Basement_MS_ND,        Basement
+MYS_MOTION,     1,      Downstairs_Hallway_MS,  Downstairs Hallway Motion Sensor,       $Basement_MS_ND,        Basement
+
+or alternatively in user code:
 
     $basement_gateway = new MySensors::Interface(serial, "/dev/ttyACM0", "Basement Gateway");
     $media_room_gateway = new MySensors::Interface(ethernet, "192.168.0.22:5003", "Media Room Gateway");
@@ -33,7 +49,10 @@ In user code:
     $bedroom_node = new MySensors::Node(1, "Bedroom Node", $media_room_gateway);
 
     $bedroom_motion = new MySensors::Motion(1, "Bedroom Motion", $bedroom_node);
-    if (state_now($bedroom_motion) eq ON) { print_log "Motion detected in the bedroom" };
+
+Then to use the objects treat them as you would any other object based on a Generic_Item:
+
+    if (state_now($bedroom_motion) eq motion) { print_log "Motion detected in the bedroom" };
 
 =head2 DESCRIPTION
 
@@ -50,26 +69,26 @@ radio is known as a node and the sensors themselves are known as children.
 
 Currently supports MySensors release 2.0
 
-Last modified: 2016-09-14 to fix some motion sensor bugs
+Last modified: 2016-09-24 to add documentation for MHT files and add support
+for S_MULTIMETER sensors plus minor enhancements and fixes
 
 Known Limitations:
-1. The current implementation does not distinguish SET/REQ and treats them all
-as SET
-2. The current implementaton handles only a small number of the most common
-sensor types.  More may be added in the future.
-3. The current implementation does not distinguish SET/REQ subtypes which
-means any sensor that sends multiple subtypes will behave unpredictably.
-4. The current implementation assumes all subtypes are read/write.  This may
-cause problems if an input is written to.  For example, writing to most input
-pins will enable/disable the internal pullup resistor.  While this may be
-desirable in some cases it could result in unexpected behavior. 
+1. Does not distinguish incoming SET/REQ and treats them all as SET
+2. Handles only a small number of the most common sensor types.  More may be
+added in the future.
+3. Does not distinguish SET/REQ subtypes for a single sensor which means any
+sensor that sends multiple subtypes will behave unpredictably
+4. Assumes all subtypes are read/write which may cause problems if an input
+is written to.  For example, writing to most input pins will enable/disable
+the internal pullup resistor.  While this may be desirable in some cases it
+could result in unexpected behavior. 
 5. Minimal error trapping is done so errors in configuration or incompatible
 sensor implementations could cause unpredictable behavior or even crash
 Misterhouse.
-6. The current implementation does not use ACKs
-7. The current implementation does not handle units (or requests for units)
-8. The current implementation does not attempt to reconnect any port or socket
-disconnection
+6. Does not handle units (or requests for units)
+7. Does not attempt to reconnect any port or socket disconnection
+8. Does not handle reloads so a restart might be required if files have
+changed
 
 =head2 INHERITS
 
@@ -89,43 +108,150 @@ use strict;
 
 # API details as of release 2.0
 # For more information see: https://www.mysensors.org/download/serial_api_20
-our @types = ( 'presentation', 'set', 'req', 'internal', 'stream' );
+our @types = (
+'presentation',
+'set',
+'req',
+'internal',
+'stream'
+);
 
 # Define names of presentations
 our @presentations = (
-    'S_DOOR',                  'S_MOTION',           'S_SMOKE',      'S_LIGHT',      'S_DIMMER',       'S_COVER',
-    'S_TEMP',                  'S_HUM',              'S_BARO',       'S_WIND',       'S_RAIN',         'S_UV',
-    'S_WEIGHT',                'S_POWER',            'S_HEATER',     'S_DISTANCE',   'S_LIGHT_LEVEL',  'S_ARDUINO_NODE',
-    'S_ARDUINO_REPEATER_NODE', 'S_LOCK',             'S_IR',         'S_WATER',      'S_AIR_QUALITY',  'S_CUSTOM',
-    'S_DUST',                  'S_SCENE_CONTROLLER', 'S_RGB_LIGHT',  'S_RGBW_LIGHT', 'S_COLOR_SENSOR', 'S_HVAC',
-    'S_MULTIMETER',            'S_SPRINKLER',        'S_WATER_LEAK', 'S_SOUND',      'S_VIBRATION',    'S_MOISTURE',
-    'S_INFO',                  'S_GAS',              'S_GPS',        'S_WATER_QUALITY'
+'S_DOOR',
+'S_MOTION',
+'S_SMOKE',
+'S_LIGHT',
+'S_DIMMER',
+'S_COVER',
+'S_TEMP',
+'S_HUM',
+'S_BARO',
+'S_WIND',
+'S_RAIN',
+'S_UV',
+'S_WEIGHT',
+'S_POWER',
+'S_HEATER',
+'S_DISTANCE',
+'S_LIGHT_LEVEL',
+'S_ARDUINO_NODE',
+'S_ARDUINO_REPEATER_NODE',
+'S_LOCK',
+'S_IR',
+'S_WATER',
+'S_AIR_QUALITY',
+'S_CUSTOM',
+'S_DUST',
+'S_SCENE_CONTROLLER',
+'S_RGB_LIGHT',
+'S_RGBW_LIGHT',
+'S_COLOR_SENSOR',
+'S_HVAC',
+'S_MULTIMETER',
+'S_SPRINKLER',
+'S_WATER_LEAK',
+'S_SOUND',
+'S_VIBRATION',
+'S_MOISTURE',
+'S_INFO',
+'S_GAS',
+'S_GPS',
+'S_WATER_QUALITY'
 );
 
 # Define names for the set/req subtypes
 our @setreq = (
-    'V_TEMP',        'V_HUM',         'V_STATUS',             'V_PERCENTAGE',         'V_PRESSURE',       'V_FORECAST',
-    'V_RAIN',        'V_RAINRATE',    'V_WIND',               'V_GUST',               'V_DIRECTION',      'V_UV',
-    'V_WEIGHT',      'V_DISTANCE',    'V_IMPEDANCE',          'V_ARMED',              'V_TRIPPED',        'V_WATT',
-    'V_KWH',         'V_SCENE_ON',    'V_SCENE_OFF',          'V_HVAC_FLOW_STATE',    'V_HVAC_SPEED',     'V_LIGHT_LEVEL',
-    'V_VAR1',        'V_VAR2',        'V_VAR3',               'V_VAR4',               'V_VAR5',           'V_UP',
-    'V_DOWN',        'V_STOP',        'V_IR_SEND',            'V_IR_RECEIVE',         'V_FLOW',           'V_VOLUME',
-    'V_LOCK_STATUS', 'V_LEVEL',       'V_VOLTAGE',            'V_CURRENT',            'V_RGB',            'V_RGBW',
-    'V_ID',          'V_UNIT_PREFIX', 'V_HVAC_SETPOINT_COOL', 'V_HVAC_SETPOINT_HEAT', 'V_HVAC_FLOW_MODE', 'V_TEXT',
-    'V_CUSTOM',      'V_POSITION',    'V_IR_RECORD',          'V_PH',                 'V_ORP',            'V_EC',
-    'V_VAR',         'V_VA',          'V_POWER_FACTOR'
+'V_TEMP',
+'V_HUM',
+'V_STATUS',
+'V_PERCENTAGE',
+'V_PRESSURE',
+'V_FORECAST',
+'V_RAIN',
+'V_RAINRATE',
+'V_WIND',
+'V_GUST',
+'V_DIRECTION',
+'V_UV',
+'V_WEIGHT',
+'V_DISTANCE',
+'V_IMPEDANCE',
+'V_ARMED',
+'V_TRIPPED',
+'V_WATT',
+'V_KWH',
+'V_SCENE_ON',
+'V_SCENE_OFF',
+'V_HVAC_FLOW_STATE',
+'V_HVAC_SPEED',
+'V_LIGHT_LEVEL',
+'V_VAR1',
+'V_VAR2',
+'V_VAR3',
+'V_VAR4',
+'V_VAR5',
+'V_UP',
+'V_DOWN',
+'V_STOP',
+'V_IR_SEND',
+'V_IR_RECEIVE',
+'V_FLOW',
+'V_VOLUME',
+'V_LOCK_STATUS',
+'V_LEVEL',
+'V_VOLTAGE',
+'V_CURRENT',
+'V_RGB',
+'V_RGBW',
+'V_ID',
+'V_UNIT_PREFIX',
+'V_HVAC_SETPOINT_COOL',
+'V_HVAC_SETPOINT_HEAT',
+'V_HVAC_FLOW_MODE',
+'V_TEXT',
+'V_CUSTOM',
+'V_POSITION',
+'V_IR_RECORD',
+'V_PH',
+'V_ORP',
+'V_EC',
+'V_VAR',
+'V_VA',
+'V_POWER_FACTOR'
 );
 
 # Define names for the internals
 our @internals = (
-    'I_BATTERY_LEVEL',        'I_TIME',               'I_VERSION',              'I_ID_REQUEST',
-    'I_ID_RESPONSE',          'I_INCLUSION_MODE',     'I_CONFIG',               'I_FIND_PARENT',
-    'I_FIND_PARENT_RESPONSE', 'I_LOG_MESSAGE',        'I_CHILDREN',             'I_SKETCH_NAME',
-    'I_SKETCH_VERSION',       'I_REBOOT',             'I_GATEWAY_READY',        'I_REQUEST_SIGNING',
-    'I_GET_NONCE',            'I_GET_NONCE_RESPONSE', 'I_HEARTBEAT',            'I_PRESENTATION',
-    'I_DISCOVER',             'I_DISCOVER_RESPONSE',  'I_HEARTBEAT_RESPONSE',   'I_LOCKED',
-    'I_PING',                 'I_PONG',               'I_REGISTRATION_REQUEST', 'I_REGISTRATION_RESPONSE',
-    'I_DEBUG'
+'I_BATTERY_LEVEL',
+'I_TIME',
+'I_VERSION',
+'I_ID_REQUEST',
+'I_ID_RESPONSE',
+'I_INCLUSION_MODE',
+'I_CONFIG',
+'I_FIND_PARENT',
+'I_FIND_PARENT_RESPONSE',
+'I_LOG_MESSAGE',
+'I_CHILDREN',
+'I_SKETCH_NAME',
+'I_SKETCH_VERSION',
+'I_REBOOT',
+'I_GATEWAY_READY',
+'I_REQUEST_SIGNING',
+'I_GET_NONCE',
+'I_GET_NONCE_RESPONSE',
+'I_HEARTBEAT',
+'I_PRESENTATION',
+'I_DISCOVER',
+'I_DISCOVER_RESPONSE',
+'I_HEARTBEAT_RESPONSE',
+'I_LOCKED',
+'I_PING',
+'I_PONG',
+'I_REGISTRATION_REQUEST',
+'I_REGISTRATION_RESPONSE',
+'I_DEBUG'
 );
 
 =item C<new()>
@@ -182,7 +308,9 @@ sub add_node {
         return $node_id;
     }
     else {
-        &::print_log("[MySensors] INFO: $$self{name} added node $$node{name} (node ID: $node_id)");
+        &::print_log(
+            "[MySensors] INFO: $$self{name} added node $$node{name} (node ID: $node_id)"
+        );
         $$self{nodes}{$node_id} = $node;
     }
 
@@ -200,7 +328,9 @@ sub create_socket {
     print $name . "_socket\n";
 
     # By default suport only TCP gateways.  UDP could be added in the future
-    my $socket = new Socket_Item( undef, undef, $address, $name . "_socket", 'tcp', 'raw' );
+    my $socket =
+      new Socket_Item( undef, undef, $address, $name . "_socket", 'tcp',
+        'raw' );
     start $socket;
 
     return $socket;
@@ -312,7 +442,8 @@ sub parse_message {
     # Standard API messages are 6 values separated by semicolons
 
     if ( $message =~ /(\d{1,3});(\d{1,3});(\d{1,3});([01]);(\d{1,3});*(.*)/ ) {
-        my ( $node_id, $child_id, $type, $ack, $subtype, $data ) = ( $1, $2, $3, $4, $5, $6 );
+        my ( $node_id, $child_id, $type, $ack, $subtype, $data ) =
+          ( $1, $2, $3, $4, $5, $6 );
 
         # Handle presentation (type 0)  messages
         if ( $type == 0 ) {
@@ -327,13 +458,18 @@ sub parse_message {
                     );
 
                     # Also check if this presentation subtype matches the type of the defined Misterhouse object.  If not issue a warning.
-                    if ( $$self{nodes}{$node_id}{sensors}{$child_id}{type} ne $subtype ) {
+                    if ( $$self{nodes}{$node_id}{sensors}{$child_id}{type} ne
+                        $subtype )
+                    {
                         &::print_log(
                             "[MySensors] WARNING: $$self{name} received presentation subtype for node=$node_id, child=$child_id, subtype=$subtype ($presentations[$subtype]) but object "
-                              . $$self{nodes}{$node_id}{sensors}{$child_id}->get_object_name()
+                              . $$self{nodes}{$node_id}{sensors}{$child_id}
+                              ->get_object_name()
                               . " is a "
-                              . $$self{nodes}{$node_id}{sensors}{$child_id}->get_type()
-                              . ".  Check the sensor is defined as the correct type!" );
+                              . $$self{nodes}{$node_id}{sensors}{$child_id}
+                              ->get_type()
+                              . ".  Check the sensor is defined as the correct type!"
+                        );
                     }
 
                     # Check for sensor ID 255 messages which are node level information
@@ -373,10 +509,12 @@ sub parse_message {
                 if ( exists $$self{nodes}{$node_id}{sensors}{$child_id} ) {
                     &::print_log(
                         "[MySensors] INFO: $$self{name} received set message for $$self{nodes}{$node_id}{name} (node ID: $node_id) $$self{nodes}{$node_id}{sensors}{$child_id}{name} (child ID: $child_id) to "
-                          . $$self{nodes}{$node_id}{sensors}{$child_id}->MySensors::Sensor::convert_data_to_state($data)
+                          . $$self{nodes}{$node_id}{sensors}{$child_id}
+                          ->MySensors::Sensor::convert_data_to_state($data)
                           . " ($data)" )
                       if $::Debug{mysensors};
-                    $$self{nodes}{$node_id}{sensors}{$child_id}->set_receive($data);
+                    $$self{nodes}{$node_id}{sensors}{$child_id}
+                      ->set_receive($data);
 
                     # Check for sensor ID 255 messages which are node level information
                 }
@@ -410,7 +548,9 @@ sub parse_message {
 
                 # Don't print SANCHK messages as they just clutter the logs
                 if ( $data ne 'TSP:SANCHK:OK' ) {
-                    &::print_log("[MySensors] INFO: $$self{name} received $internals[$subtype]: $data");
+                    &::print_log(
+                        "[MySensors] INFO: $$self{name} received $internals[$subtype]: $data"
+                    );
                 }
 
                 # Handle requests for node ID (node 255, subtype 3)
@@ -426,7 +566,9 @@ sub parse_message {
 
                 # Issue the next available node ID
                 my $next_id = $::Save{MySensors_next_node_id};
-                &::print_log("[MySensors] INFO: $$self{name} received node ID request.  Assigned node ID $next_id.");
+                &::print_log(
+                    "[MySensors] INFO: $$self{name} received node ID request.  Assigned node ID $next_id."
+                );
 
                 $self->send_message( 255, 255, 3, 0, 4, $next_id );
 
@@ -435,7 +577,8 @@ sub parse_message {
 
                 # Handle other messages for valid node and child ID 255 which are used for node-level information
             }
-            elsif ( ( exists $$self{nodes}{$node_id} ) && ( $child_id == 255 ) ) {
+            elsif ( ( exists $$self{nodes}{$node_id} ) && ( $child_id == 255 ) )
+            {
 
                 # Handle sketch name information
                 if ( $subtype == 11 ) {
@@ -443,8 +586,8 @@ sub parse_message {
                     # Set the sketch name on the node
                     $$self{nodes}{$node_id}{sketch_name} = $data;
                     &::print_log(
-                        "[MySensors] INFO: $$self{name} received sketch name $data from $$self{nodes}{$node_id}{name} (node ID: $node_id) child ID $child_id")
-                      if $::Debug{mysensors};
+                        "[MySensors] INFO: $$self{name} received sketch name $data from $$self{nodes}{$node_id}{name} (node ID: $node_id) child ID $child_id"
+                    ) if $::Debug{mysensors};
 
                     # Handle sketch version information
                 }
@@ -460,7 +603,8 @@ sub parse_message {
                 }
                 elsif ( $subtype == 0 ) {
                     $$self{nodes}{$node_id}{battery_level} = $data;
-                    $$self{nodes}{$node_id}->set_state_log( "Battery: $data%", $self );
+                    $$self{nodes}{$node_id}
+                      ->set_state_log( "Battery: $data%", $self );
                     &::print_log(
                         "[MySensors] INFO: $$self{name} received battery level $data% from $$self{nodes}{$node_id}{name} (node ID: $node_id) child ID $child_id"
                     ) if $::Debug{mysensors};
@@ -468,9 +612,11 @@ sub parse_message {
                     # Handle heartbeat responses.  This is used to update the state log, and thus the idle_time, of an object.
                 }
                 elsif ( $subtype == 22 ) {
-                    $$self{nodes}{$node_id}->set_state_log( "Heartbeat", $self );
-                    &::print_log("[MySensors] INFO: $$self{name} received heartbeat from $$self{nodes}{$node_id}{name} (node ID: $node_id) child ID $child_id")
-                      if $::Debug{mysensors};
+                    $$self{nodes}{$node_id}
+                      ->set_state_log( "Heartbeat", $self );
+                    &::print_log(
+                        "[MySensors] INFO: $$self{name} received heartbeat from $$self{nodes}{$node_id}{name} (node ID: $node_id) child ID $child_id"
+                    ) if $::Debug{mysensors};
 
                     # All other types of messages are unhandled
                 }
@@ -491,19 +637,24 @@ sub parse_message {
             # Handle stream (type 4) messages
         }
         elsif ( $type == 4 ) {
-            &::print_log("[MySensors] WARN: $$self{name} received stream message (unsupported): node=$node_id, child=$child_id, subtype=$subtype, data=$data");
+            &::print_log(
+                "[MySensors] WARN: $$self{name} received stream message (unsupported): node=$node_id, child=$child_id, subtype=$subtype, data=$data"
+            );
 
             # Any other message is unrecognized
         }
         else {
             &::print_log(
-                "[MySensors] ERROR: $$self{name} received unrecognized message: node=$node_id, child=$child_id, type=$type, subtype=$subtype, data=$data");
+                "[MySensors] ERROR: $$self{name} received unrecognized message: node=$node_id, child=$child_id, type=$type, subtype=$subtype, data=$data"
+            );
         }
 
         # Otherwise a non-compliant MySensors message was received.  This can be caused if gateway debug is enabled in the Arduino.
     }
     else {
-        &::print_log("[MySensors] DEBUG: $$self{name} received unknown Arduino message: $message") if $::Debug{mysensors};
+        &::print_log(
+            "[MySensors] DEBUG: $$self{name} received unknown Arduino message: $message"
+        ) if $::Debug{mysensors};
     }
 }
 
@@ -593,7 +744,9 @@ sub add_sensor {
         return $child_id;
     }
     else {
-        &::print_log("[MySensors] INFO: $$self{gateway}{name} added sensor $$sensor{name} (child ID: $child_id) to $$self{name} (node ID $$self{node_id})");
+        &::print_log(
+            "[MySensors] INFO: $$self{gateway}{name} added sensor $$sensor{name} (child ID: $child_id) to $$self{name} (node ID $$self{node_id})"
+        );
         $$self{sensors}{$child_id} = $sensor;
     }
 
@@ -677,12 +830,9 @@ sub convert_data_to_state {
     if ( exists $$self{data_to_state}{$data} ) {
         $state = $$self{data_to_state}{$data};
 
-        # Some sensors return numerical values and for these the state and data are the same
+    # Assume all other sensors return numerical values and for these the state and data are the same
     }
-    elsif (( $$self{type} == 0 )
-        || ( $$self{type} == 1 )
-        || ( $$self{type} == 3 ) )
-    {
+    else {
         $state = $data;
     }
 
@@ -706,12 +856,9 @@ sub convert_state_to_data {
     if ( exists $$self{state_to_data}{$state} ) {
         $data = $$self{state_to_data}{$state};
 
-        # Some sensors return numerical values and for these the state and data are the same
+    # Assume all other sensors return numerical values and for these the state and data are the same
     }
-    elsif (( $$self{type} == 0 )
-        || ( $$self{type} == 1 )
-        || ( $$self{type} == 3 ) )
-    {
+    else {
         $data = $state;
     }
 
@@ -741,7 +888,8 @@ sub set {
         if ( $data ne '' ) {
 
             # By default send the first (primary) subtype and use type 1 (SET) without ACK
-            $$self{node}{gateway}->send_message( $$self{node}{node_id}, $$self{child_id}, 1, 0, $$self{subtypes}[0], $data );
+            $$self{node}{gateway}->send_message( $$self{node}{node_id},
+                $$self{child_id}, 1, 0, $$self{subtypes}[0], $data );
         }
         else {
             &::print_log(
@@ -996,9 +1144,42 @@ sub new {
     $$self{type} = 7;
 
     # Humidity type sensors use the V_HUM subtype
-    $$self{subtypes} = [1];
+    $$self{subtypes} = [ 1 ];
 
     # Note: there are no predefined states or state mappings for temperature sensors
+
+    return $self;
+}
+
+######################
+# Multimeter Package #
+######################
+
+package MySensors::Multimeter;
+
+use strict;
+
+use parent-norequire, 'MySensors::Sensor';
+
+=item C<new()>
+
+Instantiates a new multimeter sensor.
+
+=cut
+
+sub new {
+    my $class = shift;
+
+    # Instantiate as a MySensors::Sensor first
+    my $self = $class->SUPER::new(@_);
+
+    # Multimeter are presentation type 30
+    $$self{type} = 30;
+
+    # Multimeter type sensors use the V_IMPEDANCE, V_VOLTAGE and V_CURRENT subtypes
+    $$self{subtypes} = [ 14, 38, 39 ];
+
+    # Note: there are no predefined states or state mappings for multimeter sensors
 
     return $self;
 }
@@ -1016,3 +1197,4 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =cut
+
