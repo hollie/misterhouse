@@ -986,7 +986,7 @@ var filterSubstate = function (state, slider) {
  	// slider=1 will filter out all numeric states
     var filter = 0
     // remove 11,12,13... all the mod 10 states
-    if (state.indexOf('%') >= 0) {
+    if (state.toString().indexOf('%') >= 0) {
     
        var number = parseInt(state, 10)
        if ((number % json_store.ia7_config.prefs.substate_percentages != 0) || (slider !== undefined && slider == 1)) {
@@ -995,7 +995,7 @@ var filterSubstate = function (state, slider) {
     }
     if ((slider !== undefined && slider == 1) && !isNaN(state)) filter = 1;
     
-	if (state !== undefined) state = state.toLowerCase();    
+	if (state !== undefined) state = state.toString().toLowerCase();    
     if (state == "manual" ||
     	state == "double on" ||
     	state == "double off" ||
@@ -1049,8 +1049,8 @@ var sliderDetails = function (states) {
     var pct = 0;
     var slider_array = [];
     for(var i = 0; i < states.length; i++) {
-        var val = states[i];
-        if(states[i].indexOf('%') != -1) pct=1;
+        var val = states[i].toString();
+        if(val.indexOf('%') != -1) pct=1;
         val = val.replace(/\%/g,'');
         if (!isNaN(val)) {
             slider_array.push(val)
