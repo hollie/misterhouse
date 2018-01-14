@@ -175,33 +175,45 @@ $form_type
     return &html_page( '', $html );
 }
 
-sub AddMhtWebItems {
 # This takes properly formatted comments from read_table_A.pl and
 # adds them to the mht web editor list.
-my ( $web_lists, %web_lists, @values, $values, $types );
- open TABLE_A,  "/opt/misterhouse/mh/lib/read_table_A.pl";
- push @{$$web_lists{web_item_types}}, 'type';
- push @{$$web_lists{web_item_types}}, 0;
- push @{$$web_lists{web_item_types}}, "";
-        while (<TABLE_A>) {
-                if (/#<(.*?),(.*?),(.*)>#/) {
-		   $types = $2;
-		   $types = $1 if length($1); 
-		   if ( length($3) ) { 
-		     $values= $3;
-		     @values = split ',', $values;
-		    } else { 
-		      @values = (qw(Address Name Groups Other));
-		    }
-                   push @{$$web_lists{web_item_types}}, "$types";
-		   $$web_lists{headers}{$2} = [@values];
-                   next;
-                }
+sub AddMhtWebItems {
+    my ( $web_lists, %web_lists, @values, $values, $types );
+    my $read_table_A_path;
 
-                next if (/^\s*$/);    # Skip blank lines
-            }
- $$web_lists{headers}{default} = [qw(Address Name Groups Other)];
- return($web_lists);
+    # Try to find the location of read_table_A.pl
+    for my $path (@INC) {
+	if (-f "$path/read_table_A.pl") {
+	    $read_table_A_path = $path;
+	    last;
+	}
+    }
+
+    if (open(TABLE_A, "$read_table_A_path/read_table_A.pl") ) {
+	push @{$$web_lists{web_item_types}}, 'type';
+	push @{$$web_lists{web_item_types}}, 0;
+	push @{$$web_lists{web_item_types}}, "";
+	while (<TABLE_A>) {
+	    if (/#<(.*?),(.*?),(.*)>#/) {
+		$types = $2;
+		$types = $1 if length($1); 
+		if ( length($3) ) { 
+		    $values= $3;
+		    @values = split ',', $values;
+		} else { 
+		    @values = (qw(Address Name Groups Other));
+		}
+		push @{$$web_lists{web_item_types}}, "$types";
+		$$web_lists{headers}{$2} = [@values];
+	    }
+	}
+
+	close TABLE_A;
+    }
+
+    $$web_lists{headers}{default} = [qw(Address Name Groups Other)];
+
+    return $web_lists;
 }
 
 sub web_item_set_field {
