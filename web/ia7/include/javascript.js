@@ -1,5 +1,5 @@
-// v1.5.640
 
+var ia7_ver = "v1.6.700";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -18,6 +18,8 @@ var rrd_refresh_loop;
 var stats_loop;
 var stat_refresh = 60;
 var fp_popover_close = true ;
+var dev_changes = 0;
+var config_modal_loop;
 
 var ctx; //audio context
 var buf; //audio buffer
@@ -146,35 +148,69 @@ function changePage (){
 	} else {
         if ((json_store.ia7_config.prefs.static_tagline !== undefined) &&  json_store.ia7_config.prefs.static_tagline == "yes") clearTimeout(stats_loop);
         if (json_store.ia7_config.prefs.stat_refresh !== undefined) stat_refresh = json_store.ia7_config.prefs.stat_refresh;
-		if (json_store.ia7_config.prefs.header_button == "no") $("#mhstatus").remove();
+		if (json_store.ia7_config.prefs.header_button == "no") {
+		    $("#mhstatus").hide();
+		} else {
+		    $("#mhstatus").show();
+		}
+		
 		if (json_store.ia7_config.prefs.audio_controls !== undefined && json_store.ia7_config.prefs.audio_controls == "yes") {
   			$("#sound_element").attr("controls", "controls");  //Show audio Controls
   		}
 		if (json_store.ia7_config.prefs.substate_percentages === undefined) json_store.ia7_config.prefs.substate_percentages = 20;
-		if (json_store.ia7_config.prefs.developer !== undefined) developer = json_store.ia7_config.prefs.developer;
 		if (json_store.ia7_config.prefs.tooltips !== undefined) show_tooltips = json_store.ia7_config.prefs.tooltips;
 		// First time loading, set the default speech notifications
 		if (speech_sound === undefined) {
-			if ((json_store.ia7_config.prefs.speech_default !== undefined) && (json_store.ia7_config.prefs.speech_default.search("audio") >= 0 )) {
+			if ((json_store.ia7_config.prefs.speech_default_audio !== undefined) && (json_store.ia7_config.prefs.speech_default_audio == "yes" )) {
 				speech_sound = "yes";
 			} else {
 				speech_sound = "no";
 			}
 		}
+		//by default show speech banners
 		if (speech_banner === undefined) {
-			if ((json_store.ia7_config.prefs.speech_default !== undefined) && (json_store.ia7_config.prefs.speech_default.search("banner") >= 0 )) {
-				speech_banner = "yes";
-			} else {
+			if ((json_store.ia7_config.prefs.speech_default_banner !== undefined) && (json_store.ia7_config.prefs.speech_default_banner == "no" )) {
 				speech_banner = "no";
+			} else {
+				speech_banner = "yes";
 			}
 		}
-		if ((json_store.ia7_config.prefs.notifications == undefined) || ((json_store.ia7_config.prefs.notifications !== undefined) && (json_store.ia7_config.prefs.notifications == "no" ))) {
+		if ((json_store.ia7_config.prefs.notifications !== undefined) && (json_store.ia7_config.prefs.notifications == "no" )) {
 			  	notifications = "disabled";
 			  	speech_sound = "no";
 			  	speech_banner = "no";
 		} else {
 				notifications = "enabled";
 		}
+		//cookies override default config unless use_cookies : no
+        if (json_store.ia7_config.prefs.use_cookies == undefined || (json_store.ia7_config.prefs.use_cookies !== undefined && json_store.ia7_config.prefs.use_cookies == "yes")) {
+            var decodedCookie = decodeURIComponent(document.cookie);
+            var ca = decodedCookie.split(';');
+            for (var i = 0; i <ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) == ' ') {
+                    c = c.substring(1);
+                }
+                if (c.indexOf("speech_sound") == 0) {
+                    speech_sound = c.substring(13, c.length);
+                }
+                if (c.indexOf("speech_banner") == 0) {
+                    speech_banner = c.substring(14, c.length);
+                }
+                if (c.indexOf("display_mode") == 0) {
+                    display_mode = c.substring(13, c.length);
+                } 
+                // We don't want developer stored since it needs authentication                                         
+            }
+        }
+        if (json_store.ia7_config.prefs.show_weather !== undefined  && json_store.ia7_config.prefs.show_weather == "no") {
+            $('.mh-wi-text').hide();
+            $('.mh-wi-icon').hide();
+        } else {
+            $('.mh-wi-text').show();
+            $('.mh-wi-icon').show();   
+        }     
+
 	}
 	if (getJSONDataByPath("collections") === undefined){
 		// We need at minimum the basic collections data to render all pages
@@ -223,7 +259,7 @@ function changePage (){
 			$.get(link, function( data ) {
 				
 				$('#list_content').html("<div id='buffer_page' class='row top-buffer'>");
-				$('#buffer_page').append("<div id='row_page' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+				$('#buffer_page').append("<div id='row_page' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 mh-page-link'>");
 				parseLinkData(link,data); //remove css & fix up Mr.House setup stuff
 		
 			});
@@ -256,7 +292,7 @@ function changePage (){
 		else { //default response is to load a collection
 			loadCollection(URLHash._collection_key);
 		}
-		
+
 		//update the breadcrumb: 
 		// Weird end-case, The Group from browse items is broken with parents on the URL
 		// Also have to change parents to type if the ending collection_keys are $<name>,
@@ -271,12 +307,14 @@ function changePage (){
 				//We are browsing the contents of an object, currently only 
 				//group objects can be browsed recursively.  Possibly use different
 				//prefix if other recursively browsable formats are later added
-				nav_name = collection_keys_arr[i].replace("$", '');
+			
+				nav_name = collection_keys_arr[i].replace("$", '');				    
 				nav_link = '#path=/objects&parents='+nav_name;				
 				if (collection_keys_arr.length > 2 && collection_keys_arr[collection_keys_arr.length-2].substring(0,1) == "$") nav_link = '#path=/objects&type='+nav_name; 
 				if (nav_name == "Group") nav_link = '#path=objects&type=Group'; //Hardcode this use case
+                //if type=Voice_Cmd, then we need to keep it for voice links to have a nice breadcrumb
+				if (collection_keys_arr[i+1] !== undefined && collection_keys_arr[i+1] == "Voice_Cmd") nav_link = '#path=/objects&type=Voice_Cmd&category='+nav_name;
 				if (json_store.objects !== undefined && json_store.objects[nav_name] !== undefined && json_store.objects[nav_name].label !== undefined) nav_name = (json_store.objects[nav_name].label);
-
 			} else {
 				if (json_store.collections[collection_keys_arr[i]] == undefined) continue; //last breadcrumb duplicated so we don't need it.
 				nav_link = json_store.collections[collection_keys_arr[i]].link;
@@ -284,6 +322,7 @@ function changePage (){
 			}
 			nav_link = buildLink (nav_link, breadcrumb + collection_keys_arr[i]);
 			breadcrumb += collection_keys_arr[i] + ",";
+
 			if (i == (collection_keys_arr.length-1)){
 				$('#nav').append('<li class="active">' + nav_name + '</a></li>');
 				$('title').html("MisterHouse - " + nav_name);
@@ -292,7 +331,6 @@ function changePage (){
 			}
 		}
 	}
-
 }
 
 function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_prefs if no arg then both
@@ -315,26 +353,140 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 			}
 		});
 	}		
-	html += "<th>"+ config_name + "_config.json </th></tr></thead><tbody>";
+	html += "<th colspan='2'>"+ config_name + "_config.json </th></tr></thead><tbody>";
+	var pref_items = [];
 	for (var i in config_data){
 		if ( typeof config_data[i] === 'object') {
-			html += "<tr class='info'><td><b>"+ i + "</b></td></tr>";
+		
+		
+			html += "<tr class='info'><td colspan='2'><b>"+ i + "</b></td></tr>";
 			for (var j in config_data[i]) {
 				if ( typeof config_data[i][j] === 'object') {
-					html += "<tr class='info'><td style='padding-left:40px'>"+ j + "</td></tr>";
+					html += "<tr class='info'><td style='padding-left:25px' colspan='2'>"+ j + "</td></tr>";
 					for (var k in config_data[i][j]){
-						 html += "<tr><td style='padding-left:80px'>"+k+" = "+config_data[i][j][k]+"</td></tr>";
+					    html += "<tr><td style='padding-left:50px'>"+k+"</td>";	
+						html += "<td style='padding-left:25px'>"+config_data[i][j][k]+"</td></tr>";
 					}
 				} else {
-					html += "<tr><td style='padding-left:40px'>"+j+" = "+config_data[i][j]+"</td></tr>"
+					html += "<tr><td style='padding-left:25px'>"+j+"</td>";
+                  
+                    if (ia7_defaults.prefs.hasOwnProperty(j) && i == "prefs" && developer == true && config_name == "ia7") {	
+                        html += "<td><select id='"+j+"' class='form-control config-edit'>";
+                        for (var di = 0; di < ia7_defaults.prefs[j].length; di++) {
+                            var selected = "";
+                            if (ia7_defaults.prefs[j][di] == config_data[i][j]) selected = "selected";
+//                            html += "<option value='"+config_data[i][j]+"'>"+config_data[i][j]+"</option>
+                            html += "<option value='"+ia7_defaults.prefs[j][di]+"' "+selected+">"+ia7_defaults.prefs[j][di]+"</option>";
+                        }
+                        html += "</select></td></tr>";
+                    } else {
+                        html += "<td style='padding-left:25px'>"+config_data[i][j]+"</td></tr>";
+                    }
+                     if (i == "prefs") pref_items.push(j);
 				}
 			}
+
+			if (i == "prefs" && config_name == "ia7" && pref_items.length > 0) {
+                for (var xi in ia7_defaults.prefs) { 
+                    if (!(config_data.prefs.hasOwnProperty(xi))) {
+
+                        html += "<tr class='text-info' ><td style='padding-left:25px'>"+xi+"</td>";
+                        if (developer == true && config_name == "ia7") {	
+                            html += "<td><select id='"+xi+"' class='form-control config-edit'>";
+                            for (var di2 = 0; di2 < ia7_defaults.prefs[xi].length; di2++) {
+                                html += "<option value='"+ia7_defaults.prefs[xi][di2]+"'>"+ia7_defaults.prefs[xi][di2]+"</option>";
+                            }
+                            html += "</select></td></tr>";
+                        } else {
+                            html += "<td style='padding-left:25px'>"+ia7_defaults.prefs[xi][0]+"</td></tr>";
+                        }
+
+                    }    
+                }
+            }
+            pref_items = [];
+			
+			
 		}	
 	}
-
+    if (developer == true) {
+        html += '<tr><td colspan=2>';
+        html += '<button type="button" class="btn disabled btn-success btn-config-apply pull-right">Apply</button>';      	
+        html += '<button type="button" class="btn disabled btn-danger btn-config-write pull-left">Write to MH</button></tr>';      	
+    }
 	html += "</tbody></table></div>";
 	$('#prtable').html(html);
 
+    $('.config-edit').on('change input', function () {
+         $('.btn-config-apply').removeClass('disabled');
+         $('.btn-config-write').removeClass('disabled');
+     }); 
+                 
+     function update_pref_array () {
+//        console.log("update pref array");
+        $('.config-edit').each( function () {
+            var item = $(this).attr('id');
+            var value = $(this).val();
+//            console.log("id="+$(this).attr('id'));
+//            console.log("val="+$(this).val());
+            json_store.ia7_config.prefs[item] = value;
+        });
+        changePage();        
+     }
+ 
+     $('.btn-config-apply').click( function () {
+         if (!($('.btn-config-apply').hasClass('disabled'))) {
+             update_pref_array();  
+             $('.btn-config-apply').addClass('disabled');
+             $('.btn-config-write').removeClass('disabled');            
+         } 
+     });
+
+     $('.btn-config-write').click( function () {
+          update_pref_array();
+          config_modal_loop = clearTimeout();
+          //after apply and cancel change the cancel button text to close
+           $.ajax({
+               url: "/json/ia7_config",
+//what data is returned?                  dataType: 'json',
+               type: 'post',
+               contentType: 'application/json',
+               data: JSON.stringify(json_store.ia7_config),
+               success: function( data, status, error ){
+                     console.log("data="+data+" status="+status+" error="+error);
+                     //throw up red warning if the response isn't good from MH
+                     $('#lastResponse').modal({
+						    show: true
+					    });
+					config_modal_loop = setTimeout(function(){
+					    $('#lastResponse').modal('hide');
+				    }, 3000);	   
+                     if (data.status !== undefined || data.status == "error") {
+                         var message = "Unknown server error";
+                         if (data.text !== undefined) message = data.text
+                         $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+                         $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                      } else {   
+                         $(".modal-header").append($("<div class='write-status alert alerts-modal alert-success fade in' data-alert><p><i class='fa fa-info-circle'></i>&nbsp;<strong>Success:</strong>&nbsp;Data successfully written to MH</p></div>"));
+                         $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                         $('.btn-config-apply').addClass('disabled');
+                         $('.btn-config-write').addClass('disabled');
+                     }
+               },
+               error: function( xhr, status, error ){
+                     var message = "Unknown ajax request error";
+                     var data = JSON.parse(xhr.responseText);
+                     if (data !== undefined && data.text !== undefined) message = data.text;
+                     config_modal_loop = setTimeout(function(){
+					    $('#lastResponse').modal('hide');
+				     }, 3000);
+                     console.log("status="+status);
+                     console.log("error="+error);
+                     $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+                     $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+               }
+           });
+     }); 
 }
 
 function parseLinkData (link,data) {
@@ -355,11 +507,14 @@ function parseLinkData (link,data) {
 		}
 	if (link == "/bin/items.pl") {
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))		
-		data = data.replace(/href=\/bin\/items.pl/img, 'onclick="changePage()"');		
+		data = data.replace(/href=\/bin\/items.pl/img, 'onclick="changePage()"');	
+		data = data.replace(/action=\/bin\/items.pl/img, ''); // /ia7/#_request=page&link=/bin/items.pl&'+coll_key);
+		data = data.replace(/form.submit\(\)/img, ''); // 'this.form.submit()');					
 		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
 		data = data.replace(/Item Index:/img,'');
 		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
 		data = data.replace(/input name='resp' value="\/bin\/items.pl"/img, 'input name=\'resp\' value=\"/ia7/#_request=page&link=/bin/items.pl&'+coll_key+'\"');
+		data = data.replace(/<a href=\/RUN;\/bin\/items.pl\?Reload_code>/img, '<a onclick="\$.get(\'/RUN;last_response?Reload_code\')">');				
 		
 	}
 	if (link == "/bin/iniedit.pl") {
@@ -387,10 +542,11 @@ function parseLinkData (link,data) {
 		data = data.replace(/<a href=\"SET;&dir_index\(.*?\)\">(.*?)<\/a>/img, function (path,r1,r2) {
 			return r1;
 		});
-		data = data.replace(/href='RUN;\/ia5\/news\/main.shtml\?Check_for_e_mail'/img, 'class="btn-voice-cmd" voice_cmd="Check_for_e_mail"');				
+		data = data.replace(/<a href='RUN;\/ia5\/news\/main.shtml\?Check_for_e_mail'>Check for new e mail<\/a>/img, '<button type="button" class="btn btn-default btn-voice-cmd" voice_cmd="Check_for_e_mail" onclick="\$.get(\'/RUN;last_response?select_cmd=Check_for_e_mail\')">Check for new email<\/button>');				
+		data = data.replace(/<td>\+ Sort by /img,'<td>');		
+
 	}
 	if (link.indexOf('/email/') === 0) { //fix links in the email module 2
-		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
 		data = data.replace(/<a href='#top'>Previous<\/a>.*?<br>/img, '');
 		data = data.replace(/<a name='.*?' href='#top'>Back to Index<\/a>.*?<b>/img,'<b>');
 		data = data.replace(/href='#\d+'/img,'');
@@ -403,12 +559,12 @@ function parseLinkData (link,data) {
 		data = data.replace(/<img src="(.*?)"/img,function (path,r1) {
 			return '<img src="/comics/'+r1+'"';
 		});							
-	}			
+	}
+	data = data.replace(/replace_current_ia7_version/img,ia7_ver); //this should really be a jquery call			
 	data = data.replace(/href="\/bin\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function
 	data = data.replace(/href="\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function 
 //TODO clean up this regex?
 	data = data.replace(/href=SET_PASSWORD/img,'onclick=\'authorize_modal("0")\''); //Special case, setup Mr.House without being logged in 
-
 
 	$('#row_page').html(data);
 	$('#mhresponse').submit( function (e) { //allow for forms with id=mhresponse to show data returned in modal
@@ -445,6 +601,20 @@ function parseLinkData (link,data) {
 					}
 				}
 			});
+	});
+	$('#mhfile').change( function (e) { //item fix
+		e.preventDefault();
+		var form = $(this);
+        var name = $(this).find(":selected").text();
+        var form_data = $(this).serializeArray();
+        $.ajax({
+            type: "POST",
+            url: "/bin/items.pl",
+            data: form_data,
+            success: function(data){
+                    parseLinkData("/bin/items.pl",data);
+            }
+        });
 	});
 	$('#mhresponse :input:not(:text)').change(function() {
 //TODO - don't submit when a text field changes
@@ -549,7 +719,7 @@ var loadList = function() {
 	var button_text = '';
 	var button_html = '';
 	var entity_arr = [];
-	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status";
+	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status,link";
 	$.ajax({
 		type: "GET",
 		url: "/json/"+HashtoJSONArgs(URLHash),
@@ -580,14 +750,6 @@ var loadList = function() {
 			if (URLHash.parents !== undefined) {
 				$("#toolButton").attr('entity', URLHash.parents);
 			}			
-			
-			// Sort that list if a sort exists, probably exists a shorter way to
-			// write the sort
-			// Sorting code removed. Original design idea that buttons could be moved
-			// Around by the end user. Possible function for the future.
-//			if (sort_list !== undefined){
-//				entity_list = sortArrayByArray(entity_list, sort_list);
-//			}
 
 			for (var i = 0; i < entity_list.length; i++) {
 				var entity = entity_list[i];
@@ -615,7 +777,7 @@ var loadList = function() {
 						options = options.split(',');
 						button_html = '<div class="btn-group btn-block fillsplit">';
 						button_html += '<div class="leadcontainer">';
-						button_html += '<button type="button" class="btn btn-default dropdown-lead btn-lg btn-list btn-voice-cmd navbutton-padding">'+button_text_start + "<u>" + options[0] + "</u>" + button_text_end+'</button>';
+						button_html += '<button entity="'+entity+'" type="button" class="btn btn-default dropdown-lead btn-lg btn-list btn-voice-cmd navbutton-padding">'+button_text_start + "<u>" + options[0] + "</u>" + button_text_end+'</button>';
 						button_html += '</div>';
 						button_html += '<button type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown navbutton-padding" data-toggle="dropdown">';						
 						button_html += '<span class="caret dropdown-caret"></span>';
@@ -629,7 +791,7 @@ var loadList = function() {
 						button_html += '</div>';
 					}
 					else {
-						button_html = "<div style='vertical-align:middle'><button type='button' class='btn btn-default btn-lg btn-block btn-list btn-voice-cmd navbutton-padding'>";
+						button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' type='button' class='btn btn-default btn-lg btn-block btn-list btn-voice-cmd navbutton-padding'>";
 						button_html += "" +button_text+"</button></div>";
 					}
 					entity_arr.push(button_html);
@@ -714,13 +876,21 @@ var loadList = function() {
 			$(".btn-voice-cmd").click( function () {
 				var voice_cmd = $(this).text().replace(/ /g, "_");
 				var url = '/RUN;last_response?select_cmd=' + voice_cmd;
+				var entity=$(this).attr("entity");
 				$.get( url, function(data) {
-					var start = data.toLowerCase().indexOf('<body>') + 6;
-					var end = data.toLowerCase().indexOf('</body>');
-					$('#lastResponse').find('.modal-body').html(data.substring(start, end));
-					$('#lastResponse').modal({
-						show: true
-					});
+				    if (json_store.objects[entity].link !== undefined) {
+				    //if link starts with /ia7/#path= then it is an IA7 redirect
+				        var collid = $(location).attr('href').split("_collection_key=");
+				        var link = json_store.objects[entity].link+"&type=Voice_Cmd&_collection_key="+collid[1]+",Voice_Cmd";
+				        window.location.assign(link);
+				    } else {
+					    var start = data.toLowerCase().indexOf('<body>') + 6;
+					    var end = data.toLowerCase().indexOf('</body>');
+					    $('#lastResponse').find('.modal-body').html(data.substring(start, end));
+					    $('#lastResponse').modal({
+						    show: true
+					    });
+					}
 				});
 			});
 			$(".btn-state-cmd").click( function () {
@@ -816,7 +986,7 @@ var filterSubstate = function (state, slider) {
  	// slider=1 will filter out all numeric states
     var filter = 0
     // remove 11,12,13... all the mod 10 states
-    if (state.indexOf('%') >= 0) {
+    if (state.toString().indexOf('%') >= 0) {
     
        var number = parseInt(state, 10)
        if ((number % json_store.ia7_config.prefs.substate_percentages != 0) || (slider !== undefined && slider == 1)) {
@@ -825,7 +995,7 @@ var filterSubstate = function (state, slider) {
     }
     if ((slider !== undefined && slider == 1) && !isNaN(state)) filter = 1;
     
-	if (state !== undefined) state = state.toLowerCase();    
+	if (state !== undefined) state = state.toString().toLowerCase();    
     if (state == "manual" ||
     	state == "double on" ||
     	state == "double off" ||
@@ -879,8 +1049,8 @@ var sliderDetails = function (states) {
     var pct = 0;
     var slider_array = [];
     for(var i = 0; i < states.length; i++) {
-        var val = states[i];
-        if(states[i].indexOf('%') != -1) pct=1;
+        var val = states[i].toString();
+        if(val.indexOf('%') != -1) pct=1;
         val = val.replace(/\%/g,'');
         if (!isNaN(val)) {
             slider_array.push(val)
@@ -935,7 +1105,7 @@ var updateList = function(path) {
 			if (jqXHR.status == 200) {
 				JSONStore(json);
 				for (var entity in json.data){
-					if (json.data[entity].type === undefined){
+					if (json.data[entity] === undefined && json.data[entity].type === undefined){
 						// This is not an entity, skip it
 						continue;
 					}
@@ -960,7 +1130,7 @@ var updateList = function(path) {
 					updateList(path);
 				}
 			}
-		}, // End success
+		} // End success
 	});  //ajax request
 };//loadlistfunction
 
@@ -969,16 +1139,17 @@ var updateItem = function(item,link,time) {
 	URLHash.fields = "state";
 	URLHash.long_poll = 'true';
 	//URLHash.time = json_store.meta.time;
-	if (updateSocket !== undefined && updateSocket.readyState != 4){
-		// Only allow one update thread to run at once
-		updateSocket.abort();
-	}
+	//remove socket all together so that status will operate independant of other content.
+//	if (updateSocket !== undefined && updateSocket.readyState != 4){
+//		// Only allow one update thread to run at once
+//		updateSocket.abort();
+//	}
 	if (time === undefined) {
 		time = "";
 	}
 	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
 	var arg_str = "fields=state,states,label,state_log,schedule,logger_status&long_poll=true&items="+item+"&time="+time;
-	updateSocket = $.ajax({
+	$.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
 		dataType: "json",
@@ -999,14 +1170,14 @@ var updateItem = function(item,link,time) {
 			}
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
 
-				if (URLHash.link == link || link == undefined){
+				if (URLHash.link == link || link == undefined || item == "ia7_status"){
 //					//While we don't anticipate handling a list of groups, this 
 //					//may error out if a list was used
 					//testingObj(json_store.meta.time);
 				updateItem(item,URLHash.link,requestTime);
 				}
 			}
-		}, // End success
+		} // End success
 	});  //ajax request
 }
 
@@ -1099,7 +1270,7 @@ var updateStaticPage = function(link,time) {
 					updateStaticPage(URLHash.link,requestTime);
 				}
 			}
-		}, 
+		} 
 	});  
 }
 
@@ -1111,12 +1282,12 @@ function authDetails() {
    			if (json_store.collections[700].user == "0") {
     			json_store.collections[700].name = "Log in";
     			json_store.collections[700].icon = "fa-lock";
-    			authorized = false;
+    			authorized = "false";
    				$(".fa-gear").css("color", "red");
    			} else {
     			json_store.collections[700].name = "Log out "+json_store.collections[700].user+"...";
     			json_store.collections[700].icon = "fa-unlock";   		   		
-    			authorized = true;
+    			authorized = "true";
     			$(".fa-gear").css("color", "green");
     			if (json_store.collections[700].user == "admin") {
         			$(".fa-gear").css("color", "purple");
@@ -1183,6 +1354,7 @@ var loadCollection = function(collection_keys) {
 				var button_html = "<div style='vertical-align:middle'><button entity='"+item+"' ";
 				button_html += "class='btn  btn-"+color+" btn-lg btn-block btn-list btn-popover "+ btn_direct +" btn-state-cmd navbutton-padding'>";
 				button_html += name+dbl_btn+"<span class='pull-right'>"+json_store.objects[item].state+"</span></button></div>";
+			    button_html = "<div class='col-sm-4' colid='"+i+"'>" + button_html + "</div>";
 				entity_arr.push(button_html);
 				items += item+",";		
 			}
@@ -1213,10 +1385,11 @@ var loadCollection = function(collection_keys) {
 				if (json_store.collections[collection].reload_modal !== undefined) {
 					reload_modal = json_store.collections[collection].reload_modal;
 				}
-				button_html = "<a link-type='collection' modal='"+link+"' reload_modal='"+reload_modal+"' class='btn btn-default btn-lg btn-block btn-list btn-resp-modal "+hidden+" navbutton-padding' role='button'><i class='"+icon_set+" "+icon+" icon-larger fa-2x fa-fw'></i>"+name+"</a>";
+				button_html = "<a link-type='collection' modal='"+link+"' reload_modal='"+reload_modal+"' class='btn btn-default btn-lg btn-block btn-list btn-resp-modal "+hidden+" navbutton-padding collection-item-icon' role='button'><i class='"+icon_set+" "+icon+" icon-2-5x fa-fw'></i>"+name+"</a>";
 			} else {			
-				button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list "+hidden+" navbutton-padding' role='button'><i class='"+icon_set+" "+icon+" icon-larger fa-2x fa-fw'></i>"+name+"</a>";
+				button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list "+hidden+" navbutton-padding collection-item-icon' role='button'><i class='"+icon_set+" "+icon+" icon-2-5x fa-fw'></i>"+name+"</a>";
 			}
+			button_html = "<div class='col-sm-4' colid='"+collection+"'>" + button_html + "</div>";
 			entity_arr.push(button_html);
 		}
 	}
@@ -1231,7 +1404,9 @@ var loadCollection = function(collection_keys) {
 			$('#list_content').append("<div id='buffer"+row+"' class='row top-buffer'>");
 			$('#buffer'+row).append("<div id='row" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 		}
-		$('#row'+row).append("<div class='col-sm-4'>" + entity_arr[i] + "</div>");
+//		$('#row'+row).append("<div class='col-sm-4' colid='"+i+"'>" + entity_arr[i] + "</div>");
+		$('#row'+row).append(entity_arr[i]);
+
 		if (column == 3){
 			column = 0;
 			row++;
@@ -1240,6 +1415,20 @@ var loadCollection = function(collection_keys) {
 	}
 	
 	generateTooltips();	
+
+    //turn on long clicks on all buttons if in developer mode
+//TODO error checking on fields
+	$('.btn').mayTriggerLongClicks().on( 'longClick', function() {		
+         if (developer === true) {
+            var cls = $(this).parent().attr('class');
+            if (cls !== undefined && (!cls.match('ui-sortable-helper'))) {
+                var colid = $(this).parent().attr("colid");
+                var URLHash=URLToHash();
+                var col_parent = URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1);
+                create_develop_item_modal(colid,col_parent);
+            }
+        }
+    });
 	
 	// if any items present, then create modals and activate updateItem...
 	if (items !== "") {
@@ -1287,6 +1476,7 @@ var loadCollection = function(collection_keys) {
 		});	
 			
 // test multiple items at some point
+        console.log("items="+items);
 		updateItem(items);
 	}	
 	
@@ -1368,19 +1558,26 @@ var print_log = function(type,time) {
 
 var something_went_wrong = function(module,text) {
 
-    var type = "danger";
-	var mobile = "";
-	if ($(window).width() <= 768) { // override the responsive mobile top-buffer
-		mobile = "mobile-alert";
-	}
-    var html = "<div class='alert-err alert "+mobile+" alert-" + type + " fade in' data-alert>";
-    html += "<button type='button' class='close' data-dismiss='alert'>x</button>";
-    html += "<div class=''>";
-    html += "<i class='fa fa-exclamation-triangle icon-larger fa-2x fa-fw pull-left'></i>";
-    html += "<div class='sww-text'>";
-    html += "<h3 class='sww-text-msg'>ERROR</h3>" + module + " : " + text + " </div></div></div>";
+    if ((json_store.ia7_config.prefs.show_errors !== undefined) &&  json_store.ia7_config.prefs.show_errors == "yes") {
+
+       var type = "danger";
+       var mobile = "";
+       if ($(window).width() <= 768) { // override the responsive mobile top-buffer
+           mobile = "mobile-alert";
+       }
+       var html = "<div class='alert-err alert "+mobile+" alert-" + type + " fade in' data-alert>";
+       html += "<button type='button' class='close' data-dismiss='alert'>x</button>";
+       html += "<div class=''>";
+       html += "<i class='fa fa-exclamation-triangle icon-2-5x fa-fw pull-left'></i>";
+       html += "<div class='sww-text'>";
+       html += "<h3 class='sww-text-msg'>ERROR</h3>" + module + " : " + text + " </div></div></div>";
     
-	$("#alert-area").prepend($(html));
+       $("#alert-area").prepend($(html));
+       
+    } else {
+    
+        console.log("Something went Wrong: "+module+" : " + text);
+    }
 	
 }
 
@@ -1413,11 +1610,53 @@ var get_stats = function(tagline) {
 			        load_avg = json.data.load;
 			    }
 			    if (json.data.uptime) {
-			        $('.uptime').html(json.data.time+" Up "+json.data.uptime+", "+json.data.users+" users, load averages: "+load_avg);
+			        var server_time = json.data.time.split(':'); //split off seconds since we don't update every second
+			        $('.uptime').html(server_time[0]+":"+server_time[1]+" Up "+json.data.uptime+", "+json.data.users+" users, load averages: "+load_avg);
 			    } else {
 			        $('.uptime').html("System uptime data not available");
 			    }
-			    $('.counter').text("Page Views: "+json.data.web_counter);
+			    $('.counter').text("Site views: "+json.data.web_counter_session+"/"+json.data.web_counter_total);
+
+                if (json_store.ia7_config == undefined) {
+                    $('.mh-wi-text').hide();
+                    $('.mh-wi-icon').hide(); 
+                }      
+
+                if ((json.data.tempoutdoor !== undefined && json.data.tempoutdoor !== null) && (json.data.weather_enabled !== undefined && json.data.weather_enabled == 1)) {
+                    $('.mh-wi-text').html("&nbsp;"+json.data.tempoutdoor+"&deg;&nbsp;");
+                    $('.mh-wi-icon').removeClass(function (index, classname) {
+                        return (classname.match (/(^|\s)wi-\S+/g) || []).join(' ');
+                    });
+                    var raining = 0;
+                    var snowing = 0;
+                    var night = 0;
+                    if (json.data.raining !== undefined && json.data.raining ) raining = 1;
+                    if (json.data.snowing !== undefined && json.data.snowing) snowing = 1;
+                    if (json.data.night !== undefined && json.data.night) night = 1;			        
+                    if (json.data.clouds !== undefined) {
+                        $('.mh-wi-icon').addClass(get_wi_icon(json.data.clouds,raining,snowing,night));
+                    } else {
+                         $('.mh-wi-icon').addClass("wi-na");
+
+                    }
+                }
+                
+                $('.mh-wi').click( function () {
+                    var summary = "<strong>Summary:</strong>&nbsp;&nbsp;"+json.data.summary_long+"<br>";
+                    summary += "<strong>Last Updated:</strong>&nbsp;&nbsp;"+json.data.weather_lastupdated;
+                    if ($('.mh-wi-icon').hasClass("wi-na")) {
+                        summary += "<br><strong>Clouds:</strong>&nbsp;&nbsp"+json.data.clouds;
+                    }
+                	$('#lastResponse').find('.modal-body').html(summary);
+					$('#lastResponse').modal({
+						    show: true
+					});
+                });
+               
+                //if json.data.web_counter_total == 0 then first time running stable release. Redirect to the whatsnew page
+                if (json.data.web_counter_total !== undefined && json.data.web_counter_total == 0) {
+                    window.location.href = '/ia7/#_request=page&link=/ia7/house/whatsnew.shtml&_collection_key=0,'
+                }
 		    }
 		    if (jqXHR.status == 200 || jqXHR.status == 204) {
 				stats_loop = setTimeout(function(){
@@ -1427,6 +1666,71 @@ var get_stats = function(tagline) {
 	});
 }
 
+var get_wi_icon = function (conditions,rain,snow,night) {
+
+    var icon = "wi-";
+    
+    if (night) {
+        icon += "night-";
+    } else {
+        icon += "day-";
+    }
+
+    if (conditions == "overcast") {
+        icon = "wi-cloudy";       
+        if (rain) icon = "wi-rain";
+        if (snow) icon = "wi-snow";
+ 
+    } else if (conditions == "rain") {
+            icon += "rain";
+     
+    } else if (conditions == "snow") {
+            icon += "snow";     
+        
+    } else if (conditions == "sky clear" || conditions == "" || conditions == "clear" || conditions == "sunny" || conditions == "mostly sunny") {
+        if (night) {
+            icon = "wi-night-clear";
+        } else {
+            icon = "wi-day-sunny";
+        }
+        
+    } else if (conditions.includes("thunderstorm")) {
+        icon = "wi-thunderstorm";
+        
+    } else if (conditions.includes("mist") || conditions.includes("fog")) {
+        icon += "fog";  
+
+    } else if (conditions.includes("breezy")) {
+        if (conditions.includes("cloud")) {
+            if (night) {
+                icon = "wi-night-cloudy-windy"
+            } else {
+                icon = "wi-day-cloudy-gusts";
+            }
+        } else if (conditions.includes("overcast")) {
+            icon = "wi-cloudy-gusts";
+        } else {
+            if (night) {
+                icon = "wi-strong-wind"
+            } else {
+                icon = "wi-day-windy";
+            }
+        }
+                
+    } else if (conditions.includes("clouds") || conditions.includes("cloudy") || conditions.includes("partly sunny")) {
+        if (rain) {
+            icon += "rain";
+        } else if (snow) {
+            icon += "snow";
+        } else {
+            icon += "cloudy";
+        }     
+            
+    } else {
+        icon = "wi-na";
+    }
+    return icon;
+}
 
 
 var get_notifications = function(time) {
@@ -1452,13 +1756,20 @@ var get_notifications = function(time) {
 						var text = String(json.data[i].text);
 						var type = String(json.data[i].type);
 						var color = String(json.data[i].color);
-
+                        var close = "";
+                        var alert_class = "alert-message";
+                        if (json.data[i].persistent !== undefined && json.data[i].persistent == "yes") {
+                            close = "<button type='button' class='close' data-dismiss='alert'>x</button>";
+                            alert_class = "alert-message-persist";
+                        }
 						if ((type == "sound" ) || ((type == "speech") && (speech_sound == "yes"))) {
-							audio_play(document.getElementById('sound_element'),url)	
+							if (url !== "undefined") {
+							    audio_play(document.getElementById('sound_element'),url);
+							}	
 						}
 						if (type == "banner" || ((type == "speech") && (speech_banner == "yes"))) {
 							var alert_type = "info";
-							if (color !== undefined) {
+							if (color !== "undefined") {
 								if (color == "green") {
 									alert_type = "success";
 								} else if (color == "red") {
@@ -1471,8 +1782,11 @@ var get_notifications = function(time) {
 							if ($(window).width() <= 768) { // override the responsive mobile top-buffer
 							  mobile = "mobile-alert";
 							}
-							$("#alert-area").append($("<div class='alert-message alert alerts "+mobile+" alert-" + alert_type + " fade in' data-alert><p><i class='fa fa-info-circle'></i><strong>  Notification:</strong> " + text + " </p></div>"));
-   	 						$(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+
+							$("#alert-area").append($("<div class='"+alert_class+" alert alerts "+mobile+" alert-" + alert_type + " fade in' data-alert>"+close+"<p><i class='fa fa-info-circle'></i><strong>  Notification:</strong> " + text + " </p></div>"));
+							if (json.data[i].persistent == undefined || (json.data[i].persistent !== undefined && json.data[i].persistent == "no")) {
+   	 						    $(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+   	 						}
 						}
 						if (type == "alert") {
 							jAlert(text,'MH Notifications');
@@ -1690,7 +2004,7 @@ var graph_rrd = function(start,group,time) {
 					    var legli = $('<li style="list-style:none;"/>').appendTo('#rrd-legend');
 					    $('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
 					    $('<label>', {
-						    class: "rrd-legend-class",
+						    'class': "rrd-legend-class",
 						    text: json.data.data[i].label,
 				    	    'for': json.data.data[i].label
 						    }).appendTo(legli);
@@ -1820,7 +2134,7 @@ var object_history = function(items,start,days,time) {
 	var URLHash = URLToHash();
 	var graph = 0;
 	var data_timeout = 0;
-	if (developer) graph = 1;  //right now only show the graph if in developer mode
+	if (developer == true) graph = 1;  //right now only show the graph if in developer mode
 	if (typeof time === 'undefined'){
 		if (graph) {
 			$('#list_content').html("<div id='top-graph' class='row top-buffer'>");
@@ -1912,7 +2226,7 @@ var object_history = function(items,start,days,time) {
 						var legli = $('<li style="list-style:none;"/>').appendTo('#hist-legend');
 						$('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
 						$('<label>', {
-							class: "rrd-legend-class",
+							'class': "rrd-legend-class",
 							text: json.data.data[i].label,
 				    		'for': json.data.data[i].label
 							}).appendTo(legli);
@@ -2052,13 +2366,13 @@ var fp_getOrCreateIcon = function (json, entity, i, coords){
     var popover_html = "";
     if (popover)
         popover_html = 'data-toggle="popover" data-trigger="focus" tabindex="0"';
-
     var entityId = 'entity_'+entity+'_'+i;
     if ($('#' + entityId).length === 0) {
         var html = '<span style="display: inline-block">'  + // this span somehow magically make resizing the icons work
                 '<a title="'+entity+'"><img '+popover_html+' ' +
                 'id="'+entityId+'"' +
-                'class="entity='+entityId+' floorplan_item coords='+coords+'" '+
+                'class="entity='+entityId+' floorplan_item coords='+coords+'" ' +
+                'style="display: none" ' +
                 '></img></a>'+
                 '</span>';
         if (coords !== ""){
@@ -2072,16 +2386,14 @@ var fp_getOrCreateIcon = function (json, entity, i, coords){
     E.bind("dragstart", noDragDrop);
     var image = get_fp_image(json.data[entity]);
     E.attr('src',"/ia7/graphics/"+image);
-    if (developer)
+    if (developer == true)
         E.css("border","1px solid black");
-
     return E;
 };
 
 var fp_resize_floorplan_image = function(){
     var floor_width = $("#fp_graphic").width();
-    $("#fp_graphic").attr("width", "1px");
-
+    //$("#fp_graphic").attr("width", "1px");
     fp_display_width = $("#graphic").width();
     $('#fp_graphic').attr("width",fp_display_width+"px");
     fp_display_height = $("#fp_graphic").height();
@@ -2142,6 +2454,7 @@ var fp_reposition_entities = function(){
             "top":  fp_offset.top - adjust,
             "left": fp_offset.left - adjust
         };
+        $(this).show();
         fp_set_pos(element_id, fp_off_center);
     });
 
@@ -2187,7 +2500,7 @@ var floorplan = function(group,time) {
     if (typeof time === 'undefined'){
         //var window_width = $(window).width();
         $('#list_content').html("<div id='floorplan' class='row top-buffer'>");
-        if (developer){
+        if (developer === true){
             // add elememnts to show current position on floorplan
             $('#floorplan').append("<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'><ol>" +
                     "<li>grab icon and drop it on apropriate position on the flooplan</li>" +
@@ -2202,7 +2515,7 @@ var floorplan = function(group,time) {
         $('#floorplan').append("<div id='graphic' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
         time = 0;
         $('#graphic').prepend('<center><img id="fp_graphic" border="1"  /></center>');
-        if (developer){
+        if (developer === true){
             $('#fp_graphic').css("border","1px solid black");
             $('#list_content').append("<div id='fp_positionless_items' />");
             $('#list_content').append("<pre id='fp_pos_perl_code' />");
@@ -2221,10 +2534,9 @@ var floorplan = function(group,time) {
         updateSocket.abort();
     }
 
-    if (developer){
+    if (developer === true){
         // update positon
-
-        $(document).mousemove(function(e){
+        $(document).bind('mousemove.fpdev', function(e) {
             var offset = $("#fp_graphic").offset();
             var width = $("#fp_graphic").width();
             var hight = $("#fp_graphic").height();
@@ -2262,6 +2574,8 @@ var floorplan = function(group,time) {
             fp_grabbed_entity = null;
         });
 
+    } else {
+        $(document).unbind('mousemove');
     }
 
     var set_coordinates_from_offset = function (id)
@@ -2360,7 +2674,7 @@ var floorplan = function(group,time) {
                 //var t0 = performance.now();
                 JSONStore(json);
                 for (var entity in json.data) {
-                    if (developer && requestTime === 0){
+                    if (developer === true && requestTime === 0){
                         perl_pos_coords = "";
                     }
                     for (var i=0 ; i < json.data[entity].fp_location.length-1; i=i+2){ //allow for multiple graphics
@@ -2368,7 +2682,7 @@ var floorplan = function(group,time) {
                         if ((json.data[entity].type === "FPCamera_Item") || (json_store.ia7_config.prefs.fp_state_popovers === "yes"))
                             popover = 1;
 
-                        if (developer && requestTime === 0){
+                        if (developer === true && requestTime === 0){
                             if (perl_pos_coords.length !== 0){
                                 perl_pos_coords += ", ";
                             }
@@ -2452,7 +2766,8 @@ var floorplan = function(group,time) {
                                                 //if button doesn't have on and off don't display
                                                 if ($.inArray("on", json_store.objects[fp_entity].states) !== -1 && $.inArray("off", json_store.objects[fp_entity].states) !== -1) {
                                                     html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-success'>on</button>";					                
-                                                    html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-default'>off</button>";	
+                                                    html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-default'>off</button>";
+                                                    subbuttons = 1;	
                                                 }	
                                                 html += "</div>";			                
                                                 html += "<div id='sliderFP' class='brightness-slider'></div>";					
@@ -2477,6 +2792,10 @@ var floorplan = function(group,time) {
                                             max: slider_data.max,
                                             value: position
                                         });
+
+                                        if ($(".stategrp0").children().length == 0) {  
+                                            $(".stategrp0").remove();
+                                        }
 
                                         $( "a[title='"+src+"']" ).find(".popover-content").popover('show');
                                         
@@ -2560,7 +2879,7 @@ var floorplan = function(group,time) {
                         }
                     }
 
-                    if (developer && requestTime === 0){
+                    if (developer === true && requestTime === 0){
                         if (perl_pos_coords.length===0)
                         {
                             fp_getOrCreateIcon(json, entity, 0, "");
@@ -2584,8 +2903,9 @@ var floorplan = function(group,time) {
                         }
                     }
                 }
-                fp_reposition_entities();
-                if (requestTime === 0 && developer){
+                //This one makes the proper placement
+                //fp_reposition_entities();
+                if (requestTime === 0 && developer === true){
                     $('#list_content').append("<p>&nbsp;</p>");
                     $.ajax({
                         type: "GET",
@@ -2684,7 +3004,7 @@ var floorplan = function(group,time) {
             }
             if (time === 0){
                 // hack to fix initial positions of the items
-                var wait = 500;
+                var wait = 800;
                 setTimeout(function(){
                     fp_reposition_entities();
                 }, wait);
@@ -2736,11 +3056,6 @@ var get_fp_image = function(item,size,orientation) {
 	return "fp_unknown_info_"+fp_icon_image_size+".png";
 };
 
-//var create_img_popover = function(entity) {
-//}
-
-//var create_state_popover = function(entity) {
-//}
 
 var create_state_modal = function(entity) {
 		var name = entity;
@@ -2830,6 +3145,9 @@ var create_state_modal = function(entity) {
                 $('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");					
                 }
                 if (slider_active) {
+                    if ($(".stategrp0").children().length == 0) {  
+                        $(".stategrp0").remove();
+                    }
                    var slider_data = sliderDetails(modal_states);		                
                    $('#control').find('.states').append("<div id='slider' class='brightness-slider'></div>");					
                    var val = $(".object-state").text().replace(/\%/,'');
@@ -2873,8 +3191,10 @@ var create_state_modal = function(entity) {
 		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
 		$('#control').find('.states').find('.btn').click(function (){
 			url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
-			$('#control').modal('hide');
-			$.get( url);
+			if (!$(this).hasClass("disabled")) {
+			    $('#control').modal('hide');
+			    $.get( url);
+			}
 		});
 		} else {
 			//remove states from anything that doesn't have more than 1 state
@@ -2991,18 +3311,55 @@ var create_state_modal = function(entity) {
 		
 			$('.sched_submit').on('click', function(){
 				if ($(this).hasClass("disabled")) return;
-				var string = "";
-				$('.mhsched').each(function(index,value) {
-					string += $( this ).attr("id") + ',"' + modify_jqcon_dow($(this).text(),"-1") + '",' + $( this ).attr("label") + ',';
+				var data = {};
+	
+                if ($(this).parents('.control-dialog').attr("entity") == undefined) return;	
+				data[$(this).parents('.control-dialog').attr("entity")] = {};
+				data[$(this).parents('.control-dialog').attr("entity")].schedule = [];
+				
+				$('.mhsched').each(function(index,value) {					
+					var sched_data = {};
+					sched_data.id = $( this ).attr("id");
+					sched_data.cron = modify_jqcon_dow($(this).text(),"-1");
+					sched_data.label = $( this ).attr("label");
+                    data[$(this).parents('.control-dialog').attr("entity")]['schedule'].push(sched_data);				
 				});
-				string = string.replace(/,\s*$/, ""); //remove the last comma
-				var url="/SUB?ia7_update_schedule"+encodeURI("("+$(this).parents('.control-dialog').attr("entity")+","+string+")");
-				$.get(url);
-            	$('.sched_submit').addClass('disabled');  
-            	$('.sched_submit').removeClass('btn-success');  
-            	$('.sched_submit').addClass('btn-default');  
-            	//emtpy the array since the long_poll should get the updated schedules.
-            	json_store.objects[entity].schedule.length = 0; 			
+
+                $.ajax({
+                    url: "/json/objects",
+                    type: 'post',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function( data, status, error ){
+                          console.log("data="+data+" status="+status+" error="+error);
+                          //throw up red warning if the response isn't good from MH
+                          if (data.status !== undefined || data.status == "error") {
+                              var message = "Unknown server error";
+                              if (data.text !== undefined) message = data.text
+                              $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+                              $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                           } else {   
+                              $(".modal-header").append($("<div class='write-status alert alerts-modal alert-success fade in' data-alert><p><i class='fa fa-info-circle'></i>&nbsp;<strong>Success:</strong>&nbsp;Object successfully updated</p></div>"));
+                              $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                              $('.sched_submit').addClass('disabled');  
+                              $('.sched_submit').removeClass('btn-success');  
+                              $('.sched_submit').addClass('btn-default');  
+                              //emtpy the array since the long_poll should get the updated schedules.
+                              json_store.objects[entity].schedule.length = 0; 
+                          }
+                    },
+                    error: function( xhr, status, error ){
+                          var message = "Unknown ajax request error";
+                          var data = JSON.parse(xhr.responseText);
+                          if (data !== undefined && data.text !== undefined) message = data.text;
+                          console.log("status="+status);
+                          console.log("error="+error);
+                          $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+                          $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                  }                    
+                });
+			
+			
 			});			
 			//hide the schedule controls if in simple mode
 			if 	(display_mode == "simple") {
@@ -3041,7 +3398,7 @@ var create_state_modal = function(entity) {
 			}
 		}
 		
-		if (developer) 
+		if (developer === true) 
 		    $('.mhstatemode').show();
 		else
 		    $('.mhstatemode').hide();
@@ -3054,6 +3411,212 @@ var create_state_modal = function(entity) {
 			$('#control').modal('hide');
 		});
 }	
+
+var create_develop_item_modal = function(colid,col_parent) {
+
+    if (colid == undefined || col_parent == undefined) {
+        console.log("create develop modal, colid="+colid+" col_parent="+col_parent);
+    } else {        
+        $('#devModal').find('.modal-title').html("Edit Collection ID: <strong>"+colid+"</colid>");
+        var html = "<form class='form-horizontal dev-collection-edit'>";
+        //html += '<div class="form-group"><label for="col_id" class="control-label col-sm-2">CollectionID</label><div class="col-sm-10">';
+        //html += '<input type="text" class="form-control" id="col_id" name="cid" value="'+colid+'" readonly></div></div>';
+        var icon_orig = json_store.collections[colid].icon;
+    
+        html += '<div class="form-group"><label for="col_icon" class="control-label col-sm-2">Icon</label><div class="col-sm-10">';
+        html += '<div class="input-group dev-collection-icon"><span class="input-group-addon" id="icon_gylph">X</span>'
+        html += '<input type="text" class="form-control iconpicker" id="col_icon" value="'+json_store.collections[colid].icon+'"></div></div></div>';
+
+        html += '<div class="form-group"><label for="col_name" class="control-label col-sm-2">Name</label><div class="col-sm-10">';
+        var name = '';
+        if (json_store.collections[colid].name !== undefined) name = json_store.collections[colid].name;
+        html += '<input type="text" class="form-control" id="col_name" name="name" value="'+name+'"></div></div>';
+
+
+        var parent;
+        if (col_parent == 0) {
+            parent = "Home";
+        } else {
+            parent = json_store.collections[col_parent].name;
+        }                
+        html +=  '<div class="form-group"><label for="col_parent" class="control-label col-sm-2">Page</label><div class="col-sm-10">';
+        html += '<select class="form-control" id="col_parent" name="cparent">';
+
+        var cids=0;
+        for (var key in json_store.collections){
+            if (json_store.collections.hasOwnProperty(key)) {
+                if (json_store.collections[key].children !== undefined) {
+                    var name = "Home";
+                    if (json_store.collections[key].name !== undefined) name = json_store.collections[key].name
+                    var selected = "";
+                    if (key == col_parent) selected = "selected";
+                    html += '<option value="'+key+'" '+selected+'>'+key+' ('+name+')</option>';
+                }
+            }
+        }
+        html += '</select></div></div>'
+
+        var mode = "simple";
+        if (json_store.collections[colid].mode !== undefined) mode = json_store.collections[colid].mode;
+
+        var checked = ""
+        if (mode == "advanced") checked = "checked";
+        html += '<div class="form-group"><label for="col_mode" class="control-label col-sm-2">Mode</label><div class="col-sm-10"><div class="checkbox">';
+        html += '<label><input type="checkbox" id="col_mode" name="cmode" value="Advanced" '+checked+'>Advanced</label></div></div></div>';
+            
+        var html1 = '<hr>';  
+        var options = 0;
+        for (var prop in json_store.collections[colid]) {
+            if (json_store.collections[colid].hasOwnProperty(prop)) {
+                 if (!(prop == "name" || prop == "icon" || prop == "mode")) {
+                     options = 1;
+                     var readonly = "";
+                     if (prop == "children") readonly = "readonly";
+                     html1 +=  '<div class="form-group"><label for="col_'+prop+'" class="control-label col-sm-2">'+prop+'</label><div class="col-sm-10">';
+                     html1 += '<input type="text" class="form-control" id="col_'+prop+'" name="c'+prop+'" value="'+json_store.collections[colid][prop]+'" '+readonly+'></div></div>';
+                 }
+            }                    
+        }
+        if (options == 1) html += html1;
+        html += "</form>";		
+
+        $('#devModal').find('.modal-body').html(html);
+        $('#devModal').find('.modal-footer').html('<button type="button" class="btn btn-default btn-dev-cancel" data-dismiss="modal">Cancel</button>');  
+        $('#devModal').find('.modal-footer').prepend('<button type="button" class="btn disabled btn-success btn-dev-apply">Apply</button>');      	
+        $('#devModal').find('.modal-footer').prepend('<button type="button" class="btn disabled btn-danger btn-dev-write pull-left">Write to MH</button>');      	
+
+        var wi_icons = [ "wi-day-sunny","wi-day-cloudy","wi-day-cloudy-gusts","wi-day-cloudy-windy","wi-day-fog","wi-day-hail","wi-day-haze","wi-day-lightning","wi-day-rain","wi-day-rain-mix","wi-day-rain-wind","wi-day-showers","wi-day-sleet","wi-day-sleet-storm","wi-day-snow","wi-day-snow-thunderstorm","wi-day-snow-wind","wi-day-sprinkle","wi-day-storm-showers","wi-day-sunny-overcast","wi-day-thunderstorm","wi-day-windy","wi-solar-eclipse","wi-hot","wi-day-cloudy-high","wi-day-light-wind","wi-night-clear","wi-night-alt-cloudy","wi-night-alt-cloudy-gusts","wi-night-alt-cloudy-windy","wi-night-alt-hail","wi-night-alt-lightning","wi-night-alt-rain","wi-night-alt-rain-mix","wi-night-alt-rain-wind","wi-night-alt-showers","wi-night-alt-sleet","wi-night-alt-sleet-storm","wi-night-alt-snow","wi-night-alt-snow-thunderstorm","wi-night-alt-snow-wind","wi-night-alt-sprinkle","wi-night-alt-storm-showers","wi-night-alt-thunderstorm","wi-night-cloudy","wi-night-cloudy-gusts","wi-night-cloudy-windy","wi-night-fog","wi-night-hail","wi-night-lightning","wi-night-partly-cloudy","wi-night-rain","wi-night-rain-mix","wi-night-rain-wind","wi-night-showers","wi-night-sleet","wi-night-sleet-storm","wi-night-snow","wi-night-snow-thunderstorm","wi-night-snow-wind","wi-night-sprinkle","wi-night-storm-showers","wi-night-thunderstorm","wi-lunar-eclipse","wi-stars","wi-storm-showers","wi-thunderstorm","wi-night-alt-cloudy-high","wi-night-cloudy-high","wi-night-alt-partly-cloudy","wi-cloud","wi-cloudy","wi-cloudy-gusts","wi-cloudy-windy","wi-fog","wi-hail","wi-rain","wi-rain-mix","wi-rain-wind","wi-showers","wi-sleet","wi-snow","wi-sprinkle","wi-storm-showers","wi-thunderstorm","wi-snow-wind","wi-snow","wi-smog","wi-smoke","wi-lightning","wi-raindrops","wi-raindrop","wi-dust","wi-snowflake-cold","wi-windy","wi-strong-wind","wi-sandstorm","wi-earthquake","wi-fire","wi-flood","wi-meteor","wi-tsunami","wi-volcano","wi-hurricane","wi-tornado","wi-small-craft-advisory","wi-gale-warning","wi-storm-warning","wi-hurricane-warning","wi-wind-direction","wi-alien","wi-celsius","wi-fahrenheit","wi-degrees","wi-thermometer","wi-thermometer-exterior","wi-thermometer-internal","wi-cloud-down","wi-cloud-up","wi-cloud-refresh","wi-horizon","wi-horizon-alt","wi-sunrise","wi-sunset","wi-moonrise","wi-moonset","wi-refresh","wi-refresh-alt","wi-umbrella","wi-barometer","wi-humidity","wi-na","wi-train","wi-moon-new","wi-moon-waxing-crescent-1","wi-moon-waxing-crescent-2","wi-moon-waxing-crescent-3","wi-moon-waxing-crescent-4","wi-moon-waxing-crescent-5","wi-moon-waxing-crescent-6","wi-moon-first-quarter","wi-moon-waxing-gibbous-1","wi-moon-waxing-gibbous-2","wi-moon-waxing-gibbous-3","wi-moon-waxing-gibbous-4","wi-moon-waxing-gibbous-5","wi-moon-waxing-gibbous-6","wi-moon-full","wi-moon-waning-gibbous-1","wi-moon-waning-gibbous-2","wi-moon-waning-gibbous-3","wi-moon-waning-gibbous-4","wi-moon-waning-gibbous-5","wi-moon-waning-gibbous-6","wi-moon-third-quarter","wi-moon-waning-crescent-1","wi-moon-waning-crescent-2","wi-moon-waning-crescent-3","wi-moon-waning-crescent-4","wi-moon-waning-crescent-5","wi-moon-waning-crescent-6","wi-moon-alt-new","wi-moon-alt-waxing-crescent-1","wi-moon-alt-waxing-crescent-2","wi-moon-alt-waxing-crescent-3","wi-moon-alt-waxing-crescent-4","wi-moon-alt-waxing-crescent-5","wi-moon-alt-waxing-crescent-6","wi-moon-alt-first-quarter","wi-moon-alt-waxing-gibbous-1","wi-moon-alt-waxing-gibbous-2","wi-moon-alt-waxing-gibbous-3","wi-moon-alt-waxing-gibbous-4","wi-moon-alt-waxing-gibbous-5","wi-moon-alt-waxing-gibbous-6","wi-moon-alt-full","wi-moon-alt-waning-gibbous-1","wi-moon-alt-waning-gibbous-2","wi-moon-alt-waning-gibbous-3","wi-moon-alt-waning-gibbous-4","wi-moon-alt-waning-gibbous-5","wi-moon-alt-waning-gibbous-6","wi-moon-alt-third-quarter","wi-moon-alt-waning-crescent-1","wi-moon-alt-waning-crescent-2","wi-moon-alt-waning-crescent-3","wi-moon-alt-waning-crescent-4","wi-moon-alt-waning-crescent-5","wi-moon-alt-waning-crescent-6","wi-time-1","wi-time-2","wi-time-3","wi-time-4","wi-time-5","wi-time-6","wi-time-7","wi-time-8","wi-time-9","wi-time-10","wi-time-11","wi-time-12","wi-direction-up","wi-direction-up-right","wi-direction-right","wi-direction-down-right","wi-direction-down","wi-direction-down-left","wi-direction-left","wi-direction-up-left","wi-wind-beaufort-0","wi-wind-beaufort-1","wi-wind-beaufort-2","wi-wind-beaufort-3","wi-wind-beaufort-4","wi-wind-beaufort-5","wi-wind-beaufort-6","wi-wind-beaufort-7","wi-wind-beaufort-8","wi-wind-beaufort-9","wi-wind-beaufort-10","wi-wind-beaufort-11","wi-wind-beaufort-12" ];
+        $('#col_icon').iconpicker({
+            hideOnSelect: true,
+            icons: $.merge($.iconpicker.defaultOptions.icons,wi_icons),
+            fullClassFormatter: function(a) {
+                if (a.match(/^wi-/)) {
+                    return 'wi ' + a;
+                } else {
+                    return 'fa ' + a;
+                }
+            }
+        });
+        if (dev_changes !== 0) {			
+            $('.btn-dev-apply').removeClass('disabled');
+            $('.btn-dev-write').removeClass('disabled');
+        }
+          
+        $('#col_icon').iconpicker().on('iconpickerSelect', function(e) {
+            $('.btn-dev-apply').removeClass('disabled');
+            $('.btn-dev-write').removeClass('disabled'); 
+            $('#col_icon').css('border-color', '');           
+            dev_changes++;            
+        });
+    
+        $('.dev-collection-edit').on('change input', function () {
+            $('.btn-dev-apply').removeClass('disabled');
+            $('.btn-dev-write').removeClass('disabled');
+            //if name is empty put a red box around, otherwise blue
+            if ($('#col_name').val() == '') {
+                $('#col_name').css('border-color', 'red');
+            } else {
+                $('#col_name').css('border-color', '');
+            }
+            if ($('#col_icon').val() == '') {
+                $('#col_icon').css('border-color', 'red');
+            } else {
+                $('#col_icon').css('border-color', '');
+            }
+            dev_changes++;
+        });
+    
+                    
+        function update_collection_array () {
+        
+            var parent = $('#col_parent').val();
+            var mode = $('#col_mode').is(":checked");
+            
+            for (var prop in json_store.collections[colid]) {
+                if (json_store.collections[colid].hasOwnProperty(prop)) {
+                     if (!(prop == "mode")) {
+                        // loop through properties
+                          if ($('#col_'+prop).val() !== '') json_store.collections[colid][prop] = $('#col_'+prop).val();                      
+                          console.log("prop="+prop+" val="+$('#col_'+prop).val());
+                    }
+                }
+            }
+
+            if (mode == true) {
+                json_store.collections[colid].mode = "advanced";
+            } else {
+                delete json_store.collections[colid].mode;
+            }    
+            if (col_parent !== parent) {
+                if (json_store.collections[parent].children !== undefined && json_store.collections[col_parent].children !== undefined) {
+                //use parseInt to ensure they are writing as numbers and not strings
+                    json_store.collections[parent].children.push(parseInt(colid,10));
+                    json_store.collections[col_parent].children.splice( json_store.collections[col_parent].children.indexOf(parseInt(colid,10)), 1 );
+                } else {
+                    console.log("Object Parent or New Parent Children undefined!!")
+                }
+            }   
+        }
+    
+        $('.btn-dev-apply').click( function () {
+            if (!($('.btn-dev-apply').hasClass('disabled'))) {
+                update_collection_array();
+                changePage();     
+                $('.btn-dev-cancel').text("Close");
+                $('.btn-dev-apply').addClass('disabled');
+                dev_changes = 0;
+
+            } 
+        });
+    
+        $('.btn-dev-write').click( function () {
+            if ($('.btn-dev-write').hasClass('disabled')) return;        
+             update_collection_array();
+             //item 700 is special, it needs to be user = $Authorized for the MH authentication piece to work.
+             var data = json_store.collections;
+             var current_user = data[700].user;
+             data[700].user = "$Authorized";
+             //after apply and cancel change the cancel button text to close
+              $.ajax({
+                  url: "/json/collections",
+                  type: 'post',
+                  contentType: 'application/json',
+                  data: JSON.stringify(data),
+                  success: function( data, status, error ){
+                        console.log("data="+data+" status="+status+" error="+error);
+                        //throw up red warning if the response isn't good from MH
+                        if (data.status !== undefined || data.status == "error") {
+                            var message = "Unknown server error";
+                            if (data.text !== undefined) message = data.text
+                            $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+   	 		                $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                         } else {   
+                            $(".modal-header").append($("<div class='write-status alert alerts-modal alert-success fade in' data-alert><p><i class='fa fa-info-circle'></i>&nbsp;<strong>Success:</strong>&nbsp;Data successfully written to MH</p></div>"));
+                            $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                            $('.btn-dev-cancel').text("Close");
+                            $('.btn-dev-apply').addClass('disabled');
+                            dev_changes = 0;
+                        }
+                        data[700].user = current_user;
+                  },
+                  error: function( xhr, status, error ){
+                        var message = "Unknown ajax request error";
+                        var data = JSON.parse(xhr.responseText);
+                        if (data !== undefined && data.text !== undefined) message = data.text;
+                        console.log("status="+status);
+                        console.log("error="+error);
+                        $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
+   	 		            $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+   	 		            data[700].user = current_user;
+                  }
+              });
+        });
+    
+        $('#devModal').modal({
+            show: true
+            });
+    }
+}
 
 var authorize_modal = function(user) {
 
@@ -3186,6 +3749,14 @@ var trigger = function() {
 $(document).ready(function() {
 	// Start
 	
+	// Increment the counter
+    $.ajax({
+        url: "/json/web_counter",
+        type: 'post',
+        contentType: 'application/json',
+        data: "{}"           //just post empty json
+    });
+	
 	changePage();
 	//Watch for future changes in hash
 	$(window).bind('hashchange', function() {
@@ -3201,7 +3772,7 @@ $(document).ready(function() {
 	// Load up 'globals' -- notification and the status
 	updateItem("ia7_status");	
 	get_notifications();
-	$('#Last_updated').remove();		
+	$('#Last_updated').remove();	
     get_stats();
 	$("#toolButton").click( function () {
 		// Need a 'click' event to turn on sound for mobile devices
@@ -3221,7 +3792,7 @@ $(document).ready(function() {
                 var offset = "auto";
                 if ($(window).width() < 768) {
                     offset = 0;
-                    if (($(window).width() / 2 - 210) > 0) offset = ($(window).width() / 2 - 210);
+                    if (($(window).width() / 2 - 210) > 0) offset = ($(window).width() / 2 - 220);
                     }
                 return offset;               
              }
@@ -3249,27 +3820,79 @@ $(document).ready(function() {
 			develop_active = "";
 			develop_checked = "";
 		}
-		if (display_mode == "advanced" && developer == true)  {
+		if (display_mode == "advanced" && developer === true)  {
 			simple_active = "";
 			simple_checked = "";
 			advanced_active = "";
 			advanced_checked = ""
 			develop_active = "active";
-			developed_checked = "checked"
-		}		
-		
+			develop_checked = "checked"
+		}
+		var develop_auth = "";	
+		var develop_type = "radio";
+		if (authorized == "false") {
+		    develop_checked = "";
+		    develop_active = "";
+		    if (advanced_active !== "active") simple_active = "active";
+		    develop_auth = "disabled";
+		    develop_type = "checkbox";
+		    console.log("no auth");
+		}
+		    
 		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-4 col-sm-4 "+simple_active+"'><input type='radio' name='mhmode2' id='simple' autocomplete='off'"+simple_checked+">simple</label>");
 		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-4 col-sm-4 "+advanced_active+"'><input type='radio' name='mhmode2' id='advanced' autocomplete='off'"+advanced_checked+">expert</label>");
-		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-4 col-sm-4 "+develop_active+"'><input type='radio' name='mhmode2' id='developer' autocomplete='off'"+develop_checked+">developer</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-4 col-sm-4 "+develop_active+" "+develop_auth+"'><input type='"+develop_type+"' name='mhmode2' id='developer' autocomplete='off'"+develop_checked+" "+develop_auth+">developer</label>");
 
 		$('.mhmode').on('click', function(){
 			if ($(this).find('input').attr('id') == "developer") {
-				display_mode = "advanced";
-				developer = true;
+			    if (!($(this).hasClass('disabled'))) {
+				    display_mode = "advanced";
+				    developer = true;
+				}
 			} else {
 				display_mode = $(this).find('input').attr('id');
 				developer = false;
-			}	
+			}
+			
+			if (developer == true) {
+			    //turn on collections drag-n-dropping
+				$("#list_content").sortable({
+				    tolerance: "pointer",
+                    items: ".col-sm-4",
+                    cursor: "move",
+				    update: function( event, ui ) {
+		  	            var URLHash = URLToHash();
+                        //Get Sorted Array of Entities
+                        var colids = $( "#list_content" ).sortable( "toArray", { attribute: "colid" } );
+                        //convert strings to ints
+                        var new_order = colids.map(function (x) { 
+                            return parseInt(x, 10); 
+                        });
+                        //get the collection key
+                        var col_key;
+                        if (URLHash._collection_key == undefined) {
+                            col_key = 0;
+                        } else {
+                            col_key = URLHash._collection_key.substr(URLHash._collection_key.lastIndexOf(',') + 1);
+                        }
+                        json_store.collections[col_key].children = new_order;
+                        dev_changes++;
+                        changePage();
+                    }
+				});	
+				$('#list_content').disableSelection();					
+			} else {
+			    if ($('#list_content').hasClass('ui-sortable')) {
+			        $("#list_content").sortable("destroy");
+			        $("#list_content").enableSelection();	
+			    }
+			    if ($('#option_collection').hasClass('ui-sortable')) {
+			        $("#option_collection").sortable("destroy");
+			        $("#option_collection").enableSelection();	
+			    }
+			}
+			document.cookie = "display_mode="+display_mode;
+	
 			changePage();
   		});
   		
@@ -3325,14 +3948,16 @@ $(document).ready(function() {
 				$('.mhnotifyoff').removeClass('active');
 				if ((speech_banner === "no") && (speech_sound === "no")) $('.mhnotifyoff').addClass('active');
 			}
+			document.cookie = "speech_sound="+speech_sound;
+			document.cookie = "speech_banner="+speech_banner;
 			//if off, then unselect others
   		});  		
 		// parse the collection ID 500 and build a list of buttons
 		var opt_collection_keys = 0;
-		var opt_entity_html = "";
+		var opt_entity_html = "<div id='option_collection'>";
 		var opt_entity_sort = json_store.collections[500].children;
 		if (opt_entity_sort.length <= 0){
-		opt_entity_html = "Childless Collection";
+		opt_entity_html += "Childless Collection";
 		} else {
 		    for (var i = 0; i < opt_entity_sort.length; i++){
 				var collection = opt_entity_sort[i];
@@ -3353,13 +3978,36 @@ $(document).ready(function() {
 //					if (name == undefined) {
 //						authDetails();
 //					} 
-					opt_entity_html += "<a link-type='collection' user='"+json_store.collections[collection].user+"' class='btn btn-default btn-lg btn-block btn-list btn-login-modal' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
+					opt_entity_html += "<a link-type='collection' user='"+json_store.collections[collection].user+"' class='btn btn-default btn-lg btn-block btn-list btn-login-modal' colid='"+collection+"' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 				} else {	
-					opt_entity_html += "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
+					opt_entity_html += "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list btn-option' colid='"+collection+"' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 				}
 			}
 		}
+		opt_entity_html += "</div>";
 		$('#optionsModal').find('.modal-body').append(opt_entity_html);	
+		
+					if (developer == true) {
+			    //turn on collections drag-n-dropping
+				$("#option_collection").sortable({
+				    tolerance: "pointer",
+                    cursor: "move",
+				    update: function( event, ui ) {
+		  	            var URLHash = URLToHash();
+                        //Get Sorted Array of Entities
+                        var colids = $( "#option_collection" ).sortable( "toArray", { attribute: "colid" } );
+                        //convert strings to ints
+                        var new_order = colids.map(function (x) { 
+                            return parseInt(x, 10); 
+                        });
+                        //get the collection key
+                        var col_key = 500
+                        json_store.collections[col_key].children = new_order;
+                        dev_changes++;
+                    }
+				});	
+				$('#option_collection').disableSelection();					
+			} 
 		$('.btn-login-modal').click( function () {
 			$('#optionsModal').modal('hide');			
 			var user = $(this).attr('user')
@@ -3368,6 +4016,20 @@ $(document).ready(function() {
 		$('#optionsModal').find('.btn-list').click(function (){
 			$('#optionsModal').modal('hide');
 		});
+		
+		$('.btn-option').mayTriggerLongClicks().on( 'longClick', function() {		
+            if (developer === true) {
+                var cls = $(this).attr('class');
+                if (!cls.match('ui-sortable-helper')) {
+                    var colid = $(this).attr("colid");
+                    var col_parent=500;
+                    console.log("option colid="+colid+" col_parent="+col_parent);
+                    create_develop_item_modal(colid,col_parent);
+                    $('#optionsModal').modal('hide');    
+                }            
+		    }
+		});
+		
 	});
 
 //Needed to floorplan sliders to work.

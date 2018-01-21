@@ -3,7 +3,7 @@
 # $Revision$
 # $Date$
 #
-#@ Weather METAR parser
+#@ Weather METAR parser (MH5 Updated)
 #@
 #@ $Revision$
 #@
@@ -21,6 +21,7 @@
 
 # noloop=start
 use Weather_Common;
+use DateTime;
 
 my $station = uc( $config_parms{weather_metar_station} );
 my $country = lc( $config_parms{weather_metar_country} );
@@ -49,6 +50,7 @@ $v_get_metar_weather = new Voice_Cmd('get metar weather');
 if ($Reload) {
     &trigger_set( '$New_Minute and $Minute == 5', '$p_weather_metar_page->start', 'NoExpire', 'Update weather information via METAR' )
       unless &trigger_get('Update weather information via METAR');
+    $Weather_Common::weather_module_enabled = 1;
 }
 
 if ( said $v_get_metar_weather) {
@@ -64,10 +66,25 @@ sub process_metar {
     my $html = file_read $weather_metar_file;
     return unless $html;
 
+    my %month_name = (
+        '1' => "January",
+        '2' => "February",
+        '3' => "March",
+        '4' => "April",
+        '5' => "May",
+        '6' => "June",
+        '7' => "July",
+        '8' => "August",
+        '9' => "September",
+        '10' => "October",
+        '11' => "November",
+        '12' => "December" );
+
     # NavCanada changed their format to break reports into multiple lines
     $html =~ s/\n<br>\n//g;
     my %metar;
-    my $last_report = 'none';
+    my $last_report = '';
+    my $last_time = 0; #always choose the latest 
     my ( $pressure, $weather, $clouds, $winddirname, $windspeedtext );
     my ( $metricpressure, $pressuretext, $apparenttemp, $dewpoint );
     $apparenttemp = 'none';
@@ -80,17 +97,41 @@ sub process_metar {
         $weather = '';
         $clouds  = '';
         my $notCurrent = 0;
-        $metar{IsRaining} = 0;
-        $metar{IsSnowing} = 0;
+        $metar{IsRaining} = 0 unless (defined $metar{IsRaining} and $metar{IsRaining} == 1);
+        $metar{IsSnowing} = 0 unless (defined $metar{IsSnowing} and $metar{IsSnowing} == 1);
 
-        print_log "Parsing METAR report: $last_report";
 
         ( $metar{WindAvgDir}, $metar{WindAvgSpeed}, $metar{WindGustSpeed} ) =
           $last_report =~ m#(\d{3}|VRB)(\d{2})(G\d{2})?KT#;    # speeds in knots
         if ( $last_report =~ m#\s(M?\d{2})/(M?\d{2})\s# ) {
             ( $metar{TempOutdoor}, $metar{DewOutdoor} ) = ( $1, $2 );
         }
-        ;                                                      # temperatures are in Celsius
+        ;                                                       # temperatures are in Celsius
+        if ( $last_report =~ m#\s(\d{2})(\d{2})(\d{2})Z\s# ) { #convert from UTC to local time
+            my $time = DateTime->new(
+                year   => $Year,
+                month  => $Month,
+                day    => $1,
+                hour   => $2,
+                minute => $3,
+                second => 0,
+                time_zone => 'UTC',
+                );
+             if ($time->epoch() > $last_time) {         #only choose the latest time   
+                $last_time = $time->epoch();            
+                $time->set_time_zone('local');
+                my $ampm = "AM";
+                $ampm = "PM" if ($time->hour() > 11);
+                my $minutes = $time->min();
+                $minutes = "0" . $minutes if ($minutes < 10);
+                $metar{LastUpdated} = "$month_name{$Month} $1, " . $time->hour_12() . ":" . $minutes. " " . $ampm;
+            } else {
+                print_log "Skipping METAR report: $last_report";
+                next;
+            }
+        }  
+        print_log "Parsing METAR report: $last_report";
+                                                   
         if ( $last_report =~ m#\sA(\d{4})\s# ) {
             $metar{BaromSea} = convert_in2mb( $1 / 100 );
         }

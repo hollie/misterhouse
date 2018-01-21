@@ -332,6 +332,8 @@ sub speak_text {
 
                 if ($fork) {
                     my $pid = fork;
+                    print "***PID created voice_text 1: $pid" . ($? ? " with exit $?" : '') . "\n" if $::Debug{fork};
+
 
                     # we are the parent
                     if ( $fork and $pid ) {
@@ -342,7 +344,7 @@ sub speak_text {
                 # Wait for server to respond that it is done
                 my $sock = $main::Socket_Ports{festival}{sock};
                 my $i;
-                while ( $i++ < 100 ) {
+                while ( $i++ < 200 ) {
                     print '-' if $main::Debug{voice};
                     select undef, undef, undef, .1;
                     my $nfound = &main::socket_has_data($sock);
@@ -376,6 +378,8 @@ sub speak_text {
                 my $fork = $parms{async};
                 if ($fork) {
                     my $pid = fork;
+                    print "***PID created voice_text 2: $pid" . ($? ? " with exit $?" : '') . "\n" if $::Debug{fork};
+
 
                     # we are the parent
                     if ( $fork and $pid ) {
@@ -435,6 +439,8 @@ sub speak_text {
             my $fork = $parms{async};
             if ($fork) {
                 my $pid = fork;
+                print "***PID created voice_text 3: $pid" . ($? ? " with exit $?" : '') ."\n" if $::Debug{fork};
+
 
                 # we are the parnet
                 if ( $fork and $pid ) {
@@ -469,6 +475,7 @@ sub speak_text {
             my $fork = $parms{async};
             if ($fork) {
                 my $pid = fork;
+                print "***PID created voice_text 4: $pid" . ($? ? " with exit $?" : '') . "\n" if $::Debug{fork};
 
                 # we are the parnet
                 if ( $fork and $pid ) {
@@ -544,6 +551,7 @@ sub speak_text {
           and !$parms{async};    # Must wait for to_file requests, so http requests work
 
         my $pid = fork if $fork;
+        print "***PID created voice_text 5: $pid" . ($? ? " with exit $?" : '') . "\n" if ($fork and $::Debug{fork});
 
         #       $SIG{CHLD}  = "IGNORE";                   # eliminate zombies created by FORK() ... we do this in bin/mh
         if ( $fork and $pid ) {
@@ -821,6 +829,7 @@ sub speak_text {
 
                 if ($webFork) {
                     my $pid = fork;
+                    print "***PID created voice_text 6: $pid" . ($? ? " with exit $?" : '') . "\n" if $::Debug{fork};
 
                     # if we are the child
                     if ( !defined($pid) ) {
