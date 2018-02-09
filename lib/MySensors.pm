@@ -2,6 +2,8 @@
 # Interface Package #
 #####################
 
+=pod
+
 =head1 B<MySensors::Interface>
 
 =head2 SYNOPSIS
@@ -67,28 +69,40 @@ Maximum payload is 25 bytes
 Note that in MySensor terms the interface is known as a gateway, the sensor
 radio is known as a node and the sensors themselves are known as children. 
 
-Currently supports MySensors release 2.0
+Currently supports MySensors release 2.x
 
-Last modified: 2016-09-24 to add documentation for MHT files and add support
-for S_MULTIMETER sensors plus minor enhancements and fixes
+Last modified: 2018-02-08 to add custom sensors and update POD
 
 Known Limitations:
-1. Does not distinguish incoming SET/REQ and treats them all as SET
-2. Handles only a small number of the most common sensor types.  More may be
+
+=over
+
+=item 1. Does not distinguish incoming SET/REQ and treats them all as SET
+
+=item 2. Handles only a small number of the most common sensor types.  More may be
 added in the future.
-3. Does not distinguish SET/REQ subtypes for a single sensor which means any
+
+=item 3. Does not distinguish SET/REQ subtypes for a single sensor which means any
 sensor that sends multiple subtypes will behave unpredictably
-4. Assumes all subtypes are read/write which may cause problems if an input
+
+=item 4. Assumes all subtypes are read/write which may cause problems if an input
 is written to.  For example, writing to most input pins will enable/disable
 the internal pullup resistor.  While this may be desirable in some cases it
 could result in unexpected behavior. 
-5. Minimal error trapping is done so errors in configuration or incompatible
+=cut
+
+=item 5. Minimal error trapping is done so errors in configuration or incompatible
 sensor implementations could cause unpredictable behavior or even crash
 Misterhouse.
-6. Does not handle units (or requests for units)
-7. Does not attempt to reconnect any port or socket disconnection
-8. Does not handle reloads so a restart might be required if files have
+
+=item 6. Does not handle units (or requests for units)
+
+=item 7. Does not attempt to reconnect any port or socket disconnection
+
+=item 8. Does not handle reloads so a restart might be required if files have
 changed
+
+=back
 
 =head2 INHERITS
 
@@ -105,6 +119,7 @@ package MySensors::Interface;
 use parent 'Generic_Item';
 
 use strict;
+use DateTime;
 
 # API details as of release 2.0
 # For more information see: https://www.mysensors.org/download/serial_api_20
@@ -201,7 +216,7 @@ sub add_node {
         return $node_id;
     }
     else {
-        &::print_log( "[MySensors] INFO: $$self{name} added node $$node{name} (node ID: $node_id)" );
+        &::print_log("[MySensors] INFO: $$self{name} added node $$node{name} (node ID: $node_id)");
         $$self{nodes}{$node_id} = $node;
     }
 
@@ -429,7 +444,7 @@ sub parse_message {
 
                 # Don't print SANCHK messages as they just clutter the logs
                 if ( $data ne 'TSP:SANCHK:OK' ) {
-                    &::print_log( "[MySensors] INFO: $$self{name} received $internals[$subtype]: $data" );
+                    &::print_log("[MySensors] INFO: $$self{name} received $internals[$subtype]: $data");
                 }
 
                 # Handle requests for node ID (node 255, subtype 3)
@@ -445,7 +460,7 @@ sub parse_message {
 
                 # Issue the next available node ID
                 my $next_id = $::Save{MySensors_next_node_id};
-                &::print_log( "[MySensors] INFO: $$self{name} received node ID request.  Assigned node ID $next_id." );
+                &::print_log("[MySensors] INFO: $$self{name} received node ID request.  Assigned node ID $next_id.");
 
                 $self->send_message( 255, 255, 3, 0, 4, $next_id );
 
@@ -462,7 +477,7 @@ sub parse_message {
                     # Set the sketch name on the node
                     $$self{nodes}{$node_id}{sketch_name} = $data;
                     &::print_log(
-                        "[MySensors] INFO: $$self{name} received sketch name $data from $$self{nodes}{$node_id}{name} (node ID: $node_id) child ID $child_id" )
+                        "[MySensors] INFO: $$self{name} received sketch name $data from $$self{nodes}{$node_id}{name} (node ID: $node_id) child ID $child_id")
                       if $::Debug{mysensors};
 
                     # Handle sketch version information
@@ -484,12 +499,25 @@ sub parse_message {
                         "[MySensors] INFO: $$self{name} received battery level $data% from $$self{nodes}{$node_id}{name} (node ID: $node_id) child ID $child_id"
                     ) if $::Debug{mysensors};
 
+                    # Handle time requests.  Note that the time returned to MyS devices must be in local time but $Time is UTC.
+                }
+                elsif ( $subtype == 1 ) {
+
+                    # Time needs to be local to controller timezone so use the DateTime library to convert this
+                    my $dt = DateTime->now();
+                    my $tz = DateTime::TimeZone->new( name => "local" );
+                    $dt->add( seconds => $tz->offset_for_datetime($dt) );
+
+                    $self->send_message( $node_id, 255, 3, 0, 1, $dt->epoch );
+                    &::print_log(
+                        "[MySensors] INFO: $$self{name} received time request from $$self{nodes}{$node_id}{name} (node ID: $node_id) child ID $child_id.  Responded with time $main::Time."
+                    ) if $::Debug{mysensors};
+
                     # Handle heartbeat responses.  This is used to update the state log, and thus the idle_time, of an object.
                 }
                 elsif ( $subtype == 22 ) {
                     $$self{nodes}{$node_id}->set_state_log( "Heartbeat", $self );
-                    &::print_log(
-                        "[MySensors] INFO: $$self{name} received heartbeat from $$self{nodes}{$node_id}{name} (node ID: $node_id) child ID $child_id" )
+                    &::print_log("[MySensors] INFO: $$self{name} received heartbeat from $$self{nodes}{$node_id}{name} (node ID: $node_id) child ID $child_id")
                       if $::Debug{mysensors};
 
                     # All other types of messages are unhandled
@@ -511,20 +539,19 @@ sub parse_message {
             # Handle stream (type 4) messages
         }
         elsif ( $type == 4 ) {
-            &::print_log(
-                "[MySensors] WARN: $$self{name} received stream message (unsupported): node=$node_id, child=$child_id, subtype=$subtype, data=$data" );
+            &::print_log("[MySensors] WARN: $$self{name} received stream message (unsupported): node=$node_id, child=$child_id, subtype=$subtype, data=$data");
 
             # Any other message is unrecognized
         }
         else {
             &::print_log(
-                "[MySensors] ERROR: $$self{name} received unrecognized message: node=$node_id, child=$child_id, type=$type, subtype=$subtype, data=$data" );
+                "[MySensors] ERROR: $$self{name} received unrecognized message: node=$node_id, child=$child_id, type=$type, subtype=$subtype, data=$data");
         }
 
         # Otherwise a non-compliant MySensors message was received.  This can be caused if gateway debug is enabled in the Arduino.
     }
     else {
-        &::print_log( "[MySensors] DEBUG: $$self{name} received unknown Arduino message: $message" ) if $::Debug{mysensors};
+        &::print_log("[MySensors] DEBUG: $$self{name} received unknown Arduino message: $message") if $::Debug{mysensors};
     }
 }
 
@@ -557,18 +584,34 @@ sub send_message {
     return 0;
 }
 
+=back
+
+=head2 CHILD PACKAGES
+
+The following are child packages to the interface
+
+All varieties of sensors are children of the MySensors::Sensor
+
+=cut
+
 ################
 # Node Package #
 ################
 
-# Note that the nodes are also Generic_Items not MySensors::Interfaces.  This
-# is similar to the Insteon design but not X10.
+=head3 NODE PACKAGE
+
+Note that the nodes are also Generic_Items not MySensors::Interfaces.  This
+is similar to the Insteon design but not X10.
+
+=cut
 
 package MySensors::Node;
 
 use strict;
 
 use parent 'Generic_Item';
+
+=over
 
 =item C<new()>
 
@@ -602,6 +645,8 @@ Adds a new child sensor to a node.
 
 Returns zero for success or the failed child_id otherwise.
 
+=back
+
 =cut
 
 sub add_sensor {
@@ -614,7 +659,7 @@ sub add_sensor {
         return $child_id;
     }
     else {
-        &::print_log( "[MySensors] INFO: $$self{gateway}{name} added sensor $$sensor{name} (child ID: $child_id) to $$self{name} (node ID $$self{node_id})" );
+        &::print_log("[MySensors] INFO: $$self{gateway}{name} added sensor $$sensor{name} (child ID: $child_id) to $$self{name} (node ID $$self{node_id})");
         $$self{sensors}{$child_id} = $sensor;
     }
 
@@ -625,13 +670,19 @@ sub add_sensor {
 # Sensor Package #
 ##################
 
-# All varieties of sensors are children of the MySensors::Sensor
+=head3 SENSOR PACKAGE
+
+All sensors are children of the sensor package
+
+=cut
 
 package MySensors::Sensor;
 
 use strict;
 
 use parent 'Generic_Item';
+
+=over
 
 =item C<new()>
 
@@ -698,8 +749,9 @@ sub convert_data_to_state {
     if ( exists $$self{data_to_state}{$data} ) {
         $state = $$self{data_to_state}{$data};
 
-        # Assume all other sensors return numerical values and for these the state and data are the same
     }
+
+    # Assume all other sensors return numerical values and for these the state and data are the same
     else {
         $state = $data;
     }
@@ -724,8 +776,9 @@ sub convert_state_to_data {
     if ( exists $$self{state_to_data}{$state} ) {
         $data = $$self{state_to_data}{$state};
 
-        # Assume all other sensors return numerical values and for these the state and data are the same
     }
+
+    # Assume all other sensors return numerical values and for these the state and data are the same
     else {
         $data = $state;
     }
@@ -778,6 +831,8 @@ interface.
 
 Returns state
 
+=back
+
 =cut
 
 sub set_receive {
@@ -804,15 +859,23 @@ sub set_receive {
 # Door Package #
 ################
 
+=head3 DOOR PACKAGE
+
+=cut
+
 package MySensors::Door;
 
 use strict;
 
 use parent-norequire, 'MySensors::Sensor';
 
+=over
+
 =item C<new()>
 
 Instantiates a new door/window sensor.
+
+=back
 
 =cut
 
@@ -842,15 +905,23 @@ sub new {
 # Motion Sensor Package #
 #########################
 
+=head3 MOTION SENSOR PACKAGE
+
+=cut
+
 package MySensors::Motion;
 
 use strict;
 
 use parent-norequire, 'MySensors::Sensor';
 
+=over
+
 =item C<new()>
 
 Instantiates a new motion sensor.
+
+=back
 
 =cut
 
@@ -880,15 +951,23 @@ sub new {
 # Light Package #
 #################
 
+=head3 LIGHT PACKAGE
+
+=cut
+
 package MySensors::Light;
 
 use strict;
 
 use parent-norequire, 'MySensors::Sensor';
 
+=over
+
 =item C<new()>
 
 Instantiates a new light.
+
+=back
 
 =cut
 
@@ -918,15 +997,23 @@ sub new {
 # Binary Package #
 ##################
 
+=head3 BINARY PACKAGE
+
+=cut
+
 package MySensors::Binary;
 
 use strict;
 
 use parent-norequire, 'MySensors::Sensor';
 
+=over
+
 =item C<new()>
 
 Instantiates a new binary sensor.  This is an alias for a light.
+
+=back
 
 =cut
 
@@ -956,15 +1043,23 @@ sub new {
 # Temperature Package #
 #######################
 
+=head3 TEMPERATURE PACKAGE
+
+=cut
+
 package MySensors::Temperature;
 
 use strict;
 
 use parent-norequire, 'MySensors::Sensor';
 
+=over
+
 =item C<new()>
 
 Instantiates a new temperature sensor.
+
+=back
 
 =cut
 
@@ -989,15 +1084,23 @@ sub new {
 # Humidity Package #
 ####################
 
+=head3 HUMIDITY PACKAGE
+
+=cut
+
 package MySensors::Humidity;
 
 use strict;
 
 use parent-norequire, 'MySensors::Sensor';
 
+=over
+
 =item C<new()>
 
 Instantiates a new humidity sensor.
+
+=back
 
 =cut
 
@@ -1018,9 +1121,54 @@ sub new {
     return $self;
 }
 
+##################
+# Custom Package #
+##################
+
+=head3 CUSTOM PACKAGE
+
+=cut
+
+package MySensors::Custom;
+
+use strict;
+
+use parent-norequire, 'MySensors::Sensor';
+
+=over
+
+=item C<new()>
+
+Instantiates a new custom sensor.
+
+=back
+
+=cut
+
+sub new {
+    my $class = shift;
+
+    # Instantiate as a MySensors::Sensor first
+    my $self = $class->SUPER::new(@_);
+
+    # Custom are presentation type 23
+    $$self{type} = 23;
+
+    # Custom type sensors use the V_CUSTOM subtype
+    $$self{subtypes} = [48];
+
+    # Note: there are no predefined states or state mappings for custom sensors
+
+    return $self;
+}
+
 ######################
 # Multimeter Package #
 ######################
+
+=head3 MULTIMETER PACKAGE
+
+=cut
 
 package MySensors::Multimeter;
 
@@ -1028,9 +1176,13 @@ use strict;
 
 use parent-norequire, 'MySensors::Sensor';
 
+=over
+
 =item C<new()>
 
 Instantiates a new multimeter sensor.
+
+=back
 
 =cut
 
