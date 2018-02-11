@@ -1233,7 +1233,7 @@ var updateStaticPage = function(link,time) {
 						
 						//don't run this if stategrp0 exists	
 						if (states_loaded == 0) {
-			                $(".btn-state-cmd").click( function () {
+                            $('button[entity="'+entity+'"]').click( function () {
 								var entity = $(this).attr("entity");
 								if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
                 					if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
