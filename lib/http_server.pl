@@ -225,6 +225,11 @@ sub http_process_request {
       if $Http{Host};                             # Drop the port, if present
     $Http{Client_address} = $Socket_Ports{http}{client_ip_address};
 
+    if( $Http{'X-Real-IP'}){
+        $client_ip_address = $Http{'X-Real-IP'};
+        print "http: 'X-Real-IP' found, override \$client_ip_address to $client_ip_address\n" if $main::Debug{http};
+    }
+
     if ( $Http{Cookie} ) {
         for my $key_value ( split ';', $Http{Cookie} ) {
             my ( $key2, $value2 ) = $key_value =~ /(\S+)=(\S+)/;
