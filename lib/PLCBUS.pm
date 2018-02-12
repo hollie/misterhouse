@@ -691,10 +691,9 @@ sub _is_current_command_complete() {
     }
 
     if (    ( $current->{cmd} eq "on" or $current->{cmd} eq "off" )
-        and $current->{three_phase} == 0
         and $current->{ack_seen} )
     {
-        _logdd("Considering 1-Phase command completed, because ACK was received");
+        _logdd("Considering command completed, because ACK was received");
         $ok = 1;
         $current->{completed} = 1;
         my $module =
@@ -1156,7 +1155,7 @@ sub decode_rx_tx_switch($$$$) {
 sub _split_homeunit {
     my ($address) = @_;
     die("$address is not a valid PLCBUS home unit address")
-      unless ( $address =~ /^([A-O])([0-9]{1,2})$/ );
+      unless ( $address =~ /^([A-P])([0-9]{1,2})$/ );
     return ( $1, $2 );
 }
 
@@ -1261,6 +1260,13 @@ sub generate_code(@) {
         $more .= "     respond \"setting up preset dim and scenes\";\n";
         $more .= "     PLCBUS->instance()->setup_house();\n";
         $more .= " }\n";
+        $more .= "   \$PLCBUS_scan_only_on_house = new Voice_Cmd(\"PLCBUS scan house only on\");\n";
+        $more .= ::store_object_data( "\$PLCBUS_scan_only_on_house", 'Voice_Cmd', 'PLCBUS_House', 'PLCBUS_House' );
+        $more .= " if (my \$status = said \$PLCBUS_scan_only_on_house){\n";
+        $more .= "     respond \"scanning home codes A .. P for devices in  'on' state\";\n";
+        $more .= "     PLCBUS->instance()->scan_whole_house_for_on();\n";
+        $more .= " }\n";
+        $more .= "\n";
     }
 
     return ( $object, $grouplist, $more );
@@ -1286,7 +1292,14 @@ sub setup_house {
 sub scan_whole_house {
     my ($self) = @_;
     foreach my $home ( "A" .. "P" ) {
-        $self->queue_command( { home => $home, unit => 0, cmd => 'report_all_id_pulse' } );
+        $self->queue_command( { home => $home, unit => 0, cmd => 'get_all_id_pulse' } );
+    }
+}
+
+sub scan_whole_house_for_on {
+    my ($self) = @_;
+    foreach my $home ( "A" .. "P" ) {
+        $self->queue_command( { home => $home, unit => 0, cmd => 'get_only_on_id_pulse' } );
     }
 }
 
@@ -1613,7 +1626,11 @@ sub new {
             $self->_log("Can not parse scenesetting '$s'. Requiered format: Sceneaddress:Dimlevel\@Faderate");
         }
     }
-    my @default_states = qw|on off bright dim status_req get_noise_strength get_signal_strength all_scenes_addrs_erase|;
+    my @default_states = qw|on off status_req|;
+    if ($::config_parms{plcbus_setup_voice_cmds})
+    {
+        push(@default_states, qw |bright dim get_noise_strength get_signal_strength all_scenes_addrs_erase|);
+    }
     $self->set_states(@default_states);
     $self->_logd("ctor $self->{name} home: $self->{home} unit: $self->{unit} scenes: $self->{scenes}");
     PLCBUS->instance()->add_device($self);
@@ -1858,6 +1875,30 @@ sub setup {
 package PLCBUS_LightItem;
 @PLCBUS_LightItem::ISA = ('PLCBUS_Item');
 
+sub new {
+    my $class = shift;
+    my $self  = $class->SUPER::new(@_);
+    my @states = qw|on off status_req|;
+    if ($::config_parms{plcbus_setup_voice_cmds})
+    {
+        push(@states, qw |bright dim get_noise_strength get_signal_strength all_scenes_addrs_erase set_default_brightness|);
+    }
+    $self->set_states(@states);
+    return $self;
+}
+
+sub set {
+    my ( $self, $new_state, $setby, $respond ) = @_;
+    my $home = $self->{home};
+    my $unit = $self->{unit};
+    $new_state =~ s/ /_/g;
+    if ( $new_state eq 'set_default_brightness' ) {
+        $self->setup();
+        return;
+    }
+    PLCBUS_Item::set(@_);
+}
+
 sub setup {
     my ($self) = @_;
     my $home   = $self->{home};
@@ -1884,13 +1925,6 @@ package PLCBUS_2263;
 
 package PLCBUS_2268;
 @PLCBUS_2268::ISA = ('PLCBUS_Item');
-
-sub new {
-    my $class = shift;
-    my $self  = $class->SUPER::new(@_);
-    $self->set_states(qw |on off|);
-    return $self;
-}
 
 package PLCBUS_Shutter;
 @PLCBUS_Shutter::ISA = ('PLCBUS_Item');
