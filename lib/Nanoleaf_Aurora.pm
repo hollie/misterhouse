@@ -1,5 +1,8 @@
 package Nanoleaf_Aurora;
 
+#todo if poll queue exceeds 3, then just empty the queue
+#print and purge the command queue
+
 # v1.0.15
 
 #if any effect is changed, by definition the static child should be set to off.
@@ -31,9 +34,10 @@ use IO::Socket::INET;
 # the location URL and tokens are stored in the mh.ini file
 
 # Firmware supported
-# 1.5.0 to 2.1.3    - yes
-# 1.4.39            - pass the option api=beta
 # 1.4.38 or earlier - no
+# 1.4.39            - pass the option api=beta
+# 1.5.0             - yes
+# 1.5.1             - yes
 
 # Nanoleaf_Aurora Objects
 #
@@ -159,6 +163,7 @@ sub new {
     unlink "$::config_parms{data_dir}/Auroroa_cmd_" . $self->{name} . ".data";
     $self->{cmd_process} = new Process_Item;
     $self->{cmd_process}->set_output( $self->{cmd_data_file} );
+    $self->{generate_voice_cmds} = 0;
     &::MainLoop_post_add_hook( \&Nanoleaf_Aurora::process_check, 0, $self );
     &::Reload_post_add_hook( \&Nanoleaf_Aurora::generate_voice_commands, 1, $self );
     $self->get_data();
@@ -253,8 +258,7 @@ sub process_check {
 
     if ( $self->{poll_process}->done_now() ) {
     
-        #shift @{ $self->{poll_queue} };    #remove the poll since they are expendable.
-        @{ $self->{poll_queue} } = ();      #clear the queue since process is done.
+        shift @{ $self->{poll_queue} };    #remove the poll since they are expendable.
 
         my $com_status = "online";
         main::print_log( "[Aurora:" . $self->{name} . "] Background poll " . $self->{poll_process_mode} . " process completed" ) if ( $self->{debug} );
@@ -335,6 +339,18 @@ sub process_check {
             }
         }
 
+#polls are expendable and will always trigger on the timer, so don't keep a queue
+#        if ( scalar @{ $self->{poll_queue} } ) {
+#            my $cmd_string = shift @{ $self->{poll_queue} };
+#            my ( $mode, $cmd ) = split /\|/, $cmd_string;
+#            $self->{poll_process}->set($cmd);
+#            $self->{poll_process}->start();
+#            $self->{poll_process_pid}->{ $self->{poll_process}->pid() } = $mode;    #capture the type of information requested in order to parse;
+#            $self->{poll_process_mode} = $mode;
+#            main::print_log( "[Aurora:" . $self->{name} . "] Poll Queue " . $self->{poll_process}->pid() . " mode=$mode cmd=$cmd" )
+#              if ( $self->{debug} );
+#
+#        }
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{status} ne $com_status ) {
                 main::print_log "[Aurora:"
@@ -425,7 +441,8 @@ sub process_check {
         }
         else {
 
-            main::print_log( "[Aurora:" . $self->{name} . "] WARNING Issued command was unsuccessful, retrying..." );
+            main::print_log( "[Aurora:" . $self->{name} . "] WARNING Issued command was unsuccessful, file data is " . $file_data );
+            main::print_log( "[Aurora:" . $self->{name} . "] Retrying command..." );            
             if ( $self->{cmd_process_retry} > $self->{cmd_process_retry_limit} ) {
                 main::print_log( "[Aurora:" . $self->{name} . "] ERROR Issued command max retries reached. Abandoning command attempt..." );
                 shift @{ $self->{cmd_queue} };
@@ -473,8 +490,20 @@ sub _get_JSON_data {
             push @{ $self->{poll_queue} }, "$mode|$cmd";
         }
         else {
-            #the queue has grown past the max, so it might be down. Since polls are expendable, just don't do anything
-            #when the aurora is back it will process the backlog, and as soon as a poll is processed, the queue is cleared.
+            main::print_log( "[Aurora:" . $self->{name} . "] WARNING. Queue has grown past " . $self->{max_poll_queue} . ". Clearing Polling Queue." );
+            @{ $self->{poll_queue} } = (); #Polls are disposable
+            if ( defined $self->{child_object}->{comm} ) {
+                if ( $self->{status} ne "offline" ) {
+                    main::print_log "[Aurora:"
+                      . $self->{name}
+                      . "] Communication Tracking object found. Updating from "
+                      . $self->{child_object}->{comm}->state()
+                      . " to offline..."
+                      if ( $self->{loglevel} );
+                    $self->{status} = "offline";
+                    $self->{child_object}->{comm}->set( "offline", 'poll' );
+                }
+            }
         }
     }
 }
@@ -1075,41 +1104,43 @@ sub identify {
 
 sub generate_voice_commands {
     my ($self) = @_;
+    unless ($self->{generate_voice_cmds}) {
+         my $object_string;
+         $self->{generate_voice_cmds} = 1;         
+         my $object_name = $self->get_object_name;
+         &main::print_log("Generating Voice commands for Nanoleaf Aurora Controller $object_name");
 
-    my $object_string;
-    my $object_name = $self->get_object_name;
-    &main::print_log("Generating Voice commands for Nanoleaf Aurora Controller $object_name");
+         my $voice_cmds = $self->get_voice_cmds();
+         my $i          = 1;
+         foreach my $cmd ( keys %$voice_cmds ) {
 
-    my $voice_cmds = $self->get_voice_cmds();
-    my $i          = 1;
-    foreach my $cmd ( keys %$voice_cmds ) {
+             #get object name to use as part of variable in voice command
+             my $object_name_v = $object_name . '_' . $i . '_v';
+             $object_string .= "use vars '${object_name}_${i}_v';\n";
 
-        #get object name to use as part of variable in voice command
-        my $object_name_v = $object_name . '_' . $i . '_v';
-        $object_string .= "use vars '${object_name}_${i}_v';\n";
+             #Convert object name into readable voice command words
+             my $command = $object_name;
+             $command =~ s/^\$//;
+             $command =~ tr/_/ /;
 
-        #Convert object name into readable voice command words
-        my $command = $object_name;
-        $command =~ s/^\$//;
-        $command =~ tr/_/ /;
+             #Initialize the voice command with all of the possible device commands
+             $object_string .= $object_name . "_" . $i . "_v  = new Voice_Cmd '$command $cmd';\n";
 
-        #Initialize the voice command with all of the possible device commands
-        $object_string .= $object_name . "_" . $i . "_v  = new Voice_Cmd '$command $cmd';\n";
+             #Tie the proper routine to each voice command
+             $object_string .= $object_name . "_" . $i . "_v -> tie_event('" . $voice_cmds->{$cmd} . "');\n\n";    #, '$command $cmd');\n\n";
 
-        #Tie the proper routine to each voice command
-        $object_string .= $object_name . "_" . $i . "_v -> tie_event('" . $voice_cmds->{$cmd} . "');\n\n";    #, '$command $cmd');\n\n";
+             #Add this object to the list of Insteon Voice Commands on the Web Interface
+             $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'Nanoleaf_Aurora', 'Controller_commands' );
+             $i++;
+         }
 
-        #Add this object to the list of Insteon Voice Commands on the Web Interface
-        $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'Nanoleaf_Aurora', 'Controller_commands' );
-        $i++;
+         #Evaluate the resulting object generating string
+         package main;
+         eval $object_string;
+         print "Error in nanoleaf_aurora_item_commands: $@\n" if $@;
+
+         package Nanoleaf_Aurora;
     }
-
-    #Evaluate the resulting object generating string
-    package main;
-    eval $object_string;
-    print "Error in nanoleaf_aurora_item_commands: $@\n" if $@;
-
-    package Nanoleaf_Aurora;
 }
 
 sub get_voice_cmds {
@@ -1296,3 +1327,4 @@ sub set {
 # v1.0.12 - get_effects method to get array of available effects
 # v1.0.13 - ability to print and purge the command queue in case a network error prevents clearing, empty poll queue if max reached
 # v1.0.14 - commands now queue properly
+# v1.0.15 - only load voice commands at startup
