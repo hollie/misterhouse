@@ -1,9 +1,6 @@
 package Nanoleaf_Aurora;
 
-#todo if poll queue exceeds 3, then just empty the queue
-#print and purge the command queue
-
-# v1.0.15
+# v1.1.01
 
 #if any effect is changed, by definition the static child should be set to off.
 #cmd data returns, need to check by command
@@ -34,10 +31,10 @@ use IO::Socket::INET;
 # the location URL and tokens are stored in the mh.ini file
 
 # Firmware supported
-# 1.4.38 or earlier - no
+# 2.2.0             - needs v1.1
+# 1.5.0 to 2.1.3    - yes
 # 1.4.39            - pass the option api=beta
-# 1.5.0             - yes
-# 1.5.1             - yes
+# 1.4.38 or earlier - no
 
 # Nanoleaf_Aurora Objects
 #
@@ -84,12 +81,17 @@ our %rest;
 $rest{info}        = "";
 $rest{effects}     = "effects";
 $rest{auth}        = "new";
-$rest{on}          = "state/on";
-$rest{off}         = "state/on";
-$rest{set_effect}  = "effects/select";
+#$rest{on}          = "state/on";
+#$rest{off}         = "state/on";
+$rest{on}          = "state";
+$rest{off}         = "state";
+#$rest{set_effect}  = "effects/select";
+$rest{set_effect}  = "effects";
 $rest{set_static}  = "effects";
-$rest{brightness}  = "state/brightness";
-$rest{brightness2} = "state/brightness";
+#$rest{brightness}  = "state/brightness";
+#$rest{brightness2} = "state/brightness";
+$rest{brightness}  = "state";
+$rest{brightness2} = "state";
 $rest{get_static}  = "effects";
 $rest{identify}    = "identify";
 
@@ -100,8 +102,10 @@ $opts{on}          = "-response_code -json -put '{\"on\":true}'";
 $opts{off}         = "-response_code -json -put '{\"on\":false}'";
 $opts{set_effect}  = "-response_code -json -put '{\"select\":";
 $opts{set_static}  = "-response_code -json -put '{\"write\":{\"command\":\"display\",\"version\":\"1.0\",\"animType\":\"static\",\"animData\":";
-$opts{brightness}  = "-response_code -json -put '{\"value\":";
-$opts{brightness2} = "-response_code -json -put '{\"increment\":";
+#$opts{brightness}  = "-response_code -json -put '{\"value\":";
+#$opts{brightness2} = "-response_code -json -put '{\"increment\":";
+$opts{brightness}  = "-response_code -json -put '{\"brightness\":{\"value\":";
+$opts{brightness2} = "-response_code -json -put '{\"brightness\":{\"increment\":";
 $opts{get_static}  = "-response_code -json -put '{\"write\":{\"command\":\"request\",\"version\":\"1.0\",\"animName\":\"*Static*\"}}'";
 $opts{identify}    = "-response_code -json -put '{}'";
 
@@ -125,7 +129,7 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.0.15";
+    $self->{module_version}         = "v1.1.01";
     $self->{ssdp_timeout}           = 4000;
     $self->{last_static}            = "";
 
@@ -163,12 +167,12 @@ sub new {
     unlink "$::config_parms{data_dir}/Auroroa_cmd_" . $self->{name} . ".data";
     $self->{cmd_process} = new Process_Item;
     $self->{cmd_process}->set_output( $self->{cmd_data_file} );
-    $self->{generate_voice_cmds} = 0;
-    &::MainLoop_post_add_hook( \&Nanoleaf_Aurora::process_check, 0, $self );
-    &::Reload_post_add_hook( \&Nanoleaf_Aurora::generate_voice_commands, 1, $self );
-    $self->get_data();
     $self->{init}      = 0;
     $self->{init_data} = 0;
+    $self->{init_v_cmd} = 0;
+    &::MainLoop_post_add_hook( \&Nanoleaf_Aurora::process_check, 0, $self );
+    &::Reload_post_add_hook( \&Nanoleaf_Aurora::generate_voice_commands, 1, $self );
+    $self->get_data();    
     #push( @{ $$self{states} }, 'off', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', 'on' );
     push( @{ $$self{states} }, 'off');
     for my $i (1..99) { push @{ $$self{states} }, "$i%"; }
@@ -258,7 +262,8 @@ sub process_check {
 
     if ( $self->{poll_process}->done_now() ) {
     
-        shift @{ $self->{poll_queue} };    #remove the poll since they are expendable.
+        #shift @{ $self->{poll_queue} };    #remove the poll since they are expendable.
+        @{ $self->{poll_queue} } = ();      #clear the queue since process is done.
 
         my $com_status = "online";
         main::print_log( "[Aurora:" . $self->{name} . "] Background poll " . $self->{poll_process_mode} . " process completed" ) if ( $self->{debug} );
@@ -314,6 +319,12 @@ sub process_check {
                     else {
                         $self->{data}->{panels}     = $data->{panelLayout}->{layout}->{numPanels};
                         $self->{data}->{panel_size} = $data->{panelLayout}->{layout}->{sideLength};
+                        $self->{data}->{rhythm}     = 0;
+                        if (defined $data->{rhythm}->{rhythmConnected} and $data->{rhythm}->{rhythmConnected} eq "true") {
+                            $self->{data}->{rhythm} = 1;       
+                        }                
+                        $self->{data}->{panels} = $self->{data}->{panels} - $self->{data}->{rhythm}; #Rhythm module counts as a panel
+                                         
                         for ( my $i = 0; $i < $self->{data}->{panels}; $i++ ) {
                             $self->{data}->{panel}->{ @{ $data->{panelLayout}->{layout}->{positionData} }[$i]->{panelId} }->{x} =
                               @{ $data->{panelLayout}->{layout}->{positionData} }[$i]->{x};
@@ -339,18 +350,6 @@ sub process_check {
             }
         }
 
-#polls are expendable and will always trigger on the timer, so don't keep a queue
-#        if ( scalar @{ $self->{poll_queue} } ) {
-#            my $cmd_string = shift @{ $self->{poll_queue} };
-#            my ( $mode, $cmd ) = split /\|/, $cmd_string;
-#            $self->{poll_process}->set($cmd);
-#            $self->{poll_process}->start();
-#            $self->{poll_process_pid}->{ $self->{poll_process}->pid() } = $mode;    #capture the type of information requested in order to parse;
-#            $self->{poll_process_mode} = $mode;
-#            main::print_log( "[Aurora:" . $self->{name} . "] Poll Queue " . $self->{poll_process}->pid() . " mode=$mode cmd=$cmd" )
-#              if ( $self->{debug} );
-#
-#        }
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{status} ne $com_status ) {
                 main::print_log "[Aurora:"
@@ -441,8 +440,7 @@ sub process_check {
         }
         else {
 
-            main::print_log( "[Aurora:" . $self->{name} . "] WARNING Issued command was unsuccessful, file data is " . $file_data );
-            main::print_log( "[Aurora:" . $self->{name} . "] Retrying command..." );            
+            main::print_log( "[Aurora:" . $self->{name} . "] WARNING Issued command was unsuccessful, retrying..." );
             if ( $self->{cmd_process_retry} > $self->{cmd_process_retry_limit} ) {
                 main::print_log( "[Aurora:" . $self->{name} . "] ERROR Issued command max retries reached. Abandoning command attempt..." );
                 shift @{ $self->{cmd_queue} };
@@ -490,20 +488,8 @@ sub _get_JSON_data {
             push @{ $self->{poll_queue} }, "$mode|$cmd";
         }
         else {
-            main::print_log( "[Aurora:" . $self->{name} . "] WARNING. Queue has grown past " . $self->{max_poll_queue} . ". Clearing Polling Queue." );
-            @{ $self->{poll_queue} } = (); #Polls are disposable
-            if ( defined $self->{child_object}->{comm} ) {
-                if ( $self->{status} ne "offline" ) {
-                    main::print_log "[Aurora:"
-                      . $self->{name}
-                      . "] Communication Tracking object found. Updating from "
-                      . $self->{child_object}->{comm}->state()
-                      . " to offline..."
-                      if ( $self->{loglevel} );
-                    $self->{status} = "offline";
-                    $self->{child_object}->{comm}->set( "offline", 'poll' );
-                }
-            }
+            #the queue has grown past the max, so it might be down. Since polls are expendable, just don't do anything
+            #when the aurora is back it will process the backlog, and as soon as a poll is processed, the queue is cleared.
         }
     }
 }
@@ -729,6 +715,14 @@ sub print_info {
     main::print_log( "[Aurora:" . $self->{name} . "] Manufacturer:      " . $self->{data}->{info}->{manufacturer} );
     main::print_log( "[Aurora:" . $self->{name} . "] Model:             " . $self->{data}->{info}->{model} );
     main::print_log( "[Aurora:" . $self->{name} . "] Firmware:          " . $self->{data}->{info}->{firmwareVersion} );
+    if ($self->{data}->{rhythm}) {
+        main::print_log( "[Aurora:" . $self->{name} . "] Rhythm Hardware:   " . $self->{data}->{info}->{rhythm}->{hardwareVersion} );
+        main::print_log( "[Aurora:" . $self->{name} . "] Rhythm Firmware:   " . $self->{data}->{info}->{rhythm}->{firmwareVersion} );
+    } else {
+        main::print_log( "[Aurora:" . $self->{name} . "] Rhythm Module:     Not Present");
+    }
+    main::print_log( "[Aurora:" . $self->{name} . "] Firmware:          " . $self->{data}->{info}->{firmwareVersion} );
+    
     main::print_log( "[Aurora:" . $self->{name} . "] Connected Panels:  " . $self->{data}->{panels} );
     main::print_log( "[Aurora:" . $self->{name} . "] Panel Size:        " . $self->{data}->{panel_size} );
     main::print_log( "[Aurora:" . $self->{name} . "] API Path:          " . $self->{api_path} );
@@ -1022,11 +1016,11 @@ sub set {
             $self->_push_JSON_data($mode);
         }
         elsif ( $mode =~ /^(\d+)/ ) {
-            my $params = $opts{brightness} . $1 . '}' . "'";
+            my $params = $opts{brightness} . $1 . '}}' . "'";
             $self->_push_JSON_data( 'brightness', $params );
         }
         elsif ( $mode =~ /^([-+]\d+)/ ) {
-            my $params = $opts{brightness2} . $1 . '}' . "'";
+            my $params = $opts{brightness2} . $1 . '}}' . "'";
             $self->_push_JSON_data( 'brightness2', $params );
         }
         else {
@@ -1064,6 +1058,16 @@ sub check_static {
     $self->{static_check}->{effect} = $prev_effect;
     $self->_push_JSON_data('get_static');
     return ('1');
+}
+
+sub is_rhythm_effect {
+    my ( $self) = @_;
+    my $return = 0;
+    print "DB \$self->{data}->{info}->{rhythm}->{rhythmActive} = $self->{data}->{info}->{rhythm}->{rhythmActive}\n";
+    print "DB \$self->{data}->{info}->{rhythm}->{rhythmMode} = $self->{data}->{info}->{rhythm}->{rhythmMode}\n";
+    $return = 1 if ($self->{data}->{info}->{rhythm}->{rhythmActive});
+    
+    return $return;
 }
 
 sub print_static {
@@ -1104,42 +1108,43 @@ sub identify {
 
 sub generate_voice_commands {
     my ($self) = @_;
-    unless ($self->{generate_voice_cmds}) {
-         my $object_string;
-         $self->{generate_voice_cmds} = 1;         
-         my $object_name = $self->get_object_name;
-         &main::print_log("Generating Voice commands for Nanoleaf Aurora Controller $object_name");
 
-         my $voice_cmds = $self->get_voice_cmds();
-         my $i          = 1;
-         foreach my $cmd ( keys %$voice_cmds ) {
+    if ($self->{init_v_cmd} == 0) {
+        my $object_string;
+        my $object_name = $self->get_object_name;
+        $self->{init_v_cmd} = 1;
+        &main::print_log("Generating Voice commands for Nanoleaf Aurora Controller $object_name");
 
-             #get object name to use as part of variable in voice command
-             my $object_name_v = $object_name . '_' . $i . '_v';
-             $object_string .= "use vars '${object_name}_${i}_v';\n";
+        my $voice_cmds = $self->get_voice_cmds();
+        my $i          = 1;
+        foreach my $cmd ( keys %$voice_cmds ) {
 
-             #Convert object name into readable voice command words
-             my $command = $object_name;
-             $command =~ s/^\$//;
-             $command =~ tr/_/ /;
+            #get object name to use as part of variable in voice command
+            my $object_name_v = $object_name . '_' . $i . '_v';
+            $object_string .= "use vars '${object_name}_${i}_v';\n";
 
-             #Initialize the voice command with all of the possible device commands
-             $object_string .= $object_name . "_" . $i . "_v  = new Voice_Cmd '$command $cmd';\n";
+            #Convert object name into readable voice command words
+            my $command = $object_name;
+            $command =~ s/^\$//;
+            $command =~ tr/_/ /;
 
-             #Tie the proper routine to each voice command
-             $object_string .= $object_name . "_" . $i . "_v -> tie_event('" . $voice_cmds->{$cmd} . "');\n\n";    #, '$command $cmd');\n\n";
+            #Initialize the voice command with all of the possible device commands
+            $object_string .= $object_name . "_" . $i . "_v  = new Voice_Cmd '$command $cmd';\n";
 
-             #Add this object to the list of Insteon Voice Commands on the Web Interface
-             $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'Nanoleaf_Aurora', 'Controller_commands' );
-             $i++;
-         }
+            #Tie the proper routine to each voice command
+            $object_string .= $object_name . "_" . $i . "_v -> tie_event('" . $voice_cmds->{$cmd} . "');\n\n";    #, '$command $cmd');\n\n";
 
-         #Evaluate the resulting object generating string
-         package main;
-         eval $object_string;
-         print "Error in nanoleaf_aurora_item_commands: $@\n" if $@;
+            #Add this object to the list of Insteon Voice Commands on the Web Interface
+            $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'Nanoleaf_Aurora', 'Controller_commands' );
+            $i++;
+        }
 
-         package Nanoleaf_Aurora;
+        #Evaluate the resulting object generating string
+        package main;
+        eval $object_string;
+        print "Error in nanoleaf_aurora_item_commands: $@\n" if $@;
+
+        package Nanoleaf_Aurora;
     }
 }
 
@@ -1327,4 +1332,5 @@ sub set {
 # v1.0.12 - get_effects method to get array of available effects
 # v1.0.13 - ability to print and purge the command queue in case a network error prevents clearing, empty poll queue if max reached
 # v1.0.14 - commands now queue properly
-# v1.0.15 - only load voice commands at startup
+# v1.0.15 - fixed polling
+# v1.1.01 - firmware v2.2.0 and rhythm module
