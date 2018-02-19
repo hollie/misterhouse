@@ -909,9 +909,11 @@ use Data::Dumper;
 
     =over
 
-    =item name: the 'friendly' name of the squeezebox in squeezecenter. This parameter is used to link this object to the correct status messages in the CLI interface of squeezecenter
+    =item name: the name of the object seen in Misterhouse 
 
-    =item interface: the object that is the CLI interface to assign this player to.
+    =item interface: the parent (mqtt) object that holds the connection info.
+
+    =item interface: the topic that is used to update the object state and/or control a mqtt device
 
     =back
 
@@ -919,11 +921,9 @@ use Data::Dumper;
 
     =over
 
-    =item amplifier: the object that needs to be enabled and disabled together with the squeezebox
+    =item retain
 
-    =item auto_off_time: the time (in minutes) the squeezebox and the optional attached amplifier should be turned off after a playlist has ended
-
-    =item preheat_time: the time (in seconds) the amplifier should be turned on before a notification is played if the amplifier is off. This enables the amplifier to turn on and enable the speakers before the notification is played.
+    =item qos
 
     =back
 
