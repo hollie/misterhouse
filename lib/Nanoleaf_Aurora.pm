@@ -1,9 +1,6 @@
 package Nanoleaf_Aurora;
 
-#todo if poll queue exceeds 3, then just empty the queue
-#print and purge the command queue
-
-# v1.0.14
+# v1.0.15
 
 #if any effect is changed, by definition the static child should be set to off.
 #cmd data returns, need to check by command
@@ -34,10 +31,9 @@ use IO::Socket::INET;
 # the location URL and tokens are stored in the mh.ini file
 
 # Firmware supported
-# 1.4.38 or earlier - no
+# 1.5.0 to 2.1.3    - yes
 # 1.4.39            - pass the option api=beta
-# 1.5.0             - yes
-# 1.5.1             - yes
+# 1.4.38 or earlier - no
 
 # Nanoleaf_Aurora Objects
 #
@@ -125,7 +121,7 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.0.14";
+    $self->{module_version}         = "v1.0.15";
     $self->{ssdp_timeout}           = 4000;
     $self->{last_static}            = "";
 
@@ -257,7 +253,8 @@ sub process_check {
 
     if ( $self->{poll_process}->done_now() ) {
     
-        shift @{ $self->{poll_queue} };    #remove the poll since they are expendable.
+        #shift @{ $self->{poll_queue} };    #remove the poll since they are expendable.
+        @{ $self->{poll_queue} } = ();      #clear the queue since process is done.
 
         my $com_status = "online";
         main::print_log( "[Aurora:" . $self->{name} . "] Background poll " . $self->{poll_process_mode} . " process completed" ) if ( $self->{debug} );
@@ -338,18 +335,6 @@ sub process_check {
             }
         }
 
-#polls are expendable and will always trigger on the timer, so don't keep a queue
-#        if ( scalar @{ $self->{poll_queue} } ) {
-#            my $cmd_string = shift @{ $self->{poll_queue} };
-#            my ( $mode, $cmd ) = split /\|/, $cmd_string;
-#            $self->{poll_process}->set($cmd);
-#            $self->{poll_process}->start();
-#            $self->{poll_process_pid}->{ $self->{poll_process}->pid() } = $mode;    #capture the type of information requested in order to parse;
-#            $self->{poll_process_mode} = $mode;
-#            main::print_log( "[Aurora:" . $self->{name} . "] Poll Queue " . $self->{poll_process}->pid() . " mode=$mode cmd=$cmd" )
-#              if ( $self->{debug} );
-#
-#        }
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{status} ne $com_status ) {
                 main::print_log "[Aurora:"
@@ -488,20 +473,8 @@ sub _get_JSON_data {
             push @{ $self->{poll_queue} }, "$mode|$cmd";
         }
         else {
-            main::print_log( "[Aurora:" . $self->{name} . "] WARNING. Queue has grown past " . $self->{max_poll_queue} . ". Clearing Polling Queue." );
-            @{ $self->{poll_queue} } = (); #Polls are disposable
-            if ( defined $self->{child_object}->{comm} ) {
-                if ( $self->{status} ne "offline" ) {
-                    main::print_log "[Aurora:"
-                      . $self->{name}
-                      . "] Communication Tracking object found. Updating from "
-                      . $self->{child_object}->{comm}->state()
-                      . " to offline..."
-                      if ( $self->{loglevel} );
-                    $self->{status} = "offline";
-                    $self->{child_object}->{comm}->set( "offline", 'poll' );
-                }
-            }
+            #the queue has grown past the max, so it might be down. Since polls are expendable, just don't do anything
+            #when the aurora is back it will process the backlog, and as soon as a poll is processed, the queue is cleared.
         }
     }
 }

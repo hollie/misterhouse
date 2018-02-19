@@ -83,10 +83,6 @@ if ( $thumbs ne '0' ) {
 $sseffect .= "width: $width });";
 
 my $js = <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: application/x-javascript
-
 window.addEvent('domready', function(){
     var data = {
 $images
@@ -95,4 +91,13 @@ $images
 });
 
 eof
-return $js;
+
+my $html_head = "HTTP/1.1 200 OK\r\n";
+$html_head .= "Server: MisterHouse\r\n";
+$html_head .= "Connection: close\r\n" if &http_close_socket;
+$html_head .= "Content-type: application/x-javascript\r\n";
+$html_head .= "Content-Length: " . ( length $js ) . "\r\n";
+$html_head .= "Date: " . time2str(time) . "\r\n";
+$html_head .= "\r\n";
+
+return $html_head.$js;
