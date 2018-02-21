@@ -497,7 +497,6 @@ sub xml_page {
     my $style;
     $style = qq|<?xml-stylesheet type="text/xsl" href="$xsl"?>| if $xsl;
 my $html = <<eof;
-
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 $style
 <misterhouse>
