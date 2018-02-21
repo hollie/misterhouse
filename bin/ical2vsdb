@@ -26,6 +26,9 @@ use strict;
 ##    ignore these entries and use 15 minutes for notification
 ##    also enable a override_alarms to set a standard for all notifications ignoring what's in the ical data
 ##    set to 'all' to remove all user specified alarm settings
+##  v5.1 02-2018
+##    Sometimes icals are unchanged, but the order is different when downloading. Add option to sort the ical to ensure
+##    Data hasn't changed even if the order did. Added option sort_before_md5 = 1 to enable globally or to the specific ical
 
 use lib '../lib', '../lib/site';
 use iCal::Parser;
@@ -44,10 +47,10 @@ use vsLock;
 # verify locking works as expected
 
 my $progname = "ical2vsdb";
-my $progver  = "v5 02-2018";
+my $progver  = "v5.1 02-2018";
 my $DB       = 0;
 
-my $days_before = -180;    # defaults to avoid large vsdb databases, can be overriden
+my $days_before = -180;    # defaults to avoid large vsdb databases, can be overridden
 my $days_after  = 180;     #
 
 my $config_file     = "";
@@ -59,6 +62,7 @@ my $md5file         = "";
 my $local_cache     = "";
 my $data            = "";
 my $override_alarms = "0";          #ignore ical alarms and always do $override_alarms in minutes speech events
+my $sort_before_md5 = 0;
 
 $config_file = $ARGV[0] if $ARGV[0];
 
@@ -200,7 +204,12 @@ while (1) {
 
             #print "\n\n$data\n";
 
-            my $digest = md5_hex($data);
+            my $digest;
+            if ($sort_before_md5 || defined $ical_data[$loop]->{options}->{sort_before_md5}) {
+                $digest = md5_hex(join "\n", sort (split(/\n/,$data)));
+            } else {
+                $digest = md5_hex($data);
+            }
 
             #    print "Debug: MD5=$digest\n";
             #    print "Debug: Hash=$ical_data[$loop]->{hash}\n" if (defined $ical_data[$loop]->{hash});
@@ -608,27 +617,21 @@ sub init {
 
         if ( lc $type eq "output_dir" ) {
             $output_dir = $url;
-
         }
         elsif ( lc $type eq "days_before" ) {
             $days_before = 0 - $url;
-
         }
         elsif ( lc $type eq "days_after" ) {
             $days_after = $url;
-
         }
         elsif ( lc $type eq "sleep_delay" ) {
             $sleep_time = $url;
-
         }
         elsif ( lc $type eq "md5file" ) {
             $md5file = $url;
-
         }
         elsif ( lc $type eq "cfg_version" ) {
             $version = $url;
-
         }
         elsif ( lc $type eq "local_cache_dir" ) {
             $local_cache = $url;
@@ -636,6 +639,9 @@ sub init {
         elsif ( lc $type eq "override_alarms" ) {
             $override_alarms = $url;
         }
+        elsif ( lc $type eq "sort_before_md5" ) {
+            $sort_before_md5 = $url;
+        }        
         else {
             $ical_data[$count]->{type} = $type;
             foreach my $opt ( split /,/, lc $options ) {
