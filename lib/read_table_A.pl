@@ -1503,11 +1503,14 @@ sub read_table_A {
         my $poll;
         ( $address, $name, $grouplist, $poll, @other ) = @item_info;
         $other = join ',', ( map { "$_" } @other );       # Quote data
+        $poll = "'" . $poll . "'" if (defined $poll);
+        $other =~ s/^[\'\"]//; #strip out quotes in case they are included
+        $other =~ s/[\'\"]$//;
         if ($other) {
-     		$object = "raZberry('$address', '$poll', '$other')";
+     		$object = "raZberry('$address', $poll, '$other')";
         }
         else {
-     		$object = "raZberry('$address', '$poll')";
+     		$object = "raZberry('$address', $poll)";
         }   
         $code .= "use raZberry;\n";
 	} 
