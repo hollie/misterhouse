@@ -11,66 +11,75 @@
 	<link rel="apple-touch-icon" sizes="180x180" href="/touch-icon_180.png">
 	<link rel="shortcut icon" href="/touch-icon_76.png" type="image/x-icon">
 	
+	<!-- Minimum Set to bring up home page -->
+	
 	<!--Font Awesome-->
-	<link href="/ia7/include/font-awesome.4.7.0.min.css" rel="stylesheet">
+	<link href="/ia7/include/font-awesome.4.7.0.min.css.gz" rel="stylesheet">
 
 	<!--Weather Icons-->
-	<link href="/ia7/include/weather-icons.2.0.10.min.css" rel="stylesheet">
-	<link href="/ia7/include/weather-icons-wind.2.0.10.min.css" rel="stylesheet">
+	<link href="/ia7/include/weather-icons.2.0.10.min.css.gz" rel="stylesheet">
+	<link href="/ia7/include/weather-icons-wind.2.0.10.min.css.gz" rel="stylesheet">
+
+    <!-- Jquery -->
+	<script src="/ia7/include/jquery.1.12.4.min.js.gz"></script>
+
+	<!--Bootstrap-->
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="/ia7/include/bootstrap-custom-button.css">
+	<link rel="stylesheet" href="/ia7/include/bootstrap.3.3.7.min.css.gz">
+	
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="/ia7/include/bootstrap-theme.3.3.7.min.css.gz">
+
+	<link rel="stylesheet" href="include/jquery-ui.smoothness.1.12.1.min.css">
+
+	
+	<!-- Latest compiled and minified bootstrap JavaScript -->
+	<script src="/ia7/include/bootstrap.3.3.7.min.js.gz"></script>
+
 
 	
 	<!--Responsive Tables-->
-	<link href="/ia7/include/tables.css" rel="stylesheet">
+	<!-- TMP<link href="/ia7/include/tables.css" rel="stylesheet"> -->
 	
 	<!-- Jquery -->
-	<script src="/ia7/include/jquery.1.12.4.min.js"></script>
 	<script src="/ia7/include/jquery.longclick-1.0.min.js"></script>
 
 	<!-- A custom jquery UI script to enable sortable items -->
 	<!-- ui 1.12.1 used for slider -->
-	<script src="include/jquery-ui-1.12.1.min.js"></script>
-	<link rel="stylesheet" href="include/jquery-ui.smoothness.1.12.1.min.css">
+	<!-- <script src="include/jquery-ui-1.12.1.min.js"></script> -->
+	<!-- <link rel="stylesheet" href="include/jquery-ui.smoothness.1.12.1.min.css"> -->
 
 	<!-- Enables Jquery UI functions (like slider) to work on touch interfaces -->
-  	<script src="/ia7/include/jquery.ui.touch-punch.0.2.3.min.js"></script>
-	
-	<!--Bootstrap-->
-	<!-- Latest compiled and minified CSS -->
-	<link rel="stylesheet" href="/ia7/include/bootstrap-custom-button.css">
-	<link rel="stylesheet" href="/ia7/include/bootstrap.3.3.7.min.css">
-	
-	<!-- Optional theme -->
-	<link rel="stylesheet" href="/ia7/include/bootstrap-theme.3.3.7.min.css">
-	
-	<!-- Latest compiled and minified bootstrap JavaScript -->
-	<script src="/ia7/include/bootstrap.3.3.7.min.js"></script>
-	
+  	<!-- TMP<script src="/ia7/include/jquery.ui.touch-punch.0.2.3.min.js"></script> -->
+		
 	<!-- bootstrap editable -->
-	<link href="/ia7/include/bootstrap3-editable.1.5.0.css" rel="stylesheet"/>
-    <script src="/ia7/include/bootstrap3-editable.1.5.0.min.js"></script>
+	<!-- TMP<link href="/ia7/include/bootstrap3-editable.1.5.0.css" rel="stylesheet"/> -->
+    <!-- TMP<script src="/ia7/include/bootstrap3-editable.1.5.0.min.js"></script> -->
 
 	<!-- Nicer Dialog Boxes -->
-	<link href="/ia7/include/jquery.alerts.css" rel="stylesheet"/>	
-    <script src="/ia7/include/jquery.alerts.js"></script>
+	<!-- TMP<link href="/ia7/include/jquery.alerts.css" rel="stylesheet"/>	-->
+    <!-- TMP<script src="/ia7/include/jquery.alerts.js"></script> -->
 		
 	<!-- Flot libraries for graphing RRDs -->
-	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.min.js"></script>
-	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.selection.min.js"></script>
-	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.resize.min.js"></script>
-	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.time.min.js"></script>
+	<!-- TMP<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.min.js"></script> -->
+	<!-- TMP<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.selection.min.js"></script> -->
+	<!-- TMP<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.resize.min.js"></script> -->
+	<!-- TMP<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.time.min.js"></script> -->
 
+    <!-- Required for object displays -->
 	<!-- jqCon libraries for displaying cron data -->
-	<link rel="stylesheet" href="/ia7/include/jqCron.css">	
-	<script language="javascript" type="text/javascript" src="/ia7/include/jqCron.js"></script>
-	<script language="javascript" type="text/javascript" src="/ia7/include/jqCron.en.js"></script>
+	<!-- TMP<link rel="stylesheet" href="/ia7/include/jqCron.css">	-->
+	<!-- TMP<script language="javascript" type="text/javascript" src="/ia7/include/jqCron.js"></script> -->
+	<!-- TMP<script language="javascript" type="text/javascript" src="/ia7/include/jqCron.en.js"></script> -->
 	
 	<!-- bootstrap datepickers -->
-	<link href="/ia7/include/bootstrap-datepicker3.standalone.min.css" rel="stylesheet"/>	
-    <script src="/ia7/include/bootstrap-datepicker.min.js"></script>
+	<!-- TMP<link href="/ia7/include/bootstrap-datepicker3.standalone.min.css" rel="stylesheet"/> -->
+    <!-- TMP<script src="/ia7/include/bootstrap-datepicker.min.js"></script> -->
 
 	<!-- Icon Picker 1.3.0+ for icons in dropdowns -->
-	<link href="/ia7/include/fontawesome-iconpicker.min.css" rel="stylesheet"/>	
-    <script src="/ia7/include/fontawesome-iconpicker.min.js"></script>
+	<!-- <link href="/ia7/include/fontawesome-iconpicker.min.css" rel="stylesheet"/> -->
+    <!-- <script src="/ia7/include/fontawesome-iconpicker.min.js"></script> -->
     
     <!-- Load ia7_pref options -->
     <script type="text/javascript" src="/ia7/include/ia7_prefs.json"></script>

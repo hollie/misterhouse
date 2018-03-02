@@ -2146,6 +2146,7 @@ sub mime_header {
     }
     else {
         my ($extention) = $file_or_type =~ /.+\.(\S+)$/;
+        ($extention) = $file_or_type =~ /.+\.(\S+)\.\S\S$/ if ($file_or_type =~ m/\.gz$/i) ;
         $mime = $mime_types{ lc $extention } || 'text/html';
         my $time = ( stat($file_or_type) )[9];
         $date = &time2str($time);
@@ -2159,6 +2160,7 @@ sub mime_header {
     $header = "HTTP/1.1 206 Partial Content\r\n" if $range;
     $header .= "Server: MisterHouse\r\n";
     $header .= "Connection: close\r\n" if &http_close_socket;
+    $header .= "Content-Encoding: gzip\r\n" if ($file_or_type =~ m/\.gz$/i);
     $header .= "Date: " . time2str(time) . "\r\n";
     $header .= "Content-Type: $mime\r\n";
 
