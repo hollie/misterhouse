@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.100";
+var ia7_ver = "v2.0.150";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -948,17 +948,7 @@ var loadList = function() {
 				var entity = $(this).attr("entity");
 				if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
                 	if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
-                         var new_state = "";
-                         var possible_states = 0;
-                         for (var i = 0; i < json_store.objects[entity].states.length; i++){
-                         	if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
-                         	possible_states++;
-				if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i];
-
-                         	}
-						if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
-						url= '/SET;none?select_item='+entity+'&select_state='+new_state;
-						$.get( url);
+                        direct_control(entity);
                 	} else {
                 		create_state_modal(entity);
                 	}
@@ -1037,7 +1027,7 @@ var filterSubstate = function (state, slider) {
  	// slider=1 will filter out all numeric states
     var filter = 0
     // remove 11,12,13... all the mod 10 states
-    if (state.indexOf('%') >= 0) {
+    if (state.toString().indexOf('%') >= 0) {
     
        var number = parseInt(state, 10)
        if ((number % json_store.ia7_config.prefs.substate_percentages != 0) || (slider !== undefined && slider == 1)) {
@@ -1046,7 +1036,7 @@ var filterSubstate = function (state, slider) {
     }
     if ((slider !== undefined && slider == 1) && !isNaN(state)) filter = 1;
     
-	if (state !== undefined) state = state.toLowerCase();    
+	if (state !== undefined) state = state.toString().toLowerCase();    
     if (state == "manual" ||
     	state == "double on" ||
     	state == "double off" ||
@@ -1100,8 +1090,8 @@ var sliderDetails = function (states) {
     var pct = 0;
     var slider_array = [];
     for(var i = 0; i < states.length; i++) {
-        var val = states[i];
-        if(states[i].indexOf('%') != -1) pct=1;
+        var val = states[i].toString();
+        if(val.indexOf('%') != -1) pct=1;
         val = val.replace(/\%/g,'');
         if (!isNaN(val)) {
             slider_array.push(val)
@@ -1288,17 +1278,7 @@ var updateStaticPage = function(link,time) {
 								var entity = $(this).attr("entity");
 								if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
                 					if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
-                         				var new_state = "";
-                         				var possible_states = 0;
-                         				for (var i = 0; i < json_store.objects[entity].states.length; i++){
-                         					if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
-                         					possible_states++;
-											if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i];
-
-                         				}
-										if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
-										url= '/SET;none?select_item='+entity+'&select_state='+new_state;
-										$.get( url);
+                                        direct_control(entity);
                 					} else {
                 					create_state_modal(entity);
                 					}
@@ -1347,6 +1327,47 @@ function authDetails() {
    		}
    	}
 }
+
+var direct_control = function (entity){
+    var dc_states = json_store.ia7_config.objects[entity].direct_control_states;
+    var states;
+    if (dc_states === undefined)
+    {
+        var isMainstate = function(x){return filterSubstate(x) == 0;};
+        states = json_store.objects[entity].states.filter(isMainstate);
+        if (states.length !== 2){
+             something_went_wrong("direct_control","Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
+            return false;
+        }
+    }
+   else
+    {
+        if (dc_states.length !== 2)
+        {
+          something_went_wrong("direct_control", "Bad 'direct_control_states' configuration for '"+entity+"' in ia7_config.json. "+
+                "'direct_control_states' needs exactly 2 entries. E.g:"+
+               "<code>" + 
+                "    \""+entity+"\" : {\n" +
+                "        \"direct_control_states\": [\n" +
+                "            \"on\",\n" +
+                "            \"off\"\n" +
+                "        ],\n" +
+                "        \"direct_control\": \"yes\"\n" +
+                "    },\n"+
+                "</code>");
+            return false;
+        }
+        states = dc_states;
+    }
+
+    var current_state = json_store.objects[entity].state;
+    var new_state = current_state != states[0] ? states[0] : states[1];
+    url= '/SET;none?select_item='+entity+'&select_state='+new_state;
+    $.get( url);
+    return true;
+};
+
+
 	
 //Prints all of the navigation items for Ia7
 var loadCollection = function(collection_keys) {
@@ -1498,17 +1519,7 @@ var loadCollection = function(collection_keys) {
             var entity = $(this).attr("entity");
             if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
                 if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
-                    var new_state = "";
-                    var possible_states = 0;
-                    for (var i = 0; i < json_store.objects[entity].states.length; i++){
-                        if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
-                        possible_states++;
-                        if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i];
-
-                    }
-                    if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
-                    url= '/SET;none?select_item='+entity+'&select_state='+new_state;
-                    $.get( url);
+                    direct_control(entity);
                 } else {
                     create_state_modal(entity);
                 }
@@ -1519,7 +1530,6 @@ var loadCollection = function(collection_keys) {
         });
 
         $(".btn-state-cmd").mayTriggerLongClicks().on( 'longClick', function() {		        
-//??        $(".btn-direct").mayTriggerLongClicks().on( 'longClick', function() {		
             var entity = $(this).attr("entity");
             create_state_modal(entity);
         });						
