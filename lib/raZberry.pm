@@ -780,7 +780,6 @@ sub main::razberry_push {
             $raz_push_obj->{$instance}->{child_object}->{comm}->set( "online", 'push' );
         } 
     }
-    
 return "";
 }
 
