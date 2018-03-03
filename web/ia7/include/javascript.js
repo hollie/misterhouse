@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.150";
+var ia7_ver = "v2.0.200";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -42,12 +42,9 @@ modules['object2'].script = ["jqCron.en.js","bootstrap-datepicker.min.js"];
 modules.init = {};
 modules['init'].loaded = 0;
 //modules['init'].script = ["jquery-ui-1.12.1.min.js","jquery.ui.touch-punch.0.2.3.min.js","bootstrap3-editable.1.5.0.min.js","jquery.alerts.js"];
-modules['init'].script = ["jquery-ui-1.12.1.min.js","jquery.ui.touch-punch.0.2.3.min.js","bootstrap3-editable.1.5.0.min.js","jquery.alerts.js"];
+modules['init'].script = ["jquery.ui.touch-punch.0.2.3.min.js","bootstrap3-editable.1.5.0.min.js","jquery.alerts.js"];
+//modules['init'].css = ["jquery-ui.smoothness.1.12.1.min.css","bootstrap3-editable.1.5.0.css","jquery.alerts.css"];
 modules['init'].css = ["bootstrap3-editable.1.5.0.css","jquery.alerts.css"];
-//modules['init'].callback = function (){loadModule("init2")};
-//modules.init2 = {};
-//modules['init2'].loaded = 0;
-//modules['init2'].css = ["bootstrap-theme.3.3.7.min.css.gz"];
 
 
 modules.rrd = {}
@@ -275,6 +272,8 @@ function changePage (){
 		});
 	} 
 	else {
+	    // remove the loader if present
+	    $('#loader').hide();
 		// Check for authorize
 		authDetails();
 		// Clear Options Entity by Default
@@ -1274,7 +1273,7 @@ var updateStaticPage = function(link,time) {
 						
 						//don't run this if stategrp0 exists	
 						if (states_loaded == 0) {
-			                $(".btn-state-cmd").click( function () {
+			                $('button[entity="'+entity+'"]').click( function () {
 								var entity = $(this).attr("entity");
 								if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
                 					if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {

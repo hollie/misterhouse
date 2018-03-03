@@ -23,6 +23,11 @@
     <!-- Jquery -->
 	<script src="/ia7/include/jquery.1.12.4.min.js.gz"></script>
 
+<!-- try and remove these 2 -->
+	<link rel="stylesheet" href="include/jquery-ui.smoothness.1.12.1.min.css.gz">
+	<script src="include/jquery-ui-1.12.1.min.js.gz"></script>
+
+
 	<!--Bootstrap-->
 	<!-- Latest compiled and minified CSS -->
 	<link rel="stylesheet" href="/ia7/include/bootstrap-custom-button.css">
@@ -30,8 +35,6 @@
 	
 	<!-- Optional theme -->
 	<link rel="stylesheet" href="/ia7/include/bootstrap-theme.3.3.7.min.css.gz">
-
-	<link rel="stylesheet" href="include/jquery-ui.smoothness.1.12.1.min.css">
 
 	
 	<!-- Latest compiled and minified bootstrap JavaScript -->
@@ -47,11 +50,10 @@
 
 	<!-- A custom jquery UI script to enable sortable items -->
 	<!-- ui 1.12.1 used for slider -->
-	<!-- <script src="include/jquery-ui-1.12.1.min.js"></script> -->
 	<!-- <link rel="stylesheet" href="include/jquery-ui.smoothness.1.12.1.min.css"> -->
 
 	<!-- Enables Jquery UI functions (like slider) to work on touch interfaces -->
-  	<!-- TMP<script src="/ia7/include/jquery.ui.touch-punch.0.2.3.min.js"></script> -->
+  	<!-- <script src="/ia7/include/jquery.ui.touch-punch.0.2.3.min.js"></script> -->
 		
 	<!-- bootstrap editable -->
 	<!-- TMP<link href="/ia7/include/bootstrap3-editable.1.5.0.css" rel="stylesheet"/> -->
@@ -300,7 +302,34 @@
     .whatsnew-panel {
         margin-right: 15px;
     }
-	
+
+/* Center the loader */
+#loader {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  width: 150px;
+  height: 150px;
+  margin: -75px 0 0 -75px;
+  border: 16px solid #f3f3f3;
+  border-radius: 50%;
+  border-top: 16px solid #000000;
+  width: 120px;
+  height: 120px;
+  -webkit-animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
+}
+
+@-webkit-keyframes spin {
+  0% { -webkit-transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}	
 	</style>
 </head>
 <body>
@@ -325,6 +354,8 @@
 	</div>
 
 </div>
+
+<div id="loader"></div>
 
 <div id="list_content">
 </div>
