@@ -317,6 +317,22 @@ sub trigger_get {
       $triggers{$name}{trigger_error}, $triggers{$name}{code_error};
 }
 
+=item C<trigger_code_flag(string}>
+
+Prevents a blacklist of commands from being entered.
+
+=cut
+
+sub trigger_code_flag {
+    my $code = shift;
+    my @blacklist = ("`", "unlink", "exec", "fork", "open", "die", "exit", "eval", "system");
+    return 0 if (defined $::config_parms{ignore_trigger_code_flag} and $::config_parms{ignore_trigger_code_flag} == 1);
+    foreach my $item (@blacklist) {
+        return $item if ($code =~ m/$item/);
+    }
+    return 0;
+}
+
 =item C<trigger_delete(name}>
 
 Deletes the specified trigger.

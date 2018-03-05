@@ -46,7 +46,7 @@
 	<!-- TMP<link href="/ia7/include/tables.css" rel="stylesheet"> -->
 	
 	<!-- Jquery -->
-	<script src="/ia7/include/jquery.longclick-1.0.min.js"></script>
+	<script src="/ia7/include/jquery.longclick-1.1.min.js"></script>
 
 	<!-- A custom jquery UI script to enable sortable items -->
 	<!-- ui 1.12.1 used for slider -->
@@ -303,7 +303,6 @@
         margin-right: 15px;
     }
 
-/* Center the loader */
 #loader {
   position: absolute;
   left: 50%;

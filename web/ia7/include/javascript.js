@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.200";
+var ia7_ver = "v2.0.210";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -285,7 +285,7 @@ function changePage (){
 		//Trim leading and trailing slashes from path
 		var path = URLHash.path.replace(/^\/|\/$/g, "");
 		if (path.indexOf('objects') === 0){
-//Check if moduled need to be loaded
+		    loadModule('object');
 			loadList();
 		}
 		else if ((path.indexOf('vars') === 0) || (path.indexOf('vars_global') === 0) || (path.indexOf('vars_save') === 0)){
@@ -293,6 +293,7 @@ function changePage (){
 		}
 		else if (path.indexOf('prefs') === 0){
 			var pref_name = path.replace(/\prefs\/?/,'');
+            loadModule('developer');
 			loadPrefs(pref_name);
 		}		
 		else if(URLHash._request == 'page'){
@@ -318,25 +319,26 @@ function changePage (){
 			print_log("speak");
 		}
 		else if(path.indexOf('display_table') === 0){
-//check if table module needs to be loaded.
+            loadModule('tables');
 			var path_arg = path.split('?');
 			display_table(path_arg[1]);
 		}	
 		else if(path.indexOf('floorplan') === 0){
 			var path_arg = path.split('?');
+            loadModule('object');
 			floorplan(path_arg[1]);
 		}
 		else if(path.indexOf('rrd') === 0){
-//check if modules need to be loaded
+            loadModule('rrd');
 			var path_arg = path.split('?');
 			graph_rrd(path_arg[1],path_arg[2]);
 		}
 		else if(path.indexOf('history') === 0){
-//check if modules need to be loaded
 			var path_arg = path.split('?');
 			object_history(path_arg[1],undefined,path_arg[2]);
 		}					
-		else if(URLHash._request == 'trigger'){
+		else if(URLHash._request == 'trigger' ||path.indexOf('trigger') === 0){
+			loadModule('init');
 			trigger();
 		}
 		else { //default response is to load a collection
@@ -1487,12 +1489,10 @@ var loadCollection = function(collection_keys) {
 	}
 	
 	//Main Screen is displayed, so load all secondary scripts
-//    loadModule('init');
     loadModule('init');
     loadModule('object');
     loadModule('tables');
     loadModule('rrd');
-    loadModule('developer');
 
 	generateTooltips();	
 
@@ -1550,6 +1550,7 @@ var loadCollection = function(collection_keys) {
         console.log("items="+items);
 		updateItem(items);
 	}	
+    loadModule('developer');
 	
 };
 
@@ -3763,12 +3764,11 @@ var trigger = function() {
 	dataType: "json",
 	success: function( json ) {
 		var keys = [];
-		for (var key in json.triggers) {
+		for (var key in json.data) {
 			keys.push(key);
 		}
 		var row = 0;
-		for (var i = (keys.length-1); i >= 0; i--){
-			var name = keys[i];
+		for (var i = (keys.length-1); i >= -1; i--){
 			if (row === 0){
 				$('#list_content').html('');
 			}
@@ -3776,41 +3776,55 @@ var trigger = function() {
 			if (row % 2 == 1){
 				dark_row = 'dark-row';
 			}
-			$('#list_content').append("<div id='row_a_" + row + "' class='row top-buffer'>");
-			$('#row_a_'+row).append("<div id='content_a_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-			$('#content_a_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Name: </b><a id='name_"+row+"'>" + name + "</a></div>");
-			$('#content_a_'+row).append("<div class='col-sm-4 trigger "+dark_row+"'><b>Type: </b><a id='type_"+row+"'>" + json.triggers[keys[i]].type + "</a></div>");
-			$('#content_a_'+row).append("<div class='col-sm-3 trigger "+dark_row+"'><b>Last Run:</b> " + json.triggers[keys[i]].triggered + "</div>");
-			$('#list_content').append("<div id='row_b_" + row + "' class='row'>");
-			$('#row_b_'+row).append("<div id='content_b_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-			$('#content_b_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Trigger:</b> <a id='trigger_"+row+"'>" + json.triggers[keys[i]].trigger + "</a></div>");
-			$('#content_b_'+row).append("<div class='col-sm-7 trigger "+dark_row+"'><b>Code:</b> <a id='code_"+row+"'>" + json.triggers[keys[i]].code + "</a></div>");
+			var name;
+			var type;
+			var last_run;
+			var trigger;
+			var code;
+			if (i < 0) {
+			    name = "new trigger";
+			    console.log("add new trigger "+i+" "+row);
+			    break;
+			} else {
+			    name = keys[i];
+			}
+            $('#list_content').append("<div id='row_a_" + row + "' class='row top-buffer'>");
+            $('#row_a_'+row).append("<div id='content_a_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+            $('#content_a_'+row).append("<div class='col-sm-1 trigger "+dark_row+"'><button>D</button><button>C</button></div>");
+            $('#content_a_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Name: </b><a id='name_"+row+"' data-name='"+name+"'>" + name + "</a></div>");
+            $('#content_a_'+row).append("<div class='col-sm-3 trigger "+dark_row+"'><b>Type: </b><a id='type_"+row+"' data-name='"+name+"'>" + json.data[keys[i]].type + "</a></div>");
+            $('#content_a_'+row).append("<div class='col-sm-3 trigger "+dark_row+"'><b>Last Run:</b> " + json.data[keys[i]].triggered + "</div>");
+            $('#list_content').append("<div id='row_b_" + row + "' class='row'>");
+            $('#row_b_'+row).append("<div id='content_b_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+            $('#content_b_'+row).append("<div class='col-sm-1 trigger "+dark_row+"'><button>RUN</button></div>");			
+            $('#content_b_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Trigger:</b> <a id='trigger_"+row+"' data-name='"+name+"'>" + json.data[keys[i]].trigger + "</a></div>");
+            $('#content_b_'+row).append("<div class='col-sm-6 trigger "+dark_row+"'><b>Code:</b> <a id='code_"+row+"' data-name='"+name+"'>" + json.data[keys[i]].code + "</a></div>");
 			$.fn.editable.defaults.mode = 'inline';
-			$('#name_'+row).editable({
-				type: 'text',
-				pk: 1,
-				url: '/post',
-				title: 'Enter username'
-			});
-			$('#type_'+row).editable({
-				type: 'select',
-				pk: 1,
-				url: '/post',
-				title: 'Select Type',
-				source: [{value: 1, text: "Disabled"}, {value: 2, text: "NoExpire"}]
-			});
-			$('#trigger_'+row).editable({
-				type: 'text',
-				pk: 1,
-				url: '/post',
-				title: 'Enter trigger'
-			});
-			$('#code_'+row).editable({
-				type: 'text',
-				pk: 1,
-				url: '/post',
-				title: 'Enter code'
-			});
+            $('#name_'+row).editable({
+                type: 'text',
+                pk: 'name',
+                url: '/json/triggers',
+                title: 'Enter Trigger Name'
+            });
+            $('#type_'+row).editable({
+                type: 'select',
+                pk: 'type',
+                url: '/json/triggers',
+                title: 'Select Type',
+                source: [{value: "Disabled", text: "Disabled"}, {value: "NoExpire", text: "NoExpire"}, {value: "OneShot", text: "OneShot"}, {value: "Expired", text: "Expired"}]
+            });
+            $('#trigger_'+row).editable({
+                type: 'text',
+                pk: 'trigger',
+                url: '/json/triggers',
+                title: 'Enter trigger'
+            });
+            $('#code_'+row).editable({
+                type: 'text',
+                pk: 'code',
+                url: '/json/triggers',
+                title: 'Enter code'
+            });
 			row++;
 		}
 	}
@@ -4174,6 +4188,7 @@ var loadModule = function(name,callback) {
     }
     if (modules[name].css !== undefined ) {
         for (var i = 0, len = modules[name].css.length; i < len; i++) {
+            modules[name].loaded = 1;
             console.log("loading css "+name+" "+modules[name].css[i]);
             var fileref = document.createElement("link")
             fileref.setAttribute("rel", "stylesheet")

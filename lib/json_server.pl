@@ -175,8 +175,11 @@ sub json_put {
     eval {
         $body = decode_json($body);    #HP, wrap this in eval to prevent MH crashes
     };
-    if ($@ and !$empty_json) {
+    
+    if ($@ and !$empty_json and ( $path[0] ne 'triggers' )) { #bootstrap-editable can't send JSON data, but create the special case so that IA7 Post has a single MH entrypoint
         &main::print_log( "Json_Server.pl: WARNING: decode_json failed for json POST!" );
+        &main::print_log( "Json_Server.pl: WARNING: Data is $body" );
+
         $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
         $response_text->{status} = "error";
         $response_text->{text} = "Failed to decode JSON file";
@@ -249,6 +252,62 @@ sub json_put {
         $response_code = "HTTP/1.1 200 OK\r\n";
         $response_text->{status} = "success";
         $response_text->{text} = "";  
+
+    } elsif ( $path[0] eq 'triggers' ) {
+
+        #check to see if JSON data or encoded data 
+        my $url_data = $body;
+        $url_data =~ s/\+/ /g; 
+        $url_data =~ s/%([A-Fa-f\d]{2})/chr hex $1/eg;
+        my ($source,$value,$category) = $url_data =~ /name=(.+)&value=(.+)&pk=(.+)/;
+
+        if ($empty_json or !$source or !$value or !$category) {
+                $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                $response_text->{status} = "error";
+                if ($empty_json) {
+                    $response_text->{text} = "Empty JSON string posted";
+                } else {
+                    $response_text->{text} = "Bad submitted data";                
+                }
+                &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+
+        } else {
+
+             &main::print_log( "Json_Server.pl: Updating Triggers, $url_data");
+             &main::print_log( "Json_Server.pl: Updating Triggers, [$source] [$value] [$category]");
+        my $err = 0;
+        if ($category eq 'code') {
+            $err = trigger_code_flag($value);
+            &main::print_log( "Json_Server.pl: code = $err");
+        }
+        my ( $trigger, $code, $type, $triggered, $trigger_error, $code_error ) = trigger_get($source);
+
+        $code = $value if ($category eq 'code');
+        $type = $value if ($category eq 'type');
+        my $name = $source;
+        $name = $value if ($category eq 'name');
+        $trigger = $value if ($category eq 'trigger');
+             
+        
+#             if (lc $Authorized ne "admin") {
+#                 $response_code = "HTTP/1.1 401 Unauthorized\r\n";
+#                 $response_text->{status} = "error";
+#                 $response_text->{text} = "Administative Access required";
+#                 &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+
+ #            } else {
+            # parse the code for maliciousness
+            #then just set the trigger hash to new value
+            #if trigger doesn't exist then add n("ew one
+            &trigger_set( $trigger, $code, $type, $name );
+            $response_code = "HTTP/1.1 200 OK\r\n";
+            $response_text->{status} = "success";
+            $response_text->{text} = ""; 
+            #&_triggers_save
+#             }
+
+        
+        }
 
     } elsif ( $path[0] eq 'objects' ) {
 
@@ -769,6 +828,34 @@ sub json_get {
         foreach my $key ( sort { lc $a cmp lc $b } keys %$ref ) {
             my $iref = ${$ref}{$key};
             $json_data{subs}{$key} = &json_walk_var( $iref, $key, ('CODE') );
+        }
+    }
+
+    # List triggers
+    if ( $path[0] eq 'triggers' || $path[0] eq '' ) {
+        &_triggers_save; #clean up triggers before sending
+        for my $name (
+        sort {
+            my $t1 = $triggers{$a}{type};
+            my $t2 = $triggers{$b}{type};
+            $t1 = 0 if $t1 eq 'OneShot';
+            $t2 = 0 if $t2 eq 'OneShot';
+            $t1 = 1 if $t1 eq 'NoExpire';
+            $t2 = 1 if $t2 eq 'NoExpire';
+            $t1 cmp $t2 or lc $a cmp lc $b
+        } keys %triggers
+      )
+    {
+
+        my ( $trigger, $code, $type, $triggered, $trigger_error, $code_error ) = trigger_get($name);
+        $json_data{triggers}{$name}{trigger} = $trigger;
+        $json_data{triggers}{$name}{type} = $type;
+        $json_data{triggers}{$name}{code} = $code;
+        if ($triggered) {
+            $json_data{triggers}{$name}{triggered_ms} = $triggered;
+            $json_data{triggers}{$name}{triggered} = &time_date_stamp( 12, $triggered );            
+            $json_data{triggers}{$name}{triggered_rel} = &time_date_stamp( 23, $triggered );
+           }
         }
     }
 
