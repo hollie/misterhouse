@@ -176,7 +176,7 @@ sub json_put {
         $body = decode_json($body);    #HP, wrap this in eval to prevent MH crashes
     };
     
-    if ($@ and !$empty_json and ( $path[0] ne 'triggers' )) { #bootstrap-editable can't send JSON data, but create the special case so that IA7 Post has a single MH entrypoint
+    if ($@ and !$empty_json) {
         &main::print_log( "Json_Server.pl: WARNING: decode_json failed for json POST!" );
         &main::print_log( "Json_Server.pl: WARNING: Data is $body" );
 
@@ -255,13 +255,7 @@ sub json_put {
 
     } elsif ( $path[0] eq 'triggers' ) {
 
-        #check to see if JSON data or encoded data 
-        my $url_data = $body;
-        $url_data =~ s/\+/ /g; 
-        $url_data =~ s/%([A-Fa-f\d]{2})/chr hex $1/eg;
-        my ($source,$value,$category) = $url_data =~ /name=(.+)&value=(.+)&pk=(.+)/;
-
-        if ($empty_json or !$source or !$value or !$category) {
+        if ($empty_json or (!defined $body->{name}) or (!defined $body->{value}) or (!defined $body->{pk})) {
                 $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
                 $response_text->{status} = "error";
                 if ($empty_json) {
@@ -269,24 +263,39 @@ sub json_put {
                 } else {
                     $response_text->{text} = "Bad submitted data";                
                 }
-                &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
+                &main::print_log( "Json_Server.pl: ERROR: Trigger Post:" . $response_text->{text});
 
         } else {
 
-             &main::print_log( "Json_Server.pl: Updating Triggers, $url_data");
-             &main::print_log( "Json_Server.pl: Updating Triggers, [$source] [$value] [$category]");
+#             &main::print_log( "Json_Server.pl: Updating Triggers, $url_data");
+#             &main::print_log( "Json_Server.pl: Updating Triggers, [$source] [$value] [$category]");
+             print Dumper $body;
         my $err = 0;
-        if ($category eq 'code') {
-            $err = trigger_code_flag($value);
-            &main::print_log( "Json_Server.pl: code = $err");
-        }
-        my ( $trigger, $code, $type, $triggered, $trigger_error, $code_error ) = trigger_get($source);
+        if ($body->{pk} eq 'code') {
+            $err = trigger_code_flag($body->{value});
+           &main::print_log( "Json_Server.pl: code = $err");
+           &trigger_set_code($body->{name}, $body->{value});
+           
+        } elsif ($body->{pk} eq 'name') {
+           &trigger_rename($body->{name}, $body->{value});
+        
+        } elsif ($body->{pk} eq 'type') {
+           &trigger_set_type($body->{name}, $body->{value});
 
-        $code = $value if ($category eq 'code');
-        $type = $value if ($category eq 'type');
-        my $name = $source;
-        $name = $value if ($category eq 'name');
-        $trigger = $value if ($category eq 'trigger');
+        } elsif ($body->{pk} eq 'trigger') {
+           &trigger_set_trigger($body->{name}, $body->{value});
+
+        } else {
+        #add new trigger
+        }
+
+#        my ( $trigger, $code, $type, $triggered, $trigger_error, $code_error ) = trigger_get($body->{name});
+
+#        $code = $body->{value} if ($body->{pk} eq 'code');
+#        $type = $body->{value} if ($body->{pk} eq 'type');
+#        my $name = $body->{name};
+#        $name = $body->{value} if ($body->{pk} eq 'name');
+#        $trigger = $body->{value} if ($body->{pk} eq 'trigger');
              
         
 #             if (lc $Authorized ne "admin") {
@@ -296,10 +305,12 @@ sub json_put {
 #                 &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
 
  #            } else {
+ 
+ 
             # parse the code for maliciousness
             #then just set the trigger hash to new value
             #if trigger doesn't exist then add n("ew one
-            &trigger_set( $trigger, $code, $type, $name );
+#            &main::print_log("&trigger_set( $trigger, $code, $type, $name )");
             $response_code = "HTTP/1.1 200 OK\r\n";
             $response_text->{status} = "success";
             $response_text->{text} = ""; 

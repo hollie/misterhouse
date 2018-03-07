@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.210";
+var ia7_ver = "v2.0.300";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -25,6 +25,8 @@ var zm_init = undefined;
 var ctx; //audio context
 var buf; //audio buffer
 
+//'Dynamic' modules. To enable the main collection screen to display as quick as possible
+// load all modules not needed to display until after the collection screen.
 var modules = {};
 modules.zoneminder = {};
 modules['zoneminder'].loaded = 0
@@ -41,11 +43,13 @@ modules['object2'].script = ["jqCron.en.js","bootstrap-datepicker.min.js"];
 
 modules.init = {};
 modules['init'].loaded = 0;
-//modules['init'].script = ["jquery-ui-1.12.1.min.js","jquery.ui.touch-punch.0.2.3.min.js","bootstrap3-editable.1.5.0.min.js","jquery.alerts.js"];
-modules['init'].script = ["jquery.ui.touch-punch.0.2.3.min.js","bootstrap3-editable.1.5.0.min.js","jquery.alerts.js"];
-//modules['init'].css = ["jquery-ui.smoothness.1.12.1.min.css","bootstrap3-editable.1.5.0.css","jquery.alerts.css"];
-modules['init'].css = ["bootstrap3-editable.1.5.0.css","jquery.alerts.css"];
+modules['init'].script = ["jquery.alerts.js","jquery.ui.touch-punch.0.2.3.min.js"];
+modules['init'].css = ["jquery.alerts.css"];
 
+modules.edit = {};
+modules['edit'].loaded = 0;
+modules['edit'].script = ["bootstrap3-editable.1.5.0.min.js"];
+modules['edit'].css = ["bootstrap3-editable.1.5.0.css"];
 
 modules.rrd = {}
 modules['rrd'].loaded = 0;
@@ -55,7 +59,6 @@ modules.rrd2 = {}
 modules['rrd2'].loaded = 0;
 modules['rrd2'].script = ["jquery.flot.time.min.js","jquery.flot.resize.min.js","jquery.flot.selection.min.js"];
 
-
 modules.tables = {};
 modules['tables'].loaded = 0;
 modules['tables'].css = ["tables.css"];
@@ -64,8 +67,7 @@ modules.developer = {};
 modules['developer'].loaded = 0;
 modules['developer'].script = ["fontawesome-iconpicker.min.js"];
 modules['developer'].css = ["fontawesome-iconpicker.min.css"];
-// line 1465
-//line 153?
+
 
 //Takes the current location and parses the achor element into a hash
 function URLToHash() {
@@ -284,9 +286,10 @@ function changePage (){
 				
 		//Trim leading and trailing slashes from path
 		var path = URLHash.path.replace(/^\/|\/$/g, "");
-		if (path.indexOf('objects') === 0){
-		    loadModule('object');
-			loadList();
+		if (path.indexOf('objects') === 0){		
+            loadModule('object');
+            loadModule('rrd'); //for some reason flot.resize CSS is leveraged in the schedule CSS
+            loadList();		
 		}
 		else if ((path.indexOf('vars') === 0) || (path.indexOf('vars_global') === 0) || (path.indexOf('vars_save') === 0)){
 			loadVars();
@@ -329,16 +332,21 @@ function changePage (){
 			floorplan(path_arg[1]);
 		}
 		else if(path.indexOf('rrd') === 0){
-            loadModule('rrd');
 			var path_arg = path.split('?');
-			graph_rrd(path_arg[1],path_arg[2]);
+			//a bit of a kludge, ensure that rrd2 is loaded before loading graph_rrd
+			if  (modules['rrd2'].loaded == 0) {
+			    modules['rrd2'].callback = function (){graph_rrd(path_arg[1],path_arg[2]);};			
+                loadModule('rrd');
+            } else {
+			    graph_rrd(path_arg[1],path_arg[2]);
+			}
 		}
 		else if(path.indexOf('history') === 0){
 			var path_arg = path.split('?');
 			object_history(path_arg[1],undefined,path_arg[2]);
 		}					
 		else if(URLHash._request == 'trigger' ||path.indexOf('trigger') === 0){
-			loadModule('init');
+			loadModule('edit');
 			trigger();
 		}
 		else { //default response is to load a collection
@@ -475,12 +483,9 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
      }); 
                  
      function update_pref_array () {
-//        console.log("update pref array");
         $('.config-edit').each( function () {
             var item = $(this).attr('id');
             var value = $(this).val();
-//            console.log("id="+$(this).attr('id'));
-//            console.log("val="+$(this).val());
             json_store.ia7_config.prefs[item] = value;
         });
         changePage();        
@@ -500,7 +505,6 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
           //after apply and cancel change the cancel button text to close
            $.ajax({
                url: "/json/ia7_config",
-//what data is returned?                  dataType: 'json',
                type: 'post',
                contentType: 'application/json',
                data: JSON.stringify(json_store.ia7_config),
@@ -577,13 +581,9 @@ function parseLinkData (link,data) {
 	
 		//replace the back button with a reload
 	}	
-	if (link == "/bin/triggers.pl") { //fix links in the triggers modules
+	if (link == "/bin/triggers.pl") { //redirect to native support.
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
-		data = data.replace(/href=\/bin\/triggers.pl/img, 'onclick="changePage()"');
-		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
-		data = data.replace(/Trigger Index:/img,'');
-		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
-		data = data.replace(/input name='resp' value="\/bin\/triggers.pl"/img, 'input name=\'resp\' value=\"/ia7/#_request=page&link=/bin/triggers.pl&'+coll_key+'\"');
+		window.location.href = '/ia7/#path=triggers&'+coll_key
 	}				
 	if (link == "/ia5/news/main.shtml") { //fix links in the email module 1
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
@@ -1151,7 +1151,12 @@ var updateList = function(path) {
 						// This is not an entity, skip it
 						continue;
 					}
-					var color = getButtonColor(json.data[entity].state);
+					var color;
+					if (json.data[entity].state === undefined) {
+					    color = "default";
+					} else {
+					    color = getButtonColor(json.data[entity].state);
+					}
 					$('button[entity="'+entity+'"]').find('.pull-right').text(
 						json.data[entity].state);
 					$('button[entity="'+entity+'"]').removeClass("btn-default");
@@ -1998,7 +2003,11 @@ var graph_rrd = function(start,group,time) {
 	var new_data = 1;
 	var data_timeout = 0;
 	var refresh = 60; //refresh data every 60 seconds by default
-
+	
+	if (!$('#rrd-graph').is(':visible')) {
+        $('#loader').show();
+    } 
+    
 	if (json_store.ia7_config.prefs.rrd_refresh !== undefined) refresh = json_store.ia7_config.prefs.rrd_refresh;
 
 	if (typeof time === 'undefined'){
@@ -2115,6 +2124,7 @@ var graph_rrd = function(start,group,time) {
            		 			}
        		 			}
     				});
+    				$('#loader').hide();
     				$.plot($("#rrd-graph"), data, json.data.options);
     				$('.legend').hide();	
 				}
@@ -3433,8 +3443,8 @@ var create_state_modal = function(entity) {
 			
 			
 			});			
-			//hide the schedule controls if in simple mode
-			if 	(display_mode == "simple") {
+			//hide the schedule controls if in simple mode, or if only one state
+			if 	(display_mode == "simple" || modal_states.length == 1) {
 				$('.sched_submit').hide();
 				$('.schedrm').hide();
 				$('.schedadd').hide();
@@ -3768,7 +3778,7 @@ var trigger = function() {
 			keys.push(key);
 		}
 		var row = 0;
-		for (var i = (keys.length-1); i >= -1; i--){
+		for (var i = (keys.length); i >= 0; i--){
 			if (row === 0){
 				$('#list_content').html('');
 			}
@@ -3781,50 +3791,108 @@ var trigger = function() {
 			var last_run;
 			var trigger;
 			var code;
-			if (i < 0) {
+			if (i === keys.length) {
 			    name = "new trigger";
 			    console.log("add new trigger "+i+" "+row);
-			    break;
-			} else {
-			    name = keys[i];
+			    $('#list_content').append("<div id='row_a_A' class='row top-buffer'>");
+                $('#row_a_A').append("<div id='content_a_A' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+                $('#content_a_A').append("<div class='col-sm-3 trigger'><button class='btn btn-default btn-sm trigger-btn trigger-btn-add' id='"+name+"'>Add New Trigger</button></div>");
+                $('#list_content').append("<div id='row_a_N' class='row' style='display: none;'>");              
+                $('#row_a_N').append("<div id='content_a_N' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+                $('#content_a_N').append("<div class='col-sm-1 trigger dark-row'><button class='btn btn-default btn-xs trigger-btn trigger-btn-submit' id='submit'>ADD</button></div>");
+                $('#content_a_N').append("<div class='col-sm-5 trigger dark-row'><b>Name: </b></div>");
+                $('#content_a_N').append("<div class='col-sm-3 trigger dark-row'><b>Type: </b></div>");
+                $('#content_a_N').append("<div class='col-sm-3 trigger dark-row'></div>");
+                $('#list_content').append("<div id='row_b_N' class='row' style='display: none;'>");
+                $('#row_b_N').append("<div id='content_b_N' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+                $('#content_b_N').append("<div class='col-sm-1 trigger dark-row'><button class='btn btn-default btn-xs trigger-btn trigger-btn-cancel' id='submit'>CANCEL</button></div>");			
+                $('#content_b_N').append("<div class='col-sm-5 trigger dark-row'><b>Trigger:</b></div>");
+                $('#content_b_N').append("<div class='col-sm-6 trigger dark-row'><b>Code:</b></div>");                    
+               
+                i--;
 			}
-            $('#list_content').append("<div id='row_a_" + row + "' class='row top-buffer'>");
+			name = keys[i];
+            $('#list_content').append("<div id='row_a_" + row + "' class='row'>");
             $('#row_a_'+row).append("<div id='content_a_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-            $('#content_a_'+row).append("<div class='col-sm-1 trigger "+dark_row+"'><button>D</button><button>C</button></div>");
+            $('#content_a_'+row).append("<div class='col-sm-1 trigger "+dark_row+"'><button class='btn btn-default btn-xs trigger-btn trigger-btn-del' id='"+name+"'><i class='fa fa-trash'></i></button><button class='btn btn-default btn-xs trigger-btn trigger-btn-copy' id='"+name+"'><i class='fa fa-clone'></i></button></button></div>");
             $('#content_a_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Name: </b><a id='name_"+row+"' data-name='"+name+"'>" + name + "</a></div>");
-            $('#content_a_'+row).append("<div class='col-sm-3 trigger "+dark_row+"'><b>Type: </b><a id='type_"+row+"' data-name='"+name+"'>" + json.data[keys[i]].type + "</a></div>");
-            $('#content_a_'+row).append("<div class='col-sm-3 trigger "+dark_row+"'><b>Last Run:</b> " + json.data[keys[i]].triggered + "</div>");
+            $('#content_a_'+row).append("<div class='col-sm-2 trigger "+dark_row+"'><b>Type: </b><a id='type_"+row+"' data-name='"+name+"' data-value='"+json.data[keys[i]].type+"'>" + json.data[keys[i]].type + "</a></div>");
+            $('#content_a_'+row).append("<div class='col-sm-4 trigger "+dark_row+"'><b>Last Run:</b> " + json.data[keys[i]].triggered + "</div>");
             $('#list_content').append("<div id='row_b_" + row + "' class='row'>");
             $('#row_b_'+row).append("<div id='content_b_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-            $('#content_b_'+row).append("<div class='col-sm-1 trigger "+dark_row+"'><button>RUN</button></div>");			
+            $('#content_b_'+row).append("<div class='col-sm-1 trigger "+dark_row+"'><button class='btn btn-default btn-xs trigger-btn trigger-btn-run' id='"+name+"'>RUN</button></div>");			
             $('#content_b_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Trigger:</b> <a id='trigger_"+row+"' data-name='"+name+"'>" + json.data[keys[i]].trigger + "</a></div>");
             $('#content_b_'+row).append("<div class='col-sm-6 trigger "+dark_row+"'><b>Code:</b> <a id='code_"+row+"' data-name='"+name+"'>" + json.data[keys[i]].code + "</a></div>");
 			$.fn.editable.defaults.mode = 'inline';
+			$.fn.editable.defaults.ajaxOptions = {contentType: 'application/json'};
+			$.fn.editable.defaults.params = function(params) {return JSON.stringify(params);};
+			$.fn.editable.defaults.url = '/json/triggers';			
+
+    //enable / disable
+//   $('#enable').click(function() {
+//       $('#user .editable').editable('toggleDisabled');
+//   });   
+
             $('#name_'+row).editable({
                 type: 'text',
                 pk: 'name',
-                url: '/json/triggers',
+//                inputclass: 'trigger-name',
                 title: 'Enter Trigger Name'
             });
             $('#type_'+row).editable({
                 type: 'select',
+                showbuttons: false,
                 pk: 'type',
-                url: '/json/triggers',
                 title: 'Select Type',
+                display: function(value, sourceData) {
+                    var colors = {"Disabled": "gray", "NoExpire": "green", "OneShot": "blue", "Expired": "red"},
+                    elem = $.grep(sourceData, function(o){return o.value == value;});
+                 
+                    if(elem.length) {    
+                        $(this).text(elem[0].text).css("color", colors[value]); 
+                    } else {
+                        $(this).empty(); 
+                    }
+                },  
                 source: [{value: "Disabled", text: "Disabled"}, {value: "NoExpire", text: "NoExpire"}, {value: "OneShot", text: "OneShot"}, {value: "Expired", text: "Expired"}]
             });
             $('#trigger_'+row).editable({
                 type: 'text',
                 pk: 'trigger',
-                url: '/json/triggers',
                 title: 'Enter trigger'
             });
             $('#code_'+row).editable({
                 type: 'text',
                 pk: 'code',
-                url: '/json/triggers',
                 title: 'Enter code'
             });
+            $('.trigger-btn').off('click').on('click', function(){
+				name = $(this).attr("id");
+				if ($(this).hasClass("trigger-btn-del")) {
+				    $.get("/SUB;/bin/triggers.pl?trigger_delete("+encodeURI(name)+")");
+                    console.log("/SUB;/bin/triggers.pl?trigger_delete("+encodeURI(name)+") trigger button delete for "+name);
+                    changePage();
+                } else if ($(this).hasClass("trigger-btn-copy")) {
+				    $.get("/SUB;/bin/triggers.pl?trigger_copy("+encodeURI(name)+")");                    
+                    console.log("/SUB;/bin/triggers.pl?trigger_copy("+encodeURI(name)+") trigger button copy for "+name);
+                    changePage();
+                } else if ($(this).hasClass("trigger-btn-run")) {
+				    $.get("/SUB;/bin/triggers.pl?trigger_run("+encodeURI(name)+")");                                    
+                    console.log("/SUB;/bin/triggers.pl?trigger_run("+encodeURI(name)+") trigger button run for "+name);               
+                } else if ($(this).hasClass("trigger-btn-add")) {
+                    console.log("Add new trigger here");
+                    $('.trigger-btn-add').hide();
+                    $('#row_a_N').show();
+                    $('#row_b_N').show();   
+                } else if ($(this).hasClass("trigger-btn-cancel")) {
+                    $('.trigger-btn-add').show();
+                    $('#row_a_N').hide();
+                    $('#row_b_N').hide();                   
+                 } else {
+                    console.log("Unknown button action");
+                }
+            $('.trigger-btn').blur();               
+			});
 			row++;
 		}
 	}
@@ -4214,6 +4282,33 @@ var zoneminder = function()
         }
     });
 };
+
+(function(a) {
+    var b = {
+        NS: "jquery.longclick-",
+        delay: 700
+    };
+    a.fn.mayTriggerLongClicks = function(c) {
+        var d = a.extend(b, c);
+        var f;
+        var e;
+        return a(this).on("mousedown touchstart", function() {
+            e = false;
+            f = setTimeout(function(g) {
+                e = true;
+                a(g).trigger("longClick")
+            }, d.delay, this)
+        }).on("mouseup touchend", function() {
+            clearTimeout(f)
+        }).on("touchmove", function() {
+            clearTimeout(f)
+        }).on("click", function(g) {
+            if (e) {
+                g.stopImmediatePropagation()
+            }
+        })
+    }
+})(jQuery);
 
 
 
