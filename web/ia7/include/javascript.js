@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.300";
+var ia7_ver = "v2.0.310";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -4238,13 +4238,7 @@ var loadModule = function(name,callback) {
         console.log("Module "+name+" already loaded");
         return 0;
     }
-    if (name == "zoneminder" || name == "all") {
-        var config = json_store.ia7_config.zoneminder;
-        if (config === undefined) {
-            console.log("no zoneminder config...");
-            if (name == "zoneminder") return 0;
-        }
-    }
+
     //loop through all modules if all
     if (modules[name].script !== undefined ) {
         for (var i = 0, len = modules[name].script.length; i < len; i++) {
@@ -4275,6 +4269,11 @@ var loadModule = function(name,callback) {
 // more info on zoneminder integration is found in ./zm.js.md
 var zoneminder = function()
 {
+    var config = json_store.ia7_config.zoneminder;
+    if (config === undefined) {
+        console.log("no zoneminder config...");
+        if (name == "zoneminder") return 0;
+    }
     loadModule('zoneminder', function(){
         zm.init();
         for (i = 0; i < config.length; ++i) {
