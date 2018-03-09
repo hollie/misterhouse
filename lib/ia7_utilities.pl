@@ -129,7 +129,22 @@ sub ia7_update_collection {
                         $updated = 1; 
                     }
                 }
-         
+                if ( $json_data->{meta}->{version} < 1.5 )  {
+                    #IA7 v2.0 required change
+                    #Native trigger support /bin/triggers.pl
+                    my $file_data2 = to_json( $json_data, { utf8 => 1, pretty => 1 } );    
+                    $file_data2 =~ s/\"link\"[\s+]:[\s+]\"\/bin\/triggers\.pl\"/\"link\" : \"\/ia7\/\#path\=triggers\"/g;
+                    eval {
+                        $json_data = decode_json($file_data2);    #HP, wrap this in eval to prevent MH crashes
+                    };
+                    if ($@) {
+                        &main::print_log("[IA7_Collection_Updater] : WARNING: decode_json failed for v1.5 update.");
+                    } else {           
+                        $json_data->{meta}->{version} = "1.5";
+                        &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.5 (MH 5.1 IA7 v2.0.300 native triggers change)");
+                        $updated = 1; 
+                    }
+                }         
                 if ($updated) {
                     my $json_newdata = to_json( $json_data, { utf8 => 1, pretty => 1 } );
                     my $backup_file = $file . ".t" . int( ::get_tickcount() / 1000 ) . ".backup";

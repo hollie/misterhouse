@@ -91,7 +91,9 @@ var zm = {
 				if ($("#div-"+ id).length === 0)
 				{
 					var url = '';
-					url += 'http://' +conf.host+'/zm/cgi-bin/nph-zms?mode=jpeg';
+					var cgipath = '/zm';
+					if (conf.cgipath !== undefined) cgipath = conf.cgipath;
+					url += 'http://' +conf.host+cgipath+'/cgi-bin/nph-zms?mode=jpeg';
 					url += '&scale='+ (conf.scale === undefined ? '100': conf.scale);
 					url += '&maxfps=5&buffer=1000';
 					url += '&monitor='+ monitor_event.MonitorId+'&rand=1507918186';

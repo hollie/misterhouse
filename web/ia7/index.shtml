@@ -32,7 +32,7 @@
 	<script src="/ia7/include/bootstrap.3.3.7.min.js.gz"></script>
     
     <!-- Load ia7_pref options -->
-    <script type="text/javascript" src="/ia7/include/ia7_prefs.json"></script>
+<!--    <script type="text/javascript" src="/ia7/include/ia7_prefs.json"></script> -->
 	
 	<!-- Misterhouse ia7 System JS File-->
 	<script src="/ia7/include/javascript.js"></script>
@@ -109,6 +109,13 @@
 		height: 30px;
 		padding-top: 4px;
 	}
+	.trigger-input{
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		height: 40px;
+		padding-top: 3px;
+	}	
 	.trigger-name{
 	    width: 200px;
 	}
@@ -319,7 +326,7 @@
 <div class='row'>
 	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
 		<h3>
-		  	&nbsp;&nbsp;&nbsp;MisterHouse
+		  	&nbsp;&nbsp;&nbsp;<span id="mh_title">MisterHouse</span>
             <button id="toolButton" type="button" class="btn btn-default toolbar-btn toolbar-right-end pull-right">
                 <i class="fa fa-gear"></i>
                 </button>

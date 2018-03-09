@@ -255,7 +255,7 @@ sub json_put {
 
     } elsif ( $path[0] eq 'triggers' ) {
 
-        if ($empty_json or (!defined $body->{name}) or (!defined $body->{value}) or (!defined $body->{pk})) {
+        if (($empty_json or (!defined $body->{name}) or (!defined $body->{value}) or (!defined $body->{pk})) and (defined $body->{pk} and lc $body->{pk} ne 'add')) {
                 $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
                 $response_text->{status} = "error";
                 if ($empty_json) {
@@ -267,56 +267,67 @@ sub json_put {
 
         } else {
 
-#             &main::print_log( "Json_Server.pl: Updating Triggers, $url_data");
-#             &main::print_log( "Json_Server.pl: Updating Triggers, [$source] [$value] [$category]");
-             print Dumper $body;
+        print Dumper $body;
+        
         my $err = 0;
+        my $status;
         if ($body->{pk} eq 'code') {
             $err = trigger_code_flag($body->{value});
-           &main::print_log( "Json_Server.pl: code = $err");
-           &trigger_set_code($body->{name}, $body->{value});
+            if ($err) {
+                $status = "Error: Blacklist command found:$err";
+                &main::print_log( "Json_Server.pl: Trigger. Blacklist command ($err) found in $body->{name}");
+            } else {
+                $status = &trigger_set_code($body->{name}, $body->{value});
+            }
            
         } elsif ($body->{pk} eq 'name') {
-           &trigger_rename($body->{name}, $body->{value});
+           $status = &trigger_rename($body->{name}, $body->{value});
         
         } elsif ($body->{pk} eq 'type') {
-           &trigger_set_type($body->{name}, $body->{value});
+           $status = &trigger_set_type($body->{name}, $body->{value});
 
         } elsif ($body->{pk} eq 'trigger') {
-           &trigger_set_trigger($body->{name}, $body->{value});
+           $status = &trigger_set_trigger($body->{name}, $body->{value});
 
-        } else {
-        #add new trigger
+        } elsif ($body->{pk} eq 'add') {
+            &main::print_log( "Json_Server.pl: adding new trigger $body->{name} ");
+            my $trigger = ( $body->{trigger1} ) ? "$body->{trigger1} $body->{trigger2}" : $body->{trigger2};
+            my $code;
+            if ( $body->{code1} ) {
+                 unless ( $body->{code1} eq 'set' ) {
+                     $body->{code2} =~ s/\'/\\'/g;
+                     $body->{code2} = "'$body->{code2}'";
+                 }
+                 $code = "$body->{code1} $body->{code2}";
+             }
+             else {
+                 $code = $body->{code2};
+             }
+             &main::print_log("trigger_set( $trigger, $code, $body->{type}, $body->{name} )");
+
+             $status = &trigger_set( $trigger, $code, $body->{type}, $body->{name} );
         }
-
-#        my ( $trigger, $code, $type, $triggered, $trigger_error, $code_error ) = trigger_get($body->{name});
-
-#        $code = $body->{value} if ($body->{pk} eq 'code');
-#        $type = $body->{value} if ($body->{pk} eq 'type');
-#        my $name = $body->{name};
-#        $name = $body->{value} if ($body->{pk} eq 'name');
-#        $trigger = $body->{value} if ($body->{pk} eq 'trigger');
-             
-        
+                     
 #             if (lc $Authorized ne "admin") {
 #                 $response_code = "HTTP/1.1 401 Unauthorized\r\n";
 #                 $response_text->{status} = "error";
 #                 $response_text->{text} = "Administative Access required";
 #                 &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
 
- #            } else {
- 
- 
-            # parse the code for maliciousness
-            #then just set the trigger hash to new value
-            #if trigger doesn't exist then add n("ew one
-#            &main::print_log("&trigger_set( $trigger, $code, $type, $name )");
-            $response_code = "HTTP/1.1 200 OK\r\n";
-            $response_text->{status} = "success";
-            $response_text->{text} = ""; 
-            #&_triggers_save
-#             }
+            if ($status =~ m/OK/) {
+                $response_code = "HTTP/1.1 200 OK\r\n";
+                $response_text->{status} = "success";
+                my ($txt) = $status =~ /INFO: (.*)/i; 
+                $response_text->{text} = "";
+                $response_text->{text} = $txt if ($txt);             
+                &_triggers_save
 
+            } else {
+                $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                $response_text->{status} = "error";
+                my ($txt) = $status =~ /ERROR: (.*)/i; 
+                $response_text->{text} = $txt;
+            }
         
         }
 
