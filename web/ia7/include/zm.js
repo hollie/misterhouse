@@ -104,7 +104,7 @@ var zm = {
 					html +=      '<h4>'+ monitor_event.Name + '</h4>';
 					html +=      '<img border=1 id="img-'+id + '"';
 					html +=           'src="' + url +'" ';
-					html +=      '/>';
+					html +=      'width="90%" />';
 					html +=   '</center>';
 					html += '</div>';
 					log("created new div: " + html);
