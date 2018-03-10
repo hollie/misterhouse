@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.310";
+var ia7_ver = "v2.0.350";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -348,7 +348,8 @@ function changePage (){
 			var path_arg = path.split('?');
 			object_history(path_arg[1],undefined,path_arg[2]);
 		}					
-		else if(URLHash._request == 'trigger' ||path.indexOf('trigger') === 0){
+//		else if(URLHash._request == 'trigger' ||path.indexOf('trigger') === 0){
+		else if(path.indexOf('trigger') === 0){
 		    if (modules['edit'].loaded == 0) {
 		        modules['edit'].callback = function (){trigger();};
 			    loadModule('edit');
@@ -3860,8 +3861,8 @@ var trigger = function() {
                 $('#row_a_N').append("<div id='content_a_N' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
                 $('#content_a_N').append("<div class='col-sm-8 trigger-input dark-row'><input id='name' type='text' class='form-control' placeholder='Trigger Name'></div>");
                 $('#content_a_N').append("<div class='col-sm-2 trigger-input dark-row'><select id='type' class='form-control' aria-label='type'><option>Disabled</option><option selected>OneShot</option><option>NoExpire</option></select></div>");
-                $('#content_a_N').append("<div class='col-sm-1 trigger-input dark-row'><button class='btn btn-default trigger-btn-submit'>ADD</button></div>");
-                $('#content_a_N').append("<div class='col-sm-1 trigger-input dark-row'><button class='btn btn-default trigger-btn-cancel'>CANCEL</button></div>");			
+                $('#content_a_N').append("<div class='col-sm-2 trigger-input dark-row'><button class='btn btn-default trigger-btn-submit col-sm-12'>Add Trigger</button></div>");
+//                $('#content_a_N').append("<div class='col-sm-1 trigger-input dark-row'><button class='btn btn-default trigger-btn-cancel col-sm-12'>CANCEL</button></div>");			
 
                 $('#list_content').append("<div id='row_b_N' class='row' style='display: none;'>");
                 $('#row_b_N').append("<div id='content_b_N' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
@@ -3875,13 +3876,13 @@ var trigger = function() {
 			name = keys[i];
             $('#list_content').append("<div id='row_a_" + row + "' class='row'>");
             $('#row_a_'+row).append("<div id='content_a_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-            $('#content_a_'+row).append("<div class='col-sm-1 trigger "+dark_row+"'><button class='btn btn-default btn-xs trigger-btn trigger-btn-del' id='"+name+"'><i class='fa fa-trash'></i></button><button class='btn btn-default btn-xs trigger-btn trigger-btn-copy' id='"+name+"'><i class='fa fa-clone'></i></button></button></div>");
+            $('#content_a_'+row).append("<div class='col-sm-1 trigger btn-group "+dark_row+"'><button class='btn btn-default col-xs-6 btn-xs trigger-btn trigger-btn-del' id='"+name+"'><i class='fa fa-trash'></i></button><button class='btn btn-default col-xs-6 btn-xs trigger-btn trigger-btn-copy' id='"+name+"'><i class='fa fa-clone'></i></button></div>");
             $('#content_a_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Name: </b><a id='name_"+row+"' data-name='"+name+"'>" + name + "</a></div>");
             $('#content_a_'+row).append("<div class='col-sm-2 trigger "+dark_row+"'><b>Type: </b><a id='type_"+row+"' data-name='"+name+"' data-value='"+json.data[keys[i]].type+"'>" + json.data[keys[i]].type + "</a></div>");
             $('#content_a_'+row).append("<div class='col-sm-4 trigger "+dark_row+"'><b>Last Run:</b> " + json.data[keys[i]].triggered + "</div>");
             $('#list_content').append("<div id='row_b_" + row + "' class='row'>");
             $('#row_b_'+row).append("<div id='content_b_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-            $('#content_b_'+row).append("<div class='col-sm-1 trigger "+dark_row+"'><button class='btn btn-default btn-xs trigger-btn trigger-btn-run' id='"+name+"'>RUN</button></div>");			
+            $('#content_b_'+row).append("<div class='col-sm-1 trigger "+dark_row+"'><button class='btn btn-default btn-xs trigger-btn col-sm-12 trigger-btn-run' id='"+name+"'>RUN</button></div>");			
             $('#content_b_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Trigger:</b> <a id='trigger_"+row+"' data-name='"+name+"'>" + json.data[keys[i]].trigger + "</a></div>");
             $('#content_b_'+row).append("<div class='col-sm-6 trigger "+dark_row+"'><b>Code:</b> <a id='code_"+row+"' data-name='"+name+"'>" + json.data[keys[i]].code + "</a></div>");
 //if modules[edit] isn't loaded, then reload to be safe
@@ -3932,37 +3933,35 @@ var trigger = function() {
 				name = $(this).attr("id");
 				if ($(this).hasClass("trigger-btn-del")) {
 				    $.get("/SUB;/bin/triggers.pl?trigger_delete("+encodeURI(name)+")");
-                    console.log("/SUB;/bin/triggers.pl?trigger_delete("+encodeURI(name)+") trigger button delete for "+name);
                     changePage();
                 } else if ($(this).hasClass("trigger-btn-copy")) {
 				    $.get("/SUB;/bin/triggers.pl?trigger_copy("+encodeURI(name)+")");                    
-                    console.log("/SUB;/bin/triggers.pl?trigger_copy("+encodeURI(name)+") trigger button copy for "+name);
                     changePage();
                 } else if ($(this).hasClass("trigger-btn-run")) {
-				    $.get("/SUB;/bin/triggers.pl?trigger_run("+encodeURI(name)+")");                                    
-                    console.log("/SUB;/bin/triggers.pl?trigger_run("+encodeURI(name)+") trigger button run for "+name);               
+				    $.get("/SUB;/bin/triggers.pl?trigger_run("+encodeURI(name)+")"); 
+				    changePage();                                   
                 } else if ($(this).hasClass("trigger-btn-add")) {
-                    console.log("Add new trigger here");
-                    $('.trigger-btn-add').hide();
-                    $('#row_a_N').show();
-                    $('#row_b_N').show();
+                    if ($('#row_a_N').is(":visible")) {
+                        $('.trigger-btn-add').text('Add new trigger');
+                        $('#row_a_N').hide();
+                        $('#row_b_N').hide();
+                        $('#name').val('');
+                        $('#name').css('border-color', '');
+                        $('#type').val('Disabled');                    
+                        $('#code1').val('');
+                        $('#code2').val('');
+                        $('#code2').css('border-color', '');
+                        $('#trigger1').val('');
+                        $('#trigger2').val(''); 
+                        $('#trigger2').css('border-color', '');                    
+                    } else {
+                        $('.trigger-btn-add').text('Cancel new trigger');
+                        $('#row_a_N').show();
+                        $('#row_b_N').show();
+                    }
                 }   
                 $('.trigger-btn').blur();
             });               
-            $('.trigger-btn-cancel').off('click').on('click', function(){
-                $('.trigger-btn-add').show();
-                $('#row_a_N').hide();
-                $('#row_b_N').hide();
-                $('#name').val('');
-                $('#name').css('border-color', '');
-                $('#type').val('Disabled');                    
-                $('#code1').val('');
-                $('#code2').val('');
-                $('#code2').css('border-color', '');
-                $('#trigger1').val('');
-                $('#trigger2').val(''); 
-                $('#trigger2').css('border-color', '');
-             });
             $('.trigger-btn-submit').off('click').on('click', function(){                                                     
                 var data = {};
                 data.pk = 'add';
@@ -4257,9 +4256,6 @@ $(document).ready(function() {
 				}
 				//Check to see if this is the login button
 				if (json_store.collections[collection].user !== undefined) {
-//					if (name == undefined) {
-//						authDetails();
-//					} 
 					opt_entity_html += "<a link-type='collection' user='"+json_store.collections[collection].user+"' class='btn btn-default btn-lg btn-block btn-list btn-login-modal' colid='"+collection+"' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 				} else {	
 					opt_entity_html += "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list btn-option' colid='"+collection+"' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
@@ -4323,8 +4319,8 @@ $(document).ready(function() {
     });
 	
 //TODO remove me?	
-	$('#mhresponse').click( function (e) {
-		e.preventDefault();
+////	$('#mhresponse').click( function (e) {
+////		e.preventDefault();
 //		$form = $(this);
 		//$.ajax({
 		//	type: "POST",
@@ -4334,7 +4330,7 @@ $(document).ready(function() {
 		//		console.log(data) 
 		//		}
 		//	});
-	});		
+////	});		
 });
 
 // method to dynamically load additional js script on the fly.
