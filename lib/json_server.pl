@@ -856,6 +856,9 @@ sub json_get {
     # List triggers
     if ( $path[0] eq 'triggers' || $path[0] eq '' ) {
         &_triggers_save; #clean up triggers before sending
+        #group by type
+        my @dataset       = ();
+        
         for my $name (
         sort {
             my $t1 = $triggers{$a}{type};
@@ -864,21 +867,32 @@ sub json_get {
             $t2 = 0 if $t2 eq 'OneShot';
             $t1 = 1 if $t1 eq 'NoExpire';
             $t2 = 1 if $t2 eq 'NoExpire';
+            $t1 = 2 if $t1 eq 'Expired';
+            $t2 = 2 if $t2 eq 'Expired';   
+            $t1 = 3 if $t1 eq 'Disabled';
+            $t2 = 3 if $t2 eq 'Disabled';                     
             $t1 cmp $t2 or lc $a cmp lc $b
         } keys %triggers
       )
     {
-
         my ( $trigger, $code, $type, $triggered, $trigger_error, $code_error ) = trigger_get($name);
-        $json_data{triggers}{$name}{trigger} = $trigger;
-        $json_data{triggers}{$name}{type} = $type;
-        $json_data{triggers}{$name}{code} = $code;
+        my %data;
+        $data{name} = $name;
+        $data{trigger} = $trigger;
+        $data{type} = $type;
+        $data{code} = $code;
         if ($triggered) {
-            $json_data{triggers}{$name}{triggered_ms} = $triggered;
-            $json_data{triggers}{$name}{triggered} = &time_date_stamp( 12, $triggered );            
-            $json_data{triggers}{$name}{triggered_rel} = &time_date_stamp( 23, $triggered );
+            $data{triggered_ms} = $triggered;
+            $data{triggered} = &time_date_stamp( 12, $triggered );            
+            $data{triggered_rel} = &time_date_stamp( 23, $triggered );
            }
+        push @dataset, \%data;
         }
+        my %data2;
+        $data2{data}  = \@dataset;
+        $data2{options}{code} = ["speak","play","display","print_log","set","run","run_voice_cmd","net_im_send","net_mail_send"];
+        $data2{options}{trigger} = ["time_now","time_cron","time_random","new_second","new_minute","new_hour",'$New_Hour','$New_Day','$New_Week','$New_Month','$New_Year'];
+        $json_data{'triggers'} = \%data2;
     }
 
     # List packages

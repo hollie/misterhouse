@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.350";
+var ia7_ver = "v2.0.500";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -13,6 +13,7 @@ var speech_banner;
 var audio_init;
 var audioElement = document.getElementById('sound_element');
 var authorized = "false";
+var admin = "false";
 var developer = false;
 var show_tooltips = true;
 var rrd_refresh_loop;
@@ -285,7 +286,8 @@ function changePage (){
 		authDetails();
 		// Clear Options Entity by Default
 		$("#toolButton").attr('entity', '');
-		
+        //stop the RRD timer if we're not on the graph_rrd page
+        if ($('#top-graph').length == 0) clearTimeout(rrd_refresh_loop);		
 		// Remove the RRD Last Updated 
 		$('#Last_updated').remove();
 				
@@ -314,8 +316,7 @@ function changePage (){
 			$.get(link, function( data ) {
 				$('#list_content').html("<div id='buffer_page' class='row top-buffer'>");
 				$('#buffer_page').append("<div id='row_page' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 mh-page-link'>");
-				parseLinkData(link,data); //remove css & fix up Mr.House setup stuff
-		
+				parseLinkData(link,data); //remove css & fix up Mr.House setup stuff	
 			});
 		}
 		else if(path.indexOf('print_log') === 0){
@@ -350,12 +351,12 @@ function changePage (){
 		}					
 //		else if(URLHash._request == 'trigger' ||path.indexOf('trigger') === 0){
 		else if(path.indexOf('trigger') === 0){
-		    if (modules['edit'].loaded == 0) {
-		        modules['edit'].callback = function (){trigger();};
+//		    if (modules['edit'].loaded == 0) {
+//		        modules['edit'].callback = function (){trigger();};
 			    loadModule('edit');
-			} else {
+//			} else {
 			    trigger();
-			}
+//			}
 		}
 		else { //default response is to load a collection
 			loadCollection(URLHash._collection_key);
@@ -418,7 +419,12 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 			dataType: "json",
 			success: function( json ) {
 				config_data = json.data;
-			}
+		        ajax_req_success("prefs");				
+			},
+            error: function( xhr, status, error ){
+                ajax_req_error(xhr,status,error,"prefs");
+                setTimeout(function(){ loadPrefs(config_name)},error_retry * 1000);
+          }
 		});
 	}		
 	html += "<th colspan='2'>"+ config_name + "_config.json </th></tr></thead><tbody>";
@@ -1150,8 +1156,9 @@ var updateList = function(path) {
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
 		dataType: "json",
-		success: function( json, textStatus, jqXHR) {
+		success: function( json, textStatus, jqXHR) {		
 			if (jqXHR.status == 200) {
+				ajax_req_success("objects");
 				JSONStore(json);
 				for (var entity in json.data){
 					if (json.data[entity] === undefined && json.data[entity].type === undefined){
@@ -1184,7 +1191,11 @@ var updateList = function(path) {
 					updateList(path);
 				}
 			}
-		} // End success
+		}, // End success
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"objects");
+            setTimeout(function(){ updateList(path)},error_retry * 1000);
+        }
 	});  //ajax request
 };//loadlistfunction
 
@@ -1210,6 +1221,7 @@ var updateItem = function(item,link,time) {
 		success: function( json, textStatus, jqXHR) {
 			var requestTime = time;
 			if (jqXHR.status == 200) {
+				ajax_req_success("update_item");			
 				JSONStore(json);
 				requestTime = json_store.meta.time;
 				var color = getButtonColor(json.data[item].state);
@@ -1231,7 +1243,11 @@ var updateItem = function(item,link,time) {
 				updateItem(item,URLHash.link,requestTime);
 				}
 			}
-		} // End success
+		}, // End success
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"update_item");
+            setTimeout(function(){ updateItem(item,URLHash.link,time)},error_retry * 1000);
+      }		
 	});  //ajax request
 }
 
@@ -1268,6 +1284,7 @@ var updateStaticPage = function(link,time) {
 		success: function( json, textStatus, jqXHR) {
 			var requestTime = time;
 			if (jqXHR.status == 200) {
+				ajax_req_success("static_page");						
 				JSONStore(json);
 				requestTime = json_store.meta.time;
 				$('button[entity]').each(function(index) {
@@ -1318,7 +1335,11 @@ var updateStaticPage = function(link,time) {
 					updateStaticPage(URLHash.link,requestTime);
 				}
 			}
-		} 
+		},
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"static_page");
+            setTimeout(function(){ updateStaticPage(URLHash.link,time)},error_retry * 1000);
+      } 
 	});  
 }
 
@@ -1337,8 +1358,10 @@ function authDetails() {
     			json_store.collections[700].icon = "fa-unlock";   		   		
     			authorized = "true";
     			$(".fa-gear").css("color", "green");
+    			admin = "false";
     			if (json_store.collections[700].user == "admin") {
         			$(".fa-gear").css("color", "purple");
+        			admin = "true";
 				}
    			}
    		}
@@ -1509,6 +1532,7 @@ var loadCollection = function(collection_keys) {
     loadModule('object');
     loadModule('tables');
     loadModule('rrd');
+    loadModule('edit');
 
 	generateTooltips();	
 
@@ -1624,6 +1648,7 @@ var print_log = function(type,time) {
 		success: function( json, statusText, jqXHR ) {
 			var requestTime = time;
 			if (jqXHR.status == 200) {
+		        ajax_req_success("print_log");			
 				JSONStore(json);
 				for (var i = (json.data.length-1); i >= 0; i--){
 					var line = String(json.data[i]);
@@ -1640,27 +1665,32 @@ var print_log = function(type,time) {
 					print_log(type,requestTime);
 				}
 			}		
-		}
+		},
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"print_log");
+            setTimeout(function(){ print_log(type,requestTime)},error_retry * 1000);
+      } 
 	});
 };
 
-var something_went_wrong = function(module,text) {
+var something_went_wrong = function(module,text,fadeout) {
 
     if ((json_store.ia7_config.prefs.show_errors !== undefined) &&  json_store.ia7_config.prefs.show_errors == "yes") {
 
-       var type = "danger";
+       var type = "dark";
        var mobile = "";
        if ($(window).width() <= 768) { // override the responsive mobile top-buffer
            mobile = "mobile-alert";
        }
-       var html = "<div class='alert-err alert "+mobile+" alert-" + type + " fade in' data-alert>";
-       html += "<button type='button' class='close' data-dismiss='alert'>x</button>";
-       html += "<div class=''>";
-       html += "<i class='fa fa-exclamation-triangle icon-2-5x fa-fw pull-left'></i>";
-       html += "<div class='sww-text'>";
-       html += "<h3 class='sww-text-msg'>ERROR</h3>" + module + " : " + text + " </div></div></div>";
+       var html = "<div class='alert sww-background fade in "+mobile+"' data-alert>";
+       //if fadeout is -1 then don't display data-dismiss?
+       if (fadeout == undefined || (fadeout !== undefined && fadeout !== 0)) html += "<button type='button' class='close' data-dismiss='alert'><span style='color:white'>x</span></button>";
+       html += "<div>";
+       html += "<i class='fa fa-2x fa-times-circle fa-fw pull-left' style='color:red'></i>";
+       html += "<span class='sww-text lead'>"+module + " : " + text + " </span></div></div>";
     
-       $("#alert-area").prepend($(html));
+       $("#alert-area").append($(html));
+       if (fadeout !== undefined && fadeout !== 0) $(".sww-background").delay(fadeout).fadeOut("slow", function () { $(this).remove(); });
        
     } else {
     
@@ -1677,6 +1707,7 @@ var get_stats = function(tagline) {
 		url: "/json/misc",
 		dataType: "json",
 		success: function( json, statusText, jqXHR  ) {
+		    ajax_req_success("stats");		
 			if (jqXHR.status == 200) {
 			    $('.tagline').text(json.data.tagline);
 			    var load_avg = "";
@@ -1750,7 +1781,11 @@ var get_stats = function(tagline) {
 				stats_loop = setTimeout(function(){
 					    get_stats();
 					}, stat_refresh * 1000);			}
-		}
+		},
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"stats");
+            setTimeout(function(){ get_stats()},error_retry * 1000);
+      } 
 	});
 }
 
@@ -1890,36 +1925,30 @@ var get_notifications = function(time) {
 					get_notifications(requestTime);
 				}
 		},
-		complete: function (xhr, status, error) {
-		    console.log("in complete "+status+":"+error);
-		},
         error: function( xhr, status, error ){
-            var message = "Unknown ajax request error";
-            if (xhr == undefined || xhr.responseText == undefined || xhr.responseText == "") {
-                message = "Lost communication with server";
-            } else {
-                var data = JSON.parse(xhr.responseText);
-                message = "Communication problem with server";
-                if (data !== undefined && data.text !== undefined) message = data.text;
-            }
-            console.log("err status="+status);
-            console.log("err error="+error);
-            console.log("err msg="+message);
-            console.log("err not="+req_errors.notifications);
-            
-            if (req_errors.notifications == undefined || req_errors.notifications === 0) {
-                something_went_wrong("System",message)
-                 $(".alert-err").delay(5000).fadeOut("slow", function () { $(this).remove(); });
-                 $("#mh_title").css("color", "red"); //have function for this
-                 req_errors.notifications = 1;
-            }
+            ajax_req_error(xhr,status,error,"notifications");
             setTimeout(function(){ get_notifications(time)},error_retry * 1000);
       } 
 	});
+
 };
 
-var ajax_req_error = function(xhr, status, error, module, callback) {
-
+var ajax_req_error = function(xhr, status, error, module) {
+     var message = "Unknown ajax request error";
+     if (xhr == undefined || xhr.responseText == undefined || xhr.responseText == "") {
+         message = "Lost communication with server";
+     } else {
+         var data = JSON.parse(xhr.responseText);
+         message = "Communication problem with server";
+         if (data !== undefined && data.text !== undefined) message = data.text;
+     }
+     console.log("Ajax Error! module="+module+" status="+status+" error="+error+" msg="+message);
+     
+     if (req_errors[module] == undefined || req_errors[module] === 0) {
+         something_went_wrong("System",message,0)
+          //$("#mh_title").css("color", "red"); //have function for this
+          req_errors[module] = 1;
+     }
 }
 
 var ajax_req_success = function(module) {
@@ -1932,7 +1961,10 @@ var ajax_req_success = function(module) {
     }
     console.log("In success reconnect for "+module+ ":"+errors);
     
-	if (errors === 0) $("#mh_title").css("color", "black");
+	if (errors === 0) {
+	     //$("#mh_title").css("color", "black");
+	     $(".sww-background").delay(1000).fadeOut("slow", function () { $(this).remove(); });
+	}
 }
 
 var mobile_device = function() {
@@ -1998,6 +2030,7 @@ var display_table = function(table,records,time) {
 		success: function( json, statusText, jqXHR ) {
 			var requestTime = time;
 			if (jqXHR.status == 200) {
+		        ajax_req_success("display_table");
 				JSONStore(json);
 				// HP should probably use jquery, but couldn't get sequencing right.
 				// HP jquery would allow selected values to be replaced in the future.
@@ -2048,7 +2081,11 @@ var display_table = function(table,records,time) {
 					display_table(table,page_size,requestTime);
 				}
 			}		
-		}
+		},
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"display_table");
+            setTimeout(function(){ display_table(table,page_size,time)},error_retry * 1000);
+      }
 	});
 };
 
@@ -2094,7 +2131,6 @@ var graph_rrd = function(start,group,time) {
 	var arg_str = "start="+start+source+"&time="+time;
 	updateSocket = $.ajax({
 		type: "GET",
-		//url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
 		url: "/json"+path_str+"?"+arg_str,		
 		dataType: "json",
 		success: function( json, statusText, jqXHR ) {
@@ -2102,7 +2138,7 @@ var graph_rrd = function(start,group,time) {
 			if (jqXHR.status == 200) {
 				// HP should probably use jquery, but couldn't get sequencing right.
 				// HP jquery would allow selected values to be replaced in the future.
-
+		        ajax_req_success("graph_rrd");
 				if (json.data.data !== undefined) {  //If no data, at least show the header and an error
 				    data_timeout++;
 				    //sometimes the first call for data doesn't return anything. Try a few times.
@@ -2263,7 +2299,11 @@ var graph_rrd = function(start,group,time) {
 					}, refresh * 1000);
 				}
 			}		
-		}
+		},
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"graph_rrd");
+            setTimeout(function(){ graph_rrd(start,group,0)},error_retry * 1000);
+      } 
 	});
 };
 
@@ -2305,9 +2345,10 @@ var object_history = function(items,start,days,time) {
 			var requestTime = time;
 			if (jqXHR.status == 200) {
 				JSONStore(json);
+		        ajax_req_success("history");
 				// HP should probably use jquery, but couldn't get sequencing right.
 				// HP jquery would allow selected values to be replaced in the future.
-
+                // Dormant graphing for states. Doesn't look nice 
 				if (json.data.data !== undefined) {  //If no data, at least show the header and an error
 					data_timeout++;
 				    //sometimes the first call for data doesn't return anything. Try a few times.
@@ -2475,7 +2516,11 @@ var object_history = function(items,start,days,time) {
 			//No live update is needed.
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
 		    }		
-		}
+		},
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"history");
+            setTimeout(function(){ object_history(items,start,days,time)},error_retry * 1000);
+      } 
 	});
 };
 
@@ -2806,6 +2851,7 @@ var floorplan = function(group,time) {
             var requestTime = time;
             var last_slider_popover;
             if (jqXHR.status === 200) {
+		        ajax_req_success("floorplan");
                 //var t0 = performance.now();
                 JSONStore(json);
                 for (var entity in json.data) {
@@ -3144,7 +3190,11 @@ var floorplan = function(group,time) {
                     fp_reposition_entities();
                 }, wait);
             }            
-        }
+        },
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"floorplan");
+            setTimeout(function(){ floorplan(group,time)},error_retry * 1000);
+      } 
     });
 };
 
@@ -3319,16 +3369,26 @@ var create_state_modal = function(entity) {
                        }
                        url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+sliderstate;
                        $('#control').modal('hide');
-                       $.get( url);
+                       $.get(url).fail(function() {
+                            $(".modal-header").append($("<div class='get-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;Could not send command to Misterhouse</p></div>"));
+                            $(".get-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });                          
+                       });
                    });
 
                  }
+        if (slider_active) {
+		    advanced_html = "<br>"+advanced_html; //this is clunky but showing advanced states is kinda ugly anyways
+        }
 		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
+
 		$('#control').find('.states').find('.btn').click(function (){
 			url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
 			if (!$(this).hasClass("disabled")) {
 			    $('#control').modal('hide');
-			    $.get( url);
+			    $.get(url).fail(function() {
+                    $(".modal-header").append($("<div class='get-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;Could not send command to Misterhouse</p></div>"));
+                    $(".get-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                });		    
 			}
 		});
 		} else {
@@ -3493,8 +3553,6 @@ var create_state_modal = function(entity) {
                           $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
                   }                    
                 });
-			
-			
 			});			
 			//hide the schedule controls if in simple mode, or if only one state
 			if 	(display_mode == "simple" || modal_states.length == 1) {
@@ -3814,6 +3872,10 @@ var authorize_modal = function(user) {
 					location.reload();
 					$('#loginModal').modal('hide');
 				}
+			},
+			error: function() {
+                $('#loginModal').find('#pwstatus').html("Communication error to Misterhouse");
+                $("#loginModal").find('#password').val('');			
 			}
 		});
 	});							
@@ -3821,17 +3883,25 @@ var authorize_modal = function(user) {
 
 //Outputs the list of triggers
 var trigger = function() {
+    console.log("in trigger1");
 	$.ajax({
 	type: "GET",
 	url: "/json/triggers",
 	dataType: "json",
 	success: function( json ) {
-		var keys = [];
-		for (var key in json.data) {
-			keys.push(key);
-		}
+//		var keys = [];
+//		for (var key in json.data.data) {
+//			keys.push(key);
+//		}
+    console.log("in trigger2");
+
 		var row = 0;
-		for (var i = (keys.length); i >= 0; i--){
+		console.log("l1="+json.data.length);
+		console.log("l2="+json.data.data.length);
+        var buffer = "top-buffer";
+        var disabled = "disabled";
+		for (var i = 0; i < json.data.data.length; i++){
+		    //console.log(keys);
 			if (row === 0){
 				$('#list_content').html('');
 			}
@@ -3839,23 +3909,17 @@ var trigger = function() {
 			if (row % 2 == 1){
 				dark_row = 'dark-row';
 			}
-			var name;
-			var type;
-			var last_run;
-			var trigger;
-			var code;
-			if (i === keys.length) {
-			    name = "new trigger";
+			if (i === 0 && admin === "true") {
 			    var instructions = '<div class="panel-group whatsnew-panel"><div class="panel panel-default"><div class="panel-heading"><h5 class="panel-title"><a data-toggle="collapse" href="#collapse_inst">Instructions</a></h5></div>'
                 instructions += '<div id="collapse_inst" class="panel-collapse collapse"><div class="panel-body"><ul class="fa-ul">'    
                 instructions += '<li><i class="fa-li fa fa-chevron-right"></i>Support for adding, and editing triggers'
                 instructions += '<li><i class="fa-li fa fa-chevron-right"></i>Controls only visible in expert mode'
                 instructions += '</ul></div></div></div></div>'
-
-			    console.log("add new trigger "+i+" "+row);
+                buffer = "";
+                disabled = "";
 			    $('#list_content').append("<div id='row_a_A' class='row top-buffer'>");
                 $('#row_a_A').append("<div id='content_a_A' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-                $('#content_a_A').append("<div class='col-sm-3 trigger-input'><button class='btn btn-default btn-sm trigger-btn trigger-btn-add' id='"+name+"'>Add New Trigger</button></div>");
+                $('#content_a_A').append("<div class='col-sm-3 trigger-input'><button class='btn btn-default btn-sm trigger-btn trigger-btn-add'>Add New Trigger</button></div>");
                 //$('#content_a_A').append("<div class='col-sm-9 trigger-input'>"+instructions+"</div>");
                 $('#list_content').append("<div id='row_a_N' class='row' style='display: none;'>");              
                 $('#row_a_N').append("<div id='content_a_N' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
@@ -3869,37 +3933,43 @@ var trigger = function() {
                 $('#content_b_N').append("<div class='col-sm-2 trigger-input dark-row'><select id='trigger1' class='form-control'><option selected></option><option>time_now</option><option>time_cron</option><option>time_random</option><option>new_second</option><option>new_minute</option><option>new_hour</option><option>$New_Hour</option><option>$New_Day</option><option>$New_Week</option><option>$New_Month</option><option>$New_Year</option></select></div>");
                 $('#content_b_N').append("<div class='col-sm-4 trigger-input dark-row'><input id='trigger2' type='text' class='form-control' placeholder='Trigger'></div>");
                 $('#content_b_N').append("<div class='col-sm-2 trigger-input dark-row'><select id='code1' class='form-control'><option selected></option><option>speak</option><option>play</option><option>display</option><option>print_log</option><option>set</option><option>run</option><option>run_voice_cmd</option><option>net_im_send</option><option>net_mail_send</option><option>get</option></select></div>");
-                $('#content_b_N').append("<div class='col-sm-4 trigger-input dark-row'><input id='code2' type='text' class='form-control' placeholder='Trigger Code'></div>");                    
-                i--;
-                                
+                $('#content_b_N').append("<div class='col-sm-4 trigger-input dark-row'><input id='code2' type='text' class='form-control' placeholder='Trigger Code'></div>");                                                    
 			}
-			name = keys[i];
-            $('#list_content').append("<div id='row_a_" + row + "' class='row'>");
+		    var keys = json.data.data[i];			
+			var name = keys.name;
+			var type = keys.type; //json.data.data[keys[i]].type
+			var last_run = keys.last_run;
+			var trigger = keys.trigger;
+			var triggered = keys.triggered;
+			var code = keys.code;	
+			console.log("i="+i+" name="+name+" type="+type+" last_run"+last_run+" triggered="+trigger+" code="+code);		
+            $('#list_content').append("<div id='row_a_" + row + "' class='row "+buffer+"'>");
+            buffer = "";
             $('#row_a_'+row).append("<div id='content_a_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-            $('#content_a_'+row).append("<div class='col-sm-1 trigger btn-group "+dark_row+"'><button class='btn btn-default col-xs-6 btn-xs trigger-btn trigger-btn-del' id='"+name+"'><i class='fa fa-trash'></i></button><button class='btn btn-default col-xs-6 btn-xs trigger-btn trigger-btn-copy' id='"+name+"'><i class='fa fa-clone'></i></button></div>");
+            $('#content_a_'+row).append("<div class='col-sm-1 trigger "+dark_row+"'><button class='btn btn-default btn-xs trigger-btn col-sm-12 trigger-btn-run' id='"+name+"'>RUN</button></div>");            
             $('#content_a_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Name: </b><a id='name_"+row+"' data-name='"+name+"'>" + name + "</a></div>");
-            $('#content_a_'+row).append("<div class='col-sm-2 trigger "+dark_row+"'><b>Type: </b><a id='type_"+row+"' data-name='"+name+"' data-value='"+json.data[keys[i]].type+"'>" + json.data[keys[i]].type + "</a></div>");
-            $('#content_a_'+row).append("<div class='col-sm-4 trigger "+dark_row+"'><b>Last Run:</b> " + json.data[keys[i]].triggered + "</div>");
+            $('#content_a_'+row).append("<div class='col-sm-2 trigger "+dark_row+"'><b>Type: </b><a id='type_"+row+"' data-name='"+name+"' data-value='"+type+"'>" + type + "</a></div>");
+            $('#content_a_'+row).append("<div class='col-sm-4 trigger "+dark_row+"'><b>Last Run:</b> " + triggered + "</div>");
             $('#list_content').append("<div id='row_b_" + row + "' class='row'>");
             $('#row_b_'+row).append("<div id='content_b_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-            $('#content_b_'+row).append("<div class='col-sm-1 trigger "+dark_row+"'><button class='btn btn-default btn-xs trigger-btn col-sm-12 trigger-btn-run' id='"+name+"'>RUN</button></div>");			
-            $('#content_b_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Trigger:</b> <a id='trigger_"+row+"' data-name='"+name+"'>" + json.data[keys[i]].trigger + "</a></div>");
-            $('#content_b_'+row).append("<div class='col-sm-6 trigger "+dark_row+"'><b>Code:</b> <a id='code_"+row+"' data-name='"+name+"'>" + json.data[keys[i]].code + "</a></div>");
+            $('#content_b_'+row).append("<div class='col-sm-1 trigger btn-group "+dark_row+"'><button class='btn btn-default col-xs-6 btn-xs trigger-btn trigger-btn-del "+disabled+"' id='"+name+"'><i class='fa fa-trash'></i></button><button class='btn btn-default col-xs-6 btn-xs trigger-btn trigger-btn-copy "+disabled+"' id='"+name+"'><i class='fa fa-clone'></i></button></div>");            			
+            $('#content_b_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Trigger:</b> <a id='trigger_"+row+"' data-name='"+name+"'>" + trigger + "</a></div>");
+            $('#content_b_'+row).append("<div class='col-sm-6 trigger "+dark_row+"'><b>Code:</b> <a id='code_"+row+"' data-name='"+name+"'>" + code + "</a></div>");
 //if modules[edit] isn't loaded, then reload to be safe
 			$.fn.editable.defaults.mode = 'inline';
 			$.fn.editable.defaults.ajaxOptions = {contentType: 'application/json'};
 			$.fn.editable.defaults.params = function(params) {return JSON.stringify(params);};
 			$.fn.editable.defaults.url = '/json/triggers';			
-
-    //enable / disable
-//   $('#enable').click(function() {
-//       $('#user .editable').editable('toggleDisabled');
-//   });   
+            if (admin === "true") {
+                $.fn.editable.defaults.disabled = false;
+            } else {
+                $.fn.editable.defaults.disabled = true;
+            
+            }   
 
             $('#name_'+row).editable({
                 type: 'text',
                 pk: 'name',
-//                inputclass: 'trigger-name',
                 title: 'Enter Trigger Name'
             });
             $('#type_'+row).editable({
@@ -3931,15 +4001,18 @@ var trigger = function() {
             });
             $('.trigger-btn').off('click').on('click', function(){
 				name = $(this).attr("id");
+				if ($(this).hasClass("trigger-btn-run")) {
+				    $.get("/SUB;/bin/triggers.pl?trigger_run("+encodeURI(name)+")"); 
+				    changePage(); 
+				}
+                if ($('.trigger-btn').hasClass('disabled')) return;				
 				if ($(this).hasClass("trigger-btn-del")) {
 				    $.get("/SUB;/bin/triggers.pl?trigger_delete("+encodeURI(name)+")");
                     changePage();
                 } else if ($(this).hasClass("trigger-btn-copy")) {
 				    $.get("/SUB;/bin/triggers.pl?trigger_copy("+encodeURI(name)+")");                    
                     changePage();
-                } else if ($(this).hasClass("trigger-btn-run")) {
-				    $.get("/SUB;/bin/triggers.pl?trigger_run("+encodeURI(name)+")"); 
-				    changePage();                                   
+                                  
                 } else if ($(this).hasClass("trigger-btn-add")) {
                     if ($('#row_a_N').is(":visible")) {
                         $('.trigger-btn-add').text('Add new trigger');
@@ -4238,7 +4311,7 @@ $(document).ready(function() {
 		var opt_entity_html = "<div id='option_collection'>";
 		var opt_entity_sort = json_store.collections[500].children;
 		if (opt_entity_sort.length <= 0){
-		opt_entity_html += "Childless Collection";
+		    opt_entity_html += "Childless Collection";
 		} else {
 		    for (var i = 0; i < opt_entity_sort.length; i++){
 				var collection = opt_entity_sort[i];
@@ -4265,7 +4338,7 @@ $(document).ready(function() {
 		opt_entity_html += "</div>";
 		$('#optionsModal').find('.modal-body').append(opt_entity_html);	
 		
-					if (developer == true) {
+		if (developer == true) {
 			    //turn on collections drag-n-dropping
 				$("#option_collection").sortable({
 				    tolerance: "pointer",
@@ -4293,8 +4366,7 @@ $(document).ready(function() {
 		});						
 		$('#optionsModal').find('.btn-list').click(function (){
 			$('#optionsModal').modal('hide');
-		});
-		
+		});		
 		$('.btn-option').mayTriggerLongClicks().on( 'longClick', function() {		
             if (developer === true) {
                 var cls = $(this).attr('class');
@@ -4306,8 +4378,7 @@ $(document).ready(function() {
                     $('#optionsModal').modal('hide');    
                 }            
 		    }
-		});
-		
+		});		
 	});
 
 //Needed to floorplan sliders to work.
@@ -4317,20 +4388,7 @@ $(document).ready(function() {
         } else
             fp_popover_close = true; 
     });
-	
-//TODO remove me?	
-////	$('#mhresponse').click( function (e) {
-////		e.preventDefault();
-//		$form = $(this);
-		//$.ajax({
-		//	type: "POST",
-		//	url: "/SET_PASSWORD_FORM",
-		//	data: $(this).serialize(),
-		//	success: function(data){
-		//		console.log(data) 
-		//		}
-		//	});
-////	});		
+		
 });
 
 // method to dynamically load additional js script on the fly.
@@ -4389,7 +4447,7 @@ var loadModule = function(name,callback) {
 
 };
 
-// checks Wether a zoneminder configuration exists,
+// checks if a zoneminder configuration exists,
 // loads the zoneminder zm.js and connects the configured zmeventservers
 // more info on zoneminder integration is found in ./zm.js.md
 var zoneminder = function()
@@ -4407,6 +4465,7 @@ var zoneminder = function()
     });
 };
 
+//avoid a small file load dependancy
 (function(a) {
     var b = {
         NS: "jquery.longclick-",
@@ -4433,7 +4492,6 @@ var zoneminder = function()
         })
     }
 })(jQuery);
-
 
 
 //

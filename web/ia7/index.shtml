@@ -191,7 +191,18 @@
   		left: 3px;
   		right: 3px;
 	}	
-	
+	.sww-background {
+	    position: absolute;
+	    background-color: rgba(0,0,0,0.7) !important;
+        top: 92px; 
+        left: 25px; 
+        right: 25px;  
+	    z-index: 7000;
+	}	
+	.sww-text {
+	    color: white;
+	    margin-top: 13px;
+	}
 	.mobile-alert {
 		margin-top:-22px !important;
 	}
