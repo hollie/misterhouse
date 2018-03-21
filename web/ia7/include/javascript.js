@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.520";
+var ia7_ver = "v2.0.600";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -358,6 +358,9 @@ function changePage (){
 			    trigger();
 			}
 		}
+		else if(path.indexOf('security') === 0){
+			security();
+		}		
 		else { //default response is to load a collection
 			loadCollection(URLHash._collection_key);
 		}
@@ -558,6 +561,66 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
            });
      }); 
 }
+
+function security (){ 
+//users name, password, groups
+//groups name, commands
+
+	$('#list_content').html("<div id='security_table' class='row top-buffer'>");
+	$('#security_table').append("<div id='prtable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
+	var html = "<table class='table table-curved'><thead><tr>";
+    $.ajax({
+        type: "GET",
+        url: "/json/security",
+        dataType: "json",
+        success: function( json ) {
+            var data = json.data;
+            ajax_req_success("security");
+            html += "<th colspan='3'> Security Details </th></tr></thead><tbody>";
+            for (var i in data){
+                console.log("sec="+i);
+                if (i == "group") {
+                    html += "<tr class='info'><td colspan='4'><b>"+ i + "</b></td></tr>";
+                    for (var j in data[i]) {
+                        var status = "disabled";
+                        if (data[i][j].status !== undefined && data[i][j].status == 1) status = "enabled";
+                        var members = "";
+                        var commands = ""
+                        if (data.user !== undefined) {
+                            for (var x in data.user) {
+                                if (data.user[x][j] !== undefined && data.user[x][j] == 1) members += x+" ";
+                            } 
+                        }
+                        if (data[i][j].cmd !== undefined) {
+                            for (var y = 0; y < data[i][j].cmd.length; y++) {
+                                commands += data[i][j].cmd[y]+"<br>";
+                            }
+                        }
+                        if (commands == "") commands = "No Commands Defined";
+                        html += "<tr><td style='padding-left:25px'>"+j+"</td><td>"+status+"</td><td>"+members+"</td><td>"+commands+"</td><tr>";
+                    }
+                } else if (i == "user") {
+                    html += "<tr class='info'><td colspan='3'><b>"+ i + "</b></td></tr>";                
+                     for (var j in data[i]) {
+                        var groups="";
+                        for (var p in data.user[j]) {
+                            groups += p + ":" + data.user[j][p] + "<br>";
+                        }
+                        if (groups == "") groups = "No Groups Defined";
+                        html += "<tr><td style='padding-left:25px'>"+j+"</td><td>Password</td><td>"+groups+"</td><tr>";
+                    }               
+                }
+            }
+            html += "</tbody></table></div>";
+	        $('#prtable').html(html);				
+        },
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"security");
+            //setTimeout(function(){ loadPrefs(config_name)},error_retry * 1000);
+        }
+    });		
+}
+
 
 function parseLinkData (link,data) {
 
