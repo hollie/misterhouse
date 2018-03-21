@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.500";
+var ia7_ver = "v2.0.520";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -351,12 +351,12 @@ function changePage (){
 		}					
 //		else if(URLHash._request == 'trigger' ||path.indexOf('trigger') === 0){
 		else if(path.indexOf('trigger') === 0){
-//		    if (modules['edit'].loaded == 0) {
-//		        modules['edit'].callback = function (){trigger();};
+		    if (modules['edit'].loaded == 0) {
+		        modules['edit'].callback = function (){trigger();};
 			    loadModule('edit');
-//			} else {
+			} else {
 			    trigger();
-//			}
+			}
 		}
 		else { //default response is to load a collection
 			loadCollection(URLHash._collection_key);
@@ -689,8 +689,9 @@ function parseLinkData (link,data) {
 		e.preventDefault();
 		var url = $(this).attr('href');
 		url = url.replace(/;(.*?)\?/,'?');
-		$.get( url, function(data) {
-		});
+		$.get(url).fail(function() {
+            something_went_wrong("Command","Communication issue with Misterhouse");                        
+        });
 		changePage();
 	});
 }
@@ -956,7 +957,9 @@ var loadList = function() {
 						    show: true
 					    });
 					}
-				});
+				}).fail(function() {
+                    something_went_wrong("Voice Command","Communication issue with Misterhouse");                        
+                });;
 			});
 			$(".btn-state-cmd").click( function () {
 				var entity = $(this).attr("entity");
@@ -1403,7 +1406,9 @@ var direct_control = function (entity){
     var current_state = json_store.objects[entity].state;
     var new_state = current_state != states[0] ? states[0] : states[1];
     url= '/SET;none?select_item='+entity+'&select_state='+new_state;
-    $.get( url);
+    $.get(url).fail(function() {
+        something_went_wrong("Command","Communication issue with Misterhouse");                        
+    });;
     return true;
 };
 
@@ -1575,14 +1580,15 @@ var loadCollection = function(collection_keys) {
 			
 		$('.btn-resp-modal').click( function () {			
 			var url = $(this).attr('href');
-			alert("resp-model. opening url="+url);
 			$.get( url, function(data) {
 				var start = data.toLowerCase().indexOf('<body>') + 6;
 				var end = data.toLowerCase().indexOf('</body>');
 				$('#lastResponse').find('.modal-body').html(data.substring(start, end));
 				$('#lastResponse').modal({
 					show: true
-				});
+				}).fail(function() {
+                    something_went_wrong("Command","Communication issue with Misterhouse");                        
+                });
 			});
 		});	
 			
@@ -1668,7 +1674,7 @@ var print_log = function(type,time) {
 		},
         error: function( xhr, status, error ){
             ajax_req_error(xhr,status,error,"print_log");
-            setTimeout(function(){ print_log(type,requestTime)},error_retry * 1000);
+            setTimeout(function(){ print_log(type,time)},error_retry * 1000);
       } 
 	});
 };
@@ -1934,6 +1940,8 @@ var get_notifications = function(time) {
 };
 
 var ajax_req_error = function(xhr, status, error, module) {
+    //ignore abort messages, not a communication issue
+    if (status == "abort" && error == "abort") return;
      var message = "Unknown ajax request error";
      if (xhr == undefined || xhr.responseText == undefined || xhr.responseText == "") {
          message = "Lost communication with server";
@@ -1953,6 +1961,7 @@ var ajax_req_error = function(xhr, status, error, module) {
 
 var ajax_req_success = function(module) {
     //when connection is restored, ensure the title is black if all connections are reestablished.
+    if (req_errors[module] == 0) return;
     req_errors[module] = 0;
     var errors = 0;
     for(var i in req_errors) {
@@ -1961,10 +1970,12 @@ var ajax_req_success = function(module) {
     }
     console.log("In success reconnect for "+module+ ":"+errors);
     
-	if (errors === 0) {
+//	if (errors === 0) {
 	     //$("#mh_title").css("color", "black");
 	     $(".sww-background").delay(1000).fadeOut("slow", function () { $(this).remove(); });
-	}
+//	}
+    //connection is restored to remove the warning. Some errors may not clear out quick (like update_item
+    //as we wait for the long poll to complete.
 }
 
 var mobile_device = function() {
@@ -3009,7 +3020,9 @@ var floorplan = function(group,time) {
                                             }
                                             if ($(".entity-name").length == 1) {
                                                 url= '/SET;none?select_item='+fp_entity+'&select_state='+sliderstate;
-                                                $.get( url);
+                                                $.get(url).fail(function() {
+                                                    something_went_wrong("Command","Communication issue with Misterhouse");                        
+                                                });;
                                                 fp_popover_close = true;
                                                 last_slider_popover = fp_entity;
                                                 $('.popover').popover('hide');
@@ -3021,7 +3034,11 @@ var floorplan = function(group,time) {
                                         $('.btn-state-cmd').on('click', function () {
                                             var fp_entity = $(this).parent().parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
                                             var url= '/SET;none?select_item='+fp_entity+'&select_state='+$(this).text();
-                                            if (!$(this).hasClass("disabled")) $.get( url);
+                                            if (!$(this).hasClass("disabled")) {
+                                                $.get(url).fail(function() {
+                                                    something_went_wrong("Command","Communication issue with Misterhouse");                        
+                                                });;
+                                            }
                                             fp_popover_close = true;
                                             $('.popover').popover('hide');
                                             $('#sliderFP').remove();
@@ -3843,7 +3860,9 @@ var authorize_modal = function(user) {
         if (changed == "true") location.reload();
     });
 	$('.btn-login-logoff').click( function () {
-		$.get ("/UNSET_PASSWORD");
+		$.get ("/UNSET_PASSWORD").fail(function() {
+            something_went_wrong("Password","Communication issue with Misterhouse");                        
+        });;
 		location.reload();
 		$('#loginModal').modal('hide');
 	});	
@@ -3883,25 +3902,16 @@ var authorize_modal = function(user) {
 
 //Outputs the list of triggers
 var trigger = function() {
-    console.log("in trigger1");
 	$.ajax({
 	type: "GET",
 	url: "/json/triggers",
 	dataType: "json",
 	success: function( json ) {
-//		var keys = [];
-//		for (var key in json.data.data) {
-//			keys.push(key);
-//		}
-    console.log("in trigger2");
 
 		var row = 0;
-		console.log("l1="+json.data.length);
-		console.log("l2="+json.data.data.length);
         var buffer = "top-buffer";
         var disabled = "disabled";
 		for (var i = 0; i < json.data.data.length; i++){
-		    //console.log(keys);
 			if (row === 0){
 				$('#list_content').html('');
 			}
@@ -3910,23 +3920,32 @@ var trigger = function() {
 				dark_row = 'dark-row';
 			}
 			if (i === 0 && admin === "true") {
-			    var instructions = '<div class="panel-group whatsnew-panel"><div class="panel panel-default"><div class="panel-heading"><h5 class="panel-title"><a data-toggle="collapse" href="#collapse_inst">Instructions</a></h5></div>'
-                instructions += '<div id="collapse_inst" class="panel-collapse collapse"><div class="panel-body"><ul class="fa-ul">'    
-                instructions += '<li><i class="fa-li fa fa-chevron-right"></i>Support for adding, and editing triggers'
-                instructions += '<li><i class="fa-li fa fa-chevron-right"></i>Controls only visible in expert mode'
-                instructions += '</ul></div></div></div></div>'
+			    var instructions = '<div class="panel-group"><div class="panel panel-default"><div class="panel-heading"><h5 class="panel-title"><a data-toggle="collapse" href="#collapse_inst">Instructions</a></h5></div>'
+                instructions += '<div id="collapse_inst" class="panel-collapse collapse"><div class="panel-body">'
+                instructions += 'Triggers are actions you want to run when a certain event occurs.  Usually events are time based, '
+                instructions += 'but they can include anything you might put in an "if" statement.  Events are checked for syntax errors ' 
+                instructions += 'when entered, and will be disabled if errors are found.  Action code is checked for errors each time it is run' 
+                instructions += '<p><p>'
+                instructions += 'To set a time and/or date based alarm, use time_now with any valid time/date spec (e.g. 12/25 7 am). '
+                instructions += 'OneShot triggers will expire after they run once.  Change to NoExpire to run every time without expiring. '
+                instructions += 'The trigger name can be any unique string.'
+                instructions += '<p>'
+                instructions += 'You can put multiple perl statements in the action code field separated by semicolons, but you don'+"'"+'t '; 
+                instructions += 'need to put a semicolon at the end.  If you don'+"'"+'t want to run one of the automatically created '
+                instructions += 'triggers, change the type to "Disabled".  If you delete it, the trigger will be recreated the next '
+                instructions += 'time Misterhouse is restarted.'   
+                instructions += '</div></div></div>'
                 buffer = "";
                 disabled = "";
 			    $('#list_content').append("<div id='row_a_A' class='row top-buffer'>");
                 $('#row_a_A').append("<div id='content_a_A' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-                $('#content_a_A').append("<div class='col-sm-3 trigger-input'><button class='btn btn-default btn-sm trigger-btn trigger-btn-add'>Add New Trigger</button></div>");
-                //$('#content_a_A').append("<div class='col-sm-9 trigger-input'>"+instructions+"</div>");
+                $('#content_a_A').append("<div class='col-sm-2 trigger-input'><button class='btn btn-default btn-sm trigger-btn trigger-btn-add'>Add New Trigger</button></div>");
+                $('#content_a_A').append("<div class='col-sm-10'>"+instructions+"</div>");
                 $('#list_content').append("<div id='row_a_N' class='row' style='display: none;'>");              
                 $('#row_a_N').append("<div id='content_a_N' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
                 $('#content_a_N').append("<div class='col-sm-8 trigger-input dark-row'><input id='name' type='text' class='form-control' placeholder='Trigger Name'></div>");
                 $('#content_a_N').append("<div class='col-sm-2 trigger-input dark-row'><select id='type' class='form-control' aria-label='type'><option>Disabled</option><option selected>OneShot</option><option>NoExpire</option></select></div>");
                 $('#content_a_N').append("<div class='col-sm-2 trigger-input dark-row'><button class='btn btn-default trigger-btn-submit col-sm-12'>Add Trigger</button></div>");
-//                $('#content_a_N').append("<div class='col-sm-1 trigger-input dark-row'><button class='btn btn-default trigger-btn-cancel col-sm-12'>CANCEL</button></div>");			
 
                 $('#list_content').append("<div id='row_b_N' class='row' style='display: none;'>");
                 $('#row_b_N').append("<div id='content_b_N' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
@@ -3942,7 +3961,6 @@ var trigger = function() {
 			var trigger = keys.trigger;
 			var triggered = keys.triggered;
 			var code = keys.code;	
-			console.log("i="+i+" name="+name+" type="+type+" last_run"+last_run+" triggered="+trigger+" code="+code);		
             $('#list_content').append("<div id='row_a_" + row + "' class='row "+buffer+"'>");
             buffer = "";
             $('#row_a_'+row).append("<div id='content_a_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
@@ -3952,10 +3970,9 @@ var trigger = function() {
             $('#content_a_'+row).append("<div class='col-sm-4 trigger "+dark_row+"'><b>Last Run:</b> " + triggered + "</div>");
             $('#list_content').append("<div id='row_b_" + row + "' class='row'>");
             $('#row_b_'+row).append("<div id='content_b_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-            $('#content_b_'+row).append("<div class='col-sm-1 trigger btn-group "+dark_row+"'><button class='btn btn-default col-xs-6 btn-xs trigger-btn trigger-btn-del "+disabled+"' id='"+name+"'><i class='fa fa-trash'></i></button><button class='btn btn-default col-xs-6 btn-xs trigger-btn trigger-btn-copy "+disabled+"' id='"+name+"'><i class='fa fa-clone'></i></button></div>");            			
+            $('#content_b_'+row).append("<div class='col-sm-1 trigger "+dark_row+"'><div class='btn-group'><button class='btn btn-default col-sm-6 btn-xs trigger-btn trigger-btn-del "+disabled+"' id='"+name+"'><i class='fa fa-trash'>&nbsp;</i></button><button class='btn btn-default col-sm-6 btn-xs trigger-btn trigger-btn-copy "+disabled+"' id='"+name+"'><i class='fa fa-clone'>&nbsp;</i></button></div></div>");            			
             $('#content_b_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Trigger:</b> <a id='trigger_"+row+"' data-name='"+name+"'>" + trigger + "</a></div>");
             $('#content_b_'+row).append("<div class='col-sm-6 trigger "+dark_row+"'><b>Code:</b> <a id='code_"+row+"' data-name='"+name+"'>" + code + "</a></div>");
-//if modules[edit] isn't loaded, then reload to be safe
 			$.fn.editable.defaults.mode = 'inline';
 			$.fn.editable.defaults.ajaxOptions = {contentType: 'application/json'};
 			$.fn.editable.defaults.params = function(params) {return JSON.stringify(params);};
@@ -4002,15 +4019,21 @@ var trigger = function() {
             $('.trigger-btn').off('click').on('click', function(){
 				name = $(this).attr("id");
 				if ($(this).hasClass("trigger-btn-run")) {
-				    $.get("/SUB;/bin/triggers.pl?trigger_run("+encodeURI(name)+")"); 
+				    $.get("/SUB;/bin/triggers.pl?trigger_run("+encodeURI(name)+")").fail(function() {
+                           something_went_wrong("Command","Communication issue with Misterhouse");                        
+                       }); 
 				    changePage(); 
 				}
                 if ($('.trigger-btn').hasClass('disabled')) return;				
 				if ($(this).hasClass("trigger-btn-del")) {
-				    $.get("/SUB;/bin/triggers.pl?trigger_delete("+encodeURI(name)+")");
+				    $.get("/SUB;/bin/triggers.pl?trigger_delete("+encodeURI(name)+")").fail(function() {
+                           something_went_wrong("Command","Communication issue with Misterhouse");                        
+                       });
                     changePage();
                 } else if ($(this).hasClass("trigger-btn-copy")) {
-				    $.get("/SUB;/bin/triggers.pl?trigger_copy("+encodeURI(name)+")");                    
+				    $.get("/SUB;/bin/triggers.pl?trigger_copy("+encodeURI(name)+")").fail(function() {
+                           something_went_wrong("Command","Communication issue with Misterhouse");                        
+                       });                   
                     changePage();
                                   
                 } else if ($(this).hasClass("trigger-btn-add")) {
@@ -4091,7 +4114,7 @@ var trigger = function() {
                     },
                     error: function( xhr, status, error ) {
                         console.log("trigger failure status="+status+" error="+error);  
-                    
+                        something_went_wrong("Triggers","Communication probem sending trigger details");  
                     }
                 });
             });

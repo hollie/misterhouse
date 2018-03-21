@@ -253,6 +253,16 @@ sub json_put {
         $response_text->{status} = "success";
         $response_text->{text} = "";  
 
+    } elsif ( $path[0] eq 'security' ) {
+    
+        if (lc $Authorized ne "admin") {
+           $response_code = "HTTP/1.1 401 Unauthorized\r\n";
+           $response_text->{status} = "error";
+           $response_text->{text} = "Administative Access required";
+           &main::print_log( "Json_Server.pl: ERROR: Unauthorized security update" . $response_text->{text});
+        } else {
+        }
+
     } elsif ( $path[0] eq 'triggers' ) {
 
         if (($empty_json or (!defined $body->{name}) or (!defined $body->{value}) or (!defined $body->{pk})) and (defined $body->{pk} and lc $body->{pk} ne 'add')) {
@@ -265,8 +275,12 @@ sub json_put {
                 }
                 &main::print_log( "Json_Server.pl: ERROR: Trigger Post:" . $response_text->{text});
 
+        } elsif (lc $Authorized ne "admin") {
+                 $response_code = "HTTP/1.1 401 Unauthorized\r\n";
+                 $response_text->{status} = "error";
+                 $response_text->{text} = "Administative Access required";
+                 &main::print_log( "Json_Server.pl: ERROR: Unauthorized Trigger update" . $response_text->{text});
         } else {
-
         print Dumper $body;
         
         my $err = 0;
@@ -308,12 +322,6 @@ sub json_put {
              $status = &trigger_set( $trigger, $code, $body->{type}, $body->{name} );
         }
                      
-#             if (lc $Authorized ne "admin") {
-#                 $response_code = "HTTP/1.1 401 Unauthorized\r\n";
-#                 $response_text->{status} = "error";
-#                 $response_text->{text} = "Administative Access required";
-#                 &main::print_log( "Json_Server.pl: ERROR." . $response_text->{text});
-
             if ($status =~ m/OK/) {
                 $response_code = "HTTP/1.1 200 OK\r\n";
                 $response_text->{status} = "success";
@@ -841,6 +849,17 @@ sub json_get {
                 }
             }
         }
+    }
+
+    if ( $path[0] eq 'security' ) {
+    #check if $Authorized
+    my $ref;
+
+    $ref = &Groups('getall');
+    
+    $json_data{security} = ${$ref} if (defined ${$ref});
+    
+    #print Dumper $json_data{security};
     }
 
     # List subroutines
