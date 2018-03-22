@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.600";
+var ia7_ver = "v2.0.610";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
