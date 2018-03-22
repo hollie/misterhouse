@@ -359,7 +359,13 @@ function changePage (){
 			}
 		}
 		else if(path.indexOf('security') === 0){
-			security();
+		    loadModule('tables');
+		    if (modules['edit'].loaded == 0) {
+		        modules['edit'].callback = function (){security();};
+			    loadModule('edit');
+			} else {
+			    security();
+			}		
 		}		
 		else { //default response is to load a collection
 			loadCollection(URLHash._collection_key);
@@ -563,11 +569,12 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 }
 
 function security (){ 
-//users name, password, groups
+//users name, status, password, groups
 //groups name, commands
 
 	$('#list_content').html("<div id='security_table' class='row top-buffer'>");
-	$('#security_table').append("<div id='prtable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
+	$('#security_table').append("<div id='sectable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-12 col-xs-offset-0'>");
+//	$('#prefs_table').append("<div id='prtable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
 	var html = "<table class='table table-curved'><thead><tr>";
     $.ajax({
         type: "GET",
@@ -575,14 +582,19 @@ function security (){
         dataType: "json",
         success: function( json ) {
             var data = json.data;
+            var row = 0;
             ajax_req_success("security");
-            html += "<th colspan='3'> Security Details </th></tr></thead><tbody>";
+            html += "<th colspan='4'> Security Details </th></tr></thead><tbody>";
             for (var i in data){
                 console.log("sec="+i);
                 if (i == "group") {
                     html += "<tr class='info'><td colspan='4'><b>"+ i + "</b></td></tr>";
+                    //if data[i].length > 0 otherwise print no group data found
+                    html += "<tr class='security_header'><td>Group Name</td><td>Status</td><td>Members</td><td>Commands</td><tr>";
+
                     for (var j in data[i]) {
                         var status = "disabled";
+                        row++;
                         if (data[i][j].status !== undefined && data[i][j].status == 1) status = "enabled";
                         var members = "";
                         var commands = ""
@@ -596,23 +608,67 @@ function security (){
                                 commands += data[i][j].cmd[y]+"<br>";
                             }
                         }
-                        if (commands == "") commands = "No Commands Defined";
-                        html += "<tr><td style='padding-left:25px'>"+j+"</td><td>"+status+"</td><td>"+members+"</td><td>"+commands+"</td><tr>";
+                        if (commands == "") commands = "No Commands Defined";                        
+                        html += "<tr><td style='padding-left:25px'>"+j+"</td><td><a id='status_"+row+"' data-name='grp_"+j+"'>"+status+"</a></td><td><a id='grp_members_"+row+"' data-name='grp_"+j+"'>"+members+"</a></td><td><a id='grp_cmds_"+row+"' data-name='grp_"+j+"'>"+commands+"</a></td><tr>";
                     }
+                    html += "<tr><td><button class='btn btn-default'>Add Group</button></td><td colspan='3'></td><tr>";                    
                 } else if (i == "user") {
-                    html += "<tr class='info'><td colspan='3'><b>"+ i + "</b></td></tr>";                
+                    html += "<tr class='info'><td colspan='4'><b>"+ i + "</b></td></tr>";
+                    html += "<tr class='security_header'><td>Username</td><td>Status</td><td>Password</td><td colspan='2'>Groups</td><tr>";
+                
                      for (var j in data[i]) {
+                        row++;
                         var groups="";
                         for (var p in data.user[j]) {
                             groups += p + ":" + data.user[j][p] + "<br>";
                         }
                         if (groups == "") groups = "No Groups Defined";
-                        html += "<tr><td style='padding-left:25px'>"+j+"</td><td>Password</td><td>"+groups+"</td><tr>";
-                    }               
+                        html += "<tr><td style='padding-left:25px'>"+j+"</td><td><a id='status_"+row+"' data-name='usr_"+j+"'>enabled</a></td><td><a id='password_"+row+"' data-name='usr_"+j+"'>Password</a></td><td colspan='2'><a id='usr_groups_"+row+"' data-name='usr_"+j+"'>"+groups+"</a></td><tr>";
+                    }    
+                    html += "<tr><td><button class='btn btn-default'>Add User</button></td><td colspan='3'></td><tr>";                                           
                 }
+                 
             }
             html += "</tbody></table></div>";
-	        $('#prtable').html(html);				
+	        $('#sectable').html(html);	
+            $.fn.editable.defaults.mode = 'inline';
+            $.fn.editable.defaults.ajaxOptions = {contentType: 'application/json'};
+            $.fn.editable.defaults.params = function(params) {return JSON.stringify(params);};
+            $.fn.editable.defaults.url = '/json/security';			
+//                if (admin === "true") {
+            $.fn.editable.defaults.disabled = false;
+//                } else {
+//                    $.fn.editable.defaults.disabled = true;          
+//                } 
+            
+	        for (var entry = 1; entry < row + 1; entry++) {
+                $('#password_'+entry).editable({
+                    type: 'text',
+                    pk: 'password',
+                    title: 'Password'
+                });
+                $('#usr_groups_'+entry).editable({
+                    type: 'text',
+                    pk: 'usr_groups',
+                    title: 'Enter Group Name'
+                });  
+                $('#grp_cmds_'+entry).editable({
+                    type: 'text',
+                    pk: 'grp_cmds',
+                    title: 'Enter Commands'
+                });  
+                $('#grp_members_'+entry).editable({
+                    type: 'text',
+                    pk: 'grp_cmds',
+                    title: 'Enter Commands'
+                });                                               
+                $('#status_'+entry).editable({
+                    type: 'text',
+                    pk: 'status',
+                    title: 'Enter status'                
+                });  
+            }
+		
         },
         error: function( xhr, status, error ){
             ajax_req_error(xhr,status,error,"security");

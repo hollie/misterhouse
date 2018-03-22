@@ -254,14 +254,13 @@ sub json_put {
         $response_text->{text} = "";  
 
     } elsif ( $path[0] eq 'security' ) {
-    
-        if (lc $Authorized ne "admin") {
-           $response_code = "HTTP/1.1 401 Unauthorized\r\n";
-           $response_text->{status} = "error";
-           $response_text->{text} = "Administative Access required";
-           &main::print_log( "Json_Server.pl: ERROR: Unauthorized security update" . $response_text->{text});
-        } else {
-        }
+
+    &main::print_log( "Json_Server.pl: security post");
+   
+       print Dumper $body;
+        $response_code = "HTTP/1.1 200 OK\r\n";
+        $response_text->{status} = "success";
+        $response_text->{text} = "";  
 
     } elsif ( $path[0] eq 'triggers' ) {
 
@@ -854,11 +853,24 @@ sub json_get {
     if ( $path[0] eq 'security' ) {
     #check if $Authorized
     my $ref;
-
-    $ref = &Groups('getall');
-    
-    $json_data{security} = ${$ref} if (defined ${$ref});
-    
+    my $users;
+    my $found = 0;
+    if ($args{user} && $args{user}[0] ne "") {
+        $ref->{user} = &Groups('get','',$args{user}[0]);
+        #$json_data{security}{users} = 
+        $found = 1;
+    }
+    if ($args{group} && $args{group}[0] ne "") {
+        $ref->{group} = &Groups('get',$args{group}[0]);
+        #$json_data{security}{groups} = 
+        $found = 1;
+    }
+    if (!$found) {
+        $ref = ${&Groups('getall')};   
+    }
+    print Dumper $ref;
+    $json_data{security} = $ref if (defined $ref);
+    #$json_data{security} = ${$ref} if (defined ${$ref});
     #print Dumper $json_data{security};
     }
 

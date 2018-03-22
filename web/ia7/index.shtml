@@ -206,6 +206,9 @@
 	.mobile-alert {
 		margin-top:-22px !important;
 	}
+    tr.security_header td {
+        border-bottom:2pt solid black;
+    }
 	.dropdown-caret {
 		margin-left:-5px !important;
 	}
