@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.610";
+var ia7_ver = "v2.0.620";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -583,8 +583,25 @@ function security (){
         success: function( json ) {
             var data = json.data;
             var row = 0;
+            var group_data = [];
+            var group_pos = {};
+            var user_data = [];
+            var user_pos = {};
             ajax_req_success("security");
             html += "<th colspan='4'> Security Details </th></tr></thead><tbody>";
+            //build group_data and user_data structures so that we can get the proper array #s
+            for (var z in data) {
+                for (var y in data[z]) {
+                    if (z == "group") {
+                        group_data.push({value:group_data.length+1,text:y});
+                        group_pos[y] = group_data.length;
+                    }
+                    if (z == "user") {
+                        user_data.push({value:user_data.length+1,text:y}); 
+                        user_pos[y] = user_data.length;
+                    }    
+                }
+            }                                          
             for (var i in data){
                 console.log("sec="+i);
                 if (i == "group") {
@@ -600,16 +617,19 @@ function security (){
                         var commands = ""
                         if (data.user !== undefined) {
                             for (var x in data.user) {
-                                if (data.user[x][j] !== undefined && data.user[x][j] == 1) members += x+" ";
+                                //get user_data positions [1,3]
+                                if (data.user[x][j] !== undefined && data.user[x][j] == 1) members += user_pos[x]+",";
                             } 
                         }
+                        members = members.slice(0, -1); //remove the last comma if it exists
+                        members = "[" + members + "]";
                         if (data[i][j].cmd !== undefined) {
                             for (var y = 0; y < data[i][j].cmd.length; y++) {
                                 commands += data[i][j].cmd[y]+"<br>";
                             }
                         }
-                        if (commands == "") commands = "No Commands Defined";                        
-                        html += "<tr><td style='padding-left:25px'>"+j+"</td><td><a id='status_"+row+"' data-name='grp_"+j+"'>"+status+"</a></td><td><a id='grp_members_"+row+"' data-name='grp_"+j+"'>"+members+"</a></td><td><a id='grp_cmds_"+row+"' data-name='grp_"+j+"'>"+commands+"</a></td><tr>";
+                        if (commands == "") commands = "No Commands Defined";   
+                        html += "<tr><td style='padding-left:25px'>"+j+"</td><td><a id='status_"+row+"' data-name='group_"+j+"' data-value='"+status+"'>"+status+"</a></td><td><a id='grp_members_"+row+"' data-value='"+members+"' data-name='group_"+j+"'></a></td><td><a id='grp_cmds_"+row+"' data-name='group_"+j+"'>"+commands+"</a></td><tr>";
                     }
                     html += "<tr><td><button class='btn btn-default'>Add Group</button></td><td colspan='3'></td><tr>";                    
                 } else if (i == "user") {
@@ -620,10 +640,13 @@ function security (){
                         row++;
                         var groups="";
                         for (var p in data.user[j]) {
-                            groups += p + ":" + data.user[j][p] + "<br>";
+                            console.log(p + ":" + data.user[j][p] + "<br>");
+                            groups += group_pos[p]+",";
                         }
-                        if (groups == "") groups = "No Groups Defined";
-                        html += "<tr><td style='padding-left:25px'>"+j+"</td><td><a id='status_"+row+"' data-name='usr_"+j+"'>enabled</a></td><td><a id='password_"+row+"' data-name='usr_"+j+"'>Password</a></td><td colspan='2'><a id='usr_groups_"+row+"' data-name='usr_"+j+"'>"+groups+"</a></td><tr>";
+                        groups = groups.slice(0,-1);
+                        groups = "[" + groups + "]";
+                        //if (groups == "") groups = "No Groups Defined";
+                        html += "<tr><td style='padding-left:25px'>"+j+"</td><td><a id='status_"+row+"' data-name='user_"+j+"' data-value='enabled'>enabled</a></td><td><a id='password_"+row+"' data-name='user_"+j+"'>[hidden]</a></td><td colspan='2'><a id='usr_groups_"+row+"' data-value='"+groups+"' data-name='user_"+j+"'></a></td><tr>";
                     }    
                     html += "<tr><td><button class='btn btn-default'>Add User</button></td><td colspan='3'></td><tr>";                                           
                 }
@@ -643,14 +666,25 @@ function security (){
             
 	        for (var entry = 1; entry < row + 1; entry++) {
                 $('#password_'+entry).editable({
-                    type: 'text',
+                    type: 'password',
                     pk: 'password',
                     title: 'Password'
                 });
                 $('#usr_groups_'+entry).editable({
-                    type: 'text',
+                    type: 'checklist',
                     pk: 'usr_groups',
-                    title: 'Enter Group Name'
+                    mode: 'popup',
+                    showbuttons: 'bottom',
+                    source: group_data,
+                    title: 'Select Groups',
+                    params: function (params) {
+                        //send a value2 so that MH can see the name of the group rather than the IA7 number index
+                        params.value2 = [];
+                        for (var i in params.value) {
+                            params.value2.push(group_data[params.value[i]].text);
+                        }
+                        return JSON.stringify(params);
+                    }
                 });  
                 $('#grp_cmds_'+entry).editable({
                     type: 'text',
@@ -658,17 +692,31 @@ function security (){
                     title: 'Enter Commands'
                 });  
                 $('#grp_members_'+entry).editable({
-                    type: 'text',
-                    pk: 'grp_cmds',
-                    title: 'Enter Commands'
+                    type: 'checklist',
+                    pk: 'grp_members',
+                    mode: 'popup',
+                    showbuttons: 'bottom',                    
+                    source: user_data,
+                    title: 'Select Users'
                 });                                               
                 $('#status_'+entry).editable({
-                    type: 'text',
-                    pk: 'status',
-                    title: 'Enter status'                
-                });  
-            }
-		
+                    type: 'select',
+                    showbuttons: false,
+                    pk: 'type',
+                    title: 'Status',
+                    display: function(value, sourceData) {
+                        var colors = {"disabled": "gray", "enabled": "green", "delete": "red"},
+                        elem = $.grep(sourceData, function(o){return o.value == value;});
+                 
+                        if(elem.length) {    
+                            $(this).text(elem[0].text).css("color", colors[value]); 
+                        } else {
+                            $(this).empty(); 
+                        }
+                    },  
+                    source: [{value: "disabled", text: "disabled"}, {value: "enabled", text: "enabled"}, {value: "delete", text: "delete"}]
+                });	
+            }	
         },
         error: function( xhr, status, error ){
             ajax_req_error(xhr,status,error,"security");
