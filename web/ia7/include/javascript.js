@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.620";
+var ia7_ver = "v2.0.670";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -631,7 +631,9 @@ function security (){
                         if (commands == "") commands = "No Commands Defined";   
                         html += "<tr><td style='padding-left:25px'>"+j+"</td><td><a id='status_"+row+"' data-name='group_"+j+"' data-value='"+status+"'>"+status+"</a></td><td><a id='grp_members_"+row+"' data-value='"+members+"' data-name='group_"+j+"'></a></td><td><a id='grp_cmds_"+row+"' data-name='group_"+j+"'>"+commands+"</a></td><tr>";
                     }
-                    html += "<tr><td><button class='btn btn-default'>Add Group</button></td><td colspan='3'></td><tr>";                    
+                    html += "<tr><td colspan='4'><button class='btn btn-default security-add add-group'>Add Group</button></td><tr>";  
+                    row++;
+                    html += "<tr id='new_group' style='display: none;' row='"+row+"'><td><input id='group_name' type='text' class='form-control' placeholder='Group Name'></td><td><a id='grp_members_"+row+"' data-name='group_new'></a></td><td><a id='grp_cmds_"+row+"' data-name='group_new'></a></td><td><button class='btn btn-default security-submit security-group'>Submit</button></td><td colspan='3'></td><tr>";  
                 } else if (i == "user") {
                     html += "<tr class='info'><td colspan='4'><b>"+ i + "</b></td></tr>";
                     html += "<tr class='security_header'><td>Username</td><td>Status</td><td>Password</td><td colspan='2'>Groups</td><tr>";
@@ -645,10 +647,12 @@ function security (){
                         }
                         groups = groups.slice(0,-1);
                         groups = "[" + groups + "]";
-                        //if (groups == "") groups = "No Groups Defined";
                         html += "<tr><td style='padding-left:25px'>"+j+"</td><td><a id='status_"+row+"' data-name='user_"+j+"' data-value='enabled'>enabled</a></td><td><a id='password_"+row+"' data-name='user_"+j+"'>[hidden]</a></td><td colspan='2'><a id='usr_groups_"+row+"' data-value='"+groups+"' data-name='user_"+j+"'></a></td><tr>";
                     }    
-                    html += "<tr><td><button class='btn btn-default'>Add User</button></td><td colspan='3'></td><tr>";                                           
+                    html += "<tr><td colspan='4'><button class='btn btn-default security-add add-user'>Add User</button></td><tr>";                                           
+                    row++;
+                    html += "<tr id='new_user' style='display: none;' row='"+row+"'><td><input id='user_name' type='text' class='form-control' placeholder='User Name'></td><td><input id='user_password' type='password' class='form-control' placeholder='Password'></td><td><a id='usr_groups_"+row+"' data-name='user_new'></a></td><td><button class='btn btn-default security-submit security-user'>Submit</button></td><tr>";  
+
                 }
                  
             }
@@ -681,7 +685,7 @@ function security (){
                         //send a value2 so that MH can see the name of the group rather than the IA7 number index
                         params.value2 = [];
                         for (var i in params.value) {
-                            params.value2.push(group_data[params.value[i]].text);
+                            params.value2.push(group_data[params.value[i]-1].text);
                         }
                         return JSON.stringify(params);
                     }
@@ -697,7 +701,15 @@ function security (){
                     mode: 'popup',
                     showbuttons: 'bottom',                    
                     source: user_data,
-                    title: 'Select Users'
+                    title: 'Select Users',
+                    params: function (params) {
+                        //send a value2 so that MH can see the name of the group rather than the IA7 number index
+                        params.value2 = [];
+                        for (var i in params.value) {
+                            params.value2.push(user_data[params.value[i]-1].text);
+                        }
+                        return JSON.stringify(params);
+                    }                    
                 });                                               
                 $('#status_'+entry).editable({
                     type: 'select',
@@ -714,9 +726,99 @@ function security (){
                             $(this).empty(); 
                         }
                     },  
-                    source: [{value: "disabled", text: "disabled"}, {value: "enabled", text: "enabled"}, {value: "delete", text: "delete"}]
+                    source: [{value: "disabled", text: "disabled"}, {value: "enabled", text: "enabled"}, {value: "delete", text: "delete"}],
+                    success: function() { changePage(); }
                 });	
             }	
+            $('.security-add').off('click').on('click', function(){
+				    var name = '#new_group';
+				    var button = '.add-group';
+				    var text = 'Add Group';
+				    if ($(this).hasClass('add-user')) {
+				        name = '#new_user';
+				        button = '.add-user';
+				        text = 'Add User';
+				    }
+                    if ($(name).is(":visible")) {
+                        $(button).text(text);
+                        $(name).hide();
+                    } else {
+                        $(button).text('Cancel');
+                        $(name).show();
+                    }
+            });
+            $('.security-submit').off('click').on('click', function(){   
+                console.log("submit");                                                  
+                var data = {};
+                var name = '#new_group';
+                var pk = 'add_group';
+                var entity_name = '#group_name';
+                if ($(this).hasClass('security-user')) {
+                    name = '#new_user';
+                    pk = 'add_user';
+                    entity_name = '#user_name';
+                }                
+                var row = $(name).attr("row");
+                data.pk = pk;
+                data.name = $(entity_name).val();
+                if (data.name == '') {
+                    $(entity_name).css('border-color', 'red');
+                    console.log('return1'+entity_name);
+                    return
+                } else {
+                    $(entity_name).css('border-color', '');
+                }           
+                if (pk == 'add_group') {
+                    var members = $('#grp_members_'+row).editable('getValue').group_new;
+                    data.members = [];
+                    for (var i in members) {
+                            data.members.push(user_data[members[i]-1].text);
+                    }
+                    data.cmds = $('#grp_cmds_'+row).editable('getValue').group_new; 
+                } else {
+                    var groups = $('#usr_groups_'+row).editable('getValue').user_new;
+                    data.groups = [];
+                    console.log("g="+JSON.stringify(groups));
+                    for (var i in groups) {
+                            data.groups.push(group_data[groups[i]-1].text);
+                    }                    
+                    data.password = $('#user_password').val();
+                    if (data.password == '') {
+                        $('#user_password').css('border-color', 'red');
+                        return
+                    } else {
+                        $('#user_password').css('border-color', '');
+                    }
+                    data.submit = "true";                     
+                }
+                console.log("row="+row+" data="+JSON.stringify(data)); 
+                $.ajax({
+                    url: "/json/security",
+                    type: 'post',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function( data, status, error ){
+                        console.log("security success data="+data+" status="+status+" error="+error);  
+                        if (data.status !== undefined || data.status == "error") {
+                            console.log("error!");
+                        } else {   
+                            console.log("success!"); 
+                            //changePage(); //reload data
+                            //$('.security-add-submit').show();
+                            //remove all data in the forms
+                            //$('#new_group').hide();
+                            //$('#name').val('');
+                            //$('#name').css('border-color', '');
+                            changePage();
+                        }
+                    },
+                    error: function( xhr, status, error ) {
+                        console.log("security failure status="+status+" error="+error);  
+                        something_went_wrong("Security","Communication probem sending group details");  
+                    }
+                });
+            });
+            
         },
         error: function( xhr, status, error ){
             ajax_req_error(xhr,status,error,"security");

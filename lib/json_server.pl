@@ -258,6 +258,35 @@ sub json_put {
     &main::print_log( "Json_Server.pl: security post");
    
        print Dumper $body;
+       
+       if ($body->{pk} eq 'add_group') {
+            my $members = join(',',@{$body->{members}});
+            print("add_group &Groups('add',$body->{name},$members)\n");
+            
+            &Groups('add',$body->{name},$members);
+       }
+       if ($body->{pk} eq 'add_user') {
+            &Groups('add','',$body->{name}); 
+            print("add_user &Groups('add','',$body->{name})\n"); 
+            
+            #Add create password function
+            foreach my $group (@{$body->{groups}}) {
+                &Groups('add',$group,$body->{name}); 
+                print("add_user &Groups('add',$group,$body->{name})\n"); 
+            }        
+       }
+       if ($body->{pk} eq 'type') {
+            if ($body->{value} eq 'delete') {
+                my ($type,$name) = $body->{name} =~ /^(user_|group_)(.*)/i;
+                if ($type eq "user_") {
+                    print("can't delete users yet");
+                } elsif ($type eq "group_") {                    
+                    &Groups('delete',$name); 
+                    print("delete group &Groups('delete',$name);\n");
+                }
+            }
+        } 
+       
         $response_code = "HTTP/1.1 200 OK\r\n";
         $response_text->{status} = "success";
         $response_text->{text} = "";  
