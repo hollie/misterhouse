@@ -893,28 +893,18 @@ var loadList = function() {
 					}
 				});
 			});
-			$(".btn-state-cmd").click( function () {
-				var entity = $(this).attr("entity");
-				if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
-                	if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
-                         var new_state = "";
-                         var possible_states = 0;
-                         for (var i = 0; i < json_store.objects[entity].states.length; i++){
-                         	if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
-                         	possible_states++;
-				if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i];
-
-                         	}
-						if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
-						url= '/SET;none?select_item='+entity+'&select_state='+new_state;
-						$.get( url);
-                	} else {
-                		create_state_modal(entity);
-                	}
-				} else {				
-					create_state_modal(entity);
-				}
-			});
+            $(".btn-state-cmd").click( function () {
+                var entity = $(this).attr("entity");
+                if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                    if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
+                        direct_control(entity);
+                    } else {
+                        create_state_modal(entity);
+                    }
+                } else {
+                    create_state_modal(entity);
+                }
+            });
 			$(".btn-state-cmd").mayTriggerLongClicks().on( 'longClick', function() {		
 				var entity = $(this).attr("entity");
 				create_state_modal(entity);
@@ -986,7 +976,7 @@ var filterSubstate = function (state, slider) {
  	// slider=1 will filter out all numeric states
     var filter = 0
     // remove 11,12,13... all the mod 10 states
-    if (state.indexOf('%') >= 0) {
+    if (state.toString().indexOf('%') >= 0) {
     
        var number = parseInt(state, 10)
        if ((number % json_store.ia7_config.prefs.substate_percentages != 0) || (slider !== undefined && slider == 1)) {
@@ -995,7 +985,7 @@ var filterSubstate = function (state, slider) {
     }
     if ((slider !== undefined && slider == 1) && !isNaN(state)) filter = 1;
     
-	if (state !== undefined) state = state.toLowerCase();    
+	if (state !== undefined) state = state.toString().toLowerCase();    
     if (state == "manual" ||
     	state == "double on" ||
     	state == "double off" ||
@@ -1049,8 +1039,8 @@ var sliderDetails = function (states) {
     var pct = 0;
     var slider_array = [];
     for(var i = 0; i < states.length; i++) {
-        var val = states[i];
-        if(states[i].indexOf('%') != -1) pct=1;
+        var val = states[i].toString();
+        if(val.indexOf('%') != -1) pct=1;
         val = val.replace(/\%/g,'');
         if (!isNaN(val)) {
             slider_array.push(val)
@@ -1207,71 +1197,61 @@ var updateStaticPage = function(link,time) {
 	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
 	var arg_str = "fields=state%2Cstates%2Cstate_log%2Cschedule%2Clogger_status%2Clabel&long_poll=true&items="+items+"&time="+time;
 
-	updateSocket = $.ajax({
-		type: "GET",
-		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
-		dataType: "json",
-		success: function( json, textStatus, jqXHR) {
-			var requestTime = time;
-			if (jqXHR.status == 200) {
-				JSONStore(json);
-				requestTime = json_store.meta.time;
-				$('button[entity]').each(function(index) {
-					if ($(this).attr('entity') != '' && json.data[$(this).attr('entity')] != undefined ) { //need an entity item for this to work.
-						entity = $(this).attr('entity');
-						var color = getButtonColor(json.data[entity].state);
-						$('button[entity="'+entity+'"]').find('.pull-right').text(json.data[entity].state);
-						$('button[entity="'+entity+'"]').removeClass("btn-default");
-						$('button[entity="'+entity+'"]').removeClass("btn-success");
-						$('button[entity="'+entity+'"]').removeClass("btn-warning");
-						$('button[entity="'+entity+'"]').removeClass("btn-danger");
-						$('button[entity="'+entity+'"]').removeClass("btn-info");
-						$('button[entity="'+entity+'"]').addClass("btn-"+color);
-						if (json_store.ia7_config.objects[entity] !== undefined && 
-						    json_store.ia7_config.objects[entity].direct_control !== undefined && 
-						    json_store.ia7_config.objects[entity].direct_control == "yes") $('button[entity="'+entity+'"]').addClass("btn-direct");
-						
-						//don't run this if stategrp0 exists	
-						if (states_loaded == 0) {
-			                $(".btn-state-cmd").click( function () {
-								var entity = $(this).attr("entity");
-								if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
-                					if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
-                         				var new_state = "";
-                         				var possible_states = 0;
-                         				for (var i = 0; i < json_store.objects[entity].states.length; i++){
-                         					if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
-                         					possible_states++;
-											if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i];
+    updateSocket = $.ajax({
+        type: "GET",
+        url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+        dataType: "json",
+        success: function( json, textStatus, jqXHR) {
+            var requestTime = time;
+            if (jqXHR.status == 200) {
+                JSONStore(json);
+                requestTime = json_store.meta.time;
+                $('button[entity]').each(function(index) {
+                    if ($(this).attr('entity') != '' && json.data[$(this).attr('entity')] != undefined ) { //need an entity item for this to work.
+                        entity = $(this).attr('entity');
+                        var color = getButtonColor(json.data[entity].state);
+                        $('button[entity="'+entity+'"]').find('.pull-right').text(json.data[entity].state);
+                        $('button[entity="'+entity+'"]').removeClass("btn-default");
+                        $('button[entity="'+entity+'"]').removeClass("btn-success");
+                        $('button[entity="'+entity+'"]').removeClass("btn-warning");
+                        $('button[entity="'+entity+'"]').removeClass("btn-danger");
+                        $('button[entity="'+entity+'"]').removeClass("btn-info");
+                        $('button[entity="'+entity+'"]').addClass("btn-"+color);
+                        if (json_store.ia7_config.objects[entity] !== undefined && 
+                            json_store.ia7_config.objects[entity].direct_control !== undefined && 
+                            json_store.ia7_config.objects[entity].direct_control == "yes") $('button[entity="'+entity+'"]').addClass("btn-direct");
 
-                         				}
-										if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
-										url= '/SET;none?select_item='+entity+'&select_state='+new_state;
-										$.get( url);
-                					} else {
-                					create_state_modal(entity);
-                					}
-								} else {				
-									create_state_modal(entity);
-								}
-							});
-						}																
-					}
-					generateTooltips();
-			
-				});
-			}
-			if (jqXHR.status == 200 || jqXHR.status == 204) {
-				//Call update again, if page is still here
-				//KRK best way to handle this is likely to check the URL hash
-				if (URLHash.link == link || link == undefined){
-					//While we don't anticipate handling a list of groups, this 
-					//may error out if a list was used
-					updateStaticPage(URLHash.link,requestTime);
-				}
-			}
-		} 
-	});  
+                        //don't run this if stategrp0 exists	
+                        if (states_loaded == 0) {
+                            $('button[entity="'+entity+'"]').click( function () {
+                                var entity = $(this).attr("entity");
+                                if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                                    if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
+                                        direct_control(entity);
+                                    } else {
+                                        create_state_modal(entity);
+                                    }
+                                } else {
+                                    create_state_modal(entity);
+                                }
+                        });
+                        }
+                    }
+                    generateTooltips();
+
+                });
+            }
+            if (jqXHR.status == 200 || jqXHR.status == 204) {
+                //Call update again, if page is still here
+                //KRK best way to handle this is likely to check the URL hash
+                if (URLHash.link == link || link == undefined){
+                    //While we don't anticipate handling a list of groups, this
+                    //may error out if a list was used
+                    updateStaticPage(URLHash.link,requestTime);
+                }
+            }
+        }
+    });
 }
 
 function authDetails() {
@@ -1296,6 +1276,45 @@ function authDetails() {
    		}
    	}
 }
+
+var direct_control = function (entity){
+    var dc_states = json_store.ia7_config.objects[entity].direct_control_states;
+    var states;
+    if (dc_states === undefined)
+    {
+        var isMainstate = function(x){return filterSubstate(x) == 0;};
+        states = json_store.objects[entity].states.filter(isMainstate);
+        if (states.length !== 2){
+             something_went_wrong("direct_control","Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
+            return false;
+        }
+    }
+    else
+    {
+        if (dc_states.length !== 2)
+        {
+            something_went_wrong("direct_control", "Bad 'direct_control_states' configuration for '"+entity+"' in ia7_config.json. "+
+                "'direct_control_states' needs exactly 2 entries. E.g:"+
+                "<code>" + 
+                "    \""+entity+"\" : {\n" +
+                "        \"direct_control_states\": [\n" +
+                "            \"on\",\n" +
+                "            \"off\"\n" +
+                "        ],\n" +
+                "        \"direct_control\": \"yes\"\n" +
+                "    },\n"+
+                "</code>");
+            return false;
+        }
+        states = dc_states;
+    }
+
+    var current_state = json_store.objects[entity].state;
+    var new_state = current_state != states[0] ? states[0] : states[1];
+    url= '/SET;none?select_item='+entity+'&select_state='+new_state;
+    $.get( url);
+    return true;
+};
 	
 //Prints all of the navigation items for Ia7
 var loadCollection = function(collection_keys) {
@@ -1437,17 +1456,7 @@ var loadCollection = function(collection_keys) {
             var entity = $(this).attr("entity");
             if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
                 if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
-                    var new_state = "";
-                    var possible_states = 0;
-                    for (var i = 0; i < json_store.objects[entity].states.length; i++){
-                        if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
-                        possible_states++;
-                        if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i];
-
-                    }
-                    if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
-                    url= '/SET;none?select_item='+entity+'&select_state='+new_state;
-                    $.get( url);
+                    direct_control(entity);
                 } else {
                     create_state_modal(entity);
                 }

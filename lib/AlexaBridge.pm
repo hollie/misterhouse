@@ -819,6 +819,7 @@ sub process_http {
                     $statep3 = qq[","modelid":"LCT001","manufacturername":"Philips","swversion":"65003148"}];
                     $end     = qq[}];
                     $delm    = qq[,"];
+		    $name    =~ s/_/ /g;
                     if   ( $count >= 1 ) { $content = $content . $delm . $uuid . $statep2 . $name . $statep3 }
                     else                 { $content = $statep1 . $uuid . $statep2 . $name . $statep3 }
                     $count++;
@@ -856,6 +857,7 @@ sub process_http {
                 $statep3 = qq[","modelid":"LCT001","manufacturername":"Philips","swversion":"65003148"}];      #
                 $end     = qq[}}];
                 $delm    = qq[,"];
+		$name 	 =~ s/_/ /g;
                 if   ( $count >= 1 ) { $content = $content . $delm . $uuid . $statep2 . $name . $statep3 }
                 else                 { $content = $statep1 . $uuid . $statep2 . $name . $statep3 }
                 $count++;
