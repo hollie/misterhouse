@@ -175,8 +175,11 @@ sub json_put {
     eval {
         $body = decode_json($body);    #HP, wrap this in eval to prevent MH crashes
     };
+    
     if ($@ and !$empty_json) {
         &main::print_log( "Json_Server.pl: WARNING: decode_json failed for json POST!" );
+        &main::print_log( "Json_Server.pl: WARNING: Data is $body" );
+
         $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
         $response_text->{status} = "error";
         $response_text->{text} = "Failed to decode JSON file";
@@ -249,6 +252,120 @@ sub json_put {
         $response_code = "HTTP/1.1 200 OK\r\n";
         $response_text->{status} = "success";
         $response_text->{text} = "";  
+
+    } elsif ( $path[0] eq 'security' ) {
+
+    &main::print_log( "Json_Server.pl: security post");
+   
+       print Dumper $body;
+       
+       if ($body->{pk} eq 'add_group') {
+            my $members = join(',',@{$body->{members}});
+            print("add_group &Groups('add',$body->{name},$members)\n");
+            
+            &Groups('add',$body->{name},$members);
+       }
+       if ($body->{pk} eq 'add_user') {
+            &Groups('add','',$body->{name}); 
+            print("add_user &Groups('add','',$body->{name})\n"); 
+            
+            #Add create password function
+            foreach my $group (@{$body->{groups}}) {
+                &Groups('add',$group,$body->{name}); 
+                print("add_user &Groups('add',$group,$body->{name})\n"); 
+            }        
+       }
+       if ($body->{pk} eq 'type') {
+            if ($body->{value} eq 'delete') {
+                my ($type,$name) = $body->{name} =~ /^(user_|group_)(.*)/i;
+                if ($type eq "user_") {
+                    print("can't delete users yet");
+                } elsif ($type eq "group_") {                    
+                    &Groups('delete',$name); 
+                    print("delete group &Groups('delete',$name);\n");
+                }
+            }
+        } 
+       
+        $response_code = "HTTP/1.1 200 OK\r\n";
+        $response_text->{status} = "success";
+        $response_text->{text} = "";  
+
+    } elsif ( $path[0] eq 'triggers' ) {
+
+        if (($empty_json or (!defined $body->{name}) or (!defined $body->{value}) or (!defined $body->{pk})) and (defined $body->{pk} and lc $body->{pk} ne 'add')) {
+                $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                $response_text->{status} = "error";
+                if ($empty_json) {
+                    $response_text->{text} = "Empty JSON string posted";
+                } else {
+                    $response_text->{text} = "Bad submitted data";                
+                }
+                &main::print_log( "Json_Server.pl: ERROR: Trigger Post:" . $response_text->{text});
+
+        } elsif (lc $Authorized ne "admin") {
+                 $response_code = "HTTP/1.1 401 Unauthorized\r\n";
+                 $response_text->{status} = "error";
+                 $response_text->{text} = "Administative Access required";
+                 &main::print_log( "Json_Server.pl: ERROR: Unauthorized Trigger update" . $response_text->{text});
+        } else {
+        print Dumper $body;
+        
+        my $err = 0;
+        my $status;
+        if ($body->{pk} eq 'code') {
+            $err = trigger_code_flag($body->{value});
+            if ($err) {
+                $status = "Error: Blacklist command found:$err";
+                &main::print_log( "Json_Server.pl: Trigger. Blacklist command ($err) found in $body->{name}");
+            } else {
+                $status = &trigger_set_code($body->{name}, $body->{value});
+            }
+           
+        } elsif ($body->{pk} eq 'name') {
+           $status = &trigger_rename($body->{name}, $body->{value});
+        
+        } elsif ($body->{pk} eq 'type') {
+           $status = &trigger_set_type($body->{name}, $body->{value});
+
+        } elsif ($body->{pk} eq 'trigger') {
+           $status = &trigger_set_trigger($body->{name}, $body->{value});
+
+        } elsif ($body->{pk} eq 'add') {
+            &main::print_log( "Json_Server.pl: adding new trigger $body->{name} ");
+            my $trigger = ( $body->{trigger1} ) ? "$body->{trigger1} $body->{trigger2}" : $body->{trigger2};
+            my $code;
+            if ( $body->{code1} ) {
+                 unless ( $body->{code1} eq 'set' ) {
+                     $body->{code2} =~ s/\'/\\'/g;
+                     $body->{code2} = "'$body->{code2}'";
+                 }
+                 $code = "$body->{code1} $body->{code2}";
+             }
+             else {
+                 $code = $body->{code2};
+             }
+             &main::print_log("trigger_set( $trigger, $code, $body->{type}, $body->{name} )");
+
+             $status = &trigger_set( $trigger, $code, $body->{type}, $body->{name} );
+        }
+                     
+            if ($status =~ m/OK/) {
+                $response_code = "HTTP/1.1 200 OK\r\n";
+                $response_text->{status} = "success";
+                my ($txt) = $status =~ /INFO: (.*)/i; 
+                $response_text->{text} = "";
+                $response_text->{text} = $txt if ($txt);             
+                &_triggers_save
+
+            } else {
+                $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                $response_text->{status} = "error";
+                my ($txt) = $status =~ /ERROR: (.*)/i; 
+                $response_text->{text} = $txt;
+            }
+        
+        }
 
     } elsif ( $path[0] eq 'objects' ) {
 
@@ -762,6 +879,30 @@ sub json_get {
         }
     }
 
+    if ( $path[0] eq 'security' ) {
+    #check if $Authorized
+    my $ref;
+    my $users;
+    my $found = 0;
+    if ($args{user} && $args{user}[0] ne "") {
+        $ref->{user} = &Groups('get','',$args{user}[0]);
+        #$json_data{security}{users} = 
+        $found = 1;
+    }
+    if ($args{group} && $args{group}[0] ne "") {
+        $ref->{group} = &Groups('get',$args{group}[0]);
+        #$json_data{security}{groups} = 
+        $found = 1;
+    }
+    if (!$found) {
+        $ref = ${&Groups('getall')};   
+    }
+    print Dumper $ref;
+    $json_data{security} = $ref if (defined $ref);
+    #$json_data{security} = ${$ref} if (defined ${$ref});
+    #print Dumper $json_data{security};
+    }
+
     # List subroutines
     if ( $path[0] eq 'subs' || $path[0] eq '' ) {
         my $name;
@@ -770,6 +911,48 @@ sub json_get {
             my $iref = ${$ref}{$key};
             $json_data{subs}{$key} = &json_walk_var( $iref, $key, ('CODE') );
         }
+    }
+
+    # List triggers
+    if ( $path[0] eq 'triggers' || $path[0] eq '' ) {
+        &_triggers_save; #clean up triggers before sending
+        #group by type
+        my @dataset       = ();
+        
+        for my $name (
+        sort {
+            my $t1 = $triggers{$a}{type};
+            my $t2 = $triggers{$b}{type};
+            $t1 = 0 if $t1 eq 'OneShot';
+            $t2 = 0 if $t2 eq 'OneShot';
+            $t1 = 1 if $t1 eq 'NoExpire';
+            $t2 = 1 if $t2 eq 'NoExpire';
+            $t1 = 2 if $t1 eq 'Expired';
+            $t2 = 2 if $t2 eq 'Expired';   
+            $t1 = 3 if $t1 eq 'Disabled';
+            $t2 = 3 if $t2 eq 'Disabled';                     
+            $t1 cmp $t2 or lc $a cmp lc $b
+        } keys %triggers
+      )
+    {
+        my ( $trigger, $code, $type, $triggered, $trigger_error, $code_error ) = trigger_get($name);
+        my %data;
+        $data{name} = $name;
+        $data{trigger} = $trigger;
+        $data{type} = $type;
+        $data{code} = $code;
+        if ($triggered) {
+            $data{triggered_ms} = $triggered;
+            $data{triggered} = &time_date_stamp( 12, $triggered );            
+            $data{triggered_rel} = &time_date_stamp( 23, $triggered );
+           }
+        push @dataset, \%data;
+        }
+        my %data2;
+        $data2{data}  = \@dataset;
+        $data2{options}{code} = ["speak","play","display","print_log","set","run","run_voice_cmd","net_im_send","net_mail_send"];
+        $data2{options}{trigger} = ["time_now","time_cron","time_random","new_second","new_minute","new_hour",'$New_Hour','$New_Day','$New_Week','$New_Month','$New_Year'];
+        $json_data{'triggers'} = \%data2;
     }
 
     # List packages

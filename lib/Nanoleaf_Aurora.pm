@@ -1063,8 +1063,6 @@ sub check_static {
 sub is_rhythm_effect {
     my ( $self) = @_;
     my $return = 0;
-    print "DB \$self->{data}->{info}->{rhythm}->{rhythmActive} = $self->{data}->{info}->{rhythm}->{rhythmActive}\n";
-    print "DB \$self->{data}->{info}->{rhythm}->{rhythmMode} = $self->{data}->{info}->{rhythm}->{rhythmMode}\n";
     $return = 1 if ($self->{data}->{info}->{rhythm}->{rhythmActive});
     
     return $return;

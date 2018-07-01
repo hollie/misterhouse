@@ -1,5 +1,6 @@
 
-var ia7_ver = "v1.6.700";
+var ia7_ver = "v2.0.670";
+var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -12,17 +13,66 @@ var speech_banner;
 var audio_init;
 var audioElement = document.getElementById('sound_element');
 var authorized = "false";
+var admin = "false";
 var developer = false;
 var show_tooltips = true;
 var rrd_refresh_loop;
 var stats_loop;
-var stat_refresh = 60;
 var fp_popover_close = true ;
 var dev_changes = 0;
 var config_modal_loop;
+var zm_init = undefined;
+var req_errors = {};
+
+var stat_refresh = 60;
+var error_retry = 10; //seconds to retry if an error was found in ajax request
 
 var ctx; //audio context
 var buf; //audio buffer
+
+//'Dynamic' modules. To enable the main collection screen to display as quick as possible
+// load all modules not needed to display until after the collection screen.
+var modules = {};
+modules.zoneminder = {};
+modules['zoneminder'].loaded = 0
+modules['zoneminder'].script = ["zm.js"];
+
+modules.object = {};
+modules['object'].loaded = 0;
+modules['object'].script = ["jqCron.js"];
+modules['object'].css = ["jqCron.css","bootstrap-datepicker3.standalone.min.css"];
+modules['object'].callback = function (){loadModule("object2")};
+modules.object2 = {};
+modules['object2'].loaded = 0;
+modules['object2'].script = ["jqCron.en.js","bootstrap-datepicker.min.js"];
+
+modules.init = {};
+modules['init'].loaded = 0;
+modules['init'].script = ["jquery.alerts.js","jquery.ui.touch-punch.0.2.3.min.js","ia7_prefs.json"];
+modules['init'].css = ["jquery.alerts.css"];
+
+modules.edit = {};
+modules['edit'].loaded = 0;
+modules['edit'].script = ["bootstrap3-editable.1.5.0.min.js"];
+modules['edit'].css = ["bootstrap3-editable.1.5.0.css"];
+
+modules.rrd = {}
+modules['rrd'].loaded = 0;
+modules['rrd'].script = ["jquery.flot.min.js"];
+modules['rrd'].callback = function (){loadModule("rrd2")};
+modules.rrd2 = {}
+modules['rrd2'].loaded = 0;
+modules['rrd2'].script = ["jquery.flot.time.min.js","jquery.flot.resize.min.js","jquery.flot.selection.min.js"];
+
+modules.tables = {};
+modules['tables'].loaded = 0;
+modules['tables'].css = ["tables.css"];
+
+modules.developer = {};
+modules['developer'].loaded = 0;
+modules['developer'].script = ["fontawesome-iconpicker.min.js"];
+modules['developer'].css = ["fontawesome-iconpicker.min.css"];
+
 
 //Takes the current location and parses the achor element into a hash
 function URLToHash() {
@@ -143,6 +193,7 @@ function changePage (){
 			success: function( json ) {
 				JSONStore(json);
 				changePage();
+                zoneminder();
 			}
 		});
 	} else {
@@ -223,29 +274,36 @@ function changePage (){
 			dataType: "json",
 			success: function( json ) {
 				JSONStore(json);
+				if (json.data.meta !== undefined && json.data.meta.version !== undefined) coll_ver = json.data.meta.version;				
 				changePage();
 			}
 		});
 	} 
 	else {
+	    // remove the loader if present
+	    $('#loader').hide();
 		// Check for authorize
 		authDetails();
 		// Clear Options Entity by Default
 		$("#toolButton").attr('entity', '');
-		
+        //stop the RRD timer if we're not on the graph_rrd page
+        if ($('#top-graph').length == 0) clearTimeout(rrd_refresh_loop);		
 		// Remove the RRD Last Updated 
 		$('#Last_updated').remove();
 				
 		//Trim leading and trailing slashes from path
 		var path = URLHash.path.replace(/^\/|\/$/g, "");
-		if (path.indexOf('objects') === 0){
-			loadList();
+		if (path.indexOf('objects') === 0){		
+            loadModule('object');
+            loadModule('rrd'); //for some reason flot.resize CSS is leveraged in the schedule CSS
+            loadList();		
 		}
 		else if ((path.indexOf('vars') === 0) || (path.indexOf('vars_global') === 0) || (path.indexOf('vars_save') === 0)){
 			loadVars();
 		}
 		else if (path.indexOf('prefs') === 0){
 			var pref_name = path.replace(/\prefs\/?/,'');
+            loadModule('developer');
 			loadPrefs(pref_name);
 		}		
 		else if(URLHash._request == 'page'){
@@ -255,13 +313,10 @@ function changePage (){
 				args = args.replace(/\=undefined/img,''); //HP sometimes arguments are just items and not key=value...
 				link += "?"+args;
 			}
-
 			$.get(link, function( data ) {
-				
 				$('#list_content').html("<div id='buffer_page' class='row top-buffer'>");
 				$('#buffer_page').append("<div id='row_page' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 mh-page-link'>");
-				parseLinkData(link,data); //remove css & fix up Mr.House setup stuff
-		
+				parseLinkData(link,data); //remove css & fix up Mr.House setup stuff	
 			});
 		}
 		else if(path.indexOf('print_log') === 0){
@@ -271,24 +326,47 @@ function changePage (){
 			print_log("speak");
 		}
 		else if(path.indexOf('display_table') === 0){
+            loadModule('tables');
 			var path_arg = path.split('?');
 			display_table(path_arg[1]);
 		}	
 		else if(path.indexOf('floorplan') === 0){
 			var path_arg = path.split('?');
+            loadModule('object');
 			floorplan(path_arg[1]);
 		}
 		else if(path.indexOf('rrd') === 0){
 			var path_arg = path.split('?');
-			graph_rrd(path_arg[1],path_arg[2]);
+			//a bit of a kludge, ensure that rrd2 is loaded before loading graph_rrd
+			if  (modules['rrd2'].loaded == 0) {
+			    modules['rrd2'].callback = function (){graph_rrd(path_arg[1],path_arg[2]);};			
+                loadModule('rrd');
+            } else {
+			    graph_rrd(path_arg[1],path_arg[2]);
+			}
 		}
 		else if(path.indexOf('history') === 0){
 			var path_arg = path.split('?');
 			object_history(path_arg[1],undefined,path_arg[2]);
 		}					
-		else if(URLHash._request == 'trigger'){
-			trigger();
+//		else if(URLHash._request == 'trigger' ||path.indexOf('trigger') === 0){
+		else if(path.indexOf('trigger') === 0){
+		    if (modules['edit'].loaded == 0) {
+		        modules['edit'].callback = function (){trigger();};
+			    loadModule('edit');
+			} else {
+			    trigger();
+			}
 		}
+		else if(path.indexOf('security') === 0){
+		    loadModule('tables');
+		    if (modules['edit'].loaded == 0) {
+		        modules['edit'].callback = function (){security();};
+			    loadModule('edit');
+			} else {
+			    security();
+			}		
+		}		
 		else { //default response is to load a collection
 			loadCollection(URLHash._collection_key);
 		}
@@ -350,7 +428,12 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
 			dataType: "json",
 			success: function( json ) {
 				config_data = json.data;
-			}
+		        ajax_req_success("prefs");				
+			},
+            error: function( xhr, status, error ){
+                ajax_req_error(xhr,status,error,"prefs");
+                setTimeout(function(){ loadPrefs(config_name)},error_retry * 1000);
+          }
 		});
 	}		
 	html += "<th colspan='2'>"+ config_name + "_config.json </th></tr></thead><tbody>";
@@ -423,12 +506,9 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
      }); 
                  
      function update_pref_array () {
-//        console.log("update pref array");
         $('.config-edit').each( function () {
             var item = $(this).attr('id');
             var value = $(this).val();
-//            console.log("id="+$(this).attr('id'));
-//            console.log("val="+$(this).val());
             json_store.ia7_config.prefs[item] = value;
         });
         changePage();        
@@ -448,7 +528,6 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
           //after apply and cancel change the cancel button text to close
            $.ajax({
                url: "/json/ia7_config",
-//what data is returned?                  dataType: 'json',
                type: 'post',
                contentType: 'application/json',
                data: JSON.stringify(json_store.ia7_config),
@@ -489,6 +568,266 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
      }); 
 }
 
+function security (){ 
+//users name, status, password, groups
+//groups name, commands
+
+	$('#list_content').html("<div id='security_table' class='row top-buffer'>");
+	$('#security_table').append("<div id='sectable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-12 col-xs-offset-0'>");
+//	$('#prefs_table').append("<div id='prtable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
+	var html = "<table class='table table-curved'><thead><tr>";
+    $.ajax({
+        type: "GET",
+        url: "/json/security",
+        dataType: "json",
+        success: function( json ) {
+            var data = json.data;
+            var row = 0;
+            var group_data = [];
+            var group_pos = {};
+            var user_data = [];
+            var user_pos = {};
+            ajax_req_success("security");
+            html += "<th colspan='4'> Security Details </th></tr></thead><tbody>";
+            //build group_data and user_data structures so that we can get the proper array #s
+            for (var z in data) {
+                for (var y in data[z]) {
+                    if (z == "group") {
+                        group_data.push({value:group_data.length+1,text:y});
+                        group_pos[y] = group_data.length;
+                    }
+                    if (z == "user") {
+                        user_data.push({value:user_data.length+1,text:y}); 
+                        user_pos[y] = user_data.length;
+                    }    
+                }
+            }                                          
+            for (var i in data){
+                console.log("sec="+i);
+                if (i == "group") {
+                    html += "<tr class='info'><td colspan='4'><b>"+ i + "</b></td></tr>";
+                    //if data[i].length > 0 otherwise print no group data found
+                    html += "<tr class='security_header'><td>Group Name</td><td>Status</td><td>Members</td><td>Commands</td><tr>";
+
+                    for (var j in data[i]) {
+                        var status = "disabled";
+                        row++;
+                        if (data[i][j].status !== undefined && data[i][j].status == 1) status = "enabled";
+                        var members = "";
+                        var commands = ""
+                        if (data.user !== undefined) {
+                            for (var x in data.user) {
+                                //get user_data positions [1,3]
+                                if (data.user[x][j] !== undefined && data.user[x][j] == 1) members += user_pos[x]+",";
+                            } 
+                        }
+                        members = members.slice(0, -1); //remove the last comma if it exists
+                        members = "[" + members + "]";
+                        if (data[i][j].cmd !== undefined) {
+                            for (var y = 0; y < data[i][j].cmd.length; y++) {
+                                commands += data[i][j].cmd[y]+"<br>";
+                            }
+                        }
+                        if (commands == "") commands = "No Commands Defined";   
+                        html += "<tr><td style='padding-left:25px'>"+j+"</td><td><a id='status_"+row+"' data-name='group_"+j+"' data-value='"+status+"'>"+status+"</a></td><td><a id='grp_members_"+row+"' data-value='"+members+"' data-name='group_"+j+"'></a></td><td><a id='grp_cmds_"+row+"' data-name='group_"+j+"'>"+commands+"</a></td><tr>";
+                    }
+                    html += "<tr><td colspan='4'><button class='btn btn-default security-add add-group'>Add Group</button></td><tr>";  
+                    row++;
+                    html += "<tr id='new_group' style='display: none;' row='"+row+"'><td><input id='group_name' type='text' class='form-control' placeholder='Group Name'></td><td><a id='grp_members_"+row+"' data-name='group_new'></a></td><td><a id='grp_cmds_"+row+"' data-name='group_new'></a></td><td><button class='btn btn-default security-submit security-group'>Submit</button></td><td colspan='3'></td><tr>";  
+                } else if (i == "user") {
+                    html += "<tr class='info'><td colspan='4'><b>"+ i + "</b></td></tr>";
+                    html += "<tr class='security_header'><td>Username</td><td>Status</td><td>Password</td><td colspan='2'>Groups</td><tr>";
+                
+                     for (var j in data[i]) {
+                        row++;
+                        var groups="";
+                        for (var p in data.user[j]) {
+                            console.log(p + ":" + data.user[j][p] + "<br>");
+                            groups += group_pos[p]+",";
+                        }
+                        groups = groups.slice(0,-1);
+                        groups = "[" + groups + "]";
+                        html += "<tr><td style='padding-left:25px'>"+j+"</td><td><a id='status_"+row+"' data-name='user_"+j+"' data-value='enabled'>enabled</a></td><td><a id='password_"+row+"' data-name='user_"+j+"'>[hidden]</a></td><td colspan='2'><a id='usr_groups_"+row+"' data-value='"+groups+"' data-name='user_"+j+"'></a></td><tr>";
+                    }    
+                    html += "<tr><td colspan='4'><button class='btn btn-default security-add add-user'>Add User</button></td><tr>";                                           
+                    row++;
+                    html += "<tr id='new_user' style='display: none;' row='"+row+"'><td><input id='user_name' type='text' class='form-control' placeholder='User Name'></td><td><input id='user_password' type='password' class='form-control' placeholder='Password'></td><td><a id='usr_groups_"+row+"' data-name='user_new'></a></td><td><button class='btn btn-default security-submit security-user'>Submit</button></td><tr>";  
+
+                }
+                 
+            }
+            html += "</tbody></table></div>";
+	        $('#sectable').html(html);	
+            $.fn.editable.defaults.mode = 'inline';
+            $.fn.editable.defaults.ajaxOptions = {contentType: 'application/json'};
+            $.fn.editable.defaults.params = function(params) {return JSON.stringify(params);};
+            $.fn.editable.defaults.url = '/json/security';			
+//                if (admin === "true") {
+            $.fn.editable.defaults.disabled = false;
+//                } else {
+//                    $.fn.editable.defaults.disabled = true;          
+//                } 
+            
+	        for (var entry = 1; entry < row + 1; entry++) {
+                $('#password_'+entry).editable({
+                    type: 'password',
+                    pk: 'password',
+                    title: 'Password'
+                });
+                $('#usr_groups_'+entry).editable({
+                    type: 'checklist',
+                    pk: 'usr_groups',
+                    mode: 'popup',
+                    showbuttons: 'bottom',
+                    source: group_data,
+                    title: 'Select Groups',
+                    params: function (params) {
+                        //send a value2 so that MH can see the name of the group rather than the IA7 number index
+                        params.value2 = [];
+                        for (var i in params.value) {
+                            params.value2.push(group_data[params.value[i]-1].text);
+                        }
+                        return JSON.stringify(params);
+                    }
+                });  
+                $('#grp_cmds_'+entry).editable({
+                    type: 'text',
+                    pk: 'grp_cmds',
+                    title: 'Enter Commands'
+                });  
+                $('#grp_members_'+entry).editable({
+                    type: 'checklist',
+                    pk: 'grp_members',
+                    mode: 'popup',
+                    showbuttons: 'bottom',                    
+                    source: user_data,
+                    title: 'Select Users',
+                    params: function (params) {
+                        //send a value2 so that MH can see the name of the group rather than the IA7 number index
+                        params.value2 = [];
+                        for (var i in params.value) {
+                            params.value2.push(user_data[params.value[i]-1].text);
+                        }
+                        return JSON.stringify(params);
+                    }                    
+                });                                               
+                $('#status_'+entry).editable({
+                    type: 'select',
+                    showbuttons: false,
+                    pk: 'type',
+                    title: 'Status',
+                    display: function(value, sourceData) {
+                        var colors = {"disabled": "gray", "enabled": "green", "delete": "red"},
+                        elem = $.grep(sourceData, function(o){return o.value == value;});
+                 
+                        if(elem.length) {    
+                            $(this).text(elem[0].text).css("color", colors[value]); 
+                        } else {
+                            $(this).empty(); 
+                        }
+                    },  
+                    source: [{value: "disabled", text: "disabled"}, {value: "enabled", text: "enabled"}, {value: "delete", text: "delete"}],
+                    success: function() { changePage(); }
+                });	
+            }	
+            $('.security-add').off('click').on('click', function(){
+				    var name = '#new_group';
+				    var button = '.add-group';
+				    var text = 'Add Group';
+				    if ($(this).hasClass('add-user')) {
+				        name = '#new_user';
+				        button = '.add-user';
+				        text = 'Add User';
+				    }
+                    if ($(name).is(":visible")) {
+                        $(button).text(text);
+                        $(name).hide();
+                    } else {
+                        $(button).text('Cancel');
+                        $(name).show();
+                    }
+            });
+            $('.security-submit').off('click').on('click', function(){   
+                console.log("submit");                                                  
+                var data = {};
+                var name = '#new_group';
+                var pk = 'add_group';
+                var entity_name = '#group_name';
+                if ($(this).hasClass('security-user')) {
+                    name = '#new_user';
+                    pk = 'add_user';
+                    entity_name = '#user_name';
+                }                
+                var row = $(name).attr("row");
+                data.pk = pk;
+                data.name = $(entity_name).val();
+                if (data.name == '') {
+                    $(entity_name).css('border-color', 'red');
+                    console.log('return1'+entity_name);
+                    return
+                } else {
+                    $(entity_name).css('border-color', '');
+                }           
+                if (pk == 'add_group') {
+                    var members = $('#grp_members_'+row).editable('getValue').group_new;
+                    data.members = [];
+                    for (var i in members) {
+                            data.members.push(user_data[members[i]-1].text);
+                    }
+                    data.cmds = $('#grp_cmds_'+row).editable('getValue').group_new; 
+                } else {
+                    var groups = $('#usr_groups_'+row).editable('getValue').user_new;
+                    data.groups = [];
+                    console.log("g="+JSON.stringify(groups));
+                    for (var i in groups) {
+                            data.groups.push(group_data[groups[i]-1].text);
+                    }                    
+                    data.password = $('#user_password').val();
+                    if (data.password == '') {
+                        $('#user_password').css('border-color', 'red');
+                        return
+                    } else {
+                        $('#user_password').css('border-color', '');
+                    }
+                    data.submit = "true";                     
+                }
+                console.log("row="+row+" data="+JSON.stringify(data)); 
+                $.ajax({
+                    url: "/json/security",
+                    type: 'post',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function( data, status, error ){
+                        console.log("security success data="+data+" status="+status+" error="+error);  
+                        if (data.status !== undefined || data.status == "error") {
+                            console.log("error!");
+                        } else {   
+                            console.log("success!"); 
+                            //changePage(); //reload data
+                            //$('.security-add-submit').show();
+                            //remove all data in the forms
+                            //$('#new_group').hide();
+                            //$('#name').val('');
+                            //$('#name').css('border-color', '');
+                            changePage();
+                        }
+                    },
+                    error: function( xhr, status, error ) {
+                        console.log("security failure status="+status+" error="+error);  
+                        something_went_wrong("Security","Communication probem sending group details");  
+                    }
+                });
+            });
+            
+        },
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"security");
+            //setTimeout(function(){ loadPrefs(config_name)},error_retry * 1000);
+        }
+    });		
+}
+
+
 function parseLinkData (link,data) {
 
 	data = data.replace(/<link[^>]*>/img, ''); //Remove stylesheets
@@ -524,15 +863,9 @@ function parseLinkData (link,data) {
 		data = data.replace(/<a href=\"\/bin\/iniedit.pl\">Back<\/a>/img,'<a onclick=\"changePage()\">Back<\/a>');
 	
 		//replace the back button with a reload
-	}	
-	if (link == "/bin/triggers.pl") { //fix links in the triggers modules
-		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
-		data = data.replace(/href=\/bin\/triggers.pl/img, 'onclick="changePage()"');
-		data = data.replace(/\(<a name=.*?>back to top<\/a>\)/img, '');
-		data = data.replace(/Trigger Index:/img,'');
-		data = data.replace(/<a href='#.+?'>.*?<\/a>/img,'');
-		data = data.replace(/input name='resp' value="\/bin\/triggers.pl"/img, 'input name=\'resp\' value=\"/ia7/#_request=page&link=/bin/triggers.pl&'+coll_key+'\"');
-	}				
+	}
+	//removed triggers link parsing code	
+				
 	if (link == "/ia5/news/main.shtml") { //fix links in the email module 1
 		var coll_key = window.location.href.substr(window.location.href.indexOf('_collection_key'))
 		data = data.replace(/<a href='\/email\/latest.html'>Latest emails<\/a>/img,'');
@@ -561,6 +894,7 @@ function parseLinkData (link,data) {
 		});							
 	}
 	data = data.replace(/replace_current_ia7_version/img,ia7_ver); //this should really be a jquery call			
+	data = data.replace(/replace_current_collection_version/img,coll_ver); //this should really be a jquery call			
 	data = data.replace(/href="\/bin\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function
 	data = data.replace(/href="\/SET_PASSWORD"/img,'onclick=\'authorize_modal("0")\''); //Replace old password function 
 //TODO clean up this regex?
@@ -624,8 +958,9 @@ function parseLinkData (link,data) {
 		e.preventDefault();
 		var url = $(this).attr('href');
 		url = url.replace(/;(.*?)\?/,'?');
-		$.get( url, function(data) {
-		});
+		$.get(url).fail(function() {
+            something_went_wrong("Command","Communication issue with Misterhouse");                        
+        });
 		changePage();
 	});
 }
@@ -891,20 +1226,22 @@ var loadList = function() {
 						    show: true
 					    });
 					}
-				});
+				}).fail(function() {
+                    something_went_wrong("Voice Command","Communication issue with Misterhouse");                        
+                });;
 			});
-            $(".btn-state-cmd").click( function () {
-                var entity = $(this).attr("entity");
-                if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
-                    if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
+			$(".btn-state-cmd").click( function () {
+				var entity = $(this).attr("entity");
+				if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                	if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
                         direct_control(entity);
-                    } else {
-                        create_state_modal(entity);
-                    }
-                } else {
-                    create_state_modal(entity);
-                }
-            });
+                	} else {
+                		create_state_modal(entity);
+                	}
+				} else {				
+					create_state_modal(entity);
+				}
+			});
 			$(".btn-state-cmd").mayTriggerLongClicks().on( 'longClick', function() {		
 				var entity = $(this).attr("entity");
 				create_state_modal(entity);
@@ -953,7 +1290,7 @@ var getButtonColor = function (state) {
 	} else if (state == "cooling" || state == "cool") {
 		 color = "info";
 	}
-	if (json_store.ia7_config.state_colors !== undefined
+	if (json_store.ia7_config !== undefined && json_store.ia7_config.state_colors !== undefined
             && json_store.ia7_config.state_colors[state] !== undefined) {
 		color = "purple";
 		if (json_store.ia7_config.state_colors[state] == "green") {
@@ -1091,15 +1428,21 @@ var updateList = function(path) {
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
 		dataType: "json",
-		success: function( json, textStatus, jqXHR) {
+		success: function( json, textStatus, jqXHR) {		
 			if (jqXHR.status == 200) {
+				ajax_req_success("objects");
 				JSONStore(json);
 				for (var entity in json.data){
 					if (json.data[entity] === undefined && json.data[entity].type === undefined){
 						// This is not an entity, skip it
 						continue;
 					}
-					var color = getButtonColor(json.data[entity].state);
+					var color;
+					if (json.data[entity].state === undefined) {
+					    color = "default";
+					} else {
+					    color = getButtonColor(json.data[entity].state);
+					}
 					$('button[entity="'+entity+'"]').find('.pull-right').text(
 						json.data[entity].state);
 					$('button[entity="'+entity+'"]').removeClass("btn-default");
@@ -1120,7 +1463,11 @@ var updateList = function(path) {
 					updateList(path);
 				}
 			}
-		} // End success
+		}, // End success
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"objects");
+            setTimeout(function(){ updateList(path)},error_retry * 1000);
+        }
 	});  //ajax request
 };//loadlistfunction
 
@@ -1146,6 +1493,7 @@ var updateItem = function(item,link,time) {
 		success: function( json, textStatus, jqXHR) {
 			var requestTime = time;
 			if (jqXHR.status == 200) {
+				ajax_req_success("update_item");			
 				JSONStore(json);
 				requestTime = json_store.meta.time;
 				var color = getButtonColor(json.data[item].state);
@@ -1167,7 +1515,11 @@ var updateItem = function(item,link,time) {
 				updateItem(item,URLHash.link,requestTime);
 				}
 			}
-		} // End success
+		}, // End success
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"update_item");
+            setTimeout(function(){ updateItem(item,URLHash.link,time)},error_retry * 1000);
+      }		
 	});  //ajax request
 }
 
@@ -1197,61 +1549,70 @@ var updateStaticPage = function(link,time) {
 	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
 	var arg_str = "fields=state%2Cstates%2Cstate_log%2Cschedule%2Clogger_status%2Clabel&long_poll=true&items="+items+"&time="+time;
 
-    updateSocket = $.ajax({
-        type: "GET",
-        url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
-        dataType: "json",
-        success: function( json, textStatus, jqXHR) {
-            var requestTime = time;
-            if (jqXHR.status == 200) {
-                JSONStore(json);
-                requestTime = json_store.meta.time;
-                $('button[entity]').each(function(index) {
-                    if ($(this).attr('entity') != '' && json.data[$(this).attr('entity')] != undefined ) { //need an entity item for this to work.
-                        entity = $(this).attr('entity');
-                        var color = getButtonColor(json.data[entity].state);
-                        $('button[entity="'+entity+'"]').find('.pull-right').text(json.data[entity].state);
-                        $('button[entity="'+entity+'"]').removeClass("btn-default");
-                        $('button[entity="'+entity+'"]').removeClass("btn-success");
-                        $('button[entity="'+entity+'"]').removeClass("btn-warning");
-                        $('button[entity="'+entity+'"]').removeClass("btn-danger");
-                        $('button[entity="'+entity+'"]').removeClass("btn-info");
-                        $('button[entity="'+entity+'"]').addClass("btn-"+color);
-                        if (json_store.ia7_config.objects[entity] !== undefined && 
-                            json_store.ia7_config.objects[entity].direct_control !== undefined && 
-                            json_store.ia7_config.objects[entity].direct_control == "yes") $('button[entity="'+entity+'"]').addClass("btn-direct");
-
-                        //don't run this if stategrp0 exists	
-                        if (states_loaded == 0) {
-                            $('button[entity="'+entity+'"]').click( function () {
-                                var entity = $(this).attr("entity");
-                                if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
-                                    if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
+	updateSocket = $.ajax({
+		type: "GET",
+		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+		dataType: "json",
+		success: function( json, textStatus, jqXHR) {
+			var requestTime = time;
+			if (jqXHR.status == 200) {
+				ajax_req_success("static_page");						
+				JSONStore(json);
+				requestTime = json_store.meta.time;
+				$('button[entity]').each(function(index) {
+					if ($(this).attr('entity') != '' && json.data[$(this).attr('entity')] != undefined ) { //need an entity item for this to work.
+						entity = $(this).attr('entity');
+						var color = getButtonColor(json.data[entity].state);
+						$('button[entity="'+entity+'"]').find('.pull-right').text(json.data[entity].state);
+						$('button[entity="'+entity+'"]').removeClass("btn-default");
+						$('button[entity="'+entity+'"]').removeClass("btn-success");
+						$('button[entity="'+entity+'"]').removeClass("btn-warning");
+						$('button[entity="'+entity+'"]').removeClass("btn-danger");
+						$('button[entity="'+entity+'"]').removeClass("btn-info");
+						$('button[entity="'+entity+'"]').addClass("btn-"+color);
+						if (json_store.ia7_config.objects[entity] !== undefined && 
+						    json_store.ia7_config.objects[entity].direct_control !== undefined && 
+						    json_store.ia7_config.objects[entity].direct_control == "yes") $('button[entity="'+entity+'"]').addClass("btn-direct");
+						
+						//don't run this if stategrp0 exists	
+						if (states_loaded == 0) {
+			                $('button[entity="'+entity+'"]').click( function () {
+								var entity = $(this).attr("entity");
+								if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                					if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
                                         direct_control(entity);
-                                    } else {
-                                        create_state_modal(entity);
-                                    }
-                                } else {
-                                    create_state_modal(entity);
-                                }
-                        });
-                        }
-                    }
-                    generateTooltips();
-
-                });
-            }
-            if (jqXHR.status == 200 || jqXHR.status == 204) {
-                //Call update again, if page is still here
-                //KRK best way to handle this is likely to check the URL hash
-                if (URLHash.link == link || link == undefined){
-                    //While we don't anticipate handling a list of groups, this
-                    //may error out if a list was used
-                    updateStaticPage(URLHash.link,requestTime);
-                }
-            }
-        }
-    });
+                					} else {
+                					create_state_modal(entity);
+                					}
+								} else {				
+									create_state_modal(entity);
+								}
+							});
+                            $('button[entity="'+entity+'"]').mayTriggerLongClicks().on( 'longClick', function() {		        
+                                var entity = $(this).attr("entity");
+                                create_state_modal(entity);
+                            });								
+						}																
+					}
+					generateTooltips();
+			
+				});
+			}
+			if (jqXHR.status == 200 || jqXHR.status == 204) {
+				//Call update again, if page is still here
+				//KRK best way to handle this is likely to check the URL hash
+				if (URLHash.link == link || link == undefined){
+					//While we don't anticipate handling a list of groups, this 
+					//may error out if a list was used
+					updateStaticPage(URLHash.link,requestTime);
+				}
+			}
+		},
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"static_page");
+            setTimeout(function(){ updateStaticPage(URLHash.link,time)},error_retry * 1000);
+      } 
+	});  
 }
 
 function authDetails() {
@@ -1269,8 +1630,10 @@ function authDetails() {
     			json_store.collections[700].icon = "fa-unlock";   		   		
     			authorized = "true";
     			$(".fa-gear").css("color", "green");
+    			admin = "false";
     			if (json_store.collections[700].user == "admin") {
         			$(".fa-gear").css("color", "purple");
+        			admin = "true";
 				}
    			}
    		}
@@ -1289,13 +1652,13 @@ var direct_control = function (entity){
             return false;
         }
     }
-    else
+   else
     {
         if (dc_states.length !== 2)
         {
-            something_went_wrong("direct_control", "Bad 'direct_control_states' configuration for '"+entity+"' in ia7_config.json. "+
+          something_went_wrong("direct_control", "Bad 'direct_control_states' configuration for '"+entity+"' in ia7_config.json. "+
                 "'direct_control_states' needs exactly 2 entries. E.g:"+
-                "<code>" + 
+               "<code>" + 
                 "    \""+entity+"\" : {\n" +
                 "        \"direct_control_states\": [\n" +
                 "            \"on\",\n" +
@@ -1312,9 +1675,13 @@ var direct_control = function (entity){
     var current_state = json_store.objects[entity].state;
     var new_state = current_state != states[0] ? states[0] : states[1];
     url= '/SET;none?select_item='+entity+'&select_state='+new_state;
-    $.get( url);
+    $.get(url).fail(function() {
+        something_went_wrong("Command","Communication issue with Misterhouse");                        
+    });;
     return true;
 };
+
+
 	
 //Prints all of the navigation items for Ia7
 var loadCollection = function(collection_keys) {
@@ -1358,7 +1725,8 @@ var loadCollection = function(collection_keys) {
 				});
 			} else {
                 var btn_direct = "";
-                if (json_store.ia7_config.objects !== undefined 
+                if ( json_store.ia7_config !== undefined
+                        && json_store.ia7_config.objects !== undefined 
                         && json_store.ia7_config.objects[item] !== undefined
                         && json_store.ia7_config.objects[item].direct_control !== undefined 
                         && json_store.ia7_config.objects[item].direct_control == "yes") {
@@ -1433,8 +1801,16 @@ var loadCollection = function(collection_keys) {
 		column++;
 	}
 	
+	//Main Screen is displayed, so load all secondary scripts
+    loadModule('init');
+    loadModule('object');
+    loadModule('tables');
+    loadModule('rrd');
+    loadModule('edit');
+
 	generateTooltips();	
 
+    
     //turn on long clicks on all buttons if in developer mode
 //TODO error checking on fields
 	$('.btn').mayTriggerLongClicks().on( 'longClick', function() {		
@@ -1465,22 +1841,23 @@ var loadCollection = function(collection_keys) {
                 create_state_modal(entity);
             }
         });
-        
-        $(".btn-state-cmd").mayTriggerLongClicks().on( 'longClick', function() {		
+
+        $(".btn-state-cmd").mayTriggerLongClicks().on( 'longClick', function() {		        
             var entity = $(this).attr("entity");
             create_state_modal(entity);
         });						
 			
 		$('.btn-resp-modal').click( function () {			
 			var url = $(this).attr('href');
-			alert("resp-model. opening url="+url);
 			$.get( url, function(data) {
 				var start = data.toLowerCase().indexOf('<body>') + 6;
 				var end = data.toLowerCase().indexOf('</body>');
 				$('#lastResponse').find('.modal-body').html(data.substring(start, end));
 				$('#lastResponse').modal({
 					show: true
-				});
+				}).fail(function() {
+                    something_went_wrong("Command","Communication issue with Misterhouse");                        
+                });
 			});
 		});	
 			
@@ -1488,6 +1865,7 @@ var loadCollection = function(collection_keys) {
         console.log("items="+items);
 		updateItem(items);
 	}	
+    loadModule('developer');
 	
 };
 
@@ -1545,6 +1923,7 @@ var print_log = function(type,time) {
 		success: function( json, statusText, jqXHR ) {
 			var requestTime = time;
 			if (jqXHR.status == 200) {
+		        ajax_req_success("print_log");			
 				JSONStore(json);
 				for (var i = (json.data.length-1); i >= 0; i--){
 					var line = String(json.data[i]);
@@ -1561,27 +1940,32 @@ var print_log = function(type,time) {
 					print_log(type,requestTime);
 				}
 			}		
-		}
+		},
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"print_log");
+            setTimeout(function(){ print_log(type,time)},error_retry * 1000);
+      } 
 	});
 };
 
-var something_went_wrong = function(module,text) {
+var something_went_wrong = function(module,text,fadeout) {
 
     if ((json_store.ia7_config.prefs.show_errors !== undefined) &&  json_store.ia7_config.prefs.show_errors == "yes") {
 
-       var type = "danger";
+       var type = "dark";
        var mobile = "";
        if ($(window).width() <= 768) { // override the responsive mobile top-buffer
            mobile = "mobile-alert";
        }
-       var html = "<div class='alert-err alert "+mobile+" alert-" + type + " fade in' data-alert>";
-       html += "<button type='button' class='close' data-dismiss='alert'>x</button>";
-       html += "<div class=''>";
-       html += "<i class='fa fa-exclamation-triangle icon-2-5x fa-fw pull-left'></i>";
-       html += "<div class='sww-text'>";
-       html += "<h3 class='sww-text-msg'>ERROR</h3>" + module + " : " + text + " </div></div></div>";
+       var html = "<div class='alert sww-background fade in "+mobile+"' data-alert>";
+       //if fadeout is -1 then don't display data-dismiss?
+       if (fadeout == undefined || (fadeout !== undefined && fadeout !== 0)) html += "<button type='button' class='close' data-dismiss='alert'><span style='color:white'>x</span></button>";
+       html += "<div>";
+       html += "<i class='fa fa-2x fa-times-circle fa-fw pull-left' style='color:red'></i>";
+       html += "<span class='sww-text lead'>"+module + " : " + text + " </span></div></div>";
     
-       $("#alert-area").prepend($(html));
+       $("#alert-area").append($(html));
+       if (fadeout !== undefined && fadeout !== 0) $(".sww-background").delay(fadeout).fadeOut("slow", function () { $(this).remove(); });
        
     } else {
     
@@ -1598,6 +1982,7 @@ var get_stats = function(tagline) {
 		url: "/json/misc",
 		dataType: "json",
 		success: function( json, statusText, jqXHR  ) {
+		    ajax_req_success("stats");		
 			if (jqXHR.status == 200) {
 			    $('.tagline').text(json.data.tagline);
 			    var load_avg = "";
@@ -1671,7 +2056,11 @@ var get_stats = function(tagline) {
 				stats_loop = setTimeout(function(){
 					    get_stats();
 					}, stat_refresh * 1000);			}
-		}
+		},
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"stats");
+            setTimeout(function(){ get_stats()},error_retry * 1000);
+      } 
 	});
 }
 
@@ -1743,20 +2132,23 @@ var get_wi_icon = function (conditions,rain,snow,night) {
 
 
 var get_notifications = function(time) {
-	if (time === undefined) time = new Date().getTime();
 	if (updateSocketN !== undefined && updateSocketN.readyState != 4){
 		// Only allow one update thread to run at once
 		console.log ("Notify aborted "+updateSocketN.readyState);
 		updateSocketN.abort();
 	}
+	if (time === undefined) time = new Date().getTime(); //this triggers on failure.
 	var arg_str = "long_poll=true&time="+time;	
 	var path_str = "/notifications";
+	var requestTime;
+	console.log("in get_notifications");
 	updateSocketN = $.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
 		dataType: "json",
 		success: function( json, statusText, jqXHR ) {
-			var requestTime = time;	
+		    ajax_req_success("notifications");
+			requestTime = time;	
 			if (jqXHR.status == 200) {
 				if (json.data !== undefined) {
 					for (var i = 0; i < json.data.length; i++){
@@ -1807,9 +2199,53 @@ var get_notifications = function(time) {
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
 					get_notifications(requestTime);
 				}
-		}
+		},
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"notifications");
+            setTimeout(function(){ get_notifications(time)},error_retry * 1000);
+      } 
 	});
+
 };
+
+var ajax_req_error = function(xhr, status, error, module) {
+    //ignore abort messages, not a communication issue
+    if (status == "abort" && error == "abort") return;
+     var message = "Unknown ajax request error";
+     if (xhr == undefined || xhr.responseText == undefined || xhr.responseText == "") {
+         message = "Lost communication with server";
+     } else {
+         var data = JSON.parse(xhr.responseText);
+         message = "Communication problem with server";
+         if (data !== undefined && data.text !== undefined) message = data.text;
+     }
+     console.log("Ajax Error! module="+module+" status="+status+" error="+error+" msg="+message);
+     
+     if (req_errors[module] == undefined || req_errors[module] === 0) {
+         something_went_wrong("System",message,0)
+          //$("#mh_title").css("color", "red"); //have function for this
+          req_errors[module] = 1;
+     }
+}
+
+var ajax_req_success = function(module) {
+    //when connection is restored, ensure the title is black if all connections are reestablished.
+    if (req_errors[module] == 0) return;
+    req_errors[module] = 0;
+    var errors = 0;
+    for(var i in req_errors) {
+        errors += req_errors[i];
+        console.log("success reconnect "+i+" "+req_errors[i]+" "+errors);
+    }
+    console.log("In success reconnect for "+module+ ":"+errors);
+    
+//	if (errors === 0) {
+	     //$("#mh_title").css("color", "black");
+	     $(".sww-background").delay(1000).fadeOut("slow", function () { $(this).remove(); });
+//	}
+    //connection is restored to remove the warning. Some errors may not clear out quick (like update_item
+    //as we wait for the long poll to complete.
+}
 
 var mobile_device = function() {
 	//placeholder to turn on webaudio in the future
@@ -1874,6 +2310,7 @@ var display_table = function(table,records,time) {
 		success: function( json, statusText, jqXHR ) {
 			var requestTime = time;
 			if (jqXHR.status == 200) {
+		        ajax_req_success("display_table");
 				JSONStore(json);
 				// HP should probably use jquery, but couldn't get sequencing right.
 				// HP jquery would allow selected values to be replaced in the future.
@@ -1924,7 +2361,11 @@ var display_table = function(table,records,time) {
 					display_table(table,page_size,requestTime);
 				}
 			}		
-		}
+		},
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"display_table");
+            setTimeout(function(){ display_table(table,page_size,time)},error_retry * 1000);
+      }
 	});
 };
 
@@ -1935,7 +2376,11 @@ var graph_rrd = function(start,group,time) {
 	var new_data = 1;
 	var data_timeout = 0;
 	var refresh = 60; //refresh data every 60 seconds by default
-
+	
+	if (!$('#rrd-graph').is(':visible')) {
+        $('#loader').show();
+    } 
+    
 	if (json_store.ia7_config.prefs.rrd_refresh !== undefined) refresh = json_store.ia7_config.prefs.rrd_refresh;
 
 	if (typeof time === 'undefined'){
@@ -1966,7 +2411,6 @@ var graph_rrd = function(start,group,time) {
 	var arg_str = "start="+start+source+"&time="+time;
 	updateSocket = $.ajax({
 		type: "GET",
-		//url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
 		url: "/json"+path_str+"?"+arg_str,		
 		dataType: "json",
 		success: function( json, statusText, jqXHR ) {
@@ -1974,7 +2418,7 @@ var graph_rrd = function(start,group,time) {
 			if (jqXHR.status == 200) {
 				// HP should probably use jquery, but couldn't get sequencing right.
 				// HP jquery would allow selected values to be replaced in the future.
-
+		        ajax_req_success("graph_rrd");
 				if (json.data.data !== undefined) {  //If no data, at least show the header and an error
 				    data_timeout++;
 				    //sometimes the first call for data doesn't return anything. Try a few times.
@@ -2052,6 +2496,7 @@ var graph_rrd = function(start,group,time) {
            		 			}
        		 			}
     				});
+    				$('#loader').hide();
     				$.plot($("#rrd-graph"), data, json.data.options);
     				$('.legend').hide();	
 				}
@@ -2134,7 +2579,11 @@ var graph_rrd = function(start,group,time) {
 					}, refresh * 1000);
 				}
 			}		
-		}
+		},
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"graph_rrd");
+            setTimeout(function(){ graph_rrd(start,group,0)},error_retry * 1000);
+      } 
 	});
 };
 
@@ -2176,9 +2625,10 @@ var object_history = function(items,start,days,time) {
 			var requestTime = time;
 			if (jqXHR.status == 200) {
 				JSONStore(json);
+		        ajax_req_success("history");
 				// HP should probably use jquery, but couldn't get sequencing right.
 				// HP jquery would allow selected values to be replaced in the future.
-
+                // Dormant graphing for states. Doesn't look nice 
 				if (json.data.data !== undefined) {  //If no data, at least show the header and an error
 					data_timeout++;
 				    //sometimes the first call for data doesn't return anything. Try a few times.
@@ -2343,13 +2793,14 @@ var object_history = function(items,start,days,time) {
 				requestTime = json.meta.time;
 
 			}
+			//No live update is needed.
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
-				//Call update again, if page is still here
-				//KRK best way to handle this is likely to check the URL hash
-//TODO live updates
-
-			}		
-		}
+		    }		
+		},
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"history");
+            setTimeout(function(){ object_history(items,start,days,time)},error_retry * 1000);
+      } 
 	});
 };
 
@@ -2680,6 +3131,7 @@ var floorplan = function(group,time) {
             var requestTime = time;
             var last_slider_popover;
             if (jqXHR.status === 200) {
+		        ajax_req_success("floorplan");
                 //var t0 = performance.now();
                 JSONStore(json);
                 for (var entity in json.data) {
@@ -2837,7 +3289,9 @@ var floorplan = function(group,time) {
                                             }
                                             if ($(".entity-name").length == 1) {
                                                 url= '/SET;none?select_item='+fp_entity+'&select_state='+sliderstate;
-                                                $.get( url);
+                                                $.get(url).fail(function() {
+                                                    something_went_wrong("Command","Communication issue with Misterhouse");                        
+                                                });;
                                                 fp_popover_close = true;
                                                 last_slider_popover = fp_entity;
                                                 $('.popover').popover('hide');
@@ -2849,7 +3303,11 @@ var floorplan = function(group,time) {
                                         $('.btn-state-cmd').on('click', function () {
                                             var fp_entity = $(this).parent().parent().parent().parent().attr("title");//.match(/entity_(.*)_\d+$/)[1];
                                             var url= '/SET;none?select_item='+fp_entity+'&select_state='+$(this).text();
-                                            if (!$(this).hasClass("disabled")) $.get( url);
+                                            if (!$(this).hasClass("disabled")) {
+                                                $.get(url).fail(function() {
+                                                    something_went_wrong("Command","Communication issue with Misterhouse");                        
+                                                });;
+                                            }
                                             fp_popover_close = true;
                                             $('.popover').popover('hide');
                                             $('#sliderFP').remove();
@@ -3018,7 +3476,11 @@ var floorplan = function(group,time) {
                     fp_reposition_entities();
                 }, wait);
             }            
-        }
+        },
+        error: function( xhr, status, error ){
+            ajax_req_error(xhr,status,error,"floorplan");
+            setTimeout(function(){ floorplan(group,time)},error_retry * 1000);
+      } 
     });
 };
 
@@ -3193,16 +3655,26 @@ var create_state_modal = function(entity) {
                        }
                        url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+sliderstate;
                        $('#control').modal('hide');
-                       $.get( url);
+                       $.get(url).fail(function() {
+                            $(".modal-header").append($("<div class='get-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;Could not send command to Misterhouse</p></div>"));
+                            $(".get-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });                          
+                       });
                    });
 
                  }
+        if (slider_active) {
+		    advanced_html = "<br>"+advanced_html; //this is clunky but showing advanced states is kinda ugly anyways
+        }
 		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
+
 		$('#control').find('.states').find('.btn').click(function (){
 			url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
 			if (!$(this).hasClass("disabled")) {
 			    $('#control').modal('hide');
-			    $.get( url);
+			    $.get(url).fail(function() {
+                    $(".modal-header").append($("<div class='get-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;Could not send command to Misterhouse</p></div>"));
+                    $(".get-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+                });		    
 			}
 		});
 		} else {
@@ -3367,11 +3839,9 @@ var create_state_modal = function(entity) {
                           $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
                   }                    
                 });
-			
-			
 			});			
-			//hide the schedule controls if in simple mode
-			if 	(display_mode == "simple") {
+			//hide the schedule controls if in simple mode, or if only one state
+			if 	(display_mode == "simple" || modal_states.length == 1) {
 				$('.sched_submit').hide();
 				$('.schedrm').hide();
 				$('.schedadd').hide();
@@ -3659,7 +4129,9 @@ var authorize_modal = function(user) {
         if (changed == "true") location.reload();
     });
 	$('.btn-login-logoff').click( function () {
-		$.get ("/UNSET_PASSWORD");
+		$.get ("/UNSET_PASSWORD").fail(function() {
+            something_went_wrong("Password","Communication issue with Misterhouse");                        
+        });;
 		location.reload();
 		$('#loginModal').modal('hide');
 	});	
@@ -3688,6 +4160,10 @@ var authorize_modal = function(user) {
 					location.reload();
 					$('#loginModal').modal('hide');
 				}
+			},
+			error: function() {
+                $('#loginModal').find('#pwstatus').html("Communication error to Misterhouse");
+                $("#loginModal").find('#password').val('');			
 			}
 		});
 	});							
@@ -3700,13 +4176,11 @@ var trigger = function() {
 	url: "/json/triggers",
 	dataType: "json",
 	success: function( json ) {
-		var keys = [];
-		for (var key in json.triggers) {
-			keys.push(key);
-		}
+
 		var row = 0;
-		for (var i = (keys.length-1); i >= 0; i--){
-			var name = keys[i];
+        var buffer = "top-buffer";
+        var disabled = "disabled";
+		for (var i = 0; i < json.data.data.length; i++){
 			if (row === 0){
 				$('#list_content').html('');
 			}
@@ -3714,41 +4188,205 @@ var trigger = function() {
 			if (row % 2 == 1){
 				dark_row = 'dark-row';
 			}
-			$('#list_content').append("<div id='row_a_" + row + "' class='row top-buffer'>");
-			$('#row_a_'+row).append("<div id='content_a_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-			$('#content_a_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Name: </b><a id='name_"+row+"'>" + name + "</a></div>");
-			$('#content_a_'+row).append("<div class='col-sm-4 trigger "+dark_row+"'><b>Type: </b><a id='type_"+row+"'>" + json.triggers[keys[i]].type + "</a></div>");
-			$('#content_a_'+row).append("<div class='col-sm-3 trigger "+dark_row+"'><b>Last Run:</b> " + json.triggers[keys[i]].triggered + "</div>");
-			$('#list_content').append("<div id='row_b_" + row + "' class='row'>");
-			$('#row_b_'+row).append("<div id='content_b_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-			$('#content_b_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Trigger:</b> <a id='trigger_"+row+"'>" + json.triggers[keys[i]].trigger + "</a></div>");
-			$('#content_b_'+row).append("<div class='col-sm-7 trigger "+dark_row+"'><b>Code:</b> <a id='code_"+row+"'>" + json.triggers[keys[i]].code + "</a></div>");
+			if (i === 0 && admin === "true") {
+			    var instructions = '<div class="panel-group"><div class="panel panel-default"><div class="panel-heading"><h5 class="panel-title"><a data-toggle="collapse" href="#collapse_inst">Instructions</a></h5></div>'
+                instructions += '<div id="collapse_inst" class="panel-collapse collapse"><div class="panel-body">'
+                instructions += 'Triggers are actions you want to run when a certain event occurs.  Usually events are time based, '
+                instructions += 'but they can include anything you might put in an "if" statement.  Events are checked for syntax errors ' 
+                instructions += 'when entered, and will be disabled if errors are found.  Action code is checked for errors each time it is run' 
+                instructions += '<p><p>'
+                instructions += 'To set a time and/or date based alarm, use time_now with any valid time/date spec (e.g. 12/25 7 am). '
+                instructions += 'OneShot triggers will expire after they run once.  Change to NoExpire to run every time without expiring. '
+                instructions += 'The trigger name can be any unique string.'
+                instructions += '<p>'
+                instructions += 'You can put multiple perl statements in the action code field separated by semicolons, but you don'+"'"+'t '; 
+                instructions += 'need to put a semicolon at the end.  If you don'+"'"+'t want to run one of the automatically created '
+                instructions += 'triggers, change the type to "Disabled".  If you delete it, the trigger will be recreated the next '
+                instructions += 'time Misterhouse is restarted.'   
+                instructions += '</div></div></div>'
+                buffer = "";
+                disabled = "";
+			    $('#list_content').append("<div id='row_a_A' class='row top-buffer'>");
+                $('#row_a_A').append("<div id='content_a_A' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+                $('#content_a_A').append("<div class='col-sm-2 trigger-input'><button class='btn btn-default btn-sm trigger-btn trigger-btn-add'>Add New Trigger</button></div>");
+                $('#content_a_A').append("<div class='col-sm-10'>"+instructions+"</div>");
+                $('#list_content').append("<div id='row_a_N' class='row' style='display: none;'>");              
+                $('#row_a_N').append("<div id='content_a_N' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+                $('#content_a_N').append("<div class='col-sm-8 trigger-input dark-row'><input id='name' type='text' class='form-control' placeholder='Trigger Name'></div>");
+                $('#content_a_N').append("<div class='col-sm-2 trigger-input dark-row'><select id='type' class='form-control' aria-label='type'><option>Disabled</option><option selected>OneShot</option><option>NoExpire</option></select></div>");
+                $('#content_a_N').append("<div class='col-sm-2 trigger-input dark-row'><button class='btn btn-default trigger-btn-submit col-sm-12'>Add Trigger</button></div>");
+
+                $('#list_content').append("<div id='row_b_N' class='row' style='display: none;'>");
+                $('#row_b_N').append("<div id='content_b_N' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+                $('#content_b_N').append("<div class='col-sm-2 trigger-input dark-row'><select id='trigger1' class='form-control'><option selected></option><option>time_now</option><option>time_cron</option><option>time_random</option><option>new_second</option><option>new_minute</option><option>new_hour</option><option>$New_Hour</option><option>$New_Day</option><option>$New_Week</option><option>$New_Month</option><option>$New_Year</option></select></div>");
+                $('#content_b_N').append("<div class='col-sm-4 trigger-input dark-row'><input id='trigger2' type='text' class='form-control' placeholder='Trigger'></div>");
+                $('#content_b_N').append("<div class='col-sm-2 trigger-input dark-row'><select id='code1' class='form-control'><option selected></option><option>speak</option><option>play</option><option>display</option><option>print_log</option><option>set</option><option>run</option><option>run_voice_cmd</option><option>net_im_send</option><option>net_mail_send</option><option>get</option></select></div>");
+                $('#content_b_N').append("<div class='col-sm-4 trigger-input dark-row'><input id='code2' type='text' class='form-control' placeholder='Trigger Code'></div>");                                                    
+			}
+		    var keys = json.data.data[i];			
+			var name = keys.name;
+			var type = keys.type; //json.data.data[keys[i]].type
+			var last_run = keys.last_run;
+			var trigger = keys.trigger;
+			var triggered = keys.triggered;
+			var code = keys.code;	
+            $('#list_content').append("<div id='row_a_" + row + "' class='row "+buffer+"'>");
+            buffer = "";
+            $('#row_a_'+row).append("<div id='content_a_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+            $('#content_a_'+row).append("<div class='col-sm-1 trigger "+dark_row+"'><button class='btn btn-default btn-xs trigger-btn col-sm-12 trigger-btn-run' id='"+name+"'>RUN</button></div>");            
+            $('#content_a_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Name: </b><a id='name_"+row+"' data-name='"+name+"'>" + name + "</a></div>");
+            $('#content_a_'+row).append("<div class='col-sm-2 trigger "+dark_row+"'><b>Type: </b><a id='type_"+row+"' data-name='"+name+"' data-value='"+type+"'>" + type + "</a></div>");
+            $('#content_a_'+row).append("<div class='col-sm-4 trigger "+dark_row+"'><b>Last Run:</b> " + triggered + "</div>");
+            $('#list_content').append("<div id='row_b_" + row + "' class='row'>");
+            $('#row_b_'+row).append("<div id='content_b_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+            $('#content_b_'+row).append("<div class='col-sm-1 trigger "+dark_row+"'><div class='btn-group'><button class='btn btn-default col-sm-6 btn-xs trigger-btn trigger-btn-del "+disabled+"' id='"+name+"'><i class='fa fa-trash'>&nbsp;</i></button><button class='btn btn-default col-sm-6 btn-xs trigger-btn trigger-btn-copy "+disabled+"' id='"+name+"'><i class='fa fa-clone'>&nbsp;</i></button></div></div>");            			
+            $('#content_b_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Trigger:</b> <a id='trigger_"+row+"' data-name='"+name+"'>" + trigger + "</a></div>");
+            $('#content_b_'+row).append("<div class='col-sm-6 trigger "+dark_row+"'><b>Code:</b> <a id='code_"+row+"' data-name='"+name+"'>" + code + "</a></div>");
 			$.fn.editable.defaults.mode = 'inline';
-			$('#name_'+row).editable({
-				type: 'text',
-				pk: 1,
-				url: '/post',
-				title: 'Enter username'
-			});
-			$('#type_'+row).editable({
-				type: 'select',
-				pk: 1,
-				url: '/post',
-				title: 'Select Type',
-				source: [{value: 1, text: "Disabled"}, {value: 2, text: "NoExpire"}]
-			});
-			$('#trigger_'+row).editable({
-				type: 'text',
-				pk: 1,
-				url: '/post',
-				title: 'Enter trigger'
-			});
-			$('#code_'+row).editable({
-				type: 'text',
-				pk: 1,
-				url: '/post',
-				title: 'Enter code'
-			});
+			$.fn.editable.defaults.ajaxOptions = {contentType: 'application/json'};
+			$.fn.editable.defaults.params = function(params) {return JSON.stringify(params);};
+			$.fn.editable.defaults.url = '/json/triggers';			
+            if (admin === "true") {
+                $.fn.editable.defaults.disabled = false;
+            } else {
+                $.fn.editable.defaults.disabled = true;
+            
+            }   
+
+            $('#name_'+row).editable({
+                type: 'text',
+                pk: 'name',
+                title: 'Enter Trigger Name'
+            });
+            $('#type_'+row).editable({
+                type: 'select',
+                showbuttons: false,
+                pk: 'type',
+                title: 'Select Type',
+                display: function(value, sourceData) {
+                    var colors = {"Disabled": "gray", "NoExpire": "green", "OneShot": "blue", "Expired": "red"},
+                    elem = $.grep(sourceData, function(o){return o.value == value;});
+                 
+                    if(elem.length) {    
+                        $(this).text(elem[0].text).css("color", colors[value]); 
+                    } else {
+                        $(this).empty(); 
+                    }
+                },  
+                source: [{value: "Disabled", text: "Disabled"}, {value: "NoExpire", text: "NoExpire"}, {value: "OneShot", text: "OneShot"}, {value: "Expired", text: "Expired"}]
+            });
+            $('#trigger_'+row).editable({
+                type: 'text',
+                pk: 'trigger',
+                title: 'Enter trigger'
+            });
+            $('#code_'+row).editable({
+                type: 'text',
+                pk: 'code',
+                title: 'Enter code'
+            });
+            $('.trigger-btn').off('click').on('click', function(){
+				name = $(this).attr("id");
+				if ($(this).hasClass("trigger-btn-run")) {
+				    $.get("/SUB;/bin/triggers.pl?trigger_run("+encodeURI(name)+")").fail(function() {
+                           something_went_wrong("Command","Communication issue with Misterhouse");                        
+                       }); 
+				    changePage(); 
+				}
+                if ($('.trigger-btn').hasClass('disabled')) return;				
+				if ($(this).hasClass("trigger-btn-del")) {
+				    $.get("/SUB;/bin/triggers.pl?trigger_delete("+encodeURI(name)+")").fail(function() {
+                           something_went_wrong("Command","Communication issue with Misterhouse");                        
+                       });
+                    changePage();
+                } else if ($(this).hasClass("trigger-btn-copy")) {
+				    $.get("/SUB;/bin/triggers.pl?trigger_copy("+encodeURI(name)+")").fail(function() {
+                           something_went_wrong("Command","Communication issue with Misterhouse");                        
+                       });                   
+                    changePage();
+                                  
+                } else if ($(this).hasClass("trigger-btn-add")) {
+                    if ($('#row_a_N').is(":visible")) {
+                        $('.trigger-btn-add').text('Add new trigger');
+                        $('#row_a_N').hide();
+                        $('#row_b_N').hide();
+                        $('#name').val('');
+                        $('#name').css('border-color', '');
+                        $('#type').val('Disabled');                    
+                        $('#code1').val('');
+                        $('#code2').val('');
+                        $('#code2').css('border-color', '');
+                        $('#trigger1').val('');
+                        $('#trigger2').val(''); 
+                        $('#trigger2').css('border-color', '');                    
+                    } else {
+                        $('.trigger-btn-add').text('Cancel new trigger');
+                        $('#row_a_N').show();
+                        $('#row_b_N').show();
+                    }
+                }   
+                $('.trigger-btn').blur();
+            });               
+            $('.trigger-btn-submit').off('click').on('click', function(){                                                     
+                var data = {};
+                data.pk = 'add';
+                data.name = $('#name').val();
+                if (data.name == '') {
+                    $('#name').css('border-color', 'red');
+                    return
+                } else {
+                    $('#name').css('border-color', '');
+                }           
+                data.type = $('#type').val();
+                data.code1 = $('#code1').val();
+                data.code2 = $('#code2').val();  
+                if (data.code2 == '') {
+                    $('#code2').css('border-color', 'red');
+                    return
+                } else {
+                    $('#code2').css('border-color', '');                
+                }                                    
+                data.trigger1 = $('#trigger1').val();
+                data.trigger2 = $('#trigger2').val() ; 
+                if (data.trigger1 == '' && data.trigger2 == '') {
+                    $('#trigger2').css('border-color', 'red');
+                    return
+                } else {
+                    $('#trigger2').css('border-color', '');                
+                }
+                $.ajax({
+                    url: "/json/triggers",
+                    type: 'post',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function( data, status, error ){
+                        console.log("trigger success data="+data+" status="+status+" error="+error);  
+                        if (data.status !== undefined || data.status == "error") {
+                            console.log("error!");
+                        } else {   
+                            console.log("success!");                    
+                            $('.trigger-btn-add').show();
+                            //remove all data in the forms
+                            $('#row_a_N').hide();
+                            $('#row_b_N').hide();  
+                            $('#name').val('');
+                            $('#name').css('border-color', '');
+                            $('#type').val('');
+                            $('#code1').val('');
+                            $('#code2').val('');
+                            $('#code2').css('border-color', '');  
+                            $('#trigger1').val('');
+                            $('#trigger2').val('');    
+                            $('#trigger2').css('border-color', '');
+                            changePage();
+                        }
+                    },
+                    error: function( xhr, status, error ) {
+                        console.log("trigger failure status="+status+" error="+error);  
+                        something_went_wrong("Triggers","Communication probem sending trigger details");  
+                    }
+                });
+            });
 			row++;
 		}
 	}
@@ -3757,7 +4395,8 @@ var trigger = function() {
 
 $(document).ready(function() {
 	// Start
-	
+	changePage();
+		
 	// Increment the counter
     $.ajax({
         url: "/json/web_counter",
@@ -3765,8 +4404,7 @@ $(document).ready(function() {
         contentType: 'application/json',
         data: "{}"           //just post empty json
     });
-	
-	changePage();
+
 	//Watch for future changes in hash
 	$(window).bind('hashchange', function() {
 		changePage();
@@ -3794,7 +4432,6 @@ $(document).ready(function() {
 		}
 		//
 		var entity = $("#toolButton").attr('entity');
-//		$('#optionsModal').modal('show');
 
         $("#optionsModal").modal('show').css({
             'margin-left': function () { //Horizontal centering
@@ -3966,7 +4603,7 @@ $(document).ready(function() {
 		var opt_entity_html = "<div id='option_collection'>";
 		var opt_entity_sort = json_store.collections[500].children;
 		if (opt_entity_sort.length <= 0){
-		opt_entity_html += "Childless Collection";
+		    opt_entity_html += "Childless Collection";
 		} else {
 		    for (var i = 0; i < opt_entity_sort.length; i++){
 				var collection = opt_entity_sort[i];
@@ -3984,9 +4621,6 @@ $(document).ready(function() {
 				}
 				//Check to see if this is the login button
 				if (json_store.collections[collection].user !== undefined) {
-//					if (name == undefined) {
-//						authDetails();
-//					} 
 					opt_entity_html += "<a link-type='collection' user='"+json_store.collections[collection].user+"' class='btn btn-default btn-lg btn-block btn-list btn-login-modal' colid='"+collection+"' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 				} else {	
 					opt_entity_html += "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list btn-option' colid='"+collection+"' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
@@ -3996,7 +4630,7 @@ $(document).ready(function() {
 		opt_entity_html += "</div>";
 		$('#optionsModal').find('.modal-body').append(opt_entity_html);	
 		
-					if (developer == true) {
+		if (developer == true) {
 			    //turn on collections drag-n-dropping
 				$("#option_collection").sortable({
 				    tolerance: "pointer",
@@ -4024,8 +4658,7 @@ $(document).ready(function() {
 		});						
 		$('#optionsModal').find('.btn-list').click(function (){
 			$('#optionsModal').modal('hide');
-		});
-		
+		});		
 		$('.btn-option').mayTriggerLongClicks().on( 'longClick', function() {		
             if (developer === true) {
                 var cls = $(this).attr('class');
@@ -4037,8 +4670,7 @@ $(document).ready(function() {
                     $('#optionsModal').modal('hide');    
                 }            
 		    }
-		});
-		
+		});		
 	});
 
 //Needed to floorplan sliders to work.
@@ -4048,22 +4680,110 @@ $(document).ready(function() {
         } else
             fp_popover_close = true; 
     });
-	
-//TODO remove me?	
-	$('#mhresponse').click( function (e) {
-		e.preventDefault();
-		$form = $(this);
-		//$.ajax({
-		//	type: "POST",
-		//	url: "/SET_PASSWORD_FORM",
-		//	data: $(this).serialize(),
-		//	success: function(data){
-		//		console.log(data) 
-		//		}
-		//	});
-	});		
+		
 });
 
+// method to dynamically load additional js script on the fly.
+// this custom approach is used instead of jquery.getScript to
+// improve the debugging experience (this solution is gratefully
+// lent from stackoverflow at https://stackoverflow.com/a/28002292 )
+function getScript(source, callback) {
+    var script = document.createElement('script');
+    var prior = document.getElementsByTagName('script')[0];
+    script.async = 1;
+
+    script.onload = script.onreadystatechange = function( _, isAbort ) {
+        if(isAbort || !script.readyState || /loaded|complete/.test(script.readyState) ) {
+            script.onload = script.onreadystatechange = null;
+            script = undefined;
+
+            if(!isAbort) { if(callback) callback(); }
+        }
+    };
+
+    script.src = source;
+    script.type = "text/javascript";
+
+    prior.parentNode.insertBefore(script, prior);
+}
+
+var loadModule = function(name,callback) {
+
+    if (modules[name].loaded == 1) {
+        console.log("Module "+name+" already loaded");
+        return 0;
+    }
+
+    //loop through all modules if all
+    if (modules[name].script !== undefined ) {
+        for (var i = 0, len = modules[name].script.length; i < len; i++) {
+            console.log("loading script "+name+" "+modules[name].script[i]);
+            modules[name].loaded = 1;
+            if (modules[name].callback !== undefined && (i + 1) == (len)) callback = modules[name].callback;
+            getScript("/ia7/include/"+modules[name].script[i], callback);
+        }
+    }
+    if (modules[name].css !== undefined ) {
+        for (var i = 0, len = modules[name].css.length; i < len; i++) {
+            modules[name].loaded = 1;
+            console.log("loading css "+name+" "+modules[name].css[i]);
+            var fileref = document.createElement("link")
+            fileref.setAttribute("rel", "stylesheet")
+            fileref.setAttribute("type", "text/css")
+            fileref.setAttribute("href", "/ia7/include/"+modules[name].css[i])
+            document.getElementsByTagName("head")[0].appendChild(fileref); 
+        }
+    }    
+    return 1;
+
+
+};
+
+// checks if a zoneminder configuration exists,
+// loads the zoneminder zm.js and connects the configured zmeventservers
+// more info on zoneminder integration is found in ./zm.js.md
+var zoneminder = function()
+{
+    var config = json_store.ia7_config.zoneminder;
+    if (config === undefined) {
+        console.log("no zoneminder config...");
+        return 0;
+    }
+    loadModule('zoneminder', function(){
+        zm.init();
+        for (i = 0; i < config.length; ++i) {
+            zm.connect_server(config[i]);
+        }
+    });
+};
+
+//avoid a small file load dependancy
+(function(a) {
+    var b = {
+        NS: "jquery.longclick-",
+        delay: 700
+    };
+    a.fn.mayTriggerLongClicks = function(c) {
+        var d = a.extend(b, c);
+        var f;
+        var e;
+        return a(this).on("mousedown touchstart", function() {
+            e = false;
+            f = setTimeout(function(g) {
+                e = true;
+                a(g).trigger("longClick")
+            }, d.delay, this)
+        }).on("mouseup touchend", function() {
+            clearTimeout(f)
+        }).on("touchmove", function() {
+            clearTimeout(f)
+        }).on("click", function(g) {
+            if (e) {
+                g.stopImmediatePropagation()
+            }
+        })
+    }
+})(jQuery);
 
 
 //
