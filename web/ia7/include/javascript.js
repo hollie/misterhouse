@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.670";
+var ia7_ver = "v2.0.680";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -1952,12 +1952,22 @@ var something_went_wrong = function(module,text,fadeout) {
 
     if ((json_store.ia7_config.prefs.show_errors !== undefined) &&  json_store.ia7_config.prefs.show_errors == "yes") {
 
+        // if a module SWW is already displayed, don't display another duplicate message
+        var found = 0;
+        $('.sww-background').each(function (){
+            if ($(this).attr('module') == module) {
+                console.log("INFO: Something went Wrong module "+module+" already displayed");
+                found = 1;
+            }
+        });
+        if (found) return;
+        console.log("creating SWW window for "+module);
        var type = "dark";
        var mobile = "";
        if ($(window).width() <= 768) { // override the responsive mobile top-buffer
            mobile = "mobile-alert";
        }
-       var html = "<div class='alert sww-background fade in "+mobile+"' data-alert>";
+       var html = "<div class='alert sww-background fade in "+mobile+"' data-alert module='"+module+"'>";
        //if fadeout is -1 then don't display data-dismiss?
        if (fadeout == undefined || (fadeout !== undefined && fadeout !== 0)) html += "<button type='button' class='close' data-dismiss='alert'><span style='color:white'>x</span></button>";
        html += "<div>";
@@ -2208,8 +2218,11 @@ var get_notifications = function(time) {
 
 };
 
-var ajax_req_error = function(xhr, status, error, module) {
+var ajax_req_error = function(xhr, status, error, module, modal) {
     //ignore abort messages, not a communication issue
+    //close any open modals if an error encountered (unless the ajax error is through a modal interface)
+    if (modal == undefined) modal = false;
+    if (modal !== true) $('.modal').modal('hide');
     if (status == "abort" && error == "abort") return;
      var message = "Unknown ajax request error";
      if (xhr == undefined || xhr.responseText == undefined || xhr.responseText == "") {
