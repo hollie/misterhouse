@@ -22,6 +22,13 @@ use strict;
 ##   NOTE: v4 requires the update 2014 vsdb calendar schema (adding a control attribute).
 ##         Common module organizer 2014 and vsdb calendar.pl 1.6.0-3 required.
 ##
+##  v5 02-2018: Some ALARM DATA has wonky dates (ie BEGIN:VALARM TRIGGER;VALUE=DATE-TIME:19760401T005545Z)
+##    ignore these entries and use 15 minutes for notification
+##    also enable a override_alarms to set a standard for all notifications ignoring what's in the ical data
+##    set to 'all' to remove all user specified alarm settings
+##  v5.1 02-2018
+##    Sometimes icals are unchanged, but the order is different when downloading. Add option to sort the ical to ensure
+##    Data hasn't changed even if the order did. Added option sort_before_md5 = 1 to enable globally or to the specific ical
 
 use lib '../lib', '../lib/site';
 use iCal::Parser;
@@ -40,20 +47,22 @@ use vsLock;
 # verify locking works as expected
 
 my $progname = "ical2vsdb";
-my $progver  = "v4 01-2014";
+my $progver  = "v5.1 02-2018";
 my $DB       = 0;
 
-my $days_before = -180;    # defaults to avoid large vsdb databases, can be overriden
+my $days_before = -180;    # defaults to avoid large vsdb databases, can be overridden
 my $days_after  = 180;     #
 
-my $config_file    = "";
-my $config_version = 2;
-my $vsdb_cal_file  = "calendar.tab";
-my $vsdb_todo_file = "tasks.tab";
-my $sleep_time     = 900;              #poll cycle default is 15 minutes
-my $md5file        = "";
-my $local_cache    = "";
-my $data           = "";
+my $config_file     = "";
+my $config_version  = 2;
+my $vsdb_cal_file   = "calendar.tab";
+my $vsdb_todo_file  = "tasks.tab";
+my $sleep_time      = 900;              #poll cycle default is 15 minutes
+my $md5file         = "";
+my $local_cache     = "";
+my $data            = "";
+my $override_alarms = "0";          #ignore ical alarms and always do $override_alarms in minutes speech events
+my $sort_before_md5 = 0;
 
 $config_file = $ARGV[0] if $ARGV[0];
 
@@ -89,13 +98,19 @@ if ( ( $count == 0 ) or ( $output_dir eq "" ) ) {
 
 &read_md5file if ( $md5file ne "" );
 print "Writing http requests to local cache: $local_cache\n" if $local_cache;
+if ($override_alarms) {
+    if (lc $override_alarms eq "all") {
+        print "** Removing custom alarms for all events\n";
+    } else {
+        print "Using a standard " .$override_alarms . "m alarm for all events\n";
+    }
+}
 print "Processing $count iCals";
 print ", $days_after days in the future" if $days_after;
 my $abs_days_before = abs $days_before;
 print ", $abs_days_before in the past"            if $abs_days_before;
 print "\nTarget vsdb directory is :$output_dir\n" if ($DB);
 print "MD5 temp file is :$md5file\n"              if ( $md5file ne "" and $DB );
-
 #------------- Main Processing Loop -----------------
 #BEGIN
 while (1) {
@@ -189,7 +204,12 @@ while (1) {
 
             #print "\n\n$data\n";
 
-            my $digest = md5_hex($data);
+            my $digest;
+            if ($sort_before_md5 || defined $ical_data[$loop]->{options}->{sort_before_md5}) {
+                $digest = md5_hex(join "\n", sort (split(/\n/,$data)));
+            } else {
+                $digest = md5_hex($data);
+            }
 
             #    print "Debug: MD5=$digest\n";
             #    print "Debug: Hash=$ical_data[$loop]->{hash}\n" if (defined $ical_data[$loop]->{hash});
@@ -208,7 +228,6 @@ while (1) {
                 else {
                     $parser = $parser->calendar
                       unless $ical_data[$loop]->{method} ne "dir";
-                    print ".";
 
                     #print Dumper $parser;
                     $ical_data[$loop]->{hash} = $digest;
@@ -217,10 +236,9 @@ while (1) {
                     push( @changed_icals, @$data_info[0] );
                     push( @master_cal,    @$data_cals );
                     push( @master_todo,   @$data_todos );
-                    print ".";
                     &cache_local( $data, $ical_data[$loop]->{options}->{name} )
                       if $local_cache;
-                    print "done\n";
+                    print "Processing Complete\n";
                     print "Calendar Info:" if $DB;
                     print @$data_info[0] . "," . @$data_info[1] . "\n" if $DB;
                 }
@@ -239,7 +257,7 @@ while (1) {
         #print Dumper @master_cal;
         update_db( "$output_dir/$vsdb_cal_file",  \@changed_icals, \@master_cal );
         update_db( "$output_dir/$vsdb_todo_file", \@changed_icals, \@master_todo );
-        print "done\n";
+        print "DataBases Updated\n";
     }
 
     #--------------- Empty data structures and sleep ------------
@@ -364,12 +382,13 @@ sub parse_cal {
     push @out_info, $calname;
     push @out_info, $caldesc;
     my $count = 0;
-
+    my $ical_messages = "";
+    
     #print Dumper $cal;
     while ( my $year = each %{ $cal->{events} } ) {
         while ( my $month = each %{ $cal->{events}->{$year} } ) {
             while ( my $day = each %{ $cal->{events}->{$year}->{$month} } ) {
-                print ".";    #give some progress
+#                print ".";    #give some progress
                 while ( my $uid = each %{ $cal->{events}->{$year}->{$month}->{$day} } ) {
                     my $delta;
 
@@ -405,10 +424,14 @@ sub parse_cal {
                     }
 
                     my $reminder = '';
+                    my $bad_alarm = 0;
                     if ( $event_ref->{VALARM} ) {
                         foreach my $alarm ( @{ $event_ref->{VALARM} } ) {
                             if ( $alarm->{when} && $event_ref->{DTSTART} ) {
+                                $bad_alarm = $alarm->{when} if ($alarm->{when}->{local_c}->{year} < $event_ref->{DTSTART}->{local_c}->{year});
                                 my $duration = $event_ref->{DTSTART} - $alarm->{when};
+                                print "db: D[" . $event_ref->{DESCRIPTION}. " S[" . $event_ref->{SUMMARY}. "]" if ($DB > 2);
+                                print "db: [dt=" . $event_ref->{DTSTART} . " alarm=" , $alarm->{when} . " rem=$reminder dur=$duration]\n" if ($DB > 2);
                                 $reminder .= ($reminder) ? ',' : '';
                                 if ( $duration->delta_days ) {
                                     $reminder .= $duration->delta_days . 'd';
@@ -418,6 +441,20 @@ sub parse_cal {
                                 }
                             }
                         }
+                        if (lc $override_alarms eq 'all') {
+                            $reminder = '';
+                            print ":";
+                        } elsif ($override_alarms) {
+                            $reminder = $override_alarms . 'm';
+                            print ".";
+                        } elsif ($bad_alarm) {
+                            $reminder = '15m';
+                            $ical_messages .= "ical2vsdb: WARNING event " . $event_ref->{SUMMARY} . " on " . $event_ref->{DTSTART} . " has bad alarm date " . $bad_alarm . ". Using 15 minute default\n";
+                            print "!";
+                        } else {
+                            print ".";
+                        }
+                        print "db2: rem2=$reminder\n" if ($DB > 2);
                     }
 
                     #MH Specific attributes
@@ -458,6 +495,8 @@ sub parse_cal {
             }
         }
     }
+    print ".done\n";
+    print $ical_messages if ($ical_messages);
     print "db: $count calendar records processed\n" if $DB;
 
     my @todos = $cal->{todos};
@@ -564,6 +603,7 @@ sub init {
 
     my $count   = 0;
     my $version = 0;
+    my $dcsicals = "";
     open( CFGFILE, $config_file )
       || die "Error: Cannot open config file $config_file!";
 
@@ -577,32 +617,31 @@ sub init {
 
         if ( lc $type eq "output_dir" ) {
             $output_dir = $url;
-
         }
         elsif ( lc $type eq "days_before" ) {
             $days_before = 0 - $url;
-
         }
         elsif ( lc $type eq "days_after" ) {
             $days_after = $url;
-
         }
         elsif ( lc $type eq "sleep_delay" ) {
             $sleep_time = $url;
-
         }
         elsif ( lc $type eq "md5file" ) {
             $md5file = $url;
-
         }
         elsif ( lc $type eq "cfg_version" ) {
             $version = $url;
-
         }
         elsif ( lc $type eq "local_cache_dir" ) {
             $local_cache = $url;
-
+        }    
+        elsif ( lc $type eq "override_alarms" ) {
+            $override_alarms = $url;
         }
+        elsif ( lc $type eq "sort_before_md5" ) {
+            $sort_before_md5 = $url;
+        }        
         else {
             $ical_data[$count]->{type} = $type;
             foreach my $opt ( split /,/, lc $options ) {
@@ -611,7 +650,7 @@ sub init {
                 $ical_data[$count]->{options}->{$key} = $value;
             }
             $ical_data[$count]->{hash} = "none";
-            print "Applying second level ical parsing (set nodscfix if this breaks anything) ...\n"
+            $dcsicals .= $ical_data[$count]->{options}->{name} . " "
               unless ( exists $ical_data[$count]->{options}->{nodcsfix} );
 
             my ( $method, $loc ) = split( /:\/\//, $url );
@@ -636,6 +675,8 @@ sub init {
         }
     }
     close(CFGFILE);
+    
+    print "Applied second level ical parsing to ($dcsicals).\n" if ($dcsicals);
 
     die "Incompatible configuration file version!"
       if ( $version != $config_version );

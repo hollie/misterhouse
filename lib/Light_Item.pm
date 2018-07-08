@@ -989,7 +989,7 @@ sub restore_string {
 
     if ( $$self{m_save_state} ) {
         $l_restore_string = $self->SUPER::restore_string;
-        $l_restore_string =~ s/-\>{state}=(.*);/-\>{state}='off'/ig;
+        $l_restore_string =~ s/-\>\{state}=(.*);/-\>\{state}='off'/ig;
 
         #&::print_log("Restore:::$l_restore_string:") if $self->{debug};
     }
