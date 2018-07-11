@@ -1,5 +1,4 @@
-
-=head1 B<raZberry> v2.1.1
+=head1 B<raZberry> v2.2.1
 
 =head2 SYNOPSIS
 
@@ -47,6 +46,10 @@ for specifying controller options;
 
 RAZBERRY_CONTROLLER,	10.0.1.1, razberry_controller,	zwave, push ,'user=admin,password=bob'
 
+or to poll with authentication
+
+RAZBERRY_CONTROLLER,	10.0.1.2, razberry_controller2,	zwave,  ,'user=admin,password=bob'
+
 
 =head2 DESCRIPTION
 
@@ -58,7 +61,8 @@ Devices need to first included inside the razberry zwave network using the inclu
 =head3 STATE REPORTED IN MisterHouse
 
 The Razberry is polled on a regular basis in order to update local objects. By default, 
-the razberry is polled every 5 seconds.
+the razberry is polled every 5 seconds. Push relies on the razberry to execute a httpget at state change.
+raZberry will still check in every 10 minutes just to be safe
 
 Update for local control use the 'niffler' plug in. This saves forcing a local device
 status every poll.
@@ -66,14 +70,14 @@ status every poll.
 =head3 CHILD OBJECTS
 
 Each device class will need a child object, as the controller object is just a gateway
-to the hardware. 
+to the zwave network. 
 
 There is also a communication object to allow for alerting and monitoring of the
 razberry controller.
 
 =head2 RaZberry v2 AUTHENTICATION
 
-Works and tested with v2.0.0. It _should_ also work with v1.7.4.
+No authentication required with v2.0.0. It _should_ also work with v1.7.4.
 For later versions, Z_Way has introduced authentication. raZberry v2.0 supports this via two methods:
 
 1: Enable anonymous authentication:
@@ -88,9 +92,10 @@ Then in the controller definition, provide the username and password:
 $razberry_controller  	= new raZberry('10.0.1.1',10,"user=user,password=pwd");
 
 
-=head2 v2 PUSH or POLL. Only tested in version raZberry 2.3.0
+=head2 v2 PUSH or POLL. Only tested in version raZberry 2.3.5
 Using the HTTPGet automation module, this will 'push' a status change to MH rather than the constant polling. Use the following
-URL for updating: http://mh:port/SUB;razberry_push(%DEVICE%,%VALUE%)
+URL for updating: http://mh:port/SUB;razberry_push(%DEVICE%,%VALUE%,X)
+where X is the instance. If ommitted, assume instance 1.
 
 If the razberry or mh get out of sync, $controller->poll can be issued to get the latest states.
 
@@ -110,47 +115,15 @@ raZberry_password
 http calls can cause pauses. There are a few possible options around this;
 - push output to a file and then read the file. This is generally how other modules work.
 
-
-=head2 CHANGELOG
-v2.1.0
-- added support for secondary controllers
-
-v2.0.2
-- added generic_item support for loggers
-
-v2.0.1
-- added full poll for getting battery data
-
-v2.0
-- added in authentication method for razberry 2.1.2+ support
-- supports a push method when used in conjunction with the HTTPGet automation module
-- displays some controller information at startup
-
-v1.6
-- added in digital blinds, battery item (like a remote)
-
-v1.5
-- added in binary sensors
-
-v1.4
-- added in thermostat
-
-v1.3
-- added in locks
-- added in ability to add and remove lock users
-
-v1.2
-- added in ability to 'ping' device
-- added a check to see if the device is 'dead'. If dead it will attempt a ping for
-  X attempts a Y seconds apart.
-
+Changelog moved to bottom of file.
 
 =over
 
 =cut
 
 use strict;
-our $push_obj;
+our $raz_push_obj;
+our $raz_instances;
 
 package raZberry;
 
@@ -201,21 +174,20 @@ sub new {
     my ( $class, $addr, $poll, $options ) = @_;
     my $self = new Generic_Item();
     bless $self, $class;
-    &main::print_log("[raZberry]: v2.1.1 Controller Initializing...");
+    &main::print_log("[raZberry]: v2.2.1 Controller Initializing...");
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
     $self->{config}->{poll_seconds} = 5;
-    $self->{config}->{poll_seconds} = $main::config_parms{raZberry_poll_seconds}
-      if ( defined $main::config_parms{raZberry_poll_seconds} );
+    $self->{config}->{poll_seconds} = $main::config_parms{raZberry_poll_seconds} if ( defined $main::config_parms{raZberry_poll_seconds} );
     $self->{push} = 0;
 
     if ( ( defined $poll ) and ( lc $poll eq 'push' ) ) {
         $self->{push} = 1;
-        $self->{config}->{poll_seconds} = 1800;    #poll the raZberry every 30 minutes if we are using the push method
+        $self->{config}->{poll_seconds} = 600;    #poll the raZberry every 10 minutes if we are using the push method
     }
     else {
-        $self->{config}->{poll_seconds} = $poll if ( defined $poll );
-        $self->{config}->{poll_seconds} = 1     if ( $self->{config}->{poll_seconds} < 1 );
+        $self->{config}->{poll_seconds} = $poll if ( ( defined $poll ) && ($poll)); #ensure a number
+        $self->{config}->{poll_seconds} = 1     if ( ( defined $self->{config}->{poll_seconds} ) && ( $self->{config}->{poll_seconds} < 1 ));
     }
     $self->{updating} = 0;
     $self->{data}->{retry} = 0;
@@ -239,16 +211,28 @@ sub new {
     $self->{password} = $main::config_parms{raZberry_password} if ( defined $main::config_parms{raZberry_password} );
     ( $self->{username} ) = ( $options =~ /user\=([a-zA-Z0-9]+)/i )     if ( ( defined $options ) and ( $options =~ m/user\=/i ) );
     ( $self->{password} ) = ( $options =~ /password\=([a-zA-Z0-9]+)/i ) if ( ( defined $options ) and ( $options =~ m/password\=/i ) );
-    if ( ( $push_obj eq "" ) and ( $self->{push} ) ) {
-        &main::print_log("[raZberry:" . $self->{host} . "]: Push method selected");
-        &main::print_log("[raZberry:" . $self->{host} . "]: The HTTPGet Automation module needs to be installed for push to work");
-        &main::print_log("[raZberry:" . $self->{host} . "]: URL is http://mh:port/SUB;razberry_push(%DEVICE%,%VALUE%)");
-        $push_obj = \%{$self};
+    
+    $self->{instance} = 1;
+    ( $self->{instance} ) = ( $options =~ /instance\=([0-9]+)/i ) if ( ( defined $options ) and ( $options =~ m/instance\=/i ) );
+    if ($main::Startup) {
+        if ( (!defined $raz_push_obj->{$self->{instance}}) && $self->{push} ) {
+            &main::print_log("[raZberry:" . $self->{host} . "]: Push method selected");
+            &main::print_log("[raZberry:" . $self->{host} . "]: The HTTPGet Automation module needs to be installed for push to work");
+            &main::print_log("[raZberry:" . $self->{host} . "]: URL is http://mh:port/SUB;razberry_push(%DEVICE%,%VALUE%," . $self->{instance} .")");
+            $raz_push_obj->{$self->{instance}} = \%{$self};
+        }
+        else {
+            &main::print_log("[raZberry:" . $self->{host} . "]: Push method already in use on this instance [" . $self->{instance} . "]!") if (defined $raz_push_obj->{$self->{instance}});
+            &main::print_log("[raZberry:" . $self->{host} . "]: Poll method selected");
+        }
+    } else {
+        if ($self->{push}) {
+            &main::print_log("[raZberry:" . $self->{host} . "]: Push method selected");
+        } else {
+            &main::print_log("[raZberry:" . $self->{host} . "]: Poll method selected");        
+        }
     }
-    else {
-        &main::print_log("[raZberry:" . $self->{host} . ": Push method already in use on other object") if ($push_obj);
-        &main::print_log("[raZberry:" . $self->{host} . "]: Poll method selected");
-    }
+    
     if ( $self->{username} ) {
         $self->{cookie_jar} = HTTP::Cookies->new( {} );
         $self->login;
@@ -261,10 +245,16 @@ sub new {
     
     $self->get_controllerdata;
     $self->{timer} = new Timer;
-    $self->poll;
+    $self->poll;  
+    if (defined $self->{data}->{devices}) {
+        &main::print_log("[raZberry:" . $self->{host} . "]: Devices:\t\t\t" . (keys %{ $self->{data}->{devices} }));
+    } else {
+        &main::print_log("[raZberry:" . $self->{host} . "]: No Devices found on controller!");
+    }
+    &main::print_log("[raZberry:" . $self->{host} . "]: Instance:\t\t" . $self->{instance});      
     $self->start_timer;
     $self->{generate_voice_cmds} = 0;    
-    &::Reload_post_add_hook( \&raZberry::generate_voice_commands, 1, $self );
+    &::Reload_post_add_hook( \&raZberry::generate_voice_commands, 0, $self );
     &main::print_log("[raZberry:" . $self->{host} . "]: Controller Initialization Complete");
     return $self;
 }
@@ -413,14 +403,15 @@ sub poll {
     if ($isSuccessResponse1) {
         $self->{lastupdate} = $devices->{data}->{updateTime};
         foreach my $item ( @{ $devices->{data}->{devices} } ) {
-            &main::print_log("[raZberry:" . $self->{host} . "]: Found:" . $item->{id} . " with level " . $item->{metrics}->{level} . " and updated " . $item->{updateTime} . "." )
-              if ( $self->{debug} );
-
-            #my ($id) = ( split /_/, $item->{id} )[2];
+            next if ($item->{id} =~ m/_Int$/); #ignore some funny 2.3.5 devices
+            next if ($item->{id} =~ m/^MobileAppSupport/);
+            next if ($item->{id} =~ m/^BatteryPolling_/);
+            
+            &main::print_log("[raZberry:" . $self->{host} . "]: Found:" . $item->{id} . " with level " . $item->{metrics}->{level} . " and updated " . $item->{updateTime} . "." ) if ( $self->{debug} );
+            &main::print_log("[raZberry:" . $self->{host} . "]: WARNING: device " . $item->{id} . " level is undefined") if ( ( !defined $item->{metrics}->{level} ) or ( lc $item->{metrics}->{level} eq "undefined" ) );
             my ($id) = ( split /_/, $item->{id} )[-1];    #always just get the last element
             print "id=$id\n" if ( $self->{debug} > 1 );
-            &main::print_log("[raZberry:" . $self->{host} . "]: WARNING: device $id level is undefined")
-              if ( ( !defined $item->{metrics}->{level} ) or ( lc $item->{metrics}->{level} eq "undefined" ) );
+
             my $battery_dev = 0;
             $battery_dev = 1 if ( $id =~ m/-0-128$/ );
             my $voltage_dev = 0;
@@ -745,30 +736,31 @@ sub deregister {
 }
 
 sub main::razberry_push {
-    my ( $dev, $level ) = @_;
+    my ( $dev, $level, $instance ) = @_;
 
     my ($id) = ( split /_/, $dev )[-1];    #always just get the last element
 
     #Filter out some non-items
-    return if ( ( $dev =~ m/^InfoWidget_/ )
-        or ( $dev =~ m/^BatteryPolling_/ ) );
+    return "" if ( (!defined $dev) or ( $dev =~ m/^InfoWidget_/ ) or ( $dev =~ m/^BatteryPolling_/ ) or ( $dev =~ m/^MobileAppSupport/ ));
 
-    &main::print_log("[raZberry]: HTTP Push update received for device: $dev, id: $id and level: $level");
+    $instance = 1 unless (defined $instance and $instance);
+
+    &main::print_log("[raZberry]: HTTP Push update received for instance: $instance, device: $dev, id: $id and level: $level") if ( $main::Debug{razberry});
 
     #my $obj = &main::get_object_by_name($object);
-    if ( $push_obj eq "" ) {
-        &main::print_log("[raZberry]: ERROR, Push control not enabled on this controller.");
-
-    }
+    if ( (! defined $raz_push_obj->{$instance}) or ( $raz_push_obj->{$instance} eq "" )) {
+        &main::print_log("[raZberry]: ERROR, Push control not enabled on this controller instance: $instance.");
+    }        
     elsif ( $dev =~ m/^ZWayVDev_zway_/ ) {
-        if ( defined $push_obj->{child_object}->{$id} ) {
+
+        if ( defined $raz_push_obj->{$instance}->{child_object}->{$id} ) {
             if ( $dev =~ m/\-0\-\50\-\d$/ ) {
                 ( my $subdev ) = ( $dev =~ /\-0\-50\-(\d)$/ );
-                &main::print_log( '[raZberry]: Calling $push_obj->{child_object}->{' . $id . '}->set_level( ' . $level . ", $subdev );" );
+                &main::print_log( '[raZberry]: Calling $raz_push_obj->{$instance}->{child_object}->{' . $id . '}->set_level( ' . $level . ", $subdev );" ) if ( $main::Debug{razberry});
             }
             else {
-                &main::print_log( '[raZberry]: Calling $push_obj->{child_object}->{' . $id . '}->set( ' . $level . ", 'push' );" );
-                $push_obj->{child_object}->{$id}->set( $level, 'push' );
+                &main::print_log( '[raZberry]: Calling $raz_push_obj->{$instance}->{child_object}->{' . $id . '}->set( ' . $level . ", 'push' );" ) if ( $main::Debug{razberry});
+                $raz_push_obj->{$instance}->{child_object}->{$id}->set( $level, 'push' );
             }
         }
         else {
@@ -779,18 +771,31 @@ sub main::razberry_push {
     else {
         &main::print_log("[raZberry]: ERROR, only ZWayVDev devices supported for push");
     }
-
+ 
+ #update comm object, If we got a push request, then the razberry's OK   
+    if ( defined $raz_push_obj->{$instance}->{child_object}->{comm} ) {
+        if (( $raz_push_obj->{$instance}->{status} eq "offline" ) || ($raz_push_obj->{$instance}->{child_object}->{comm}->state() eq "offline")) {
+            $raz_push_obj->{$instance}->{status} = "online";
+            main::print_log "[raZberry]: Successful push request, updating communication object from " . $raz_push_obj->{$instance}->{child_object}->{comm}->state() . " to online...";
+            $raz_push_obj->{$instance}->{child_object}->{comm}->set( "online", 'push' );
+        } 
+    }
+return "";
 }
 
 sub print_command_queue {
     my ($self) = @_;
     main::print_log( "[raZberry:" . $self->{host} . "]: ------------------------------------------------------------------" );
-    my $commands = scalar @{ $self->{cmd_queue} };
-    my $name = "$commands commands";
-    $name = "empty" if ($commands == 0);
-    main::print_log( "[raZberry:" . $self->{host} . "]: Current Command Queue: $name" );
-    for my $i ( 1 .. $commands ) {
-        main::print_log( "[raZberry:" . $self->{host} . "]: Command $i: " . @{ $self->{cmd_queue} }[$i - 1] );
+    unless ( defined $self->{cmd_queue} ) {
+        main::print_log( "[raZberry:" . $self->{host} . "]: Empty Command queue" );
+    } else {
+        my $commands = scalar @{ $self->{cmd_queue} };
+        my $name = "$commands commands";
+        $name = "empty" if ($commands == 0);
+        main::print_log( "[raZberry:" . $self->{host} . "]: Current Command Queue: $name" );
+        for my $i ( 1 .. $commands ) {
+            main::print_log( "[raZberry:" . $self->{host} . "]: Command $i: " . @{ $self->{cmd_queue} }[$i - 1] );
+        }
     }
     main::print_log( "[raZberry:" . $self->{host} . "]: ------------------------------------------------------------------" );
     
@@ -851,13 +856,12 @@ sub get_voice_cmds {
         'Print devices to print log'                    => $self->get_object_name . '->display_all_devices',
         'Print Command Queue to print log'              => $self->get_object_name . '->print_command_queue',
         'Purge Command Queue'                           => $self->get_object_name . '->purge_command_queue',
-        'Initiate controller failover'                  => $self->get_object_name . '->controller_failover',
-        'Initiate controller failback'                  => $self->get_object_name . '->controller_failback(\"force\")'       
+        'Poll Controller'                               => $self->get_object_name . '->poll'
     );
-#    if ($self->{controllers}->{backup}) {
-#        $voice_cmds{'Initiate controller failover'} => $self->get_object_name . '->controller_failover';
-#        $voice_cmds{'Initiate controller failback'} => $self->get_object_name . '->controller_failback(\'force\')';
-#   }
+    if ($self->{controllers}->{backup}) {
+        $voice_cmds{'Initiate controller failover'} = $self->get_object_name . '->controller_failover';
+        $voice_cmds{'Initiate controller failback'} = $self->get_object_name . '->controller_failback(\'force\')';
+   }
         
     return \%voice_cmds;
 }
@@ -1449,6 +1453,7 @@ sub new {
     $$self{master_object} = $object;
     push( @{ $$self{states} }, 'online', 'offline' );
     $object->register( $self, 'comm' );
+#    $self->SUPER::set('online'); #start online at initialization
     return $self;
 
 }
@@ -1482,7 +1487,7 @@ sub new {
 
     }
     else {
-        push( @{ $$self{states} }, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 16, 27, 28, 29, 30 );
+        push( @{ $$self{states} }, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30 );
         $self->{units}    = "C";
         $self->{min_temp} = 10;
         $self->{max_temp} = 30;
@@ -1490,6 +1495,9 @@ sub new {
 
     $$self{master_object} = $object;
     $devid = $devid . "-0-67" if ( $devid =~ m/^\d+$/ );
+    #check if the thermostat is a subitem? ie xx-0-67-1, which happened on 2.3.5?
+    my $testdev = $devid . "-1";
+    $devid = $testdev if (defined $$self{master_object}->{data}->{devices}->{$testdev});
     $$self{devid} = $devid;
     $$self{type}  = "Thermostat";
 
@@ -1883,3 +1891,46 @@ sub isfailed {
 sub update_data {
     my ( $self, $data ) = @_;
 }
+
+=head2 CHANGELOG 
+v2.2.1
+- fixed thermostat to check for sub device
+
+v2.2.0
+- fixed push not working at reload. Added instance option so that multiple controllers can push updates
+- minor bugfixes
+
+v2.1.0
+- added support for secondary controllers. Given that secondary controllers don't receive
+  lifeline data (ie updates when device is changed by other controller or local ) this probably isn't useful
+
+v2.0.2
+- added generic_item support for loggers
+
+v2.0.1
+- added full poll for getting battery data
+
+v2.0
+- added in authentication method for razberry 2.1.2+ support
+- supports a push method when used in conjunction with the HTTPGet automation module
+- displays some controller information at startup
+
+v1.6
+- added in digital blinds, battery item (like a remote)
+
+v1.5
+- added in binary sensors
+
+v1.4
+- added in thermostat
+
+v1.3
+- added in locks
+- added in ability to add and remove lock users
+
+v1.2
+- added in ability to 'ping' device
+- added a check to see if the device is 'dead'. If dead it will attempt a ping for
+  X attempts a Y seconds apart.
+
+=cut

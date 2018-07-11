@@ -164,7 +164,7 @@ sub new {
     $self->{poll_process}->set_output( $self->{poll_data_file} );
     @{ $self->{cmd_queue} } = ();
     $self->{cmd_data_file} = "$::config_parms{data_dir}/Aurora_cmd_" . $self->{name} . ".data";
-    unlink "$::config_parms{data_dir}/Auroroa_cmd_" . $self->{name} . ".data";
+    unlink "$::config_parms{data_dir}/Aurora_cmd_" . $self->{name} . ".data";
     $self->{cmd_process} = new Process_Item;
     $self->{cmd_process}->set_output( $self->{cmd_data_file} );
     $self->{init}      = 0;

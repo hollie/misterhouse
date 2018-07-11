@@ -22,10 +22,6 @@ my $width  = $1 . "px";
 my $height = $2 . "px";
 
 my $css = <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: text/css
-
 #show {
 	z-index: 5;
 	border: 1px solid #000;
@@ -76,4 +72,13 @@ Content-type: text/css
 	margin: 5px;
 }
 eof
-return $css;
+
+my $output = "HTTP/1.1 200 OK\r\n";
+$output .= "Server: MisterHouse\r\n";
+$output .= "Content-type: text/css\r\n";
+$output .= "Connection: close\r\n" if &http_close_socket;
+$output .= "Content-Length: " . ( length $css ) . "\r\n";
+$output .= "Date: " . time2str(time) . "\r\n";
+$output .= "\r\n";
+$output .= $css;
+return $output;
