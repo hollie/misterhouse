@@ -48,6 +48,7 @@ use JSON qw(decode_json);
 use IO::Compress::Gzip qw(gzip);
 use vars qw(%json_table);
 use File::Copy;
+use Digest::MD5 qw(md5 md5_hex);
 my %json_cache;
 my @json_notifications = ();    #noloop
 my $web_counter; #noloop;
@@ -266,10 +267,12 @@ sub json_put {
             &Groups('add',$body->{name},$members);
        }
        if ($body->{pk} eq 'add_user') {
-            &Groups('add','',$body->{name}); 
-            print("add_user &Groups('add','',$body->{name})\n"); 
+            my $passwd = "";
+            $passwd = $body->{password};
+            $passwd = md5_hex($passwd) unless ($body->{md5} eq "true");
+            &Groups('add','',$body->{name},$passwd); 
+            print("add_user &Groups('add','',$body->{name},$passwd), [$body->{md5}]\n"); 
             
-            #Add create password function
             foreach my $group (@{$body->{groups}}) {
                 &Groups('add',$group,$body->{name}); 
                 print("add_user &Groups('add',$group,$body->{name})\n"); 
@@ -881,26 +884,59 @@ sub json_get {
 
     if ( $path[0] eq 'security' ) {
     #check if $Authorized
-    my $ref;
-    my $users;
-    my $found = 0;
-    if ($args{user} && $args{user}[0] ne "") {
-        $ref->{user} = &Groups('get','',$args{user}[0]);
-        #$json_data{security}{users} = 
-        $found = 1;
+    if (defined $path[1] and $path[1] eq 'authorize') {
+        print "IN AUTHORIZE\n";
+        my $status = "";
+        if ($args{user} && $args{user}[0] eq "") {
+            $status = "Empty Username";
+        } elsif ($args{password} && $args{password}[0] eq "") {
+            $status = "Empty Password";
+        } else {
+            my $password = &Groups('getpw','',$args{user}[0]);
+            my $time_seed = &main::time_date_stamp('18',$Time);
+            my $time_seedY = &main::time_date_stamp('18',$Time - 86400);
+            my $time_seedT = &main::time_date_stamp('18',$Time + 86400);
+       
+            #if time is between 11:55 and midnight then also check tomorrow
+            #if time is between midnight and 00:05 then also check yesterday
+            print "PW=$password, time_seed=$time_seed, $time_seedY, $time_seedT\n";
+            my $pwdcheck = md5_hex($password . $time_seed);
+            print "PWC=$pwdcheck\n";
+       
+            if (lc $args{password}[0] eq lc $pwdcheck) {
+                $status = "success";
+            } else {
+                $status = "fail";
+            }
+        }    
+        $json_data{security}->{authorize} = $status;
+    } else {
+        my $ref;
+        my $users;
+        my $found = 0;
+        if ($args{user} && $args{user}[0] ne "") {
+            $ref->{user} = &Groups('get','',$args{user}[0]);
+            #$json_data{security}{users} = 
+            $found = 1;
+        }
+        if ($args{group} && $args{group}[0] ne "") {
+            $ref->{group} = &Groups('get',$args{group}[0]);
+            #$json_data{security}{groups} = 
+            $found = 1;
+        }
+        if (!$found) {
+            $ref = ${&Groups('getall')};   
+        }
+        #ref->{acl} = ${&Groups('fullacl')};
+        print Dumper $ref;
+        $json_data{security} = $ref if (defined $ref);
+        #$json_data{security} = ${$ref} if (defined ${$ref});
+        #print Dumper $json_data{security};
+        }
     }
-    if ($args{group} && $args{group}[0] ne "") {
-        $ref->{group} = &Groups('get',$args{group}[0]);
-        #$json_data{security}{groups} = 
-        $found = 1;
-    }
-    if (!$found) {
-        $ref = ${&Groups('getall')};   
-    }
-    print Dumper $ref;
-    $json_data{security} = $ref if (defined $ref);
-    #$json_data{security} = ${$ref} if (defined ${$ref});
-    #print Dumper $json_data{security};
+
+    if ( $path[0] eq 'authorize' ) {
+    # /json/security/authorize?$user=admin&password=MD5HASH
     }
 
     # List subroutines

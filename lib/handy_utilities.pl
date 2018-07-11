@@ -1603,128 +1603,268 @@ my $UserGroups;
 
 
 
-# Modify and get user to group relationships 
- if ($user and $group) {
-    if ($function eq 'add') { #Add user to group and add the group if needed 
-          $UserGroups->{user}->{$user}->{$group} = 1;
-          $UserGroups->{group}->{$group}->{status} = 1; #Add the group
-          store $UserGroups, $file;
-          return 1;
-    } elsif ($function eq 'remove') { #Remove a user from a group
-          delete $UserGroups->{user}->{$user}->{$group};
-          store $UserGroups, $file;
-          return 1;
-    } elsif ( ($UserGroups) and ($function eq 'memberof') ) { #Check is user is a member of a specific group 
-          foreach my $ugroup ( keys %{$UserGroups->{user}->{$user}} ) {
-            return 1 if $ugroup eq $group;
-          }
-      return 0;
-    }
-  } elsif ( $UserGroups and $user and ($function eq 'get') ) { #Get all of the groups for a specific user 
-        foreach my $ugroup ( keys %{$UserGroups->{user}->{$user}} ) {
-          push (@ugroups, $ugroup);
-        }
-        return \@ugroups;
+# If the group file is empty, add user/group admin by default so we dont crash
+unless ( ref($UserGroups) eq 'HASH' ) {
+                $UserGroups->{user}->{admin}->{status} = 1;
+                $UserGroups->{group}->{admin}->{status} = 1;
+        $UserGroups->{user}->{admin}->{group}->{admin} = 1;
+        push @{ $UserGroups->{user}->{admin}->{grouplist} }, 'admin';
+        $UserGroups->{user}->{admin}->{defaultperm}->{_global_} = 'allow';
+        store $UserGroups, $file;
+}
 
-# Modify and get group permissions
-  } elsif ( $UserGroups and $group and $cmd and $function and $cmdperm and $type and ( defined($line) ) ) {
-        if ($function eq 'add') { #Add an allowed/denied CMD for a group on a specific line
-                my $cmdindex = 0;
-                if ( $UserGroups->{group}->{$group}->{$type} ) {
-                        $cmdindex = scalar(@{ $UserGroups->{group}->{$group}->{$type} });
+
+# Modify and get user to group relationships
+        if ( $user and $group and ($function eq 'add') ) { #Add user to group and add the group if needed
+                $UserGroups->{user}->{$user}->{status} = 1 unless ( defined($UserGroups->{user}->{$user}->{status}) ); #Add the user if needed
+                $UserGroups->{group}->{$group}->{status} = 1 unless ( defined($UserGroups->{group}->{$group}->{status}) ); #Add the group if needed
+                unless ( $UserGroups->{user}->{$user}->{group}->{$group} ) {
+                        $UserGroups->{user}->{$user}->{group}->{$group} = 1;  #Add the user to the group
+                        if ( defined($line) ) {                                                           #Add the group to the user on a specific line if line is defined
+                                my $cmdindex = 0;
+                                if ( $UserGroups->{user}->{$user}->{grouplist} ) {
+                                        $cmdindex = scalar(@{ $UserGroups->{user}->{$user}->{grouplist} });
+                                }
+                                return 0 if $line > $cmdindex;
+                                splice(@{ $UserGroups->{user}->{$user}->{grouplist} }, $line, 1);
+                                ${ $UserGroups->{user}->{$user}->{grouplist} }[$line] = $group;
+                        } else {
+                                push @{ $UserGroups->{user}->{$user}->{grouplist} }, $group; #Add the user to the group to the bottom of the list
+                        }
                 }
-		return 0 if $line > $cmdindex;
-		splice(@{ $UserGroups->{group}->{$group}->{$type} }, $line, 1, undef);
-                ${ ${ $UserGroups->{group}->{$group}->{$type} }[$line] }[0] = $cmd;
-                ${ ${ $UserGroups->{group}->{$group}->{$type} }[$line] }[1] = $cmdperm;
                 store $UserGroups, $file;
                 return 1;
-        }
-  } elsif ( $UserGroups and $group and $cmd and $function and $cmdperm and $type) {
-    	if ($function eq 'add') { #Add an allowed/denied CMD for a group
-		my $cmdindex = 0;
-		if ( $UserGroups->{group}->{$group}->{$type} ) { 
-			$cmdindex = scalar(@{ $UserGroups->{group}->{$group}->{$type} });
-		}
-		${ ${ $UserGroups->{group}->{$group}->{$type} }[$cmdindex] }[0] = $cmd;
-                ${ ${ $UserGroups->{group}->{$group}->{$type} }[$cmdindex] }[1] = $cmdperm;
-		store $UserGroups, $file;
-          	return 1;
-	}
-  } elsif ( $UserGroups and $group and $cmd and $type and $function ) {
-        if ($function eq 'check') { #Check a CMD to see if its allowed for the group
-                foreach my $cmdarray ( @{ $UserGroups->{group}->{$group}->{$type} } ) {
-			my $matchcmd = ${ $cmdarray }[0];
-			my $permission = ${ $cmdarray }[1];
+        } elsif ( $user and ($function eq 'add') ) { #Add a new user
+                unless ( defined($UserGroups->{user}->{$user}->{status}) ) {
+                        $UserGroups->{user}->{$user}->{status} = 1;
+                        $UserGroups->{user}->{$user}->{password} = "";                       
+                        $UserGroups->{user}->{$user}->{password} = $type if (defined $type and $type ne "");                       
+                        store $UserGroups, $file;
+                        return 1;
+                }
+                return 0;
+        } elsif ( $UserGroups and $user and ($function eq 'disable') ) { #Disable user
+                if ( $user eq 'admin' ) { return 0 } # Disallow admin from being disabled
+                if ( defined($UserGroups->{user}->{$user}->{status}) && ( not $UserGroups->{user}->{$user}->{status} == 0 ) ) {
+                        $UserGroups->{user}->{$user}->{status} = 0;
+                        store $UserGroups, $file;
+                        return 1;
+                }
+                return 0;
+        } elsif ( $UserGroups and $user and ($function eq 'enable') ) { #Enable user
+                if ( defined($UserGroups->{user}->{$user}->{status}) && ( not $UserGroups->{user}->{$user}->{status} == 1 ) ) {
+                        $UserGroups->{user}->{$user}->{status} = 1;
+                        store $UserGroups, $file;
+                        return 1;
+                }
+                return 0;
+        } elsif ( $UserGroups and $user and ($function eq 'getpw') ) { #Return stored password
+                if ( defined($UserGroups->{user}->{$user}->{password}) ) {
+print "PWD = $UserGroups->{user}->{$user}->{password}\n";
+                        return ($UserGroups->{user}->{$user}->{password});
+                }
+                return "";
+         } elsif ( $UserGroups and $user and $group and ($function eq 'remove') ) { #Remove a user from a group
+                if ( ( $user eq 'admin' ) && ( $group eq 'admin' ) ) { return 0 } # Disallow admin from being removed from admin group
+                delete $UserGroups->{user}->{$user}->{group}->{$group};
+                my $lc = -1;
+                foreach my $ugroup ( @{ $UserGroups->{user}->{$user}->{grouplist} } ) {
+                        $lc++;
+                        if ( $ugroup eq $group ) { splice @{ $UserGroups->{user}->{$user}->{grouplist} }, $lc, 1 } ## Delete group from user group array
+                }
+                store $UserGroups, $file;
+                return 1;
+        } elsif ( $UserGroups and $user and ($function eq 'delete') ) { #Delete a user
+                if ( $user eq 'admin' ) { return 0 } # Disallow admin from being deleted
+                if ( defined($UserGroups->{user}->{$user}->{status}) ) {
+                        delete $UserGroups->{user}->{$user};
+                        return 1;
+                }
+                return 0;
+        } elsif ( $UserGroups and $user and $group and ($function eq 'memberof') ) { #Check is user is a member of a specific group
+                return 1 if $UserGroups->{user}->{$user}->{group}->{$group};
+                return 0;
+        } elsif ( $UserGroups and $user and ($function eq 'get') ) { #Get all of the groups for a specific user
+                return \@{ $UserGroups->{user}->{$user}->{grouplist} };
+        } elsif ( $UserGroups and $user and $cmdperm and $type and ($function eq 'defaultperm') ) { #Set the default permission for a user and specific ACL type
+                if ( $user eq 'admin' ) { return 0 } # Disallow admin user from being modified
+                $UserGroups->{user}->{$user}->{defaultperm}->{$type} = $cmdperm;
+                store $UserGroups, $file;
+                return 1;
+        } elsif ( $UserGroups and $user and $cmdperm and ($function eq 'defaultperm') ) { #Set the default global (all types) permission for a user
+                if ( $user eq 'admin' ) { return 0 } # Disallow admin user from being modified
+                $UserGroups->{user}->{$user}->{defaultperm}->{_global_} = $cmdperm;
+                store $UserGroups, $file;
+                return 1;
+        } elsif ( $UserGroups and $user and $type and $cmd and ($function eq 'check') ) { #Check a CMD to see if its allowed for the user (requires ACL type)
+                return 'deny' unless $UserGroups->{user}->{$user}->{status}; #User is disabled
+                foreach my $ugroup ( @{ $UserGroups->{user}->{$user}->{grouplist} } ) {
+                next if ( $UserGroups->{group}->{$ugroup}->{status} == 0 ); #Group is disabled, skip it
+                        foreach my $cmdarray ( @{ $UserGroups->{group}->{$ugroup}->{acl}->{$type} } ) {
+                                my $matchcmd = ${ $cmdarray }[0];
+                                my $permission = ${ $cmdarray }[1];
 
-			if ( $cmd =~  /$matchcmd/ ) {
-				return $permission;
-			} elsif ( $matchcmd eq 'all' ) {
-				return $permission;
-			} 
-		}
-		return $UserGroups->{group}->{$group}->{defaultperm}->{$type} if ( $UserGroups->{group}->{$group}->{defaultperm}->{$type} ); #Return group default permission for cmd type if defined
-		return $UserGroups->{group}->{$group}->{defaultperm}->{_global_} if ( $UserGroups->{group}->{$group}->{defaultperm}->{_global_} ); #Return group default permission if defined
-		return 'deny'; #Return deny by default
-        } elsif ($function eq 'removebyname') {
+                                if ( $cmd =~  /$matchcmd/ ) {
+                                        return $permission;
+                                } elsif ( $matchcmd eq 'all' ) {
+                                        return $permission;
+                                }
+                        }
+                }
+                return $UserGroups->{user}->{$user}->{defaultperm}->{$type} if ( $UserGroups->{user}->{$user}->{defaultperm}->{$type} ); #Return user default permission for cmd type if defined
+                return $UserGroups->{user}->{$user}->{defaultperm}->{_global_} if ( $UserGroups->{user}->{$user}->{defaultperm}->{_global_} ); #Return user default permission if defined
+                return 'deny'; #Return deny by default
+
+        } elsif ( $UserGroups and $user and $type and ($function eq 'fullacl') ) { #Get the full user ACL for a specific ACL type (returns array)
+                my @aclarray;
+                foreach my $ugroup ( @{ $UserGroups->{user}->{$user}->{grouplist} } ) {
+                next if ( $UserGroups->{group}->{$ugroup}->{status} == 0 ); #Group is disabled, skip it
+                        foreach my $cmdarray ( @{ $UserGroups->{group}->{$ugroup}->{acl}->{$type} } ) {
+                                my $matchcmd = ${ $cmdarray }[0];
+                                my $permission = ${ $cmdarray }[1];
+                                my $index = push @aclarray, $matchcmd;
+                                ${ $aclarray[$index] }[0] = $permission
+                        }
+                }
+                return \@aclarray;
+        } elsif ( $UserGroups and $user and ($function eq 'fullacl') ) { #Get the full user ACL for all ACL types (returns hash of arrays)
+                my $aclhash;
+                foreach my $ugroup ( @{ $UserGroups->{user}->{$user}->{grouplist} } ) {
+                next if ( $UserGroups->{group}->{$ugroup}->{status} == 0 ); #Group is disabled, skip it
+                        foreach my $type ( keys %{$UserGroups->{group}->{$ugroup}->{acl}} ) {
+                                foreach my $cmdarray ( @{ $UserGroups->{group}->{$ugroup}->{acl}->{$type} } ) {
+                                        my $matchcmd = ${ $cmdarray }[0];
+                                        my $permission = ${ $cmdarray }[1];
+                                        my $index = push @{ $aclhash->{$type} }, $matchcmd;
+                                        ${ ${ $aclhash->{$type} }[$index] }[0] = $permission
+                                }
+                        }
+                }
+                return \$aclhash;
+
+        # Modify and get group permissions
+        } elsif ( $UserGroups and $group and $cmd and ($function eq 'add') and $cmdperm and $type) { #Add an allowed/denied CMD for a group
+                my $cmdindex = 0;
+                if ( $UserGroups->{group}->{$group}->{acl}->{$type} ) {
+                        $cmdindex = scalar(@{ $UserGroups->{group}->{$group}->{acl}->{$type} });
+                }
+                my $lc = -1;
+                foreach my $cmdarray ( @{ $UserGroups->{group}->{$group}->{acl}->{$type} } ) {
+                        $lc++;
+                        my $matchcmd = ${ $cmdarray }[0];
+                        my $permission = ${ $cmdarray }[1];
+                        if ( $matchcmd eq $cmd ) {
+                                if ( defined($line) ) {
+                                        splice @{ $UserGroups->{group}->{$group}->{acl}->{$type} }, $lc, 1; #A specific line number was specified, so delete the matching cmd
+                                        $cmdindex--;
+                                        last;
+                                 }
+                                if ( $permission eq $cmdperm ) { return 0 } #Duplicate, dont add anything
+                                ${ ${ $UserGroups->{group}->{$group}->{acl}->{$type} }[$lc] }[1] = $cmdperm; #update perm only
+                                store $UserGroups, $file;
+                                return 1;
+                        }
+                }
+                if ( defined($line) ) { #A specific line number was specified
+                        $line = $cmdindex if $line > $cmdindex;
+                        splice(@{ $UserGroups->{group}->{$group}->{acl}->{$type} }, $line, 0, undef); #Insert a new line on the specified line number
+                        ${ ${ $UserGroups->{group}->{$group}->{acl}->{$type} }[$line] }[0] = $cmd;
+                        ${ ${ $UserGroups->{group}->{$group}->{acl}->{$type} }[$line] }[1] = $cmdperm;
+                        store $UserGroups, $file;
+                        return 1;
+                }
+                ${ ${ $UserGroups->{group}->{$group}->{acl}->{$type} }[$cmdindex] }[0] = $cmd;
+                ${ ${ $UserGroups->{group}->{$group}->{acl}->{$type} }[$cmdindex] }[1] = $cmdperm;
+                store $UserGroups, $file;
+                return 1;
+        } elsif ( $UserGroups and $group and $type and ($function eq 'removeall') ) { #Remove all ACL lines for an ACL type
+                 if ( defined($UserGroups->{group}->{$group}->{acl}->{$type}) ) {
+                        delete $UserGroups->{group}->{$group}->{acl}->{$type};
+                        delete $UserGroups->{group}->{$group}->{acl} unless ( keys %{ $UserGroups->{group}->{$group}->{acl} } );
+                        store $UserGroups, $file;
+                        return 1;
+                 }
+                return 0;
+        } elsif ( $UserGroups and $group and $cmd and $type and ($function eq 'removebyname') ) { #Remove an ACL line by the CMD
                  my $c = 0;
-		 my $deleted = 0;
-                 foreach my $cmdarray ( @{ $UserGroups->{group}->{$group}->{$type} } ) {
-			if ( ${ $cmdarray }[0] eq $cmd ) { # Delete matching cmd
-                        	splice @{ $UserGroups->{group}->{$group}->{$type} }, $c, 1;
-				$deleted++
-			}
+                 my $deleted = 0;
+                 foreach my $cmdarray ( @{ $UserGroups->{group}->{$group}->{acl}->{$type} } ) {
+                        if ( ${ $cmdarray }[0] eq $cmd ) { # Delete matching cmd
+                                splice @{ $UserGroups->{group}->{$group}->{acl}->{$type} }, $c, 1;
+                                $deleted++
+                        }
                         $c++;
                  }
                  store $UserGroups, $file if $deleted;
                  return $deleted;
-        } elsif ($function eq 'removebyindex') {
-		 splice @{ $UserGroups->{group}->{$group}->{$type} }, $cmd, 1;
-                 store $UserGroups, $file;
-                 return 1;
-        }
-  } elsif ( $UserGroups and $group and ($function eq 'defaultperm') and $cmdperm and $type) {
-	$UserGroups->{group}->{$group}->{defaultperm}->{$type} = $cmdperm;
-	store $UserGroups, $file;
-	return 1; 
-  } elsif ( $UserGroups and $group and ($function eq 'defaultperm') and $cmdperm ) {
-        $UserGroups->{group}->{$group}->{defaultperm}->{_global_} = $cmdperm;
-        store $UserGroups, $file;
-        return 1;
-  } elsif ( $UserGroups and $group ) {
-        if ($function eq 'get') { #Get all users in a group
-            foreach my $cuser ( keys %{$UserGroups->{user}} ) {
-               foreach my $ugroup ( keys %{$UserGroups->{user}->{$cuser}} ) {
-                  push (@users, $cuser) if $ugroup eq $group;
-               }
-            }
-            return \@users;
-        } elsif ($function eq 'getgroupdet') {
-            return \$UserGroups->{group}->{$group};
-        } elsif ($function eq 'add') { #Add a new group
-            $UserGroups->{group}->{$group}->{status} = 1; #Add the group
-            store $UserGroups, $file;
-            return 1;
-        } elsif ($function eq 'delete') { #Delete a group
+        } elsif ( $UserGroups and $group and $type and ($function eq 'removebyindex') and defined($line) ) { #Remove an ACL line by line number
+                my $cmdindex = 0;
+                if ( $UserGroups->{group}->{$group}->{acl}->{$type} ) {
+                        $cmdindex = scalar(@{ $UserGroups->{group}->{$group}->{acl}->{$type} });
+                }
+                return 0 if $line > $cmdindex;
+
+                splice @{ $UserGroups->{group}->{$group}->{acl}->{$type} }, $cmd, 1;
+                store $UserGroups, $file;
+                return 1;
+        } elsif ( $UserGroups and $group and ($function eq 'get') ) { #Get all users in a group (returns an array)
+                my @users;
+                foreach my $cuser ( keys %{$UserGroups->{user}} ) {
+                        push (@users, $cuser) if $UserGroups->{user}->{$cuser}->{group}->{$group};
+                }
+                return \@users;
+        } elsif ( $UserGroups and $group and ($function eq 'getgroupdet') ) {
+                return \$UserGroups->{group}->{$group};
+        } elsif ( $UserGroups and $group and ($function eq 'add') ) { #Add a new group
+                unless ( defined($UserGroups->{group}->{$group}->{status}) ) {
+                        $UserGroups->{group}->{$group}->{status} = 1; #Add the group
+                        store $UserGroups, $file;
+                        return 1;
+                }
+                return 0;
+        } elsif ( $UserGroups and $group and ($function eq 'delete') ) { #Delete a group
+            if ( $group eq 'admin' ) { return 0 } # Disallow admin group from being deleted
             delete $UserGroups->{group}->{$group}; #Delete group from group hash
               foreach my $cuser ( keys %{$UserGroups->{user}} ) {
-                 foreach my $ugroup ( keys %{$UserGroups->{user}->{$cuser}} ) {
-                    delete $UserGroups->{user}->{$user}->{$group} if $ugroup eq $group; #Delete group from users
+                 foreach my $ugroup ( keys %{$UserGroups->{user}->{$cuser}->{group}} ) {
+                                        if ( $ugroup eq $group ) {
+                                                delete $UserGroups->{user}->{$cuser}->{group}->{$group}; #Delete group from users
+                                                my $lc = -1;
+                                                foreach my $usrgroup ( @{ $UserGroups->{user}->{$cuser}->{grouplist} } ) {
+                                                        $lc++;
+                                                        if ( $usrgroup eq $group ) { splice @{ $UserGroups->{user}->{$cuser}->{grouplist} }, $lc, 1 } ## Delete group from user group array
+                                                }
+                                        }
                  }
               }
             store $UserGroups, $file;
             return 1;
+        } elsif ( $UserGroups and $group and ($function eq 'disable') ) { #Disable a group
+                if ( $group eq 'admin' ) { return 0 } # Disallow admin from being disabled
+                if ( defined($UserGroups->{group}->{$group}->{status}) && ( not $UserGroups->{group}->{$group}->{status} == 0 ) ) {
+                        $UserGroups->{group}->{$group}->{status} = 0;
+                        store $UserGroups, $file;
+                        return 1;
+                }
+                return 0;
+        } elsif ( $UserGroups and $group and ($function eq 'enable') ) { #Enable a group
+                if ( defined($UserGroups->{group}->{$group}->{status}) && ( not $UserGroups->{group}->{$group}->{status} == 1 ) ) {
+                        $UserGroups->{group}->{$group}->{status} = 1;
+                        store $UserGroups, $file;
+                        return 1;
+                }
+                return 0;
+        } elsif ( $UserGroups and ($function eq 'getgroupnames') ) { #Get all the group names (returns array)
+                my @ugroups;
+                foreach my $ugroup ( keys %{$UserGroups->{group}} ) {
+                        push (@ugroups, $ugroup);
+                }
+                return \@ugroups;
+        } elsif ( $UserGroups and ($function eq 'getgroupdet') ) { #Get all groups and their details (allowedd cmd, etc)
+                return \$UserGroups->{group};
+        } elsif ( $UserGroups and ($function eq 'getall') ) { #Get entire hash with user and group details, for caching in MH because storable reads from a file.
+                return \$UserGroups;
         }
-  } elsif ( $UserGroups and ($function eq 'getgroupnames') ) { 
-        foreach my $ugroup ( keys %{$UserGroups->{group}} ) {
-           push (@ugroups, $ugroup);
-        }
-        return \@ugroups;
-  } elsif ( $UserGroups and ($function eq 'getgroupdet') ) { #Get all groups and their details (allowedd cmd, etc)
-        return \$UserGroups->{group};
-  } elsif ( $UserGroups and ($function eq 'getall') ) { #Get entire hash with user and group details, for caching in MH because storable reads from a file.
-        return \$UserGroups;
-  }
 return 0;
 }
 
