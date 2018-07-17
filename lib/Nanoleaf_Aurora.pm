@@ -1,6 +1,6 @@
 package Nanoleaf_Aurora;
 
-# v1.1.01
+# v1.1.03
 
 #if any effect is changed, by definition the static child should be set to off.
 #cmd data returns, need to check by command
@@ -129,7 +129,7 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.1.01";
+    $self->{module_version}         = "v1.1.03";
     $self->{ssdp_timeout}           = 4000;
     $self->{last_static}            = "";
 
@@ -721,7 +721,6 @@ sub print_info {
     } else {
         main::print_log( "[Aurora:" . $self->{name} . "] Rhythm Module:     Not Present");
     }
-    main::print_log( "[Aurora:" . $self->{name} . "] Firmware:          " . $self->{data}->{info}->{firmwareVersion} );
     
     main::print_log( "[Aurora:" . $self->{name} . "] Connected Panels:  " . $self->{data}->{panels} );
     main::print_log( "[Aurora:" . $self->{name} . "] Panel Size:        " . $self->{data}->{panel_size} );
@@ -763,9 +762,9 @@ sub print_info {
     main::print_log( "[Aurora:"
           . $self->{name}
           . "]    Color Temp:\t  "
-          . $self->{data}->{info}->{state}->{brightness}->{value} . "\t["
-          . $self->{data}->{info}->{state}->{brightness}->{min} . "-"
-          . $self->{data}->{info}->{state}->{brightness}->{max}
+          . $self->{data}->{info}->{state}->{ct}->{value} . "\t["
+          . $self->{data}->{info}->{state}->{ct}->{min} . "-"
+          . $self->{data}->{info}->{state}->{ct}->{max}
           . "]" );
     main::print_log( "[Aurora:" . $self->{name} . "] -- Active Effects --" );
     if ( defined $self->{data}->{info}->{effects}->{list} ) {
@@ -1063,8 +1062,6 @@ sub check_static {
 sub is_rhythm_effect {
     my ( $self) = @_;
     my $return = 0;
-    print "DB \$self->{data}->{info}->{rhythm}->{rhythmActive} = $self->{data}->{info}->{rhythm}->{rhythmActive}\n";
-    print "DB \$self->{data}->{info}->{rhythm}->{rhythmMode} = $self->{data}->{info}->{rhythm}->{rhythmMode}\n";
     $return = 1 if ($self->{data}->{info}->{rhythm}->{rhythmActive});
     
     return $return;
@@ -1334,3 +1331,4 @@ sub set {
 # v1.0.14 - commands now queue properly
 # v1.0.15 - fixed polling
 # v1.1.01 - firmware v2.2.0 and rhythm module
+# v1.1.03 - fixed a few typos
