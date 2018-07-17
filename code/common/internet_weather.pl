@@ -3,7 +3,7 @@
 # $Date$
 # $Revision$
 
-#@ Retrieves current weather conditions and forecasts using bin/get_weather (US only).
+#@ Retrieves current weather conditions and forecasts using bin/get_weather (US only). (MH5 Updated)
 #@ You will need to set the city, zone, and state parms in your ini file.
 #@ To verify your city, click <a href="http://iwin.nws.noaa.gov/iwin/iwdspg1.html">here</a>,
 #@ then click on your state, then click on "Hourly Reports".  If your city
@@ -49,6 +49,7 @@ $city                 = $config_parms{nws_city} if defined $config_parms{nws_cit
 $p_weather_data       = new Process_Item;
 $p_weather_conditions = new Process_Item;
 $p_weather_forecast   = new Process_Item;
+$Weather_Common::weather_module_enabled = 1;
 
 #noloop=stop
 
@@ -190,6 +191,11 @@ if ( done_now $p_weather_data or done_now $p_weather_conditions) {
         if ( $conditions =~ /conditions were (clear|cloudy|partly cloudy|mostly cloudy|sunny|mostly sunny|partly sunny)/ ) {
             $w{Clouds} = lc($1);
         }
+        
+        #be nice to have a full date, but GEO::WeatherNOAA only puts $in->{TIME} in the conditions output
+        if ( $conditions =~ /^At\s(\d\d:\d\d\s\S\S)/ ) {
+            $w{LastUpdated} = lc($1);
+        }        
 
         $w{WindAvgDir} =
           &Weather_Common::convert_wind_dir_text_to_num( $w{WindAvgDir} );

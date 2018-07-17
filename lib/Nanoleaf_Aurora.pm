@@ -1330,5 +1330,4 @@ sub set {
 # v1.0.13 - ability to print and purge the command queue in case a network error prevents clearing, empty poll queue if max reached
 # v1.0.14 - commands now queue properly
 # v1.0.15 - fixed polling
-# v1.1.01 - firmware v2.2.0 and rhythm module
 # v1.1.03 - fixed a few typos

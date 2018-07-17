@@ -280,6 +280,8 @@ sub start_next {
     }
     else {
         $pid = fork;
+        &main::print_log("***PID Process_Item $pid (\$!=$! \$?=$?)") if $::Debug{fork}; 
+
         if ($pid) {
             print "Process start: parent pid=$pid type=$type cmd=$cmd\n"
               if $main::Debug{process};

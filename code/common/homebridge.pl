@@ -6,6 +6,8 @@
 #@ Thermostat control only tested with a few models.
 
 my $hb_debug = 1;
+my $http_address = $config_parms{http_address};
+$http_address = $Info{IPAddress_local} unless ($http_address);
 my $port     = $config_parms{homebridge_port};
 $port = 51826 unless ($port);
 my $name = $config_parms{homebridge_name};
@@ -58,7 +60,7 @@ if ( said $v_generate_hb_config) {
     $config_json .= add_group("thermostat");
 
     $config_json .= "\t\t}\n\t]\n}\n";
-    print_log "[Homebridge]: Writing configuration for server " . $Info{IPAddress_local} . " to $filepath...";
+    print_log "[Homebridge]: Writing configuration for server " . $http_address . " to $filepath...";
 
     #print_log $config_json;
     file_write( $filepath, $config_json );
@@ -95,14 +97,14 @@ sub add_group {
         if ( $type eq "thermostat" ) {
             $text .=
                 "\t\t\"mode_url\": \"http://"
-              . $Info{IPAddress_local} . ":"
+              . $http_address . ":"
               . $config_parms{http_port}
               . "/SUB?hb_thermo_set_state%28"
               . $obj_name
               . ",%VALUE%%29\",\n";
             $text .=
                 "\t\t\"status_url\": \"http://"
-              . $Info{IPAddress_local} . ":"
+              . $http_address . ":"
               . $config_parms{http_port}
               . "/SUB?hb_thermo_get_state%28"
               . $obj_name . ","
@@ -110,14 +112,14 @@ sub add_group {
               . "%29\",\n";
             $text .=
                 "\t\t\"setpoint_url\": \"http://"
-              . $Info{IPAddress_local} . ":"
+              . $http_address . ":"
               . $config_parms{http_port}
               . "/SUB?hb_thermo_set_setpoint%28"
               . $obj_name
               . ",%VALUE%%29\",\n";
             $text .=
                 "\t\t\"gettemp_url\": \"http://"
-              . $Info{IPAddress_local} . ":"
+              . $http_address . ":"
               . $config_parms{http_port}
               . "/SUB?hb_thermo_get_setpoint%28"
               . $obj_name
@@ -133,7 +135,7 @@ sub add_group {
                 "\t\t\""
               . $on
               . "_url\": \"http://"
-              . $Info{IPAddress_local} . ":"
+              . $http_address . ":"
               . $config_parms{http_port}
               . "/SET;none?select_item="
               . $member->{object_name}
@@ -143,7 +145,7 @@ sub add_group {
                 "\t\t\""
               . $off
               . "_url\": \"http://"
-              . $Info{IPAddress_local} . ":"
+              . $http_address . ":"
               . $config_parms{http_port}
               . "/SET;none?select_item="
               . $member->{object_name}
@@ -151,7 +153,7 @@ sub add_group {
               . $off . "\",\n";
             $text .=
                 "\t\t\"brightness_url\": \"http://"
-              . $Info{IPAddress_local} . ":"
+              . $http_address . ":"
               . $config_parms{http_port}
               . "/SET;none?select_item="
               . $member->{object_name}
@@ -159,7 +161,7 @@ sub add_group {
               if ( $type eq "light" );
             $text .=
                 "\t\t\"speed_url\": \"http://"
-              . $Info{IPAddress_local} . ":"
+              . $http_address . ":"
               . $config_parms{http_port}
               . "/SET;none?select_item="
               . $member->{object_name}
@@ -167,7 +169,7 @@ sub add_group {
               if ( $type eq "fan" );
             $text .=
                 "\t\t\"status_url\": \"http://"
-              . $Info{IPAddress_local} . ":"
+              . $http_address . ":"
               . $config_parms{http_port}
               . "/SUB?hb_status%28"
               . $obj_name . ","
@@ -229,14 +231,16 @@ sub hb_status {
         print_log "[Homebridge]: Status request: item=$item state=$state status=[$data] type=$type"
           if ($hb_debug);
     }
-    return <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-Type: text/html
-Cache-Control: no-cache
-
-$data
-eof
+    my $output = "HTTP/1.1 200 OK\r\n";
+    $output .= "Server: MisterHouse\r\n";
+    $output .= "Content-type: text/html\r\n";
+    $output .= "Connection: close\r\n" if &http_close_socket;
+    $output .= "Content-Length: " . ( length $data ) . "\r\n";
+    $output .= "Cache-Control: no-cache\r\n";
+    $output .= "Date: " . time2str(time) . "\r\n";
+    $output .= "\r\n";
+    $output .= $data;
+    return $output;
 }
 
 sub hb_thermo_get_state {
@@ -268,14 +272,16 @@ sub hb_thermo_get_state {
         print_log "[Homebridge]: Thermostat State request: item=$item mode=$mode status=[$data]\n"
           if ($hb_debug);
     }
-    return <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-Type: text/html
-Cache-Control: no-cache
-
-$data
-eof
+    my $output = "HTTP/1.1 200 OK\r\n";
+    $output .= "Server: MisterHouse\r\n";
+    $output .= "Content-type: text/html\r\n";
+    $output .= "Connection: close\r\n" if &http_close_socket;
+    $output .= "Content-Length: " . ( length $data ) . "\r\n";
+    $output .= "Cache-Control: no-cache\r\n";
+    $output .= "Date: " . time2str(time) . "\r\n";
+    $output .= "\r\n";
+    $output .= $data;
+    return $output;
 }
 
 sub hb_thermo_set_state {
@@ -347,14 +353,16 @@ sub hb_thermo_get_setpoint {
     }
     print_log "[Homebridge]: Thermostat Get Setpoint request: item=$item mode=$mode status=[$data]\n"
       if ($hb_debug);
-    return <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-Type: text/html
-Cache-Control: no-cache
-
-$data
-eof
+    my $output = "HTTP/1.1 200 OK\r\n";
+    $output .= "Server: MisterHouse\r\n";
+    $output .= "Content-type: text/html\r\n";
+    $output .= "Connection: close\r\n" if &http_close_socket;
+    $output .= "Content-Length: " . ( length $data ) . "\r\n";
+    $output .= "Cache-Control: no-cache\r\n";
+    $output .= "Date: " . time2str(time) . "\r\n";
+    $output .= "\r\n";
+    $output .= $data;
+    return $output;
 }
 
 sub hb_thermo_set_setpoint {
