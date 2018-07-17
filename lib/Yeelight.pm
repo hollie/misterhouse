@@ -1,6 +1,6 @@
 package Yeelight;
 
-# v1.0
+# v1.0.1
 
 #if any effect is changed, by definition the static child should be set to off.
 #cmd data returns, need to check by command
@@ -32,28 +32,19 @@ use IO::Socket::INET;
 
 # Yeelight Objects
 #
-# $Yeelight         = new Yeelight('1');
-# $Yeelight_effects = new Yeelight_Effects($aurora);
-# $Yeelight_comm    = new Yeelight_Comm($aurora);
-
-# MH.INI settings
-# If the token is auto generated, it will be written to the mh.ini. MH.INI settings can be used
-# instead of object definitions
-#
-# Yeelight_<ID>_location =
-# Yeelight_<ID>_poll =
-# Yeelight_<ID>_options =
-#
-# for example
-#Yeelight_1_location = 10.10.0.20
-#Yeelight_1_token = EfgrIHH887EHhftotNNSD818erhNWHR0
-#Yeelight_1_options = 'api=beta'
-
+# $yeelight         = new Yeelight('1');
+# $yeelight_comm    = new Yeelight_Comm($yeelight);
+# $yeelight_ct      = new Yeelight_Colortemp($yeelight);
+# $yeelight_rgb     = new Yeelight_RGB($yeelight);
+# $yeelight_red     = new Yeelight_red($yeelight);
+# $yeelight_blue    = new Yeelight_blue($yeelight);
+# $yeelight_green   = new Yeelight_green($yeelight);
+# individual color options are provided to allow for web slider control.
+# yeelight_rgb the set value is 'red, green, blue'
+#ie $yeelight_rgb->set('255,10,32');
+# yeelight_ct has some presets, $yeelight_ct->set_warm
 # OPTIONS
-# current options that can be passed are;
-#  - api=<level>
-#  - debug=<level>
-#  - loglevel=<level>
+
 
 # Notes
 #
@@ -79,15 +70,16 @@ $method{hsv}         = "\"set_hsv\"";
 $method{ct}          = "\"set_ct_abx\"";
 
 my %param_array;
-@{$param_array{info}}       = ("power","bright","ct","rgb","hue","sat","color_mode","flowing","delayoff","flow_params","music_on","name","bg_power","bg_flowing","bg_flow_params","bg_ct","bg_lmode","bg_bright","bg_rgb","bg_hue","bg_sat","nl_br");
-@{$param_array{brightness}} = ("smooth",500);
-@{$param_array{on}}         = ("on","smooth",500);
-@{$param_array{off}}        = ("on","smooth",500);
+@{$param_array{info}}       = ('"power"','"bright"','"ct"','"rgb"','"hue"','"sat"','"color_mode"','"flowing"','"delayoff"','"flow_params"','"music_on"','"name"','"bg_power"','"bg_flowing"','"bg_flow_params"','"bg_ct"','"bg_lmode"','"bg_bright"','"bg_rgb"','"bg_hue"','"bg_sat"','"nl_br"');
+@{$param_array{bright}}     = ('"smooth"',500);
+@{$param_array{on}}         = ('"on"','"smooth"',500);
+@{$param_array{off}}        = ('"off"','"smooth"',500);
+@{$param_array{rgb}}        = ('"smooth"',500);
 
 our %active_yeelights = ();
 
 sub new {
-    my ( $class, $id, $location, $poll, $options ) = @_;
+    my ( $class, $id, $location, $options ) = @_;
     my $self = new Generic_Item();
     bless $self, $class;
     $self->{id}   = "1";
@@ -98,15 +90,14 @@ sub new {
 
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
-    $self->{config}->{poll_seconds} = 10;
-    $self->{config}->{poll_seconds} = $::config_parms{ "yeelight_" . $self->{name} . "_poll" }
-      if ( defined $::config_parms{ "yeelight_" . $self->{name} . "_poll" } );
-    $self->{config}->{poll_seconds} = $poll if ($poll);
-    $self->{config}->{poll_seconds} = 1     if ( $self->{config}->{poll_seconds} < 1 );
+#    $self->{config}->{poll_seconds} = 10;
+#    $self->{config}->{poll_seconds} = $::config_parms{ "yeelight_" . $self->{name} . "_poll" }
+#      if ( defined $::config_parms{ "yeelight_" . $self->{name} . "_poll" } );
+#    $self->{config}->{poll_seconds} = 1     if ( $self->{config}->{poll_seconds} < 1 );
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.0";
+    $self->{module_version}         = "v1.0.1";
     $self->{ssdp_timeout}           = 1000;
     $self->{last_static}            = "";
     $self->{host}                   = $location;
@@ -144,28 +135,84 @@ sub new {
     $self->{init}      = 0;
     $self->{init_data} = 0;
     $self->{init_v_cmd} = 0;
+    $self->{data_socket} = new Socket_Item(undef, undef, "$self->{host}:$self->{port}", "yeelight" . $self->{id}, 'tcp', 'raw');
+    $self->{recon_timer} = new Timer;
+    $self->{reconnect_time} = 10;
     &::MainLoop_post_add_hook( \&Yeelight::process_check, 0, $self );
+    &::MainLoop_post_add_hook( \&Yeelight::check_for_socket_data, 0, $self );    
     &::Reload_post_add_hook( \&Yeelight::generate_voice_commands, 1, $self );
-    $self->get_data();    
     #push( @{ $$self{states} }, 'off', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', 'on' );
     push( @{ $$self{states} }, 'off');
     for my $i (1..99) { push @{ $$self{states} }, "$i%"; }
     push( @{ $$self{states} }, 'on');
-    $self->{timer} = new Timer;
-    $self->start_timer;
+    $self->{timer} = new Timer;    
+    $self->get_data();    
     return $self;
 }
 
-sub start_timer {
+sub check_for_socket_data {
     my ($self) = @_;
-    unless ( defined $self->{timer} ) {
-        $self->{timer} = new Timer;    #HP: why do timers get undefined??
+
+#     if ($Socket_Items{$instance}{'socket'}->active) {
+#         $NewCmd = $Socket_Items{$instance}{'socket'}->said;
+#      } else {
+#         # restart the TCP connection if its lost.
+#         if ($Socket_Items{$instance}{recon_timer}->inactive) {
+#            ::print_log("Connection to $instance instance of AD2 was lost, I will try to reconnect in $$self{reconnect_time} seconds");
+#            # ::logit("AD2.pm ser2sock connection lost! Trying to reconnect." );
+#            $Socket_Items{$instance}{recon_timer}->set($$self{reconnect_time}, sub {
+#               $Socket_Items{$instance}{'socket'}->start;
+#            });
+#         }
+#      }
+#   }
+    my $com_status = "online";
+    if ($self->{data_socket}->active) {
+        my $rec_data = $self->{data_socket}->said;
+        return if (!defined $rec_data or $rec_data eq "");
+        $rec_data =~ s/\r\n//g;
+        print "debug: rec_data=$rec_data\n" if ( $self->{debug} > 2);
+        my ($json_data) = $rec_data =~ /({.*})/;
+        print "debug: json_data=$json_data\n" if ( $self->{debug} > 2);
+        unless ( ($rec_data) and ($json_data) ) {
+            main::print_log( "[Yeelight:" . $self->{name} . "] ERROR! bad data returned by socket" );
+            main::print_log( "[Yeelight:" . $self->{name} . "] ERROR! received data is [$rec_data]. json data is [$json_data]" );
+            $com_status = "offline";
+        } else {
+            my $data;
+            main::print_log( "[Yeelight:" . $self->{name} . "] Data Received [$rec_data]" );
+        
+            eval { $data = JSON::XS->new->decode($json_data); };
+
+            # catch crashes:
+            if ($@) {
+                main::print_log( "[Yeelight:" . $self->{name} . "] ERROR! JSON data parser crashed! $@\n" );
+            } else {
+                if ($data->{method} eq "props") {
+                    foreach my $key (keys %{$data->{params}}) {
+                        $self->{data}->{info}->{$key} = $data->{params}->{$key};                    
+                    }
+                    $self->process_data();
+                } else {
+                    main::print_log( "[Yeelight:" . $self->{name} . "] ERROR. Expected method props, recieved $data-{method}" );   
+                }
+            }
+        }
+
+    } else {
+        if ($self->{init}) {
+            main::print_log( "[Yeelight:" . $self->{name} . "] Lost connection to Yeelight. Trying to connect again in $self->{reconnect} seconds" );
+            $self->{recon_timer}->set($self->{reconnect_time}, sub {$self->{data_socket}->start;});
+            $com_status = "offline";
+        }
     }
-    if ( defined $self->{timer} ) {
-        $self->{timer}->set( $self->{config}->{poll_seconds}, sub { &Yeelight::get_data($self) }, -1 );
-    }
-    else {
-        main::print_log( "[Yeelight:" . $self->{name} . "] Warning, start_timer called but timer undefined" );
+
+    if ( defined $self->{child_object}->{comm} ) {
+        if ( $self->{status} ne $com_status ) {
+            main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
+            $self->{status} = $com_status;
+            $self->{child_object}->{comm}->set( $com_status, 'poll' );
+        }
     }
 }
 
@@ -184,27 +231,20 @@ sub get_data {
     if ( $self->{data}->{info}->{Location} ) {
 
         if ( ( defined $self->{data}->{info}->{model} ) and ( $self->{init} == 0 ) ) {
-            main::print_log( "[Yeelight:" . $self->{name} . "] " . $self->{module_version} . " Configuration Loaded" );
+            main::print_log( "[Yeelight:" . $self->{name} . "] " . $self->{module_version} . " Configuration Loaded. Starting Socket listener..." );
             $active_yeelights{ $self->{host} } = 1;
             $self->print_info();
             $self->{init} = 1;
+            $self->process_data();
+            $self->{data_socket}->start();
         }
-        $self->poll();
 
     }
     else {
-        main::print_log( "[Yeelight:" . $self->{name} . "] WARNING, Did not poll: location: $self->{location}" ) if ( $self->{debug} );
+        main::print_log( "[Yeelight:" . $self->{name} . "] WARNING, Did not find Yeelight data, retrying..." );
+        $self->{timer}->set( 10, sub { &Yeelight::get_data($self) });
+        
     }
-}
-
-
-sub poll {
-    my ($self) = @_;
-
-    main::print_log( "[Yeelight:" . $self->{name} . "] Background Polling initiated" ) if ( $self->{debug} );
-    $self->_get_TCP_data('info');
-
-    return ('1');
 }
 
 sub process_check {
@@ -233,7 +273,7 @@ sub process_check {
         my ($json_data) = $file_data =~ /({.*})/;
         print "debug: json_data=$json_data\n" if ( $self->{debug} > 2);
         unless ( ($file_data) and ($json_data) ) {
-            main::print_log( "[Yeelight:" . $self->{name} . "] ERROR! bad data returned by poll" );
+            main::print_log( "[Yeelight:" . $self->{name} . "] ERROR! bad data returned by query" );
             main::print_log( "[Yeelight:" . $self->{name} . "] ERROR! file data is [$file_data]. json data is [$json_data]" );
             return;
         }
@@ -274,7 +314,6 @@ sub process_check {
     return unless ( defined $self->{cmd_process} );
     if ( $self->{cmd_process}->done_now() ) {
         main::print_log( "[Yeelight:" . $self->{name} . "] Background Command " . $self->{cmd_process_mode} . " process completed" ) if ( $self->{debug} );
-        $self->get_data();    #poll since the command is done to get a new state
 
         my $file_data = &main::file_read( $self->{cmd_data_file} );
         my $com_status = "online";
@@ -294,10 +333,8 @@ sub process_check {
                 $com_status = "offline";
             }
             else {
-shift @{ $self->{cmd_queue} };
-print "***RESULTS***";
-print Dumper $data;
-                if ($data->{results} eq 'ok') {
+
+                if ($data->{result}[0] eq 'ok') {
                     shift @{ $self->{cmd_queue} };    #remove the command from queue since it was successful
                     $self->{cmd_process_retry} = 0;
                     $com_status = "online";
@@ -305,14 +342,13 @@ print Dumper $data;
                 } else {
                     main::print_log( "[Yeelight:" . $self->{name} . "] Last command failed! Going to retry" );
                 }
-                $self->poll;
             }
 
             if ( scalar @{ $self->{cmd_queue} } ) {
                 main::print_log( "[Yeelight:" . $self->{name} . "] Command Queue found" );            
                 my $cmd = @{ $self->{cmd_queue} }[0];    #grab the first command, but don't take it off.
                 $self->{cmd_process}->set($cmd);
-                $self->{cmd_process}->start();
+#TODO                eval_with_timer $self->{cmd_process}->start(),3; #wait a few seconds before trying again
                 main::print_log( "[Yeelight:" . $self->{name} . "] Command Queue " . $self->{cmd_process}->pid() . " cmd=$cmd" )
                   if ( ( $self->{debug} ) or ( $self->{cmd_process_retry} ) );
             }
@@ -342,34 +378,23 @@ print Dumper $data;
     }
 }
 
-#polling process. Keep it separate from commands
+#TODO ADD VOICE COMMAND
+#query subroutine. Used for voice command to refresh state if things get out of sync
 sub _get_TCP_data {
     my ( $self, $mode, $params ) = @_;
     #{"id":1,"method":"get_prop","params":["power","bright","ct","rgb","hue","sat","color_mode","flowing","delayoff","flow_params","music_on","name","bg_power","bg_flowing","bg_flow_params","bg_ct","bg_lmode","bg_bright","bg_rgb","bg_hue","bg_sat","nl_br"]}\r\n);
     my $cmdline = "{\"id\":" . $self->{id} . ",\"method\":" . $method{$mode} . ",\"params\":[";
-    foreach my $item (@{$param_array{$mode}}) {
-        $cmdline .= '"' . $item . '",';
-    }
-    chop($cmdline);
+    $cmdline .= join(',', @{$param_array{$mode}});
     $cmdline .= "]}";
-    my $cmd = "get_tcp -rn -quiet $self->{host}:$self->{port} " . "'" . $cmdline . "'";
+    my $cmd = "";# "get_tcp -rn -quiet $self->{host}:$self->{port} " . "'" . $cmdline . "'";
     if ( $self->{poll_process}->done() ) {
         $self->{poll_process}->set($cmd);
         $self->{poll_process}->start();
         $self->{poll_process_pid}->{ $self->{poll_process}->pid() } = $mode;    #capture the type of information requested in order to parse;
         $self->{poll_process_mode} = $mode;
         main::print_log( "[Yeelight:" . $self->{name} . "] Backgrounding " . $self->{poll_process}->pid() . " command $mode, $cmd" ) if ( $self->{debug} );
-    }
-    else {
-        if ( scalar @{ $self->{poll_queue} } < $self->{max_poll_queue} ) {
-            main::print_log( "[Yeelight:" . $self->{name} . "] Queue is " . scalar @{ $self->{poll_queue} } . ". Queing command $mode, $cmd" )
-              if ( $self->{debug} );
-            push @{ $self->{poll_queue} }, "$mode|$cmd";
-        }
-        else {
-            #the queue has grown past the max, so it might be down. Since polls are expendable, just don't do anything
-            #when the aurora is back it will process the backlog, and as soon as a poll is processed, the queue is cleared.
-        }
+    } else {
+        main::print_log( "[Yeelight:" . $self->{name} . "] Query request already in progress" )
     }
 }
 
@@ -377,15 +402,10 @@ sub _get_TCP_data {
 sub _push_TCP_data {
     my ( $self, $mode, @params ) = @_;
 
-    my $cmdline = "{\"id\":" . $self->{id} . ",\"method\":" . $method{$mode} . ",\"params\":[";
-    foreach my $item (@params) {
-        $cmdline .= '"' . $item . '",';
-    }
-    chop($cmdline);
-    $cmdline .= "]}";
+    my $cmdline = "{ \"id\":" . $self->{id} . ", \"method\":" . $method{$mode} . ", \"params\":[";
+    $cmdline .= join(',',@params);
+    $cmdline .= "] }";
     my $cmd = "get_tcp -rn -quiet $self->{host}:$self->{port} " . "'" . $cmdline . "'";
-
-print "***cmd=$cmd\n";
 
     if ( $self->{cmd_process}->done() ) {
         $self->{cmd_process}->set($cmd);
@@ -423,17 +443,11 @@ print "***cmd=$cmd\n";
 sub get_ssdp_data {
     my ( $self, $id, $timeout ) = @_;
 
-    #return a location that isn't in the $active_auroras hash
-
     my ( $data ) = scan_ssdp_data($timeout);
     if (defined $data and defined $data->{$self->{host}}) {
         &main::print_log( "[Yeelight:" . $self->{name} . "] SSDP scan found device $self->{host}!");    
-#TODO Cleanupthere probably is a better way to copy in a hash
         $self->{data}->{info} = $data->{$self->{host}};
-        #foreach my $key (keys %{$data->{$self->{host}}}) { 
-        #    print "**key = $key, $data->{$self->{host}}->{$key}\n";
-        #    $self->{data}->{info}->{$key} = $data->{$self->{host}}->{$key}; 
-        #}
+
     } else {
         &main::print_log( "[Yeelight:" . $self->{name} . "] Warning, SSDP did not locate yeelight $self->{host}. Retrying.");
     }
@@ -529,17 +543,6 @@ sub register {
 
 }
 
-sub stop_timer {
-    my ($self) = @_;
-
-    if ( defined $self->{timer} ) {
-        $self->{timer}->stop() if ( $self->{timer}->active() );
-    }
-    else {
-        main::print_log( "[Yeelight:" . $self->{name} . "] Warning, stop_timer called but timer undefined" );
-    }
-}
-
 sub print_info {
     my ($self) = @_;
     my $name = $self->{data}->{info}->{name};
@@ -607,6 +610,7 @@ sub process_data {
         else {
             $self->set( $self->{data}->{info}->{power}, 'poll' );
         }
+#TODO, add in color & ct
         $self->{init_data} = 1;
     }
 
@@ -642,10 +646,43 @@ sub process_data {
     }
 #TODO convert the rest
 
-    if ( $self->{previous}->{info}{color_mode} != $self->{data}->{info}->{color_mode} ) {
+    if ( $self->{previous}->{info}->{color_mode} != $self->{data}->{info}->{color_mode} ) {
         main::print_log( "[Yeelight:" . $self->{name} . "] State Color Mode changed from $self->{previous}->{info}->{color_mode} to $self->{data}->{info}->{color_mode}" ) if ( $self->{loglevel} );
         $self->{previous}->{info}->{color_mode} = $self->{data}->{info}->{color_mode};
     }
+
+    if ( $self->{previous}->{info}->{rgb} != $self->{data}->{info}->{rgb} ) {
+        main::print_log( "[Yeelight:" . $self->{name} . "] RGB value changed from $self->{previous}->{info}->{rgb} to $self->{data}->{info}->{rgb}" ) if ( $self->{loglevel} );
+        $self->{previous}->{info}->{rgb} = $self->{data}->{info}->{rgb};
+        my ($red, $green, $blue) = $self->get_rgb($self->{data}->{info}->{rgb});
+        
+        if ( defined $self->{child_object}->{rgb} ) {
+            main::print_log "[Yeelight:" . $self->{name} . "] RGB Child object found. Updating..." if ( $self->{loglevel} );        
+            $self->{child_object}->{rgb}->set("$red, $green, $blue", 'poll' );
+        }
+        if ( defined $self->{child_object}->{rgb_red} ) {
+            if ($self->{child_object}->{rgb_red}->state != $red) {
+                main::print_log "[Yeelight:" . $self->{name} . "] RGB Red Child object found. Updating..." if ( $self->{loglevel} );        
+                $self->{child_object}->{rgb_red}->set($red, 'poll' );   
+            }     
+        }
+        if ( defined $self->{child_object}->{rgb_green} ) {
+            if ($self->{child_object}->{rgb_green}->state != $green) {
+                main::print_log "[Yeelight:" . $self->{name} . "] RGB Green Child object found. Updating..." if ( $self->{loglevel} );        
+                $self->{child_object}->{rgb_green}->set($green, 'poll' );   
+            } 
+        }
+        if ( defined $self->{child_object}->{rgb_blue} ) {
+            if ($self->{child_object}->{rgb_blue}->state != $blue) {
+                main::print_log "[Yeelight:" . $self->{name} . "] RGB Blue Child object found. Updating..." if ( $self->{loglevel} );        
+                $self->{child_object}->{rgb_blue}->set($blue, 'poll' );   
+            } 
+        }
+        
+        
+    }
+
+
 
 }
 
@@ -666,7 +703,7 @@ sub print_command_queue {
 sub purge_command_queue {
     my ($self) = @_;
     my $commands = scalar @{ $self->{cmd_queue} };
-    main::print_log( "Aurora:" . $self->{name} . "] Purging Command Queue of $commands commands" );
+    main::print_log( "Yeelight:" . $self->{name} . "] Purging Command Queue of $commands commands" );
     @{ $self->{cmd_queue} } = ();
 }
 
@@ -678,14 +715,20 @@ sub get_debug {
     return $self->{debug};
 }
 
+sub query_yeelight {
+    my ($self) = @_;
+
+    main::print_log( "[Yeelight:" . $self->{name} . "] Querying Yeelight for status" );
+    $self->_get_TCP_data('info');
+}
+
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
 
     if ( $p_setby eq 'poll' ) {
-        $p_state .= "%" if ( defined $p_state and $p_state =~ m/\d+(?!%)/ );
+        $p_state .= "%" if ($p_state =~ m/\d+(?!%)/ );
         main::print_log( "[Yeelight:" . $self->{name} . "] DB super::set, in master set, p_state=$p_state, p_setby=$p_setby" ) if ( $self->{debug} );
         $self->SUPER::set($p_state);
-        $self->start_timer;
 
     }
     else {
@@ -695,13 +738,16 @@ sub set {
             $self->_push_TCP_data($mode, @{$param_array{$mode}});
         }
         elsif ( $mode =~ /^(\d+)/ ) {
-            my @params = @{$param_array{$mode}};
+            my @params = @{$param_array{"bright"}};
             unshift @params, $1;
             $self->_push_TCP_data( 'brightness', @params );
         }
         elsif ( $mode =~ /^([-+]\d+)/ ) {
             my @params = @{$param_array{$mode}};
-            unshift @params, $self->{info}->{bright} + $1;
+            my $value = $self->{info}->{bright} + $1;
+            $value = 0 if ($value < 0);
+            $value = 100 if ($value > 100);
+            unshift @params, $value;
             $self->_push_TCP_data( 'brightness', @params );
         }
         else {
@@ -726,12 +772,14 @@ sub set_hsv {
 
 sub set_rgb {
     my ( $self, $r, $g, $b ) = @_;
-    my ( $cred, $cgreen, $cblue) = $self->get_rbg();
+    my ( $cred, $cgreen, $cblue) = $self->get_rgb();
     $r = $cred unless ($r);
     $g = $cgreen unless ($g);
     $b = $cblue unless ($b);
-    my $value = ($r * 65536) + ($g * 265) + $b;
-#TODO    $self->_push_TCP_data( 'brightness', $params );
+    my $value = ($r * 65536) + ($g * 256) + $b;
+    my @params = @{$param_array{rgb}};
+    unshift @params, $value;
+    $self->_push_TCP_data( 'rgb', @params );
 }
 
 sub set_ct {
@@ -745,7 +793,7 @@ sub generate_voice_commands {
         my $object_string;
         my $object_name = $self->get_object_name;
         $self->{init_v_cmd} = 1;
-        &main::print_log("Generating Voice commands for Nanoleaf Aurora Controller $object_name");
+        &main::print_log("Generating Voice commands for Yeelight $object_name");
 
         my $voice_cmds = $self->get_voice_cmds();
         my $i          = 1;
@@ -767,16 +815,16 @@ sub generate_voice_commands {
             $object_string .= $object_name . "_" . $i . "_v -> tie_event('" . $voice_cmds->{$cmd} . "');\n\n";    #, '$command $cmd');\n\n";
 
             #Add this object to the list of Insteon Voice Commands on the Web Interface
-            $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'Nanoleaf_Aurora', 'Controller_commands' );
+            $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'Yeelight', 'Controller_commands' );
             $i++;
         }
 
         #Evaluate the resulting object generating string
         package main;
         eval $object_string;
-        print "Error in nanoleaf_Yeelight_item_commands: $@\n" if $@;
+        print "Error in Yeelight_item_commands: $@\n" if $@;
 
-        package Nanoleaf_Aurora;
+        package Yeelight;
     }
 }
 
@@ -784,8 +832,9 @@ sub get_voice_cmds {
     my ($self) = @_;
     my %voice_cmds = (
         'Print Command Queue to print log'                                      => $self->get_object_name . '->print_command_queue',
-        'Purge Command Queue'                                                   => $self->get_object_name . '->purge_command_queue'
-       
+        'Purge Command Queue'                                                   => $self->get_object_name . '->purge_command_queue',
+        'Force Yeelight Status query'                                           => $self->get_object_name . '->query_yeelight'
+      
     );
 
     return \%voice_cmds;
@@ -795,19 +844,17 @@ sub get_voice_cmds {
 
 package Yeelight_Red;
 
-@Nanoleaf_Yeelight_Static::ISA = ('Generic_Item');
+@Yeelight_Red::ISA = ('Generic_Item');
 
 sub new {
-    my ( $class, $object, $static_string ) = @_;
+    my ( $class, $object) = @_;
 
     my $self = new Generic_Item();
     bless $self, $class;
-    @{ $$self{states} } = ( 'on', 'off' );
+    for my $i (0..255) { push @{ $$self{states} }, "$i"; }
 
     $$self{master_object} = $object;
-    $$self{loop}          = 0;
-    $$self{string}        = $static_string if ( defined $static_string );
-    $object->register( $self, 'rgb-red' );
+    $object->register( $self, 'rgb_red' );
     return $self;
 
 }
@@ -819,27 +866,119 @@ sub set {
         $self->SUPER::set($p_state);
     }
     else {
-        #if ON then backup current configuration and set the new one.
-        if ( lc $p_state eq 'on' ) {
-            $$self{previous_effect} = $$self{master_object}->get_effect();
-            $$self{master_object}->set_static( $$self{string} );
-
-            #if OFF then check if current is same as static, and if so restore the old one.
-        }
-        elsif ( lc $p_state eq 'off' ) {
-            $$self{master_object}->check_static( $$self{string}, $$self{previous_effect} );
-        }
-        else {
-            main::print_log("[Aurora Static] Error. Unknown set mode $p_state");
+        if ( $p_state >= 0 and $p_state <= 255  ) {    
+            my ($r, $g, $b) = $$self{master_object}->get_rgb();
+            $$self{master_object}->set_rgb($p_state, $g, $b)
+            
+        } else {
+            main::print_log("[Yeelight RGB Red] Error. Unknown set mode $p_state");
         }
     }
 }
 
+package Yeelight_Green;
 
+@Yeelight_Green::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object) = @_;
+
+    my $self = new Generic_Item();
+    bless $self, $class;
+    for my $i (0..255) { push @{ $$self{states} }, "$i"; }
+
+    $$self{master_object} = $object;
+    $object->register( $self, 'rgb_green' );
+    return $self;
+
+}
+
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
+
+    if ( $p_setby eq 'poll' ) {
+        $self->SUPER::set($p_state);
+    }
+    else {
+        if ( $p_state >= 0 and $p_state <= 255  ) {    
+            my ($r, $g, $b) = $$self{master_object}->get_rgb();
+            $$self{master_object}->set_rgb($r, $p_state, $b)
+            
+        } else {
+            main::print_log("[Yeelight RGB Green] Error. Unknown set mode $p_state");
+        }
+    }
+}
+
+package Yeelight_Blue;
+
+@Yeelight_Blue::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object) = @_;
+
+    my $self = new Generic_Item();
+    bless $self, $class;
+    for my $i (0..255) { push @{ $$self{states} }, "$i"; }
+
+    $$self{master_object} = $object;
+    $object->register( $self, 'rgb_blue' );
+    return $self;
+
+}
+
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
+
+    if ( $p_setby eq 'poll' ) {
+        $self->SUPER::set($p_state);
+    }
+    else {
+        if ( $p_state >= 0 and $p_state <= 255  ) {    
+            my ($r, $g, $b) = $$self{master_object}->get_rgb();
+            $$self{master_object}->set_rgb($r, $g, $p_state)
+            
+        } else {
+            main::print_log("[Yeelight RGB Blue] Error. Unknown set mode $p_state");
+        }
+    }
+}
+
+package Yeelight_RGB;
+
+@Yeelight_RGB::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object) = @_;
+
+    my $self = new Generic_Item();
+    bless $self, $class;
+
+    $$self{master_object} = $object;
+    $object->register( $self, 'rgb' );
+    return $self;
+
+}
+
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
+
+    if ( $p_setby eq 'poll' ) {
+        $self->SUPER::set($p_state);
+    }
+    else {
+        my ($r, $g, $b) = split($p_state,',');
+        if (( $r >= 0 and $r <= 255 ) and ( $g >= 0 and $g <= 255 ) and( $b >= 0 and $b <= 255 )) {    
+            $$self{master_object}->set_rgb($r, $g, $b)
+        } else {
+            main::print_log("[Yeelight RGB] Error. Unknown set mode $p_state");
+        }
+    }
+}
 
 package Yeelight_Comm;
 
-@Nanoleaf_Yeelight_Comm::ISA = ('Generic_Item');
+@Yeelight_Comm::ISA = ('Generic_Item');
 
 sub new {
     my ( $class, $object ) = @_;
@@ -865,20 +1004,5 @@ sub set {
 1;
 
 # Version History
-# v1.0.0  - initial module
-# v1.0.1  - initial static support
-# v1.0.2  - multiple auroras, brightness
-# v1.0.3  - working static. turn on, overrides effect, turning off will restore previous effect
-# v1.0.4  - Voice Commands
-# v1.0.5  - working multi static
-# v1.0.6  - better processing
-# v1.0.7  - ability to specify API as an option
-# v1.0.8  - initial v1.5.0 API v1 support
-# v1.0.9  - use config_parms (mh.ini) instead of dedicated config file
-# v1.0.10 - Updated to work with other versions of perl, typo with mh.ini
-# v1.0.11 - cosmetic fixes for undefined variables
-# v1.0.12 - get_effects method to get array of available effects
-# v1.0.13 - ability to print and purge the command queue in case a network error prevents clearing, empty poll queue if max reached
-# v1.0.14 - commands now queue properly
-# v1.0.15 - fixed polling
-# v1.1.01 - firmware v2.2.0 and rhythm module
+# v1.0.0 - initial module
+# v1.0.1 - color support
