@@ -224,6 +224,11 @@ sub http_process_request {
       if $Http{Host};                             # Drop the port, if present
     $Http{Client_address} = $Socket_Ports{http}{client_ip_address};
 
+    if( $Http{'X-Real-IP'}){
+        $client_ip_address = $Http{'X-Real-IP'};
+        print "http: 'X-Real-IP' found, override \$client_ip_address to $client_ip_address\n" if $main::Debug{http};
+    }
+
     if ( $Http{Cookie} ) {
         for my $key_value ( split ';', $Http{Cookie} ) {
             my ( $key2, $value2 ) = $key_value =~ /(\S+)=(\S+)/;
@@ -260,6 +265,7 @@ sub http_process_request {
       if defined $main::config_parms{'ia7_enable'};
     my $mobile_html    = 0;
     my $modern_browser = 0;
+    $Http{'User-Agent-Full'}  = $Http{'User-Agent'}; #Keep the original user agent string as MH modifies it through some legacy code.
     if (   ( $Http{'User-Agent'} =~ /iPhone/i )
         or ( $Http{'User-Agent'} =~ /Android/i ) )
     {
@@ -372,7 +378,7 @@ sub http_process_request {
         } elsif ($Http{'Content-Type'} =~ m%^application/json%i && $HTTP_BODY =~ /^\{/) {
              print "[http_server.pl]: posting json data\n" if $main::Debug{http};
         } else {
-            &main::print_log("[http_server.pl]: Warning, invalid argument string detected ($buf)\n");
+            &main::print_log("[http_server.pl]: Warning, invalid argument string detected ($buf) ($Http{'Content-Type'}) ($HTTP_BODY)\n");
         }
 
         print "http POST get_arg=$get_arg\n" if $main::Debug{http};
@@ -2144,6 +2150,7 @@ sub mime_header {
     }
     else {
         my ($extention) = $file_or_type =~ /.+\.(\S+)$/;
+        ($extention) = $file_or_type =~ /.+\.(\S+)\.\S\S$/ if ($file_or_type =~ m/\.gz$/i) ;
         $mime = $mime_types{ lc $extention } || 'text/html';
         my $time = ( stat($file_or_type) )[9];
         $date = &time2str($time);
@@ -2157,6 +2164,7 @@ sub mime_header {
     $header = "HTTP/1.1 206 Partial Content\r\n" if $range;
     $header .= "Server: MisterHouse\r\n";
     $header .= "Connection: close\r\n" if &http_close_socket;
+    $header .= "Content-Encoding: gzip\r\n" if ($file_or_type =~ m/\.gz$/i);
     $header .= "Date: " . time2str(time) . "\r\n";
     $header .= "Content-Type: $mime\r\n";
 

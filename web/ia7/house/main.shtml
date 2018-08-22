@@ -6,7 +6,9 @@
 			<strong>OS:</strong> <!--#include var="$^O"--><br>
 			<strong>Perl:</strong> <!--#include code="sprintf '%vd', $^V;"--><br>
 			<strong>User:</strong> <!--#include var="$Info{User}"--><br>
-			<strong>IA7:</strong> <span id='ia7_ver'>replace_current_ia7_version</span>
+			<strong>IA7:</strong> <span id='ia7_ver'>replace_current_ia7_version</span><br>
+			<strong>Collection:</strong> <span id='coll_ver'>replace_current_collection_version</span>
+			
 		</div>
 		<div class='col-sm-6'>
 			<div class='col-sm-8'>
