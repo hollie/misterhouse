@@ -833,13 +833,6 @@ sub device_name {
 
 sub on_set_message {
     my ( $self, @data ) = @_;
-
-    # Delete any existing _on_set_message data so the user can
-    # fully overwrite with a call to the on_set_message() method.
-    # Otherwise we will add user data on top of the default
-    # _on_set_message data that is added in the constructor.
-    delete $$self{_on_set_message};
-
     while (@data) {
         my $section = shift @data;
         my $ptr     = shift @data;
