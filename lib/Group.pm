@@ -60,7 +60,6 @@ sub new {
     &add( $self, @items ) if @items;
     $self->{logger_enable} = $main::config_parms{object_logger_group} if ( defined $main::config_parms{object_logger_group} );
     bless $self, $class;
-&::print_log("new group: " . $self->get_object_name() . "\n");
     return $self;
 }
 
@@ -81,7 +80,6 @@ sub add {
     # This allows us to monitor changed members
     for my $ref (@items) {
         $ref->tie_items( $self, undef, 'member changed' );
-&::print_log("add to " . $self . "(" . $self->get_object_name() . "): $ref" . $ref->get_object_name() . "xxx\n");
 
         if ( $ref->isa('X10_Item') ) {
             if ( can_dim($ref) ) {
