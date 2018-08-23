@@ -1,11 +1,10 @@
 package Yeelight;
 
-# v1.2
+# v1.2.1
 
 #TODO
-#- brightness changes change state to on and off
 #- test queuing fast commands
-#TODO check query data
+#- check query data
 
 
 use strict;
@@ -167,7 +166,7 @@ sub check_for_socket_data {
             $com_status = "offline";
         } else {
             my $data;
-            main::print_log( "[Yeelight:" . $self->{name} . "] Data Received [$rec_data]" );
+            main::print_log( "[Yeelight:" . $self->{name} . "] Data Received [$rec_data]" )  if ( $self->{debug} );
         
             eval { $data = JSON::XS->new->decode($json_data); };
 
@@ -196,7 +195,7 @@ sub check_for_socket_data {
 
     if (( defined $self->{child_object}->{comm} ) and ($self->{socket_connected})) {
         if ( $self->{status} ne $com_status ) {
-            main::print_log "[Yeelight:" . $self->{name} . "] A Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
+            main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
             $self->{status} = $com_status;
             $self->{child_object}->{comm}->set( $com_status, 'poll' );
         }
@@ -300,7 +299,7 @@ sub process_check {
 
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{status} ne $com_status ) {
-                main::print_log "[Yeelight:" . $self->{name} . "] 1 Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
+                main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
                 $self->{status} = $com_status;
                 $self->{child_object}->{comm}->set( $com_status, 'poll' );
             }
@@ -369,9 +368,11 @@ sub process_check {
 
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{status} ne $com_status ) {
-                main::print_log "[Yeelight:" . $self->{name} . "] 2 Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
                 $self->{status} = $com_status;
-                $self->{child_object}->{comm}->set( $com_status, 'poll' );
+                if ($self->{child_object}->{comm}->state() ne $com_status) {
+                   main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
+                   $self->{child_object}->{comm}->set( $com_status, 'poll' );
+                }
             }
         }
     }
@@ -426,7 +427,7 @@ sub _push_TCP_data {
             main::print_log( "[Yeelight:" . $self->{name} . "] WARNING. Queue has grown past " . $self->{max_cmd_queue} . ". Command discarded." );
             if ( defined $self->{child_object}->{comm} ) {
                 if ( $self->{status} ne "offline" ) {
-                    main::print_log "[Yeelight:" . $self->{name} . "] 3 Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ( $self->{loglevel} );
+                    main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ( $self->{loglevel} );
                     $self->{status} = "offline";
                     $self->{child_object}->{comm}->set( "offline", 'poll' );
                 }
@@ -963,3 +964,5 @@ sub set {
 # Version History
 # v1.0.0 - initial module
 # v1.0.1 - color support
+# v1.2   - RGB changes
+# v1.2.1 - minor fixes
