@@ -1,4 +1,4 @@
-=head1 B<raZberry> v3.0
+=head1 B<raZberry> v3.0.1
 
 #test command setup
 #command queue
@@ -182,7 +182,7 @@ sub new {
     my ( $class, $addr, $poll, $options ) = @_;
     my $self = new Generic_Item();
     bless $self, $class;
-    &main::print_log("[raZberry]: v3.0.0 Controller Initializing...");
+    &main::print_log("[raZberry]: v3.0.1 Controller Initializing...");
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
     $self->{config}->{poll_seconds} = 5;
@@ -394,7 +394,8 @@ sub controller_failback {
 sub process_check {
     my ($self) = @_;
     my @process_data = ();
-    my $com_status;
+    my $com_status = $self->{status};
+    my $processed_data = 0;
     #In order to process multiple queues (one for poll, one for command), push the returned text into an array and then process the array
     #The Command queue might have waiting commands so check the queue and pop one off
 
@@ -406,8 +407,6 @@ sub process_check {
 #check if data comes back unauthenticated
 
     if ( $self->{poll_process}->done_now() ) {
-    
-        $self->start_timer;                 #data has come in, so start the timer.
 
         $com_status = "online";
         main::print_log( "[raZerry:" . $self->{host} . "] Background poll " . $self->{poll_process_mode} . " process completed" ) if ( $self->{debug} );
@@ -428,7 +427,7 @@ sub process_check {
         }
     }
     if ( $self->{cmd_process}->done_now() ) {
-    
+        print "**** in process done_now\n";
         $com_status = "online";
         main::print_log( "[raZerry:" . $self->{host} . "] Command " . $self->{cmd_process_mode} . " process completed" ) if ( $self->{debug} );
 
@@ -475,6 +474,7 @@ sub process_check {
             $com_status = "offline";
         }
         else {
+            $processed_data = 1;
             if ((defined $data->{controller}->{data}) and (!defined $self->{controller_data})) {
                 $self->{controller_data} = $data->{controller}->{data};
                 &main::print_log("[raZberry:" . $self->{host} . "]: Controller found");
@@ -483,6 +483,8 @@ sub process_check {
                 &main::print_log("[raZberry:" . $self->{host} . "]: API version:\t\t" . $self->{controller_data}->{APIVersion}->{value} );
                 &main::print_log("[raZberry:" . $self->{host} . "]: SDK version:\t\t" . $self->{controller_data}->{SDK}->{value} );
                 &main::print_log("[raZberry:" . $self->{host} . "]: Controller Initialization Complete");
+                $self->poll();              #get the first set of data
+                $self->start_timer;         #data has come in, so start the timer. 
             }
 
             $self->{lastupdate} = $data->{data}->{updateTime};
@@ -520,7 +522,7 @@ sub process_check {
                 $self->{data}->{devices}->{$id}->{units} = $item->{metrics}->{scaleTitle} if ( defined $item->{metrics}->{scaleTitle} );
                 $self->{data}->{devices}->{$id}->{temp_min} = $item->{metrics}->{min} if ( defined $item->{metrics}->{min} );
                 $self->{data}->{devices}->{$id}->{temp_max} = $item->{metrics}->{max} if ( defined $item->{metrics}->{max} );
-
+                $com_status = "online";
                 $self->{status} = "online";
 
                 if ( defined $self->{child_object}->{$id} ) {
@@ -551,21 +553,22 @@ sub process_check {
             }
         }
     }
-    if ( defined $self->{child_object}->{comm} ) {
+    if (( defined $self->{child_object}->{comm} ) and ($processed_data)) {    
         #if an offline status is received, do a few more polls. for push, the raZberry is polled every 10 minutes,
         #so sometimes a false positive can be created if that moment throws an error 500
         if ($com_status eq "online") {
             $self->{com_warning} = 0;
-            $self->{config}->{poll_seconds} = $self->{com_poll_interval} if (defined $self->{com_poll_interval});
-            $self->{com_poll_interval} = undef;
-            $self->stop_timer;
-            $self->start_timer;
-        } else  {
+            if (defined $self->{com_poll_interval}) {
+                $self->{config}->{poll_seconds} = $self->{com_poll_interval};
+                $self->{com_poll_interval} = undef;
+                $self->start_timer;
+            }
+        } elsif ($com_status eq "offline")  {
             main::print_log("[RaZberry:" . $self->{host} . "] WARNING. Recevied bad data from raZberry. Temporarily Increasing poll rate to confirm if device is offline.") if ($self->{com_warning} == 0);
             $self->{com_warning}++;
             $self->{com_poll_interval} = $self->{config}->{poll_seconds};
             $self->{config}->{poll_seconds} = 10 unless ($self->{config}->{poll_seconds} <= 10);
-            $self->stop_timer;
+            #$self->stop_timer;
             $self->start_timer;
         }
         if ( $self->{status} ne $com_status ) {
@@ -732,13 +735,13 @@ sub _get_JSON_data {
 
 sub stop_timer {
     my ($self) = @_;
-
+    print "**** in stop timer\n\n";
     $self->{timer}->stop;
 }
 
 sub start_timer {
     my ($self) = @_;
-
+    print "**** in start timer\n\n";
     $self->{timer}->set( $self->{config}->{poll_seconds}, sub { &raZberry::poll($self) }, -1 );
 }
 
@@ -1797,8 +1800,7 @@ sub set {
         else {
             $n_state = "closed";
         }
-        main::print_log( "[raZberry]: Setting openclose value to $n_state. Level is " . $self->{level} )
-          if ( $self->{debug} );
+        main::print_log( "[raZberry]: Setting openclose value to $n_state. Level is " . $self->{level} ) if ( $self->{debug} );
         $self->SUPER::set($n_state);
     }
     else {
@@ -2014,7 +2016,7 @@ sub new {
 
     my $self = $class->SUPER::new( $object, $devid, $options );
 
-    @{$$self{states}} =  ('motion','still');
+    #@{$$self{states}} =  ('motion','still');
     return $self;
 }
 
@@ -2030,8 +2032,7 @@ sub set {
         else {
             $n_state = "still";
         }
-        main::print_log( "[raZberry]: Setting motion value to $n_state. Level is " . $self->{level} )
-          if ( $self->{debug} );
+        main::print_log( "[raZberry]: Setting motion value to $n_state. Level is " . $self->{level} ) if ( $self->{debug} );
         $self->SUPER::set($n_state);
     }
     else {
@@ -2050,7 +2051,7 @@ sub new {
 
     $$self{master_object} = $object;
     $$self{type}          = "Brightness";
-    $devid = $devid . "-49-3" if ( $devid =~ m/^\d+$/ );
+    $devid = $devid . "-0-49-3" if ( $devid =~ m/^\d+$/ );
     $$self{devid}         = $devid;
     $object->register( $self, $devid, $options );
 
@@ -2076,6 +2077,10 @@ sub isfailed {
     my ($self) = @_;
 
     $$self{master_object}->isfailed_dev( $$self{devid} );
+}
+
+sub update_data {
+    my ( $self, $data ) = @_;
 }
 
 #08/19/18 03:15:35 PM [raZberry]: ERROR, child object id 18-0-48-1 not found!
