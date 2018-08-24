@@ -203,7 +203,7 @@ sub new {
     $self->{host}  = $host;
     $self->{port}  = 8083;
     $self->{port}  = $port if ($port);
-    $self->{debug} = 5;
+    $self->{debug} = 0;
     ( $self->{debug} ) = ( $options =~ /debug=(\d+)/i ) if ( ( defined $options ) and ( $options =~ m/debug=/i ) );
     $self->{debug}           = $main::Debug{razberry} if ( defined $main::Debug{razberry} );
     $self->{lastupdate}      = undef;
@@ -2007,7 +2007,7 @@ sub update_data {
 }
 
 package raZberry_motion;
-@raZberry_openclose::ISA = ('raZberry_binary_sensor');
+@raZberry_motion::ISA = ('raZberry_binary_sensor');
 
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
@@ -2040,7 +2040,7 @@ sub set {
 }
 
 package raZberry_brightness;
-@raZberry_generic::ISA = ('Generic_Item');
+@raZberry_brightness::ISA = ('Generic_Item');
 
 sub new {
     my ( $class, $object, $devid, $options ) = @_;
