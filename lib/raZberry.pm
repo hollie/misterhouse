@@ -1,4 +1,4 @@
-=head1 B<raZberry> v3.0.1
+=head1 B<raZberry> v3.0.2
 
 #test command setup
 #command queue
@@ -182,12 +182,25 @@ sub new {
     my ( $class, $addr, $poll, $options ) = @_;
     my $self = new Generic_Item();
     bless $self, $class;
-    &main::print_log("[raZberry]: v3.0.1 Controller Initializing...");
+    &main::print_log("[raZberry]: v3.0.2 Controller Initializing...");
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
+    
+    #-------- These are config_parm items
     $self->{config}->{poll_seconds} = 5;
     $self->{config}->{poll_seconds} = $main::config_parms{raZberry_poll_seconds} if ( defined $main::config_parms{raZberry_poll_seconds} );
-    $self->{push} = 0;
+    $self->{timeout}                = 2;
+    $self->{timeout}                = $main::config_parms{raZberry_timeout} if ( defined $main::config_parms{raZberry_timeout} );
+    $self->{username}               = "";
+    $self->{username}               = $main::config_parms{raZberry_user}     if ( defined $main::config_parms{raZberry_user} );
+    $self->{password}               = $main::config_parms{raZberry_password} if ( defined $main::config_parms{raZberry_password} );
+    $self->{max_cmd_queue}          = 4;
+    $self->{com_threshold}          = 4;
+    $self->{command_timeout}        = 60;
+    $self->{command_timeout_limit}  = 3;
+
+
+    $self->{push}                   = 0;
 
     if ( ( defined $poll ) and ( lc $poll eq 'push' ) ) {
         $self->{push} = 1;
@@ -197,26 +210,22 @@ sub new {
         $self->{config}->{poll_seconds} = $poll if ( ( defined $poll ) && ($poll)); #ensure a number
         $self->{config}->{poll_seconds} = 1     if ( ( defined $self->{config}->{poll_seconds} ) && ( $self->{config}->{poll_seconds} < 1 ));
     }
+    
     $self->{updating} = 0;
     $self->{data}->{retry} = 0;
     my ( $host, $port ) = ( split /:/, $addr )[ 0, 1 ];
-    $self->{host}  = $host;
-    $self->{port}  = 8083;
-    $self->{port}  = $port if ($port);
-    $self->{debug} = 0;
-    ( $self->{debug} ) = ( $options =~ /debug=(\d+)/i ) if ( ( defined $options ) and ( $options =~ m/debug=/i ) );
-    $self->{debug}           = $main::Debug{razberry} if ( defined $main::Debug{razberry} );
-    $self->{lastupdate}      = undef;
-    $self->{timeout}         = 2;
-    $self->{timeout}         = $main::config_parms{raZberry_timeout} if ( defined $main::config_parms{raZberry_timeout} );
-    $self->{status}          = "";
-    $self->{controller_data} = ();
+    $self->{host}                   = $host;
+    $self->{port}                   = 8083;
+    $self->{port}                   = $port if ($port);
+    $self->{debug}                  = 0;
+    ( $self->{debug} )              = ( $options =~ /debug=(\d+)/i ) if ( ( defined $options ) and ( $options =~ m/debug=/i ) );
+    $self->{debug}                  = $main::Debug{razberry} if ( defined $main::Debug{razberry} );
+    $self->{lastupdate}             = undef;
+    $self->{status}                 = "";
+    $self->{controller_data}        = ();
     &main::print_log("[raZberry:" . $self->{host} . "]: options are $options") if ( ( $self->{debug} ) and ( defined $options ) );
 
-    $self->{username} = "";
     $options =~ s/username\=/user\=/i if ( defined $options );
-    $self->{username} = $main::config_parms{raZberry_user}     if ( defined $main::config_parms{raZberry_user} );
-    $self->{password} = $main::config_parms{raZberry_password} if ( defined $main::config_parms{raZberry_password} );
     ( $self->{username} ) = ( $options =~ /user\=([a-zA-Z0-9]+)/i )     if ( ( defined $options ) and ( $options =~ m/user\=/i ) );
     ( $self->{password} ) = ( $options =~ /password\=([a-zA-Z0-9]+)/i ) if ( ( defined $options ) and ( $options =~ m/password\=/i ) );
     
@@ -240,13 +249,17 @@ sub new {
             &main::print_log("[raZberry:" . $self->{host} . "]: Poll method selected");        
         }
     }
+    &main::print_log("[raZberry:" . $self->{host} . "]: Instance:\t\t" . $self->{instance});      
 
     $self->{cookie_string} = "";    
     if ( $self->{username} ) {
         $self->{cookie_jar} = HTTP::Cookies->new( {} );
         $self->login;
+    } else {
+        $self->{login_success} = 1;
     }
-    
+    $self->{login_attempt} = 0;
+            
     ${$self->{controllers}->{objects}}[0] = $self;
     $self->{controllers}->{backup} = 0;
     $self->{controllers}->{failover_time} = 0;
@@ -263,15 +276,12 @@ sub new {
     unlink "$::config_parms{data_dir}/raZberry_cmd_" . $self->{host} . ".data";
     $self->{cmd_process} = new Process_Item;
     $self->{cmd_process}->set_output( $self->{cmd_data_file} );
-    $self->{max_cmd_queue} = 4;
- 
+
     $self->{com_warning} = 0;
-    $self->{com_threshold} = 4;
     $self->{com_poll_interval} = undef;
     
     &::MainLoop_post_add_hook( \&raZberry::process_check, 0, $self );
 
-    &main::print_log("[raZberry:" . $self->{host} . "]: Instance:\t\t" . $self->{instance});      
     $self->{generate_voice_cmds} = 0;    
     &::Reload_post_add_hook( \&raZberry::generate_voice_commands, 0, $self );
 
@@ -306,6 +316,8 @@ sub login {
         $self->{login_success} = 0;
         &main::print_log("[raZberry:" . $self->{host} . "]: Error attempting to authenticate to $host");
         &main::print_log("[raZberry:" . $self->{host} . "]: Code is " . $responseObj->code . " and content is " . $responseObj->content );
+        $self->{login_success} = 0; 
+        $self->{login_attempt} = $main::Time;
     }
     else {
         &main::print_log("[raZberry:" . $self->{host} . "]: Successful authentication.");
@@ -316,6 +328,7 @@ sub login {
         $self->{cookie_string} =~ s/^Set-Cookie3: //; #strip out the cookie header that http::cookies returns
         $self->{cookie_string} =~ s/\n//; #strip out the \n that http::cookies returns
         #print "***** [$self->{cookie_string}]\n";
+        $self->{login_attempt} = 0;
     }
 }
 
@@ -405,20 +418,34 @@ sub process_check {
     return unless ( ( defined $self->{poll_process} ) and ( defined $self->{cmd_process} ) );
 
 #check if data comes back unauthenticated
+    if (($self->{login_success} == 0) and ($self->{login_attempt})) {
+        if ($main::Time > ($self->{login_attempt} + 30)) { #retry log in every 30 seconds
+            main::print_log( "[raZerry:" . $self->{host} . "] Attempting to re-authenticate" );
+            $self->login;
+        }
+    }
 
     if ( $self->{poll_process}->done_now() ) {
 
         $com_status = "online";
+        $processed_data = 1;
         main::print_log( "[raZerry:" . $self->{host} . "] Background poll " . $self->{poll_process_mode} . " process completed" ) if ( $self->{debug} );
 
         my $file_data = &main::file_read( $self->{poll_data_file} );
         exit unless ($file_data);    #if there is no data, then don't process
+
+        if ($file_data =~m/\"401 Unauthorized\",\"error\"\:\"Not logged in\"/) {
+            $self->{login_success} = 0;
+            $self->{login_attempt} = $main::Time - 30;
+            return
+        }
 
 #       print "debug: file_data=$file_data\n" if ( $self->{debug} > 2);
         my ($json_data) = $file_data =~ /(\{.*\})/s;
 
 #       print "debug: json_data=$json_data\n" if ( $self->{debug} > 2);
         unless ( ($file_data) and ($json_data) ) {
+            $json_data = "" unless ($json_data);
             main::print_log( "[raZberry:" . $self->{host} . "] ERROR! bad data returned by poll" );
             main::print_log( "[raZberry:" . $self->{host} . "] ERROR! file data is [$file_data]. json data is [$json_data]" );
             $com_status = "offline";
@@ -427,12 +454,19 @@ sub process_check {
         }
     }
     if ( $self->{cmd_process}->done_now() ) {
-        print "**** in process done_now\n";
         $com_status = "online";
+        $processed_data = 2;
+        
         main::print_log( "[raZerry:" . $self->{host} . "] Command " . $self->{cmd_process_mode} . " process completed" ) if ( $self->{debug} );
 
         my $file_data = &main::file_read( $self->{cmd_data_file} );
         exit unless ($file_data);    #if there is no data, then don't process
+
+        if ($file_data =~m/\"401 Unauthorized\",\"error\"\:\"Not logged in\"/) {
+            $self->{login_success} = 0;
+            $self->{login_attempt} = $main::Time - 30;
+            return
+        }
 
         if ($self->{cmd_process_mode} eq "usercode") {
             #normally usercode just returns null
@@ -449,24 +483,41 @@ sub process_check {
                 main::print_log( "[raZberry:" . $self->{host} . "] ERROR! bad data returned by poll" );
                 main::print_log( "[raZberry:" . $self->{host} . "] ERROR! file data is [$file_data]. json data is [$json_data]" );
                 $com_status = "offline";
+                #update the retry on the failed item.
+                $ {$self->{cmd_queue}}[0][3]++;
             } else {
                 push @process_data, $json_data;   
-                shift @{ $self->{cmd_queue} };
-                if (scalar @{ $self->{cmd_queue} }) {
-                    main::print_log( "[raZberry:" . $self->{host} . "] Command Queue found, processing next item" );
-                    my ($mode, $get_cmd) = ${ $self->{cmd_queue} }[0];
-                    $self->{cmd_process}->set($get_cmd);
-                    $self->{cmd_process}->start();
-                    $self->{cmd_process_pid}->{ $self->{cmd_process}->pid() } = $mode;    #capture the type of information requested in order to parse;
-                    $self->{cmd_process_mode} = $mode;
-                    main::print_log( "[raZberry:" . $self->{host} . "] Backgrounding Command" . $self->{cmd_process}->pid() . " command $mode, $get_cmd" ) if ( $self->{debug} );  
-                }
+                shift @{ $self->{cmd_queue} }; #successfully processed to remove item from the queue
             }
+        }
+    }
+
+#check for any queued data that needs to be processed $self->{command_timeout}
+    if (scalar @{ $self->{cmd_queue} }) {
+        my ($mode, $get_cmd, $time, $retry) = ${ $self->{cmd_queue} }[0];
+        #if there is a retry, then execute at request time + (retry * 5 seconds)
+        #discard the command if 60 seconds after the request time
+        #if the item is queued then wait until at least a second after the request time
+        #discard the item if it's been retried $self->{command_timeout_limit} times
+        if ($retry > $self->{command_timeout_limit}) {
+            main::print_log( "[raZberry:" . $self->{host} . "] ERROR: Abandoning command $get_cmd due to $retry retry attempts" );
+            shift @{ $self->{cmd_queue}};        
+        } elsif ($main::Time > ($time + 60)) {
+            main::print_log( "[raZberry:" . $self->{host} . "] ERROR: $get_cmd request older than a minute. Abandoning request" );
+            shift @{ $self->{cmd_queue}}; 
+        } elsif ($main::Time > ($time + 1 + ($retry * 5))) {
+            main::print_log( "[raZberry:" . $self->{host} . "] Command Queue found, processing next item" );        
+            $self->{cmd_process}->set($get_cmd);
+            $self->{cmd_process}->start();
+            $self->{cmd_process_pid}->{ $self->{cmd_process}->pid() } = $mode;    #capture the type of information requested in order to parse;
+            $self->{cmd_process_mode} = $mode;
+            main::print_log( "[raZberry:" . $self->{host} . "] Backgrounding Command (" . $self->{cmd_process}->pid() . ") command $mode, $get_cmd" ) if ( $self->{debug} );  
         }
     }
  
     foreach my $rec_data (@process_data) {
         my $data;
+        
         eval { $data = JSON::XS->new->decode($rec_data); };
         # catch crashes:
         if ($@) {
@@ -474,7 +525,6 @@ sub process_check {
             $com_status = "offline";
         }
         else {
-            $processed_data = 1;
             if ((defined $data->{controller}->{data}) and (!defined $self->{controller_data})) {
                 $self->{controller_data} = $data->{controller}->{data};
                 &main::print_log("[raZberry:" . $self->{host} . "]: Controller found");
@@ -559,22 +609,28 @@ sub process_check {
         if ($com_status eq "online") {
             $self->{com_warning} = 0;
             if (defined $self->{com_poll_interval}) {
+                main::print_log("[RaZberry:" . $self->{host} . "] Valid Data Received. Changing poll rate to $self->{com_poll_interval}.");
                 $self->{config}->{poll_seconds} = $self->{com_poll_interval};
                 $self->{com_poll_interval} = undef;
+                $self->stop_timer;
                 $self->start_timer;
             }
         } elsif ($com_status eq "offline")  {
-            main::print_log("[RaZberry:" . $self->{host} . "] WARNING. Recevied bad data from raZberry. Temporarily Increasing poll rate to confirm if device is offline.") if ($self->{com_warning} == 0);
             $self->{com_warning}++;
-            $self->{com_poll_interval} = $self->{config}->{poll_seconds};
-            $self->{config}->{poll_seconds} = 10 unless ($self->{config}->{poll_seconds} <= 10);
-            #$self->stop_timer;
-            $self->start_timer;
+            if (!defined $self->{com_poll_interval} ) {
+                main::print_log("[RaZberry:" . $self->{host} . "] WARNING. Recevied bad data from raZberry. Temporarily Increasing poll rate to confirm if device is offline.");
+                $self->{com_poll_interval} = $self->{config}->{poll_seconds};
+                $self->{config}->{poll_seconds} = 10 unless ($self->{config}->{poll_seconds} <= 10);
+                $self->stop_timer;
+                $self->start_timer;
+            }
         }
         if ( $self->{status} ne $com_status ) {
-            $self->{status} = $com_status;
-            if (($self->{child_object}->{comm}->state() ne $com_status) or (($self->{com_warning} > $self->{com_threshold}) and ($com_status eq "offline"))) {
-               main::print_log("[RaZberry:" . $self->{host} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "...") if ( $self->{loglevel} );
+            if ((($self->{child_object}->{comm}->state() eq "offline") and ($com_status eq "online")) or 
+                (($self->{child_object}->{comm}->state() eq "online") and ($self->{com_warning} > $self->{com_threshold}) and ($com_status eq "offline")) or
+                (($self->{child_object}->{comm}->state() eq "online") and ($com_status eq "offline") and ($processed_data ==2))) {
+                $self->{status} = $com_status; #when $com_status was offline, it immediately triggered.
+               main::print_log("[RaZberry:" . $self->{host} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "...");
                $self->{child_object}->{comm}->set( $com_status, 'poll' );
             }
         } 
@@ -589,7 +645,7 @@ sub poll {
     my $cmd = "";
     $cmd = "?since=" . $self->{lastupdate} if ( defined $self->{lastupdate} );
     $cmd = "" if ( lc $option eq "full" );
-    &main::print_log("[raZberry:" . $self->{host} . "]: cmd=$cmd") if ( $self->{debug} > 1 );
+    &main::print_log("[raZberry:" . $self->{host} . "]: cmd=$cmd option=$option last_updated=$self->{lastupdate}") if ( $self->{debug} > 1 );
 
     for my $dev ( keys %{ $self->{data}->{force_update} } ) {
         &main::print_log("[raZberry:" . $self->{host} . "]: Forcing update to device $dev to account for local changes") if ( $self->{debug} );
@@ -704,26 +760,26 @@ sub _get_JSON_data {
     my $get_cmd = "get_url $get_params " . '"http://' . "$host:$port/$method/$rest{$mode}$params" . '"';
 
     if (( $cmd eq "") or ($cmd =~ m/^\?since=/)) { 
-
         $self->{poll_process}->stop() unless ($self->{poll_process}->done() );
         $self->{poll_process}->set($get_cmd);
         $self->{poll_process}->start();
         $self->{poll_process_pid}->{ $self->{poll_process}->pid() } = $mode;    #capture the type of information requested in order to parse;
         $self->{poll_process_mode} = $mode;
-        main::print_log( "[raZberry:" . $self->{host} . "] Backgrounding Poll" . $self->{poll_process}->pid() . " command $mode, $get_cmd" ) if ( $self->{debug} );
+        main::print_log( "[raZberry:" . $self->{host} . "] Backgrounding Poll (" . $self->{poll_process}->pid() . ") command $mode, $get_cmd" ) if ( $self->{debug} );
     } else {
         if ($self->{cmd_process}->done() ) {;
             $self->{cmd_process}->set($get_cmd);
             $self->{cmd_process}->start();
             $self->{cmd_process_pid}->{ $self->{cmd_process}->pid() } = $mode;    #capture the type of information requested in order to parse;
             $self->{cmd_process_mode} = $mode; 
-            main::print_log( "[raZberry:" . $self->{host} . "] Backgrounding Command" . $self->{poll_process}->pid() . " command $mode, $get_cmd" ) if ( $self->{debug} );  
+            main::print_log( "[raZberry:" . $self->{host} . "] Backgrounding Command (" . $self->{poll_process}->pid() . ") command $mode, $get_cmd" ) if ( $self->{debug} );  
         } else {
-            main::print_log( "[raZberry:" . $self->{host} . "] Queing Command" . $self->{poll_process}->pid() . " command $mode, $get_cmd" ) if ( $self->{debug} );  
-            push @{ $self->{cmd_queue} }, [$mode,$get_cmd];
+            main::print_log( "[raZberry:" . $self->{host} . "] Queing Command (" . $self->{poll_process}->pid() . ") command $mode, $get_cmd, time " . $main::Time ) if ( $self->{debug} );  
             if (scalar @{ $self->{cmd_queue} } < $self->{max_poll_queue} ) {
-                main::print_log( "[raZberry:" . $self->{host} . "] Max Queue Length ($self->{max_poll_queue}) reached! Discarding all queued commands!" );  
-                @{ $self->{cmd_queue} } = ();
+                push @{ $self->{cmd_queue} }, [$mode,$get_cmd,$main::Time,0];
+            } else {
+                main::print_log( "[raZberry:" . $self->{host} . "] Max Queue Length ($self->{max_poll_queue}) reached! Discarding queued command" );  
+                #@{ $self->{cmd_queue} } = ();
             }
         }  
     }
@@ -735,13 +791,11 @@ sub _get_JSON_data {
 
 sub stop_timer {
     my ($self) = @_;
-    print "**** in stop timer\n\n";
     $self->{timer}->stop;
 }
 
 sub start_timer {
     my ($self) = @_;
-    print "**** in start timer\n\n";
     $self->{timer}->set( $self->{config}->{poll_seconds}, sub { &raZberry::poll($self) }, -1 );
 }
 
@@ -785,7 +839,7 @@ sub register {
         my $type = $object->{type};
         $type = "Digital " . $type
           if ( ( defined $options ) and ( $options =~ m/digital/ ) );
-        &main::print_log("[raZberry:" . $self->{host} . "]: Registering " . $type . " Device ID $dev to controller " );
+        &main::print_log("[raZberry:" . $self->{host} . "]: Registering " . $type . " Device ID $dev" );
         $self->{child_object}->{$dev} = $object;
         $self->{lastupdate} = 0;
         if ( defined $options ) {
@@ -806,7 +860,7 @@ sub deregister {
     
     return unless (defined $self->{child_object}->{$dev});
     my $type = $self->{child_object}->{$dev}->{type};
-    &main::print_log("[raZberry:" . $self->{host} . "]: Deregistering " . $type . " Device ID $dev on controller" );
+    &main::print_log("[raZberry:" . $self->{host} . "]: Deregistering " . $type . " Device ID $dev" );
     delete $self->{child_object}->{$dev};
     delete $self->{data}->{force_update}->{$dev} if (defined $self->{data}->{force_update}->{$dev});
     delete $self->{data}->{ping}->{$dev} if (defined $self->{data}->{ping}->{$dev});
