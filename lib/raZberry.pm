@@ -1,4 +1,4 @@
-=head1 B<raZberry> v3.0.2
+=head1 B<raZberry> v3.0.3
 
 #test command setup
 #command queue
@@ -182,7 +182,7 @@ sub new {
     my ( $class, $addr, $poll, $options ) = @_;
     my $self = new Generic_Item();
     bless $self, $class;
-    &main::print_log("[raZberry]: v3.0.2 Controller Initializing...");
+    &main::print_log("[raZberry]: v3.0.3 Controller Initializing...");
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
     
@@ -217,7 +217,7 @@ sub new {
     $self->{host}                   = $host;
     $self->{port}                   = 8083;
     $self->{port}                   = $port if ($port);
-    $self->{debug}                  = 0;
+    $self->{debug}                  = 5;
     ( $self->{debug} )              = ( $options =~ /debug=(\d+)/i ) if ( ( defined $options ) and ( $options =~ m/debug=/i ) );
     $self->{debug}                  = $main::Debug{razberry} if ( defined $main::Debug{razberry} );
     $self->{lastupdate}             = undef;
@@ -472,7 +472,12 @@ sub process_check {
             #normally usercode just returns null
             if ($file_data ne "null") {
                 main::print_log( "[raZberry:" . $self->{host} . "] WARNING, unexpected return data from usercode: ($file_data)" );
+                $ {$self->{cmd_queue}}[0][3]++;
+
+            } else {
+                shift @{ $self->{cmd_queue} }; #successfully processed to remove item from the queue
             }
+
         } else {
 
     #       print "debug: file_data=$file_data\n" if ( $self->{debug} > 2);
@@ -488,24 +493,28 @@ sub process_check {
             } else {
                 push @process_data, $json_data;   
                 shift @{ $self->{cmd_queue} }; #successfully processed to remove item from the queue
+print "*** 2 Array length is " . scalar @{ $self->{cmd_queue} } . "\n";
+                
             }
         }
     }
-
+    
 #check for any queued data that needs to be processed $self->{command_timeout}
-    if (scalar @{ $self->{cmd_queue} }) {
-        my ($mode, $get_cmd, $time, $retry) = ${ $self->{cmd_queue} }[0];
+    if ((scalar @{ $self->{cmd_queue} }) and ($self->{cmd_process}->done() )) {
+        my ($mode, $get_cmd, $time, $retry) = @ { ${ $self->{cmd_queue} }[0] };
         #if there is a retry, then execute at request time + (retry * 5 seconds)
         #discard the command if 60 seconds after the request time
         #if the item is queued then wait until at least a second after the request time
         #discard the item if it's been retried $self->{command_timeout_limit} times
+print "*** mode=$mode, get_cmd=$get_cmd, time=$time, retry=$retry\n";
+print "*** Array length is " . scalar @{ $self->{cmd_queue} } . ": status=" . $self->{cmd_process}->done() . "\n";
         if ($retry > $self->{command_timeout_limit}) {
             main::print_log( "[raZberry:" . $self->{host} . "] ERROR: Abandoning command $get_cmd due to $retry retry attempts" );
             shift @{ $self->{cmd_queue}};        
         } elsif ($main::Time > ($time + 60)) {
             main::print_log( "[raZberry:" . $self->{host} . "] ERROR: $get_cmd request older than a minute. Abandoning request" );
             shift @{ $self->{cmd_queue}}; 
-        } elsif ($main::Time > ($time + 1 + ($retry * 5))) {
+        } elsif (($main::Time > ($time + 1 + ($retry * 5)) and ($self->{cmd_process}->done() ) )) {
             main::print_log( "[raZberry:" . $self->{host} . "] Command Queue found, processing next item" );        
             $self->{cmd_process}->set($get_cmd);
             $self->{cmd_process}->start();
@@ -767,18 +776,18 @@ sub _get_JSON_data {
         $self->{poll_process_mode} = $mode;
         main::print_log( "[raZberry:" . $self->{host} . "] Backgrounding Poll (" . $self->{poll_process}->pid() . ") command $mode, $get_cmd" ) if ( $self->{debug} );
     } else {
-        if ($self->{cmd_process}->done() ) {;
+        if (($self->{cmd_process}->done() ) and (scalar @{ $self->{cmd_queue} } == 0)) {;
             $self->{cmd_process}->set($get_cmd);
             $self->{cmd_process}->start();
             $self->{cmd_process_pid}->{ $self->{cmd_process}->pid() } = $mode;    #capture the type of information requested in order to parse;
             $self->{cmd_process_mode} = $mode; 
-            main::print_log( "[raZberry:" . $self->{host} . "] Backgrounding Command (" . $self->{poll_process}->pid() . ") command $mode, $get_cmd" ) if ( $self->{debug} );  
+            main::print_log( "[raZberry:" . $self->{host} . "] Backgrounding Command (" . $self->{cmd_process}->pid() . ") command $mode, $get_cmd" ) if ( $self->{debug} );  
         } else {
-            main::print_log( "[raZberry:" . $self->{host} . "] Queing Command (" . $self->{poll_process}->pid() . ") command $mode, $get_cmd, time " . $main::Time ) if ( $self->{debug} );  
-            if (scalar @{ $self->{cmd_queue} } < $self->{max_poll_queue} ) {
+            main::print_log( "[raZberry:" . $self->{host} . "] Queing Command command $mode, $get_cmd, time " . $main::Time ) if ( $self->{debug} );  
+            if (scalar @{ $self->{cmd_queue} } <= $self->{max_cmd_queue} ) {
                 push @{ $self->{cmd_queue} }, [$mode,$get_cmd,$main::Time,0];
             } else {
-                main::print_log( "[raZberry:" . $self->{host} . "] Max Queue Length ($self->{max_poll_queue}) reached! Discarding queued command" );  
+                main::print_log( "[raZberry:" . $self->{host} . "] Max Queue Length ($self->{max_cmd_queue}) reached! Discarding queued command" );  
                 #@{ $self->{cmd_queue} } = ();
             }
         }  
@@ -1337,7 +1346,7 @@ sub battery_check {
 
         my $cmd;
         my ( $devid, $instance, $class ) = ( split /-/, $self->{devid} )[ 0, 1, 2 ];
-        $cmd = "%5B" . $devid . "%5D.instances%5B" . $instance . "%5D.commandClasses%5D128%5B.Get()";
+        $cmd = "%5B" . $devid . "%5D.instances%5B" . $instance . "%5D.commandClasses%5B128%5D.Get()";
         &main::print_log("[raZberry]: Getting Battery Details") if ( $self->{debug} );
         &main::print_log("cmd=$cmd") if ( $self->{debug} > 1 );
         &raZberry::_get_JSON_data( $self->{master_object}, 'usercode', $cmd );
@@ -1485,7 +1494,7 @@ sub battery_check {
 
         my $cmd;
         my ( $devid, $instance, $class ) = ( split /-/, $self->{devid} )[ 0, 1, 2 ];
-        $cmd = "%5B" . $devid . "%5D.instances%5B" . $instance . "%5D.commandClasses%5D128%5B.Get()";
+        $cmd = "%5B" . $devid . "%5D.instances%5B" . $instance . "%5D.commandClasses%5B128%5D.Get()";
         &main::print_log("[raZberry]: Getting Battery Details") if ( $self->{debug} );
         &main::print_log("cmd=$cmd") if ( $self->{debug} > 1 );
         &raZberry::_get_JSON_data( $self->{master_object}, 'usercode', $cmd );
@@ -1933,7 +1942,7 @@ sub battery_check {
 
         my $cmd;
         my ( $devid, $instance, $class ) = ( split /-/, $self->{devid} )[ 0, 1, 2 ];
-        $cmd = "%5B" . $devid . "%5D.instances%5B" . $instance . "%5D.commandClasses%5D128%5B.Get()";
+        $cmd = "%5B" . $devid . "%5D.instances%5B" . $instance . "%5D.commandClasses%5B128%5D.Get()";
         &main::print_log("[raZberry]: Getting Battery Details") if ( $self->{debug} );
         &main::print_log("cmd=$cmd") if ( $self->{debug} > 1 );
         &raZberry::_get_JSON_data( $self->{master_object}, 'usercode', $cmd );
