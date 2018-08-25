@@ -95,7 +95,7 @@ use Time::Local;
 use Date::Calc qw(Day_of_Year);
 my $debug = 0;
 my $msg_string;
-my $rrd = 0;
+my $rrd = "";
 
 $p_wu_forecast = new Process_Item
   qq[get_url --quiet "http://api.wunderground.com/api/$config_parms{wu_key}/astronomy/yesterday/conditions/forecast/q/$config_parms{eto_location}.json" "$config_parms{data_dir}/wuData/wu_data.json"];
@@ -120,7 +120,7 @@ my $eto_ready;
 
 if ( $Startup or $Reload ) {
     $eto_ready = 1;
-    print_log "[calc_eto] v1.3 Startup. Checking Configuration...";
+    print_log "[calc_eto] v1.3.1 Startup. Checking Configuration...";
     mkdir "$eto_data_dir"                  unless ( -d "$eto_data_dir" );
     mkdir "$eto_data_dir/ET"               unless ( -d "$eto_data_dir/ET" );
     mkdir "$eto_data_dir/logs"             unless ( -d "$eto_data_dir/logs" );
@@ -157,12 +157,12 @@ if ( $Startup or $Reload ) {
             print_log "[calc_eto] Will write daily rain to RRD (mms)";
             $rrd = "m";
         } elsif ($config_parms{eto_rrd} eq "in") {
-            print_log "[calc_eto] Will write daily rain to RRD (inches)";
-            $rrd = "i";
+            print_log "[calc_eto] Inches to RRD not supported yet";
+            $rrd = "";
         } else {
             print_log "[calc_eto] Unknown RRD option $config_parms{eto_rrd}";
-            $rrd = 0;
-	}
+            $rrd = "";
+        }
     }
     if ( defined $config_parms{eto_irrigation} ) {
         print_log "[calc_eto] $config_parms{eto_irrigation} set as programmable irrigation system";
@@ -963,7 +963,7 @@ sub detailSchedule {
             }
             my $run_min = int($station / 60);
             my $run_sec = int($station % 60);
-            $msg .= "[calc_eto] : " . formatTime($time) . " : Station:" .sprintf("%2s",$station_id) . "   Run Time:" .sprintf("%02d:%02d:%02d",$run_hour,$run_min,$run_sec) . "\n";  
+            $msg .= "[calc_eto] : " . formatTime($time) . " : Station:" .sprintf("%2s",$station_id) . "   Run Time:" .sprintf("%02d:%02d:%02d",$run_hour,$run_min,$run_sec) . "\n" unless ($station == 0);
             $station_id++;
             $time += $run_sec + ($run_min * 60) + ($run_hour * 3600);
         }     
@@ -1169,6 +1169,15 @@ sub main_calc_eto {
     print_log $msg;
     $msg_string .= $msg . "\n";
 
+    #write to the RRD if it's enabled
+    if ($rrd ne "") {
+        $msg = '[calc_eto] Writing fallen and forecast rain to RRD: ' . round( $todayRain, 4 ) . " mm";
+        $Weather{RainTotal} = round( $todayRain, 4 );
+        print_log $msg;
+        $msg_string .= $msg . "\n";
+        
+    }
+
     # Binary watering determination based on 3 criteria: 1)Currently raining 2)Wind>8kph~5mph 3)Temp<4.5C ~ 40F
     if ($noWater) {
         $msg = "[calc_eto] RESULTS We will not water because: $whyNot";
@@ -1223,22 +1232,6 @@ sub main_calc_eto {
     #Write the WU data to a file. This can be used for the MH weather data and save an api call
     writewuData( $wuData, $noWater, $wuDataPath );
     
-    #write to the RRD if it's enabled
-    if ($rrd != 0) {
-        $msg = '[calc_eto] Writing predicted rain to RRD :';
-
-        if ($rrd eq "m") {
-            $msg .= $wuData->{current_observation}->{precip_today_metric} . " mm";
-            $Weather{RainTotal} = $wuData->{current_observation}->{precip_today_metric};
-        } else {
-            $msg .= $wuData->{current_observation}->{precip_today_in} . " in"; 
-            $Weather{RainTotal} = $wuData->{current_observation}->{precip_today_in};    
-        }
-        print_log $msg;
-        $msg_string .= $msg . "\n";
-        
-    }
-    
     #$msg = "[calc_eto] RESULTS Calculated Schedule: $rtime";
     #print_log $msg;
     #$msg_string .= $msg . "\n";
@@ -1246,7 +1239,7 @@ sub main_calc_eto {
     foreach my $detail (split /\n/,$rtime2) {
         print_log $detail;
     }
-    $msg_string .= $msg . $rtime2;
+    $msg_string .= $msg . "\n" . $rtime2;
     if ( defined $config_parms{eto_email} ) {
         print_log "[calc_eto] Emailing results";
         net_mail_send( to => $config_parms{eto_email}, subject => "EvapoTranspiration Results for $Time_Now", text => $msg_string );
