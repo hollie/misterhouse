@@ -360,7 +360,7 @@
                 </button>
                 
             <button id="mhstatus" entity="ia7_status" type="button" class="btn btn-info toolbar-btn pull-right" style="display:none">
-                <span class='pull-right'>checking</span>
+                <span class='pull-right object-state'>checking</span>
                 </button>		
             <span id="wtemp" class='pull-right mh-wi text-muted mh-wi-text'></span>
             <i id="wicon" class='pull-right mh-wi text-muted mh-wi-icon wi'></i>
