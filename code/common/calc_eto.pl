@@ -956,7 +956,6 @@ sub detailSchedule {
         my $station_id = 1;
         $time = $time * 60; #add in seconds
         foreach my $station (split /,/, $lengths) {
-            next if ($station == 0);
             my $run_hour = 0;
             if ($station > 3600) {
                 $run_hour = int($station / 3600);
@@ -964,7 +963,7 @@ sub detailSchedule {
             }
             my $run_min = int($station / 60);
             my $run_sec = int($station % 60);
-            $msg .= "[calc_eto] : " . formatTime($time) . " : Station:" .sprintf("%2s",$station_id) . "   Run Time:" .sprintf("%02d:%02d:%02d",$run_hour,$run_min,$run_sec) . "\n";  
+            $msg .= "[calc_eto] : " . formatTime($time) . " : Station:" .sprintf("%2s",$station_id) . "   Run Time:" .sprintf("%02d:%02d:%02d",$run_hour,$run_min,$run_sec) . "\n" unless ($station == 0);
             $station_id++;
             $time += $run_sec + ($run_min * 60) + ($run_hour * 3600);
         }     
