@@ -1,11 +1,12 @@
 package Yeelight;
 
-# v1.2.1
+# v1.2.3
 
 #TODO
 #- test queuing fast commands
 #- check query data
-
+#- test socket reconnection
+#- retry time delay, should be based off process_item start not the original request time.
 
 use strict;
 use warnings;
@@ -90,12 +91,13 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.2.0";
+    $self->{module_version}         = "v1.2.3";
     $self->{ssdp_timeout}           = 1000;
     $self->{socket_connected}       = 0;
     $self->{host}                   = $location;
     $self->{port}                   = 55443;
     $self->{brightness_state_delay} = 1;
+    $self->{command_timeout_limit}  = 3;   
 
     if ($location =~ m/:/) {
         ($self->{host}, $self->{port}) = $location =~ /(.*):(.*)/;
@@ -115,6 +117,7 @@ sub new {
     $self->{max_poll_queue}          = 3;
     $self->{max_cmd_queue}           = 5;
     $self->{cmd_process_retry_limit} = 6;
+    $self->{command_timeout}         = 60;
 
     @{ $self->{poll_queue} } = ();
     $self->{poll_data_file} = "$::config_parms{data_dir}/Yeelight_poll_" . $self->{name} . ".data";
@@ -195,9 +198,11 @@ sub check_for_socket_data {
 
     if (( defined $self->{child_object}->{comm} ) and ($self->{socket_connected})) {
         if ( $self->{status} ne $com_status ) {
-            main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
             $self->{status} = $com_status;
-            $self->{child_object}->{comm}->set( $com_status, 'poll' );
+            if ($self->{child_object}->{comm}->state() ne $com_status) {
+                main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
+                $self->{child_object}->{comm}->set( $com_status, 'poll' );
+            }
         }
     }
 }
@@ -235,9 +240,11 @@ sub get_data {
 
     if ( defined $self->{child_object}->{comm} ) {
         if ( $self->{status} ne $com_status ) {
-            main::print_log "[Yeelight:" . $self->{name} . "] 0 Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
             $self->{status} = $com_status;
-            $self->{child_object}->{comm}->set( $com_status, 'poll' );
+            if ($self->{child_object}->{comm}->state() ne $com_status) {
+                main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
+                $self->{child_object}->{comm}->set( $com_status, 'poll' );
+            }
         }
     } 
     
@@ -245,6 +252,7 @@ sub get_data {
 
 sub process_check {
     my ($self) = @_;
+    my $com_status = $self->{status};
 
     return unless ( defined $self->{poll_process} );
 
@@ -252,7 +260,7 @@ sub process_check {
     
         @{ $self->{poll_queue} } = ();      #clear the queue since process is done.
 
-        my $com_status = "online";
+        $com_status = "online";
         main::print_log( "[Yeelight:" . $self->{name} . "] Background poll " . $self->{poll_process_mode} . " process completed" ) if ( $self->{debug} );
 
         my $file_data = &main::file_read( $self->{poll_data_file} );
@@ -297,21 +305,15 @@ sub process_check {
             }
         }
 
-        if ( defined $self->{child_object}->{comm} ) {
-            if ( $self->{status} ne $com_status ) {
-                main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
-                $self->{status} = $com_status;
-                $self->{child_object}->{comm}->set( $com_status, 'poll' );
-            }
-        }
     }
 
     return unless ( defined $self->{cmd_process} );
+    
     if ( $self->{cmd_process}->done_now() ) {
         main::print_log( "[Yeelight:" . $self->{name} . "] Background Command " . $self->{cmd_process_mode} . " process completed" ) if ( $self->{debug} );
 
         my $file_data = &main::file_read( $self->{cmd_data_file} );
-        my $com_status = "online";
+        $com_status = "online";
 
         if ($file_data) {
 
@@ -325,54 +327,51 @@ sub process_check {
             # catch crashes:
             if ($@) {
                 main::print_log( "[Yeelight:" . $self->{name} . "] ERROR! JSON file parser crashed! $@\n" );
+                ${ $self->{cmd_queue} }[0][2]++;
                 $com_status = "offline";
             }
             else {
 
                 if ($data->{result}[0] eq 'ok') {
                     shift @{ $self->{cmd_queue} };    #remove the command from queue since it was successful
-                    $self->{cmd_process_retry} = 0;
                     $com_status = "online";
 
                 } else {
-                    main::print_log( "[Yeelight:" . $self->{name} . "] Last command failed! Going to retry" );
+                    main::print_log( "[Yeelight:" . $self->{name} . "] Last command failed with code ." .$data->{result}[0] . "! Going to retry" );
+                    ${ $self->{cmd_queue} }[0][2]++;
+                    $com_status = "offline";
                 }
             }
-
-            if ( scalar @{ $self->{cmd_queue} } ) {
-                main::print_log( "[Yeelight:" . $self->{name} . "] Command Queue found" );
-                main::print_log( "[Yeelight:" . $self->{name} . "] " .join (", ",@{ $self->{cmd_queue} }) ); 
-                 
-                print join(", ", @{ $self->{cmd_queue} });            
-                my $cmd = @{ $self->{cmd_queue} }[0];    #grab the first command, but don't take it off.
-                $self->{cmd_process}->set($cmd);
-                main::eval_with_timer "$self->{cmd_process}->start()",1; #wait a few seconds before trying again
-                main::print_log( "[Yeelight:" . $self->{name} . "] Command Queue " . $self->{cmd_process}->pid() . " cmd=$cmd" )
-                  if ( ( $self->{debug} ) or ( $self->{cmd_process_retry} ) );
-            }
-
         }
-        else {
+    }
 
-            main::print_log( "[Yeelight:" . $self->{name} . "] WARNING Issued command was unsuccessful, retrying..." );
-            if ( $self->{cmd_process_retry} > $self->{cmd_process_retry_limit} ) {
-                main::print_log( "[Yeelight:" . $self->{name} . "] ERROR Issued command max retries reached. Abandoning command attempt..." );
-                shift @{ $self->{cmd_queue} };
-                $self->{cmd_process_retry} = 0;
-                $com_status = "offline";
-            }
-            else {
-                $self->{cmd_process_retry}++;
-            }
+    if (( scalar @{ $self->{cmd_queue} } ) and ($self->{cmd_process}->done()))  {
+        my ($cmd, $time, $retry) = @ { ${ $self->{cmd_queue} }[0] };
+        #print "***         cmd=$cmd, time=$time, retry=$retry\n";
+        if ($retry > $self->{command_timeout_limit}) {
+            main::print_log( "[Yeelight:" . $self->{name} . "] ERROR: Abandoning command $cmd due to $retry retry attempts" );
+            shift @{ $self->{cmd_queue}};        
+        } elsif (($main::Time - $time) > $self->{command_timeout}) {
+            main::print_log( "[Yeelight:" . $self->{name} . "] ERROR: $cmd request older than " . $self->{command_timeout} ." seconds. Abandoning request" );
+            shift @{ $self->{cmd_queue}}; 
+        } elsif ($main::Time > ($time + 1 + ($retry * 5)) and ($self->{cmd_process}->done() )) { #the original time isn't a great base for deep queued commands
+            if ($retry == 0) {
+                main::print_log( "[Yeelight:" . $self->{name} . "] Command Queue found, processing next item" );
+            } else {
+                main::print_log( "[Yeelight:" . $self->{name} . "] Retrying previous command. Attempt number $retry" );
+            }     
+            $self->{cmd_process}->set($cmd);
+            $self->{cmd_process}->start();            
+            main::print_log( "[Yeelight:" . $self->{name} . "] Command Queue (" . $self->{cmd_process}->pid() . ") cmd=$cmd" ) if ( $self->{debug} );
         }
-
-        if ( defined $self->{child_object}->{comm} ) {
-            if ( $self->{status} ne $com_status ) {
-                $self->{status} = $com_status;
-                if ($self->{child_object}->{comm}->state() ne $com_status) {
-                   main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
-                   $self->{child_object}->{comm}->set( $com_status, 'poll' );
-                }
+    }
+                
+    if ( defined $self->{child_object}->{comm} ) {
+        if ( $self->{status} ne $com_status ) {
+            $self->{status} = $com_status;
+            if ($self->{child_object}->{comm}->state() ne $com_status) {
+                main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
+                $self->{child_object}->{comm}->set( $com_status, 'poll' );
             }
         }
     }
@@ -413,23 +412,24 @@ sub _push_TCP_data {
         $self->{cmd_process}->start();
         $self->{cmd_process_pid}->{ $self->{cmd_process}->pid() } = $mode;    #capture the type of information requested in order to parse;
         $self->{cmd_process_mode} = $mode;
-        push @{ $self->{cmd_queue} }, "$cmd";
+        push @{ $self->{cmd_queue} }, [$cmd,$main::Time,0];           
 
-        main::print_log( "[Yeelight:" . $self->{name} . "] Backgrounding " . $self->{cmd_process}->pid() . " command $mode, $cmd" ) if ( $self->{debug} );
+        main::print_log( "[Yeelight:" . $self->{name} . "] Backgrounding (" . $self->{cmd_process}->pid() . ") command $mode, $cmd" ) if ( $self->{debug} );
     }
     else {
         if ( scalar @{ $self->{cmd_queue} } < $self->{max_cmd_queue} ) {
-            main::print_log( "[Yeelight:" . $self->{name} . "] Queue is " . scalar @{ $self->{cmd_queue} } . ". Queing command $mode, $cmd" )
-              if ( $self->{debug} );
-            push @{ $self->{cmd_queue} }, "$cmd";
+            main::print_log( "[Yeelight:" . $self->{name} . "] Queue is " . scalar @{ $self->{cmd_queue} } . ". Queing command $mode, $cmd" ) if ( $self->{debug} );
+            push @{ $self->{cmd_queue} }, [$cmd,$main::Time,0];           
         }
         else {
             main::print_log( "[Yeelight:" . $self->{name} . "] WARNING. Queue has grown past " . $self->{max_cmd_queue} . ". Command discarded." );
             if ( defined $self->{child_object}->{comm} ) {
                 if ( $self->{status} ne "offline" ) {
-                    main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ( $self->{loglevel} );
                     $self->{status} = "offline";
-                    $self->{child_object}->{comm}->set( "offline", 'poll' );
+                    if ($self->{child_object}->{comm}->state() ne "offline" ) {
+                        main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ( $self->{loglevel} );
+                        $self->{child_object}->{comm}->set( "offline", 'poll' );
+                    }
                 }
             }
         }
@@ -630,7 +630,7 @@ sub process_data {
     }
 
     if ( $self->{previous}->{info}->{bright} != $self->{data}->{info}->{bright} ) {
-        main::print_log( "[Yeelight:" . $self->{name} . "] Brightness changed from $self->{previous}->{info}->{bright} to $self->{data}->{info}->{brightn}" ) if ( $self->{loglevel} );
+        main::print_log( "[Yeelight:" . $self->{name} . "] Brightness changed from $self->{previous}->{info}->{bright} to $self->{data}->{info}->{bright}" ) if ( $self->{loglevel} );
         $self->{previous}->{info}->{bright} = $self->{data}->{info}->{bright};
         $self->set( $self->{data}->{info}->{bright}, 'poll' );
     }
@@ -964,5 +964,4 @@ sub set {
 # Version History
 # v1.0.0 - initial module
 # v1.0.1 - color support
-# v1.2   - RGB changes
-# v1.2.1 - minor fixes
+# v1.2.1 - command retry logic
