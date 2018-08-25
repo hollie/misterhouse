@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.750";
+var ia7_ver = "v2.0.751";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -1512,6 +1512,7 @@ var updateItem = function(item,link,time) {
 				JSONStore(json);
 				requestTime = json_store.meta.time;
 				var color = getButtonColor(json.data[item].state);
+//TODO object-state to all buttons!
 				$('button[entity="'+item+'"]').find('.object-state').text(
 					json.data[item].state);
 				$('button[entity="'+item+'"]').removeClass("btn-default");
@@ -2405,10 +2406,10 @@ var graph_rrd = function(start,group,time) {
 	var new_data = 1;
 	var data_timeout = 0;
 	var refresh = 60; //refresh data every 60 seconds by default
-	
+//TODO Changepage, unless rrd-graph visible then stop refresh counter?	
 	if (!$('#rrd-graph').is(':visible')) { //if (URLHash.path == path){
         $('#loader').show();
-        console.log("showing loader "+URLHash.path+" : "+path+" : "+$('#top-graph').length);
+        console.log("showing loader "+URLHash.path+" :  : "+$('#top-graph').length);
     } 
     
 	if (json_store.ia7_config.prefs.rrd_refresh !== undefined) refresh = json_store.ia7_config.prefs.rrd_refresh;
