@@ -1,4 +1,4 @@
-=head1 B<raZberry> v3.0.3
+=head1 B<raZberry> v3.0.4
 
 #test command setup
 #command queue
@@ -114,10 +114,14 @@ Only one razberry controller can be the push source, due to only a single contro
 
 =head2 MH.INI CONFIG PARAMS
 
-raZberry_timeout
-raZberry_poll_seconds
-raZberry_user
-raZberry_password
+raZberry_timeout                HTTP request timeout (default 5)
+raZberry_poll_seconds           Number of seconds to poll the raZberry
+raZberry_user                   Authentication username
+raZberry_password               Authentication password
+raZberry_max_cmd_queue          Maximum number of commands to queue up (default 6)
+raZberry_com_threshold          Number of failed polls before controller marked offline (default 4)
+raZberry_command_timeout        Number of seconds after a command is issued before it is abandoned (default 60)
+raZberry_command_timeout_limit  Maximum number of retries for a command before abandoned
 
 =head2 BUGS
 
@@ -189,15 +193,22 @@ sub new {
     #-------- These are config_parm items
     $self->{config}->{poll_seconds} = 5;
     $self->{config}->{poll_seconds} = $main::config_parms{raZberry_poll_seconds} if ( defined $main::config_parms{raZberry_poll_seconds} );
-    $self->{timeout}                = 2;
+    $self->{timeout}                = 5;
     $self->{timeout}                = $main::config_parms{raZberry_timeout} if ( defined $main::config_parms{raZberry_timeout} );
     $self->{username}               = "";
     $self->{username}               = $main::config_parms{raZberry_user}     if ( defined $main::config_parms{raZberry_user} );
     $self->{password}               = $main::config_parms{raZberry_password} if ( defined $main::config_parms{raZberry_password} );
-    $self->{max_cmd_queue}          = 4;
+    $self->{max_cmd_queue}          = 6;
+    $self->{max_cmd_queue}          = $main::config_parms{raZberry_max_cmd_queue}     if ( defined $main::config_parms{raZberry_max_cmd_queue} );;
+
     $self->{com_threshold}          = 4;
+    $self->{com_threshold}          = $main::config_parms{raZberry_com_threshold}     if ( defined $main::config_parms{raZberry_com_threshold} );;
+
     $self->{command_timeout}        = 60;
+    $self->{command_timeout}        = $main::config_parms{raZberry_command_timeout}     if ( defined $main::config_parms{raZberry_command_timeout} );;
+
     $self->{command_timeout_limit}  = 3;
+    $self->{command_timeout_limit}  = $main::config_parms{raZberry_command_timeout_limit}     if ( defined $main::config_parms{raZberry_command_timeout_limit} );;
 
 
     $self->{push}                   = 0;
@@ -217,7 +228,7 @@ sub new {
     $self->{host}                   = $host;
     $self->{port}                   = 8083;
     $self->{port}                   = $port if ($port);
-    $self->{debug}                  = 5;
+    $self->{debug}                  = 0;
     ( $self->{debug} )              = ( $options =~ /debug=(\d+)/i ) if ( ( defined $options ) and ( $options =~ m/debug=/i ) );
     $self->{debug}                  = $main::Debug{razberry} if ( defined $main::Debug{razberry} );
     $self->{lastupdate}             = undef;
@@ -493,7 +504,6 @@ sub process_check {
             } else {
                 push @process_data, $json_data;   
                 shift @{ $self->{cmd_queue} }; #successfully processed to remove item from the queue
-print "*** 2 Array length is " . scalar @{ $self->{cmd_queue} } . "\n";
                 
             }
         }
@@ -502,20 +512,24 @@ print "*** 2 Array length is " . scalar @{ $self->{cmd_queue} } . "\n";
 #check for any queued data that needs to be processed $self->{command_timeout}
     if ((scalar @{ $self->{cmd_queue} }) and ($self->{cmd_process}->done() )) {
         my ($mode, $get_cmd, $time, $retry) = @ { ${ $self->{cmd_queue} }[0] };
+        #print "****        mode=$mode, get_cmd=$get_cmd\n";
+        #print "***         time=$time, time_diff=" . ($main::Time - $time) ." timeout=" .$self->{command_timeout} . " retry=$retry\n";
         #if there is a retry, then execute at request time + (retry * 5 seconds)
         #discard the command if 60 seconds after the request time
         #if the item is queued then wait until at least a second after the request time
         #discard the item if it's been retried $self->{command_timeout_limit} times
-print "*** mode=$mode, get_cmd=$get_cmd, time=$time, retry=$retry\n";
-print "*** Array length is " . scalar @{ $self->{cmd_queue} } . ": status=" . $self->{cmd_process}->done() . "\n";
         if ($retry > $self->{command_timeout_limit}) {
             main::print_log( "[raZberry:" . $self->{host} . "] ERROR: Abandoning command $get_cmd due to $retry retry attempts" );
             shift @{ $self->{cmd_queue}};        
-        } elsif ($main::Time > ($time + 60)) {
-            main::print_log( "[raZberry:" . $self->{host} . "] ERROR: $get_cmd request older than a minute. Abandoning request" );
+        } elsif (($main::Time - $time) > $self->{command_timeout}) {
+            main::print_log( "[raZberry:" . $self->{host} . "] ERROR: $get_cmd request older than " . $self->{command_timeout} . " seconds. Abandoning request" );
             shift @{ $self->{cmd_queue}}; 
         } elsif (($main::Time > ($time + 1 + ($retry * 5)) and ($self->{cmd_process}->done() ) )) {
-            main::print_log( "[raZberry:" . $self->{host} . "] Command Queue found, processing next item" );        
+            if ($retry == 0) {
+                main::print_log( "[raZberry:" . $self->{host} . "] Command Queue found, processing next item" );
+            } else {
+                main::print_log( "[raZberry:" . $self->{host} . "] Retrying previous command" );
+            }     
             $self->{cmd_process}->set($get_cmd);
             $self->{cmd_process}->start();
             $self->{cmd_process_pid}->{ $self->{cmd_process}->pid() } = $mode;    #capture the type of information requested in order to parse;
@@ -765,6 +779,7 @@ sub _get_JSON_data {
     $method = "ZWaveAPI" if ( $mode eq "controller" );
     &main::print_log("[raZberry:" . $self->{host} . "]: contacting http://$host:$port/$method/$rest{$mode}$params") if ( $self->{debug} );
     my $get_params = "-ua ";
+    $get_params .= "-timeout " . $self->{timeout} . " ";
     $get_params .= "-cookies " . "'" . $cookie . "' " if ($cookie ne "");
     my $get_cmd = "get_url $get_params " . '"http://' . "$host:$port/$method/$rest{$mode}$params" . '"';
 
@@ -781,6 +796,7 @@ sub _get_JSON_data {
             $self->{cmd_process}->start();
             $self->{cmd_process_pid}->{ $self->{cmd_process}->pid() } = $mode;    #capture the type of information requested in order to parse;
             $self->{cmd_process_mode} = $mode; 
+            push @{ $self->{cmd_queue} }, [$mode,$get_cmd,$main::Time,0];           
             main::print_log( "[raZberry:" . $self->{host} . "] Backgrounding Command (" . $self->{cmd_process}->pid() . ") command $mode, $get_cmd" ) if ( $self->{debug} );  
         } else {
             main::print_log( "[raZberry:" . $self->{host} . "] Queing Command command $mode, $get_cmd, time " . $main::Time ) if ( $self->{debug} );  
@@ -1330,7 +1346,10 @@ sub battery_check {
         main::print_log("[raZberry_blind] ERROR, battery option not defined on this object");
         return;
     }
-
+    if (!defined $self->{battery_level}) {
+        &main::print_log( "[raZberry_lock] WARNING Battery level undefined. Try again later" );
+        return undef;
+    }
     $report = 0 unless (defined $report);
     if ($report) {
         &main::print_log( "[raZberry_blind] INFO Battery currently at " . $self->{battery_level} . "%" );
@@ -1480,6 +1499,10 @@ sub battery_check {
     my ($self,$report) = @_;
     #issue the get command, and then check the result about 10 seconds later
     $report = 0 unless (defined $report);
+    if (!defined $self->{battery_level}) {
+        &main::print_log( "[raZberry_lock] WARNING Battery level undefined. Try again later" );
+        return undef;
+    }
     if ($report) {
         &main::print_log( "[raZberry_lock] INFO Battery currently at " . $self->{battery_level} . "%" );
         if ( ( $self->{battery_level} < 30 ) and ( $self->{battery_alert} == 0 ) ) {
@@ -1928,6 +1951,10 @@ sub update_data {
 sub battery_check {
     my ($self, $report) = @_;
     $report = 0 unless (defined $report);
+    if (!defined $self->{battery_level}) {
+        &main::print_log( "[raZberry_lock] WARNING Battery level undefined. Try again later" );
+        return undef;
+    }    
     if ($report) {
         &main::print_log( "[raZberry_battery] INFO Battery currently at " . $self->{battery_level} . "%" );
         if ( ( $self->{battery_level} < 30 ) and ( $self->{battery_alert} == 0 ) ) {

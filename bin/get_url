@@ -19,7 +19,7 @@ use Getopt::Long;
 #print "get_url: @ARGV\n";
 if (
     !&GetOptions( \%parms, 'h', 'help', 'quiet', 'cookies=s', 'cookie_file_in=s', 'cookie_file_out=s', 'post=s', 'header=s', 'userid=s', 'password=s', 'ua',
-        'put=s', 'json', 'response_code' )
+        'put=s', 'timeout=s', 'json', 'response_code' )
     or !@ARGV
     or $parms{h}
     or $parms{help}
@@ -32,7 +32,7 @@ if (
 
 Usage:
 
-    $Pgm_Name [-quiet] [-cookies 'cookiestr'] [-post 'poststr'] [-header header_file] url [local_file]
+    $Pgm_Name [-quiet] [-cookies 'cookiestr'] [-post 'poststr'] [-header header_file] [-timeout X] url [local_file]
 
     -quiet: no output on stdout
 
@@ -59,6 +59,7 @@ Usage:
     
     -response_code: STDOUT only: Prepend output with RESPONSECODE: <response code>\n
 
+    -timeout: XX : number of seconds to wait for command to complete
 
     If local_file is specified, data is stored there.
     If local_file = /dev/null, data is not returned.
@@ -113,6 +114,8 @@ sub use_ua {
       if $config_parms{proxy};
 
     $ua->timeout(30);                 # Time out after 30 seconds
+    $ua->timeout($parms{timeout} ) if $parms{timeout};
+    
     $ua->env_proxy();
     $ua->agent( $config_parms{get_url_ua} ) if $config_parms{get_url_ua};
 
