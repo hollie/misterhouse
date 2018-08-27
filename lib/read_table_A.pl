@@ -1642,7 +1642,30 @@ sub read_table_A {
             $object = "raZberry_voltage(\$" . $controller . ",'$devid')";
         }
     }
-
+    elsif ( $type eq "RAZBERRY_MOTION" ) {
+	#<Razberry Z-Wave(RAZBERRY_MOTION),RAZBERRY_MOTION,Device_id (Full Device ID),Name,Groups,Controller,Options>#
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+            $object = "raZberry_motion(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+            $object = "raZberry_motion(\$" . $controller . ",'$devid')";
+        }
+    }
+    elsif ( $type eq "RAZBERRY_BRIGHTNESS" ) {
+	#<Razberry Z-Wave(RAZBERRY_GENERIC),RAZBERRY_GENERIC,Device_id (Full Device ID),Name,Groups,Controller,Options>#
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+            $object = "raZberry_brightness(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+            $object = "raZberry_brightness(\$" . $controller . ",'$devid')";
+        }
+    }    
     #-------------- End of RaZberry Objects -----------------
 
     # -[ MySensors ]------------------------------------------------------
