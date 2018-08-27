@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.690";
+var ia7_ver = "v2.0.751";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -1058,7 +1058,7 @@ var loadList = function() {
 	var button_text = '';
 	var button_html = '';
 	var entity_arr = [];
-	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status,link";
+	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status,link,rgb";
 	$.ajax({
 		type: "GET",
 		url: "/json/"+HashtoJSONArgs(URLHash),
@@ -1171,6 +1171,13 @@ var loadList = function() {
 					if (json_store.ia7_config.prefs.always_double_buttons == "yes") {
 						if (name.length < 30) dbl_btn = "<br>"; 
 					}
+					var btn_rgb = "";
+					if (json_store.objects[entity].rgb !== undefined) {
+		//TODO fix
+					    btn_rgb = '<span class="pull-right">';
+					    btn_rgb += '<i class="fa fa-lg fa-circle fa-rgb-border object-color" style="color:rgb('+json_store.objects[entity].rgb+');"></i></span>';
+					    
+					}
 					// direct control item, differentiate the button
 					var btn_direct = "";
 					if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
@@ -1180,7 +1187,7 @@ var loadList = function() {
                 	} 
 					button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' ";
 					button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover "+btn_direct+" btn-state-cmd navbutton-padding'>";
-					button_html += name+dbl_btn+"<span class='pull-right'>"+json_store.objects[entity].state+"</span></button></div>";
+					button_html += name+btn_rgb+dbl_btn+"<span class='pull-right object-state'>"+json_store.objects[entity].state+"</span></button></div>";
 					entity_arr.push(button_html);
 				}
 			}//entity each loop
@@ -1418,7 +1425,7 @@ var sortArrayByArray = function (listArray, sortArray){
 //Used to dynamically update the state of objects
 var updateList = function(path) {
 	var URLHash = URLToHash();
-	URLHash.fields = "state,state_log,schedule,logger_status,type";
+	URLHash.fields = "state,state_log,schedule,logger_status,type,rgb";
 	URLHash.long_poll = 'true';
 	URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -1447,8 +1454,12 @@ var updateList = function(path) {
 					} else {
 					    color = getButtonColor(json.data[entity].state);
 					}
-					$('button[entity="'+entity+'"]').find('.pull-right').text(
-						json.data[entity].state);
+					var btn_rgb = "";
+					if (json.data[entity].rgb !== undefined) {
+						$('button[entity="'+entity+'"]').find('.object-color').css("color",'rgb('+json.data[entity].rgb+')');
+						console.log("changing color to "+json.data[entity].rgb);
+					}
+					$('button[entity="'+entity+'"]').find('.object-state').text(json.data[entity].state);
 					$('button[entity="'+entity+'"]').removeClass("btn-default");
 					$('button[entity="'+entity+'"]').removeClass("btn-success");
 					$('button[entity="'+entity+'"]').removeClass("btn-warning");
@@ -1489,7 +1500,7 @@ var updateItem = function(item,link,time) {
 		time = "";
 	}
 	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
-	var arg_str = "fields=state,states,label,state_log,schedule,logger_status&long_poll=true&items="+item+"&time="+time;
+	var arg_str = "fields=state,states,label,state_log,schedule,logger_status,rgb&long_poll=true&items="+item+"&time="+time;
 	$.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
@@ -1501,7 +1512,8 @@ var updateItem = function(item,link,time) {
 				JSONStore(json);
 				requestTime = json_store.meta.time;
 				var color = getButtonColor(json.data[item].state);
-				$('button[entity="'+item+'"]').find('.pull-right').text(
+//TODO object-state to all buttons!
+				$('button[entity="'+item+'"]').find('.object-state').text(
 					json.data[item].state);
 				$('button[entity="'+item+'"]').removeClass("btn-default");
 				$('button[entity="'+item+'"]').removeClass("btn-success");
@@ -1567,7 +1579,7 @@ var updateStaticPage = function(link,time) {
 					if ($(this).attr('entity') != '' && json.data[$(this).attr('entity')] != undefined ) { //need an entity item for this to work.
 						entity = $(this).attr('entity');
 						var color = getButtonColor(json.data[entity].state);
-						$('button[entity="'+entity+'"]').find('.pull-right').text(json.data[entity].state);
+						$('button[entity="'+entity+'"]').find('.object-state').text(json.data[entity].state);
 						$('button[entity="'+entity+'"]').removeClass("btn-default");
 						$('button[entity="'+entity+'"]').removeClass("btn-success");
 						$('button[entity="'+entity+'"]').removeClass("btn-warning");
@@ -1744,7 +1756,7 @@ var loadCollection = function(collection_keys) {
 				if (name.length < 30) dbl_btn = "<br>"; 
 				var button_html = "<div style='vertical-align:middle'><button entity='"+item+"' ";
 				button_html += "class='btn  btn-"+color+" btn-lg btn-block btn-list btn-popover "+ btn_direct +" btn-state-cmd navbutton-padding'>";
-				button_html += name+dbl_btn+"<span class='pull-right'>"+json_store.objects[item].state+"</span></button></div>";
+				button_html += name+dbl_btn+"<span class='pull-right object-state'>"+json_store.objects[item].state+"</span></button></div>";
 			    button_html = "<div class='col-sm-4' colid='"+i+"'>" + button_html + "</div>";
 				entity_arr.push(button_html);
 				items += item+",";		
@@ -2394,9 +2406,10 @@ var graph_rrd = function(start,group,time) {
 	var new_data = 1;
 	var data_timeout = 0;
 	var refresh = 60; //refresh data every 60 seconds by default
-	
-	if (!$('#rrd-graph').is(':visible')) {
+//TODO Changepage, unless rrd-graph visible then stop refresh counter?	
+	if (!$('#rrd-graph').is(':visible')) { //if (URLHash.path == path){
         $('#loader').show();
+        console.log("showing loader "+URLHash.path+" :  : "+$('#top-graph').length);
     } 
     
 	if (json_store.ia7_config.prefs.rrd_refresh !== undefined) refresh = json_store.ia7_config.prefs.rrd_refresh;
@@ -3569,7 +3582,11 @@ var create_state_modal = function(entity) {
 
 		
 		var modal_state = json_store.objects[entity].state;
-		$('#control').find('.object-title').html(name + " - <span class='object-state'>" + json_store.objects[entity].state + "</span>");
+		var title = name + " - <span class='modal-object-state'>" + json_store.objects[entity].state + "</span>";
+        if (json_store.objects[entity].rgb !== undefined) {
+            title += '  <i class="fa fa-lg fa-circle fa-rgb-border object-color" style="color:rgb('+json_store.objects[entity].rgb+');"></i></span>';
+        }
+		$('#control').find('.object-title').html(title);
 		$('#control').find('.control-dialog').attr("entity", entity);
 		var modal_states = json_store.objects[entity].states;
 		// HP need to have at least 2 states to be a controllable object...
@@ -3639,8 +3656,7 @@ var create_state_modal = function(entity) {
                     }
                    var slider_data = sliderDetails(modal_states);		                
                    $('#control').find('.states').append("<div id='slider' class='brightness-slider'></div>");					
-                   var val = $(".object-state").text().replace(/\%/,'');
-              
+                   var val = $(".modal-object-state").text().replace(/\%/,'');              
                    var position = slider_data.values.indexOf(val);
                    if (val == "on") position = slider_data.max;
                    if (val == "off") position = slider_data.min;
@@ -3659,7 +3675,7 @@ var create_state_modal = function(entity) {
                        } else {
                            if (slider_data.pct) sliderstate += "%";
                        }
-                       $('#control').find('.object-state').text(sliderstate);
+                       $('#control').find('.modal-object-state').text(sliderstate);
 
                    });
                    $( "#slider" ).on( "slidechange", function(event, ui) {
@@ -3678,7 +3694,49 @@ var create_state_modal = function(entity) {
                             $(".get-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });                          
                        });
                    });
-
+                if (json_store.objects[entity].rgb !== undefined) {
+                        console.log("Insert RGB Slider Here");
+                        $('#control').find('.states').append("<br><div id='sliderR' class='rgb-slider brightness-slider red-handle'></div>");					
+                        $('#control').find('.states').append("<br><div id='sliderG' class='rgb-slider brightness-slider green-handle'></div>");					
+                        $('#control').find('.states').append("<br><div id='sliderB' class='rgb-slider brightness-slider blue-handle'></div>");
+                        
+                        $('#sliderR' ).slider({
+                            min: 0,
+                            max: 255,
+                            value: json_store.objects[entity].rgb.split(',')[0]
+                        });	
+                        $('#sliderG' ).slider({
+                            min: 0,
+                            max: 255,
+                            value: json_store.objects[entity].rgb.split(',')[1]
+                        });	
+                        $('#sliderB' ).slider({
+                            min: 0,
+                            max: 255,
+                            value: json_store.objects[entity].rgb.split(',')[2]
+                        });	 
+                        $( ".rgb-slider" ).on( "slide", function(event, ui) {
+                            var sliderstate;
+                            if ($(this).hasClass("red-handle")) {
+                                sliderstate = ui.value+","+$('#sliderG').slider("value")+","+$('#sliderB').slider("value");
+                            } else if ($(this).hasClass("green-handle")) {
+                                sliderstate = $('#sliderR').slider("value")+","+ui.value+","+$('#sliderB').slider("value");
+                            } else if ($(this).hasClass("blue-handle")) {
+                                sliderstate = $('#sliderR').slider("value")+","+$('#sliderG').slider("value")+","+ui.value;
+                            }
+                            $('.object-color').css("color","rgb("+sliderstate+")");
+                        });  
+                        $( ".rgb-slider" ).on( "slidechange", function(event, ui) {
+                            var sliderstate = $('#sliderR').slider("value")+","+$('#sliderG').slider("value")+","+$('#sliderB').slider("value");
+                            var rgb_url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+sliderstate+'&select_setby=rgb';
+                            console.log("rgb_url="+rgb_url);
+                            $.get(rgb_url).fail(function() {
+                                 $(".modal-header").append($("<div class='get-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;Could not send command to Misterhouse</p></div>"));
+                                 $(".get-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });                          
+                            });
+                        });
+                                                                                             				
+                    }
                  }
         if (slider_active) {
 		    advanced_html = "<br>"+advanced_html; //this is clunky but showing advanced states is kinda ugly anyways

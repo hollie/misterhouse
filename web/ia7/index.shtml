@@ -233,7 +233,6 @@
 	.sched-dropdown-menu {
 		margin-left: 14px !important;	
 	}
-	
 	.brightness-slider {
 	    margin-left: 16px;
 	    margin-right: 16px;
@@ -249,30 +248,37 @@
         width: 32px;
         margin-left: -16px
     }  
+    .red-handle .ui-slider-handle {
+        background: red;
+    }   
+    .green-handle .ui-slider-handle {
+        background: green;
+    } 
+    .blue-handle .ui-slider-handle {
+        background: blue;
+    }          
 	.popover {
 	    min-width: 200px;
-	}
-	
+	}	
 	.mh-page-link {
 	    padding-left: 30px;
 	}
-	
 	.mh-wi-text {
         font-size: 15px;
         margin-top: 13px;
     }
-    
     .mh-wi-icon {
         margin-top: 2px;
     }
-    
     #option_collection {
         margin-top: 5px;
     }
-    
     .whatsnew-panel {
         margin-right: 15px;
     }
+   .fa-rgb-border {
+        text-shadow: -1px 0 #000, 0 1px #000, 1px 0 #000, 0 -1px #000;
+   }
 
     #loader {
       position: absolute;
@@ -354,7 +360,7 @@
                 </button>
                 
             <button id="mhstatus" entity="ia7_status" type="button" class="btn btn-info toolbar-btn pull-right" style="display:none">
-                <span class='pull-right'>checking</span>
+                <span class='pull-right object-state'>checking</span>
                 </button>		
             <span id="wtemp" class='pull-right mh-wi text-muted mh-wi-text'></span>
             <i id="wicon" class='pull-right mh-wi text-muted mh-wi-icon wi'></i>

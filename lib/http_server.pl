@@ -691,6 +691,11 @@ sub http_process_request {
 
         #       print "Error, no SET argument: $header\n" unless $get_arg;
 
+        #allow setby to be passed in URL. Objects can then take a setby argument if there is an alternative action.
+        #used for RGB. Downside is that the true setby (web) would be lost.
+        my $get_arg_setby = "";
+        ($get_arg_setby) = $get_arg =~ /select_setby=(\S+)/;
+        $get_arg =~ s/select_setby=(\S+)// if ($get_arg_setby);
         # Change select_item=$item&select_state=abc to $item=abc
         $get_arg =~ s/select_item=(\S+)\&&select_state=/$1=/;
 
@@ -765,10 +770,10 @@ sub http_process_request {
 
                     # Can be a scalar or a object
                     $state =~ tr/\"/\'/;    # So we can use "" to quote it
-
+                    $get_arg_setby = "web [$client_ip_address]" unless $get_arg_setby;
                     #                   my $eval_cmd = qq[($item and ref($item) and UNIVERSAL::isa($item, 'Generic_Item')) ?
                     my $eval_cmd = qq[($item and ref($item) ne '' and ref($item) ne 'SCALAR' and $item->can('set')) ?
-                                      ($item->set("$state", "web [$client_ip_address]")) : ($item = "$state")];
+                                      ($item->set("$state", "$get_arg_setby")) : ($item = "$state")];
                     print "SET eval: $eval_cmd\n" if $main::Debug{http};
                     eval $eval_cmd;
                     print "SET eval error.  cmd=$eval_cmd  error=$@\n" if $@;
