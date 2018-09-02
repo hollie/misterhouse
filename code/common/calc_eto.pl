@@ -770,7 +770,7 @@ sub writeResults {
         #HP TODO This will determine if a 2nd, 3rd or 4th time is required.
         $times = 1 if ( ( $aET / $minRunmm ) > 1 );    #if the minium threshold is met, then run at least once.
         $times = int( max( min( $aET / $maxRunmm, 4 ), $times ) );    # int(.999999) = 0
-        print "[calc_eto] DB: times=$times aET=$aET minRunm=$minRunmm maxRunm=$maxRunmm\n";    #if ($debug);
+        print "[calc_eto] DB: times=$times aET=$aET minRunm=$minRunmm maxRunm=$maxRunmm\n" if ($debug);
         print "E:   aET[$x] = $aET (" . $aET / $maxRunmm . ") // mm/Day\n" if ($debug);
         print "E:   times = $times (max "
           . max( min( $aET / $maxRunmm, 4 ), $times ) . "/min "
@@ -853,7 +853,7 @@ sub writeResults {
         @availTimes = ($sun->{set} - sum(@runTime) / 60, $sun->{set} + 60, $sun->{set} + 120, $sun->{set} - (sum(@runTime) / 60) - 60 );         
     }
 
-    print "[times=$times, sun->{rise}=" . $sun->{rise} . " sum=" . sum(@runTime) / 60 . "]\n";    # if ($debug);
+    print "[times=$times, sun->{rise}=" . $sun->{rise} . " sum=" . sum(@runTime) / 60 . "]\n" if ($debug);
 
     for ( my $i = 0; $i < $times; $i++ ) {
         $startTime[$i] = int( $availTimes[$i] );
