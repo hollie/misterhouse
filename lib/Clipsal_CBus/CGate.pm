@@ -392,12 +392,18 @@ sub monitor_status {
         $self->debug( "Monitor is active.", $notice );
     }
     else {
-        $self->debug( "Monitor is NOT running", $notice );
+        $self->debug( "Monitor is NOT running", $warn );
     }
 }
 
 sub monitor_check {
     my ($self) = @_;
+    
+    #Check to see if the monitor socket is still available, and attempt
+    #to restart it if it's not
+    if (!$Clipsal_CBus::Monitor->active() ) {
+    	$self->monitor_start
+    }
 
     # Monitor Voice Command / Menu processing
     if ( my $data = $::CBus_Monitor_v->said() ) {
@@ -589,7 +595,7 @@ sub talker_start {
             $self->debug( "Talker started", $notice );
         }
         else {
-            $self->debug( "Talker failed to start", $notice );
+            $self->debug( "Talker failed to start", $warn );
         }
     }
 }
@@ -629,6 +635,12 @@ sub talker_status {
 sub talker_check {
     my ($self) = @_;
 
+    #Check to see if the talker socket is still available, and attempt
+    #to restart it if it's not
+    if (!$Clipsal_CBus::Talker->active() ) {
+    	$self->talker_start
+    }
+    
     # Talker Voice Command / Menu processing
     if ( my $data = $::CBus_Talker_v->said() ) {
         if ( $data eq 'Status' ) {
