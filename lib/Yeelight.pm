@@ -1,12 +1,60 @@
+=head1 B<yeelight> v1.2.6
+
+=head2 Initial Setup
+# To set up, first pair with mobile app -- the Yeelight needs to be set up initially with the app
+# to get it's wifi information. 
+# if problems with ios, use the android app if you can.
+# MAKE SURE TO SELECT A 2.4Ghz WIRELESS NETWORK
+# TURN ON LOCAL CONTROL
+
+=head2 Firmware supported
+# led strip (stripe)       : 44
+
+=head2 Yeelight Objects
+
+$yeelight         = new Yeelight('10.10.1.1');
+$yeelight_comm    = new Yeelight_Comm($yeelight);
+$yeelight_ct      = new Yeelight_Colortemp($yeelight);
+$yeelight_rgb     = new Yeelight_RGB($yeelight);
+
+ yeelight_rgb the set value is 'red, green, blue'
+ ie $yeelight_rgb->set('255,10,32');
+
+
+
+=head2 MH.INI CONFIG PARAMS
+
+yeelight_timeout                HTTP request timeout (default 5)
+yeelight_poll_seconds           Number of seconds to poll the raZberry
+yeelight_user                   Authentication username
+yeelight_password               Authentication password
+yeelight_max_cmd_queue          Maximum number of commands to queue up (default 6)
+yeelight_com_threshold          Number of failed polls before controller marked offline (default 4)
+yeelight_command_timeout        Number of seconds after a command is issued before it is abandoned (default 60)
+yeelight_command_timeout_limit  Maximum number of retries for a command before abandoned
+
+
+=head2 Notes
+
+The Yeelight needs to be specified as an IP address, since the module uses SSDP scan to determine
+what features are supported
+
+=head2 Issues
+- retry time delay, should be based off process_item start not the original request time.
+
+=head2 TODO
+- test queuing fast commands
+- check query data
+- test socket reconnection
+- test multi from state on
+- test multi from state off
+- comm tracker went offline when commands dropped
+- 09/02/18 11:54:33 AM [Yeelight:1] WARNING. Queue has grown past 8. Command get_tcp -rn -quiet 192.168.0.173:55443 '{ "id":1, "method":"set_bright", "params":[90,"smooth",500] }' discarded.
+- 09/02/18 11:54:33 AM [Yeelight:1] Communication Tracking object found. Updating from online to offline...
+
+=cut
+
 package Yeelight;
-
-# v1.2.3
-
-#TODO
-#- test queuing fast commands
-#- check query data
-#- test socket reconnection
-#- retry time delay, should be based off process_item start not the original request time.
 
 use strict;
 use warnings;
@@ -19,37 +67,6 @@ use Socket;
 use IO::Select;
 use IO::Socket::INET;
 
-# To set up, first pair with mobile app -- the Yeelight needs to be set up initially with the app
-# to get it's wifi information. 
-# if problems with ios, use the android app if you can.
-# MAKE SURE TO SELECT A 2.4Ghz WIRELESS NETWORK
-# TURN ON LOCAL CONTROL
-
-# Firmware supported
-# led strip (stripe)       : 44
-
-# Yeelight Objects
-#
-# $yeelight         = new Yeelight('10.10.1.1');
-# $yeelight_comm    = new Yeelight_Comm($yeelight);
-# $yeelight_ct      = new Yeelight_Colortemp($yeelight);
-# $yeelight_rgb     = new Yeelight_RGB($yeelight);
-
-# yeelight_rgb the set value is 'red, green, blue'
-# ie $yeelight_rgb->set('255,10,32');
-
-
-# OPTIONS
-
-
-# Notes
-#
-# The Yeelight needs to be specified as an IP address, since the module uses SSDP scan to determine
-# what features are supported
-
-# Issues
-
-#
 
 @Yeelight::ISA = ('Generic_Item');
 
@@ -91,7 +108,7 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.2.3";
+    $self->{module_version}         = "v1.2.6";
     $self->{ssdp_timeout}           = 1000;
     $self->{socket_connected}       = 0;
     $self->{host}                   = $location;
@@ -106,7 +123,7 @@ sub new {
     $options = "" unless ( defined $options );
     $options = $::config_parms{ "yeelight_" . $self->{name} . "_options" } if ( $::config_parms{ "yeelight_" . $self->{name} . "_options" } );
 
-    $self->{debug} = 0;
+    $self->{debug} = 5;
     ( $self->{debug} ) = ( $options =~ /debug\=(\d+)/i ) if ( $options =~ m/debug\=/i );
     $self->{debug} = 0 if ( $self->{debug} < 0 );
 
@@ -115,7 +132,7 @@ sub new {
 
     $self->{poll_data_timestamp}     = 0;
     $self->{max_poll_queue}          = 3;
-    $self->{max_cmd_queue}           = 5;
+    $self->{max_cmd_queue}           = 8;
     $self->{cmd_process_retry_limit} = 6;
     $self->{command_timeout}         = 60;
 
@@ -422,16 +439,16 @@ sub _push_TCP_data {
             push @{ $self->{cmd_queue} }, [$cmd,$main::Time,0];           
         }
         else {
-            main::print_log( "[Yeelight:" . $self->{name} . "] WARNING. Queue has grown past " . $self->{max_cmd_queue} . ". Command discarded." );
-            if ( defined $self->{child_object}->{comm} ) {
-                if ( $self->{status} ne "offline" ) {
-                    $self->{status} = "offline";
-                    if ($self->{child_object}->{comm}->state() ne "offline" ) {
-                        main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ( $self->{loglevel} );
-                        $self->{child_object}->{comm}->set( "offline", 'poll' );
-                    }
-                }
-            }
+            main::print_log( "[Yeelight:" . $self->{name} . "] WARNING. Queue has grown past " . $self->{max_cmd_queue} . ". Command $cmd discarded." );
+#            if ( defined $self->{child_object}->{comm} ) {
+#                if ( $self->{status} ne "offline" ) {
+#                    $self->{status} = "offline";
+#                    if ($self->{child_object}->{comm}->state() ne "offline" ) {
+#                        main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ( $self->{loglevel} );
+#                        $self->{child_object}->{comm}->set( "offline", 'poll' );
+#                    }
+#                }
+#            }
         }
     }
 }
@@ -673,7 +690,10 @@ sub print_command_queue {
     $name = "empty" if ($commands == 0);
     main::print_log( "Yeelight:" . $self->{name} . "] Current Command Queue: $name" );
     for my $i ( 1 .. $commands ) {
-        main::print_log( "Yeelight:" . $self->{name} . "] Command $i: " . @{ $self->{cmd_queue} }[$i - 1] );
+        my ($cmd, $time, $retry) = @ { ${ $self->{cmd_queue} }[$i - 1] };
+        main::print_log( "Yeelight:" . $self->{name} . "] Command $i cmd: " . $cmd );
+        main::print_log( "Yeelight:" . $self->{name} . "] Command $i time: " . $time );
+        main::print_log( "Yeelight:" . $self->{name} . "] Command $i retry: " . $retry );
     }
     main::print_log( "Yeelight:" . $self->{name} . "] ------------------------------------------------------------------" );
     
@@ -721,19 +741,21 @@ sub set {
         main::print_log( "[Yeelight:" . $self->{name} . "] DB set_mode, in master set, p_state=$p_state, p_setby=$p_setby" ) if ( $self->{debug} );
         my $mode = lc $p_state;
         if ( $mode =~ /^(\d+)/ ) {
+            main::print_log( "[Yeelight:" . $self->{name} . "] DB power = $self->{data}->{info}->{power} \$1 = $1 " ) if ( $self->{debug} );
+        
             if (($self->{data}->{info}->{power} eq "on") and ($1 == 0)) {
                 $self->set("off"); 
             } elsif (($self->{data}->{info}->{power} eq "off") and ($1 > 0)) {
                 $self->set("on"); 
-                main::print_log( "Yeelight:" . $self->{name} . "] Brightness change, delayed state change to $mode" ) if ( $self->{debug} );
-                my $object_name = $self->get_object_name;
-                my $cmd_string = $object_name . '->set("' . $mode .'");';
-                main::eval_with_timer $cmd_string, $self->{brightness_state_delay};
-            } else {
+                #main::print_log( "Yeelight:" . $self->{name} . "] Brightness change, delayed state change to $mode" ) if ( $self->{debug} );
+                #my $object_name = $self->get_object_name;
+                #my $cmd_string = $object_name . '->set("' . $mode .'");';
+                #main::eval_with_timer $cmd_string, $self->{brightness_state_delay};
+            } #else {
                my @params = @{$param_array{"bright"}};
                unshift @params, $1;
                $self->_push_TCP_data( 'brightness', @params );
-            }  
+            #}  
         }
         elsif ( $mode =~ /^([-+]\d+)/ ) {
             my $value = $self->{info}->{bright} + $1;
@@ -741,18 +763,18 @@ sub set {
                 $self->set("off");
             } elsif (($self->{data}->{info}->{power} eq "off") and ($value > 0)) {
                 $self->set("on");  
-                main::print_log( "Yeelight:" . $self->{name} . "] Brightness change, delayed state change to $mode" ) if ( $self->{debug} );
-                my $object_name = $self->get_object_name;
-                my $cmd_string = $object_name . '->set("' . $mode .'");';
-                main::eval_with_timer $cmd_string, $self->{brightness_state_delay};
-            } else {
+                #main::print_log( "Yeelight:" . $self->{name} . "] Brightness change, delayed state change to $mode" ) if ( $self->{debug} );
+                #my $object_name = $self->get_object_name;
+                #my $cmd_string = $object_name . '->set("' . $mode .'");';
+                #main::eval_with_timer $cmd_string, $self->{brightness_state_delay};
+            } #else {
 
                 my @params = @{$param_array{$mode}};
                 $value = 0 if ($value < 0);
                 $value = 100 if ($value > 100);
                 unshift @params, $value;
                 $self->_push_TCP_data( 'brightness', @params );
-            }
+            #}
         }
         elsif ( ( $mode eq "on" ) or ( $mode eq "off" ) ) {
             $self->_push_TCP_data($mode, @{$param_array{$mode}});
