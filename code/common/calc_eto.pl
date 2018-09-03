@@ -950,12 +950,13 @@ sub detailSchedule {
     my ($stime) = @_;
     my ($times, $lengths) = $stime =~ /\[\[(.*)\],\[(.*)\]\]/;
     my $msg = "";
-    
+    my $total_time = 0;
     foreach my $time (split /,/, $times) {
         next if ($time == -1); 
         my $station_id = 1;
         $time = $time * 60; #add in seconds
         foreach my $station (split /,/, $lengths) {
+            $total_time += $station;
             my $run_hour = 0;
             if ($station > 3600) {
                 $run_hour = int($station / 3600);
@@ -966,7 +967,17 @@ sub detailSchedule {
             $msg .= "[calc_eto] : " . formatTime($time) . " : Station:" .sprintf("%2s",$station_id) . "   Run Time:" .sprintf("%02d:%02d:%02d",$run_hour,$run_min,$run_sec) . "\n" unless ($station == 0);
             $station_id++;
             $time += $run_sec + ($run_min * 60) + ($run_hour * 3600);
-        }     
+        }  
+        if ($total_time > 0) {
+            my $t_hours = 0;
+            if ($total_time > 3600) {
+                $t_hours = int($total_time / 3600);
+                $total_time = int($total_time % 3600);
+            }
+            my $t_min = int($total_time / 60);
+            my $t_sec = int($total_time % 60);
+            $msg .= "[calc_eto] : Total Run Time: " .  .sprintf("%02d:%02d:%02d",$t_hours,$t_min,$t_sec) . "\n"; 
+        }  
     }
     return ($msg);
     
@@ -1213,7 +1224,12 @@ sub main_calc_eto {
 
     }
 
-    $msg = "[calc_eto] RESULTS sunrise & sunset in minutes from midnight local time: " . $sun->{rise} . ' ' . $sun->{set};
+    my $sr_hour = int($sun->{rise} / 60);
+    my $sr_min = int($sun->{rise} % 60);
+    my $ss_hour = int($sun->{set} / 60);
+    my $ss_min = int($sun->{set} % 60);
+    
+    $msg = "[calc_eto] RESULTS sunrise & sunset from midnight local time: $sr_hour:$sr_min (" . $sun->{rise} . ") $ss_hour:$ss_min (" . $sun->{set} . ")";
     print_log $msg;
     $msg_string .= $msg . "\n";
 
