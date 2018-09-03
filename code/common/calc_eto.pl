@@ -976,7 +976,7 @@ sub detailSchedule {
             }
             my $t_min = int($total_time / 60);
             my $t_sec = int($total_time % 60);
-            $msg .= "[calc_eto] : Total Run Time: " .  .sprintf("%02d:%02d:%02d",$t_hours,$t_min,$t_sec) . "\n"; 
+            $msg .= "[calc_eto] : Total Run Time: " . sprintf("%02d:%02d:%02d",$t_hours,$t_min,$t_sec) . "\n"; 
         }  
     }
     return ($msg);
