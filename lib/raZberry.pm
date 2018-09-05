@@ -1996,7 +1996,7 @@ sub new {
     #ZWayVDev_zway_x-0-50-5 - Current Sensor A
     #push( @{ $$self{states} }, 'on', 'off'); I'm not sure we should set the states here, since it's not a controlable item?
 
-    unless ( $devid =~ m/^\d+$/ ) {
+    if ( $devid =~ m/^\d+$/ ) {
         $$self{master_object} = $object;
         $$self{type}          = "Multilevel Voltage";
         $$self{devid}         = $devid;
