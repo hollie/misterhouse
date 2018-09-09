@@ -1251,11 +1251,12 @@ sub main_calc_eto {
     #$msg = "[calc_eto] RESULTS Calculated Schedule: $rtime";
     #print_log $msg;
     #$msg_string .= $msg . "\n";
-    my ($rtime2) = detailSchedule($rtime);
+    my $rtime2 = "";
+    ($rtime2) = detailSchedule($rtime);
     foreach my $detail (split /\n/,$rtime2) {
         print_log $detail;
     }
-    $msg_string .= $msg . "\n" . $rtime2;
+    $msg_string .= $rtime2;
     if ( defined $config_parms{eto_email} ) {
         print_log "[calc_eto] Emailing results";
         net_mail_send( to => $config_parms{eto_email}, subject => "EvapoTranspiration Results for $Time_Now", text => $msg_string );
