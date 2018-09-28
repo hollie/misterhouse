@@ -1642,7 +1642,30 @@ sub read_table_A {
             $object = "raZberry_voltage(\$" . $controller . ",'$devid')";
         }
     }
-
+    elsif ( $type eq "RAZBERRY_MOTION" ) {
+	#<Razberry Z-Wave(RAZBERRY_MOTION),RAZBERRY_MOTION,Device_id (Full Device ID),Name,Groups,Controller,Options>#
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+            $object = "raZberry_motion(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+            $object = "raZberry_motion(\$" . $controller . ",'$devid')";
+        }
+    }
+    elsif ( $type eq "RAZBERRY_BRIGHTNESS" ) {
+	#<Razberry Z-Wave(RAZBERRY_GENERIC),RAZBERRY_GENERIC,Device_id (Full Device ID),Name,Groups,Controller,Options>#
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+            $object = "raZberry_brightness(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+            $object = "raZberry_brightness(\$" . $controller . ",'$devid')";
+        }
+    }    
     #-------------- End of RaZberry Objects -----------------
 
     # -[ MySensors ]------------------------------------------------------
@@ -1817,6 +1840,29 @@ sub read_table_A {
         $object = '';
     }
     #-------------- End Alexa Objects ----------------
+
+    #-------------- AoGSmartHome Objects -----------------
+    elsif ( $type eq "AOGSMARTHOME_ITEMS" ) {
+	#<Actions on Google (AOGSMARTHOME_ITEMS),AOGSMARTHOME_ITEMS,Name>#
+        require 'AoGSmartHome_Items.pm';
+        ($name) = @item_info;
+        $object = "AoGSmartHome_Items()";
+    }
+    elsif ( $type eq "AOGSMARTHOME_ITEM" ) {
+	#<Actions on Google (AOGSMARTHOME_ITEM),AOGSMARTHOME_ITEM,Parent,Realname,Name,Sub,On,Off,Statesub,Properties>#
+        my ($parent, $realname, $name, $sub, $on, $off, $statesub, @other) = @item_info;
+        $sub =~ s%^&%\\&%; # "&my_subroutine" -> "\&my_subroutine"
+        $sub =~ s%^\\\\&%\\&%; # "\\&my_subroutine" -> "\&my_subroutine"
+        $sub = "'$sub'" if $sub !~ /&/;
+        $realname = "\$$realname" if $realname;
+        my $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if (!$packages{AoGSmartHome_Items}++ ) { # first time for this object type?
+            $code .= "use AoGSmartHome_Items;\n";
+        }
+        $code .= sprintf "\$%-35s -> add('$realname','$name',$sub,'$on','$off','$statesub',$other);\n", $parent;
+        $object = '';
+    }
+    #-------------- End AoGSmartHome Objects ----------------
 
     elsif ( $type =~ /PLCBUS_.*/ ) {
 	#<,PLCBUS_Scene,Address,Name,Groups,Default|Scenes>#

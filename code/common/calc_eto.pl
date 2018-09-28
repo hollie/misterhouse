@@ -1,8 +1,11 @@
 # Category = Irrigation
 
-# June 2016
-# v1.2
-# - Added in minimum time calculation
+# June 2018
+# v1.3
+# - added check if wudata returns null data
+# - Email has clearer information on start times and run length.
+# - if run after sunrise, then use the sunset times and max 2 cycles
+# - write predicted daily rain to the RRD.
 
 #@ This module allows MisterHouse to calculate daily EvapoTranspiration based on a
 #@ Data feed from Weatherunderground (WU). To use it you need to sign up for a weatherundeground key
@@ -10,7 +13,7 @@
 #@ A location is also required. Best is a lat/long pair.
 #@ By default wuData is written to $Data_Dir/wuData and the eto logs are written to $Data_Dir/eto
 #@
-#@ The ET programs can be automatically uploaded to an OpenSprinkler. (need v1.1 of the lib)
+#@ The ET programs can be automatically uploaded to an OpenSprinkler. (need >= v1.1 of the lib)
 
 ###########################################################################################################
 ##                                   Credits                                                             ##
@@ -49,8 +52,6 @@
 
 #TODO
 # - the safefloat and safeint subs are from python. don't know if they're needed
-# - if run after sunrise, then use the sunset times and max 2 cycles (line 677)
-# - populate yesterday's rain value in the RRD
 
 #VERIFY
 # - line  430 sub getConditionsData chkcond array isn't checked yet
@@ -58,6 +59,28 @@
 # - line  360 test timezone subroutine, confirm that it actually works
 # - line  610 read in multiple water times for overall aggregate
 # - line  711 when multiple times are scheduled, only one entry was written to the logs.
+
+#WU Data elements mapping (useful if we want to look to another provider)
+#$hist = $wuData->{history}->{dailysummary}[0];
+#$wuData->{history}->{observations}
+#$wuData->{history}->{observations}->[$period]->{date}->{hour}
+#$wuData->{history}->{observations}->[$period]->{conds}
+
+#$tzone = $data->{current_observation}->{local_tz_long};
+#$mm  = $data->[$day]->{qpf_allday}->{mm};
+#$cor = $data->[$day]->{pop};
+#$rHour = safe_int( $data->{'sunrise'}->{'hour'}, 6 );
+#$rMin  = safe_int( $data->{'sunrise'}->{'minute'} );
+#$sHour = safe_int( $data->{'sunset'}->{'hour'}, 18 );
+#$sMin  = safe_int( $data->{'sunset'}->{'minute'} );
+#$conditions->{ $current->{weather} }
+#$current->{wind_kph} ), 10 );
+#$cTemp = safe_float( $current->{temp_c}, 20 );
+#$cmm      = safe_float( $current->{precip_today_metric} );                            
+#$predicted->{avewind}->{kph}   
+#$pLowTemp = safe_float( $predicted->{low}->{celsius} );                               
+#$pCoR     = safe_float( $predicted->{pop} );                                    
+#$pmm      = safe_float( $predicted->{qpf_allday}->{mm} );   
 
 use eto;
 use LWP::UserAgent;
@@ -72,6 +95,7 @@ use Time::Local;
 use Date::Calc qw(Day_of_Year);
 my $debug = 0;
 my $msg_string;
+my $rrd = "";
 
 $p_wu_forecast = new Process_Item
   qq[get_url --quiet "http://api.wunderground.com/api/$config_parms{wu_key}/astronomy/yesterday/conditions/forecast/q/$config_parms{eto_location}.json" "$config_parms{data_dir}/wuData/wu_data.json"];
@@ -96,7 +120,7 @@ my $eto_ready;
 
 if ( $Startup or $Reload ) {
     $eto_ready = 1;
-    print_log "[calc_eto] v1.2 Startup. Checking Configuration...";
+    print_log "[calc_eto] v1.3.1 Startup. Checking Configuration...";
     mkdir "$eto_data_dir"                  unless ( -d "$eto_data_dir" );
     mkdir "$eto_data_dir/ET"               unless ( -d "$eto_data_dir/ET" );
     mkdir "$eto_data_dir/logs"             unless ( -d "$eto_data_dir/logs" );
@@ -128,12 +152,24 @@ if ( $Startup or $Reload ) {
         print_log "[calc_eto] ERROR! wu key undefined!!";
         $eto_ready = 0;
     }
+    if ( defined $config_parms{eto_rrd} ) {
+        if ($config_parms{eto_rrd} eq "metric") {
+            print_log "[calc_eto] Will write daily rain to RRD (mms)";
+            $rrd = "m";
+        } elsif ($config_parms{eto_rrd} eq "in") {
+            print_log "[calc_eto] Inches to RRD not supported yet";
+            $rrd = "";
+        } else {
+            print_log "[calc_eto] Unknown RRD option $config_parms{eto_rrd}";
+            $rrd = "";
+        }
+    }
     if ( defined $config_parms{eto_irrigation} ) {
         print_log "[calc_eto] $config_parms{eto_irrigation} set as programmable irrigation system";
     }
     else {
         print_log "[calc_eto] WARNING! no sprinkler system defined!";
-    }
+    }  
     if ($eto_ready) {
         print_log "[calc_eto] Configuration good. ETo Calcuations Ready";
         print_log "[calc_eto] Will email results to $config_parms{eto_email}" if ( defined $config_parms{eto_email} );
@@ -811,6 +847,12 @@ sub writeResults {
     my @startTime = (-1) x 4;
     my @availTimes = ( $sun->{rise} - sum(@runTime) / 60, $sun->{rise} + 60, $sun->{set} - sum(@runTime) / 60, $sun->{set} + 60 );
 
+    #if the current time is after $sun->{rise} then add two more options to $sun->{set}
+    if (time_greater_than($Time_Sunrise)) {
+        print_log "[calc_eto] It's after sunrise, so run extra programs at night";
+        @availTimes = ($sun->{set} - sum(@runTime) / 60, $sun->{set} + 60, $sun->{set} + 120, $sun->{set} - (sum(@runTime) / 60) - 60 );         
+    }
+
     print "[times=$times, sun->{rise}=" . $sun->{rise} . " sum=" . sum(@runTime) / 60 . "]\n";    # if ($debug);
 
     for ( my $i = 0; $i < $times; $i++ ) {
@@ -904,6 +946,44 @@ sub calc_eto_runtimes {
     return $rt;
 }
 
+sub detailSchedule {
+    my ($stime) = @_;
+    my ($times, $lengths) = $stime =~ /\[\[(.*)\],\[(.*)\]\]/;
+    my $msg = "";
+    
+    foreach my $time (split /,/, $times) {
+        next if ($time == -1); 
+        my $station_id = 1;
+        $time = $time * 60; #add in seconds
+        foreach my $station (split /,/, $lengths) {
+            my $run_hour = 0;
+            if ($station > 3600) {
+                $run_hour = int($station / 3600);
+                $station = int($station % 3600);
+            }
+            my $run_min = int($station / 60);
+            my $run_sec = int($station % 60);
+            $msg .= "[calc_eto] : " . formatTime($time) . " : Station:" .sprintf("%2s",$station_id) . "   Run Time:" .sprintf("%02d:%02d:%02d",$run_hour,$run_min,$run_sec) . "\n" unless ($station == 0);
+            $station_id++;
+            $time += $run_sec + ($run_min * 60) + ($run_hour * 3600);
+        }     
+    }
+    return ($msg);
+    
+    sub formatTime {
+        my ($t) = @_;
+        my $hour = int($t / 3600);
+        my $min = int(($t % 3600) / 60);
+        my $sec = int(($t % 3600) % 60);
+        my $ampm = "AM";
+        if ($hour > 12) {
+            $ampm = "PM";
+            $hour = $hour - 12;
+        }
+        return(sprintf("%2s:%02d:%02d",$hour,$min,$sec) . " $ampm"); 
+    }  
+}
+
 sub main_calc_eto {
     my ( $datadir, $loc, $wuData ) = @_;
 
@@ -992,6 +1072,18 @@ sub main_calc_eto {
     my $tmean         = ( $tmin + $tmax ) / 2;
     my $alt           = safe_float( $wuData->{current_observation}->{display_location}->{elevation} );
     my $tdew          = safe_float( $hist->{meandewptm} );
+    if ($hist->{date}->{year} == undef || $hist->{date}->{mon} == undef || $hist->{date}->{mday} == undef) {
+        #problem with the data
+        my $msg = "[calc_eto] ERROR: Bad Data received from Provider. A date field is empty";
+        print_log $msg;
+        my $msg2 = "[calc_eto] ERROR: Undefined Parameter: Year=[$hist->{date}->{year}] Month=[$hist->{date}->{mon}] Day=[$hist->{date}->{mday}]"; 
+        print_log $msg2;
+        if ( defined $config_parms{eto_email} ) {
+            print_log "[calc_eto] Emailing Error";
+            net_mail_send( to => $config_parms{eto_email}, subject => "EvapoTranspiration Failed to retrieve data", text => $msg . "\n" . $msg2 );
+        }
+        return "[[-1,-1,-1,-1],[0]]";    
+    }
     my $doy           = Day_of_Year( $hist->{date}->{year}, $hist->{date}->{mon}, $hist->{date}->{mday} );
     my $sun_hours     = sun_block( $wuData, $sun->{rise}, $sun->{set}, $conditions );
     my $rh_min        = safe_float( $hist->{minhumidity} );
@@ -1077,6 +1169,15 @@ sub main_calc_eto {
     print_log $msg;
     $msg_string .= $msg . "\n";
 
+    #write to the RRD if it's enabled
+    if ($rrd ne "") {
+        $msg = '[calc_eto] Writing fallen and forecast rain to RRD: ' . round( $todayRain, 4 ) . " mm";
+        $Weather{RainTotal} = round( $todayRain, 4 );
+        print_log $msg;
+        $msg_string .= $msg . "\n";
+        
+    }
+
     # Binary watering determination based on 3 criteria: 1)Currently raining 2)Wind>8kph~5mph 3)Temp<4.5C ~ 40F
     if ($noWater) {
         $msg = "[calc_eto] RESULTS We will not water because: $whyNot";
@@ -1130,9 +1231,15 @@ sub main_calc_eto {
 
     #Write the WU data to a file. This can be used for the MH weather data and save an api call
     writewuData( $wuData, $noWater, $wuDataPath );
-    $msg = "[calc_eto] RESULTS Calculated Schedule: $rtime";
-    print_log $msg;
-    $msg_string .= $msg . "\n";
+    
+    #$msg = "[calc_eto] RESULTS Calculated Schedule: $rtime";
+    #print_log $msg;
+    #$msg_string .= $msg . "\n";
+    my ($rtime2) = detailSchedule($rtime);
+    foreach my $detail (split /\n/,$rtime2) {
+        print_log $detail;
+    }
+    $msg_string .= $msg . "\n" . $rtime2;
     if ( defined $config_parms{eto_email} ) {
         print_log "[calc_eto] Emailing results";
         net_mail_send( to => $config_parms{eto_email}, subject => "EvapoTranspiration Results for $Time_Now", text => $msg_string );
