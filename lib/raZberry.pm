@@ -186,7 +186,7 @@ sub new {
     my ( $class, $addr, $poll, $options ) = @_;
     my $self = new Generic_Item();
     bless $self, $class;
-    &main::print_log("[raZberry]: v3.0.3 Controller Initializing...");
+    &main::print_log("[raZberry]: v3.0.4 Controller Initializing...");
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
     
@@ -524,11 +524,11 @@ sub process_check {
         } elsif (($main::Time - $time) > $self->{command_timeout}) {
             main::print_log( "[raZberry:" . $self->{host} . "] ERROR: $get_cmd request older than " . $self->{command_timeout} . " seconds. Abandoning request" );
             shift @{ $self->{cmd_queue}}; 
-        } elsif (($main::Time > ($time + 1 + ($retry * 5)) and ($self->{cmd_process}->done() ) )) {
+        } elsif (($main::Time > ($time + 1 + ($retry * 5)) and ($self->{cmd_process}->done() ) )) {#the original time isn't a great base for deep queued commands
             if ($retry == 0) {
                 main::print_log( "[raZberry:" . $self->{host} . "] Command Queue found, processing next item" );
             } else {
-                main::print_log( "[raZberry:" . $self->{host} . "] Retrying previous command" );
+                main::print_log( "[raZberry:" . $self->{host} . "] Retrying previous command. Attempt number $retry" );
             }     
             $self->{cmd_process}->set($get_cmd);
             $self->{cmd_process}->start();
@@ -951,7 +951,12 @@ sub print_command_queue {
         $name = "empty" if ($commands == 0);
         main::print_log( "[raZberry:" . $self->{host} . "]: Current Command Queue: $name" );
         for my $i ( 1 .. $commands ) {
-            main::print_log( "[raZberry:" . $self->{host} . "]: Command $i: " . @{ $self->{cmd_queue} }[$i - 1] );
+            my ($mode, $cmd, $time, $retry) = @ { ${ $self->{cmd_queue} }[$i - 1] };
+            main::print_log( "[raZberry:" . $self->{host} . "]: Command $i Mode: " . $mode );
+            main::print_log( "[raZberry:" . $self->{host} . "]: Command $i Cmd: " . $cmd );
+            main::print_log( "[raZberry:" . $self->{host} . "]: Command $i Time: " . $time );
+            main::print_log( "[raZberry:" . $self->{host} . "]: Command $i Retry: " . $retry );
+
         }
     }
     main::print_log( "[raZberry:" . $self->{host} . "]: ------------------------------------------------------------------" );
