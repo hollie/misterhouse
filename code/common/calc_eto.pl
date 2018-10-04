@@ -770,7 +770,7 @@ sub writeResults {
         #HP TODO This will determine if a 2nd, 3rd or 4th time is required.
         $times = 1 if ( ( $aET / $minRunmm ) > 1 );    #if the minium threshold is met, then run at least once.
         $times = int( max( min( $aET / $maxRunmm, 4 ), $times ) );    # int(.999999) = 0
-        print "[calc_eto] DB: times=$times aET=$aET minRunm=$minRunmm maxRunm=$maxRunmm\n";    #if ($debug);
+        print "[calc_eto] DB: times=$times aET=$aET minRunm=$minRunmm maxRunm=$maxRunmm\n" if ($debug);
         print "E:   aET[$x] = $aET (" . $aET / $maxRunmm . ") // mm/Day\n" if ($debug);
         print "E:   times = $times (max "
           . max( min( $aET / $maxRunmm, 4 ), $times ) . "/min "
@@ -853,7 +853,7 @@ sub writeResults {
         @availTimes = ($sun->{set} - sum(@runTime) / 60, $sun->{set} + 60, $sun->{set} + 120, $sun->{set} - (sum(@runTime) / 60) - 60 );         
     }
 
-    print "[times=$times, sun->{rise}=" . $sun->{rise} . " sum=" . sum(@runTime) / 60 . "]\n";    # if ($debug);
+    print "[times=$times, sun->{rise}=" . $sun->{rise} . " sum=" . sum(@runTime) / 60 . "]\n" if ($debug);
 
     for ( my $i = 0; $i < $times; $i++ ) {
         $startTime[$i] = int( $availTimes[$i] );
@@ -950,12 +950,13 @@ sub detailSchedule {
     my ($stime) = @_;
     my ($times, $lengths) = $stime =~ /\[\[(.*)\],\[(.*)\]\]/;
     my $msg = "";
-    
+    my $total_time = 0;
     foreach my $time (split /,/, $times) {
         next if ($time == -1); 
         my $station_id = 1;
         $time = $time * 60; #add in seconds
         foreach my $station (split /,/, $lengths) {
+            $total_time += $station;
             my $run_hour = 0;
             if ($station > 3600) {
                 $run_hour = int($station / 3600);
@@ -966,7 +967,17 @@ sub detailSchedule {
             $msg .= "[calc_eto] : " . formatTime($time) . " : Station:" .sprintf("%2s",$station_id) . "   Run Time:" .sprintf("%02d:%02d:%02d",$run_hour,$run_min,$run_sec) . "\n" unless ($station == 0);
             $station_id++;
             $time += $run_sec + ($run_min * 60) + ($run_hour * 3600);
-        }     
+        }  
+        if ($total_time > 0) {
+            my $t_hours = 0;
+            if ($total_time > 3600) {
+                $t_hours = int($total_time / 3600);
+                $total_time = int($total_time % 3600);
+            }
+            my $t_min = int($total_time / 60);
+            my $t_sec = int($total_time % 60);
+            $msg .= "[calc_eto] : Total Run Time: " . sprintf("%02d:%02d:%02d",$t_hours,$t_min,$t_sec) . "\n"; 
+        }  
     }
     return ($msg);
     
@@ -1213,7 +1224,12 @@ sub main_calc_eto {
 
     }
 
-    $msg = "[calc_eto] RESULTS sunrise & sunset in minutes from midnight local time: " . $sun->{rise} . ' ' . $sun->{set};
+    my $sr_hour = int($sun->{rise} / 60);
+    my $sr_min = int($sun->{rise} % 60);
+    my $ss_hour = int($sun->{set} / 60);
+    my $ss_min = int($sun->{set} % 60);
+    
+    $msg = "[calc_eto] RESULTS sunrise & sunset from midnight local time: $sr_hour:$sr_min (" . $sun->{rise} . ") $ss_hour:$ss_min (" . $sun->{set} . ")";
     print_log $msg;
     $msg_string .= $msg . "\n";
 
@@ -1235,11 +1251,12 @@ sub main_calc_eto {
     #$msg = "[calc_eto] RESULTS Calculated Schedule: $rtime";
     #print_log $msg;
     #$msg_string .= $msg . "\n";
-    my ($rtime2) = detailSchedule($rtime);
+    my $rtime2 = "";
+    ($rtime2) = detailSchedule($rtime);
     foreach my $detail (split /\n/,$rtime2) {
         print_log $detail;
     }
-    $msg_string .= $msg . "\n" . $rtime2;
+    $msg_string .= $rtime2;
     if ( defined $config_parms{eto_email} ) {
         print_log "[calc_eto] Emailing results";
         net_mail_send( to => $config_parms{eto_email}, subject => "EvapoTranspiration Results for $Time_Now", text => $msg_string );
