@@ -1,4 +1,4 @@
-=head1 B<yeelight> v1.2.8
+=head1 B<yeelight> v1.2.9
 
 =head2 Initial Setup
 # To set up, first pair with mobile app -- the Yeelight needs to be set up initially with the app
@@ -48,6 +48,9 @@ what features are supported
 - comm tracker went offline when commands dropped
 - 09/02/18 11:54:33 AM [Yeelight:1] WARNING. Queue has grown past 8. Command get_tcp -rn -quiet 192.168.0.173:55443 '{ "id":1, "method":"set_bright", "params":[90,"smooth",500] }' discarded.
 - 09/02/18 11:54:33 AM [Yeelight:1] Communication Tracking object found. Updating from online to offline...
+- comm device offline, didn't go online when data came back
+- lost data and didn't reconnect
+- check CPU usage for yeelight
 
 =cut
 
@@ -105,7 +108,7 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.2.8";
+    $self->{module_version}         = "v1.2.9";
     $self->{ssdp_timeout}           = 1000;
     $self->{ssdp_timeout}           = $main::config_parms{yeelight_ssdp_timeout} if ( defined $main::config_parms{yeelight_ssdp_timeout} );
 
@@ -155,7 +158,7 @@ sub new {
     unlink "$::config_parms{data_dir}/Yeelight_cmd_" . $self->{name} . ".data";
     $self->{cmd_process} = new Process_Item;
     $self->{cmd_process}->set_output( $self->{cmd_data_file} );
-    $self->{init}      = 0;
+    $self->{init}      = 0 unless ($self->{init});
     $self->{init_data} = 0;
     $self->{init_v_cmd} = 0;
     $self->{data_socket} = new Socket_Item(undef, undef, "$self->{host}:$self->{port}", "yeelight" . $self->{id}, 'tcp', 'raw');
@@ -179,7 +182,7 @@ sub check_for_socket_data {
 # Other objects use a socket in $Socket_Items?
 #         $NewCmd = $Socket_Items{$instance}{'socket'}->said;
 
-    my $com_status = "";
+    my $com_status = "offline";
     if ($self->{data_socket}->active) {
         my $rec_data = $self->{data_socket}->said;
         $self->{socket_connected} = 1;
@@ -266,7 +269,7 @@ sub get_data {
     }
 
     if ( defined $self->{child_object}->{comm} ) {
-        if ( $self->{status} ne $com_status ) {
+        if (( $self->{status} ne $com_status ) or ($self->{child_object}->{comm}->state() ne $com_status)) {
             $self->{status} = $com_status;
             if ($self->{child_object}->{comm}->state() ne $com_status) {
                 main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
@@ -849,6 +852,13 @@ sub set_ct {
     }
 }
 
+sub restart_socket {
+    my ($self) = @_;
+
+    $self->{data_socket}->stop();
+    $self->{data_socket}->start();
+}
+
 sub generate_voice_commands {
     my ($self) = @_;
 
@@ -896,8 +906,8 @@ sub get_voice_cmds {
     my %voice_cmds = (
         'Print Command Queue to print log'                                      => $self->get_object_name . '->print_command_queue',
         'Purge Command Queue'                                                   => $self->get_object_name . '->purge_command_queue',
-        'Force Yeelight Status query'                                           => $self->get_object_name . '->query_yeelight'
-      
+        'Force Yeelight Status query'                                           => $self->get_object_name . '->query_yeelight',
+        'Restart Data Socket connection'                                        =>  $self->get_object_name . '->restart_socket'
     );
 
     return \%voice_cmds;
