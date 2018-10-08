@@ -1,4 +1,4 @@
-=head1 B<yeelight> v1.2.9
+=head1 B<yeelight> v1.3.0
 
 =head2 Initial Setup
 # To set up, first pair with mobile app -- the Yeelight needs to be set up initially with the app
@@ -53,6 +53,7 @@ what features are supported
 - check CPU usage for yeelight
 
 =cut
+our $yl_instances;
 
 package Yeelight;
 
@@ -93,14 +94,19 @@ my %param_array;
 our %active_yeelights = ();
 
 sub new {
-    my ( $class, $location, $id, $options ) = @_;
+    my ( $class, $location, $options ) = @_;
     my $self = new Generic_Item();
     bless $self, $class;
-    $self->{id}   = "1";
-    $self->{id} = $id if ((defined $id) and ($id));
     
-    $self->{name} = "1";
-    $self->{name} = $id if ((defined $id) and ($id));
+    unless (defined $yl_instances) {
+        $self->{id}   = "1";
+        $self->{name} = "1";
+        $yl_instances = 1;
+    } else {
+        $yl_instances++;
+        $self->{id} = $yl_instances;
+        $self->{name} = $yl_instances;
+    }
 
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
@@ -108,7 +114,7 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.2.9";
+    $self->{module_version}         = "v1.3.0";
     $self->{ssdp_timeout}           = 1000;
     $self->{ssdp_timeout}           = $main::config_parms{yeelight_ssdp_timeout} if ( defined $main::config_parms{yeelight_ssdp_timeout} );
 
@@ -126,7 +132,7 @@ sub new {
     $options = "" unless ( defined $options );
     $options = $::config_parms{ "yeelight_" . $self->{name} . "_options" } if ( $::config_parms{ "yeelight_" . $self->{name} . "_options" } );
 
-    $self->{debug} = 5;
+    $self->{debug} = 0;
     ( $self->{debug} ) = ( $options =~ /debug\=(\d+)/i ) if ( $options =~ m/debug\=/i );
     $self->{debug} = 0 if ( $self->{debug} < 0 );
 
@@ -522,14 +528,15 @@ SSDP
         last unless scalar @ready;
 
         recv($sock,$data, 65536,0);
-        $count++;
-        &main::print_log( "[Yeelight] Receiving $count ($i) ");
         my ($location) = $data =~ /Location:\syeelight:\/\/(.*)/;
         $location =~ s/[^a-zA-Z0-9\:\.\/]*//g;
         if ($location) {
+            $count++;
              my ($host, $port) = $location =~ /(.*):(.*)/;
              $yl{$host}->{host} = $host;
-             $yl{$host}->{port} = $port;    
+             $yl{$host}->{port} = $port; 
+             &main::print_log( "[Yeelight] Found $count (loop $i) (location $location)");
+               
              #Go through the rest of the data 
              foreach my $line (split(/\n/,$data)) {
                 my ($field, $value) = $line =~ /(.*)\:\s+(.*)/;
