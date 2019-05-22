@@ -2318,7 +2318,7 @@ sub http_redirect {
  $html_head .= "Server: MisterHouse\r\n";
  $html_head .= "Location: $url\r\n";
  $html_head .= "Content-Length: 0\r\n";
- $html_head .= "Connection: close\r\n " if &http_close_socket;
+ $html_head .= "Connection: close\r\n" if &http_close_socket;
  $html_head .= "Cache-Control: no-cache\r\n";
  $html_head .= "\r\n";
 
