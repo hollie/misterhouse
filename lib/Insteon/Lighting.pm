@@ -423,6 +423,24 @@ sub get_voice_cmds {
 
 =back
 
+=item C<beep()>
+
+Beep the device;
+
+=cut
+
+sub beep {
+    my ( $self ) = @_;
+    my $name = $self->get_object_name;
+
+    ::print_log( "[Insteon::DimmableLight] Beeping $name." )
+          if $self->debuglevel( 1, 'insteon' );
+
+    my $message = new Insteon::InsteonMessage( 'insteon_send', $self, 'beep', 0x00 );
+    $self->_send_cmd($message);
+}
+
+
 =head2 AUTHOR
 
 Gregg Limming 
