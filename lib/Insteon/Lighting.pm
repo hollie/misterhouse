@@ -83,6 +83,32 @@ sub get_voice_cmds {
     return \%voice_cmds;
 }
 
+=item C<led_level([0-100])>
+
+Sets the LED to brightness percentage.
+
+=cut
+
+sub led_level {
+    my ( $self, $level ) = @_;
+    return unless defined $level;
+    my $name = $self->get_object_name;
+
+    ::print_log( "[Insteon::BaseLight] Setting LED level of $name to" . " $level." )
+        if $self->debuglevel( 1, 'insteon' );
+
+
+    #For whatever reason 100% = 127 and 50% = 64
+    $level = $level * 1.28;
+    $level = 127 if $level > 127;
+    $level = 0 if $level < 0;
+
+    my $extra = '000107' . sprintf( '%02X', $level );
+    $extra .= '0' x ( 30 - length $extra );
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self, 'extended_set_get', $extra );
+    $self->_send_cmd($message);
+}
+
 =back
 
 =head2 AUTHOR
@@ -1365,30 +1391,6 @@ sub enable_beep_button {
         ::print_log( "[Insteon::MicroSwitch] Setting $name to" . " not beep on button press." );
         $self->set_operating_flag('no_beep_button');
     }
-}
-
-=item C<led_level([0-100])>
-
-Sets the LED to brightness percentage.
-
-=cut
-
-sub led_level {
-    my ( $self, $level ) = @_;
-    return unless defined $level;
-    my $name = $self->get_object_name;
-
-    ::print_log( "[Insteon::MicroSwitch] Setting LED level of $name to" . " $level." );
-
-    #For whatever reason 100% = 127 and 50% = 64
-    $level = $level * 1.28;
-    $level = 127 if $level > 127;
-    $level = 0 if $level < 0;
-
-    my $extra = '000107' . sprintf( '%02X', $level );
-    $extra .= '0' x ( 30 - length $extra );
-    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self, 'extended_set_get', $extra );
-    $self->_send_cmd($message);
 }
 
 =item C<get_voice_cmds>
