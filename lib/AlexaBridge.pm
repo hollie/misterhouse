@@ -4,6 +4,20 @@
 =head2 DESCRIPTION
 
 Module emulates the HUE to allow for direct connectivity from the Amazon Echo, Google Home, and any other devices that support the HUE bridge. 
+Version 2.0 
+
+=head2 Release Notes
+
+Version 2.0 (10-26-19):
+Added the ability to respond with a state and level at the same time (from a sub) if needed. See Example below.
+
+Fixed the response to a get when you use the custom mapped states with a sub. Before the fix, if the sub responded with the custom state it would not be mapped back to the on or off before it was sent to alexa.
+
+The state sent from alexa (in a get request after alexa sends a set request) is used as the get response if it is not returned from a configured sub. This is so the get state request from alexa always matches what she set it to so she won't throw the malfunction error.
+
+I use the state sent from alexa for the get request to an MH voice command to avoid the malfunction error. We don't do any state checks on an MH voice command.
+
+We now respond with the full light definition during a discovery because the new Echo version doesn't like the short definition. This is ok now because the Echo now uses gzip compression so it does not limit the amount of supported devices
 
 =head2 CONFIGURATION
 
@@ -25,12 +39,16 @@ For Google Home and a reverse proxy (Apache/IIS/etc):
  alexaObjectsPerGet = 300 # Google Home can handle us returning all objects in a single response
 
 For Google Home using the builtin proxy port:
+This method should not be used.
 
  alexa_enable = 1
  alexaHttpPortCount = 1   # Open 1 proxy port on port 80 (We default to port 80 so no need to define it)
  alexaNoDefaultHttp = 1   # Disable responding on the default MH web port because Google Home will not use it any way.
  alexaObjectsPerGet = 300 # Google Home can handle us returning all objects in a single response
 
+
+Note: 
+On some newer Echo versions, you must use port 80.
 
 For Echo (Chunked method):
 
@@ -39,7 +57,7 @@ For Echo (Chunked method):
 
 
 For Echo (Multi-port method):
-This method should not be needed unless for some reason your Echo does not work with the Chunked method.
+This method should not be used.
 
  alexa_enable = 1
  alexaHttpPortCount = 1  # Open 1 proxy port for a total of 2 ports including the default MH web port. We only support 1 for now unless I see a need for more.
@@ -211,6 +229,31 @@ When the above is said to the Echo, it first gets the current state, then subtra
  ALEXABRIDGE_ADD, AlexaItems, thermostat, thermostat, &temperature
 
 
+# This is a simple generic example of a sub:
+
+ sub light1 {
+        my ($type, $state) = @_;
+        #Type state - should return:
+        #  - on or off
+        #  - or a custom state mapped to on or off in the AlexaBridge_Item
+        #  - or a number between 0 and 100 (level)
+        #  - or the state and level number comma separated. on/off/custom state,level. IE: on,75
+        #
+        #Type set - this is when alexa is asked to turn this device on/off so the state should be set to $state or your action should be run.
+
+        if ($type eq 'state') {
+                if ( $light1->can('state_level') ) {
+                        return (state $light1).','.$light1->level; # Example returning state and level. NOTE: Ensure state is NOT numeric
+                        return $light1->level; # Example returning level only.
+                }
+                else {
+                        return (state $light1); # Example returning state only. If a numeric value is returned, it is considered the level and the state is considered on.
+                }
+        }
+        elsif ($type eq 'set') {
+                $light1->set($state);
+        }
+ }
 
 I have a script that I use to control my AV equipment and I can run it via
 ssh, so I made a voice command in MH:
@@ -785,11 +828,14 @@ sub process_http {
             if ( ( $uris[3] eq 'lights' ) && ( $AlexaObjects->{'uuid'}->{ $uris[4] } ) ) {
                 $uuid = $uris[4];
                 $name = $AlexaObjects->{'uuid'}->{$uuid}->{'name'};
-                my $state = &get_set_state( $self, $AlexaObjects, $uuid, 'get' );
-                $statep1 =
-                  qq[{"state":{$state,"hue":15823,"sat":88,"effect":"none","ct":313,"alert":"none","colormode":"ct","reachable":true,"xy":\[0.4255,0.3998\]},"type":"Extended color light","name":"];
-                $statep2 =
-                  qq[","modelid":"LCT001","manufacturername":"Philips","uniqueid":"$uuid","swversion":"65003148","pointsymbol":{"1":"none","2":"none","3":"none","4":"none","5":"none","6":"none","7":"none","8":"none"}}];
+		$body =~ s/: /:/g;
+                my $state = &get_set_state( $self, $AlexaObjects, $uuid, 'get', $body );
+		$statep1 = qq[{"state": {$state,"effect": "none","alert": "none","sat": 200,"ct": 500,"xy": \[0.5, 0.5\],"reachable": true,"colormode": "hs"},"type": "Dimmable light","name":"];
+		$statep2 = qq[","modelid": "LWB014","swversion": "1.23.0_r20156"}];
+                #$statep1 =
+                  #qq[{"state":{$state,"hue":15823,"sat":88,"effect":"none","ct":313,"alert":"none","colormode":"ct","reachable":true,"xy":\[0.4255,0.3998\]},"type":"Extended color light","name":"];
+                #$statep2 =
+                  #qq[","modelid":"LCT001","manufacturername":"Philips","uniqueid":"$uuid","swversion":"65003148","pointsymbol":{"1":"none","2":"none","3":"none","4":"none","5":"none","6":"none","7":"none","8":"none"}}];
                 $content = $statep1 . $name . $statep2;
                 $count   = 1;
             }
@@ -815,8 +861,10 @@ sub process_http {
                     next unless $name;
                     my $state = &get_set_state( $self, $AlexaObjects, $uuid, 'get' );
                     $statep1 = qq[{"];
-                    $statep2 = qq[":{"state":{$state,"reachable":true},"type":"Extended color light","name":"];
-                    $statep3 = qq[","modelid":"LCT001","manufacturername":"Philips","swversion":"65003148"}];
+                    $statep2=qq[":{"state":{$state,"alert": "select","mode": "homeautomation","reachable": true},"swupdate": {"state": "readytoinstall","lastinstall": null},"type": "Dimmable light","name": "];
+                    $statep3=qq[","modelid": "LWB014","manufacturername": "Philips","productname": "Hue white lamp","capabilities": {"certified": true,"control": {"mindimlevel": 5000,"maxlumen": 840},"streaming": {"renderer": false,"proxy": false}},"config": {"archetype": "classicbulb","function": "functional","direction": "omnidirectional"},"uniqueid": "00:17:88:01:04:00:3d:96-0b","swversion": "1.23.0_r20156","swconfigid": "321D79EA","productid": "Philips-LWB014-1-A19DLv4"}];
+                    #$statep2 = qq[":{"state":{$state,"reachable":true},"type":"Extended color light","name":"];
+                    #$statep3 = qq[","modelid":"LCT001","manufacturername":"Philips","swversion":"65003148"}];
                     $end     = qq[}];
                     $delm    = qq[,"];
 		    $name    =~ s/_/ /g;
@@ -863,7 +911,11 @@ sub process_http {
                 $count++;
             }
         }
-        if ( $count >= 1 ) {
+	if ( $count <= 0 ) { 
+		$end = '';
+		$content = '{}'; 
+	}
+        #if ( $count >= 1 ) {
             $content      = $content . $end;
             $debugcontent = $content if $main::Debug{'alexa'} >= 2;
             $content      = &_Gzip( $content, $Http{'Accept-Encoding'} );
@@ -881,10 +933,10 @@ sub process_http {
             $output .= "\r\n";
             $debugcontent = $output . $debugcontent if $main::Debug{'alexa'} >= 2;
             $output .= $content;
-        }
-        else {
-            $output = "HTTP/1.1 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\nContent-Length: 2\r\nDate: " . time2str(time) . "\r\n\r\n..";
-        }
+        #}
+        #else {
+        #    $output = "HTTP/1.1 404 Not Found\r\nServer: MisterHouse\r\nCache-Control: no-cache\r\nContent-Length: 2\r\nDate: " . time2str(time) . "\r\n\r\n..";
+        #}
         &main::print_log("[Alexa] Debug: MH Response $debugcontent \n") if $main::Debug{'alexa'} >= 2;
         return $output;
     }
@@ -952,9 +1004,22 @@ sub get_set_state {
     my $sub      = $AlexaObjects->{'uuid'}->{$uuid}->{'sub'};
     my $statesub = $AlexaObjects->{'uuid'}->{$uuid}->{'statesub'};
     $state = $AlexaObjects->{'uuid'}->{$uuid}->{ lc($state) } if $AlexaObjects->{'uuid'}->{$uuid}->{ lc($state) };
-    if ( $state =~ /\d+/ ) { $state = &roundoff( $state / 2.54 ) }
-    &main::print_log("[Alexa] Debug: get_set_state ($uuid $action $state) : name: $name  realname: $realname sub: $sub state: $state\n")
-      if $main::Debug{'alexa'};
+    if ( ( $state =~ /\d+/ ) and ( $action eq 'set' ) ) { $state = &roundoff( $state / 2.54 ) }
+    &main::print_log("[Alexa] Debug: get_set_state ($uuid $action $state) : name: $name  realname: $realname sub: $sub state: $state\n") if $main::Debug{'alexa'};
+    
+    # Alexa expects that the queried state is what she set it to or she complains about a malfunction. 
+    # She sends the state she thinks the deivce is in, in the body of a get state request for a period after a set request. 
+    # For instances like subs and voice commands where we may not get a state, we just return the one alexa sent.  
+    my $pstate = 'on'; #Default prev state
+    my $plevel = '254'; #Default prev level
+    my $statesrc = 'DEFAULT';
+    my $levelsrc = 'DEFAULT';
+    if ( $action eq 'get' ) { #Get prev state/level from the body of the get 
+	if    ( $state =~ /\"(on)\":(true)/ )   { $pstate = 'on'; $statesrc = 'ALEXA'; }
+	elsif ( $state =~ /\"(on)\":(false)/ )  { $pstate = 'off'; $statesrc = 'ALEXA'; }
+	if    ( $state =~ /\"(bri)\":(\d+)/ )   { $plevel = $2; $levelsrc = 'ALEXA'; }
+    }
+
 
     if ( $realname =~ /^\$/ ) {
         my $object = ::get_object_by_name($realname);
@@ -962,9 +1027,9 @@ sub get_set_state {
         if ( $action eq 'get' ) {
             my $cstate = $object->$statesub;
             $cstate =~ s/\%//;
-            my $level = '254';
+            my $level = $plevel; #Set the default level to the prev level from the body of the get
             my $type  = $object->get_type();
-            my $debug = "[Alexa] Debug: get_state (actual object state: $cstate) - (object type: $type) - ";
+            my $debug = "[Alexa] Debug: get_set_state (actual object state: $cstate) - (object type: $type) - ";
             my $return;
             if ( $object->can('state_level') ) {
                 my $l = $object->level;
@@ -1001,8 +1066,12 @@ sub get_set_state {
             &main::run_voice_cmd("$realname");
             return;
         }
-        elsif ( $action eq 'get' ) {
-            return qq["on":true,"bri":254];
+        elsif ( $action eq 'get' ) { #Return prev state/level sent in the body of the get
+		$pstate = '"on":true' if $pstate eq 'on';
+		$pstate = '"on":false' if $pstate eq 'off';
+		my $return = qq[$pstate,"bri":$plevel];
+		&main::print_log("[Alexa] Debug: get_set_state request: ( get ) voice command: ( $realname ) - returning $return") if $main::Debug{'alexa'};
+		return $return;
         }
 
     }
@@ -1013,15 +1082,57 @@ sub get_set_state {
             return;
         }
         elsif ( $action eq 'get' ) {
-            my $debug = "[Alexa] Debug: get_state running sub: $sub( state, $state ) - ";
-            my $state = &{$sub}('state');
-            if ( $state =~ /\d+/ ) {
-                $state = ( &roundoff( ( $state * 2.54 ) ) );
-                my $return = qq["on":true,"bri":$state];
-                &main::print_log("$debug returning - $return\n") if $main::Debug{'alexa'};
-                return $return;
+            my $debug = "[Alexa] Debug: get_set_state running sub: $sub( state, $state ) - ";
+            my $state = &{$sub}('state'); #Try to get the state from the sub
+	    my $level;
+
+	    #Allow returning state and level comma seperated
+	    #IE: on,50
+	    if ($state =~ /,/) { 
+		my @splstr = split /,/, $state;
+		$level = $splstr[1]; 
+		$state = lc($splstr[0]);
+		$level =~ s/ //g;
+		$state =~ s/ //g;
+		&main::print_log("Split return state: $state  level: $level");
+	    }
+	 
+	    # Check on/off has been mapped to a different state by user in AlexaBridge_Item
+	    if    ( (defined $state) and (lc( $AlexaObjects->{'uuid'}->{$uuid}->{'on'}) ) eq lc($state) )  { $state = 'on' }
+	    elsif ( (defined $state) and (lc( $AlexaObjects->{'uuid'}->{$uuid}->{'off'}) ) eq lc($state) ) { $state = 'off' }
+	   
+
+	    if ( (defined $state) and ($state =~ /\d+/) ) {
+                $level = ( &roundoff( ( $state * 2.54 ) ) );
+                $debug .= "using state: $level returned from SUB - state defaulting to on - ";
+		my $return = qq["on":true,"bri":$level];
+           	&main::print_log("$debug returning - $return\n") if $main::Debug{'alexa'};
+           	return $return;
             }
-            return qq["on":true,"bri":254];
+	    elsif ( (defined $level) and ($level =~ /\d+/) ) { #Level split from state
+		$level = ( &roundoff( ( $level * 2.54 ) ) ); #Convert 0 - 100 scale to 0 - 254 
+		$debug .= "using level: $level returned from SUB - ";
+	    }
+	    else { 
+		$level = $plevel; #Use prev level sent in the body of the get, if not returned from the sub
+		$debug .= "using level: $level returned from $levelsrc - ";
+	    }
+
+
+	    if ( (defined $state) and ($state =~ /on|off/) ) { 
+		$debug .= "using state: $state returned from SUB - "; 
+	    }
+	    else {
+		$state = $pstate; #Use prev state sent in the body of the get, if not returned from the sub
+		$debug .= "using state: $state returned from $statesrc - ";
+	   }
+
+	   $state = '"on":true' if $state eq 'on';
+	   $state = '"on":false' if $state eq 'off';
+
+	   my $return = qq[$state,"bri":$level];
+	   &main::print_log("$debug returning - $return\n") if $main::Debug{'alexa'};
+	   return $return;
         }
     }
 
