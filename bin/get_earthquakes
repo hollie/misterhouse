@@ -55,7 +55,7 @@ eof
 }
 
 BEGIN {
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";
 }                                # Use BEGIN eval to keep perl2exe happy
 require 'handy_utilities.pl';    # For read_mh_opts funcion
 
