@@ -10,34 +10,29 @@
 my $County = 'Tarrant';
 
 # Replace the "warncounty" portion of this URL with your warncounty (go to http://www.srh.noaa.gov)
-my $NOAA_Warnings_URL =
-  'http://www.srh.noaa.gov/showsigwx.php?warncounty=TXC439';
+my $NOAA_Warnings_URL = 'http://www.srh.noaa.gov/showsigwx.php?warncounty=TXC439';
 
 #439
 ########################################
-my $f_weather_warnings_summary =
-  "$config_parms{data_dir}/web/weather_warnings_summary.txt";
-my $f_weather_warnings_html =
-  "$config_parms{data_dir}/web/weather_warnings.html";
-my $prev_summary    = '';
-my $Severe_Wx_Flag  = '0';
-my $Severe_Wx_Type  = '';
-my $Severe_Wx_Type2 = '';
-my $Severe_Wx_Type3 = '';
-my $Severe_Wx_Type4 = '';
+my $f_weather_warnings_summary = "$config_parms{data_dir}/web/weather_warnings_summary.txt";
+my $f_weather_warnings_html    = "$config_parms{data_dir}/web/weather_warnings.html";
+my $prev_summary               = '';
+my $Severe_Wx_Flag             = '0';
+my $Severe_Wx_Type             = '';
+my $Severe_Wx_Type2            = '';
+my $Severe_Wx_Type3            = '';
+my $Severe_Wx_Type4            = '';
 my ( $summary, $i );
 $summary = '';
 $i       = 0;
 
-$p_weather_warnings =
-  new Process_Item("perl get_url $NOAA_Warnings_URL $f_weather_warnings_html");
+$p_weather_warnings = new Process_Item("perl get_url $NOAA_Warnings_URL $f_weather_warnings_html");
 $v_weather_warnings = new Voice_Cmd('[Get,Read,Show] weather warnings');
 
 speak($f_weather_warnings_summary)   if said $v_weather_warnings eq 'Read';
 display($f_weather_warnings_summary) if said $v_weather_warnings eq 'Show';
 
-if ( said $v_weather_warnings eq 'Get' or time_cron '10,20,30,40,50,0 * * * *' )
-{
+if ( said $v_weather_warnings eq 'Get' or time_cron '10,20,30,40,50,0 * * * *' ) {
 
     if (&net_connect_check) {
         print_log "Retrieving Weather Warnings from the net ...";
@@ -64,8 +59,7 @@ if ( done_now $p_weather_warnings) {
         {
             $Save{Severe_Wx_Flag} = 1;
             $i++;
-            $summary .=
-              "A Tornado Watch has been issued and is currently in effect for $County county. ";
+            $summary .= "A Tornado Watch has been issued and is currently in effect for $County county. ";
             if ( $Save{Severe_Wx_Type} eq '' ) {
                 $Save{Severe_Wx_Type} = 'Tornado Watch';
             }
@@ -87,8 +81,7 @@ if ( done_now $p_weather_warnings) {
         {
             $Save{Severe_Wx_Flag} = 1;
             $i++;
-            $summary .=
-              "A Severe Thunderstorm Warning has been issued and is currently in effect for $County county. ";
+            $summary .= "A Severe Thunderstorm Warning has been issued and is currently in effect for $County county. ";
             if ( $Save{Severe_Wx_Type} eq '' ) {
                 $Save{Severe_Wx_Type} = 'Thunderstorm Warning';
             }
@@ -110,8 +103,7 @@ if ( done_now $p_weather_warnings) {
         {
             $Save{Severe_Wx_Flag} = 1;
             $i++;
-            $summary .=
-              "A Severe Thunderstorm Watch has been issued and is currently in effect for $County county. ";
+            $summary .= "A Severe Thunderstorm Watch has been issued and is currently in effect for $County county. ";
             if ( $Save{Severe_Wx_Type} eq '' ) {
                 $Save{Severe_Wx_Type} = 'Thunderstorm Watch';
             }
@@ -133,8 +125,7 @@ if ( done_now $p_weather_warnings) {
         {
             $Save{Severe_Wx_Flag} = 1;
             $i++;
-            $summary .=
-              "A Tornado Warning has been issued and is currently in effect for $County county. ";
+            $summary .= "A Tornado Warning has been issued and is currently in effect for $County county. ";
             if ( $Save{Severe_Wx_Type} eq '' ) {
                 $Save{Severe_Wx_Type} = 'Tornado Warning';
             }
@@ -156,8 +147,7 @@ if ( done_now $p_weather_warnings) {
         {
             $Save{Severe_Wx_Flag} = 1;
             $i++;
-            $summary .=
-              "A Flood Warning has been issued and is currently in effect for $County county. ";
+            $summary .= "A Flood Warning has been issued and is currently in effect for $County county. ";
             if ( $Save{Severe_Wx_Type} eq '' ) {
                 $Save{Severe_Wx_Type} = 'Flood Warning';
             }
@@ -179,8 +169,7 @@ if ( done_now $p_weather_warnings) {
         {
             $Save{Severe_Wx_Flag} = 1;
             $i++;
-            $summary .=
-              "A Flood Watch has been issued and is currently in effect for $County county. ";
+            $summary .= "A Flood Watch has been issued and is currently in effect for $County county. ";
             if ( $Save{Severe_Wx_Type} eq '' ) {
                 $Save{Severe_Wx_Type} = 'Flood Watch';
             }
@@ -210,8 +199,7 @@ if ( done_now $p_weather_warnings) {
         net_mail_send
           to      => $config_parms{cell_phone},
           subject => 'Weather Advisory',
-          text =>
-          'Weather Advisories issued for Tarrant County: $Save{Severe_Wx_Type} $Save{Severe_Wx_Type2} $Save{Severe_Wx_Type3} $Save{Severe_Wx_Type4}';
+          text    => 'Weather Advisories issued for Tarrant County: $Save{Severe_Wx_Type} $Save{Severe_Wx_Type2} $Save{Severe_Wx_Type3} $Save{Severe_Wx_Type4}';
     }
 
     file_write "$f_weather_warnings_summary", $summary;

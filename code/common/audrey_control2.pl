@@ -87,52 +87,35 @@ print "My list of Audreys $listNM \n";
 
 # Voice commands for Audrey functions
 
-$v_audrey_mail_led_on =
-  new Voice_Cmd( "Set [" . $listNM . "] Audrey mail light on" );
-$v_audrey_mail_led_off =
-  new Voice_Cmd( "Set [" . $listNM . "] Audrey mail light off" );
-$v_audrey_mail_led_blink =
-  new Voice_Cmd( "Set [" . $listNM . "] Audrey mail light blink" );
+$v_audrey_mail_led_on    = new Voice_Cmd( "Set [" . $listNM . "] Audrey mail light on" );
+$v_audrey_mail_led_off   = new Voice_Cmd( "Set [" . $listNM . "] Audrey mail light off" );
+$v_audrey_mail_led_blink = new Voice_Cmd( "Set [" . $listNM . "] Audrey mail light blink" );
 
-$v_audrey_top_led_on =
-  new Voice_Cmd( "Set [" . $listNM . "] Audrey top light on" );
-$v_audrey_top_led_off =
-  new Voice_Cmd( "Set [" . $listNM . "] Audrey top light off" );
-$v_audrey_top_led_blink =
-  new Voice_Cmd( "Set [" . $listNM . "] Audrey top light blink" );
+$v_audrey_top_led_on    = new Voice_Cmd( "Set [" . $listNM . "] Audrey top light on" );
+$v_audrey_top_led_off   = new Voice_Cmd( "Set [" . $listNM . "] Audrey top light off" );
+$v_audrey_top_led_blink = new Voice_Cmd( "Set [" . $listNM . "] Audrey top light blink" );
 
-$v_audrey_both_leds_on =
-  new Voice_Cmd( "Set [" . $listNM . "] Audrey both lights on" );
-$v_audrey_both_leds_off =
-  new Voice_Cmd( "Set [" . $listNM . "] Audrey both lights off" );
-$v_audrey_both_leds_blink =
-  new Voice_Cmd( "Set [" . $listNM . "] Audrey both lights blink" );
+$v_audrey_both_leds_on    = new Voice_Cmd( "Set [" . $listNM . "] Audrey both lights on" );
+$v_audrey_both_leds_off   = new Voice_Cmd( "Set [" . $listNM . "] Audrey both lights off" );
+$v_audrey_both_leds_blink = new Voice_Cmd( "Set [" . $listNM . "] Audrey both lights blink" );
 
-$v_audrey_screen_on = new Voice_Cmd( "Set [" . $listNM . "] Audrey screen on" );
-$v_audrey_screen_off =
-  new Voice_Cmd( "Set [" . $listNM . "] Audrey screen off" );
+$v_audrey_screen_on  = new Voice_Cmd( "Set [" . $listNM . "] Audrey screen on" );
+$v_audrey_screen_off = new Voice_Cmd( "Set [" . $listNM . "] Audrey screen off" );
 
-$v_audrey_photos =
-  new Voice_Cmd( "Set [" . $listNM . "] Audrey to photo screen" );
+$v_audrey_photos = new Voice_Cmd( "Set [" . $listNM . "] Audrey to photo screen" );
 
 $v_audrey_wav = new Voice_Cmd( "Set [" . $listNM . "] Audrey to a wav file" );
 
-$v_audrey_tagline =
-  new Voice_Cmd( "Read tag line to [" . $listNM . "] Audrey" );
+$v_audrey_tagline = new Voice_Cmd( "Read tag line to [" . $listNM . "] Audrey" );
 
 $v_audrey_music_on  = new Voice_Cmd( "Set [" . $listNM . "] Audrey music on" );
 $v_audrey_music_off = new Voice_Cmd( "Set [" . $listNM . "] Audrey music off" );
 
-$v_audrey_volume_0 =
-  new Voice_Cmd( "Set [" . $listNM . "] Audrey Volume to 0" );
-$v_audrey_volume_20 =
-  new Voice_Cmd( "Set [" . $listNM . "] Audrey Volume to 20" );
-$v_audrey_volume_50 =
-  new Voice_Cmd( "Set [" . $listNM . "] Audrey Volume to 50" );
-$v_audrey_volume_75 =
-  new Voice_Cmd( "Set [" . $listNM . "] Audrey Volume to 75" );
-$v_audrey_volume_100 =
-  new Voice_Cmd( "Set [" . $listNM . "] Audrey Volume to 100" );
+$v_audrey_volume_0   = new Voice_Cmd( "Set [" . $listNM . "] Audrey Volume to 0" );
+$v_audrey_volume_20  = new Voice_Cmd( "Set [" . $listNM . "] Audrey Volume to 20" );
+$v_audrey_volume_50  = new Voice_Cmd( "Set [" . $listNM . "] Audrey Volume to 50" );
+$v_audrey_volume_75  = new Voice_Cmd( "Set [" . $listNM . "] Audrey Volume to 75" );
+$v_audrey_volume_100 = new Voice_Cmd( "Set [" . $listNM . "] Audrey Volume to 100" );
 
 $v_audrey_reboot = new Voice_Cmd( "Reboot [" . $listNM . "] Audrey" );
 
@@ -417,8 +400,7 @@ sub audrey {
             elsif ( $mode eq 'photos' ) {
 
                 #get "http://$address/cgi-bin/SendMessage?M=GOTO_URL&S=http://$Info{IPAddress_local}:$config_parms{http_port}/misc/photos.html";
-                $audrey_cmd =
-                  "http://$address/cgi-bin/SendMessage?M=GOTO_URL\\&S=http://$Info{IPAddress_local}:$config_parms{http_port}/misc/photos.html";
+                $audrey_cmd = "http://$address/cgi-bin/SendMessage?M=GOTO_URL\\&S=http://$Info{IPAddress_local}:$config_parms{http_port}/misc/photos.html";
             }
             elsif ( $mode eq 'music' ) {
                 $state = 0 if $astate eq 'Stop';
@@ -426,12 +408,10 @@ sub audrey {
 
                 #get "http://$address/cgi-bin/mpctrl?action=$astate&file=http://192.168.0.150:8010";
                 if ( $config_parms{mp3_stream_server_port} ) {
-                    $audrey_cmd =
-                      "http://$address/cgi-bin/mpctrl?action=$astate\\&file=$config_parms{mp3_stream_server_port}";
+                    $audrey_cmd = "http://$address/cgi-bin/mpctrl?action=$astate\\&file=$config_parms{mp3_stream_server_port}";
                 }
                 else {
-                    $audrey_cmd =
-                      "http://$address/cgi-bin/mpctrl?action=$astate\\&file=http://192.168.0.150:8010";
+                    $audrey_cmd = "http://$address/cgi-bin/mpctrl?action=$astate\\&file=http://192.168.0.150:8010";
                 }
             }
             elsif ( $mode eq 'volume' ) {

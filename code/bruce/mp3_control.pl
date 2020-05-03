@@ -5,8 +5,7 @@
 #$v_mp3_control1 = new  Voice_Cmd("Set the house mp3 player to [$mp3_states]");
 $v_mp3_control2 = new Voice_Cmd("Set Zacks mp3 player to [$mp3_states]");
 $v_mp3_control3 = new Voice_Cmd("Set Nicks mp3 player to [$mp3_states]");
-$v_mp3_control4 =
-  new Voice_Cmd("Set the shoutcast mp3 player to [$mp3_states]");
+$v_mp3_control4 = new Voice_Cmd("Set the shoutcast mp3 player to [$mp3_states]");
 $v_mp3_control5 = new Voice_Cmd("Set the phone mp3 player to [$mp3_states]");
 
 #&mp3_control($state, 'house') if $state = said $v_mp3_control1;

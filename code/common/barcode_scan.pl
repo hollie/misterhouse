@@ -23,21 +23,11 @@
 
 $barcode_data = new Generic_Item;
 $barcode_mode = new Generic_Item;
-$barcode_mode->set_states(
-    'web',
-    'add inventory',
-    'delete inventory',
-    'query inventory',
-    'clear inventory'
-);
+$barcode_mode->set_states( 'web', 'add inventory', 'delete inventory', 'query inventory', 'clear inventory' );
 $barcode_mode->set_authority('anyone');
 
-$v_barcode_mode = new Voice_Cmd(
-    'Change barcode scan to [entry,add inventory,delete inventory,query inventory,clear inventory] mode'
-);
-$v_barcode_mode->set_info(
-    'Controls what you want to do with barcode scans.  Web will create urls, inventory updates a database'
-);
+$v_barcode_mode = new Voice_Cmd('Change barcode scan to [entry,add inventory,delete inventory,query inventory,clear inventory] mode');
+$v_barcode_mode->set_info('Controls what you want to do with barcode scans.  Web will create urls, inventory updates a database');
 $v_barcode_mode->set_authority('anyone');
 $v_barcode_mode->tie_items($barcode_mode);
 $v_barcode_mode->tie_event('respond "app=scanner Scanner set to $state mode"');
@@ -60,8 +50,7 @@ if ( $state = state_now $barcode_scan) {
 
     my ( $scanner_sn, $type, $code ) = barcode_decode($state);
 
-    $state =~
-      s/^\..+?\./\./;    # Drop the scanner Serial Number data from the logs
+    $state =~ s/^\..+?\./\./;        # Drop the scanner Serial Number data from the logs
     ${ $$barcode_scan{state_log} }[0] = "$Time_Date $state";
     my $mode = state $barcode_mode;
     print_log "Barcode scan: $mode $state";
@@ -136,8 +125,7 @@ if ( $state = state_now $barcode_scan) {
         }    # only if missing the CheckDigit
         $Info{barcode_data} = $code unless $Info{barcode_data};
         print_log "Barcode data: $type $code";
-        set $barcode_data
-          "$type $code"; # This is what get used elsewhere (e.g. barcode_web.pl)
+        set $barcode_data "$type $code";    # This is what get used elsewhere (e.g. barcode_web.pl)
     }
 }
 

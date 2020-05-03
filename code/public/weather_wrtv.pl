@@ -5,8 +5,7 @@ my $f_wrtv6_weather_html = "$config_parms{data_dir}/web/wrtv6_weather.html";
 
 #$f_wrtv6_weather2_html2 = new File_Item($f_wrtv6_weather2_html); # Needed if we use run instead of process_item
 
-$p_wrtv6_weather = new Process_Item(
-    "get_url http://www.wrtv.com/weather/index.shtml $f_wrtv6_weather_html");
+$p_wrtv6_weather = new Process_Item("get_url http://www.wrtv.com/weather/index.shtml $f_wrtv6_weather_html");
 $v_wrtv6_weather = new Voice_Cmd('[Get,Read,Show] wrtv6 weather');
 
 speak($f_wrtv6_weather)   if said $v_wrtv6_weather eq 'Read';

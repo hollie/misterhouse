@@ -216,30 +216,28 @@ sub new {
                                     #  Composite of 'border' flag and terminal
                                     #  size.
 
-    $$self{menuDepth}   = 0;        # Current depth
-    $$self{currentmenu} = [];       # All entries of the current menu
-    $$self{menu_offset} = 0;        # offset for multi page menu scrolling
-    $$self{menu_morepages} =
-      0;    # 1 = there is more than one page for the current menu
-    $$self{menu_elements} = 0;    # number of menu elements that currently
-                                  #  fit on one screen
+    $$self{menuDepth}      = 0;     # Current depth
+    $$self{currentmenu}    = [];    # All entries of the current menu
+    $$self{menu_offset}    = 0;     # offset for multi page menu scrolling
+    $$self{menu_morepages} = 0;     # 1 = there is more than one page for the current menu
+    $$self{menu_elements}  = 0;     # number of menu elements that currently
+                                    #  fit on one screen
 
-    $$self{key_layout} = 'phone'; # Defines the layout of the number pad
+    $$self{key_layout} = 'phone';   # Defines the layout of the number pad
 
-    $$self{choice}   = undef;     # last selected menu entry
-    $$self{response} = undef;     # last response from Misterhouse
+    $$self{choice}   = undef;       # last selected menu entry
+    $$self{response} = undef;       # last response from Misterhouse
 
-    $$self{zoomed}           = 0; # 1 = Response is zoomed (full screen)
-    $$self{zoomed_offset}    = 0; # offset for multi page response scrolling
-    $$self{zoomed_morepages} = 0; # Flag indicating whether there are more
-                                  #  pages left to show in the full screen
-                                  #  response view
+    $$self{zoomed}           = 0;   # 1 = Response is zoomed (full screen)
+    $$self{zoomed_offset}    = 0;   # offset for multi page response scrolling
+    $$self{zoomed_morepages} = 0;   # Flag indicating whether there are more
+                                    #  pages left to show in the full screen
+                                    #  response view
 
-    $$self{cmd} = '';   # Temporary buffer for the strings towards the terminal.
+    $$self{cmd}                = '';    # Temporary buffer for the strings towards the terminal.
     $$self{last_response_loop} = 0;
 
-    &::print_log(
-        "Terminal_Menu.pm: new \$p_menugroup=$p_menugroup \$self=$self")
+    &::print_log("Terminal_Menu.pm: new \$p_menugroup=$p_menugroup \$self=$self")
       if $::Debug{'Terminal_Menu'};
 
     # The first thing that the terminalmenu-client does is send the screen
@@ -328,17 +326,13 @@ sub set {
         $$self{terminal_width}  = $1;
         $$self{terminal_height} = $2;
         $$self{border} =
-          (       $$self{useborder}
-              and $$self{terminal_width} >= 22
-              and $$self{terminal_height} >= 18 ) ? 1 : 0;
+          ( $$self{useborder} and $$self{terminal_width} >= 22 and $$self{terminal_height} >= 18 ) ? 1 : 0;
         $updatescreen = 1;
     }
     elsif ( $state =~ m/^BORDER\s+(\d+)\s*$/i ) {
         $$self{useborder} = $1;
         $$self{border} =
-          (       $$self{useborder}
-              and $$self{terminal_width} >= 22
-              and $$self{terminal_height} >= 18 ) ? 1 : 0;
+          ( $$self{useborder} and $$self{terminal_width} >= 22 and $$self{terminal_height} >= 18 ) ? 1 : 0;
         $updatescreen = 1;
     }
     elsif ( $state =~ m/^COLOR\s+(\d+)\s*$/i ) {
@@ -352,9 +346,7 @@ sub set {
           qw(clear reset dark bold underline underscore blink reverse concealed black red green yellow blue magenta on_black on_red on_green on_yellow on_blue on_magenta on_cyan on_white);
         foreach my $c ( split( /\s/, $color ) ) {
             if ( not grep( /$c/i, @colorcodes ) ) {
-                &::print_log(
-                    "Terminal_Menu.pm: Color string \"$color\" not valid ($state). Please consult documentation of Term\:\:ANSIColor."
-                );
+                &::print_log("Terminal_Menu.pm: Color string \"$color\" not valid ($state). Please consult documentation of Term\:\:ANSIColor.");
                 return;
             }
         }
@@ -363,8 +355,7 @@ sub set {
             $$self{ 'color_' . lc($entry) } = $color;
         }
         else {
-            &::print_log(
-                "Terminal_Menu.pm: Color entry \"$entry\" not valid ($state).");
+            &::print_log("Terminal_Menu.pm: Color entry \"$entry\" not valid ($state).");
         }
     }
     elsif ( $state =~ m/^NUMPAD-LAYOUT\s+(\S+)\s*$/i ) {
@@ -434,12 +425,8 @@ sub _select_menu {
       if $::Debug{'Terminal_Menu'} > 1;
 
     if ( not defined $p_menu ) {
-        &::print_log(
-            "Terminal_Menu.pm: _select_menu: Menu not defined. Did you forget to load it? Does the menu file exist at all?"
-        );
-        $self->_send_to_terminal(
-            "print \"Menu undefined; Please check your Misterhouse configuration.\" \"bold red\""
-        );
+        &::print_log("Terminal_Menu.pm: _select_menu: Menu not defined. Did you forget to load it? Does the menu file exist at all?");
+        $self->_send_to_terminal("print \"Menu undefined; Please check your Misterhouse configuration.\" \"bold red\"");
         $self->_send_to_terminal("newline");
         $self->_flush_terminal();
         return;
@@ -451,14 +438,14 @@ sub _select_menu {
     ${ $$self{menuList} }[ $$self{menuDepth} ] = $p_menu;
 
     return
-      unless defined $$menus{ $$self{menuCurrent} };   # Guard against bad menus
+      unless defined $$menus{ $$self{menuCurrent} };    # Guard against bad menus
     $$self{itemCount} = @{ $$menus{ $$self{menuCurrent} }{items} };
 
     my $menu_name = undef;
     if ( $$self{menuCurrent} =~ /^states/ ) {
         my $l_menuPrevious = ${ $$self{menuList} }[ $$self{menuDepth} - 1 ];
         my $l_itemPrevious = ${ $$self{itemList} }[ $$self{menuDepth} - 1 ];
-        my $item = ${ $$menus{$l_menuPrevious}{items} }[ $l_itemPrevious - 1 ];
+        my $item           = ${ $$menus{$l_menuPrevious}{items} }[ $l_itemPrevious - 1 ];
 
         if ( $$item{A} and $$item{Dstates} ) {
             $menu_name = $$item{Dprefix} . '...' . $$item{Dsuffix};
@@ -531,9 +518,7 @@ sub _select_item {
             my $l_menuPrevious = ${ $$self{menuList} }[ $$self{menuDepth} - 1 ];
 
             #           my $response = &::menu_run("$$self{menugroup},$l_menuPrevious,$l_itemPrevious,$l_item,l");      # v2.96 and lower
-            my $response =
-              &::menu_run( $$self{menugroup}, $l_menuPrevious, $l_itemPrevious,
-                $l_item, 'l' );    # v2.97 and higher
+            my $response = &::menu_run( $$self{menugroup}, $l_menuPrevious, $l_itemPrevious, $l_item, 'l' );    # v2.97 and higher
             if ($response) {
                 $self->_response($response);
             }
@@ -545,9 +530,7 @@ sub _select_item {
             my $l_item = $$self{itemCurrent} - 1;
 
             #           my $response = &::menu_run("$$self{menugroup},$$self{menuCurrent},$l_item,,l");           # v2.96 and lower
-            my $response =
-              &::menu_run( $$self{menugroup}, $$self{menuCurrent}, $l_item,
-                undef, "l" );    # v2.97 and higher
+            my $response = &::menu_run( $$self{menugroup}, $$self{menuCurrent}, $l_item, undef, "l" );          # v2.97 and higher
             if ($response) {
                 $self->_response($response);
             }
@@ -562,9 +545,7 @@ sub _select_item {
         my $l_item = $$self{itemCurrent} - 1;
 
         #       my $response = &::menu_run("$$self{menugroup},$$self{menuCurrent},$l_item,,l");           # v2.96 and lower
-        my $response =
-          &::menu_run( $$self{menugroup}, $$self{menuCurrent}, $l_item, undef,
-            "l" );    # v2.97 and higher
+        my $response = &::menu_run( $$self{menugroup}, $$self{menuCurrent}, $l_item, undef, "l" );    # v2.97 and higher
         if ($response) {
             $self->_response($response);
         }
@@ -603,8 +584,7 @@ sub _exit_menu {
 sub _response {
     my ( $self, $response ) = @_;
 
-    &::print_log(
-        "Terminal_Menu.pm: _response \$self=$self \$response=$response")
+    &::print_log("Terminal_Menu.pm: _response \$self=$self \$response=$response")
       if $::Debug{'Terminal_Menu'} >= 2;
 
     $$self{response} = $response;
@@ -650,8 +630,7 @@ sub _handle_normal {
         if ( $$self{menu_morepages} ) {
             $$self{menu_offset} += $scroll_by;
             $$self{menu_offset} = 0
-              if ( $$self{menu_offset} >
-                ( scalar( @{ $$self{currentmenu} } ) - 2 ) );
+              if ( $$self{menu_offset} > ( scalar( @{ $$self{currentmenu} } ) - 2 ) );
             $self->_draw_screen();
         }
     }
@@ -806,8 +785,7 @@ sub _draw_menu {
         next if ( $i++ < $$self{menu_offset} );
         $entry = $self->_pad_and_trim( $entry, 5 );
         $self->_send_to_terminal("cursorpos $x $y");
-        $self->_send_to_terminal(
-            "print \" [$element] $entry\" \"$$self{color_menu}\"");
+        $self->_send_to_terminal("print \" [$element] $entry\" \"$$self{color_menu}\"");
         ++$y;
         last if $element >= $max_menu_height;
         $element++;
@@ -818,8 +796,7 @@ sub _draw_menu {
         $$self{menu_morepages} = 1;
         $$self{menu_elements}  = $element;
         $self->_send_to_terminal("cursorpos $x $y");
-        $self->_send_to_terminal(
-            "print \" [ENTER]=more...\" \"$$self{color_menu}\"");
+        $self->_send_to_terminal("print \" [ENTER]=more...\" \"$$self{color_menu}\"");
     }
 }
 
@@ -838,21 +815,17 @@ sub _draw_choice {
 
     if ( $choice_y < 3 ) {
         if ( defined $$self{choice} ) {
-            $self->_send_to_terminal(
-                "cursorpos " . ( $$self{terminal_width} - 1 ) . " 0" );
-            $self->_send_to_terminal(
-                "print \"$$self{choice}\" \"$$self{color_choice}\"");
+            $self->_send_to_terminal( "cursorpos " . ( $$self{terminal_width} - 1 ) . " 0" );
+            $self->_send_to_terminal("print \"$$self{choice}\" \"$$self{color_choice}\"");
             $self->_send_to_terminal("cursorpos $$self{terminal_width} 0");
         }
     }
     else {
         $self->_send_to_terminal("cursorpos $choice_x $choice_y");
-        $self->_send_to_terminal(
-            "print \"Your choice: \" \"$$self{color_choice_label}\"");
+        $self->_send_to_terminal("print \"Your choice: \" \"$$self{color_choice_label}\"");
         if ( defined $$self{choice} ) {
             my ( $x, $y ) = ( $$self{cursor_x}, $$self{cursor_y} );
-            $self->_send_to_terminal(
-                "print \"$$self{choice}\" \"$$self{color_choice}\"");
+            $self->_send_to_terminal("print \"$$self{choice}\" \"$$self{color_choice}\"");
             $self->_send_to_terminal("cursorpos $x $y");
         }
     }
@@ -913,8 +886,7 @@ sub _draw_normal_response {
 
     my ( $x, $y ) = ( $$self{cursor_x}, $$self{cursor_y} );
     $self->_send_to_terminal("cursorpos $response_x $response_y");
-    $self->_send_to_terminal(
-        "print \"$heading\" \"$$self{color_response_label}\"");
+    $self->_send_to_terminal("print \"$heading\" \"$$self{color_response_label}\"");
     $response_y += 1;
     $self->_send_to_terminal("cursorpos $response_x $response_y");
     $self->_send_to_terminal("print \"$response\" \"$$self{color_response}\"");
@@ -941,8 +913,7 @@ sub _draw_zoomed_response {
     ( $up, $down ) = ( '2', '8' ) if $$self{key_layout} eq 'phone';
 
     $self->_send_to_terminal("cursorpos $response_x $response_y");
-    $self->_send_to_terminal(
-        "print \"Result: [*]=back\" \"$$self{color_response_label}\"");
+    $self->_send_to_terminal("print \"Result: [*]=back\" \"$$self{color_response_label}\"");
 
     $Text::Wrap::columns = $$self{terminal_width} - ( $$self{border} ? 2 : 0 );
     my @lines = split( "\n", Text::Wrap::wrap( '', '', $response ) );
@@ -954,28 +925,21 @@ sub _draw_zoomed_response {
         $self->_send_to_terminal("cursorpos $response_x $response_y");
         $self->_send_to_terminal("print \"$line\" \"$$self{color_response}\"");
         last
-          if ( $$self{cursor_y} >=
-            $$self{terminal_height} - 1 - ( $$self{border} ? 1 : 0 ) );
+          if ( $$self{cursor_y} >= $$self{terminal_height} - 1 - ( $$self{border} ? 1 : 0 ) );
     }
 
     if ( $$self{zoomed_offset} ) {
-        $self->_send_to_terminal(
-            "cursorpos " . ( $$self{terminal_width} - 3 ) . " 0" );
+        $self->_send_to_terminal( "cursorpos " . ( $$self{terminal_width} - 3 ) . " 0" );
         $self->_send_to_terminal("print \"[$up]\" \"$$self{color_border}\"");
-        $self->_send_to_terminal(
-            "cursorpos " . ( $$self{terminal_width} - 2 ) . " 0" );
+        $self->_send_to_terminal( "cursorpos " . ( $$self{terminal_width} - 2 ) . " 0" );
     }
 
     $$self{zoomed_morepages} = 0;
     if ( $i < scalar @lines ) {
         $$self{zoomed_morepages} = 1;
-        $self->_send_to_terminal( "cursorpos "
-              . ( $$self{terminal_width} - 3 ) . " "
-              . ( $$self{terminal_height} - 1 ) );
+        $self->_send_to_terminal( "cursorpos " . ( $$self{terminal_width} - 3 ) . " " . ( $$self{terminal_height} - 1 ) );
         $self->_send_to_terminal("print \"[$down]\" \"$$self{color_border}\"");
-        $self->_send_to_terminal( "cursorpos "
-              . ( $$self{terminal_width} - 2 ) . " "
-              . ( $$self{terminal_height} - 1 ) );
+        $self->_send_to_terminal( "cursorpos " . ( $$self{terminal_width} - 2 ) . " " . ( $$self{terminal_height} - 1 ) );
     }
 }
 
@@ -990,10 +954,8 @@ sub _pad_and_trim {
 
     $indent = 0 if not defined $indent;
 
-    $text .= ' ' x
-      ( $$self{terminal_width} - length($text) - ( $$self{border} ? 1 : 0 ) );
-    $text = substr( $text, 0,
-        $$self{terminal_width} - $indent - ( $$self{border} ? 2 : 0 ) );
+    $text .= ' ' x ( $$self{terminal_width} - length($text) - ( $$self{border} ? 1 : 0 ) );
+    $text = substr( $text, 0, $$self{terminal_width} - $indent - ( $$self{border} ? 2 : 0 ) );
 
     return $text;
 }

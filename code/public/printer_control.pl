@@ -13,7 +13,7 @@ the print job has finished).
 =cut
 
 $ptimer  = new Timer;
-$printer = new X10_ITEM('A3')   # Change to suit your printer's appliance module
+$printer = new X10_ITEM('A3')    # Change to suit your printer's appliance module
 
   #The name of your printer status file
   #NOTE: This file is typically only readable by daemon & lp
@@ -24,7 +24,6 @@ $printer = new X10_ITEM('A3')   # Change to suit your printer's appliance module
 if ( file_changed($pstatus) ) {
     print "Printer On for print job\n";
     set $printer "on";
-    set $ptimer 5 * 60,
-      'print "Printer off after 5mins.\n"; set $printer "off"';
+    set $ptimer 5 * 60, 'print "Printer off after 5mins.\n"; set $printer "off"';
 
 }

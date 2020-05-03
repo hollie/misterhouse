@@ -14,8 +14,7 @@
 #
 
 $midi_test_p = new Process_Item;
-$midi_test_v =
-  new Voice_Cmd '[Start,Stop,Play5,Play10,Play20,Play30] a midi file';
+$midi_test_v = new Voice_Cmd '[Start,Stop,Play5,Play10,Play20,Play30] a midi file';
 $midi_test_t = new Timer;
 
 if ( $state = state_now $midi_test_v) {

@@ -54,12 +54,10 @@ use strict;
 my ( $Pgm_Path, $Pgm_Name, $Version );
 
 BEGIN {
-    ($Version) =
-      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval
-      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";    # So perl2exe works
 }
 
 use XMLTV::Version '$Id$ ';
@@ -69,7 +67,7 @@ Date_Init('TZ=UTC');
 use POSIX 'tmpnam';
 use Getopt::Long;
 use XMLTV qw(best_name);
-use vars '%config_parms';    # Not a my, as called from handy_net_utils
+use vars '%config_parms';                                          # Not a my, as called from handy_net_utils
 use Time::Local;
 
 #======================================================================
@@ -80,8 +78,7 @@ use Time::Local;
 my ( %parms, $infile, $channel_data );
 my ( @hours, @uas );
 my ( $dbm_file, $dbm_file2 );
-my ( %DBM, %DBM2, %DBM_channel, %DBM_html, %DBM_index )
-  ;    # DBM_html is extended data for HTML
+my ( %DBM, %DBM2, %DBM_channel, %DBM_html, %DBM_index );    # DBM_html is extended data for HTML
 my (%showtimes);
 my @weekday = qw (Sun Mon Tue Wed Thu Fri Sat);
 
@@ -90,11 +87,9 @@ my @weekday = qw (Sun Mon Tue Wed Thu Fri Sat);
 #======================================================================
 if (
     !&GetOptions(
-        \%parms,     "h",             "help",          "infile=s",
-        "outfile=s", "outdir=s",      "db=s",          "keep=s",
-        "skip=s",    "channel_max=s", "channel_min=s", "debug",
-        "label=s",   "keep_old",      "purge=s",       "days=s",
-        "day=s",     "hour=s"
+        \%parms,   "h",        "help",    "infile=s",      "outfile=s",     "outdir=s",
+        "db=s",    "keep=s",   "skip=s",  "channel_max=s", "channel_min=s", "debug",
+        "label=s", "keep_old", "purge=s", "days=s",        "day=s",         "hour=s"
     )
     or @ARGV
     or ( $parms{h} or $parms{help} )
@@ -147,8 +142,7 @@ sub days_from_now {
     my ( $day_time, $days ) = @_;
     my $day_time2 = $day_time + $days * 60 * 60 * 24;
     my ( $day, $month, $year, $down ) = ( localtime($day_time2) )[ 3, 4, 5, 6 ];
-    my $dow =
-      (qw(Sunday Monday Tuesday Wednesday Thursday Friday Saturday))[$down];
+    my $dow = (qw(Sunday Monday Tuesday Wednesday Thursday Friday Saturday))[$down];
 
     $month++;
     $year += 1900;
@@ -182,7 +176,7 @@ sub setup {
     $parms{timebars} = 5    unless $parms{timebars};
     $parms{days}     = 1    unless $parms{days};
     $parms{db}       = 'tv' unless $parms{db};
-    $parms{outdir} = "$config_parms{html_dir}/$parms{db}"
+    $parms{outdir}   = "$config_parms{html_dir}/$parms{db}"
       unless $parms{outdir};
     $parms{name} = 'TV' unless $parms{name};
     $parms{hour} = $config_parms{ $parms{db} . '_hours' } unless $parms{hour};
@@ -190,38 +184,20 @@ sub setup {
     $parms{hour} = '6pm' unless $parms{hour};
     @hours       = qw(02 06 10 14 18 22);
     %showtimes   = (
-        $hours[0] => [
-            '02:00 AM', '02:30 AM', '03:00 AM', '03:30 AM',
-            '04:00 AM', '04:30 AM', '05:00 AM', '05:30 AM'
-        ],
-        $hours[1] => [
-            '06:00 AM', '06:30 AM', '07:00 AM', '07:30 AM',
-            '08:00 AM', '08:30 AM', '09:00 AM', '09:30 AM'
-        ],
-        $hours[2] => [
-            '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
-            '12:00 PM', '12:30 PM', '1:00 PM',  '1:30 PM'
-        ],
-        $hours[3] => [
-            '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM',
-            '4:00 PM', '4:30 PM', '5:00 PM', '5:30 PM'
-        ],
-        $hours[4] => [
-            '6:00 PM', '6:30 PM', '7:00 PM', '7:30 PM',
-            '8:00 PM', '8:30 PM', '9:00 PM', '9:30 PM'
-        ],
-        $hours[5] => [
-            '10:00 PM', '10:30 PM', '11:00 PM', '11:30 PM',
-            '00:00 AM', '00:30 AM', '01:00 AM', '01:30 AM'
-        ],
+        $hours[0] => [ '02:00 AM', '02:30 AM', '03:00 AM', '03:30 AM', '04:00 AM', '04:30 AM', '05:00 AM', '05:30 AM' ],
+        $hours[1] => [ '06:00 AM', '06:30 AM', '07:00 AM', '07:30 AM', '08:00 AM', '08:30 AM', '09:00 AM', '09:30 AM' ],
+        $hours[2] => [ '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM', '1:00 PM',  '1:30 PM' ],
+        $hours[3] => [ '2:00 PM',  '2:30 PM',  '3:00 PM',  '3:30 PM',  '4:00 PM',  '4:30 PM',  '5:00 PM',  '5:30 PM' ],
+        $hours[4] => [ '6:00 PM',  '6:30 PM',  '7:00 PM',  '7:30 PM',  '8:00 PM',  '8:30 PM',  '9:00 PM',  '9:30 PM' ],
+        $hours[5] => [ '10:00 PM', '10:30 PM', '11:00 PM', '11:30 PM', '00:00 AM', '00:30 AM', '01:00 AM', '01:30 AM' ],
     );
 
     $parms{duration} = 4 unless ( $parms{duration} );
 
-    $parms{label} = "VCR" unless $parms{label}; # This can also be an image link
-    $parms{days}  = 1     unless $parms{days};
-    $parms{redo}  = 1;
-    $parms{duration} = 6 unless $parms{duration};
+    $parms{label}    = "VCR" unless $parms{label};      # This can also be an image link
+    $parms{days}     = 1     unless $parms{days};
+    $parms{redo}     = 1;
+    $parms{duration} = 6     unless $parms{duration};
 
     # Set up DBM files
     $dbm_file  = "$config_parms{data_dir}/$parms{db}_programs.dbm";
@@ -350,8 +326,7 @@ eof
 
                 # This should also really go into make_index
                 ##############################################
-                print OUT
-                  qq|<table border="1" BGCOLOR="#FFFFFF" CELLPADDING="2" CELLSPACING="1" WIDTH="">\n|;
+                print OUT qq|<table border="1" BGCOLOR="#FFFFFF" CELLPADDING="2" CELLSPACING="1" WIDTH="">\n|;
                 $current_time_bar =
                   qq|<tr><td colspan=2 align="center" bgcolor="#663366" width="60"><a href="/tv/$day\_$hour.html"><input border="0" width=60 height=30 type="image" name="earlier" src="/tv/logos/leftArrow.gif" value="earlier"></a></td>\n|;
                 foreach my $showtime ( @{ $showtimes{$hour} } ) {
@@ -373,20 +348,16 @@ eof
 
                     # Check for every channel
                     # if past midnight adjust the date to "tomorrow"
-                    my (
-                        $channel_number,    $channel_name,
-                        $channel_affiliate, $channel_image,
-                        $channel_ID
-                    ) = split( $;, $DBM_channel{$key} );
+                    my ( $channel_number, $channel_name, $channel_affiliate, $channel_image, $channel_ID ) = split( $;, $DBM_channel{$key} );
                     my $channel_number_display = $channel_number;
-                    my $show_found = 0;    # when the beginning of the channel
-                         # has nothing in it, to fill in the blanks
-                    my $colspan      = 0;    # keep track of how wide a show is
-                    my $colspancount = 0;    # track width of ttl grid
-                    my $show_found   = 0;    # has a show been found yet
-                    my $max_col_span = 8;    # Maximum # of columns in table
-                         # so we can figure out when the day flips
-                    my $its_late = 0;
+                    my $show_found             = 0;                 # when the beginning of the channel
+                                                                    # has nothing in it, to fill in the blanks
+                    my $colspan                = 0;                 # keep track of how wide a show is
+                    my $colspancount           = 0;                 # track width of ttl grid
+                    my $show_found             = 0;                 # has a show been found yet
+                    my $max_col_span           = 8;                 # Maximum # of columns in table
+                                                                    # so we can figure out when the day flips
+                    my $its_late               = 0;
 
                     my $row_started = 0;
 
@@ -414,49 +385,33 @@ eof
                         }
                         $showtime_epoch = $showtime_epoch + $day_epoch;
 
-                        my ( $pgm_date, $pgm_time ) =
-                          &convert_epoch_to_time($showtime_epoch);
-                        my $db_key =
-                          join( $;, $channel_number, $pgm_date, $pgm_time );
+                        my ( $pgm_date, $pgm_time ) = &convert_epoch_to_time($showtime_epoch);
+                        my $db_key = join( $;, $channel_number, $pgm_date, $pgm_time );
 
                         # If there is a value for the half hour interval
                         # figure out how long the show is and print the HTML
                         if ( $DBM_html{$db_key} ) {
                             $show_found = 1;
                             my (
-                                $time_end,     $pgm_name,
-                                $pgm_title,    $pgm_air,
-                                $time_start,   $time_start_adj,
-                                $time_end_adj, $pgm_rating,
-                                $pgm_desc,     $pgm_date_end,
-                                $epoch_start,  $epoch_end,
-                                @pgm_category
+                                $time_end,   $pgm_name, $pgm_title,    $pgm_air,     $time_start, $time_start_adj, $time_end_adj,
+                                $pgm_rating, $pgm_desc, $pgm_date_end, $epoch_start, $epoch_end,  @pgm_category
                             ) = split( $;, $DBM_html{$db_key} );
 
                             # calculate how many columns the show will take up.
                             # using the difference in two times for determining grid width.
-                            $colspan = int(
-                                ( $epoch_end / 60 - $epoch_start / 60 ) / 30 );
+                            $colspan = int( ( $epoch_end / 60 - $epoch_start / 60 ) / 30 );
 
                             # If the show is longer than is left on the table,
                             #     decrease width to available space
-                            if ( ( $colspancount + $colspan ) > $max_col_span )
-                            {
-                                do { $colspan = $colspan - 1; } until (
-                                    (
-                                        ( $colspancount + $colspan ) <=
-                                          $max_col_span
-                                    ) | $colspan < 2
-                                );
+                            if ( ( $colspancount + $colspan ) > $max_col_span ) {
+                                do { $colspan = $colspan - 1; } until ( ( ( $colspancount + $colspan ) <= $max_col_span ) | $colspan < 2 );
                             }
                             $colspancount = $colspancount + $colspan;
 
                             # Define the program listing for display to the grid
                             print OUT &display_program(
-                                $pgm_name,   $pgm_title,      $pgm_desc,
-                                $pgm_air,    $pgm_rating,     $channel_number,
-                                $time_start, $time_start_adj, $time_end,
-                                $pgm_date,   $colspan,        @pgm_category
+                                $pgm_name,   $pgm_title,      $pgm_desc, $pgm_air,  $pgm_rating, $channel_number,
+                                $time_start, $time_start_adj, $time_end, $pgm_date, $colspan,    @pgm_category
                             );
 
                         }
@@ -469,52 +424,33 @@ eof
 
                                 # Figure out when the last time was
                                 # back up time 30 minutes
-                                $grid_time_search = $grid_time_search -
-                                  ( 30 * 60 );    # Backup 30 minutes
-                                my ( $pgm_date_loop, $pgm_time_loop ) =
-                                  &convert_epoch_to_time($grid_time_search);
+                                $grid_time_search = $grid_time_search - ( 30 * 60 );    # Backup 30 minutes
+                                my ( $pgm_date_loop, $pgm_time_loop ) = &convert_epoch_to_time($grid_time_search);
 
                                 #Build a key
-                                my $search_key = join( $;,
-                                    $channel_number, $pgm_date_loop,
-                                    $pgm_time_loop );
+                                my $search_key = join( $;, $channel_number, $pgm_date_loop, $pgm_time_loop );
                                 if ( $DBM_html{$search_key} ) {
 
                                     # then hey we found it
                                     my (
-                                        $time_end,     $pgm_name,
-                                        $pgm_title,    $pgm_air,
-                                        $time_start,   $time_start_adj,
-                                        $time_end_adj, $pgm_rating,
-                                        $pgm_desc,     $pgm_date_end,
-                                        $epoch_start,  $epoch_end,
-                                        @pgm_category
+                                        $time_end,   $pgm_name, $pgm_title,    $pgm_air,     $time_start, $time_start_adj, $time_end_adj,
+                                        $pgm_rating, $pgm_desc, $pgm_date_end, $epoch_start, $epoch_end,  @pgm_category
                                     ) = split( $;, $DBM_html{$search_key} );
 
                                     # Show has to end before the beginning of grid or we don't really care and it's a lost cause
                                     if ( $epoch_end > $grid_start_epoch ) {
 
                                         # Figure out the column width
-                                        $colspan = int(
-                                            (
-                                                $epoch_end / 60 -
-                                                  $grid_start_epoch / 60
-                                            ) / 30
-                                        );
+                                        $colspan = int( ( $epoch_end / 60 - $grid_start_epoch / 60 ) / 30 );
 
                                         # and of course display the info
                                         print OUT &display_program(
-                                            $pgm_name,   $pgm_title,
-                                            $pgm_desc,   $pgm_air,
-                                            $pgm_rating, $channel_number,
-                                            $time_start, $time_start_adj,
-                                            $time_end,   $pgm_date,
-                                            $colspan,    @pgm_category
+                                            $pgm_name,   $pgm_title,      $pgm_desc, $pgm_air,  $pgm_rating, $channel_number,
+                                            $time_start, $time_start_adj, $time_end, $pgm_date, $colspan,    @pgm_category
                                         );
-                                        $show_found  = 1;
-                                        $row_started = 1;
-                                        $i           = 10
-                                          ; # Kick ourselves out of the loop because we found it
+                                        $show_found   = 1;
+                                        $row_started  = 1;
+                                        $i            = 10;         # Kick ourselves out of the loop because we found it
                                         $colspancount = $colspan;
                                     }
                                 }
@@ -524,32 +460,26 @@ eof
 
                             # Otherwise just leave it blank and do the best you can
                             if ( !($show_found) ) {
-                                print OUT
-                                  qq|<td bgcolor="#ffffff" colspan="1" width="10%" valign="top"></td>\n|;
+                                print OUT qq|<td bgcolor="#ffffff" colspan="1" width="10%" valign="top"></td>\n|;
                                 $colspancount++;
                                 $row_started = 1;
                             }
                         }
                         elsif ( !($show_found) ) {
-                            print OUT
-                              qq|<td bgcolor="#ffffff" colspan="1" width="10%" valign="top"></td>\n|;
+                            print OUT qq|<td bgcolor="#ffffff" colspan="1" width="10%" valign="top"></td>\n|;
                             $colspancount++;
                             $row_started = 1;
                         }
 
                         $row_started = 0;
                     }
-                    if ( $colspancount < $max_col_span )
-                    {    # fix for blanks at the end of the channel
+                    if ( $colspancount < $max_col_span ) {    # fix for blanks at the end of the channel
                         my $colspan = $max_col_span - $colspancount;
-                        print OUT
-                          qq|<td bgcolor="#ffffff" colspan="$colspan" width="$colspan|
-                          . qq|0%" valign="top"></td>\n|;
+                        print OUT qq|<td bgcolor="#ffffff" colspan="$colspan" width="$colspan| . qq|0%" valign="top"></td>\n|;
                     }
 
                     # print the channel information on the right
-                    print OUT
-                      qq|<td bgcolor="#ffffff" align="center" colspan="2">$channel_image$channel_number_display<br>$channel_name</td>\n</tr>\n|;
+                    print OUT qq|<td bgcolor="#ffffff" align="center" colspan="2">$channel_image$channel_number_display<br>$channel_name</td>\n</tr>\n|;
 
                     #------------------------------------------------------------
                     # Do we need to generate a new timebar?
@@ -575,12 +505,7 @@ eof
                     print "Copied $outfile  to $parms{outdir}/index.html\n"
                       if $parms{debug};
                     if ( $parms{mail_to} ) {
-                        &mail_file(
-                            $parms{mail_to},
-                            $parms{mail_server},
-                            $outfile,
-                            "$parms{name} Schedule for $dow, $month/$day/$year"
-                        );
+                        &mail_file( $parms{mail_to}, $parms{mail_server}, $outfile, "$parms{name} Schedule for $dow, $month/$day/$year" );
                     }
                 }
             }
@@ -595,11 +520,9 @@ eof
 #======================================================================
 sub make_index {
     my ( $hour, $down, $day, $day_time ) = @_;
-    print OUT "<center>\n<table border=1 width=100%>\n<tr>\n<td align=left>\n"
-      ;    ### DW: remove bgcolors
+    print OUT "<center>\n<table border=1 width=100%>\n<tr>\n<td align=left>\n";    ### DW: remove bgcolors
 
-    print OUT
-      "<font face=arial size=+1 color=white> Listings for $parms{name} </td><td align=right>";
+    print OUT "<font face=arial size=+1 color=white> Listings for $parms{name} </td><td align=right>";
     print OUT "<FORM>";
 
     #----------------------------------------------------------------------
@@ -613,8 +536,7 @@ sub make_index {
     #  be the friendliest way to do this (in my own humble opinion.)
     #  Feel free to change this if you like.
     #----------------------------------------------------------------------
-    print OUT
-      "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'output')>\n";
+    print OUT "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'output')>\n";
 
     #print OUT "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'menu')>\n";
     #my $dow_start = -$down - 7;
@@ -623,8 +545,7 @@ sub make_index {
 
     #  my $dow_stop  = $parms{days} -1;
     for my $count ( $dow_start .. $dow_stop ) {
-        my ( $dow2, $dow2n, $day2, $month2, $year2 ) =
-          &days_from_now( $day_time, $count );
+        my ( $dow2, $dow2n, $day2, $month2, $year2 ) = &days_from_now( $day_time, $count );
         print OUT "<option value='/" . $parms{db} . "/${day2}_$hour.html'";
 
         if ( $day2 == $day ) {
@@ -633,8 +554,7 @@ sub make_index {
         print OUT ">$dow2, $month2/$day2\n";
     }
     print OUT "</select>\n";
-    print OUT
-      "<SELECT NAME=tvtime onchange=window.open(this.options[this.selectedIndex].value,'output')>\n";
+    print OUT "<SELECT NAME=tvtime onchange=window.open(this.options[this.selectedIndex].value,'output')>\n";
 
     for my $hour2 (@hours) {
         my $hour2_ampm;
@@ -785,18 +705,14 @@ sub fetchLoop {
 
             # for some reason some of the channel icons are gifs, others jpgs.
             # Check for both
-            $channel_image_path =
-              $parms{outdir} . '/logos/' . lc($channel_affiliate) . '.gif';
+            $channel_image_path = $parms{outdir} . '/logos/' . lc($channel_affiliate) . '.gif';
             if ( ( -e $channel_image_path ) ) {
-                $channel_image =
-                  qq|<img src="/tv/logos/$channel_affiliate.gif"><br>|;
+                $channel_image = qq|<img src="/tv/logos/$channel_affiliate.gif"><br>|;
             }
             else {
-                $channel_image_path =
-                  $parms{outdir} . '/logos/' . lc($channel_affiliate) . '.jpg';
+                $channel_image_path = $parms{outdir} . '/logos/' . lc($channel_affiliate) . '.jpg';
                 if ( ( -e $channel_image_path ) ) {
-                    $channel_image =
-                      qq|<img src="/tv/logos/$channel_affiliate.jpg"><br>|;
+                    $channel_image = qq|<img src="/tv/logos/$channel_affiliate.jpg"><br>|;
                 }
                 if ( !($channel_image) ) {
                     $channel_image = "$channel_affiliate<br>";
@@ -806,19 +722,15 @@ sub fetchLoop {
 
         # and if it's not an affiliate it could still have an icon.
         else {
-            $channel_image_path =
-              $parms{outdir} . '/logos/' . lc($channel_name) . '.jpg';
+            $channel_image_path = $parms{outdir} . '/logos/' . lc($channel_name) . '.jpg';
             if ( ( -e $channel_image_path ) ) {
-                $channel_image =
-                  qq|<img src="/tv/logos/$channel_name.jpg"><br>|;
+                $channel_image = qq|<img src="/tv/logos/$channel_name.jpg"><br>|;
             }
         }
 
         $DBM2{$channel_number} = $channel_name;
 
-        my $db_data = join( $;,
-            $channel_number, $channel_name, $channel_affiliate,
-            $channel_image,  $channel_ID );
+        my $db_data = join( $;, $channel_number, $channel_name, $channel_affiliate, $channel_image, $channel_ID );
         $DBM_channel{$channel_number} = $db_data;
 
         # DBM_index cross references between channels and programs
@@ -890,10 +802,8 @@ sub fetchLoop {
         # not screw with the actual database. Also would be much bigger.
         my $html_key = join( $;, $channel_number, $pgm_date, $time_start_adj );
         my $html_data = join( $;,
-            $time_end,   $pgm_name,       $pgm_title,    $pgm_air,
-            $time_start, $time_start_adj, $time_end_adj, $pgm_rating,
-            $pgm_desc,   $pgm_date_end,   $epoch_start,  $epoch_end,
-            @pgm_category );
+            $time_end,   $pgm_name, $pgm_title,    $pgm_air,     $time_start, $time_start_adj, $time_end_adj,
+            $pgm_rating, $pgm_desc, $pgm_date_end, $epoch_start, $epoch_end,  @pgm_category );
         $DBM_html{$html_key} = $html_data;
         my $db_key  = join( $;, $channel_number, $pgm_date,      $time_start );
         my $db_data = join( $;, $time_end,       $pgm_name_full, 0 );
@@ -959,16 +869,10 @@ sub convert_XML_to_epoch {
 # ========================================================
 sub convert_epoch_to_time {
     my ($epoch) = @_;
-    my (
-        $Second,    $Minute,  $Hour,      $DayofMonth, $WrongMonth,
-        $WrongYear, $WeekDay, $DayofYear, $IsDST
-    ) = localtime($epoch);
+    my ( $Second, $Minute, $Hour, $DayofMonth, $WrongMonth, $WrongYear, $WeekDay, $DayofYear, $IsDST ) = localtime($epoch);
     my $Month = $WrongMonth + 1;
     my $Year  = $WrongYear + 1900;
-    return (
-        sprintf( '%02d/%02d', $Month, $DayofMonth ),
-        sprintf( '%02d:%02d', $Hour,  $Minute )
-    );
+    return ( sprintf( '%02d/%02d', $Month, $DayofMonth ), sprintf( '%02d:%02d', $Hour, $Minute ) );
 }
 
 # ========================================================
@@ -1052,11 +956,8 @@ sub pgm_color {
 sub display_program {
 
     # Make the Display output for the tv_grid html page
-    my (
-        $pgm_name,   $pgm_title,      $pgm_desc,   $pgm_air,
-        $pgm_rating, $channel_number, $time_start, $time_start_adj,
-        $time_end,   $pgm_date,       $colspan,    @pgm_category
-    ) = @_;
+    my ( $pgm_name, $pgm_title, $pgm_desc, $pgm_air, $pgm_rating, $channel_number, $time_start, $time_start_adj, $time_end, $pgm_date, $colspan, @pgm_category )
+      = @_;
     my ( $program, $pgm_category, $pgm_color, $time_wrong );
 
     # Format the program category, color-code as appropriate
@@ -1077,9 +978,9 @@ sub display_program {
     $program .= ": <i>$pgm_title</i>" if ($pgm_title);
     $program .= ".";
     $program .= " (" if ( defined $pgm_category || defined $pgm_air );
-    $program .= "$pgm_air, " if ($pgm_air);
+    $program .= "$pgm_air, "    if ($pgm_air);
     $program .= "$pgm_category" if defined $pgm_category;
-    $program .= "). " if ( defined $pgm_category || defined $pgm_air );
+    $program .= "). "           if ( defined $pgm_category || defined $pgm_air );
 
     $program .= " $pgm_desc"   if defined $pgm_desc;
     $program .= " $pgm_rating" if defined $pgm_rating;
@@ -1101,8 +1002,7 @@ sub display_program {
     if ( $time_start ne $time_start_adj ) {
         $time_wrong = qq|(<i>$time_start</i>) |;
     }
-    $program = qq|<td bgcolor="$pgm_color" colspan="$colspan" width="$colspan|
-      . qq|0%" valign="top">$time_wrong$program</td>|;
+    $program = qq|<td bgcolor="$pgm_color" colspan="$colspan" width="$colspan| . qq|0%" valign="top">$time_wrong$program</td>|;
 
     return $program;
 }

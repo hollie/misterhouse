@@ -34,9 +34,7 @@ sub set {
     my ( $self, $state, $set_by ) = @_;
 
     my $set_enter_time = &::gettimeofday();    # track the time in sub
-    &::print_log(
-        "ZWave_Item: Setting $self->{object_name} to $state, time=$set_enter_time"
-    );
+    &::print_log("ZWave_Item: Setting $self->{object_name} to $state, time=$set_enter_time");
     return if &main::check_for_tied_filters( $self, $state );
 
     $self->{set_by} = $set_by;
@@ -192,9 +190,7 @@ sub update_item_state {
         if ( ( !( $level == $self->{desired_level} ) )
             and !$self->{button_press_pending} )
         {
-            &::print_log(
-                "ERROR: got a level for $self->{object_name} that is not what was set. Got $level wanted $self->{desired_level}\n\n"
-            );
+            &::print_log("ERROR: got a level for $self->{object_name} that is not what was set. Got $level wanted $self->{desired_level}\n\n");
             $self->{bad_sets}++;
             $self->{set_pending} = 0;
         }
@@ -285,12 +281,11 @@ sub new {
 
     $self->{mode} = 'auto';
 
-    $self->{update_rate} = $update_rate;    # sets how often the item is polled
-    $self->{update_deferral_count} = 0;     # how many times update was deferred
-    $self->{instant_update} = $instant_update;
+    $self->{update_rate}           = $update_rate;      # sets how often the item is polled
+    $self->{update_deferral_count} = 0;                 # how many times update was deferred
+    $self->{instant_update}        = $instant_update;
 
-    $self->set_interface( $interface, $id, $type )
-      ;                                     # associate item with interface
+    $self->set_interface( $interface, $id, $type );     # associate item with interface
 
     $self->add( N . $id . 'L' . '99', 'on' );
     $self->add( N . $id . 'L' . '99', '100%' );
@@ -330,8 +325,7 @@ sub new {
     $self->add('dim');
     $self->add('manual');
 
-    $self->{set_open_loop} = 1
-      ; # means we can set the state before it is confirmed by a query of the device (faster)
+    $self->{set_open_loop} = 1;    # means we can set the state before it is confirmed by a query of the device (faster)
 
     #    foreach $key (%{$self}) {
     #	print "key $key\n";
@@ -360,8 +354,7 @@ sub processSetData {
             $state = 'on';
         }
         else {
-            &::print_log(
-                "Can't toggle unless state is on or off), state=$$self{state}")
+            &::print_log("Can't toggle unless state is on or off), state=$$self{state}")
               if $::config_parms{rzc0p_errata} >= 1;
         }
     }
@@ -389,8 +382,7 @@ sub processSetData {
         $self->{set_pending}   = 1;
 
         # go get the state
-        $self->{interface}
-          ->send_zwave_data( $self, '>?N' . $self->{zwave_id}, 1, 1, 0, 0 );
+        $self->{interface}->send_zwave_data( $self, '>?N' . $self->{zwave_id}, 1, 1, 0, 0 );
     }
 
     elsif ( $state eq 'off' ) {
@@ -408,8 +400,7 @@ sub processSetData {
         $self->{desired_level} = 0;
 
         # queue the status command
-        $self->{interface}
-          ->send_zwave_data( $self, '>?N' . $self->{zwave_id}, 1, 1, 0, 0 );
+        $self->{interface}->send_zwave_data( $self, '>?N' . $self->{zwave_id}, 1, 1, 0, 0 );
     }
 
     elsif ( $state eq 'on' ) {
@@ -417,15 +408,12 @@ sub processSetData {
 
         #	$data = '>N' . $self->{zwave_id} . 'ON';
         if ( $self->{resume} ) {
-            &::print_log(
-                "setting $self->{object_name} to resume level of $self->{resume}"
-            );
+            &::print_log("setting $self->{object_name} to resume level of $self->{resume}");
             $data = '>N' . $self->{zwave_id} . 'L' . $self->{resume};
             $self->{desired_level} = $self->{resume};
         }
         else {
-            &::print_log(
-                "No resume level for $self->{object_name}, setting to 99");
+            &::print_log("No resume level for $self->{object_name}, setting to 99");
             $data = '>N' . $self->{zwave_id} . 'L99';
             $self->{desired_level} = '099';
         }
@@ -439,8 +427,7 @@ sub processSetData {
         # fix this should be resume level
         #	$self->{level} = 99 if $self->{set_open_loop};
         # force the status command to complete now
-        $self->{interface}
-          ->send_zwave_data( $self, '>?N' . $self->{zwave_id}, 1, 1, 0, 1 );
+        $self->{interface}->send_zwave_data( $self, '>?N' . $self->{zwave_id}, 1, 1, 0, 1 );
     }
     else {
         &::print_log("ZWave Light Error: Unrecognized incoming state $state\n")
@@ -473,12 +460,10 @@ sub convert_percents {
             #	    print "relative percentage $amount to be added to current value\n";
 
             my $level_diff = int( $desired_level_now * ( $amount / 100 ) );
-            &main::print_log(
-                "Relative percent: Changing light by $level_diff ($level_now * $amount%)"
-            );
+            &main::print_log("Relative percent: Changing light by $level_diff ($level_now * $amount%)");
             $data = $desired_level_now + $level_diff;
         }
-        else {    # '##%'        - set brightness to ## percent
+        else {                             # '##%'        - set brightness to ## percent
 
             #	    print "absolute percent of $amount\n";
             $data = $amount;
@@ -569,8 +554,7 @@ sub processSetData {
             $data = 'on';
         }
         else {
-            &::print_log(
-                "Zwave_appliance: Can't toggle state that's not off/on");
+            &::print_log("Zwave_appliance: Can't toggle state that's not off/on");
         }
     }
 
@@ -613,8 +597,7 @@ sub processSetData {
     else { &::print_log("ZWave_Appliance: got unsupported command $data\n"); }
 
     # get the status of the operation
-    $self->{interface}
-      ->send_zwave_data( $self, '>?N' . $self->{zwave_id}, 1, 1, 0, 0 );
+    $self->{interface}->send_zwave_data( $self, '>?N' . $self->{zwave_id}, 1, 1, 0, 0 );
 }
 
 return 1;

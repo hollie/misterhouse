@@ -29,22 +29,16 @@ BEGIN {
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
-my ($Version) =
-  q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
+my ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
 
 #print "Command: $Pgm_Name @ARGV\n";
 #print "Version: $Version\n";
 
 use Getopt::Long;
 my %parms;
-if (
-    !&GetOptions(
-        \%parms,  "reget",  "h",       "help",   "v", "debug",
-        "city:s", "zone:s", "state:s", "file=s", "no_log"
-    )
+if (  !&GetOptions( \%parms, "reget", "h", "help", "v", "debug", "city:s", "zone:s", "state:s", "file=s", "no_log" )
     or @ARGV
-    or ( $parms{h} or $parms{help} )
-  )
+    or ( $parms{h} or $parms{help} ) )
 {
     print <<eof;
 
@@ -101,11 +95,9 @@ $parms{city} = $config_parms{weather_meteored_city} unless $parms{city};
 $parms{city} = 'LEMD' unless $parms{city};
 
 my $WeatherURL;
-$WeatherURL =
-  'http://www.meteored.com/situacion_actual/hw3.php?icao=' . $parms{city};
+$WeatherURL = 'http://www.meteored.com/situacion_actual/hw3.php?icao=' . $parms{city};
 
-my $f_weather_html =
-  "$config_parms{data_dir}/../web/ia5/outside/weather_local.html";
+my $f_weather_html = "$config_parms{data_dir}/../web/ia5/outside/weather_local.html";
 my $f_weather_data = "$config_parms{data_dir}/weather_data";
 my $f_weather_temp = "$config_parms{data_dir}/weather_temp";
 
@@ -117,11 +109,9 @@ my $debug = 1 if ( $parms{debug} );
 
 get_url_ua( $WeatherURL, $f_weather_html );
 my $html = &file_read($f_weather_html);
-$html =~
-  s|<html>|<html>\n<BASE href='http://www.meteored.com/situacion_actual/'>|i;
+$html =~ s|<html>|<html>\n<BASE href='http://www.meteored.com/situacion_actual/'>|i;
 $html =~ s/<\/head>.*?<\!-- METAR METAR/<\/head>\n<\!-- METAR METAR/is;
-$html =~
-  s/END ZONE ROWS----------- \/\/-->.*?$/END ZONE ROWS----------- \/\/-->\n/is;
+$html =~ s/END ZONE ROWS----------- \/\/-->.*?$/END ZONE ROWS----------- \/\/-->\n/is;
 
 #    print "HTML:\n$html\n" if $debug;
 &file_write( $f_weather_html, $html );
@@ -212,9 +202,7 @@ sub parse_weather_meteored {
 
     print STDERR $html if ($debug);
 
-    ( $html =~
-          m/\<td valign="top" colspan="2" align="center"><font size="2">([^<]+)/i
-    ) && ( $Weather{Conditions} = $1 );
+    ( $html =~ m/\<td valign="top" colspan="2" align="center"><font size="2">([^<]+)/i ) && ( $Weather{Conditions} = $1 );
     print STDERR "Conditions|$Weather{Conditions}|\n" if ($debug);
 
     $html =~ s/<.*?>//gs;

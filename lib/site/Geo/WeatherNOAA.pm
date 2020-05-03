@@ -33,7 +33,7 @@ require Exporter;
 
 $VERSION = do { my @r = ( q$Revision: 4.40 $ =~ /\d+/g ); sprintf "%d." . "%02d" x $#r, @r };
 my $URL_BASE        = 'http://forecast.weather.gov/product.php?site=';
-my $ZONE_SEARCH_URL = 'http://forecast.weather.gov/zipcity.php';
+my $ZONE_SEARCH_URL = 'https://forecast.weather.gov/zipcity.php';
 
 use vars '$proxy_from_env';
 $proxy_from_env = 0;
@@ -386,8 +386,7 @@ sub get_zone {
     $UA->agent("WeatherNOAA/$VERSION");
 
     my $ua = LWP::UserAgent->new();
-    my $response =
-      $ua->post( $URL, { 'inputstring' => $CityState, 'siteid' => 'chr' } );
+    my $response = $ua->post( $URL, { 'inputstring' => $CityState, 'Go2' => 'Go' } );
     my $location = $response->header('Location');
 
     if ( $location =~ /&site=(...)&/ ) {
@@ -396,6 +395,7 @@ sub get_zone {
     else {
         return;
     }
+
 }
 
 sub get_url {
@@ -480,8 +480,7 @@ sub ucfirst_words {
 #########################################################################
 
 sub get_city_hourly {
-    my ( $city, $state, $filename, $fileopt, $UA ) = @_;
-
+    my ( $city, $state, $filename, $fileopt, $UA, $rwrzone ) = @_;
     # City and state in all caps please
     #
     $city  = uc $city;
@@ -493,11 +492,12 @@ sub get_city_hourly {
     # Get data
     #
     my $zone = &get_zone( $ZONE_SEARCH_URL, "$city, $state" );
+    $rwrzone = $zone unless length($rwrzone);
     my $URL =
         $URL_BASE
       . $zone
       . '&issuedby='
-      . $zone
+      . $rwrzone
       . '&product=RWR&format=txt&version=1&glossary=0';
 
     #print STDERR "Getting data from $URL\n";
@@ -514,7 +514,14 @@ sub get_city_hourly {
         $data = get_data( $URL, $filename, $fileopt, $UA );
         $datalength = length($data);
     }
-
+    if ( $data =~ /None issued/ ) {
+	print "
+	NWS is not returing any information, please configure the 2 or 3 letter zone
+        in the mh.private.ini with the nws_rwr_zone option. IE: nws_rwr_zone=LIX
+	The zone can be found at the following site:
+	http://forecast.weather.gov/product_sites.php?site=$zone&product=RWR\n
+	";	
+    }
     #print STDERR "Got data ($datalength)\n";
 
     # Return error if there's an error
@@ -598,14 +605,14 @@ sub get_city_hourly {
 }    # get_city_hourly()
 
 sub print_current {
-    my ( $city, $state, $filename, $fileopt, $UA ) = @_;
-    my $in = process_city_hourly( $city, $state, $filename, $fileopt, $UA );
+    my ( $city, $state, $filename, $fileopt, $UA, $rwrzone ) = @_;
+    my $in = process_city_hourly( $city, $state, $filename, $fileopt, $UA, $rwrzone );
     return wrap( '', '    ', $in );
 }
 
 sub process_city_hourly {
-    my ( $city, $state, $filename, $fileopt, $UA ) = @_;
-    my $in = get_city_hourly( $city, $state, $filename, $fileopt, $UA );
+    my ( $city, $state, $filename, $fileopt, $UA, $rwrzone ) = @_;
+    my $in = get_city_hourly( $city, $state, $filename, $fileopt, $UA, $rwrzone );
 
     $state = uc($state);
 

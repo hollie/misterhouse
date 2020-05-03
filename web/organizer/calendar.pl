@@ -98,8 +98,7 @@ BEGIN {
         # i give up!  user is going to have to set it manually
         print "Content-type: text/html\n\n";
         print "<b>Installation path could not be determined.</b>\n";
-        print
-          "<p>Please edit the script and set \$ENV{\"CWD\"} to the full path in which the script is installed.";
+        print "<p>Please edit the script and set \$ENV{\"CWD\"} to the full path in which the script is installed.";
         exit 1;
     }
 }    # / BEGIN
@@ -279,8 +278,7 @@ undef($objCGI);
 
 # _____________________________________________________________________________
 sub PrintDefault {
-    print
-      "<table cellspacing='0' cellpadding=10' border='0'><tr valign='top'>\n";
+    print "<table cellspacing='0' cellpadding=10' border='0'><tr valign='top'>\n";
     print "<td>\n";
     print "<font size='2' face='arial,helvetica'>\n";
 
@@ -307,44 +305,23 @@ sub PrintDefault {
     #
 
     # display the navigation
-    print
-      "<form><table width='100%' bgcolor='$dataDarkColor' border='1' cellspacing='0' cellpadding='2'><tr><td align='center'>\n";
+    print "<form><table width='100%' bgcolor='$dataDarkColor' border='1' cellspacing='0' cellpadding='2'><tr><td align='center'>\n";
     print "<font size='2' face='arial,helvetica'><b>\n";
-    print "<a href='$scriptName?vsSD=$showDayDetails&vsMonth=$month&vsYear="
-      . ( $year - 1 ) . "&"
-      . $ia7_suffix
-      . "'>&lt;&lt;</a>\n";
-    print
-      "&nbsp;<a href='$scriptName?vsSD=$showDayDetails&vsMonth=$pmonth&vsYear=$pyear&"
-      . $ia7_suffix
-      . "'>&lt;</a>\n";
-    print
-      "<select name='month' onchange=\"document.location='$scriptName?vsSD=$showDayDetails&' + this.options[this.selectedIndex].value;return true;\">\n";
-    print "<option value='vsMonth=$pmonth&vsYear=$pyear&"
-      . $ia7_suffix
-      . "'>$pmonth / $pyear</option>\n";
-    print "<option value='vsMonth=$month&vsYear=$year&"
-      . $ia7_suffix
-      . "' selected>$month / $year</option>\n";
+    print "<a href='$scriptName?vsSD=$showDayDetails&vsMonth=$month&vsYear=" . ( $year - 1 ) . "&" . $ia7_suffix . "'>&lt;&lt;</a>\n";
+    print "&nbsp;<a href='$scriptName?vsSD=$showDayDetails&vsMonth=$pmonth&vsYear=$pyear&" . $ia7_suffix . "'>&lt;</a>\n";
+    print "<select name='month' onchange=\"document.location='$scriptName?vsSD=$showDayDetails&' + this.options[this.selectedIndex].value;return true;\">\n";
+    print "<option value='vsMonth=$pmonth&vsYear=$pyear&" . $ia7_suffix . "'>$pmonth / $pyear</option>\n";
+    print "<option value='vsMonth=$month&vsYear=$year&" . $ia7_suffix . "' selected>$month / $year</option>\n";
     my ($nM) = $month;
     my ($nY) = $year;
 
     for ( my $count = 1; $count < 12; $count++ ) {
         NextMonth( \$nM, \$nY );
-        print "<option value='vsMonth=$nM&vsYear=$nY&"
-          . $ia7_suffix
-          . "'>$nM / $nY</option>\n";
+        print "<option value='vsMonth=$nM&vsYear=$nY&" . $ia7_suffix . "'>$nM / $nY</option>\n";
     }
     print "</select>\n";
-    print
-      " <a href='$scriptName?vsSD=$showDayDetails&vsMonth=$nmonth&vsYear=$nyear&"
-      . $ia7_suffix
-      . "'>&gt;</a>\n";
-    print
-      "&nbsp;<a href='$scriptName?vsSD=$showDayDetails&vsMonth=$month&vsYear="
-      . ( $year + 1 ) . "&"
-      . $ia7_suffix
-      . "'>&gt;&gt;</a>\n";
+    print " <a href='$scriptName?vsSD=$showDayDetails&vsMonth=$nmonth&vsYear=$nyear&" . $ia7_suffix . "'>&gt;</a>\n";
+    print "&nbsp;<a href='$scriptName?vsSD=$showDayDetails&vsMonth=$month&vsYear=" . ( $year + 1 ) . "&" . $ia7_suffix . "'>&gt;&gt;</a>\n";
     print "</b></font>\n";
     print "</td></tr></table></form>";
 
@@ -392,32 +369,23 @@ sub PrintDay {
     my $thisDate = "$year.$month.$day";
 
     # my @days = ('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday');
-    my @months = (
-        'January',   'February', 'March',    'April',
-        'May',       'June',     'July',     'August',
-        'September', 'October',  'November', 'December'
-    );
+    my @months = ( 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' );
 
     $objMyDb->RemoveFilter;
     $objMyDb->Filter( "DATE", "eq", $thisDate );
 
     print "<table border='1' cellspacing='0' cellpadding='2' width='350' >\n";
-    print
-      "<font size='2' face='arial,helvetica'><b>Details For $months[$month-1] $day, $year</b></font><br>\n";
+    print "<font size='2' face='arial,helvetica'><b>Details For $months[$month-1] $day, $year</b></font><br>\n";
     print "<tr bgcolor='$dataHighlightColor'><td width='25'>&nbsp;</td>\n";
-    print
-      "<td width='75'><font size='2' face='arial,helvetica'><b>Time</b></font></td>\n";
-    print
-      "<td width='250'><font size='2' face='arial,helvetica'><b>Event</b></font></td></tr>\n";
+    print "<td width='75'><font size='2' face='arial,helvetica'><b>Time</b></font></td>\n";
+    print "<td width='250'><font size='2' face='arial,helvetica'><b>Event</b></font></td></tr>\n";
 
     if ( $objMyDb->EOF ) {
-        print
-          "<tr><td colspan='3'><font size='2' face='arial,helvetica'>No Events</font></td></tr>\n";
+        print "<tr><td colspan='3'><font size='2' face='arial,helvetica'>No Events</font></td></tr>\n";
     }
 
     while ( !$objMyDb->EOF ) {
-        unless ( $objMyDb->FieldValue("CONTROL") eq "on" )
-        {    #Don't display CONTROL calendars
+        unless ( $objMyDb->FieldValue("CONTROL") eq "on" ) {    #Don't display CONTROL calendars
             my $custcolor = "";
             $custcolor = " bgcolor='$dataHolidayColor' "
               if ( $objMyDb->FieldValue("HOLIDAY") eq "on" );
@@ -425,26 +393,18 @@ sub PrintDay {
               if ( $objMyDb->FieldValue("VACATION") eq "on" );
             $custcolor = " bgcolor='$dataMultipleColor' "
               if (  ( $objMyDb->FieldValue("VACATION") eq "on" )
-                and ( $objMyDb->FieldValue("HOLIDAY") eq "on" ) )
-              ;    # if a day is both vacation and holiday
+                and ( $objMyDb->FieldValue("HOLIDAY") eq "on" ) );    # if a day is both vacation and holiday
             my $icon   = $detailIcon;
             my $source = $objMyDb->FieldValue("SOURCE");
             $icon = "images/ical_1.jpg" if ( $source =~ /^ical=/ );
             $icon = $img_prefix . $icon;
             my $link =
-              "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$day&vsID="
+                "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$day&vsID="
               . $objMyDb->FieldValue("ID") . "&"
               . $ia7_suffix . "'>";
-            print "<tr $custcolor><td>" . $link
-              . "<img src='$icon' border='0'></a></td>";
-            print "<td><font size='2' face='arial,helvetica'>"
-              . $objMyDb->FieldValue("TIME")
-              . "&nbsp;</font></td>";
-            print "<td>"
-              . $link
-              . "<font size='2' face='arial,helvetica'>"
-              . $objMyDb->FieldValue("EVENT")
-              . "&nbsp;</font></td></a></tr>\n";
+            print "<tr $custcolor><td>" . $link . "<img src='$icon' border='0'></a></td>";
+            print "<td><font size='2' face='arial,helvetica'>" . $objMyDb->FieldValue("TIME") . "&nbsp;</font></td>";
+            print "<td>" . $link . "<font size='2' face='arial,helvetica'>" . $objMyDb->FieldValue("EVENT") . "&nbsp;</font></td></a></tr>\n";
         }
         $objMyDb->MoveNext;
     }
@@ -464,11 +424,7 @@ sub PrintMonth {
     my ( $firstDay, $numDays, $numWeeks ) = &GetMonthInfo( $month, $year );
 
     my @days = ( 'Su', 'M', 'Tu', 'W', 'Th', 'F', 'Sa' );
-    my @months = (
-        'January',   'February', 'March',    'April',
-        'May',       'June',     'July',     'August',
-        'September', 'October',  'November', 'December'
-    );
+    my @months = ( 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' );
     my $temp;
     my $dayCount     = 0;
     my $weekDayCount = 0;
@@ -483,35 +439,26 @@ sub PrintMonth {
     my $highlightDate = shift || $today;
 
     print "<p>\n";
-    print
-      "<font face='arial,helvetica' size='2'><b>$months[$month-1] $year</b></font>\n";
+    print "<font face='arial,helvetica' size='2'><b>$months[$month-1] $year</b></font>\n";
     if ($showDayDetails) {
-        print
-          " <font size='1'>[<a href='$scriptName?vsSD=0&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&"
-          . $ia7_suffix
-          . "'>Hide Details</a>]</font>\n";
+        print " <font size='1'>[<a href='$scriptName?vsSD=0&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&" . $ia7_suffix . "'>Hide Details</a>]</font>\n";
     }
     else {
-        print
-          " <font size='1'>[<a href='$scriptName?vsSD=1&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&"
-          . $ia7_suffix
-          . "'>Show Details</a>]</font>\n";
+        print " <font size='1'>[<a href='$scriptName?vsSD=1&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&" . $ia7_suffix . "'>Show Details</a>]</font>\n";
     }
     print "<table border='1' cellspacing='0' cellpadding='2'>\n";
 
     # print the days of the week
     print "<tr>\n";
     foreach $temp (@days) {
-        print
-          "<td bgcolor='$dataDarkColor'><font face='arial,helvetica' size='2'><b>$temp</b></font></td>";
+        print "<td bgcolor='$dataDarkColor'><font face='arial,helvetica' size='2'><b>$temp</b></font></td>";
     }
     print "</tr>\n";
 
     for ( my $cellCount = 1; $cellCount <= $numWeeks; $cellCount++ ) {
         print "<tr valign='top'>\n";
         foreach $temp (@days) {
-            if ( ( $dayCount > $firstDay - 1 ) && ( $weekDayCount < $numDays ) )
-            {
+            if ( ( $dayCount > $firstDay - 1 ) && ( $weekDayCount < $numDays ) ) {
                 $weekDayCount++;
 
                 $thisDate = $year . "." . $month . "." . $weekDayCount;
@@ -546,12 +493,10 @@ sub PrintMonth {
                 }
 
                 if ( defined $bgcolor ) {
-                    print
-                      "<td width='$cellSize' height='$cellSize' bgcolor='$bgcolor'><font face='arial,helvetica' size='2'>";
+                    print "<td width='$cellSize' height='$cellSize' bgcolor='$bgcolor'><font face='arial,helvetica' size='2'>";
                 }
                 else {
-                    print
-                      "<td width='$cellSize' height='$cellSize'><font face='arial,helvetica' size='2'>";
+                    print "<td width='$cellSize' height='$cellSize'><font face='arial,helvetica' size='2'>";
                 }
 
                 if ( $thisDate eq $today ) {
@@ -562,15 +507,13 @@ sub PrintMonth {
                 }
 
                 if ( $objMyDb->EOF ) {
-                    print
-                      "<a $style href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount&"
+                    print "<a $style href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount&"
                       . $ia7_suffix
                       . "'>$weekDayCount</a><br>";
                 }
                 else {
                     #$style = "style=\"color:$dataHolidayColor\"" if ($objMyDb->FieldValue("HOLIDAY") eq "on");
-                    print
-                      "<b><a $style href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount&"
+                    print "<b><a $style href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount&"
                       . $ia7_suffix
                       . "'>$weekDayCount</a></b><br>";
                 }
@@ -578,14 +521,12 @@ sub PrintMonth {
                 if ($showDayDetails) {
                     print "<font size='1'>";
                     while ( !$objMyDb->EOF ) {
-                        print
-                          "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount&vsID="
+                        print "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount&vsID="
                           . $objMyDb->FieldValue("ID") . "&"
                           . $ia7_suffix . "'>"
                           . $objMyDb->FieldValue("EVENT")
                           . "</a><br>"
-                          unless ( $objMyDb->FieldValue("CONTROL") eq "on" )
-                          ;    #Don't display CONTROL calendars;
+                          unless ( $objMyDb->FieldValue("CONTROL") eq "on" );    #Don't display CONTROL calendars;
                         $objMyDb->MoveNext;
                     }
                     print "</font>";
@@ -596,8 +537,7 @@ sub PrintMonth {
                 print "</font></td>\n";
             }
             else {
-                print
-                  "<td bgcolor='$dataLightColor'><font face='arial,helvetica' size='1'>&nbsp;</font></td>\n";
+                print "<td bgcolor='$dataLightColor'><font face='arial,helvetica' size='1'>&nbsp;</font></td>\n";
             }
 
             $dayCount++;
@@ -634,12 +574,7 @@ sub GetMonthInfo {
       ( localtime( Time::Local::timelocal( 0, 0, 0, 1, $month, $year ) ) )[6];
 
     # numDays is one day prior to 1st of month after
-    $numDays = (
-        localtime(
-            Time::Local::timelocal( 0, 0, 0, 1, $nmonth, $nyear ) -
-              60 * 60 * 24
-        )
-    )[3];
+    $numDays = ( localtime( Time::Local::timelocal( 0, 0, 0, 1, $nmonth, $nyear ) - 60 * 60 * 24 ) )[3];
 
     # figure out the number of weeks the month spans across
     my $numWeeks = ( $numDays + $firstDow ) / 7;
@@ -663,21 +598,17 @@ sub PrintCurrentRecord {
 
     foreach $fieldName ( $objMyDB->FieldNames ) {
         if ( $fieldName eq "ID" ) {
-            print "<input type='hidden' name='vsID' value='"
-              . $objMyDB->FieldValue("ID") . "'>\n";
+            print "<input type='hidden' name='vsID' value='" . $objMyDB->FieldValue("ID") . "'>\n";
         }
         elsif ( $fieldName eq "DATE" ) {
             if ( $objMyDB->FieldValue("ID") ) {
-                print "<input type='hidden' name='DATE' value='"
-                  . $objMyDB->FieldValue("DATE") . "'>\n";
+                print "<input type='hidden' name='DATE' value='" . $objMyDB->FieldValue("DATE") . "'>\n";
                 $date_entry = $objMyDB->FieldValue($fieldName);
             }
         }
         elsif ( $fieldName eq "DETAILS" ) {
             print "<tr valign='top' bgcolor='#DDDDDD'>\n";
-            print "<td><font face='arial' size='2'>"
-              . $fieldName
-              . "</font></td>\n";
+            print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
             print "<td colspan=3><textarea name='DETAILS' cols='30' rows='3'>";
             $fieldValue = $objMyDB->FieldValue($fieldName);
             $fieldValue =~ s/\"/&quot;/g;
@@ -693,20 +624,15 @@ sub PrintCurrentRecord {
             $fieldValue = $objMyDB->FieldValue($fieldName);
             print "checked " if ( $fieldValue eq "on" );
             print ">";
-            print "<font face='arial' size='2'>   "
-              . $fieldName
-              . "</font></td>";
+            print "<font face='arial' size='2'>   " . $fieldName . "</font></td>";
 
         }
         elsif ( $fieldName eq "VACATION" ) {
             $fieldValue = $objMyDB->FieldValue($fieldName);
-            print
-              "<td colspan=2><input name='VACATION' type=\"checkbox\" value=\"on\" ";
+            print "<td colspan=2><input name='VACATION' type=\"checkbox\" value=\"on\" ";
             print "checked " if ( $fieldValue eq "on" );
             print ">";
-            print "<font face='arial' size='2'>"
-              . $fieldName
-              . "</font></td>\n";
+            print "<font face='arial' size='2'>" . $fieldName . "</font></td>\n";
             print "</tr>\n";
 
         }
@@ -730,12 +656,8 @@ sub PrintCurrentRecord {
         }
         else {
             print "<tr valign='top' bgcolor='#DDDDDD'>\n";
-            print "<td><font face='arial' size='2'>"
-              . $fieldName
-              . "</font></td>\n";
-            print "<td colspan=3><input size=\"40\" name=\""
-              . $fieldName
-              . "\" value=\"";
+            print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
+            print "<td colspan=3><input size=\"40\" name=\"" . $fieldName . "\" value=\"";
             $fieldValue = $objMyDB->FieldValue($fieldName);
             $fieldValue =~ s/\"/&quot;/g;
             print $fieldValue . "\"></td>\n";
@@ -850,21 +772,18 @@ sub PrintCurrentRecord {
               . "';return false;} else {return false;};\">\n";
         }
         else {
-            print
-              "<input type='hidden' name='DATE' value='$year.$month.$day'>\n";
+            print "<input type='hidden' name='DATE' value='$year.$month.$day'>\n";
             print "<input type='hidden' name='ia7' value='$ia7_keys'>\n";
             print "<input type='hidden' name='vsCOM' value='INSERT'>\n";
             print "<input type='submit' value='Add'>\n";
         }
-        print
-          "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
+        print "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
     }
     else {
         $source =~ /^ical=(.*)\ssync=(.*)/;
         my $icalname = $1;
         my $icalsync = $2;
-        print
-          "<tr><td colspan=4><font face='arial' size='2'>iCal2vsdb (ical $icalname) $icalsync\n";
+        print "<tr><td colspan=4><font face='arial' size='2'>iCal2vsdb (ical $icalname) $icalsync\n";
         print "</font></td></tr></table>\n";
     }
     print "</form>\n";
@@ -884,10 +803,7 @@ sub UpdateCurrentRecord {
     my ($objMyCGI) = shift;
     my ( $fieldName, $fieldValue );
     my ( $starttime, $endtime );
-    my @fields = (
-        "TIME_hour",      "TIME_minute",  "TIME_ampm", "ENDTIME_hour",
-        "ENDTIME_minute", "ENDTIME_ampm", "SOURCE"
-    );
+    my @fields = ( "TIME_hour", "TIME_minute", "TIME_ampm", "ENDTIME_hour", "ENDTIME_minute", "ENDTIME_ampm", "SOURCE" );
     push( @fields, $objMyDB->FieldNames );
     foreach $fieldName (@fields) {
         $fieldValue = $objMyCGI->param($fieldName);
@@ -958,8 +874,7 @@ sub PreviousMonth {
 sub PrintLogin {
     print "<script>\n";
     print "function ValidateForm(objForm) {\n";
-    print
-      "	if (objForm.vsUserId.value == '' || objForm.vsPassword.value == '') {\n";
+    print "	if (objForm.vsUserId.value == '' || objForm.vsPassword.value == '') {\n";
     print "		alert('Please enter your User ID and Password.');\n";
     print "		return false;\n";
     print "	} else {\n";
@@ -969,10 +884,8 @@ sub PrintLogin {
     print "</script>\n";
     print "<b>Please login to continue:</b>\n";
     print "<p>\n";
-    print
-      "<form action='$scriptName' method='post' onsubmit=\"return ValidateForm(this);\">\n";
-    print
-      "<table border='0' cellspacing='1' cellpadding='2' style=\"FONT-SIZE: 10pt;FONT-FAMILY: 'Arial,Helvetica';\">\n";
+    print "<form action='$scriptName' method='post' onsubmit=\"return ValidateForm(this);\">\n";
+    print "<table border='0' cellspacing='1' cellpadding='2' style=\"FONT-SIZE: 10pt;FONT-FAMILY: 'Arial,Helvetica';\">\n";
     print "<tr valign='top' bgcolor='$dataLightColor'>\n";
     print "<td>User ID:</font></td>\n";
     print "<td><input type='text' size='40' name='vsUserId'></td>\n";
@@ -1015,8 +928,7 @@ sub Redirect {
     my ($rUrl) = shift || "";
     print "One moment please...\n";
     print "<p>\n";
-    print
-      "(<a href='$rUrl'>click here</a> if you are not automatically redirected in 5 seconds.)\n";
+    print "(<a href='$rUrl'>click here</a> if you are not automatically redirected in 5 seconds.)\n";
     print "<script>\n";
     print "document.location='$rUrl';\n";
     print "</script>\n";
@@ -1028,19 +940,15 @@ sub FatalError {
     my ($strMessage) = shift || "Unknown Error";
     print "Content-type: text/html\n\n" unless defined($HEADER_PRINTED);
     print "<p><font face='arial,helvetica' size='2'>\n";
-    print
-      "<b>A fatal error occured.  The script cannot continue.  Details are below:</b>";
+    print "<b>A fatal error occured.  The script cannot continue.  Details are below:</b>";
     print "<p><font color='red'>" . $strMessage . "</font>";
     print "<p>The most common causes of fatal errors are:\n";
     print "<ol>\n";
-    print
-      "<li>One of the script files was uploaded via FTP in Binary mode instead of ASCII\n";
-    print
-      "<li>The file permissions for the data directory and all .tab and .cfg files is not readable/writable\n";
+    print "<li>One of the script files was uploaded via FTP in Binary mode instead of ASCII\n";
+    print "<li>The file permissions for the data directory and all .tab and .cfg files is not readable/writable\n";
     print "</ol>\n";
     print "<p>If you have already tried these, you may want to visit the ";
-    print
-      "<a href='http://www.verysimple.com/support/'>VerySimple Support Forum</a> \n";
+    print "<a href='http://www.verysimple.com/support/'>VerySimple Support Forum</a> \n";
     print "to see if there is a solution available.\n";
     print "</font>\n";
     exit 1;

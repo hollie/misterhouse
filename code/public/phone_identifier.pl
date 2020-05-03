@@ -6,13 +6,11 @@ use CID_Log;
 use CID_Announce;
 use Telephony_Identifier;
 
-my $identifier =
-  new Telephony_Identifier( 'Identifier', $config_parms{identifier_port} );
+my $identifier = new Telephony_Identifier( 'Identifier', $config_parms{identifier_port} );
 
-$cid_lookup = new CID_Lookup($identifier);
-$cid_log    = new CID_Log($cid_lookup);
-$cid_announce =
-  new CID_Announce( $cid_lookup, 'Call from $name. Phone call is from $name' );
+$cid_lookup   = new CID_Lookup($identifier);
+$cid_log      = new CID_Log($cid_lookup);
+$cid_announce = new CID_Announce( $cid_lookup, 'Call from $name. Phone call is from $name' );
 
 #$dtmf_item      = new Telephony_DTMF($identifier);
 
@@ -23,16 +21,15 @@ if ( $state = state_now $identifier_init) {
 
 # for testing
 if (0) {
-    $cid_interface_test =
-      new Voice_Cmd('Test callerid [onhook,ring,answer,offhook,cid,o,o2]');
+    $cid_interface_test = new Voice_Cmd('Test callerid [onhook,ring,answer,offhook,cid,o,o2]');
     if ( defined( $state = state_now $cid_interface_test) ) {
         set_test $identifier '+2,0,001'
           if $state eq 'onhook';    #On Hook, idle  (hangup)
         set_test $identifier '+2,1,001' if $state eq 'ring';    #ring start
         set_test $identifier '+2,3,001'
-          if $state eq 'answer';    #Incoming call answered on line 1
+          if $state eq 'answer';                                #Incoming call answered on line 1
         set_test $identifier '+2,4,001'
-          if $state eq 'offhook';    #offhook outgoing
+          if $state eq 'offhook';                               #offhook outgoing
         set_test $identifier '+1,5851234567,Identifier test,001'
           if $state eq 'cid';
         set_test $identifier '+1,9543441234,O,001' if $state eq 'o';
@@ -51,9 +48,7 @@ sub cid_handler {
 
     return unless $p_state eq 'cid';
 
-    print_log "CID handler: "
-      . $p_setby->cid_name() . ' '
-      . $p_setby->cid_number();
+    print_log "CID handler: " . $p_setby->cid_name() . ' ' . $p_setby->cid_number();
 
     my_cid_handler();
 
@@ -134,8 +129,7 @@ sub my_cid_handler {
 
         #set_test $identifier 'ATA';
         set $timer_hangup 5, sub {
-            &Serial_Item::send_serial_data( $config_parms{callerid_name},
-                'ATH' );
+            &Serial_Item::send_serial_data( $config_parms{callerid_name}, 'ATH' );
         };
     }
     elsif (!$Save{at_home}
@@ -147,32 +141,24 @@ sub my_cid_handler {
         my $msg = "mh:$cid_name ($fnumber)";
         send_alpha_page($msg);
 
-        open( CID, ">$config_parms{html_dir}/mh_craig/cid.html" ); # web display
-        print CID
-          "<html><META HTTP-EQUIV='refresh' content='60;URL=/mh_craig/index.html'> <body bgcolor=black><br><br><br><br><br><br>";
+        open( CID, ">$config_parms{html_dir}/mh_craig/cid.html" );    # web display
+        print CID "<html><META HTTP-EQUIV='refresh' content='60;URL=/mh_craig/index.html'> <body bgcolor=black><br><br><br><br><br><br>";
         print CID "<center><table><TR><TD><font face=arial size=7 color=lime>";
-        print CID
-          "$caller <br>$cid_name <br>$fnumber <br>$Date_Now <br>$Time_Now <br>";
+        print CID "$caller <br>$cid_name <br>$fnumber <br>$Date_Now <br>$Time_Now <br>";
         print CID "</td></tr></table></center>  </body></html>";
         close CID;
 
-        open( CID, ">$config_parms{html_dir}/mh_craig/cidsmall.html" )
-          ;                                                        # web display
+        open( CID, ">$config_parms{html_dir}/mh_craig/cidsmall.html" );    # web display
         print CID "<html><body bgcolor=black><br>";
-        print CID
-          "<center><table><TR><TD><font face=arial size=5 color=lime><b>";
-        print CID
-          "$caller <br>$cid_name $fnumber <br><br>$Date_Now at $Time_Now <br>";
+        print CID "<center><table><TR><TD><font face=arial size=5 color=lime><b>";
+        print CID "$caller <br>$cid_name $fnumber <br><br>$Date_Now at $Time_Now <br>";
         print CID "</td></tr></table></center>  </body></html>";
         close CID;
     }
 
     $phone_count++;
-    open( CALL_LOG, ">>$config_parms{data_dir}/phone/recentcalls.log" )
-      ;                                                            # Log it
-    print CALL_LOG "$Date_Now`$Time_Now`"
-      . $cid_lookup->cid_name() . "`"
-      . $identifier->cid_number() . "\n";
+    open( CALL_LOG, ">>$config_parms{data_dir}/phone/recentcalls.log" );    # Log it
+    print CALL_LOG "$Date_Now`$Time_Now`" . $cid_lookup->cid_name() . "`" . $identifier->cid_number() . "\n";
     close CALL_LOG;
 }
 
@@ -212,11 +198,10 @@ if ( said $v_phone_lastcaller) {
     my ( $PhoneDateLog, $PhoneTimeLog, $PhoneNameLog, $PhoneNumberLog );
     my ( $last, $first, $middle, $areacode, $local_number, $caller );
 
-    open( CALL_LOG, "$config_parms{data_dir}/phone/recentcalls.log" )
-      ;    # Open for input
-    @CALL_LOGlines = <CALL_LOG>;    # Open array and
-                                    # read in data
-    close CALL_LOG;                 # Close the file
+    open( CALL_LOG, "$config_parms{data_dir}/phone/recentcalls.log" );    # Open for input
+    @CALL_LOGlines = <CALL_LOG>;                                          # Open array and
+                                                                          # read in data
+    close CALL_LOG;                                                       # Close the file
 
     print_log "Announced Recent Callers.";
 
@@ -240,8 +225,7 @@ if ( said $v_phone_lastcaller) {
             and $PhoneDateLog ne $Date_Now
             and $PhoneNumberLog eq '' )
         {
-            speak
-              "At $PhoneTimeLog on $PhoneDateLog, an unidentified party called.";
+            speak "At $PhoneTimeLog on $PhoneDateLog, an unidentified party called.";
         }
         elsif ( $PhoneNameLog eq 'OUT OF AREA'
             and $PhoneDateLog eq $Date_Now
@@ -253,15 +237,13 @@ if ( said $v_phone_lastcaller) {
             and $PhoneDateLog ne $Date_Now
             and $PhoneNumberLog ne '' )
         {
-            speak
-              "At $PhoneTimeLog on $PhoneDateLog, an unidentified party called. Call back at $PhoneNumberLog.";
+            speak "At $PhoneTimeLog on $PhoneDateLog, an unidentified party called. Call back at $PhoneNumberLog.";
         }
         elsif ( $PhoneNameLog eq 'OUT OF AREA'
             and $PhoneDateLog eq $Date_Now
             and $PhoneNumberLog ne '' )
         {
-            speak
-              "At $PhoneTimeLog, an unidentified party called. Call back at $PhoneNumberLog.";
+            speak "At $PhoneTimeLog, an unidentified party called. Call back at $PhoneNumberLog.";
         }
         elsif ( $PhoneNameLog eq 'PRIVATE'
             and $PhoneDateLog ne $Date_Now
@@ -275,15 +257,11 @@ if ( said $v_phone_lastcaller) {
         {
             speak "At $PhoneTimeLog, a private party called.";
         }
-        elsif ( $PhoneNameLog ne 'OUT OF AREA' and $PhoneDateLog ne $Date_Now )
-        {
-            speak
-              "At $PhoneTimeLog on $PhoneDateLog, $PhoneNameLog called. Call back at $PhoneNumberLog.";
+        elsif ( $PhoneNameLog ne 'OUT OF AREA' and $PhoneDateLog ne $Date_Now ) {
+            speak "At $PhoneTimeLog on $PhoneDateLog, $PhoneNameLog called. Call back at $PhoneNumberLog.";
         }
-        elsif ( $PhoneNameLog ne 'OUT OF AREA' and $PhoneDateLog eq $Date_Now )
-        {
-            speak
-              "At $PhoneTimeLog, $PhoneNameLog called. Call back at $PhoneNumberLog.";
+        elsif ( $PhoneNameLog ne 'OUT OF AREA' and $PhoneDateLog eq $Date_Now ) {
+            speak "At $PhoneTimeLog, $PhoneNameLog called. Call back at $PhoneNumberLog.";
         }
     }
     speak "$NumofCalls total calls." if $NumofCalls;
@@ -293,8 +271,7 @@ if ( said $v_phone_lastcaller) {
 
 $v_phone_clearlog = new Voice_Cmd('Clear Recent Call Log');
 if ( said $v_phone_clearlog) {
-    open( CALL_LOG, ">$config_parms{data_dir}/phone/recentcalls.log" )
-      ;    # CLEAR Log
+    open( CALL_LOG, ">$config_parms{data_dir}/phone/recentcalls.log" );    # CLEAR Log
     close CALL_LOG;
     print_log "Recent Call Log Cleared.";
 
@@ -305,37 +282,30 @@ if ( $Tk_results{'Phone Search'} ) {
     print_log "Searching for $Tk_results{'Phone Search'}";
 
     # Search data logged from incoming caller id data.
-    my ( $count1, $count2, %results ) =
-      &search_dbm( "$config_parms{data_dir}/phone/callerid.dbm",
-        $Save{phone_search} );
+    my ( $count1, $count2, %results ) = &search_dbm( "$config_parms{data_dir}/phone/callerid.dbm", $Save{phone_search} );
 
     # Also search in array created from mh.ini caller_id_file data
     while ( my ( $key, $value ) = each %Caller_ID::name_by_number ) {
         if (   $key =~ /$Save{phone_search}/i
             or $value =~ /$Save{phone_search}/i )
         {
-            $value =
-              &read_dbm( "$config_parms{data_dir}/phone/callerid.dbm", $key )
-              ;    # Use dbm data for consistency
+            $value = &read_dbm( "$config_parms{data_dir}/phone/callerid.dbm", $key );    # Use dbm data for consistency
             $results{$key} = $value;
         }
     }
-    $count2 = keys %results;   # Reset count, in case Caller_ID search found any
+    $count2 = keys %results;                                                             # Reset count, in case Caller_ID search found any
 
     if ($count2) {
         my $results;
         for ( sort keys %results ) {
-            my ( $cid_number, $cid_date, $cid_name ) =
-              $results{$_} =~ /(\S+) (.+) name=(.+)/;
+            my ( $cid_number, $cid_date, $cid_name ) = $results{$_} =~ /(\S+) (.+) name=(.+)/;
             $cid_name = $Caller_ID::name_by_number{$_}
               if $Caller_ID::name_by_number{$_};
-            $results .= sprintf( "%13s calls=%3s last=%26s %s\n",
-                $_, $cid_number, $cid_date, $cid_name );
+            $results .= sprintf( "%13s calls=%3s last=%26s %s\n", $_, $cid_number, $cid_date, $cid_name );
         }
 
         #       map {$results .= "   $_: $results{$_}\n\n"} sort keys %results;
-        display "Results:  $count2 out of $count1 records matched\n\n"
-          . $results, 120, 'Phone Search Results', 'systemfixed';
+        display "Results:  $count2 out of $count1 records matched\n\n" . $results, 120, 'Phone Search Results', 'systemfixed';
     }
     else {
         display "\n      No match found\n", 5, 'Phone Search Results';

@@ -5,8 +5,7 @@ my $display_name;
 my @logs = &read_phone_logs1('callerid');
 my @calls = &read_phone_logs2( 100, @logs );
 for my $r (@calls) {
-    my ( $time, $num, $name, $line, $type ) =
-      $r =~ /date=(.+) number=(.+) name=(.+) line=(.*) type=(.*)/;
+    my ( $time, $num, $name, $line, $type ) = $r =~ /date=(.+) number=(.+) name=(.+) line=(.*) type=(.*)/;
     ( $time, $num, $name ) = $r =~ /(.+\d+:\d+:\d+) (\S+) (.+)/ unless $name;
     $display_name = $name;
     $display_name =~ s/_/ /g;    # remove underscores to make it print pretty
@@ -14,8 +13,7 @@ for my $r (@calls) {
 
     #   next unless $line;
 
-    $html_calls .=
-      "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
+    $html_calls .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
 
     #    $html_calls .= "<td nowrap><a href=\"phone_search.pl?search=$num\"><img src='/graphics/ico_magnify.gif' border=0 alt='Show last call from $num'></a>&nbsp;<a href=\"phone_search.pl?search=$num\"><img src='/graphics/ico_magnify.gif' border=0 alt='Show last call from $num'></a></td>";
     $html_calls .=

@@ -87,8 +87,7 @@ http://localhost:8080/bin/dbmedit.cgi?file=earthquakes.dbm&columns=gmt%2Clat%2Cl
 
 # Add earthquake image to Informational category web page
 if ($Reload) {
-    $Included_HTML{'Informational'} .=
-      qq(<h3>Latest Earthquake<p><img src='/data/web/earthquakes.gif?<!--#include code="int(100000*rand)"-->'><p>\n\n\n);
+    $Included_HTML{'Informational'} .= qq(<h3>Latest Earthquake<p><img src='/data/web/earthquakes.gif?<!--#include code="int(100000*rand)"-->'><p>\n\n\n);
 }
 
 #The variables below are used by the get_earthquakes script called below
@@ -131,56 +130,36 @@ $state = said $v_earthquakes;
 if ( $state eq 'Get' ) {
     if (&net_connect_check) {
         if ( !$p_earthquakes->done() ) {
-            $v_earthquakes->respond(
-                "app=earthquakes Can not get earthquakes. Get earthquakes is already running..."
-            );
+            $v_earthquakes->respond("app=earthquakes Can not get earthquakes. Get earthquakes is already running...");
         }
         else {
             start $p_earthquakes;
-            $v_earthquakes->respond(
-                "app=earthquakes Checking for recent earthquakes...");
+            $v_earthquakes->respond("app=earthquakes Checking for recent earthquakes...");
         }
     }
 }
 elsif ( $state eq 'Clear' ) {
     if ( !$p_earthquakes->done() ) {
-        $v_earthquakes->respond(
-            "app=earthquakes Can not clear earthquakes. Get earthquakes is running..."
-        );
+        $v_earthquakes->respond("app=earthquakes Can not clear earthquakes. Get earthquakes is running...");
     }
     else {
-        $v_earthquakes->respond(
-            "app=earthquakes Clearing recent earthquakes ...");
+        $v_earthquakes->respond("app=earthquakes Clearing recent earthquakes ...");
         unlink $f_earthquakes_dbm;
         delete $Save{quakes};    #Delete the old save var if it exists
     }
 }
 elsif ( $state eq 'Read' ) {
-    if (
-        $speech = earthquake_read(
-            'all',             $f_earthquakes_dbm,
-            $Earthquake_Count, $Earthquake_Unit_Name
-        )
-      )
-    {
+    if ( $speech = earthquake_read( 'all', $f_earthquakes_dbm, $Earthquake_Count, $Earthquake_Unit_Name ) ) {
         $v_earthquakes->respond("app=earthquakes $speech");
     }
     else {
-        $v_earthquakes->respond(
-            'app=earthquakes No recent earthquakes to report.');
+        $v_earthquakes->respond('app=earthquakes No recent earthquakes to report.');
     }
 }
 
 if ( done_now $p_earthquakes) {
-    if (
-        $speech = earthquake_read(
-            'new',             $f_earthquakes_dbm,
-            $Earthquake_Count, $Earthquake_Unit_Name
-        )
-      )
-    {
-        $v_earthquakes->respond(
-            "app=earthquakes connected=0 important=1 $speech");
+    if ( $speech = earthquake_read( 'new', $f_earthquakes_dbm, $Earthquake_Count, $Earthquake_Unit_Name ) ) {
+        $v_earthquakes->respond("app=earthquakes connected=0 important=1 $speech");
     }
 }
 
@@ -214,9 +193,7 @@ sub earthquake_read {
 
     my $key;
     my $count = 0;
-    print_log( "internet_earthquakes: Found "
-          . scalar(@keysSpeak)
-          . " quakes to speak" )
+    print_log( "internet_earthquakes: Found " . scalar(@keysSpeak) . " quakes to speak" )
       if $Debug{earthquakes};
     foreach $key (@keysSpeak) {
         @dbmEvent = split( $;, $DBM{$key} );
@@ -257,8 +234,7 @@ sub calc_earthquake_age {
     # print ("UTC:" . $qtimeUTC . "\n");
 
     #Split it - these are now local time, not UTC
-    my ( $qseco, $qminu, $qhour, $qdate, $qmnth, $qyear ) =
-      localtime($qtimeUTC);
+    my ( $qseco, $qminu, $qhour, $qdate, $qmnth, $qyear ) = localtime($qtimeUTC);
     $qmnth += 1;
 
     #Merge it again - this is now local time, not UTC
@@ -268,11 +244,7 @@ sub calc_earthquake_age {
 
 # lets allow the user to control via triggers
 # noloop=start
-&trigger_set(
-    '$New_Hour and net_connect_check',
-    "run_voice_cmd 'Get recent earthquakes'",
-    'NoExpire',
-    'get earthquakes'
-) unless &trigger_get('get earthquakes');
+&trigger_set( '$New_Hour and net_connect_check', "run_voice_cmd 'Get recent earthquakes'", 'NoExpire', 'get earthquakes' )
+  unless &trigger_get('get earthquakes');
 
 # noloop=stop

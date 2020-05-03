@@ -40,8 +40,7 @@ use vars '$Registry';
 my $winamp_path;
 
 if ($OS_win) {    # Not really needed as this is a Windows-only module
-    $winamp_path =
-      $Registry->{'Classes/Applications/Winamp.exe/shell/open/command//'};
+    $winamp_path = $Registry->{'Classes/Applications/Winamp.exe/shell/open/command//'};
     $winamp_path = $1 if $winamp_path and $winamp_path =~ /"(.*?)"/;
     print "Found local Winamp: $winamp_path\n" if $Debug{winamp};
 }
@@ -50,8 +49,7 @@ $jukebox = new Mp3Player;
 
 my ( %winamp_commands, $mp3_states );
 if ( $config_parms{mp3_program_control} eq 'wactrl' ) {
-    $mp3_states = "Play,Stop,Pause,Restart,Rewind,Forward,"
-      . "Next Song,Previous Song,Volume up,Volume down,ontop";
+    $mp3_states      = "Play,Stop,Pause,Restart,Rewind,Forward," . "Next Song,Previous Song,Volume up,Volume down,ontop";
     %winamp_commands = (
         'restart'       => 'start',
         'rewind'        => 'rew5s',
@@ -66,8 +64,7 @@ else {
 
     #Shuffle on/off
 
-    $mp3_states =
-      "Play,Stop,Pause,Next Song,Previous Song,Volume Up,Volume Down,Random Song,Toggle Shuffle,Toggle Repeat,Shoutcast Connect,Clear List";
+    $mp3_states      = "Play,Stop,Pause,Next Song,Previous Song,Volume Up,Volume Down,Random Song,Toggle Shuffle,Toggle Repeat,Shoutcast Connect,Clear List";
     %winamp_commands = (
         'next song'         => 'next',
         'previous song'     => 'prev',
@@ -110,18 +107,14 @@ sub mp3_control {
     if (&is_httpq) {
         my $url = "http://$host:$config_parms{mp3_program_port}";
         if ( $command =~ /random song/i ) {
-            my $mp3_num_tracks =
-              get "$url/getlistlength?p=$config_parms{mp3_program_password}";
-            my $song          = int( rand($mp3_num_tracks) );
-            my $mp3_song_name = get
-              "$url/getplaylisttitle?p=$config_parms{mp3_program_password}&a=$song";
+            my $mp3_num_tracks = get "$url/getlistlength?p=$config_parms{mp3_program_password}";
+            my $song           = int( rand($mp3_num_tracks) );
+            my $mp3_song_name  = get "$url/getplaylisttitle?p=$config_parms{mp3_program_password}&a=$song";
             $mp3_song_name =~ s/[\n\r]//g;
             print "Now Playing $mp3_song_name\n" if $Debug{winamp};
             get "$url/stop?p=$config_parms{mp3_program_password}";
-            get
-              "$url/setplaylistpos?p=$config_parms{mp3_program_password}&a=$song";
-            $temp =
-              filter_cr get "$url/play?p=$config_parms{mp3_program_password}";
+            get "$url/setplaylistpos?p=$config_parms{mp3_program_password}&a=$song";
+            $temp = filter_cr get "$url/play?p=$config_parms{mp3_program_password}";
             return $temp;
         }
         elsif ( $command =~ /volume/i ) {
@@ -129,15 +122,13 @@ sub mp3_control {
 
             # 10 passes is about 20 percent
             for my $pass ( 1 .. 5 ) {
-                $temp .= filter_cr get
-                  "$url/$command?p=$config_parms{mp3_program_password}";
+                $temp .= filter_cr get "$url/$command?p=$config_parms{mp3_program_password}";
             }
             print "Winamp (httpq $host) set to $command: $temp\n"
               if $Debug{winamp};
         }
         elsif ( $command =~ /shuffle/i ) {
-            $temp .= filter_cr get
-              "$url/shuffle_status?p=$config_parms{mp3_program_password}";
+            $temp .= filter_cr get "$url/shuffle_status?p=$config_parms{mp3_program_password}";
             if ($temp) {
                 get "$url/shuffle?p=$config_parms{mp3_program_password}&a=0";
                 print "Winamp (httpq $host) Shuffle set OFF\n"
@@ -149,8 +140,7 @@ sub mp3_control {
             }
         }
         elsif ( $command =~ /repeat/i ) {
-            $temp .= filter_cr get
-              "$url/repeat_status?p=$config_parms{mp3_program_password}";
+            $temp .= filter_cr get "$url/repeat_status?p=$config_parms{mp3_program_password}";
             if ($temp) {
                 get "$url/repeat?p=$config_parms{mp3_program_password}&a=0";
                 print "Winamp (httpq $host) Repeat set OFF\n" if $Debug{winamp};
@@ -161,8 +151,7 @@ sub mp3_control {
             }
         }
         else {
-            $temp = filter_cr get
-              "$url/$command?p=$config_parms{mp3_program_password}";
+            $temp = filter_cr get "$url/$command?p=$config_parms{mp3_program_password}";
             print "Winamp (httpq $host) set to $command: $temp\n"
               if $Debug{winamp};
         }
@@ -198,14 +187,11 @@ sub mp3_play {
         #$file =~ s/\'/%27/g;
         #$file =~ s/\,/%2C/g;
         $file = &escape($file);
-        my $url = "http://$host:$config_parms{mp3_program_port}";
-        my $temp =
-          filter_cr get "$url/delete?p=$config_parms{mp3_program_password}";
-        print
-          "winamp debug $url/playfile?p=$config_parms{mp3_program_password}&a=$file\n"
+        my $url  = "http://$host:$config_parms{mp3_program_port}";
+        my $temp = filter_cr get "$url/delete?p=$config_parms{mp3_program_password}";
+        print "winamp debug $url/playfile?p=$config_parms{mp3_program_password}&a=$file\n"
           if $Debug{winamp};
-        $temp = filter_cr get
-          "$url/playfile?p=$config_parms{mp3_program_password}&a=$file";
+        $temp = filter_cr get "$url/playfile?p=$config_parms{mp3_program_password}&a=$file";
         $temp = filter_cr get "$url/play?p=$config_parms{mp3_program_password}";
         print "Winamp (httpq $host) song/list $file added: $temp\n"
           if $Debug{winamp};
@@ -236,13 +222,12 @@ sub mp3_queue {
         #$file =~ s/\,/%2C/g;
         $file = escape($file);
         my $url  = "http://$host:$config_parms{mp3_program_port}";
-        my $temp = filter_cr get
-          "$url/playfile?p=$config_parms{mp3_program_password}&a=$file";
+        my $temp = filter_cr get "$url/playfile?p=$config_parms{mp3_program_password}&a=$file";
         print "Winamp (httpq $host) song/list $file added: $temp\n"
           if $Debug{winamp};
     }
     else {
-        run qq["$config_parms{mp3_program}" /ADD "$file"]; ##/ # For gVim syntax
+        run qq["$config_parms{mp3_program}" /ADD "$file"];    ##/ # For gVim syntax
         print "mp3 queue: $file\n" if $Debug{winamp};
     }
 }
@@ -274,12 +259,10 @@ sub mp3_clear {
 sub mp3_get_playlist {
     my $host = shift || $mp3_host;
     return 0
-      unless &mp3_player_running($host)
-      ;    # Avoid frequent calls to a non-existant player ... get is too slow
+      unless &mp3_player_running($host);    # Avoid frequent calls to a non-existant player ... get is too slow
     if (&is_httpq) {
-        my $url =
-          "http://$host:$config_parms{mp3_program_port}/getplaylisttitle?p=$config_parms{mp3_program_password}";
-        my $mp3List = get $url;
+        my $url      = "http://$host:$config_parms{mp3_program_port}/getplaylisttitle?p=$config_parms{mp3_program_password}";
+        my $mp3List  = get $url;
         my @mp3Queue = split( "<br>", $mp3List );
         return \@mp3Queue;
     }
@@ -294,8 +277,7 @@ sub mp3_get_playlist {
 sub mp3_get_playlist_pos {
     my $host = shift || $mp3_host;
     if (&is_httpq) {
-        my $url =
-          "http://$host:$config_parms{mp3_program_port}/getlistpos?p=$config_parms{mp3_program_password}";
+        my $url = "http://$host:$config_parms{mp3_program_port}/getlistpos?p=$config_parms{mp3_program_password}";
         return get "$url";
     }
     else {
@@ -312,8 +294,7 @@ sub mp3_set_playlist_pos {
     return 0 if ( $pos eq '' );
     my $host = shift || $mp3_host;
     if (&is_httpq) {
-        my $url =
-          "http://$host:$config_parms{mp3_program_port}/setplaylistpos?p=$config_parms{mp3_program_password}&a=$pos";
+        my $url = "http://$host:$config_parms{mp3_program_port}/setplaylistpos?p=$config_parms{mp3_program_password}&a=$pos";
         print "Winamp URI:$url\n" if $Debug{winamp};
         return get "$url";
     }
@@ -341,8 +322,7 @@ sub mp3_playlist_delete {
     return 0 if ( $pos eq '' );
     my $host = shift || $mp3_host;
     if (&is_httpq) {
-        my $url =
-          "http://$host:$config_parms{mp3_program_port}/deletepos?p=$config_parms{mp3_program_password}&a=$pos";
+        my $url = "http://$host:$config_parms{mp3_program_port}/deletepos?p=$config_parms{mp3_program_password}&a=$pos";
         print "Winamp URI: $url\n" if $Debug{winamp};
         return get "$url";
     }
@@ -356,9 +336,8 @@ sub mp3_playlist_delete {
 sub mp3_get_playlist_files {
     my $host = shift || $mp3_host;
     if (&is_httpq) {
-        my $url =
-          "http://$host:$config_parms{mp3_program_port}/getplaylistfile?p=$config_parms{mp3_program_password}";
-        my $mp3List = get $url;
+        my $url      = "http://$host:$config_parms{mp3_program_port}/getplaylistfile?p=$config_parms{mp3_program_password}";
+        my $mp3List  = get $url;
         my @mp3Queue = split( "<br>", $mp3List );
         return \@mp3Queue;
     }
@@ -379,10 +358,8 @@ sub mp3_get_playlist_timestr {
 sub mp3_get_playlist_title {
     my $host = shift || $mp3_host;
     if (&is_httpq) {
-        my $cPos = get
-          "http://$host:$config_parms{mp3_program_port}/getlistpos?p=$config_parms{mp3_program_password}";
-        return get
-          "http://$host:$config_parms{mp3_program_port}/getplaylisttitle?p=$config_parms{mp3_program_password}&a=$cPos";
+        my $cPos = get "http://$host:$config_parms{mp3_program_port}/getlistpos?p=$config_parms{mp3_program_password}";
+        return get "http://$host:$config_parms{mp3_program_port}/getplaylisttitle?p=$config_parms{mp3_program_password}&a=$cPos";
     }
     else {
         # don't know how to do this
@@ -404,30 +381,25 @@ sub mp3_get_output_timestr {
     if (&is_httpq) {
 
         #		if ($type == 1 || $type =~ /Len/i) {
-        my $songPos = get
-          "http://$host:$config_parms{mp3_program_port}/getoutputtime?p=$config_parms{mp3_program_password}&a=0";
-        my $songLen = get
-          "http://$host:$config_parms{mp3_program_port}/getoutputtime?p=$config_parms{mp3_program_password}&a=1";
+        my $songPos = get "http://$host:$config_parms{mp3_program_port}/getoutputtime?p=$config_parms{mp3_program_password}&a=0";
+        my $songLen = get "http://$host:$config_parms{mp3_program_port}/getoutputtime?p=$config_parms{mp3_program_password}&a=1";
 
         # Format the info in a form consistant with xmms el:tm/to:tm
 
         my $tPos = $songPos / 1000;    #Posintion in miliseconds
         my $tLen = $songLen;           #Length of song in seconds
         if ($tLen) {
-            my $tPct = int( ( $tPos / $tLen ) * 100 );   # what ist the % played
+            my $tPct = int( ( $tPos / $tLen ) * 100 );    # what ist the % played
 
-            my $tMin = int( $tPos / 60 );    #Make outputs in mm:ss format
-            my $tSec = int( $tPos - ( $tMin * 60 ) )
-              ;    # we don't care about fractions of mins & secs
+            my $tMin = int( $tPos / 60 );                 #Make outputs in mm:ss format
+            my $tSec = int( $tPos - ( $tMin * 60 ) );     # we don't care about fractions of mins & secs
             if ( $tSec < 10 ) { $tSec = "0$tSec"; }
-            $songPos =
-              "$tMin:$tSec";   # this should be the elapsed time in MM:SS format
+            $songPos = "$tMin:$tSec";                     # this should be the elapsed time in MM:SS format
 
             $tMin = int( $tLen / 60 );
             $tSec = int( $tLen - ( $tMin * 60 ) );
             if ( $tSec < 10 ) { $tSec = "0$tSec"; }
-            $songLen =
-              "$tMin:$tSec";    # this should be the Total time in MM:SS format
+            $songLen = "$tMin:$tSec";                     # this should be the Total time in MM:SS format
 
             return "$songPos/$songLen ($tPct%)";
         }
@@ -448,8 +420,7 @@ sub mp3_get_output_timestr {
 sub mp3_get_playlist_length {
     my $host = shift || $mp3_host;
     if (&is_httpq) {
-        return get
-          "http://$host:$config_parms{mp3_program_port}/getlistlength?p=$config_parms{mp3_program_password}";
+        return get "http://$host:$config_parms{mp3_program_port}/getlistlength?p=$config_parms{mp3_program_password}";
     }
     else {
         # don't know how to do this
@@ -461,8 +432,7 @@ sub mp3_get_playlist_length {
 sub mp3_playing {
     my $host = shift || $mp3_host;
     if (&is_httpq) {
-        return get
-          "http://$host:$config_parms{mp3_program_port}/isplaying?p=$config_parms{mp3_program_password}";
+        return get "http://$host:$config_parms{mp3_program_port}/isplaying?p=$config_parms{mp3_program_password}";
     }
     else {
         # don't know how to do this
@@ -483,11 +453,9 @@ sub mp3_running {
         && ( $host eq 'localhost' )
         && done $p_winamp_house
         && !&sendkeys_find_window(
-            'Winamp ',
-            ( $config_parms{mp3_program} )
+            'Winamp ', ( $config_parms{mp3_program} )
             ? $config_parms{mp3_program}
-            : $winamp_path,
-            5000
+            : $winamp_path, 5000
         )
       )
     {
@@ -496,8 +464,7 @@ sub mp3_running {
         print_log "Starting WinAmp";
     }
     if (&is_httpq) {
-        return
-          "http://$host:$config_parms{mp3_program_port}/getversion?p=$config_parms{mp3_program_password}";
+        return "http://$host:$config_parms{mp3_program_port}/getversion?p=$config_parms{mp3_program_password}";
     }
     else {
         # don't know how to do this
@@ -521,8 +488,7 @@ sub mp3_radio_play {
     return 0 if ( $file eq '' );
     my $host = shift || $mp3_host;
     return 0
-      if $host ne 'localhost'
-      ;  # Can only launch URI's locally for some reason (httpq plugin problem?)
+      if $host ne 'localhost';    # Can only launch URI's locally for some reason (httpq plugin problem?)
     return 0 unless &mp3_running($host);
     $file =~ s/&&/&/g;
     run qq["$config_parms{mp3_program}" "$file"];

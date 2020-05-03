@@ -52,9 +52,7 @@ package example_interface;
 @example_interface::ISA = ('Serial_Item');
 
 sub startup {
-    &main::serial_port_create( 'example_interface',
-        $main::config_parms{example_interface_port},
-        4800, 'none' );
+    &main::serial_port_create( 'example_interface', $main::config_parms{example_interface_port}, 4800, 'none' );
     &::MainLoop_pre_add_hook( \&example_interface::check_for_data, 1 );
 }
 

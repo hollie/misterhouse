@@ -35,8 +35,7 @@ function delconfirm(num) {
 </script>
 </HEAD><BODY>\n<a name='Top'></a>$html
 Use this page to review or update your $::config_parms{caller_id_file} file.|;
-    $html .=
-      qq|<br><font color=red><b>Read-Only</b>: <a href="/bin/SET_PASSWORD">Login as admin|
+    $html .= qq|<br><font color=red><b>Read-Only</b>: <a href="/bin/SET_PASSWORD">Login as admin|
       unless ( ( $Authorized eq $authorized ) or ( $Authorized eq 'admin' ) );
     $html .= qq|or $authorized|
       if $authorized
@@ -64,7 +63,7 @@ To update existing entries, enter/change the field and hit Enter.|
 
     $c_number = $request{cidnumber} if $request{cidnumber} ne '';
     $c_name   = $request{cidname}   if $request{cidname} ne '';
-    $c_wav = $Caller_ID::wav_by_number{$c_number}
+    $c_wav    = $Caller_ID::wav_by_number{$c_number}
       if $Caller_ID::wav_by_number{$c_number} ne '';
     $c_group = $Caller_ID::group_by_number{$c_number}
       if $Caller_ID::group_by_number{$c_number} ne '';
@@ -77,8 +76,7 @@ To update existing entries, enter/change the field and hit Enter.|
     #display help on top, not pop-up to prevent audrey from dying
     if ($display_help) {
 
-        $html .=
-          "<br><br><font color=blue><b>HELP Information on $display_help field:</b><br><i>";
+        $html .= "<br><br><font color=blue><b>HELP Information on $display_help field:</b><br><i>";
         $html .= &web_callerid_help($display_help);
         $html .= "</i><br>\n";
 
@@ -88,8 +86,7 @@ To update existing entries, enter/change the field and hit Enter.|
         $html .= "<table border>\n";
         $html .= "<tr><td></td>";
         for my $header ( '', @headers ) {
-            $html .=
-              qq[<td><a href="/bin/callerid.pl?help=$header&cidnumber=$c_number&cidname=$c_name];
+            $html .= qq[<td><a href="/bin/callerid.pl?help=$header&cidnumber=$c_number&cidname=$c_name];
             $html .= "&showlist=0" if $request{showlist} eq '0';
             $html .= qq[">$header</a></td>];
         }
@@ -145,13 +142,11 @@ To update existing entries, enter/change the field and hit Enter.|
             my $headers = @headers;
 
             $html .= "<table border><tr><td colspan=$headers><B>$type</B>\n";
-            $html .=
-              "(<a name='$type' href='#Top'>back to top</a>)</td></tr>\n";
+            $html .= "(<a name='$type' href='#Top'>back to top</a>)</td></tr>\n";
 
             $html .= "<tr>";
             for my $header ( '', @headers ) {
-                $html .=
-                  qq[<td><a href="/bin/callerid.pl?help=$header">$header</a></td>];
+                $html .= qq[<td><a href="/bin/callerid.pl?help=$header">$header</a></td>];
             }
             $html .= "</tr>\n";
 
@@ -167,10 +162,7 @@ To update existing entries, enter/change the field and hit Enter.|
                     or ( $Authorized eq 'admin' ) );
                 $html .= "</td> ";
                 for my $field ( 0 .. $headers - 1 ) {
-                    $html .= &html_form_input_set_func(
-                        'web_callerid_set_field', "/bin/callerid.pl",
-                        "$pos,$field",            $cid_info[$field]
-                    );
+                    $html .= &html_form_input_set_func( 'web_callerid_set_field', "/bin/callerid.pl", "$pos,$field", $cid_info[$field] );
                 }
                 $html .= "</tr>\n";
             }
@@ -251,15 +243,11 @@ sub web_callerid_help {
     my ($field) = @_;
 
     my %help = (
-        Number =>
-          'Telephone number, without formatting or spaces. Older format may use dashes.',
-        Name =>
-          'The caller ID name of the entry (what will be announced and logged)',
-        Group =>
-          'The caller ID group this entry belongs to. Add to the "rejected" group for some special processing. :)',
-        Wav =>
-          'Location and name of a wav file to play over the PA, rather than announcing the callers name.',
-        Data => 'Caller ID name or WAV file to play. (older format)'
+        Number => 'Telephone number, without formatting or spaces. Older format may use dashes.',
+        Name   => 'The caller ID name of the entry (what will be announced and logged)',
+        Group  => 'The caller ID group this entry belongs to. Add to the "rejected" group for some special processing. :)',
+        Wav    => 'Location and name of a wav file to play over the PA, rather than announcing the callers name.',
+        Data   => 'Caller ID name or WAV file to play. (older format)'
     );
 
     my $help = $help{$field};

@@ -133,19 +133,10 @@ sub send_voice {
     my ($p_command) = @_;
     my $response;
 
-    $response =
-        "xap-header\n{\nv=12\nhop=1\nuid="
-      . $XAP_GUID
-      . "\nclass="
-      . $XAP_CLASS
-      . "\nsource="
-      . $XAP_ME . "."
-      . $XAP_SOURCE . "."
-      . $XAP_INSTANCE;
+    $response = "xap-header\n{\nv=12\nhop=1\nuid=" . $XAP_GUID . "\nclass=" . $XAP_CLASS . "\nsource=" . $XAP_ME . "." . $XAP_SOURCE . "." . $XAP_INSTANCE;
 
     #	$response = $response .	"\nport=" . $port ;
     $response = $response . "\n}\n";
-    $response =
-      $response . $XAP_CLASS . "\n{\ncommand=" . $p_command . "\n" . "}\n";
+    $response = $response . $XAP_CLASS . "\n{\ncommand=" . $p_command . "\n" . "}\n";
     return $response;
 }

@@ -67,11 +67,7 @@ $vm_mwi_item = new MWI_xAP($vm_cti2_item);
 
 # create the net callerid item instance - since we can use the call waiting feature
 # which * doesn't support for FXO lines
-$ncid_tel_item = new Telephony_Interface(
-    $config_parms{callerid_name},
-    $config_parms{callerid_port},
-    $config_parms{callerid_type}
-);
+$ncid_tel_item = new Telephony_Interface( $config_parms{callerid_name}, $config_parms{callerid_port}, $config_parms{callerid_type} );
 
 # create the lookup object so that inbound and outbound numbers can be converted
 # add both telephony interface items to it
@@ -95,8 +91,7 @@ $cid_logger = new CID_Log($cid_look);
 # location info derived from area code.  Instead just speak the number if not in
 # my phone.callerid.list and/or if the callername includes the words "call" in it
 # (which is virtually call cell calls and many businesses)
-$cid_announce =
-  new CID_Announce1( $cid_look, 'Call from $format1 on $address' );
+$cid_announce = new CID_Announce1( $cid_look, 'Call from $format1 on $address' );
 
 # tie OSD logic to a cid lookup state change
 # This is used to display CID info on my squeezebox.  Note that it uses
@@ -135,8 +130,7 @@ sub display_vm_info {
     my $vm_msg = "$username has $gregg_vm_new new vm message(s)";
 
     # display the message for 15 seconds
-    &xAP::send( 'xPL', 'slimdev-slimserv.squeezebox',
-        'osd.basic' => { command => 'write', delay => 15, text => $vm_msg } );
+    &xAP::send( 'xPL', 'slimdev-slimserv.squeezebox', 'osd.basic' => { command => 'write', delay => 15, text => $vm_msg } );
 }
 
 sub onoff_hook {
@@ -146,18 +140,10 @@ sub onoff_hook {
             print "gregg desk cid hook\n";
         }
         elsif ( $tel_item->state_now =~ /^onhook/i ) {
-            &xAP::send(
-                'xPL',
-                'xplmedia-client.basementdesk',
-                'media.basic' => { command => 'mute', state => 'OFF' }
-            );
+            &xAP::send( 'xPL', 'xplmedia-client.basementdesk', 'media.basic' => { command => 'mute', state => 'OFF' } );
         }
         elsif ( $tel_item->state_now =~ /^offhook/i ) {
-            &xAP::send(
-                'xPL',
-                'xplmedia-client.basementdesk',
-                'media.basic' => { command => 'mute', state => 'ON' }
-            );
+            &xAP::send( 'xPL', 'xplmedia-client.basementdesk', 'media.basic' => { command => 'mute', state => 'ON' } );
         }
     }
     else {

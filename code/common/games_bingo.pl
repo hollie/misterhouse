@@ -8,13 +8,10 @@ $t_bingo_timer   = new Timer;
 $v_bingo_control = new Voice_Cmd '[Start,Pause,Resume,Status,] Bingo';
 $v_bingo_time    = new Voice_Cmd 'Set bingo time to [2,5,10,15,20]';
 
-use vars qw(@bingo_card $bingo_count)
-  ;    # *** Is this really the best way to persist?
+use vars qw(@bingo_card $bingo_count);    # *** Is this really the best way to persist?
 
 if ( state_now $v_bingo_time) {
-    respond("app=bingo Bingo timer set to "
-          . $v_bingo_time->{state}
-          . " seconds." );
+    respond( "app=bingo Bingo timer set to " . $v_bingo_time->{state} . " seconds." );
     $config_parms{bingo_time} = $state;
 }
 

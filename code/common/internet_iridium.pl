@@ -21,16 +21,12 @@ Note: Correct long. and time_zone parms for those of us in the
 =cut
 
 $v_iridium_check = new Voice_Cmd '[Get,List,Browse] iridium flares';
-$v_iridium_check->set_info(
-    'Lists times and locations flares from iridium satellites');
+$v_iridium_check->set_info('Lists times and locations flares from iridium satellites');
 
 # Create trigger
 
 if ($Reload) {
-    &trigger_set(
-        '$New_Week', "run_voice_cmd('Get iridium flares')",
-        'NoExpire',  'get iridium info'
-    ) unless &trigger_get('get iridium info');
+    &trigger_set( '$New_Week', "run_voice_cmd('Get iridium flares')", 'NoExpire', 'get iridium info' ) unless &trigger_get('get iridium info');
 }
 
 sub uninstall_internet_iridium {
@@ -42,23 +38,18 @@ sub uninstall_internet_iridium {
 my $iridium_check_e = "$Code_Dirs[0]/iridium_check_events.pl";
 my $iridium_check_f = "$config_parms{data_dir}/web/iridium.html";
 my $iridium_check_u =
-    "http://www.heavens-above.com/iridium.asp?"
-  . "lat=$config_parms{latitude}&lng=$config_parms{longitude}&alt=0&TZ=UCT&Dur=7&"
-  . "loc=$config_parms{city}";
-$p_iridium_check =
-  new Process_Item qq[get_url "$iridium_check_u" "$iridium_check_f"];
+  "http://www.heavens-above.com/iridium.asp?" . "lat=$config_parms{latitude}&lng=$config_parms{longitude}&alt=0&TZ=UCT&Dur=7&" . "loc=$config_parms{city}";
+$p_iridium_check = new Process_Item qq[get_url "$iridium_check_u" "$iridium_check_f"];
 
 sub respond_iridium {
     my $connected = shift;
     my $display   = &list_iridium();
     if ($display) {
-        $v_iridium_check->respond(
-            "app=iridium connected=$connected Listing iridium data.");
+        $v_iridium_check->respond("app=iridium connected=$connected Listing iridium data.");
         display $display, 0, 'Iridium list', 'fixed';
     }
     else {
-        $v_iridium_check->respond(
-            "app=iridium connected=$connected Nothing to report.");
+        $v_iridium_check->respond("app=iridium connected=$connected Nothing to report.");
     }
 }
 
@@ -108,14 +99,13 @@ eof
                 : "$a[1]/$a[0] $a[2]"
               ) +
               3600 * $config_parms{time_zone};
-            $time += 3600 if (localtime)[8];  # Adjust for daylight savings time
+            $time += 3600 if (localtime)[8];    # Adjust for daylight savings time
             ($time_sec) =
               time_date_stamp( 6, $time ) . ' ' . time_date_stamp( 16, $time );
             ( $time, $sec ) = time_date_stamp( 9, $time );
-            $display .= sprintf "%s, mag=%2d, alt=%3d, azimuth=%3d, %s %s\n",
-              $time_sec, @a[ 3, 4, 5, 9, 10 ];
+            $display .= sprintf "%s, mag=%2d, alt=%3d, azimuth=%3d, %s %s\n", $time_sec, @a[ 3, 4, 5, 9, 10 ];
 
-            next unless $a[4] > 20;    # We can not see them if they are too low
+            next unless $a[4] > 20;             # We can not see them if they are too low
 
             # Create a seperate code file with a time_now for each event
             print MYCODE<<eof;
@@ -154,8 +144,7 @@ if ( said $v_iridium_check) {
         &respond_iridium(1);
     }
     else {
-        $v_iridium_check->respond(
-            "app=iridium $state2" . ' iridium report...' );
+        $v_iridium_check->respond( "app=iridium $state2" . ' iridium report...' );
     }
 
 }

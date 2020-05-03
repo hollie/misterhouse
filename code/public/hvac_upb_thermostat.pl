@@ -34,8 +34,7 @@ if ( my $current = $Livingroom_Thermostat->state_now ) {
     }
 }
 
-$v_Livingroom_Thermostat_mode = new Voice_Cmd(
-    "Set the Livingroom Thermostat mode to [off, heat, cool, auto]");
+$v_Livingroom_Thermostat_mode = new Voice_Cmd("Set the Livingroom Thermostat mode to [off, heat, cool, auto]");
 $Livingroom_Thermostat->mode( $v_Livingroom_Thermostat_mode->{state} )
   if ( said $v_Livingroom_Thermostat_mode);
 

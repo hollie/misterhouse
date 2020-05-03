@@ -13,7 +13,7 @@
 	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
 		<div class='col-sm-4'>
 			<a href="http://misterhouse.net" class='btn btn-default btn-lg btn-block btn-list' role='button'>
-				<i class='fa fa-home fa-2x fa-fw'></i> MisterHouse Website</a>
+				<i class='fa fa-home icon-2-5x fa-fw'></i> MisterHouse Website</a>
 		</div>
 		<div class='col-sm-8'>
 			<p>It Knows Kung-Fu, visit MisterHouse's own homepage.<p>
@@ -24,7 +24,7 @@
 	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
 		<div class='col-sm-4'>
 			<a href="/docs/index.html" class='btn btn-default btn-lg btn-block btn-list' role='button'>
-				<i class='fa fa-book fa-2x fa-fw'></i> Local Documentation
+				<i class='fa fa-book icon-2-5x fa-fw'></i> Local Documentation
 			</a>
 		</div>
 		<div class='col-sm-8'>
@@ -36,7 +36,7 @@
 	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
 		<div class='col-sm-4'>
 			<a href="http://misterhouse.10964.n7.nabble.com/" class='btn btn-default btn-lg btn-block btn-list' role='button'>
-				<i class='fa fa-envelope-o fa-2x fa-fw'></i> Nabble Archives
+				<i class='fa fa-envelope-o icon-2-5x fa-fw'></i> Nabble Archives
 			</a>
 		</div>
 		<div class='col-sm-8'>
@@ -48,7 +48,7 @@
 	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
 		<div class='col-sm-4'>
 			<a href="http://misterhouse.wikispaces.com" class='btn btn-default btn-lg btn-block btn-list' role='button'>
-				<i class='fa fa-pencil fa-2x fa-fw'></i> MisterHouse Wiki
+				<i class='fa fa-pencil icon-2-5x fa-fw'></i> MisterHouse Wiki
 			</a>
 		</div>
 		<div class='col-sm-8'>
@@ -60,7 +60,7 @@
 	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
 		<div class='col-sm-4'>
 			<a href="https://github.com/hollie/misterhouse" class='btn btn-default btn-lg btn-block btn-list' role='button'>
-				<i class='fa fa-github fa-2x fa-fw'></i> GitHub
+				<i class='fa fa-github icon-2-5x fa-fw'></i> GitHub
 			</a>
 		</div>
 		<div class='col-sm-8'>

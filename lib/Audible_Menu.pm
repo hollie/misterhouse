@@ -164,10 +164,7 @@ sub speak_next {
     #print "$menu state $$self{menu_state} of $#{$$ptr{Dstates}} cy $$self{cy}";
 
     if ( $$ptr{Dstates} and $#{ $$ptr{Dstates} } > 0 ) {
-        $text =
-            $$ptr{Dprefix}
-          . $$ptr{Dstates}[ $$self{menu_state} ]
-          . $$ptr{Dsuffix};
+        $text = $$ptr{Dprefix} . $$ptr{Dstates}[ $$self{menu_state} ] . $$ptr{Dsuffix};
     }
     else {
         $text = $$ptr{D};

@@ -32,8 +32,7 @@ if ( $Cmd ne "status" && $Cmd ne "" ) {
 my $Song = &mp3_get_playlist_title();
 $Song =~ tr/_/ /;    # replace _ by " " to make it clear
 my $Volume = &mp3_get_volume();
-$Volume = ( int( ( $Volume + 2 ) / 5 ) * 5 )
-  ;                  # volume by slice of 5, xmms doesn't change exactly
+$Volume = ( int( ( $Volume + 2 ) / 5 ) * 5 );    # volume by slice of 5, xmms doesn't change exactly
 my $Pos      = &mp3_get_playlist_pos();
 my $SongTime = &mp3_get_output_timestr();
 
@@ -63,11 +62,7 @@ sub mp3_top {
   ";
     my $Value;
 
-    for $Value (
-        0,  5,  10, 15, 20, 25, 30, 35, 40, 45, 50, 55,
-        60, 65, 70, 75, 80, 85, 90, 95, 100
-      )
-    {
+    for $Value ( 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ) {
         if ( $Volume == $Value ) {
             $HTTP = $HTTP . "<option value=\"$Value\" SELECTED>Vol: $Value\n";
         }
@@ -119,23 +114,17 @@ sub PlaylistCtrl {
     my $HTTP = Header();
 
     $HTTP = $HTTP . "<table width='100%' border='0'>\n";
-    $HTTP = $HTTP
-      . "<td><a href='/music/MP3_WebPlaylist.pl?Refresh' target=MP3_Playlist><center><BIG> Refresh </BIG></center></td>\n";
-    $HTTP = $HTTP
-      . "<td><a href='/music/MP3_WebPlaylist.pl?ClearPlaylist' target=MP3_Playlist><center><BIG> Clear </BIG></center></td>\n";
-    $HTTP = $HTTP
-      . "<td><a href='/music/MP3_WebPlaylist.pl?Shuffle' target=MP3_Playlist><center><BIG> Shuffle </BIG></center></td>\n";
-    $HTTP = $HTTP
-      . "<td><a href='/music/MP3_WebPlaylist.pl?Sort' target=MP3_Playlist><center><BIG> Sort </BIG></center></td>\n";
+    $HTTP = $HTTP . "<td><a href='/music/MP3_WebPlaylist.pl?Refresh' target=MP3_Playlist><center><BIG> Refresh </BIG></center></td>\n";
+    $HTTP = $HTTP . "<td><a href='/music/MP3_WebPlaylist.pl?ClearPlaylist' target=MP3_Playlist><center><BIG> Clear </BIG></center></td>\n";
+    $HTTP = $HTTP . "<td><a href='/music/MP3_WebPlaylist.pl?Shuffle' target=MP3_Playlist><center><BIG> Shuffle </BIG></center></td>\n";
+    $HTTP = $HTTP . "<td><a href='/music/MP3_WebPlaylist.pl?Sort' target=MP3_Playlist><center><BIG> Sort </BIG></center></td>\n";
 
     my ( $playlists, %playfiles ) = &mp3_playlists;
     for my $playlist ( sort keys %playfiles ) {
-        $HTTP = $HTTP
-          . "<td><a href='/music/MP3_WebPlaylist.pl?List=$playlist' target=MP3_Playlist><center><BIG> $playlist </BIG></center></td>\n";
+        $HTTP = $HTTP . "<td><a href='/music/MP3_WebPlaylist.pl?List=$playlist' target=MP3_Playlist><center><BIG> $playlist </BIG></center></td>\n";
     }
     my $PlaylistLength = &mp3_get_playlist_length();
-    $HTTP = $HTTP
-      . "<td><a href='/music/MP3_WebCtrl.pl?PlaylistCtrl' target=MP3_PlaylistCtrl> <center><BIG>($PlaylistLength)</BIG></center></a></td>";
+    $HTTP = $HTTP . "<td><a href='/music/MP3_WebCtrl.pl?PlaylistCtrl' target=MP3_PlaylistCtrl> <center><BIG>($PlaylistLength)</BIG></center></a></td>";
     $HTTP = $HTTP . "</table>\n";
     $HTTP = $HTTP . Footer();
 
@@ -145,8 +134,7 @@ sub PlaylistCtrl {
         my $HTTP = "<html><body>\n";
         $HTTP = $HTTP . "<meta http-equiv='Pragma' content='no-cache'>\n";
         $HTTP = $HTTP . "<meta http-equiv='Expires' content='-1'>\n";
-        $HTTP = $HTTP
-          . "<meta http-equiv='Refresh' content='60;url=/music/MP3_WebCtrl.pl?PlaylistCtrl'>\n";
+        $HTTP = $HTTP . "<meta http-equiv='Refresh' content='60;url=/music/MP3_WebCtrl.pl?PlaylistCtrl'>\n";
         $HTTP = $HTTP . "<base target ='MP3_PlaylistCtrl'>\n";
         return $HTTP;
     }

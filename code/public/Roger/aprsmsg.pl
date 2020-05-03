@@ -7,16 +7,14 @@
 sub APRSMsg {
     my ( $Source, $Dest, $Data ) = @_;
     my ($Ack);
-    my $HamCall =
-      $config_parms{tracking_callsign};    # Feed	in my Tracking Callsign
+    my $HamCall = $config_parms{tracking_callsign};    # Feed	in my Tracking Callsign
 
     if ( substr( $Data, 1, 6 ) eq 'EMAIL9' ) { &APRSMsgEmail( $Source, $Data ) }
     if ( substr( $Data, 1, length($HamCall) ) eq $HamCall ) {
-        ( $Data, $Ack ) = ( split( '{', $Data ) )[ 0, 1 ];   # Extract Acknumber
-        $Data = ( split( ':', $Data ) )[2];                  # Extract message
-        &APRSSendAck( $Source, $Ack );                       # Send Ack
-        print_msg
-          "New Message recieved from $Source: /cvsroot/misterhouse/mh/code/public/Roger/aprsmsg.pl,v $Data";
+        ( $Data, $Ack ) = ( split( '{', $Data ) )[ 0, 1 ];    # Extract Acknumber
+        $Data = ( split( ':', $Data ) )[2];                   # Extract message
+        &APRSSendAck( $Source, $Ack );                        # Send Ack
+        print_msg "New Message recieved from $Source: /cvsroot/misterhouse/mh/code/public/Roger/aprsmsg.pl,v $Data";
         if ( substr( $Data, 0, 2 ) eq 'R ' ) { &APRSMsgRoad($Data) }
     }
 
@@ -25,12 +23,7 @@ sub APRSMsg {
 sub APRSSendAck {
     my ( $Source, $Ack ) = @_;
     my ($packet);
-    $packet =
-        $config_parms{tracking_callsign}
-      . ">APRS:"
-      . $Source
-      . ( ' ' x ( 9 - length($Source) ) ) . ":ack"
-      . $Ack;
+    $packet = $config_parms{tracking_callsign} . ">APRS:" . $Source . ( ' ' x ( 9 - length($Source) ) ) . ":ack" . $Ack;
     set $tnc_output $packet;
 }
 
@@ -38,8 +31,7 @@ sub APRSMsgEmail {
     my ( $Source, $Data ) = @_;
     my ( $EmailAdr, $EmailBody );
     my ($packet);
-    my $HamCall =
-      $config_parms{tracking_callsign};    # Feed	in my Tracking Callsign
+    my $HamCall = $config_parms{tracking_callsign};    # Feed	in my Tracking Callsign
     ( $EmailAdr, $EmailBody ) = split( ' ', $Data, 2 );
 
     print_log "Email gateway: Callsign=$Source, to=$EmailAdr data=$EmailBody\n";
@@ -48,15 +40,9 @@ sub APRSMsgEmail {
     &net_mail_send(
         to      => $EmailAdr,
         subject => "From $Source via APRS Gateway",
-        text => "From: $Source\n\n$EmailBody\n\nSent via $HamCall APRS Gateway"
+        text    => "From: $Source\n\n$EmailBody\n\nSent via $HamCall APRS Gateway"
     );
-    $packet =
-        $HamCall
-      . ">APRS:"
-      . $Source
-      . ( ' ' x ( 9 - length($Source) ) )
-      . ":Your E-Mail Message has been sent."
-      ;    # Removed {7 at	end	to not get ack
+    $packet = $HamCall . ">APRS:" . $Source . ( ' ' x ( 9 - length($Source) ) ) . ":Your E-Mail Message has been sent.";    # Removed {7 at	end	to not get ack
     set $tnc_output $packet;
 }
 
@@ -71,8 +57,7 @@ sub APRSMsgRoad {
         $query_update6 = "UPDATE Roadwork SET Send = Yes";
     }
     else {
-        $query_update6 =
-          "UPDATE Roadwork SET Send = Yes WHERE Lan = \'$myLan\'";
+        $query_update6 = "UPDATE Roadwork SET Send = Yes WHERE Lan = \'$myLan\'";
     }
 
     #	print_msg "$query_update6\n";

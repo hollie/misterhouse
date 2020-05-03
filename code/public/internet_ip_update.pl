@@ -24,8 +24,7 @@
 # Global variables
 #
 my $f_ip_update_html = "$config_parms{data_dir}/web/ipupdate.html";
-my $p_ip_update_url =
-  new Process_Item("get_url $config_parms{ip_update_url} $f_ip_update_html");
+my $p_ip_update_url  = new Process_Item("get_url $config_parms{ip_update_url} $f_ip_update_html");
 
 #
 # Add a hook before user mode code runs
@@ -78,8 +77,7 @@ if ( done_now $p_ip_update_url) {
         # This format is for www.ipid.net
         /your ip is ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/im
           && do { $ip_update_address = $1; last SWITCH; };
-        print_log
-          "DeriveIpAccess unable to parse returned HTML, ip address NOT updated";
+        print_log "DeriveIpAccess unable to parse returned HTML, ip address NOT updated";
     }
     TkIpAddressLabel;
 }
@@ -117,8 +115,7 @@ if ( said $v_send_ip_address1) {
 
             if ( $config_parms{net_www_server} ) {
 
-                my $file =
-                  "$config_parms{data_dir}/web/internet_ip_update.html";
+                my $file = "$config_parms{data_dir}/web/internet_ip_update.html";
                 if ( my $data = file_read($file) ) {
 
                     my $DateTime = time_date_stamp(2);
@@ -161,12 +158,10 @@ if ( said $v_send_ip_address2) {
             $Save{ip_address_server} = $ip_address;
 
             if ( $config_parms{dips_password} ) {
-                print_log
-                  "Updating DIPS with dynamic ip address of $ip_address";
+                print_log "Updating DIPS with dynamic ip address of $ip_address";
 
                 my $url = 'http://postmodem.com/dips-admin/update.cgi?';
-                $url .=
-                  "pwd=$config_parms{dips_password}&ip=$ip_address&topic=Home_Automation";
+                $url .= "pwd=$config_parms{dips_password}&ip=$ip_address&topic=Home_Automation";
 
                 my $rc = get $url;
                 if ( $rc =~ /successfull/ ) {
@@ -194,8 +189,7 @@ if ( said $v_send_ip_address2) {
             }
 
             if ( $config_parms{tzo_key} ) {
-                print_log
-                  "Updating tzo.com with dynamic ip address of $ip_address";
+                print_log "Updating tzo.com with dynamic ip address of $ip_address";
 
                 my $url = "http://cgi.tzo.com/webclient/signedon.html?";
                 $url .= "TZOName=$config_parms{tzo_name}";
@@ -206,7 +200,7 @@ if ( said $v_send_ip_address2) {
                 if ( $rc =~ /successfull/ ) {
                     speak "T Z O updated" unless $Save{sleeping_parents};
                 }
-                elsif ( $rc =~ /TZO Error/ ) {   #   TZO Error!  Invalid TZO Key
+                elsif ( $rc =~ /TZO Error/ ) {    #   TZO Error!  Invalid TZO Key
                     speak "Error, TZO key is in valid";
                 }
                 else {
@@ -239,8 +233,7 @@ if ( said $v_send_ip_address3) {
             $Save{ip_address_email} = $ip_address;
 
             if ( $config_parms{ip_update_email} ) {
-                print_log
-                  "Sending address update email message with dynamic ip address of $ip_address";
+                print_log "Sending address update email message with dynamic ip address of $ip_address";
                 &net_mail_send(
                     to      => $config_parms{ip_update_email},
                     subject => "MH IP address now $ip_address"

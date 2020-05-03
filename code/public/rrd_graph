@@ -28,8 +28,7 @@ my $curyest   = ( $curtime - ( 24 * 60 * 60 ) );
 my $lastweek  = ( $curtime - ( 7 * 24 * 60 * 60 ) );
 my $priorweek = ( $curtime - ( 14 * 24 * 60 * 60 ) );
 
-my @colors =
-  qw( ff000c 00ffee e804f4 ff6500 56ba43 a86212 0029f9 15ff00 a0a0a0 );
+my @colors = qw( ff000c 00ffee e804f4 ff6500 56ba43 a86212 0029f9 15ff00 a0a0a0 );
 
 my $graphtype = lc($GRAPHTYPE);
 my ( $plot_last, $plot_average, $probes );
@@ -59,12 +58,7 @@ RRDp::cmd
   "-h 400 -w 850",
 
   #	"-u 85",
-  "-l 60 -u 70",
-  "-y 5:1",
-  "-x HOUR:1:HOUR:1:HOUR:2:60:%H:%M",
-  "$plot_last",
-  "$probes",
-  "$comment";
+  "-l 60 -u 70", "-y 5:1", "-x HOUR:1:HOUR:1:HOUR:2:60:%H:%M", "$plot_last", "$probes", "$comment";
 
 my $answer = RRDp::read;
 print "$$answer";
@@ -77,12 +71,7 @@ RRDp::cmd
   "-h 400 -w 850",
 
   #	"-u 85",
-  "-l 60 -u 70",
-  "-y 5:1",
-  "-x HOUR:1:HOUR:1:HOUR:2:60:%H:%M",
-  "$plot_last",
-  "$probes",
-  "$comment";
+  "-l 60 -u 70", "-y 5:1", "-x HOUR:1:HOUR:1:HOUR:2:60:%H:%M", "$plot_last", "$probes", "$comment";
 my $answer = RRDp::read;
 print "$$answer";
 

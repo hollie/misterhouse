@@ -102,11 +102,9 @@ sub rss_file_process_all {
     foreach my $feed (@feeds) {
         $i++;
         my ( $link, $regex, $dir ) = split /\s+/, $feed;
-        &rss_file_process( $link, "$config_parms{data_dir}/rss_feed_$i.xml",
-            $regex, $dir );
+        &rss_file_process( $link, "$config_parms{data_dir}/rss_feed_$i.xml", $regex, $dir );
     }
-    $v_rss_file_feed->respond(
-        'app=syndicate connected=0 Feed processing completed.');
+    $v_rss_file_feed->respond('app=syndicate connected=0 Feed processing completed.');
 }
 
 sub rss_file_process {
@@ -164,15 +162,12 @@ sub rss_file_process {
                     print_log "$file already downloaded"
                       if $DBM{"$torrent_dir/$file"};
                     print_log "$file already queued"
-                      if grep { $_ eq "'$link' '$torrent_dir/$file'" }
-                      @rss_file_download_queue;
+                      if grep { $_ eq "'$link' '$torrent_dir/$file'" } @rss_file_download_queue;
                     unless ( $current_file eq "$torrent_dir/$file"
                         or $DBM{"$torrent_dir/$file"}
-                        or grep { $_ eq "'$link' '$torrent_dir/$file'" }
-                        @rss_file_download_queue )
+                        or grep { $_ eq "'$link' '$torrent_dir/$file'" } @rss_file_download_queue )
                     {
-                        push @rss_file_download_queue,
-                          "'$link' '$torrent_dir/$file'";
+                        push @rss_file_download_queue, "'$link' '$torrent_dir/$file'";
                         print_log "queued $file";
                     }
                     $link = "";
@@ -187,29 +182,23 @@ sub rss_file_process {
             if ( $title =~ /$regexp/xi and not &check_regexps_reject($title) ) {
 
                 # hack to fix isohunt's links
-                $link =~
-                  s|rss.isohunt.com/btDetails.php\?ihq=.*\&id=|isohunt.com/download.php?mode=bt&id=|;
+                $link =~ s|rss.isohunt.com/btDetails.php\?ihq=.*\&id=|isohunt.com/download.php?mode=bt&id=|;
                 $link =~ s|isohunt.com/torrent_details|isohunt.com/download|;
 
                 # hack to fix torrentportal's links
-                $link =~
-                  s|torrentportal.com/details/|torrentportal.com/download/|;
+                $link =~ s|torrentportal.com/details/|torrentportal.com/download/|;
 
                 # hack to fix torrentspy's links
-                $link =~
-                  s|torrentspy.com/torrent/(\d+)/.*|torrentspy.com/download.asp?id=$1|;
+                $link =~ s|torrentspy.com/torrent/(\d+)/.*|torrentspy.com/download.asp?id=$1|;
 
                 # hack to fix newtorrents' links
-                $link =~
-                  s|newtorrents.info/torrent/(\d+)/.*|newtorrents.info/down.php?id=$1|;
+                $link =~ s|newtorrents.info/torrent/(\d+)/.*|newtorrents.info/down.php?id=$1|;
 
                 # hack to fix seedler's links
-                $link =~
-                  s|seedler.org/en/html/info/|seedler.org/download.x?id=|;
+                $link =~ s|seedler.org/en/html/info/|seedler.org/download.x?id=|;
 
                 # hack to fix isohunt's links
-                $link =~
-                  s|isohunt.com/btDetails.php.*id=|isohunt.com/dl.php?id=|;
+                $link =~ s|isohunt.com/btDetails.php.*id=|isohunt.com/dl.php?id=|;
 
                 # hack to fix mininova's links
                 $link =~ s|mininova.org/tor/|mininova.org/get/|;
@@ -238,16 +227,13 @@ sub rss_file_process {
                 print_log "$file already downloaded"
                   if $DBM{"$torrent_dir/$file"};
                 print_log "$file already queued"
-                  if grep { $_ eq "'$link' '$torrent_dir/$file'" }
-                  @rss_file_download_queue;
+                  if grep { $_ eq "'$link' '$torrent_dir/$file'" } @rss_file_download_queue;
 
                 unless ( $current_file eq "$torrent_dir/$file"
                     or $DBM{"$torrent_dir/$file"}
-                    or grep { $_ eq "'$link' '$torrent_dir/$file'" }
-                    @rss_file_download_queue )
+                    or grep { $_ eq "'$link' '$torrent_dir/$file'" } @rss_file_download_queue )
                 {
-                    push @rss_file_download_queue,
-                      "'$link' '$torrent_dir/$file'";
+                    push @rss_file_download_queue, "'$link' '$torrent_dir/$file'";
                     print_log "queued $file";
                 }
             }
@@ -273,10 +259,7 @@ sub rss_update_html {
     foreach my $feed (@feeds) {
         $i++;
         my ( $link, $regex, $dir ) = split /\s+/, $feed;
-        $html .=
-          &rss_file_html_format( $link,
-            "$config_parms{data_dir}/rss_feed_$i.xml",
-            $regex, $dir );
+        $html .= &rss_file_html_format( $link, "$config_parms{data_dir}/rss_feed_$i.xml", $regex, $dir );
     }
     return $html;
 }
@@ -293,8 +276,7 @@ sub rss_file_html_format {
     my $first = file_head $xml, 3;
 
     unless ( $first =~ /\<\?xml/i or $first =~ /\<rss/i ) {
-        return
-          "RSS feed <a href=$url>$url</a> does not appear to be an XML file.<p>";
+        return "RSS feed <a href=$url>$url</a> does not appear to be an XML file.<p>";
     }
     my $tmp = file_read $xml;
     $tmp =~ s/\<\/item\>\<item\>/\<\/item\>\n\<item\>/gi;
@@ -357,10 +339,6 @@ sub rss_file_html_format {
 # lets allow the user to control via triggers
 
 if ($Reload) {
-    &trigger_set(
-        '$New_Hour and net_connect_check',
-        "run_voice_cmd 'Get RSS subscribed files'",
-        'NoExpire',
-        'get rss files'
-    ) unless &trigger_get('get rss files');
+    &trigger_set( '$New_Hour and net_connect_check', "run_voice_cmd 'Get RSS subscribed files'", 'NoExpire', 'get rss files' )
+      unless &trigger_get('get rss files');
 }

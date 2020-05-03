@@ -78,8 +78,7 @@ if ( my $packet = said $router) {
     if ( $config_parms{server_router_type} eq "netgear" ) {
 
         #Router data: <181>winter_router: IP[Src=168.191.93.23   Dst=192.168.0.5 TCP spo=02248  dpo=00080]}S05>R01nN>R02nF
-        ( $ip_src, $ip_dst, $proto, $port_in, $port_out ) =
-          $packet =~ /Src=(\S+) +Dst=(\S+) +(\S+) +spo=(\d+) +dpo=(\d+)/;
+        ( $ip_src, $ip_dst, $proto, $port_in, $port_out ) = $packet =~ /Src=(\S+) +Dst=(\S+) +(\S+) +spo=(\d+) +dpo=(\d+)/;
     }
 
     # Draytek
@@ -91,8 +90,7 @@ if ( my $packet = said $router) {
         # Outgoing:
         #local2:info Apr 29 22:12:42 zappa-router: Local User: 192.168.100.4:2428 -> 66.230.141.102:80 (TCP)Web
 
-        ( $dir, $ip_src, $port_in, $ip_dst, $port_out, $proto ) = $packet =~
-          /(Open port|Local User): (\S+):(\S+) -> (\S+):(\S+) \((\S+)\)/;
+        ( $dir, $ip_src, $port_in, $ip_dst, $port_out, $proto ) = $packet =~ /(Open port|Local User): (\S+):(\S+) -> (\S+):(\S+) \((\S+)\)/;
     }
 
     # Linksys
@@ -100,8 +98,7 @@ if ( my $packet = said $router) {
 
         #Router data: 0é p?? .... +????Ps?? ?é +@out 192.168.0.2 8080 24.159.204.248 10325
         $proto = 'TCP';    # Linksys only does TCP :(
-        ( $dir, $ip_src, $port_in, $ip_dst, $port_out ) =
-          $packet =~ /\@(in|out) (\S+) (\S+) (\S+) (\S+)/;
+        ( $dir, $ip_src, $port_in, $ip_dst, $port_out ) = $packet =~ /\@(in|out) (\S+) (\S+) (\S+) (\S+)/;
     }
 
     print "Router: $proto $port_in \t-> $port_out\t$ip_src \t-> $ip_dst \n"
@@ -132,8 +129,7 @@ if ( my $packet = said $router) {
             #           my ($name, $name_short) = net_domain_name $ip_src;
             print_log "Web hit port=$port_out ip=$ip_src -> $ip_dst";
             play 'router_new';    # Defined in event_sounds.pl
-            net_domain_name_start 'router', $ip_src
-              ;   # Resolve from ip address to domain name ... in the background
+            net_domain_name_start 'router', $ip_src;    # Resolve from ip address to domain name ... in the background
         }
     }
 
@@ -152,11 +148,9 @@ sub check_router_times {
 }
 
 # Do not announce visits from these robots
-$config_parms{router_ignore_list} =
-  'inktomi netmind netwhistle northernlight singingfish googlebot avantgo inktomisearch'
+$config_parms{router_ignore_list} = 'inktomi netmind netwhistle northernlight singingfish googlebot avantgo inktomisearch'
   unless $config_parms{router_ignore_list};
-my %router_ignore_list = map { $_, 1 } split ' ',
-  $config_parms{router_ignore_list};
+my %router_ignore_list = map { $_, 1 } split ' ', $config_parms{router_ignore_list};
 
 # This is true when the background dns request finishes
 if ( my ( $name, $name_short ) = net_domain_name_done 'router' ) {
@@ -195,7 +189,7 @@ if (    new_second 10
 
     # Play a sound, louder for more hits
     my $volume = int 100 * $router_server_hits / 20;
-    play file => 'router_hit', volume => $volume;   # Defined in event_sounds.pl
+    play file => 'router_hit', volume => $volume;    # Defined in event_sounds.pl
     $router_server_hits = 0;
 }
 
@@ -204,8 +198,7 @@ if ( new_minute 60 ) {
     my $router_overload = int 100 * $router_count / $router_loops;
 
     #   $router_count = sprintf '%4.1f', $router_count / 1000;
-    my $msg =
-      "Router had $router_count packets (${router_overload}% packets-per-pass) of traffic in the last hour";
+    my $msg = "Router had $router_count packets (${router_overload}% packets-per-pass) of traffic in the last hour";
     logit "$config_parms{data_dir}/logs/router.$Year_Month_Now.log", $msg;
     print_log $msg;
     $router_count = 0;
@@ -215,8 +208,7 @@ if ( new_minute 60 ) {
 # Summarize hourly and daily hits
 if ( time_cron '1 * * * *' ) {
     if ( $Save{server_clients_hour} > 2 ) {
-        my $msg =
-          "voice=female3 Notice, there were $Save{server_hits_hour} web hits from $Save{server_clients_hour} clients in the last hour";
+        my $msg = "voice=female3 Notice, there were $Save{server_hits_hour} web hits from $Save{server_clients_hour} clients in the last hour";
         ( $config_parms{internet_speak_flag} ne 'none' )
           ? speak $msg
           : print_log $msg;
@@ -225,8 +217,7 @@ if ( time_cron '1 * * * *' ) {
     $Save{server_clients_hour} = 0;
 }
 elsif ( time_cron '1 20 * * *' ) {
-    speak
-      "app=router Notice, there were $Save{server_hits_day} web hits from $Save{server_clients_day} clients in the last day"
+    speak "app=router Notice, there were $Save{server_hits_day} web hits from $Save{server_clients_day} clients in the last day"
       if $Save{server_hits_day} > 5;
     $Save{server_hits_day}    = 0;
     $Save{server_clients_day} = 0;
@@ -235,20 +226,15 @@ elsif ( time_cron '1 20 * * *' ) {
 # Allow for rebooting of various routers
 
 $v_router_reboot = new Voice_Cmd 'Reboot the router';
-$v_router_reboot->set_info(
-    'Sends commands to the router telnet port to walk the menus to reboot the router'
-);
-$router_client =
-  new Socket_Item( undef, undef, $config_parms{router_address} . ":23",
-    'router', 'tcp', 'raw' );
+$v_router_reboot->set_info('Sends commands to the router telnet port to walk the menus to reboot the router');
+$router_client = new Socket_Item( undef, undef, $config_parms{router_address} . ":23", 'router', 'tcp', 'raw' );
 
 if ( said $v_router_reboot) {
     $v_router_reboot->respond('Rebooting the router...');
     if ( lc $config_parms{server_router_type} eq 'linksys' ) {
 
         # Press 'Apply' on the harmless Log menu.  Apply on any menu seems to restart the router
-        my $cmd =
-          qq[get_url "http://$config_parms{router_address}/Gozila.cgi?rLog=on&trapAddr3=255&Log=1" ];
+        my $cmd = qq[get_url "http://$config_parms{router_address}/Gozila.cgi?rLog=on&trapAddr3=255&Log=1" ];
         $cmd .= qq[-userid admin -password $config_parms{router_password}];
         run $cmd;
     }

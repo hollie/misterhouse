@@ -32,20 +32,14 @@ my ( $Pgm_Path, $Pgm_Name );
 BEGIN {
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval "use lib '$Pgm_Path/../lib/site'";
+    eval "use lib '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";
 }
 
 my %parms;
 use Getopt::Long;
-if (
-    !&GetOptions(
-        \%parms,        "h",        "help",   "mailto=s",
-        "mailserver=s", "ignore:s", "size=s", "type=s",
-        "runid=s",      "outdir=s", "debug"
-    )
+if (  !&GetOptions( \%parms, "h", "help", "mailto=s", "mailserver=s", "ignore:s", "size=s", "type=s", "runid=s", "outdir=s", "debug" )
     or @ARGV == 0
-    or ( $parms{h} or $parms{help} )
-  )
+    or ( $parms{h} or $parms{help} ) )
 {
     print <<eof;
 
@@ -123,25 +117,19 @@ sub read_data {
             #Fri 11/05/99 21:47:48 server_speak 200.200.200.5
             #Sun 09/21/03 20:29:07 192.168.0.81 /ia5/images/wind.gif
             # Read Apache log
-            my ( $client, $day, $hour, $min ) =
-              $_ =~ m!^(\S+) - - \[(\d+)/\w+/\d{4}:(\d+):(\d+):\d+ [\d+-]+\]!;
+            my ( $client, $day, $hour, $min ) = $_ =~ m!^(\S+) - - \[(\d+)/\w+/\d{4}:(\d+):(\d+):\d+ [\d+-]+\]!;
 
             # Alternate form of Apache log
-            ( $day, $hour, $min, $client ) =
-              $_ =~
-              /([a-z|A-Z]*) \d+\/\d+\/\d+(\d+):(\d+):\d+ ([a-z|A-Z|0-9|\.]*)/
+            ( $day, $hour, $min, $client ) = $_ =~ /([a-z|A-Z]*) \d+\/\d+\/\d+(\d+):(\d+):\d+ ([a-z|A-Z|0-9|\.]*)/
               unless $client;
 
             # Read Misterhouse log
             unless ( defined $hour ) {
                 my $ampm;
-                ( $day, $hour, $min, $ampm, $client ) =
-                  $_ =~ m!^\S+, +\S+ +(\d+) +(\d+):(\d+) (\S+) \S+ (\S+)!;
-                ( $day, $hour, $min, $ampm, $client ) =
-                  $_ =~ m!^\S+ +\S+ +(\d+) +(\d+):(\d+):\d+ +\S+ (\S+)!
+                ( $day, $hour, $min, $ampm, $client ) = $_ =~ m!^\S+, +\S+ +(\d+) +(\d+):(\d+) (\S+) \S+ (\S+)!;
+                ( $day, $hour, $min, $ampm, $client ) = $_ =~ m!^\S+ +\S+ +(\d+) +(\d+):(\d+):\d+ +\S+ (\S+)!
                   unless $client;
-                ( $day, $hour, $min, $client ) =
-                  $_ =~ m!^\S+ +\S+ +(\d+):(\d+):\d+ (\S+)!
+                ( $day, $hour, $min, $client ) = $_ =~ m!^\S+ +\S+ +(\d+):(\d+):\d+ (\S+)!
                   unless $client;    # Current format
 
                 #                print "db d=$day h=$hour ap=$ampm m=$min c=$client r=$_\n";
@@ -151,7 +139,7 @@ sub read_data {
             next unless defined $hour;
 
             # Ignore local clients
-            next if grep( $client =~ /^$_$/, @ignore_list ); # This takes longer
+            next if grep( $client =~ /^$_$/, @ignore_list );    # This takes longer
 
             #           next if grep($client eq $_, @ignore_list);
 
@@ -170,8 +158,7 @@ sub read_data {
 
     $hits{total_clients} = keys %{ $hits{client} };
     $hits{total_days}    = keys %{ $hits{day} };
-    $hits{msg} =
-      "Read $logfile_cnt logfiles, counted $hits{total} total hits from $hits{total_clients} clients in $hits{total_days} days";
+    $hits{msg}           = "Read $logfile_cnt logfiles, counted $hits{total} total hits from $hits{total_clients} clients in $hits{total_days} days";
     print $hits{msg}, "\n";
 
     open( DATAOUT, ">${prefix}hour.txt" )
@@ -184,16 +171,14 @@ sub read_data {
       or die "Error, could not open ${prefix}dayhour.txt: $!\n";
     foreach ( sort { $a cmp $b } keys %{ $hits{dayhour} } ) {
         my $client_cnt = keys %{ $hits{dayhour_client}{$_} };
-        print DATAOUT
-          join( "\t", $_, int( $hits{dayhour}{$_} / 10 ), $client_cnt ), "\n";
+        print DATAOUT join( "\t", $_, int( $hits{dayhour}{$_} / 10 ), $client_cnt ), "\n";
     }
 
     open( DATAOUT, ">${prefix}day.txt" )
       or die "Error, could not open ${prefix}day.txt: $!\n";
     foreach ( sort { $a <=> $b } keys %{ $hits{day} } ) {
         my $client_cnt = keys %{ $hits{day_client}{$_} };
-        print DATAOUT join( "\t", $_, int( $hits{day}{$_} / 10 ), $client_cnt ),
-          "\n";
+        print DATAOUT join( "\t", $_, int( $hits{day}{$_} / 10 ), $client_cnt ), "\n";
     }
 
     open( DATAOUT, ">${prefix}client.txt" )
@@ -203,8 +188,7 @@ sub read_data {
         keys %{ $hits{client} }
       )
     {
-        print DATAOUT
-          join( "\t", $hits{client_time}{$_}, $hits{client}{$_}, $_ ), "\n";
+        print DATAOUT join( "\t", $hits{client_time}{$_}, $hits{client}{$_}, $_ ), "\n";
     }
 
     close DATAOUT;

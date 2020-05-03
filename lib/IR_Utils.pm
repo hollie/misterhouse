@@ -31,10 +31,9 @@ my $buttons =
   '0	1	2	3	4	5	6	7	8	9	VOL +	VOL -	MUTE	CH +	CH -	POWER	ENTER	TV/VCR	LAST	MENU	GUIDE	Up	Down	Left	Right	SELECT	SLEEP	PIP	DISPLAY	SWAP	MOVE	PLAY	PAUSE	REW	FFWD	STOP	REC	EXIT	SURR';
 my %devices;
 
-my $device_file = "$::config_parms{data_dir}/infrared/Devices4.csv";
-my $irp_spreadsheet =
-  "$::config_parms{data_dir}/infrared/comparison_matrix.csv";
-my $devicelib_dir = "$::config_parms{data_dir}/infrared/devicelib";
+my $device_file     = "$::config_parms{data_dir}/infrared/Devices4.csv";
+my $irp_spreadsheet = "$::config_parms{data_dir}/infrared/comparison_matrix.csv";
+my $devicelib_dir   = "$::config_parms{data_dir}/infrared/devicelib";
 
 my %protocols;
 my %protocol_names;
@@ -97,8 +96,7 @@ sub read_irp_spreadsheet {
         next unless $protocol{'Form'};
         $protocols{ $protocol{'UEIC Protocol ID'} } = {%protocol}
           if $protocol{'UEIC Protocol ID'};
-        $protocol_names{ $protocol{'Protocol Name in Devices4.xls'} } =
-          {%protocol}
+        $protocol_names{ $protocol{'Protocol Name in Devices4.xls'} } = {%protocol}
           if $protocol{'Protocol Name in Devices4.xls'};
     }
     close IRP;
@@ -146,21 +144,13 @@ sub read_dvc_file {
                 $key = uc $key;
                 $prontos{$key} = $pronto;
             }
-            elsif ( my ( $key, $device_code, $function_code ) =
-                /(.+?)\s*=\s*(\d+)\s*[,;]\s*(\d+)\s*$/ )
-            {
+            elsif ( my ( $key, $device_code, $function_code ) = /(.+?)\s*=\s*(\d+)\s*[,;]\s*(\d+)\s*$/ ) {
                 $key = uc $key;
-                ( $prontos{$key} ) =
-                  &IR_Utils::generate_pronto( $parms{protocol}, $device_code,
-                    $function_code );
+                ( $prontos{$key} ) = &IR_Utils::generate_pronto( $parms{protocol}, $device_code, $function_code );
             }
-            elsif ( my ( $key, $function_code ) =
-                /(.+?)\s*=\s*[,;]?\s*(\d+)\s*$/ )
-            {
+            elsif ( my ( $key, $function_code ) = /(.+?)\s*=\s*[,;]?\s*(\d+)\s*$/ ) {
                 $key = uc $key;
-                ( $prontos{$key} ) =
-                  &IR_Utils::generate_pronto( $parms{protocol},
-                    $parms{'device code'}, $function_code );
+                ( $prontos{$key} ) = &IR_Utils::generate_pronto( $parms{protocol}, $parms{'device code'}, $function_code );
 
                 #print "k $prontos{$key}, p $parms{protocol}, d $parms{'device code'}, f $function_code\n";
             }
@@ -198,10 +188,8 @@ sub generate_ofa_device {
     my %prontos;
     my %keys = get_ofa_keys( $type, $code );
     while ( my ( $key, $efc ) = each %keys ) {
-        my ( $protocol, $device, $function ) =
-          get_function( $type, $code, $efc );
-        print
-          "$type $code $key protocol $protocol efc $efc device $device function $function\n";
+        my ( $protocol, $device, $function ) = get_function( $type, $code, $efc );
+        print "$type $code $key protocol $protocol efc $efc device $device function $function\n";
         ( $prontos{$key}, $repeat ) =
           generate_pronto( uc $protocol, $device, $function );
     }
@@ -234,8 +222,7 @@ sub generate_pronto {
     foreach ( $protocol{'Default'}, $protocol{'Define'} ) {
         my $equation = $_;
         next unless $equation;
-        $equation =~
-          s/([A-Z])\((\d)\.\.(\d)\)/(ord pack 'b*', join '', (split '', unpack 'b8', pack 's', $1)[$2..$3])/g;
+        $equation =~ s/([A-Z])\((\d)\.\.(\d)\)/(ord pack 'b*', join '', (split '', unpack 'b8', pack 's', $1)[$2..$3])/g;
         $equation =~ s/([A-Z])/\$vars{"$1"}/g;
         eval $equation;
     }
@@ -269,9 +256,7 @@ sub generate_pronto {
                 }
 
                 # handle [1 ^100000]
-                elsif ( my ( $pulse, $duration ) =
-                    $string =~ /^(\d+)\s+\^(\d+)$/ )
-                {
+                elsif ( my ( $pulse, $duration ) = $string =~ /^(\d+)\s+\^(\d+)$/ ) {
                     push @data, abs( $pulse * $time ), 0 if $pulse;
                     $length++ if $pulse;
                     foreach ( @data[ 4 .. $#data - 1 ] ) {
@@ -329,16 +314,13 @@ sub generate_pronto {
             }
 
             # handle 25:8 (variables already substituted)
-            elsif ( my ( $inverse, $value, $width ) =
-                $part =~ /(~?)(\d*):(\d+)/ )
-            {
+            elsif ( my ( $inverse, $value, $width ) = $part =~ /(~?)(\d*):(\d+)/ ) {
                 $value = 0xff & ~( 0 + $value ) if $inverse;
                 $value = ( 0 + $value ) << ( 8 - $width )
                   if $msb and $width < 8;
                 my $format = ( $msb ? 'B' : 'b' ) . $width;
-                foreach
-                  my $bit ( split '', unpack $format, pack 'C', 0 + $value )
-                {
+                foreach my $bit ( split '', unpack $format, pack 'C', 0 + $value ) {
+
                     #print "bit $bit\n";
                     if ( $modulation eq 'PPM' ) {
                         my $phase = (
@@ -417,12 +399,10 @@ sub get_function {
         $function = 63 - $efc2obc[$efc];
     }
     elsif ( $efc_conv eq 'MSB' ) {
-        $function = unpack 'C', pack 'b8', unpack 'B8', pack 'C',
-          0 + $efc2obc[$efc];
+        $function = unpack 'C', pack 'b8', unpack 'B8', pack 'C', 0 + $efc2obc[$efc];
     }
     elsif ( $efc_conv eq '~MSB' ) {
-        $function = unpack 'C', pack 'b8', unpack 'B8', pack 'C',
-          0 + ( 255 - $efc2obc[$efc] );
+        $function = unpack 'C', pack 'b8', unpack 'B8', pack 'C', 0 + ( 255 - $efc2obc[$efc] );
     }
     elsif ( $efc_conv eq 'LSB' ) {
         $function = $efc2obc[$efc];

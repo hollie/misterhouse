@@ -95,8 +95,8 @@ sub new {
     my $newobj = new IO::File;    # this will give a typeglob (not a hashref)
     my $newref = {};
     $newref->{"RLF.logskel"} = $logbase;
-    bless $newobj;    #  IO::File blessed so it can call our functions()
-    bless $newref;    #our hashref
+    bless $newobj;                #  IO::File blessed so it can call our functions()
+    bless $newref;                #our hashref
     $known_objects{$newobj} = $newref;
 
     ## open the first version of the requested logfile
@@ -133,9 +133,9 @@ sub roll_logfile {
 
     $debug && print STDERR "roll_logfile: new file will be [$now_fname]\n";
 
-    $self->{"RLF.cur_fname"} = $now_fname; # install the new filename as current
+    $self->{"RLF.cur_fname"} = $now_fname;                   # install the new filename as current
 
-    $self_obj->SUPER::open( $self->{"RLF.cur_fname"} );    # (re)-open the file
+    $self_obj->SUPER::open( $self->{"RLF.cur_fname"} );      # (re)-open the file
 
     ## and if we were installed as a stdout trap, update the trap for the
     ##   new file handle

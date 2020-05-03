@@ -70,11 +70,8 @@ my $prev     = '';
 my $learning = 0;
 my $dbm_file = "$main::config_parms{data_dir}/usb_uirt_codes.dbm";
 my (
-    $db,                %DBM,              @learned,
-    $device,            $function,         $frequency,
-    $repeat,            @transmit_queue,   @learn_queue,
-    @learn_frequencies, $transmit_timeout, $learn_timeout,
-    $receive_timeout
+    $db,             %DBM,         @learned,           $device,           $function,      $frequency, $repeat,
+    @transmit_queue, @learn_queue, @learn_frequencies, $transmit_timeout, $learn_timeout, $receive_timeout
 );
 my ($DrvHandle);
 my $tx_timeout = 500;
@@ -84,15 +81,11 @@ my $rx_timeout = 600;
 $rx_timeout = $main::config_parms{usb_uirt_rx_timeout}
   if ( defined $main::config_parms{usb_uirt_rx_timeout} );
 
-use constant UUIRTDRV_CFG_LEDRX =>
-  0x01;    # Indicator LED on USB-UIRT blinks when remote signals are received
-use constant UUIRTDRV_CFG_LEDTX =>
-  0x02;    # Indicator LED on USB-UIRT lights during IR transmission
-use constant UUIRTDRV_CFG_LEGACYRX =>
-  0x04;    # Generate 'legacy' UIRT-compatible codes on receive
-use constant UUIRTDRV_CFG_XLEARN => 0x08;    # Extended Learn Timing (for debug)
-use constant UUIRTDRV_CFG_PREVUIR =>
-  0x10;    # Generate previous UIR code when Stop code is received
+use constant UUIRTDRV_CFG_LEDRX    => 0x01;    # Indicator LED on USB-UIRT blinks when remote signals are received
+use constant UUIRTDRV_CFG_LEDTX    => 0x02;    # Indicator LED on USB-UIRT lights during IR transmission
+use constant UUIRTDRV_CFG_LEGACYRX => 0x04;    # Generate 'legacy' UIRT-compatible codes on receive
+use constant UUIRTDRV_CFG_XLEARN   => 0x08;    # Extended Learn Timing (for debug)
+use constant UUIRTDRV_CFG_PREVUIR  => 0x10;    # Generate previous UIR code when Stop code is received
 
 use constant UUIRTDRV_IRFMT_UUIRT  => 0x0000;
 use constant UUIRTDRV_IRFMT_PRONTO => 0x0010;
@@ -128,23 +121,19 @@ if ( $^O eq 'MSWin32' ) {
     }
 
     # UUIRTDRV_API BOOL PASCAL UUIRTGetDrvInfo(unsigned int *puDrvVersion);
-    Win32::API->Import( 'uuirtdrv',
-        'BOOL UUIRTGetDrvInfo(PUINT puDrvVersion)' );
+    Win32::API->Import( 'uuirtdrv', 'BOOL UUIRTGetDrvInfo(PUINT puDrvVersion)' );
 
     # UUIRTDRV_API HUUHANDLE PASCAL UUIRTOpen(void);
     Win32::API->Import( 'uuirtdrv', 'HUUHANDLE  UUIRTOpen()' );
 
     # UUIRTDRV_API BOOL PASCAL UUIRTGetUUIRTInfo(HUUHANDLE hHandle, PUUINFO *puuInfo);
-    Win32::API->Import( 'uuirtdrv',
-        'BOOL UUIRTGetUUIRTInfo(HUUHANDLE hHandle, LPUUINFO lppuuInfo)' );
+    Win32::API->Import( 'uuirtdrv', 'BOOL UUIRTGetUUIRTInfo(HUUHANDLE hHandle, LPUUINFO lppuuInfo)' );
 
     # UUIRTDRV_API BOOL PASCAL UUIRTGetUUIRTConfig(HUUHANDLE hHandle, PUINT32 pUirtConfig);
-    Win32::API->Import( 'uuirtdrv',
-        'BOOL UUIRTGetUUIRTConfig(HUUHANDLE hHandle, PUINT pUirtConfig)' );
+    Win32::API->Import( 'uuirtdrv', 'BOOL UUIRTGetUUIRTConfig(HUUHANDLE hHandle, PUINT pUirtConfig)' );
 
     # UUIRTDRV_API BOOL PASCAL UUIRTSetUUIRTConfig(HUUHANDLE hHandle, UINT32 uConfig);
-    Win32::API->Import( 'uuirtdrv',
-        'BOOL UUIRTSetUUIRTConfig(HUUHANDLE hHandle, UINT uConfig)' );
+    Win32::API->Import( 'uuirtdrv', 'BOOL UUIRTSetUUIRTConfig(HUUHANDLE hHandle, UINT uConfig)' );
 
     # UUIRTDRV_API BOOL PASCAL UUIRTTransmitIR(HUUHANDLE hHandle, char *IRCode, int codeFormat, int repeatCount,
     #					 int inactivityWaitTime, HANDLE hEvent, void *reserved0, void *reserved1);
@@ -186,13 +175,11 @@ sub startup {
         }
     }
     else {
-        my $baudrate =
-          38400;    # this is arbitrary, Linux overrides it, Windows uses DLL
-        my $port = '/dev/ttyUSB0';
+        my $baudrate = 38400;            # this is arbitrary, Linux overrides it, Windows uses DLL
+        my $port     = '/dev/ttyUSB0';
         $port = $main::config_parms{usb_uirt_port}
           if $main::config_parms{usb_uirt_port};
-        &main::serial_port_create( 'USB_UIRT', $port, $baudrate, 'none',
-            'raw' );
+        &main::serial_port_create( 'USB_UIRT', $port, $baudrate, 'none', 'raw' );
         select undef, undef, undef, .05;
         &main::check_for_generic_serial_data('USB_UIRT');
         my $data = $main::Serial_Ports{USB_UIRT}{data};
@@ -275,18 +262,10 @@ sub save_code {
             push @code2, $code;
         }
         else {
-            print
-              "USB_UIRT: Learning error, received more than two different codes \n";
+            print "USB_UIRT: Learning error, received more than two different codes \n";
         }
     }
-    set_ir_code(
-        $device,
-        $function,
-        learnraw_to_pronto(
-            frequency_average(), $repeat,
-            raw_average(@code1), raw_average(@code2)
-        )
-    );
+    set_ir_code( $device, $function, learnraw_to_pronto( frequency_average(), $repeat, raw_average(@code1), raw_average(@code2) ) );
     print "USB_UIRT: Saved device $device function $function \n";
 }
 
@@ -384,8 +363,7 @@ sub process_raw {
         my $frequency = ( 1000000 / ( ( $pulse * 0.4 ) / ( $count - 0.5 ) ) );
         push @learn_frequencies, $frequency if $count;
         if ( @bytes < 2 ) {
-            print
-              "USB_UIRT: Oops, not enough bytes at end of learn sequence \n";
+            print "USB_UIRT: Oops, not enough bytes at end of learn sequence \n";
             return;
         }
         $code .= unpack 'H4', pack 'C2', splice @bytes, 0, 2;
@@ -399,10 +377,7 @@ sub process_raw {
 }
 
 sub get_version {
-    my (
-        $firmware_minor, $firmware_major, $protocol_minor, $protocol_major,
-        $firmware_day,   $firmware_month, $firmware_year
-    );
+    my ( $firmware_minor, $firmware_major, $protocol_minor, $protocol_major, $firmware_day, $firmware_month, $firmware_year );
     print "\nGetting UIRT Info...\n";
     if ( $^O eq 'MSWin32' ) {
         my $UirtInfo = Win32::API::Struct->new('UUINFO');
@@ -413,8 +388,7 @@ sub get_version {
             $protocol_minor = $UirtInfo->{protVersion} & 0xff;
             $firmware_month = $UirtInfo->{fwDateMonth};
             $firmware_day   = $UirtInfo->{fwDateDay};
-            $firmware_year  = $UirtInfo->{fwDateYear}
-              ; # Bruce updated this line for correct display on win32 platforms
+            $firmware_year  = $UirtInfo->{fwDateYear};           # Bruce updated this line for correct display on win32 platforms
         }
         else {
             PrintError();
@@ -424,17 +398,10 @@ sub get_version {
         usb_uirt_send(0x23);
         my $ret = get_response(8);
         return unless length $ret == 8;
-        (
-            $firmware_minor, $firmware_major, $protocol_minor,
-            $protocol_major, $firmware_day,   $firmware_month,
-            $firmware_year
-        ) = unpack 'C*', $ret;
+        ( $firmware_minor, $firmware_major, $protocol_minor, $protocol_major, $firmware_day, $firmware_month, $firmware_year ) = unpack 'C*', $ret;
     }
-    printf "USB_UIRT Protocol Version %d.%d\n", $protocol_major,
-      $protocol_minor;
-    printf "USB_UIRT Firmware Version %d.%d  Date %02d/%02d/20%02d\n",
-      $firmware_major, $firmware_minor, $firmware_month, $firmware_day,
-      $firmware_year;
+    printf "USB_UIRT Protocol Version %d.%d\n", $protocol_major, $protocol_minor;
+    printf "USB_UIRT Firmware Version %d.%d  Date %02d/%02d/20%02d\n", $firmware_major, $firmware_minor, $firmware_month, $firmware_day, $firmware_year;
 }
 
 sub get_config {
@@ -464,10 +431,7 @@ sub get_config {
         $UirtConfig & UUIRTDRV_CFG_XLEARN   ? 1 : 0,
         $UirtConfig & UUIRTDRV_CFG_PREVUIR  ? 1 : 0,
     );
-    print "USB-UIRT TX timeout:"
-      . $tx_timeout
-      . " RX timeout:"
-      . $rx_timeout . "\n";
+    print "USB-UIRT TX timeout:" . $tx_timeout . " RX timeout:" . $rx_timeout . "\n";
     return $UirtConfig;
 }
 
@@ -554,13 +518,7 @@ sub transmit_raw {
         print "\nTransmitting UUIRT Raw code $code via USB-UIRT device...\n";
         my ( $reserved0, $reserved1 );
         my $IRCodeFormat = UUIRTDRV_IRFMT_UUIRT;
-        if (
-            !UUIRTTransmitIR(
-                $DrvHandle, $code, $IRCodeFormat, $repeat,
-                0,          0,     $reserved0,    $reserved1
-            )
-          )
-        {
+        if ( !UUIRTTransmitIR( $DrvHandle, $code, $IRCodeFormat, $repeat, 0, 0, $reserved0, $reserved1 ) ) {
             printf("\n\t*** ERROR calling UUIRTTransmitIR! ***");
             PrintError;
         }
@@ -610,13 +568,7 @@ sub transmit_pronto {
     if ( $^O eq 'MSWin32' ) {
         my ( $reserved0, $reserved1 );
         my $IRCodeFormat = UUIRTDRV_IRFMT_PRONTO;
-        if (
-            !UUIRTTransmitIR(
-                $DrvHandle, $pronto, $IRCodeFormat, $repeat,
-                0,          0,       $reserved0,    $reserved1
-            )
-          )
-        {
+        if ( !UUIRTTransmitIR( $DrvHandle, $pronto, $IRCodeFormat, $repeat, 0, 0, $reserved0, $reserved1 ) ) {
             printf("\n\t*** ERROR calling UUIRTTransmitIR! ***");
             PrintError;
         }
@@ -626,8 +578,7 @@ sub transmit_pronto {
         $transmit_timeout = &main::get_tickcount + $tx_timeout;
     }
     else {
-        &transmit_raw(
-            &encode_ir_string( &pronto_to_raw( $pronto, $repeat ) ) );
+        &transmit_raw( &encode_ir_string( &pronto_to_raw( $pronto, $repeat ) ) );
     }
     return;
 }
@@ -687,12 +638,10 @@ sub raw_to_struct {
               if $_ > ( $i & 1 ? $big_gap : $big_pulse );
             $i++;
         }
-        print
-          "raw_to_struct code $_\nsmall_gap : $small_gap  small_pulse : $small_pulse big_gap : $big_gap  big_pulse : $big_pulse \n";
+        print "raw_to_struct code $_\nsmall_gap : $small_gap  small_pulse : $small_pulse big_gap : $big_gap  big_pulse : $big_pulse \n";
         $i = 0;
         foreach ( @bytes[ 4 .. $#bytes - 1 ] ) {
-            my $bit =
-              ( $_ > 1.5 * ( $i & 1 ? $small_gap : $small_pulse ) ) ? '1' : '0';
+            my $bit = ( $_ > 1.5 * ( $i & 1 ? $small_gap : $small_pulse ) ) ? '1' : '0';
             $bits .= $bit;
             push @{
                 $sums{
@@ -713,8 +662,7 @@ sub raw_to_struct {
             }
             push @struct, $sum ? ( $sum / ( $#{ $sums{$_} } + 1 ) ) : 0;
         }
-        push @struct,
-          unpack( 'C*', pack( ( $second ? 'b96' : 'b128' ), $bits ) );
+        push @struct, unpack( 'C*', pack( ( $second ? 'b96' : 'b128' ), $bits ) );
         $second++;
         $_ = unpack 'H*', pack 'C*', @struct;
     }
@@ -763,13 +711,12 @@ sub pronto_to_raw {
     my $pronto = shift;
     my $repeat = shift;
     $pronto =~ s/[^0-9a-f]//igs;
-    my @bytes = unpack 'n*', pack 'H*', $pronto;
-    my $kind  = shift @bytes;
-    my $units = shift(@bytes) * .241246;
-    my $frequency =
-      ( $kind == 0 && $units != 0.0 ) ? round( 1000.0 / $units ) : 0;
-    my $first  = shift(@bytes) * 2;
-    my $second = shift(@bytes) * 2;
+    my @bytes     = unpack 'n*', pack 'H*', $pronto;
+    my $kind      = shift @bytes;
+    my $units     = shift(@bytes) * .241246;
+    my $frequency = ( $kind == 0 && $units != 0.0 ) ? round( 1000.0 / $units ) : 0;
+    my $first     = shift(@bytes) * 2;
+    my $second    = shift(@bytes) * 2;
     my $both;
     $both = 1 if $first and $second;
     my ( $code1, $code2 );
@@ -845,8 +792,7 @@ sub raw_to_pronto {
             $inter = round( $inter * 51.2 / $units );
             my $count;
             while ( my $byte = shift @raw ) {
-                push @bytes,
-                  ( $byte & 0x80 ) ? ( $byte & 0x7f ) << 8 | shift @raw : $byte;
+                push @bytes, ( $byte & 0x80 ) ? ( $byte & 0x7f ) << 8 | shift @raw : $byte;
                 $count++;
             }
             push @bytes, $inter;
@@ -950,9 +896,7 @@ sub encode_ir_string {
     if ( ( $freq, $code ) = $code1 =~ /^F(\d\d)\s*R(.*)/si ) {
         $code =~ s/\s+//gs;
         $frequency = unpack 'C', pack 'H2', $freq;
-        $code = 'R'
-          . ( unpack 'H4', pack 'CC', $frequency, $code2 ? 1 : $repeat )
-          . $code;
+        $code = 'R' . ( unpack 'H4', pack 'CC', $frequency, $code2 ? 1 : $repeat ) . $code;
         $code .= ' ' . ( unpack 'H4', pack 'CC', $frequency, $repeat ) . $code2
           if $code2;
     }
@@ -960,9 +904,7 @@ sub encode_ir_string {
         $code =~ s/\s+//gs;
         $frequency = 40 unless $frequency;
         $frequency = ( 2500 / $frequency );
-        $code      = 'R'
-          . ( unpack 'H4', pack 'CC', $frequency, $code2 ? 1 : $repeat )
-          . $code;
+        $code      = 'R' . ( unpack 'H4', pack 'CC', $frequency, $code2 ? 1 : $repeat ) . $code;
         $code .= ' ' . ( unpack 'H4', pack 'CC', $frequency, $repeat ) . $code2
           if $code2;
     }
@@ -972,8 +914,7 @@ sub encode_ir_string {
 
         # don't pass a frequency if you want to use the one in the pronto
         if ( $frequency =~ /\d+/ and $frequency != 0 ) {
-            $frequency = sprintf "%04x",
-              round( ( 1000 / $frequency ) / .241246 );
+            $frequency = sprintf "%04x", round( ( 1000 / $frequency ) / .241246 );
             $code1 =~ s/^0000 [0-9a-f](4) /0000 $frequency /;
         }
         $code = sprintf "P%02x %s", $repeat, $code1;
@@ -982,9 +923,7 @@ sub encode_ir_string {
         $code1 =~ s/\s+//gs;
         $frequency = 40 unless $frequency;
         $frequency = round( 2500 / $frequency );
-        $code =
-          ( unpack 'H4', pack 'CC', $frequency, ( $code2 ? 0 : $repeat ) )
-          . $code1
+        $code      = ( unpack 'H4', pack 'CC', $frequency, ( $code2 ? 0 : $repeat ) ) . $code1
           if $code1;
         $code .= ( unpack 'H2', pack 'C', $repeat ) . $code2 if $code2;
     }
@@ -1031,8 +970,7 @@ sub decode_ir_string {
         $repeat1 = unpack 'c', pack 'H2', $repeat1;
     }
     else {
-        ( $frequency1, $repeat1, $code1, $repeat2, $code2 ) =
-          unpack 'a2a2a50a2a42', $code;
+        ( $frequency1, $repeat1, $code1, $repeat2, $code2 ) = unpack 'a2a2a50a2a42', $code;
         $frequency1 = unpack 'C', pack 'H2', $frequency1;
         $frequency1 = $frequency1 ? round( 2500 / $frequency1 ) : 0;
         $repeat1 = unpack 'C', pack 'H2', $repeat1;

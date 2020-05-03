@@ -19,8 +19,7 @@ if ( ( $New_Second and $Second == 30 ) ) {
     # Take the 2nd to last record from todays file
     my @temp = get_weather_record(time);
 
-    my @keys =
-      qw(TimeStamp TempIndoor TempIndoorH TempIndoorL TempOutdoor TempOutdoorH TempOutdoorL
+    my @keys = qw(TimeStamp TempIndoor TempIndoorH TempIndoorL TempOutdoor TempOutdoorH TempOutdoorL
       HumidIndoor HumidIndoorH HumidIndoorL HumidOutdoor HumidOutdoorH HumidOutdoorL
       WindGustSpeed WindGustDir WindAvgSpeed WindAvgDir WindHighSpeed WindHighDir
       Barom BaromSea RainTotal RainRate RainYest
@@ -48,21 +47,17 @@ if ( ( $New_Second and $Second == 30 ) ) {
         {
             if ( $Weather{WindGustSpeed} > $Save{WindGustMax} ) {
                 $Save{WindGustMax} = $Weather{WindGustSpeed};
-                speak "rooms=all Weather alert.  The winnd is now gusting at "
-                  . round( $Weather{WindGustSpeed} ) . " MPH.";
+                speak "rooms=all Weather alert.  The winnd is now gusting at " . round( $Weather{WindGustSpeed} ) . " MPH.";
                 set $timer_wind_gust 120 * 60;
             }
             elsif ( inactive $timer_wind_gust) {
                 set $timer_wind_gust 120 * 60;
-                speak "rooms=all Weather alert.  A winnd gust of "
-                  . round( $Weather{WindGustSpeed} )
-                  . " MPH was just recorded.";
+                speak "rooms=all Weather alert.  A winnd gust of " . round( $Weather{WindGustSpeed} ) . " MPH was just recorded.";
             }
         }
         $Save{WindGustMax} = 0 if $New_Day;
 
-        $Weather{RainRecent} =
-          round( ( $Weather{RainTotal} - $raintotal_prev ), 2 )
+        $Weather{RainRecent} = round( ( $Weather{RainTotal} - $raintotal_prev ), 2 )
           if $raintotal_prev > 0;
         if ( $Weather{RainRecent} > 0 ) {
             speak "Notice, it just rained $Weather{RainRecent} inches";

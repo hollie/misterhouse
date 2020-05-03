@@ -25,8 +25,7 @@ if ( new_minute(5) && $Hour != 2 ) {    # Skip the ALDB scanning hour
 if ( my $state = state_now $thermostat) {
     print_log("[HVAC] Got new thermostat state: $state");
     if ( $state eq 'temp_change' ) {
-        print_log(
-            "[HVAC] Thermostat temp_change to " . $thermostat->get_temp );
+        print_log( "[HVAC] Thermostat temp_change to " . $thermostat->get_temp );
     }
 }
 
@@ -88,8 +87,7 @@ if ( said $v_set_normal_setpoints) {
     $thermostat->cool_setpoint(77);
     $thermostat->poll_setpoint();
 }
-$v_set_nighttime_setpoints =
-  new Voice_Cmd('Set thermostat nighttime setpoints');
+$v_set_nighttime_setpoints = new Voice_Cmd('Set thermostat nighttime setpoints');
 if ( said $v_set_nighttime_setpoints) {
     $thermostat->mode('auto');
     $thermostat->heat_setpoint(70);

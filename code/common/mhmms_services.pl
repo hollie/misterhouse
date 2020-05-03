@@ -46,8 +46,7 @@ sub mhmms_get_remote_list {
     my $mediapath = $config_parms{media_file_path};
     $mediapath = "" unless $config_parms{media_file_path};
 
-    my $mediadata =
-      new Socket_Item( undef, undef, $mediahost, 'mediadata', 'tcp' );
+    my $mediadata = new Socket_Item( undef, undef, $mediahost, 'mediadata', 'tcp' );
 
     start $mediadata ;    # open socket
                           # send data out
@@ -59,8 +58,8 @@ sub mhmms_get_remote_list {
         #select undef, undef, undef, .050; 	# Wait a while if needed
         $data = said_next $mediadata;    # get a string
         $pos  = $pos + 1;                # becuse we like counting entries
-             # print "mhmms-list:$data\n";		# and seeind data sometimes
-             #check to see if were done or the server is dead etc...
+                                         # print "mhmms-list:$data\n";		# and seeind data sometimes
+                                         #check to see if were done or the server is dead etc...
         last if ( $data eq "DONE" or $data eq '' or $data eq "\r\n" );
 
         #collect data into an aray
@@ -191,8 +190,7 @@ sub mhmms_ret_types {
     #my @dirs = shift;
     #my @files = shift;
 
-    my @search_types =
-      qw( asf avi mov mp3 mp4 mpeg mpg ogg rma vob wav wma wmv );
+    my @search_types = qw( asf avi mov mp3 mp4 mpeg mpg ogg rma vob wav wma wmv );
 
     #print "Sorting ...$search_this\n";
     #   print "\n files @$files \n dirs @$dirs \n retn @$retn";

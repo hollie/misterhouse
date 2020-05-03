@@ -82,8 +82,7 @@ sub new {
     bless $self, $class;
 
     if ( $idstr =~ /\|/ ) {
-        &main::print_log(
-            "EIB_Item: '$idstr' is a combined address vector. Ignore it")
+        &main::print_log("EIB_Item: '$idstr' is a combined address vector. Ignore it")
           if $main::config_parms{eib_errata} >= 3;
     }
     else {
@@ -188,14 +187,10 @@ sub set {
             $state = 'on';
         }
         else {
-            &main::print_log(
-                "Can't toggle EIB_Item object $self->{object_name} in state $$self{state}"
-            );
+            &main::print_log("Can't toggle EIB_Item object $self->{object_name} in state $$self{state}");
             return 0;
         }
-        &main::print_log(
-            "Toggling EIB_Item object $self->{object_name} from $$self{state} to $state"
-        );
+        &main::print_log("Toggling EIB_Item object $self->{object_name} from $$self{state} to $state");
     }
 
     $target = $self->{groupaddr} unless ( defined $target );
@@ -248,8 +243,7 @@ sub send_read_msg {
     my ( $self, $data ) = @_;
     my $msg;
 
-    &main::print_log(
-        "EIB_Item::send_read_msg: Send read message to $self->{groupaddr}")
+    &main::print_log("EIB_Item::send_read_msg: Send read message to $self->{groupaddr}")
       if $main::config_parms{eib_errata} >= 3;
 
     $msg->{'type'} = 'read';
@@ -267,8 +261,7 @@ process a message to set a value
 sub receive_write_msg {
     my ( $self, $state, $set_by, $target ) = @_;
 
-    &main::print_log(
-        "EIB_Item::receive_write_msg: new state $state set on $self")
+    &main::print_log("EIB_Item::receive_write_msg: new state $state set on $self")
       if $main::config_parms{eib_errata} >= 3;
     $self->set_receive( $state, $set_by, $target );
 }
@@ -314,19 +307,16 @@ sub receive_msg {
                     :                  ": \"[@data]\""
                 ) if $main::config_parms{eib_errata} >= 3;
                 if ( $op eq 'write' ) {
-                    $eib_item->receive_write_msg( $state, $msg->{'src'},
-                        $msg->{'dst'} );
+                    $eib_item->receive_write_msg( $state, $msg->{'src'}, $msg->{'dst'} );
                 }
                 elsif ( $op eq 'reply' ) {
-                    $eib_item->receive_reply_msg( $state, $msg->{'src'},
-                        $msg->{'dst'} );
+                    $eib_item->receive_reply_msg( $state, $msg->{'src'}, $msg->{'dst'} );
                 }
             }
         } @eib_items;
     }
     else {
-        &main::print_log( "EIB $op from $msg->{'src'} to $msg->{'dst'}",
-            ". Item not found." )
+        &main::print_log( "EIB $op from $msg->{'src'} to $msg->{'dst'}", ". Item not found." )
           if $main::config_parms{eib_errata} >= 2;
     }
 }
@@ -343,8 +333,7 @@ sub start_read_timer {
     $interval = 0 + $::config_parms{eib_read_retry_interval}
       unless defined $interval;
     $self->{get_timer} = new Timer;
-    $self->{get_timer}
-      ->set( $interval, sub { EIB_Item::read_timeout($self); }, 1 );
+    $self->{get_timer}->set( $interval, sub { EIB_Item::read_timeout($self); }, 1 );
     $self->{get_timer}->start();
 }
 
@@ -474,8 +463,7 @@ translate EIS 1 data to state (on/off)
 sub decode {
     my ( $self, @data ) = @_;
     unless ( $#data == 0 ) {
-        &main::print_log(
-            "Not EIS type 1 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 1 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 2;
         return;
     }
@@ -604,10 +592,7 @@ sub new {
         $self->addStates( split ',', $main::config_parms{eib2_menu_states} );
     }
     else {
-        $self->addStates(
-            'on',  'off', 'brighten', 'dim', 'stop', '5%',
-            '30%', '60%', '100%'
-        );
+        $self->addStates( 'on', 'off', 'brighten', 'dim', 'stop', '5%', '30%', '60%', '100%' );
     }
     return $self;
 }
@@ -684,8 +669,7 @@ sub set {
         $subitem = $self->value();
     }
     else {
-        &main::print_log(
-            " $self->{object_name}: Bad EIB dimmer state \'$state\'\n");
+        &main::print_log(" $self->{object_name}: Bad EIB dimmer state \'$state\'\n");
     }
 
     $subitem->set( $state, $set_by, $target ) if ( defined $subitem );
@@ -828,8 +812,7 @@ sub set_receive {
         $dimmer->set_receive( $state, $set_by, $target );
     }
     else {
-        &main::print_log(
-            "No dimmer defined for dimmer subitem $self->{groupaddr}");
+        &main::print_log("No dimmer defined for dimmer subitem $self->{groupaddr}");
     }
 }
 
@@ -890,8 +873,7 @@ sub set {
 sub decode {
     my ( $self, @data ) = @_;
     unless ( $#data == 0 ) {
-        &main::print_log(
-            "Not EIS type 21 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 21 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 2;
         return;
     }
@@ -944,9 +926,7 @@ sub set_receive {
             delayed_read_request $value;
         }
         else {
-            &main::print_log(
-                "No dimmer value subitem for dimmer control $self->{groupaddr}"
-            );
+            &main::print_log("No dimmer value subitem for dimmer control $self->{groupaddr}");
         }
         $self->{dimmer_timer}->unset() if defined $self->{dimmer_timer};
     }
@@ -958,8 +938,7 @@ sub set_receive {
         $self->{dimmer_timer} = new Timer unless defined $self->{dimmer_timer};
         if ( $self->{dimmer_timer}->inactive() ) {
             my $interval = 0 + $::config_parms{eib_dimmer_timer};
-            $self->{dimmer_timer}
-              ->set( $interval, sub { EIB21_Item::dimmer_timeout($self); }, 1 );
+            $self->{dimmer_timer}->set( $interval, sub { EIB21_Item::dimmer_timeout($self); }, 1 );
         }
     }
 }
@@ -996,8 +975,7 @@ sub set_receive {
     my ( $self, $state, $set_by, $target, $read ) = @_;
 
     if ( !$read && $self->{readable} ) {
-        &main::print_log(
-            "EIB22_Item::set_receive: read_request for $self->{groupaddr}")
+        &main::print_log("EIB22_Item::set_receive: read_request for $self->{groupaddr}")
           if $main::config_parms{eib_errata} >= 3;
         $self->delayed_read_request();
     }
@@ -1045,8 +1023,7 @@ sub decode {
     my $res;
 
     unless ( $#data == 3 ) {
-        &main::print_log(
-            "Not EIS type 3 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 3 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 3;
         return;
     }
@@ -1055,8 +1032,7 @@ sub decode {
     my $minute  = $data[2] & 0xFF;
     my $second  = $data[3] & 0xFF;
 
-    $res =
-      sprintf( "%s, %02i:%02i:%02i", $DoW[$weekday], $hour, $minute, $second );
+    $res = sprintf( "%s, %02i:%02i:%02i", $DoW[$weekday], $hour, $minute, $second );
     &main::print_log("EIS3 for $self->{groupaddr}: >$res<")
       if $main::config_parms{eib_errata} >= 3;
     return $res;
@@ -1104,8 +1080,7 @@ sub decode {
     my $res;
 
     unless ( $#data == 3 ) {
-        &main::print_log(
-            "Not EIS type 4 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 4 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 3;
         return;
     }
@@ -1157,8 +1132,7 @@ sub decode {
     my $res;
 
     unless ( $#data == 2 ) {
-        &main::print_log(
-            "Not EIS type 5 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 5 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 2;
         return;
     }
@@ -1213,8 +1187,7 @@ sub decode {
     my $res;
 
     unless ( $#data == 1 ) {
-        &main::print_log(
-            "Not EIS type 6 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 6 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 2;
         return;
     }
@@ -1266,8 +1239,7 @@ sub set_receive {
       if $main::config_parms{eib_errata} >= 3;
 
     if ( !$read && $self->{readable} ) {
-        &main::print_log(
-            "EIB6_Item::set_receive: read_request for $self->{groupaddr}")
+        &main::print_log("EIB6_Item::set_receive: read_request for $self->{groupaddr}")
           if $main::config_parms{eib_errata} >= 3;
         $self->delayed_read_request();
     }
@@ -1313,8 +1285,7 @@ sub decode {
     my $res;
 
     unless ( $#data == 0 ) {
-        &main::print_log(
-            "Not EIS type 8 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 8 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 2;
         return;
     }
@@ -1373,14 +1344,11 @@ sub decode {
     my $res;
 
     unless ( $#data == 4 ) {
-        &main::print_log(
-            "Not EIS type 9 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 9 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 2;
         return;
     }
-    my $res = unpack "f", pack "L",
-      ( ( $data[1] << 24 ) | ( $data[2] << 16 ) | ( $data[3] << 8 ) |
-          $data[4] );
+    my $res = unpack "f", pack "L", ( ( $data[1] << 24 ) | ( $data[2] << 16 ) | ( $data[3] << 8 ) | $data[4] );
 
     #    &main::print_log("EIS9 for $self->{groupaddr}: >$res<");
     return $res;
@@ -1392,15 +1360,7 @@ sub encode {
     $res = unpack "L", pack "f", $state;
 
     #&main::print_log("Res: $res State: $state \n");
-    return (
-        [
-            0,
-            ( $res & 0xff000000 ) >> 24,
-            ( $res & 0xff0000 ) >> 16,
-            ( $res & 0xff00 ) >> 8,
-            $res & 0xff
-        ]
-    );
+    return ( [ 0, ( $res & 0xff000000 ) >> 24, ( $res & 0xff0000 ) >> 16, ( $res & 0xff00 ) >> 8, $res & 0xff ] );
 }
 
 =head2 EIB10_Item
@@ -1422,8 +1382,7 @@ sub decode {
     my $res;
 
     unless ( $#data == 2 ) {
-        &main::print_log(
-            "Not EIS type 10 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 10 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 2;
         return;
     }
@@ -1458,8 +1417,7 @@ sub decode {
     my $res;
 
     unless ( $#data == 2 ) {
-        &main::print_log(
-            "Not EIS type 10.1 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 10.1 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 2;
         return;
     }
@@ -1504,8 +1462,7 @@ sub decode {
     my $res;
 
     unless ( $#data == 4 ) {
-        &main::print_log(
-            "Not EIS type 11 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 11 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 2;
         return;
     }
@@ -1519,15 +1476,7 @@ sub decode {
 sub encode {
     my ( $self, $state ) = @_;
 
-    return (
-        [
-            0,
-            ( $state & 0xff000000 ) >> 24,
-            ( $state & 0xff0000 ) >> 16,
-            ( $state & 0xff00 ) >> 8,
-            $state & 0xff
-        ]
-    );
+    return ( [ 0, ( $state & 0xff000000 ) >> 24, ( $state & 0xff0000 ) >> 16, ( $state & 0xff00 ) >> 8, $state & 0xff ] );
 }
 
 =head2 EIB11.1_Item
@@ -1549,8 +1498,7 @@ sub decode {
     my $res;
 
     unless ( $#data == 4 ) {
-        &main::print_log(
-            "Not EIS type 11 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 11 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 2;
         return;
     }
@@ -1577,15 +1525,7 @@ sub encode {
     }
 
     #&main::print_log("Res: $res State: $state \n");
-    return (
-        [
-            0,
-            ( $res & 0xff000000 ) >> 24,
-            ( $res & 0xff0000 ) >> 16,
-            ( $res & 0xff00 ) >> 8,
-            $res & 0xff
-        ]
-    );
+    return ( [ 0, ( $res & 0xff000000 ) >> 24, ( $res & 0xff0000 ) >> 16, ( $res & 0xff00 ) >> 8, $res & 0xff ] );
 }
 
 =head2 EIB14_Item
@@ -1607,8 +1547,7 @@ sub decode {
     my $res;
 
     unless ( $#data == 1 ) {
-        &main::print_log(
-            "Not EIS type 14 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 14 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 2;
         return;
     }
@@ -1657,8 +1596,7 @@ sub decode {
     my $res;
 
     unless ( $#data == 1 ) {
-        &main::print_log(
-            "Not EIS type 14.1 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 14.1 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 2;
         return;
     }
@@ -1705,8 +1643,7 @@ sub set_receive {
     my ( $self, $state, $set_by, $target, $read ) = @_;
 
     if ( !$read && $self->{readable} ) {
-        &main::print_log(
-            "EIB14_1_Item::set_receive: read_request for $self->{groupaddr}")
+        &main::print_log("EIB14_1_Item::set_receive: read_request for $self->{groupaddr}")
           if $main::config_parms{eib_errata} >= 3;
         $self->delayed_read_request();
     }
@@ -1808,8 +1745,7 @@ sub set {
         $subitem = $self->{Step};
     }
     else {
-        &main::print_log(
-            " $self->{object_name}: Bad EIB drive state \'$state\'\n");
+        &main::print_log(" $self->{object_name}: Bad EIB drive state \'$state\'\n");
         return;
     }
     $subitem->set( $state, $set_by, $target );
@@ -1881,8 +1817,7 @@ sub eis_type {
 sub decode {
     my ( $self, @data ) = @_;
     unless ( $#data == 0 ) {
-        &main::print_log(
-            "Not EIS type 71 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 71 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 2;
         return;
     }
@@ -1926,8 +1861,7 @@ sub eis_type {
 sub decode {
     my ( $self, @data ) = @_;
     unless ( $#data == 0 ) {
-        &main::print_log(
-            "Not EIS type 72 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 72 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 2;
         return;
     }
@@ -1957,8 +1891,7 @@ sub eis_type {
 sub decode {
     my ( $self, @data ) = @_;
     unless ( $#data == 0 ) {
-        &main::print_log(
-            "Not EIS type 73 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 73 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 2;
         return;
     }
@@ -2004,8 +1937,7 @@ sub decode {
     my $res;
 
     unless ( $#data == 14 ) {
-        &main::print_log(
-            "Not EIS type 15 data received for $self->{groupaddr}: \[@data\]")
+        &main::print_log("Not EIS type 15 data received for $self->{groupaddr}: \[@data\]")
           if $main::config_parms{eib_errata} >= 2;
         return;
     }
@@ -2167,8 +2099,7 @@ sub set_receive {
         $window->set_receive( $state, $set_by, $target );
     }
     else {
-        &main::print_log(
-            "No window defined for window subitem $self->{groupaddr}");
+        &main::print_log("No window defined for window subitem $self->{groupaddr}");
     }
 }
 

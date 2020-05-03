@@ -34,13 +34,13 @@ if ( time_cron '* * * * *' and defined state $temp_outside) {
     $analog{temp_living} = convert_k2f( state $temp_living/ 10 );
     $analog{temp_nick}   = convert_k2f( state $temp_nick/ 10 );
     $analog{temp_zack}   = convert_k2f( state $temp_zack/ 10 );
-    $Weather{sun_sensor} = $analog{sun_sensor};    # Used in weather_monitor.pl
+    $Weather{sun_sensor} = $analog{sun_sensor};                     # Used in weather_monitor.pl
 
     #   $Weather{TempSpare1} = $analog{sun_sensor}; # Used in weather_rrd_graph.pl
     #   $Weather{TempSpare1} = $analog{temp_living}; # Used in weather_rrd_graph.pl
-    $Weather{TempSpare1} = $analog{temp_outside}; # Used in weather_rrd_graph.pl
-    $Weather{TempSpare2} = $analog{temp_nick};    # Used in weather_rrd_graph.pl
-    $Weather{TempSpare3} = $analog{temp_zack};    # Used in weather_rrd_graph.pl
+    $Weather{TempSpare1} = $analog{temp_outside};    # Used in weather_rrd_graph.pl
+    $Weather{TempSpare2} = $analog{temp_nick};       # Used in weather_rrd_graph.pl
+    $Weather{TempSpare3} = $analog{temp_zack};       # Used in weather_rrd_graph.pl
 
     #    print_log "sun=$analog{sun_sensor} temp_in=$analog{temp_living} temp_out=$analog{temp_outside}";
     #    logit("e:/logs/DATAHI.log", "Humidity Downstairs $analog{humidity_inside}");
@@ -89,8 +89,7 @@ sub analog_read {
             }
 
             my $analog_data_avg = 0;
-            grep( $analog_data_avg += $_,
-                @{ $analog_data_avg_data{$analog_port_bit} } );
+            grep( $analog_data_avg += $_, @{ $analog_data_avg_data{$analog_port_bit} } );
             $analog_data_avg /= 5;
             $ref->{state} = $analog_data_avg;
 

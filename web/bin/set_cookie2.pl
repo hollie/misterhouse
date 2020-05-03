@@ -11,7 +11,7 @@ if ( $string =~ /=/ ) {
     if ( my ( $keyword, $state ) = $string =~ /(\S+)=(\S*)/ ) {
 
         #       print "Debug c=$keyword s=$state\n";
-        $cookie = "Set-Cookie: $keyword=$state ; ; path=/;\n";
+        $cookie = "Set-Cookie: $keyword=$state ; ; path=/;\r\n";
     }
 
     # Audrey browser is a pain:
@@ -20,26 +20,35 @@ if ( $string =~ /=/ ) {
     #  - Can not easily pass referer in from the html form .
     #  - So simply give a back button
 
-    if ( $Http{'User-Agent'} eq 'Audrey' ) {
-        return <<eof;
-HTTP/1.0 200 OK
-Content-Type: text/html
-$cookie
 
+    if ( $Http{'User-Agent'} eq 'Audrey' ) {
+my $body = <<eof;
 <a href='javascript:history.go(-1)'><img src='/ia5/images/back.gif' border=0>
 eof
+    my $output = "HTTP/1.1 200 OK\r\n";
+    $output .= "Server: MisterHouse\r\n";
+    $output .= "Content-type: text/html\r\n";
+    $output .= "Connection: close\r\n" if &http_close_socket;
+    $output .= "Content-Length: " . ( length $body ) . "\r\n";
+    $output .= "Date: " . time2str(time) . "\r\n";
+    $output .= $cookie;
+    $output .= "\r\n";
+    $output .= $body;
+    return $output;
     }
     else {
         return <<eof;
-HTTP/1.0 301 Moved Temporarily
+HTTP/1.1 301 Moved Temporarily
 Location:$Http{Referer}
+Connection: close
 $cookie
 
 eof
         return <<eof;
-HTTP/1.0 204 No Response
+HTTP/1.1 204 No Response
 Server: MisterHouse
 Content-Type: text/html
+Connection: close
 Cache-control: no-cache
 $cookie
 
@@ -60,7 +69,6 @@ else {
     $state2 = '' if defined $Cookies{$string} and $Cookies{$string} eq '0';
 
     my $image = "/graphics/${string}_${state1}.gif";
-    return
-      "<a href='/bin/set_cookie2.pl?$string=$state2'><img src='$image' alt='$string $state1' border=0></a>\n";
+    return "<a href='/bin/set_cookie2.pl?$string=$state2'><img src='$image' alt='$string $state1' border=0></a>\n";
 }
 

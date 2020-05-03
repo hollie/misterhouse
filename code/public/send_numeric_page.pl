@@ -29,8 +29,7 @@ $v_page_call_home = new Voice_Cmd('Page Jeff to call home now');
 ###########################################################
 
 # A timer and a state variable are needed to control the modem hang-up
-$serial_out = new Serial_Item( undef, undef, 'serial1' )
-  ;    # Needs to match setting in .ini file
+$serial_out = new Serial_Item( undef, undef, 'serial1' );    # Needs to match setting in .ini file
 $pager_timer = new Timer();
 my $modem_mode = "idle";
 
@@ -53,14 +52,12 @@ sub send_page {
           if $pager_msg eq "";    ### provide default message here
         $print_msg = "Paging " . $pager_num . " with " . $pager_msg
           if $print_msg eq "";
-        print_log
-          "Sending page to $pager_num with message $pager_msg, Print string is $print_msg\n";
+        print_log "Sending page to $pager_num with message $pager_msg, Print string is $print_msg\n";
         speak("$print_msg");
         $modem_mode = "paging";
         ### ensure that the correct key to send the page is specified below.  Most paging services use a "#"
         $pager_command = "ATDT" . $pager_num . ",," . $pager_msg . "#;";
-        set $pager_timer 20
-          ; ### 20 seconds works for local paging, 800 services may require more
+        set $pager_timer 20;      ### 20 seconds works for local paging, 800 services may require more
         set $serial_out $pager_command;
 
         #       print "Page command is $pager_command\n";  ### Uncomment line for debugging

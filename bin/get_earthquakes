@@ -29,8 +29,7 @@ BEGIN {
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
-my ($Version) =
-  q$Revision: 398 $ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+my ($Version) = q$Revision: 398 $ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
 
 use Getopt::Long;
 our %parms;
@@ -56,7 +55,7 @@ eof
 }
 
 BEGIN {
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";
 }                                # Use BEGIN eval to keep perl2exe happy
 require 'handy_utilities.pl';    # For read_mh_opts funcion
 
@@ -97,7 +96,7 @@ unless ( tie %DBM, 'DB_File', $parms{dbm}, O_RDWR | O_CREAT, 0666 ) {
 }
 
 if ( $parms{d} ) {
-    print map( {"$_ => $DBM{$_}\n"} keys(%DBM) );
+    print map( { "$_ => $DBM{$_}\n" } keys(%DBM) );
     untie %DBM;
     die "Dumpped the DBM file.  Exiting!\n";
 }
@@ -105,8 +104,7 @@ if ( $parms{d} ) {
 unlink $f_cnss_merged_txt;
 my $getURLcmd = 'net_ftp -passive 1 -command get -server hazards.cr.usgs.gov ';
 $getURLcmd .= ' -user anonymous -password anonymous';
-system( $getURLcmd
-      . " -file $f_cnss_merged_txt -file_remote cnss/cnss_14.fing " );
+system( $getURLcmd . " -file $f_cnss_merged_txt -file_remote cnss/cnss_14.fing " );
 
 unless ( open CNSS, $f_cnss_merged_txt ) {
     die "$Pgm_Name: Failed to retrieve file from USGS\n";
@@ -134,9 +132,7 @@ foreach $line (@txtFile) {
         if ( !exists( $DBM{$key} ) ) {
 
             #Entry is new so go ahead and calculate the distance; expensive
-            $event->[7] = sprintf "%d",
-              calc_distance( $latitude, $longitude,
-                $event->[1], $event->[2], $Earthquake_Units ) + .5;
+            $event->[7] = sprintf "%d", calc_distance( $latitude, $longitude, $event->[1], $event->[2], $Earthquake_Units ) + .5;
             $event->[9] = 0;
         }
         else {
@@ -154,11 +150,7 @@ foreach $line (@txtFile) {
             if (    $event->[7] <= $distance
                 and $event->[4] >= $Magnitude_thresholds{$distance} )
             {
-                print(  "$Pgm_Name: found magnitude "
-                      . $event->[4]
-                      . " quake "
-                      . $event->[7]
-                      . " $Earthquake_Units away\n" )
+                print( "$Pgm_Name: found magnitude " . $event->[4] . " quake " . $event->[7] . " $Earthquake_Units away\n" )
                   if $parms{v};
                 print($line) if $parms{v};
                 $event->[8] = 1;
@@ -206,13 +198,9 @@ if ( $keyNewest ne "" ) {
       ? ( abs( 5 * round( $dbmEvent[1] / 5 ) ) > 65 ? 20 : 10 )
       : 5;
     my $image =
-      'http://earthquake.usgs.gov/recenteqsww/Maps/10/'
-      . $long_reso *
-      round(
-        ( $dbmEvent[2] < 0 ? 360 + $dbmEvent[2] : $dbmEvent[2] ) / $long_reso )
-      . '_'
-      . 5 *
-      round( $dbmEvent[1] / 5 ) . '.gif';
+        'http://earthquake.usgs.gov/recenteqsww/Maps/10/'
+      . $long_reso * round( ( $dbmEvent[2] < 0 ? 360 + $dbmEvent[2] : $dbmEvent[2] ) / $long_reso ) . '_'
+      . 5 * round( $dbmEvent[1] / 5 ) . '.gif';
     unlink $f_earthquakes_gif;
     $getURLcmd = "get_url " . ( $parms{v} ? "" : "-quiet" );
     system( $getURLcmd . " $image $f_earthquakes_gif" );
@@ -244,12 +232,10 @@ else {
     my $units = $Earthquake_Units eq 'miles' ? "miles" : "km   ";
     print( TXT "List is filtered using the follwing:\n" );
     print( TXT "  Distance <=   Magnitude >=\n" );
-    foreach my $distThresh ( sort( { $b <=> $a } keys(%Magnitude_thresholds) ) )
-    {
+    foreach my $distThresh ( sort( { $b <=> $a } keys(%Magnitude_thresholds) ) ) {
         my $magThresh = $Magnitude_thresholds{$distThresh};
-        $distThresh =
-          $distThresh > 20038 ? "  Any" : sprintf( "%5.0d", $distThresh );
-        $magThresh = $magThresh == 0 ? " Any" : sprintf( "%4.1f", $magThresh );
+        $distThresh = $distThresh > 20038 ? "  Any" : sprintf( "%5.0d", $distThresh );
+        $magThresh  = $magThresh == 0     ? " Any"  : sprintf( "%4.1f", $magThresh );
         print( TXT "  $distThresh $units        $magThresh\n" );
     }
     print( TXT "\n" );
@@ -273,20 +259,13 @@ foreach my $key ( reverse( sort(@keysSpeak) ) ) {
 
     ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday ) =
       gmtime( $dbmEvent[0] );
-    printf( TXT "%04d/%02d/%02d %02d:%02d:%02d ",
-        $year + 1900,
-        $mon + 1, $mday, $hour, $min, $sec
-    );
+    printf( TXT "%04d/%02d/%02d %02d:%02d:%02d ", $year + 1900, $mon + 1, $mday, $hour, $min, $sec );
 
     $qnoso = $dbmEvent[1] < 0 ? "S" : "N";
     $qeawe = $dbmEvent[2] < 0 ? "W" : "E";
     $qmag = $dbmEvent[4] > 0 ? sprintf( "%3.1fM", $dbmEvent[4] ) : "    ";
     $qspeek = $dbmEvent[8] ? "S" : " ";
-    printf( TXT "%6.2f%s %6.2f%s %5.1f %s  %s  %s\n",
-        abs( $dbmEvent[1] ),
-        $qnoso, abs( $dbmEvent[2] ),
-        $qeawe, $dbmEvent[3], $qmag, $qspeek, $dbmEvent[6]
-    );
+    printf( TXT "%6.2f%s %6.2f%s %5.1f %s  %s  %s\n", abs( $dbmEvent[1] ), $qnoso, abs( $dbmEvent[2] ), $qeawe, $dbmEvent[3], $qmag, $qspeek, $dbmEvent[6] );
 }
 
 close TXT;
@@ -303,23 +282,15 @@ sub parse_quake {
     #  0   1   2    3      4        5      6         7       8     9
     #[gmt,lat,lon,depth,magnitude,source,location,distance,speak,spoken]
 
-    if (
-        my (
-            $qdate, $qtime, $qlatd, $qnoso, $qlong,
-            $qeawe, $qdept, $qmagn, $qsrc,  $qloca
-        )
-        = $line =~
-        m!^(.{10})\s(.{8})\s(.{6})([NS])\s(.{6})([EW])\s(.{5})\s(.{3})\s(.{7}):\s(.+)!
-      )
+    if ( my ( $qdate, $qtime, $qlatd, $qnoso, $qlong, $qeawe, $qdept, $qmagn, $qsrc, $qloca ) =
+        $line =~ m!^(.{10})\s(.{8})\s(.{6})([NS])\s(.{6})([EW])\s(.{5})\s(.{3})\s(.{7}):\s(.+)! )
     {
 
         #convert timestamp to gmt
         my ( $qyear, $qmnth, $qday )  = $qdate =~ m!(\S+)/(\S+)/(\S+)!;
         my ( $qhour, $qminu, $qseco ) = $qtime =~ m!(\S+):(\S+):(\S+)!;
         my $qgmt;
-        eval {
-            $qgmt = timegm( $qseco, $qminu, $qhour, $qday, $qmnth - 1, $qyear );
-        };
+        eval { $qgmt = timegm( $qseco, $qminu, $qhour, $qday, $qmnth - 1, $qyear ); };
         if ($@) {
             print("$Pgm_Name: timegm() failed to parse date and time\n")
               if $parms{v};
@@ -361,12 +332,7 @@ sub calc_distance {
     $lon1 /= $c;
     $lon2 /= $c;
 
-    $d = 2 * Math::Trig::asin(
-        sqrt(
-            ( sin( ( $lat1 - $lat2 ) / 2 ) )**2 +
-              cos($lat1) * cos($lat2) * ( sin( ( $lon1 - $lon2 ) / 2 ) )**2
-        )
-    );
+    $d = 2 * Math::Trig::asin( sqrt( ( sin( ( $lat1 - $lat2 ) / 2 ) )**2 + cos($lat1) * cos($lat2) * ( sin( ( $lon1 - $lon2 ) / 2 ) )**2 ) );
 
     if ( $units ne 'miles' ) {
         return $d * 6378;    # convert to kilometers and return

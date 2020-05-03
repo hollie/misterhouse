@@ -47,8 +47,7 @@ sub tk_setup_geometry {
     if (
         $config_parms{tk_geometry}
         and (  $Startup
-            or $config_parms{tk_geometry} ne
-            $config_parms{tk_geometry_startup} )
+            or $config_parms{tk_geometry} ne $config_parms{tk_geometry_startup} )
       )
     {
         print "Setting geometry to $config_parms{tk_geometry}\n";
@@ -62,7 +61,7 @@ sub tk_setup_cascade_menus {
     if ( $config_parms{tk_commands} ) {
 
         print "Creating Command menu\n";
-        $Tk_objects{menu_commands}->menu->delete( 0, 'end' ); # Delete old menus
+        $Tk_objects{menu_commands}->menu->delete( 0, 'end' );    # Delete old menus
 
         for my $category ( &list_code_webnames('Voice_Cmd') ) {
 
@@ -84,11 +83,7 @@ sub tk_setup_cascade_menus {
                 unless ( $Tk_objects{menu_command_by_cat}{$category} ) {
                     $Tk_objects{menu_command_by_cat}{$category} =
                       $Tk_objects{menu_commands}->menu->Menu;
-                    &tk_cascade_entry(
-                        $category,
-                        $Tk_objects{menu_commands},
-                        $Tk_objects{menu_command_by_cat}{$category}
-                    );
+                    &tk_cascade_entry( $category, $Tk_objects{menu_commands}, $Tk_objects{menu_command_by_cat}{$category} );
                 }
 
                 #                $Tk_objects{menu_command_by_cat}{$category}->
@@ -102,17 +97,14 @@ sub tk_setup_cascade_menus {
                 $filename =~ s/_/\x20/g;
                 $filename =~ ucfirst($filename);
 
-                if ( my ( $prefix, $states, $suffix ) =
-                    $text =~ /^(.*)\[(.+?)\](.*)$/ )
-                {
+                if ( my ( $prefix, $states, $suffix ) = $text =~ /^(.*)\[(.+?)\](.*)$/ ) {
                     for my $state ( split( ',', $states ) ) {
                         my $text2 = "$prefix$state$suffix";
                         my $text3 = "$filename: $text2";
                         $Tk_objects{menu_command_by_cat}{$category}->add(
                             'command',
-                            -label => $text3,
-                            -command =>
-                              sub { &run_voice_cmd( $text2, undef, 'tk' ) }
+                            -label   => $text3,
+                            -command => sub { &run_voice_cmd( $text2, undef, 'tk' ) }
                         );
                     }
                 }
@@ -162,19 +154,11 @@ sub tk_setup_cascade_menus {
             $Tk_objects{menu_items_by_type}{$object_type} =
               $Tk_objects{menu_items}->menu->Menu;
 
-            &configure_element( 'window',
-                \$Tk_objects{menu_items_by_type}{$object_type} );
-            &tk_cascade_entry( $object_type, $Tk_objects{menu_items},
-                $Tk_objects{menu_items_by_type}{$object_type} );
+            &configure_element( 'window', \$Tk_objects{menu_items_by_type}{$object_type} );
+            &tk_cascade_entry( $object_type, $Tk_objects{menu_items}, $Tk_objects{menu_items_by_type}{$object_type} );
 
             # Sort by filename first, then object name
-            for my $object (
-                sort {
-                         $a->{filename} cmp $b->{filename}
-                      or $a->{object_name} cmp $b->{object_name}
-                } @objects
-              )
-            {
+            for my $object ( sort { $a->{filename} cmp $b->{filename} or $a->{object_name} cmp $b->{object_name} } @objects ) {
 
                 next if $$object{hidden};
 
@@ -193,13 +177,8 @@ sub tk_setup_cascade_menus {
                     $filename = ucfirst($filename);
 
                     # *** This should be another cascade!
-                    my $object_name = "$filename: "
-                      . &pretty_object_name( $object->{object_name} );
-                    &tk_cascade_entry(
-                        $object_name,
-                        $Tk_objects{menu_items_by_type}{$object_type},
-                        $Tk_objects{menu_items_by_object}{$object}
-                    );
+                    my $object_name = "$filename: " . &pretty_object_name( $object->{object_name} );
+                    &tk_cascade_entry( $object_name, $Tk_objects{menu_items_by_type}{$object_type}, $Tk_objects{menu_items_by_object}{$object} );
                 }
             }
         }
@@ -222,8 +201,7 @@ sub tk_setup_cascade_menus {
               )->pack( -side => 'left', -padx => 0 )
               unless $Tk_objects{menu_groups};
 
-            $Tk_objects{menu_groups}->menu->delete( 0, 'end' )
-              ;    # Delete old menus
+            $Tk_objects{menu_groups}->menu->delete( 0, 'end' );    # Delete old menus
 
             for my $group_name ( &list_objects_by_type('Group') ) {
                 my $group = &get_object_by_name($group_name);
@@ -234,36 +212,21 @@ sub tk_setup_cascade_menus {
                 $Tk_objects{menu_groups_by_group}{$group} =
                   $Tk_objects{menu_groups}->menu->Menu;
 
-                &configure_element( 'window',
-                    \$Tk_objects{menu_groups_by_group}{$group} );
+                &configure_element( 'window', \$Tk_objects{menu_groups_by_group}{$group} );
 
-                &tk_cascade_entry(
-                    $group_name,
-                    $Tk_objects{menu_groups},
-                    $Tk_objects{menu_groups_by_group}{$group}
-                );
+                &tk_cascade_entry( $group_name, $Tk_objects{menu_groups}, $Tk_objects{menu_groups_by_group}{$group} );
 
                 # Add an entry for the group
-                &tk_object_states( $group, 'menu_groups',
-                    $Tk_objects{menu_groups_by_group}{$group} );
+                &tk_object_states( $group, 'menu_groups', $Tk_objects{menu_groups_by_group}{$group} );
 
                 # Sort by filename first, then object name
-                for my $object (
-                    sort {
-                             $a->{filename} cmp $b->{filename}
-                          or $a->{object_name} cmp $b->{object_name}
-                    } list $group)
-                {
+                for my $object ( sort { $a->{filename} cmp $b->{filename} or $a->{object_name} cmp $b->{object_name} } list $group) {
                     next if $$object{hidden};
-                    if ( my $menu =
-                        &tk_object_states( $object, 'menu_groups' ) )
-                    {
+                    if ( my $menu = &tk_object_states( $object, 'menu_groups' ) ) {
                         $Tk_objects{menu_items_by_object}{$object} = $menu;
                         my $filename    = $object->{filename};
-                        my $object_name = "$filename: "
-                          . &pretty_object_name( $object->{object_name} );
-                        &tk_cascade_entry( $object_name,
-                            $Tk_objects{menu_groups_by_group}{$group}, $menu );
+                        my $object_name = "$filename: " . &pretty_object_name( $object->{object_name} );
+                        &tk_cascade_entry( $object_name, $Tk_objects{menu_groups_by_group}{$group}, $menu );
                     }
                 }
             }
@@ -283,16 +246,14 @@ sub tk_object_states {
     my ( $object, $menu_parent, $menu ) = @_;
 
     return
-      unless $object
-      ;    # *** Looks like a warning needed here (for calling code's developer)
+      unless $object;    # *** Looks like a warning needed here (for calling code's developer)
 
     # Already have this object's menu created
     return $Tk_objects{menu_items_by_object}{$object}
       if !$menu
-      and $Tk_objects{menu_items_by_object}{$object}
-      ;    # Already have this object's menu created
+      and $Tk_objects{menu_items_by_object}{$object};    # Already have this object's menu created
 
-    return unless $object->{states}; # Only create menus for objects with states
+    return unless $object->{states};                     # Only create menus for objects with states
     my @states      = @{ $object->{states} };
     my $object_type = ref $object;
 
@@ -304,7 +265,7 @@ sub tk_object_states {
     return unless $states[0];
 
     $menu = $Tk_objects{$menu_parent}->menu->Menu
-      unless $menu;                  # Create a new menu unless given
+      unless $menu;                                      # Create a new menu unless given
     $menu->add(
         'command',
         -label   => 'Log',
@@ -388,9 +349,7 @@ sub tk_mbutton {
     my ( $label, $pvar ) = @_;
     $Tk_objects{mbutton}{$pvar}->destroy
       if $Tk_objects{mbutton}{$pvar} and Exists( $Tk_objects{mbutton}{$pvar} );
-    $Tk_objects{mbutton}{$pvar} =
-      $Tk_objects{menu_bar}->Button( -text => $label, -command => $pvar )
-      ->pack(qw/-side right/);
+    $Tk_objects{mbutton}{$pvar} = $Tk_objects{menu_bar}->Button( -text => $label, -command => $pvar )->pack(qw/-side right/);
 }
 
 =item C<tk_checkbutton>
@@ -450,8 +409,7 @@ sub tk_checkbutton {
 sub tk_command_list {
     my ($parent) = @_;
 
-    my $list = $parent->Scrolled(
-        qw/Tree -separator : -exportselection 1 -scrollbars osoe /);
+    my $list = $parent->Scrolled(qw/Tree -separator : -exportselection 1 -scrollbars osoe /);
     &configure_element( 'edit', \$list );
 
     # These 2 commands give a 'can not find delegate.pl' msg on tk 8.020 (ok on 8.015).
@@ -461,16 +419,13 @@ sub tk_command_list {
     my $f = $parent->Frame->pack( -side => 'top', -fill => 'x' );
 
     #    $f->Label(-text => "Command or Search:")->pack(-side => 'left', -fill => 'x');
-    $Tk_objects{command} =
-      $f->BrowseEntry( -width => 20 )
-      ->pack( -side => 'left', -fill => 'x', -expand => 1 );
+    $Tk_objects{command} = $f->BrowseEntry( -width => 20 )->pack( -side => 'left', -fill => 'x', -expand => 1 );
 
     #    $Tk_objects{command}->Subwidget('entry')->configure(-bg => 'white');
 
     # *** Need execute_tk_command sub (looks at textbox)
 
-    $Tk_objects{command}
-      ->configure( -command => sub { print "testing browseentry @_"; } );
+    $Tk_objects{command}->configure( -command => sub { print "testing browseentry @_"; } );
 
     my $entry = $Tk_objects{command}->Subwidget('entry');
     &configure_element( 'edit', \$entry );
@@ -507,8 +462,7 @@ sub tk_command_list {
             my $cmd = "@_";
             if ( $cmd =~ /^(.*?): / ) {
                 $cmd =~ s/^(.*?): //;
-                $Tk_objects{command}->Subwidget('entry')
-                  ->configure( -text => $cmd );
+                $Tk_objects{command}->Subwidget('entry')->configure( -text => $cmd );
                 &process_external_command( $cmd, 0, 'tk' );
             }
         }
@@ -556,8 +510,7 @@ sub tk_command_list {
 
                 $list->autosetmode();
             }
-            $Tk_objects{command}->insert( 'end', $cmd )
-              ;    # add to MRU (*** check if there already, move to top)
+            $Tk_objects{command}->insert( 'end', $cmd );    # add to MRU (*** check if there already, move to top)
         }
     );
     return $list;
@@ -566,8 +519,7 @@ sub tk_command_list {
 sub tk_scalebar {
     return
       unless $Reload
-      and $Tk_objects{grid}
-      ; # a crutch for ailing code that creates widgets at the wrong time (better to let them break!)
+      and $Tk_objects{grid};                                # a crutch for ailing code that creates widgets at the wrong time (better to let them break!)
     my $tk;
     my ( $pvar, $col, $label, $from, $to, $row, $show_label ) = @_;
 
@@ -682,9 +634,7 @@ sub tk_entry {
         &configure_element( 'label', \$Tk_objects{entry}{$label} );
 
         if ( ref $pvar ne 'SCALAR' and $pvar->can('set') ) {
-            $Tk_objects{entry}{$pvar} =
-              $Tk_objects{grid}
-              ->Entry( -textvariable => \$$pvar{state}, -width => 12 );
+            $Tk_objects{entry}{$pvar} = $Tk_objects{grid}->Entry( -textvariable => \$$pvar{state}, -width => 12 );
 
             $Tk_objects{entry}{$pvar}->bind(
                 '<Return>',
@@ -697,8 +647,7 @@ sub tk_entry {
         else {
             $Tk_objects{entry}{$pvar} =
               $Tk_objects{grid}->Entry( -textvariable => $pvar, -width => 12 );
-            $Tk_objects{entry}{$pvar}
-              ->bind( '<Return>', sub { $Tk_results{$label} = $$pvar } );
+            $Tk_objects{entry}{$pvar}->bind( '<Return>', sub { $Tk_results{$label} = $$pvar } );
         }
 
         &configure_element( 'edit', \$Tk_objects{entry}{$pvar} );
@@ -797,8 +746,7 @@ sub tk_label {
 
         #           Label(-relief => 'sunken', -textvariable => $pvar, -anchor => 'w', -font => $font1);
 
-        &configure_element( 'log', \$Tk_objects{label}{$pvar} )
-          ;    # these are log-like (need fixed-width font)
+        &configure_element( 'log', \$Tk_objects{label}{$pvar} );    # these are log-like (need fixed-width font)
 
         push( @widgets, $Tk_objects{label}{$pvar} );
     }
@@ -828,10 +776,9 @@ sub configure_element {
 
     if ( defined $$p_element ) {
 
-        $font   = &get_scheme_parameter( $type, 'font' );
-        $color  = &get_scheme_parameter( $type, 'color' );
-        $colors = &get_scheme_parameter( $type, 'colors' )
-          ;    #for multi-color progress bars
+        $font         = &get_scheme_parameter( $type, 'font' );
+        $color        = &get_scheme_parameter( $type, 'color' );
+        $colors       = &get_scheme_parameter( $type, 'colors' );        #for multi-color progress bars
         $bgcolor      = &get_scheme_parameter( $type, 'bgcolor' );
         $relief       = &get_scheme_parameter( $type, 'relief' );
         $border_width = &get_scheme_parameter( $type, 'borderwidth' );
@@ -850,12 +797,7 @@ sub configure_element {
             my @colors = split ',', $colors;
 
             $$p_element->configure(
-                -colors => [
-                    0,  $colors[0], 12, $colors[0], 25, $colors[1],
-                    37, $colors[1], 50, $colors[2], 63, $colors[2],
-                    75, $colors[3], 87, $colors[3]
-                ]
-              )
+                -colors => [ 0, $colors[0], 12, $colors[0], 25, $colors[1], 37, $colors[1], 50, $colors[2], 63, $colors[2], 75, $colors[3], 87, $colors[3] ] )
               if defined $colors
               and defined $flags
               and $flags;
@@ -870,27 +812,24 @@ sub configure_element {
         }
     }
     else {
-        warn
-          "Undefined element passed to configure_element type=$type $p_element";
+        warn "Undefined element passed to configure_element type=$type $p_element";
     }
 }
 
 sub get_scheme_parameter {
-    my $type = shift; #window *** or menu, frame, edit, log, progress or toolbar
+    my $type      = shift;    #window *** or menu, frame, edit, log, progress or toolbar
     my $parameter = shift;    #borderwidth, relief, bgcolor or font
 
     # *** Validate
 
     my $key = "tk_$parameter";
-    if ( $parameter eq 'font' )
-    {    # for backwards compatibility (tk_font_fixed, tk_font_menus, etc.)
-            #	$key .= '_menus' if $type eq 'window' or $type eq 'frame';
+    if ( $parameter eq 'font' ) {    # for backwards compatibility (tk_font_fixed, tk_font_menus, etc.)
+                                     #	$key .= '_menus' if $type eq 'window' or $type eq 'frame';
         $key .= '_window' if $type eq 'window';
         $key .= '_fixed'  if $type eq 'log';
         $key .= '_edit'   if $type eq 'edit';
         $key .= '_label'
-          if $type eq 'label'
-          ; # *** label widget sends this or log, depending on parameter passed to it
+          if $type eq 'label';       # *** label widget sends this or log, depending on parameter passed to it
     }
     else {
         $key .= "_$type";
@@ -930,9 +869,7 @@ sub tk_mlabel {
 
     $Tk_objects{mlabel}{$name}->destroy()
       if $Tk_objects{mlabel}{$name} and Exists( $Tk_objects{mlabel}{$name} );
-    $Tk_objects{mlabel}{$name} =
-      $Tk_objects{menu_bar}
-      ->Label( -relief => 'sunken', -textvariable => $pvar2 );
+    $Tk_objects{mlabel}{$name} = $Tk_objects{menu_bar}->Label( -relief => 'sunken', -textvariable => $pvar2 );
 
     &configure_element( 'edit', $Tk_objects{mlabel}{$name} );
 
@@ -987,8 +924,7 @@ sub tk_radiobutton {
       and Exists( $Tk_objects{radiobutton}{$pvar} );
     my @widgets;
     my @text = @$ptext
-      if $ptext
-      ; # Copy, so we can do shift and still have the origial $ptext array available for html widget
+      if $ptext;    # Copy, so we can do shift and still have the origial $ptext array available for html widget
     for my $value (@$pvalue) {
         my $text = shift @text;
         $text = $value unless defined $text;
@@ -1014,9 +950,7 @@ sub tk_radiobutton {
 
         #       &configure_element('frame', $widget);
     }
-    $Tk_objects{radiobutton}{$pvar} =
-      $Tk_objects{grid}->Label( -text => $label )
-      ->grid( @widgets, -sticky => 'w' );
+    $Tk_objects{radiobutton}{$pvar} = $Tk_objects{grid}->Label( -text => $label )->grid( @widgets, -sticky => 'w' );
 
     #   $Tk_objects{radiobutton}{$pvar} = $Tk_objects{grid}->Label(-text => $label);
     #   &configure_element('frame', $Tk_objects{radiobutton}{$pvar});
@@ -1033,20 +967,14 @@ sub help_about {
         app         => 'help',
         window_name => 'about',
         buttons     => 1,
-        help =>
-          'This is the about box. The System Info button displays OS and program status.'
+        help        => 'This is the about box. The System Info button displays OS and program status.'
     );
     unless ( $win->{activated} ) {
         play 'about';
         my $tk;
-        $tk =
-          $win->{MW}{top_frame}->Label( -text => "$title $Version PID: $$" )
-          ->pack(qw/-expand yes -fill both -side top/);
+        $tk = $win->{MW}{top_frame}->Label( -text => "$title $Version PID: $$" )->pack(qw/-expand yes -fill both -side top/);
         &configure_element( 'label', \$tk );
-        $tk =
-          $win->{MW}{bottom_frame}
-          ->Button( -text => "System Info...", -command => \&system_info )
-          ->pack(qw/-side right/);
+        $tk = $win->{MW}{bottom_frame}->Button( -text => "System Info...", -command => \&system_info )->pack(qw/-side right/);
         &configure_element( 'button', \$tk );
 
         # easter egg (plays goofy WAV file)
@@ -1062,12 +990,9 @@ sub tk_setup_windows {
     print " - setting up the main window\n";
     eval { $MW = MainWindow->new(); };
     if ($@) {
-        print
-          " - WARN: failed to setup main window.  This may be a x-windows permissions problem,\n";
-        print
-          " -        a ssh forwarding problem or some other x-windows related problem.\n";
-        print
-          " -        You may wish to try \"wish\" to debug.  If using ssh, look into ForwardX11Trusted option\n";
+        print " - WARN: failed to setup main window.  This may be a x-windows permissions problem,\n";
+        print " -        a ssh forwarding problem or some other x-windows related problem.\n";
+        print " -        You may wish to try \"wish\" to debug.  If using ssh, look into ForwardX11Trusted option\n";
         return;
     }
     $MW->withdraw;    # Hide the window until we are all set up
@@ -1080,9 +1005,9 @@ sub tk_setup_windows {
     # and we don't mess with manual changes.
     $config_parms{tk_geometry_startup} = $config_parms{tk_geometry};
 
-    $MW->iconname('Misterhouse'); # Loads tk icon resource
-                                  # Older build gives 'bitmap not defined' error
-     # $MW->iconbitmap($Pgm_Root . '/web/favicon.ico') unless $^O eq 'MSWin32' and &Win32::BuildNumber < 810;
+    $MW->iconname('Misterhouse');    # Loads tk icon resource
+                                     # Older build gives 'bitmap not defined' error
+                                     # $MW->iconbitmap($Pgm_Root . '/web/favicon.ico') unless $^O eq 'MSWin32' and &Win32::BuildNumber < 810;
     my $icon_image = $MW->Photo(
         -file   => "${Pgm_Root}/web/favicon.gif",
         -format => 'gif'
@@ -1129,9 +1054,8 @@ sub tk_setup_windows {
     &configure_element( 'window', \$Tk_objects{menu_view} );
 
     $Tk_objects{menu_view}->command(
-        -label => 'in Browser',
-        -command =>
-          sub { &browser("http://localhost:$config_parms{http_port}") }
+        -label   => 'in Browser',
+        -command => sub { &browser("http://localhost:$config_parms{http_port}") }
     );
     $Tk_objects{menu_view}->separator();
 
@@ -1139,8 +1063,7 @@ sub tk_setup_windows {
 
     if ( $config_parms{tk_schemes} ) {
         $Tk_objects{menu_view_schemes} = $Tk_objects{menu_view}->menu->Menu;
-        &tk_cascade_entry( 'Schemes', $Tk_objects{menu_view},
-            $Tk_objects{menu_view_schemes} );
+        &tk_cascade_entry( 'Schemes', $Tk_objects{menu_view}, $Tk_objects{menu_view_schemes} );
 
         &configure_element( 'window', \$Tk_objects{menu_view_schemes} );
 
@@ -1149,8 +1072,7 @@ sub tk_setup_windows {
         my $sub;
 
         for ( sort @scheme_options ) {
-            $sub =
-              "sub {\$Invalidate_Window = 1; my \%opts = (tk_scheme => '$_'); print 'SCHEME = $_\n';  &write_mh_opts(\\%opts,0,1); &read_code_forced()}";
+            $sub = "sub {\$Invalidate_Window = 1; my \%opts = (tk_scheme => '$_'); print 'SCHEME = $_\n';  &write_mh_opts(\\%opts,0,1); &read_code_forced()}";
             $sub = eval $sub;
             print "Error in tk_scheme eval: error=$@\n" if $@;
             $Tk_objects{menu_view_schemes}->radiobutton(
@@ -1194,11 +1116,9 @@ sub tk_setup_windows {
 
     &configure_element( 'window', \$Tk_objects{menu_tools} );
 
-    $Tk_objects{menu_tools}
-      ->command( -label => 'Undo last action', -command => \&undo_last_action );
+    $Tk_objects{menu_tools}->command( -label => 'Undo last action', -command => \&undo_last_action );
 
-    $Tk_objects{menu_tools}
-      ->command( -label => 'Triggers...', -command => \&browse_triggers );
+    $Tk_objects{menu_tools}->command( -label => 'Triggers...', -command => \&browse_triggers );
 
     $Tk_objects{menu_tools}->separator();
 
@@ -1206,8 +1126,7 @@ sub tk_setup_windows {
 
     &configure_element( 'window', \$Tk_objects{menu_tools_set_password} );
 
-    &tk_cascade_entry( 'Set Password', $Tk_objects{menu_tools},
-        $Tk_objects{menu_tools_set_password} );
+    &tk_cascade_entry( 'Set Password', $Tk_objects{menu_tools}, $Tk_objects{menu_tools_set_password} );
 
     $Tk_objects{menu_tools_set_password}->command(
         -label     => 'Guest',
@@ -1232,9 +1151,7 @@ sub tk_setup_windows {
         -variable => \$config_parms{console_speech}
     );
 
-    $Tk_objects{menu_tools_echoes} =
-      $Tk_objects{menu_tools}->command( -label => 'Echo' )
-      ;    # This is a dynamic cascade...
+    $Tk_objects{menu_tools_echoes} = $Tk_objects{menu_tools}->command( -label => 'Echo' );    # This is a dynamic cascade...
 
     $Tk_objects{menu_tools}->separator;
 
@@ -1273,8 +1190,7 @@ sub tk_setup_windows {
 
     &configure_element( 'window', \$Tk_objects{menu_file_debug} );
 
-    &tk_cascade_entry( 'Debug', $Tk_objects{menu_file},
-        $Tk_objects{menu_file_debug} );
+    &tk_cascade_entry( 'Debug', $Tk_objects{menu_file}, $Tk_objects{menu_file_debug} );
 
     #Loop through debug options (should build dynamically like "list debug options"
 

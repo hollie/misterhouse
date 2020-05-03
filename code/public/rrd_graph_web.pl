@@ -13,9 +13,8 @@
 
 use RRDs;
 
-my @rrd = ( "ib_temp2", "ib_kelder" );    # List of iButtons
-my @time = ( "1_Day", "1_Week", "1_Month", "3_Month", "1_Year" )
-  ;                                       # Graphs when you select 1 iButton
+my @rrd = ( "ib_temp2", "ib_kelder" );                               # List of iButtons
+my @time = ( "1_Day", "1_Week", "1_Month", "3_Month", "1_Year" );    # Graphs when you select 1 iButton
 my $rrd_name     = shift @ARGV;
 my $img_dir      = "/Misterhouse/mh/web/graphics";
 my $color        = $config_parms{html_color_header};
@@ -50,8 +49,7 @@ sub header {
     $html .= qq[<meta http-equiv='Refresh' content='$refresh_rate'>\n];
     $html .= qq[<meta http-equiv='Pragma' content='no-cache'>\n];
     $html .= qq[<meta http-equiv='Cache-Control' content='no-cache'>\n];
-    $html .=
-      qq[<link type='text/css' href='rrd_graph_web.css' rel='stylesheet'>\n];
+    $html .= qq[<link type='text/css' href='rrd_graph_web.css' rel='stylesheet'>\n];
     $html .= qq[</head>\n];
     $html .= qq[<body><base target ='output'>\n];
     $html .= qq[<table width=100% bgcolor='$color'>\n];
@@ -71,11 +69,9 @@ sub graph {
 
     my $lasttime = localtime($last);
     my $timenow  = localtime( time() );
-    $timenow =~
-      s/:/\\:/g;    # RRD doesn't like colons, so put leading backslashes in
+    $timenow =~ s/:/\\:/g;    # RRD doesn't like colons, so put leading backslashes in
 
-    my ( $start, $step, $names, $array ) = RRDs::fetch $rrd, "AVERAGE", "-s",
-      "$last-$t", "-e", $last;
+    my ( $start, $step, $names, $array ) = RRDs::fetch $rrd, "AVERAGE", "-s", "$last-$t", "-e", $last;
     my $ERROR = RRDs::error;
     print_log "RRDs::fetch ERROR: $ERROR\n" if $ERROR;
 
@@ -94,15 +90,11 @@ sub graph {
     my $max = sprintf( "%.1f", $oTemp[0] );
 
     # RRDs::graph leaks memory, so use a system call to create the graph.
-    system(
-        "perl $config_parms{html_dir}/bin/rrd_create_graph.pl $rrd_name $rrd $img_dir $t $descr $height $width $dt"
-    );
+    system("perl $config_parms{html_dir}/bin/rrd_create_graph.pl $rrd_name $rrd $img_dir $t $descr $height $width $dt");
 
     $html .= qq[  <tr>\n];
-    $html .=
-      qq[    <td  rowspan="3"><a href="/bin/graph.pl?$rrd_name" target="_self" >];
-    $html .=
-      qq[    <img src="/graphics/$rrd_name-temp-$t.png" width="595" height="192" border=0></td>\n];
+    $html .= qq[    <td  rowspan="3"><a href="/bin/graph.pl?$rrd_name" target="_self" >];
+    $html .= qq[    <img src="/graphics/$rrd_name-temp-$t.png" width="595" height="192" border=0></td>\n];
     $html .= qq[    <td  colspan="3" class="cur">$cur1&deg;$dt1</td>\n];
     $html .= qq[  </tr>\n];
     $html .= qq[  <tr> \n];

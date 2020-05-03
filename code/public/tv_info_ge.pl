@@ -2,28 +2,17 @@
 
 $f_tv_file = new File_Item("$config_parms{data_dir}/tv_info1.txt");
 
-$v_tv_movies1 =
-  new Voice_Cmd('What TV movies are on channel [all,4-12,4,6,8,9,12] tonight');
-$v_tv_movies2 =
-  new Voice_Cmd('What TV movies are on at [18,19,20,21,22] tonight');
-$v_tv_movies1->set_info(
-    'Looks for TV shows that are 2-3 hours in length from 6 to 10 pm, on channels:'
-);
-$v_tv_movies2->set_info(
-    'Looks for TV shows that are 2-3 hours in length on all channels, at time:'
-);
+$v_tv_movies1 = new Voice_Cmd('What TV movies are on channel [all,4-12,4,6,8,9,12] tonight');
+$v_tv_movies2 = new Voice_Cmd('What TV movies are on at [18,19,20,21,22] tonight');
+$v_tv_movies1->set_info('Looks for TV shows that are 2-3 hours in length from 6 to 10 pm, on channels:');
+$v_tv_movies2->set_info('Looks for TV shows that are 2-3 hours in length on all channels, at time:');
 
-$v_tv_shows1 =
-  new Voice_Cmd('What TV shows are on channel [5,6,8,9,12,51] tonight');
+$v_tv_shows1 = new Voice_Cmd('What TV shows are on channel [5,6,8,9,12,51] tonight');
 $v_tv_shows2 = new Voice_Cmd('What favorite TV shows are on today');
-$v_tv_shows1->set_info(
-    'Lists all shows on from 6 to 10 pm tonight on channel:');
-$v_tv_shows2->set_info(
-    "Checks to see if any of the following shows in $config_parms{favorite_tv_shows} are on today"
-);
+$v_tv_shows1->set_info('Lists all shows on from 6 to 10 pm tonight on channel:');
+$v_tv_shows2->set_info("Checks to see if any of the following shows in $config_parms{favorite_tv_shows} are on today");
 
-$v_tv_news1 =
-  new Voice_Cmd('What TV news are on channel [all,1-5,1-20] tonight');
+$v_tv_news1 = new Voice_Cmd('What TV news are on channel [all,1-5,1-20] tonight');
 $v_tv_news1->set_info('Lists all news on from 19 to 23 tonight on channel:');
 
 if ( $state = said $v_tv_movies1) {
@@ -41,18 +30,15 @@ if ( $state = said $v_tv_shows1) {
 }
 
 if ( said $v_tv_shows2) {
-    print_log
-      "Searching for shows listed in $config_parms{favorite_tv_shows_file}";
+    print_log "Searching for shows listed in $config_parms{favorite_tv_shows_file}";
 
     #   run qq[get_tv_info_ge -keys "$config_parms{favorite_tv_shows}" -title_only];
-    run
-      qq[get_tv_info_ge -times all -keyfile $config_parms{favorite_tv_shows_file} -title_only];
+    run qq[get_tv_info_ge -times all -keyfile $config_parms{favorite_tv_shows_file} -title_only];
     set_watch $f_tv_file 'favorites today';
 }
 
 if ( $state = said $v_tv_news1) {
-    run
-      qq[get_tv_info_ge -times "19-23"  -keyfile $config_parms{favorite_tv_shows_file} -channels $state];
+    run qq[get_tv_info_ge -times "19-23"  -keyfile $config_parms{favorite_tv_shows_file} -channels $state];
     set_watch $f_tv_file;
 }
 
@@ -73,8 +59,7 @@ if ( time_cron('45,30,15,0 18-23 * * *') ) {
 #&tk_entry('TV search', \$Save{tv_search}, 'TV dates', \$Save{tv_days});
 if ( $Tk_results{'TV search'} or $Tk_results{'TV dates'} ) {
     speak "Searching";
-    run
-      qq[get_tv_info_ge -times all -dates "$Save{tv_days}" -keys "$Save{tv_search}"];
+    run qq[get_tv_info_ge -times all -dates "$Save{tv_days}" -keys "$Save{tv_search}"];
     set_watch $f_tv_file;
     undef $Tk_results{'TV search'};
     undef $Tk_results{'TV dates'};

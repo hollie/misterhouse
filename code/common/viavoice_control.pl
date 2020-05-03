@@ -10,26 +10,14 @@ $v_viavoice_hello = new Voice_Cmd("[hi there,how are you]");
 $v_viavoice_hello->set_info('A dummy little test command');
 
 # Create the viavoice control phrases
-$v_viavoice_awake = new Voice_Cmd(
-    $config_parms{viavoice_awake_phrase},
-    $config_parms{viavoice_awake_response},
-    0, 'mh_activate'
-);
-$v_viavoice_asleep = new Voice_Cmd(
-    $config_parms{viavoice_asleep_phrase},
-    $config_parms{viavoice_asleep_response}
-);
-$v_viavoice_off = new Voice_Cmd( $config_parms{viavoice_off_phrase},
-    'you want the microphone off', 1 );
+$v_viavoice_awake  = new Voice_Cmd( $config_parms{viavoice_awake_phrase},  $config_parms{viavoice_awake_response}, 0, 'mh_activate' );
+$v_viavoice_asleep = new Voice_Cmd( $config_parms{viavoice_asleep_phrase}, $config_parms{viavoice_asleep_response} );
+$v_viavoice_off    = new Voice_Cmd( $config_parms{viavoice_off_phrase},    'you want the microphone off', 1 );
 
 # Monitor the Tk button
 my ( $tk_vr_mode, $tk_vr_mode_prev );
 $tk_vr_mode = $tk_vr_mode_prev = $Save{vr_mode} if $Reload;
-&tk_radiobutton(
-    'VR Mode', \$tk_vr_mode,
-    [ 'awake', 'asleep', 'off' ],
-    [ 'Awake', 'Asleep', 'Off' ]
-);
+&tk_radiobutton( 'VR Mode', \$tk_vr_mode, [ 'awake', 'asleep', 'off' ], [ 'Awake', 'Asleep', 'Off' ] );
 
 #print "db $vr_mode_prev\n";
 if ( $tk_vr_mode_prev ne $tk_vr_mode ) {
@@ -117,8 +105,7 @@ my $voice_word_list = join( ',', &Voice_Cmd::word_list )
 $voice_word_list = 'no words listed' unless $voice_word_list;
 $v_command_search = new Voice_Cmd( 'find a command', 'what words?' );
 print "db viavoice word list: $voice_word_list\n";
-$v_command_words =
-  new Voice_Cmd( "[$voice_word_list,do it]", '', 0, 'mh_words' );
+$v_command_words = new Voice_Cmd( "[$voice_word_list,do it]", '', 0, 'mh_words' );
 set_icon $v_command_words 'none';
 
 # noloop=stop
@@ -149,8 +136,7 @@ if ( $state = said $v_command_words) {
             }
         }
         speak $text;
-        display
-          join( "\n - ", "$count matching commands for $viavoice_cmd", @list );
+        display join( "\n - ", "$count matching commands for $viavoice_cmd", @list );
         &Voice_Cmd::disablevocab('mh_words');
         &Voice_Cmd::enablevocab('mh');
         $Save{vr_mode} = 'awake';

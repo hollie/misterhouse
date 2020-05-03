@@ -40,8 +40,7 @@ if ( $MW and $Reload ) {
         $Tk_objects{cmd_list} = &tk_command_list( $Tk_objects{ftl} );
         $Tk_objects{cmd_list}->pack(qw/-side top -expand 1 -fill both/);
 
-        $Tk_objects{cmd_list}
-          ->insert( 0, ' ', ' ', ' ', &list_voice_cmds_match('') )
+        $Tk_objects{cmd_list}->insert( 0, ' ', ' ', ' ', &list_voice_cmds_match('') )
           if $Startup;    # Init with all commands
 
         $Tk_objects{msg_window} = $Tk_objects{ftl}->Scrolled(

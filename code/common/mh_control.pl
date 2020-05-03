@@ -51,28 +51,25 @@ sub handle_set_password_state() {
     @ARGV = ( -user => $state );
     print_log "Setting $state password with: @ARGV";
     do "set_password";
-    &password_read;    # Re-read new password data
+    &password_read;                                            # Re-read new password data
 }
 
 # Display program and system uptime
 $v_uptime = new Voice_Cmd( "What is your up time", 0 );
-$v_uptime->set_info(
-    'Check how long the comuter and MisterHouse have been running');
+$v_uptime->set_info('Check how long the comuter and MisterHouse have been running');
 $v_uptime->set_authority('anyone');
-$v_uptime->tie_event('&handle_uptime_state()');    # noloop
+$v_uptime->tie_event('&handle_uptime_state()');                # noloop
 
 sub handle_uptime_state() {
     my $uptime_pgm      = &time_diff( $Time_Startup_time, time );
     my $uptime_computer = &time_diff( $Time_Boot_time,    $Time );
-    respond("I was started $uptime_pgm ago. "
-          . "The computer was booted $uptime_computer ago." );
+    respond( "I was started $uptime_pgm ago. " . "The computer was booted $uptime_computer ago." );
 }
 
 # Control and monitor the http server
 $v_http_control = new Voice_Cmd '[Open,Close,Restart,Check] the http server';
 $v_http_control->tie_event('&handle_http_control_state()');    # noloop
-$http_monitor = new Socket_Item( undef, undef,
-    "$config_parms{http_server}:$config_parms{http_port}" );
+$http_monitor = new Socket_Item( undef, undef, "$config_parms{http_server}:$config_parms{http_port}" );
 
 sub handle_http_control_state() {
     my $state = state $v_http_control;
@@ -85,8 +82,7 @@ sub handle_http_control_state() {
     # Check the http port, so we can restart it if down.
     if ( $state eq 'Check' ) {
         unless ( start $http_monitor) {
-            my $msg = "The http server $config_parms{http_server}:"
-              . "$config_parms{http_port} is down.  Restarting";
+            my $msg = "The http server $config_parms{http_server}:" . "$config_parms{http_port} is down.  Restarting";
             print_log $msg;
             display
               text        => "$Time_Date: $msg\n",
@@ -107,8 +103,7 @@ run_voice_cmd 'Check the http server', undef, 'time', 1 if new_minute 1;
 
 # Restart MisterHouse
 $v_restart_mh = new Voice_Cmd '[Restart,Exit] Mister House';
-$v_restart_mh->set_info( 'Restarts/Exits Misterhouse.  This will only work if '
-      . 'you start with mh/bin/mhl' )
+$v_restart_mh->set_info( 'Restarts/Exits Misterhouse.  This will only work if ' . 'you start with mh/bin/mhl' )
   if !$OS_win;
 $v_restart_mh->set_info('Restarts/Exits Misterhouse.') if $OS_win;
 $v_restart_mh->tie_event('&restart_mh($state)');    # noloop
@@ -159,8 +154,7 @@ sub handle_reboot_state() {
         my $machine = $ENV{COMPUTERNAME};
         respond "The computer $machine will reboot in 1 minute.";
         my $reboot = ( $state eq 'Reboot' ) ? 1 : 0;
-        Win32::InitiateSystemShutdown( $machine, 'Rebooting in 1 minute',
-            60, 1, $reboot );
+        Win32::InitiateSystemShutdown( $machine, 'Rebooting in 1 minute', 60, 1, $reboot );
     }
     elsif ( $Info{OS_name} eq 'XP' ) {
         my $machine = $ENV{COMPUTERNAME};
@@ -234,8 +228,7 @@ sub handle_debug_state() {
 
 # Toggle selected debug options
 $v_debug_toggle = new Voice_Cmd "Toggle debug for [$debug_str]";
-$v_debug_toggle->set_info(
-    'Toggles what kind of debugging information is logged');
+$v_debug_toggle->set_info('Toggles what kind of debugging information is logged');
 $v_debug_toggle->tie_event('&handle_debug_toggle_state()');    # noloop
 
 sub handle_debug_toggle_state() {
@@ -265,8 +258,7 @@ sub handle_show_debug_state() {
         $v_show_debug->respond('There are no active debug flags');
     }
     else {
-        $v_show_debug->respond(
-            'The currently active debug flags are ' . $config_parms{debug} );
+        $v_show_debug->respond( 'The currently active debug flags are ' . $config_parms{debug} );
     }
 }
 
@@ -281,8 +273,7 @@ sub update_config_parms_debug {
 
 # Set the house mode
 $v_mode = new Voice_Cmd("Put house in [normal,mute,offline] mode");
-$v_mode->set_info( 'mute mode disables all speech and sound.  '
-      . 'offline disables all serial control' );
+$v_mode->set_info( 'mute mode disables all speech and sound.  ' . 'offline disables all serial control' );
 $v_mode->tie_event('&handle_mode_state()');    # noloop
 
 sub handle_mode_state() {
@@ -315,16 +306,16 @@ sub handle_mode_toggle_state() {
 # Allow tk and web users to search the user code for strings
 # Set from web menu mh/web/ia5/house/search.shtml
 $search_code_string = new Generic_Item;
-$search_code_string->set_icon('mh.jpg');                                # noloop
-$search_code_string->tie_event('&handle_search_code_string_state()');   # noloop
+$search_code_string->set_icon('mh.jpg');                                 # noloop
+$search_code_string->tie_event('&handle_search_code_string_state()');    # noloop
 
 sub handle_search_code_string_state() {
     my $state = state $search_code_string;
     print "Searching for code $state\n";
     my ( $results, $count, %files );
     $count = 0;
-    $state =~ s/ /.+/;    # Let 'reload code' match 'reload xyz code'
-                          # quotemeta function?
+    $state =~ s/ /.+/;                                                   # Let 'reload code' match 'reload xyz code'
+                                                                         # quotemeta function?
     $state =~ s/\//\\\//g;
     $state =~ s/\\/\\\\/g;
     $state =~ s/\(/\\\(/g;
@@ -374,24 +365,20 @@ sub handle_voice_cmds_help_state() {
 
 # Create a list by X10 Addresses
 $v_list_x10_items = new Voice_Cmd 'List {X 10,X10} items', 0;
-$v_list_x10_items->set_info(
-    'Generates a report fo all X10 items, sorted by device code');
+$v_list_x10_items->set_info('Generates a report fo all X10 items, sorted by device code');
 $v_list_x10_items->tie_event('&handle_list_x10_items_state()');    # noloop
 
 sub handle_list_x10_items_state() {
     print_log "Listing X10 items";
-    my @object_list = (
-        &list_objects_by_type('X10_Item'),
-        &list_objects_by_type('X10_Appliance'),
-        &list_objects_by_type('X10_Garage_Door')
-    );
+    my @object_list = ( &list_objects_by_type('X10_Item'), &list_objects_by_type('X10_Appliance'), &list_objects_by_type('X10_Garage_Door') );
     my @objects = map { &get_object_by_name($_) } @object_list;
     my $results;
     for my $object ( sort { $a->{x10_id} cmp $b->{x10_id} } @objects ) {
         $results .= sprintf(
             "Address:%-2s  File:%-15s  Object:%-30s State:%s\n",
-            substr( $object->{x10_id}, 1 ), $object->{filename},
-            $object->{object_name}, $object->{state}
+            substr( $object->{x10_id}, 1 ),
+            $object->{filename}, $object->{object_name},
+            $object->{state}
         );
     }
 
@@ -407,9 +394,8 @@ sub handle_list_x10_items_state() {
 
 # Create a list by Serial States
 $v_list_serial_items = new Voice_Cmd 'List serial items';
-$v_list_serial_items->set_info(
-    'Generates a report of all Serial_Items, sorted by serial state');
-$v_list_serial_items->tie_event('&handle_list_serial_items_state()');   # noloop
+$v_list_serial_items->set_info('Generates a report of all Serial_Items, sorted by serial state');
+$v_list_serial_items->tie_event('&handle_list_serial_items_state()');    # noloop
 
 sub handle_list_serial_items_state() {
     print_log "Listing serial items";
@@ -423,12 +409,7 @@ sub handle_list_serial_items_state() {
         #        my ($first_id, $states);
         for my $id ( sort keys %{ $$object{state_by_id} } ) {
             push @results,
-              sprintf(
-                "ID:%-5s File:%-15s Object:%-15s states: %s",
-                $id, $object->{filename},
-                $object->{object_name},
-                $$object{state_by_id}{$id}
-              );
+              sprintf( "ID:%-5s File:%-15s Object:%-15s states: %s", $id, $object->{filename}, $object->{object_name}, $$object{state_by_id}{$id} );
 
             #            $first_id = $id unless $first_id;
             #            $states .= "$id=$$object{state_by_id}{$id}, ";
@@ -449,9 +430,8 @@ sub handle_list_serial_items_state() {
 
 # Find a list of debug options code for $Debug{xyz}
 $v_list_debug_options = new Voice_Cmd 'List debug options';
-$v_list_debug_options->set_info( 'Generates a list of the various -debug '
-      . 'options you can use to get debug errata' );
-$v_list_debug_options->tie_event('&handle_list_debug_options_state()'); # noloop
+$v_list_debug_options->set_info( 'Generates a list of the various -debug ' . 'options you can use to get debug errata' );
+$v_list_debug_options->tie_event('&handle_list_debug_options_state()');    # noloop
 
 sub handle_list_debug_options_state() {
     my ( %debug_options, $debug_string, $prev_index );
@@ -549,28 +529,25 @@ if ( state_now $Power_Supply eq 'Restored' ) {
 $x10_backlog_timer = new Timer;
 if ($ControlX10::CM11::BACKLOG) {
     print "X10:scheduling backlog\n";
-    set $x10_backlog_timer 1,
-      "process_serial_data('X$ControlX10::CM11::BACKLOG',1,undef)";
+    set $x10_backlog_timer 1, "process_serial_data('X$ControlX10::CM11::BACKLOG',1,undef)";
     $ControlX10::CM11::BACKLOG = "";
 }
 
 # Repeat last spoken
-$v_repeat_last_spoken =
-  new Voice_Cmd '{Repeat your last message, What did you say}', '';
-$v_repeat_last_spoken->tie_event('&handle_repeat_last_spoken_state()'); # noloop
+$v_repeat_last_spoken = new Voice_Cmd '{Repeat your last message, What did you say}', '';
+$v_repeat_last_spoken->tie_event('&handle_repeat_last_spoken_state()');    # noloop
 
 sub handle_repeat_last_spoken_state() {
     ( $temp = $Speak_Log[0] ) =~ s/^.+?: //s;
-    $temp =~ s/^I said //s;    # In case we run this more than once in a row
+    $temp =~ s/^I said //s;                                                # In case we run this more than once in a row
     $temp = lcfirst($temp);
     respond "I said $temp";
 }
 
 # Clear the web cache directory
 $v_clear_cache = new Voice_Cmd 'Clear the web cache directory', '';
-$v_clear_cache->set_info(
-    'Delete all the auto-generated .jpg files in html_alias_cache directory');
-$v_clear_cache->tie_event('&handle_clear_cache_state()');    # noloop
+$v_clear_cache->set_info('Delete all the auto-generated .jpg files in html_alias_cache directory');
+$v_clear_cache->tie_event('&handle_clear_cache_state()');                  # noloop
 
 sub handle_clear_cache_state() {
     my $cmd = ($OS_win) ? 'del' : 'rm';
@@ -584,8 +561,7 @@ sub handle_clear_cache_state() {
 
 # Archive old logs
 if ($New_Month) {
-    print_log
-      "Archiving old print/speak logs: $config_parms{data_dir}/logs/print.log.old";
+    print_log "Archiving old print/speak logs: $config_parms{data_dir}/logs/print.log.old";
     file_backup "$config_parms{data_dir}/logs/print.log.old", 'force';
     file_backup "$config_parms{data_dir}/logs/speak.log.old", 'force';
     file_backup "$config_parms{data_dir}/logs/error.log.old", 'force';
@@ -630,8 +606,7 @@ sub handle_search_command_string_state() {
 
 # Undo the last action
 $v_undo_last_change = new Voice_Cmd 'Undo the last action';
-$v_undo_last_change->set_info(
-    'Changes the most recently changed item back to its previous state');
+$v_undo_last_change->set_info('Changes the most recently changed item back to its previous state');
 $v_undo_last_change->tie_event('&handle_undo_last_change_state()');    # noloop
 
 sub handle_undo_last_change_state() {
@@ -673,10 +648,9 @@ $mode_sleeping->tie_event('&handle_mode_sleeping_state()');    # noloop
 
 sub handle_mode_sleeping_state() {
     my $state = state $mode_sleeping;
-    $Save{sleeping_parents} =
-      ( $state eq 'parents' or $state eq 'all' ) ? 1 : 0;
-    $Save{sleeping_kids} = ( $state eq 'kids' or $state eq 'all' ) ? 1 : 0;
-    $state = ucfirst($state);
+    $Save{sleeping_parents} = ( $state eq 'parents' or $state eq 'all' ) ? 1 : 0;
+    $Save{sleeping_kids}    = ( $state eq 'kids'    or $state eq 'all' ) ? 1 : 0;
+    $state                  = ucfirst($state);
     $mode_sleeping->respond("mode=unmuted app=control $state are sleeping.");
 }
 
@@ -687,11 +661,7 @@ $v_update_docs->tie_event('start $p_update_docs');    # noloop
 $v_update_docs->set_icon('mh.jpg');                   # noloop
 
 # noloop=start
-&trigger_set(
-    "time_cron('5 4 * * *')",
-    "run_voice_cmd 'Update the Documentation'",
-    'NoExpire',
-    'update the documentation'
-) unless &trigger_get('update the documentation');
+&trigger_set( "time_cron('5 4 * * *')", "run_voice_cmd 'Update the Documentation'", 'NoExpire', 'update the documentation' )
+  unless &trigger_get('update the documentation');
 
 # noloop=stop

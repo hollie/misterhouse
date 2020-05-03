@@ -9,8 +9,7 @@ my $f_onion_html    = "$config_parms{data_dir}/web/onion.html";
 
 #$f_star_local_html2 = new File_Item($f_star_local_html); # Needed if we use run instead of process_item
 
-$p_onion = new Process_Item(
-    "get_url http://mobile.theonion.com/nibs.html $f_onion_html");
+$p_onion = new Process_Item("get_url http://mobile.theonion.com/nibs.html $f_onion_html");
 $v_onion = new Voice_Cmd('[Get,Read,Show] the Onion');
 
 speak($f_onion_summary)   if said $v_onion eq 'Read';

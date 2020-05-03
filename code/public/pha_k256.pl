@@ -37,36 +37,35 @@ if ( my $temperature = said $serial_out) {
         #print_log "port is: $port\n";
         if ( $port =~ /T000/ ) {
             print_log "Emptying out outData array to accept new cycle of obs";
-            $#outData = -1;    #empty array to get fresh data;
-            $prntFlg  = 1;
-            $temp =
-              round( $temp * 9 / 5 + 32, 2 );    #DS1820 one wire temp sensor;
+            $#outData   = -1;                                #empty array to get fresh data;
+            $prntFlg    = 1;
+            $temp       = round( $temp * 9 / 5 + 32, 2 );    #DS1820 one wire temp sensor;
             @outData[0] = $temp;
 
             #print_log "Serial data T000 received from array outData[0] as $outData[0]";
         }
         elsif ( $port =~ /A0/ ) {
-            $temp = round( $temp / 4096 * 5 * 2, 2 );    #board vdc supply
+            $temp = round( $temp / 4096 * 5 * 2, 2 );        #board vdc supply
             @outData[1] = $temp;
         }
         elsif ( $port =~ /A1/ ) {
-            $temp = round( $temp / 4096 * 5, 2 );        # CdS voltage;
+            $temp = round( $temp / 4096 * 5, 2 );            # CdS voltage;
             @outData[2] = $temp;
         }
         elsif ( $port =~ /A2/ ) {
-            $temp = round( $temp / 4096 * 5 * 100, 2 );   # LM34 Temp sensor oF;
+            $temp = round( $temp / 4096 * 5 * 100, 2 );      # LM34 Temp sensor oF;
             @outData[3] = $temp;
         }
         elsif ( $port =~ /A3/ ) {
-            $temp = round( $temp / 4096 * 5 * 100, 2 );   # LM34 Temp sensor oF;
+            $temp = round( $temp / 4096 * 5 * 100, 2 );      # LM34 Temp sensor oF;
             @outData[4] = $temp;
         }
         elsif ( $port =~ /A4/ ) {
-            $temp = round( $temp / 4096 * 5 * 100, 2 );   # LM34 Temp sensor oF;
+            $temp = round( $temp / 4096 * 5 * 100, 2 );      # LM34 Temp sensor oF;
             @outData[5] = $temp;
         }
         elsif ( $port =~ /A5/ ) {
-            $temp = round( $temp / 4096 * 5 * 100, 2 );   # LM34 Temp sensor oF;
+            $temp = round( $temp / 4096 * 5 * 100, 2 );      # LM34 Temp sensor oF;
             @outData[6] = $temp;
         }
 
@@ -78,9 +77,7 @@ if ( my $temperature = said $serial_out) {
 
 if ( $#outData + 1 == 7 && $prntFlg == 1 ) {
     print_log "Printing all observations to file seria1_Obs";
-    logit( "c:/misterhouse/mh/data/logs/serial1_Obs.$Year_Month_Now.log",
-        "$Year_Month_Now @outData" );
-    $prntFlg =
-      0;   # prevents multiple writes to file with same array contents (a hack);
+    logit( "c:/misterhouse/mh/data/logs/serial1_Obs.$Year_Month_Now.log", "$Year_Month_Now @outData" );
+    $prntFlg = 0;    # prevents multiple writes to file with same array contents (a hack);
 }
 

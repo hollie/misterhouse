@@ -59,8 +59,7 @@ while (1) {
     if ( exists $COMMANDS{$ir} ) {
         my $val = "q";
         while ( $val ne "y" && $val ne "n" ) {
-            print "Received '" . join( " ", @{ $COMMANDS{$ir} }[ 0 .. 1 ] ),
-              "'\n";
+            print "Received '" . join( " ", @{ $COMMANDS{$ir} }[ 0 .. 1 ] ), "'\n";
             print "Is this correct? [Y/n] ";
             $val = lc(<STDIN>);
             chomp $val;
@@ -115,10 +114,7 @@ while (1) {
     if ( $count > 0 ) {
         if ( $code->{PAUSETIME} ) {
             if ( $COMPONENTS{$component}->{PAUSETIME} ) {
-                $COMPONENTS{$component}->{PAUSETIME} =
-                  ( $COMPONENTS{$component}->{PAUSETIME} * $count +
-                      $code->{PAUSETIME} ) /
-                  ( $count + 1 );
+                $COMPONENTS{$component}->{PAUSETIME} = ( $COMPONENTS{$component}->{PAUSETIME} * $count + $code->{PAUSETIME} ) / ( $count + 1 );
             }
             else {
                 $COMPONENTS{$component}->{PAUSETIME} = $code->{PAUSETIME};
@@ -127,44 +123,28 @@ while (1) {
 
         if ( $#{ $code->{HEAD} } == $#{ $COMPONENTS{$component}->{HEAD} } ) {
             for ( my $i = 0; $i <= $#{ $code->{HEAD} }; $i++ ) {
-                $COMPONENTS{$component}->{HEAD}->[$i] =
-                  ( $COMPONENTS{$component}->{HEAD}->[$i] * $count +
-                      $code->{HEAD}->[$i] ) /
-                  ( $count + 1 );
+                $COMPONENTS{$component}->{HEAD}->[$i] = ( $COMPONENTS{$component}->{HEAD}->[$i] * $count + $code->{HEAD}->[$i] ) / ( $count + 1 );
             }
         }
 
         if ( $#{ $code->{TAIL} } == $#{ $COMPONENTS{$component}->{TAIL} } ) {
             for ( my $i = 0; $i <= $#{ $code->{TAIL} }; $i++ ) {
-                $COMPONENTS{$component}->{TAIL}->[$i] =
-                  ( $COMPONENTS{$component}->{TAIL}->[$i] * $count +
-                      $code->{TAIL}->[$i] ) /
-                  ( $count + 1 );
+                $COMPONENTS{$component}->{TAIL}->[$i] = ( $COMPONENTS{$component}->{TAIL}->[$i] * $count + $code->{TAIL}->[$i] ) / ( $count + 1 );
             }
         }
         elsif ( $#{ $COMPONENTS{$component}->{TAIL} } < 0 ) {
             $COMPONENTS{$component}->{TAIL} = $code->{TAIL};
         }
 
-        if ( $#{ $code->{ENCODING}->[0] } ==
-            $#{ $COMPONENTS{$component}->{ZERO} } )
-        {
+        if ( $#{ $code->{ENCODING}->[0] } == $#{ $COMPONENTS{$component}->{ZERO} } ) {
             for ( my $i = 0; $i <= $#{ $code->{ENCODING}->[0] }; $i++ ) {
-                $COMPONENTS{$component}->{ZERO}->[$i] =
-                  ( $COMPONENTS{$component}->{ZERO}->[$i] * $count +
-                      $code->{ENCODING}->[0]->[$i] ) /
-                  ( $count + 1 );
+                $COMPONENTS{$component}->{ZERO}->[$i] = ( $COMPONENTS{$component}->{ZERO}->[$i] * $count + $code->{ENCODING}->[0]->[$i] ) / ( $count + 1 );
             }
         }
 
-        if ( $#{ $code->{ENCODING}->[1] } ==
-            $#{ $COMPONENTS{$component}->{ONE} } )
-        {
+        if ( $#{ $code->{ENCODING}->[1] } == $#{ $COMPONENTS{$component}->{ONE} } ) {
             for ( my $i = 0; $i <= $#{ $code->{ENCODING}->[1] }; $i++ ) {
-                $COMPONENTS{$component}->{ONE}->[$i] =
-                  ( $COMPONENTS{$component}->{ONE}->[$i] * $count +
-                      $code->{ENCODING}->[1]->[$i] ) /
-                  ( $count + 1 );
+                $COMPONENTS{$component}->{ONE}->[$i] = ( $COMPONENTS{$component}->{ONE}->[$i] * $count + $code->{ENCODING}->[1]->[$i] ) / ( $count + 1 );
             }
         }
     }
@@ -178,8 +158,8 @@ while (1) {
         $COMPONENTS{$component}->{REPEAT} = $code->{REPEAT} if $code->{REPEAT};
     }
 
-    $COMMANDS{$ir} = [ $component, $command, $repeatable ];
-    $COMPONENT_LOOKUP{$componentBits} = $component;
+    $COMMANDS{$ir}                          = [ $component, $command, $repeatable ];
+    $COMPONENT_LOOKUP{$componentBits}       = $component;
     $COMMAND_LOOKUP{$component}->{$command} = $ir;
 
     if (0) {
@@ -201,9 +181,7 @@ while (1) {
 #			  [ qw( *COMMANDS *COMPONENT_LOOKUP *COMPONENTS *COMMAND_LOOKUP ) ] );
 #exit;
 open( FILE, "> $file" );
-print FILE Data::Dumper->Dump(
-    [ \%COMMANDS, \%COMPONENTS, \%COMPONENT_LOOKUP, \%COMMAND_LOOKUP ],
-    [qw( *COMMANDS *COMPONENTS *COMPONENT_LOOKUP *COMMAND_LOOKUP )]
-);
+print FILE Data::Dumper->Dump( [ \%COMMANDS, \%COMPONENTS, \%COMPONENT_LOOKUP, \%COMMAND_LOOKUP ],
+    [qw( *COMMANDS *COMPONENTS *COMPONENT_LOOKUP *COMMAND_LOOKUP )] );
 close(FILE);
 

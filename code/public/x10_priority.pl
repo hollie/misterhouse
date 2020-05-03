@@ -41,8 +41,7 @@ sub set_cm11a {
         push( @cm11a_low, $device, $state, $cm11a_tick );
     }
     else {
-        print
-          "SET_CM11A: ERROR, BAD PRIORITY VALUE, DEVICE $device, STATE $state\n";
+        print "SET_CM11A: ERROR, BAD PRIORITY VALUE, DEVICE $device, STATE $state\n";
         return;
     }
     $cm11a_tick += 1;
@@ -61,8 +60,7 @@ sub set_cm17a {
         push( @cm17a_low, $device, $state, $cm17a_tick );
     }
     else {
-        print
-          "SET_CM17A: ERROR, BAD PRIORITY VALUE, DEVICE $device, STATE $state\n";
+        print "SET_CM17A: ERROR, BAD PRIORITY VALUE, DEVICE $device, STATE $state\n";
         return;
     }
     $cm17a_tick += 1;
@@ -151,11 +149,7 @@ if ( ( @cm11a_high + @cm11a_norm + @cm11a_low ) > 0
 
             # See if this valid HIGH set had preempted any of the valid lower sets
             if (
-                (
-                        @cm11a_norm > 0
-                    and $cm11a_norm[2] < $tickcount
-                    and $cm11a_norm[1] ne 'invalid'
-                )
+                ( @cm11a_norm > 0 and $cm11a_norm[2] < $tickcount and $cm11a_norm[1] ne 'invalid' )
                 or (    @cm11a_low > 0
                     and $cm11a_low[2] < $tickcount
                     and $cm11a_low[1] ne 'invalid' )
@@ -278,11 +272,7 @@ if ( ( @cm17a_high + @cm17a_norm + @cm17a_low ) > 0
 
             # See if this valid HIGH set had preempted any of the valid lower sets
             if (
-                (
-                        @cm17a_norm > 0
-                    and $cm17a_norm[2] < $tickcount
-                    and $cm17a_norm[1] ne 'invalid'
-                )
+                ( @cm17a_norm > 0 and $cm17a_norm[2] < $tickcount and $cm17a_norm[1] ne 'invalid' )
                 or (    @cm17a_low > 0
                     and $cm17a_low[2] < $tickcount
                     and $cm17a_low[1] ne 'invalid' )
@@ -377,30 +367,20 @@ my $cm17a_discarded_sets = 0;
 if ($New_Hour) {
     if ( ( $cm11a_actual_sets + $cm11a_discarded_sets ) > 0 ) {
         print "X10 CM11A Priority Statistics for x10_priority.pl code module\n";
-        print
-          "CM11A: Total actual sets = $cm11a_actual_sets, discarded sets = $cm11a_discarded_sets\n";
-        print
-          "CM11A: HIGH sets that preempted NORM & LOW sets = $cm11a_high_preempt\n";
-        print
-          "CM11A: NORM sets that preempted LOW sets = $cm11a_norm_preempt\n";
-        print
-          "CM11A: NORM sets Invalidated by HIGH sets = $cm11a_norm_invalid\n";
-        print
-          "CM11A: LOW sets Invalidated by HIGH & NORM sets = $cm11a_low_invalid\n";
+        print "CM11A: Total actual sets = $cm11a_actual_sets, discarded sets = $cm11a_discarded_sets\n";
+        print "CM11A: HIGH sets that preempted NORM & LOW sets = $cm11a_high_preempt\n";
+        print "CM11A: NORM sets that preempted LOW sets = $cm11a_norm_preempt\n";
+        print "CM11A: NORM sets Invalidated by HIGH sets = $cm11a_norm_invalid\n";
+        print "CM11A: LOW sets Invalidated by HIGH & NORM sets = $cm11a_low_invalid\n";
     }
 
     if ( ( $cm17a_actual_sets + $cm17a_discarded_sets ) > 0 ) {
         print "X10 CM17A Priority Statistics for x10_priority.pl code module\n";
-        print
-          "CM17A: Total actual sets = $cm17a_actual_sets, discarded sets = $cm17a_discarded_sets\n";
-        print
-          "CM17A: HIGH sets that preempted NORM & LOW sets = $cm17a_high_preempt\n";
-        print
-          "CM17A: NORM sets that preempted LOW sets = $cm17a_norm_preempt\n";
-        print
-          "CM17A: NORM sets Invalidated by HIGH sets = $cm17a_norm_invalid\n";
-        print
-          "CM17A: LOW sets Invalidated by HIGH & NORM sets = $cm17a_low_invalid\n";
+        print "CM17A: Total actual sets = $cm17a_actual_sets, discarded sets = $cm17a_discarded_sets\n";
+        print "CM17A: HIGH sets that preempted NORM & LOW sets = $cm17a_high_preempt\n";
+        print "CM17A: NORM sets that preempted LOW sets = $cm17a_norm_preempt\n";
+        print "CM17A: NORM sets Invalidated by HIGH sets = $cm17a_norm_invalid\n";
+        print "CM17A: LOW sets Invalidated by HIGH & NORM sets = $cm17a_low_invalid\n";
     }
 }
 

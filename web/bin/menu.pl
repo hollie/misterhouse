@@ -110,8 +110,7 @@ sub menu_list_top {
         $html .= &menu_button( $menu_group, "/bin/menu.pl?$menu_group" );
         $html .= "&nbsp;&nbsp;&nbsp;&nbsp;" unless $menu_buttons;
     }
-    $html .=
-      'No menus defined.  Enable menu.pl in the <a href="/bin/code_select.pl">common code selector</a>'
+    $html .= 'No menus defined.  Enable menu.pl in the <a href="/bin/code_select.pl">common code selector</a>'
       unless %Menus > 1;
     return &html_top . $html;
 }
@@ -137,8 +136,7 @@ sub menu_list {
         $menus_prev1 .= $menu_prev;
 
         #       $html .= &menu_button($menu_prev, ($menu_prev eq $menus[-1]) ? '' : "/bin/menu.pl?$menu_group&$menus_prev1");
-        $html .=
-          &menu_button( $menu_prev, "/bin/menu.pl?$menu_group&$menus_prev1" );
+        $html .= &menu_button( $menu_prev, "/bin/menu.pl?$menu_group&$menus_prev1" );
     }
     $html .= "<hr>\n";
 
@@ -187,16 +185,14 @@ sub menu_list {
             $href = "/bin/menu.pl?$menu_group&$menus|$goto";
             $text = $goto;
         }
-        my $color =
-          ( $target eq 'speech' or $target eq 'main' ) ? 'blue' : 'white';
+        my $color = ( $target eq 'speech' or $target eq 'main' ) ? 'blue' : 'white';
 
         # Use an active button if 2 states and tied to an object
         my $states = @{ $$ptr2{Dstates} } if $$ptr2{Dstates};
         my $action = $$ptr2{A};
 
         if ( $states >= 1 and $action =~ /^ *set +(\$\S+)/ and eval "ref $1" ) {
-            $html .=
-              &menu_button2( $1, $text, $menu_group, $menus, $menu, $item );
+            $html .= &menu_button2( $1, $text, $menu_group, $menus, $menu, $item );
         }
         else {
             $html .= &menu_button( $text, $href, $target, $color );
@@ -220,22 +216,16 @@ sub menu_states {
     my $border = ( $buttons and $menu_buttons ) ? 0 : 1;
 
     #   my $html = "<hr><BASE TARGET='speech'>\n";
-    my $html =
-      "<table border=$border width='100%'><tr><td><b>$$ptr2{Dprefix}</b></td>";
+    my $html  = "<table border=$border width='100%'><tr><td><b>$$ptr2{Dprefix}</b></td>";
     my $state = 0;
     for my $state_name ( @{ $$ptr2{Dstates} } ) {
         my $href = "sub?menu_run($menu_group,$menu,$item,$state,h)";
         $href =~ s/ /%20/g;
         if ($buttons) {
-            $html .= "<td>"
-              . &menu_button( $state_name, $href, 'speech', 'blue' )
-              . "</td>\n";
+            $html .= "<td>" . &menu_button( $state_name, $href, 'speech', 'blue' ) . "</td>\n";
         }
         else {
-            $html .=
-                "<td><a target='speech' href='$href'>$state_name "
-              . &key_pointer
-              . "</a></td>\n";
+            $html .= "<td><a target='speech' href='$href'>$state_name " . &key_pointer . "</a></td>\n";
         }
         $state++;
     }
@@ -314,8 +304,7 @@ sub menu_button2 {
     #   my $href = "sub?menu_run($menu_group,$menu,$item,$state_next,hr,/bin/menu.pl?$menu_group&$menus)";
     # &button_action is in mh/code/common/html_functions.pl
     # Need the function form, not the .pl form, since the argument has ? and & in it
-    my $href =
-      "sub?button_action($object_name,$state_next,/bin/menu.pl?$menu_group&$menus)";
+    my $href = "sub?button_action($object_name,$state_next,/bin/menu.pl?$menu_group&$menus)";
     $href =~ s/ /%20/g;
     return "<a id=a$menu_key_index href='$href'>$link</a>\n";
 }
@@ -323,8 +312,7 @@ sub menu_button2 {
 sub key_pointer {
     $menu_key_index++;
     return unless $menu_keys;
-    return
-      "<img style='Display:None' border=0 alt='pointer' Id=i$menu_key_index src=/graphics/pointer1.gif>";
+    return "<img style='Display:None' border=0 alt='pointer' Id=i$menu_key_index src=/graphics/pointer1.gif>";
 }
 
 sub html_top {
@@ -336,28 +324,17 @@ sub html_top {
     #   $html =~ s|<head>|<head><meta forua="true" http-equiv="Cache-Control" content="max-age=999"/>\n|;
 
     if ($menu_keys) {
-        my $script = "<script src='/bin/menu_keys.js'></script>\n"
-          . "<script>\nvar last_key = $menu_key_index;\n</script>\n";
+        my $script = "<script src='/bin/menu_keys.js'></script>\n" . "<script>\nvar last_key = $menu_key_index;\n</script>\n";
         $html =~ s/<head>/<head>$script/;
         $html =~ s/body /body onload='load(); self.focus()' /;
     }
 
     $html .= "<table border=0 width='100%'><tr>\n";
-    $html .= "<td align=left>"
-      . &html_file( undef, '../web/bin/set_cookie.pl',
-        'menu_keys&&<b>Keyboard Control</b>', 1 )
-      . "</td>\n"
+    $html .= "<td align=left>" . &html_file( undef, '../web/bin/set_cookie.pl', 'menu_keys&&<b>Keyboard Control</b>', 1 ) . "</td>\n"
       if $menu_keys_allowed;
-    $html .= "<td align=left>"
-      . &html_file( undef, '../web/bin/set_cookie.pl',
-        'menu_buttons&&<b>Buttons</b>', 1 )
-      . "</td>\n";
-    $html .= "<td align=left>"
-      . &html_file( undef, '../web/bin/set_cookie.pl',
-        'webmute&&<b>Webmute</b>&&&&/bin/menu.pl', 1 )
-      . "</td>\n";
-    $html .=
-      "<td><a href=/bin/menu.pl?help><font size=+1>Help</font></a></td>\n";
+    $html .= "<td align=left>" . &html_file( undef, '../web/bin/set_cookie.pl', 'menu_buttons&&<b>Buttons</b>',            1 ) . "</td>\n";
+    $html .= "<td align=left>" . &html_file( undef, '../web/bin/set_cookie.pl', 'webmute&&<b>Webmute</b>&&&&/bin/menu.pl', 1 ) . "</td>\n";
+    $html .= "<td><a href=/bin/menu.pl?help><font size=+1>Help</font></a></td>\n";
     $html .= "</tr></table>\n";
     return $html;
 }

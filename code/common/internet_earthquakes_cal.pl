@@ -69,21 +69,15 @@ if ( $config_parms{Earthquake_Count} ) {
     $Earthquake_Count = $config_parms{Earthquake_Count};
 }
 
-$f_earthquakes_cal_html =
-  new File_Item("$config_parms{data_dir}/web/earthquakes_cal.html");
-$f_earthquakes_cal_gif =
-  new File_Item("$config_parms{data_dir}/web/earthquakes_cal.gif");
+$f_earthquakes_cal_html = new File_Item("$config_parms{data_dir}/web/earthquakes_cal.html");
+$f_earthquakes_cal_gif  = new File_Item("$config_parms{data_dir}/web/earthquakes_cal.gif");
 
 my $image;
 $p_earthquakes_image_cal = new Process_Item;
-$p_earthquakes_cal       = new Process_Item(
-    "get_url http://quake.wr.usgs.gov/recenteqs/Quakes/quakes0.htm "
-      . $f_earthquakes_cal_html->name );
+$p_earthquakes_cal       = new Process_Item( "get_url http://quake.wr.usgs.gov/recenteqs/Quakes/quakes0.htm " . $f_earthquakes_cal_html->name );
 
-$v_earthquakes_cal =
-  new Voice_Cmd('[Get,Show,Read,Clear] recent California earthquakes');
-$v_earthquakes_cal->set_info(
-    'Display recent California earthquake information');
+$v_earthquakes_cal = new Voice_Cmd('[Get,Show,Read,Clear] recent California earthquakes');
+$v_earthquakes_cal->set_info('Display recent California earthquake information');
 $v_earthquakes_cal->set_authority('anyone');
 
 $state = said $v_earthquakes_cal;
@@ -142,15 +136,14 @@ if ( done_now $p_earthquakes_cal) {
         $Save{quakes_cal} = $new_quakes . $Save{quakes_cal};
 
         #   $Save{quakes_cal} =~ s/^(([^\t]*\t){1,1000}).*/$1/;
-        $Save{quakes_cal} =~ s/^(([^\t]*\t){1,15}).*/$1/;  # Save last 15 quakes
+        $Save{quakes_cal} =~ s/^(([^\t]*\t){1,15}).*/$1/;    # Save last 15 quakes
         $image = '';
         foreach ( split /\t/, $new_quakes ) {
             $quake = $_;
             last unless $num < $Earthquake_Count;
             $num += speak_quake_cal($quake);
         }
-        set $p_earthquakes_image_cal "get_url $image "
-          . $f_earthquakes_cal_gif->name;
+        set $p_earthquakes_image_cal "get_url $image " . $f_earthquakes_cal_gif->name;
         start $p_earthquakes_image_cal if $image;
     }
 }
@@ -166,28 +159,17 @@ sub calc_distance_cal {
     $lat2 /= $c;
     $lon1 /= $c;
     $lon2 /= $c;
-    $d = 2 * Math::Trig::asin(
-        sqrt(
-            ( sin( ( $lat1 - $lat2 ) / 2 ) )**2 +
-              cos($lat1) * cos($lat2) * ( sin( ( $lon1 - $lon2 ) / 2 ) )**2
-        )
-    );
+    $d = 2 * Math::Trig::asin( sqrt( ( sin( ( $lat1 - $lat2 ) / 2 ) )**2 + cos($lat1) * cos($lat2) * ( sin( ( $lon1 - $lon2 ) / 2 ) )**2 ) );
 
     return $d * ( .5 * 7915.6 );    # convert to miles and return
 }
 
 sub calc_age_cal {
     my $time = shift;
-    my ( $qyear, $qmnth, $qdate, $qhour, $qminu, $qseco ) =
-      $time =~ m!(\S+)/(\S+)/(\S+)\s+(\S+):(\S+):(\S+)!;
-    my $qtime =
-      timelocal( $qseco, $qminu, $qhour, $qdate, $qmnth - 1, $qyear - 1900 );
-    my $midnight = timelocal( 0, 0, 0, $Mday, $Month - 1, $Year - 1900 );
-    my $diff = (
-        time - timelocal(
-            $qseco, $qminu, $qhour, $qdate, $qmnth - 1, $qyear - 1900
-        )
-    );
+    my ( $qyear, $qmnth, $qdate, $qhour, $qminu, $qseco ) = $time =~ m!(\S+)/(\S+)/(\S+)\s+(\S+):(\S+):(\S+)!;
+    my $qtime    = timelocal( $qseco, $qminu, $qhour, $qdate, $qmnth - 1, $qyear - 1900 );
+    my $midnight = timelocal( 0,      0,      0,      $Mday,  $Month - 1, $Year - 1900 );
+    my $diff = ( time - timelocal( $qseco, $qminu, $qhour, $qdate, $qmnth - 1, $qyear - 1900 ) );
 
     return int( $diff / 60 ) . " minutes ago " if ( $diff < 60 * 120 );
     return int( $diff / ( 60 * 60 ) ) . " hours ago " if ( $qtime > $midnight );
@@ -204,30 +186,18 @@ sub calc_age_cal {
 sub speak_quake_cal {
 
     #map 1.3  2001/05/12 20:09:30 33.995N 116.818W 18.3    9 km ( 5 mi) NNW of Cabazon, CA
-    if (
-        my (
-            $qmagn, $qdate, $qtime, $qlatd, $qnoso,
-            $qlong, $qeawe, $qdept, $qloca
-        )
-        = $_ =~
-        m!map\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)([NS])\s+(\S+)([EW])\s+(\S+).+km.+mi.+[NSEW]+\s+of\s+(.+)!i
-      )
+    if ( my ( $qmagn, $qdate, $qtime, $qlatd, $qnoso, $qlong, $qeawe, $qdept, $qloca ) =
+        $_ =~ m!map\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)([NS])\s+(\S+)([EW])\s+(\S+).+km.+mi.+[NSEW]+\s+of\s+(.+)!i )
     {
         $qlatd *= -1 if ( $qnoso eq "S" );
         $qlong *= -1 if ( $qeawe eq "W" );
-        my $distance = sprintf "%d",
-          calc_distance_cal( $config_parms{latitude}, $config_parms{longitude},
-            $qlatd, $qlong ) + .5;
+        my $distance = sprintf "%d", calc_distance_cal( $config_parms{latitude}, $config_parms{longitude}, $qlatd, $qlong ) + .5;
         for ( keys %Magnitude_thresholds ) {
             if ( $distance <= $_ and $qmagn >= $Magnitude_thresholds{$_} ) {
-                $image =
-                    'http://quake.wr.usgs.gov/recenteqs/Maps/'
-                  . round( -$qlong ) . '-'
-                  . round($qlatd) . '.gif';
+                $image = 'http://quake.wr.usgs.gov/recenteqs/Maps/' . round( -$qlong ) . '-' . round($qlatd) . '.gif';
                 $qloca =~ s/, CA$/ California/;
                 $qloca =~ s/, NV$/ Nevada/;
-                speak &calc_age_cal("$qdate $qtime")
-                  . "a magnitude $qmagn earthquake occurred $distance miles away near $qloca";
+                speak &calc_age_cal("$qdate $qtime") . "a magnitude $qmagn earthquake occurred $distance miles away near $qloca";
                 return 1;
             }
         }
@@ -238,9 +208,6 @@ sub speak_quake_cal {
 # lets allow the user to control via triggers
 
 if ($Reload) {
-    &trigger_set(
-        '$New_Hour and net_connect_check',
-        "run_voice_cmd 'Get recent California earthquakes'",
-        'NoExpire', 'get cal earthquakes'
-    ) unless &trigger_get('get cal earthquakes');
+    &trigger_set( '$New_Hour and net_connect_check', "run_voice_cmd 'Get recent California earthquakes'", 'NoExpire', 'get cal earthquakes' )
+      unless &trigger_get('get cal earthquakes');
 }

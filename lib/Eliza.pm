@@ -426,8 +426,7 @@ sub command_interface {
     print $self->botprompt if $self->prompts_on;
 
     # Print an initial greeting
-    print
-      "$self->{initial}->[ int &{$self->{myrand}}( scalar @{ $self->{initial} } ) ]\n";
+    print "$self->{initial}->[ int &{$self->{myrand}}( scalar @{ $self->{initial} } ) ]\n";
 
     ###################################################################
     # command loop.  This loop should go on forever,
@@ -443,8 +442,7 @@ sub command_interface {
         # If the user wants to quit,
         # print out a farewell and quit.
         if ( $self->_testquit($user_input) ) {
-            $reply =
-              "$self->{final}->[ int &{$self->{myrand}}( scalar @{$self->{final}} ) ]";
+            $reply = "$self->{final}->[ int &{$self->{myrand}}( scalar @{$self->{final}} ) ]";
             print $self->botprompt if $self->prompts_on;
             print "$reply\n";
             last;
@@ -519,8 +517,7 @@ sub preprocess {
     WORD: for ( $i = 0; $i < @wordsin; $i++ ) {
         foreach $keyword ( keys %{ $self->{pre} } ) {
             if ( $wordsin[$i] =~ /\b$keyword\b/i ) {
-                ( $wordsout[$i] = $wordsin[$i] ) =~
-                  s/$keyword/$self->{pre}->{$keyword}/ig;
+                ( $wordsout[$i] = $wordsin[$i] ) =~ s/$keyword/$self->{pre}->{$keyword}/ig;
                 next WORD;
             }
         }
@@ -555,8 +552,7 @@ sub postprocess {
     WORD: for ( $i = 0; $i < @wordsin; $i++ ) {
         foreach $keyword ( keys %{ $self->{post} } ) {
             if ( $wordsin[$i] =~ /\b$keyword\b/i ) {
-                ( $wordsout[$i] = $wordsin[$i] ) =~
-                  s/$keyword/$self->{post}->{$keyword}/ig;
+                ( $wordsout[$i] = $wordsin[$i] ) =~ s/$keyword/$self->{post}->{$keyword}/ig;
                 next WORD;
             }
         }
@@ -678,10 +674,8 @@ sub transform {
       if $use_memory;
 
     my (
-        $i,           @string_parts, $string_part,   $rank,
-        $goto,        $reasmb,       $keyword,       $decomp,
-        $this_decomp, $reasmbkey,    @these_reasmbs, @decomp_matches,
-        $synonyms,    $synonym_index
+        $i,      @string_parts, $string_part, $rank,          $goto,           $reasmb,   $keyword,
+        $decomp, $this_decomp,  $reasmbkey,   @these_reasmbs, @decomp_matches, $synonyms, $synonym_index
     );
 
     # Default to a really low rank.
@@ -716,8 +710,7 @@ sub transform {
                 # the rank of that keyword.
                 $rank = $self->{keyranks}->{$keyword};
 
-                $self->debug_text(
-                    $self->debug_text . sprintf "\t$rank> $keyword" );
+                $self->debug_text( $self->debug_text . sprintf "\t$rank> $keyword" );
 
                 # Now let's check all the decomposition rules for that keyword.
                 DECOMP:
@@ -736,12 +729,10 @@ sub transform {
                         ( $synonym_index = $this_decomp ) =~ s/.*\@(\w*).*/$1/i;
                         $synonyms =
                           join( '|', @{ $self->{synon}->{$synonym_index} } );
-                        $this_decomp =~
-                          s/(.*)\@$synonym_index(.*)/$1($synonym_index\|$synonyms)$2/g;
+                        $this_decomp =~ s/(.*)\@$synonym_index(.*)/$1($synonym_index\|$synonyms)$2/g;
                     }
 
-                    $self->debug_text(
-                        $self->debug_text . sprintf "\n\t\t: $decomp" );
+                    $self->debug_text( $self->debug_text . sprintf "\n\t\t: $decomp" );
 
                     # Using the regular expression we just generated,
                     # match against the input string.  Use empty "()"'s to
@@ -752,10 +743,8 @@ sub transform {
                         # then create an array, so that we can refer to matches
                         # to individual wildcards.  Use '0' as a placeholder
                         # (we don't want to refer to any "zeroth" wildcard).
-                        @decomp_matches =
-                          ( "0", $1, $2, $3, $4, $5, $6, $7, $8, $9 );
-                        $self->debug_text( $self->debug_text
-                              . sprintf " : @decomp_matches\n" );
+                        @decomp_matches = ( "0", $1, $2, $3, $4, $5, $6, $7, $8, $9 );
+                        $self->debug_text( $self->debug_text . sprintf " : @decomp_matches\n" );
 
                         # Using the keyword and the decomposition rule,
                         # reconstruct a key for the list of reassamble rules.
@@ -764,16 +753,13 @@ sub transform {
                         # Get the list of possible reassembly rules for this key.
                         #
                         if ( defined $use_memory
-                            and
-                            $#{ $self->{reasmblist_for_memory}->{$reasmbkey} }
-                            >= 0 )
+                            and $#{ $self->{reasmblist_for_memory}->{$reasmbkey} } >= 0 )
                         {
 
                             # If this transform function was invoked with the memory flag,
                             # and there are in fact reassembly rules which are appropriate
                             # for pulling out of memory, then include them.
-                            @these_reasmbs =
-                              @{ $self->{reasmblist_for_memory}->{$reasmbkey} }
+                            @these_reasmbs = @{ $self->{reasmblist_for_memory}->{$reasmbkey} }
 
                         }
                         else {
@@ -785,18 +771,15 @@ sub transform {
                         }
 
                         # Pick out a reassembly rule at random.
-                        $reasmb = $these_reasmbs[ int &{ $self->{myrand} }
-                          ( scalar @these_reasmbs ) ];
+                        $reasmb = $these_reasmbs[ int &{ $self->{myrand} }( scalar @these_reasmbs ) ];
 
-                        $self->debug_text(
-                            $self->debug_text . sprintf "\t\t-->  $reasmb\n" );
+                        $self->debug_text( $self->debug_text . sprintf "\t\t-->  $reasmb\n" );
 
                         # If the reassembly rule we picked contains the word "goto",
                         # then we start over with a new keyword.  Set $keyword to equal
                         # that word, and start the whole loop over.
                         if ( $reasmb =~ m/^goto\s(\w*).*/i ) {
-                            $self->debug_text(
-                                $self->debug_text . sprintf "\$1 = $1\n" );
+                            $self->debug_text( $self->debug_text . sprintf "\$1 = $1\n" );
                             $goto = $keyword = $1;
                             $rank = -2;
                             redo KEYWORD;
@@ -821,9 +804,9 @@ sub transform {
 
                     $self->debug_text( $self->debug_text . sprintf "\n" );
 
-                } # End DECOMP: foreach $decomp (@{ $self->{decomplist}->{$keyword} })
+                }    # End DECOMP: foreach $decomp (@{ $self->{decomplist}->{$keyword} })
 
-            }  # End if ( ($string_part =~ /\b$keyword\b/i or $keyword eq $goto)
+            }    # End if ( ($string_part =~ /\b$keyword\b/i or $keyword eq $goto)
 
         }    # End KEYWORD: foreach $keyword (keys %{ $self->{decomplist})
 
@@ -870,8 +853,7 @@ script data only has 4 such items.
             and &{ $self->{myrand} }() <= $self->likelihood_of_using_memory )
         {
 
-            $reasmb =
-              $self->transform( shift @{ $self->memory }, "use memory" );
+            $reasmb = $self->transform( shift @{ $self->memory }, "use memory" );
 
         }
         elsif ( !$string ) {
@@ -902,9 +884,7 @@ script data only has 4 such items.
         shift @{ $self->memory }
           if $#{ $self->memory } >= $self->max_memory_size;
 
-        $self->debug_text( $self->debug_text
-              . sprintf( "\t%d item(s) in memory.\n", $#{ $self->memory } + 1 )
-        );
+        $self->debug_text( $self->debug_text . sprintf( "\t%d item(s) in memory.\n", $#{ $self->memory } + 1 ) );
 
     }    # End if ($reasmb eq "")
 
@@ -1078,8 +1058,7 @@ sub parse_script_data {
             /final/   and do { push @{ $self->{final} },   $entry; last; };
 
             /decomp/ and do {
-                die
-                  "$0: error parsing script:  decomposition rule with no keyword.\n"
+                die "$0: error parsing script:  decomposition rule with no keyword.\n"
                   if $thiskey eq "";
                 $thisdecomp = join( $;, $thiskey, $entry );
                 push @{ $self->{decomplist}->{$thiskey} }, $entry;
@@ -1087,16 +1066,14 @@ sub parse_script_data {
             };
 
             /reasmb/ and do {
-                die
-                  "$0: error parsing script:  reassembly rule with no decomposition rule.\n"
+                die "$0: error parsing script:  reassembly rule with no decomposition rule.\n"
                   if $thisdecomp eq "";
                 push @{ $self->{reasmblist}->{$thisdecomp} }, $entry;
                 last;
             };
 
             /reasm_for_memory/ and do {
-                die
-                  "$0: error parsing script:  reassembly rule with no decomposition rule.\n"
+                die "$0: error parsing script:  reassembly rule with no decomposition rule.\n"
                   if $thisdecomp eq "";
                 push @{ $self->{reasmblist_for_memory}->{$thisdecomp} }, $entry;
                 last;

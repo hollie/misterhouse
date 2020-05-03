@@ -38,8 +38,7 @@ $v_page_dave = new Voice_Cmd('Page Dave with test message');
 &send_page("This is a test page from MisterHouse") if said $v_page_dave;
 
 sub send_page {
-    s/\'//
-      ;   # remove any escape backticks because everything is an argument to bip
+    s/\'//;    # remove any escape backticks because everything is an argument to bip
     my ( $pager_msg, $pager_name, $pager_service, $pager_pin ) = @_;
     my $print_msg;
 

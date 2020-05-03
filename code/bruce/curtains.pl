@@ -16,11 +16,9 @@ if ( !$Save{sleeping_parents} ) {
 run_voice_cmd 'close the living room curtains'
   if time_cron '0 18 * * 1-5' and $Save{curtain_living} ne CLOSED;
 
-$curtain_living = new X10_Appliance('OC');
-$v_curtain_living =
-  new Voice_Cmd('[open,close,change] the living room curtains');
-$v_curtain_living->set_info(
-    "Use change if this X10 toggled curtain gets out of sync");
+$curtain_living   = new X10_Appliance('OC');
+$v_curtain_living = new Voice_Cmd('[open,close,change] the living room curtains');
+$v_curtain_living->set_info("Use change if this X10 toggled curtain gets out of sync");
 
 $timer_curtain_living = new Timer();
 
@@ -105,9 +103,7 @@ if ( $New_Minute and ( $Time - $Save{curtains_time} > 30 * 60 ) ) {
             and defined $Weather{TempOutdoor}
             and $Weather{TempOutdoor} < 50 )
         {
-            speak
-              "Notice, the sun is dim at $analog{sun_sensor} percent, and it is cold outside "
-              . "at "
+            speak "Notice, the sun is dim at $analog{sun_sensor} percent, and it is cold outside " . "at "
               . round( $Weather{TempOutdoor} )
               . " degrees, so I'm closing the curtains at $Time_Now";
             &curtains_all(CLOSE);
@@ -122,9 +118,7 @@ if ( $New_Minute and ( $Time - $Save{curtains_time} > 30 * 60 ) ) {
             and defined $Weather{TempOutdoor}
             and $Weather{TempOutdoor} < 45 )
         {
-            speak
-              "Notice, the sun is bright at $analog{sun_sensor} percent, and it is cold outside "
-              . "at "
+            speak "Notice, the sun is bright at $analog{sun_sensor} percent, and it is cold outside " . "at "
               . round( $Weather{TempOutdoor} )
               . " degrees, so I am opening the curtains at $Time_Now";
             &curtains_all(OPEN);
@@ -154,10 +148,7 @@ sub curtains_all {
     else {
         # Do the X10 curtain
         #       run_voice_cmd "$action the living room curtains";
-        @curtains = (
-            'bedroom', $action, 'family', $action,
-            'zack',    $action, 'nick',   $action
-        );
+        @curtains = ( 'bedroom', $action, 'family', $action, 'zack', $action, 'nick', $action );
 
         #       @curtains = ('bedroom', $action, 'family' , $action,                  'nick', $action);
     }
@@ -197,7 +188,7 @@ sub curtain_on {
     # Since we share timer and relay ... one at a time
     if ( active $timer_curtain) {
         speak "Reset";
-        run_action $timer_curtain; # Prematurely turn off the previous curtain's relay
+        run_action $timer_curtain;    # Prematurely turn off the previous curtain's relay
     }
 
     set $timer_curtain $time, "&main::curtain_off('$room');";

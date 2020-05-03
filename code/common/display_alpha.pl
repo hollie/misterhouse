@@ -21,14 +21,13 @@ $display_alpha_timer = new Timer;
 # Works with apps that set $Save{NowPlaying}
 # Optionally set $Save{mp3_mode} to display player mode (mp3_winamp does this currently)
 
-use vars '$mh_volume'
-  ; #(From status line Web script) In case mh_sound is not running ( *** Should use eval to trap errors here, rather than declaring the var)
+use vars '$mh_volume';  #(From status line Web script) In case mh_sound is not running ( *** Should use eval to trap errors here, rather than declaring the var)
 
 # noloop=start
-my $now_playing;   #last displayed song title
-my $player_mode;   #last reported mode
-my $timer_set_by;  #app that last set the display timer
-my $temp_flag;     # alternates between indoor and outdoor temperatures on clock
+my $now_playing;        #last displayed song title
+my $player_mode;        #last reported mode
+my $timer_set_by;       #app that last set the display timer
+my $temp_flag;          # alternates between indoor and outdoor temperatures on clock
 
 # noloop=stop
 
@@ -37,11 +36,9 @@ my $temp_flag;     # alternates between indoor and outdoor temperatures on clock
 $display_alpha_test1 = new Voice_Cmd
   "Test alpha display mode [hold,flash,rollup,rolldown,rollleft,rollright,wipeup,wipedown,wipeleft,wiperight,rollup2,auto,wipein2,wipeout2,wipein,wipeout,rotates,explode,clock,sparkle,twinkle,snow,interlock,switch,slide,spray,starburst,welcome,slotmachine,newsflash,trumpet,cyclecolors,thankyou,nosmoking,dontdrinkanddrive,runninganimal,fireworks,turbocar,cherrybomb]";
 $display_alpha_test1->set_info('Tests alphanumeric display modes');
-$display_alpha_test2 = new Voice_Cmd
-  "Test alpha display color [red,green,amber,darkred,darkgreen,brown,orange,yellow,rainbow1,rainbow2,mix,auto]";
+$display_alpha_test2 = new Voice_Cmd "Test alpha display color [red,green,amber,darkred,darkgreen,brown,orange,yellow,rainbow1,rainbow2,mix,auto]";
 $display_alpha_test2->set_info('Tests alphanumeric display colors');
-$display_alpha_test3 =
-  new Voice_Cmd "Test alpha display font [small,large,fancy]";
+$display_alpha_test3 = new Voice_Cmd "Test alpha display font [small,large,fancy]";
 $display_alpha_test3->set_info('Tests alphanumeric display fonts');
 
 if ($Reload) {
@@ -80,9 +77,7 @@ sub display_im_message {
         #&display('wait=1 speed=faster device=alpha image=space3 mode=sparkle font=small .');
         #&display('wait=1 speed=faster device=alpha image=space2 font=small .');
         #&display('wait=1 device=alpha image=space mode=sparkle font=small .');
-        &display( "device=alpha mode=sparkle app="
-              . ( ( lc($pgm) eq 'aol' ) ? 'aim' : lc($pgm) )
-              . " $from:\x1c2$text" );
+        &display( "device=alpha mode=sparkle app=" . ( ( lc($pgm) eq 'aol' ) ? 'aim' : lc($pgm) ) . " $from:\x1c2$text" );
         &set_display_timer( 10, 'im' );
     }
 }
@@ -93,9 +88,7 @@ sub display_im_status {
         and $status ne $status_old
         and $user ne $config_parms{net_aim_name} )
     {
-        &display( "device=alpha app="
-              . ( ( lc($pgm) eq 'aol' ) ? 'aim' : lc($pgm) )
-              . " $user $status" );
+        &display( "device=alpha app=" . ( ( lc($pgm) eq 'aol' ) ? 'aim' : lc($pgm) ) . " $user $status" );
         &set_display_timer( 10, 'im' );
     }
 }
@@ -141,9 +134,7 @@ sub update_clock {
         # Allow for older format, displaying indoor/outdoor at the same time
         if ( $config_parms{Display_Alpha_clock_format} == 1 ) {
             $display = &time_date_stamp(8);    # 12:52
-            $display .= ' '
-              . int( $Weather{TempIndoor} ) . ' '
-              . int( $Weather{TempOutdoor} );
+            $display .= ' ' . int( $Weather{TempIndoor} ) . ' ' . int( $Weather{TempOutdoor} );
 
             #	$display .= ' ' . int($Weather{HumidOutdoor}) if defined $Weather{HumidOutdoor};
             $display .= ' ' . substr( $Day, 0, 1 ) . $Mday;
@@ -169,16 +160,13 @@ sub update_clock {
                 $temp_flag = !$temp_flag;
             }
             else {
-                if ( defined $Weather{TempIndoor} ) {  # Can fit one temperature
-                    $display .= " \x1c7\x1a5"
-                      . int( $Weather{TempIndoor} + .5 )
-                      ;    # '\x1c7' is inline code for color 7
+                if ( defined $Weather{TempIndoor} ) {    # Can fit one temperature
+                    $display .= " \x1c7\x1a5" . int( $Weather{TempIndoor} + .5 );    # '\x1c7' is inline code for color 7
                 }
                 elsif ( defined $Weather{TempOutdoor} ) {
                     my $color = '4';
                     $color = '2' if $Weather{TempOutdoor} < 80;
-                    $display .=
-                      " \x1c$color\x1a5" . int( $Weather{TempOutdoor} + .5 );
+                    $display .= " \x1c$color\x1a5" . int( $Weather{TempOutdoor} + .5 );
                 }
             }
         }
@@ -187,8 +175,7 @@ sub update_clock {
         $display .= ' ' . $Save{display_text}
           if $Save{display_text} and ( $Time - $Save{display_time} ) < 400;
 
-        if ( new_minute and !( $Minute % $freq ) )
-        { #display optional extra info every n minutes (and not when clock is forced after timer!)
+        if ( new_minute and !( $Minute % $freq ) ) {    #display optional extra info every n minutes (and not when clock is forced after timer!)
 
             my $options =
               ( $config_parms{Display_Alpha_clock_options} )
@@ -199,25 +186,15 @@ sub update_clock {
             for my $parm (@parms) {
                 if ( $parm =~ /sun/ ) {
                     if ( $parm eq 'sun' ) {
-                        $parm = (
-                                 time_less_than "$Time_Sunrise + 2:00"
-                              or time_greater_than "$Time_Sunset  + 2:00"
-                        ) ? 'sunrise' : 'sunset';
+                        $parm = ( time_less_than "$Time_Sunrise + 2:00" or time_greater_than "$Time_Sunset  + 2:00" ) ? 'sunrise' : 'sunset';
                     }
                     if ( $parm eq 'sunrise' ) {
-                        &display(
-                            "wait=1 device=alpha app=sunrise image=sunset Rise $Time_Sunrise"
-                        );
-                        &display(
-                            "wait=1 device=alpha app=sunrise Rise $Time_Sunrise"
-                        );
+                        &display("wait=1 device=alpha app=sunrise image=sunset Rise $Time_Sunrise");
+                        &display("wait=1 device=alpha app=sunrise Rise $Time_Sunrise");
                     }
                     else {
-                        &display(
-                            "wait=1 device=alpha app=sunset image=sunrise Set $Time_Sunset"
-                        );
-                        &display(
-                            "wait=1 device=alpha app=sunset Set $Time_Sunset");
+                        &display("wait=1 device=alpha app=sunset image=sunrise Set $Time_Sunset");
+                        &display("wait=1 device=alpha app=sunset Set $Time_Sunset");
                     }
 
                     #display(device=>'alpha', speed=>'faster', mode=>'hold', image=>'sunrise', wait => 1, font=>'small', text=>"Sunset $Time_Sunset");
@@ -227,40 +204,27 @@ sub update_clock {
                 }
                 elsif ( $parm eq 'mode' ) {
                     if ( $Save{mode} ne 'normal' ) {
-                        &display(
-                            "wait=1 device=alpha image=house color=red mode=flash app=mode $Save{mode} mode"
-                        );
+                        &display("wait=1 device=alpha image=house color=red mode=flash app=mode $Save{mode} mode");
                     }
                     else {
-                        &display(
-                            "wait=1 device=alpha image=house app=mode Normal mode"
-                        );
+                        &display("wait=1 device=alpha image=house app=mode Normal mode");
                     }
                     if ( $mode_security->{state} eq 'armed' ) {
-                        &display(
-                            "wait=1 device=alpha color=red mode=flash app=security Security armed"
-                        );
+                        &display("wait=1 device=alpha color=red mode=flash app=security Security armed");
                     }
                     else {
-                        &display(
-                            "wait=1 device=alpha app=security Security unarmed"
-                        );
+                        &display("wait=1 device=alpha app=security Security unarmed");
                     }
                     if ( $mode_sleeping->{state} ne 'nobody' ) {
-                        &display(
-                            "wait=1 device=alpha color=red mode=flash app=security "
-                              . ucfirst( $mode_sleeping->{state} )
-                              . " are asleep" );
+                        &display( "wait=1 device=alpha color=red mode=flash app=security " . ucfirst( $mode_sleeping->{state} ) . " are asleep" );
                     }
                 }
                 elsif ( $parm eq 'im' ) {
                     if ($oscar::aim_connected) {
-                        &display(
-                            "wait=1 device=alpha app=aol Connected to AOL");
+                        &display("wait=1 device=alpha app=aol Connected to AOL");
                     }
                     if ($oscar::icq_connected) {
-                        &display(
-                            "wait=1 device=alpha app=icq Connected to ICQ");
+                        &display("wait=1 device=alpha app=icq Connected to ICQ");
                     }
                 }
                 elsif ( $parm eq 'volume' ) {
@@ -269,9 +233,7 @@ sub update_clock {
                         my $sl_vol    = state $mh_volume;
                         my $vol_image = &volume_image($sl_vol);
 
-                        &display(
-                            "wait=1 device=alpha app=volume image=$vol_image Volume: $sl_vol"
-                        ) if defined $sl_vol;
+                        &display("wait=1 device=alpha app=volume image=$vol_image Volume: $sl_vol") if defined $sl_vol;
                     }
 
                 }
@@ -281,9 +243,7 @@ sub update_clock {
                     if ( $Save{NowPlayingPlaylist} ) {
                         my $playlist = $Save{NowPlayingPlaylist};
                         $playlist =~ s/_/\x20/;
-                        &display(
-                            "wait=1 device=alpha app=music Playlist: $playlist"
-                        );
+                        &display("wait=1 device=alpha app=music Playlist: $playlist");
                     }
 
                     my $playing = $Save{NowPlaying};
@@ -294,28 +254,20 @@ sub update_clock {
                         $song = $playing unless $song;
 
                         if ( $Save{mp3_mode} == 1 ) {    #playing
-                            &display(
-                                "wait=1 device=alpha app=music image=play $song"
-                            );
+                            &display("wait=1 device=alpha app=music image=play $song");
                         }
                         elsif ( $Save{mp3_mode} == 3 ) {    #paused
-                            &display(
-                                "wait=1 device=alpha app=music image=pause $song"
-                            );
+                            &display("wait=1 device=alpha app=music image=pause $song");
                         }
                         elsif ( $Save{mp3_mode} == 0 ) {    #stopped
-                            &display(
-                                "wait=1 device=alpha app=music image=stop $song"
-                            );
+                            &display("wait=1 device=alpha app=music image=stop $song");
                         }
                         &display("wait=1 device=alpha mode=auto $artist")
                           if $artist;
                     }
 
-                    use vars '$dvd_marquee'
-                      ;    # In case no DVD-ROM or player installed/configured
-                    use vars '$dvd_player'
-                      ;    # In case no DVD-ROM or player installed/configured
+                    use vars '$dvd_marquee';                # In case no DVD-ROM or player installed/configured
+                    use vars '$dvd_player';                 # In case no DVD-ROM or player installed/configured
 
                     # *** Test without dvd module loaded!
 
@@ -334,9 +286,7 @@ sub update_clock {
 
                 }
                 elsif ( $parm eq 'email' ) {
-                    &display(
-                        "wait=1 device=alpha app=email Email: $Save{email_flag}"
-                    ) if $Save{email_flag};
+                    &display("wait=1 device=alpha app=email Email: $Save{email_flag}") if $Save{email_flag};
                 }
                 elsif ( $parm eq 'weather' ) {
 
@@ -354,55 +304,36 @@ sub update_clock {
                       and $Weather{Warning} !~ /adjusted/i
                       and $Weather{Warning} !~ /updated/i
                       and $Weather{Warning} !~ /removed/i;
-                    &display(
-                        "wait=1 device=alpha app=weather $Weather{Summary_Short}"
-                    ) if $Weather{Summary_Short};
-                    &display(
-                        "wait=1 device=alpha app=weather $Weather{chance_of_rain}"
-                    ) if $Weather{chance_of_rain};
+                    &display("wait=1 device=alpha app=weather $Weather{Summary_Short}")  if $Weather{Summary_Short};
+                    &display("wait=1 device=alpha app=weather $Weather{chance_of_rain}") if $Weather{chance_of_rain};
                 }
                 elsif ( $parm eq 'news' ) {
-                    &display(
-                        "wait=1 device=alpha app=news $Save{news_ap_headline}")
+                    &display("wait=1 device=alpha app=news $Save{news_ap_headline}")
                       if $Save{news_ap_headline};
                 }
                 elsif ( $parm eq 'stocks' ) {
-                    &display(
-                        "wait=1 device=alpha app=stocks $Save{stock_data1} $Save{stock_data2}"
-                    ) if $Save{stock_data1};
+                    &display("wait=1 device=alpha app=stocks $Save{stock_data1} $Save{stock_data2}") if $Save{stock_data1};
                 }
                 elsif ( $parm eq 'tv' ) {
                     &display("wait=1 device=alpha app=tv $Save{tv_favorites}")
                       if $Save{tv_favorites};
                 }
                 elsif ( $parm eq 'temp' ) {
-                    &display( 'wait=1 device=alpha app=temperature In: '
-                          . int( $Weather{TempIndoor} )
-                          . ' Out: '
-                          . int( $Weather{TempOutdoor} ) )
+                    &display( 'wait=1 device=alpha app=temperature In: ' . int( $Weather{TempIndoor} ) . ' Out: ' . int( $Weather{TempOutdoor} ) )
                       if defined $Weather{TempOutdoor}
                       and defined $Weather{TempIndoor};
                 }
                 elsif ( $parm eq 'holiday' ) {
-                    &display(
-                        "wait=1 device=alpha app=holiday Today is $Holiday");
+                    &display("wait=1 device=alpha app=holiday Today is $Holiday");
                 }
-                elsif ( $parm eq 'demo' )
-                { # useless stuff to pad out default sequence (looks stupid if there aren't enough info providers)
-                    &display(
-                        "wait=1 device=alpha mode=nosmoking font=small It's bad for me"
-                    );
-                    &display(
-                        "wait=1 device=alpha app=games mode=slotmachine Play again in $freq minutes"
-                    );
-                    &display(
-                        "wait=1 device=alpha app=control mode=fireworks Misterhouse is cool!"
-                    );
+                elsif ( $parm eq 'demo' ) {    # useless stuff to pad out default sequence (looks stupid if there aren't enough info providers)
+                    &display("wait=1 device=alpha mode=nosmoking font=small It's bad for me");
+                    &display("wait=1 device=alpha app=games mode=slotmachine Play again in $freq minutes");
+                    &display("wait=1 device=alpha app=control mode=fireworks Misterhouse is cool!");
                 }
 
             }
-            set_display_timer 60,
-              undef;    # *** Need heuristic here (60 may not be appropriate!)
+            set_display_timer 60, undef;       # *** Need heuristic here (60 may not be appropriate!)
         }
         display
           device => 'alpha',
@@ -413,8 +344,7 @@ sub update_clock {
 }
 
 &update_clock()
-  if
-  expired $display_alpha_timer; #will step on messages sent from other modules (logic belongs in pm)
+  if expired $display_alpha_timer;             #will step on messages sent from other modules (logic belongs in pm)
 
 # Allow for various incoming xAP data to be displayed
 # *** xAP monitoring of weather data belongs in its own module!
@@ -458,8 +388,7 @@ if ( $state = state_now $xap_monitor_display_alpha) {
             $duration = $$p{'display.slimp3'}{duration};
             $color    = 'green';
         }
-        elsif ( $state =~ /display.alpha/ )
-        {    # *** What module sends these packets?
+        elsif ( $state =~ /display.alpha/ ) {    # *** What module sends these packets?
             $text     = $$p{'display.alpha'}{text};
             $mode     = $$p{'display.alpha'}{mode};
             $color    = $$p{'display.alpha'}{color};
@@ -469,8 +398,8 @@ if ( $state = state_now $xap_monitor_display_alpha) {
 
     # Echo new music tracks (e.g. sent by slimserver)
     elsif ( $class eq 'xap-audio.playlist.event' and $state =~ /now.playing/ ) {
-        $text  = $$p{'now.playing'}{artist} . ': ' . $$p{'now.playing'}{title};
-        $color = 'orange';
+        $text     = $$p{'now.playing'}{artist} . ': ' . $$p{'now.playing'}{title};
+        $color    = 'orange';
         $duration = 10;
     }
     if ($text) {
@@ -516,10 +445,9 @@ sub Display_Alpha::send_hook {
 
     $duration = $parms{duration};
     $duration = $config_parms{Display_Alpha_echo_duration} unless $duration;
-    $duration = 45 unless $duration;    #default is 45 seconds
+    $duration = 45 unless $duration;                                           #default is 45 seconds
 
-    set_display_timer $duration,
-      undef;    #keeps the clock from overwriting the message too quickly
+    set_display_timer $duration, undef;                                        #keeps the clock from overwriting the message too quickly
 }
 
 if ( $state = said $display_alpha_test1) {
@@ -532,8 +460,7 @@ if ( $state = said $display_alpha_test1) {
             or $state eq 'cyclecolors' )
       )
     {
-        respond
-          "This mode does not work on older displays. Default display should be in $state mode.";
+        respond "This mode does not work on older displays. Default display should be in $state mode.";
     }
     else {
         respond "Default display should be in $state mode.";
@@ -552,17 +479,15 @@ if ( $state = said $display_alpha_test3) {
     respond "Default display should be in $state font.";
     display
       device => 'alpha',
-      text =>
-      "Testing font $state !@#$%^&*()0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
-      font => $state;
+      text   => "Testing font $state !@#$%^&*()0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      font   => $state;
 
 }
 
 # Trigger to update clock
 
 if ($Reload) {
-    &trigger_set( 'new_minute', '&update_clock', 'NoExpire',
-        'update alpha clock' )
+    &trigger_set( 'new_minute', '&update_clock', 'NoExpire', 'update alpha clock' )
       unless &trigger_get('update alpha clock');
 }
 
@@ -570,8 +495,7 @@ if ($Reload) {
 
 if ($Startup) {
     display( device => 'alpha', text => 'System restarted', app => 'startup' );
-    set $display_alpha_timer 7
-      ;    # set timer here as this does not go through speech hook
+    set $display_alpha_timer 7;    # set timer here as this does not go through speech hook
 }
 
 # Echo local speech to the display
@@ -582,8 +506,7 @@ if ($Startup) {
 
 if (    &can_interrupt('music')
     and $Save{NowPlaying}
-    and
-    ( $now_playing ne $Save{NowPlaying} or $player_mode != $Save{mp3_mode} ) )
+    and ( $now_playing ne $Save{NowPlaying} or $player_mode != $Save{mp3_mode} ) )
 {
     if ( $Save{mp3_mode} == 1 ) {    #playing
         my $playing = $Save{NowPlaying};
@@ -607,13 +530,13 @@ if (    &can_interrupt('music')
                 text   => $song
             );
         }
-        &set_display_timer( 12, 'music' );   #show new song title for 12 seconds
+        &set_display_timer( 12, 'music' );    #show new song title for 12 seconds
     }
     $now_playing = $Save{NowPlaying};
     $player_mode = $Save{mp3_mode};
 }
 
-my %da_data;                                 # noloop
+my %da_data;                                  # noloop
 
 if (    &can_interrupt('email')
     and $Save{email_flag}
@@ -626,14 +549,10 @@ if (    &can_interrupt('email')
 
     if ( $da_data{email_flag} =~ /^[ \d]+$/ ) {
         if ( $da_data{email_flag} < $Save{email_flag} ) {    #You have mail!
-            $email_msg =
-                'You have '
-              . ( $Save{email_flag} )
-              . ' email message'
-              . ( ( $Save{email_flag} > 1 ) ? 's' : '' );
+            $email_msg = 'You have ' . ( $Save{email_flag} ) . ' email message' . ( ( $Save{email_flag} > 1 ) ? 's' : '' );
         }
     }
-    else {    # Allow for non-numeric email flags
+    else {                                                   # Allow for non-numeric email flags
         if (    $da_data{email_flag}
             and $da_data{email_flag} ne $Save{email_flag} )
         {
@@ -642,7 +561,7 @@ if (    &can_interrupt('email')
     }
     if ($email_msg) {
         &display( device => 'alpha', app => 'email', text => $email_msg );
-        &set_display_timer( 12, 'email' );  #show new email count for 12 seconds
+        &set_display_timer( 12, 'email' );                   #show new email count for 12 seconds
     }
 
     $da_data{email_flag} = $Save{email_flag};
@@ -667,8 +586,7 @@ if (    &can_interrupt('news')
     $da_data{news_headline} = $Save{news_ap_headline};
 }
 
-if ( $Weather{Warning} and ( $da_data{weather_warning} ne $Weather{Warning} ) )
-{
+if ( $Weather{Warning} and ( $da_data{weather_warning} ne $Weather{Warning} ) ) {
 
     if (    $da_data{weather_warning} ne $Weather{Warning}
         and $Weather{Warning} !~ /updated/i
@@ -695,8 +613,7 @@ if ( $Info{barcode_data} and ( $da_data{barcode} ne $Info{barcode_data} ) ) {
 
 }
 
-if ( $state = state_now $mh_volume)
-{    # *** Oops tk slider widget not setting state
+if ( $state = state_now $mh_volume) {    # *** Oops tk slider widget not setting state
     my $sl_vol    = state $mh_volume;
     my $vol_image = &volume_image($sl_vol);
 

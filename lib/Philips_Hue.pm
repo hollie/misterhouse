@@ -148,15 +148,8 @@ sub default_setstate {
     #  if ( $self->state eq $state )
     #  ;    # Don't propagate state unless it has changed.
 
-    ::print_log( 'hue',
-        "Request " . $self->get_object_name . " turn " . $cmnd );
-    ::print_log( 'hue',
-            "Command settings: '"
-          . $$self{gateway} . "' - '"
-          . $$self{apikey} . "' - '"
-          . $$self{lamp_id} . "' : '"
-          . $cmnd
-          . "'" );
+    ::print_log( 'hue', "Request " . $self->get_object_name . " turn " . $cmnd );
+    ::print_log( 'hue', "Command settings: '" . $$self{gateway} . "' - '" . $$self{apikey} . "' - '" . $$self{lamp_id} . "' : '" . $cmnd . "'" );
 
     # Disable the effect commands when we turn off the light
     if ( $cmnd eq 'off' || $cmnd eq 'on' ) {
@@ -182,8 +175,7 @@ sub effect {
 
     my $light_state = $self->state();
 
-    ::print_log( 'hue',
-        "Effect '$effect' request, current lamp state is $light_state" );
+    ::print_log( 'hue', "Effect '$effect' request, current lamp state is $light_state" );
 
     # Do not continue if state is undefined to avoid loops.
     return if ( $light_state eq "" );
@@ -213,9 +205,7 @@ sub bri {
 
     # Sanity check
     if ( !( ( $value =~ /\d+/ ) && ( $value >= 0 ) && ( $value <= 100 ) ) ) {
-        ::print_log(
-            "Brightness value should be in %, but you passed $value. Brightness not set"
-        );
+        ::print_log("Brightness value should be in %, but you passed $value. Brightness not set");
         return;
     }
 
@@ -239,9 +229,7 @@ sub ct_k {
 
     # Sanity check
     if ( !( $value =~ /\d+/ ) ) {
-        ::print_log(
-            "Color temperature in Kelvin should be numeric, but you passed $value. Value not set"
-        );
+        ::print_log("Color temperature in Kelvin should be numeric, but you passed $value. Value not set");
         return;
     }
 
@@ -329,8 +317,7 @@ sub effect {
 sub ct_k {
     my ( $self, $value ) = @_;
 
-    ::print_log( 'hue',
-        "Setting color temperature not supported on Lux light" );
+    ::print_log( 'hue', "Setting color temperature not supported on Lux light" );
 
     return;
 
@@ -339,16 +326,14 @@ sub ct_k {
 sub hs {
     my ( $self, $hue, $sat ) = @_;
 
-    ::print_log( 'hue',
-        "Setting hue and saturation not supported on Lux light" );
+    ::print_log( 'hue', "Setting hue and saturation not supported on Lux light" );
 
 }
 
 sub hsb {
     my ( $self, $hue, $sat, $bri ) = @_;
 
-    ::print_log( 'hue',
-        "Setting hue, saturation and brightness not supported on Lux light" );
+    ::print_log( 'hue', "Setting hue, saturation and brightness not supported on Lux light" );
 
 }
 

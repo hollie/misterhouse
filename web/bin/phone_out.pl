@@ -11,8 +11,7 @@ for my $r (@calls) {
     my ( $time, $num, $name, $line, $type, $dur, $ext, $color, $coloroff );
     $coloroff = "</font>";
 
-    ( $time, $num, $name, $line, $type ) = $r =~
-      /date=(.+\d+:\d+:\d+) number=(\S+) +name=(.*?) line=(\S*) type=(\S*)/;
+    ( $time, $num, $name, $line, $type ) = $r =~ /date=(.+\d+:\d+:\d+) number=(\S+) +name=(.*?) line=(\S*) type=(\S*)/;
     ( $dur, $ext ) = $r =~ / dur=(\S*) ext=(\S*)/;
 
     $name = '' unless $name;
@@ -35,8 +34,7 @@ for my $r (@calls) {
 
     #    $color = "<FONT Color='#000000'>" if ( $name ne 'NA' ) ;
 
-    $html_calls .=
-      "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>
+    $html_calls .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>
     <td nowrap>$color$time$coloroff</td>
     <td nowrap>$color$num$coloroff</td>
     <td nowrap>$color$name$coloroff</td>

@@ -32,8 +32,7 @@ for my $item (@objects) {
     elsif ( $state ne 'on' and $state ne 'off' ) {
         $icon = 'dim';    # Need a new icon here
     }
-    $icon =
-      "<a href='/SET;&referer(/bin/list_buttons2.pl|$list_name)?$item=$state_new'><img src='/graphics/button_$icon.gif' alt='$name $state' border=0></a>";
+    $icon = "<a href='/SET;&referer(/bin/list_buttons2.pl|$list_name)?$item=$state_new'><img src='/graphics/button_$icon.gif' alt='$name $state' border=0></a>";
 
     $html .= "
   <td align='left'   width='12%'></td>

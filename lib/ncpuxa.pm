@@ -63,13 +63,9 @@ my @keys = ( @units, @actions );
 
 my @states = ( "Off", "On", );    # module/point states
 
-my @dow = (
-    "Sunday",   "Monday", "Tuesday", "Wednesday",
-    "Thursday", "Friday", "Saturday"
-);
+my @dow = ( "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" );
 
-my @unittype =
-  ( "SECU-16", "SECU-16I", "RLY08-XA", "Speak Easy", "CPU-XA", "Unknown" );
+my @unittype = ( "SECU-16", "SECU-16I", "RLY08-XA", "Speak Easy", "CPU-XA", "Unknown" );
 
 my $quiet = 1;
 
@@ -191,8 +187,7 @@ sub send_x10_leviton_level {
     my $result;
 
     if ( !$quiet ) {
-        printf( "send X-10 leviton level %s/%s %d\n",
-            $houses[$house], $keys[$key], $level );
+        printf( "send X-10 leviton level %s/%s %d\n", $houses[$house], $keys[$key], $level );
     }
 
     $ret = write_int( $s, XA_X10_LEVEL() );
@@ -221,8 +216,7 @@ sub set_relay {
     my $result;
 
     if ( !$quiet ) {
-        printf( "set relay module#%d point#%d to %d\n",
-            $module, $point, $state );
+        printf( "set relay module#%d point#%d to %d\n", $module, $point, $state );
     }
 
     $ret = write_int( $s, XA_SET_RELAY() );
@@ -308,8 +302,7 @@ sub remote_ir {
     my $result;
 
     if ( !$quiet ) {
-        printf( "send remote IR module:%d zone:%d irnum:%d\n",
-            $module, $zone, $irnum );
+        printf( "send remote IR module:%d zone:%d irnum:%d\n", $module, $zone, $irnum );
     }
 
     $ret = write_int( $s, XA_REMOTE_IR() );

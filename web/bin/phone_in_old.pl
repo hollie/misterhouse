@@ -6,8 +6,7 @@ my @calls = &read_phone_logs2( 100, @logs );
 for my $r (@calls) {
     my ( $time, $num, $name ) = $r =~ /(.+\d+:\d+:\d+) (\S+) (.+)/;
     next unless $num;
-    $html_calls .=
-      "<tr vAlign=center bgColor='#cccccc'><td nowrap>$time</td><td nowrap>$num</td><td nowrap>$name</td></tr>";
+    $html_calls .= "<tr vAlign=center bgColor='#cccccc'><td nowrap>$time</td><td nowrap>$num</td><td nowrap>$name</td></tr>";
 }
 
 #my $html_calls;

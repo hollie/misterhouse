@@ -21,10 +21,7 @@ use X10_RF;
 #------------------------------------------------------------------------------
 
 # Map of house codes sent in RF data to normal house codes.
-my @hcodes = (
-    'M', 'E', 'C', 'K', 'O', 'G', 'A', 'I',
-    'N', 'F', 'D', 'L', 'P', 'H', 'B', 'J'
-);
+my @hcodes = ( 'M', 'E', 'C', 'K', 'O', 'G', 'A', 'I', 'N', 'F', 'D', 'L', 'P', 'H', 'B', 'J' );
 
 #------------------------------------------------------------------------------
 
@@ -103,8 +100,7 @@ sub rf_process_powerline {
         || ( ( $nbytes[0] & BIT1 ) && ( $nbytes[2] & BIT4 ) ) )
     {
 
-        &::print_log( "${uc_module}: invalid powerline data: "
-              . "$bbytes[0] $bbytes[1] $bbytes[2] $bbytes[3]" );
+        &::print_log( "${uc_module}: invalid powerline data: " . "$bbytes[0] $bbytes[1] $bbytes[2] $bbytes[3]" );
         return undef;
     }
 
@@ -131,20 +127,20 @@ sub rf_process_powerline {
         }
     }
     else {                                            # On/Off
-            # Build up the unit number.  Note that different RF
-            # transmitters use different bits for bit 2.
+                                                      # Build up the unit number.  Note that different RF
+                                                      # transmitters use different bits for bit 2.
         $un = 0;
 
         # From byte 1.
         $un = $un | BIT0 if $nbytes[0] & BIT3;
         $un = $un | BIT1 if $nbytes[0] & BIT4;
-        $un = $un | BIT2 if $nbytes[0] & BIT1;    # HR12A (normal)
+        $un = $un | BIT2 if $nbytes[0] & BIT1;        # HR12A (normal)
 
         # From byte 3.
-        $un = $un | BIT2 if $nbytes[2] & BIT4;    # RW724 (abnormal)
+        $un = $un | BIT2 if $nbytes[2] & BIT4;        # RW724 (abnormal)
         $un = $un | BIT3 if $nbytes[2] & BIT5;
 
-        $un++;                                    # Increment to make 1 based
+        $un++;                                        # Increment to make 1 based
 
         $dim_bit     = 'N/A';
         $not_all_bit = 'N/A';
@@ -153,18 +149,12 @@ sub rf_process_powerline {
     }
 
     if ( $main::Debug{$lc_module} ) {
-        &::print_log( sprintf "%s: reordered: byte 1: %s (0x%02x)",
-            $uc_module, $bbytes[0], $nbytes[0] );
-        &::print_log( sprintf "%s: reordered: byte 3: %s (0x%02x)",
-            $uc_module, $bbytes[2], $nbytes[2] );
-        &::print_log( sprintf "%s: intensity_bit = %s",
-            $uc_module, $intensity_bit ? $intensity_bit : 0 );
-        &::print_log( sprintf "%s: not_all_bit   = %s",
-            $uc_module, $not_all_bit ? $not_all_bit : 0 );
-        &::print_log( sprintf "%s: dim_bit       = %s",
-            $uc_module, $dim_bit ? $dim_bit : 0 );
-        &::print_log( sprintf "%s: off_bit       = %s",
-            $uc_module, $off_bit ? $off_bit : 0 );
+        &::print_log( sprintf "%s: reordered: byte 1: %s (0x%02x)", $uc_module, $bbytes[0], $nbytes[0] );
+        &::print_log( sprintf "%s: reordered: byte 3: %s (0x%02x)", $uc_module, $bbytes[2], $nbytes[2] );
+        &::print_log( sprintf "%s: intensity_bit = %s", $uc_module, $intensity_bit ? $intensity_bit : 0 );
+        &::print_log( sprintf "%s: not_all_bit   = %s", $uc_module, $not_all_bit   ? $not_all_bit   : 0 );
+        &::print_log( sprintf "%s: dim_bit       = %s", $uc_module, $dim_bit       ? $dim_bit       : 0 );
+        &::print_log( sprintf "%s: off_bit       = %s", $uc_module, $off_bit       ? $off_bit       : 0 );
     }
 
     # Build the state to send off for processing.
@@ -178,17 +168,12 @@ sub rf_process_powerline {
     elsif ( $cmd eq 'allon' )  { $state = "X${h}O"; }
     elsif ( $cmd eq 'alloff' ) { $state = "X${h}P"; }
     else {
-        &::print_log( "${uc_module}: unimplemented X10 command: "
-              . "$bbytes[0] $bbytes[1] $bbytes[2] $bbytes[3]" );
+        &::print_log( "${uc_module}: unimplemented X10 command: " . "$bbytes[0] $bbytes[1] $bbytes[2] $bbytes[3]" );
         return undef;
     }
 
     if ( $main::Debug{$lc_module} ) {
-        &::print_log(
-            sprintf "%s: STATE %s%s %s (%s)",
-            $uc_module, $h, ( $un == 0 ) ? '' : $un,
-            $state, $cmd
-        );
+        &::print_log( sprintf "%s: STATE %s%s %s (%s)", $uc_module, $h, ( $un == 0 ) ? '' : $un, $state, $cmd );
     }
 
     # Set states on X10_Items.

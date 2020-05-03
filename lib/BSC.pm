@@ -54,12 +54,10 @@ sub new {
     $self->writable($p_writable) if defined $p_writable;
     $self->set_casesensitive();
     my $friendly_name = "bsc_$p_source_name";
-    &main::store_object_data( $$self{m_xap}, 'xAP_Item', $friendly_name,
-        $friendly_name );
+    &main::store_object_data( $$self{m_xap}, 'xAP_Item', $friendly_name, $friendly_name );
     $$self{m_xap}->tie_items($self);
     $$self{source_name} = $p_source_name;
-    $self->restore_data( 'm_xapuid', 'bsc_state', 'level', 'text',
-        'display_text' );
+    $self->restore_data( 'm_xapuid', 'bsc_state', 'level', 'text', 'display_text' );
 
     return $self;
 }
@@ -163,10 +161,7 @@ sub set {
         elsif ( lc $sender_class eq 'xapbsc.query' ) {
 
             # handle query
-            $state = $self->query_callback(
-                $$p_setby{'xap-header'}{target},
-                $$p_setby{'xap-header'}{source}
-            );
+            $state = $self->query_callback( $$p_setby{'xap-header'}{target}, $$p_setby{'xap-header'}{source} );
         }
         elsif ( lc $sender_class eq 'xapbsc.event' ) {
 
@@ -191,15 +186,11 @@ sub set {
                 $subuid = substr( $self->uid, 6 )
                   if !( defined $subuid )
                   and length( $self->uid ) == 8;
-                print "[BSC] "
-                  . $self->{object_name}
-                  . " extracting subaddress uid = $subuid\n"
+                print "[BSC] " . $self->{object_name} . " extracting subaddress uid = $subuid\n"
                   if $main::Debug{bsc};
             }
             else {
-                print "[BSC] ERROR: "
-                  . $self->{object_name}
-                  . " does not have a registered xAP uid! Ignoring attempt to set object.\n";
+                print "[BSC] ERROR: " . $self->{object_name} . " does not have a registered xAP uid! Ignoring attempt to set object.\n";
                 return;
             }
             $id = $subuid if defined($subuid);
@@ -228,8 +219,7 @@ sub set {
         }
         my $target_address = $$self{m_xap}{source};
         $target_address =~ s/(\:.*)/\:\>/;
-        &xAP::sendXap( $target_address, 'xapbsc.cmd',
-            'output.state.1' => $bsc_block );
+        &xAP::sendXap( $target_address, 'xapbsc.cmd', 'output.state.1' => $bsc_block );
 
         # if allow_local_set_state is set false, then don't propogate the state
         # and instead only allow the device to acknowledge it's state change via info or event
@@ -276,8 +266,7 @@ sub cmd_callback {
                 $text = $value;
             }
         }
-        print
-          "db BSC_Item->cmd_callback: id=$id,state=$state,level=$level,text=$text\n"
+        print "db BSC_Item->cmd_callback: id=$id,state=$state,level=$level,text=$text\n"
           if $main::Debug{bsc};
         if ( ($id) and ($state) ) {
             my $mode = 'output';    # cmds can only affect an 'output'
@@ -303,9 +292,7 @@ sub event_callback {
     $$self{display_text} = undef;
     for my $section_name ( keys %{$p_xap} ) {
         next unless ( $section_name =~ /^(input|output)\.state/ );
-        print "db BSC_Item->event_callback: Process section:$section_name"
-          . " from "
-          . $$p_xap{'xap-header'}{source} . "\n"
+        print "db BSC_Item->event_callback: Process section:$section_name" . " from " . $$p_xap{'xap-header'}{source} . "\n"
           if $main::Debug{bsc};
         my $bsc_level = $$p_xap{$section_name}{level};
         my $bsc_state = $$p_xap{$section_name}{state};
@@ -339,9 +326,7 @@ sub info_callback {
     $$self{display_text} = undef;
     for my $section_name ( keys %{$p_xap} ) {
         next unless ( $section_name =~ /^(input|output)\.state/ );
-        print "db BSC_Item->info_callback: Process section:$section_name"
-          . " from "
-          . $$p_xap{'xap-header'}{source} . "\n"
+        print "db BSC_Item->info_callback: Process section:$section_name" . " from " . $$p_xap{'xap-header'}{source} . "\n"
           if $main::Debug{bsc};
         my $bsc_level = $$p_xap{$section_name}{level};
         my $bsc_state = $$p_xap{$section_name}{state};
@@ -379,13 +364,10 @@ sub query {
     my ( $headerVars, @data2 );
     $headerVars->{'class'}  = 'xAPBSC.query';
     $headerVars->{'target'} = $$self{source_name};
-    $headerVars->{'source'} =
-      &xAP::get_xap_mh_source_info(xAP::XAP_REAL_DEVICE_NAME);
-    $headerVars->{'uid'} =
-      &xAP::get_xap_base_uid(xAP::XAP_REAL_DEVICE_NAME) . '00';
+    $headerVars->{'source'} = &xAP::get_xap_mh_source_info(xAP::XAP_REAL_DEVICE_NAME);
+    $headerVars->{'uid'}    = &xAP::get_xap_base_uid(xAP::XAP_REAL_DEVICE_NAME) . '00';
     push @data2, $headerVars;
-    push @data2, 'request', ''
-      ; # hmmm, this could blow-up maybe? really only want a blank request block
+    push @data2, 'request', '';    # hmmm, this could blow-up maybe? really only want a blank request block
 
     &xAP::sendXapWithHeaderVars(@data2);
 }
@@ -485,16 +467,14 @@ sub new {
     $$self{m_device_family} = $p_device_family;
     $$self{m_source_name}   = &xAP::get_xap_mh_source_info($p_device_family);
 
-    my $source_name = &xAP::get_xap_mh_source_info($p_device_family);  # . ':>';
+    my $source_name = &xAP::get_xap_mh_source_info($p_device_family);    # . ':>';
     $$self{m_xap} = new xAP_Item( 'xAPBSC.*', '*' );
-    $$self{m_xap}->target_address($source_name)
-      ;    # want to listen to messages directed to us
+    $$self{m_xap}->target_address($source_name);                         # want to listen to messages directed to us
     $$self{m_xap}->device_name($p_device_family);
-    $$self{m_xap}->allow_empty_state(1)
-      ;    # because query commands result in an empty xap body
-           # init a virtual xap device
-     #   this will force a new xap listener to exist as well as separate hearbeats.
-     #   it is only required because of the current max 254 endpoint limitation
+    $$self{m_xap}->allow_empty_state(1);                                 # because query commands result in an empty xap body
+                                                                         # init a virtual xap device
+                                                                         #   this will force a new xap listener to exist as well as separate hearbeats.
+                                                                         #   it is only required because of the current max 254 endpoint limitation
 
     &xAP::init_xap_virtual_device($p_device_family);
 
@@ -519,8 +499,7 @@ sub register_obj {
             # we can only permit the subaddress space to map to 254 devices;
             # so, don't allow the last 2 possible x10 devices
             if ( $x10_id eq 'PF' or $x10_id eq 'PG' ) {
-                print
-                  "WARNING: x10 devices w/ housecode/usercodes of $x10_id are not supported\n"
+                print "WARNING: x10 devices w/ housecode/usercodes of $x10_id are not supported\n"
                   if $main::Debug{bsc};
                 return;
             }
@@ -530,13 +509,10 @@ sub register_obj {
     }
 
     # reserve the UID
-    my $sub_uid =
-      &xAP::get_xap_subaddress_uid( $handler_name, $mh_obj_name,
-        $requested_uid );
+    my $sub_uid = &xAP::get_xap_subaddress_uid( $handler_name, $mh_obj_name, $requested_uid );
     $$self{m_registered_objects}{ $$o{object_name} } = $handler_name;
     $o->tie_items($self) if $o;
-    print
-      "Registered $$o{object_name} as $sub_uid to $$self{object_name} using handler: $handler_name\n"
+    print "Registered $$o{object_name} as $sub_uid to $$self{object_name} using handler: $handler_name\n"
       if $main::Debug{bsc};
 }
 
@@ -588,10 +564,7 @@ sub set {
         elsif ( $msg_class_name eq 'xapbsc.query' ) {
 
             # handle query
-            $state = $self->query_callback(
-                $$p_setby{'xap-header'}{target},
-                $$p_setby{'xap-header'}{target}
-            );
+            $state = $self->query_callback( $$p_setby{'xap-header'}{target}, $$p_setby{'xap-header'}{target} );
         }
         elsif ( $msg_class_name eq 'xapbsc.event' ) {
 
@@ -606,20 +579,16 @@ sub set {
         $p_setby = $self;    # override so that SUPER doesn't attempt;
     }
     elsif ( defined( $$p_setby{object_name} )
-        && ( exists( $$self{m_registered_objects}{ $$p_setby{object_name} } ) )
-      )
+        && ( exists( $$self{m_registered_objects}{ $$p_setby{object_name} } ) ) )
     {
-        print
-          "In $$self{object_name} set callback for $$p_setby{object_name} using $$self{m_registered_objects}{$$p_setby{object_name}}\n"
+        print "In $$self{object_name} set callback for $$p_setby{object_name} using $$self{m_registered_objects}{$$p_setby{object_name}}\n"
           if $main::Debug{bsc};
 
         # only handle changes in state
         if ( $self->state_changed($p_setby) ) {
             my ( $mh_obj_name, $bsc_obj_name, $handler_name ) = @_;
-            my $code =
-              "\&BSCMH_Item::_handle_$$self{m_registered_objects}{$$p_setby{object_name}}";
-            $code .=
-              "('send-event', \'$$p_setby{object_name}\',\'$$self{object_name}\')";
+            my $code = "\&BSCMH_Item::_handle_$$self{m_registered_objects}{$$p_setby{object_name}}";
+            $code .= "('send-event', \'$$p_setby{object_name}\',\'$$self{object_name}\')";
             eval($code);
             $p_setby = $self;    # override so that SUPER doesn't attempt
         }
@@ -630,8 +599,7 @@ sub set {
         $p_setby = $self;
     }
     else {
-        print
-          "Unable to process $$self{object_name}->set for $$p_setby{object_name}\n"
+        print "Unable to process $$self{object_name}->set for $$p_setby{object_name}\n"
           if $main::Debug{bsc};
     }
 
@@ -643,10 +611,7 @@ sub set {
 
 sub state_changed {
     my ( $self, $p_setby ) = @_;
-    my $id =
-      &xAP::get_xap_subaddress_uid(
-        $$self{m_registered_objects}{ $$p_setby{object_name} },
-        $$p_setby{object_name} );
+    my $id = &xAP::get_xap_subaddress_uid( $$self{m_registered_objects}{ $$p_setby{object_name} }, $$p_setby{object_name} );
     my $current_bsc_state = $self->{device_state}{$id}{'RefState'};
     return 1 if !( defined($current_bsc_state) );
     return ( $p_setby->state() ne $current_bsc_state );
@@ -669,8 +634,7 @@ set's a device's state given the device's ID, mode (input or output), state and 
 =cut
 
 sub set_device {
-    my ( $self, $id, $ref_state, $mode, $bsc_state, $bsc_level, $bsc_text ) =
-      @_;
+    my ( $self, $id, $ref_state, $mode, $bsc_state, $bsc_level, $bsc_text ) = @_;
 
     # set the device data in a "pending state" hash until it is committed
     $$self{pending_device_state_mode}{$id} = $mode;
@@ -684,8 +648,7 @@ sub set_device {
 sub send_cmd {
     my ( $self, $family_name, $target );
     $target = '*'
-      unless $target
-      ; # possibly a bad idea as wildcarding across all devices doesn't make sense
+      unless $target;    # possibly a bad idea as wildcarding across all devices doesn't make sense
     my ( $headerVars, @data2 );
     $headerVars->{'class'}  = 'xAPBSC.cmd';
     $headerVars->{'target'} = $target;
@@ -705,8 +668,7 @@ sub send_cmd {
                 $bsc_block->{'State'} = $pending_state->{'State'};
             }
             else {
-                $bsc_block->{'State'} = '?'
-                  ; # this doesn't make much sense as we can't command an uncertainty
+                $bsc_block->{'State'} = '?';    # this doesn't make much sense as we can't command an uncertainty
             }
             $bsc_block->{'Level'} = $pending_state->{'Level'}
               if $pending_state->{'Level'};
@@ -744,8 +706,7 @@ sub send_info {
     my ( $headerVars, @data2 );
     $headerVars->{'class'}  = 'xAPBSC.info';
     $headerVars->{'target'} = '*';
-    $headerVars->{'source'} =
-      &xAP::get_xap_mh_source_info($family_name) . ":" . $subaddress_name;
+    $headerVars->{'source'} = &xAP::get_xap_mh_source_info($family_name) . ":" . $subaddress_name;
 
     # iterate over the pending/"state now" device state hash and create the blocks
     if ( $$self{pending_device_state} ) {
@@ -809,8 +770,7 @@ sub send_event {
     my ( $headerVars, @data2 );
     $headerVars->{'class'}  = 'xAPBSC.event';
     $headerVars->{'target'} = '*';
-    $headerVars->{'source'} =
-      &xAP::get_xap_mh_source_info($family_name) . ":" . $subaddress_name;
+    $headerVars->{'source'} = &xAP::get_xap_mh_source_info($family_name) . ":" . $subaddress_name;
 
     # iterate over the pending/"state now" device state hash and create the blocks
     if ( $$self{pending_device_state} ) {
@@ -863,9 +823,8 @@ sub commit_pending_state {
       $self->{pending_device_state}{$id}{State};
     $self->{device_state}{$id}{Level} =
       $self->{pending_device_state}{$id}{Level};
-    $self->{device_state}{$id}{Text} = $self->{pending_device_state}{$id}{Text};
-    $self->{device_state}{$id}{RefState} =
-      $self->{pending_device_state}{$id}{RefState}
+    $self->{device_state}{$id}{Text}     = $self->{pending_device_state}{$id}{Text};
+    $self->{device_state}{$id}{RefState} = $self->{pending_device_state}{$id}{RefState}
       if $self->{pending_device_state}{$id}{RefState};
     print "Committed refstate: $$self{device_state}{$id}{RefState}\n"
       if $main::Debug{bsc};
@@ -880,8 +839,7 @@ sub cmd_callback {
     for my $key ( keys %{ $$self{pending_device_state} } ) {
 
         # get the mh_obj that is indexed by $key
-        my $mh_obj_name =
-          &xAP::get_xap_subaddress_devname( $$self{m_device_family}, $key );
+        my $mh_obj_name = &xAP::get_xap_subaddress_devname( $$self{m_device_family}, $key );
         print "Device to be controlled by cmd_callback: $mh_obj_name\n"
           if $main::Debug{bsc};
 
@@ -943,61 +901,51 @@ sub _handle_x10_device {
 
         # get a valid BSC ID--hopefully, corresponding to the x10 id
         # that should have been reserved at the point that the object was registered
-        my $bsc_id =
-          &xAP::get_xap_subaddress_uid( DEVICE_TYPE_X10, $mh_obj_name );
+        my $bsc_id = &xAP::get_xap_subaddress_uid( DEVICE_TYPE_X10, $mh_obj_name );
         if ( ( $msg_type eq 'send-event' ) or ( $msg_type eq 'set-info' ) ) {
             my $mh_state = $mh_obj->state_now()
               if ( $msg_type eq 'send-event' );
             $mh_state = $mh_obj->state()
-              if ( $msg_type eq 'set-info' )
-              ;    # probably need to parse out stacked state vals if they exist
+              if ( $msg_type eq 'set-info' );    # probably need to parse out stacked state vals if they exist
 
             # TO-DO: handle "bright" and "dim"; this requires translating the relative vals to absolute levels
             if ( $mh_state eq 'on' ) {
-                $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'on',
-                    '100%', '' );
+                $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'on', '100%', '' );
             }
             elsif ( $mh_state eq 'off' ) {
-                $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'off',
-                    '0%', '' );
+                $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'off', '0%', '' );
             }
             elsif ( $mh_state =~ /.*\%$/ ) {
 
                 # handle levels expressed as percent
                 my ($state_in_percent) = $mh_state =~ /^[+|-]*(\d+)%$/;
-                $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'on',
-                    $state_in_percent . '%', '' );
+                $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'on', $state_in_percent . '%', '' );
             }
             elsif ( $mh_state =~ /&P\d+/ ) {
 
                 # handle levels expressed as their presets
                 # the following needs to change so that the preset amount is converted to
                 # an actual level rather than passed as a text string
-                $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'on', '',
-                    $mh_state );
+                $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'on', '', $mh_state );
 
             }
             elsif ( $mh_state eq 'motion' ) {
-                $bsc_obj->set_device( $bsc_id, $mh_state, 'input', 'on', '',
-                    $mh_state );
+                $bsc_obj->set_device( $bsc_id, $mh_state, 'input', 'on', '', $mh_state );
             }
             elsif ( $mh_state eq 'still' ) {
-                $bsc_obj->set_device( $bsc_id, $mh_state, 'input', 'off', '',
-                    $mh_state );
+                $bsc_obj->set_device( $bsc_id, $mh_state, 'input', 'off', '', $mh_state );
 
                 # now, handle X10_Sensor objects w/ photocells but ONLY if defined as type: brightness (not ms13)
             }
             elsif ( ( $mh_state eq 'light' )
                 and ( lc $mh_obj->{type} eq 'brightness' ) )
             {
-                $bsc_obj->set_device( $bsc_id, $mh_state, 'input', 'on', '',
-                    $mh_state );
+                $bsc_obj->set_device( $bsc_id, $mh_state, 'input', 'on', '', $mh_state );
             }
             elsif ( ( $mh_state eq 'dark' )
                 and ( lc $mh_obj->{type} eq 'brightness' ) )
             {
-                $bsc_obj->set_device( $bsc_id, $mh_state, 'input', 'off', '',
-                    $mh_state );
+                $bsc_obj->set_device( $bsc_id, $mh_state, 'input', 'off', '', $mh_state );
             }
             else {
                 print "Warning: unable to process state: $mh_state\n"
@@ -1020,11 +968,10 @@ sub _handle_x10_device {
         elsif ( $msg_type eq 'receive' ) {
 
             # now, construct the blocks that will be send
-            my $pending_state = $$bsc_obj{pending_device_state}{$bsc_id};
-            my $pending_state_mode =
-              $$bsc_obj{pending_device_state_mode}{$bsc_id};
-            my $bsc_state = $$pending_state{'State'};
-            my $mh_state  = '';
+            my $pending_state      = $$bsc_obj{pending_device_state}{$bsc_id};
+            my $pending_state_mode = $$bsc_obj{pending_device_state_mode}{$bsc_id};
+            my $bsc_state          = $$pending_state{'State'};
+            my $mh_state           = '';
             if ($bsc_state) {
 
                 # TO-DO: the following logic attempts to set the mh obj state
@@ -1069,8 +1016,7 @@ sub _handle_x10_device {
                 }
             }
             else {
-                print
-                  "State for $mh_obj_name:$bsc_id is unset for incoming xAP BSC message!\n";
+                print "State for $mh_obj_name:$bsc_id is unset for incoming xAP BSC message!\n";
             }
 
             # be sure to set the 'RefState' hash member to whatever mh state gets mapped
@@ -1088,46 +1034,37 @@ sub _handle_abstract_device {
 
         # get a valid BSC ID--hopefully, corresponding to the x10 id
         # that should have been reserved at the point that the object was registered
-        my $bsc_id =
-          &xAP::get_xap_subaddress_uid( DEVICE_TYPE_ABSTRACT, $mh_obj_name );
+        my $bsc_id = &xAP::get_xap_subaddress_uid( DEVICE_TYPE_ABSTRACT, $mh_obj_name );
         if ( ( $msg_type eq 'send-event' ) or ( $msg_type eq 'set-info' ) ) {
             my $mh_state = $mh_obj->state_now()
               if ( $msg_type eq 'send-event' );
             $mh_state = $mh_obj->state()
-              if ( $msg_type eq 'set-info' )
-              ;    # probably need to parse out stacked state vals if they exist
+              if ( $msg_type eq 'set-info' );    # probably need to parse out stacked state vals if they exist
 
             # TO-DO: handle "bright" and "dim"; this requires translating the relative vals to absolute levels
             if ( $mh_state eq 'on' ) {
-                $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'on',
-                    '100%', '' );
+                $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'on', '100%', '' );
             }
             elsif ( $mh_state eq 'off' ) {
-                $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'off',
-                    '0%', '' );
+                $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'off', '0%', '' );
             }
             elsif ( $mh_state =~ /.*\%$/ ) {
 
                 # handle levels expressed as percent
                 my ($state_in_percent) = $mh_state =~ /^[+|-]*(\d+)%$/;
-                $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'on',
-                    $state_in_percent . '%', '' );
+                $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'on', $state_in_percent . '%', '' );
             }
             elsif ( $mh_state eq 'motion' ) {
-                $bsc_obj->set_device( $bsc_id, $mh_state, 'input', 'on', '',
-                    $mh_state );
+                $bsc_obj->set_device( $bsc_id, $mh_state, 'input', 'on', '', $mh_state );
             }
             elsif ( $mh_state eq 'still' ) {
-                $bsc_obj->set_device( $bsc_id, $mh_state, 'input', 'off', '',
-                    $mh_state );
+                $bsc_obj->set_device( $bsc_id, $mh_state, 'input', 'off', '', $mh_state );
             }
             elsif ( $mh_state eq 'light' ) {
-                $bsc_obj->set_device( $bsc_id, $mh_state, 'input', 'on', '',
-                    $mh_state );
+                $bsc_obj->set_device( $bsc_id, $mh_state, 'input', 'on', '', $mh_state );
             }
             elsif ( $mh_state eq 'dark' ) {
-                $bsc_obj->set_device( $bsc_id, $mh_state, 'input', 'off', '',
-                    $mh_state );
+                $bsc_obj->set_device( $bsc_id, $mh_state, 'input', 'off', '', $mh_state );
             }
             else {
                 print "Warning: unable to process state: $mh_state\n"
@@ -1150,11 +1087,10 @@ sub _handle_abstract_device {
         elsif ( $msg_type eq 'receive' ) {
 
             # now, construct the blocks that will be send
-            my $pending_state = $$bsc_obj{pending_device_state}{$bsc_id};
-            my $pending_state_mode =
-              $$bsc_obj{pending_device_state_mode}{$bsc_id};
-            my $bsc_state = $$pending_state{'State'};
-            my $mh_state  = '';
+            my $pending_state      = $$bsc_obj{pending_device_state}{$bsc_id};
+            my $pending_state_mode = $$bsc_obj{pending_device_state_mode}{$bsc_id};
+            my $bsc_state          = $$pending_state{'State'};
+            my $mh_state           = '';
             if ($bsc_state) {
 
                 # TO-DO: the following logic attempts to set the mh obj state
@@ -1203,8 +1139,7 @@ sub _handle_abstract_device {
                 }
             }
             else {
-                print
-                  "State for $mh_obj_name:$bsc_id is unset for incoming xAP BSC message!\n";
+                print "State for $mh_obj_name:$bsc_id is unset for incoming xAP BSC message!\n";
             }
 
             # be sure to set the 'RefState' hash member to whatever mh state gets mapped
@@ -1222,34 +1157,26 @@ sub _handle_presence {
 
         # get a valid BSC ID
         # that should have been reserved at the point that the object was registered
-        my $bsc_id =
-          &xAP::get_xap_subaddress_uid( DEVICE_TYPE_PRESENCE, $mh_obj_name );
+        my $bsc_id = &xAP::get_xap_subaddress_uid( DEVICE_TYPE_PRESENCE, $mh_obj_name );
         if ( ( $msg_type eq 'send-event' ) or ( $msg_type eq 'set-info' ) ) {
             my $mh_state = $mh_obj->state_now()
               if ( $msg_type eq 'send-event' );
             $mh_state = $mh_obj->state()
-              if ( $msg_type eq 'set-info' )
-              ;    # probably need to parse out stacked state vals if they exist
+              if ( $msg_type eq 'set-info' );    # probably need to parse out stacked state vals if they exist
             if ( $mh_obj->isa(PRESENCE_MONITOR) ) {
                 my $room_count = $mh_obj->get_count();
                 if ( $mh_state eq 'occupied' ) {
                     $room_count = 1
-                      if $room_count == 0
-                      ; # doesn't make much sense otherwise; perhaps a mistake in Presence_Monitor
-                    $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'on',
-                        '', "room_count=$room_count" );
+                      if $room_count == 0;       # doesn't make much sense otherwise; perhaps a mistake in Presence_Monitor
+                    $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'on', '', "room_count=$room_count" );
                 }
                 elsif ( $mh_state eq 'predict' ) {
-                    $room_count =
-                      0;    # allowing -1 doesn't make much sense except to mh
-                    $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'on',
-                        '', "room_count=$room_count" );
+                    $room_count = 0;             # allowing -1 doesn't make much sense except to mh
+                    $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'on', '', "room_count=$room_count" );
                 }
                 elsif ( $mh_state eq 'vacant' ) {
-                    $room_count = 0
-                      ; # apparently, no room count exists if vacant and we want to report it always
-                    $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'off',
-                        '', "room_count=$room_count" );
+                    $room_count = 0;             # apparently, no room count exists if vacant and we want to report it always
+                    $bsc_obj->set_device( $bsc_id, $mh_state, 'output', 'off', '', "room_count=$room_count" );
                 }
             }
             else {
@@ -1273,11 +1200,10 @@ sub _handle_presence {
         elsif ( $msg_type eq 'receive' ) {
 
             # now, construct the blocks that will be send
-            my $pending_state = $$bsc_obj{pending_device_state}{$bsc_id};
-            my $pending_state_mode =
-              $$bsc_obj{pending_device_state_mode}{$bsc_id};
-            my $bsc_state = $$pending_state{'State'};
-            my $mh_state  = '';
+            my $pending_state      = $$bsc_obj{pending_device_state}{$bsc_id};
+            my $pending_state_mode = $$bsc_obj{pending_device_state_mode}{$bsc_id};
+            my $bsc_state          = $$pending_state{'State'};
+            my $mh_state           = '';
             if ($bsc_state) {
 
                 # TO-DO: the following logic attempts to set the mh obj state
@@ -1309,8 +1235,7 @@ sub _handle_presence {
                 }
             }
             else {
-                print
-                  "State for $mh_obj_name:$bsc_id is unset for incoming xAP BSC message!\n";
+                print "State for $mh_obj_name:$bsc_id is unset for incoming xAP BSC message!\n";
             }
 
             # be sure to set the 'RefState' hash member to whatever mh state gets mapped

@@ -50,9 +50,7 @@ sub new {
     bless $self, $class;
 
     for ( my $index = $p_deviceid; $index < 9; $index++ ) {
-        @{ $$self{devices} }[$index] =
-          new UPB_Device( $p_interface, $p_networkid,
-            $p_deviceid + $index - 1 );
+        @{ $$self{devices} }[$index] = new UPB_Device( $p_interface, $p_networkid, $p_deviceid + $index - 1 );
 
         #		@{$$self{devices}}[$index]->tie_items($self);
     }

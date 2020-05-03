@@ -36,37 +36,37 @@ if (    ( $APRSPacket = said $tnc_output)
     # Check type of packet
     $i = substr( $APRSData, 0, 1 );
     if ( $i eq '!' ) { &APRSPosition( $APRSSource, $APRSDest, $APRSData ) }
-    ;    # Position without timestamp (no APRS messaging)
+    ;                                  # Position without timestamp (no APRS messaging)
     if ( $i eq '$' ) { &APRSPosition( $APRSSource, $APRSDest, $APRSData ) }
-    ;    # Raw GPS data
+    ;                                  # Raw GPS data
     if ( $i eq "'" ) { &APRSPosition( $APRSSource, $APRSDest, $APRSData ) }
-    ;    # Old Mic-E and TM-D700
+    ;                                  # Old Mic-E and TM-D700
     if ( $i eq ')' ) { }
-    ;    # Item
+    ;                                  # Item
     if ( $i eq '/' ) { &APRSPosition( $APRSSource, $APRSDest, $APRSData ) }
-    ;    # Position with timestamp (no APRS messaging)
+    ;                                  # Position with timestamp (no APRS messaging)
     if ( $i eq ':' ) { &APRSMsg( $APRSSource, $APRSDest, $APRSData ) }
-    ;    # Message
+    ;                                  # Message
     if ( $i eq ';' ) { }
-    ;    # Object
+    ;                                  # Object
     if ( $i eq '<' ) { }
-    ;    # Station Capabilities
+    ;                                  # Station Capabilities
     if ( $i eq '=' ) { &APRSPosition( $APRSSource, $APRSDest, $APRSData ) }
-    ;    # Position without timestamp (with APRS messaging)
+    ;                                  # Position without timestamp (with APRS messaging)
     if ( $i eq '>' ) { }
-    ;    # Status
+    ;                                  # Status
     if ( $i eq '?' ) { }
-    ;    # Query
+    ;                                  # Query
     if ( $i eq '@' ) { &APRSPosition( $APRSSource, $APRSDest, $APRSData ) }
-    ;    # Position with timestamp (with APRS messaging)
+    ;                                  # Position with timestamp (with APRS messaging)
     if ( $i eq 'T' ) { }
-    ;    # Telemetry data
+    ;                                  # Telemetry data
     if ( $i eq '_' ) { }
-    ;    # Weather report
+    ;                                  # Weather report
     if ( $i eq '`' ) { &APRSPosition( $APRSSource, $APRSDest, $APRSData ) }
-    ;    # Mic-E (not TM-D700)
+    ;                                  # Mic-E (not TM-D700)
     if ( $i eq '{' ) { }
-    ;    # User defined
+    ;                                  # User defined
     if ( $i eq '}' ) { }
-    ;    # Third part
+    ;                                  # Third part
 }

@@ -77,8 +77,7 @@ sub new {
     push( @{ $$self{states} }, 'on', 'off' );
 
     unless ( $#weeder_lights > 0 ) {
-        &::MainLoop_post_add_hook( \&Weeder_Light::_check_states,
-            'persistent' );
+        &::MainLoop_post_add_hook( \&Weeder_Light::_check_states, 'persistent' );
     }
     return $self;
 }
@@ -112,15 +111,13 @@ sub _check_state {
 
 sub setstate_off {
     my ( $self, $substate ) = @_;
-    main::print_log(
-        "Weeder_Light: setstate_off, curr_state=" . $self->{'detect'}->state );
+    main::print_log( "Weeder_Light: setstate_off, curr_state=" . $self->{'detect'}->state );
     if ( $self->{'detect'}->state ne main::OFF ) {
         main::print_log("Weeder_Light: turning light off");
         $self->{'toggle'}->set('press');
         my $timer = new Timer;
         set $timer 5, sub {
-            main::print_log(
-                "Weeder_Light: executing timer to check light status");
+            main::print_log("Weeder_Light: executing timer to check light status");
             $self->{'control'}->set('status');
         };
     }
@@ -128,15 +125,13 @@ sub setstate_off {
 
 sub setstate_on {
     my ( $self, $substate ) = @_;
-    main::print_log(
-        "Weeder_Light: setstate_on, curr_state=" . $self->{'detect'}->state );
+    main::print_log( "Weeder_Light: setstate_on, curr_state=" . $self->{'detect'}->state );
     if ( $self->{'detect'}->state ne main::ON ) {
         main::print_log("Weeder_Light: turning light on");
         $self->{'toggle'}->set('press');
         my $timer = new Timer;
         set $timer 5, sub {
-            main::print_log(
-                "Weeder_Light: executing timer to check light status");
+            main::print_log("Weeder_Light: executing timer to check light status");
             $self->{'control'}->set('status');
         };
     }

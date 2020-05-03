@@ -11,9 +11,7 @@
 
 # *** A good argument to rename this section to music (MP3 is hardly appropriate at this time.)
 $v_mp3_build_list = new Voice_Cmd '[Build,Load] the {mp3,m p 3} database', '';
-$v_mp3_build_list->set_info(
-    "Builds/loads an mp3 database for these directories: $config_parms{mp3_dir}"
-);
+$v_mp3_build_list->set_info("Builds/loads an mp3 database for these directories: $config_parms{mp3_dir}");
 
 $p_mp3_build_list = new Process_Item;
 
@@ -66,12 +64,10 @@ if ( $Tk_results{'MP3 Search'} or $Tk_results{'MP3 Genre'} ) {
     undef $Tk_results{'MP3 Genre'};
     my ( $results1, $results2, $count1, $count2 ) =
       &mp3_search( quotemeta $Save{mp3_search}, quotemeta $Save{mp3_Genre} );
-    print_log
-      "$count2 out of $count1 songs for search=$Save{mp3_search}, genre=$Save{mp3_Genre}";
+    print_log "$count2 out of $count1 songs for search=$Save{mp3_search}, genre=$Save{mp3_Genre}";
     if ($results1) {
         speak "Found $count2 songs";
-        display "Found $count2 (out of $count1) songs\n" . $results1, 30,
-          'MP3 Search Results', 'fixed';
+        display "Found $count2 (out of $count1) songs\n" . $results1, 30, 'MP3 Search Results', 'fixed';
         my $file = "$config_parms{data_dir}/search.m3u";
         file_write $file, $results2;
         &mp3_queue($file);
@@ -123,8 +119,7 @@ sub mp3_search {
     foreach my $i (@results) {
         my $file = $files[$i];
         $results2 .= "$file\n";
-        $results1 .=
-          "Title: $titles[$i]   Album: $albums[$i]  Year: $years[$i]  Genre: $genres[$i]\n";
+        $results1 .= "Title: $titles[$i]   Album: $albums[$i]  Year: $years[$i]  Genre: $genres[$i]\n";
         $results1 .= "  - Artist: $artists[$i]  Comments:$comments[$i]\n";
         $results1 .= "  - File: $file\n\n";
     }
@@ -137,8 +132,7 @@ sub mp3_playlists {
     # Re-tie to the database, in case it has changed.
     eval 'untie %mp3_dbm';    # eval in cause db_file is not installed
     print_log "Tieing to music database: $mp3_file" if $Startup;
-    my $tie_code =
-      qq[tie %mp3_dbm, 'DB_File', "$mp3_file", O_RDWR|O_CREAT, 0666 or print_log "Error in tieing to $mp3_file"];
+    my $tie_code = qq[tie %mp3_dbm, 'DB_File', "$mp3_file", O_RDWR|O_CREAT, 0666 or print_log "Error in tieing to $mp3_file"];
     eval $tie_code;
     if ($@) {
         warn "Error in tieing to $mp3_file:\n  $@";
@@ -171,8 +165,7 @@ sub mp3_playlists {
     return $mp3names, %mp3files;
 }
 
-$v_mp3_playlist1 =
-  new Voice_Cmd("Set house mp3 player to playlist [$mp3names]");
+$v_mp3_playlist1 = new Voice_Cmd("Set house mp3 player to playlist [$mp3names]");
 
 #set_icon $v_mp3_playlist1 'playlist'; # ???
 
@@ -200,8 +193,7 @@ if ( said $v_what_playing) {
         $mp3playing = ${ &mp3_get_playlist() }[$pos];
     }
     else {
-        $mp3playing = &mp3_get_curr_song()
-          ;    # Where is this function?  Does not appear to exist anywhere (!)
+        $mp3playing = &mp3_get_curr_song();    # Where is this function?  Does not appear to exist anywhere (!)
     }
     respond $mp3playing;
 }
@@ -219,8 +211,7 @@ sub set_tk_progress {
     $Tk_objects{mp3_progress}->configure( -value => $percent );
 }
 
-if ( !$config_parms{mp3_no_tkupdates} and new_second and &mp3_player_running() )
-{
+if ( !$config_parms{mp3_no_tkupdates} and new_second and &mp3_player_running() ) {
 
     if ( new_second 5 ) {
         $Save{mp3_mode} = &mp3_playing();
@@ -317,8 +308,7 @@ sub mp3_play_search_results {
 my $f_radio_stations = "$config_parms{data_dir}/web/radio_stations.html";
 $v_get_radio_stations = new Voice_Cmd 'Get internet radio station list';
 
-$p_get_radio_stations = new Process_Item
-  "get_url http://mindx.dyndns.org/kde/radio/live/entries.php $f_radio_stations";
+$p_get_radio_stations = new Process_Item "get_url http://mindx.dyndns.org/kde/radio/live/entries.php $f_radio_stations";
 
 if ( my $state = said $v_get_radio_stations) {
     unlink $f_radio_stations;
@@ -334,14 +324,11 @@ if ( done_now $p_get_radio_stations) {
 sub mp3_radio_stations {
     my ( $station, $url, $bandwidth, $style, @data );
     for my $html ( file_read $f_radio_stations, '' ) {
-        if ( $html =~ /^<tr.*<td>(.*)<\/td><td><a href="(.*)">.*<\/a><\/td>$/ )
-        {
+        if ( $html =~ /^<tr.*<td>(.*)<\/td><td><a href="(.*)">.*<\/a><\/td>$/ ) {
             $station = $1;
             $url     = $2;
         }
-        elsif ( ( $bandwidth, $style ) =
-            $html =~ /^<td>(.*)<\/td><td>(.*)<\/td><\/tr>$/ )
-        {
+        elsif ( ( $bandwidth, $style ) = $html =~ /^<td>(.*)<\/td><td>(.*)<\/td><\/tr>$/ ) {
             push @data, "$station$;$url$;$bandwidth$;$style";
         }
     }

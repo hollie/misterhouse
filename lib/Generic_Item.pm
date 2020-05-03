@@ -132,13 +132,16 @@ sub new {
     $$self{state_now}     = undef;
     $$self{state_changed} = undef;
     $self->restore_data('sort_order');
-    $self->{logger_enable} = $main::config_parms{object_logger_enable} if (defined $main::config_parms{object_logger_enable});
-    $self->{logger_mintime} = 1;
+    $self->{logger_enable} = 1;                                          #default to on unless object_logger_enable = 0
+    $self->{logger_enable} = $main::config_parms{object_logger_enable}
+      if ( defined $main::config_parms{object_logger_enable} );
+    $self->{logger_mintime}    = 1;
     $self->{logger_updatetime} = 0;
-    $self->restore_data('active_state', 'schedule_count');
-       for my $index (1..20) {
-          $self->restore_data('schedule_'.$index, 'schedule_label_'.$index, 'schedule_once_'.$index);
-       }
+    $self->restore_data( 'active_state', 'schedule_count' );
+
+    for my $index ( 1 .. 20 ) {
+        $self->restore_data( 'schedule_' . $index, 'schedule_label_' . $index, 'schedule_once_' . $index );
+    }
     $self->_initialize_schedule;
 
     return $self;
@@ -152,8 +155,7 @@ This method is called internally whenever a property (instance variable) is chan
 
 sub property_changed {
     my ( $self, $property, $new_value, $old_value ) = @_;
-    print "s=$self: property_changed: $property ='$new_value' (was"
-      . " '$old_value')\n"
+    print "s=$self: property_changed: $property ='$new_value' (was" . " '$old_value')\n"
       if $::Debug{store};
 }
 
@@ -238,7 +240,7 @@ sub set_with_timer {
     # Reuse timer for this object if it exists
     $$self{timer} = &Timer::new() unless $$self{timer};
     my $object = $self->{object_name};
-    my $action = "set $object '$state_change', $object"; # Set set_by to itself?
+    my $action = "set $object '$state_change', $object";    # Set set_by to itself?
     &Timer::set( $$self{timer}, $time, $action );
 }
 
@@ -278,8 +280,7 @@ sub _set_process {
         else {
             $state = ( $state_current eq 'on' ) ? 'off' : 'on';
         }
-        &main::print_log( "Toggling $self->{object_name} from $state_current "
-              . "to $state" );
+        &main::print_log( "Toggling $self->{object_name} from $state_current " . "to $state" );
     }
 
     # Respond_Target is write-only from here (and its use for speech chimes
@@ -298,9 +299,7 @@ sub _set_process {
             return if $self->$setcall( $substate, $set_by, $respond ) == -1;
         }
         elsif ( $self->can('default_setstate') ) {
-            my $test =
-              $self->default_setstate( $primarystate, $substate,
-                $set_by, $respond );
+            my $test = $self->default_setstate( $primarystate, $substate, $set_by, $respond );
             return if $test and $test == -1;
         }
         elsif ( $self->can('default_setrawstate') ) {
@@ -312,8 +311,7 @@ sub _set_process {
     # Allow for default setstate methods
     else {
         if ( $self->can('default_setstate') ) {
-            my $test =
-              $self->default_setstate( $state, undef, $set_by, $respond );
+            my $test = $self->default_setstate( $state, undef, $set_by, $respond );
             return if $test and $test == -1;
         }
         elsif ( $self->can('default_setrawstate') ) {
@@ -399,9 +397,7 @@ Returns true when the object has had no state changes since the specified time. 
 
 sub time_idle {
     my ( $self, $idle_spec ) = @_;
-    if ( my ( $idle_time, $idle_type, $idle_state ) =
-        $idle_spec =~ /^(\d+)\s*(D|H|M|S)*\w*\s*(\S*)/i )
-    {
+    if ( my ( $idle_time, $idle_type, $idle_state ) = $idle_spec =~ /^(\d+)\s*(D|H|M|S)*\w*\s*(\S*)/i ) {
         my $state = $self->state();
         if ( $idle_state eq undef or $idle_state eq $state ) {
             my $scale = 1;
@@ -432,29 +428,22 @@ sub restore_string {
       if defined $state;
     $restore_string .= $self->{object_name} . "->{count} = q~$self->{count}~;\n"
       if $self->{count};
-    $restore_string .=
-      $self->{object_name} . "->{set_time} =" . " q~$self->{set_time}~;\n"
+    $restore_string .= $self->{object_name} . "->{set_time} =" . " q~$self->{set_time}~;\n"
       if $self->{set_time};
     $restore_string .= $self->{object_name} . "->{states_casesensitive} = 1;\n"
       if $self->{states_casesensitive};
 
-    if ( $self->{state_log}
-        and my $state_log = join $;, @{ $self->{state_log} } )
-    {
+    if ( $self->{state_log} and my $state_log = join $;, @{ $self->{state_log} } ) {
         $state_log =~ s/\n/ /g;    # Avoid new-lines on restored vars
         $state_log =~ s/~/\\~/g;
 
-        $restore_string .= '@{'
-          . $self->{object_name}
-          . "->{state_log}} ="
-          . " split(\$;, q~$state_log~);";
+        $restore_string .= '@{' . $self->{object_name} . "->{state_log}} =" . " split(\$;, q~$state_log~);";
     }
 
     # Allow for dynamicaly/user defined save data
     for my $restore_var ( @{ $$self{restore_data} } ) {
         my $restore_value = $self->{$restore_var};
-        $restore_string .=
-          $self->{object_name} . "->{$restore_var} =" . " q~$restore_value~;\n"
+        $restore_string .= $self->{object_name} . "->{$restore_var} =" . " q~$restore_value~;\n"
           if defined $restore_value;
     }
 
@@ -486,8 +475,7 @@ sub hidden {
         $self->{hidden} = $flag;
     }
     else {    # Return it, but this currently only will work on $Reload.
-        return $self->{hidden}
-          ; # HP - really, no reason why this can't be a read-only method any time?
+        return $self->{hidden};    # HP - really, no reason why this can't be a read-only method any time?
     }
 }
 
@@ -634,13 +622,7 @@ sub respond {
     }
 
     $set_by = &main::set_by_to_target( $set_by, 1 );
-    my $automation = (
-            !$set_by
-          or $set_by =~ /usercode/i
-          or $set_by =~ /unknown/i
-          or $set_by =~ /time/i
-          or $set_by eq 'status'
-    );
+    my $automation = ( !$set_by or $set_by =~ /usercode/i or $set_by =~ /unknown/i or $set_by =~ /time/i or $set_by eq 'status' );
 
     # cancel automation (regardless) if an explicit target is set
     $automation = 0 if $parms{target} or $object->{target};
@@ -1139,14 +1121,11 @@ sub set_state_log {
     $state       = '' unless defined $state;
     $set_by_name = '' unless defined $set_by_name;
     $target      = '' unless defined $target;
-#
-	$self->logger($state,$set_by_name,$target) if ($self->{logger_enable});
-	     
-    unshift(
-        @{ $$self{state_log} },
-        "$main::Time_Date $state set_by=$set_by_name"
-          . ( ($target) ? "target=$target" : '' )
-      )
+    #
+    $self->logger( $state, $set_by_name, $target )
+      if ( $self->{logger_enable} );
+
+    unshift( @{ $$self{state_log} }, "$main::Time_Date $state set_by=$set_by_name" . ( ($target) ? "target=$target" : '' ) )
       if defined($state)
       or ( ref $self ) eq 'Voice_Cmd';
     pop @{ $$self{state_log} }
@@ -1161,25 +1140,33 @@ sub set_state_log {
 TODO
 
 =cut
-sub logger {
-	my ($self,$state,$set_by_name,$target) = @_;
-	my $object_name = $self->{object_name};
-	$object_name =~ s/^\$//;
-	return if ($object_name eq "");
-	return if ($state eq "");
-	my $tickcount = int(&::get_tickcount()); #log in milliseconds
-	return if ($tickcount <  ($self->{logger_updatetime} + $self->{logger_mintime}));
 
-	#create directory structure if it doesn't exist
-	mkdir ($::config_parms{data_dir} . "/object_logs") unless (-d $::config_parms{data_dir} . "/object_logs");
-	mkdir ($::config_parms{data_dir} . "/object_logs/" . $object_name) unless (-d $::config_parms{data_dir} . "/object_logs/" . $object_name);
-	mkdir ($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year) unless (-d $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year);
-	mkdir ($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month) unless (-d $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month);
-	#write the data to the log; time, ticks (milliseconds), object, state, set_by, target
-	&::logit ($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month . "/" . $::Mday . ".log", "$main::Time_Date,$tickcount,$object_name,$state,$set_by_name," . ( ($target) ? "$target" : '') ."\n",0);
-	$self->{logger_updatetime} = $tickcount;
+sub logger {
+    my ( $self, $state, $set_by_name, $target ) = @_;
+    my $object_name = $self->{object_name};
+    $object_name =~ s/^\$//;
+    return if ( $object_name eq "" );
+    return if ( $state eq "" );
+    my $tickcount = int( &::get_tickcount() );    #log in milliseconds
+    return
+      if ( $tickcount < ( $self->{logger_updatetime} + $self->{logger_mintime} ) );
+
+    #create directory structure if it doesn't exist
+    mkdir( $::config_parms{data_dir} . "/object_logs" )
+      unless ( -d $::config_parms{data_dir} . "/object_logs" );
+    mkdir( $::config_parms{data_dir} . "/object_logs/" . $object_name )
+      unless ( -d $::config_parms{data_dir} . "/object_logs/" . $object_name );
+    mkdir( $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year )
+      unless ( -d $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year );
+    mkdir( $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month )
+      unless ( -d $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month );
+
+    #write the data to the log; time, ticks (milliseconds), object, state, set_by, target
+    &::logit( $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . $::Year . "/" . $::Month . "/" . $::Mday . ".log",
+        "$main::Time_Date,$tickcount,$object_name,$state,$set_by_name," . ( ($target) ? "$target" : '' ) . "\n", 0 );
+    $self->{logger_updatetime} = $tickcount;
 }
-	
+
 =item C<reset_states2()>
 
 TODO
@@ -1196,8 +1183,7 @@ sub reset_states2 {
     $ref->{set_by}        = $set_by;
     $ref->{target}        = $target;
     $ref->{legacy_target} = &main::set_by_to_target($set_by)
-      unless $ref->{target}
-      ; # just for old code and will be phased out along with old respond calls (done for speed in said and state_now methods)
+      unless $ref->{target};    # just for old code and will be phased out along with old respond calls (done for speed in said and state_now methods)
 
     if (
            ( defined $state  and !defined $ref->{state_prev} )
@@ -1288,10 +1274,13 @@ Will start logging state changes to a historical log file
 
 sub logger_enable {
     my ( $self, $enable ) = @_;
-    if ($self->isa('Group') and (defined $main::config_parms{object_logger_group})) {
-    	$self->{logger_enable} = $main::config_parms{object_logger_group};
-    } else {
-    	$self->{logger_enable} = 1;
+    if ( $self->isa('Group')
+        and ( defined $main::config_parms{object_logger_group} ) )
+    {
+        $self->{logger_enable} = $main::config_parms{object_logger_group};
+    }
+    else {
+        $self->{logger_enable} = 1;
     }
 }
 
@@ -1325,7 +1314,7 @@ Returns 1 if logger is enabled on the object. Otherwise 0.
 
 sub get_logger_status {
     my ( $self, $enable ) = @_;
-    return ($self->{logger_enable} ? 1 : 0);
+    return ( $self->{logger_enable} ? 1 : 0 );
 }
 
 =item C<get_logger_data(epoch,days back)>
@@ -1336,25 +1325,50 @@ Date format is epoch
 
 sub get_logger_data {
     my ( $self, $epoch, $days ) = @_;
-	$days = 0 unless (defined $days);
-	my $object_name = $self->{object_name};
-	$object_name =~ s/^\$//;
-	my $data = "";
-	$epoch = $epoch - ($days * 60 * 60 * 24);
-	for (my $i = 0; $i <= $days; $i++) {
-		print "db i=$i, days=$days, epoch=$epoch\n";
-		my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($epoch + ($i * 60 * 60 * 24));
-		print "Epoch: $epoch is " . $mday . "/" . ($mon + 1) . "/" . ($year+1900) . "\n";
-		print "Checking " . $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . "\n";		
-		print "Reading " . $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . "\n" if ( -e	$::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . ".log");
-		$data .= ::file_read($::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . ".log") if ( -e	$::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ($year + 1900) . "/" . ($mon + 1) . "/" . $mday . ".log");
-#		$epoch = $epoch + (60*60*24);
-	}
+    $days = 0 unless ( defined $days );
+    my $object_name = $self->{object_name};
+    $object_name =~ s/^\$//;
+    my $data = "";
+    $epoch = $epoch - ( $days * 60 * 60 * 24 );
+    for ( my $i = 0; $i <= $days; $i++ ) {
 
-	return $data;
+        #print "db i=$i, days=$days, epoch=$epoch\n";
+        my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
+          localtime( $epoch + ( $i * 60 * 60 * 24 ) );
+
+        #print "Epoch: $epoch is "
+        #  . $mday . "/"
+        #  . ( $mon + 1 ) . "/"
+        #  . ( $year + 1900 ) . "\n";
+        #print "Checking "
+        #  . $::config_parms{data_dir}
+        #  . "/object_logs/"
+        #  . $object_name . "/"
+        #  . ( $year + 1900 ) . "/"
+        #  . ( $mon + 1 ) . "/"
+        #  . $mday . "\n";
+        #print "Reading "
+        #  . $::config_parms{data_dir}
+        #  . "/object_logs/"
+        #  . $object_name . "/"
+        #  . ( $year + 1900 ) . "/"
+        #  . ( $mon + 1 ) . "/"
+        #  . $mday . "\n"
+        #  if (-e $::config_parms{data_dir}
+        #    . "/object_logs/"
+        #    . $object_name . "/"
+        #    . ( $year + 1900 ) . "/"
+        #    . ( $mon + 1 ) . "/"
+        #    . $mday
+        #    . ".log" );
+        $data .= ::file_read( $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ( $year + 1900 ) . "/" . ( $mon + 1 ) . "/" . $mday . ".log" )
+          if ( -e $::config_parms{data_dir} . "/object_logs/" . $object_name . "/" . ( $year + 1900 ) . "/" . ( $mon + 1 ) . "/" . $mday . ".log" );
+
+        #		$epoch = $epoch + (60*60*24);
+    }
+
+    return $data;
 }
-
-
 
 =item C<tie_event(code, state, log_msg)>
 
@@ -1527,9 +1541,7 @@ sub set_web_style {
     my %valid_styles = map { $_ => 1 } qw( dropdown radio url );
 
     if ( !$valid_styles{ lc($style) } ) {
-        &main::print_log( "Invalid style ($style) passed to set_web_style.  "
-              . "Valid choices are: "
-              . join( ", ", sort keys %valid_styles ) );
+        &main::print_log( "Invalid style ($style) passed to set_web_style.  " . "Valid choices are: " . join( ", ", sort keys %valid_styles ) );
         return;
     }
 
@@ -1679,12 +1691,8 @@ sub android_xml {
 
     # Add tags name, state, and optional state_log
     my @f = qw( name );
-    if (
-        (
-            ( defined $self->{states} ) && ( scalar( @{ $$self{states} } ) > 0 )
-        )
-        || ( defined $self->state() )
-      )
+    if (   ( ( defined $self->{states} ) && ( scalar( @{ $$self{states} } ) > 0 ) )
+        || ( defined $self->state() ) )
     {
         push @f, qw ( state );
     }
@@ -1724,9 +1732,7 @@ sub android_xml {
             push( @states, @{ $$self{states} } ) if defined $self->{states};
             my $numStates = scalar(@states);
             my $state     = $self->state();
-            &::print_log(
-                "android_xml: numStates: $numStates state: $state states: @states"
-            ) if $::Debug{android};
+            &::print_log("android_xml: numStates: $numStates state: $state states: @states") if $::Debug{android};
             if (   ( $numStates eq 0 )
                 && ( defined $state )
                 && ( length($state) < 20 ) )
@@ -1743,8 +1749,7 @@ sub android_xml {
             foreach (@states) {
                 $_ = 'undef' unless defined $_;
                 if ( $_ eq $value ) {
-                    $attributes->{value} =
-                      encode_entities( $value, "\200-\377&<>" );
+                    $attributes->{value} = encode_entities( $value, "\200-\377&<>" );
                 }
             }
             $xml_objects .= $self->android_xml_tag( $prefix, $f, $attributes );
@@ -1753,9 +1758,7 @@ sub android_xml {
                 $_     = 'undef' unless defined $_;
                 $value = $_;
                 $value = encode_entities( $value, "\200-\377&<>" );
-                $xml_objects .=
-                  $self->android_xml_tag( $prefix, "value", $attributes,
-                    $value );
+                $xml_objects .= $self->android_xml_tag( $prefix, "value", $attributes, $value );
             }
             $prefix = '  ' x $depth;
             $xml_objects .= $prefix . "</$f>\n";
@@ -1769,9 +1772,7 @@ sub android_xml {
                 $_     = 'undef' unless defined $_;
                 $value = $_;
                 $value = encode_entities( $value, "\200-\377&<>" );
-                $xml_objects .=
-                  $self->android_xml_tag( $prefix, "value", $attributes,
-                    $value );
+                $xml_objects .= $self->android_xml_tag( $prefix, "value", $attributes, $value );
             }
             $prefix = '  ' x $depth;
             $xml_objects .= $prefix . "</$f>\n";
@@ -1779,13 +1780,11 @@ sub android_xml {
         elsif ( $f eq "name" ) {
             my $name = "";
             $name = $self->{object_name} if defined $self->{object_name};
-            $xml_objects .=
-              $self->android_xml_tag( $prefix, $f, $attributes, $name );
+            $xml_objects .= $self->android_xml_tag( $prefix, $f, $attributes, $name );
         }
         else {
             $value = "" unless defined $value;
-            $xml_objects .=
-              $self->android_xml_tag( $prefix, $f, $attributes, $value );
+            $xml_objects .= $self->android_xml_tag( $prefix, $f, $attributes, $value );
         }
     }
     return $xml_objects;
@@ -1820,176 +1819,213 @@ sub android_xml_tag {
     return $xml_objects;
 }
 
-
-sub _initialize_schedule { 
-   my ($self) = @_;
-   $self->{'initialize_timer'} = ::Timer::new();
-   $self->{'initialize_timer'}->set(5, sub {
-   if (defined($self->{schedule_object}) && ($self->{schedule_object})) { return }
-   if ($self->{'schedule_count'} > 1) {
-       ::print_log("[SCHEDULE] Initialize schedule for ". $self->get_object_name." Schedule count is ".$self->{'schedule_count'});
-       $self->{'check_date_handler'} = sub { Generic_Item::check_date($self); };
-       ::MainLoop_post_add_hook( $self->{'check_date_handler'});
-   }
-});
+sub _initialize_schedule {
+    my ($self) = @_;
+    $self->{'initialize_timer'} = ::Timer::new();
+    $self->{'initialize_timer'}->set(
+        5,
+        sub {
+            if ( defined( $self->{schedule_object} )
+                && ( $self->{schedule_object} ) )
+            {
+                return;
+            }
+            if ( $self->{'schedule_count'} > 1 ) {
+                ::print_log( "[SCHEDULE] Initialize schedule for " . $self->get_object_name . " Schedule count is " . $self->{'schedule_count'} );
+                $self->{'check_date_handler'} =
+                  sub { Generic_Item::check_date($self); };
+                ::MainLoop_post_add_hook( $self->{'check_date_handler'} );
+            }
+        }
+    );
 }
-
-
 
 sub _set_schedule_active_state {
-   my ($self, $state) = @_;
-   $self->{'active_state'} = $state if defined($state);
+    my ( $self, $state ) = @_;
+    $self->{'active_state'} = $state if defined($state);
 }
 
-
-
 sub set_schedule {
-    my ($self,$index,$entry,$label) = @_;
-    unless ( defined($self->{'check_date_handler'}) ) { 
-	$self->{'check_date_handler'} = sub { Generic_Item::check_date($self); }; 
-        #::MainLoop_post_add_hook( $self->{'check_date_handler'}, 'persistent'); 
-        ::MainLoop_post_add_hook( $self->{'check_date_handler'});
+    my ( $self, $index, $entry, $label ) = @_;
+    unless ( defined( $self->{'check_date_handler'} ) ) {
+        $self->{'check_date_handler'} =
+          sub { Generic_Item::check_date($self); };
+
+        #::MainLoop_post_add_hook( $self->{'check_date_handler'}, 'persistent');
+        ::MainLoop_post_add_hook( $self->{'check_date_handler'} );
     }
 
-    if ($index > $self->{'schedule_count'}) { $self->{'schedule_count'} = $index; }
-    $self->{'schedule_'.$index} = $entry if (defined($entry));
-    $self->{'schedule_label_'.$index} = $label if (defined($label));
-    if (defined($self->{'schedule_'.$index})) { # the UI deletes all entries and adds them back which sets this flag to 2.
-                $self->{'schedule_once_'.$index} = 1 if ($self->{'schedule_once_'.$index} eq 2); # We only want real deleted entries set to 2, so set to 1.
+    if ( $index > $self->{'schedule_count'} ) {
+        $self->{'schedule_count'} = $index;
+    }
+    $self->{ 'schedule_' . $index }       = $entry if ( defined($entry) );
+    $self->{ 'schedule_label_' . $index } = $label if ( defined($label) );
+    if ( defined( $self->{ 'schedule_' . $index } ) ) {    # the UI deletes all entries and adds them back which sets this flag to 2.
+        $self->{ 'schedule_once_' . $index } = 1
+          if ( $self->{ 'schedule_once_' . $index } eq 2 );    # We only want real deleted entries set to 2, so set to 1.
     }
     unless ($entry) {
-        undef $self->{'schedule_label_'.$index};
-        undef $self->{'schedule_'.$index};
-        $self->{'schedule_once_'.$index} = 2 if ($self->{'schedule_once_'.$index});
+        undef $self->{ 'schedule_label_' . $index };
+        undef $self->{ 'schedule_' . $index };
+        $self->{ 'schedule_once_' . $index } = 2
+          if ( $self->{ 'schedule_once_' . $index } );
     }
     $self->{set_time} = $::Time;
 }
 
 sub set_schedule_once {
-    my ($self,$index,$entry,$label) = @_;
-    unless ($self->{'schedule_once_'.$index} eq 1) {
-        if ((defined($self->{'set_timer_'.$index})) && ($self->{'set_timer_'.$index}->expired)) {
-           $self->{'schedule_once_'.$index} = 1;
-           $self->set_schedule($index,$entry,$label);
-        } else {
-           $self->{'set_timer_'.$index} = ::Timer::new();
-           $self->{'set_timer_'.$index}->set(10, sub {
-             $self->set_schedule_once($index,$entry,$label);
-          });
+    my ( $self, $index, $entry, $label ) = @_;
+    unless ( $self->{ 'schedule_once_' . $index } eq 1 ) {
+        if (   ( defined( $self->{ 'set_timer_' . $index } ) )
+            && ( $self->{ 'set_timer_' . $index }->expired ) )
+        {
+            $self->{ 'schedule_once_' . $index } = 1;
+            $self->set_schedule( $index, $entry, $label );
+        }
+        else {
+            $self->{ 'set_timer_' . $index } = ::Timer::new();
+            $self->{ 'set_timer_' . $index }->set(
+                10,
+                sub {
+                    $self->set_schedule_once( $index, $entry, $label );
+                }
+            );
         }
     }
 }
 
-
 sub delete_schedule {
-    my ($self,$index) = @_;
+    my ( $self, $index ) = @_;
     $self->set_schedule($index);
 }
-
 
 sub reset_schedule {
     my ($self) = @_;
     my $count = $self->{'schedule_count'};
-     for my $index (1..$count) {
-       $self->set_schedule($index);
-     }
-  $self->{'schedule_count'} = 0;
-  $self->{set_time} = $::Time;
+    for my $index ( 1 .. $count ) {
+        $self->set_schedule($index);
+    }
+    $self->{'schedule_count'} = 0;
+    $self->{set_time} = $::Time;
 }
 
-
 sub get_schedule {
- my ($self) = @_;
- if ( ( defined($self->{'initialize_timer'}) ) && ( $self->{'initialize_timer'}->active ) ) { return }
- my @schedule;
- my $count = $self->{'schedule_count'};
- my @states = &get_states($self);
+    my ($self) = @_;
+    if (   ( defined( $self->{'initialize_timer'} ) )
+        && ( $self->{'initialize_timer'}->active ) )
+    {
+        return;
+    }
+    my @schedule;
+    my $count  = $self->{'schedule_count'};
+    my @states = &get_states($self);
 
-
-     $schedule[0][0] = 0; #Index
-     $schedule[0][1] = '0 0 5 1 1'; #schedule
-     $schedule[0][2] = 0; #Label
-     $schedule[0][3] = \@states;
-     my $nullcount = 0;
-      for my $index (1..$count) {
-         unless(defined($self->{'schedule_'.$index})) {
-             if ($self->{'schedule_once_'.$index}) {
-                $self->{'schedule_once_'.$index} = 2;
-                $self->{'schedule_label_'.$index} = undef;
-              } else {
+    $schedule[0][0] = 0;              #Index
+    $schedule[0][1] = '0 0 5 1 1';    #schedule
+    $schedule[0][2] = 0;              #Label
+    $schedule[0][3] = \@states;
+    my $nullcount = 0;
+    for my $index ( 1 .. $count ) {
+        unless ( defined( $self->{ 'schedule_' . $index } ) ) {
+            if ( $self->{ 'schedule_once_' . $index } ) {
+                $self->{ 'schedule_once_' . $index }  = 2;
+                $self->{ 'schedule_label_' . $index } = undef;
+            }
+            else {
                 $nullcount++;
-                $self->{'schedule_label_'.$index} = undef;
-                $self->{'schedule_once_'.$index} = undef;
+                $self->{ 'schedule_label_' . $index } = undef;
+                $self->{ 'schedule_once_' . $index }  = undef;
                 next;
-              }
-          }
+            }
+        }
 
-         if (defined($self->{'schedule_'.$index})) { # the UI deletes all entries and adds them back which sets this flag to 2.
-                $self->{'schedule_once_'.$index} = 1 if ($self->{'schedule_once_'.$index} eq 2); # We only want real deleted entries set to 2, so set to 1.
-          }
+        if ( defined( $self->{ 'schedule_' . $index } ) ) {    # the UI deletes all entries and adds them back which sets this flag to 2.
+            $self->{ 'schedule_once_' . $index } = 1
+              if ( $self->{ 'schedule_once_' . $index } eq 2 );    # We only want real deleted entries set to 2, so set to 1.
+        }
 
-         if ((defined($self->{'schedule_'.$index})) || ($self->{'schedule_once_'.$index} eq 2)) {
-              $self->{'schedule_'.($index-$nullcount)} = $self->{'schedule_'.$index};
-              $self->{'schedule_label_'.($index-$nullcount)} = $self->{'schedule_label_'.$index};
-              $self->{'schedule_once_'.($index-$nullcount)} = $self->{'schedule_once_'.$index};
-              $schedule[($index-$nullcount)][0] = ($index-$nullcount);
-              if ($self->{'schedule_once_'.$index} eq 2) { $schedule[($index-$nullcount)][1] = undef }
-              else { $schedule[($index-$nullcount)][1] = $self->{'schedule_'.$index} }
+        if (   ( defined( $self->{ 'schedule_' . $index } ) )
+            || ( $self->{ 'schedule_once_' . $index } eq 2 ) )
+        {
+            $self->{ 'schedule_' . ( $index - $nullcount ) } =
+              $self->{ 'schedule_' . $index };
+            $self->{ 'schedule_label_' . ( $index - $nullcount ) } =
+              $self->{ 'schedule_label_' . $index };
+            $self->{ 'schedule_once_' . ( $index - $nullcount ) } =
+              $self->{ 'schedule_once_' . $index };
+            $schedule[ ( $index - $nullcount ) ][0] = ( $index - $nullcount );
+            if ( $self->{ 'schedule_once_' . $index } eq 2 ) {
+                $schedule[ ( $index - $nullcount ) ][1] = undef;
+            }
+            else {
+                $schedule[ ( $index - $nullcount ) ][1] =
+                  $self->{ 'schedule_' . $index };
+            }
 
-              if (defined($self->{'schedule_label_'.$index}) ) { $schedule[($index-$nullcount)][2] = $self->{'schedule_label_'.$index} }
-              else { $schedule[($index-$nullcount)][2] = ($index-$nullcount) }
+            if ( defined( $self->{ 'schedule_label_' . $index } ) ) {
+                $schedule[ ( $index - $nullcount ) ][2] =
+                  $self->{ 'schedule_label_' . $index };
+            }
+            else {
+                $schedule[ ( $index - $nullcount ) ][2] =
+                  ( $index - $nullcount );
+            }
 
-               unless (($index-$nullcount) eq $index) {
-                  $self->{'schedule_'.$index} = undef;
-                  $self->{'schedule_label_'.$index} = undef;
-                  $self->{'schedule_once_'.$index} = undef;
-                }
-          }
-   }
-   $self->{'schedule_count'} = scalar @schedule;
-   return \@schedule;
+            unless ( ( $index - $nullcount ) eq $index ) {
+                $self->{ 'schedule_' . $index }       = undef;
+                $self->{ 'schedule_label_' . $index } = undef;
+                $self->{ 'schedule_once_' . $index }  = undef;
+            }
+        }
+    }
+    $self->{'schedule_count'} = scalar @schedule;
+    return \@schedule;
 }
 
 sub check_date {
- my ($self) = @_;
- if ($::New_Minute) {
+    my ($self) = @_;
+    if ($::New_Minute) {
 
-    unless ($self->{'schedule_count'} > 1) {
-      if ( $self->{'schedule_delete_count'} eq 2 ) {
-	  ::print_log("[SCHEDULE] Dropping schedule for ". $self->get_object_name ." check count ". $self->{'schedule_delete_count'});
-          ::MainLoop_post_drop_hook( $self->{'check_date_handler'} );
-          undef $self->{'check_date_handler'};
-	  undef $self->{'schedule_delete_count'};
+        unless ( $self->{'schedule_count'} > 1 ) {
+            if ( $self->{'schedule_delete_count'} eq 2 ) {
+                ::print_log( "[SCHEDULE] Dropping schedule for " . $self->get_object_name . " check count " . $self->{'schedule_delete_count'} );
+                ::MainLoop_post_drop_hook( $self->{'check_date_handler'} );
+                undef $self->{'check_date_handler'};
+                undef $self->{'schedule_delete_count'};
+            }
+            $self->{'schedule_delete_count'}++;
         }
-      $self->{'schedule_delete_count'}++;
-     }
 
-
-    for my $index (1..$self->{'schedule_count'}) {
-         if (defined($self->{'schedule_'.$index})) {
-		::print_log("[SCHEDULE] Checking time for ". $self->get_object_name. " schedule is " . $self->{'schedule_'.$index} ." time_cron return ". &main::time_cron($self->{'schedule_'.$index}));
-                if (&main::time_cron($self->{'schedule_'.$index})) { $self->set_action($self->{'schedule_label_'.$index}) }
-         }
-       }
-  }
+        for my $index ( 1 .. $self->{'schedule_count'} ) {
+            if ( defined( $self->{ 'schedule_' . $index } ) ) {
+                ::print_log( "[SCHEDULE] Checking time for "
+                      . $self->get_object_name
+                      . " schedule is "
+                      . $self->{ 'schedule_' . $index }
+                      . " time_cron return "
+                      . &main::time_cron( $self->{ 'schedule_' . $index } ) )
+			if $main::Debug{'schedule'};
+                if ( &main::time_cron( $self->{ 'schedule_' . $index } ) ) {
+                    $self->set_action( $self->{ 'schedule_label_' . $index } );
+                }
+            }
+        }
+    }
 }
-
 
 sub set_action {
-    my ($self,$state) = @_;
-	 return if &main::check_for_tied_filters( $self, $state );
-         $self->_set_schedule_active_state($state);
-         my $sub = 'set';
-         $sub = $self->{sub} if defined($self->{sub});
-         $self->$sub($state,'schedule',1);
+    my ( $self, $state ) = @_;
+    return if &main::check_for_tied_filters( $self, $state );
+    $self->_set_schedule_active_state($state);
+    my $sub = 'set';
+    $sub = $self->{sub} if defined( $self->{sub} );
+    $self->$sub( $state, 'schedule', 1 );
 }
-
 
 sub set_sub {
-  my ($self, $sub) = @_;
-  $self->{sub} = $sub;
+    my ( $self, $sub ) = @_;
+    $self->{sub} = $sub;
 }
-
 
 =back 
 

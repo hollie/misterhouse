@@ -110,13 +110,9 @@ sub initialize {
     $hostname = $::config_parms{k8055_host} unless $hostname;
     $port     = $::config_parms{k8055_port} unless $port;
 
-    $self->{socket} =
-      new Socket_Item( undef, undef, "$hostname:$port",
-        'k8055-' . $self->{idNumber},
-        'tcp', 'record', "\n" );
+    $self->{socket} = new Socket_Item( undef, undef, "$hostname:$port", 'k8055-' . $self->{idNumber}, 'tcp', 'record', "\n" );
     $self->{socket}->start();
-    &main::MainLoop_pre_add_hook( \&checkForData, undef, $self )
-      ;    # not persistent
+    &main::MainLoop_pre_add_hook( \&checkForData, undef, $self );    # not persistent
 }
 
 sub checkForData {
@@ -153,8 +149,7 @@ sub parseResponse {
         return;
     }
     if ( $success ne 'ok' ) {
-        $self->printMessage(
-            "received unknown message success=$success ($data)");
+        $self->printMessage("received unknown message success=$success ($data)");
         return;
     }
     if ( $command eq 'value' ) {

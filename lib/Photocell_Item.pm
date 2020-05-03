@@ -86,14 +86,11 @@ sub set {
     }
 
     if ( ref $p_setby and $p_setby->can('get_set_by') ) {
-        &::print_log(
-            "Photocell_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by "
-              . $p_setby->get_set_by )
+        &::print_log( "Photocell_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by )
           if $main::Debug{occupancy};
     }
     else {
-        &::print_log(
-            "Photocell_Item($$self{object_name})::set($p_state, $p_setby)")
+        &::print_log("Photocell_Item($$self{object_name})::set($p_state, $p_setby)")
           if $main::Debug{occupancy};
     }
 

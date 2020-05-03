@@ -13,12 +13,10 @@ my $f_gas_html    = "$config_parms{data_dir}/web/gas.html";
 # 2. Replace the URL below with the generated URL for your search
 # 3. Change $v_gas to your desired voice command
 
-my $Gas_URL =
-  'http://www.fortworthgasprices.com/index.aspx?s=Y\&fuel=A\&area=Fort%20Worth%20-%20West\&tme_limit=84';
+my $Gas_URL = 'http://www.fortworthgasprices.com/index.aspx?s=Y\&fuel=A\&area=Fort%20Worth%20-%20West\&tme_limit=84';
 
 $p_gas = new Process_Item("perl get_url  $Gas_URL $f_gas_html");
-$v_gas =
-  new Voice_Cmd('[Get,Read,Show] the Lowest West Fort Worth Gas Stations');
+$v_gas = new Voice_Cmd('[Get,Read,Show] the Lowest West Fort Worth Gas Stations');
 
 speak($f_gas_summary) if said $v_gas eq 'Read';
 

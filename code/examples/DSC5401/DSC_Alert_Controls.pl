@@ -30,10 +30,8 @@ if ( $DSC->{partition_status}{1} =~ /alarm/ ) {
 }
 
 if ( ( $alarm_previous_state = 1 ) && ( $DSC->state_now =~ /^disarmed/ ) ) {
-    print_log
-      "DSC Restored after alarm By: $DSC->{user_name} ($DSC->{user_id})";
-    $DSC_text =
-      "DSC Alarm Restored by $DSC->{user_name} ($DSC->{user_id}) $Date_Now $Time_Now";
+    print_log "DSC Restored after alarm By: $DSC->{user_name} ($DSC->{user_id})";
+    $DSC_text = "DSC Alarm Restored by $DSC->{user_name} ($DSC->{user_id}) $Date_Now $Time_Now";
 
     &alarm_page("$DSC_text");
     $DSC_text             = "";
@@ -43,8 +41,7 @@ if ( ( $alarm_previous_state = 1 ) && ( $DSC->state_now =~ /^disarmed/ ) ) {
 if ( expired $DSC_Alarm_Timer) {
     $alarm_previous_state = 0;
     print_log "DSC-MH Automatic Reset Alarm after infaction... ";
-    $DSC_text =
-      "DSC-MH Automatic Reset Alarm after infaction... $Date_Now $Time_Now";
+    $DSC_text = "DSC-MH Automatic Reset Alarm after infaction... $Date_Now $Time_Now";
     &alarm_page("$DSC_text");
     $DSC_text = "";
 }

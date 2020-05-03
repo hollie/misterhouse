@@ -7,8 +7,7 @@
 # The ZPR68 has 6 zones and 8 inputs
 
 # Change these to the names of your rooms
-my @zone_names =
-  ( "ALL Zones", "Zone 1", "Zone 2", "Zone 3", "Zone 4", "Zone 5", "Zone 6" );
+my @zone_names = ( "ALL Zones", "Zone 1", "Zone 2", "Zone 3", "Zone 4", "Zone 5", "Zone 6" );
 
 # Change these to the names of your input sources
 my @input_names = ( "INVALID", "1", "2", "3", "4", "5", "6", "7", "8" );
@@ -43,12 +42,10 @@ for ( $zone_name = 0; $zone_name < 7; $zone_name++ ) {
     # Mute
     $data .= "<td>";
     if ( $zone_ptr->getstate_mute ) {
-        $data .=
-          "<A href='?set_mute=0&set_zone=$zone_name'> <font color='red'>ON</A>";
+        $data .= "<A href='?set_mute=0&set_zone=$zone_name'> <font color='red'>ON</A>";
     }
     else {
-        $data .=
-          "<A href='?set_mute=1&set_zone=$zone_name'> <font color='green'>OFF</A>";
+        $data .= "<A href='?set_mute=1&set_zone=$zone_name'> <font color='green'>OFF</A>";
     }
 
     # Volume

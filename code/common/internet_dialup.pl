@@ -6,9 +6,7 @@ $timer_net_connect = new Timer;
 $net_connect       = new Generic_Item;
 
 $v_logon_to_net = new Voice_Cmd('[Log onto,dial] the net');
-$v_logon_to_net->set_info(
-    "Connect to the net using rasdial entry $config_parms{net_connect_entry} (windows only)"
-);
+$v_logon_to_net->set_info("Connect to the net using rasdial entry $config_parms{net_connect_entry} (windows only)");
 
 #set_icon $v_logon_to_net 'logon';
 if ( said $v_logon_to_net) {
@@ -25,8 +23,7 @@ if ( said $v_logon_to_net) {
         if ( !defined $config_parms{net_connect_entry}
             and $config_parms{net_connect_entry} )
         {    #name and password optional
-            $v_logon_to_net->respond(
-                "app=error Dial-up networking is not configured.");
+            $v_logon_to_net->respond("app=error Dial-up networking is not configured.");
         }
         else {
             $v_logon_to_net->respond("app=network Dialing the internet");
@@ -43,7 +40,7 @@ $v_logoff_net = new Voice_Cmd('Log off the net');
 if ( said $v_logoff_net) {
     if (net_connect_check) {
         if ( &ras_disconnect() ) {
-            set $net_connect 'disconnected', $v_logoff_net;  # *** same as above
+            set $net_connect 'disconnected', $v_logoff_net;    # *** same as above
             $v_logoff_net->respond("app=network Logged off the Internet.");
         }
         else {
@@ -56,9 +53,6 @@ if ( said $v_logoff_net) {
 }
 
 if ($Reload) {
-    &trigger_set(
-        "time_cron('58 9,16 * * 0,6') or time_cron('15 6,17 * * 1-5')",
-        "run_voice_cmd 'dial the net'",
-        'NoExpire', 'dial the net'
-    ) unless &trigger_get('dial the net');
+    &trigger_set( "time_cron('58 9,16 * * 0,6') or time_cron('15 6,17 * * 1-5')", "run_voice_cmd 'dial the net'", 'NoExpire', 'dial the net' )
+      unless &trigger_get('dial the net');
 }

@@ -25,7 +25,7 @@ B<Generic_Item>
 
 use strict;
 use Win32::API;
-use MBM_sensors;   # Required.  Distributed with MisterHouse or obtain from CPAN
+use MBM_sensors;    # Required.  Distributed with MisterHouse or obtain from CPAN
 
 package MBM_mh;
 @MBM_mh::ISA = ('Generic_Item');
@@ -51,11 +51,7 @@ sub new {
     bless $self, $class;
 
     push @MBM_Sensor_Objects, $self;
-    restore_data $self (
-        'name',  'current', 'high',   'low',
-        'count', 'total',   'alarm1', 'alarm2',
-        'timestamp'
-    );
+    restore_data $self ( 'name', 'current', 'high', 'low', 'count', 'total', 'alarm1', 'alarm2', 'timestamp' );
 
     return $self;
 }
@@ -134,8 +130,7 @@ sub check_for_data {
                 $self->{alarm2}    = $MBM_sensors{$type}{alarm2}[$num];
                 $self->{timestamp} = $MBM_sensors{timecurrent};
                 set $self $MBM_sensors{$type}{current}[$num];
-                ::print_log
-                  "MBM updating $type $num $self->{name} with $self->{current}"
+                ::print_log "MBM updating $type $num $self->{name} with $self->{current}"
                   if $::config_parms{debug} eq 'MBM';
             }
         }

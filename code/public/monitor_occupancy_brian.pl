@@ -91,9 +91,8 @@ $front_door_motion  = new X10_Sensor('B9');
 $back_door_motion   = new X10_Sensor('BB');
 
 $Motion = new Group(
-    $work_room_motion,   $kitchen_motion,     $kitchenette_motion,
-    $dining_room_motion, $living_room_motion, $bed_room_motion,
-    $bath_room_motion,   $front_door_motion,  $back_door_motion
+    $work_room_motion, $kitchen_motion,   $kitchenette_motion, $dining_room_motion, $living_room_motion,
+    $bed_room_motion,  $bath_room_motion, $front_door_motion,  $back_door_motion
 );
 
 # Light sensor definitions
@@ -108,9 +107,8 @@ $front_door_dark  = new X10_Sensor('BA');
 $back_door_dark   = new X10_Sensor('BC');
 
 $Dark = new Group(
-    $work_room_brightness, $kitchen_dark,     $kitchenette_dark,
-    $dining_room_dark,     $living_room_dark, $bed_room_dark,
-    $bath_room_dark,       $front_door_dark,  $back_door_dark
+    $work_room_brightness, $kitchen_dark,   $kitchenette_dark, $dining_room_dark, $living_room_dark,
+    $bed_room_dark,        $bath_room_dark, $front_door_dark,  $back_door_dark
 );
 
 # Timer definitions
@@ -223,13 +221,9 @@ if (   ( $location{Current} eq 'dining_room' )
 
 # Cooking
 if (
-    (
-           ( $location{Current} eq 'kitchen' )
-        && ( calc_delta( $location{kitchen_occupancy_tds} ) >= ( 5 * 60 ) )
-    )
+    ( ( $location{Current} eq 'kitchen' ) && ( calc_delta( $location{kitchen_occupancy_tds} ) >= ( 5 * 60 ) ) )
     || (   ( $location{Current} eq 'kitchenette' )
-        && ( calc_delta( $location{kitchenette_occupancy_tds} ) >= ( 5 * 60 ) )
-    )
+        && ( calc_delta( $location{kitchenette_occupancy_tds} ) >= ( 5 * 60 ) ) )
   )
 {
     if ( ($New_Minute) && ( $context{Current} ne 'cooking' ) ) {
@@ -260,9 +254,8 @@ if (   ( $location{Current} eq 'bath_room' )
 
 if ( $all_is_quiet && $New_Minute ) {
     print_log "All is quiet: {";
-    print_log "        work_room_motion state: ", state $work_room_motion;
-    print_log "        work_room_brightness state: ",
-      state $work_room_brightness;
+    print_log "        work_room_motion state: ",     state $work_room_motion;
+    print_log "        work_room_brightness state: ", state $work_room_brightness;
     print_log "}";
 }
 else {
@@ -316,8 +309,7 @@ if ( $state = said $v_current_location) {
 
         # print "$temptext_b\n";
         my $howlong = &calc_delta( $location{$temptext_a} );
-        speak
-          "Piet's last known location is in $temptext, $howlong seconds ago.";
+        speak "Piet's last known location is in $temptext, $howlong seconds ago.";
     }
 }
 
@@ -354,8 +346,7 @@ if ( state_now $work_room_motion eq "motion" ) {
 
     # If we haven't already reported the movement, do so now.
     if ( inactive $work_room_monitors_timer) {
-        print_log
-          "Setting monitors timer to $work_room_monitors_timeout minutes.";
+        print_log "Setting monitors timer to $work_room_monitors_timeout minutes.";
     }
     set $work_room_monitors_timer ( $work_room_monitors_timeout * 60 );
 
@@ -364,21 +355,14 @@ if ( state_now $work_room_motion eq "motion" ) {
     }
     set $work_room_light_timer ( $work_room_light_timeout * 60 );
 
-    if (
-        (
-               ( state $work_room_brightness eq "dark" )
-            || ( time_greater_than("$Time_Sunset") )
-        )
-        && ( state $workrm_light ne ON )
-      )
+    if (   ( ( state $work_room_brightness eq "dark" ) || ( time_greater_than("$Time_Sunset") ) )
+        && ( state $workrm_light ne ON ) )
     {
         print_log "Work Room is Dark.  Turning on light.";
         set $workrm_light ON;
     }
     else {
-        print_log "Work Room is Lit. State of work_room_brightness: ",
-          state $work_room_brightness, ", State of workrm_light: ",
-          state $workrm_light;
+        print_log "Work Room is Lit. State of work_room_brightness: ", state $work_room_brightness, ", State of workrm_light: ", state $workrm_light;
     }
 
     set $work_room_monitors_timer ( $work_room_monitors_timeout * 60 );
@@ -404,8 +388,7 @@ if ( expired $work_room_light_timer) {
     #  else
     {
         set $workrm_light OFF;
-        print_log
-          "No movement in Work Room for $work_room_light_timeout minutes";
+        print_log "No movement in Work Room for $work_room_light_timeout minutes";
         print_log "Turning off Work Room Light.";
         set $work_room_light_timer ( $work_room_light_timeout * 60 );
     }
@@ -421,8 +404,7 @@ if ( expired $work_room_monitors_timer) {
     #  }
     #  else
     {
-        print_log
-          "No movement in Work Room for $work_room_monitors_timeout minutes";
+        print_log "No movement in Work Room for $work_room_monitors_timeout minutes";
         print_log "Turning Off Work Room Monitors.";
         set $workrm_monitors OFF;
         set $work_room_light_timer ( $work_room_light_timeout * 60 );
@@ -450,21 +432,15 @@ if ( state_now $kitchen_motion eq "kitchen_motion" ) {
 
     # If we haven't already reported the movement, do so now.
     if ( inactive $kitchen_timer) {
-        print_log
-          "Movement sensed in Kitchen.  Setting timer to $kitchen_timeout minutes.";
+        print_log "Movement sensed in Kitchen.  Setting timer to $kitchen_timeout minutes.";
     }
 
     #else {
     #  print_log "Movement sensed in Kitchen.";
     #}
     set $kitchen_timer ( $kitchen_timeout * 60 );
-    if (
-        (
-               ( state $kitchen_dark ne "kitchen_dark_stopped" )
-            || ( time_greater_than("$Time_Sunset") )
-        )
-        && ( state $kitchen_light ne ON )
-      )
+    if (   ( ( state $kitchen_dark ne "kitchen_dark_stopped" ) || ( time_greater_than("$Time_Sunset") ) )
+        && ( state $kitchen_light ne ON ) )
     {
         print_log "Kitchen is Dark.  Turning on light.";
         set $kitchen_light ON;
@@ -480,8 +456,7 @@ if ( expired $kitchen_timer) {
     if ( $location{Current} eq 'kitchen' ) {
 
         # Reset timer if the room is still occupied
-        print_log
-          "Timer expired but Kitchen still occupied. Resetting timer...";
+        print_log "Timer expired but Kitchen still occupied. Resetting timer...";
         set $kitchen_timer ( $kitchen_timeout * 60 );
     }
     else {
@@ -512,21 +487,15 @@ if ( state_now $living_room_motion eq "living_room_motion" ) {
 
     # If we haven't already reported the movement, do so now.
     if ( inactive $living_room_timer) {
-        print_log
-          "Movement sensed in Living Room.  Setting timer to $living_room_timeout minutes.";
+        print_log "Movement sensed in Living Room.  Setting timer to $living_room_timeout minutes.";
     }
 
     #else {
     #  print_log "Movement sensed in Living Room.";
     #}
     set $living_room_timer ( $living_room_timeout * 60 );
-    if (
-        (
-               ( state $living_room_dark ne "living_room_dark_stopped" )
-            || ( time_greater_than("$Time_Sunset") )
-        )
-        && ( state $livingrm_light1 ne ON )
-      )
+    if (   ( ( state $living_room_dark ne "living_room_dark_stopped" ) || ( time_greater_than("$Time_Sunset") ) )
+        && ( state $livingrm_light1 ne ON ) )
     {
         print_log "Living Room is Dark.  Turning on light.";
         set $livingrm_light1 ON;
@@ -542,8 +511,7 @@ if ( expired $living_room_timer) {
     if ( $location{Current} eq 'living_room' ) {
 
         # Reset timer if the room is still occupied
-        print_log
-          "Timer expired but Living Room still occupied. Resetting timer...";
+        print_log "Timer expired but Living Room still occupied. Resetting timer...";
         set $living_room_timer ( $living_room_timeout * 60 );
     }
     else {
@@ -574,21 +542,15 @@ if ( state_now $dining_room_motion eq "dining_room_motion" ) {
 
     # If we haven't already reported the movement, do so now.
     if ( inactive $dining_room_timer) {
-        print_log
-          "Movement sensed in Dining Room.  Setting timer to $dining_room_timeout minutes.";
+        print_log "Movement sensed in Dining Room.  Setting timer to $dining_room_timeout minutes.";
     }
 
     #else {
     #  print_log "Movement sensed in Dining Room.";
     #}
     set $dining_room_timer ( $dining_room_timeout * 60 );
-    if (
-        (
-               ( state $dining_room_dark ne "dining_room_dark_stopped" )
-            || ( time_greater_than("$Time_Sunset") )
-        )
-        && ( state $diningrm_light ne ON )
-      )
+    if (   ( ( state $dining_room_dark ne "dining_room_dark_stopped" ) || ( time_greater_than("$Time_Sunset") ) )
+        && ( state $diningrm_light ne ON ) )
     {
         print_log "Dining Room is Dark.  Turning on light.";
         set $diningrm_light ON;
@@ -604,8 +566,7 @@ if ( expired $dining_room_timer) {
     if ( $location{Current} eq 'dining_room' ) {
 
         # Reset timer if the room is still occupied
-        print_log
-          "Timer expired but Dining Room still occupied. Resetting timer...";
+        print_log "Timer expired but Dining Room still occupied. Resetting timer...";
         set $dining_room_timer ( $dining_room_timeout * 60 );
     }
     else {
@@ -637,20 +598,14 @@ if ( state_now $bed_room_motion eq "bed_room_motion" ) {
 
     # If we haven't already reported the movement, do so now.
     if ( inactive $bed_room_timer) {
-        print_log
-          "Movement sensed in Bed Room.  Setting timer to $bed_room_timeout minutes.";
+        print_log "Movement sensed in Bed Room.  Setting timer to $bed_room_timeout minutes.";
     }
 
     #else {
     #  print_log "Movement sensed in Bed Room.";
     #}
-    if (
-        (
-               ( state $bed_room_dark ne "bed_room_dark_stopped" )
-            || ( time_greater_than("$Time_Sunset") )
-        )
-        && ( state $bedrm_light ne ON )
-      )
+    if (   ( ( state $bed_room_dark ne "bed_room_dark_stopped" ) || ( time_greater_than("$Time_Sunset") ) )
+        && ( state $bedrm_light ne ON ) )
     {
         if ( !$indoors_is_quiet ) {
             set $bed_room_timer ( $bed_room_timeout * 60 );
@@ -692,21 +647,15 @@ if ( state_now $bath_room_motion eq "bath_room_motion" ) {
 
     # If we haven't already reported the movement, do so now.
     if ( inactive $bath_room_timer) {
-        print_log
-          "Movement sensed in Bath Room.  Setting timer to $bath_room_timeout minutes.";
+        print_log "Movement sensed in Bath Room.  Setting timer to $bath_room_timeout minutes.";
     }
 
     #else {
     #  print_log "Movement sensed in Bath Room.";
     #}
     set $bath_room_timer ( $bath_room_timeout * 60 );
-    if (
-        (
-               ( state $bath_room_dark ne "bath_room_dark_stopped" )
-            || ( time_greater_than("$Time_Sunset") )
-        )
-        && ( state $bathrm_light ne ON )
-      )
+    if (   ( ( state $bath_room_dark ne "bath_room_dark_stopped" ) || ( time_greater_than("$Time_Sunset") ) )
+        && ( state $bathrm_light ne ON ) )
     {
         print_log "Bath Room is Dark.  Turning on light.";
         set $bathrm_light ON;
@@ -722,8 +671,7 @@ if ( expired $bath_room_timer) {
     if ( $location{Current} eq 'bath_room' ) {
 
         # Reset timer if the room is still occupied
-        print_log
-          "Timer expired but Bath Room still occupied. Resetting timer...";
+        print_log "Timer expired but Bath Room still occupied. Resetting timer...";
         set $bath_room_timer ( $bath_room_timeout * 60 );
     }
     else {
@@ -755,8 +703,7 @@ if ( state_now $kitchenette_motion eq "kitchenette_motion" ) {
 
     # If we haven't already reported the movement, do so now.
     if ( inactive $kitchenette_timer) {
-        print_log
-          "Movement sensed in Kitchenette.  Setting timer to $kitchenette_timeout minutes.";
+        print_log "Movement sensed in Kitchenette.  Setting timer to $kitchenette_timeout minutes.";
     }
 
     #else {
@@ -802,8 +749,7 @@ if ( state_now $front_door_motion eq "front_door_motion" ) {
 
     # If we haven't already reported the movement, do so now.
     if ( inactive $front_door_timer) {
-        print_log
-          "Movement sensed at Front Door.  Setting timer to $front_door_timeout minutes.";
+        print_log "Movement sensed at Front Door.  Setting timer to $front_door_timeout minutes.";
     }
     else {
         print_log "Movement sensed at the Front Door.";
@@ -849,8 +795,7 @@ if ( state_now $back_door_motion eq "back_door_motion" ) {
 
     # If we haven't already reported the movement, do so now.
     if ( inactive $back_door_timer) {
-        print_log
-          "Movement sensed at the Back Door.  Setting timer to $back_door_timeout minutes.";
+        print_log "Movement sensed at the Back Door.  Setting timer to $back_door_timeout minutes.";
     }
     else {
         print_log "Movement sensed at the Back Door.";

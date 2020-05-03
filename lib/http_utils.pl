@@ -88,8 +88,7 @@ sub insert_keyboard {
     }
 
     #	my @rows=qw/`1234567890-= qwertyuiop[]\ asdfghjkl;' zxcvbnm,.\//;  # This gives warnings with use diagnostics
-    my @rows =
-      ( "`1234567890-=", "qwertyuiop[]\\", "asdfghjkl;'", "zxcvbnm,.\/" );
+    my @rows = ( "`1234567890-=", "qwertyuiop[]\\", "asdfghjkl;'", "zxcvbnm,.\/" );
 
     my $result = qq[<div class="keyboard">
 <br/>
@@ -110,38 +109,31 @@ sub insert_keyboard {
             $value = '&amp;'  if $value eq '&';
 
             if ( $row == 1 && $column == 0 ) {
-                $result .=
-                  qq[<input class="special" type="button" onclick="keyboard_next_control()" value="Tab">];
+                $result .= qq[<input class="special" type="button" onclick="keyboard_next_control()" value="Tab">];
             }
 
             if ( $row == 2 && $column == 0 ) {
-                $result .=
-                  qq[<input class="special" type="button" value="Caps" onclick="keyboard_caps_pressed(this)">];
+                $result .= qq[<input class="special" type="button" value="Caps" onclick="keyboard_caps_pressed(this)">];
             }
 
             if ( $row == 3 && $column == 0 ) {
-                $result .=
-                  qq[<input class="special" type="button" value="Shift" onclick="keyboard_shift_pressed(this)">];
+                $result .= qq[<input class="special" type="button" value="Shift" onclick="keyboard_shift_pressed(this)">];
             }
 
-            $result .=
-              qq[<input type="button" onclick="keyboard_insert_char(this.value)" class="small" value="$value">];
+            $result .= qq[<input type="button" onclick="keyboard_insert_char(this.value)" class="small" value="$value">];
             $column++;
         }
 
         if ( $row == 0 ) {
-            $result .=
-              qq[<input class="special" type="button" onclick="keyboard_delete_char()" value="Backspace">];
+            $result .= qq[<input class="special" type="button" onclick="keyboard_delete_char()" value="Backspace">];
         }
 
         if ( $row == 2 ) {
-            $result .=
-              qq[<input class="special" type="button" onclick="keyboard_form.submit()" value="Enter">];
+            $result .= qq[<input class="special" type="button" onclick="keyboard_form.submit()" value="Enter">];
         }
 
         if ( $row == 3 ) {
-            $result .=
-              qq[<input class="special" type="button" value="Shift" onclick="keyboard_shift_pressed(this)">];
+            $result .= qq[<input class="special" type="button" value="Shift" onclick="keyboard_shift_pressed(this)">];
         }
         $row++;
         $result .= "</td></tr>";
@@ -152,8 +144,7 @@ sub insert_keyboard {
 <input class="spacebar special" type="button" onclick="keyboard_insert_char(' ')" value="Space">];
 
     if ($hide_button) {
-        $result .=
-          qq[<input name="hide" value="Hide" type="button" onclick="hideKeyboard()">];
+        $result .= qq[<input name="hide" value="Hide" type="button" onclick="hideKeyboard()">];
     }
 
     $result .= '</td></tr></table></td>';
@@ -171,13 +162,11 @@ sub insert_keyboard {
             my @chars = split( //, $_ );
             for (@chars) {
                 my $value = $_;
-                $result .=
-                  qq[<input type="button" onclick="keyboard_insert_char(this.value)" class="small" value="$value">];
+                $result .= qq[<input type="button" onclick="keyboard_insert_char(this.value)" class="small" value="$value">];
                 $column++;
             }
             if ( $row == 3 ) {
-                $result .=
-                  qq[<input class="keyboard" type="button" onclick="keyboard_delete_all()" value="Clear">];
+                $result .= qq[<input class="keyboard" type="button" onclick="keyboard_delete_all()" value="Clear">];
             }
 
             $result .= '</td></tr>';

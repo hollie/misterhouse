@@ -13,16 +13,11 @@ use vars qw(%MBM);
 use Win32::API;
 
 # noloop=start
-my $OpenFileMapping =
-  new Win32::API( "kernel32", "OpenFileMapping", [ 'N', 'N', 'P' ], 'N' );
+my $OpenFileMapping = new Win32::API( "kernel32", "OpenFileMapping", [ 'N', 'N', 'P' ], 'N' );
 my $CloseHandle = new Win32::API( "kernel32", "CloseHandle", ['N'], 'N' );
-my $MapViewOfFile =
-  new Win32::API( "kernel32", "MapViewOfFile", [ 'N', 'N', 'N', 'N', 'N' ],
-    'N' );
-my $UnmapViewOfFile =
-  new Win32::API( "kernel32", "UnmapViewOfFile", ['N'], 'N' );
-my $CopyMemoryX =
-  new Win32::API( "kernel32", "RtlMoveMemory", [ 'P', 'N', 'N' ], 'N' );
+my $MapViewOfFile = new Win32::API( "kernel32", "MapViewOfFile", [ 'N', 'N', 'N', 'N', 'N' ], 'N' );
+my $UnmapViewOfFile = new Win32::API( "kernel32", "UnmapViewOfFile", ['N'], 'N' );
+my $CopyMemoryX = new Win32::API( "kernel32", "RtlMoveMemory", [ 'P', 'N', 'N' ], 'N' );
 
 # noloop=stop
 

@@ -30,37 +30,29 @@
 
 # define variables
 use vars qw($PhoneName $PhoneNumber $PhoneTime $PhoneDate);
-my ( $NameDone, $NumberDone );
-my ( $callerbn, $PhoneNumberz );
-my (
-    $PhoneDateLog,   $PhoneTimeLog, $PhoneNameLog,
-    $PhoneNumberLog, @callloglines, $CallLogTempLine
-);
-my ( $last, $first, $middle, $areacode, $local_number, $caller );
+my ( $NameDone,     $NumberDone );
+my ( $callerbn,     $PhoneNumberz );
+my ( $PhoneDateLog, $PhoneTimeLog, $PhoneNameLog, $PhoneNumberLog, @callloglines, $CallLogTempLine );
+my ( $last,         $first, $middle, $areacode, $local_number, $caller );
 my $Num_Of_Calls = 0;
 
 $NetCallerID = new Serial_Item( undef, undef, 'serial5' );
 if ( my $NetCaller = said $NetCallerID) {
     print "$NetCaller\n";
-    ( $PhoneNumber, $PhoneName ) =
-      $NetCaller =~ /^.+\.NMBR(\d+)\.{3}NAME(.+)\+{3}$/;
-    print "Name = $PhoneName, Number = $PhoneNumber\n"
-      ;    # make sure I am getting what I think I want.
+    ( $PhoneNumber, $PhoneName ) = $NetCaller =~ /^.+\.NMBR(\d+)\.{3}NAME(.+)\+{3}$/;
+    print "Name = $PhoneName, Number = $PhoneNumber\n";    # make sure I am getting what I think I want.
     $NumberDone = "yes";
     $NameDone   = "yes";
 
     ( $last, $first, $middle ) = ( split( ' ', $PhoneName ) )[ 0, 1, 2 ];
     $first = ucfirst( lc($first) );
     $first = ucfirst( lc($middle) )
-      if length($first) == 1;    # Last M First format
+      if length($first) == 1;                              # Last M First format
     $last = ucfirst( lc($last) );
 
     $areacode     = ( substr( $PhoneNumber, 0, 3 ) );
     $local_number = ( substr( $PhoneNumber, 3, 7 ) );
-    $PhoneNumberz =
-        substr( $PhoneNumber, 0, 3 ) . "-"
-      . substr( $PhoneNumber, 3, 3 ) . "-"
-      . substr( $PhoneNumber, 6, 4 );
+    $PhoneNumberz = substr( $PhoneNumber, 0, 3 ) . "-" . substr( $PhoneNumber, 3, 3 ) . "-" . substr( $PhoneNumber, 6, 4 );
 
     # if there is no caller id info, you get the following data from the NetCallerID
     # I don't know what shows up if teh caller is a private number
@@ -93,16 +85,13 @@ if ( $NumberDone eq "yes" and $NameDone eq "yes" ) {
     }
     else {
         #      $caller = "$first $last";
-        $caller = "$last"
-          ; #The last name is typically the only complete  name you will get, depending on the length of the person's name
-            # print_msg "caller name = $caller, last name = $last";
+        $caller = "$last";    #The last name is typically the only complete  name you will get, depending on the length of the person's name
+                              # print_msg "caller name = $caller, last name = $last";
     }
 
     # Log the data for use by display_callers
-    logit( "$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log",
-        "$PhoneNumber $PhoneName" );
-    logit_dbm( "$config_parms{data_dir}/phone/callerid.dbm",
-        $PhoneNumber, "$Time_Now $Date_Now $Year name=$PhoneName" );
+    logit( "$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log", "$PhoneNumber $PhoneName" );
+    logit_dbm( "$config_parms{data_dir}/phone/callerid.dbm", $PhoneNumber, "$Time_Now $Date_Now $Year name=$PhoneName" );
 
     # If the incoming area code is the same, drop it from being spoken.
     if ( $areacode eq $config_parms{local_area_code} ) {
@@ -112,14 +101,10 @@ if ( $NumberDone eq "yes" and $NameDone eq "yes" ) {
     # Put pauses in between area code, exchange, and number for
     # announce reasons
     if ( length($PhoneNumber) == 7 ) {
-        $PhoneNumber =
-          substr( $PhoneNumber, 0, 3 ) . "." . substr( $PhoneNumber, 3, 4 );
+        $PhoneNumber = substr( $PhoneNumber, 0, 3 ) . "." . substr( $PhoneNumber, 3, 4 );
     }
     if ( length($PhoneNumber) == 10 ) {
-        $PhoneNumber =
-            substr( $PhoneNumber, 0, 3 ) . "."
-          . substr( $PhoneNumber, 3, 3 ) . "."
-          . substr( $PhoneNumber, 6, 4 );
+        $PhoneNumber = substr( $PhoneNumber, 0, 3 ) . "." . substr( $PhoneNumber, 3, 3 ) . "." . substr( $PhoneNumber, 6, 4 );
     }
 
     # Log the data in a special file to announce from Palmpad

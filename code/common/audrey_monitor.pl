@@ -39,8 +39,7 @@ if ( said $v_audrey_check or ( new_minute 5 ) or ($Startup) or ($Reload) ) {
         my $AResetting = "";
 
         # For fun lets see if we have a MrAudrey Image running
-        my $audreyInfo = get "http://$Aip[$Acount]/SystemProfile.shtml",
-          "/dev/null";
+        my $audreyInfo = get "http://$Aip[$Acount]/SystemProfile.shtml", "/dev/null";
         my ( $audreyHead, $audreyString ) = split '\:<br>\W', $audreyInfo;
         my ( $audreyVer,  $audreyRest )   = split '<br>',     $audreyString;
         ( $audreyHead,   $audreyRest ) = split '</b></br>\W', $audreyHead;
@@ -50,8 +49,7 @@ if ( said $v_audrey_check or ( new_minute 5 ) or ($Startup) or ($Reload) ) {
 
         # First we ping Audrey to see if she is responding
         if ( !&net_ping( $Aip[$Acount] ) ) {
-            speak $Aname[$Acount]
-              . " Audrey not responding, resetting her power.";
+            speak $Aname[$Acount] . " Audrey not responding, resetting her power.";
             eval "set_with_timer \$audrey_power_$Aname[$Acount] OFF, 1";
             $AResetting = "$Aname[$Acount]";
         }
@@ -63,14 +61,12 @@ if ( said $v_audrey_check or ( new_minute 5 ) or ($Startup) or ($Reload) ) {
 
         if ( !$AResetting ) {
             if ( !$audreyInfo ) {
-                speak
-                  "$Aname[$Acount] Audrey Server not responding, resetting her power.";
+                speak "$Aname[$Acount] Audrey Server not responding, resetting her power.";
                 eval "set_with_timer \$audrey_power_$Aname[$Acount] OFF, 1";
                 $AResetting = "$Aname[$Acount]";
             }
             else {
-                print_log
-                  "The $Aname[$Acount] Audrey at $Aip[$Acount] is UP and Serving - OK";
+                print_log "The $Aname[$Acount] Audrey at $Aip[$Acount] is UP and Serving - OK";
             }
 
         }

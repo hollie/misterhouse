@@ -91,17 +91,12 @@ if ($New_Minute) {
 #&tk_label(\$Weather{SummaryRain});
 
 # Set up pointers to random weather comments
-$remark_on_humidity =
-  new File_Item("$config_parms{data_dir}/remarks/list_humid.txt");
-$remark_on_temp_below_0 =
-  new File_Item("$config_parms{data_dir}/remarks/list_temp_below_0.txt");
-$remark_on_temp_below_20 =
-  new File_Item("$config_parms{data_dir}/remarks/list_temp_below_20.txt");
+$remark_on_humidity      = new File_Item("$config_parms{data_dir}/remarks/list_humid.txt");
+$remark_on_temp_below_0  = new File_Item("$config_parms{data_dir}/remarks/list_temp_below_0.txt");
+$remark_on_temp_below_20 = new File_Item("$config_parms{data_dir}/remarks/list_temp_below_20.txt");
 
 $v_what_temp = new Voice_Cmd('What is the [,inside,outside] temperature');
-$v_what_temp->set_info(
-    'Returns the humidity, temperature, and windchill, as measured by wx200 weather station'
-);
+$v_what_temp->set_info('Returns the humidity, temperature, and windchill, as measured by wx200 weather station');
 $v_what_temp->set_authority('anyone');
 
 if ( $state = said $v_what_temp) {
@@ -109,8 +104,7 @@ if ( $state = said $v_what_temp) {
     #   my $temp     = round($analog{temp_outside});
     #   my $humidity = round($analog{humidity_outside});
 
-    if ( defined $Weather{TempOutdoor} and $Weather{TempOutdoor} ne 'unknown' )
-    {
+    if ( defined $Weather{TempOutdoor} and $Weather{TempOutdoor} ne 'unknown' ) {
         my $temp        = round( $Weather{TempOutdoor} );
         my $temp_in     = round( $Weather{TempIndoor} );
         my $windchill   = round( $Weather{WindChill} );
@@ -144,8 +138,7 @@ if ( $state = said $v_what_temp) {
             $text = "It is $temp_out.";
         }
         else {
-            $text =
-              "It is $temp_in degrees $humidity_in percent inside, $temp_out. $remark ";
+            $text = "It is $temp_in degrees $humidity_in percent inside, $temp_out. $remark ";
 
         }
         speak $text;
@@ -156,8 +149,7 @@ if ( $state = said $v_what_temp) {
 }
 
 $v_what_wind = new Voice_Cmd('What is the wind speed');
-$v_what_wind->set_info(
-    'The wind speed is measured with a WX200 weather station');
+$v_what_wind->set_info('The wind speed is measured with a WX200 weather station');
 $v_what_wind->set_authority('anyone');
 if ( said $v_what_wind) {
     undef $temp;
@@ -165,16 +157,8 @@ if ( said $v_what_wind) {
         $temp .= "There is currently no wind.";
     }
     else {
-        $temp .=
-            "The wind is gusting at "
-          . round( $Weather{WindGustSpeed} )
-          . " MPH from the "
-          . convert_direction( $Weather{WindGustDir} );
-        $temp .=
-            ".  Average speed is "
-          . round( $Weather{WindAvgSpeed} )
-          . " from the "
-          . convert_direction( $Weather{WindAvgDir} );
+        $temp .= "The wind is gusting at " . round( $Weather{WindGustSpeed} ) . " MPH from the " . convert_direction( $Weather{WindGustDir} );
+        $temp .= ".  Average speed is " . round( $Weather{WindAvgSpeed} ) . " from the " . convert_direction( $Weather{WindAvgDir} );
     }
     speak $temp;
 }
@@ -183,8 +167,7 @@ $v_what_rain =
   new Voice_Cmd( 'How much rain have we had in the last '
       . '[hour,2 hours,6 hours,12 hours,day,2 days,3 days,4 days,5 days,6 days,week,2 weeks,3 weeks,month,'
       . '2 months,3 months,4 months,6 months]' );
-$v_what_rain->set_info(
-    'Rainfall, measured by the WX200 weather station and logged by mh');
+$v_what_rain->set_info('Rainfall, measured by the WX200 weather station and logged by mh');
 if ( my $period = said $v_what_rain) {
     undef $temp;
     my $days;
@@ -217,8 +200,7 @@ if ( my $period = said $v_what_rain) {
         $temp = "Sorry, I don't have current weather info on rainfall";
     }
     elsif ( !@temp ) {
-        $temp =
-          "Sorry, I don't have a log of the weather from $days days ago.\n";
+        $temp = "Sorry, I don't have a log of the weather from $days days ago.\n";
     }
     else {
         my $rain_total_yesterday = $temp[21];
@@ -226,8 +208,7 @@ if ( my $period = said $v_what_rain) {
 
         #   print "db rt_previous=$rain_total_yesterday rt_today=$Weather{RainTotal} diff=$rain_diff\n";
         if ($rain_diff) {
-            $temp .=
-              "We have had " . round( $rain_diff, 2 ) . " inches of rain ";
+            $temp .= "We have had " . round( $rain_diff, 2 ) . " inches of rain ";
         }
         else {
             $temp .= "No rain has fallen ";
@@ -256,15 +237,12 @@ if ( state $Windy
 {
     if ( $Weather{WindGustSpeed} > ( $Save{WindGustMax} + 5 ) ) {
         $Save{WindGustMax} = $Weather{WindGustSpeed};
-        speak "rooms=all Weather alert.  The wind is now gusting at "
-          . round( $Weather{WindGustSpeed} ) . " MPH.";
+        speak "rooms=all Weather alert.  The wind is now gusting at " . round( $Weather{WindGustSpeed} ) . " MPH.";
         set $timer_wind_gust 120 * 60;
     }
     elsif ( inactive $timer_wind_gust) {
         set $timer_wind_gust 120 * 60;
-        speak "rooms=all Weather alert.  A wind gust of "
-          . round( $Weather{WindGustSpeed} )
-          . " MPH was just recorded.";
+        speak "rooms=all Weather alert.  A wind gust of " . round( $Weather{WindGustSpeed} ) . " MPH was just recorded.";
     }
 }
 $Save{WindGustMax} = 0 if $New_Day;

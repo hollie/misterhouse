@@ -30,22 +30,16 @@ BEGIN {
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
-my ($Version) =
-  q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
+my ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
 
 #print "Command: $Pgm_Name @ARGV\n";
 #print "Version: $Version\n";
 
 use Getopt::Long;
 my %parms;
-if (
-    !&GetOptions(
-        \%parms,  "reget",  "h",       "help",   "v", "debug",
-        "city:s", "zone:s", "state:s", "file=s", "no_log"
-    )
+if (  !&GetOptions( \%parms, "reget", "h", "help", "v", "debug", "city:s", "zone:s", "state:s", "file=s", "no_log" )
     or @ARGV
-    or ( $parms{h} or $parms{help} )
-  )
+    or ( $parms{h} or $parms{help} ) )
 {
     print <<eof;
 
@@ -101,11 +95,9 @@ $parms{city} = $config_parms{weather_city} unless $parms{city};
 $parms{city} = 'SPXX0050' unless $parms{city};
 
 my $WeatherURL;
-$WeatherURL = sprintf 'http://es.weather.yahoo.com/SPXX/%s/index_c.html',
-  $parms{city};
+$WeatherURL = sprintf 'http://es.weather.yahoo.com/SPXX/%s/index_c.html', $parms{city};
 
-my $f_weather_html =
-  "$config_parms{data_dir}/../web/ia5/outside/weather_local.html";
+my $f_weather_html = "$config_parms{data_dir}/../web/ia5/outside/weather_local.html";
 my $f_weather_data = "$config_parms{data_dir}/weather_data";
 
 my $debug = 1 if ( $parms{debug} );

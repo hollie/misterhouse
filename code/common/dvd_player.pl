@@ -49,13 +49,12 @@ $dvd_states = join( ',', keys %dvd_states );
 
 #***Point voice commands to error messages if objects not created!
 #***Set info, icons? Use info in help
-$v_dvd_control = new Voice_Cmd( "DVD movie [$dvd_states]", 0 );
-$v_dvd_movie =
-  new Voice_Cmd( "Show DVD movie [$config_parms{dvd_favorites}]", 0 );
-$v_dvd_attractions = new Voice_Cmd( "What is showing on DVD", 0 );
-$v_dvd_help        = new Voice_Cmd( "DVD movie help",         0 );
+$v_dvd_control     = new Voice_Cmd( "DVD movie [$dvd_states]",                       0 );
+$v_dvd_movie       = new Voice_Cmd( "Show DVD movie [$config_parms{dvd_favorites}]", 0 );
+$v_dvd_attractions = new Voice_Cmd( "What is showing on DVD",                        0 );
+$v_dvd_help        = new Voice_Cmd( "DVD movie help",                                0 );
 $f_dvd             = new File_Item("$Pgm_Path/dvd.txt");
-$p_dvd = new Process_Item("dir_to_file $config_parms{dvd_drive} dvd.txt");
+$p_dvd             = new Process_Item("dir_to_file $config_parms{dvd_drive} dvd.txt");
 
 #noloop=stop
 
@@ -86,9 +85,7 @@ if ( $state = said $v_dvd_help) {
 }
 if ( $state = said $v_dvd_attractions) {
     &refresh_marquee();
-    &respond( "app=movie mode=rotates $config_parms{dvd_favorites}"
-          . ( ( $dvd_marquee->{state} ) ? " plus $dvd_marquee->{state}" : '' )
-    );
+    &respond( "app=movie mode=rotates $config_parms{dvd_favorites}" . ( ( $dvd_marquee->{state} ) ? " plus $dvd_marquee->{state}" : '' ) );
 }
 if ( $state = said $v_dvd_control) {
     &refresh_marquee() if $state eq 'play';

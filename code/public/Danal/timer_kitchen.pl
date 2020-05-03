@@ -24,8 +24,7 @@ if ( $state = said $v_list_timer) {
     $result .= &plural( $temp, "minute" ) . " left on Lower Oven timer\n"
       if ( $temp != 0 );
     $temp = minutes_remaining $timer_RFBurn;
-    $result .=
-      &plural( $temp, "minute" ) . " left on Right Front Burner timer\n"
+    $result .= &plural( $temp, "minute" ) . " left on Right Front Burner timer\n"
       if ( $temp != 0 );
     $temp = minutes_remaining $timer_LFBurn;
     $result .= &plural( $temp, "minute" ) . " left on Left Front Burner timer\n"
@@ -66,30 +65,14 @@ if ( $state = said $v_can_timer) {
 
 my %timer_reminder_intervals = map { $_, 1 } ( 1, 5, 10, 20, 30, 60 );
 
-$v_UpOven_timer = new Voice_Cmd(
-    'Set Upper Oven Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes'
-);
-$v_LwOven_timer = new Voice_Cmd(
-    'Set Lower Oven Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes'
-);
-$v_RFBurn_timer = new Voice_Cmd(
-    'Set Right Front Burner Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes'
-);
-$v_LFBurn_timer = new Voice_Cmd(
-    'Set Left Front Burner Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes'
-);
-$v_RRBurn_timer = new Voice_Cmd(
-    'Set Right Rear Burner Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes'
-);
-$v_LRBurn_timer = new Voice_Cmd(
-    'Set Left Rear Burner Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes'
-);
-$v_EXTim1_timer = new Voice_Cmd(
-    'Set Extra Timer 1 for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes'
-);
-$v_EXTim2_timer = new Voice_Cmd(
-    'Set Extra Timer 2 for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes'
-);
+$v_UpOven_timer = new Voice_Cmd('Set Upper Oven Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes');
+$v_LwOven_timer = new Voice_Cmd('Set Lower Oven Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes');
+$v_RFBurn_timer = new Voice_Cmd('Set Right Front Burner Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes');
+$v_LFBurn_timer = new Voice_Cmd('Set Left Front Burner Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes');
+$v_RRBurn_timer = new Voice_Cmd('Set Right Rear Burner Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes');
+$v_LRBurn_timer = new Voice_Cmd('Set Left Rear Burner Timer for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes');
+$v_EXTim1_timer = new Voice_Cmd('Set Extra Timer 1 for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes');
+$v_EXTim2_timer = new Voice_Cmd('Set Extra Timer 2 for [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,45,60,90,120] minutes');
 
 set_order $v_UpOven_timer '03';
 set_order $v_LwOven_timer '04';
@@ -102,8 +85,7 @@ set_order $v_EXTim2_timer '10';
 
 if ( $state = said $v_UpOven_timer) {
     speak "The Upper Oven has a timer set for $state minutes";
-    set $timer_UpOven $state * 60,
-      "speak 'rooms=all Notice, the Upper Oven timer just expired after $state minutes. Repeat <emph>Upper Oven</emph>'";
+    set $timer_UpOven $state * 60, "speak 'rooms=all Notice, the Upper Oven timer just expired after $state minutes. Repeat <emph>Upper Oven</emph>'";
 }
 speak &plural( $temp, "minute" ) . " left on the Upper Oven timer"
   if ( $temp = minutes_remaining_now $timer_UpOven)
@@ -111,8 +93,7 @@ speak &plural( $temp, "minute" ) . " left on the Upper Oven timer"
 
 if ( $state = said $v_LwOven_timer) {
     speak "The Lower Oven has a timer set for $state minutes";
-    set $timer_LwOven $state * 60,
-      "speak 'rooms=all Notice, the Lower Oven timer just expired after $state minutes. Repeat <emph>Lower Oven</emph>'";
+    set $timer_LwOven $state * 60, "speak 'rooms=all Notice, the Lower Oven timer just expired after $state minutes. Repeat <emph>Lower Oven</emph>'";
 }
 speak &plural( $temp, "minute" ) . " left on the Lower Oven timer"
   if ( $temp = minutes_remaining_now $timer_LwOven)
@@ -156,8 +137,7 @@ speak &plural( $temp, "minute" ) . " left on the Left Rear burner timer"
 
 if ( $state = said $v_EXTim1_timer) {
     speak "The Extra timer 1 is set for $state minutes";
-    set $timer_EXTim1 $state * 60,
-      "speak 'rooms=all Notice, the Extra timer 1 just expired after $state minutes. Repeat <emph>Extra 1</emph>'";
+    set $timer_EXTim1 $state * 60, "speak 'rooms=all Notice, the Extra timer 1 just expired after $state minutes. Repeat <emph>Extra 1</emph>'";
 }
 speak &plural( $temp, "minute" ) . " left on the Extra 1 timer"
   if ( $temp = minutes_remaining_now $timer_EXTim1)
@@ -165,8 +145,7 @@ speak &plural( $temp, "minute" ) . " left on the Extra 1 timer"
 
 if ( $state = said $v_EXTim2_timer) {
     speak "The Extra timer 2 is set for $state minutes";
-    set $timer_EXTim2 $state * 60,
-      "speak 'rooms=all Notice, the Extra timer 2 just expired after $state minutes. Repeat <emph>Extra 2</emph>'";
+    set $timer_EXTim2 $state * 60, "speak 'rooms=all Notice, the Extra timer 2 just expired after $state minutes. Repeat <emph>Extra 2</emph>'";
 }
 speak &plural( $temp, "minute" ) . " left on the Extra 2 timer"
   if ( $temp = minutes_remaining_now $timer_EXTim2)

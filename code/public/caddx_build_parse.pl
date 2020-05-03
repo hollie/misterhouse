@@ -91,8 +91,7 @@ BEGINCODE
                 my $bit  = $2;
 
                 if ( $bit =~ /\d+/ ) {
-                    $code .=
-                      "\$datum=&caddx::parse::getbits(\$msgb[$byte],'$bit') ;\n";
+                    $code .= "\$datum=&caddx::parse::getbits(\$msgb[$byte],'$bit') ;\n";
                     ## $code .= "push(\@msgdata, ['$loc','$name',&getbits(\$msgb[$byte],'$bit') ]);\n";
                 }
                 elsif ( defined $byte ) {

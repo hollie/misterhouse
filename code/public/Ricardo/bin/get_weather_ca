@@ -28,22 +28,16 @@ BEGIN {
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
-my ($Version) =
-  q$Revision: 1.4 $ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+my ($Version) = q$Revision: 1.4 $ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
 
 #print "Command: $Pgm_Name @ARGV\n";
 #print "Version: $Version\n";
 
 use Getopt::Long;
 my %parms;
-if (
-    !&GetOptions(
-        \%parms,  "reget",  "h", "help", "v", "debug",
-        "city:s", "file=s", "no_log"
-    )
+if (  !&GetOptions( \%parms, "reget", "h", "help", "v", "debug", "city:s", "file=s", "no_log" )
     or @ARGV
-    or ( $parms{h} or $parms{help} )
-  )
+    or ( $parms{h} or $parms{help} ) )
 {
     print <<eof;
 
@@ -99,10 +93,7 @@ $parms{city} = $config_parms{weather_city} unless $parms{city};
 $parms{city} = 'on-117' unless $parms{city};
 
 my $WeatherURL;
-$WeatherURL =
-  sprintf
-  'http://text.weatheroffice.ec.gc.ca/forecast/city_e.html?%s&b_templatePrint=true',
-  $parms{city};
+$WeatherURL = sprintf 'http://text.weatheroffice.ec.gc.ca/forecast/city_e.html?%s&b_templatePrint=true', $parms{city};
 
 my $f_weather_html = "$config_parms{data_dir}/web/weather_ca.html";
 my $f_weather_data = "$config_parms{data_dir}/weather_data";
@@ -198,9 +189,7 @@ sub parse_weather_ca {
     # convert the strangely formatted UTC timestamp to local time.
     my $tmp = $1;
 
-    ( $tmp =~
-          m/\s*([0-9]+)\s*([0-9|A-Z|a-z|:]+)\s*\s*([0-9|A-Z|a-z|:]+)\s*([0-9|A-Z|a-z|:]+)\s*([0-9|A-Z|a-z|:]+)/i
-      )
+    ( $tmp =~ m/\s*([0-9]+)\s*([0-9|A-Z|a-z|:]+)\s*\s*([0-9|A-Z|a-z|:]+)\s*([0-9|A-Z|a-z|:]+)\s*([0-9|A-Z|a-z|:]+)/i )
       &&
 
       #	($tmp = $2 . " " . $1 . " " . $3 . " " . $4 . " " . $5);
@@ -214,9 +203,7 @@ sub parse_weather_ca {
     ( $html =~ m/Temperature\s*:\s*\<\/dt\>\s*\n\s*\<dd\>\s*([^<]+)/i )
       && ( $Weather{TempOutdoor} = $1 );
 
-    ( $html =~
-          m/Pressure\s*\/\s*Tendency\s*:\s*\<\/dt\>\s*\n\s*\<dd\>\s*([^<]+)\s*\//i
-    ) && ( $Weather{Barom} = $1 );
+    ( $html =~ m/Pressure\s*\/\s*Tendency\s*:\s*\<\/dt\>\s*\n\s*\<dd\>\s*([^<]+)\s*\//i ) && ( $Weather{Barom} = $1 );
 
     ( $html =~ m/Visibility\s*:\s*\<\/dt\>\s*\n\s*\<dd\>\s*([^<]+)/i )
       && ( $Weather{Visibility} = $1 );

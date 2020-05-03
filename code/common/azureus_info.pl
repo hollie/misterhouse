@@ -76,24 +76,18 @@ if (    ( -f $config_parms{azinfo_file} )
 
     if ( not defined @{ $ref->{DOWNLOADS}->{DOWNLOAD} } ) {
         my @tmp_acn =
-          keys %active_torrents;  #only print error if there are active torrents
-        print_log
-          "AzInfo: WARNING: Torrent array undefined! ($#tmp_acn active torrents)"
+          keys %active_torrents;    #only print error if there are active torrents
+        print_log "AzInfo: WARNING: Torrent array undefined! ($#tmp_acn active torrents)"
           if ( $#tmp_acn >= 1 );
     }
     else {
 
         foreach my $torrent ( @{ $ref->{DOWNLOADS}->{DOWNLOAD} } ) {
-            print
-              "DB: $Time_Now Looking for $torrent->{TORRENT}->{HASH}=$active_torrents{$torrent->{TORRENT}->{HASH}}->{NAME}\n"
+            print "DB: $Time_Now Looking for $torrent->{TORRENT}->{HASH}=$active_torrents{$torrent->{TORRENT}->{HASH}}->{NAME}\n"
               if $az_debug;
             print Dumper(%active_torrents) if $az_debug;
-            unless (
-                defined $active_torrents{ $torrent->{TORRENT}->{HASH} }->{NAME}
-              )
-            {
-                print_log
-                  "Torrent: New torrent $torrent->{TORRENT}->{NAME} added.";
+            unless ( defined $active_torrents{ $torrent->{TORRENT}->{HASH} }->{NAME} ) {
+                print_log "Torrent: New torrent $torrent->{TORRENT}->{NAME} added.";
                 my ($t_notify) =
                   split( /[\.' '_]/, $torrent->{TORRENT}->{NAME} );
                 speak( rooms => "all", text => "Download $t_notify started" );
@@ -107,45 +101,36 @@ if (    ( -f $config_parms{azinfo_file} )
 
             }
             else {
-                print
-                  "DB: $Time_Now Updating $torrent->{TORRENT}->{HASH}=$active_torrents{$torrent->{TORRENT}->{HASH}}->{NAME}\n"
+                print "DB: $Time_Now Updating $torrent->{TORRENT}->{HASH}=$active_torrents{$torrent->{TORRENT}->{HASH}}->{NAME}\n"
                   if $az_debug;
                 $active_torrents{ $torrent->{TORRENT}->{HASH} }->{FLAG} = 2;
-                unless ( $active_torrents{ $torrent->{TORRENT}->{HASH} }
-                    ->{DOWNLOAD_STATUS} eq $torrent->{DOWNLOAD_STATUS} )
-                {
-                    print_log
-                      "Torrent: $torrent->{TORRENT}->{NAME} Changed status to $torrent->{DOWNLOAD_STATUS}";
+                unless ( $active_torrents{ $torrent->{TORRENT}->{HASH} }->{DOWNLOAD_STATUS} eq $torrent->{DOWNLOAD_STATUS} ) {
+                    print_log "Torrent: $torrent->{TORRENT}->{NAME} Changed status to $torrent->{DOWNLOAD_STATUS}";
                     if ( $torrent->{DOWNLOAD_STATUS} eq 'Seeding' ) {
                         my ($t_notify) =
                           split( /[\.' '_]/, $torrent->{TORRENT}->{NAME} );
-                        print_log
-                          "Torrent: $torrent->{TORRENT}->{NAME} completed at $Time_Now";
+                        print_log "Torrent: $torrent->{TORRENT}->{NAME} completed at $Time_Now";
                         speak(
                             rooms => "all",
                             text  => "Download $t_notify completed"
                         );
                     }
-                    $active_torrents{ $torrent->{TORRENT}->{HASH} }
-                      ->{DOWNLOAD_STATUS} = $torrent->{DOWNLOAD_STATUS};
+                    $active_torrents{ $torrent->{TORRENT}->{HASH} }->{DOWNLOAD_STATUS} = $torrent->{DOWNLOAD_STATUS};
                 }
 
                 #-------------------------------------------------------
                 # Test area for active torrents
                 if ( ( $torrent->{HASH_FAILS} > 50 )
-                    and
-                    !$active_torrents{ $torrent->{TORRENT}->{HASH} }->{HASH_ERR}
-                  )
+                    and !$active_torrents{ $torrent->{TORRENT}->{HASH} }->{HASH_ERR} )
                 {
-                    $active_torrents{ $torrent->{TORRENT}->{HASH} }->{HASH_ERR}
-                      = 1;
-                    print_log
-                      "Torrent: Warning! $torrent->{TORRENT}->{NAME} has more than 50 hash errors!";
+                    $active_torrents{ $torrent->{TORRENT}->{HASH} }->{HASH_ERR} =
+                      1;
+                    print_log "Torrent: Warning! $torrent->{TORRENT}->{NAME} has more than 50 hash errors!";
                     my ($t_notify) =
                       split( /[\.' '_]/, $torrent->{TORRENT}->{NAME} );
                     speak(
                         rooms => "all",
-                        text => "Download $t_notify has a high number of errors"
+                        text  => "Download $t_notify has a high number of errors"
                     );
                 }
 
@@ -153,37 +138,21 @@ if (    ( -f $config_parms{azinfo_file} )
                     my $t_completed = sprintf(
                         "%.1f",
                         (
-                            (
-                                $torrent->{DOWNLOADED}->{RAW} -
-                                  $torrent->{DISCARDED}->{RAW} -
-                                  (
-                                    $torrent->{HASH_FAILS} *
-                                      $torrent->{TORRENT}->{PIECE_LENGTH}
-                                  )
-                            ) / $torrent->{TORRENT}->{SIZE}->{RAW}
+                            ( $torrent->{DOWNLOADED}->{RAW} - $torrent->{DISCARDED}->{RAW} - ( $torrent->{HASH_FAILS} * $torrent->{TORRENT}->{PIECE_LENGTH} ) )
+                            / $torrent->{TORRENT}->{SIZE}->{RAW}
                         ) * $config_parms{azinfo_progress}
                     );
-                    if (
-                        int($t_completed) !=
-                        $active_torrents{ $torrent->{TORRENT}->{HASH} }
-                        ->{COMPLETION} )
-                    {
-                        my $t_save =
-                          $active_torrents{ $torrent->{TORRENT}->{HASH} }
-                          ->{COMPLETION} * $config_parms{azinfo_file};
-                        $active_torrents{ $torrent->{TORRENT}->{HASH} }
-                          ->{COMPLETION} = int($t_completed);
+                    if ( int($t_completed) != $active_torrents{ $torrent->{TORRENT}->{HASH} }->{COMPLETION} ) {
+                        my $t_save = $active_torrents{ $torrent->{TORRENT}->{HASH} }->{COMPLETION} * $config_parms{azinfo_file};
+                        $active_torrents{ $torrent->{TORRENT}->{HASH} }->{COMPLETION} = int($t_completed);
                         my $t_db = $t_completed;
-                        $t_completed = $t_completed *
-                          ( 100 / $config_parms{azinfo_progress} );
-                        print_log
-                          "Torrent: $torrent->{TORRENT}->{NAME} now at $t_completed%";
+                        $t_completed = $t_completed * ( 100 / $config_parms{azinfo_progress} );
+                        print_log "Torrent: $torrent->{TORRENT}->{NAME} now at $t_completed%";
                         my ($t_notify) =
                           split( /[\.' '_]/, $torrent->{TORRENT}->{NAME} );
                         speak(
                             rooms => "all",
-                            text =>
-                              "Download $t_notify now at $t_completed percent"
+                            text  => "Download $t_notify now at $t_completed percent"
                         ) if ( $t_completed < 100 );
                     }
                 }
@@ -194,19 +163,16 @@ if (    ( -f $config_parms{azinfo_file} )
         }
 
         while ( my $hash = each %active_torrents ) {
-            print
-              "DB: $Time_Now Checking for removal $hash=$active_torrents{$hash}->{NAME}\n"
+            print "DB: $Time_Now Checking for removal $hash=$active_torrents{$hash}->{NAME}\n"
               if $az_debug;
             if ( $active_torrents{$hash}->{FLAG} == 0 ) {
-                print_log
-                  "Torrent: $active_torrents{$hash}->{NAME} Has been removed";
+                print_log "Torrent: $active_torrents{$hash}->{NAME} Has been removed";
                 delete $active_torrents{$hash};
                 print Dumper(%active_torrents) if $az_debug;
             }
             else {
                 $active_torrents{$hash}->{FLAG}--;
-                print
-                  "DB: $Time_Now Found $hash=$active_torrents{$hash}->{NAME} flag=$active_torrents{$hash}->{FLAG}\n"
+                print "DB: $Time_Now Found $hash=$active_torrents{$hash}->{NAME} flag=$active_torrents{$hash}->{FLAG}\n"
                   if $az_debug;
 
             }
@@ -223,8 +189,7 @@ sub web_torrents {
     my $html_footer    = ();
     my $tor_dl         = 0;
     my $tor_seed       = 0;
-    my $name_length =
-      45;    ## Limited to 45 characters to display nice on the Audrey's
+    my $name_length    = 45;    ## Limited to 45 characters to display nice on the Audrey's
 
     #if file doesn't exist print error, else
     if ( not( -f $config_parms{azinfo_file} ) ) {
@@ -253,8 +218,7 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
 </style>
 </head>
 <body>"
-          . &html_header(
-            "Error: Temporary problem reading stats file. Try again");
+          . &html_header("Error: Temporary problem reading stats file. Try again");
         $html .= "</body>";
         my $html_page = &html_page( '', $html );
         return &html_page( '', $html );
@@ -264,12 +228,10 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
 
         if ( $torrent->{DOWNLOAD_STATUS} eq 'Seeding' ) {
             $tor_seed++;
-            $html_seed_data .=
-              "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>\n";
+            $html_seed_data .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>\n";
             my $t_name = sprintf( "%-30s", $torrent->{TORRENT}->{NAME} );
             $html_seed_data .= "<td nowrap>$t_name</td>";
-            $html_seed_data .=
-              "<td nowrap>$torrent->{UPLOAD_SPEED}->{TEXT}</td><tr>\n";
+            $html_seed_data .= "<td nowrap>$torrent->{UPLOAD_SPEED}->{TEXT}</td><tr>\n";
         }
 
         else {
@@ -286,42 +248,32 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
 
             my $t_name = $torrent->{TORRENT}->{NAME};
             if ( length( $torrent->{TORRENT}->{NAME} ) > $name_length ) {
-                $t_name = substr( $torrent->{TORRENT}->{NAME}, 0,
-                    ( $name_length - 3 ) );
+                $t_name = substr( $torrent->{TORRENT}->{NAME}, 0, ( $name_length - 3 ) );
                 $t_name .= "...";
             }
             my $t_completed = sprintf(
                 "%.1f%",
                 (
-                    (
-                        $torrent->{DOWNLOADED}->{RAW} -
-                          $torrent->{DISCARDED}->{RAW} -
-                          (
-                            $torrent->{HASH_FAILS} *
-                              $torrent->{TORRENT}->{PIECE_LENGTH}
-                          )
-                    ) / $torrent->{TORRENT}->{SIZE}->{RAW}
+                    ( $torrent->{DOWNLOADED}->{RAW} - $torrent->{DISCARDED}->{RAW} - ( $torrent->{HASH_FAILS} * $torrent->{TORRENT}->{PIECE_LENGTH} ) ) /
+                      $torrent->{TORRENT}->{SIZE}->{RAW}
                 ) * 100
             );
 
-            $html_dl_data .=
-              "<td nowrap><a href=\"SUB?web_torrent_details($torrent->{TORRENT}->{HASH})\">$t_name</a></td>";
+            $html_dl_data .= "<td nowrap><a href=\"SUB?web_torrent_details($torrent->{TORRENT}->{HASH})\">$t_name</a></td>";
 
             if ( $torrent->{DOWNLOAD_STATUS} =~ m/downloading/i ) {
-                if ( $torrent->{ETA} eq chr(0x221e) )
-                {    ##www1.tip.nl/~t876506/utf8tbl.html
+                if ( $torrent->{ETA} eq chr(0x221e) ) {    ##www1.tip.nl/~t876506/utf8tbl.html
                     $html_dl_data .= "<td nowrap><i>tbd</i></td>";
                 }
                 else {
                     $html_dl_data .= "<td nowrap>$torrent->{ETA}</td>";
                 }
             }
-            else {    #Problem with torrent, not downloading
+            else {                                         #Problem with torrent, not downloading
                 $html_dl_data .= "<td nowrap>$torrent->{DOWNLOAD_STATUS}</td>";
             }
             $html_dl_data .= "<td nowrap>$t_completed</td>";
-            $html_dl_data .=
-              "<td nowrap>$torrent->{DOWNLOAD_SPEED}->{TEXT}</td>";
+            $html_dl_data .= "<td nowrap>$torrent->{DOWNLOAD_SPEED}->{TEXT}</td>";
             $html_dl_data .= "</tr>\n";
         }
     }
@@ -343,10 +295,8 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
     $html_seed_hdr .=
       "<table width=100% cellspacing=2><tbody><font face=COURIER size=2><tr id='resultrow' bgcolor='#9999CC' class='wvtheader'><th align='left'>Name";
     if ( $config_parms{azinfo_webgui} ) {
-        $html_seed_hdr .=
-          "  <a href=\"SUB;referer?web_torrent_control(seeds,startall)\">( START ALL )</a>   ";
-        $html_seed_hdr .=
-          "  <a href=\"SUB;referer?web_torrent_control(seeds,stopall)\">( STOP ALL )</a>   ";
+        $html_seed_hdr .= "  <a href=\"SUB;referer?web_torrent_control(seeds,startall)\">( START ALL )</a>   ";
+        $html_seed_hdr .= "  <a href=\"SUB;referer?web_torrent_control(seeds,stopall)\">( STOP ALL )</a>   ";
     }
     $html_seed_hdr .= "</th><th align='left'>Upload Speed</th>";
 
@@ -368,13 +318,10 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
         $html .=
           "<table width=100% cellspacing=2><tbody><font face=COURIER size=2><tr id='resultrow' bgcolor='#9999CC' class='wvtheader'><th align='left'>Name";
         if ( $config_parms{azinfo_webgui} ) {
-            $html .=
-              "  <a href=\"SUB;no_response?web_torrent_control(downloads,startall)\">( START ALL )</a>   ";
-            $html .=
-              "  <a href=\"SUB;no_response?web_torrent_control(downloads,stopall)\">( STOP ALL )</a>   ";
+            $html .= "  <a href=\"SUB;no_response?web_torrent_control(downloads,startall)\">( START ALL )</a>   ";
+            $html .= "  <a href=\"SUB;no_response?web_torrent_control(downloads,stopall)\">( STOP ALL )</a>   ";
         }
-        $html .=
-          "</th><th align='left'>ETA</th><th align='left'>Completed</th><th align='left'>Download Speed</th>";
+        $html .= "</th><th align='left'>ETA</th><th align='left'>Completed</th><th align='left'>Download Speed</th>";
         $html .= $html_dl_data;
     }
 
@@ -416,13 +363,7 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
         return &html_page( '', $html );
     }
 
-    my $ref = eval {
-        XMLin(
-            $config_parms{azinfo_file},
-            forcearray    => ['DOWNLOAD'],
-            suppressempty => undef
-        );
-    };
+    my $ref = eval { XMLin( $config_parms{azinfo_file}, forcearray => ['DOWNLOAD'], suppressempty => undef ); };
     if ($@) {
         print_log "AzInfo_Web: ERROR: Problem parsing Azureus Stats XML:$@";
         my $html = "<html>
@@ -433,8 +374,7 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
 </style>
 </head>
 <body>"
-          . &html_header(
-            "Error: Temporary problem reading stats file. Try again");
+          . &html_header("Error: Temporary problem reading stats file. Try again");
         $html .= "</body>";
         my $html_page = &html_page( '', $html );
         return &html_page( '', $html );
@@ -453,14 +393,11 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
             $html_data .=
               "<table width=100% cellspacing=2><tbody><font face=COURIER size=2><tr id='resultrow' bgcolor='#9999CC' class='wvtheader'><th align='left' colspan=\"3\">Transfer";
             if ( $config_parms{azinfo_webgui} ) {
-                $html_data .=
-                  "  <a href=\"SUB;referer?web_torrent_control($torrent->{TORRENT}->{HASH},start)\">(START)</a>   ";
-                $html_data .=
-                  "  <a href=\"SUB;referer?web_torrent_control($torrent->{TORRENT}->{HASH},stop)\">(STOP)</a>   ";
+                $html_data .= "  <a href=\"SUB;referer?web_torrent_control($torrent->{TORRENT}->{HASH},start)\">(START)</a>   ";
+                $html_data .= "  <a href=\"SUB;referer?web_torrent_control($torrent->{TORRENT}->{HASH},stop)\">(STOP)</a>   ";
             }
             $html_data .= "</th>\n";
-            $html_data .=
-              "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
+            $html_data .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
             $html_data .= "<td nowrap>Time Elapsed: $torrent->{ELAPSED}</td>";
             $html_data .= "<td nowrap>Time Remaining:";
             if ( $torrent->{ETA} eq chr(0x221e) ) {
@@ -472,48 +409,31 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
             my $t_completed = sprintf(
                 "%.1f%",
                 (
-                    (
-                        $torrent->{DOWNLOADED}->{RAW} -
-                          $torrent->{DISCARDED}->{RAW} -
-                          (
-                            $torrent->{HASH_FAILS} *
-                              $torrent->{TORRENT}->{PIECE_LENGTH}
-                          )
-                    ) / $torrent->{TORRENT}->{SIZE}->{RAW}
+                    ( $torrent->{DOWNLOADED}->{RAW} - $torrent->{DISCARDED}->{RAW} - ( $torrent->{HASH_FAILS} * $torrent->{TORRENT}->{PIECE_LENGTH} ) ) /
+                      $torrent->{TORRENT}->{SIZE}->{RAW}
                 ) * 100
             );
             $html_data .= "<td nowrap>Completed: $t_completed</td></tr>\n";
 
-            $html_data .=
-              "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
-            $html_data .=
-              "<td nowrap>Downloaded: $torrent->{DOWNLOADED}->{TEXT}</td>";
-            $html_data .=
-              "<td nowrap>Download Speed: $torrent->{DOWNLOAD_SPEED}->{TEXT}</td>";
+            $html_data .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
+            $html_data .= "<td nowrap>Downloaded: $torrent->{DOWNLOADED}->{TEXT}</td>";
+            $html_data .= "<td nowrap>Download Speed: $torrent->{DOWNLOAD_SPEED}->{TEXT}</td>";
             $html_data .= "<td ";
             if ( $torrent->{HASH_FAILS} > 30 ) {
                 $html_data .= "bgcolor='#FFCC00' ";
             }
-            $html_data .=
-              "nowrap>Hash Fails: $torrent->{HASH_FAILS}</td></tr>\n";
+            $html_data .= "nowrap>Hash Fails: $torrent->{HASH_FAILS}</td></tr>\n";
 
-            $html_data .=
-              "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
-            $html_data .=
-              "<td nowrap>Uploaded: $torrent->{UPLOADED}->{TEXT}</td>";
-            $html_data .=
-              "<td nowrap>Upload Speed: $torrent->{UPLOAD_SPEED}->{TEXT}</td>";
+            $html_data .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
+            $html_data .= "<td nowrap>Uploaded: $torrent->{UPLOADED}->{TEXT}</td>";
+            $html_data .= "<td nowrap>Upload Speed: $torrent->{UPLOAD_SPEED}->{TEXT}</td>";
             my $t_ratio = $torrent->{SHARE_RATIO} / 1000;
             $html_data .= "<td nowrap>Share Ratio: $t_ratio</td></tr>\n";
 
-            $html_data .=
-              "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
-            $html_data .=
-              "<td nowrap>Seeds: $torrent->{TOTAL_SEEDS} Connected</td>";
-            $html_data .=
-              "<td nowrap>Peers: $torrent->{TOTAL_LEECHERS} Connected</td>";
-            $html_data .=
-              "<td nowrap>Swarm Speed: $torrent->{TOTAL_SPEED}->{TEXT}</td></tr>\n";
+            $html_data .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
+            $html_data .= "<td nowrap>Seeds: $torrent->{TOTAL_SEEDS} Connected</td>";
+            $html_data .= "<td nowrap>Peers: $torrent->{TOTAL_LEECHERS} Connected</td>";
+            $html_data .= "<td nowrap>Swarm Speed: $torrent->{TOTAL_SPEED}->{TEXT}</td></tr>\n";
 
             $html_data .= "</table>\n";
 
@@ -521,42 +441,30 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
             $html_data .=
               "<table width=100% cellspacing=2><tbody><font face=COURIER size=2><tr id='resultrow' bgcolor='#9999CC' class='wvtheader'><th align='left' colspan=\"3\">Info</th>";
 
-            $html_data .=
-              "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
+            $html_data .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
             my $t_name = sprintf( "%-30s", $torrent->{TORRENT}->{NAME} );
-            $html_data .=
-              "<td colspan=\"3\" nowrap>File Name: $t_name</td></tr>";
+            $html_data .= "<td colspan=\"3\" nowrap>File Name: $t_name</td></tr>";
 
-            $html_data .=
-              "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
+            $html_data .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
             my $t_save = sprintf( "%-30s", $torrent->{DOWNLOAD_DIR} );
             $html_data .= "<td colspan=\"3\" nowrap>Save in: $t_save</td></tr>";
 
-            $html_data .=
-              "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
-            $html_data .=
-              "<td colspan=\"3\" nowrap>Hash: $torrent->{TORRENT}->{HASH}</td></tr>\n";
+            $html_data .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
+            $html_data .= "<td colspan=\"3\" nowrap>Hash: $torrent->{TORRENT}->{HASH}</td></tr>\n";
 
-            $html_data .=
-              "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
-            $html_data .=
-              "<td nowrap>\# of Pieces: $torrent->{TORRENT}->{PIECE_COUNT}</td>";
+            $html_data .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
+            $html_data .= "<td nowrap>\# of Pieces: $torrent->{TORRENT}->{PIECE_COUNT}</td>";
             my $t_plength =
               sprintf( "%4.2f", $torrent->{TORRENT}->{PIECE_LENGTH} / 1000 );
             $html_data .= "<td nowrap>Size: $t_plength kb</td>\n";
-            $html_data .=
-              "<td nowrap>Total Size: $torrent->{TORRENT}->{SIZE}->{TEXT}</td></tr>\n";
+            $html_data .= "<td nowrap>Total Size: $torrent->{TORRENT}->{SIZE}->{TEXT}</td></tr>\n";
 
-            $html_data .=
-              "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
-            $html_data .=
-              "<td nowrap>Tracker Status: $torrent->{TRACKER_STATUS}</td>";
+            $html_data .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
+            $html_data .= "<td nowrap>Tracker Status: $torrent->{TRACKER_STATUS}</td>";
             my $t_time = gmtime $torrent->{TORRENT}->{CREATION_DATE};
-            $html_data .=
-              "<td colspan=\"2\" nowrap>Created on: $t_time</td></tr>\n";
+            $html_data .= "<td colspan=\"2\" nowrap>Created on: $t_time</td></tr>\n";
 
-            $html_data .=
-              "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
+            $html_data .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
             $html_data .= "<td colspan=\"3\" nowrap>Comment: ";
 
             if ( defined $torrent->{TORRENT}->{COMMENT} ) {
@@ -585,8 +493,7 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
 
     if ( $found == 0 ) {
         $html .= &html_header("Cannot find Torrent! ");
-        print_log
-          "Torrent: Error, Web_Torrent_Details cannot find torrent hash=$hash";
+        print_log "Torrent: Error, Web_Torrent_Details cannot find torrent hash=$hash";
     }
 
     $html .= "</body>";
@@ -599,8 +506,7 @@ TR.wvtheader {font-family:Tahoma; font-size:11; color:#101010}
 sub web_torrent_control {
 
     my ( $hash, $action ) = @_;
-    my $control_url =
-      "http://$config_parms{azinfo_webgui_ip}:$config_parms{azinfo_webgui_port}/index.tmpl";
+    my $control_url = "http://$config_parms{azinfo_webgui_ip}:$config_parms{azinfo_webgui_port}/index.tmpl";
     my $control_id = substr $hash, 0, 5;
 
     print_log "AzInfo: AzControl: changing torrent $hash to $action";

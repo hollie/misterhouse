@@ -17,20 +17,18 @@
 #
 #---------------------------------------------------------------------------
 
-package display_callers
-  ;    # So we can do the faster 'do' from mh, and not mess it up.
+package display_callers;    # So we can do the faster 'do' from mh, and not mess it up.
 
 my ( $Pgm_Path, $Pgm_Name );
-use vars '$Pgm_Root';    # So we can see it in eval var subs in read_parms
+use vars '$Pgm_Root';       # So we can see it in eval var subs in read_parms
 
 BEGIN {
-    ($Version) =
-      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
 
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
     $Pgm_Root = "$Pgm_Path/..";
-    eval "use lib '$Pgm_Path/../lib'";   # Use BEGIN eval to keep perl2exe happy
+    eval "use lib '$Pgm_Path/../lib'";        # Use BEGIN eval to keep perl2exe happy
 }
 
 use Getopt::Long;
@@ -69,10 +67,10 @@ else {
     &display;
 }
 
-my ( $file_qual, $dir, $MW );
-my ( @members1, @members2, @members_picked1, @members_picked2, %info );
+my ( $file_qual,               $dir,                $MW );
+my ( @members1,                @members2,           @members_picked1, @members_picked2, %info );
 my ( %callerid_name_by_number, %dbm_name_by_number, %calls );
-my ( @pl1, @pl2, @pl3 );
+my ( @pl1,                     @pl2,                @pl3 );
 my ($loop);
 
 my %config_parms;
@@ -90,8 +88,7 @@ sub setup {
     #   use DB_File;  # neede for ocmpiled version??
 
     if ( $parms{cgi} ) {
-        eval "use CGI ':all';"
-          ;    # Use eval so we don't fail if CGI not available (e.g. mh.exe)
+        eval "use CGI ':all';";      # Use eval so we don't fail if CGI not available (e.g. mh.exe)
         print &header( -target => 'New Window' );
         print &start_html("Phone Logs");
         print "<center><H2>Phone Logs</H1></center>\n";
@@ -137,9 +134,8 @@ sub read_member_list {
     opendir( DIR, "$dir/logs" )
       or die "Could not open directory $dir/logs: $!\n";
     my @members = readdir(DIR);
-    @members1 = reverse sort grep( /callerid.*$file_qual.*log$/, @members )
-      ;    # ... should sort by -M instead of name ??
-    @members2 = reverse sort grep( /phone.*$file_qual.*log$/, @members );
+    @members1 = reverse sort grep( /callerid.*$file_qual.*log$/, @members );    # ... should sort by -M instead of name ??
+    @members2 = reverse sort grep( /phone.*$file_qual.*log$/,    @members );
 
     # Default to just the latest member
     unless (@members_picked1) {
@@ -156,8 +152,7 @@ sub read_member_list {
 sub read_callerid_list {
     print "Reading override phone list\n";
     open( CALLERID, $config_parms{caller_id_file} )
-      or print
-      "Error, could not open mh.ini caller_id_file=$config_parms{caller_id_file}: $!\n";
+      or print "Error, could not open mh.ini caller_id_file=$config_parms{caller_id_file}: $!\n";
 
     my $callerid_cnt = 0;
     while (<CALLERID>) {
@@ -201,15 +196,12 @@ sub read_dbm_file {
         #       print "1 number=$number data=$data\n" if $data =~ /SPENSER/i or $number =~ /8619/ or $number =~ /5307/;
         #       next if $data =~ /[^\x9\xa\xd\x20-\x7e]/; # Ignore messed up records  ... should filter these out of source file.
         next
-          if $data =~ /[^\x20-\x7e]/
-          ; # Ignore messed up records  ... should filter these out of source file.
+          if $data =~ /[^\x20-\x7e]/;    # Ignore messed up records  ... should filter these out of source file.
         next
-          if $number =~ /[^\x20-\x7e]/
-          ; # Ignore messed up records  ... should filter these out of source file.
+          if $number =~ /[^\x20-\x7e]/;    # Ignore messed up records  ... should filter these out of source file.
 
         #2  3:53 PM Sat, Dec 27 1997 name=WINTER BRUCE LA
-        my ( $calls, $time, $date, $name ) =
-          $data =~ /^(\d+) +(.+), (.+) name=(.+)/;
+        my ( $calls, $time, $date, $name ) = $data =~ /^(\d+) +(.+), (.+) name=(.+)/;
         next unless $name;
         $dbm_name_by_number{$number} = $name;
 
@@ -218,8 +210,7 @@ sub read_dbm_file {
         $calls{dbm}{$count}{date} =
           sprintf( "last=%010d calls=%4d", parsedate($date), $calls );
 
-        $calls{dbm}{$count}{'# calls'} = sprintf( "%04d", $calls )
-          ; # Since we do not have a sortable date here, sort on number of calls.
+        $calls{dbm}{$count}{'# calls'} = sprintf( "%04d", $calls );    # Since we do not have a sortable date here, sort on number of calls.
         $calls{dbm}{$count}{time_date} =
           sprintf( "last=%s calls=%4d", $date, $calls );
         $calls{dbm}{$count}{number} = $number;
@@ -251,16 +242,15 @@ sub read_in_call_log {
         while (<DATA>) {
 
             #            next if /[^\x9\xa\xd\x20-\x7e]/; # Ignore messed up records
-            tr/\x20-\x7e//cd; # Translate bad characters or else TK will mess up
+            tr/\x20-\x7e//cd;    # Translate bad characters or else TK will mess up
 
             #Tue, Nov  2  6:46 PM 507-252-8619 SPENCER DARYL
             #Mon 04/14/97 14:28:00
 
             #Sat 12/15/01 17:37:51 507-281-3888 name=TACINELLI JOHN  data=###DATE12151737...NMBR5072813888...NAMETACINELLI JOHN +++ line=W
 
-            my ( $time_date, $number, $name ) =
-              $_ =~ /(.+?)(\d\d\d\-?\d\d\d\-?\d\d\d\d) (.+)$/;
-            my ($line) = $_ =~ /line=(.+?)/;  # Optional ... which incoming line
+            my ( $time_date, $number, $name ) = $_ =~ /(.+?)(\d\d\d\-?\d\d\d\-?\d\d\d\d) (.+)$/;
+            my ($line) = $_ =~ /line=(.+?)/;    # Optional ... which incoming line
             $name =~ s/^name=//;
 
             # Deal with "private, 'out of area', and bad data" calls
@@ -323,7 +313,7 @@ sub read_out_call_log {
         while (<DATA>) {
 
             #           next if /[^\x9\xa\xd\x20-\x7e]/; # Ignore messed up records
-            tr/\x20-\x7e//cd; # Translate bad characters or else TK will mess up
+            tr/\x20-\x7e//cd;    # Translate bad characters or else TK will mess up
 
             #Tue, Nov  2  9:28 AM O2537009
             #Fri 11/26/99 10:14:06 O2537009
@@ -392,25 +382,18 @@ sub display {
 
     $fbr->Label( -text => 'List of log files' )->pack;
     my $fbr2 = $fbr->Frame->pack(qw/-expand no -fill x/);
-    $fbr2->Label( -text => 'Incoming files' )
-      ->pack(qw/-expand yes -fill x -side left/);
-    $fbr2->Label( -text => 'Outgoing files' )
-      ->pack(qw/-expand yes -fill x -side left/);
+    $fbr2->Label( -text => 'Incoming files' )->pack(qw/-expand yes -fill x -side left/);
+    $fbr2->Label( -text => 'Outgoing files' )->pack(qw/-expand yes -fill x -side left/);
 
     my ( $files1, $files2 );
-    $files1 = $fbr->Scrolled(
-        qw/Listbox -selectmode extended -width -1 -height 10 -setgrid 1 -scrollbars e -bg cyan/
-    );
+    $files1 = $fbr->Scrolled(qw/Listbox -selectmode extended -width -1 -height 10 -setgrid 1 -scrollbars e -bg cyan/);
     $files1->pack(@pl2)->insert( 0, @members1 );
-    $files2 = $fbr->Scrolled(
-        qw/Listbox -selectmode extended -width -1 -height 10 -setgrid 1 -scrollbars e -bg cyan/
-    );
+    $files2 = $fbr->Scrolled(qw/Listbox -selectmode extended -width -1 -height 10 -setgrid 1 -scrollbars e -bg cyan/);
     $files2->pack(@pl2)->insert( 0, @members2 );
 
     #   $files1->activate(0);
     #   $files2->activate(0);
-    $files1->selection( 'set', 0 )
-      ;    # Only one listbox widget can have a row slected at a time :(
+    $files1->selection( 'set', 0 );    # Only one listbox widget can have a row slected at a time :(
 
     #   $files2->selection('set', 0);
 
@@ -478,19 +461,14 @@ sub phone_list {
     if ( $class eq 'dbm' ) {
         my $search_frame = $ptr->Frame->pack;
 
-        my $search_label =
-          $search_frame->Label( -text => "Search:" )->pack( -side => 'left' );
+        my $search_label = $search_frame->Label( -text => "Search:" )->pack( -side => 'left' );
 
-        my $search_entry =
-          $search_frame->Entry( -textvariable => \$search_var, -width => 10 )
-          ->pack;
+        my $search_entry = $search_frame->Entry( -textvariable => \$search_var, -width => 10 )->pack;
         $search_entry->bind( '<Return>', sub { &search_data($search_var) } );
     }
 
     my $frame = $ptr->Frame->pack;
-    my $log   = $ptr->Scrolled(
-        qw/Text -state normal -width 60 -height 15 -scrollbars e -bg cyan/)
-      ->pack(@pl2);
+    my $log   = $ptr->Scrolled(qw/Text -state normal -width 60 -height 15 -scrollbars e -bg cyan/)->pack(@pl2);
     $info{$class}{window} = $log;
 
     for my $button (qw/name number date calls/) {
@@ -509,16 +487,11 @@ sub phone_list {
 
     $log->bind(
         '<Double-1>' => sub {
-            my $text =
-              $log->get( 'current linestart +20 chars', 'current lineend' );
+            my $text = $log->get( 'current linestart +20 chars', 'current lineend' );
             $text =~ s/^.*? (\d\d\d-)/$1/;    # Delete up to the number
             my $popup = $MW->Toplevel;
-            my $label =
-              $popup->Label( -text =>
-                  "Edit name to be more prounancable,\nthen hit enter (or Escape to exit)"
-              )->pack( -side => 'top' );
-            my $entry = $popup->Entry( -width => 40, -textvariable => \$text )
-              ->pack( -side => 'bottom' );
+            my $label = $popup->Label( -text => "Edit name to be more prounancable,\nthen hit enter (or Escape to exit)" )->pack( -side => 'top' );
+            my $entry = $popup->Entry( -width => 40, -textvariable => \$text )->pack( -side => 'bottom' );
 
             $entry->tkwait( 'visibility', $entry );
             $entry->focus;
@@ -551,20 +524,16 @@ sub search_data {
     print "Searching for $search_var\n";
 
     # Search data logged from incoming caller id data.
-    my ( $count1, $count2, %results ) =
-      &main::search_dbm( "$config_parms{data_dir}/phone/callerid.dbm",
-        $search_var );
+    my ( $count1, $count2, %results ) = &main::search_dbm( "$config_parms{data_dir}/phone/callerid.dbm", $search_var );
 
     # Also search in array created from mh.ini caller_id_file data
     while ( my ( $key, $value ) = each %callerid_name_by_number ) {
         if ( $key =~ /$search_var/i or $value =~ /$search_var/i ) {
-            $value =
-              &main::read_dbm( "$config_parms{data_dir}/phone/callerid.dbm",
-                $key );    # Use dbm data for consistency
+            $value = &main::read_dbm( "$config_parms{data_dir}/phone/callerid.dbm", $key );    # Use dbm data for consistency
             $results{$key} = $value;
         }
     }
-    $count2 = keys %results;   # Reset count, in case Caller_ID search found any
+    $count2 = keys %results;                                                                   # Reset count, in case Caller_ID search found any
 
     my $list = $info{dbm}{window};
 
@@ -573,25 +542,21 @@ sub search_data {
     my $results;
     if ($count2) {
         for ( sort keys %results ) {
-            my ( $cid_number, $cid_date, $cid_name ) =
-              $results{$_} =~ /(\S+) (.+) name=(.+)/;
+            my ( $cid_number, $cid_date, $cid_name ) = $results{$_} =~ /(\S+) (.+) name=(.+)/;
             $cid_name = $callerid_name_by_number{$_}
               if $callerid_name_by_number{$_};
             $cid_date =
               ( split( ',', $cid_date ) )[1];    #  Drop leading time field
 
             #           $results .= sprintf("%15s: %-15s calls=%3s last=%s\n                 %s\n", $_, $cid_name, $cid_number, $cid_date, $caller);
-            $results .= sprintf( "last=%12s calls=%4d %s %s\n",
-                $cid_date, $cid_number, $_, $cid_name );
+            $results .= sprintf( "last=%12s calls=%4d %s %s\n", $cid_date, $cid_number, $_, $cid_name );
         }
 
         #       map {$results .= "   $_: $results{$_}\n\n"} sort keys %results;
-        $results =
-          "Results:  $count2 out of $count1 records matched\n\n" . $results;
+        $results = "Results:  $count2 out of $count1 records matched\n\n" . $results;
     }
     else {
-        $results =
-          "\nResults:  No match found out of $count1 records searched\n";
+        $results = "\nResults:  No match found out of $count1 records searched\n";
     }
 
     $list->delete( '0.0', 'end' );
@@ -615,11 +580,8 @@ sub sort_data {
       )
     {
         $count++;
-        $data .= sprintf(
-            "%s %s %-12s %s\n",
-            $calls{$class}{$rec}{time_date}, $calls{$class}{$rec}{line},
-            $calls{$class}{$rec}{number},    $calls{$class}{$rec}{name2}
-        );
+        $data .=
+          sprintf( "%s %s %-12s %s\n", $calls{$class}{$rec}{time_date}, $calls{$class}{$rec}{line}, $calls{$class}{$rec}{number}, $calls{$class}{$rec}{name2} );
     }
     if ( $parms{cgi} ) {
         return $data;
@@ -689,8 +651,7 @@ sub post_cgi_form {
 sub phone_list2 {
     my ($list) = @_;
 
-    print "\n<td BGCOLOR='#B6C7F3' colspan=2><center>",
-      "$info{$list}{label} Calls ($info{$list}{count} entries)<br>\n";
+    print "\n<td BGCOLOR='#B6C7F3' colspan=2><center>", "$info{$list}{label} Calls ($info{$list}{count} entries)<br>\n";
     print &radio_group(
         -name    => "sort_$list",
         -values  => [ 'name', 'number', 'date' ],

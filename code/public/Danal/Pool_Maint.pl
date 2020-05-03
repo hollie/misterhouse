@@ -20,8 +20,7 @@ if ( state_now $Pool_Maint_age) {
     my $state = state $Pool_Maint_age;
     speak(
         volume => 90,
-        text =>
-          "Djeeni says: Good Job swimmer, you maintained the pool and spa."
+        text   => "Djeeni says: Good Job swimmer, you maintained the pool and spa."
     );
     print_log "Pool Maint age object set to $state; nag timers start now";
 }
@@ -36,16 +35,14 @@ if ( time_cron '3,18,33,48 * * * 0,6' ) {
     my $tcat  = parsedate("$date $time");
     my $tdiff = $tnow - $tcat;
     my $days  = int 0.5 + ( $tdiff / ( 24 * 60 * 60 ) );
-    print_log
-      "Pool Maint age Timers: Last date/time $date $time, Seconds before now $tdiff, Days before now $days";
+    print_log "Pool Maint age Timers: Last date/time $date $time, Seconds before now $tdiff, Days before now $days";
 
     if ( $days > 5 ) {
         print_log "Speaking Pool Maint nag message";
         my $state = state $Pool_Maint_age;
         speak(
             volume => 70,
-            text =>
-              "Djeeni says: Time to maintain the pool and spa, please shock the pool with $state."
+            text   => "Djeeni says: Time to maintain the pool and spa, please shock the pool with $state."
         );
 
         #set $Pool_Maint_Reminder ON if 'on' ne state $Pool_Maint_Reminder;
@@ -68,15 +65,13 @@ if ( time_cron '33 6,7,8,9,10 * * 1,2,3,4,5' ) {
     my $tcat  = parsedate("$date $time");
     my $tdiff = $tnow - $tcat;
     my $days  = int 0.5 + ( $tdiff / ( 24 * 60 * 60 ) );
-    print_log
-      "Pool Maint age Timers: Last date/time $date $time, Seconds before now $tdiff, Days before now $days";
+    print_log "Pool Maint age Timers: Last date/time $date $time, Seconds before now $tdiff, Days before now $days";
 
     if ( $days > 8 ) {
         print_log "Speaking Pool Maint nag message";
         speak(
             volume => 50,
-            text =>
-              "Djeeni says: You skipped a weekend, Time to catch up on pool maintenance"
+            text   => "Djeeni says: You skipped a weekend, Time to catch up on pool maintenance"
         );
         speak( volume => 50, text => "Please shock the pool with $state." );
 

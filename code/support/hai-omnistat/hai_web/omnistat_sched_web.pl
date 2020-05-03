@@ -57,8 +57,7 @@ foreach my $object_type (&::list_object_types) {
             push @locations, $object_name;
             if ( not $location ) {
                 $location = $object_name;
-                Omnistat::omnistat_debug(
-                    "$NAME: Will set location to $location");
+                Omnistat::omnistat_debug("$NAME: Will set location to $location");
             }
         }
     }
@@ -69,12 +68,10 @@ $stat = &::get_object_by_name("$location");
 
 if ( not $stat ) {
     if ( not $location ) {
-        die
-          "$NAME was not able to get an omnistat object, check your stat definitions in mycode/omnistat.pl";
+        die "$NAME was not able to get an omnistat object, check your stat definitions in mycode/omnistat.pl";
     }
     else {
-        die
-          "$NAME was not able to get an omnistat object with location \"$location\"";
+        die "$NAME was not able to get an omnistat object with location \"$location\"";
     }
 }
 else {
@@ -89,8 +86,8 @@ for ( $i = 1; $i <= $#ARGV; $i++ ) {
     Omnistat::omnistat_debug("$NAME: looking at arg# $i: $ARGV[$i]");
 
     # support 24H time like the rest of the educated world :) -- merlin
-    if ( $ARGV[$i] =~ /(\w+?)=(\d+$|[012]?[0-9]:\d+(?: AM| PM|))/ and $2 ne "" )
-    {
+    if ( $ARGV[$i] =~ /(\w+?)=(\d+$|[012]?[0-9]:\d+(?: AM| PM|))/ and $2 ne "" ) {
+
         #see if its a temp or time
         if ( $i % 3 != 1 ) {
 
@@ -142,8 +139,7 @@ if ($IsOmnistat2) {
 
     # Used later down to display Monday or Weekday for the first day.
     $weekday_or_monday = 'Monday';
-    ( $wmt, $wmc, $wmh, $wdt, $wdc, $wdh, $wet, $wec, $weh, $wnt, $wnc, $wnh )
-      = split ' ', $stat->read_cached_reg( "0x4B", 12 );
+    ( $wmt, $wmc, $wmh, $wdt, $wdc, $wdh, $wet, $wec, $weh, $wnt, $wnc, $wnh ) = split ' ', $stat->read_cached_reg( "0x4B", 12 );
     $days[1][0][0] = &Omnistat::translate_time($wmt);
     $days[1][0][1] = &Omnistat::translate_temp($wmc);
     $days[1][0][2] = &Omnistat::translate_temp($wmh);
@@ -237,8 +233,7 @@ $days[6][3][2] = &Omnistat::translate_temp($wnh);
 #$vaca[1][0] = &Omnistat::translate_time($ved);
 #$vaca[1][1] = &Omnistat::translate_time($veh);
 
-my $pretty_name =
-  &pretty_object_name($location) . " (" . $stat->get_stat_type() . ")";
+my $pretty_name = &pretty_object_name($location) . " (" . $stat->get_stat_type() . ")";
 
 $html = '<html><body>' . &html_header('Browse Items') . "
 <!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transitional//EN'>
@@ -263,25 +258,16 @@ if ( $#locations > 0 ) {
         if ( $location eq $statname ) {
 
             #Omnistat::omnistat_debug("$NAME: Selecting $statname in drop down menu since it is location $location. Objects are ".&::get_object_by_name($statname)." and ".&::get_object_by_name($statname));
-            $html =
-                $html
-              . "<option SELECTED  value ='$statname'>"
-              . &pretty_object_name($statname)
-              . "</option>";
+            $html = $html . "<option SELECTED  value ='$statname'>" . &pretty_object_name($statname) . "</option>";
         }
         else {
-            $html =
-                $html
-              . "<option value ='$statname'>"
-              . &pretty_object_name($statname)
-              . "</option>";
+            $html = $html . "<option value ='$statname'>" . &pretty_object_name($statname) . "</option>";
         }
     }
     $html = $html . "</select>";
 }
 else {
-    Omnistat::omnistat_debug(
-        "$NAME: Got single location $location, skipping drop down menu");
+    Omnistat::omnistat_debug("$NAME: Got single location $location, skipping drop down menu");
     $html = $html . $pretty_name;
     $html = $html . "<input name='location' value='$location' type='hidden'>";
 }

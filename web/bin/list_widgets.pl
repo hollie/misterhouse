@@ -5,13 +5,8 @@
 
 my ( $html, $count );
 
-for my $type (
-    'Widgets',          'Widgets_Label',
-    'Widgets_Entry',    'Widgets_RadioButton',
-    'Widgets_Checkbox', 'Vars_Global',
-    'Vars_Save'
-  )
-{
+for my $type ( 'Widgets', 'Widgets_Label', 'Widgets_Entry', 'Widgets_RadioButton', 'Widgets_Checkbox', 'Vars_Global', 'Vars_Save' ) {
+
     # Look for custom icon
     my $type2 = lc $type;
     $type2 =~ s/[: _\$]//g;
@@ -27,8 +22,7 @@ for my $type (
     # Create buttons with GD module if available
     elsif ( $Info{module_GD} ) {
         my $name = &pretty_object_name($type);
-        $h .=
-          qq[<a href=$url><img src="/bin/button.pl?$name" alt='$name' border="0"></a>\n];
+        $h .= qq[<a href=$url><img src="/bin/button.pl?$name" alt='$name' border="0"></a>\n];
     }
 
     # Otherwise use text

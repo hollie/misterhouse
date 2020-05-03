@@ -80,24 +80,20 @@ sub new {
     my @members;
 
     if ($type) {
-        $type =~ s/\x20+/\x20/g;                           # consolidate spaces
-        $type =~ s/([^0-9 \W]+)/item_transform($1)/egi;    # markup items
-        $type =~
-          s/(partly cloudy|partly sunny|mostly cloudy|mostly sunny|clear|cloudy)/"'" . ucfirst(lc($1)) . "'"/egi
-          ;    # normalize condition strings
-        $type =~ s/ = '/ eq '/gi;    # quote condition strings
+        $type =~ s/\x20+/\x20/g;                                                                                            # consolidate spaces
+        $type =~ s/([^0-9 \W]+)/item_transform($1)/egi;                                                                     # markup items
+        $type =~ s/(partly cloudy|partly sunny|mostly cloudy|mostly sunny|clear|cloudy)/"'" . ucfirst(lc($1)) . "'"/egi;    # normalize condition strings
+        $type =~ s/ = '/ eq '/gi;                                                                                           # quote condition strings
 
-        $type =~ s/[^<>=]= /== /g; # double equal signs (no assignments allowed)
-            # *** test with super syntax as well as module function calls
+        $type =~ s/[^<>=]= /== /g;    # double equal signs (no assignments allowed)
+                                      # *** test with super syntax as well as module function calls
 
-        $type =~ s/&[^0-9 \W]+:{0,}[^0-9 \W]+\(.*\)//g
-          ;    # no function calls either (for safety)
-        $type =~ s/(state|item_transform|check_weather)//gi
-          ;    # short-circuit methods (hack)
+        $type =~ s/&[^0-9 \W]+:{0,}[^0-9 \W]+\(.*\)//g;         # no function calls either (for safety)
+        $type =~ s/(state|item_transform|check_weather)//gi;    # short-circuit methods (hack)
 
         # Save weather hash keys in member list (to be checked for existence in state sub before expression is evaluated)
 
-        while ( $type =~ /\$::Weather{(.*?)}/g ) {
+        while ( $type =~ /\$::Weather\{(.*?)}/g ) {
             push @members, $1 if !grep $1 eq $_, @members;
         }
 
@@ -129,16 +125,14 @@ sub state {
 
     # check that all members are defined
 
-    for ( @{ $self->{list} } )
-    {    # short-circuit evaluation if any member is undefined
+    for ( @{ $self->{list} } ) {    # short-circuit evaluation if any member is undefined
         $valid = 0 if !defined $main::Weather{$_};
     }
 
     my $results;
     if ($valid) {
         $results = eval $self->{type} if $valid;
-        print
-          "Weather_Item eval error: object=$self->{object_name} test=$self->{type} error=$@"
+        print "Weather_Item eval error: object=$self->{object_name} test=$self->{type} error=$@"
           if $@;
     }
 

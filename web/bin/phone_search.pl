@@ -23,8 +23,7 @@ if ($string) {
     $results =~ s/[\r\f]//g;
     $results =~
       s/^results:(.+) matched (.+)\n/$1 matched "$2".<\/font><\/td><\/tr><tr id="resultrow" bgcolor="#9999CC"><th># Calls<\/th><th>Phone<\/th><th>Name<\/th><th>Last Call<\/th><\/tr>/i;
-    $results =
-      "<table border=0 cellpadding=0 cellspacing=1 align=center width=600><tr><td colspan=4><font size=$font_size>$results";
+    $results = "<table border=0 cellpadding=0 cellspacing=1 align=center width=600><tr><td colspan=4><font size=$font_size>$results";
     $results =~ s/\n\n/\n/g;
     $results =~
       s/ *([\d-P]*) calls= *(\d*) *last= ([a-zA-Z0-9 :]{24}) *([^\n]*)\n/\n<tr id="resultrow" bgcolor="#EEEEEE"><td align=right>&nbsp;$2&nbsp;<\/td><td>&nbsp;$1&nbsp;<\/td><td>&nbsp;$4&nbsp;<\/td><td>&nbsp;$3&nbsp;<\/td><\/tr>\n/g;

@@ -46,8 +46,7 @@ sub device_id_list {
 
 sub request_stat {
     my ( $self, $request_all ) = @_;
-    $self->SUPER::send_cmnd(
-        'lighting.request' => { 'request' => 'gateinfo' } );
+    $self->SUPER::send_cmnd( 'lighting.request' => { 'request' => 'gateinfo' } );
     if ($request_all) {
         for my $light ( $self->find_members('xPL_Light') ) {
             if ($light) {
@@ -61,22 +60,16 @@ sub default_setstate {
     my ( $self, $state, $substate, $set_by ) = @_;
     if ( $set_by =~ /^xpl/i ) {
         if ( $$self{changed} =~ /lighting\.gateinfo/ ) {
-            &::print_log(
-                    "[xPL_LightGateway] Received lighting.gateinfo message."
-                  . " Preferred network id= "
-                  . $$self{'lighting.gateinfo'}{'preferred-net'} )
+            &::print_log( "[xPL_LightGateway] Received lighting.gateinfo message." . " Preferred network id= " . $$self{'lighting.gateinfo'}{'preferred-net'} )
               if $main::Debug{xpl_light};
             $$self{'preferred-net'} =
               $$self{'lighting.gateinfo'}{'preferred-net'};
 
             # send out a request to get info about the supported device list
-            $self->SUPER::send_cmnd(
-                'lighting.request' => { 'request' => 'devlist' } );
+            $self->SUPER::send_cmnd( 'lighting.request' => { 'request' => 'devlist' } );
         }
         elsif ( $$self{changed} =~ /lighting\.devlist/ ) {
-            &::print_log(
-                "[xPL_LightGateway] Received lighting.devlist message: status "
-                  . $$self{'lighting.devlist'}{status} )
+            &::print_log( "[xPL_LightGateway] Received lighting.devlist message: status " . $$self{'lighting.devlist'}{status} )
               if $main::Debug{xpl_light};
             if ( $$self{'lighting.devlist'}{'device'} ) {
                 my @list = split( /,/, $$self{'lighting.devlist'}{'device'} );
@@ -98,9 +91,7 @@ sub default_setstate {
         }
     }
     else {
-        &::print_log(
-            "[xPL_LightGateway] WARN: Gateway state may not be explicitely set.  Ignoring."
-        ) if $main::Debug{xpl_light};
+        &::print_log("[xPL_LightGateway] WARN: Gateway state may not be explicitely set.  Ignoring.") if $main::Debug{xpl_light};
 
         # return a -1 if not changed by xpl so that state is not revised until receipt of gateinfo
         return -1;
@@ -231,8 +222,7 @@ sub new {
     $self->SUPER::device_monitor("device=$id") if $id;
 
     # remap the state values to on and off
-    $self->tie_value_convertor( 'level',
-        '($section =~ /^lighting\.dev/ and $value eq "0") ? "off" : "$value"' );
+    $self->tie_value_convertor( 'level', '($section =~ /^lighting\.dev/ and $value eq "0") ? "off" : "$value"' );
 
     $self->state_overload('on');
     $self->restore_data('ramp_rate');    # keep track
@@ -255,10 +245,7 @@ sub ignore_message {
     my $ignore_message = 0;
     if (
         !(
-            (
-                defined( $$p_data{'lighting.devinfo'} )
-                and $$p_data{'lighting.devinfo'}{'device'} eq $self->id
-            )
+            ( defined( $$p_data{'lighting.devinfo'} ) and $$p_data{'lighting.devinfo'}{'device'} eq $self->id )
             or ( defined( $$p_data{'lighting.device'} )
                 and $$p_data{'lighting.device'}{'device'} eq $self->id )
         )
@@ -279,26 +266,20 @@ sub default_setstate {
     my ( $self, $state, $substate, $set_by ) = @_;
     if ( $set_by =~ /^xpl/i ) {
         if ( $$self{changed} =~ /lighting\.devinfo/ ) {
-            &::print_log( "[xPL_Light] light: "
-                  . $self->get_object_name
-                  . " state is $state" )
+            &::print_log( "[xPL_Light] light: " . $self->get_object_name . " state is $state" )
               if $main::Debug{xpl_light};
 
             # TO-DO: process all of the other pertinent attributes available
             return -1
-              if $self->state eq
-              $state;    # don't propagate state unless it has changed
+              if $self->state eq $state;    # don't propagate state unless it has changed
         }
         elsif ( $$self{changed} =~ /lighting\.device/ ) {
-            &::print_log( "[xPL_Light] light: "
-                  . $self->get_object_name
-                  . " state is $state" )
+            &::print_log( "[xPL_Light] light: " . $self->get_object_name . " state is $state" )
               if $main::Debug{xpl_light};
 
             # TO-DO: process all of the other pertinent attributes available
             return -1
-              if $self->state eq
-              $state;    # don't propagate state unless it has changed
+              if $self->state eq $state;    # don't propagate state unless it has changed
         }
     }
     else {
@@ -315,17 +296,13 @@ sub default_setstate {
         elsif ( $state eq 'default' or $state eq 'last' ) {
             $level = $state;
         }
-        &::print_log( "[xPL_Light] Request light: "
-              . $self->get_object_name
-              . " turn "
-              . ( ( $level eq '0' ) ? 'off' : "on at a level of $level" ) )
+        &::print_log( "[xPL_Light] Request light: " . $self->get_object_name . " turn " . ( ( $level eq '0' ) ? 'off' : "on at a level of $level" ) )
           if $main::Debug{xpl_light};
         my $cmd_block;
-        $$cmd_block{'command'} = 'goto';
-        $$cmd_block{'device'}  = $self->id;
-        $$cmd_block{'level'}   = $level;
-        $$cmd_block{'fade-rate'} =
-          ( $self->ramp_rate ) ? $self->ramp_rate : 'default';
+        $$cmd_block{'command'}   = 'goto';
+        $$cmd_block{'device'}    = $self->id;
+        $$cmd_block{'level'}     = $level;
+        $$cmd_block{'fade-rate'} = ( $self->ramp_rate ) ? $self->ramp_rate : 'default';
         $self->SUPER::send_cmnd( 'lighting.basic', $cmd_block );
         return;
     }

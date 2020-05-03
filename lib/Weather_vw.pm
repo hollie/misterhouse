@@ -50,8 +50,7 @@ sub UpdateVwWeather {
     #1.00,2001,12,25,13,48,30,0,0,182,32,54,72,46,29.82,33.37,0.00,0.00,0,0,0,0,0,0,0,0.00,0.0,0,46,71,48,31,0.00,1,1,-0.00,0,0,0
 
     if ($::New_Day) {
-        $main::Weather{WindHighDir} = undef $main::Weather{WindHighSpeed} =
-          undef;
+        $main::Weather{WindHighDir} = undef $main::Weather{WindHighSpeed} = undef;
 
         $main::Weather{HumidIndoorH}  = undef;
         $main::Weather{HumidIndoorL}  = undef;
@@ -161,8 +160,7 @@ sub UpdateVwWeather {
       if $main::Weather{TempOutdoor} < $main::Weather{TempOutdoorL}
       or $main::Weather{TempOutdoorL} eq undef;
 
-    $main::Weather{RainRecent} =
-      ::round( ( $main::Weather{RainTotal} - $raintotal_prev ), 2 )
+    $main::Weather{RainRecent} = ::round( ( $main::Weather{RainTotal} - $raintotal_prev ), 2 )
       if $raintotal_prev > 0;
     if ( $main::Weather{RainRecent} > 0 ) {
 

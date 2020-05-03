@@ -104,8 +104,7 @@ sub main::net_connect_check {
     if ( $^O eq "linux" ) {
         my $if = lc( $main::config_parms{net_connect_if} );
         if ( $if eq "" ) {
-            print
-              "mh.ini parm net_connect and net_connect_if is not defined.  net connection assumed.\n";
+            print "mh.ini parm net_connect and net_connect_if is not defined.  net connection assumed.\n";
             return $prev_state = 1;
         }
         $prev_state = 0;
@@ -124,9 +123,7 @@ sub main::net_connect_check {
     }
 
     # Windows 95/98
-    my $status = &main::registry_get(
-        'HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\RemoteAccess',
-        'Remote Connection' );
+    my $status = &main::registry_get( 'HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\RemoteAccess', 'Remote Connection' );
 
     #   print "db s=", unpack('H8', $status), ".\n";
     if ( unpack( 'H8', $status ) eq '01000000' ) {
@@ -140,18 +137,14 @@ sub main::net_connect_check {
     }
 }
 
-my (
-    $DNS_resolver_request, $DNS_resolver_address, $DNS_resolver_requester,
-    $DNS_resolver_time,    %DNS_cache
-);
+my ( $DNS_resolver_request, $DNS_resolver_address, $DNS_resolver_requester, $DNS_resolver_time, %DNS_cache );
 
 # This is the good, background way
 sub main::net_domain_name_start {
     ( $DNS_resolver_requester, $DNS_resolver_address ) = @_;
 
     # Allow for port name to be used.
-    $DNS_resolver_address =
-      $main::Socket_Ports{$DNS_resolver_address}{client_ip_address}
+    $DNS_resolver_address = $main::Socket_Ports{$DNS_resolver_address}{client_ip_address}
       if $main::Socket_Ports{$DNS_resolver_address}
       and $main::Socket_Ports{$DNS_resolver_address}{client_ip_address};
 
@@ -162,22 +155,19 @@ sub main::net_domain_name_start {
     # in addition to triggering net_domain_name_done
     if ( $DNS_cache{$DNS_resolver_address} ) {
         $DNS_resolver_request++;
-        $DNS_resolver_time = time -
-          100;    # Pretend we time out, so we also respond on next _done check
-                  # If cached, return data
+        $DNS_resolver_time = time - 100;    # Pretend we time out, so we also respond on next _done check
+                                            # If cached, return data
         return &net_domain_name_parse2( $DNS_cache{$DNS_resolver_address} );
     }
     elsif ($main::DNS_resolver) {
-        $DNS_resolver_request =
-          $main::DNS_resolver->bgsend($DNS_resolver_address);
-        $DNS_resolver_time = time;
+        $DNS_resolver_request = $main::DNS_resolver->bgsend($DNS_resolver_address);
+        $DNS_resolver_time    = time;
 
         #       print "db $main::Time_Date DNS starting search $main::Time, t=$DNS_resolver_time, a=$DNS_resolver_address\n";
     }
     else {
         $DNS_resolver_request++;
-        $DNS_resolver_time =
-          time - 100;    # Pretend we time out, so we respond on the next pass
+        $DNS_resolver_time = time - 100;    # Pretend we time out, so we respond on the next pass
     }
     return;
 }
@@ -298,14 +288,11 @@ sub main::net_ftp {
     $dir      = $main::config_parms{net_www_dir}      unless $dir;
     $passive  = 0                                     unless $passive;
 
-    print
-      "net_ftp error: 'server'   parm missing (check net_www_server   in mh.ini)\n"
+    print "net_ftp error: 'server'   parm missing (check net_www_server   in mh.ini)\n"
       unless $server;
-    print
-      "net_ftp error: 'user'     parm missing (check net_www_user     in mh.ini)\n"
+    print "net_ftp error: 'user'     parm missing (check net_www_user     in mh.ini)\n"
       unless $user;
-    print
-      "net_ftp error: 'password' parm missing (check net_www_password in mh.ini)\n"
+    print "net_ftp error: 'password' parm missing (check net_www_password in mh.ini)\n"
       unless $password;
 
     return unless $server and $user and $password;
@@ -313,11 +300,8 @@ sub main::net_ftp {
     print "Logging into web server $server as $user...\n";
 
     my $ftp;
-    unless ( $ftp =
-        Net::FTP->new( $server, timeout => $timeout, Passive => $passive ) )
-    {
-        print
-          "Unable to connect to ftp server $server timeout=$timeout passive=$passive: $@\n";
+    unless ( $ftp = Net::FTP->new( $server, timeout => $timeout, Passive => $passive ) ) {
+        print "Unable to connect to ftp server $server timeout=$timeout passive=$passive: $@\n";
         return "failed on connect";
     }
     unless ( $ftp->login( $user, $password ) ) {
@@ -341,8 +325,7 @@ sub main::net_ftp {
     }
     if ( $command eq 'put' ) {
         unless ( $ftp->put( $file, $file_remote ) ) {
-            print
-              " \x07Unable to put file $file into $server as $file_remote: $@\n";
+            print " \x07Unable to put file $file into $server as $file_remote: $@\n";
             return "failed on put";
         }
     }
@@ -374,8 +357,7 @@ sub main::net_ftp {
     return "was successful";
 }
 
-use vars
-  qw($aim_connection $icq_connection $jabber_connection $msn_connection %msn_connections %msn_queue %im_queue);
+use vars qw($aim_connection $icq_connection $jabber_connection $msn_connection %msn_connections %msn_queue %im_queue);
 
 eval 'use Net::Jabber';
 
@@ -417,15 +399,13 @@ sub main::net_jabber_signon {
     $options{componentname} = $component if ($component);
     my $success = $jabber_connection->Connect(%options);
     unless ($success) {
-        print
-          "  - Error:  Jabber server is down or connection was not allowed. jc=$jabber_connection: '$@'\n";
+        print "  - Error:  Jabber server is down or connection was not allowed. jc=$jabber_connection: '$@'\n";
         undef $jabber_connection;
         return;
     }
 
     if ($component) {
-        $jabber_connection->{STREAM}->{SIDS}
-          ->{ $jabber_connection->{SESSION}->{id} }->{hostname} = $component;
+        $jabber_connection->{STREAM}->{SIDS}->{ $jabber_connection->{SESSION}->{id} }->{hostname} = $component;
     }
 
     $jabber_connection->SetCallBacks(
@@ -443,8 +423,7 @@ sub main::net_jabber_signon {
         resource => $resource
     );
     if ( $result[0] ne "ok" ) {
-        print
-          "  - Error: Jabber Authorization failed: $result[0] - $result[1]\n";
+        print "  - Error: Jabber Authorization failed: $result[0] - $result[1]\n";
         undef $jabber_connection;
         return;
     }
@@ -502,8 +481,7 @@ sub jabber::InIQ {
     my $type  = $iq->GetType();
     my $query = $iq->GetQuery();
     my $xmlns = $query->GetXMLNS();
-    &main::display( "$main::Time_Date $from\nIQ $query:  " . $xmlns,
-        0, "Jabber IQ from $from", 'fixed' );
+    &main::display( "$main::Time_Date $from\nIQ $query:  " . $xmlns, 0, "Jabber IQ from $from", 'fixed' );
     &main::Jabber_IQ_hooks( $sid, $iq );
 }
 
@@ -539,8 +517,7 @@ sub main::net_jabber_send {
     $subject  = "Misterhouse"                             unless $subject;
 
     unless ( $from and $password and $to ) {
-        print
-          "\nError, net_jabber_send called with a missing argument:  from=$from to=$to password=$password\n";
+        print "\nError, net_jabber_send called with a missing argument:  from=$from to=$to password=$password\n";
         return;
     }
 
@@ -608,11 +585,8 @@ sub main::net_msn_signoff {
 
 sub MSN::status {
     my ( $self, $username, $newstatus ) = @_;
-    print "MSN ${username}'s status changed from "
-      . $self->buddystatus($username)
-      . " to $newstatus.\n";
-    &main::MSNim_Status_hooks( $username, $newstatus,
-        $self->buddystatus($username), 'MSN' );
+    print "MSN ${username}'s status changed from " . $self->buddystatus($username) . " to $newstatus.\n";
+    &main::MSNim_Status_hooks( $username, $newstatus, $self->buddystatus($username), 'MSN' );
 }
 
 sub MSN::message {
@@ -663,8 +637,7 @@ sub main::net_msn_send {
     $to       = $main::config_parms{net_msn_name_send} unless $to;
 
     unless ( $from and $password and $to ) {
-        print
-          "\nError, net_msn_send called with a missing argument:  from=$from to=$to password=$password\n";
+        print "\nError, net_msn_send called with a missing argument:  from=$from to=$to password=$password\n";
         return;
     }
     print "Sending MSN message to $to\n";
@@ -760,22 +733,15 @@ sub main::get_oscar_connection {
 
     # I got not buddies?   'invalid capability' on buddy_list_transfer
     #   $im_connection = Net::OSCAR->new(capabilities => [qw(typing_status extended_status buddy_icons file_transfer buddy_list_transfer)]);
-    $im_connection = Net::OSCAR->new(
-        capabilities => [
-            qw(typing_status extended_status buddy_icons file_transfer                    )
-        ]
-    );
+    $im_connection = Net::OSCAR->new( capabilities => [qw(typing_status extended_status buddy_icons file_transfer                    )] );
     $im_connection->set_callback_im_in( \&oscar::cb_imin );
     $im_connection->set_callback_buddy_in( \&oscar::cb_buddyin );
     $im_connection->set_callback_buddy_out( \&oscar::cb_buddyout );
     $im_connection->set_callback_error( \&oscar::cb_error );
     $im_connection->set_callback_signon_done( \&oscar::cb_signondone );
-    $im_connection->set_callback_connection_changed(
-        \&oscar::cb_connectionchanged );
-    $im_connection->set_callback_buddy_icon_uploaded(
-        \&oscar::cb_buddyiconuploaded );
-    $im_connection->set_callback_buddy_icon_downloaded(
-        \&oscar::cb_buddyicondownloaded );
+    $im_connection->set_callback_connection_changed( \&oscar::cb_connectionchanged );
+    $im_connection->set_callback_buddy_icon_uploaded( \&oscar::cb_buddyiconuploaded );
+    $im_connection->set_callback_buddy_icon_downloaded( \&oscar::cb_buddyicondownloaded );
     $im_connection->set_callback_buddylist_ok( \&oscar::cb_buddylistok );
 
     #   $im_connection -> set_callback_buddylist_changed(\&oscar::cb_buddylistchanged);
@@ -856,11 +822,11 @@ sub oscar::buddylist_changed {
 
     print "Buddylist was changed:\n";
     foreach (@changes) {
-        printf( "\t%s: %s %s\n",
-            $_->{action}, $_->{type},
-            ( $_->{type} == 1 )
+        printf(
+            "\t%s: %s %s\n", $_->{action}, $_->{type}, ( $_->{type} == 1 )
             ? ( $_->{group} . "/" . $_->{buddy} )
-            : $_->{group} );
+            : $_->{group}
+        );
     }
 }
 
@@ -1022,8 +988,7 @@ sub oscar::buddychange {
 sub oscar::cb_imin {
     my ( $oscar, $from, $message, $away ) = @_;
 
-    my $plaintext = HTML::FormatText->new( lm => 0, rm => 150 )
-      ->format( HTML::TreeBuilder->new()->parse($message) );
+    my $plaintext = HTML::FormatText->new( lm => 0, rm => 150 )->format( HTML::TreeBuilder->new()->parse($message) );
     chomp $plaintext;
 
     my $net = oscar::get_net($oscar);
@@ -1075,8 +1040,7 @@ sub main::net_im_process_queue {
     my $parms;
     my $num_items = scalar @{ $im_queue{$pgm} };
     while ( defined( $parms = shift @{ $im_queue{$pgm} } ) && $num_items ) {
-        &main::print_log(
-            "Trying again to send $pgm message to " . $$parms{to} );
+        &main::print_log( "Trying again to send $pgm message to " . $$parms{to} );
         if ( $$parms{to} eq $recipient ) {
             &main::net_im_send(%$parms);
         }
@@ -1102,10 +1066,7 @@ sub main::net_im_send {
     my $pgm = lc $parms{pgm};
     my $to  = $parms{to};
     print "net_im_send pgm=$pgm to=$to\n" if $main::Debug{im};
-    &::logit(
-        "$main::config_parms{data_dir}/logs/net_im.$::Year_Month_Now.log",
-        "to=$to from=$parms{from} pgm=$pgm text=$parms{text}"
-    );
+    &::logit( "$main::config_parms{data_dir}/logs/net_im.$::Year_Month_Now.log", "to=$to from=$parms{from} pgm=$pgm text=$parms{text}" );
 
     return if &main::net_im_do_send(%parms) != 0;
 
@@ -1156,8 +1117,7 @@ sub main::net_im_do_send {
     }
 
     unless ( $from and $password and $to ) {
-        print
-          "\nError, net_im_send called with a missing argument:  from=$from to=$to password=$password\n";
+        print "\nError, net_im_send called with a missing argument:  from=$from to=$to password=$password\n";
         return 0;
     }
 
@@ -1219,15 +1179,14 @@ sub main::net_mail_send_old {
     $subject = $parms{subject};
     $account = $parms{account};
 
-    $account = $main::config_parms{net_mail_send_account}        unless $server;
-    $server  = $main::config_parms{"net_mail_${account}_server"} unless $server;
-    $from = $main::config_parms{"net_mail_${account}_address"} unless $from;
-    $to = $main::config_parms{"net_mail_${account}_address"} unless $to;
-    $subject = "Email from Mister House" unless $subject;
-    $text = $parms{text};
+    $account = $main::config_parms{net_mail_send_account}         unless $server;
+    $server  = $main::config_parms{"net_mail_${account}_server"}  unless $server;
+    $from    = $main::config_parms{"net_mail_${account}_address"} unless $from;
+    $to      = $main::config_parms{"net_mail_${account}_address"} unless $to;
+    $subject = "Email from Mister House"                          unless $subject;
+    $text    = $parms{text};
 
-    print
-      "net_mail_send error: 'server' parm missing (check net_mail_server in mh.ini)\n"
+    print "net_mail_send error: 'server' parm missing (check net_mail_server in mh.ini)\n"
       unless $server;
     print "net_mail_send error: 'to' parm missing\n" unless $to;
 
@@ -1236,9 +1195,7 @@ sub main::net_mail_send_old {
     use Net::SMTP;
     print "Logging into mail server $server to send msg to $to\n";
 
-    unless ( $smtp =
-        Net::SMTP->new( $server, Timeout => 10, Debug => $parms{debug} ) )
-    {
+    unless ( $smtp = Net::SMTP->new( $server, Timeout => 10, Debug => $parms{debug} ) ) {
         print "Unable to log into mail server $server: $@\n";
         return;
     }
@@ -1251,11 +1208,7 @@ sub main::net_mail_send_old {
 
 sub main::net_mail_send {
     my %parms = @_;
-    my (
-        $from, $to,       $subject, $text, $server,
-        $port, $smtp,     $account, $mime, $baseref,
-        $file, $filename, $service
-    );
+    my ( $from, $to, $subject, $text, $server, $port, $smtp, $account, $mime, $baseref, $file, $filename, $service );
     my ( $smtpusername, $smtppassword, $smtpencrypt );
 
     $server       = $parms{server};
@@ -1280,20 +1233,19 @@ sub main::net_mail_send {
     $server = $main::config_parms{"net_mail_${account}_server_send"}
       unless $server;
     $server = $main::config_parms{"net_mail_${account}_server"} unless $server;
-    $server = 'localhost' unless $server;
-    $port = $main::config_parms{"net_mail_${account}_server_send_port"}
+    $server = 'localhost'                                       unless $server;
+    $port   = $main::config_parms{"net_mail_${account}_server_send_port"}
       unless $port;
-    $port = 25                                                 unless $port;
-    $from = $main::config_parms{"net_mail_${account}_address"} unless $from;
-    $to   = $main::config_parms{"net_mail_${account}_address"} unless $to;
-    $subject = "Email from Misterhouse" unless $subject;
+    $port    = 25                                                 unless $port;
+    $from    = $main::config_parms{"net_mail_${account}_address"} unless $from;
+    $to      = $main::config_parms{"net_mail_${account}_address"} unless $to;
+    $subject = "Email from Misterhouse"                           unless $subject;
 
     #    $baseref = 'localhost'                                        unless $baseref;
     $service = $main::config_parms{"net_mail_${account}_service"};
     $service = "smtp" unless $service;
 
-    my $timeout =
-      $main::config_parms{"net_mail_${account}_server_send_timeout"};
+    my $timeout = $main::config_parms{"net_mail_${account}_server_send_timeout"};
     $timeout = 20 unless $timeout;
 
     $smtpusername = $main::config_parms{"net_mail_${account}_user"}
@@ -1313,11 +1265,9 @@ sub main::net_mail_send {
         return;
     }
 
-    print
-      "Sending $service mail with account $account from $from to $to on $server $port\n";
+    print "Sending $service mail with account $account from $from to $to on $server $port\n";
 
-    print
-      "net_mail_send error: 'server' parm missing (check net_mail_server in mh.ini)\n"
+    print "net_mail_send error: 'server' parm missing (check net_mail_server in mh.ini)\n"
       unless $server;
     print "net_mail_send error: 'to' parm missing\n" unless $to;
 
@@ -1440,8 +1390,7 @@ sub main::net_mail_send {
     }
     else {
 
-        eval
-          "use Net::SMTP_auth";   # Not on all installs, so eval to avoid errors
+        eval "use Net::SMTP_auth";    # Not on all installs, so eval to avoid errors
         print "NET::SMTP_auth eval error: $@\n" if $@;
 
         use Net::SMTP;
@@ -1459,8 +1408,7 @@ sub main::net_mail_send {
             print "Unable to Authenticate on mail server $server $port: $@\n";
             return;
         }
-        print 'Authenticating SMTP using encryption ', $smtpencrypt,
-          " for username ", $smtpusername, "\n"
+        print 'Authenticating SMTP using encryption ', $smtpencrypt, " for username ", $smtpusername, "\n"
           if $parms{debug};
 
         # set SMTP username and password if we have them
@@ -1478,13 +1426,7 @@ sub main::net_mail_send {
             $smtp->dataend();
         }
         else {
-            $smtp->data(
-                "X-Priority: $priority\n",
-                "Subject: $subject\n",
-                "To: $to\n",
-                "From: $from\n",
-                "Date: $emaildate\n\n", $text
-            );
+            $smtp->data( "X-Priority: $priority\n", "Subject: $subject\n", "To: $to\n", "From: $from\n", "Date: $emaildate\n\n", $text );
         }
         $smtp->quit;
     }
@@ -1499,8 +1441,8 @@ sub main::net_mail_login {
     $server   = $parms{server};
     $port     = $parms{port};
     $ping     = $parms{ping};
-    $account = ( $parms{account} ) ? "net_mail_" . $parms{account} : "net_mail";
-    $user = $main::config_parms{ $account . "_user" } unless $user;
+    $account  = ( $parms{account} ) ? "net_mail_" . $parms{account} : "net_mail";
+    $user     = $main::config_parms{ $account . "_user" } unless $user;
     $password = $main::config_parms{ $account . "_password" } unless $password;
     $server   = $main::config_parms{ $account . "_server" } unless $server;
     $port     = $main::config_parms{ $account . "_server_port" } unless $port;
@@ -1607,13 +1549,8 @@ sub main::net_mail_summary {
     my $msgnum = $parms{last};
     while ($msgnum) {
         print "getting msg $msgnum\n" if $main::Debug{net};
-        my $msg_ptr =
-          $pop->top( $msgnum, $main::config_parms{net_mail_scan_size} );
-        my (
-            $date,    $date_received, $from,        $from_name,
-            $sender,  $to,            $cc,          $replyto,
-            $subject, $header,        $header_flag, $body
-        );
+        my $msg_ptr = $pop->top( $msgnum, $main::config_parms{net_mail_scan_size} );
+        my ( $date, $date_received, $from, $from_name, $sender, $to, $cc, $replyto, $subject, $header, $header_flag, $body );
         $header_flag = 1;
         my $i = 0;
         for (@$msg_ptr) {
@@ -1679,10 +1616,8 @@ sub main::net_mail_summary {
         # '"last, first: org (sub-org)" <email@email.com>'
         #$' <email@email.com>'
 
-        if ( $from =~ m/^\</ )
-        { #just an email address with no friendly name, so just return the email address
-            ($from_name) =
-              $from =~ /^\<(.*)\>$/;    #remove < and > from email address
+        if ( $from =~ m/^\</ ) {    #just an email address with no friendly name, so just return the email address
+            ($from_name) = $from =~ /^\<(.*)\>$/;    #remove < and > from email address
         }
         else {
 
@@ -1703,23 +1638,20 @@ sub main::net_mail_summary {
 
             #       $from_name =~ tr/"//;
             $from_name =~ s/\"//g;    # "first last"
-            $from_name = "$2 $1" if $from_name =~ /(\S+), +(\S+)/; # last, first
-            $from_name =~ s/://g;    #:'s have no place in an email address
+            $from_name = "$2 $1" if $from_name =~ /(\S+), +(\S+)/;    # last, first
+            $from_name =~ s/://g;                                     #:'s have no place in an email address
 
             #       $from_name =~ s/ (\S)\. / $1 /;  # Drop the "." after middle initial abreviation.
             # Spammers blank this out, so no point in warning about it
         }
-        print
-          "Warning, net_mail_summary: No From name found: from=$from, header=$header\n"
+        print "Warning, net_mail_summary: No From name found: from=$from, header=$header\n"
           unless $from_name;
 
         my $age_msg = int( ( time - str2time($date_received) ) / 60 );
-        print
-          "Warning, net_mail_summary: age is negative: age=$age_msg, date=$date_received\n"
+        print "Warning, net_mail_summary: age is negative: age=$age_msg, date=$date_received\n"
           if $age_msg < 0;
 
-        print
-          "msgnum=$msgnum  age=$age_msg date=$date_received from=$from sender=$sender to=$to subject=$subject\n"
+        print "msgnum=$msgnum  age=$age_msg date=$date_received from=$from sender=$sender to=$to subject=$subject\n"
           if $parms{debug} or $main::Debug{net};
 
         #       print "db m=$msgnum mf=$parms{first} a=$age_msg a=$parms{age} d=$date_received from=$from \n";
@@ -1848,15 +1780,13 @@ sub main::net_socket_check {
             return 1;
         }
         else {
-            print
-              "socket_check:  $protocol port is down on host=$host port=$port: $@\n"
+            print "socket_check:  $protocol port is down on host=$host port=$port: $@\n"
               if $main::Debug{socket};
             return 0;
         }
     }
     else {
-        print
-          "socket_check error:  address is not in the host:port form.  address=$host_port\n";
+        print "socket_check error:  address is not in the host:port form.  address=$host_port\n";
         return 0;
     }
 }

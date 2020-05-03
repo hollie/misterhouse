@@ -68,16 +68,14 @@ my $dbm_file  = "$config_parms{data_dir}/pvr_recorded.dbm";
 #my $logfile = "$config_parms{data_dir}/pvr_logfile.txt";
 my $logfile = "/dev/null";
 my $record_opts =
-  'divx4rec -N 32 -d /dev/dsp -v /dev/video0 -mixsrc /dev/mixer:line -mixvol /dev/mixer:line:0 '
+    'divx4rec -N 32 -d /dev/dsp -v /dev/video0 -mixsrc /dev/mixer:line -mixvol /dev/mixer:line:0 '
   . '-vq 25 -vg 10 -vb 3600 -w 384 -h 288 -norm NTSC -input Television ';
 
 $v_livetv =
-  new Voice_Cmd
-  'Live TV [on,off,mute,volume down,volume up,channel down,channel up,'
+  new Voice_Cmd 'Live TV [on,off,mute,volume down,volume up,channel down,channel up,'
   . 'record half hour,record hour,record 2 hours,2,11,31,38,41,44,46,54,64]';
 $v_pvr =
-  new Voice_Cmd
-  'PVR [pause,quit,volume down,volume up,skip 10 seconds,skip minute,skip 10 minutes,'
+  new Voice_Cmd 'PVR [pause,quit,volume down,volume up,skip 10 seconds,skip minute,skip 10 minutes,'
   . 'back 10 seconds,back minute,back 10 minutes,cancel recording,debug]';
 $t_pvr      = new Timer;
 $p_pvr      = new Process_Item;
@@ -183,8 +181,7 @@ if ( $state = said $v_pvr) {
 if ( time_cron('0,30 * * * *') and $Save{pvr_shows} ) {
     my ( $min, $hour, $mday, $mon ) = ( localtime(time) )[ 1, 2, 3, 4 ];
     $mon++;
-    run
-      qq[get_tv_info -times $hour:$min -dates $mon/$mday -keys "$Save{pvr_shows}" -outfile1 $outfile1 -outfile2 $outfile2 -title_only];
+    run qq[get_tv_info -times $hour:$min -dates $mon/$mday -keys "$Save{pvr_shows}" -outfile1 $outfile1 -outfile2 $outfile2 -title_only];
     set_watch $f_pvr_file;
 }
 
@@ -204,11 +201,7 @@ sub pvr_check {
     shift @data;    # Drop summary;
     foreach $line (@data) {
         $line =~ s/[,()']//g;
-        if ( my ( $title, $channel, $start, $end ) =
-            $line =~
-            /^\d+\.\s+(.+)\.\s+\S+\s+Channel (\d+).+From ([0-9: APM]+) till ([0-9: APM]+)\./
-          )
-        {
+        if ( my ( $title, $channel, $start, $end ) = $line =~ /^\d+\.\s+(.+)\.\s+\S+\s+Channel (\d+).+From ([0-9: APM]+) till ([0-9: APM]+)\./ ) {
             my $diff = my_time_diff( $start, $end );
             my $has_subtitle = $title =~ s/: +/-/g;
             if ($has_subtitle) {
@@ -245,13 +238,11 @@ sub pvr_record {
     if ( !done $p_pvr) {
         my $remaining = minutes_remaining $t_pvr;
         if ( $remaining < 2 ) {
-            print_log
-              "Stopping previous recording with $remaining minutes remaining\n";
+            print_log "Stopping previous recording with $remaining minutes remaining\n";
             stop $p_pvr;
         }
         else {
-            print_log
-              "Cannot record $title due to previous recording with $remaining minutes remaining\n";
+            print_log "Cannot record $title due to previous recording with $remaining minutes remaining\n";
             return 1;
         }
     }
@@ -358,11 +349,7 @@ function checkKey() {
       . "\n";
     my $i = 0;
     foreach ( split ',', $Save{pvr_shows} ) {
-        $Included_HTML{PVR} .=
-            '<option value="'
-          . $i++ . '">'
-          . $_
-          . "&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp\n";
+        $Included_HTML{PVR} .= '<option value="' . $i++ . '">' . $_ . "&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp\n";
     }
     $Included_HTML{PVR} .= '</select></td><td valign=top>
       <input type=image name=$pvr_up src=/graphics/up.gif width=16 height=16 border=0 alt="Up" vspace=2>
@@ -433,8 +420,7 @@ sub play_video {
     system 'aumix -d /dev/mixer -l 0 -w 80 -v 100';
 
     #    run "killall -s 9 mplayer; killall xawtv; mplayer -fs -ao oss:/dev/dsp1 -quiet '$video_dir/$file'";
-    run
-      "killall -s 9 mplayer; killall xawtv; mplayer -fs -ao oss:/dev/dsp -quiet -idx '$video_dir/$file'";
+    run "killall -s 9 mplayer; killall xawtv; mplayer -fs -ao oss:/dev/dsp -quiet -idx '$video_dir/$file'";
     set $TV 'on';
     set $AMP 'on';
     set $TV 'video1';
@@ -468,10 +454,7 @@ sub disk_space {
 
 sub pvr_stat {
     return 'Idle' if done $p_pvr;
-    return
-        "Recording $filename with "
-      . $t_pvr->minutes_remaining
-      . " minutes remaining";
+    return "Recording $filename with " . $t_pvr->minutes_remaining . " minutes remaining";
 }
 
 # The rest of this code is taken from tv_grid.pl
@@ -485,8 +468,7 @@ if ( my $data = state_now $tv_grid) {
 
     # http://house:8080/SET?$tv_grid?channel_2_from_7:00_to_8:00
 
-    my ( $channel, $start, $stop, $date, $show_name ) =
-      $data =~ /(\d+) from (\S+) to (\S+) on (\S+) for (.*)/;
+    my ( $channel, $start, $stop, $date, $show_name ) = $data =~ /(\d+) from (\S+) to (\S+) on (\S+) for (.*)/;
 
     unless ($start) {
         my $msg = "Bad tv_grid time: $data";
@@ -499,28 +481,21 @@ if ( my $data = state_now $tv_grid) {
     $show_name .= '_' . time_date_stamp 6 unless $has_subtitle;
     $show_name =~ s/&/and/g;
     $show_name =~ s/[\'\,\.\;\*\$\?\!\#\/]//g;
-    my $msg =
-      "Scheduling recording of $show_name.  Channel $channel from $start to $stop on $date.";
+    my $msg = "Scheduling recording of $show_name.  Channel $channel from $start to $stop on $date.";
     speak $msg;
     print_log $msg;
 
-    &trigger_set( "time_now '$date $start'",
-        "pvr_record('$show_name', $channel, my_time_diff('$start', '$stop'))" );
+    &trigger_set( "time_now '$date $start'", "pvr_record('$show_name', $channel, my_time_diff('$start', '$stop'))" );
 
 }
 
 # This is what downloads tv data.  This needs to be forked/detatched, as it can take a while
 $v_get_tv_grid_data1 = new Voice_Cmd('[Get,reget,redo] tv grid data for today');
-$v_get_tv_grid_data7 =
-  new Voice_Cmd('[Get,reget,redo] tv grid data for the next week');
+$v_get_tv_grid_data7 = new Voice_Cmd('[Get,reget,redo] tv grid data for the next week');
 $v_get_tv_grid_data1->set_icon('nostat.gif');
-$v_get_tv_grid_data1->set_info(
-    'Updates the TV database with.  reget will reget html, redo re-uses.  Get will only reget or redo if the data is old.'
-);
+$v_get_tv_grid_data1->set_info('Updates the TV database with.  reget will reget html, redo re-uses.  Get will only reget or redo if the data is old.');
 $v_get_tv_grid_data7->set_icon('nostat.gif');
-$v_get_tv_grid_data7->set_info(
-    'Updates the TV database with.  reget will reget html, redo re-uses.  Get will only reget or redo if the data is old.'
-);
+$v_get_tv_grid_data7->set_info('Updates the TV database with.  reget will reget html, redo re-uses.  Get will only reget or redo if the data is old.');
 if ( $state = said $v_get_tv_grid_data1 or $state = said $v_get_tv_grid_data7) {
 
     if (&net_connect_check) {
@@ -539,16 +514,14 @@ if ( $state = said $v_get_tv_grid_data1 or $state = said $v_get_tv_grid_data7) {
 
         # If we have set the net_mail_send_account, send default web page via email
         my $mail_account = $config_parms{net_mail_send_account};
-        my $mail_server =
-          $main::config_parms{"net_mail_${mail_account}_server_send"};
-        my $mail_to = $main::config_parms{"net_mail_${mail_account}_address"};
+        my $mail_server  = $main::config_parms{"net_mail_${mail_account}_server_send"};
+        my $mail_to      = $main::config_parms{"net_mail_${mail_account}_address"};
         if (    $mail_to
             and $mail_server
             and $main::config_parms{"tv_email_grids"} )
         {
             $pgm .= " -mail_to $mail_to -mail_server $mail_server ";
-            $pgm .=
-              " -mail_baseref $config_parms{http_server}:$config_parms{http_port} ";
+            $pgm .= " -mail_baseref $config_parms{http_server}:$config_parms{http_port} ";
         }
 
         run $pgm;

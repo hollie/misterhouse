@@ -159,36 +159,27 @@ sub default_setstate {
     my ( $self, $state, $substate, $set_by ) = @_;
     if ( $set_by =~ /^xpl/i ) {
         if ( $$self{changed} =~ /audio\.basic/ ) {
-            &::print_log( "[xPL_Squeezebox] "
-                  . $self->get_object_name
-                  . " state is $state" )
+            &::print_log( "[xPL_Squeezebox] " . $self->get_object_name . " state is $state" )
               if $main::Debug{xpl_squeezebox};
 
             # TO-DO: process all of the other pertinent attributes available
             return -1
-              if $self->state eq
-              $state;    # don't propagate state unless it has changed
+              if $self->state eq $state;    # don't propagate state unless it has changed
         }
     }
     else {
         my $cmnd = ( $state =~ /^off/i ) ? 'stop' : 'play';
 
         return -1
-          if ( $self->state eq $state )
-          ;              # Don't propagate state unless it has changed.
-        &::print_log( "[xPL_Squeezebox] Request "
-              . $self->get_object_name
-              . " turn "
-              . $cmnd )
+          if ( $self->state eq $state );    # Don't propagate state unless it has changed.
+        &::print_log( "[xPL_Squeezebox] Request " . $self->get_object_name . " turn " . $cmnd )
           if $main::Debug{xpl_squeezebox};
 
         if ( $cmnd eq 'stop' ) {
-            $self->SUPER::send_cmnd(
-                'audio.slimserv' => { 'extended' => 'power 0' } );
+            $self->SUPER::send_cmnd( 'audio.slimserv' => { 'extended' => 'power 0' } );
         }
         else {
-            $self->SUPER::send_cmnd(
-                'audio.slimserv' => { 'command' => $cmnd } );
+            $self->SUPER::send_cmnd( 'audio.slimserv' => { 'command' => $cmnd } );
         }
 
         return;

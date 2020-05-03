@@ -170,80 +170,31 @@ use CDDB;
 use File::Copy;
 
 my @id3_genres = (
-    'Blues',                  'Classic Rock',
-    'Country',                'Dance',
-    'Disco',                  'Funk',
-    'Grunge',                 'Hip-Hop',
-    'Jazz',                   'Metal',
-    'New Age',                'Oldies',
-    'Other',                  'Pop',
-    'R&B',                    'Rap',
-    'Reggae',                 'Rock',
-    'Techno',                 'Industrial',
-    'Alternative',            'Ska',
-    'Death Metal',            'Pranks',
-    'Soundtrack',             'Euro-Techno',
-    'Ambient',                'Trip-Hop',
-    'Vocal',                  'Jazz+Funk',
-    'Fusion',                 'Trance',
-    'Classical',              'Instrumental',
-    'Acid',                   'House',
-    'Game',                   'Sound Clip',
-    'Gospel',                 'Noise',
-    'Alt. Rock',              'Bass',
-    'Soul',                   'Punk',
-    'Space',                  'Meditative',
-    'Instrumental Pop',       'Instrumental Rock',
-    'Ethnic',                 'Gothic',
-    'Darkwave',               'Techno-Industrial',
-    'Electronic',             'Pop-Folk',
-    'Eurodance',              'Dream',
-    'Southern Rock',          'Comedy',
-    'Cult',                   'Gangsta Rap',
-    'Top 40',                 'Christian Rap',
-    'Pop/Funk',               'Jungle',
-    'Native American',        'Cabaret',
-    'New Wave',               'Psychedelic',
-    'Rave',                   'Showtunes',
-    'Trailer',                'Lo-Fi',
-    'Tribal',                 'Acid Punk',
-    'Acid Jazz',              'Polka',
-    'Retro',                  'Musical',
-    'Rock & Roll',            'Hard Rock',
-    'Folk',                   'Folk/Rock',
-    'National Folk',          'Swing',
-    'Fast-Fusion',            'Bebob',
-    'Latin',                  'Revival',
-    'Celtic',                 'Bluegrass',
-    'Avantgarde',             'Gothic Rock',
-    'Progressive Rock',       'Psychedelic Rock',
-    'Symphonic Rock',         'Slow Rock',
-    'Big Band',               'Chorus',
-    'Easy Listening',         'Acoustic',
-    'Humour',                 'Speech',
-    'Chanson',                'Opera',
-    'Chamber Music',          'Sonata',
-    'Symphony',               'Booty Bass',
-    'Primus',                 'Porn Groove',
-    'Satire',                 'Slow Jam',
-    'Club',                   'Tango',
-    'Samba',                  'Folklore',
-    'Ballad',                 'Power Ballad',
-    'Rhythmic Soul',          'Freestyle',
-    'Duet',                   'Punk Rock',
-    'Drum Solo',              'A Cappella',
-    'Euro-House',             'Dance Hall',
-    'Goa',                    'Drum & Bass',
-    'Club-House',             'Hardcore',
-    'Terror',                 'Indie',
-    'BritPop',                'Negerpunk',
-    'Polsk Punk',             'Beat',
-    'Christian Gangsta Rap',  'Heavy Metal',
-    'Black Metal',            'Crossover',
-    'Contemporary Christian', 'Christian Rock',
-    'Merengue',               'Salsa',
-    'Thrash Metal',           'Anime',
-    'JPop',                   'Synthpop'
+    'Blues',        'Classic Rock',  'Country',                'Dance',             'Disco',                 'Funk',
+    'Grunge',       'Hip-Hop',       'Jazz',                   'Metal',             'New Age',               'Oldies',
+    'Other',        'Pop',           'R&B',                    'Rap',               'Reggae',                'Rock',
+    'Techno',       'Industrial',    'Alternative',            'Ska',               'Death Metal',           'Pranks',
+    'Soundtrack',   'Euro-Techno',   'Ambient',                'Trip-Hop',          'Vocal',                 'Jazz+Funk',
+    'Fusion',       'Trance',        'Classical',              'Instrumental',      'Acid',                  'House',
+    'Game',         'Sound Clip',    'Gospel',                 'Noise',             'Alt. Rock',             'Bass',
+    'Soul',         'Punk',          'Space',                  'Meditative',        'Instrumental Pop',      'Instrumental Rock',
+    'Ethnic',       'Gothic',        'Darkwave',               'Techno-Industrial', 'Electronic',            'Pop-Folk',
+    'Eurodance',    'Dream',         'Southern Rock',          'Comedy',            'Cult',                  'Gangsta Rap',
+    'Top 40',       'Christian Rap', 'Pop/Funk',               'Jungle',            'Native American',       'Cabaret',
+    'New Wave',     'Psychedelic',   'Rave',                   'Showtunes',         'Trailer',               'Lo-Fi',
+    'Tribal',       'Acid Punk',     'Acid Jazz',              'Polka',             'Retro',                 'Musical',
+    'Rock & Roll',  'Hard Rock',     'Folk',                   'Folk/Rock',         'National Folk',         'Swing',
+    'Fast-Fusion',  'Bebob',         'Latin',                  'Revival',           'Celtic',                'Bluegrass',
+    'Avantgarde',   'Gothic Rock',   'Progressive Rock',       'Psychedelic Rock',  'Symphonic Rock',        'Slow Rock',
+    'Big Band',     'Chorus',        'Easy Listening',         'Acoustic',          'Humour',                'Speech',
+    'Chanson',      'Opera',         'Chamber Music',          'Sonata',            'Symphony',              'Booty Bass',
+    'Primus',       'Porn Groove',   'Satire',                 'Slow Jam',          'Club',                  'Tango',
+    'Samba',        'Folklore',      'Ballad',                 'Power Ballad',      'Rhythmic Soul',         'Freestyle',
+    'Duet',         'Punk Rock',     'Drum Solo',              'A Cappella',        'Euro-House',            'Dance Hall',
+    'Goa',          'Drum & Bass',   'Club-House',             'Hardcore',          'Terror',                'Indie',
+    'BritPop',      'Negerpunk',     'Polsk Punk',             'Beat',              'Christian Gangsta Rap', 'Heavy Metal',
+    'Black Metal',  'Crossover',     'Contemporary Christian', 'Christian Rock',    'Merengue',              'Salsa',
+    'Thrash Metal', 'Anime',         'JPop',                   'Synthpop'
 );
 
 my %cddb_to_id3 = (
@@ -260,22 +211,14 @@ my %cddb_to_id3 = (
     'soundtrack' => 'Soundtrack'
 );
 
-my ( $cddbp, @discs, @toc, @incomplete, $cd_drive_in_use, @recently_completed );
-my (
-    $cddbid,        $track_numbers, $track_lengths,
-    $track_offsets, $total_seconds, @data_tracks
-);
-my (
-    $get_cdinfo_process, %file_watchers, %rip_pids,
-    %ripper_data,        %incomplete_status
-);
+my ( $cddbp,  @discs,         @toc,           @incomplete,    $cd_drive_in_use, @recently_completed );
+my ( $cddbid, $track_numbers, $track_lengths, $track_offsets, $total_seconds,   @data_tracks );
+my ( $get_cdinfo_process, %file_watchers, %rip_pids, %ripper_data, %incomplete_status );
 
 if ($Reload) {
     $cd_drive_in_use    = 0;
-    $get_cdinfo_process = new Process_Item(
-        "$config_parms{mp3Rip_cdinfo} > $config_parms{mp3Rip_work_dir}/cd-info.curr"
-    );
-    $cddbp = new CDDB;
+    $get_cdinfo_process = new Process_Item("$config_parms{mp3Rip_cdinfo} > $config_parms{mp3Rip_work_dir}/cd-info.curr");
+    $cddbp              = new CDDB;
     print_log "mp3Rip: cddbids still being processed: $Save{'mp3Rip_pending'}"
       if $main::Debug{mp3Rip};
     foreach ( split( /\s+/, $Save{'mp3Rip_pending'} ) ) {
@@ -319,8 +262,7 @@ sub mp3Rip_attempt_reattach_and_restart {
 
 sub mp3Rip_remove_pending {
     my ($cddbid) = @_;
-    print_log
-      "mp3Rip($cddbid): Process no longer running (pending=$Save{'mp3Rip_pending'})"
+    print_log "mp3Rip($cddbid): Process no longer running (pending=$Save{'mp3Rip_pending'})"
       if $main::Debug{mp3Rip};
     $Save{'mp3Rip_pending'} =~ s/\s*$cddbid\s*/ /;
     $Save{'mp3Rip_pending'} =~ s/\s+$//;
@@ -361,31 +303,19 @@ sub mp3Rip_get_pending {
         $entry->[1] = $ripper_data{$_}->{'artist'};
         $entry->[2] = $ripper_data{$_}->{'album'};
         $entry->[3] = $ripper_data{$_}->{'current'};
-        $entry->[4] =
-          "$ripper_data{$_}->{'rip_done_count'} / $ripper_data{$_}->{'total_tracks'} Complete";
+        $entry->[4] = "$ripper_data{$_}->{'rip_done_count'} / $ripper_data{$_}->{'total_tracks'} Complete";
         if ( $ripper_data{$_}->{'total_length'} ) {
-            $entry->[5] = int(
-                (
-                    $ripper_data{$_}->{'rip_done_length'} /
-                      $ripper_data{$_}->{'total_length'}
-                ) * 100
-            );
+            $entry->[5] = int( ( $ripper_data{$_}->{'rip_done_length'} / $ripper_data{$_}->{'total_length'} ) * 100 );
             $entry->[5] .= '%';
         }
         if ( defined( $ripper_data{$_}->{'compress_done_count'} ) ) {
-            $entry->[6] =
-              "$ripper_data{$_}->{'compress_done_count'} / $ripper_data{$_}->{'total_tracks'} Complete";
+            $entry->[6] = "$ripper_data{$_}->{'compress_done_count'} / $ripper_data{$_}->{'total_tracks'} Complete";
         }
         else {
             $entry->[6] = 'Not Started';
         }
         if ( $ripper_data{$_}->{'total_length'} ) {
-            $entry->[7] = int(
-                (
-                    $ripper_data{$_}->{'compress_done_length'} /
-                      $ripper_data{$_}->{'total_length'}
-                ) * 100
-            );
+            $entry->[7] = int( ( $ripper_data{$_}->{'compress_done_length'} / $ripper_data{$_}->{'total_length'} ) * 100 );
             $entry->[7] .= '%';
         }
         if ( $ripper_data{$_}->{'rip_time'} ) {
@@ -478,8 +408,7 @@ sub mp3Rip_start_ripper_process {
     else {
         # Start with a wrapper script so that if Misterhouse restarts the process keeps running
         my $rip_process = new Process_Item(
-            "mp3Rip $config_parms{mp3Rip_work_dir}/$cddbid.data $config_parms{mp3Rip_work_dir}/$cddbid.log $config_parms{mp3Rip_work_dir}/$cddbid.pid"
-        );
+            "mp3Rip $config_parms{mp3Rip_work_dir}/$cddbid.data $config_parms{mp3Rip_work_dir}/$cddbid.log $config_parms{mp3Rip_work_dir}/$cddbid.pid");
         $rip_process->start();
     }
     if ( $config_parms{mp3Rip_log_file} ) {
@@ -515,17 +444,13 @@ sub mp3Rip_start_rip {
     unless ($cddbid) {
         return "No cddbid found!";
     }
-    print_log
-      "mp3Rip($cddbid): mp3Rip_start_rip(pending=$Save{'mp3Rip_pending'})"
+    print_log "mp3Rip($cddbid): mp3Rip_start_rip(pending=$Save{'mp3Rip_pending'})"
       if $main::Debug{mp3Rip};
     if ( $Save{'mp3Rip_pending'} =~ /$cddbid/ ) {
         return "There is already a rip in progress for $cddbid";
     }
-    unless (
-        open( MP3RIPDATA, ">$config_parms{mp3Rip_work_dir}/$cddbid.data" ) )
-    {
-        return
-          "Could not create file: $config_parms{mp3Rip_work_dir}/$cddbid.data";
+    unless ( open( MP3RIPDATA, ">$config_parms{mp3Rip_work_dir}/$cddbid.data" ) ) {
+        return "Could not create file: $config_parms{mp3Rip_work_dir}/$cddbid.data";
     }
     foreach (@_) {
         print MP3RIPDATA "$_\n";
@@ -538,8 +463,7 @@ sub mp3Rip_start_rip {
     print MP3RIPDATA "cdripper=$config_parms{mp3Rip_cdripper}\n";
     print MP3RIPDATA "mp3_encoder=$config_parms{mp3Rip_mp3_encoder}\n";
     if ( $config_parms{mp3Rip_disc_data_file} ) {
-        print MP3RIPDATA
-          "disc_data_file=$config_parms{mp3Rip_disc_data_file}\n";
+        print MP3RIPDATA "disc_data_file=$config_parms{mp3Rip_disc_data_file}\n";
     }
     close(MP3RIPDATA);
     unlink("$config_parms{mp3Rip_work_dir}/$cddbid.log");
@@ -720,10 +644,7 @@ sub mp3Rip_check_caps($) {
     $name =~ s/(^|\s+)(.)/$1 . uc($2)/e;
 
     # Make sure the, of, a, an, from are not caps
-    while ( $name =~
-        s/\s+($config_parms{mp3Rip_first_letter_caps_ignore_list})\s+/' ' . lc($1) . ' '/e
-      )
-    {
+    while ( $name =~ s/\s+($config_parms{mp3Rip_first_letter_caps_ignore_list})\s+/' ' . lc($1) . ' '/e ) {
         1;
     }
 
@@ -763,13 +684,11 @@ sub mp3Rip_parse_cdinfo {
     }
     close CDINFO;
 
-    my @toc =
-      $cddbp->parse_cdinfo("$config_parms{mp3Rip_work_dir}/cd-info.curr");
+    my @toc = $cddbp->parse_cdinfo("$config_parms{mp3Rip_work_dir}/cd-info.curr");
     unless (@toc) {
         return ( undef, undef, undef );
     }
-    ( $cddbid, $track_numbers, $track_lengths, $track_offsets, $total_seconds )
-      = $cddbp->calculate_id(@toc);
+    ( $cddbid, $track_numbers, $track_lengths, $track_offsets, $total_seconds ) = $cddbp->calculate_id(@toc);
     unless ($cddbid) {
         return ( undef, undef, undef );
     }
@@ -814,8 +733,7 @@ sub mp3Rip_get_disc_details {
     $artist =~ s/ \/ .+$//;
     my $album = $disc_info->{dtitle};
     $album =~ s/^.+ \/ //;
-    return ( &mp3Rip_convert_genre_to_id3($genre),
-        $artist, $album, @{ $disc_info->{ttitles} } );
+    return ( &mp3Rip_convert_genre_to_id3($genre), $artist, $album, @{ $disc_info->{ttitles} } );
 }
 
 sub mp3Rip_read_key_from_data_file {
@@ -838,16 +756,12 @@ sub mp3Rip_clean {
     my $dir = &mp3Rip_read_key_from_data_file( $cddbid, 'dir' );
     unlink("$config_parms{mp3Rip_work_dir}/$cddbid.log");
     unlink("$config_parms{mp3Rip_work_dir}/$cddbid.pid");
-    unless (
-            $ripper_data{$cddbid}
+    unless ($ripper_data{$cddbid}
         and $ripper_data{$cddbid}->{'total_tracks'}
         and $ripper_data{$cddbid}->{'rip_done_count'}
-        and ( $ripper_data{$cddbid}->{'rip_done_count'} ==
-            $ripper_data{$cddbid}->{'total_tracks'} )
-      )
+        and ( $ripper_data{$cddbid}->{'rip_done_count'} == $ripper_data{$cddbid}->{'total_tracks'} ) )
     {
-        if ( opendir( MP3RIPWAVDIR, "$config_parms{mp3Rip_wav_dir}/$cddbid" ) )
-        {
+        if ( opendir( MP3RIPWAVDIR, "$config_parms{mp3Rip_wav_dir}/$cddbid" ) ) {
             while ( my $entry = readdir(MP3RIPWAVDIR) ) {
                 next if $entry =~ /^\./;
                 unlink "$config_parms{mp3Rip_wav_dir}/$cddbid/$entry";
@@ -879,9 +793,7 @@ sub mp3Rip_abort {
     unlink("$config_parms{mp3Rip_work_dir}/$cddbid.pid");
     if ( $rip_pids{$cddbid} ) {
         if ( -d "/proc/$rip_pids{$cddbid}" ) {
-            my $kill = new Process_Item(
-                "kill $rip_pids{$cddbid} ; sleep 5 ; kill -9 $rip_pids{$cddbid}"
-            );
+            my $kill = new Process_Item("kill $rip_pids{$cddbid} ; sleep 5 ; kill -9 $rip_pids{$cddbid}");
             $kill->start();
         }
     }
@@ -914,15 +826,13 @@ sub mp3Rip_remove_partial_entry {
 
 sub mp3Rip_make_pending {
     my ($cddbid) = @_;
-    print_log
-      "mp3Rip($cddbid): mp3Rip_make_pending(before=$Save{'mp3Rip_pending'})"
+    print_log "mp3Rip($cddbid): mp3Rip_make_pending(before=$Save{'mp3Rip_pending'})"
       if $main::Debug{mp3Rip};
     unless ( $Save{'mp3Rip_pending'} =~ /$cddbid/ ) {
         $Save{'mp3Rip_pending'} .= " $cddbid";
         $Save{'mp3Rip_pending'} =~ s/^\s+//;
     }
-    print_log
-      "mp3Rip($cddbid): mp3Rip_make_pending(after=$Save{'mp3Rip_pending'})"
+    print_log "mp3Rip($cddbid): mp3Rip_make_pending(after=$Save{'mp3Rip_pending'})"
       if $main::Debug{mp3Rip};
     &mp3Rip_remove_partial_entry($cddbid);
 }
@@ -934,9 +844,7 @@ sub mp3Rip_get_recently_completed {
 sub mp3Rip_rip_complete {
     my ($cddbid) = @_;
     $ripper_data{$cddbid}->{'current'} = 'Finished';
-    my $total_time =
-      &mp3Rip_format_time( $ripper_data{$cddbid}->{'rip_time'} +
-          $ripper_data{$cddbid}->{'compress_time'} );
+    my $total_time = &mp3Rip_format_time( $ripper_data{$cddbid}->{'rip_time'} + $ripper_data{$cddbid}->{'compress_time'} );
     my $log_entry =
       "$Time_Date: [$cddbid] Finished $ripper_data{$cddbid}->{'album'} by $ripper_data{$cddbid}->{'artist'} (Total Time: $total_time, $ripper_data{$cddbid}->{'total_tracks'} Tracks in $ripper_data{$cddbid}->{'dir'})";
     push @recently_completed, $log_entry;
@@ -951,14 +859,8 @@ sub mp3Rip_rip_complete {
     unlink("$config_parms{mp3Rip_work_dir}/$cddbid.pid");
     if ( $config_parms{mp3Rip_archive_dir} ) {
         mkdir("$config_parms{mp3Rip_archive_dir}");
-        move(
-            "$config_parms{mp3Rip_work_dir}/$cddbid.log",
-            "$config_parms{mp3Rip_archive_dir}/$cddbid.log"
-        );
-        move(
-            "$config_parms{mp3Rip_work_dir}/$cddbid.data",
-            "$config_parms{mp3Rip_archive_dir}/$cddbid.data"
-        );
+        move( "$config_parms{mp3Rip_work_dir}/$cddbid.log",  "$config_parms{mp3Rip_archive_dir}/$cddbid.log" );
+        move( "$config_parms{mp3Rip_work_dir}/$cddbid.data", "$config_parms{mp3Rip_archive_dir}/$cddbid.data" );
     }
     else {
         unlink("$config_parms{mp3Rip_work_dir}/$cddbid.log");
@@ -1045,9 +947,7 @@ sub mp3Rip_process_log_entry {
           "Ripping track $1 (" . &mp3Rip_format_time($2) . ')';
         $ripper_data{$cddbid}->{'current_length'} = $2;
     }
-    elsif (
-        $line =~ /^Compressing track (\d+) to .+ \(length: (\d+) seconds\)/ )
-    {
+    elsif ( $line =~ /^Compressing track (\d+) to .+ \(length: (\d+) seconds\)/ ) {
         $ripper_data{$cddbid}->{'current'} =
           "Compressing track $1 (" . &mp3Rip_format_time($2) . ')';
         $ripper_data{$cddbid}->{'compress_done_count'} = 0
@@ -1059,46 +959,28 @@ sub mp3Rip_process_log_entry {
         $ripper_data{$cddbid}->{'rip_done_length'} +=
           $ripper_data{$cddbid}->{'current_length'};
         $ripper_data{$cddbid}->{'rip_time'} += &mp3Rip_unformat_time($2);
-        if ( $ripper_data{$cddbid}->{'rip_done_count'} ==
-            $ripper_data{$cddbid}->{'total_tracks'} )
-        {
+        if ( $ripper_data{$cddbid}->{'rip_done_count'} == $ripper_data{$cddbid}->{'total_tracks'} ) {
             $ripper_data{$cddbid}->{'rip_predicted_remaining'} = 'Finished';
         }
         elsif ( $ripper_data{$cddbid}->{'rip_done_length'} ) {
-            $ripper_data{$cddbid}->{'rip_predicted_total'} = int(
-                $ripper_data{$cddbid}->{'total_length'} * (
-                    $ripper_data{$cddbid}->{'rip_time'} /
-                      $ripper_data{$cddbid}->{'rip_done_length'}
-                )
-            );
-            $ripper_data{$cddbid}->{'rip_predicted_remaining'} =
-              $ripper_data{$cddbid}->{'rip_predicted_total'} -
-              $ripper_data{$cddbid}->{'rip_time'};
+            $ripper_data{$cddbid}->{'rip_predicted_total'} =
+              int( $ripper_data{$cddbid}->{'total_length'} * ( $ripper_data{$cddbid}->{'rip_time'} / $ripper_data{$cddbid}->{'rip_done_length'} ) );
+            $ripper_data{$cddbid}->{'rip_predicted_remaining'} = $ripper_data{$cddbid}->{'rip_predicted_total'} - $ripper_data{$cddbid}->{'rip_time'};
         }
     }
-    elsif (
-        $line =~ /^Done compressing track (\d+) to .+ \(compress time: (.+)\)/ )
-    {
+    elsif ( $line =~ /^Done compressing track (\d+) to .+ \(compress time: (.+)\)/ ) {
         $ripper_data{$cddbid}->{'compress_done_count'} = $1;
         $ripper_data{$cddbid}->{'compress_done_length'} +=
           $ripper_data{$cddbid}->{'current_length'};
         $ripper_data{$cddbid}->{'compress_time'} += &mp3Rip_unformat_time($2);
-        if ( $ripper_data{$cddbid}->{'compress_done_count'} ==
-            $ripper_data{$cddbid}->{'total_tracks'} )
-        {
-            $ripper_data{$cddbid}->{'compress_predicted_remaining'} =
-              'Finished';
+        if ( $ripper_data{$cddbid}->{'compress_done_count'} == $ripper_data{$cddbid}->{'total_tracks'} ) {
+            $ripper_data{$cddbid}->{'compress_predicted_remaining'} = 'Finished';
         }
         elsif ( $ripper_data{$cddbid}->{'compress_done_length'} ) {
-            $ripper_data{$cddbid}->{'compress_predicted_total'} = int(
-                $ripper_data{$cddbid}->{'total_length'} * (
-                    $ripper_data{$cddbid}->{'compress_time'} /
-                      $ripper_data{$cddbid}->{'compress_done_length'}
-                )
-            );
+            $ripper_data{$cddbid}->{'compress_predicted_total'} =
+              int( $ripper_data{$cddbid}->{'total_length'} * ( $ripper_data{$cddbid}->{'compress_time'} / $ripper_data{$cddbid}->{'compress_done_length'} ) );
             $ripper_data{$cddbid}->{'compress_predicted_remaining'} =
-              $ripper_data{$cddbid}->{'compress_predicted_total'} -
-              $ripper_data{$cddbid}->{'compress_time'};
+              $ripper_data{$cddbid}->{'compress_predicted_total'} - $ripper_data{$cddbid}->{'compress_time'};
         }
     }
     elsif ( $line =~ s/^FATAL: // ) {

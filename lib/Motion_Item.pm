@@ -92,14 +92,11 @@ sub set {
       if $main::Debug{occupancy};
 
     if ( ref $p_setby and $p_setby->can('get_set_by') ) {
-        &::print_log(
-            "Motion_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by "
-              . $p_setby->get_set_by )
+        &::print_log( "Motion_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by )
           if $main::Debug{occupancy};
     }
     else {
-        &::print_log(
-            "Motion_Item($$self{object_name})::set($p_state, $p_setby)")
+        &::print_log("Motion_Item($$self{object_name})::set($p_state, $p_setby)")
           if $main::Debug{occupancy};
     }
 
@@ -107,9 +104,7 @@ sub set {
         &::print_log("Motion_Item:: name: $name m_timerCheck")
           if $main::Debug{occupancy};
         my $hours = $$self{'inactivity_time'} / ( 60 * 60 );
-        &::print_log(
-            "$name->Has not received motion in $hours hours (battery dead?) action->$$self{'inactivity_action'}"
-        ) if $main::Debug{occupancy};
+        &::print_log("$name->Has not received motion in $hours hours (battery dead?) action->$$self{'inactivity_action'}") if $main::Debug{occupancy};
         if ( $$self{'inactivity_action'} ) {
 
             package main;
@@ -118,8 +113,7 @@ sub set {
             package Motion_Item;
         }
         else {
-            &::print_log(
-                "$$self{object_name}->Has not received motion in $hours hours")
+            &::print_log("$$self{object_name}->Has not received motion in $hours hours")
               if $main::Debug{occupancy};
         }
         if ( $$self{'inactivity_time'} ) {

@@ -37,27 +37,18 @@ use strict;
 my ( $Pgm_Path, $Pgm_Name, $Version );
 
 BEGIN {
-    ($Version) =
-      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval
-      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";    # So perl2exe works
 }
 
 use Getopt::Long;
 my (%parms);
-if (
-    !&GetOptions(
-        \%parms,  "version=s", "folder=s",   "quiet",
-        "debug",  "all",       "dump_body",  "pl_file=s",
-        "date=s", "days=s",    "date_end=s", "h",
-        "help"
-    )
+if (  !&GetOptions( \%parms, "version=s", "folder=s", "quiet", "debug", "all", "dump_body", "pl_file=s", "date=s", "days=s", "date_end=s", "h", "help" )
     or @ARGV > 0
     or $parms{h}
-    or $parms{help}
-  )
+    or $parms{help} )
 {
     print <<eof;
 
@@ -116,11 +107,9 @@ sub setup {
 
     # Use EVENTS to run OLE as a single-threaded apartment, so MAPI.Session works
     use Win32::OLE qw(valof EVENTS);
-    use Win32::OLE::Variant
-      ; # Simply including this somehow auto-converts $start and $end times from Win32::OLE::Variant objects ?
+    use Win32::OLE::Variant;    # Simply including this somehow auto-converts $start and $end times from Win32::OLE::Variant objects ?
 
-    require 'handy_utilities.pl'
-      ;    # For misc. functions (e.g. time/date stamp routines)
+    require 'handy_utilities.pl';    # For misc. functions (e.g. time/date stamp routines)
 
     # Apparently the 97 way also works for Outlook 2000, so let that be the default.
     #   $parms{version} = '97' unless $parms{version};
@@ -162,13 +151,12 @@ sub setup {
     # Setup the defaults
     $parms{folder} = 'Calendar' unless $parms{folder};
     my $folder_number = $ol_folder{ $parms{folder} };
-    $parms{date} = &time_date_stamp(11) unless $parms{date};  # Returns mm/dd/yy
-    $parms{date_end} = $parms{date} unless $parms{date_end};
+    $parms{date}     = &time_date_stamp(11) unless $parms{date};       # Returns mm/dd/yy
+    $parms{date_end} = $parms{date}         unless $parms{date_end};
     $parms{date_end} = &time_date_stamp( 11, time + 3600 * 24 * $parms{days} )
       if $parms{days};
 
-    print
-      "Searching $parms{folder} num=$folder_number: Start: $parms{date}  Stop: $parms{date_end}\n"
+    print "Searching $parms{folder} num=$folder_number: Start: $parms{date}  Stop: $parms{date_end}\n"
       unless $parms{quiet};
 
     my ( $Outlook, $folder );
@@ -188,8 +176,7 @@ sub setup {
     }
 
     my $folder = $Outlook->GetDefaultFolder($folder_number)
-      or
-      die "Error, could not find folder $parms{folder} = $folder_number:\n  ",
+      or die "Error, could not find folder $parms{folder} = $folder_number:\n  ",
       Win32::OLE->LastError;
 
     if ( $parms{version} eq '97' ) {
@@ -205,8 +192,7 @@ sub setup {
           Win32::OLE->LastError;
     }
 
-    print
-      "folder=$parms{folder},folder_number=$folder_number,folder=$folder,items=$items\n\n"
+    print "folder=$parms{folder},folder_number=$folder_number,folder=$folder,items=$items\n\n"
       if $parms{debug};
 
     open( PL, ">$parms{pl_file}" )
@@ -224,8 +210,7 @@ sub find_items {
     if ( $parms{version} eq '97' ) {
         my $criteria;
         if ( $parms{folder} eq 'Calendar' ) {
-            $criteria =
-              qq{[Start] >= "$parms{date} 12:00 AM" and [Start] <= "$parms{date_end} 11:59 PM"};
+            $criteria = qq{[Start] >= "$parms{date} 12:00 AM" and [Start] <= "$parms{date_end} 11:59 PM"};
         }
         if ( !$parms{all} ) {
             $item = $items->Find($criteria);
@@ -307,8 +292,7 @@ sub create_vcr_event {
         $channel_commified = "0,$channel";
     }
     else {
-        $channel_commified =
-          substr( $channel, 0, 1 ) . "," . substr( $channel, 1, 1 );
+        $channel_commified = substr( $channel, 0, 1 ) . "," . substr( $channel, 1, 1 );
     }
 
     print "VCR on channel $channel from $start to $end\n" unless $parms{quiet};

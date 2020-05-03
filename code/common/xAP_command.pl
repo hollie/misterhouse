@@ -26,36 +26,28 @@ if ( $state = $xap_command_external->state_now() ) {
         $explicitTargets = $$xap_command_external{'command.external'}{targets};
         $targets = $targets . ",$explicitTargets" if defined($explicitTargets);
 
-        print
-          "s=$state, command=$$xap_command_external{'command.external'}{command}, xap=$xap_command_external\n";
-        $response =
-          &process_external_command(
-            $$xap_command_external{'command.external'}{command},
-            1, $xap_command_external, $targets );
+        print "s=$state, command=$$xap_command_external{'command.external'}{command}, xap=$xap_command_external\n";
+        $response = &process_external_command( $$xap_command_external{'command.external'}{command}, 1, $xap_command_external, $targets );
 
         # Special error response.  Normal response handled by respond_xap
         if ( $response ne 1 ) {
             my $target = $$xap_command_external{'xap-header'}{'source'};
             $target = '*'
-              unless $target
-              ;    # not good form as target='*' will get stripped out; but ...
-            &xAP::sendXap( $target, "command.response",
-                'command.response' => { response => '', error => 1 } );
+              unless $target;    # not good form as target='*' will get stripped out; but ...
+            &xAP::sendXap( $target, "command.response", 'command.response' => { response => '', error => 1 } );
 
             # respond with a message indicating failure if xap targets specified
             if ( defined($explicitTargets) ) {
                 &::respond(
                     target => $explicitTargets,
-                    text =>
-                      "Failure on command: $$xap_command_external{'command.external'}{command}"
+                    text   => "Failure on command: $$xap_command_external{'command.external'}{command}"
                 );
             }
 
             # respond w/ xap "ackmsg" if it is defined--particularly useful for non-info-oriented commands
             # note: the "ackmsg" response here occurs after any implicit responds occuring in process_external_command
         }
-        elsif ( defined( $$xap_command_external{'command.external'}{ackmsg} ) )
-        {
+        elsif ( defined( $$xap_command_external{'command.external'}{ackmsg} ) ) {
             if ( defined($explicitTargets) ) {
                 &::respond(
                     target => $explicitTargets,
@@ -64,8 +56,7 @@ if ( $state = $xap_command_external->state_now() ) {
             }
             else {
                 # assume that the user wanted the ackmsg spoken if no targets are defined
-                &::respond(
-                    "$$xap_command_external{'command.external'}{ackmsg}");
+                &::respond("$$xap_command_external{'command.external'}{ackmsg}");
             }
         }
         $explicitTargets = undef;
@@ -87,16 +78,12 @@ if ( $xap_command_external2->state_now('message.receive') ) {
         my $target;
         $xap_command_external2->{set_by} = "xap [msgr:$respondtgt]";
 
-        my $response =
-          &process_external_command( $command, 1, $xap_command_external2,
-            $target );
+        my $response = &process_external_command( $command, 1, $xap_command_external2, $target );
 
         # Special error response.  Normal response handled by respond_xap
         if ( $response ne 1 ) {
             my $target = '*';
-            &xAP::sendXap( $target, "messenger.cmd",
-                'message.send' =>
-                  { to => $respondtgt, body => 'Error encountered' } );
+            &xAP::sendXap( $target, "messenger.cmd", 'message.send' => { to => $respondtgt, body => 'Error encountered' } );
         }
     }
 
@@ -111,13 +98,11 @@ sub respond_xap {
     my $target = $parms{to};
     my ( $xapclass, $to ) = $target =~ /(.*):(.*)/;
     if ( $xapclass eq 'msgr' ) {
-        &xAP::sendXap( '*', "messenger.cmd",
-            "message.send" => { to => $to, body => $parms{text} } );
+        &xAP::sendXap( '*', "messenger.cmd", "message.send" => { to => $to, body => $parms{text} } );
     }
     else {
         $target = '*'
-          unless
-          $target;  # not good form as target='*' will get stripped out; but ...
+          unless $target;    # not good form as target='*' will get stripped out; but ...
         &xAP::sendXap(
             $target,
             "command.response",
@@ -146,8 +131,7 @@ if ( $state = $xap_command_response->state_now() ) {
         my $error = $$xap_command_response{'command.response'}{error};
 
         if ($error) {
-            &::print_log( "An command response error was received from "
-                  . $$xap_command_response{'xap-header'}{source} );
+            &::print_log( "An command response error was received from " . $$xap_command_response{'xap-header'}{source} );
         }
         elsif ($response) {
             &::speak("$app $mode $response");
@@ -177,8 +161,7 @@ if ( state_now $xap_mhouse_item) {
         $source = '*'
           unless $source;    # revert to blind broadcast if not resolvable
         $item->set( $state, "xAP [$source]" );
-        print "xAP item mirrored: name=$name, state=$state, set_by=$set_by "
-          . "target=$target source=$source\n"
+        print "xAP item mirrored: name=$name, state=$state, set_by=$set_by " . "target=$target source=$source\n"
           if $Debug{xap_item};
     }
 }

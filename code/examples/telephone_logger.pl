@@ -30,10 +30,7 @@ if ( my $state = said $telephone_logger) {
             #	    print "ac=$ac exch=$exch,num=$num\n";
             #	    $number = $ac.$exch.$num;
             #	    print "formatted num=$number";
-            logit(
-                "$config_parms{data_dir}/phone/logs/phone.$Year_Month_Now.log",
-                "O$number name=$dur_print ext=1 line=home type=VOIP dur=$dur_print"
-            );
+            logit( "$config_parms{data_dir}/phone/logs/phone.$Year_Month_Now.log", "O$number name=$dur_print ext=1 line=home type=VOIP dur=$dur_print" );
         }
 
         #	print "end of call to number $number, time is $elapsed_time seconds \n";

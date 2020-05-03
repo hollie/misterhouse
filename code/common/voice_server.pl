@@ -114,9 +114,7 @@ sub play_to_others_1 {
 my $authorized_2 = 0;
 my ( $password_2, $user_2, $data_2 );
 
-$voice_server_2 =
-  new Socket_Item( "Connected to MisterHouse Voice Server 2\r\n",
-    'Welcome', 'server_voice_2' );
+$voice_server_2 = new Socket_Item( "Connected to MisterHouse Voice Server 2\r\n", 'Welcome', 'server_voice_2' );
 $timer_disconnect_2 = new Timer;
 
 if ( ($Reload) && ( active $voice_server_2) ) {
@@ -182,9 +180,7 @@ sub play_to_others_2 {
 my $authorized_3 = 0;
 my ( $password_3, $user_3, $data_3 );
 
-$voice_server_3 =
-  new Socket_Item( "Connected to MisterHouse Voice Server 3\r\n",
-    'Welcome', 'server_voice_3' );
+$voice_server_3 = new Socket_Item( "Connected to MisterHouse Voice Server 3\r\n", 'Welcome', 'server_voice_3' );
 $timer_disconnect_3 = new Timer;
 
 if ( ($Reload) && ( active $voice_server_3) ) {

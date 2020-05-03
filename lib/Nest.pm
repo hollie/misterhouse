@@ -260,7 +260,7 @@ sub connect_stream {
             $self->debug( "IO::Socket::SSL connected", $info );
             last;
         }
-        else {    # handshake still incomplete
+        else {                                         # handshake still incomplete
             if ( $SSL_ERROR == SSL_WANT_READ ) {
                 $select->can_read;
             }
@@ -268,8 +268,7 @@ sub connect_stream {
                 $select->can_write;
             }
             else {
-                $self->debug(
-                    "ERROR connecting to Nest server: " . $SSL_ERROR );
+                $self->debug( "ERROR connecting to Nest server: " . $SSL_ERROR );
                 $self->reconnect_delay();
                 return;
             }
@@ -277,8 +276,7 @@ sub connect_stream {
     }
 
     # Request specific location
-    my $request = HTTP::Request->new( 'GET', $url->full_path,
-        [ "Accept", "text/event-stream", "Host", $url->host ] );
+    my $request = HTTP::Request->new( 'GET', $url->full_path, [ "Accept", "text/event-stream", "Host", $url->host ] );
     $request->protocol('HTTP/1.1');
     unless ( $$self{socket}->syswrite( $request->as_string ) ) {
         $self->debug( "ERROR connecting to Nest server: " . $! );
@@ -318,14 +316,12 @@ sub check_for_data {
                 if ( $r->code == 307 ) {
 
                     # This is a location redirect
-                    $self->debug( "redirecting to " . $r->header('location'),
-                        $trace );
+                    $self->debug( "redirecting to " . $r->header('location'), $trace );
                     $$self{socket} =
                       $self->connect_stream( $r->header('location') );
                 }
                 elsif ( $r->code == 401 ) {
-                    $self->debug( "ERROR, your authorization was rejected. "
-                          . "Please check your settings." );
+                    $self->debug( "ERROR, your authorization was rejected. " . "Please check your settings." );
                     $$self{enabled} = 0;
                 }
                 elsif ( $r->code == 200 ) {
@@ -334,9 +330,7 @@ sub check_for_data {
                     $self->debug( "Successfully connected to stream", $warn );
                 }
                 else {
-                    $self->debug( "ERROR, unable to connect stream. "
-                          . "Response was: "
-                          . $r->as_string );
+                    $self->debug( "ERROR, unable to connect stream. " . "Response was: " . $r->as_string );
                     $self->reconnect_delay();
                 }
                 $$self{data} = "";
@@ -456,8 +450,7 @@ sub write_data {
 
     # Use a process item to prevent blocking
     if ( !$$self{write_process_active} ) {
-        $$self{write_process}
-          ->set("&Nest_Interface::_write_data_process('$url','$json')");
+        $$self{write_process}->set("&Nest_Interface::_write_data_process('$url','$json')");
         $$self{write_process}->start();
         $$self{write_process_active} = 1;
 
@@ -465,10 +458,7 @@ sub write_data {
         ::MainLoop_pre_add_hook( $$self{write_process_code}, 'persistent' );
     }
     else {
-        push(
-            @{ $$self{write_process_queue} },
-            "&Nest_Interface::_write_data_process('$url','$json')"
-        );
+        push( @{ $$self{write_process_queue} }, "&Nest_Interface::_write_data_process('$url','$json')" );
     }
 }
 
@@ -486,8 +476,7 @@ sub _write_data_process {
     if ( $r->code == 307 ) {
 
         # This is a location redirect
-        ::print_log(
-            "[Nest_Interface] redirecting to " . $r->header('location') )
+        ::print_log( "[Nest_Interface] redirecting to " . $r->header('location') )
           if $::Debug{'nest'} >= 3;
         return _write_data_process( $r->header('location'), $json );
     }
@@ -504,8 +493,7 @@ sub write_process_handler {
         unlink("$::config_parms{data_dir}/nest.resp");
         my $r = HTTP::Response->parse($resp_string);
         if ( $r->code == 401 ) {
-            $self->debug( "ERROR, your authorization was rejected. "
-                  . "Please check your settings." );
+            $self->debug( "ERROR, your authorization was rejected. " . "Please check your settings." );
         }
         elsif ( $r->code == 200 ) {
 
@@ -514,9 +502,7 @@ sub write_process_handler {
         }
         else {
             my $content = decode_json $r->content;
-            $self->debug( "ERROR, unable to write data to Nest server. "
-                  . $r->status_line . " - "
-                  . $$content{error} );
+            $self->debug( "ERROR, unable to write data to Nest server. " . $r->status_line . " - " . $$content{error} );
         }
 
         # Look see if there is a queue of write commands
@@ -622,21 +608,10 @@ sub convert_to_ids {
         $self->debug( "Nest Initial data load convert_to_ids " . $value );
         my $device_id = $parent->device_id();
         if ( $$parent{type} ne '' ) {
-            push(
-                @{
-                    $$self{monitor}{data}{ $$parent{class} }{ $$parent{type} }
-                      {$device_id}{$value}
-                },
-                $action
-            );
+            push( @{ $$self{monitor}{data}{ $$parent{class} }{ $$parent{type} }{$device_id}{$value} }, $action );
         }
         else {
-            push(
-                @{
-                    $$self{monitor}{data}{ $$parent{class} }{$device_id}{$value}
-                },
-                $action
-            );
+            push( @{ $$self{monitor}{data}{ $$parent{class} }{$device_id}{$value} }, $action );
         }
     }
     delete $$self{register};
@@ -740,8 +715,7 @@ sub device_id {
             return $device_id;
         }
     }
-    $self->debug(
-        "ERROR, no device by the name " . $$parent{name} . " was found." );
+    $self->debug( "ERROR, no device by the name " . $$parent{name} . " was found." );
     return 0;
 }
 
@@ -788,12 +762,10 @@ sub get_value {
     my ( $self, $value ) = @_;
     my $device_id = $self->device_id;
     if ( $$self{type} ne '' ) {
-        return $$self{interface}{JSON}{data}{ $$self{class} }{ $$self{type} }
-          {$device_id}{$value};
+        return $$self{interface}{JSON}{data}{ $$self{class} }{ $$self{type} }{$device_id}{$value};
     }
     else {
-        return $$self{interface}{JSON}{data}{ $$self{class} }{$device_id}
-          {$value};
+        return $$self{interface}{JSON}{data}{ $$self{class} }{$device_id}{$value};
     }
 }
 
@@ -866,10 +838,7 @@ sub new {
     my $monitor_value = "ambient_temperature_" . $scale;
     my $self = new Nest_Generic( $interface, '', { $monitor_value => '' } );
     bless $self, $class;
-    $$self{class}   = 'devices',
-      $$self{type}  = 'thermostats',
-      $$self{name}  = $name,
-      $$self{scale} = $scale;
+    $$self{class} = 'devices', $$self{type} = 'thermostats', $$self{name} = $name, $$self{scale} = $scale;
     return $self;
 }
 
@@ -1044,9 +1013,7 @@ sub set_hvac_mode {
         && $state ne 'heat-cool'
         && $state ne 'off' )
     {
-        $self->debug(
-            "set_hvac_mode must be one of: heat, cool, heat-cool, or off. Not $state."
-        );
+        $self->debug("set_hvac_mode must be one of: heat, cool, heat-cool, or off. Not $state.");
         return;
     }
     $$self{state_pending}{hvac_mode} = [ $p_setby, $p_response ];
@@ -1087,8 +1054,7 @@ use strict;
 
 sub new {
     my ( $class, $parent ) = @_;
-    my $self = new Nest_Generic( $$parent{interface}, $parent,
-        { 'fan_timer_active' => '' } );
+    my $self = new Nest_Generic( $$parent{interface}, $parent, { 'fan_timer_active' => '' } );
     $$self{states} = [ 'on', 'off' ];
     bless $self, $class;
     return $self;
@@ -1303,8 +1269,7 @@ use strict;
 sub new {
     my ( $class, $parent ) = @_;
     my $scale = $$parent{scale};
-    my $self  = new Nest_Generic( $$parent{interface}, $parent,
-        { 'target_temperature_' . $scale => '' } );
+    my $self = new Nest_Generic( $$parent{interface}, $parent, { 'target_temperature_' . $scale => '' } );
     $$self{states} = [ 'cooler', 'warmer' ];
     bless $self, $class;
     return $self;
@@ -1353,8 +1318,7 @@ use strict;
 sub new {
     my ( $class, $parent ) = @_;
     my $scale = $$parent{scale};
-    my $self  = new Nest_Generic( $$parent{interface}, $parent,
-        { 'target_temperature_high_' . $scale => '' } );
+    my $self = new Nest_Generic( $$parent{interface}, $parent, { 'target_temperature_high_' . $scale => '' } );
     $$self{states} = [ 'cooler', 'warmer' ];
     bless $self, $class;
     return $self;
@@ -1403,8 +1367,7 @@ use strict;
 sub new {
     my ( $class, $parent ) = @_;
     my $scale = $$parent{scale};
-    my $self  = new Nest_Generic( $$parent{interface}, $parent,
-        { 'target_temperature_low_' . $scale => '' } );
+    my $self = new Nest_Generic( $$parent{interface}, $parent, { 'target_temperature_low_' . $scale => '' } );
     $$self{states} = [ 'cooler', 'warmer' ];
     bless $self, $class;
     return $self;
@@ -1453,8 +1416,7 @@ use strict;
 sub new {
     my ( $class, $parent ) = @_;
     my $scale = $$parent{scale};
-    my $self  = new Nest_Generic( $$parent{interface}, $parent,
-        { 'away_temperature_high_' . $scale => '' } );
+    my $self = new Nest_Generic( $$parent{interface}, $parent, { 'away_temperature_high_' . $scale => '' } );
     bless $self, $class;
     return $self;
 }
@@ -1491,8 +1453,7 @@ use strict;
 sub new {
     my ( $class, $parent ) = @_;
     my $scale = $$parent{scale};
-    my $self  = new Nest_Generic( $$parent{interface}, $parent,
-        { 'away_temperature_low_' . $scale => '' } );
+    my $self = new Nest_Generic( $$parent{interface}, $parent, { 'away_temperature_low_' . $scale => '' } );
     bless $self, $class;
     return $self;
 }
@@ -1568,10 +1529,7 @@ sub new {
         }
     );
     bless $self, $class;
-    $$self{class}  = 'devices',
-      $$self{type} = 'smoke_co_alarms',
-      $$self{name} = $name,
-      return $self;
+    $$self{class} = 'devices', $$self{type} = 'smoke_co_alarms', $$self{name} = $name, return $self;
 }
 
 sub data_changed {
@@ -1698,10 +1656,7 @@ sub new {
     my ( $class, $name, $interface ) = @_;
     my $self = new Nest_Generic( $interface, '', { 'away' => '' } );
     bless $self, $class;
-    $$self{class}    = 'structures',
-      $$self{type}   = '',
-      $$self{name}   = $name,
-      $$self{states} = [ 'home', 'away' ];
+    $$self{class} = 'structures', $$self{type} = '', $$self{name} = $name, $$self{states} = [ 'home', 'away' ];
     return $self;
 }
 

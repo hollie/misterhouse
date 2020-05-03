@@ -53,8 +53,7 @@ if ( $room eq "" ) {
     my $hostname = `hostname`;
     chomp $hostname;
     $hostname =~ s/^(.*?)\.(.*)$/$1/;
-    print
-      "A room was not specified using --room= so I'm using the hostname [$hostname]\n"
+    print "A room was not specified using --room= so I'm using the hostname [$hostname]\n"
       if $debug;
     $room = $hostname;
 }
@@ -109,8 +108,7 @@ else {
 
     # If a hub is not active, bind directly for listening
     if ($xap_listen) {
-        print "No hub active.  Listening on broadcast socket ",
-          $xap_listen->sockport(), "\n"
+        print "No hub active.  Listening on broadcast socket ", $xap_listen->sockport(), "\n"
           if $debug;
     }
     else {
@@ -176,8 +174,7 @@ sub send_heartbeat {
     select undef, undef, undef, rand();    # Sleep a bit
 
     print "Sending heartbeat on port ", $xap_send->peerport, "\n" if ($debug);
-    print $xap_send
-      "xap-hbeat\n{\nv=12\nhop=1\nuid=$XAP_GUID\nclass=xap-hbeat.alive\n"
+    print $xap_send "xap-hbeat\n{\nv=12\nhop=1\nuid=$XAP_GUID\nclass=xap-hbeat.alive\n"
       . "source=$XAP_ME.$XAP_SOURCE.$XAP_INSTANCE\ninterval=$HBEAT_INTERVAL\nport=$XAP_PORT\npid=$$\n}\n";
 }
 
@@ -214,16 +211,14 @@ sub speak {
     my $volume = shift;
     my $voice  = shift;
 
-    $volume = $volume / 100
-      ; # SABLE uses a floating point-number between zero and 1 to represent volume.
+    $volume = $volume / 100;    # SABLE uses a floating point-number between zero and 1 to represent volume.
 
     #  The SABLE tags are currently not working properly - it's reading them out
     #  $text = "<VOLUME LEVEL=".$volume.">".$text."<VOLUME>" if ($volume != 0.5);
     #  $text = "<SPEAKER GENDER=".$voice.">".$text."</SPEAKER>" if ($voice ne "");
 
     my $cmd;
-    my $telnet =
-      new Net::Telnet( Timeout => 5, Errmode => 'return', Port => 1314 );
+    my $telnet = new Net::Telnet( Timeout => 5, Errmode => 'return', Port => 1314 );
     if ( $telnet->open('localhost') ) {
         $cmd = "(SayText \"$text\")";
         $telnet->print($cmd);

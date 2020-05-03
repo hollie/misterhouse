@@ -61,17 +61,13 @@ sub set {
 
             # Service YAC clients
             for my $current_object (@CID_Server_yac_objects) {
-                print
-                  "CID_Server set calling $current_object->{client_address}\n"
+                print "CID_Server set calling $current_object->{client_address}\n"
                   if $main::Debug{cid_server};
-                $current_object->set( 'cid:'
-                      . $p_setby->cid_name() . '~'
-                      . $p_setby->formated_number() );
+                $current_object->set( 'cid:' . $p_setby->cid_name() . '~' . $p_setby->formated_number() );
             }
 
             # Service Acid clients
-            &Acid::write( &Acid::CID_TYPE_INCOMING_CALL(),
-                $p_setby->cid_name(), $p_setby->formated_number() );
+            &Acid::write( &Acid::CID_TYPE_INCOMING_CALL(), $p_setby->cid_name(), $p_setby->formated_number() );
 
             # Send xAP/xPL data, if xAP/xPL port is opened
             if ( $main::Socket_Ports{'xap_send'} ) {
@@ -162,8 +158,7 @@ sub setstate_cid {
         #       my $YacServerProcess = new Process_Item(qq|send_ip_msg $self->{client_address}:10629 "$state"|);
         #       start $YacServerProcess;
         my $yakmessage = '@CALL' . $substate;
-        &main::run( qq|send_ip_msg $self->{client_address}:10629 "$yakmessage"|,
-            1 );
+        &main::run( qq|send_ip_msg $self->{client_address}:10629 "$yakmessage"|, 1 );
     }
 }
 

@@ -159,10 +159,7 @@ elsif ( $command eq 'pre-commit' ) {
 
     print "$self pre-commit:\n    # saving non-indexed changes and tidying\n";
 
-    run(
-        qw/git stash save --quiet --keep-index /,
-        $self . ' ' . localtime->datetime
-    );
+    run( qw/git stash save --quiet --keep-index /, $self . ' ' . localtime->datetime );
     $stashed = 1;
 
     run(qw/git checkout-index -a /);
@@ -192,9 +189,7 @@ elsif ( $command eq 'pre-commit' ) {
             unlink $file . '.ERR';
 
             print "perltidy $file\n";
-            Perl::Tidy::perltidy(
-                argv => [ '--profile=' . $rc, qw/-nst -b -bext=.bak/, $file ],
-            );
+            Perl::Tidy::perltidy( argv => [ '--profile=' . $rc, qw/-nst -b -bext=.bak/, $file ], );
 
             unlink $file . '.bak';
             if ( -e $file . '.ERR' ) {
@@ -244,8 +239,7 @@ elsif ( $command eq 'post-commit' ) {
         my $rc = get_perltidyrc();
         @perlfiles = map { chomp; $_ } read_file(POST_HOOK_FILE);
 
-        print "$self post-commit:\n",
-          "    # tidying and re-applying your non-indexed changes.\n";
+        print "$self post-commit:\n", "    # tidying and re-applying your non-indexed changes.\n";
 
         my $branch = qx/git branch --contains HEAD/;
         chomp $branch;
@@ -285,9 +279,7 @@ elsif ( $command eq 'post-commit' ) {
                     unlink $file . '.ERR';
 
                     print "perltidy $file\n";
-                    Perl::Tidy::perltidy( argv =>
-                          [ '--profile=' . $rc, qw/-nst -b -bext=.bak/, $file ],
-                    );
+                    Perl::Tidy::perltidy( argv => [ '--profile=' . $rc, qw/-nst -b -bext=.bak/, $file ], );
 
                     unlink $file . '.bak';
                     if ( -e $file . '.ERR' ) {
@@ -320,9 +312,7 @@ END {
     if ( defined $command && $command eq 'pre-commit' ) {
         if ($success) {
             if ($partial) {
-                print "    # writing '"
-                  . POST_HOOK_FILE
-                  . "' for post-commit hook\n";
+                print "    # writing '" . POST_HOOK_FILE . "' for post-commit hook\n";
                 write_file( POST_HOOK_FILE, join( "\n", values %partial ) );
             }
             else {

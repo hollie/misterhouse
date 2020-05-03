@@ -29,8 +29,7 @@ my $f_sensor184_text = "$config_parms{data_dir}/web/esensor184.txt";
 my $f_sensor184_html = "$config_parms{data_dir}/web/esensor184.html";
 my $f_sensor184_url  = $config_parms{Esensor184_id};
 
-$p_check_sensor184 = new Process_Item
-  qq[get_url "http://$f_sensor184_url/index.html" "$f_sensor184_html"];
+$p_check_sensor184 = new Process_Item qq[get_url "http://$f_sensor184_url/index.html" "$f_sensor184_html"];
 $v_check_sensor184 = new Voice_Cmd('[Get,Read,Check] sernsor184');
 
 if ( ( $New_Minute and ( ( $Minute % 5 ) == 2 ) ) ) {
@@ -61,8 +60,7 @@ if ( done_now $p_check_sensor184) {
 }
 my $text2 = file_read $f_sensor184_text;
 
-my ( $TempSpare1, $HumidSpare1 ) =
-  $text2 =~ /\D\D\d+TF\D+([\d.]+)\D*HU\D*([\d.]+)\D*IL\D*[\d.]+/;
+my ( $TempSpare1, $HumidSpare1 ) = $text2 =~ /\D\D\d+TF\D+([\d.]+)\D*HU\D*([\d.]+)\D*IL\D*[\d.]+/;
 
 #    my ($E_sensor185, $TempIndoor, $HumidIndoor, $SunSensor) = $text2 =~ /\D(\D)\d+TF\D+([\d.]+)\D*HU\D*([\d.]+)\D*IL\D*([\d.]+)/;
 

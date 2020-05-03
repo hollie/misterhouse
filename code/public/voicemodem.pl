@@ -166,8 +166,7 @@ if (    $VoiceModemMode eq "answermode"
     $SendVoiceFile  = "c:/mh/code/klier/goodbye.r4";    # Voice File to Play
     run_voice_cmd "Send Voice Data";
 }
-if ( $VoiceModemMode eq "disconanswer" and $VoiceModemStatus eq "donesendmsg" )
-{
+if ( $VoiceModemMode eq "disconanswer" and $VoiceModemStatus eq "donesendmsg" ) {
     print_log "VOICE - Inactivity Timer Exceeded... Disconnecting...";
     run_voice_cmd "Voice Hangup";
     $VoiceModemStatus = "InactTimeOut";
@@ -185,14 +184,14 @@ if ( said $v_deliver_message) {
     set $timer_stdwait 1;                               # Wait a second
 }
 if ( expired $timer_stdwait) {                          # After a second,
-    run_voice_cmd "Dial Number";    # Dial Number
-    set $timer_waitforanswer 20;    # Wait 20 Sec. for pickup
+    run_voice_cmd "Dial Number";                        # Dial Number
+    set $timer_waitforanswer 20;                        # Wait 20 Sec. for pickup
 }
 
 # If we get connected to someone,
 if ( $VoiceModemMode eq "delivermsg" and $VoiceModemStatus eq "Connect" ) {
     $VoiceModemStatus = "";
-    set $timer_waitforanswer 0;     # Reset possibility of failing
+    set $timer_waitforanswer 0;                         # Reset possibility of failing
     run_voice_cmd "Send Voice Data";
 }
 
@@ -201,7 +200,7 @@ if ( $VoiceModemMode eq "delivermsg" and expired $timer_waitforanswer) {
     run_voice_cmd "Voice Hangup";
     print_log "VOICE - No Answer, Hungup";
     $VoiceModemStatus = "Failure";
-    set $timer_waitforanswer 0;     # Reset possibility of failing
+    set $timer_waitforanswer 0;                         # Reset possibility of failing
     $VoiceModemMode = "";
 }
 
@@ -211,7 +210,7 @@ if ( $VoiceModemMode eq "delivermsg" and $VoiceModemStatus eq "Remote Busy" ) {
     print_log "VOICE - Line was Busy, Hungup";
     $VoiceModemStatus = "Failure";
     $VoiceModemMode   = "";
-    set $timer_waitforanswer 0;     # Reset possibility of failing
+    set $timer_waitforanswer 0;                         # Reset possibility of failing
 }
 if ( $VoiceModemMode eq "delivermsg" and $VoiceModemStatus eq "donesendmsg" ) {
     run_voice_cmd "Voice Hangup";
@@ -230,8 +229,7 @@ if ( said $v_voice_mode) {
     #VRA=35 makes the modem wait for 3.5 sec. of silence after ringing stops - Default is 45
     #set $phone_modem 'ATE0#CLS=8#VBS=4S30=60#BDR=0#VSP=20#VSS=1#VLS=0#TL=5800#VRA=35';
     #Changed S30 (Disconnect Inact Timer) to 0
-    set $phone_modem
-      'ATE0#CLS=8#VBS=4S30=0#BDR=0#VSP=20#VSS=1#VLS=0#TL=5800#VRA=35';
+    set $phone_modem 'ATE0#CLS=8#VBS=4S30=0#BDR=0#VSP=20#VSS=1#VLS=0#TL=5800#VRA=35';
     print_log "VOICE - MODEM is now in VOICE Mode";
 }
 
@@ -326,12 +324,12 @@ if ( $VoiceModemStatus eq 'record' and $PhoneModemString ) {
         print VOX $1;
         close VOX;
         set $phone_modem "";    # Send command to stop recording
-        $Serial_Ports{serial2}{data}     = $2;            # Store left over data
+        $Serial_Ports{serial2}{data}     = $2;             # Store left over data
         $Serial_Ports{serial2}{datatype} = 'record';
         $VoiceModemStatus                = 'recorddone';
         print_log "VOICE - Message recorded.";
         print "\nVOICE - Message recorded.\n\n";
-        $VoiceMsgCount = $VoiceMsgCount + 1;    # Increment Msg Counter
+        $VoiceMsgCount = $VoiceMsgCount + 1;               # Increment Msg Counter
     }
     else {
         print VOX $PhoneModemString;
@@ -341,7 +339,7 @@ if ( $VoiceModemStatus eq 'record' and $PhoneModemString ) {
 # -------------------------- Play Received Messages
 $v_play_messages = new Voice_Cmd('Play Messages');
 if ( said $v_play_messages) {
-    $SendVoiceFile = "c:/mh/data/phone/msg.r4";    # Voice File to Play
+    $SendVoiceFile = "c:/mh/data/phone/msg.r4";            # Voice File to Play
     run_voice_cmd "Send Voice Data";
 }
 

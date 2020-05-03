@@ -134,8 +134,7 @@ sub set {
         $self->ring_count( $p_setby->ring_count() );
         $self->parse_number($p_setby);
         $self->lookup_info( $::config_parms{caller_id_file} );
-        $self->lookup_areacode( $::config_parms{area_code_file},
-            $::config_parms{state_file} );
+        $self->lookup_areacode( $::config_parms{area_code_file}, $::config_parms{state_file} );
         $self->parse_name($p_setby);
         $self->call_duration( $p_setby->call_duration() )
           if $p_setby->isa('Telephony_Item');
@@ -304,9 +303,9 @@ sub parse_number {
     if ( $::config_parms{country} =~ /US|CANADA|CA/i ) {
 
         #US Centric code (just dont use these parameters if you are not US)
-        $l_Number =~ s/[\(,\),\-]//g;  #No Need for syntax take it out
+        $l_Number =~ s/[\(,\),\-]//g;    #No Need for syntax take it out
         $self->number($l_Number);
-        $l_Number =~ s/^1//;           #if 1 in the beginning of number, ice it.
+        $l_Number =~ s/^1//;             #if 1 in the beginning of number, ice it.
         $l_Number =~ /(\d\d\d)(\d\d\d)(\d\d\d\d)$/;
         $self->areacode($1);
         $self->prefix($2);
@@ -338,16 +337,14 @@ sub lookup_info {
 
     if ($p_CIDFile) {
         open( CALLERID, $p_CIDFile )
-          or print
-          "\nError, could not find the caller id file $p_CIDFile: $!\n";
+          or print "\nError, could not find the caller id file $p_CIDFile: $!\n";
 
         #find the matching rows
         $l_CIDNumber = $self->cid_number();
         $l_CIDName   = $self->cid_name();
         $l_CIDType   = $self->cid_type();
 
-        &::print_log(
-            "CID Lookup searching for: $l_CIDNumber, $l_CIDName, $l_CIDType");
+        &::print_log("CID Lookup searching for: $l_CIDNumber, $l_CIDName, $l_CIDType");
         while (<CALLERID>) {
 
             #			print "CID1:$_\n";
@@ -467,8 +464,7 @@ sub lookup_areacode {
             #			($areacode, $state) = $_ =~ /(\d\d\d) All parts of (.+)/;
             #			($areacode, $city, $state) = $_ =~ /(\d\d\d)(.*), *(.+)/ unless $state;
             # 			New format Adapted from Tim Doyle's parsing code
-            ( $areacode, $state, $timeoffset, $city ) =
-              $_ =~ /(\S*)\s*(\S*)\s*(\S*)\s*(.*)/;
+            ( $areacode, $state, $timeoffset, $city ) = $_ =~ /(\S*)\s*(\S*)\s*(\S*)\s*(.*)/;
 
             if ( $city =~ /.*:.*/ ) {
                 ($city) = $city =~ /.*:(.*)/;
@@ -489,9 +485,7 @@ sub lookup_areacode {
                 $self->time_zone($timeoffset);
 
                 #process the formated number
-                $self->formated_number( $self->areacode() . "-"
-                      . $self->prefix() . "-"
-                      . $self->suffix() );
+                $self->formated_number( $self->areacode() . "-" . $self->prefix() . "-" . $self->suffix() );
 
                 last;
             }

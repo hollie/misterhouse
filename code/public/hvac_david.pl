@@ -48,12 +48,8 @@ Dave Lounsberry, dbl@dittos.yi.org
 #$TempIndoor   		= new Weather_Item 'TempIndoor';    	# The average temp to use as whole house temp
 #
 # Category=HVAC_Auto
-$v_heat_onoff_temp =
-  new Voice_Cmd('Set HVAC heat auto on off temp [50,55,60,65,70]');
-$v_heat_onoff_temp->set_info(
-    'What temperature will Misterhouse automatically turn off the HVAC heat control',
-    undef, 1
-);
+$v_heat_onoff_temp = new Voice_Cmd('Set HVAC heat auto on off temp [50,55,60,65,70]');
+$v_heat_onoff_temp->set_info( 'What temperature will Misterhouse automatically turn off the HVAC heat control', undef, 1 );
 if ( $state = said $v_heat_onoff_temp) {
     $Save{hvac_heat_auto_onoff_temp} = $state;
     speak(
@@ -64,13 +60,8 @@ if ( $state = said $v_heat_onoff_temp) {
     &check_auto_onoff;
 }
 
-$v_ac_onoff_temp = new Voice_Cmd(
-    'Set HVAC AC auto on off temp [70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85]'
-);
-$v_ac_onoff_temp->set_info(
-    'What temperature will Misterhouse automatically turn off the HVAC AC control',
-    undef, 1
-);
+$v_ac_onoff_temp = new Voice_Cmd('Set HVAC AC auto on off temp [70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85]');
+$v_ac_onoff_temp->set_info( 'What temperature will Misterhouse automatically turn off the HVAC AC control', undef, 1 );
 if ( $state = said $v_ac_onoff_temp) {
     $Save{hvac_ac_auto_onoff_temp} = $state;
     speak(
@@ -81,11 +72,8 @@ if ( $state = said $v_ac_onoff_temp) {
     &check_auto_onoff;
 }
 
-$v_hvac_auto_onoff =
-  new Voice_Cmd( 'HVAC auto on/off control [heat,ac,off]', undef, 1 );
-$v_hvac_auto_onoff->set_info(
-    'Sets whether misterhouse will turn off HVAC modes automatically',
-    undef, 1 );
+$v_hvac_auto_onoff = new Voice_Cmd( 'HVAC auto on/off control [heat,ac,off]', undef, 1 );
+$v_hvac_auto_onoff->set_info( 'Sets whether misterhouse will turn off HVAC modes automatically', undef, 1 );
 if ( $state = said $v_hvac_auto_onoff) {
     print_log "HVAC auto on/off is now $state";
     speak( play => "hvac", text => "HVAC auto on and off is now $state" );
@@ -97,9 +85,7 @@ if ( $state = said $v_hvac_auto_onoff) {
 # Category=HVAC_Control
 
 $v_hvac_control = new Voice_Cmd( 'HVAC control [on,off]', undef, 1 );
-$v_hvac_control->set_info(
-    'Sets whether misterhouse will control the HVAC system',
-    undef, 1 );
+$v_hvac_control->set_info( 'Sets whether misterhouse will control the HVAC system', undef, 1 );
 if ( $state = said $v_hvac_control) {
     if ( $state eq 'off' ) {
         &hvac_on_off(OFF);
@@ -110,10 +96,7 @@ if ( $state = said $v_hvac_control) {
 }
 
 $v_hvac_mode = new Voice_Cmd( 'HVAC mode [heat,AC,off]', undef, 1 );
-$v_hvac_mode->set_info(
-    'Manually set the misterhouse thermostat to heat, AC or off. Misterhouse may decide to change it to something else though.',
-    undef, 1
-);
+$v_hvac_mode->set_info( 'Manually set the misterhouse thermostat to heat, AC or off. Misterhouse may decide to change it to something else though.', undef, 1 );
 if ( $state = said $v_hvac_mode) {
     if ( $state eq 'off' ) {
         &hvac_on_off(OFF);
@@ -122,11 +105,8 @@ if ( $state = said $v_hvac_mode) {
     print_log "HVAC mode has been set to $state";
 }
 
-$v_thermo_temp = new Voice_Cmd(
-    'Set daytime thermostat to [65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80]'
-);
-$v_thermo_temp->set_info(
-    'Misterhouse thermostat setting during the day (home and awake).');
+$v_thermo_temp = new Voice_Cmd('Set daytime thermostat to [65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80]');
+$v_thermo_temp->set_info('Misterhouse thermostat setting during the day (home and awake).');
 if ( $state = said $v_thermo_temp) {
     $Save{daytime_temp} = $state;
     speak(
@@ -137,9 +117,7 @@ if ( $state = said $v_thermo_temp) {
     &set_thermostat;
 }
 
-$v_travel_temp = new Voice_Cmd(
-    'Set travel thermostat to [60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80]'
-);
+$v_travel_temp = new Voice_Cmd('Set travel thermostat to [60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80]');
 $v_thermo_temp->set_info('Misterhouse thermostat setting when traveling.');
 if ( $state = said $v_travel_temp) {
     $Save{travel_temp} = $state;
@@ -151,9 +129,7 @@ if ( $state = said $v_travel_temp) {
     &set_thermostat;
 }
 
-$v_away_thermo_temp = new Voice_Cmd(
-    'Set away thermostat to [60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80]'
-);
+$v_away_thermo_temp = new Voice_Cmd('Set away thermostat to [60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80]');
 if ( $state = said $v_away_thermo_temp) {
     $Save{away_temp} = $state;
     speak(
@@ -164,9 +140,7 @@ if ( $state = said $v_away_thermo_temp) {
     &set_thermostat;
 }
 
-$v_sleep_thermo_temp = new Voice_Cmd(
-    'Set sleep thermostat to [65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80]'
-);
+$v_sleep_thermo_temp = new Voice_Cmd('Set sleep thermostat to [65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80]');
 if ( $state = said $v_sleep_thermo_temp) {
     $Save{sleep_temp} = $state;
     speak(
@@ -179,9 +153,7 @@ if ( $state = said $v_sleep_thermo_temp) {
 
 $hvac_recycle_timer = new Timer();
 
-$v_hvac_recycle =
-  new Voice_Cmd( 'HVAC time before recycle [30,60,90,120,150,180,210,240]',
-    undef, 1 );
+$v_hvac_recycle = new Voice_Cmd( 'HVAC time before recycle [30,60,90,120,150,180,210,240]', undef, 1 );
 if ( $state = said $v_hvac_recycle) {
     speak(
         play => "hvac",
@@ -190,8 +162,7 @@ if ( $state = said $v_hvac_recycle) {
     $Save{hvac_recycle_min} = $state;
 }
 
-$v_hvac_recycle_time =
-  new Voice_Cmd( 'HVAC recycle time [5,10,15,20,30,40,50,60]', undef, 1 );
+$v_hvac_recycle_time = new Voice_Cmd( 'HVAC recycle time [5,10,15,20,30,40,50,60]', undef, 1 );
 if ( $state = said $v_hvac_recycle_time) {
     speak( play => "hvac", text => "HVAC recycle time is now $state minutes." );
     $Save{hvac_recycle_time_min} = $state;
@@ -205,8 +176,7 @@ if ( $state = said $v_attic_fan_control) {
 }
 
 # just remind the house that misterhouse will not control the HVAC system.
-if ( ( time_cron '0 8,11,14,17,22 * * *' ) and ( $Save{hvac_control} ne 'on' ) )
-{
+if ( ( time_cron '0 8,11,14,17,22 * * *' ) and ( $Save{hvac_control} ne 'on' ) ) {
     $Save{hvac_control} = 'off';    # if not on, then it should be off.
     speak( play => "hvac", text => "HVAC control is off." );
 }
@@ -274,9 +244,7 @@ if ($New_Minute) {
         elsif ( $Save{hvac_mode} eq 'AC' ) {
             $fstate = state $hvac_ac_relay;
         }
-        print_log(
-            "Thermostat check: Indoor:$Weather{TempIndoor},  ThermoStat:$Save{thermostat},  Mode:$Save{hvac_mode},  State:$fstate"
-        );
+        print_log("Thermostat check: Indoor:$Weather{TempIndoor},  ThermoStat:$Save{thermostat},  Mode:$Save{hvac_mode},  State:$fstate");
     }
 
     # make sure we don't have a problem
@@ -285,8 +253,7 @@ if ($New_Minute) {
     {
         speak(
             play => "hvac",
-            text =>
-              "Whoaa dude! The indoor temperature is $Weather{TempIndoor} degrees. Yikes!"
+            text => "Whoaa dude! The indoor temperature is $Weather{TempIndoor} degrees. Yikes!"
         );
         &hvac_on_off(OFF);
     }
@@ -319,8 +286,7 @@ if ($New_Minute) {
                 $Save{attic_fan_mode} = 'off';
                 speak(
                     play => "hvac",
-                    text =>
-                      "The inside temperature is $Weather{TempIndoor}. If the attic fan is on, you should probably turn it off."
+                    text => "The inside temperature is $Weather{TempIndoor}. If the attic fan is on, you should probably turn it off."
                 );
             }
         }
@@ -339,8 +305,7 @@ if ($New_Minute) {
             my $too_cold = 65;
             if ( $state eq OFF ) {
                 if (    $Weather{TempIndoor}
-                    and $Weather{TempIndoor} >=
-                    ( $Save{thermostat} + $hyster ) )
+                    and $Weather{TempIndoor} >= ( $Save{thermostat} + $hyster ) )
                 {
                     if ( active $hvac_recycle_timer) {
                         print_log("HVAC recycle timer active, waiting.");
@@ -352,8 +317,7 @@ if ($New_Minute) {
             }
             elsif ( $state eq ON ) {
                 if (    $Weather{TempIndoor}
-                    and $Weather{TempIndoor} <=
-                    ( $Save{thermostat} - $hyster ) )
+                    and $Weather{TempIndoor} <= ( $Save{thermostat} - $hyster ) )
                 {
                     &hvac_on_off(OFF);
                 }
@@ -374,8 +338,7 @@ if ($New_Minute) {
             my $too_hot = 75;
             if ( $state eq OFF ) {
                 if (    $Weather{TempIndoor}
-                    and $Weather{TempIndoor} <=
-                    ( $Save{thermostat} - $hyster ) )
+                    and $Weather{TempIndoor} <= ( $Save{thermostat} - $hyster ) )
                 {
                     if ( active $hvac_recycle_timer) {
                         print_log("HVAC recycle timer active, waiting.");
@@ -387,8 +350,7 @@ if ($New_Minute) {
             }
             elsif ( $state eq ON ) {
                 if (    $Weather{TempIndoor}
-                    and $Weather{TempIndoor} >=
-                    ( $Save{thermostat} + $hyster ) )
+                    and $Weather{TempIndoor} >= ( $Save{thermostat} + $hyster ) )
                 {
                     &hvac_on_off(OFF);
                 }
@@ -417,8 +379,7 @@ sub check_for_recycle {
         #print_log ("nice_hvac_time_diff = $nice_hvac_time_diff");
         speak(
             play => "hvac",
-            text =>
-              "The HVAC has been running for $nice_hvac_time_diff. Turning off for recycle."
+            text => "The HVAC has been running for $nice_hvac_time_diff. Turning off for recycle."
         );
         set $hvac_recycle_timer ( $Save{hvac_recycle_time_min} * 60 );
         &hvac_on_off(OFF);
@@ -440,14 +401,12 @@ sub check_auto_onoff {
             # should the HVAC be on?
             if ( $Save{hvac_auto_onoff} eq 'heat' ) {
                 if (    $Weather{TempOutdoor}
-                    and $Weather{TempOutdoor} <=
-                    $Save{hvac_heat_auto_onoff_temp} )
+                    and $Weather{TempOutdoor} <= $Save{hvac_heat_auto_onoff_temp} )
                 {
                     if (    $Weather{TempIndoor}
                         and $Weather{TempIndoor} <= $Save{thermostat} - 1 )
                     {    # it's cold outside
-                        if ( $Save{house_occupied} eq 'on' )
-                        {    # it's hot outside
+                        if ( $Save{house_occupied} eq 'on' ) {    # it's hot outside
                             speak(
                                 play => "hvac",
                                 text =>
@@ -457,32 +416,25 @@ sub check_auto_onoff {
                             &update_hvac_state("Thermostat controlled cycle");
                         }
                         else {
-                            &update_hvac_state(
-                                "Ready to switch to heat, but waiting for occupancy"
-                            );
+                            &update_hvac_state("Ready to switch to heat, but waiting for occupancy");
                         }
                     }
                     else {
-                        &update_hvac_state(
-                            "Ready to switch to heat, but waiting for inside temp to go below thermostat."
-                        );
+                        &update_hvac_state("Ready to switch to heat, but waiting for inside temp to go below thermostat.");
                     }
                 }
                 else {
-                    &update_hvac_state(
-                        "Outside temp warmer than heat auto onoff temp");
+                    &update_hvac_state("Outside temp warmer than heat auto onoff temp");
                 }
             }
             elsif ( $Save{hvac_auto_onoff} eq 'ac' ) {
                 if (    $Weather{TempOutdoor}
-                    and $Weather{TempOutdoor} >=
-                    $Save{hvac_ac_auto_onoff_temp} )
+                    and $Weather{TempOutdoor} >= $Save{hvac_ac_auto_onoff_temp} )
                 {
                     if (    $Weather{TempIndoor}
                         and $Weather{TempIndoor} >= $Save{thermostat} + 1 )
                     {
-                        if ( $Save{house_occupied} eq 'on' )
-                        {    # it's hot outside
+                        if ( $Save{house_occupied} eq 'on' ) {    # it's hot outside
                             speak(
                                 play => "hvac",
                                 text =>
@@ -492,20 +444,15 @@ sub check_auto_onoff {
                             &update_hvac_state("Thermostat controlled cycle");
                         }
                         else {
-                            &update_hvac_state(
-                                "Ready to switch to AC, but waiting for occupancy"
-                            );
+                            &update_hvac_state("Ready to switch to AC, but waiting for occupancy");
                         }
                     }
                     else {
-                        &update_hvac_state(
-                            "Ready to switch to AC, but waiting for inside temp to exceed thermostat."
-                        );
+                        &update_hvac_state("Ready to switch to AC, but waiting for inside temp to exceed thermostat.");
                     }
                 }
                 else {
-                    &update_hvac_state(
-                        "Outside temp colder than AC auto onoff temp");
+                    &update_hvac_state("Outside temp colder than AC auto onoff temp");
                 }
 
             }
@@ -519,13 +466,11 @@ sub check_auto_onoff {
             {
                 speak(
                     play => "hvac",
-                    text =>
-                      "The outdoor temperature is $Weather{TempOutdoor} degrees. Setting HVAC to off. Maybe you should open the windows?"
+                    text => "The outdoor temperature is $Weather{TempOutdoor} degrees. Setting HVAC to off. Maybe you should open the windows?"
                 );
                 &hvac_on_off(OFF);
                 run_voice_cmd 'HVAC mode off';
-                &update_hvac_state(
-                    "Outside temp more than HEAT auto onoff setting.");
+                &update_hvac_state("Outside temp more than HEAT auto onoff setting.");
             }
         }
         elsif ( $Save{hvac_mode} eq 'AC' ) {
@@ -536,13 +481,11 @@ sub check_auto_onoff {
             {
                 speak(
                     play => "hvac",
-                    text =>
-                      "The outdoor temperature is $Weather{TempOutdoor} degrees. Setting HVAC to off. Maybe you should open the windows?"
+                    text => "The outdoor temperature is $Weather{TempOutdoor} degrees. Setting HVAC to off. Maybe you should open the windows?"
                 );
                 &hvac_on_off(OFF);
                 run_voice_cmd 'HVAC mode off';
-                &update_hvac_state(
-                    "Outside temp less than AC auto onoff setting.");
+                &update_hvac_state("Outside temp less than AC auto onoff setting.");
             }
         }
     }
@@ -615,8 +558,7 @@ if ( $Season eq 'Summer' and new_minute 10 ) {
       "Attic/Outside/Inside Temp Check: A:$Weather{TempAttic}, O:$Weather{TempOutdoor},  I:$Weather{TempIndoor},  G:$gradient, mode:$mode, current_state="
       . state $roof_vent_fan;
 
-    if ( ( $Weather{TempIndoor} < $Weather{TempOutdoor} && $gradient > 20 ) )
-    {    # dont want the attic heating
+    if ( ( $Weather{TempIndoor} < $Weather{TempOutdoor} && $gradient > 20 ) ) {    # dont want the attic heating
         $mode = 1;
         set $roof_vent_fan ON;
     }
@@ -655,9 +597,7 @@ if ( $state = said $v_vent_fan) {
     }
 }
 
-$v_hvac_filter_maxuse = new Voice_Cmd(
-    'Remind HVAC filter change every [200,250,300,350,400,450,500] hours',
-    undef, 1 );
+$v_hvac_filter_maxuse = new Voice_Cmd( 'Remind HVAC filter change every [200,250,300,350,400,450,500] hours', undef, 1 );
 if ( $state = said $v_hvac_filter_maxuse) {
     $Save{hvac_filter_maxuse_hr} = $state;
     print(
@@ -666,8 +606,7 @@ if ( $state = said $v_hvac_filter_maxuse) {
     );
 }
 
-$v_hvac_filter_changed =
-  new Voice_Cmd( 'HVAC filter has been changed', undef, 1 );
+$v_hvac_filter_changed = new Voice_Cmd( 'HVAC filter has been changed', undef, 1 );
 if ( $state = said $v_hvac_filter_changed) {
     print_log "HVAC filter has been changed, Resetting timer.";
     speak(
@@ -688,11 +627,8 @@ sub hvac_on_off {
     return unless $Save{hvac_mode} eq 'heat' or $Save{hvac_mode} eq 'AC';
 
     speak( play => "hvac_" . $state );
-    print_log
-      "HVAC $Save{hvac_mode} has been turned $state temp=$Weather{TempIndoor} time=$hvac_time_diff";
-    logit( "$config_parms{data_dir}/logs/hvac.$Year_Month_Now.log",
-        "state=$state  mode=$Save{hvac_mode}  temp=$Weather{TempIndoor}  time=$hvac_time_diff  "
-    );
+    print_log "HVAC $Save{hvac_mode} has been turned $state temp=$Weather{TempIndoor} time=$hvac_time_diff";
+    logit( "$config_parms{data_dir}/logs/hvac.$Year_Month_Now.log", "state=$state  mode=$Save{hvac_mode}  temp=$Weather{TempIndoor}  time=$hvac_time_diff  " );
 
     if ( $Save{hvac_mode} eq 'heat' ) {
         set $hvac_heat_relay $state;
@@ -736,14 +672,12 @@ sub hvac_on_off {
 sub filter_check {
 
     # check the life of the furnace filter.
-    my $used = round &Timer::query($hvac_filter_timer) / 60 / 60,
-      2;    # hvac_filter_timer is in seconds, we track by hours
+    my $used = round &Timer::query($hvac_filter_timer) / 60 / 60, 2;    # hvac_filter_timer is in seconds, we track by hours
     if ( !$Save{hvac_filter_maxuse_hr} ) {
         speak( play => "hvac", text => "HVAC filter max use is not set." );
         return;
     }
-    print_log
-      "HVAC filter has been used $used hrs. (Max: $Save{hvac_filter_maxuse_hr} hrs.)";
+    print_log "HVAC filter has been used $used hrs. (Max: $Save{hvac_filter_maxuse_hr} hrs.)";
     if ( $used >= $Save{hvac_filter_maxuse_hr} ) {
         speak( play => "hvac", text => "The HVAC filter needs to be changed." );
     }
@@ -773,16 +707,13 @@ sub web_hvac_vars {
     my @hvac_duct_temp    = &fetch_rrd_hilo("hvac_out");
     my @office_temp       = &fetch_rrd_hilo("office");
 
-    $Weather{TempDiningVault} = round $dining_vault_temp[1],
-      2;    # round with 2 digits
-    $Weather{TempMasterVault} = round $master_vault_temp[1],
-      2;    # round with 2 digits
-    $Weather{TempPlayRoom} = round $play_room_temp[1], 2;  # round with 2 digits
-    $Weather{TempGarage}   = round $garage_temp[1],    2;  # round with 2 digits
-    $Weather{TempHVACDuct} = round $hvac_duct_temp[1], 2;  # round with 2 digits
-    $Weather{TempHVACReturn} = round $hvac_return_temp[1],
-      2;                                                   # round with 2 digits
-    $Weather{TempOffice} = round $office_temp[1], 2;       # round with 2 digits
+    $Weather{TempDiningVault} = round $dining_vault_temp[1], 2;    # round with 2 digits
+    $Weather{TempMasterVault} = round $master_vault_temp[1], 2;    # round with 2 digits
+    $Weather{TempPlayRoom}    = round $play_room_temp[1],    2;    # round with 2 digits
+    $Weather{TempGarage}      = round $garage_temp[1],       2;    # round with 2 digits
+    $Weather{TempHVACDuct}    = round $hvac_duct_temp[1],    2;    # round with 2 digits
+    $Weather{TempHVACReturn}  = round $hvac_return_temp[1],  2;    # round with 2 digits
+    $Weather{TempOffice}      = round $office_temp[1],       2;    # round with 2 digits
     return;
 }
 

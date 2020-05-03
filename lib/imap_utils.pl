@@ -105,8 +105,7 @@ sub main::get_imap {
     my $local_offset;
 
     if ($tz_offset) {
-        my ( $tz_sign, $tz_hour, $tz_minute ) =
-          $tz_offset =~ /(\S)(\d+)(\d\d)$/;
+        my ( $tz_sign, $tz_hour, $tz_minute ) = $tz_offset =~ /(\S)(\d+)(\d\d)$/;
         $local_offset = ( $tz_hour * 60 * 60 ) + ( $tz_minute * 60 );
         $local_offset = -1 * $local_offset if ( $tz_sign eq "-" );
     }
@@ -215,23 +214,20 @@ sub main::get_imap {
             if ( $from =~ m/\=\?([0-9A-Za-z\-_]+)\?.\?.*\?\=/ ) {
                 my $enc_check = find_encoding($1);
                 if ($enc_check) {
-                    print
-                      "Unicode $1 detected. Decoding MIME-Header 'from' from $from to "
+                    print "Unicode $1 detected. Decoding MIME-Header 'from' from $from to "
                       if $debug;
                     $from = decode( "MIME-Header", $from );
                     print "$from.\n" if $debug;
                 }
                 else {
-                    print
-                      "WARNING: Unknown unicode detected $1 for 'from' $from\n";
+                    print "WARNING: Unknown unicode detected $1 for 'from' $from\n";
                 }
             }
 
             if ( $to =~ m/\=\?([0-9A-Za-z\-_]+)\?.\?.*\?\=/ ) {
                 my $enc_check = find_encoding($1);
                 if ($enc_check) {
-                    print
-                      "Unicode $1 detected. Decoding MIME-Header 'to' from $to to "
+                    print "Unicode $1 detected. Decoding MIME-Header 'to' from $to to "
                       if $debug;
                     $to = decode( "MIME-Header", $to );
                     print "$to.\n" if $debug;
@@ -244,8 +240,7 @@ sub main::get_imap {
             if ( $cc =~ m/\=\?([0-9A-Za-z\-_]+)\?.\?.*\?\=/ ) {
                 my $enc_check = find_encoding($1);
                 if ($enc_check) {
-                    print
-                      "Unicode $1 detected. Decoding MIME-Header 'cc' from $cc to "
+                    print "Unicode $1 detected. Decoding MIME-Header 'cc' from $cc to "
                       if $debug;
                     $cc = decode( "MIME-Header", $cc );
                     print "$cc.\n" if $debug;
@@ -258,15 +253,13 @@ sub main::get_imap {
             if ( $subject =~ m/\=\?([0-9A-Za-z\-_]+)\?.\?.*\?\=/ ) {
                 my $enc_check = find_encoding($1);
                 if ($enc_check) {
-                    print
-                      "Unicode $1 detected. Decoding MIME-Header 'subject' from $subject to "
+                    print "Unicode $1 detected. Decoding MIME-Header 'subject' from $subject to "
                       if $debug;
                     $subject = decode( "MIME-Header", $subject );
                     print "$subject.\n" if $debug;
                 }
                 else {
-                    print
-                      "WARNING: Unknown unicode detected $1 for 'subject' $subject\n";
+                    print "WARNING: Unknown unicode detected $1 for 'subject' $subject\n";
                 }
             }
 
@@ -428,8 +421,7 @@ sub _check_age {
     #rfc format
     #my ($day, $mon, $year, $hour, $min, $sec,$tz) = $rfc2060_date =~ /(\d+)\s+(\S+)\s+(\d\d\d\d)\s+(\d+):(\d+):(\d+)\s+(\S+)/;
     #int format
-    my ( $day, $mon, $year, $hour, $min, $sec, $tz ) =
-      $internaldate =~ /^(\d+)-(\S+)-(\d\d\d\d)\s+(\d+):(\d+):(\d+)\s+(\S+)/;
+    my ( $day, $mon, $year, $hour, $min, $sec, $tz ) = $internaldate =~ /^(\d+)-(\S+)-(\d\d\d\d)\s+(\d+):(\d+):(\d+)\s+(\S+)/;
 
     my $monnum = $month{ lc $mon } - 1;
     $year = $year - 1900;

@@ -25,13 +25,11 @@ $v_inline_save = new Voice_Cmd('Save Inline Settings');
 if ( $state = said $v_inline_save) {
     $inline->save;
 }
-$v_inline_sharp =
-  new Voice_Cmd('[Increase,Decrease, Default] Inline Sharpness');
+$v_inline_sharp = new Voice_Cmd('[Increase,Decrease, Default] Inline Sharpness');
 if ( $state = said $v_inline_sharp) {
     $inline->sharp($state);
 }
-$v_inline_brightp =
-  new Voice_Cmd('[Increase,Decrease, Default] Inline Brightness');
+$v_inline_brightp = new Voice_Cmd('[Increase,Decrease, Default] Inline Brightness');
 if ( $state = said $v_inline_sharp) {
     $inline->bright($state);
 }
@@ -39,13 +37,11 @@ $v_inline_hue = new Voice_Cmd('[Increase,Decrease, Default] Inline Hue');
 if ( $state = said $v_inline_hue) {
     $inline->hue($state);
 }
-$v_inline_contrast =
-  new Voice_Cmd('[Increase,Decrease, Default] Inline Contrast');
+$v_inline_contrast = new Voice_Cmd('[Increase,Decrease, Default] Inline Contrast');
 if ( $state = said $v_inline_contrast) {
     $inline->contrast($state);
 }
-$v_inline_saturation =
-  new Voice_Cmd('[Increase,Decrease, Default] Inline Saturation');
+$v_inline_saturation = new Voice_Cmd('[Increase,Decrease, Default] Inline Saturation');
 if ( $state = said $v_inline_saturation) {
     $inline->saturation($state);
 }

@@ -127,8 +127,7 @@ sub set {
 
     if ( ( defined $main::DBI ) && $::config_parms{events_table} ) {
         if ( defined $p_setby and $p_setby->isa("Generic_Item") ) {
-            $main::DBI->prepare(
-                "insert into Events (Object,ObjectType,State,Setby) values ('$$self{object_name}','"
+            $main::DBI->prepare( "insert into Events (Object,ObjectType,State,Setby) values ('$$self{object_name}','"
                   . ref($self)
                   . "','$p_state','"
                   . $p_setby->{object_name}
@@ -136,11 +135,8 @@ sub set {
         }
         else {
             $main::DBI->prepare(
-                "insert into Events (Object,ObjectType,State,Setby) values ('$$self{object_name}','"
-                  . ref($self)
-                  . "','$p_state','"
-                  . $p_setby
-                  . "');" )->execute();
+                "insert into Events (Object,ObjectType,State,Setby) values ('$$self{object_name}','" . ref($self) . "','$p_state','" . $p_setby . "');" )
+              ->execute();
         }
     }
 
@@ -154,12 +150,11 @@ sub set {
         my @l_objects = @{ $$self{m_objects} };
         for my $obj (@l_objects) {
             if ( $obj ne $p_setby and $obj ne $self ) {    # Dont loop
-                 #&::print_log($self->get_object_name() . "::checking($p_state, $p_setby) -> $$obj{object_name}") if $main::Debug{occupancy};
+                    #&::print_log($self->get_object_name() . "::checking($p_state, $p_setby) -> $$obj{object_name}") if $main::Debug{occupancy};
                 if (   ( $obj->can('writable') and $obj->writable )
                     or ( !$obj->can('writable') ) )
                 {    #check for "settable" objects
-                    &::print_log( $self->get_object_name()
-                          . "::set($p_state, $p_setby) -> $$obj{object_name}" )
+                    &::print_log( $self->get_object_name() . "::set($p_state, $p_setby) -> $$obj{object_name}" )
                       if $main::Debug{occupancy};
 
                     #					$obj->set($p_state,$p_setby,$p_response);

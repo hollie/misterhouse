@@ -591,17 +591,13 @@ sub send_cmd {
 
     #omnistat_debug("Omnistat[$$self{address}]->send_cmd: Left over serial data before send_cmd (if any): $_");
     if ($_) {
-        &::print_log(
-            "Omnistat[$$self{address}]->send_cmd: Left over serial data before send_cmd (likely bug/dropped data): $_"
-        );
+        &::print_log("Omnistat[$$self{address}]->send_cmd: Left over serial data before send_cmd (likely bug/dropped data): $_");
 
         # I occasionally see this on restart, that's totally fine, it just cleans up leftover data on the port:
         # Omnistat[2]->send_cmd: Left over serial data before send_cmd (likely bug/dropped data): 0xfe
     }
 
-    omnistat_debug(
-        "Omnistat[$$self{address}]->send_cmd string=@string ($reply_count char(s) to read back)"
-    );
+    omnistat_debug("Omnistat[$$self{address}]->send_cmd string=@string ($reply_count char(s) to read back)");
     foreach my $byte (@string) {
         $byte =~ s/0x//;    # strip off the 0x
         $cmd = $cmd . pack "H2", $byte;    # pack it into 8 bits
@@ -625,8 +621,7 @@ sub send_cmd {
         $len       = length($serial_data);
         $diff_time = Time::HiRes::time() - $before_time;
         omnistat_debug(
-            "Omnistat[$$self{address}]->send_cmd received $len chars back (waiting for $reply_count). $diff_time elapsed out of max $max_reply_wait secs"
-        );
+            "Omnistat[$$self{address}]->send_cmd received $len chars back (waiting for $reply_count). $diff_time elapsed out of max $max_reply_wait secs");
     } until ( $len == $reply_count or $diff_time > $max_reply_wait );
 
     $rcvd = convert_omnistat_serial_data($serial_data);
@@ -648,8 +643,7 @@ sub send_cmd {
     $self->die_reset(
         "$::Time_Date: Omnistat[$$self{address}]->send_cmd did not get ack reply to command @string (received: $rcvd). We were expecting $reply_count bytes back."
     ) unless ( length($rcvd) > 3 );
-    $self->die_reset(
-        "$::Time_Date: Omnistat[$$self{address}]->send_cmd did not get expected first byte ("
+    $self->die_reset( "$::Time_Date: Omnistat[$$self{address}]->send_cmd did not get expected first byte ("
           . sprintf( "0x%02x", $ack_byte )
           . ") in ack reply to command @string (got "
           . sprintf( "0x%02x", $rcvd_ack )
@@ -736,9 +730,7 @@ sub display {
 # * Create the Omnistat device on serial port.
 # *********************************************
 sub serial_startup {
-    &main::serial_port_create( 'Omnistat',
-        $main::config_parms{Omnistat_serial_port},
-        300, 'none', 'raw' );
+    &main::serial_port_create( 'Omnistat', $main::config_parms{Omnistat_serial_port}, 300, 'none', 'raw' );
     &::MainLoop_pre_add_hook( \&Omnistat::check_for_data, 1 );
 }
 
@@ -787,27 +779,25 @@ sub translate_temp {
 
     # this is a good place to catch a 14 reg read that happens in read_group1 extended, being off by one character, or returning
     # bogus 0's.
-    die
-      "$::Time_Date: Omnistat->translate_temp got an input temperature of 0 = -40F/C, this typically means serial port corruption, bad..."
+    die "$::Time_Date: Omnistat->translate_temp got an input temperature of 0 = -40F/C, this typically means serial port corruption, bad..."
       if ( not $settemp or $settemp eq "0x00" );
 
     # Calculate conversion mathematically rather than using a table so all temps will work (needed for outside temperature)
-    if ( substr( $settemp, 0, 2 ) eq '0x' )
-    {    # if it starts with 0x, reverse xlate
+    if ( substr( $settemp, 0, 2 ) eq '0x' ) {    # if it starts with 0x, reverse xlate
         $omnitemp = hex($settemp);
-        $omnitemp = -40 + .5 * $omnitemp;    #degrees Celcius
+        $omnitemp = -40 + .5 * $omnitemp;        #degrees Celcius
         if ( !( $main::config_parms{Omnistat_celcius} ) ) {
-            $omnitemp = 32 + 1.8 * $omnitemp;    # degrees Fahrenheit
+            $omnitemp = 32 + 1.8 * $omnitemp;                           # degrees Fahrenheit
             $omnitemp = int( $omnitemp + .5 * ( $omnitemp <=> 0 ) );    #round
         }
     }
-    else {    # xlate from Fahrenheit/Celcius
+    else {                                                              # xlate from Fahrenheit/Celcius
         $omnitemp = $settemp;
         if ( !( $main::config_parms{Omnistat_celcius} ) ) {
-            $omnitemp = ( $omnitemp - 32 ) / 1.8;    #Fahrenheit to Celcius
+            $omnitemp = ( $omnitemp - 32 ) / 1.8;                       #Fahrenheit to Celcius
         }
-        $omnitemp = ( $omnitemp + 40 ) / .5;         #omnistat degrees
-        $omnitemp = int( $omnitemp + .5 * ( $omnitemp <=> 0 ) );    #round
+        $omnitemp = ( $omnitemp + 40 ) / .5;                            #omnistat degrees
+        $omnitemp = int( $omnitemp + .5 * ( $omnitemp <=> 0 ) );        #round
         $omnitemp = sprintf( "0x%02x", $omnitemp );
     }
 
@@ -823,18 +813,14 @@ sub translate_time {
     my ( $hours, $minutes, $ampm );
     my ($omnitime);
 
-    if ( substr( $settime, 0, 2 ) eq '0x' )
-    {    #Translate omnitime to readable time
-        if ( $settime eq '0x60' )
-        {    #if it's set to 24hrs past midnight, time is blank
+    if ( substr( $settime, 0, 2 ) eq '0x' ) {    #Translate omnitime to readable time
+        if ( $settime eq '0x60' ) {              #if it's set to 24hrs past midnight, time is blank
             $omnitime = '';
         }
         else {
-            $minutes =
-              hex($settime) *
-              15;    #Omnistat is stored as 15 minute time periods pas midnight
+            $minutes = hex($settime) * 15;       #Omnistat is stored as 15 minute time periods pas midnight
             $hours   = int( $minutes / 60 );
-            $minutes = $minutes % 60;          #minutes past hour
+            $minutes = $minutes % 60;            #minutes past hour
             if ( $main::config_parms{Omnistat_24hr} ) {
 
                 #Translate to 24hr time
@@ -859,8 +845,7 @@ sub translate_time {
         }
     }
     else {    #Translate readable to omnistat time
-        if ( $settime eq '0' )
-        {     #set to 0 to clear time, or 24:00 if using 24h time
+        if ( $settime eq '0' ) {    #set to 0 to clear time, or 24:00 if using 24h time
             $omnitime = '0x60';
         }
         elsif ( $main::config_parms{Omnistat_24hr} ) {
@@ -920,8 +905,7 @@ sub translate_time {
 sub translate_stat_output {
     my ( $self, $reg48 ) = @_;
 
-    $self->die_reset(
-        "Omnistat::translate_stat_output got non hex value in '$reg48'")
+    $self->die_reset("Omnistat::translate_stat_output got non hex value in '$reg48'")
       unless ( is_hex($reg48) );
 
     # see reg 0x48 / output register in the comments at the top of this file
@@ -1011,29 +995,22 @@ sub restore_setpoints {
 
     #Determine the time
     $time =
-      ( $::Hour * 4 ) + ( $::Minute / 15 ) + ( $::Second / 60 );  #Omnistat time
+      ( $::Hour * 4 ) + ( $::Minute / 15 ) + ( $::Second / 60 );    #Omnistat time
 
     #Determine the day
-    if ( $day == 6 ) {                                            # Sunday
-        $register = 0x36;    # Sunday night time
+    if ( $day == 6 ) {                                              # Sunday
+        $register = 0x36;                                           # Sunday night time
     }
-    elsif ( $day == 5 ) {    # Saturday
-        $register = 0x2a;    # Saturday night time
+    elsif ( $day == 5 ) {                                           # Saturday
+        $register = 0x2a;                                           # Saturday night time
     }
-    else {                   # Weekday
-        $register = 0x1e;    # Weekday night time
+    else {                                                          # Weekday
+        $register = 0x1e;                                           # Weekday night time
     }
 
     # Check for setpoints for that day, need to consider what time it is
     for ( $setpointnum = 0; $setpointnum < 4; $setpointnum++ ) {
-        if (
-            hex(
-                $self->read_cached_reg(
-                    sprintf( "0x%02x", $register - 3 * $setpointnum )
-                )
-            ) < $time
-          )
-        {
+        if ( hex( $self->read_cached_reg( sprintf( "0x%02x", $register - 3 * $setpointnum ) ) ) < $time ) {
             $point = $register - 3 * $setpointnum;
             last;
         }
@@ -1059,14 +1036,8 @@ sub restore_setpoints {
 
             #Loop setpoints
             for ( $setpointnum = 0; $setpointnum < 4; $setpointnum++ ) {
-                if (
-                    hex(
-                        $self->read_cached_reg(
-                            sprintf( "0x%02x", $register - 3 * $setpointnum )
-                        )
-                    ) != 96
-                  )
-                {
+                if ( hex( $self->read_cached_reg( sprintf( "0x%02x", $register - 3 * $setpointnum ) ) ) != 96 ) {
+
                     #If the setpoint has a time set, use the setpoint
                     $point = $register - 3 * $setpointnum;
                     last;
@@ -1080,12 +1051,8 @@ sub restore_setpoints {
         my $cool_sp = $self->read_cached_reg( sprintf( "0x%02x", $point + 1 ) );
 
         # Set the setpoints (setting the registers avoids converting the temp only to convert it back)
-        &::print_log( "Omnistat: Heat Set to "
-              . &Omnistat::translate_temp($heat_sp)
-              . "\n" );
-        &::print_log( "Omnistat: Cool Set to "
-              . &Omnistat::translate_temp($cool_sp)
-              . "\n" );
+        &::print_log( "Omnistat: Heat Set to " . &Omnistat::translate_temp($heat_sp) . "\n" );
+        &::print_log( "Omnistat: Cool Set to " . &Omnistat::translate_temp($cool_sp) . "\n" );
         $self->set_reg( "0x3c", $heat_sp );
         $self->set_reg( "0x3b", $cool_sp );
     }
@@ -1517,8 +1484,7 @@ sub get_mode {
         $mode = [ 'off', 'heat', 'cool', 'auto' ]->[ hex($mode) ];
     }
     else {
-        $mode = [ 'off', 'program_heat', 'program_cool', 'program_auto' ]
-          ->[ hex($mode) ];
+        $mode = [ 'off', 'program_heat', 'program_cool', 'program_auto' ]->[ hex($mode) ];
     }
 
     return $mode;
@@ -1637,13 +1603,11 @@ sub set_state_change_if_any {
     }
     elsif ( $register eq "0x3b" ) {
         $self->set_receive('cool_sp_change');
-        omnistat_log(
-            "Omnistat[$$self{address}]->state_now set to cool_sp_change");
+        omnistat_log("Omnistat[$$self{address}]->state_now set to cool_sp_change");
     }
     elsif ( $register eq "0x3c" ) {
         $self->set_receive('heat_sp_change');
-        omnistat_log(
-            "Omnistat[$$self{address}]->state_now set to heat_sp_change");
+        omnistat_log("Omnistat[$$self{address}]->state_now set to heat_sp_change");
     }
     elsif ( $register eq "0x3d" ) {
         $self->set_receive('mode_change');
@@ -1655,21 +1619,16 @@ sub set_state_change_if_any {
     }
     elsif ( $register eq "0x3e" ) {
         $self->set_receive('fan_mode_change');
-        omnistat_log(
-            "Omnistat[$$self{address}]->state_now set to fan_mode_change");
+        omnistat_log("Omnistat[$$self{address}]->state_now set to fan_mode_change");
     }
     elsif ( $register eq "0x0f" ) {
         if ( $self->get_filter_reminder eq 0 ) {
             $self->set_receive('filter_reminder_now');
-            omnistat_log(
-                "Omnistat[$$self{address}]->state_now set to filter_reminder_now"
-            );
+            omnistat_log("Omnistat[$$self{address}]->state_now set to filter_reminder_now");
         }
         else {
             $self->set_receive('filter_reminder_change');
-            omnistat_log(
-                "Omnistat[$$self{address}]->state_now set to filter_reminder_change"
-            );
+            omnistat_log("Omnistat[$$self{address}]->state_now set to filter_reminder_change");
 
         }
 
@@ -1678,9 +1637,7 @@ sub set_state_change_if_any {
     }
     elsif ( $register eq "0x48" ) {    # this one is read only
         $self->set_receive('current_output_change');
-        omnistat_log(
-            "Omnistat[$$self{address}]->state_now set to current_output_change"
-        );
+        omnistat_log("Omnistat[$$self{address}]->state_now set to current_output_change");
     }
 }
 
@@ -1705,8 +1662,7 @@ sub read_reg {
     warn
       "You should call read_cached_reg instead of read_reg to avoid hang delays. Adjust CACHE_TIMEOUT_ values in new(), and/or set debug=omnistat in mh.private.ini to adjust caching"
       if ( not $whitelisted );
-    $self->die_reset(
-        "You can only read 14 registers at a time, you asked for $count")
+    $self->die_reset("You can only read 14 registers at a time, you asked for $count")
       if ( $count > 14 );
 
     $count = 1 if ( not $count );
@@ -1738,9 +1694,7 @@ sub read_reg {
 
             # see if it changed
             if ( $$self{cache}{ hex($regoffset) } ne $value[$i] ) {
-                omnistat_debug(
-                    "Omnistat[$$self{address}]->read_reg: reg[$regoffset]=$value[$i] updated in cache"
-                );
+                omnistat_debug("Omnistat[$$self{address}]->read_reg: reg[$regoffset]=$value[$i] updated in cache");
 
                 # Update the cache
                 $$self{cache}{ hex($regoffset) } = $value[$i];
@@ -1749,16 +1703,12 @@ sub read_reg {
                 $self->set_state_change_if_any($regoffset);
             }
             else {
-                omnistat_debug(
-                    "Omnistat[$$self{address}]->read_reg: reg[$regoffset]=$value[$i] current in cache"
-                );
+                omnistat_debug("Omnistat[$$self{address}]->read_reg: reg[$regoffset]=$value[$i] current in cache");
             }
         }
         else {
             # Set the cache
-            omnistat_debug(
-                "Omnistat[$$self{address}]->read_reg: reg[$regoffset]=$value[$i] added to cache"
-            );
+            omnistat_debug("Omnistat[$$self{address}]->read_reg: reg[$regoffset]=$value[$i] added to cache");
             $$self{cache}{ hex($regoffset) } = $value[$i];
         }
 
@@ -1780,8 +1730,7 @@ sub set_reg {
     my $addr = $$self{address};
     my (@cmd);
 
-    $self->die_reset(
-        "Omnistat::set_reg got non hex value in $register <- $value")
+    $self->die_reset("Omnistat::set_reg got non hex value in $register <- $value")
       unless ( is_hex($register) and is_hex($value) );
     $cmd[0] = sprintf( "0x%02x", $addr );
     $cmd[1] = "0x21";
@@ -1846,20 +1795,14 @@ sub read_cached_reg {
 
             if ( $cache_age <= $age_limit ) {
                 $regval = $$self{cache}{ hex($regoffset) };
-                omnistat_debug(
-                    "Omnistat[$$self{address}]->read_cached_reg: fetched reg=$regoffset from cache ($cache_age <= $age_limit)"
-                );
+                omnistat_debug("Omnistat[$$self{address}]->read_cached_reg: fetched reg=$regoffset from cache ($cache_age <= $age_limit)");
             }
             else {
-                omnistat_debug(
-                    "Omnistat[$$self{address}]->read_cached_reg: reg=$regoffset STALE in cache ($cache_age > $age_limit), fetching"
-                );
+                omnistat_debug("Omnistat[$$self{address}]->read_cached_reg: reg=$regoffset STALE in cache ($cache_age > $age_limit), fetching");
             }
         }
         else {
-            omnistat_debug(
-                "Omnistat[$$self{address}]->read_cached_reg: reg=$regoffset not cached, fetching"
-            );
+            omnistat_debug("Omnistat[$$self{address}]->read_cached_reg: reg=$regoffset not cached, fetching");
         }
 
         # exit loop that builds from cache if any value is stale
@@ -1879,9 +1822,7 @@ sub read_cached_reg {
       if ( not defined $regval );
     $value =~ s/\s+$//;
 
-    omnistat_debug(
-        "Omnistat[$$self{address}]->read_cached_reg: reg=$register count=$count value=$value"
-    );
+    omnistat_debug("Omnistat[$$self{address}]->read_cached_reg: reg=$register count=$count value=$value");
 
     return $value;
 }
@@ -1900,10 +1841,7 @@ sub read_cached_reg {
 sub read_group1 {
     my ( $self, $plus_output, $maxcachetime ) = @_;
     my $addr = $$self{address};
-    my (
-        @cmd,  $group1, $output, $cool_set, $heat_set,
-        $mode, $fan,    $hold,   $cur,
-    );
+    my ( @cmd, $group1, $output, $cool_set, $heat_set, $mode, $fan, $hold, $cur, );
 
     # This is the official way to read group1, but it misses the processing we do
     # in read_reg while only saving 2 bytes to send, which is neglible, even at 300bps
@@ -1918,10 +1856,7 @@ sub read_group1 {
     # querying group1 and then ouput separately. Too bad output isn't part of group1.
     if ($plus_output) {
         $group1 = $self->read_cached_reg( "0x3b", 14, $maxcachetime );
-        (
-            $cool_set, $heat_set, $mode, $fan, $hold, $cur, $_, $_, $_, $_, $_,
-            $_, $_, $output
-        ) = split( ' ', $group1 );
+        ( $cool_set, $heat_set, $mode, $fan, $hold, $cur, $_, $_, $_, $_, $_, $_, $_, $output ) = split( ' ', $group1 );
         $output = $self->translate_stat_output($output);
     }
     else {
@@ -1945,9 +1880,7 @@ sub read_group1 {
 
     $cur = &Omnistat::translate_temp($cur);
 
-    omnistat_debug(
-        "Omnistat[$$self{address}]->read_group1:$cool_set,$heat_set,$mode,$fan,$hold,$cur,$output"
-    );
+    omnistat_debug("Omnistat[$$self{address}]->read_group1:$cool_set,$heat_set,$mode,$fan,$hold,$cur,$output");
     return ( $cool_set, $heat_set, $mode, $fan, $hold, $cur, $output );
 }
 

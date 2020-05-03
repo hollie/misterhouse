@@ -98,13 +98,11 @@ sub set {
 
         if ( $p_setby->isa('CID_Lookup') ) {
             if ( lc $p_setby->category() ne 'reject' ) {
-                $self->announce( $p_setby, $self->speak_format(),
-                    $::config_parms{local_area_code} );
+                $self->announce( $p_setby, $self->speak_format(), $::config_parms{local_area_code} );
             }
         }
         else {
-            $self->announce( $p_setby, $self->speak_format(),
-                $::config_parms{local_area_code} );
+            $self->announce( $p_setby, $self->speak_format(), $::config_parms{local_area_code} );
         }
     }
     $self->SUPER::set($p_state);
@@ -125,12 +123,11 @@ sub mod_ring {
 sub announce {
     my ( $self, $p_telephony, $p_speak_format, $p_local_area_code ) = @_;
 
-    my $response =
-      $self->parse_format( $p_telephony, $p_speak_format, $p_local_area_code );
+    my $response = $self->parse_format( $p_telephony, $p_speak_format, $p_local_area_code );
 
     #	print "CID Announce $response,$p_telephony,$p_speak_format";
     return
-      if $response =~ /MESSAGE WAITING/;   # Don't announce message waiting data
+      if $response =~ /MESSAGE WAITING/;    # Don't announce message waiting data
     return if $response =~ /\-MSG OFF\-/;
     if ( $response =~ /\.wav$/ ) {
         $self->play_cid($response);
@@ -165,14 +162,8 @@ sub play_cid {
 sub parse_format {
     my ( $self, $p_telephony, $p_speak_format, $p_local_area_code ) = @_;
 
-    my (
-        $number,  $name, $address, $city, $state,
-        $fnumber, $type, $time,    $sound_file
-    );
-    my (
-        $first,  $middle,    $last,    $areacode, $suffix,
-        $prefix, $soundfile, $snumber, $category
-    );
+    my ( $number, $name,   $address, $city,     $state,  $fnumber, $type,      $time,    $sound_file );
+    my ( $first,  $middle, $last,    $areacode, $suffix, $prefix,  $soundfile, $snumber, $category );
     my %table_types = qw(p private u unknown i internation n normal);
     my ($format1);
 

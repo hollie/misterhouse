@@ -823,24 +823,14 @@ sub check_log {
 
     if ( $main::Debug{occupancy} ) {
         foreach ( @{ $$self{m_object_log} } ) {
-            &::print_log(
-                "Log: $$self{m_objects}{$_}{object}->{object_name} [@{$$self{m_objects}{$_}{edges}}]"
-            );
+            &::print_log("Log: $$self{m_objects}{$_}{object}->{object_name} [@{$$self{m_objects}{$_}{edges}}]");
         }
-        &::print_log(
-            "Log check: $$p_obj{object_name} [@{$$self{m_objects}{$p_obj}{edges}}]"
-        );
+        &::print_log("Log check: $$p_obj{object_name} [@{$$self{m_objects}{$p_obj}{edges}}]");
     }
 
     # check for duplicate edges
     if ( $$self{m_object_log}->[0] and $$self{m_objects}{$p_obj} ) {
-        if (
-            $self->compare_array(
-                \@{ $$self{m_objects}{ $$self{m_object_log}->[0] }{edges} },
-                \@{ $$self{m_objects}{$p_obj}{edges} }
-            )
-          )
-        {
+        if ( $self->compare_array( \@{ $$self{m_objects}{ $$self{m_object_log}->[0] }{edges} }, \@{ $$self{m_objects}{$p_obj}{edges} } ) ) {
             return 1 if $self->need_to_steal_old_presence($p_obj);
             return 0;
         }
@@ -853,13 +843,8 @@ sub add_log {
 
     # check for duplicate edges
     if ( $$self{m_object_log}->[0] and $$self{m_objects}{$p_obj} ) {
-        if (
-            $self->compare_array(
-                \@{ $$self{m_objects}{ $$self{m_object_log}->[0] }{edges} },
-                \@{ $$self{m_objects}{$p_obj}{edges} }
-            )
-          )
-        {
+        if ( $self->compare_array( \@{ $$self{m_objects}{ $$self{m_object_log}->[0] }{edges} }, \@{ $$self{m_objects}{$p_obj}{edges} } ) ) {
+
             # Top log entry matches, return without adding a duplicate
             return;
         }
@@ -895,9 +880,7 @@ sub generate_state {
     if (    ( $$self{m_max_occupancy} >= 0 )
         and ( $$self{m_people} > $$self{m_max_occupancy} ) )
     {
-        &::print_log(
-            "Occupancy of $$self{m_people} exceeds set maximum ($$self{m_max_occupancy}): removing oldest presence"
-        ) if $main::Debug{occupancy};
+        &::print_log("Occupancy of $$self{m_people} exceeds set maximum ($$self{m_max_occupancy}): removing oldest presence") if $main::Debug{occupancy};
         $$self{m_people} =
           $self->reduce_occupancy_count( $$self{m_max_occupancy} );
     }
@@ -906,22 +889,12 @@ sub generate_state {
     if (    ( $$self{m_expected_occupancy} >= 0 )
         and ( $$self{m_people} > $$self{m_expected_occupancy} ) )
     {
-        &::print_log(
-            "Occupancy of $$self{m_people} exceeds the expected occupancy ($$self{m_expected_occupancy})"
-        ) if $main::Debug{occupancy};
-        if (
-            $$self{m_expected_occupancy_last_time}
-            and (
-                (
-                    $$self{m_expected_occupancy_last_time} +
-                    $$self{m_expected_occupancy_time}
-                ) > $::Time
-            )
-          )
+        &::print_log("Occupancy of $$self{m_people} exceeds the expected occupancy ($$self{m_expected_occupancy})") if $main::Debug{occupancy};
+        if ( $$self{m_expected_occupancy_last_time}
+            and ( ( $$self{m_expected_occupancy_last_time} + $$self{m_expected_occupancy_time} ) > $::Time ) )
         {
-            &::print_log(
-                "Expected occupancy was exceeded twice within $$self{m_expected_occupancy_time} seconds, allowing increase"
-            ) if $main::Debug{occupancy};
+            &::print_log("Expected occupancy was exceeded twice within $$self{m_expected_occupancy_time} seconds, allowing increase")
+              if $main::Debug{occupancy};
             $$self{m_expected_occupancy}++;
             $$self{m_expected_occupancy_last_time} = 0;
         }
@@ -936,15 +909,7 @@ sub generate_state {
         $$self{m_min_count} = $$self{m_cur_count};
         $self->SUPER::set( 'changed:' . $$self{m_min_count}, $p_setby );
     }
-    return
-        'current:'
-      . $self->cur_count()
-      . ';minimum:'
-      . $self->min_count()
-      . ';last:'
-      . $p_setby->{object_name}
-      . ';people:'
-      . $self->people();
+    return 'current:' . $self->cur_count() . ';minimum:' . $self->min_count() . ';last:' . $p_setby->{object_name} . ';people:' . $self->people();
 }
 
 sub get_last_motion {
@@ -1000,9 +965,7 @@ sub count_people {
     my %rooms_seen;
     foreach my $obj ( keys %{ $$self{m_objects} } ) {
         unless ( ref $$self{m_objects}{$obj}{edges} ) {
-            &::print_log(
-                "Occupancy Monitor ERROR: Object has no edges set: $$obj{object_name}"
-            );
+            &::print_log("Occupancy Monitor ERROR: Object has no edges set: $$obj{object_name}");
             return 0;
         }
         my @array = @{ $$self{m_objects}{$obj}{edges} };
@@ -1011,8 +974,8 @@ sub count_people {
         unless ( $rooms_seen{"@array"} ) {
             if ( $$self{m_objects}{$obj}{count} >= 1 ) {
                 &::print_log(
-                    "count_people: counting object $$self{m_objects}{$obj}{object}->{object_name} (@array): $$self{m_objects}{$obj}{count} (count=$count)"
-                ) if $main::Debug{occupancy};
+                    "count_people: counting object $$self{m_objects}{$obj}{object}->{object_name} (@array): $$self{m_objects}{$obj}{count} (count=$count)")
+                  if $main::Debug{occupancy};
                 $count += $$self{m_objects}{$obj}{count};
             }
             $rooms_seen{"@array"}++;
@@ -1037,16 +1000,8 @@ sub remove_oldest_person {
     }
     if ($oldest_obj) {
         foreach my $obj ( keys %{ $$self{m_objects} } ) {
-            if (
-                $self->compare_array(
-                    \@{ $$self{m_objects}{$oldest_obj}{edges} },
-                    \@{ $$self{m_objects}{$obj}{edges} }
-                )
-              )
-            {
-                &::print_log(
-                    "Removing most stale person from room: $$self{m_objects}{$obj}{object}->{object_name}"
-                ) if $main::Debug{occupancy};
+            if ( $self->compare_array( \@{ $$self{m_objects}{$oldest_obj}{edges} }, \@{ $$self{m_objects}{$obj}{edges} } ) ) {
+                &::print_log("Removing most stale person from room: $$self{m_objects}{$obj}{object}->{object_name}") if $main::Debug{occupancy};
                 if ( $self->{room_counts} and $$self{m_objects}{$obj}{count} ) {
                     $$self{m_objects}{$obj}{count}--;
                 }
@@ -1076,28 +1031,14 @@ sub check_maintain {
       if $main::Debug{occupancy};
     my $maintain = 0;
     foreach my $obj ( keys %{ $$self{m_objects} } ) {
-        if (
-            $self->compare_array(
-                \@{ $$self{m_objects}{$p_obj}{edges} },
-                \@{ $$self{m_objects}{$obj}{edges} }
-            )
-          )
-        {
-            if (
-                (
-                    (
-                        $$self{m_objects}{$obj}{last_decrease} +
-                        $$self{m_objects}{$p_obj}{m_maintain}
-                    ) >= $::Time
-                )
-                and ( $$self{m_objects}{$obj}{count} < 1 )
-              )
+        if ( $self->compare_array( \@{ $$self{m_objects}{$p_obj}{edges} }, \@{ $$self{m_objects}{$obj}{edges} } ) ) {
+            if (    ( ( $$self{m_objects}{$obj}{last_decrease} + $$self{m_objects}{$p_obj}{m_maintain} ) >= $::Time )
+                and ( $$self{m_objects}{$obj}{count} < 1 ) )
             {
                 # Okay, the object was decreased recently... and is down to zero
                 # so we want to re-establish presence
-                &::print_log(
-                    "Sensor $$p_obj{object_name} re-establishing presence in $$self{m_objects}{$obj}{object}->{object_name}"
-                ) if $main::Debug{occupancy};
+                &::print_log("Sensor $$p_obj{object_name} re-establishing presence in $$self{m_objects}{$obj}{object}->{object_name}")
+                  if $main::Debug{occupancy};
                 $maintain++;
                 $$self{m_objects}{$obj}{count} = 1;
                 $$self{m_objects}{$obj}{time}  = $::Time;
@@ -1124,28 +1065,14 @@ sub need_to_steal_old_presence {
     my ( $self, $p_obj ) = @_;
     my $edge;
     foreach my $obj ( keys %{ $$self{m_objects} } ) {
-        if (
-            $edge = $self->compare_array_elements(
-                \@{ $$self{m_objects}{$p_obj}{edges} },
-                \@{ $$self{m_objects}{$obj}{edges} }
-            )
-          )
-        {
+        if ( $edge = $self->compare_array_elements( \@{ $$self{m_objects}{$p_obj}{edges} }, \@{ $$self{m_objects}{$obj}{edges} } ) ) {
             if ( $$self{m_objects}{$obj}{count} >= 1 ) {
-                unless (
-                        $$self{door_edges}
+                unless ($$self{door_edges}
                     and $$self{door_edges}{$edge}
-                    and $self->was_door_closed(
-                        $edge, @{ $$self{m_objects}{$obj}{edges} }
-                    )
-                  )
+                    and $self->was_door_closed( $edge, @{ $$self{m_objects}{$obj}{edges} } ) )
                 {
-                    if (
-                        $self->{room_counts}
-                        and $self->is_presence_too_old(
-                            @{ $$self{m_objects}{$obj}{edges} }
-                        )
-                      )
+                    if (    $self->{room_counts}
+                        and $self->is_presence_too_old( @{ $$self{m_objects}{$obj}{edges} } ) )
                     {
                         return 1;
                     }
@@ -1170,28 +1097,16 @@ sub check_ignore {
       if $main::Debug{occupancy};
 
     if ( $$self{m_objects}{$p_obj}{used} ) {
-        &::print_log(
-            "Ignored duplicate activity from: " . $$p_obj{object_name} )
+        &::print_log( "Ignored duplicate activity from: " . $$p_obj{object_name} )
           if $main::Debug{occupancy};
         return 1;
     }
 
     # Make sure we don't want to ignore this
     foreach my $obj ( keys %{ $$self{m_objects} } ) {
-        if (
-            $self->compare_array(
-                \@{ $$self{m_objects}{$p_obj}{edges} },
-                \@{ $$self{m_objects}{$obj}{edges} }
-            )
-          )
-        {
-            if (
-                (
-                    $$self{m_objects}{$obj}{last_decrease} +
-                    $$self{m_objects}{$p_obj}{m_ignore_time}
-                ) >= $::Time
-              )
-            {
+        if ( $self->compare_array( \@{ $$self{m_objects}{$p_obj}{edges} }, \@{ $$self{m_objects}{$obj}{edges} } ) ) {
+            if ( ( $$self{m_objects}{$obj}{last_decrease} + $$self{m_objects}{$p_obj}{m_ignore_time} ) >= $::Time ) {
+
                 # The object was decreased within the specified ignore time,
                 # so ignore this acitvity
                 &::print_log( "Ignored activity from: " . $$p_obj{object_name} )
@@ -1219,17 +1134,10 @@ sub was_door_just_closed {
         &::print_log("Door $$object{object_name} was recently closed")
           if $main::Debug{occupancy};
         if ( $$self{m_timing} and $$self{m_timing}{"@room_edges"} ) {
-            if (
-                (
-                    $$self{m_timing}{"@room_edges"}{time} -
-                    $$self{m_objects}
-                    { $$self{m_timing}{"@room_edges"}{object} }{m_ignore_time}
-                ) > $last_time
-              )
-            {
+            if ( ( $$self{m_timing}{"@room_edges"}{time} - $$self{m_objects}{ $$self{m_timing}{"@room_edges"}{object} }{m_ignore_time} ) > $last_time ) {
+
                 # Motion detector inside room since the door change,
-                &::print_log(
-                    "Door $$object{object_name} was recently closed, but there was recent motion from "
+                &::print_log( "Door $$object{object_name} was recently closed, but there was recent motion from "
                       . $$self{m_timing}{"@room_edges"}{object}->{object_name} )
                   if $main::Debug{occupancy};
                 return 0;
@@ -1263,20 +1171,13 @@ sub was_door_closed {
     {
         # Return that door was opened within the specified time frame,
         # thus allowing presence to be transferred across the edge
-        &::print_log(
-            "Door $$object{object_name} was opened so occupancy transfer is allowed"
-        ) if $main::Debug{occupancy};
+        &::print_log("Door $$object{object_name} was opened so occupancy transfer is allowed") if $main::Debug{occupancy};
         if (    ( state $object ne 'open' )
             and $$self{m_timing}
             and $$self{m_timing}{"@room_edges"} )
         {
-            if (
-                (
-                    $$self{m_timing}{"@room_edges"}{time} -
-                    $$self{m_objects}
-                    { $$self{m_timing}{"@room_edges"}{object} }{m_ignore_time}
-                ) > $object->get_last_close_time
-              )
+            if ( ( $$self{m_timing}{"@room_edges"}{time} - $$self{m_objects}{ $$self{m_timing}{"@room_edges"}{object} }{m_ignore_time} ) >
+                $object->get_last_close_time )
             {
                 # Sure, the door was open within the time period, but there was motion
                 # in the other room after the door was shut, even after taking into
@@ -1289,9 +1190,7 @@ sub was_door_closed {
 
     # If we are here then the door was NOT opened within the specified
     # time.  Return 1 to indicate that the door is closed
-    &::print_log(
-        "Door $$object{object_name} was not opened so occupancy transfer is not allowed"
-    ) if $main::Debug{occupancy};
+    &::print_log("Door $$object{object_name} was not opened so occupancy transfer is not allowed") if $main::Debug{occupancy};
     return 1;
 }
 
@@ -1322,128 +1221,65 @@ sub determine_new_count {
 # Return 0 if the decrease has occurred too many times in past X seconds
 sub check_decrease_count {
     my ( $self, $p_obj, $source_edges ) = @_;
-    unless (
-            $$self{m_bounce_prevent}
+    unless ($$self{m_bounce_prevent}
         and $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-        and $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-        {"@{$source_edges}"}
-        and
-        ( $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-            {"@{$source_edges}"}{'time'} > 0 )
-        and
-        ( $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-            {"@{$source_edges}"}{'count'} > 0 )
-      )
+        and $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}
+        and ( $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'time'} > 0 )
+        and ( $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'count'} > 0 ) )
     {
         return 1;
     }
-    if ( $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-        {"@{$source_edges}"}{'array'}[0] == $::Time )
-    {
+    if ( $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'array'}[0] == $::Time ) {
+
         # Same exact time, assume it is another object in the same room
         return 1;
     }
-    for (
-        my $i = (
-            $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-              {"@{$source_edges}"}{'count'} - 1
-        );
-        $i > 0;
-        $i--
-      )
-    {
-        $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-          {"@{$source_edges}"}{'array'}[$i] =
-          $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-          {"@{$source_edges}"}{'array'}[ $i - 1 ];
+    for ( my $i = ( $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'count'} - 1 ); $i > 0; $i-- ) {
+        $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'array'}[$i] =
+          $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'array'}[ $i - 1 ];
     }
-    &::print_log(
-        "Checking for bouncing in $$self{m_objects}{$p_obj}{object}{object_name} [source @{$source_edges}]: "
+    &::print_log( "Checking for bouncing in $$self{m_objects}{$p_obj}{object}{object_name} [source @{$source_edges}]: "
           . $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-          {"@{$source_edges}"}{'array'}[
-          $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-          {"@{$source_edges}"}{'count'} - 1
-          ]
-          . ', '
-          . (
-            $::Time -
-              $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-              {"@{$source_edges}"}{'time'}
-          )
-    ) if $main::Debug{occupancy};
-    if (
-        $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-        {"@{$source_edges}"}{'array'}[
-        $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-          {"@{$source_edges}"}{'count'} - 1
-        ] > (
-            $::Time -
-              $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-              {"@{$source_edges}"}{'time'}
-        )
-      )
+          {"@{$source_edges}"}{'array'}[ $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'count'} - 1 ] . ', '
+          . ( $::Time - $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'time'} ) )
+      if $main::Debug{occupancy};
+    if ( $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
+        {"@{$source_edges}"}{'array'}[ $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'count'} - 1 ] >
+        ( $::Time - $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'time'} ) )
     {
-        &::print_log(
-            "Checking for bouncing: expected_occupancy=$$self{m_expected_occupancy}, people=$$self{m_people}"
-        ) if $main::Debug{occupancy};
+        &::print_log("Checking for bouncing: expected_occupancy=$$self{m_expected_occupancy}, people=$$self{m_people}") if $main::Debug{occupancy};
         if (   ( $$self{m_expected_occupancy} < 0 )
             or ( $$self{m_people} < $$self{m_expected_occupancy} ) )
         {
             # Bounced too many times in the specified amount of time... and we have room to expand without exceeding the expected occupancy
             foreach ( keys %{ $$self{m_bounce_prevent} } ) {
-                if ( $$self{m_bounce_prevent}{$_}
-                    {"@{$$self{m_objects}{$p_obj}{edges}}"} )
-                {
-                    for (
-                        my $i = 0;
-                        $i < $$self{m_bounce_prevent}{$_}
-                        {"@{$$self{m_objects}{$p_obj}{edges}}"}{'count'};
-                        $i++
-                      )
-                    {
-                        $$self{m_bounce_prevent}{$_}
-                          {"@{$$self{m_objects}{$p_obj}{edges}}"}{'array'}[$i]
-                          = 0;
+                if ( $$self{m_bounce_prevent}{$_}{"@{$$self{m_objects}{$p_obj}{edges}}"} ) {
+                    for ( my $i = 0; $i < $$self{m_bounce_prevent}{$_}{"@{$$self{m_objects}{$p_obj}{edges}}"}{'count'}; $i++ ) {
+                        $$self{m_bounce_prevent}{$_}{"@{$$self{m_objects}{$p_obj}{edges}}"}{'array'}[$i] = 0;
                     }
                 }
             }
-            for (
-                my $i = 0;
-                $i <
-                $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-                {"@{$source_edges}"}{'count'};
-                $i++
-              )
-            {
-                $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-                  {"@{$source_edges}"}{'array'}[$i] = 0;
+            for ( my $i = 0; $i < $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'count'}; $i++ ) {
+                $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'array'}[$i] = 0;
             }
-            &::print_log(
-                "Preventing bouncing by leaving presence in $$self{m_objects}{$p_obj}{object}{object_name}: @{$source_edges}"
-            ) if $main::Debug{occupancy};
+            &::print_log("Preventing bouncing by leaving presence in $$self{m_objects}{$p_obj}{object}{object_name}: @{$source_edges}")
+              if $main::Debug{occupancy};
             return 0;
         }
     }
-    $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}
-      {"@{$source_edges}"}{'array'}[0] = $::Time;
+    $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj}{edges}}"}{"@{$source_edges}"}{'array'}[0] = $::Time;
     return 1;
 }
 
 sub prevent_bounces {
     my ( $self, $p_obj1, $p_obj2, $p_time, $p_count ) = @_;
-    $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj1}{edges}}"}
-      {"@{$$self{m_objects}{$p_obj2}{edges}}"}{'time'} = $p_time;
-    $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj2}{edges}}"}
-      {"@{$$self{m_objects}{$p_obj1}{edges}}"}{'time'} = $p_time;
-    $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj1}{edges}}"}
-      {"@{$$self{m_objects}{$p_obj2}{edges}}"}{'count'} = $p_count;
-    $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj2}{edges}}"}
-      {"@{$$self{m_objects}{$p_obj1}{edges}}"}{'count'} = $p_count;
+    $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj1}{edges}}"}{"@{$$self{m_objects}{$p_obj2}{edges}}"}{'time'}  = $p_time;
+    $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj2}{edges}}"}{"@{$$self{m_objects}{$p_obj1}{edges}}"}{'time'}  = $p_time;
+    $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj1}{edges}}"}{"@{$$self{m_objects}{$p_obj2}{edges}}"}{'count'} = $p_count;
+    $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj2}{edges}}"}{"@{$$self{m_objects}{$p_obj1}{edges}}"}{'count'} = $p_count;
     for ( my $i = 0; $i < $p_count; $i++ ) {
-        $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj1}{edges}}"}
-          {"@{$$self{m_objects}{$p_obj2}{edges}}"}{'array'}[$i] = 0;
-        $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj2}{edges}}"}
-          {"@{$$self{m_objects}{$p_obj1}{edges}}"}{'array'}[$i] = 0;
+        $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj1}{edges}}"}{"@{$$self{m_objects}{$p_obj2}{edges}}"}{'array'}[$i] = 0;
+        $$self{m_bounce_prevent}{"@{$$self{m_objects}{$p_obj2}{edges}}"}{"@{$$self{m_objects}{$p_obj1}{edges}}"}{'array'}[$i] = 0;
     }
 }
 
@@ -1459,22 +1295,14 @@ sub calc_presence {
       unless defined $presence_value;
 
     # Run checks if partial presence is being used for this room
-    if ( ( $$self{m_objects}{$p_obj}{count} < 1 ) and ( $presence_value < 1 ) )
-    {
+    if ( ( $$self{m_objects}{$p_obj}{count} < 1 ) and ( $presence_value < 1 ) ) {
+
         # The current count is between 0 and 1 which indicates a partial presence
         # So, we need to see how this new activity affects the total...
-        &::print_log(
-            "Object $$p_obj{object_name} contributing $presence_value to presence"
-        ) if $main::Debug{occupancy};
+        &::print_log("Object $$p_obj{object_name} contributing $presence_value to presence") if $main::Debug{occupancy};
         $$self{m_objects}{$p_obj}{used} = 1;
         foreach my $obj ( keys %{ $$self{m_objects} } ) {
-            if (
-                $self->compare_array(
-                    \@{ $$self{m_objects}{$p_obj}{edges} },
-                    \@{ $$self{m_objects}{$obj}{edges} }
-                )
-              )
-            {
+            if ( $self->compare_array( \@{ $$self{m_objects}{$p_obj}{edges} }, \@{ $$self{m_objects}{$obj}{edges} } ) ) {
                 $$self{m_objects}{$obj}{count} =
                   $self->determine_new_count( $obj, $presence_value );
             }
@@ -1482,21 +1310,13 @@ sub calc_presence {
         if ( $$self{m_objects}{$p_obj}{count} < 1 ) {
 
             # Nope, still not high enough... exit.
-            &::print_log(
-                "Object $$p_obj{object_name} presence still not high enough: $$self{m_objects}{$p_obj}{count}"
-            ) if $main::Debug{occupancy};
+            &::print_log("Object $$p_obj{object_name} presence still not high enough: $$self{m_objects}{$p_obj}{count}") if $main::Debug{occupancy};
             return 0;
         }
         else {
             # Okay, we are above one... so now, return to 0 so that things can proceed like normal
             foreach my $obj ( keys %{ $$self{m_objects} } ) {
-                if (
-                    $self->compare_array(
-                        \@{ $$self{m_objects}{$p_obj}{edges} },
-                        \@{ $$self{m_objects}{$obj}{edges} }
-                    )
-                  )
-                {
+                if ( $self->compare_array( \@{ $$self{m_objects}{$p_obj}{edges} }, \@{ $$self{m_objects}{$obj}{edges} } ) ) {
                     $$self{m_objects}{$obj}{count} = 0;
                 }
             }
@@ -1510,75 +1330,41 @@ sub calc_presence {
     foreach my $obj ( keys %{ $$self{m_objects} } ) {
 
         #		&::print_log("checking: " . $$self{m_objects}{$obj}{object}->{object_name});
-        if (
-            (
-                $edge = $self->compare_array_elements(
-                    \@{ $$self{m_objects}{$p_obj}{edges} },
-                    \@{ $$self{m_objects}{$obj}{edges} }
-                )
-            )
-            and (
-                not $self->compare_array(
-                    \@{ $$self{m_objects}{$p_obj}{edges} },
-                    \@{ $$self{m_objects}{$obj}{edges} }
-                )
-            )
-          )
+        if (    ( $edge = $self->compare_array_elements( \@{ $$self{m_objects}{$p_obj}{edges} }, \@{ $$self{m_objects}{$obj}{edges} } ) )
+            and ( not $self->compare_array( \@{ $$self{m_objects}{$p_obj}{edges} }, \@{ $$self{m_objects}{$obj}{edges} } ) ) )
         {
             #			&::print_log("Destroy:" . $$self{m_objects}{$obj}{object}->{object_name});
             # clear nodes that had presence before, and mark -1
             # prediction for nodes that havent been visited yet
             $$self{m_objects}{$obj}{used} = 0;
             if ( $$self{m_objects}{$obj}{count} >= 1 ) {
-                &::print_log( "Object "
-                      . $$self{m_objects}{$obj}{object}->{object_name}
-                      . " has common edge: $edge" )
+                &::print_log( "Object " . $$self{m_objects}{$obj}{object}->{object_name} . " has common edge: $edge" )
                   if $main::Debug{occupancy};
                 if ( $$self{door_edges} and $$self{door_edges}{$edge} ) {
-                    &::print_log( "Object "
-                          . $$self{m_objects}{$obj}{object}->{object_name}
-                          . " was marked as a door with timeout: $$self{door_edges}{$edge}{seconds}"
-                    ) if $main::Debug{occupancy};
+                    &::print_log(
+                        "Object " . $$self{m_objects}{$obj}{object}->{object_name} . " was marked as a door with timeout: $$self{door_edges}{$edge}{seconds}" )
+                      if $main::Debug{occupancy};
                 }
-                unless (
-                        $$self{door_edges}
+                unless ($$self{door_edges}
                     and $$self{door_edges}{$edge}
-                    and $self->was_door_closed(
-                        $edge, @{ $$self{m_objects}{$obj}{edges} }
-                    )
-                  )
+                    and $self->was_door_closed( $edge, @{ $$self{m_objects}{$obj}{edges} } ) )
                 {
-                    &::print_log( "Object "
-                          . $$self{m_objects}{$obj}{object}->{object_name}
-                          . " no door edge restriction active" )
+                    &::print_log( "Object " . $$self{m_objects}{$obj}{object}->{object_name} . " no door edge restriction active" )
                       if $main::Debug{occupancy};
                     if (
                            ( $$self{m_objects}{$p_obj}{count} < 1 )
                         or ( $$self{m_objects}{$p_obj}{count} eq '' )
-                        or $self->is_presence_too_old(
-                            @{ $$self{m_objects}{$obj}{edges} }
-                        )
-                        or (
-                                $$self{door_edges}
+                        or $self->is_presence_too_old( @{ $$self{m_objects}{$obj}{edges} } )
+                        or (    $$self{door_edges}
                             and $$self{door_edges}{$edge}
-                            and $self->was_door_just_closed(
-                                $edge, @{ $$self{m_objects}{$obj}{edges} }
-                            )
-                        )
+                            and $self->was_door_just_closed( $edge, @{ $$self{m_objects}{$obj}{edges} } ) )
                       )
                     {
                         # only decrement if first entering the node, or if this is a door
                         # edge and the door was just and there has not been recent activity
                         # inside the other room (was_door_just_closed() tells us that)
-                        if (
-                            (
-                                not $decrease_prevented{
-                                    "@{$$self{m_objects}{$obj}{edges}}"}
-                            )
-                            and $self->check_decrease_count(
-                                $obj, \@{ $$self{m_objects}{$p_obj}{edges} }
-                            )
-                          )
+                        if ( ( not $decrease_prevented{"@{$$self{m_objects}{$obj}{edges}}"} )
+                            and $self->check_decrease_count( $obj, \@{ $$self{m_objects}{$p_obj}{edges} } ) )
                         {
                             if ( $self->{room_counts} ) {
                                 $$self{m_objects}{$obj}{count}--;
@@ -1588,19 +1374,14 @@ sub calc_presence {
                             }
                         }
                         else {
-                            $decrease_prevented{
-                                "@{$$self{m_objects}{$obj}{edges}}"}++;
+                            $decrease_prevented{"@{$$self{m_objects}{$obj}{edges}}"}++;
                         }
-                        unless (
-                            $rooms_seen{"@{$$self{m_objects}{$obj}{edges}}"} )
-                        {
+                        unless ( $rooms_seen{"@{$$self{m_objects}{$obj}{edges}}"} ) {
                             $dec_count++;
                             $rooms_seen{"@{$$self{m_objects}{$obj}{edges}}"}++;
                         }
                         $$self{m_objects}{$obj}{last_decrease} = $::Time;
-                        &::print_log( "Connecting room "
-                              . $$self{m_objects}{$obj}{object}->{object_name}
-                              . " count decremented ($dec_count total)" )
+                        &::print_log( "Connecting room " . $$self{m_objects}{$obj}{object}->{object_name} . " count decremented ($dec_count total)" )
                           if $main::Debug{occupancy};
                     }
                 }
@@ -1622,59 +1403,24 @@ sub calc_presence {
 
     # An adjoining room had partial presence -- move presence to the room with partial
     # presence from a surrounding room and then take presence from that room
-    if (
-        (
-               ( $$self{m_objects}{$p_obj}{count} < 1 )
-            or ( $$self{m_objects}{$p_obj}{count} eq '' )
-        )
+    if (    ( ( $$self{m_objects}{$p_obj}{count} < 1 ) or ( $$self{m_objects}{$p_obj}{count} eq '' ) )
         and ( $dec_count == 0 )
-        and $partial
-      )
+        and $partial )
     {
         my $proceed = 0;
         foreach my $obj ( keys %{ $$self{m_objects} } ) {
-            unless (
-                $self->compare_array(
-                    \@{ $$self{m_objects}{$p_obj}{edges} },
-                    \@{ $$self{m_objects}{$obj}{edges} }
-                )
-              )
-            {
-                unless (
-                    $self->compare_array(
-                        \@{ $$self{m_objects}{$partial}{edges} },
-                        \@{ $$self{m_objects}{$obj}{edges} }
-                    )
-                  )
-                {
-                    if (
-                        $edge = $self->compare_array_elements(
-                            \@{ $$self{m_objects}{$partial}{edges} },
-                            \@{ $$self{m_objects}{$obj}{edges} }
-                        )
-                      )
-                    {
-                        unless (
-                                $$self{door_edges}
+            unless ( $self->compare_array( \@{ $$self{m_objects}{$p_obj}{edges} }, \@{ $$self{m_objects}{$obj}{edges} } ) ) {
+                unless ( $self->compare_array( \@{ $$self{m_objects}{$partial}{edges} }, \@{ $$self{m_objects}{$obj}{edges} } ) ) {
+                    if ( $edge = $self->compare_array_elements( \@{ $$self{m_objects}{$partial}{edges} }, \@{ $$self{m_objects}{$obj}{edges} } ) ) {
+                        unless ($$self{door_edges}
                             and $$self{door_edges}{$edge}
-                            and $self->was_door_closed(
-                                $edge, @{ $$self{m_objects}{$obj}{edges} }
-                            )
-                          )
+                            and $self->was_door_closed( $edge, @{ $$self{m_objects}{$obj}{edges} } ) )
                         {
                             &::print_log(
-                                "Moving to intermediate room that already had partial presence: "
-                                  . $$self{m_objects}{$partial}{object}
-                                  ->{object_name} )
+                                "Moving to intermediate room that already had partial presence: " . $$self{m_objects}{$partial}{object}->{object_name} )
                               if $main::Debug{occupancy};
-                            if (
-                                $self->calc_presence(
-                                    $$self{m_objects}{$partial}{object}, 1
-                                )
-                              )
-                            {
-                                $self->add_log(
-                                    $$self{m_objects}{$partial}{object} );
+                            if ( $self->calc_presence( $$self{m_objects}{$partial}{object}, 1 ) ) {
+                                $self->add_log( $$self{m_objects}{$partial}{object} );
                                 $proceed = 1;
                                 last;
                             }
@@ -1706,81 +1452,28 @@ sub calc_presence {
         # extra list of possible rooms to steal presence from, so check them.
         foreach my $obj ( @{ $$self{m_objects}{$p_obj}{extra_rooms} } ) {
             if ( $$self{m_objects}{$obj}{count} >= 1 ) {
-                &::print_log(
-                    "Stealing presence from extra room $obj->{object_name}")
+                &::print_log("Stealing presence from extra room $obj->{object_name}")
                   if $main::Debug{occupancy};
 
                 # First, move a person to an intermediate room...
                 foreach my $obj2 ( keys %{ $$self{m_objects} } ) {
-                    unless (
-                        $self->compare_array(
-                            \@{ $$self{m_objects}{$p_obj}{edges} },
-                            \@{ $$self{m_objects}{$obj2}{edges} }
-                        )
-                      )
-                    {
-                        unless (
-                            $self->compare_array(
-                                \@{ $$self{m_objects}{$obj}{edges} },
-                                \@{ $$self{m_objects}{$obj2}{edges} }
-                            )
-                          )
-                        {
-                            if (
-                                $edge = $self->compare_array_elements(
-                                    \@{ $$self{m_objects}{$p_obj}{edges} },
-                                    \@{ $$self{m_objects}{$obj2}{edges} }
-                                )
-                              )
-                            {
-                                unless (
-                                        $$self{door_edges}
+                    unless ( $self->compare_array( \@{ $$self{m_objects}{$p_obj}{edges} }, \@{ $$self{m_objects}{$obj2}{edges} } ) ) {
+                        unless ( $self->compare_array( \@{ $$self{m_objects}{$obj}{edges} }, \@{ $$self{m_objects}{$obj2}{edges} } ) ) {
+                            if ( $edge = $self->compare_array_elements( \@{ $$self{m_objects}{$p_obj}{edges} }, \@{ $$self{m_objects}{$obj2}{edges} } ) ) {
+                                unless ($$self{door_edges}
                                     and $$self{door_edges}{$edge}
-                                    and $self->was_door_closed(
-                                        $edge,
-                                        @{ $$self{m_objects}{$obj2}{edges} }
-                                    )
-                                  )
+                                    and $self->was_door_closed( $edge, @{ $$self{m_objects}{$obj2}{edges} } ) )
                                 {
-                                    if (
-                                        $edge = $self->compare_array_elements(
-                                            \@{
-                                                $$self{m_objects}{$obj}{edges}
-                                            },
-                                            \@{
-                                                $$self{m_objects}{$obj2}{edges}
-                                            }
-                                        )
-                                      )
+                                    if ( $edge = $self->compare_array_elements( \@{ $$self{m_objects}{$obj}{edges} }, \@{ $$self{m_objects}{$obj2}{edges} } ) )
                                     {
-                                        unless (
-                                                $$self{door_edges}
+                                        unless ($$self{door_edges}
                                             and $$self{door_edges}{$edge}
-                                            and $self->was_door_closed(
-                                                $edge,
-                                                @{
-                                                    $$self{m_objects}{$obj}
-                                                      {edges}
-                                                }
-                                            )
-                                          )
+                                            and $self->was_door_closed( $edge, @{ $$self{m_objects}{$obj}{edges} } ) )
                                         {
-                                            &::print_log(
-                                                "Moving to intermediate room "
-                                                  . $$self{m_objects}{$obj2}
-                                                  {object}->{object_name} )
+                                            &::print_log( "Moving to intermediate room " . $$self{m_objects}{$obj2}{object}->{object_name} )
                                               if $main::Debug{occupancy};
-                                            if (
-                                                $self->calc_presence(
-                                                    $$self{m_objects}{$obj2}
-                                                      {object},
-                                                    1
-                                                )
-                                              )
-                                            {
-                                                $self->add_log(
-                                                    $$self{m_objects}{$obj2}
-                                                      {object} );
+                                            if ( $self->calc_presence( $$self{m_objects}{$obj2}{object}, 1 ) ) {
+                                                $self->add_log( $$self{m_objects}{$obj2}{object} );
                                                 $proceed = 1;
                                                 last;
                                             }
@@ -1808,19 +1501,11 @@ sub calc_presence {
 
     #increment current motion
     foreach my $obj ( keys %{ $$self{m_objects} } ) {
-        if (
-            $self->compare_array(
-                \@{ $$self{m_objects}{$p_obj}{edges} },
-                \@{ $$self{m_objects}{$obj}{edges} }
-            )
-          )
-        {
-            &::print_log(
-                "Clearing used flag for $$p_obj{object_name} (presence)")
+        if ( $self->compare_array( \@{ $$self{m_objects}{$p_obj}{edges} }, \@{ $$self{m_objects}{$obj}{edges} } ) ) {
+            &::print_log("Clearing used flag for $$p_obj{object_name} (presence)")
               if $main::Debug{occupancy};
             $$self{m_objects}{$obj}{used} = 0;
-            &::print_log( "Adding $dec_count to room "
-                  . $$self{m_objects}{$obj}{object}->{object_name} )
+            &::print_log( "Adding $dec_count to room " . $$self{m_objects}{$obj}{object}->{object_name} )
               if $main::Debug{occupancy};
             if ( $self->{room_counts}
                 and ( $$self{m_objects}{$obj}{count} >= 1 ) )
@@ -1852,31 +1537,19 @@ sub calc_total {
 
     #Seed the node pool before the search
     if ( $l_Ubound > 0 ) {
-        push @l_NodePool,
-          @{ $$self{m_objects}{ $$self{m_object_log}->[0] }{edges} };
+        push @l_NodePool, @{ $$self{m_objects}{ $$self{m_object_log}->[0] }{edges} };
     }
     else {    # bail out if object is not found
         return 0;
     }
 
     for ( $l_Index = 0; $l_Index < $l_Ubound - 1; $l_Index++ ) {
-        if (
-            $self->compare_array_elements(
-                \@l_NodePool,
-                \@{
-                    $$self{m_objects}{ $$self{m_object_log}->[ $l_Index + 1 ] }
-                      {edges}
-                }
-            ) > 0
-          )
-        {
+        if ( $self->compare_array_elements( \@l_NodePool, \@{ $$self{m_objects}{ $$self{m_object_log}->[ $l_Index + 1 ] }{edges} } ) > 0 ) {
             return $l_Index + 1;
         }
 
         #add previous edges together to search all
-        push @l_NodePool,
-          @{ $$self{m_objects}{ $$self{m_object_log}->[ $l_Index + 1 ] }{edges}
-          };
+        push @l_NodePool, @{ $$self{m_objects}{ $$self{m_object_log}->[ $l_Index + 1 ] }{edges} };
 
     }
     return $l_Index + 1;
@@ -1913,16 +1586,7 @@ sub sensor_count {
 
             # Remove matching log entry (only top one or all entries?)
             if ( $$self{m_object_log}->[0] and $$self{m_objects}{$p_obj} ) {
-                if (
-                    $self->compare_array(
-                        \@{
-                            $$self{m_objects}{ $$self{m_object_log}->[0] }
-                              {edges}
-                        },
-                        \@{ $$self{m_objects}{$p_obj}{edges} }
-                    )
-                  )
-                {
+                if ( $self->compare_array( \@{ $$self{m_objects}{ $$self{m_object_log}->[0] }{edges} }, \@{ $$self{m_objects}{$p_obj}{edges} } ) ) {
                     shift @{ $$self{m_object_log} };
                 }
             }
@@ -1955,7 +1619,7 @@ sub list_presence_string {
     return "@sensor_names";
 }
 
-sub compare_array # compare arrays to see if all elements are present in the other
+sub compare_array    # compare arrays to see if all elements are present in the other
 {
     my ( $self, $p_ary1, $p_ary2 ) = @_[ 0, 1, 2 ];
 
@@ -1971,8 +1635,7 @@ sub compare_array # compare arrays to see if all elements are present in the oth
     @l_ary1 = @{$p_ary1};
     @l_ary2 = @{$p_ary2};
 
-    if ( @l_ary1 != @l_ary2 )
-    { #if the number of elements doesnt match then they are obviously not the same
+    if ( @l_ary1 != @l_ary2 ) {    #if the number of elements doesnt match then they are obviously not the same
         return 0;
     }
 
@@ -1984,15 +1647,14 @@ sub compare_array # compare arrays to see if all elements are present in the oth
                 $l_match = 1;
             }
         }
-        if ( $l_match ne 1 )
-        {    #didnt find an element in the other then bail out, dont match
+        if ( $l_match ne 1 ) {     #didnt find an element in the other then bail out, dont match
             return 0;
         }
     }
     return 1;
 }
 
-sub compare_array_elements #find any array elements in any elements of other array
+sub compare_array_elements         #find any array elements in any elements of other array
 {
     my ( $self, $p_ary1, $p_ary2 ) = @_[ 0, 1, 2 ];
 
@@ -2007,9 +1669,7 @@ sub compare_array_elements #find any array elements in any elements of other arr
         foreach my $item2 ( @{$p_ary1} ) {
             if ( $item1 == $item2 ) {
                 if ( $item1 == 0 ) {
-                    &::print_log(
-                        "Occupancy Monitor: WARNING: Use of 0 for an edge number will cause problems"
-                    );
+                    &::print_log("Occupancy Monitor: WARNING: Use of 0 for an edge number will cause problems");
                     return 1;
                 }
                 else {
@@ -2027,13 +1687,7 @@ sub set_extra_rooms() {
         my %rooms_seen;
         @{ $$self{m_objects}{$p_obj}{extra_rooms} } = ();
         foreach my $obj (@extras) {
-            if (
-                $self->compare_array(
-                    \@{ $$self{m_objects}{$p_obj}{edges} },
-                    \@{ $$self{m_objects}{$obj}{edges} }
-                )
-              )
-            {
+            if ( $self->compare_array( \@{ $$self{m_objects}{$p_obj}{edges} }, \@{ $$self{m_objects}{$obj}{edges} } ) ) {
                 &::print_log(
                     "Occupancy_Monitor::set_extra_rooms($p_obj->{object_name}): WARNING: ignoring $obj->{object_name} because it has the same edges (@{$$self{m_objects}{$obj}{edges}}) as $p_obj->{object_name}"
                 );
@@ -2045,8 +1699,7 @@ sub set_extra_rooms() {
                     );
                 }
                 else {
-                    $rooms_seen{"@{$$self{m_objects}{$obj}{edges}}"} =
-                      $obj->{object_name};
+                    $rooms_seen{"@{$$self{m_objects}{$obj}{edges}}"} = $obj->{object_name};
                     push @{ $$self{m_objects}{$p_obj}{extra_rooms} }, $obj;
                 }
             }
@@ -2092,9 +1745,7 @@ sub ignore_time {
 sub presence_move_time {
     my ( $self, $p_obj, $p_time ) = @_;
     unless ( ref $$self{m_objects}{$p_obj}{edges} ) {
-        &::print_log(
-            "Occupancy_Monitor::presence_move_time ERROR: object $$p_obj{object_name} has no edges defined"
-        );
+        &::print_log("Occupancy_Monitor::presence_move_time ERROR: object $$p_obj{object_name} has no edges defined");
         return undef;
     }
     my @array = @{ $$self{m_objects}{$p_obj}{edges} };

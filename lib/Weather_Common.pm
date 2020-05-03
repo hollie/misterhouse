@@ -37,6 +37,7 @@ BEGIN {
 }
 
 our @weather_hooks;
+our $weather_module_enabled;  #used to display an icon on web interface if a weather module is enabled
 
 # this should be called whenever a client has FINISHED updating %main::Weather
 
@@ -65,9 +66,8 @@ sub weather_updated {
     my $temp            = 'unknown';
 
     if ( defined $$w{TempOutdoor} ) {
-        $temp            = $$w{TempOutdoor};
-        $temperatureText = sprintf( '%.1f&deg;%s',
-            $$w{TempOutdoor}, $main::config_parms{weather_uom_temp} );
+        $temp = $$w{TempOutdoor};
+        $temperatureText = sprintf( '%.1f&deg;%s', $$w{TempOutdoor}, $main::config_parms{weather_uom_temp} );
 
         # assume for now that windchill and humidex are negligible
         $$w{WindChill}           = $$w{TempOutdoor};
@@ -86,8 +86,7 @@ sub weather_updated {
 
     # need temp and dewpoint in Celsius for formulas to work
     if ( $main::config_parms{weather_uom_temp} eq 'F' ) {
-        grep { $_ = &::convert_f2c($_) if $_ ne 'unknown' }
-          ( $temp, $dewpoint );
+        grep { $_ = &::convert_f2c($_) if $_ ne 'unknown' } ( $temp, $dewpoint );
     }
 
     # calculate dew point if missing, but we have temp and humid
@@ -96,8 +95,7 @@ sub weather_updated {
         and $$w{HumidOutdoorMeasured} )
     {
         my $humidity = $$w{HumidOutdoor};
-        $dewpoint = convert_humidity_to_dewpoint( $humidity, $temp )
-          ;    # $dewpoint is in Celsius at this point
+        $dewpoint = convert_humidity_to_dewpoint( $humidity, $temp );    # $dewpoint is in Celsius at this point
         $$w{DewOutdoor} =
             $main::config_parms{weather_uom_temp} eq 'F'
           ? &::convert_c2f($dewpoint)
@@ -112,10 +110,7 @@ sub weather_updated {
             and $temp >= -50
             and $temp <= 5 )
         {
-            my $windchill =
-              13.12 + 0.6215 * $temp -
-              11.37 * ( $windSpeed**0.16 ) +
-              0.3965 * $temp * ( $windSpeed**0.16 );
+            my $windchill = 13.12 + 0.6215 * $temp - 11.37 * ( $windSpeed**0.16 ) + 0.3965 * $temp * ( $windSpeed**0.16 );
             if ( $main::config_parms{weather_uom_temp} eq 'F' ) {
                 $windchill = &::convert_c2f($windchill);
             }
@@ -126,10 +121,8 @@ sub weather_updated {
     }
 
     if ( $temp ne 'unknown' and $dewpoint ne 'unknown' ) {
-        my $vapourPressureSaturation =
-          6.112 * 10.0**( 7.5 * $temp / ( 237.7 + $temp ) );
-        my $vapourPressure =
-          6.112 * 10.0**( 7.5 * $dewpoint / ( 237.7 + $dewpoint ) );
+        my $vapourPressureSaturation = 6.112 * 10.0**( 7.5 * $temp /     ( 237.7 + $temp ) );
+        my $vapourPressure           = 6.112 * 10.0**( 7.5 * $dewpoint / ( 237.7 + $dewpoint ) );
 
         # only calculate humidity if is isn't directly measured by something
         if ( !$$w{HumidOutdoorMeasured} ) {
@@ -154,8 +147,7 @@ sub weather_updated {
               unless $::config_parms{weather_use_heatindex};
         }
 
-        my $tempF =
-          &::convert_c2f($temp); # heat index works with fahrenheit temperatures
+        my $tempF = &::convert_c2f($temp);    # heat index works with fahrenheit temperatures
 
         # the heat index formula is only valid when Temp >= 80 deg F and Humidity >= 40%
         if ( $tempF >= 80 and $humidity >= 40 ) {
@@ -204,8 +196,7 @@ sub weather_updated {
 
     my $pressureText = 'unknown';
     if ( defined( $$w{BaromSea} ) ) {
-        $pressureText = sprintf( "%s %s",
-            $$w{BaromSea}, $main::config_parms{weather_uom_baro} );
+        $pressureText = sprintf( "%s %s", $$w{BaromSea}, $main::config_parms{weather_uom_baro} );
     }
 
     my $windDirName     = 'unknown';
@@ -227,13 +218,9 @@ sub weather_updated {
             $longWindText  = 'no wind';
         }
         else {
-            $shortWindText = sprintf( '%s %.0f %s',
-                $windDirName, $$w{WindAvgSpeed},
-                $main::config_parms{weather_uom_wind} );
+            $shortWindText = sprintf( '%s %.0f %s', $windDirName, $$w{WindAvgSpeed}, $main::config_parms{weather_uom_wind} );
 
-            $longWindText = sprintf( '%s at %.0f %s',
-                $windDirNameLong, $$w{WindAvgSpeed},
-                $main::config_parms{weather_uom_wind} );
+            $longWindText = sprintf( '%s at %.0f %s', $windDirNameLong, $$w{WindAvgSpeed}, $main::config_parms{weather_uom_wind} );
         }
 
         if ( defined $$w{WindGustSpeed}
@@ -244,18 +231,12 @@ sub weather_updated {
                 $longWindText  = 'no wind';
             }
             else {
-                $shortWindText = sprintf( '%s %.0f (%.0f) %s',
-                    $windDirName, $$w{WindAvgSpeed}, $$w{WindGustSpeed},
-                    $main::config_parms{weather_uom_wind} );
+                $shortWindText = sprintf( '%s %.0f (%.0f) %s', $windDirName, $$w{WindAvgSpeed}, $$w{WindGustSpeed}, $main::config_parms{weather_uom_wind} );
                 if ( $$w{WindAvgSpeed} >= 1 ) {
-                    $longWindText .= sprintf( ' gusting to %.0f %s',
-                        $$w{WindGustSpeed},
-                        $main::config_parms{weather_uom_wind} );
+                    $longWindText .= sprintf( ' gusting to %.0f %s', $$w{WindGustSpeed}, $main::config_parms{weather_uom_wind} );
                 }
                 else {
-                    $longWindText = sprintf( '%serly gusts of %.0f %s',
-                        $windDirNameLong, $$w{WindGustSpeed},
-                        $main::config_parms{weather_uom_wind} );
+                    $longWindText = sprintf( '%serly gusts of %.0f %s', $windDirNameLong, $$w{WindGustSpeed}, $main::config_parms{weather_uom_wind} );
                 }
             }
         }
@@ -272,15 +253,11 @@ sub weather_updated {
 
     $$w{Wind} = $shortWindText;
 
-    $$w{Summary_Short} =
-      sprintf( '%s%s %s', $temperatureText, $apparentTempText, $humidityText );
-    $$w{Summary} = $$w{Summary_Short} . " $pressureText $clouds $conditions";
-    $$w{Summary_Long} = "Temperature: $temperatureText";
+    $$w{Summary_Short} = sprintf( '%s%s %s', $temperatureText, $apparentTempText, $humidityText );
+    $$w{Summary}       = $$w{Summary_Short} . " $pressureText $clouds $conditions";
+    $$w{Summary_Long}  = "Temperature: $temperatureText";
     if ( $apparentTempText ne '' ) {
-        $$w{Summary_Long} .=
-            '  Apparent Temperature: '
-          . $$w{TempOutdoorApparent} . '&deg;'
-          . $main::config_parms{weather_uom_temp};
+        $$w{Summary_Long} .= '  Apparent Temperature: ' . $$w{TempOutdoorApparent} . '&deg;' . $main::config_parms{weather_uom_temp};
     }
     $$w{Summary_Long} .= "  Humidity: $humidityText";
     $$w{Summary_Long} .= "  Wind: $longWindText";
@@ -348,8 +325,7 @@ sub convert_humidity_to_dewpoint {
     return unless defined $humidity and defined $temp_celsius;
 
     # http://en.wikipedia.org/wiki/Dew_point
-    my $gamma = ( ( 17.271 * $temp_celsius ) / ( 237.7 + $temp_celsius ) ) +
-      log( $humidity / 100 );
+    my $gamma = ( ( 17.271 * $temp_celsius ) / ( 237.7 + $temp_celsius ) ) + log( $humidity / 100 );
     my $dew_point = ( 237.7 * $gamma ) / ( 17.271 - $gamma );
 
     # old calculations
@@ -422,8 +398,7 @@ sub convert_wind_dir_to_abbr {
     return 'unknown' if $dir !~ /^[\d \.]+$/;
 
     if ( $dir >= 0 and $dir <= 359 ) {
-        return qw{ N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW }
-          [ ( ( $dir + 11.25 ) / 22.5 ) % 16 ];
+        return qw{ N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW } [ ( ( $dir + 11.25 ) / 22.5 ) % 16 ];
     }
     return 'unknown';
 }
@@ -436,10 +411,8 @@ sub convert_wind_dir_to_text {
 
     if ( $dir >= 0 and $dir <= 359 ) {
         return (
-            'North', 'North Northeast', 'Northeast', 'East Northeast',
-            'East',  'East Southeast',  'Southeast', 'South Southeast',
-            'South', 'South Southwest', 'Southwest', 'West Southwest',
-            'West',  'West Northwest',  'Northwest', 'North Northwest'
+            'North', 'North Northeast', 'Northeast', 'East Northeast', 'East', 'East Southeast', 'Southeast', 'South Southeast',
+            'South', 'South Southwest', 'Southwest', 'West Southwest', 'West', 'West Northwest', 'Northwest', 'North Northwest'
         )[ ( ( $dir + 11.25 ) / 22.5 ) % 16 ];
     }
     return 'unknown';
@@ -482,6 +455,7 @@ sub populate_internet_weather {
               IsSnowing
               RainTotal
               RainRate
+              LastUpdated
             );
         }
         else {
@@ -496,11 +470,8 @@ sub populate_internet_weather {
     # keys if this happens.
 
     if ( $main::Weather{DewOutdoorUnder} ) {
-        &::print_log(
-            "Weather_Common: forcing use of internet for outdoor humidity and dewpoint as dewpoint is too low"
-        );
-        $main::Weather{HumidOutdoorMeasured} =
-          0;    # because our measurement is bad
+        &::print_log("Weather_Common: forcing use of internet for outdoor humidity and dewpoint as dewpoint is too low");
+        $main::Weather{HumidOutdoorMeasured} = 0;    # because our measurement is bad
         push( @keys, qw(HumidOutdoor DewOutdoor) );
     }
 

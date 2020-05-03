@@ -78,7 +78,7 @@ sub read_phone_logs2 {
         my @a = reverse <PLOG>;
         while ( $_ = shift @a ) {
 
-            tr/\x20-\x7e//cd; # Translate bad characters or else TK will mess up
+            tr/\x20-\x7e//cd;    # Translate bad characters or else TK will mess up
             s/\x2a//;
 
             #save A reference copy
@@ -92,19 +92,14 @@ sub read_phone_logs2 {
             #Mon 11/12/01 19:11:28  name=-UNKNOWN CALLER- data=###DATE11121911...NMBR...NAME-UNKNOWN CALLER-+++ line=W
 
             if ( $log_file =~ /callerid/ ) {
-                ( $time_date, $number, $name, $line, $type ) = $_ =~
-                  /(.+?) (1?\-?\d\d\d\-?\d\d\d\-?\d\d\d\d)\s+name=(.+)\s+line=(.+)\s+type=(.+)/;
-                ( $time_date, $number, $name, $line, $type ) =
-                  $_ =~ /(.+?) (\d{3,})\s+name=(.+)\s+line=(.+)\s+type=(.+)/
+                ( $time_date, $number, $name, $line, $type ) = $_ =~ /(.+?) (1?\-?\d\d\d\-?\d\d\d\-?\d\d\d\d)\s+name=(.+)\s+line=(.+)\s+type=(.+)/;
+                ( $time_date, $number, $name, $line, $type ) = $_ =~ /(.+?) (\d{3,})\s+name=(.+)\s+line=(.+)\s+type=(.+)/
                   unless $name;
-                ( $time_date, $number, $name ) =
-                  $_ =~ /(.+?) (\d\d\d\-?\d\d\d\-?\d\d\d\d) name=(.+)/
+                ( $time_date, $number, $name ) = $_ =~ /(.+?) (\d\d\d\-?\d\d\d\-?\d\d\d\d) name=(.+)/
                   unless $name;
-                ( $time_date, $number, $name ) =
-                  $_ =~ /(.+?) (\d\d\d\d\d\d\d\d\d\d)(\s\w+\s\w+\s\w+\s)/
+                ( $time_date, $number, $name ) = $_ =~ /(.+?) (\d\d\d\d\d\d\d\d\d\d)(\s\w+\s\w+\s\w+\s)/
                   unless $name;
-                ( $time_date, $number, $name ) =
-                  $_ =~ /(.+?) (\d\d\d\-?\d\d\d\d)/
+                ( $time_date, $number, $name ) = $_ =~ /(.+?) (\d\d\d\-?\d\d\d\d)/
                   unless $name;    # AC is optional
 
                 print_log "DB CID $time_date, $number, $name, $line, $type"
@@ -172,15 +167,13 @@ sub read_phone_logs2 {
                     $number =~ s/(\d\d\d)/$config_parms{local_area_code}-$1-/;
                 }
 
-                %callerid_by_number =
-                  dbm_read("$config_parms{data_dir}/phone/callerid.dbm")
+                %callerid_by_number = dbm_read("$config_parms{data_dir}/phone/callerid.dbm")
                   unless %callerid_by_number;
 
                 #               my $data = dbm_read("$config_parms{data_dir}/phone/callerid.dbm", $number);
                 my $data = $callerid_by_number{$number};
                 print_log "DB data= $data" if $Debug{phone};
-                my ( $calls, $time, $date, $name2 ) =
-                  $data =~ /^(\d+) +(.+), (.+) name=(.+)/
+                my ( $calls, $time, $date, $name2 ) = $data =~ /^(\d+) +(.+), (.+) name=(.+)/
                   if $data;
                 $name = $name2;
             }
@@ -194,17 +187,15 @@ sub read_phone_logs2 {
             my $name2 = $Caller_ID::name_by_number{$number};
             $name2 = $name unless $name2;
             $name2 = 'NA'  unless $name2;    # nothing to report from CID data
-               # Seems the data has lots-o-whitespace at the end and Sometimes embedded
-               #  so... strip the trailing and replace the embedded with _
-               #  this makes passing and parsing way easier (and keeps things aligned)
+                                             # Seems the data has lots-o-whitespace at the end and Sometimes embedded
+                                             #  so... strip the trailing and replace the embedded with _
+                                             #  this makes passing and parsing way easier (and keeps things aligned)
             $name2 =~ s/\s+$//;
             $name2 =~ s/ /_/g;
 
             #Break it up for the Extended records
             my ( $ph_time, $ph_num, $ph_name, $ph_ext, $ph_line, $ph_type );
-            ( $ph_time, $ph_num, $ph_name, $ph_ext, $ph_line, $ph_type ) =
-              $refdata =~
-              /(.+?) O(\S+) name=(\S+) ext=(\S+) line=(\S+) type=(\S+)/;
+            ( $ph_time, $ph_num, $ph_name, $ph_ext, $ph_line, $ph_type ) = $refdata =~ /(.+?) O(\S+) name=(\S+) ext=(\S+) line=(\S+) type=(\S+)/;
             print_log "REAL data $time_date, $number, $name2, $line, $type"
               if $Debug{phone};
             print_log "REF2 data $refdata" if $Debug{phone};
@@ -212,7 +203,7 @@ sub read_phone_logs2 {
             # Now do substitutions for teh extended format
             $type = $ph_type if $ph_type;    # detailed data is replaced here
             $type = 'out'
-              unless $type;    # Unless there isn't any then make a default
+              unless $type;                  # Unless there isn't any then make a default
 
             $line = $ph_line if $ph_line;
             $line = "1" unless $line;
@@ -221,7 +212,7 @@ sub read_phone_logs2 {
 
             $ph_name = "Not_Available" if ( $ph_ext eq "000" );
             $ph_name = $name2
-              unless $ph_name;    #and the name is really the elapsed time
+              unless $ph_name;                 #and the name is really the elapsed time
 
             #	my $num_len = length($number);
             #	if ( $num_len > 10 ) {
@@ -233,16 +224,13 @@ sub read_phone_logs2 {
             #		$number = substr($number,0,9);
             #	    }
             #	}
-            print_log
-              "split test  $time_date, $number, $name2, $ph_ext, $line, $type "
+            print_log "split test  $time_date, $number, $name2, $ph_ext, $line, $type "
               if $Debug{phone};
             print_log "split test  $time_date, $number, $name2"
               if $Debug{phone};
 
             push @calls,
-              sprintf(
-                "date=%20s number=%-12s name=%s line=%s type=%s dur=%8s ext=%s ",
-                $time_date, $number, $name2, $line, $type, $ph_name, $ph_ext );
+              sprintf( "date=%20s number=%-12s name=%s line=%s type=%s dur=%8s ext=%s ", $time_date, $number, $name2, $line, $type, $ph_name, $ph_ext );
             last if ++$count2 > $count1;
 
         }

@@ -35,8 +35,7 @@ sub menu_list {
     $target++;
     $target = 'speech' if $target eq 'menu4';
     my $html = "<base target='$target'><table  width='100%'>\n";
-    $html .=
-      "<tr><td align='middle' bgColor='#cccccc'><font size='+3'>$menu</font></td></tr>\n";
+    $html .= "<tr><td align='middle' bgColor='#cccccc'><font size='+3'>$menu</font></td></tr>\n";
     my $item = 0;
     my $ptr  = $Menus{$menu_group};
     for my $ptr2 ( @{ $$ptr{$menu}{items} } ) {
@@ -96,11 +95,9 @@ sub menu_states {
     my $ptr2 = $Menus{$menu_group}{$menu}{items}[$item];
 
     my $state = 0;
-    my $html =
-      "<table border=1 width='100%' height='100%'><tr><td>$$ptr2{Dprefix}</td>";
+    my $html  = "<table border=1 width='100%' height='100%'><tr><td>$$ptr2{Dprefix}</td>";
     for my $state_name ( @{ $$ptr2{Dstates} } ) {
-        $html .=
-          "<td><a href='/sub?menu_run($menu_group,$menu,$item,$state,h)' target='speech'>$state_name</a></td>\n";
+        $html .= "<td><a href='/sub?menu_run($menu_group,$menu,$item,$state,h)' target='speech'>$state_name</a></td>\n";
         $state++;
     }
     $html .= "</table>";

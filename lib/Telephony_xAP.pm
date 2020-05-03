@@ -70,18 +70,14 @@ sub new {
     #&xAP::startup if $Reload;
     if ( !($p_xap) ) {
         $p_xap = new xAP_Item('Telephony.Info');
-        &main::store_object_data( $p_xap, 'xAP_Item', 'Telephony',
-            'Telephony' );
+        &main::store_object_data( $p_xap, 'xAP_Item', 'Telephony', 'Telephony' );
     }
     else {
         if ( !( $p_xap->isa('xAP_Item') ) ) {
             $p_xap = new xAP_Item($p_xap);
-            &main::store_object_data( $p_xap, 'xAP_Item', 'Telephony',
-                'Telephony' );
+            &main::store_object_data( $p_xap, 'xAP_Item', 'Telephony', 'Telephony' );
         }
-        &::print_log( "Initializing Telephony_xAP with xAP object: "
-              . $p_xap->class_name()
-              . "\n" );
+        &::print_log( "Initializing Telephony_xAP with xAP object: " . $p_xap->class_name() . "\n" );
     }
     $$self{xap_listeners}{ $p_xap->class_name() } = $p_xap;
     $$self{xap_listeners}{ $p_xap->class_name() }->tie_items($self);
@@ -90,11 +86,9 @@ sub new {
     $$self{vm}{changed} = undef;
 
     # init phone_line_names unless already init'd
-    &main::read_parm_hash( \%phone_line_names,
-        $main::config_parms{phone_line_names} )
+    &main::read_parm_hash( \%phone_line_names, $main::config_parms{phone_line_names} )
       unless %phone_line_names;
-    &main::read_parm_hash( \%phone_extension_names,
-        $main::config_parms{phone_extension_names} )
+    &main::read_parm_hash( \%phone_extension_names, $main::config_parms{phone_extension_names} )
       unless %phone_extension_names;
 
     return $self;
@@ -227,13 +221,10 @@ sub set {
         my $xap_listener = $$self{xap_listeners}{$class_name};
         if ( $p_setby eq $xap_listener ) {
             if ( lc $class_name eq 'telephony.info' ) {
-                if ( defined $xap_listener->state_now('incoming.callwithcid') )
-                {
+                if ( defined $xap_listener->state_now('incoming.callwithcid') ) {
                     $state = $self->callerid_hook($p_setby);
                 }
-                elsif (
-                    defined $xap_listener->state_now('outgoing.callcomplete') )
-                {
+                elsif ( defined $xap_listener->state_now('outgoing.callcomplete') ) {
                     $state = $self->outgoing_hook($p_setby);
                 }
                 else {
@@ -242,14 +233,10 @@ sub set {
 
             }
             elsif ( lc $class_name eq 'cid.meteor' ) {
-                if ( defined $xap_listener->state_now('incoming.callwithcid') )
-                {
-                    $state = $self->meteor_in_cid_hook( $p_setby,
-                        'incoming.callwithcid' );
+                if ( defined $xap_listener->state_now('incoming.callwithcid') ) {
+                    $state = $self->meteor_in_cid_hook( $p_setby, 'incoming.callwithcid' );
                 }
-                elsif (
-                    defined $xap_listener->state_now('outgoing.callcomplete') )
-                {
+                elsif ( defined $xap_listener->state_now('outgoing.callcomplete') ) {
                     $state = $self->meteor_out_complete_hook($p_setby);
                 }
                 else {
@@ -259,8 +246,7 @@ sub set {
             }
             elsif ( lc $class_name eq 'cid.incoming' ) {
                 if ( defined $xap_listener->state_now('cid.incoming') ) {
-                    $state =
-                      $self->meteor_in_cid_hook( $p_setby, 'cid.incoming' );
+                    $state = $self->meteor_in_cid_hook( $p_setby, 'cid.incoming' );
                 }
             }
             else {
@@ -347,9 +333,7 @@ sub new {
         &main::store_object_data( $p_xap, 'xAP_Item', 'MWI', 'MWI' );
     }
     else {
-        &::print_log( "Initializing MWI_xAP with xAP object: "
-              . $p_xap->class_name()
-              . "\n" );
+        &::print_log( "Initializing MWI_xAP with xAP object: " . $p_xap->class_name() . "\n" );
     }
     $$self{xap_listeners}{ $p_xap->class_name() } = $p_xap;
     $$self{xap_listeners}{ $p_xap->class_name() }->tie_items($self);

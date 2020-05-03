@@ -12,10 +12,7 @@ my $state;
 
 # Define the keys and create the iButton objects
 
-my %ib_keys = (
-    '010000081exxxxxx', 'nigel', '010000081exxxxxx', 'stephan',
-    '010000081exxxxxx', 'tim',   '010000081exxxxxx', 'benedicte'
-);
+my %ib_keys = ( '010000081exxxxxx', 'nigel', '010000081exxxxxx', 'stephan', '010000081exxxxxx', 'tim', '010000081exxxxxx', 'benedicte' );
 
 # Define the lock solenoid
 $front_lock = new Serial_Item( 'AHD', 'on', 'weeder' );

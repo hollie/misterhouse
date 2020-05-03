@@ -50,14 +50,12 @@ $v_omnistat_mode = new Voice_Cmd('Set Thermostat mode [off,heat,cool,auto]');
 if ( $state = said $v_omnistat_mode) {
     $omnistat->mode($state);
 }
-$v_omnistat_cool_sp =
-  new Voice_Cmd("Set Thermostat cool setpoint to [$omnistat_temperatures]");
+$v_omnistat_cool_sp = new Voice_Cmd("Set Thermostat cool setpoint to [$omnistat_temperatures]");
 if ( $state = said $v_omnistat_cool_sp) {
     $omnistat->cool_setpoint($state);
 }
 
-$v_omnistat_heat_sp =
-  new Voice_Cmd("Set Thermostat heat setpoint to [$omnistat_temperatures]");
+$v_omnistat_heat_sp = new Voice_Cmd("Set Thermostat heat setpoint to [$omnistat_temperatures]");
 if ( $state = said $v_omnistat_heat_sp) {
     $omnistat->heat_setpoint($state);
 }

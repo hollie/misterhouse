@@ -41,8 +41,7 @@ if ( $state = said $Xosd_state) {
 sub display_osd {
     my ($text) = @_;
     set $Xosd_text $text;
-    set $Xosd_state
-      'off~1~on~1~off~1~on~1~off~1~on~1~off~1~on~1~off~1~on~1~off~1~on~15~off';
+    set $Xosd_state 'off~1~on~1~off~1~on~1~off~1~on~1~off~1~on~1~off~1~on~1~off~1~on~15~off';
 }
 
 $v_xosd = new Voice_Cmd("Test xosd");

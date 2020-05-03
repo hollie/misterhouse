@@ -95,17 +95,11 @@ my %proxy_by_room = (
     bedroom    => 'bedroom'
 );
 
-$test_voice_proxy = new Voice_Cmd
-  'Test proxy speak to [all,livingroom,jim,sharon,kitchen,bedroom]';
-$test_voice_proxy->tie_event(
-    'speak "rooms=$state we are the borg,, you will be assimilated,, resistance is few tile"'
-);
+$test_voice_proxy = new Voice_Cmd 'Test proxy speak to [all,livingroom,jim,sharon,kitchen,bedroom]';
+$test_voice_proxy->tie_event('speak "rooms=$state we are the borg,, you will be assimilated,, resistance is few tile"');
 
-$test_play_proxy = new Voice_Cmd
-  'Test proxy play to [all,livingroom,jim,sharon,kitchen,bedroom]';
-$test_play_proxy->tie_event(
-    'play (rooms=> "$state", time => 60, volume => 80, file => "chimes/west30.wav")'
-);
+$test_play_proxy = new Voice_Cmd 'Test proxy play to [all,livingroom,jim,sharon,kitchen,bedroom]';
+$test_play_proxy->tie_event('play (rooms=> "$state", time => 60, volume => 80, file => "chimes/west30.wav")');
 
 #speak "room=office The time is $Time_Now" if new_second 15;
 
@@ -127,8 +121,7 @@ sub proxy_speak_play {
     @rooms = sort keys %proxy_by_room if lc $parms{rooms} =~ /all/;
     for my $room (@rooms) {
         next
-          unless my $address =
-          $proxy_by_room{$room} . ":" . $config_parms{server_proxy_port};
+          unless my $address = $proxy_by_room{$room} . ":" . $config_parms{server_proxy_port};
         next if ( $room eq $config_parms{speak_mh_room} );
         print "Sending speech to proxy room=$room address=$address\n"
           if $Debug{'proxy'};
@@ -170,8 +163,7 @@ if ( $New_Minute and $Debug{'proxy'} ) {
 
 # Proxy Server Section
 
-$proxy_server =
-  new Socket_Item( undef, undef, 'server_proxy', undef, undef, undef, "\035" );
+$proxy_server = new Socket_Item( undef, undef, 'server_proxy', undef, undef, undef, "\035" );
 
 # Allow for proxy regstration to the main mh (optional)
 # If you want this, add these mh.ini parms: mh_proxyreg_port, mh_server, and proxy_name
@@ -184,11 +176,9 @@ if ( new_minute 20 or $Startup or $Reload or said $v_proxy_init) {
         next unless my $address = $proxy_by_room{$room};
         next if ( $room eq $config_parms{speak_mh_room} );
         print "Connecting to server $address\n";
-        my $s_proxy_init = new Socket_Item( undef, undef,
-            $address . ":" . $config_parms{mh_proxyreg_port} );
+        my $s_proxy_init = new Socket_Item( undef, undef, $address . ":" . $config_parms{mh_proxyreg_port} );
         start $s_proxy_init;
-        set $s_proxy_init
-          "$config_parms{password},$config_parms{proxy_name},$config_parms{server_proxy_port},$config_parms{speak_mh_room}";
+        set $s_proxy_init "$config_parms{password},$config_parms{proxy_name},$config_parms{server_proxy_port},$config_parms{speak_mh_room}";
     }
 }
 
@@ -196,8 +186,7 @@ if ( new_minute 20 or $Startup or $Reload or said $v_proxy_init) {
 if ( $state = said $proxy_server) {
     my ( $interface, $function, @data ) = split $;, $state;
     my $client = $Socket_Ports{'server_proxy'}{client_ip_address};
-    print
-      "client proxy data received from: client=$client function=$function data=@data.\n"
+    print "client proxy data received from: client=$client function=$function data=@data.\n"
       if $Debug{'proxy'};
 
     if ( $function eq 'send_serial_data' ) {
@@ -207,8 +196,7 @@ if ( $state = said $proxy_server) {
         &Serial_Item::send_x10_data( $interface, $data[0] );
     }
     elsif ( $function eq 'send_ir' ) {
-        &ControlX10::CM17::send_ir( $main::Serial_Ports{cm17}{object},
-            $data[0] );
+        &ControlX10::CM17::send_ir( $main::Serial_Ports{cm17}{object}, $data[0] );
     }
     elsif ( $function eq 'uirt2_send' ) {
         $main::Serial_Ports{UIRT2}{object}->write( pack 'C*', @data );
@@ -244,12 +232,10 @@ if ( $state = said $proxy_server) {
     elsif ( $function eq 'lynx10plc' ) {
         my $function2 = shift @data;
         if ( $function2 eq 'send_plc' ) {
-            &Lynx10PLC::send_plc( $main::Serial_Ports{Lynx10PLC}{object},
-                @data );
+            &Lynx10PLC::send_plc( $main::Serial_Ports{Lynx10PLC}{object}, @data );
         }
         elsif ( $function2 eq 'readDeviceInfo' ) {
-            &Lynx10PLC::readDeviceInfo( $main::Serial_Ports{Lynx10PLC}{object},
-                $data[0] );
+            &Lynx10PLC::readDeviceInfo( $main::Serial_Ports{Lynx10PLC}{object}, $data[0] );
         }
     }
 
@@ -266,10 +252,8 @@ sub proxy_serial_data {
     # if command came in from a proxy, don't send out as proxy
     print_log "proxy_serial_data: $proxy $interface" if $Debug{proxy};
     return if ($proxy);
-    set $proxy_server join( $;, 'serial', $data, $interface ),
-      'all';    # all writes out to all clients
-    print
-      "Proxy serial data sent to collective: interface=$interface data=$data.\n"
+    set $proxy_server join( $;, 'serial', $data, $interface ), 'all';    # all writes out to all clients
+    print "Proxy serial data sent to collective: interface=$interface data=$data.\n"
       if $Debug{proxy};
 }
 

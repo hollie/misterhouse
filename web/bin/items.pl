@@ -16,8 +16,8 @@ $^W = 0;    # Avoid redefined sub msgs
 
 return &web_items_list();
 
-use vars '$web_item_file_name'
-  ;         # Avoid my, so we can keep the same name between web calls
+use vars '$web_item_file_name';         # Avoid my, so we can keep the same name between web calls
+
 my (@file_data);
 
 sub web_items_list {
@@ -64,38 +64,19 @@ function openparmhelp(parm1){
 
     # Create a form to pick which file
     $html .=
-      "<table border width='100%'><tr><form action=/bin/items.pl method=post><td>Which .mht file to edit?\n";
+      "<table border width='100%'><tr><td><form id='mhfile' action=/bin/items.pl method=post> Which .mht file to edit?\n";
     $html .= &html_form_select( 'file', 1, $web_item_file_name, @file_paths )
       . "</td></form></tr>\n";
 
     # Create form to add an item
-    my $form_type = &html_form_select(
-        'type',                             0,
-        'X10 Light (X10I)',                 'Analog Sensor (ANALOG_SENSOR)',
-        'AUDIOTRON',                        'COMPOOL',
-        'EIB Switch (EIB1)',                'EIB Switch Group (EIB1G)',
-        'EIB Dimmer (EIB2)',                'EIB Value (EIB5)',
-        'EIB Drive (EIB7)',                 'GENERIC',
-        'GROUP',                            'IBUTTON',
-        'INSTEON_PLM',                      'INSTEON_LAMPLINC',
-        'INSTEON_BULBLINC',                 'INSTEON_APPLIANCELINC',
-        'INSTEON_SWITCHLINC',               'INSTEON_SWITCHLINCRELAY',
-        'INSTEON_KEYPADLINC',               'INSTEON_KEYPADLINCRELAY',
-        'INSTEON_REMOTELINC',               'INSTEON_MOTIONSENSOR',
-        'INSTEON_TRIGGERLINC',              'INSTEON_ICONTROLLER',
-        'MP3PLAYER',                        'One-Wire xAP Connector (OWX)',
-        'RF',                               'SERIAL',
-        'SG485LCD',                         'SG485RCSTHRM',
-        'STARGATEDIN',                      'STARGATEVAR',
-        'STARGATEFLAG',                     'STARGATERELAY',
-        'STARGATETHERM',                    'STARGATEPHONE',
-        'VOICE',                            'WEATHER',
-        'X10 Appliance (X10A)',             'X10 Light (X10I)',
-        'X10 Ote (X10O)',                   'X10 SwitchLinc (X10SL)',
-        'X10 Garage Door (X10G)',           'X10 Irrigation (X10S)',
-        'X10 RCS (X10T)',                   'X10 Motion Sensor (X10MS)',
-        'X10 6 Button Remote (X106BUTTON)', 'XANTECH',
-    );
+ 
+    my $web_lists = &AddMhtWebItems;
+    
+
+
+
+my $form_type = &html_form_select( @{$$web_lists{web_item_types}} );
+
 
     #form action='/bin/items.pl?add' method=post>
     $html .= qq|<tr>
@@ -145,44 +126,8 @@ $form_type
     $html .= "</td></tr></table>\n";
 
     # Define fields by type
-    my %headers = (
-        ANALOG_SENSOR =>
-          [ 'Identifier', 'Name', 'Conduit', 'Groups', 'Type', 'Tokens' ],
-        EIB1  => [ 'Address', 'Name', 'Groups', 'Mode' ],
-        EIB1G => [ 'Address', 'Name', 'Groups', 'Addresses' ],
-        EIB2  => [ 'Address', 'Name', 'Groups' ],
-        EIB5  => [qw(Address Name Groups Mode)],
-        EIB7    => [ 'Address', 'Name', 'Groups' ],
-        GENERIC => [qw(Name Groups)],
-        GROUP   => [qw(Name FloorPlan Groups)],
-        IBUTTON => [qw(ID Name Port Channel)],
-        SERIAL  => [qw(String Name Groups State Port)],
-        VOICE   => [qw(Item Phrase)],
-        X10A    => [qw(Address Name Groups Interface)],
-        X10I                  => [qw(Address Name Groups Interface Options)],
-        X10SL                 => [qw(Address Name Groups Interface Options)],
-        X10MS                 => [qw(Address Name Groups Type)],
-        X106BUTTON            => [qw(Address Name)],
-        UPBPIM                => [qw(Name NetworkID Password Address)],
-        UPBD                  => [qw(Name Interface NetworkID Address Groups)],
-        UPBL                  => [qw(Name Interface NetworkID Address Groups)],
-        INSTEON_PLM           => [qw(Name)],
-        INSTEON_LAMPLINC      => [qw(Address Name Groups)],
-        INSTEON_BULBLINC      => [qw(Address Name Groups)],
-        INSTEON_APPLIANCELINC => [qw(Address Name Groups)],
-        INSTEON_SWITCHLINC    => [qw(Address Name Groups)],
-        INSTEON_SWITCHLINCRELAY => [qw(Address Name Groups)],
-        INSTEON_KEYPADLINC      => [qw(Address Name Groups)],
-        INSTEON_KEYPADLINCRELAY => [qw(Address Name Groups)],
-        INSTEON_REMOTELINC      => [qw(Address Name Groups)],
-        INSTEON_MOTIONSENSOR    => [qw(Address Name Groups)],
-        INSTEON_TRIGGERLINC     => [qw(Address Name Groups)],
-        INSTEON_ICONTROLLER     => [qw(Address Name Groups)],
-        SCENE_MEMBER            => [qw(MemberName LinkName OnLevel RampRate)],
-        CODE					=> [qw(Code)],
-        default                 => [qw(Address Name Groups Other)]
-    );
-
+    my %headers = %{$$web_lists{headers}};
+    #print Dumper %headers;
     # Sort in type order
     for my $type ( sort keys %item_pos ) {
 
@@ -228,6 +173,47 @@ $form_type
 
     }
     return &html_page( '', $html );
+}
+
+# This takes properly formatted comments from read_table_A.pl and
+# adds them to the mht web editor list.
+sub AddMhtWebItems {
+    my ( $web_lists, %web_lists, @values, $values, $types );
+    my $read_table_A_path;
+
+    # Try to find the location of read_table_A.pl
+    for my $path (@INC) {
+	if (-f "$path/read_table_A.pl") {
+	    $read_table_A_path = $path;
+	    last;
+	}
+    }
+
+    if (open(TABLE_A, "$read_table_A_path/read_table_A.pl") ) {
+	push @{$$web_lists{web_item_types}}, 'type';
+	push @{$$web_lists{web_item_types}}, 0;
+	push @{$$web_lists{web_item_types}}, "";
+	while (<TABLE_A>) {
+	    if (/#<(.*?),(.*?),(.*)>#/) {
+		$types = $2;
+		$types = $1 if length($1); 
+		if ( length($3) ) { 
+		    $values= $3;
+		    @values = split ',', $values;
+		} else { 
+		    @values = (qw(Address Name Groups Other));
+		}
+		push @{$$web_lists{web_item_types}}, "$types";
+		$$web_lists{headers}{$2} = [@values];
+	    }
+	}
+
+	close TABLE_A;
+    }
+
+    $$web_lists{headers}{default} = [qw(Address Name Groups Other)];
+
+    return $web_lists;
 }
 
 sub web_item_set_field {

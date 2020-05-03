@@ -80,8 +80,7 @@ sub rf_process_digimax210 {
     # Unlike other X-10 security devices, the Digimax's ID is 2 bytes long
     $device_id = $rbytes[0] * 256 + $rbytes[1];
 
-    if ( ( $rbytes[2] >> 4 ) == 0x00 )
-    {    # device has no set temperature (set temp always 0x00)
+    if ( ( $rbytes[2] >> 4 ) == 0x00 ) {    # device has no set temperature (set temp always 0x00)
         $state = "no set temp";
     }
     elsif ( ( $rbytes[2] >> 4 ) == 0x01 ) {    # demand for heat
@@ -94,7 +93,7 @@ sub rf_process_digimax210 {
         $state = "initialising";
     }
     else {
-        $state = "unknown";    # We should hopefully never get to here!
+        $state = "unknown";                    # We should hopefully never get to here!
     }
 
     $temperature = $rbytes[3];
@@ -107,8 +106,7 @@ sub rf_process_digimax210 {
     my $item_id = lc sprintf "%04x", $device_id;
 
     # Set the state of any items or classes associated with this device.
-    &rf_set_RF_Item( $module, "digimax210", "unmatched device 0x$item_id",
-        $item_id, undef, $state );
+    &rf_set_RF_Item( $module, "digimax210", "unmatched device 0x$item_id", $item_id, undef, $state );
 
     return $state;
 }

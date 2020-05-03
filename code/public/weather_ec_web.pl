@@ -14,8 +14,7 @@ sub weather_dump {
     my $data = '<table border="1">' . "\n";
     my $key;
     foreach $key ( sort( keys(%Weather) ) ) {
-        $data .=
-          "<tr><td>" . $key . "</td><td>" . $Weather{$key} . "</td></tr>\n";
+        $data .= "<tr><td>" . $key . "</td><td>" . $Weather{$key} . "</td></tr>\n";
     }
     $data .= "</table>\n";
 
@@ -32,23 +31,15 @@ sub weather_ec_web {
     # WEATHER
     $data .= '<table border="1">' . "\n";
     $data .= '<tr><th colspan="2">Current Conditions</th></tr>' . "\n";
-    foreach $label
-      qw(TimeObserved Conditions TempOutdoor Barom HumidOutdoor Humidex DewpointOutdoor Wind WindChill Visibility)
-    {
+    foreach $label qw(TimeObserved Conditions TempOutdoor Barom HumidOutdoor Humidex DewpointOutdoor Wind WindChill Visibility) {
         my $item;
         if ( $label =~ /Time/ ) {
-            $item = time_date_stamp( 6, $Weather{$label} ) . " "
-              . time_date_stamp( 5, $Weather{$label} );
+            $item = time_date_stamp( 6, $Weather{$label} ) . " " . time_date_stamp( 5, $Weather{$label} );
         }
         else {
             $item = $Weather{$label};
         }
-        $data .=
-            "<tr><td>"
-          . &weather_getlabel($label)
-          . "</td><td>"
-          . $item
-          . "</td></tr>\n";
+        $data .= "<tr><td>" . &weather_getlabel($label) . "</td><td>" . $item . "</td></tr>\n";
     }
     $data .= "</table>\n";
 
@@ -58,15 +49,8 @@ sub weather_ec_web {
 
     $data .= '<table border="1">' . "\n";
     $data .= '<tr><th colspan="2">Almanac Data</th></tr>' . "\n";
-    foreach $label
-      qw(TempMaxOutdoor TempMinOutdoor RainTotal TempMaxNormal TempMinNormal TempMeanNormal)
-    {
-        $data .=
-            "<tr><td>"
-          . &weather_getlabel($label)
-          . "</td><td>"
-          . $Weather{$label}
-          . "</td></tr>";
+    foreach $label qw(TempMaxOutdoor TempMinOutdoor RainTotal TempMaxNormal TempMinNormal TempMeanNormal) {
+        $data .= "<tr><td>" . &weather_getlabel($label) . "</td><td>" . $Weather{$label} . "</td></tr>";
     }
     $data .= "<tr><td>Sunrise</td><td>" . $Time_Sunrise . "</td></tr>\n";
     $data .= "<tr><td>Sunset</td><td>" . $Time_Sunset . "</td></tr>\n";
@@ -85,18 +69,10 @@ sub weather_ec_web {
     # links
 
     $data .= '<br>' . "\n" . '<h2>Links:</h2> ';
-    $data .=
-      '<a href="http://weatheroffice.ec.gc.ca/forecast/city_e.html?yyz">Toronto Airport</a>'
-      . "\n";
-    $data .=
-      '<a href="http://weatheroffice.ec.gc.ca/forecast/24_hour_conditions_e.html?yyz&unit=m">[24 hour stats]</a>'
-      . "\n";
-    $data .=
-      '<a href="http://weatheroffice.ec.gc.ca/forecast/city_e.html?ytz">Toronto Island</a>'
-      . "\n";
-    $data .=
-      '<a href="http://weatheroffice.ec.gc.ca/forecast/24_hour_conditions_e.html?ytz&unit=m">[24 hour stats]</a>'
-      . "\n";
+    $data .= '<a href="http://weatheroffice.ec.gc.ca/forecast/city_e.html?yyz">Toronto Airport</a>' . "\n";
+    $data .= '<a href="http://weatheroffice.ec.gc.ca/forecast/24_hour_conditions_e.html?yyz&unit=m">[24 hour stats]</a>' . "\n";
+    $data .= '<a href="http://weatheroffice.ec.gc.ca/forecast/city_e.html?ytz">Toronto Island</a>' . "\n";
+    $data .= '<a href="http://weatheroffice.ec.gc.ca/forecast/24_hour_conditions_e.html?ytz&unit=m">[24 hour stats]</a>' . "\n";
 
     return $data;
 }

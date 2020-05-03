@@ -68,7 +68,7 @@ use Time::HiRes;
 my $createunknown = 1;
 
 #set to 1 to create groups even when they have the same name as items by suffixing _group
-my $smartgroupfix = 0;   ###11/2003 cwitte dflt to zero. (table_A compatability)
+my $smartgroupfix = 0;    ###11/2003 cwitte dflt to zero. (table_A compatability)
 my $twig_code_accum;
 
 #set up the item types
@@ -114,8 +114,7 @@ $itemtype{"MP3PLAYER"}     = {
 };
 $itemtype{"AUDIOTRON"} = { object => "AudiotronPlayer", use_other => 0 };
 $itemtype{"WEATHER"}   = { object => "Weather_Item",    use_other => 0 };
-$itemtype{"GENERIC"} =
-  { object => "Generic_Item", use_addr => 0, use_other => 0 };
+$itemtype{"GENERIC"}   = { object => "Generic_Item",    use_addr  => 0, use_other => 0 };
 $itemtype{"WAKEONLAN"} = {
     object => "WakeOnLan",
     "init" => "require 'WakeOnLan.pm';\n"
@@ -248,7 +247,7 @@ sub read_table_init_xml {
 #############################
 sub read_table_xml {
     print "read_table_xml: begin \n";
-    my $data = $_[0]; #perl complains about trying to fiddle directly with @_[0]
+    my $data = $_[0];    #perl complains about trying to fiddle directly with @_[0]
     if ( !$data ) { print "No data in sub read_table_xml"; next; }
 
     #do some mying
@@ -259,8 +258,7 @@ sub read_table_xml {
     my $start_time = Time::HiRes::time();
     print "establishing twig exit: \n";
     $twig_code_accum = "";
-    my $twig =
-      XML::Twig->new( twig_handlers => { item => \&construct_object } );
+    my $twig = XML::Twig->new( twig_handlers => { item => \&construct_object } );
     $twig->parse($data);
     print "twig parsed: $twig $data\n";
     my $twig_end = Time::HiRes::time();
@@ -269,8 +267,7 @@ sub read_table_xml {
     my $twig_time  = $twig_end - $start_time;
     my $path_time  = $t3_time - $twig_end;
     my $total_time = $t3_time - $start_time;
-    printf "TIME: twig: %6.2f path: %6.2f total: %6.2f\n", $twig_time,
-      $path_time, $total_time;
+    printf "TIME: twig: %6.2f path: %6.2f total: %6.2f\n", $twig_time, $path_time, $total_time;
 
     &summarize_usage();    ## code to display conversion test effectiveness
 
@@ -310,9 +307,9 @@ sub construct_object {
 
     my $debug = 0;
 
-    my $x_address = $item->first_child_text("address");   # get the address text
-    my $x_name    = $item->first_child_text("name");      # get the name text
-    my $x_type    = $item->first_child_text("type");      # get the type text
+    my $x_address   = $item->first_child_text("address");     # get the address text
+    my $x_name      = $item->first_child_text("name");        # get the name text
+    my $x_type      = $item->first_child_text("type");        # get the type text
     my $x_occupancy = $item->first_child_text("occupancy");
     my $x_object    = $item->first_child_text("object");
     $debug && print "construct_object: $item has address: $x_address\n";
@@ -356,7 +353,7 @@ sub construct_object {
             $object_hash->{"use_addr"}    ## if address allowed for objecttype
             && $q_address
           )
-        {    ## if "address" data exists, tack it on.
+        {                                 ## if "address" data exists, tack it on.
             if ( $object_hash->{"use_addr"} eq "obj_ref" ) {
                 $object .= '$' . $x_address;    ## non-quoted
             }
@@ -365,27 +362,27 @@ sub construct_object {
             }
         }
         if (
-            $object_hash->{"use_name"}    ## rf,x10ms have address:name:other
+            $object_hash->{"use_name"}          ## rf,x10ms have address:name:other
             && $x_name
           )
-        {                                 ## tack on the name, and quote it.
+        {                                       ## tack on the name, and quote it.
             $object .= ", '" . $x_name . "'";
         }
         if (
-            $object_hash->{"use_occupancy"}    ## Presence monitor
+            $object_hash->{"use_occupancy"}     ## Presence monitor
             && $x_occupancy
           )
-        {    ## tack on the name, and quote it.
+        {                                       ## tack on the name, and quote it.
             if ( $object_hash->{"use_occupancy"} eq "obj_ref" ) {
                 $object .= ', $' . $x_occupancy;
             }
         }
 
         if (
-            $object_hash->{"use_other"}    ## if other allowed for objecttype
+            $object_hash->{"use_other"}         ## if other allowed for objecttype
             && $q_other_string
           )
-        {    ## if "other" data exists, tack it on.
+        {                                       ## if "other" data exists, tack it on.
             $object .= ", " . $q_other_string;
         }
 
@@ -419,18 +416,17 @@ sub construct_object {
 
     elsif ( $x_type eq "GROUP" ) {    ### cjw port
         $object = "Group" unless $groups{$x_name};    ## once per group
-              # print "Adding empty tag for group: [$x_name]\n";
+                                                      # print "Adding empty tag for group: [$x_name]\n";
         $groups{$x_name}{empty}++;
     }
-    elsif ( $x_type eq "PA" ) {    ### hard-coded groups
+    elsif ( $x_type eq "PA" ) {                       ### hard-coded groups
         if ( !$packages{$x_type}++ ) {
             $code .= "require 'PAobj.pm';\n";
         }
 
         my $pa_type = $item->first_child_text("pa_type");
         if ( $config_parms{pa_type} ne $pa_type ) {
-            print
-              "ERROR! INI parm 'pa_type' = $config_parms{pa_type}, but PA item $x_name is of $pa_type.  Skipping.\n";
+            print "ERROR! INI parm 'pa_type' = $config_parms{pa_type}, but PA item $x_name is of $pa_type.  Skipping.\n";
             return;
         }
 
@@ -451,11 +447,9 @@ sub construct_object {
         if ( $pa_type =~ /^wdio/ ) {
             $x_address =~ s/^(\S)(\S)$/$1H$2/;
             $x_address = "D$x_address" if $pa_type eq 'wdio_old';
-            $code .= sprintf "\n\$%-35s = new Serial_Item('%s','on',%s);\n",
-              $x_name, $x_address, $q_other_string;
+            $code .= sprintf "\n\$%-35s = new Serial_Item('%s','on',%s);\n", $x_name, $x_address, $q_other_string;
             $x_address =~ s/^(\S)H(\S)$/$1L$2/;
-            $code .= sprintf "\n\$%-35s -> add ('%s','off');\n", $x_name,
-              $x_address;
+            $code .= sprintf "\n\$%-35s -> add ('%s','off');\n", $x_name, $x_address;
             $object = '';
         }
         elsif ( lc $pa_type eq 'x10' ) {
@@ -470,29 +464,25 @@ sub construct_object {
 
     elsif ( $x_type =~ /^VOICE/ ) {
         my $vcommand = $q_other_string;
-        $vcommand =~ s/^'(.*)'$/$1/; ## no single quotes, voice cmds are doubleq
+        $vcommand =~ s/^'(.*)'$/$1/;    ## no single quotes, voice cmds are doubleq
 
         my $fixedname = $x_name;
         $fixedname =~ s/_/ /g;
         if ( !( $vcommand =~ /.*\[.*/ ) ) {
             $vcommand .= " [ON,OFF]";
         }
-        $code .= sprintf "\nmy \$v_%s_state;\n", $x_name;
-        $code .= sprintf "\$v_%s = new Voice_Cmd(\"%s\");\n", $x_name,
-          $vcommand;
-        $code .= sprintf "if (\$v_%s_state = said \$v_%s) {\n", $x_name,
-          $x_name;
-        $code .= sprintf "  set \$%s \$v_%s_state;\n", $x_name, $x_name;
-        $code .= sprintf "  respond \"Turning %s \$v_%s_state\";\n",
-          $fixedname, $x_name;
+        $code .= sprintf "\nmy \$v_%s_state;\n",                     $x_name;
+        $code .= sprintf "\$v_%s = new Voice_Cmd(\"%s\");\n",        $x_name, $vcommand;
+        $code .= sprintf "if (\$v_%s_state = said \$v_%s) {\n",      $x_name, $x_name;
+        $code .= sprintf "  set \$%s \$v_%s_state;\n",               $x_name, $x_name;
+        $code .= sprintf "  respond \"Turning %s \$v_%s_state\";\n", $fixedname, $x_name;
         $code .= sprintf "}\n";
 
         ##undef $object;   ## we don't want any default code, need to proceed
     }
     else {
         if ( $createunknown == 1 ) {
-            print "\nUnrecognized .mht item: type:", $x_type, " name:",
-              $x_name, "\n";
+            print "\nUnrecognized .mht item: type:", $x_type, " name:", $x_name, "\n";
             print "Creating as generic object\n";
             $object = $itemtype{"GENERIC"}{object};
         }
@@ -521,8 +511,7 @@ sub construct_object {
                 $group .= "_group";
             }
             else {
-                print_log
-                  "mht object and group name are the same: $x_name  Bad idea!";
+                print_log "mht object and group name are the same: $x_name  Bad idea!";
                 next;
 
             }

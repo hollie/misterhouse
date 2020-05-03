@@ -14,12 +14,10 @@
     my $serv    = $config_parms{http_server};
 
     my $Mp3List;
-    $Mp3List =
-      "<html><head><meta http-equiv='Refresh' content='120;url=/bin/mp3_applet_playlist.pl'><title>MisterHouse Jukebox Playlist</title>";
+    $Mp3List = "<html><head><meta http-equiv='Refresh' content='120;url=/bin/mp3_applet_playlist.pl'><title>MisterHouse Jukebox Playlist</title>";
     $Mp3List = "$Mp3List    <script src='/bin/mp3_cookies.js'></script>";
     $Mp3List = "$Mp3List    <script src='/bin/mp3_ctrl.js'></script>";
-    $Mp3List =
-      "$Mp3List    </head><body background='http://localhost/Channels/.MisterHouse/background.gif' bgcolor='#ccffff'>";
+    $Mp3List = "$Mp3List    </head><body background='http://localhost/Channels/.MisterHouse/background.gif' bgcolor='#ccffff'>";
     $Mp3List = "$Mp3List <script>";                  # LANGUAGE='JavaScript'>";
 
     #    $Mp3List = "$Mp3List   eraseCookie('Playlist');";
@@ -35,8 +33,7 @@
     $Mp3List = "$Mp3List //createCookie('Playlist','KILL','1');";
     $Mp3List = "$Mp3List //setTimeout('UpdateYou()', 2000);";
     $Mp3List = "$Mp3List </script>";
-    $Mp3List =
-      "$Mp3List <table  background='http://localhost/Channels/.Misterhouse/background.gif'> ";
+    $Mp3List = "$Mp3List <table  background='http://localhost/Channels/.Misterhouse/background.gif'> ";
     $Mp3List =
       "$Mp3List<TR><th><small>Track<br>(<u>del</u>)</small></th><th><small>Song Title<br>(<u>jump</u>)</small></th><th><small>Play<br>Time</small></th></TR><small>";
 
@@ -49,8 +46,7 @@
         my $pos = 1;
         foreach my $item (@$titles) {
             my $Time = &mp3_get_playlist_timestr( $pos - 1 );
-            my $Str =
-              "                                                            ";
+            my $Str  = "                                                            ";
             $Str = substr( "$pos. $item", 1 );
             my $my_pos = $pos - 1;
 
@@ -58,16 +54,14 @@
             # Only highlight the current song otherwise just add to the list
             #  v 1.10 and Add a Track Jump URL
             if ( $pos - 1 == $currPos ) {
-                $Mp3List = $Mp3List
-                  . "<tr bgcolor='yellow'><td id=$pos><B>$pos</B></td><td><b>$item</b></td><td><b>$Time</b></td></tr>";
+                $Mp3List = $Mp3List . "<tr bgcolor='yellow'><td id=$pos><B>$pos</B></td><td><b>$item</b></td><td><b>$Time</b></td></tr>";
             }
 
             #		if ( $pos - 1 == $currPos ) { $Mp3List = $Mp3List ."<tr bgcolor='yellow'><td id=$pos><B>$pos</B></td><td><b>$item</b></td><td><b>$Time</b></td></tr>" ; }
             #		if ( $pos - 1 != $currPos ) { $Mp3List = $Mp3List ."<tr><td id=$pos><a target='invisi' href='$serv/SUB:mp3_playlist_delete(%22$my_pos%22)'$pos >$pos</a>\
             #								    </td><td><a target='invisi'href='$serv/SUB:mp3_set_playlist_pos(%22$my_pos%22)'>$item</a></td><td>$Time</td></tr>" ; }
             if ( $pos - 1 != $currPos ) {
-                $Mp3List = $Mp3List
-                  . "<tr><td id=$pos><a href='javascript:remove($my_pos)'> $pos </a>\
+                $Mp3List = $Mp3List . "<tr><td id=$pos><a href='javascript:remove($my_pos)'> $pos </a>\
 								           </td><td><a href='javascript:skipTo($my_pos)'>$item </a></td><td>$Time</td></tr>";
             }
 

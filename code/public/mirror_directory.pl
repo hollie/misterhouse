@@ -7,8 +7,7 @@ run_voice_cmd '$do_mirror_directory' if $New_Day;
 if ( said $do_mirror_directory_v) {
     speak "Starting mirror directory";
     my $pgm = 'do_mirror_directory';
-    set $do_mirror_directory $pgm
-      . ' -directory //Mrlarry/quickenw/backup //bushserv/d/backup/larry/quicken';
+    set $do_mirror_directory $pgm . ' -directory //Mrlarry/quickenw/backup //bushserv/d/backup/larry/quicken';
 
     start $do_mirror_directory;
 }

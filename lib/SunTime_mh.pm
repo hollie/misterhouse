@@ -119,13 +119,13 @@ sub sun_time {
     }
 
     my $Q = .39782 * sin($M);               # Solar Declination
-    $Q = $Q / sqrt( -$Q * $Q + 1 );  # This is how the original author wrote it!
+    $Q = $Q / sqrt( -$Q * $Q + 1 );         # This is how the original author wrote it!
     $Q = atan2( $Q, 1 );
 
     my $S = $R - ( sin($Q) * sin($E) );
     $S = $S / ( cos($Q) * cos($E) );
 
-    return 'none' if abs($S) > 1;    # Null phenomenon
+    return 'none' if abs($S) > 1;           # Null phenomenon
 
     $S = $S / sqrt( -$S * $S + 1 );
     $S = $A - atan2( $S, 1 );

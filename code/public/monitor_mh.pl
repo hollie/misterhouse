@@ -48,8 +48,7 @@ if ($New_Minute) {
         if ( $reboot_flag++ > 2 ) {
 
             # This does not work ... access denied
-            run
-              qq|SHUTDOWN -f -m \\\\house -t 600 -r -c "C1 detected MisterHouse on house stopped, so requested a reboot"|;
+            run qq|SHUTDOWN -f -m \\\\house -t 600 -r -c "C1 detected MisterHouse on house stopped, so requested a reboot"|;
         }
 
         #        set $watchdog_light ON;

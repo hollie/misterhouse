@@ -8,9 +8,7 @@
 my $f_trivia_question = "$config_parms{data_dir}/trivia_question.txt";
 my $f_trivia_answer   = "$config_parms{data_dir}/trivia_answer.txt";
 
-$v_trivia_next = new Voice_Cmd(
-    'What is the [Current,next Science,next Entertainment,next Mixed,next Sports,next Random] trivia question'
-);
+$v_trivia_next   = new Voice_Cmd('What is the [Current,next Science,next Entertainment,next Mixed,next Sports,next Random] trivia question');
 $v_trivia_answer = new Voice_Cmd('What is the trivia answer');
 
 $v_trivia_next->set_authority('anyone');
@@ -21,10 +19,7 @@ my $cat;
 # Create trigger
 
 if ($Reload) {
-    &trigger_set(
-        "time_cron '0 6 * * * '", "&trivia_next()",
-        'NoExpire',               'refresh trivia'
-    ) unless &trigger_get('refresh trivia');
+    &trigger_set( "time_cron '0 6 * * * '", "&trivia_next()", 'NoExpire', 'refresh trivia' ) unless &trigger_get('refresh trivia');
 }
 
 sub uninstall_trivia {
@@ -65,8 +60,7 @@ sub trivia_next {
     my $offset = 0 + 153 * ( $qn - 1 );
 
     open( INDATA, "$Pgm_Root/data/trivia/$cat.dat" )
-      or die
-      "Error, could not open trivia file $Pgm_Path/../data/$cat.dat:$!\n";
+      or die "Error, could not open trivia file $Pgm_Path/../data/$cat.dat:$!\n";
     open( QUESTION, ">$f_trivia_question" );
     open( ANSWER,   ">$f_trivia_answer" );
 

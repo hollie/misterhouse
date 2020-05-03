@@ -27,10 +27,7 @@ $version = "1.0.1";
 $time_today = time;
 
 # Get options
-GetOptions(
-    \%options, 'quiet|q',   'verbose|v', 'test|t',
-    'dir=s',   'archive|a', 'version|v', 'help|h'
-) or exit 1;
+GetOptions( \%options, 'quiet|q', 'verbose|v', 'test|t', 'dir=s', 'archive|a', 'version|v', 'help|h' ) or exit 1;
 
 # Help and version override anything else
 if ( $options{'help'} ) {
@@ -133,8 +130,7 @@ for (@files) {
 
 if ( $options{'archive'} ) {
     if ( open( ARCHIVE, "<$options{'dir'}archive.html" ) ) {
-        my $oldest = strftime( "\%Y.\%m.\%d",
-            localtime( $time_today - ( 86400 * ( $options{'days'} - 1 ) ) ) );
+        my $oldest = strftime( "\%Y.\%m.\%d", localtime( $time_today - ( 86400 * ( $options{'days'} - 1 ) ) ) );
         my $out;
 
         while (<ARCHIVE>) {
@@ -151,8 +147,7 @@ if ( $options{'archive'} ) {
             print ARCHIVE $out;
         }
         else {
-            warn
-              "Error: cannot update archive.html - could not write file: $!\n";
+            warn "Error: cannot update archive.html - could not write file: $!\n";
         }
     }
     else {

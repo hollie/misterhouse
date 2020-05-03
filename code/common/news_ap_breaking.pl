@@ -10,9 +10,7 @@ my $rss            = new XML::RSS;
 my $f_ap_news      = "$config_parms{data_dir}/web/ap_breaking_news.txt";
 my $f_ap_news_html = "$config_parms{data_dir}/web/ap_breaking_news_pruned.html";
 my $f_ap_news_rss  = "$config_parms{data_dir}/web/ap_breaking_news.rss";
-$p_ap_news = new Process_Item(
-    qq!get_url "http://hosted.ap.org/lineups/TOPHEADS.rss?SITE=NHPOR&SECTION=HOME" $f_ap_news_rss!
-);
+$p_ap_news = new Process_Item(qq!get_url "http://hosted.ap.org/lineups/TOPHEADS.rss?SITE=NHPOR&SECTION=HOME" $f_ap_news_rss!);
 $v_ap_news = new Voice_Cmd('What is in the News');
 $v_ap_news->set_info('Responds with headline stories from the AP');
 $v_get_ap_news = new Voice_Cmd('[Get,Check,Mail,SMS] AP breaking news');
@@ -29,8 +27,7 @@ sub get_ap_news {
         start $p_ap_news;
     }
     else {
-        $response =
-          "Could not retrieve news from the AP (network connection is down.)";
+        $response = "Could not retrieve news from the AP (network connection is down.)";
     }
 
     $v_get_ap_news->respond("app=news $response");
@@ -67,12 +64,7 @@ if ( done_now $p_ap_news) {
             $i++;
         }
 
-        $html .=
-            qq|<li><a href="|
-          . &recompose_uri( $item->{'link'} )
-          . qq|" title=$description>|
-          . $item->{'title'}
-          . qq|</a></li>|;
+        $html .= qq|<li><a href="| . &recompose_uri( $item->{'link'} ) . qq|" title=$description>| . $item->{'title'} . qq|</a></li>|;
 
     }
 
@@ -84,9 +76,7 @@ if ( done_now $p_ap_news) {
 
     if ( $v_get_ap_news->{state} eq 'Mail' ) {
         my $to = $config_parms{news_sendto} || "";
-        $v_get_ap_news->respond( "connected=0 image=mail Sending AP News to "
-              . ( ($to) ? $to : $config_parms{net_mail_send_account} )
-              . '.' );
+        $v_get_ap_news->respond( "connected=0 image=mail Sending AP News to " . ( ($to) ? $to : $config_parms{net_mail_send_account} ) . '.' );
         &net_mail_send(
             subject => "Breaking news from the AP",
             to      => $to,
@@ -100,8 +90,7 @@ if ( done_now $p_ap_news) {
         # *** Check return value
         my $to = $config_parms{cell_phone};
         if ($to) {
-            $v_get_ap_news->respond(
-                "connected=0 image=mail Sending AP News to cell phone.");
+            $v_get_ap_news->respond("connected=0 image=mail Sending AP News to cell phone.");
             &net_mail_send(
                 subject => "Breaking news from the AP",
                 to      => $to,
@@ -110,16 +99,13 @@ if ( done_now $p_ap_news) {
             );
         }
         else {
-            $v_get_ap_news->respond(
-                "connected=0 app=error Mobile phone email address not found!");
+            $v_get_ap_news->respond("connected=0 app=error Mobile phone email address not found!");
         }
     }
-    elsif ( $v_get_ap_news->{state} ne 'Check' )
-    {    # get responds with story count
-        $v_get_ap_news->respond(
-            "connected=0 app=news AP news retrieved $i stories.");
+    elsif ( $v_get_ap_news->{state} ne 'Check' ) {    # get responds with story count
+        $v_get_ap_news->respond("connected=0 app=news AP news retrieved $i stories.");
     }
-    else {    # check responds with stories
+    else {                                            # check responds with stories
         $v_get_ap_news->respond("connected=0 app=news $text");
     }
 
@@ -133,20 +119,13 @@ if ( $state = said $v_ap_news) {
 
 if ($Reload) {
     if ( $Run_Members{'internet_dialup'} ) {
-        &trigger_set(
-            "state_now \$net_connect eq 'connected'",
-            "run_voice_cmd 'Get AP Breaking News'",
-            'NoExpire',
-            'get AP news'
-        ) unless &trigger_get('get AP news');
+        &trigger_set( "state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get AP Breaking News'", 'NoExpire', 'get AP news' )
+          unless &trigger_get('get AP news');
 
     }
     else {
-        &trigger_set(
-            "time_cron '7,37 * * * *' and net_connect_check",
-            "run_voice_cmd 'Get AP Breaking News'",
-            'NoExpire', 'get AP news'
-        ) unless &trigger_get('get AP news');
+        &trigger_set( "time_cron '7,37 * * * *' and net_connect_check", "run_voice_cmd 'Get AP Breaking News'", 'NoExpire', 'get AP news' )
+          unless &trigger_get('get AP news');
     }
 }
 

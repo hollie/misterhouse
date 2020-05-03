@@ -69,8 +69,7 @@ sub format_tv_com {
 
 # Fetch the raw HTML TV page from the tv.com webserver, and update the parsed data file.
 sub get_tv_com {
-    my $programs_file =
-      $config_parms{code_dir} . "/" . $config_parms{TV_com_progs_file};
+    my $programs_file = $config_parms{code_dir} . "/" . $config_parms{TV_com_progs_file};
     open( TV_PROGRAMS, $programs_file )
       or print_log "Warning, could not open $programs_file!\n";
     my @AllPrograms = <TV_PROGRAMS>;

@@ -19,8 +19,7 @@ if ( OPENED eq state_now $mailbox and inactive $timer_mailbox2) {
         and time_less_than("6:00 PM") )
     {
         speak "mail reminder has been set";
-        set $timer_mailbox2 30 * 60,
-          'speak("rooms=all Notice, you have mail in the mailbox")', 8;
+        set $timer_mailbox2 30 * 60, 'speak("rooms=all Notice, you have mail in the mailbox")', 8;
     }
 }
 

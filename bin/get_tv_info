@@ -22,24 +22,19 @@ use strict;
 my ( $Pgm_Path, $Pgm_Name, $Version );
 
 BEGIN {
-    ($Version) =
-      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
 
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval
-      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";    # So perl2exe works
 }
 
 my %parms;
 use Getopt::Long;
 if (
     !&GetOptions(
-        \%parms,      "h",           "help",       "db=s",
-        "name=s",     "channels=s",  "keep=s",     "dates=s",
-        "times=s",    "lengths=s",   "keys=s",     "keyfile=s",
-        'title_only', 'increment=s', "outfile1=s", "outfile2=s",
-        "early_am=s", "started=s",   "debug",      "quiet"
+        \%parms,  "h",         "help",       "db=s",        "name=s",     "channels=s", "keep=s",     "dates=s",   "times=s", "lengths=s",
+        "keys=s", "keyfile=s", 'title_only', 'increment=s', "outfile1=s", "outfile2=s", "early_am=s", "started=s", "debug",   "quiet"
     )
     or @ARGV
     or !(
@@ -120,17 +115,14 @@ eof
 
 # Globals
 my (
-    @channels,  @dates,       @times,       @early_am,
-    @lengths,   @keys,        %DBM,         %DBM2,
-    $match_cnt, $match_list1, $match_list2, $date_today,
-    $time_now,  $min_begin,   $min_now,     $symbol
+    @channels,  @dates,       @times,       @early_am,   @lengths,  @keys,      %DBM,     %DBM2,
+    $match_cnt, $match_list1, $match_list2, $date_today, $time_now, $min_begin, $min_now, $symbol
 );
 my %config_parms;
 
 &setup;
 &find_match;
-print "\nFound $match_cnt $parms{name} programmes from ", @channels + 0,
-  " channels. Detailed results are in $parms{outfile2}\n"
+print "\nFound $match_cnt $parms{name} programmes from ", @channels + 0, " channels. Detailed results are in $parms{outfile2}\n"
   unless $parms{quiet};
 print $match_list1 if $match_cnt < 10;
 
@@ -145,8 +137,7 @@ sub find_match {
     for my $pgm_date (@dates) {
         for my $time_start (@times) {
             for my $channel_number (@channels) {
-                my $db_key =
-                  join( $;, $channel_number, $pgm_date, $time_start );
+                my $db_key = join( $;, $channel_number, $pgm_date, $time_start );
                 print "key=$db_key.\n" if $parms{debug};
 
                 #               print "key=$db_key.  data=$DBM{$db_key}.\n" if $channel_number == 8 and $time_start eq '18:30';
@@ -154,8 +145,7 @@ sub find_match {
                     print "db_data=$db_data\n" if $parms{debug};
 
                     # Drop HTML tags
-                    $db_data = HTML::FormatText->new( lm => 0, rm => 500 )
-                      ->format( HTML::TreeBuilder->new()->parse($db_data) );
+                    $db_data = HTML::FormatText->new( lm => 0, rm => 500 )->format( HTML::TreeBuilder->new()->parse($db_data) );
 
                     my ( $time_end, $pgm_name, $pgm_desc ) =
                       split( $;, $db_data );
@@ -192,8 +182,7 @@ sub find_match {
                         # I can also now edit the key_lists with Notepad from inside mh.
                         # I have added case-sensitive upper-case in $pgm_desc.
                         if ( $pgm_name =~ /\b$key/i
-                            or
-                            ( $pgm_desc =~ /\b$key/i and !$parms{title_only} ) )
+                            or ( $pgm_desc =~ /\b$key/i and !$parms{title_only} ) )
                         {
                             $match_key = 1;
                             print "$key " if $parms{debug};
@@ -216,8 +205,7 @@ sub find_match {
 
                     my $show_ended;
 
-                    if ( $min_start > 24 * 60 )
-                    { #show starts after midnight, adjust current min so we compare apples and apples
+                    if ( $min_start > 24 * 60 ) {    #show starts after midnight, adjust current min so we compare apples and apples
                         $min_now = $min_now + 24 * 60;
                     }
                     $show_ended = 1
@@ -240,8 +228,7 @@ sub find_match {
                         if ( $parms{debug} ) {
                             print "\nFound a match:\n";
                             print "  Channel: $channel_number $channel_name\n";
-                            print
-                              "     Time: $pgm_date $time_start2 -> $time_end2\n";
+                            print "     Time: $pgm_date $time_start2 -> $time_end2\n";
                             print "   Length: $pgm_length hour\n";
                             print "    Title: $pgm_name\n";
                             print "     Desc: $pgm_desc\n";
@@ -250,8 +237,7 @@ sub find_match {
                         $match_cnt++;
 
                         #                       my $watch_link = " <a href='SET?\$TV?$channel_name'>Watch</a>";
-                        my $watch_link =
-                          " <a href='SET?\$TV?$channel_name'><img src=/graphics/tv_small.gif width=16 height=16 border=0></a>";
+                        my $watch_link = " <a href='SET?\$TV?$channel_name'><img src=/graphics/tv_small.gif width=16 height=16 border=0></a>";
                         $watch_link =~ s/CH/Channel+/;
 
                         # Set VCR data
@@ -266,18 +252,15 @@ sub find_match {
 
                         # Add 5 minutes to end of vcr recording time in case program starts late
                         #  - skip for now ... back-to-back recordings would get messed up
-                        my $vcr_time_end =
-                          &min_to_hour( &hour_to_min($time_end) + 5 );
+                        my $vcr_time_end = &min_to_hour( &hour_to_min($time_end) + 5 );
 
                         my $vcr_link =
                           " <a href=../bin/vcr.pl?$channel_number&$vcr_date&$time_start&$time_end target='control'><img src=/graphics/vcr.gif width=20 height=16 border=0></a>";
 
                         #                       my $vcr_link = " <a href=../bin/vcr.pl?$channel_number&$vcr_date&$time_start&$vcr_time_end target='control'><img src=/graphics/vcr.gif width=20 height=16 border=0></a>";
                         $vcr_link =~ s/://g;
-                        $pgm_name =~
-                          s/\*+//g;    # Change **show name** => show name
-                        $pgm_name =~ s/[\\\$\^]//g
-                          ;   # Remove regular expression chars introduced above
+                        $pgm_name =~ s/\*+//g;         # Change **show name** => show name
+                        $pgm_name =~ s/[\\\$\^]//g;    # Remove regular expression chars introduced above
 
                         #	print "\n\n**$min_now**********$min_start***#################*********************\n\n";
 
@@ -306,16 +289,14 @@ sub find_match {
                         $match_list1 =~ s/CH/Channel /g
                           if ( $config_parms{country} eq "UK" );
                         chomp $temp;
-                        $match_list2 .=
-                          $temp . $vcr_link . $watch_link . "\n$pgm_desc";
+                        $match_list2 .= $temp . $vcr_link . $watch_link . "\n$pgm_desc";
                     }
                 }
 
             }
         }
 
-        my $divider =
-          "           ______________________________________________________________              \n";
+        my $divider = "           ______________________________________________________________              \n";
         $match_list2 .= $divider;
     }
 
@@ -339,8 +320,7 @@ sub find_match {
     print OUT1 "Found $match_cnt $parms{name} shows.\n$match_list1";
 
     #    It's a bit tidier like this (I can't actually see the bottom two lines without the CRs)
-    print OUT2
-      "Found $match_cnt $parms{name} shows.                             $print_date\n\n$match_list2";
+    print OUT2 "Found $match_cnt $parms{name} shows.                             $print_date\n\n$match_list2";
     print OUT2 "\n \n \n \n \n \n \n";
 
     close OUT1;
@@ -362,8 +342,7 @@ sub find_match {
     my $header = "<HTML><HEAD>\n";
     $header .= "<meta http-equiv='Pragma' content='no-cache'>\n";
     $header .= "<TITLE>TV selections</TITLE>\n";
-    $header .=
-      "<link rel=STYLESHEET href=/default.css type=text/css>\n</HEAD>\n<BODY BGCOLOR=Wheat>";
+    $header .= "<link rel=STYLESHEET href=/default.css type=text/css>\n</HEAD>\n<BODY BGCOLOR=Wheat>";
     $header .= "<FONT FACE=Arial SIZE=2>\n";
 
     $html = $header . $html . "</FONT>\n</BODY></HTML>";
@@ -417,15 +396,13 @@ sub setup {
     }
     if ( my ( $time_start, $hours ) = $parms{times} =~ /(\S*)\+(\S+)/ ) {
         $time_start = '6pm' unless defined $time_start;
-        my $time_stop =
-          $hours * 60 + &hour_to_min( &ampm_to_hour24($time_start) );
+        my $time_stop = $hours * 60 + &hour_to_min( &ampm_to_hour24($time_start) );
         $time_stop = &min_to_hour($time_stop);
         $parms{times} = "$time_start-$time_stop";
     }
     if ( my ( $early_start, $hours ) = $parms{early_am} =~ /(\S*)\+(\S+)/ ) {
         $early_start = '0:00am' unless defined $early_start;
-        my $early_stop =
-          $hours * 60 + &hour_to_min( &ampm_to_hour24($early_start) );
+        my $early_stop = $hours * 60 + &hour_to_min( &ampm_to_hour24($early_start) );
         $early_stop = &min_to_hour($early_stop);
         $parms{early_am} = "$early_start-$early_stop";
 
@@ -482,8 +459,7 @@ sub setup {
     $parms{outfile2} = "$config_parms{data_dir}/$parms{db}_info2.txt"
       unless $parms{outfile2};
 
-    print "\nSearching for:\n  channels: @channels\n  times: @times\n  "
-      . "lengths: @lengths\n  dates: @dates\n  keys: @keys\n\n"
+    print "\nSearching for:\n  channels: @channels\n  times: @times\n  " . "lengths: @lengths\n  dates: @dates\n  keys: @keys\n\n"
       unless $parms{quiet};
 
 }
@@ -562,8 +538,8 @@ sub increment_date {
     my @dateholder = localtime();    # Get the current year
     $dateholder[5] += 1900;          # Adjust it to the correct value
     my $timeinsec = str2time("$dateholder[5]-$month-$day");
-    $timeinsec += $days * 24 * 60 * 60;   # Add the offest (adjusted to seconds)
-    @dateholder = localtime($timeinsec);  # Get the new day/month back
+    $timeinsec += $days * 24 * 60 * 60;    # Add the offest (adjusted to seconds)
+    @dateholder = localtime($timeinsec);   # Get the new day/month back
     return sprintf( "%s/%02d", $dateholder[4] + 1, $dateholder[3] );
 }
 
@@ -571,8 +547,8 @@ sub format_date {
 
     #my ($month, $day) = @_[0] =~ /0?(\d+)\/(\d+)/; # Drop leading 0 from month
     my ( $month, $day ) = @_[0] =~ /(\d+)\/(\d+)/;    # Drop year
-          #return sprintf("%s/%02d", $month, $day); # Add leading 0 to day
-    return sprintf( "%02d/%02d", $month, $day );    #
+                                                      #return sprintf("%s/%02d", $month, $day); # Add leading 0 to day
+    return sprintf( "%02d/%02d", $month, $day );      #
 }
 
 sub min_to_hour {

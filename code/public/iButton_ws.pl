@@ -2,8 +2,7 @@
 use iButton;
 
 $v_iButton_list = new Voice_Cmd "List all the iButton buttons";
-$v_iButton_list->set_info(
-    'Lists the family and ID codes of all the buttons on the bus');
+$v_iButton_list->set_info('Lists the family and ID codes of all the buttons on the bus');
 $v_iButton_connect = new Voice_Cmd "[Connect,Disconnect] to the iButton bus";
 
 sub usleep {
@@ -19,11 +18,7 @@ if ( said $v_iButton_list) {
     my @ib_list = &iButton::scan;
     speak $#ib_list + 1 . " iButtons found";
     for my $ib (@ib_list) {
-        print_log "Device type:"
-          . $ib->family . "  ID:"
-          . $ib->serial
-          . "  CRC:"
-          . $ib->crc, ": " . $ib->model();
+        print_log "Device type:" . $ib->family . "  ID:" . $ib->serial . "  CRC:" . $ib->crc, ": " . $ib->model();
     }
 }
 
@@ -86,16 +81,12 @@ sub iButton_wind_read {
     #wind speed
 
     my $wind_time1 = &get_tickcount;
-    my $count =
-      $ib_wind_speed->Hardware::iButton::Device::DS2423::read_counter();
+    my $count      = $ib_wind_speed->Hardware::iButton::Device::DS2423::read_counter();
     print "wind: $count\n";
 
     if ($wind_time2) {
-        my $revolution_sec =
-          ( ( $count - $last_wind_count ) * 1000 ) /
-          ( $wind_time1 - $wind_time2 ) / 2.0;
-        print "rev/sec:$revolution_sec speed:"
-          . sprintf( "%3.2f", $revolution_sec * 2.453 ) . "\n"
+        my $revolution_sec = ( ( $count - $last_wind_count ) * 1000 ) / ( $wind_time1 - $wind_time2 ) / 2.0;
+        print "rev/sec:$revolution_sec speed:" . sprintf( "%3.2f", $revolution_sec * 2.453 ) . "\n"
           if $config_parms{debug} eq 'iButton';
         set $ib_wind_speed sprintf( "%3.2f", $revolution_sec * 2.453 );
     }
@@ -138,9 +129,7 @@ sub iButton_wind_read {
     my $dir = 0;
     for my $ib (@ib_list) {
         $dir += $wind_dir{ $ib->serial };
-        print "Wind ID:"
-          . $ib->serial() . " dir="
-          . $wind_dir{ $ib->serial } . "\n";
+        print "Wind ID:" . $ib->serial() . " dir=" . $wind_dir{ $ib->serial } . "\n";
     }
     $weather{wind_dir} = sprintf( "%3.1f", $dir / ( $#ib_list + 1 ) * 45 )
       if $#ib_list > -1;
@@ -164,8 +153,7 @@ sub iButton_wind_read {
     $raintotal_prev = $weather{RainTotal} if $raintotal_prev eq '';
     $weather{RainRecent} =
       round( ( $weather{RainTotal} - $raintotal_prev ), 2 );
-    print
-      "raincount:$count, rt=$weather{RainTotal}, raintotal_prev:$raintotal_prev\n"
+    print "raincount:$count, rt=$weather{RainTotal}, raintotal_prev:$raintotal_prev\n"
       if $config_parms{debug} eq 'iButton';
 
     if ( $weather{RainRecent} > 0 ) {
@@ -210,11 +198,7 @@ if ( time_cron('* * * * *') ) {
     #          "freezer: $weather{Temp_freezer} " . sprintf("[%3.2f]", $delta{freezer}/$delta_i);
 
     $weather{Temp_inside} -= 0.60;
-    logit(
-        "$config_parms{data_dir}/logs/iButton_temps.log",
-        "$weather{Temp_inside} $weather{Temp_outside} $weather{Temp_freezer} 0",
-        12
-    );
+    logit( "$config_parms{data_dir}/logs/iButton_temps.log", "$weather{Temp_inside} $weather{Temp_outside} $weather{Temp_freezer} 0", 12 );
 
     $weather{WindSpeed}     = state $ib_wind_speed;
     $weather{WindGustSpeed} = $weather{WindSpeed}
@@ -222,17 +206,12 @@ if ( time_cron('* * * * *') ) {
     $weather{WindAvgSpeed} =
       ( $weather{WindSpeed} + $weather{WindGustSpeed} ) / 2;
 
-    $weather{Summary} = sprintf( "In/out/freezer: %3.1f/%3.1f/%3.1f ",
-        $weather{Temp_inside}, $weather{Temp_outside}, $weather{Temp_freezer} );
+    $weather{Summary} = sprintf( "In/out/freezer: %3.1f/%3.1f/%3.1f ", $weather{Temp_inside}, $weather{Temp_outside}, $weather{Temp_freezer} );
     $weather{SummaryWind} =
-      sprintf( "WindSpeed/WindGustSpeed/WindAvgSpeed: %3.1f/%3.1f/%3.1f ",
-        $weather{WindSpeed}, $weather{WindGustSpeed}, $weather{WindAvgSpeed} );
-    $weather{SummaryRain} =
-      sprintf( "RainTotal/RainRecent/IsRaining: %3.2f/%3.2f/%d ",
-        $weather{RainTotal}, $weather{RainRecent}, $weather{IsRaining} );
+      sprintf( "WindSpeed/WindGustSpeed/WindAvgSpeed: %3.1f/%3.1f/%3.1f ", $weather{WindSpeed}, $weather{WindGustSpeed}, $weather{WindAvgSpeed} );
+    $weather{SummaryRain} = sprintf( "RainTotal/RainRecent/IsRaining: %3.2f/%3.2f/%d ", $weather{RainTotal}, $weather{RainRecent}, $weather{IsRaining} );
 
-    print_log
-      "wind speed: $weather{WindSpeed} wind dir: $weather{wind_dir} rain:$weather{RainTotal}";
+    print_log "wind speed: $weather{WindSpeed} wind dir: $weather{wind_dir} rain:$weather{RainTotal}";
 }
 
 my %iButton_data_avg_data;

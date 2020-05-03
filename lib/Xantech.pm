@@ -27,13 +27,7 @@ package Xantech;
 sub serial_startup {
     if ( $::config_parms{Xantech_serial_port} ) {
         my ($speed) = $::config_parms{Xantech_baudrate} || 9600;
-        if (
-            &::serial_port_create(
-                'Xantech', $::config_parms{Xantech_serial_port},
-                $speed,    'none'
-            )
-          )
-        {
+        if ( &::serial_port_create( 'Xantech', $::config_parms{Xantech_serial_port}, $speed, 'none' ) ) {
             init( $::Serial_Ports{Xantech}{object} );
 
             # Add to the generic list so check_for_generic_serial_data is called for us automatically
@@ -72,12 +66,8 @@ sub check_for_data {
         $main::Serial_Ports{Xantech}{data_record} = undef;
         print "Xantech data=$data\n" if $main::Debug{xantech};
 
-        my (
-            $f1, $f2, $f3,  $f4,  $f5,  $f6, $f7,
-            $f8, $f9, $f10, $f11, $f12, $f13
-          )
-          = $data =~
-          /\s*(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)/;
+        my ( $f1, $f2, $f3, $f4, $f5, $f6, $f7, $f8, $f9, $f10, $f11, $f12, $f13 ) =
+          $data =~ /\s*(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)\t(\w+)/;
 
         #        ::print_log "Xantech Data: " . $data . "\n";
         #        print "Xantech Decode: " . $f1 . $f2 . $f3 . " etc.\n";
@@ -95,13 +85,11 @@ sub check_for_data {
                   if ( $current_zone_object->{current_trim} ne $f3 );
                 $current_zone_object->set_states_for_next_pass("volume:$f4")
                   if ( $current_zone_object->{current_volume} ne $f4 );
-                $current_zone_object->set_states_for_next_pass(
-                    "presetbalance:$f5")
+                $current_zone_object->set_states_for_next_pass("presetbalance:$f5")
                   if ( $current_zone_object->{preset_balance} ne $f5 );
                 $current_zone_object->set_states_for_next_pass("balance:$f6")
                   if ( $current_zone_object->{current_balance} ne $f6 );
-                $current_zone_object->set_states_for_next_pass(
-                    "presettreble:$f7")
+                $current_zone_object->set_states_for_next_pass("presettreble:$f7")
                   if ( $current_zone_object->{preset_treble} ne $f7 );
                 $current_zone_object->set_states_for_next_pass("treble:$f8")
                   if ( $current_zone_object->{current_treble} ne $f8 );
@@ -109,14 +97,11 @@ sub check_for_data {
                   if ( $current_zone_object->{preset_bass} ne $f9 );
                 $current_zone_object->set_states_for_next_pass("bass:$f10")
                   if ( $current_zone_object->{current_bass} ne $f10 );
-                $current_zone_object->set_states_for_next_pass(
-                    $f11 == 1 ? 'on' : 'off' )
+                $current_zone_object->set_states_for_next_pass( $f11 == 1 ? 'on' : 'off' )
                   if ( $current_zone_object->{current_status} ne $f11 );
-                $current_zone_object->set_states_for_next_pass(
-                    $f12 == 1 ? 'mute:on' : 'mute:off' )
+                $current_zone_object->set_states_for_next_pass( $f12 == 1 ? 'mute:on' : 'mute:off' )
                   if ( $current_zone_object->{current_mute} ne $f12 );
-                $current_zone_object->set_states_for_next_pass(
-                    "maximumvolume:$f13")
+                $current_zone_object->set_states_for_next_pass("maximumvolume:$f13")
                   if ( $current_zone_object->{maximum_volume} ne $f13 );
 
                 # Apply settings for this zone
@@ -212,12 +197,7 @@ sub new {
     my $output = sprintf( "Z%2.2d", $zone );
     push( @xantech_command_list, $output );
 
-    push(
-        @{ $$self{states} },
-        'on',            'off',        'volume:max',
-        'volume:normal', 'volume:min', 'volume:+',
-        'volume:-',      'input:+',    'input:-'
-    );
+    push( @{ $$self{states} }, 'on', 'off', 'volume:max', 'volume:normal', 'volume:min', 'volume:+', 'volume:-', 'input:+', 'input:-' );
 
     return $self;
 }

@@ -18,7 +18,4 @@ my $action =
   : "/SET_PASSWORD?user=$Authorized";
 
 #print "\ndbx a=$Authorized i=$icon a=$action\n";
-return
-    "<a href='$action'><img src='$icon' alt='"
-  . ( ($Authorized) ? 'Logout' : 'Login' )
-  . "' border=0></a>";
+return "<a href='$action'><img src='$icon' alt='" . ( ($Authorized) ? 'Logout' : 'Login' ) . "' border=0></a>";

@@ -56,8 +56,7 @@ package Insteon::RemoteLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::RemoteLinc::ISA =
-  ( 'Insteon::DimmableLight', 'Insteon::MultigroupDevice' );
+@Insteon::RemoteLinc::ISA = ( 'Insteon::DimmableLight', 'Insteon::MultigroupDevice' );
 
 my %message_types = (
     %Insteon::BaseDevice::message_types,
@@ -107,8 +106,7 @@ sub set_awake_time {
     my $root  = $self->get_root();
     my $extra = '000102' . $awake . '0000000000000000000000';
     $$root{_ext_set_get_action} = "set";
-    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $root,
-        'extended_set_get', $extra );
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $root, 'extended_set_get', $extra );
     $root->_send_cmd($message);
     return;
 }
@@ -132,8 +130,7 @@ sub get_extended_info {
     my $root  = $self->get_root();
     my $extra = '000100000000000000000000000000';
     $$root{_ext_set_get_action} = "get";
-    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $root,
-        'extended_set_get', $extra );
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $root, 'extended_set_get', $extra );
     if ($no_retry) {
         $message->retry_count(1);
     }
@@ -160,9 +157,7 @@ sub set_battery_timer {
     my ( $self, $minutes ) = @_;
     my $root = $self->get_root();
     $$root{battery_timer} = sprintf( "%u", $minutes );
-    ::print_log( "[Insteon::RemoteLinc] Set battery timer to "
-          . $$root{battery_timer}
-          . " minutes" );
+    ::print_log( "[Insteon::RemoteLinc] Set battery timer to " . $$root{battery_timer} . " minutes" );
     return;
 }
 
@@ -176,8 +171,7 @@ sub _is_battery_time_expired {
     my ($self) = @_;
     my $root = $self->get_root();
     if ( $$root{battery_timer} > 0
-        && ( time - $$root{last_battery_time} ) >
-        ( $$root{battery_timer} * 60 ) )
+        && ( time - $$root{last_battery_time} ) > ( $$root{battery_timer} * 60 ) )
     {
         return 1;
     }
@@ -224,9 +218,7 @@ sub _process_message {
         $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
 
         #If this was a get request don't clear until data packet received
-        main::print_log(
-            "[Insteon::RemoteLinc] Extended Set/Get ACK Received for "
-              . $self->get_object_name )
+        main::print_log( "[Insteon::RemoteLinc] Extended Set/Get ACK Received for " . $self->get_object_name )
           if $self->debuglevel( 1, 'insteon' );
         if ( $$self{_ext_set_get_action} eq 'set' ) {
             main::print_log("[Insteon::RemoteLinc] Clearing active message")
@@ -242,11 +234,7 @@ sub _process_message {
 
             #D10 = Battery;
             my $voltage = ( hex( substr( $msg{extra}, 20, 2 ) ) / 50 );
-            main::print_log( "[Insteon::RemoteLinc] The battery level "
-                  . "for device "
-                  . $self->get_object_name . " is: "
-                  . $voltage
-                  . " of 3.70 volts." );
+            main::print_log( "[Insteon::RemoteLinc] The battery level " . "for device " . $self->get_object_name . " is: " . $voltage . " of 3.70 volts." );
             $$root{last_battery_time} = time;
             if ( ref $$root{battery_object}
                 && $$root{battery_object}->can('set_receive') )
@@ -257,9 +245,7 @@ sub _process_message {
             $self->_process_command_stack(%msg);
         }
         else {
-            main::print_log( "[Insteon::RemoteLinc] WARN: Corrupt Extended "
-                  . "Set/Get Data Received for "
-                  . $self->get_object_name )
+            main::print_log( "[Insteon::RemoteLinc] WARN: Corrupt Extended " . "Set/Get Data Received for " . $self->get_object_name )
               if $self->debuglevel( 1, 'insteon' );
         }
     }

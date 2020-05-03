@@ -63,8 +63,7 @@ sub send {
       if lc( $main::config_parms{debug} ) =~ /homevision/;
 
     if ( $data =~ /^X/ ) {
-        if ( my ( $house, $unit, $func ) = $data =~ /^X([A-P])([0-9A-F]).(.*)/ )
-        {
+        if ( my ( $house, $unit, $func ) = $data =~ /^X([A-P])([0-9A-F]).(.*)/ ) {
             $house = unpack( 'C', $house ) - 65;    #Get HV code from ASCII
 
             #           printf("House $house = %s ($house)\n", makehex($house));
@@ -77,14 +76,13 @@ sub send {
             my ($code) = &makehex( $house * 16 + $unit - 1 );
 
             {
-                $cmd .= "X" . $code . "00", last if $func eq "J"; #On
-                $cmd .= "X" . $code . "03", last if $func eq "K"; #Off
-                $cmd .= "X" . $code . "0B", last if $func eq "L"; #Brighten once
-                $cmd .= "X" . $code . "05", last if $func eq "M"; #Dim once
+                $cmd .= "X" . $code . "00", last if $func eq "J";    #On
+                $cmd .= "X" . $code . "03", last if $func eq "K";    #Off
+                $cmd .= "X" . $code . "0B", last if $func eq "L";    #Brighten once
+                $cmd .= "X" . $code . "05", last if $func eq "M";    #Dim once
 
                 #Set to level
-                $cmd .= "P" . $code . "11" . &makehex( int( $func / 6.5 ) ),
-                  last
+                $cmd .= "P" . $code . "11" . &makehex( int( $func / 6.5 ) ), last
                   if $func =~ /^[0-9]*/;
 
                 #Dim n-times
@@ -96,8 +94,7 @@ sub send {
                   if $func =~ /^\+([0-9]*)/;
 
                 #else (if it falls through to here...
-                print
-                  "Homevision::send X10, sorry I don't understand $data just yet\n";
+                print "Homevision::send X10, sorry I don't understand $data just yet\n";
                 return;
             }
         }
@@ -109,9 +106,8 @@ sub send {
 
         $cmd .= ";" . makehex($code) . "00";
     }
-    elsif ( my ( $byte1, $byte2 ) =
-        $data =~ /^IRCode([0-9A-F][0-9A-F])([0-9A-F][0-9A-F])$/ )
-    {
+    elsif ( my ( $byte1, $byte2 ) = $data =~ /^IRCode([0-9A-F][0-9A-F])([0-9A-F][0-9A-F])$/ ) {
+
         #Send a Homevision IR command (one that Homevision understands)
 
         $cmd .= "T" . $byte1 . $byte2 . "00";
@@ -142,19 +138,17 @@ sub send {
     my $count = 0;
     do {
         $count++;
-        select undef, undef, undef, .2; #sleep .2 seconds or until input happens
+        select undef, undef, undef, .2;    #sleep .2 seconds or until input happens
         $response .= $serial_port->input;
       } until $response =~ /(.*)(Done\r)(.*)/
-      || $count >
-      26;    #Wait up to five seconds for response (could be a long dim)
+      || $count > 26;                      #Wait up to five seconds for response (could be a long dim)
 
     if ( $2 =~ /Done/ ) {
         print "Cool, got it. Leftovers (if any): ($1, $2)\n"
           if lc( $main::config_parms{debug} ) =~ /homevision/;
     }
     else {
-        print
-          "Homevision::send() I waited for a return response for '$cmd', but it didn't come...\n";
+        print "Homevision::send() I waited for a return response for '$cmd', but it didn't come...\n";
     }
 
     #Give any leftovers to the read routine's overflow buffer:
@@ -209,8 +203,7 @@ sub send_X10 {
     #############
     #############
     #Need to wait for return code!!!!!
-    print
-      "Homevision::send_X10 checking for return code is unimplemented so far...\n";
+    print "Homevision::send_X10 checking for return code is unimplemented so far...\n";
     #############
     #############
 
@@ -252,8 +245,7 @@ sub read {
         my %table_dcodes = qw(On J    Off K    Bright L    Dim M);
 
         while ( ( $record, $remainder ) = $serial_data =~ /(.+?)\r(.*)/ ) {
-            $serial_data =
-              $remainder;    # Might have part of the next record left over
+            $serial_data = $remainder;    # Might have part of the next record left over
 
             #            print "db Homevision serial data3=$record remainder=$remainder\n" if lc($main::config_parms{debug}) =~ /homevision/;
 
@@ -261,8 +253,7 @@ sub read {
             if ( defined $main::config_parms{ECS_port} ) {
                 print "Forwarding '$record' to ECS\n"
                   if lc( $main::config_parms{debug} ) =~ /ecs/;
-                $main::Serial_Ports{'serial2'}{object}
-                  ->write("$record\r\n\001");
+                $main::Serial_Ports{'serial2'}{object}->write("$record\r\n\001");
             }
 
             #	    print "Homevision report: $record\n" if lc($main::config_parms{debug}) =~ /homevision/;
@@ -271,41 +262,31 @@ sub read {
                 my ($hvcode) = $record =~ /^([0-9A-F]*)/;
                 my $string = $record;
 
-                if ( my ( $house, $code ) =
-                    $string =~ /X-10 House\/Unit : ([A-P]) ([0-9]+)$/ )
-                {
+                if ( my ( $house, $code ) = $string =~ /X-10 House\/Unit : ([A-P]) ([0-9]+)$/ ) {
                     $code = substr( &makeX10hex($code), 1, 1 );
                     $code = chop($code);
                     print "Homevision returns: X" . $house . $code . "\n";
                     return "X" . $house . $code;
                 }
-                elsif ( my ( $house, $func ) =
-                    $string =~ /X-10 .* : ([A-P]) (.*)$/ )
-                {
-                    print "Homevision returns: X"
-                      . $house
-                      . $table_dcodes{$func} . "\n";
+                elsif ( my ( $house, $func ) = $string =~ /X-10 .* : ([A-P]) (.*)$/ ) {
+                    print "Homevision returns: X" . $house . $table_dcodes{$func} . "\n";
                     return "X" . $house . $table_dcodes{$func};
                 }
-                elsif ( my ( $input, $state ) =
-                    $string =~
-                    /Input Port Changed.*: \#([0-9A-F]+) (Low|High)/ )
-                {
+                elsif ( my ( $input, $state ) = $string =~ /Input Port Changed.*: \#([0-9A-F]+) (Low|High)/ ) {
+
                     #Digital input changed state
 
                     $input = hex($input);
                     $state = lc($state);
                     return "INPUT$input$state";
                 }
-                elsif ( my ( $one, $two ) =
-                    $string =~ /Received IR Code = ([0-9A-F]+) ([0-9A-F]+)/ )
-                {
+                elsif ( my ( $one, $two ) = $string =~ /Received IR Code = ([0-9A-F]+) ([0-9A-F]+)/ ) {
+
                     #Standard format IR code
                     return "IRCode$one$two";
                 }
-                elsif ( my ($num) =
-                    $string =~ /Matches IR Signal.*= ([0-9A-F]+)/ )
-                {
+                elsif ( my ($num) = $string =~ /Matches IR Signal.*= ([0-9A-F]+)/ ) {
+
                     #Defined format IR code
                     $num = hex($num);
                     return "IRSlot$num";
@@ -314,11 +295,10 @@ sub read {
 
                     #Ignore
                 }
-                elsif ( $hvcode eq "82" || $hvcode eq "83" || $hvcode eq "93" )
-                {
+                elsif ( $hvcode eq "82" || $hvcode eq "83" || $hvcode eq "93" ) {
+
                     #Homevision Error!
-                    print
-                      "\n********\nHomevision::read error received: $record\n********\n";
+                    print "\n********\nHomevision::read error received: $record\n********\n";
                 }
                 else {
                     print "Homevision::read unimplemented: '$record'\n"

@@ -14,8 +14,7 @@ if ($New_Msecond_250) {
         my $cmd   = ($is_dj_speaking) ? 'VOLUMEDOWN' : 'VOLUMEUP';
         my $count = ($is_dj_speaking) ? '35'         : '37';
         for ( 1 .. $count ) {
-            get
-              "http://localhost:4800/$cmd?p=$config_parms{mp3_program_password}";
+            get "http://localhost:4800/$cmd?p=$config_parms{mp3_program_password}";
         }
         print "db dj set to $cmd: $temp\n";
 
@@ -49,9 +48,8 @@ if ( new_second 30 ) {
 $winamp_prod = new Voice_Cmd 'Restore Winamp';
 
 if ( said $winamp_prod) {
-    if ( my $window =
-        &sendkeys_find_window( 'winamp', $config_parms{mp3_program} ) )
-    {
+    if ( my $window = &sendkeys_find_window( 'winamp', $config_parms{mp3_program} ) ) {
+
         # None of this works to resotr a window :(
         #       my $keys = '\\alt\\te\\ret\\';
         #       my $keys = '\\CTRLp';

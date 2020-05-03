@@ -51,9 +51,7 @@ sub rf_is_rfxsensor {
 
     # check parity bits here
     $found = $found
-      && ( $B3L ==
-        ( 0xf - ( ( $B0H + $B0L + $B1H + $B1L + $B2H + $B2L + $B3H ) & 0xf ) )
-      );
+      && ( $B3L == ( 0xf - ( ( $B0H + $B0L + $B1H + $B1L + $B2H + $B2L + $B3H ) & 0xf ) ) );
     return $found;
 }
 
@@ -81,52 +79,38 @@ sub rf_process_rfxsensor {
     $device_id = $rbytes[0] * 256 + $rbytes[1];
     $id        = $rbytes[0];
 
-    if ( $rbytes[3] & 0x10 )
-    {    # device has no set temperature (set temp always 0x00)
+    if ( $rbytes[3] & 0x10 ) {    # device has no set temperature (set temp always 0x00)
         use Switch;
         switch ( $rbytes[2] ) {
             case 0x01 {
-                &::print_log(
-                    "$module: rfxsensor: info: sensor addresses incremented")
+                &::print_log("$module: rfxsensor: info: sensor addresses incremented")
             }
             case 0x02 {
                 &::print_log("$module: rfxsensor: info: battery low detected")
             }
             case 0x03 {
-                &::print_log(
-                    "$module: rfxsensor: info: conversion not ready, 1 retry is done"
-                  )
+                &::print_log("$module: rfxsensor: info: conversion not ready, 1 retry is done")
             }
             case 0x81 {
-                &::print_log(
-                    "$module: rfxsensor: error: no 1-wire device connected")
+                &::print_log("$module: rfxsensor: error: no 1-wire device connected")
             }
             case 0x82 {
                 &::print_log("$module: rfxsensor: error: 1-Wire ROM CRC error")
             }
             case 0x83 {
-                &::print_log(
-                    "$module: rfxsensor: error: 1-Wire device connected is not a DS18B20 or DS2438"
-                  )
+                &::print_log("$module: rfxsensor: error: 1-Wire device connected is not a DS18B20 or DS2438")
             }
             case 0x84 {
-                &::print_log(
-                    "$module: rfxsensor: error: no end of read signal received from 1-Wire device"
-                  )
+                &::print_log("$module: rfxsensor: error: no end of read signal received from 1-Wire device")
             }
             case 0x85 {
-                &::print_log(
-                    "$module: rfxsensor: error: 1-Wire scratchpad CRC error")
+                &::print_log("$module: rfxsensor: error: 1-Wire scratchpad CRC error")
             }
             case 0x86 {
-                &::print_log(
-                    "$module: rfxsensor: error: temperature conversion not ready in time"
-                  )
+                &::print_log("$module: rfxsensor: error: temperature conversion not ready in time")
             }
             case 0x87 {
-                &::print_log(
-                    "$module: rfxsensor: error: A/D conversion not ready in time"
-                  )
+                &::print_log("$module: rfxsensor: error: A/D conversion not ready in time")
             }
         }
     }
@@ -146,58 +130,44 @@ sub rf_process_rfxsensor {
         # the humidity sensor so you don't get unmatched device errors
         elsif ( $id % 8 == 1 ) {
             $measurement *= 10;    # this is mVols from the A/D conversion
-            &::print_log(
-                "$module: rfxsensor: the A/D input is $measurement mVolts")
+            &::print_log("$module: rfxsensor: the A/D input is $measurement mVolts")
               if ( $main::Debug{$lc_module} );
 
             # get temperature
             my $tmp_id = $id - 1;
-            $tmp_id =
-              $tmp_id * 256 +
-              ( ( 0xf - ( $tmp_id >> 4 ) ) * 16 ) +
-              ( $tmp_id & 0xf );
+            $tmp_id = $tmp_id * 256 + ( ( 0xf - ( $tmp_id >> 4 ) ) * 16 ) + ( $tmp_id & 0xf );
             $tmp_id = lc sprintf "%04x", $tmp_id;
-            my $temperature = &rf_get_RF_Item( $module, 'rfxsensor',
-                "unmatched device $tmp_id", $tmp_id );
+            my $temperature = &rf_get_RF_Item( $module, 'rfxsensor', "unmatched device $tmp_id", $tmp_id );
             if ( $main::config_parms{weather_uom_temp} == 'F' ) {
                 $temperature = &::convert_f2c($temperature);
             }
 
             # get supply voltage
             my $tmp_id = $id + 1;
-            $tmp_id =
-              $tmp_id * 256 +
-              ( ( 0xf - ( $tmp_id >> 4 ) ) * 16 ) +
-              ( $tmp_id & 0xf );
+            $tmp_id = $tmp_id * 256 + ( ( 0xf - ( $tmp_id >> 4 ) ) * 16 ) + ( $tmp_id & 0xf );
             $tmp_id = lc sprintf "%04x", $tmp_id;
-            my $supply_voltage = &rf_get_RF_Item( $module, 'rfxsensor',
-                "unmatched device $tmp_id", $tmp_id );
+            my $supply_voltage = &rf_get_RF_Item( $module, 'rfxsensor', "unmatched device $tmp_id", $tmp_id );
             if (    defined $temperature
                 and defined $supply_voltage
                 and $supply_voltage )
             {
-                $measurement =
-                  ( ( ( $measurement / $supply_voltage ) - 0.16 ) / 0.0062 ) /
-                  ( 1.0546 - 0.00216 * $temperature )
-                  ;    # this is % relative humidity
+                $measurement = ( ( ( $measurement / $supply_voltage ) - 0.16 ) / 0.0062 ) / ( 1.0546 - 0.00216 * $temperature );   # this is % relative humidity
             }
             else {
-                &::print_log(
-                    "$module: rfxsensor: error: can't calculate relative humidity without temperature and supply voltage measurements"
-                );
+                &::print_log("$module: rfxsensor: error: can't calculate relative humidity without temperature and supply voltage measurements");
                 return undef;
             }
         }
 
         # and the 2nd sensor is the ds2438 supply voltage, create a dummy object even if you don't care
         elsif ( $id % 8 == 2 ) {
-            $measurement *= 10;    # this is mVols
+            $measurement *= 10;                                                                                                    # this is mVols
         }
 
         # assume any other device ids are ds18b20 temperature sensors, since they are cheap
         else {
-            $measurement *= -1 if $rbytes[2] & 0x80;    # check for sign bit
-            $measurement = $measurement / 4 * .5;       # this is celcius
+            $measurement *= -1 if $rbytes[2] & 0x80;                                                                               # check for sign bit
+            $measurement = $measurement / 4 * .5;                                                                                  # this is celcius
             if ( $main::config_parms{weather_uom_temp} == 'F' ) {
                 $measurement = &::convert_c2f($measurement);
             }
@@ -207,8 +177,7 @@ sub rf_process_rfxsensor {
     my $item_id = lc sprintf "%04x", $device_id;
 
     # Set the state of any items or classes associated with this device.
-    &rf_set_RF_Item( $module, 'rfxsensor', "unmatched device 0x$item_id",
-        $item_id, undef, $measurement );
+    &rf_set_RF_Item( $module, 'rfxsensor', "unmatched device 0x$item_id", $item_id, undef, $measurement );
 
     return $measurement;
 }

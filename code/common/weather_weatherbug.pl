@@ -48,10 +48,9 @@
 
         # Define config parameters
         # add variables for the weatherbug feed
-        my $weatherbug_city  = $config_parms{weather_weatherbug_city};
-        my $weatherbug_state = lc( $config_parms{weather_weatherbug_state} );
-        my $weatherbug_country =
-          lc( $config_parms{weather_weatherbug_country} );
+        my $weatherbug_city      = $config_parms{weather_weatherbug_city};
+        my $weatherbug_state     = lc( $config_parms{weather_weatherbug_state} );
+        my $weatherbug_country   = lc( $config_parms{weather_weatherbug_country} );
         my $weatherbug_units     = $config_parms{weather_weatherbug_units};
         my $weatherbug_citycode  = $config_parms{weather_weatherbug_citycode};
         my $weatherbug_zipcode   = $config_parms{weather_weatherbug_zipcode};
@@ -78,10 +77,8 @@
         my $weatherbug_url;
         my $key =
           "A" . ( ( ( 149 * 37 * 2 * 5 * 37 + 23 ) * 9 * 17 ) + 10 ) * 3 * 5;
-        my $weatherbug_file =
-          $config_parms{data_dir} . '/web/weather_weatherbug_frcst.xml';
-        my $weatherbug_obs_file =
-          $config_parms{data_dir} . '/web/weather_weatherbug_obs.xml';
+        my $weatherbug_file     = $config_parms{data_dir} . '/web/weather_weatherbug_frcst.xml';
+        my $weatherbug_obs_file = $config_parms{data_dir} . '/web/weather_weatherbug_obs.xml';
 
         # Define the url that is used to fetch the forecast
         # use the lattitude and longitude form if they are available
@@ -96,45 +93,25 @@
           if ( $weatherbug_latitude ne "" and $weatherbug_longitude ne "" );
 
         # 2nd Priority use the zipcode form if the zipcode is available
-        $weatherbug_url =
-            "http://api.wxbug.net/getForecastRSS.aspx?ACode="
-          . $key
-          . "&zipcode="
-          . $weatherbug_zipcode
-          . "&unittype="
-          . $weatherbug_units
+        $weatherbug_url = "http://api.wxbug.net/getForecastRSS.aspx?ACode=" . $key . "&zipcode=" . $weatherbug_zipcode . "&unittype=" . $weatherbug_units
           if ( $weatherbug_zipcode ne "" );
 
         # First Priority so test last - and use the city code if assigned
-        $weatherbug_url =
-            "http://api.wxbug.net/getForecastRSS.aspx?ACode="
-          . $key
-          . "&citycode="
-          . $weatherbug_citycode
-          . "&unittype="
-          . $weatherbug_units
+        $weatherbug_url = "http://api.wxbug.net/getForecastRSS.aspx?ACode=" . $key . "&citycode=" . $weatherbug_citycode . "&unittype=" . $weatherbug_units
           if ( $weatherbug_citycode ne "" );
-        logit( "$config_parms{data_dir}/web/weatherbug_debug",
-            $weatherbug_url, 13, 0 )
+        logit( "$config_parms{data_dir}/web/weatherbug_debug", $weatherbug_url, 13, 0 )
           if ( $Debug{weatherbug} );
 
         # Define the new process item that fetchs the RSS feed for the location
-        $p_weather_weatherbug_forecast = new Process_Item(
-            qq{get_url -quiet "$weatherbug_url" "$weatherbug_file"});
+        $p_weather_weatherbug_forecast = new Process_Item(qq{get_url -quiet "$weatherbug_url" "$weatherbug_file"});
 
         # Need to add a process to search for the citycode
-        $weatherbug_url =
-            "http://api.wxbug.net/getLocationsXML.aspx?ACode="
-          . $key
-          . "&searchString="
-          . lc($weatherbug_city);
-        logit( "$config_parms{data_dir}/web/weatherbug_debug",
-            $weatherbug_url, 13, 0 )
+        $weatherbug_url = "http://api.wxbug.net/getLocationsXML.aspx?ACode=" . $key . "&searchString=" . lc($weatherbug_city);
+        logit( "$config_parms{data_dir}/web/weatherbug_debug", $weatherbug_url, 13, 0 )
           if ( $Debug{weatherbug} );
 
         # Define the new process item that fetchs the RSS feed for the location
-        $p_weather_weatherbug_citycode = new Process_Item(
-            qq{get_url -quiet "$weatherbug_url" "$weatherbug_file"});
+        $p_weather_weatherbug_citycode = new Process_Item(qq{get_url -quiet "$weatherbug_url" "$weatherbug_file"});
 
         # Need to add a process to get the live observations
         # use the lattitude and longitude form if they are available
@@ -149,31 +126,17 @@
           if ( $weatherbug_latitude ne "" and $weatherbug_longitude ne "" );
 
         # 2nd Priority use the zipcode form if the zipcode is available
-        $weatherbug_url =
-            "http://api.wxbug.net/getLiveWeatherRSS.aspx?ACode="
-          . $key
-          . "&zipcode="
-          . $weatherbug_zipcode
-          . "&unittype="
-          . $weatherbug_units
+        $weatherbug_url = "http://api.wxbug.net/getLiveWeatherRSS.aspx?ACode=" . $key . "&zipcode=" . $weatherbug_zipcode . "&unittype=" . $weatherbug_units
           if ( $weatherbug_zipcode ne "" );
 
         # First Priority so test last - and use the city code if assigned
-        $weatherbug_url =
-            "http://api.wxbug.net/getLiveWeatherRSS.aspx?ACode="
-          . $key
-          . "&citycode="
-          . $weatherbug_citycode
-          . "&unittype="
-          . $weatherbug_units
+        $weatherbug_url = "http://api.wxbug.net/getLiveWeatherRSS.aspx?ACode=" . $key . "&citycode=" . $weatherbug_citycode . "&unittype=" . $weatherbug_units
           if ( $weatherbug_citycode ne "" );
-        logit( "$config_parms{data_dir}/web/weatherbug_debug",
-            $weatherbug_url, 13, 0 )
+        logit( "$config_parms{data_dir}/web/weatherbug_debug", $weatherbug_url, 13, 0 )
           if ( $Debug{weatherbug} );
 
         # Define the new process item that fetchs the RSS feed for the location
-        $p_weather_weatherbug_liveweather = new Process_Item(
-            qq{get_url -quiet "$weatherbug_url" "$weatherbug_obs_file"});
+        $p_weather_weatherbug_liveweather = new Process_Item(qq{get_url -quiet "$weatherbug_url" "$weatherbug_obs_file"});
 
         # Define the voice commands that are used to get and process the RSS feed
         my $weatherbug_states = 'getforecast,LiveWeather,getcitycode,debug';
@@ -370,100 +333,40 @@
 
         # conditions simplified for rain and snow
         my @wxbug_precip_type = (
-            "Clear",    "Overcast", "Overcast", "Overcast",
-            "Clear",    "Rain",     "Rain",     "Clear",
-            "Snow",     "Snow",     "Clear",    "Snow",
-            "Snow",     "Overcast", "Rain",     "Rain",
-            "Clear",    "Clear",    "Rain",     "Snow",
-            "Rain",     "Ice",      "Rain",     "Overcast",
-            "Overcast", "Ice",      "Clear",    "Snow",
-            "Ice",      "Snow",     "Rain",     "Clear",
-            "Snow",     "Overcast", "Overcast", "Clear",
-            "Ice",      "Clear",    "Rain",     "Snow",
-            "Snow",     "Rain",     "Rain",     "Snow",
-            "Snow",     "Rain",     "Ice",      "Ice",
-            "Ice",      "Ice",      "Clear",    "Overcast",
-            "Rain",     "Rain",     "Snow",     "Snow",
-            "Ice",      "Ice",      "Rain",     "Rain",
-            "Ice",      "Rain",     "Snow",     "Rain",
-            "Clear",    "Clear",    "Overcast", "Clear",
-            "Overcast", "Clear",    "Clear",    "Overcast",
-            "Clear",    "Overcast", "Clear",    "Clear",
-            "Clear",    "Clear",    "Snow",     "Snow",
-            "Snow",     "Rain",     "Rain",     "Rain",
-            "Snow",     "Snow",     "Snow",     "Rain",
-            "Rain",     "Rain",     "Ice",      "Ice",
-            "Ice",      "Rain",     "Rain",     "Rain",
-            "Snow",     "Snow",     "Snow",     "Ice",
-            "Ice",      "Ice",      "Snow",     "Snow",
-            "Snow",     "Rain",     "Rain",     "Rain",
-            "Rain",     "Rain",     "Rain",     "Snow",
-            "Snow",     "Snow",     "Rain",     "Rain",
-            "Rain",     "Snow",     "Snow",     "Snow",
-            "Ice",      "Ice",      "Ice",      "Ice",
-            "Ice",      "Ice",      "Snow",     "Snow",
-            "Snow",     "Ice",      "Ice",      "Ice",
-            "Rain",     "Rain",     "Rain",     "Ice",
-            "Ice",      "Ice",      "Snow",     "Rain",
-            "Snow",     "Rain",     "Ice",      "Rain",
-            "Snow",     "Ice",      "Snow",     "Rain",
-            "Rain",     "Snow",     "Rain",     "Snow",
-            "Ice",      "Ice",      "Snow",     "Ice",
-            "Rain",     "Ice",      "Clear",    "Overcast",
-            "Snow",     "Mixed",    "Rain",     "Rain",
-            "Mixed",    "Rain",     "Mixed",    "Rain",
-            "Rain",     "",         "Rain",     "Mixed",
-            "Mixed",    "Rain",     "Mixed",    "Mixed",
-            "Snow"
+            "Clear",    "Overcast", "Overcast", "Overcast", "Clear", "Rain",  "Rain",     "Clear", "Snow",     "Snow",     "Clear",    "Snow",
+            "Snow",     "Overcast", "Rain",     "Rain",     "Clear", "Clear", "Rain",     "Snow",  "Rain",     "Ice",      "Rain",     "Overcast",
+            "Overcast", "Ice",      "Clear",    "Snow",     "Ice",   "Snow",  "Rain",     "Clear", "Snow",     "Overcast", "Overcast", "Clear",
+            "Ice",      "Clear",    "Rain",     "Snow",     "Snow",  "Rain",  "Rain",     "Snow",  "Snow",     "Rain",     "Ice",      "Ice",
+            "Ice",      "Ice",      "Clear",    "Overcast", "Rain",  "Rain",  "Snow",     "Snow",  "Ice",      "Ice",      "Rain",     "Rain",
+            "Ice",      "Rain",     "Snow",     "Rain",     "Clear", "Clear", "Overcast", "Clear", "Overcast", "Clear",    "Clear",    "Overcast",
+            "Clear",    "Overcast", "Clear",    "Clear",    "Clear", "Clear", "Snow",     "Snow",  "Snow",     "Rain",     "Rain",     "Rain",
+            "Snow",     "Snow",     "Snow",     "Rain",     "Rain",  "Rain",  "Ice",      "Ice",   "Ice",      "Rain",     "Rain",     "Rain",
+            "Snow",     "Snow",     "Snow",     "Ice",      "Ice",   "Ice",   "Snow",     "Snow",  "Snow",     "Rain",     "Rain",     "Rain",
+            "Rain",     "Rain",     "Rain",     "Snow",     "Snow",  "Snow",  "Rain",     "Rain",  "Rain",     "Snow",     "Snow",     "Snow",
+            "Ice",      "Ice",      "Ice",      "Ice",      "Ice",   "Ice",   "Snow",     "Snow",  "Snow",     "Ice",      "Ice",      "Ice",
+            "Rain",     "Rain",     "Rain",     "Ice",      "Ice",   "Ice",   "Snow",     "Rain",  "Snow",     "Rain",     "Ice",      "Rain",
+            "Snow",     "Ice",      "Snow",     "Rain",     "Rain",  "Snow",  "Rain",     "Snow",  "Ice",      "Ice",      "Snow",     "Ice",
+            "Rain",     "Ice",      "Clear",    "Overcast", "Snow",  "Mixed", "Rain",     "Rain",  "Mixed",    "Rain",     "Mixed",    "Rain",
+            "Rain",     "",         "Rain",     "Mixed",    "Mixed", "Rain",  "Mixed",    "Mixed", "Snow"
         );
 
         # inferred amount of precipatation
         my @wxbug_precip_ammount = (
-            "None",     "None",     "None",     "None",
-            "None",     "Moderate", "Moderate", "None",
-            "Moderate", "Light",    "None",     "Light",
-            "Moderate", "None",     "Moderate", "Light",
-            "None",     "None",     "Moderate", "Light",
-            "Light",    "Light",    "Light",    "None",
-            "None",     "Light",    "None",     "Light",
-            "Light",    "Light",    "Light",    "None",
-            "Light",    "None",     "None",     "None",
-            "Light",    "None",     "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Moderate", "Moderate",
-            "Light",    "Light",    "None",     "None",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Trace",    "Trace",
-            "Trace",    "Trace",    "Heavy",    "Heavy",
-            "None",     "None",     "None",     "None",
-            "None",     "None",     "None",     "None",
-            "None",     "None",     "None",     "None",
-            "None",     "None",     "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Trace",    "Trace",    "Trace",    "Trace",
-            "Trace",    "Trace",    "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Light",    "Light",    "Light",    "Light",
-            "Trace",    "Trace",    "None",     "None",
-            "Light",    "Light",    "Trace",    "Heavy",
-            "Trace",    "Trace",    "Trace",    "Trace",
-            "Trace",    "Trace",    "Trace",    "Trace",
-            "Trace",    "Trace",    "Trace",    "Trace",
-            "Trace"
+            "None",     "None",  "None",     "None",  "None",  "Moderate", "Moderate", "None",  "Moderate", "Light", "None",     "Light",
+            "Moderate", "None",  "Moderate", "Light", "None",  "None",     "Moderate", "Light", "Light",    "Light", "Light",    "None",
+            "None",     "Light", "None",     "Light", "Light", "Light",    "Light",    "None",  "Light",    "None",  "None",     "None",
+            "Light",    "None",  "Light",    "Light", "Light", "Light",    "Light",    "Light", "Light",    "Light", "Moderate", "Moderate",
+            "Light",    "Light", "None",     "None",  "Light", "Light",    "Light",    "Light", "Light",    "Light", "Trace",    "Trace",
+            "Trace",    "Trace", "Heavy",    "Heavy", "None",  "None",     "None",     "None",  "None",     "None",  "None",     "None",
+            "None",     "None",  "None",     "None",  "None",  "None",     "Light",    "Light", "Light",    "Light", "Light",    "Light",
+            "Light",    "Light", "Light",    "Light", "Light", "Light",    "Light",    "Light", "Light",    "Light", "Light",    "Light",
+            "Light",    "Light", "Light",    "Light", "Light", "Light",    "Light",    "Light", "Light",    "Light", "Light",    "Light",
+            "Light",    "Light", "Light",    "Light", "Light", "Light",    "Light",    "Light", "Light",    "Light", "Light",    "Light",
+            "Light",    "Light", "Light",    "Light", "Light", "Light",    "Light",    "Light", "Light",    "Light", "Light",    "Light",
+            "Trace",    "Trace", "Trace",    "Trace", "Trace", "Trace",    "Light",    "Light", "Light",    "Light", "Light",    "Light",
+            "Light",    "Light", "Light",    "Light", "Light", "Light",    "Light",    "Light", "Light",    "Light", "Light",    "Light",
+            "Trace",    "Trace", "None",     "None",  "Light", "Light",    "Trace",    "Heavy", "Trace",    "Trace", "Trace",    "Trace",
+            "Trace",    "Trace", "Trace",    "Trace", "Trace", "Trace",    "Trace",    "Trace", "Trace"
         );
 
         # noloop=stop
@@ -479,8 +382,7 @@
             &trigger_set(
                 '($New_Minute and $Minute == 5) or $Reload',
                 "run_voice_cmd 'Weatherbug LiveWeather'",
-                'NoExpire',
-                'Update current weather via WeatherBug'
+                'NoExpire', 'Update current weather via WeatherBug'
             ) unless &trigger_get('Update current weather via WeatherBug');
         }
 
@@ -489,13 +391,13 @@
         if ( $weatherbug_state = $v_weatherbug->{said} ) {
             if ( $weatherbug_state eq 'getforecast' ) {
                 start $p_weather_weatherbug_forecast;
-            } # ----------------------------------------------------------------------
+            }    # ----------------------------------------------------------------------
             if ( $weatherbug_state eq 'getcitycode' ) {
                 start $p_weather_weatherbug_citycode;
-            } # ----------------------------------------------------------------------
+            }    # ----------------------------------------------------------------------
             if ( $weatherbug_state eq 'LiveWeather' ) {
                 start $p_weather_weatherbug_liveweather;
-            } # ----------------------------------------------------------------------
+            }    # ----------------------------------------------------------------------
             if ( $weatherbug_state eq 'debug' ) {
 
                 # toggle the debug state
@@ -503,14 +405,14 @@
                 $debug = 0 if ( $Debug{weatherbug} == 1 );
                 $debug = 1 if ( $Debug{weatherbug} == 0 );
                 $Debug{weatherbug} = $debug;
-            } # ----------------------------------------------------------------------
+            }    # ----------------------------------------------------------------------
         }
 
         #------------- End of voice commands said if block ---------------------
         # this next code run when the processes are completed and the file is ready
         # ------------ Get LiveWeather -----------------
         if ( done_now $p_weather_weatherbug_liveweather) {
-            $Weather{weatherbug_obsv_valid} = 0; #Set to not valid unless proven
+            $Weather{weatherbug_obsv_valid} = 0;    #Set to not valid unless proven
             my $weatherbug_xml = file_read $weatherbug_obs_file;
             print_log "Weatherbug location liveweather.";
 
@@ -546,16 +448,10 @@
             my ($f_obsec) = $f_obdate =~ /$pattern/;
 
             #<aws:am-pm abbrv="PM" />
-            my $pattern = '<aws:am-pm abbrv="([APM]*)"';
-            my ($f_obampm) = $f_obdate =~ /$pattern/;
-            my $f_obsdate =
-                $f_obmonth . "/"
-              . $f_obday . "/"
-              . $f_obyear . " "
-              . $f_obhour . ":"
-              . $f_obmin . " "
-              . $f_obampm;
-            my $pattern = '<aws:station>(.*?)</aws:station>';
+            my $pattern     = '<aws:am-pm abbrv="([APM]*)"';
+            my ($f_obampm)  = $f_obdate =~ /$pattern/;
+            my $f_obsdate   = $f_obmonth . "/" . $f_obday . "/" . $f_obyear . " " . $f_obhour . ":" . $f_obmin . " " . $f_obampm;
+            my $pattern     = '<aws:station>(.*?)</aws:station>';
             my ($f_station) = $f_observation =~ /$pattern/;
 
             #<aws:requested-station-id />
@@ -599,13 +495,7 @@
             my ($f_obsec)   = $f_obdate =~ /$pattern/;
             my $pattern     = '<aws:am-pm abbrv="([APM]*)"';
             my ($f_obampm)  = $f_obdate =~ /$pattern/;
-            my $f_gustdate =
-                $f_obmonth . "/"
-              . $f_obday . "/"
-              . $f_obyear . " "
-              . $f_obhour . ":"
-              . $f_obmin . " "
-              . $f_obampm;
+            my $f_gustdate  = $f_obmonth . "/" . $f_obday . "/" . $f_obyear . " " . $f_obhour . ":" . $f_obmin . " " . $f_obampm;
 
             #<aws:gust-time>
             #<aws:year number="2008" />
@@ -690,18 +580,15 @@
             my ($f_winddirectionavg) = $f_observation =~ /$pattern/;
 
             #<aws:wind-direction-avg>SSW</aws:wind-direction-avg>
-            $Weather{weatherbug_obsv_date}              = $f_obsdate;
-            $Weather{weatherbug_obsv_station}           = $f_station;
-            $Weather{weatherbug_obsv_currentconditions} = $f_currentcondition;
-            $Weather{weatherbug_obsv_currentconditionnumber} =
-              $f_currentconditionnum;
+            $Weather{weatherbug_obsv_date}                   = $f_obsdate;
+            $Weather{weatherbug_obsv_station}                = $f_station;
+            $Weather{weatherbug_obsv_currentconditions}      = $f_currentcondition;
+            $Weather{weatherbug_obsv_currentconditionnumber} = $f_currentconditionnum;
 
             # then the extensions developed for mh tests
             if ( $f_currentconditionnum <= $wxbug_maximum_code ) {
-                $Weather{weatherbug_obsv_precip_type} =
-                  $wxbug_precip_type[$f_currentconditionnum];
-                $Weather{weatherbug_obsv_precip_ammount} =
-                  $wxbug_precip_ammount[$f_currentconditionnum];
+                $Weather{weatherbug_obsv_precip_type}    = $wxbug_precip_type[$f_currentconditionnum];
+                $Weather{weatherbug_obsv_precip_ammount} = $wxbug_precip_ammount[$f_currentconditionnum];
             }
             else {    # We are here because the code is > known table
                 $Weather{weatherbug_obsv_precip_type}    = "Unknown";
@@ -728,14 +615,11 @@
 
             #prepare a vector to pass data to internet weather
             my %wxbug_pass;
-            $wxbug_pass{TempOutdoor} = $f_temp;
-            $wxbug_pass{DewOutdoor}  = $f_dewpoint;
-            $wxbug_pass{WindAvgDir} =
-              &Weather_Common::convert_wind_dir_abbr_to_num(
-                $f_winddirectionavg);
-            $wxbug_pass{WindAvgSpeed} = $f_windspeedavg;
-            $wxbug_pass{WindGustDir} =
-              &Weather_Common::convert_wind_dir_abbr_to_num($f_gustdirection);
+            $wxbug_pass{TempOutdoor}   = $f_temp;
+            $wxbug_pass{DewOutdoor}    = $f_dewpoint;
+            $wxbug_pass{WindAvgDir}    = &Weather_Common::convert_wind_dir_abbr_to_num($f_winddirectionavg);
+            $wxbug_pass{WindAvgSpeed}  = $f_windspeedavg;
+            $wxbug_pass{WindGustDir}   = &Weather_Common::convert_wind_dir_abbr_to_num($f_gustdirection);
             $wxbug_pass{WindGustSpeed} = $f_gustspeed;
             $wxbug_pass{WindGustTime}  = $f_gustdate;
 
@@ -773,10 +657,8 @@
             $wxbug_pass{Barom}                = $f_pressure;
             $wxbug_pass{HumidOutdoorMeasured} = 1;
             $wxbug_pass{HumidOutdoor}         = $f_humidity;
-            $wxbug_pass{RainRate} =
-              $wxbug_precip_ammount[$f_currentconditionnum];
-            &Weather_Common::populate_internet_weather( \%wxbug_pass,
-                $config_parms{weather_weatherbug_elements} );
+            $wxbug_pass{RainRate}             = $wxbug_precip_ammount[$f_currentconditionnum];
+            &Weather_Common::populate_internet_weather( \%wxbug_pass, $config_parms{weather_weatherbug_elements} );
 
             &Weather_Common::weather_updated;
         }
@@ -820,11 +702,9 @@
                     my ($f_zipcode)     = $weatherbug_location =~ /$pattern/;
                     my $pattern         = 'citycode="(\d+)"';
                     my ($f_citycode)    = $weatherbug_location =~ /$pattern/;
-                    print_log
-                      "Citycode=$f_citycode for $f_cityname,$f_statename,$f_countryname."
+                    print_log "Citycode=$f_citycode for $f_cityname,$f_statename,$f_countryname."
                       if ( $f_citycode != 0 );
-                    print_log
-                      "Zipcode=$f_zipcode for $f_cityname,$f_statename,$f_countryname."
+                    print_log "Zipcode=$f_zipcode for $f_cityname,$f_statename,$f_countryname."
                       if ( $f_zipcode != 0 );
                 }
                 print_log "Weatherbug location search result.";
@@ -846,19 +726,11 @@
             # Do a test to see if the data returned is likely valid.
             # There should be a title for forecast in the text for the
             # city if the fetch was successful
-            $Weather{weatherbug_fcst_valid} = 0; #Set to not valid unless proven
+            $Weather{weatherbug_fcst_valid} = 0;    #Set to not valid unless proven
             my $search_for = "Forecast for $weatherbug_city";
             my $title      = $channel->first_child_text("title");
-            logit(
-                "$config_parms{data_dir}/web/weatherbug_debug",
-                "Search for: " . $search_for,
-                13, 0
-            ) if ( $Debug{weatherbug} );
-            logit(
-                "$config_parms{data_dir}/web/weatherbug_debug",
-                "WeatherBug returned: $title",
-                13, 0
-            ) if ( $Debug{weatherbug} );
+            logit( "$config_parms{data_dir}/web/weatherbug_debug", "Search for: " . $search_for,  13, 0 ) if ( $Debug{weatherbug} );
+            logit( "$config_parms{data_dir}/web/weatherbug_debug", "WeatherBug returned: $title", 13, 0 ) if ( $Debug{weatherbug} );
             if ( $title =~ /$search_for/i ) {
                 $Weather{weatherbug_fcst_valid} = 1;
             }
@@ -866,21 +738,15 @@
                 # the test for forecast failed
                 # Since there is not an forecast title assume failure
                 $Weather{weatherbug_valid} = 0;
-                print_log
-                  "weatherbug: Error Did not find forecast for $weatherbug_city.";
-                print_log
-                  "weatherbug: Check the $weatherbug_file file for which city was found and modify the config parameters.";
+                print_log "weatherbug: Error Did not find forecast for $weatherbug_city.";
+                print_log "weatherbug: Check the $weatherbug_file file for which city was found and modify the config parameters.";
                 goto fail;
             }
 
             # Valid forecast so record the forecast date and time to live
             my $f_date       = $channel->first_child_text("lastBuildDate");
             my $f_timetolive = $channel->first_child_text("ttl");
-            logit(
-                "$config_parms{data_dir}/web/weatherbug_debug",
-                $f_date . ' for ' . $f_timetolive . ' minutes',
-                13, 0
-            ) if ( $Debug{weatherbug} );
+            logit( "$config_parms{data_dir}/web/weatherbug_debug", $f_date . ' for ' . $f_timetolive . ' minutes', 13, 0 ) if ( $Debug{weatherbug} );
 
             my $fcast_counter = 0;
 
@@ -892,8 +758,7 @@
                 next unless my $f_day = $title->att("alttitle");
 
                 # If we got here we have a valid forecast to process
-                logit( "$config_parms{data_dir}/web/weatherbug_debug",
-                    $forecast->print, 13, 0 )
+                logit( "$config_parms{data_dir}/web/weatherbug_debug", $forecast->print, 13, 0 )
                   if ( $Debug{weatherbug} );
                 $f_day = ucfirst( lc($f_day) );
 
@@ -940,8 +805,7 @@
                     }
                 }
 
-                my $f_prediction =
-                  $forecast->first_child_text("aws:prediction");
+                my $f_prediction = $forecast->first_child_text("aws:prediction");
 
                 # Get the chance of rain or snow
                 my $pattern = 'There is a (\d+)% chance of precipitation';
@@ -1019,8 +883,7 @@
                       . ' valid for '
                       . $f_timetolive
                       . ' minutes.';
-                    logit( "$config_parms{data_dir}/web/weatherbug_debug",
-                        $temp, 13, 0 );
+                    logit( "$config_parms{data_dir}/web/weatherbug_debug", $temp, 13, 0 );
                 }
 
                 # load the forecast into the hash
@@ -1055,8 +918,7 @@
                 $Weather{$hashindex} = $f_conditions;
                 my $hashindex = "weatherbug_frcst_" . $findex . "_precip_type";
                 $Weather{$hashindex} = $f_precip_type;
-                my $hashindex =
-                  "weatherbug_frcst_" . $findex . "_precip_ammount";
+                my $hashindex = "weatherbug_frcst_" . $findex . "_precip_ammount";
                 $Weather{$hashindex} = $f_precip_ammount;
 
                 # increment the forecast counter for the next forecast day

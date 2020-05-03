@@ -24,8 +24,7 @@ NONE
 package Caller_ID;
 use strict;
 
-use vars '%name_by_number', '%reject_name_by_number', '%state_by_areacode',
-  '%wav_by_number', '%group_by_number';
+use vars '%name_by_number', '%reject_name_by_number', '%state_by_areacode', '%wav_by_number', '%group_by_number';
 my ( $my_areacode, @my_areacodes, $my_state );
 my $caller_file_2   = 1;
 my $caller_id_debug = 0;
@@ -96,11 +95,7 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
     # Switch name strings so first last, not last first.
     # Use only the 1st two blank delimited fields, as the 3rd, 4th are usually just initials or incomplete
 
-    my (
-        $number,   $numberTo,     $name,  $time,
-        $date,     $last,         $first, $middle,
-        $areacode, $local_number, $caller
-    );
+    my ( $number, $numberTo, $name, $time, $date, $last, $first, $middle, $areacode, $local_number, $caller );
 
     # Last First M
     # Last M First
@@ -123,9 +118,9 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
         $name = substr( $name, 0, 15 );
 
         #       $name = 'Unavailable' if $name =~ /^O$/; # Jay's & Chaz's exceptions
-        $name = 'Out of Area' if $name =~ /^O$/;    # Jay's & Chaz's exceptions
-        $name = 'Private'     if $name =~ /^P$/;    # Chaz's exception
-        $name = 'Pay' if $name =~ /^TEL PUBLIC BELL$/;    # Chaz's exception
+        $name = 'Out of Area' if $name =~ /^O$/;                  # Jay's & Chaz's exceptions
+        $name = 'Private'     if $name =~ /^P$/;                  # Chaz's exception
+        $name = 'Pay'         if $name =~ /^TEL PUBLIC BELL$/;    # Chaz's exception
         ( $last, $first, $middle ) = split( /[\s,]+/, $name, 3 );
 
         # This is used for ZyXEL u1496 (see format at top)
@@ -146,20 +141,17 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
         ( $last, $first, $middle ) = split( /[\s,]+/, $name, 3 );
     }
     elsif ( $format == 4 ) {
-        ( $date, $time, $number, $name ) =
-          $data =~ /DATE(\d{4})(\d{4})\.{3}NMBR(.*)\.{3}NAME(.+?)\+*$/;
+        ( $date, $time, $number, $name ) = $data =~ /DATE(\d{4})(\d{4})\.{3}NMBR(.*)\.{3}NAME(.+?)\+*$/;
         $name = 'Unknown' if $name =~ /unknown/i;
         print "phone number=$number name=$name\n" if $caller_id_debug;
-        print
-          "\nCaller_ID format=4 not parsed: d=$data date=$date time=$time number=$number name=$name\n"
+        print "\nCaller_ID format=4 not parsed: d=$data date=$date time=$time number=$number name=$name\n"
           unless ( $name and ( !$caller_id_debug ) );
     }
 
     # NCID data=CID:*DATE*10202003*TIME*0019*NMBR*2125551212*MESG*NONE*NAME*INFORMATION*
     # http://ncid.sourceforge.net/
     elsif ( $format == 5 ) {
-        ( $date, $time, $number, $name ) = $data =~
-          /CID:\*DATE\*(\d{8})\*TIME\*(\d{4})\*NMBR\*(\d{10})\*MESG\*.*\*NAME\*([^\*]+)\*$/;
+        ( $date, $time, $number, $name ) = $data =~ /CID:\*DATE\*(\d{8})\*TIME\*(\d{4})\*NMBR\*(\d{10})\*MESG\*.*\*NAME\*([^\*]+)\*$/;
         print "phone number=$number name=$name\n" if $caller_id_debug;
     }
 
@@ -230,8 +222,7 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
         $caller = "Nummer $local_number"
           if ( $local_area_code_language =~ /swiss-german/gi );
     }
-    elsif ( $last eq "Unknown" and $number =~ /^\d{3}/ )
-    {    # From Steve Switzer: An unknown name, but phone number is known.
+    elsif ( $last eq "Unknown" and $number =~ /^\d{3}/ ) {    # From Steve Switzer: An unknown name, but phone number is known.
         $caller = $local_number;
     }
     elsif ( $last eq "Out-of-area" or $last eq "Out" or $number eq "O" ) {
@@ -298,19 +289,16 @@ sub read_areacode_list {
     #   &main::print_log("Reading area code table ... ");
     #   print "Reading area code table ... ";
 
-    my ( $area_code_file, %city_by_areacode, $city, $state, $areacode,
-        $areacode_cnt );
+    my ( $area_code_file, %city_by_areacode, $city, $state, $areacode, $areacode_cnt );
     if ( $parms{area_code_file} ) {
         open( AREACODE, $parms{area_code_file} )
-          or print
-          "\nError, could not find the area code file $parms{area_code_file}: $!\n";
+          or print "\nError, could not find the area code file $parms{area_code_file}: $!\n";
 
         while (<AREACODE>) {
             next if /^\#/;
             $areacode_cnt++;
-            $_ =~ s/\(.+?\)//
-              ; # Delete descriptors like (Southern) Texas ... too much to speak
-                #406 All parts of Montana
+            $_ =~ s/\(.+?\)//;    # Delete descriptors like (Southern) Texas ... too much to speak
+                                  #406 All parts of Montana
 
             ( $areacode, $state ) = $_ =~ /(\d\d\d) All parts of (.+)/;
             ( $areacode, $city, $state ) = $_ =~ /(\d\d\d)(.*), *(.+)/
@@ -359,9 +347,7 @@ sub read_callerid_list {
 
     my ( $number, $name, $callerid_cnt, $wav, $group );
 
-    &main::print_log(
-        "Reading override phone list $caller_id_file, $reject_caller_id_file ... "
-    ) if $caller_id_debug;
+    &main::print_log("Reading override phone list $caller_id_file, $reject_caller_id_file ... ") if $caller_id_debug;
     print "Reading override phone list ... \n" if $caller_id_debug;
 
     undef %name_by_number;
@@ -369,8 +355,7 @@ sub read_callerid_list {
     undef %group_by_number;    #hp added
     if ($caller_id_file) {
         open( CALLERID, $caller_id_file )
-          or print
-          "\nError, could not find the caller id file $caller_id_file: $!\n";
+          or print "\nError, could not find the caller id file $caller_id_file: $!\n";
 
         $callerid_cnt = 0;
         while (<CALLERID>) {
@@ -385,13 +370,10 @@ sub read_callerid_list {
             $name_by_number{$number}  = $name;
             $wav_by_number{$number}   = $wav;      #hp added
             $group_by_number{$number} = $group;    #hp added
-            print
-              "Callerid names: number=$number  name=$name wav=$wav group=$group\n"
+            print "Callerid names: number=$number  name=$name wav=$wav group=$group\n"
               if $caller_id_debug;                 ###DBG
         }
-        &main::print_log(
-            "read in $callerid_cnt caller ID override names/numbers from $caller_id_file"
-        ) if $caller_id_debug;
+        &main::print_log("read in $callerid_cnt caller ID override names/numbers from $caller_id_file") if $caller_id_debug;
         print "Read $callerid_cnt entries from $caller_id_file\n"
           if ( $caller_id_debug or $Main::Reload );
         close CALLERID;
@@ -400,8 +382,7 @@ sub read_callerid_list {
     undef %reject_name_by_number;
     if ($reject_caller_id_file) {
         open( CALLERID, $reject_caller_id_file )
-          or print
-          "\nError, could not find the reject caller id file $reject_caller_id_file: $!\n";
+          or print "\nError, could not find the reject caller id file $reject_caller_id_file: $!\n";
 
         $callerid_cnt = 0;
         while (<CALLERID>) {

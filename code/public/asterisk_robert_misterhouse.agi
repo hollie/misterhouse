@@ -109,15 +109,13 @@ sub speak_text {
     my ($text) = @_;
     verbose("TTS type is: $ttstype");
     verbose("TEXT OUTPUT: $text");
-    ( undef, $filename ) =
-      tempfile( "/tmp/misterhouseXXXXX", SUFFIX => ".wav" );
+    ( undef, $filename ) = tempfile( "/tmp/misterhouseXXXXX", SUFFIX => ".wav" );
     if ( $ttstype eq "theta" ) {
         $ENV{THETA_HOME} = dirname( dirname($ttscommand) );
         system("$ttscommand -F 8000 -o $filename \"$text\"");
     }
     if ( $ttstype eq "text2wave" ) {
-        system(
-            "echo \"$text\" | $ttscommand -scale 1.5 -F 8000 -o $filename -");
+        system("echo \"$text\" | $ttscommand -scale 1.5 -F 8000 -o $filename -");
     }
     $streamfile = substr( $filename, 0, -4 );
     $AGI->stream_file($streamfile);

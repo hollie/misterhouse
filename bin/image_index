@@ -67,8 +67,7 @@ sub get_img() {
         return unless $ext and $ext =~ /(jpg|gif)/i;
         return if $root =~ /^${prefix}_/;
         my $file_icon = "${prefix}_$root.$ext";
-        $html .=
-          qq[<td>$file<br><a href="$file"><img src="$file_icon"></a></td>\n];
+        $html .= qq[<td>$file<br><a href="$file"><img src="$file_icon"></a></td>\n];
         $html .= qq[</tr><tr>\n] unless ++$count % 4;
     }
 }

@@ -12,14 +12,12 @@ sub startup {
 
     &::print_log("In IPLCS (Startup)\n") if $main::Debug{iplcs};
 
-    &main::serial_port_create( 'iplcs', $main::config_parms{iplcs_port},
-        4800, 'none', 'raw' );
+    &main::serial_port_create( 'iplcs', $main::config_parms{iplcs_port}, 4800, 'none', 'raw' );
 
     # Add hook only if serial port was created ok
     &::MainLoop_pre_add_hook( \&X10_iplcs::check_for_data, 1 )
       if $main::Serial_Ports{iplcs}{object};
-    &main::print_log(
-        "iplcs adding X10_iplcs-check_for_data into pre_add_hook\n")
+    &main::print_log("iplcs adding X10_iplcs-check_for_data into pre_add_hook\n")
       if $main::Serial_Ports{iplcs}{object};
 }
 
@@ -65,11 +63,9 @@ use constant EVENT => 0x45;    # 0x45 = Event Report <Event> See Event Pg 49
 # 0x46 =
 # 0x47 =
 # 0x48 =
-use constant DREPORT =>
-  0x49; # 0x49 = Debug report <Next Salad Addr hi> <addr lo> <Salad Instruction>
-use constant RcvX10 => 0x4A;  # 0x4A = X10 receive <Addr(00)/Cmd(01)> <X10 Byte>
-use constant RcvInsteon => 0x4F
-  ; # 0x4F = Insteon Received <Event ID> <Insteon msg ...(9 or 23 bytes> See Pg 43
+use constant DREPORT    => 0x49;    # 0x49 = Debug report <Next Salad Addr hi> <addr lo> <Salad Instruction>
+use constant RcvX10     => 0x4A;    # 0x4A = X10 receive <Addr(00)/Cmd(01)> <X10 Byte>
+use constant RcvInsteon => 0x4F;    # 0x4F = Insteon Received <Event ID> <Insteon msg ...(9 or 23 bytes> See Pg 43
 
 #        for Event IDs
 #
@@ -247,15 +243,10 @@ sub check_for_data {
         elsif ( $byte == RcvInsteon ) {
             $byte = shift(@bytes);
             printf( "Insteon: %s\n", substr( $hex, 4 ) ) if ($DEBUG);
-            $main::Serial_Ports{iplcs}{data} = ""
-              ; # (FIX ME) For now I'll drain the buffer but I should rethink this
+            $main::Serial_Ports{iplcs}{data} = "";    # (FIX ME) For now I'll drain the buffer but I should rethink this
         }
         else {
-            printf(
-                "Unknown 0x%02x %s [0x%02x]\n",
-                $byte, substr( $hex, 2 ),
-                $bytes[1]
-            );
+            printf( "Unknown 0x%02x %s [0x%02x]\n", $byte, substr( $hex, 2 ), $bytes[1] );
             $main::Serial_Ports{iplcs}{data} = substr( $data, 1 ) if ($DEBUG);
         }
     }
@@ -284,8 +275,7 @@ sub check_for_data {
             do {
                 $i++;
                 print "$i.";
-              } while ( ( $i <= $j ) && ( shift(@bytes) != STX ) )
-              ;    # Find the first STX (02) in the buffer
+            } while ( ( $i <= $j ) && ( shift(@bytes) != STX ) );    # Find the first STX (02) in the buffer
             print "\n";
             my $ldata = substr( $data, $i );
             if ($DEBUG) {
@@ -293,8 +283,7 @@ sub check_for_data {
                 $hex = unpack "H*", $ldata;
                 $data = $main::Serial_Ports{iplcs}{data};
                 my $l3 = length($data);
-                printf( "GRRR X10_iplcs Chk:[ %d vs. %d ]<%d> (%s)\n",
-                    $j, $l2, $l3, $hex );
+                printf( "GRRR X10_iplcs Chk:[ %d vs. %d ]<%d> (%s)\n", $j, $l2, $l3, $hex );
                 $main::Serial_Ports{iplcs}{data} = $ldata . $data;
             }
             else {

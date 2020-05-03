@@ -60,7 +60,7 @@ my ( @active_processes, @done_processes );
 sub new {
     my ( $class, @cmds ) = @_;
     my $self = {};
-    &set( $self, @cmds ) if @cmds; # Optional.  Can be specified later with set.
+    &set( $self, @cmds ) if @cmds;    # Optional.  Can be specified later with set.
     bless $self, $class;
     return $self;
 }
@@ -140,29 +140,19 @@ sub restore_string {
     if ( $self->{cmds} and my $cmds = join( $;, @{ $self->{cmds} } ) ) {
         $cmds =~ s/\n/ /g;         # Avoid new-lines on restored vars
         $cmds =~ s/~/\\~/g;
-        $restore_string .= '@{'
-          . $self->{object_name}
-          . "->{cmds}} = split(\$;, q~$cmds~) if (!exists("
-          . $self->{object_name}
-          . "->{cmds}));";
+        $restore_string .= '@{' . $self->{object_name} . "->{cmds}} = split(\$;, q~$cmds~) if (!exists(" . $self->{object_name} . "->{cmds}));";
     }
-    $restore_string .=
-      $self->{object_name} . "->{cmd_index} = q~$self->{cmd_index}~;\n"
+    $restore_string .= $self->{object_name} . "->{cmd_index} = q~$self->{cmd_index}~;\n"
       if $self->{cmd_index};
-    $restore_string .=
-      $self->{object_name} . "->{timeout} = q~$self->{timeout}~;\n"
+    $restore_string .= $self->{object_name} . "->{timeout} = q~$self->{timeout}~;\n"
       if $self->{timeout};
-    $restore_string .=
-      $self->{object_name} . "->{output} = q~$self->{output}~;\n"
+    $restore_string .= $self->{object_name} . "->{output} = q~$self->{output}~;\n"
       if $self->{output};
-    $restore_string .=
-      $self->{object_name} . "->{errlog} = q~$self->{errlog}~;\n"
+    $restore_string .= $self->{object_name} . "->{errlog} = q~$self->{errlog}~;\n"
       if $self->{errlog};
-    $restore_string .=
-      $self->{object_name} . "->{killsig} = q~$self->{killsig}~;\n"
+    $restore_string .= $self->{object_name} . "->{killsig} = q~$self->{killsig}~;\n"
       if $self->{killsig};
-    $restore_string .=
-      $self->{object_name} . "->{started} = q~$self->{started}~;\n"
+    $restore_string .= $self->{object_name} . "->{started} = q~$self->{started}~;\n"
       if $self->{started};
     $restore_string .= $self->{object_name} . "->{pid} = q~$self->{pid}~;\n"
       if $self->{pid};
@@ -215,15 +205,13 @@ sub start_next {
 
     if ( $type eq 'eval' ) {
         if ($main::OS_win) {
-            my $msg =
-              "Sorry, Process_Item eval fork only supported with linux.\n   cmd=$cmd";
+            my $msg = "Sorry, Process_Item eval fork only supported with linux.\n   cmd=$cmd";
             &main::print_log($msg);
             return;
         }
     }
     else {
-        ( $cmd_path, $cmd_args ) =
-          &main::find_pgm_path($cmd);    # From handy_utilities
+        ( $cmd_path, $cmd_args ) = &main::find_pgm_path($cmd);    # From handy_utilities
         $cmd = "$cmd_path $cmd_args";
     }
 
@@ -232,8 +220,7 @@ sub start_next {
     # Check to see if we have a previous 'start' to this object
     # has not finished yet.
     if ( $pid = $$self{pid} ) {
-        print
-          "Warning, a previous 'start' on this process has not finished yet\n";
+        print "Warning, a previous 'start' on this process has not finished yet\n";
 
         #        print "  The process will not be restarted:  cmd=$cmd\n";
         #        return;
@@ -249,8 +236,7 @@ sub start_next {
         open( STDOUT_REAL, ">&STDOUT" )
           or print "Process_Item Warning, can not backup STDOUT: $!\n";
         open( STDOUT, ">$$self{output}" )
-          or print
-          "Process_Item Warning, can not open output file $$self{output}: $!\n";
+          or print "Process_Item Warning, can not open output file $$self{output}: $!\n";
         print STDOUT_REAL '';    # To avoid the "used only once" perl -w warning
     }
 
@@ -259,8 +245,7 @@ sub start_next {
         open( STDERR_REAL, ">&STDERR" )
           or print "Process_Item Warning, can not backup STDERR: $!\n";
         open( STDERR, ">$$self{errlog}" )
-          or print
-          "Process_Item Warning, can not open errlog file $$self{errlog}: $!\n";
+          or print "Process_Item Warning, can not open errlog file $$self{errlog}: $!\n";
         print STDERR_REAL '';    # To avoid the "used only once" perl -w warning
     }
 
@@ -283,8 +268,7 @@ sub start_next {
         $cflag = 0;    # Avoid uninit warnings
 
         &Win32::Process::Create( $pid, $cmd_path, $cmd, 0, $cflag, '.' )
-          or warn
-          "Process_Item Warning, start Process error: cmd_path=$cmd_path\n -  cmd=$cmd   error=",
+          or warn "Process_Item Warning, start Process error: cmd_path=$cmd_path\n -  cmd=$cmd   error=",
           Win32::FormatMessage( Win32::GetLastError() ), "\n";
 
         open( STDOUT, ">&STDOUT_REAL" ) if $$self{output};
@@ -296,6 +280,8 @@ sub start_next {
     }
     else {
         $pid = fork;
+        &main::print_log("***PID Process_Item $pid (\$!=$! \$?=$?)") if $::Debug{fork}; 
+
         if ($pid) {
             print "Process start: parent pid=$pid type=$type cmd=$cmd\n"
               if $main::Debug{process};
@@ -308,8 +294,7 @@ sub start_next {
               if $main::Debug{process};
             if ( $type eq 'eval' ) {
 
-                package main
-                  ; # Had to do this to get the 'speak' function recognized without having to &main::speak() it
+                package main;    # Had to do this to get the 'speak' function recognized without having to &main::speak() it
                 eval $cmd;
                 print "Process Eval results: $@\n";
 
@@ -330,8 +315,7 @@ sub start_next {
                 # check if nice_level defined and if so, use it
                 my $nice_level = $self->nice_level;
                 if ( defined $nice_level ) {
-                    print
-                      "Process start: adjusting nice level to: $nice_level\n"
+                    print "Process start: adjusting nice level to: $nice_level\n"
                       if $main::Debug{process};
                     exec "nice --adjustment=$nice_level $cmd_path $cmd_args";
                 }
@@ -424,8 +408,7 @@ sub harvest {
         if ( defined $$process{timeout}
             and $time > ( $$process{timeout} + $$process{started} ) )
         {
-            print
-              "Process timed out process=$$process{object_name} pid=$pid cmd=@{$$process{cmds}} timeout=$$process{timeout}\n"
+            print "Process timed out process=$$process{object_name} pid=$pid cmd=@{$$process{cmds}} timeout=$$process{timeout}\n"
               if $main::Debug{process};
             $$process{timed_out} = $time;
             $process->stop();
@@ -436,14 +419,12 @@ sub harvest {
         # last restart of misterhouse.  If the process was started before the last hard restart,
         # the process will not be a waiting child of misterhouse and will only appear in /proc.
         if (   ( $main::OS_win and $pid->Wait(0) )
-            or
-            ( !$main::OS_win and waitpid( $pid, 1 ) and !( -e "/proc/$pid" ) )
+            or ( !$main::OS_win and waitpid( $pid, 1 ) and !( -e "/proc/$pid" ) )
             or ( $$process{timed_out} ) )
         {
             # Mark as done or start the next cmd?
             if ( $$process{cmd_index} < @{ $$process{cmds} } ) {
-                print
-                  "Process starting next cmd process=$$process{object_name} pid=$pid index=$$process{cmd_index}\n"
+                print "Process starting next cmd process=$$process{object_name} pid=$pid index=$$process{cmd_index}\n"
                   if $main::Debug{process};
                 delete $$process{pid};
                 &start_next($process);
@@ -454,8 +435,7 @@ sub harvest {
                 $$process{done} = $time;
                 delete $$process{pid};
                 delete $$process{started};
-                print
-                  "Process done_now process=$$process{object_name} pid=$pid to=$$process{timed_out} cmd=@{$$process{cmds}}\n"
+                print "Process done_now process=$$process{object_name} pid=$pid to=$$process{timed_out} cmd=@{$$process{cmds}}\n"
                   if $main::Debug{process};
             }
         }
@@ -485,8 +465,7 @@ sub stop {
         $$process{runtime} = time - $$process{started};
         delete $$process{pid};
         delete $$process{started};
-        print
-          "\nKilling unfinished process id $pid for $process cmd @{$$process{cmds}}\n"
+        print "\nKilling unfinished process id $pid for $process cmd @{$$process{cmds}}\n"
           if $main::Debug{process};
         if ($main::OS_win) {
 

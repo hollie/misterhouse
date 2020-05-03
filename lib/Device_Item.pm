@@ -90,10 +90,8 @@ sub set_standard_config {
     }
 
     # copy settings locally from the main hash
-    grep ( {
-            $self->{$_} = $self->{mainHash}->{$device_name}{$_}
-              if defined( $self->{mainHash}->{$device_name}{$_} )
-    } qw(readable writeable prefix datatype break) );
+    grep ( { $self->{$_} = $self->{mainHash}->{$device_name}{$_}
+              if defined( $self->{mainHash}->{$device_name}{$_} ) } qw(readable writeable prefix datatype break) );
 }
 
 sub said {
@@ -315,10 +313,7 @@ sub get_supported_interfaces {
 sub supports {
     my ( $self, $interface ) = @_;
 
-    if (
-        grep ( { lc $interface eq lc $_ } @{ $self->get_supported_interfaces } )
-        > 0 )
-    {
+    if ( grep ( { lc $interface eq lc $_ } @{ $self->get_supported_interfaces } ) > 0 ) {
         return 1;
     }
     return 0;

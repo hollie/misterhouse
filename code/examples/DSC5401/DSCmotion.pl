@@ -133,12 +133,12 @@ if ( $Dark eq 1 ) {
         if ( $State_Light eq OFF ) {
             set $Cuisine_Lumiere -40 if Time_Schedule( $Time_Sunset, "22:00" );
             set $Cuisine_Lumiere -45 if Time_Schedule( "22:00",      "23:59" );
-            set $Cuisine_Lumiere -50 if Time_Schedule( "00:00", $Time_Sunrise );
+            set $Cuisine_Lumiere -50 if Time_Schedule( "00:00",      $Time_Sunrise );
         }
         if ( active $IR_Cuisine1_Timer) { unset $IR_Cuisine1_Timer }
         set $IR_Cuisine1_Timer 600 if Time_Schedule( $Time_Sunset, "21:00" );
         set $IR_Cuisine1_Timer 300 if Time_Schedule( "21:00",      "23:59" );
-        set $IR_Cuisine1_Timer 120 if Time_Schedule( "00:00", $Time_Sunrise );
+        set $IR_Cuisine1_Timer 120 if Time_Schedule( "00:00",      $Time_Sunrise );
     }
 
     #--- T O I L E T T E
@@ -156,7 +156,7 @@ if ( $Dark eq 1 ) {
         if ( active $IR_Toilette_Timer) { unset $IR_Toilette_Timer }
         set $IR_Toilette_Timer 600 if Time_Schedule( $Time_Sunset, "23:00" );
         set $IR_Toilette_Timer 300 if Time_Schedule( "23:00",      "23:59" );
-        set $IR_Toilette_Timer 200 if Time_Schedule( "00:00", $Time_Sunrise );
+        set $IR_Toilette_Timer 200 if Time_Schedule( "00:00",      $Time_Sunrise );
     }
 
     #--- E N T R E   C O T E
@@ -171,7 +171,7 @@ if ( $Dark eq 1 ) {
         if ( active $IR_Entre_Cote_Timer) { unset $IR_Entre_Cote_Timer }
         set $IR_Entre_Cote_Timer 600 if Time_Schedule( $Time_Sunset, "21:00" );
         set $IR_Entre_Cote_Timer 300 if Time_Schedule( "21:00",      "23:59" );
-        set $IR_Entre_Cote_Timer 200 if Time_Schedule( "00:00", $Time_Sunrise );
+        set $IR_Entre_Cote_Timer 200 if Time_Schedule( "00:00",      $Time_Sunrise );
     }
 }    #--- If Dark
 #
@@ -235,8 +235,7 @@ sub Time_Schedule {
     my $Time_Stop  = my_str2time($time2);
 
     if ( $Time_Stop <= $Time_Start ) {
-        print_log
-          "Error Time Schedule Stop:($Time_Stop) <= Start:($Time_Start)";
+        print_log "Error Time Schedule Stop:($Time_Stop) <= Start:($Time_Start)";
         return 0;
     }
     elsif ( ( $Time >= $Time_Start ) && ( $Time <= $Time_Stop ) ) {

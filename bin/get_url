@@ -9,8 +9,7 @@ my ( $Pgm_Path, $Pgm_Name );
 BEGIN {
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval
-      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback' ";    # So perl2exe works
 }
 
 my ( %config_parms, %parms );
@@ -19,9 +18,8 @@ use Getopt::Long;
 
 #print "get_url: @ARGV\n";
 if (
-    !&GetOptions( \%parms, 'h', 'help',
-        'quiet', 'cookies=s', 'cookie_file_in=s', 'cookie_file_out=s',
-        'post=s', 'header=s', 'userid=s', 'password=s' )
+    !&GetOptions( \%parms, 'h', 'help', 'quiet', 'cookies=s', 'cookie_file_in=s', 'cookie_file_out=s', 'post=s', 'header=s', 'userid=s', 'password=s', 'ua',
+        'put=s', 'timeout=s', 'json', 'response_code' )
     or !@ARGV
     or $parms{h}
     or $parms{help}
@@ -34,7 +32,7 @@ if (
 
 Usage:
 
-    $Pgm_Name [-quiet] [-cookies 'cookiestr'] [-post 'poststr'] [-header header_file] url [local_file]
+    $Pgm_Name [-quiet] [-cookies 'cookiestr'] [-post 'poststr'] [-header header_file] [-timeout X] url [local_file]
 
     -quiet: no output on stdout
 
@@ -47,11 +45,21 @@ Usage:
     -userid 'userid'    :  Use these 2 parms if your web page is protected by
     -password 'password':  'basic credentials' (i.e. you get a browser popup).
 
-    -post 'poststr': Makes this a post request with the specified name/value pairs
+    -post 'poststr': Makes this a POST request with the specified name/value pairs
+      as the form data, such as: 'name1=val1&name2=val2'
+      
+    -put 'putstr': Makes this a PUT request with the specified name/value pairs
       as the form data, such as: 'name1=val1&name2=val2'
 
-    -header 'header_file': HTTP headers from the server are stored in this file
+    -json: Changes content_type to ('application/json')
+    
+    -ua: use UserAgent
 
+    -header 'header_file': HTTP headers from the server are stored in this file
+    
+    -response_code: STDOUT only: Prepend output with RESPONSECODE: <response code>\n
+
+    -timeout: XX : number of seconds to wait for command to complete
 
     If local_file is specified, data is stored there.
     If local_file = /dev/null, data is not returned.
@@ -78,8 +86,10 @@ $parms{cookies} = &file_read( $parms{cookie_file_in} )
 
 if (   ( $config_parms{get_url} eq 'useragent' )
     or $parms{post}
+    or $parms{put}
     or $parms{header}
     or $parms{cookies}
+    or $parms{ua}
     or $parms{cookie_file_out}
     or $parms{password} )
 {
@@ -103,15 +113,32 @@ sub use_ua {
     $ua->proxy( [ 'http', 'ftp' ] => $config_parms{proxy} )
       if $config_parms{proxy};
 
-    $ua->timeout( 30 );            # Time out after 30 seconds
+    $ua->timeout(30);                 # Time out after 30 seconds
+    $ua->timeout($parms{timeout} ) if $parms{timeout};
+    
     $ua->env_proxy();
     $ua->agent( $config_parms{get_url_ua} ) if $config_parms{get_url_ua};
 
     my $request;
     if ( $parms{post} ) {
         $request = new HTTP::Request( 'POST' => $url );
-        $request->content_type('application/x-www-form-urlencoded');
+        if ( $parms{json} ) {
+            $request->content_type('application/json');
+        }
+        else {
+            $request->content_type('application/x-www-form-urlencoded');
+        }
         $request->content( $parms{post} );
+    }
+    elsif ( $parms{put} ) {
+        $request = new HTTP::Request( 'PUT' => $url );
+        if ( $parms{json} ) {
+            $request->content_type('application/json');
+        }
+        else {
+            $request->content_type('application/x-www-form-urlencoded');
+        }
+        $request->content( $parms{put} );
     }
     else {
         $request = new HTTP::Request( 'GET', $url );
@@ -139,8 +166,7 @@ sub use_ua {
         print " url retrieved.\n" unless $parms{quiet};
         if ( $parms{header} ) {
             open( OUT, ">$parms{header}" )
-              or die
-              "Error, could not open file '$parms{header}' for output: $!\n";
+              or die "Error, could not open file '$parms{header}' for output: $!\n";
             binmode OUT;
             print OUT $response->headers_as_string();
             close OUT;
@@ -148,9 +174,7 @@ sub use_ua {
         if ( $parms{cookie_file_out} ) {
             my $cookies;
             for my $header ( split /\n/, $response->headers_as_string() ) {
-                if ( my ( $name, $value ) =
-                    $header =~ /^Set-Cookie: ([^=]+)=([^;]+)/ )
-                {
+                if ( my ( $name, $value ) = $header =~ /^Set-Cookie: ([^=]+)=([^;]+)/ ) {
                     $cookies .= "$name=$value; ";
                 }
             }
@@ -161,6 +185,7 @@ sub use_ua {
     }
     else {
         $response = $ua->request($request);
+        print "RESPONSECODE:" . $response->code() . "\n" if ( $parms{response_code} );
         print $response->content();
     }
     if ( $response->is_error() ) {

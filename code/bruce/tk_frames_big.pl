@@ -27,10 +27,8 @@ if ( $MW and $Reload ) {
         print "Creating new tk frames\n";
 
         # Create top and bottom frames
-        $Tk_objects{fl} =
-          $MW->Frame->pack(qw/-side left  -fill both -expand 1/);
-        $Tk_objects{fr} =
-          $MW->Frame->pack(qw/-side right -fill both -expand 1/);
+        $Tk_objects{fl} = $MW->Frame->pack(qw/-side left  -fill both -expand 1/);
+        $Tk_objects{fr} = $MW->Frame->pack(qw/-side right -fill both -expand 1/);
 
         # Create top left and tk grid frames
         $Tk_objects{fll} =
@@ -63,8 +61,7 @@ if ( $MW and $Reload ) {
             -setgrid    => 'true',
             -font       => $config_parms{tk_font}
         )->pack(qw/-side top -expand 1 -fill both/);
-        $Tk_objects{speak_window}->insert( '0.0', ( join "\n", @Speak_Log ) )
-          ;    # Seed with previous entries
+        $Tk_objects{speak_window}->insert( '0.0', ( join "\n", @Speak_Log ) );    # Seed with previous entries
 
         $Tk_objects{log_window} = $Tk_objects{fr}->Scrolled(
             'Text',
@@ -76,8 +73,7 @@ if ( $MW and $Reload ) {
             -setgrid    => 'true',
             -font       => $config_parms{tk_font}
         )->pack(qw/-side top -expand 1 -fill both/);
-        $Tk_objects{log_window}->insert( '0.0', ( join "\n", @Print_Log ) )
-          ;    # Seed with previous entries
+        $Tk_objects{log_window}->insert( '0.0', ( join "\n", @Print_Log ) );      # Seed with previous entries
 
     }
 

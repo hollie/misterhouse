@@ -1,10 +1,8 @@
 # Category=Music
 
 my @speakers;
-my $weeder_address =
-  'A';    # edit to match weeder dip switch setting (new weeder only)
-my $port_name =
-  'weeder';    # edit to match weeder serial port name from mh.private.ini
+my $weeder_address = 'A';         # edit to match weeder dip switch setting (new weeder only)
+my $port_name      = 'weeder';    # edit to match weeder serial port name from mh.private.ini
 
 ## EDIT THE FOLLOWING LINE WITH YOUR ROOM NAMES.
 ## MUST MATCH SERIAL ITEM DEFINITIONS IN PA_ITEMS.PL
@@ -69,8 +67,7 @@ sub set_weeder {
     }
     print "db byte string: $byte_string\n";
 
-    my $send = $weeder_address . "W"
-      . sprintf( "%0.2x", unpack( 'C', pack( 'B8', $byte_string ) ) );
+    my $send = $weeder_address . "W" . sprintf( "%0.2x", unpack( 'C', pack( 'B8', $byte_string ) ) );
     print "sending $send to the weeder card\n";    # uncomment for debugging
 
     &Serial_Item::send_serial_data( $port_name, $send . "\r" )
@@ -116,12 +113,12 @@ sub pa_stub {
     for $ref (@speakers) {
         if ( $ref->{while_speaking} ) {
             $pa_action_flag = 1;
-            print "On: " . $ref->{object_name} . "\n"; # uncomment for debugging
+            print "On: " . $ref->{object_name} . "\n";    # uncomment for debugging
             $ref->{state} = ON unless $ref->{sleeping};
         }
     }
     &set_weeder;
-    select undef, undef, undef, 0.2; # adjust to delay sound until relays are on
+    select undef, undef, undef, 0.2;                      # adjust to delay sound until relays are on
 ##################
 }
 

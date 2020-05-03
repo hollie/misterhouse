@@ -89,14 +89,8 @@ use File::Find;
 use Getopt::Long;
 
 # Declare parms and defaults
-my (
-    $size,   $dir,  $exts, $border,  $replace, $annotate,
-    $prefix, $skip, $help, $verbose, $colorfill
-  )
-  = (
-    '640x480', '', 'bmp,gif,jpg,jpeg,mng,pcd,pcx,png,tga,tiff,xpm',
-    1, 0, 0, 'sm1', '', 0, 0, 'black'
-  );
+my ( $size, $dir, $exts, $border, $replace, $annotate, $prefix, $skip, $help, $verbose, $colorfill ) =
+  ( '640x480', '', 'bmp,gif,jpg,jpeg,mng,pcd,pcx,png,tga,tiff,xpm', 1, 0, 0, 'sm1', '', 0, 0, 'black' );
 my ( %exts, $rc, %counts, $file_in, $file_out, $outdir );
 $counts{resized} = $counts{existed} = 0;
 
@@ -140,8 +134,7 @@ if ( $file_in and $file_out ) {
 else {
     find( { wanted => \&get_img, no_chdir => 1 }, $dir );
 }
-print
-  " - Resized $counts{resized} images ($counts{existed} images not replaced)\n";
+print " - Resized $counts{resized} images ($counts{existed} images not replaced)\n";
 
 sub get_img() {
     my $full_file = $_;

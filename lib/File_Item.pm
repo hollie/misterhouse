@@ -120,8 +120,7 @@ sub changed {
             return $self->{flag};
         }
         else {
-            return
-              $diff;   # Return number of seconds it was since the watch was set
+            return $diff;           # Return number of seconds it was since the watch was set
         }
     }
     else {
@@ -220,9 +219,8 @@ sub said {
         # On startup, point pointer to the tail of the file
         while (<$handle>) { }
         $$self{index} = tell $handle;
-        print
-          "File_Item said method for $$self{file} opened to index $$self{index}\n";
-        return;    # No new data on startup
+        print "File_Item said method for $$self{file} opened to index $$self{index}\n";
+        return;          # No new data on startup
     }
     seek $handle, $$self{index}, 0;    # Go to where the last data was read
     my $data = <$handle>;              # One record per call

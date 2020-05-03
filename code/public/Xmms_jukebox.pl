@@ -15,14 +15,13 @@ $Playlist[4] = "/MP3/playlist/X10/Playlist_4.m3u";
 $v_Play = new Voice_Cmd '[Play] song';
 $v_Play->set_info("Play song on the jukebox");
 
-$v_Stop   = new Voice_Cmd '[Stop] song';
-$v_Pause  = new Voice_Cmd '[Pause] the jukebox';
-$v_Random = new Voice_Cmd '[Randomize] the playlist';
-$v_Sort   = new Voice_Cmd '[Sort] the playlist';
-$v_Next   = new Voice_Cmd '[Next] song';
-$v_Prev   = new Voice_Cmd '[Prev] song';
-$v_Volume =
-  new Voice_Cmd("Set volume to [0,10,20,30,40,50,60,65,70,75,80,85,90,95,100]");
+$v_Stop     = new Voice_Cmd '[Stop] song';
+$v_Pause    = new Voice_Cmd '[Pause] the jukebox';
+$v_Random   = new Voice_Cmd '[Randomize] the playlist';
+$v_Sort     = new Voice_Cmd '[Sort] the playlist';
+$v_Next     = new Voice_Cmd '[Next] song';
+$v_Prev     = new Voice_Cmd '[Prev] song';
+$v_Volume   = new Voice_Cmd("Set volume to [0,10,20,30,40,50,60,65,70,75,80,85,90,95,100]");
 $v_Playlist = new Voice_Cmd("Set Playlist number [1,2,3,4]");
 $v_Now      = new Voice_Cmd("[Now] playing");
 set_icon $v_Now 'music';

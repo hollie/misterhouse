@@ -56,10 +56,7 @@ sub new {
     $$self{previous_status} = "";
     $$self{status}          = "UNKNOWN";
 
-    $$self{data_file} =
-        $main::config_parms{data_dir}
-      . "/web/ccnet_status-"
-      . $$self{project} . ".html";
+    $$self{data_file} = $main::config_parms{data_dir} . "/web/ccnet_status-" . $$self{project} . ".html";
     return $self;
 }
 
@@ -77,13 +74,7 @@ sub previous_status {
 
 sub get_status {
     my ($self) = @_;
-    my $cmd0 =
-        "get_url "
-      . $$self{base_url}
-      . "/server/local/project/"
-      . $$self{project}
-      . "/ViewLatestBuildReport.aspx "
-      . $$self{data_file};
+    my $cmd0 = "get_url " . $$self{base_url} . "/server/local/project/" . $$self{project} . "/ViewLatestBuildReport.aspx " . $$self{data_file};
 
     #	$$self{process} = new Process_Item("get_url " . $$self{base_url} . "/server/local/project/" . $$self{project} . "/ViewLatestBuildReport.aspx " . $$self{data_file});
     my $cmd1 = '$' . $$self{name} . "->parse_status()";
@@ -91,8 +82,7 @@ sub get_status {
     #	$$self{process}->add($cmd1);
     #	$$self{process}->start();
 
-    &::print_log(
-        "Retrieving ccnet status for: $$self{project}, with " . $cmd1 . ":" );
+    &::print_log( "Retrieving ccnet status for: $$self{project}, with " . $cmd1 . ":" );
 
     #	exec($cmd0);
     &::run( 'inline', $cmd0 );
@@ -119,8 +109,7 @@ sub parse_status {
         if (/.*class=\"header-title\"/) {
             $found_status = 1;
             $self->previous_status( $$self{status} );
-            @l_data =
-              $_ =~ /<td class=\"header-title\" colspan=\"2\">BUILD (.*)</;
+            @l_data = $_ =~ /<td class=\"header-title\" colspan=\"2\">BUILD (.*)</;
             $self->current_status( $l_data[0] );
 
             #			$self->{status} = $l_data[0];
@@ -174,8 +163,7 @@ sub parse_status {
             if ( $section_no eq 2 ) {
                 $section_no    = 0;
                 $found_section = 0;
-                @l_data =
-                  $_ =~ /<td class=\"section-data\" valign=\"top\">(.*)<\/td>/;
+                @l_data        = $_ =~ /<td class=\"section-data\" valign=\"top\">(.*)<\/td>/;
                 if (    $self->current_status() ne 'SUCCESSFUL'
                     and $previous_suspect ne $l_data[0] )
                 {
@@ -193,9 +181,7 @@ sub parse_status {
         next;
     }
     close(l_file);
-    &::print_log(
-        "Build:$$self{project} Status:$$self{status} Suspects:$$self{suspects} Previous:$$self{previous_status}"
-    );
+    &::print_log("Build:$$self{project} Status:$$self{status} Suspects:$$self{suspects} Previous:$$self{previous_status}");
     return $self;
 }
 

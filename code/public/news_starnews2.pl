@@ -5,8 +5,7 @@ my $f_star_local_html = "$config_parms{data_dir}/web/star_citystate.html";
 
 #$f_star_local_html2 = new File_Item($f_star_local_html); # Needed if we use run instead of process_item
 
-$p_star_citystate = new Process_Item(
-    "get_url http://www.starnews.com/digest/citystate.html $f_star_local_html");
+$p_star_citystate = new Process_Item("get_url http://www.starnews.com/digest/citystate.html $f_star_local_html");
 $v_star_citystate = new Voice_Cmd('[Get,Read,Show] the Star Local news');
 
 speak($f_star_citystate)   if said $v_star_citystate eq 'Read';

@@ -79,19 +79,11 @@ use PocketSphinx;
 # noloop=stop
 
 # define some classes we need
-$v_pocketsphinx_reset = new Voice_Cmd("reset pocket sphinx language files");
-$v_pocketsphinx_awake = new Voice_Cmd(
-    $config_parms{pocketsphinx_awake_phrase},
-    $config_parms{pocketsphinx_awake_response}
-);
-$v_pocketsphinx_asleep = new Voice_Cmd(
-    $config_parms{pocketsphinx_asleep_phrase},
-    $config_parms{pocketsphinx_timeout_response}
-);
-$pocketsphinx_listener =
-  new PocketSphinx_Listener( "$config_parms{pocketsphinx_dev}",
-    $config_parms{pocketsphinx_rate} );
-$t_awake_timer = new Timer;
+$v_pocketsphinx_reset  = new Voice_Cmd("reset pocket sphinx language files");
+$v_pocketsphinx_awake  = new Voice_Cmd( $config_parms{pocketsphinx_awake_phrase}, $config_parms{pocketsphinx_awake_response} );
+$v_pocketsphinx_asleep = new Voice_Cmd( $config_parms{pocketsphinx_asleep_phrase}, $config_parms{pocketsphinx_timeout_response} );
+$pocketsphinx_listener = new PocketSphinx_Listener( "$config_parms{pocketsphinx_dev}", $config_parms{pocketsphinx_rate} );
+$t_awake_timer         = new Timer;
 
 # Set mode on startup and reload
 if ( $Startup or $Reload ) {

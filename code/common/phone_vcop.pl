@@ -54,8 +54,7 @@ print "vocp users = $vocp_users";
 
 # noloop=stop
 
-$v_count_voicemails =
-  new Voice_Cmd("Count voice mail messages for [$vocp_users]");
+$v_count_voicemails = new Voice_Cmd("Count voice mail messages for [$vocp_users]");
 
 if ( my $user = said $v_count_voicemails) {
     my @mailboxes = split ',', $config_parms{vocp_mailboxes};
@@ -94,8 +93,7 @@ sub vocp_clearmsgs {
     my ( $user, $mailbox, $message ) = @_;
 
     #	return '' unless $Authorized eq 'admin' or $Authorized eq 'family';
-    return &html_header("Delete voicemail?")
-      . "<H2><A HREF=\"/SUB?vocp_deletemsgs($user,$mailbox,$message)\">Continue?</A></H2>";
+    return &html_header("Delete voicemail?") . "<H2><A HREF=\"/SUB?vocp_deletemsgs($user,$mailbox,$message)\">Continue?</A></H2>";
 }
 
 sub vocp_deletemsgs {
@@ -104,15 +102,11 @@ sub vocp_deletemsgs {
     my ( $user, $mailbox, $message ) = @_;
     print "deletemsgs: user:$user mbx:$mailbox message:$message\n"
       if $main::Debug{vocp};
-    my $file =
-        $config_parms{vocp_voicemail_dir} . "/"
-      . $mailbox . "-"
-      . $message . ".rmd";
+    my $file = $config_parms{vocp_voicemail_dir} . "/" . $mailbox . "-" . $message . ".rmd";
 
     my $xml = new XML::Simple;
 
-    my $flagfile =
-      $config_parms{vocp_voicemail_dir} . "/" . ".flag." . $mailbox;
+    my $flagfile = $config_parms{vocp_voicemail_dir} . "/" . ".flag." . $mailbox;
     print "checking for file $flagfile\n" if $main::Debug{vocp};
     if ( not -f $flagfile ) { die "can't find file" }
 
@@ -184,11 +178,9 @@ sub vocp_play_voicemail {
     my $file     = $path . $filename;
     print "checking for file $file\n";
 
-    system
-      qq[$config_parms{vocp_bin_dir}/rmdtopvf $file | $config_parms{vocp_bin_dir}/pvftowav > $config_parms{html_dir}/ia5/phone/voicemail1.wav];
+    system qq[$config_parms{vocp_bin_dir}/rmdtopvf $file | $config_parms{vocp_bin_dir}/pvftowav > $config_parms{html_dir}/ia5/phone/voicemail1.wav];
 
-    my $html .=
-      "\n<br><EMBED SRC='voicemail1.wav' VOLUME=20 WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n";
+    my $html .= "\n<br><EMBED SRC='voicemail1.wav' VOLUME=20 WIDTH=144 HEIGHT=60 AUTOSTART='true'>\n";
     return $html;
 }
 
@@ -223,13 +215,11 @@ sub vocp_display_voicemail {
 
                 my $good_num = $number =~ /(\d\d\d)(\d\d\d)(\d+)/;
                 if ($good_num) {
-                    $number = $1 . '-' . $2 . "-" . $3;
-                    %callerid_by_number =
-                      dbm_read("$config_parms{data_dir}/phone/callerid.dbm")
+                    $number             = $1 . '-' . $2 . "-" . $3;
+                    %callerid_by_number = dbm_read("$config_parms{data_dir}/phone/callerid.dbm")
                       unless %callerid_by_number;
                     my $cid_data = $callerid_by_number{$number};
-                    ( $calls, $time2, $date, $name2 ) =
-                      $cid_data =~ /^(\d+) +(.+), (.+) name=(.+)/
+                    ( $calls, $time2, $date, $name2 ) = $cid_data =~ /^(\d+) +(.+), (.+) name=(.+)/
                       if $cid_data;
                     $name2 = "Not in Database" if $name2 eq '';
                 }
@@ -237,16 +227,14 @@ sub vocp_display_voicemail {
 
                 $num++;
 
-                $html_voicemail_data .=
-                  "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
+                $html_voicemail_data .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
                 $html_voicemail_data .=
                   "<td nowrap>$time</td><td nowrap><a href=\"SUB?vocp_play_voicemail($user,$boxnum,$msgnum)\"><img src='/graphics/sound.gif' border=0 alt='Play message'></a><a href=\"/SUB?vocp_clearmsgs($user,$boxnum,$msgnum)\"><img src='/graphics/trash.gif' border=0 alt='Delete message'></a>&nbsp;$number</td><td nowrap>$name2</td><td nowrap>$duration</td></tr>";
 
             }
             $html_voicemail_hdr .= &html_header("$num Messages for $user ");
 
-            $html_voicemail_hdr .=
-              "<table width=100% cellspacing=2><tbody><font face=COURIER size=2>
+            $html_voicemail_hdr .= "<table width=100% cellspacing=2><tbody><font face=COURIER size=2>
 <tr id='resultrow' bgcolor='#9999CC' class='wvtheader'>
 <th align='left'>Time</th>
 <th align='left'>Number</th>

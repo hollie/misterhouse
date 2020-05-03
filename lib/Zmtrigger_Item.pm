@@ -73,9 +73,7 @@ sub new {
         $self->{monitor_id} = $monitor_id;
     }
     else {
-        &::print_log(
-            "[Zmtrigger_Item] WARN You must specify a monitor_id when creating a new Zmtrigger_Item"
-        );
+        &::print_log("[Zmtrigger_Item] WARN You must specify a monitor_id when creating a new Zmtrigger_Item");
         return;
     }
     if ( defined $max_duration ) {
@@ -117,38 +115,29 @@ sub set {
     #  Build the data stream
     my $data = $self->{monitor_id};
     if ( $state eq "on" ) {
-        $data .= "|on+"
-          . $self->{max_duration} . "|"
-          . $self->{score} . "|"
-          . $self->{description};
+        $data .= "|on+" . $self->{max_duration} . "|" . $self->{score} . "|" . $self->{description};
     }
     elsif ( $state eq "off" ) {
         $data .= "|cancel";
     }
     else {
-        &::print_log(
-            "[Zmtrigger_Item] WARN A valid state(on,off) must be specified when calling SET"
-        );
+        &::print_log("[Zmtrigger_Item] WARN A valid state(on,off) must be specified when calling SET");
         return;
     }
 
     if ( !defined $zm_connect ) {    # If not already, Create the Socket_Item
-        my $address = $main::config_parms{zm_server_address} . ":"
-          . $main::config_parms{zm_server_port};
+        my $address = $main::config_parms{zm_server_address} . ":" . $main::config_parms{zm_server_port};
 
-        &::print_log(
-            "[Zmtrigger_Item] Creating Socket_Item zm_connect at:-$address-");
+        &::print_log("[Zmtrigger_Item] Creating Socket_Item zm_connect at:-$address-");
         $zm_connect = new Socket_Item( undef, undef, $address );
     }
 
     start $zm_connect;               # Connect the telnet session
-    if ( active $zm_connect)
-    {    # send the data to the telnet session if it is active
-        &::print_log(
-            "[Zmtrigger_Item] Active connection found sending:-$data-");
+    if ( active $zm_connect) {       # send the data to the telnet session if it is active
+        &::print_log("[Zmtrigger_Item] Active connection found sending:-$data-");
         set $zm_connect $data;
     }
-    stop $zm_connect;    # Disconnect the telnet session
+    stop $zm_connect;                # Disconnect the telnet session
 
 }
 

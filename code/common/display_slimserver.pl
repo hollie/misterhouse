@@ -57,9 +57,7 @@ sub slimserver_display {
         $text = "\\n$text" if $text !~ /\n/;
         for my $player ( split ',', $config_parms{slimserver_players} ) {
             $player =~ s/^\s*(.*)\s*$/$1/;
-            &xAP::send( 'xPL', "slimdev-slimserv.$player",
-                'osd.basic' =>
-                  { command => 'write', text => $text, delay => $duration } );
+            &xAP::send( 'xPL', "slimdev-slimserv.$player", 'osd.basic' => { command => 'write', text => $text, delay => $duration } );
         }
     }
     else {
@@ -67,8 +65,7 @@ sub slimserver_display {
         $config_parms{slimserver_players} = $config_parms{slimserver_player}
           unless $config_parms{slimserver_players};
         for my $player ( split ',', $config_parms{slimserver_players} ) {
-            my $request =
-              "http://$config_parms{slimserver_server}/status.txt?p0=display&p1=MisterHouse Message:&p2=${text}&p3=${duration}&player=${player}";
+            my $request = "http://$config_parms{slimserver_server}/status.txt?p0=display&p1=MisterHouse Message:&p2=${text}&p3=${duration}&player=${player}";
             get $request;
         }
     }

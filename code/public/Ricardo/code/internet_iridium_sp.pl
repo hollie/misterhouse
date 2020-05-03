@@ -21,8 +21,7 @@ Note: Correct long. and time_zone parms for those of us in the
 =cut
 
 $iridium_check = new Voice_Cmd '[lee,lista,visualiza] destellos irídium';
-$iridium_check->set_info(
-    'Lista horarios y localizaciones de los destellos de satelites irídium');
+$iridium_check->set_info('Lista horarios y localizaciones de los destellos de satelites irídium');
 
 run_voice_cmd 'lee destellos irídium' if $New_Day;
 
@@ -31,11 +30,8 @@ run_voice_cmd 'lee destellos irídium' if $New_Day;
 my $iridium_check_e = "$Code_Dirs[0]/iridium_check_events.pl";
 my $iridium_check_f = "$config_parms{data_dir}/web/iridium.html";
 my $iridium_check_u =
-    "http://www.heavens-above.com/iridium.asp?"
-  . "lat=$config_parms{latitude}&lng=$config_parms{longitude}&alt=0&TZ=UCT&Dur=7&"
-  . "loc=$config_parms{city}";
-$iridium_check_p =
-  new Process_Item qq[get_url "$iridium_check_u" "$iridium_check_f"];
+  "http://www.heavens-above.com/iridium.asp?" . "lat=$config_parms{latitude}&lng=$config_parms{longitude}&alt=0&TZ=UCT&Dur=7&" . "loc=$config_parms{city}";
+$iridium_check_p = new Process_Item qq[get_url "$iridium_check_u" "$iridium_check_f"];
 
 #$iridium_check_p = new Process_Item "get_url '$iridium_check_u' '$iridium_check_f'";
 
@@ -90,14 +86,13 @@ eof
                 : "$a[1]/$a[0] $a[2]"
               ) +
               3600 * $config_parms{time_zone};
-            $time += 3600 if (localtime)[8];  # Adjust for daylight savings time
+            $time += 3600 if (localtime)[8];    # Adjust for daylight savings time
             ($time_sec) =
               time_date_stamp( 6, $time ) . ' ' . time_date_stamp( 16, $time );
             ( $time, $sec ) = time_date_stamp( 9, $time );
-            $display .= sprintf "%s, mag=%2d, alt=%3d, azimuth=%3d, %s %s\n",
-              $time_sec, @a[ 3, 4, 5, 9, 10 ];
+            $display .= sprintf "%s, mag=%2d, alt=%3d, azimuth=%3d, %s %s\n", $time_sec, @a[ 3, 4, 5, 9, 10 ];
 
-            next unless $a[4] > 20;    # We can not see them if they are too low
+            next unless $a[4] > 20;             # We can not see them if they are too low
 
             # Create a seperate code file with a time_now for each event
             print MYCODE<<eof;

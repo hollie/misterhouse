@@ -26,7 +26,7 @@ sub weather_summary_update {
 ##
     #$Weather{Summary_Short}= sprintf("%3.1f/%3d/%3d %3d%% %3d%%", #orig
     $Weather{Summary_Short} = sprintf(
-        "%3.1f&#176in|%3d&#176out|%3d&#176wc|%3d%%RH in|%3d%%RH out",   # Mark's
+        "%3.1f&#176in|%3d&#176out|%3d&#176wc|%3d%%RH in|%3d%%RH out",    # Mark's
         $Weather{TempIndoor},
         $Weather{TempOutdoor},
         $Weather{WindChill},
@@ -36,7 +36,7 @@ sub weather_summary_update {
     $Weather{Wind} = " $Weather{WindAvgSpeed}/$Weather{WindGustSpeed} " .
 
       #&main::convert_direction($Weather{WindGustDir});# long i.e. 'north west'
-      convert_summary_direction( $Weather{WindGustDir} );    # short i.e. 'NW'
+      convert_summary_direction( $Weather{WindGustDir} );                # short i.e. 'NW'
 ## ^^^^^^^^^^^^^^^^^^^^^
 ## Using WindGustDir because there is no AVG wind direction in WMR-968
 ##

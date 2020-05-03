@@ -9,13 +9,12 @@ package ControlX10::TI103;
 #
 #-----------------------------------------------------------------------------
 use strict;
-use vars
-  qw($VERSION $LOGFILE $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $POWER_RESET);
+use vars qw($VERSION $LOGFILE $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $POWER_RESET);
 
 require Exporter;
 
-@ISA    = qw(Exporter);
-@EXPORT = qw( send_ti103 receive_ti103 read_ti103 dim_decode_ti103 ping_ti103);
+@ISA         = qw(Exporter);
+@EXPORT      = qw( send_ti103 receive_ti103 read_ti103 dim_decode_ti103 ping_ti103);
 @EXPORT_OK   = qw();
 %EXPORT_TAGS = (
     FUNC => [
@@ -28,7 +27,7 @@ require Exporter;
 Exporter::export_ok_tags('FUNC');
 
 $EXPORT_TAGS{ALL} = \@EXPORT_OK;
-($VERSION) = q$Revision$ =~ /: (\S+)/; # Note: cvs version reset when we moved to sourceforge
+($VERSION) = q$Revision$ =~ /: (\S+)/;    # Note: cvs version reset when we moved to sourceforge
 $DEBUG   = 0;
 $LOGFILE = "$main::config_parms{data_dir}/logs/TI103.log";
 
@@ -66,8 +65,7 @@ sub ping_ti103 {
 sub receive_buffer {
     my ($serial_port) = @_;
 
-    $LOGFILE =
-      "$main::config_parms{data_dir}/logs/TI103.$main::Year_Month_Now.log";
+    $LOGFILE = "$main::config_parms{data_dir}/logs/TI103.$main::Year_Month_Now.log";
     if ( exists $main::Debug{x10} ) {
         $DEBUG = ( $main::Debug{x10} >= 1 ) ? 1 : 0;
     }
@@ -271,8 +269,7 @@ sub send {
     $X10String =~ s/ON/J/;
     $X10String =~ s/OFF/K/;
 
-    $LOGFILE =
-      "$main::config_parms{data_dir}/logs/TI103.$main::Year_Month_Now.log";
+    $LOGFILE = "$main::config_parms{data_dir}/logs/TI103.$main::Year_Month_Now.log";
     if ( exists $main::Debug{x10} ) {
         $DEBUG = ( $main::Debug{x10} >= 1 ) ? 1 : 0;
     }
@@ -321,11 +318,10 @@ sub send {
                 $val = ( $val < 10 ) ? "0" . $val : $val;
                 $X10Cmd .= x10dup( $House . "X" . $val );
             }
-            elsif ( $Type eq "L" )
-            {    # fixme  Brighten as per Misterhouse way (+40)
+            elsif ( $Type eq "L" ) {    # fixme  Brighten as per Misterhouse way (+40)
                 $X10Cmd .= x10dup( $House . "B40" );
             }
-            elsif ( $Type eq "M" ) { # fixme Dimmer as per Misterhouse way (-40)
+            elsif ( $Type eq "M" ) {    # fixme Dimmer as per Misterhouse way (-40)
                 $X10Cmd .= x10dup( $House . "D40" );
             }
 
@@ -394,8 +390,7 @@ sub send {
     }
 
     if ( buffer_blk( $serial_port, $X10Cmd ) ) {
-        &main::print_log(
-            "TI103.pm: SendX10 Complete X10 command received [$Cmd]")
+        &main::print_log("TI103.pm: SendX10 Complete X10 command received [$Cmd]")
           if $DEBUG;
         return 1;
     }
@@ -413,8 +408,7 @@ sub read {
     # No harm done, but we would rather not wait :)
     my $tries = ($no_block) ? 1 : 30;
 
-    $LOGFILE =
-      "$main::config_parms{data_dir}/logs/TI103.$main::Year_Month_Now.log";
+    $LOGFILE = "$main::config_parms{data_dir}/logs/TI103.$main::Year_Month_Now.log";
     if ( exists $main::Debug{x10} ) {
         $DEBUG = ( $main::Debug{x10} >= 1 ) ? 1 : 0;
     }
@@ -444,23 +438,19 @@ sub read {
 sub dim_level_decode {
     my ($code) = @_;
 
-    my %table_hcodes =
-      qw(A 0110  B 1110  C 0010  D 1010  E 0001  F 1001  G 0101  H 1101
+    my %table_hcodes = qw(A 0110  B 1110  C 0010  D 1010  E 0001  F 1001  G 0101  H 1101
       I 0111  J 1111  K 0011  L 1011  M 0000  N 1000  O 0100  P 1100);
-    my %table_dcodes =
-      qw(1 0110  2 1110  3 0010  4 1010  5 0001  6 1001  7 0101  8 1101
+    my %table_dcodes = qw(1 0110  2 1110  3 0010  4 1010  5 0001  6 1001  7 0101  8 1101
       9 0111 10 1111 11 0011 12 1011 13 0000 14 1000 15 0100 16 1100
       A 1111  B 0011  C 1011  D 0000  E 1000  F 0100  G 1100);
 
     # Convert bit string to decimal
-    my $level_b = $table_hcodes{ substr( $code, 0, 1 ) }
-      . $table_dcodes{ substr( $code, 1, 1 ) };
+    my $level_b = $table_hcodes{ substr( $code, 0, 1 ) } . $table_dcodes{ substr( $code, 1, 1 ) };
     my $level_d = unpack( 'C', pack( 'B8', $level_b ) );
 
     # Varies from 36 to 201, by 11, then to 210 as a max.
     # 16 different values.  Round to nearest 5%, max of 95.
-    my $level_p =
-      int( 100 * $level_d / 211 );    # Do not allow 100% ... not a valid state?
+    my $level_p = int( 100 * $level_d / 211 );    # Do not allow 100% ... not a valid state?
     $level_p = $level_p - ( $level_p % 5 );
     print "TI103 debug: dim_code=$code leveld=$level_d level_p=$level_p\n"
       if $DEBUG;
@@ -468,7 +458,7 @@ sub dim_level_decode {
 }
 
 sub reset_ti103 {
-    return unless ( 1 == @_ );        # requires port number to reset
+    return unless ( 1 == @_ );                    # requires port number to reset
 }
 
 sub ping {

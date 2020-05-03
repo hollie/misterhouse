@@ -60,8 +60,7 @@ sub new {
     $self->add_states('start');
 
     $self->{timer} = new Timer;
-    $self->{timer}
-      ->set( $self->{interval}, sub { &Network_Item::ping_check($self) }, -1 );
+    $self->{timer}->set( $self->{interval}, sub { &Network_Item::ping_check($self) }, -1 );
 
     $self->{process} = new Process_Item( $ping_test_cmd . $address );
     $self->{process}->set_output($ping_test_file);
@@ -125,10 +124,7 @@ sub setstate_start {
     $hwaddr_re = join( ':', ('[0-9A-Fa-f]{1,2}') x 6 );
     if ( $hwaddr !~ m/^$hwaddr_re$/ ) {
         warn "Invalid hardware address: $hwaddr\n";
-        &::print_log( "Missing or invalid MAC address for "
-              . $self->{address} . " ( "
-              . $hwaddr
-              . " )" )
+        &::print_log( "Missing or invalid MAC address for " . $self->{address} . " ( " . $hwaddr . " )" )
           if $::Debug{network};
         $state = 'down';
         $self->set_states_for_next_pass($state);

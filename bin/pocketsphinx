@@ -36,13 +36,10 @@ use strict;
 my ( $Pgm_Path, $Pgm_Name, $Version );
 
 BEGIN {
-    ($Version) =
-      q$Revision: 1084 $ =~
-      /: (\S+)/;    # Note: revision number is auto-updated by cvs
+    ($Version) = q$Revision: 1084 $ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval
-      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";    # So perl2exe works
 }
 
 use Getopt::Long;
@@ -79,14 +76,8 @@ $SIG{KILL} = \&signal_handler;
 #======================================================================
 # Check invocation options, and print usage message if necessary
 #======================================================================
-if (
-    !&GetOptions(
-        \%parms,      "h",          "help",        "host=s",
-        "port=i",     "log_file=s", "sent_file=s", "lm_file=s",
-        "hmm_file=s", "program=s",  "device=s",    "sample=i"
-    )
-    or ( $parms{h} or $parms{help} )
-  )
+if ( !&GetOptions( \%parms, "h", "help", "host=s", "port=i", "log_file=s", "sent_file=s", "lm_file=s", "hmm_file=s", "program=s", "device=s", "sample=i" )
+    or ( $parms{h} or $parms{help} ) )
 {
     print <<eof;
 $Pgm_Name runs an instance of the pocketsphinx voice recognition program

@@ -47,10 +47,8 @@ sub startup {
         and $main::config_parms{fancontrol_host}
         and $main::config_parms{fancontrol_port} )
     {
-        my $port =
-          "$main::config_parms{fancontrol_host}:$main::config_parms{fancontrol_port}";
-        $fan_socket =
-          new Socket_Item( undef, undef, $port, 'fancontrol', 'tcp', 'record' );
+        my $port = "$main::config_parms{fancontrol_host}:$main::config_parms{fancontrol_port}";
+        $fan_socket = new Socket_Item( undef, undef, $port, 'fancontrol', 'tcp', 'record' );
         start $fan_socket;
         &::MainLoop_pre_add_hook( \&Fan_Control::check_for_data, 'persistent' );
     }
@@ -70,8 +68,7 @@ sub check_for_data {
                 #print STDERR "Setting fan $1 to state", lc $2, "\n";
                 #&main::print_log("Setting fan $1 to state" . lc($2));
                 if ( $fan_control_lights{$1}->{'already_set'} ) {
-                    $fan_control_lights{$1}
-                      ->set_states_for_next_pass( lc($2), 'remote' );
+                    $fan_control_lights{$1}->set_states_for_next_pass( lc($2), 'remote' );
                 }
                 else {
                     $fan_control_lights{$1}->{'already_set'} = 1;

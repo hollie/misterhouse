@@ -41,11 +41,9 @@ package Concept;
 
 @Concept::ISA = ('Generic_Item');
 
-my @Zone_Objects
-  ;    # Holds a list of all the zone objects to try match the to inputs
-my @timer_refs;    # Hold the object instances for when timers are operating
-my $FirstCall =
-  0;    # Used to indicate to the serial_startup, the first time it is called.
+my @Zone_Objects;    # Holds a list of all the zone objects to try match the to inputs
+my @timer_refs;      # Hold the object instances for when timers are operating
+my $FirstCall = 0;   # Used to indicate to the serial_startup, the first time it is called.
 
 =item C<serial_startup> 
 
@@ -58,8 +56,7 @@ sub serial_startup {
     my $speed = $::config_parms{"Concept_baudrate"};
     if ( &::serial_port_create( "Concept", $port, $speed, 'dtr' ) ) {
         init( $::Serial_Ports{"Concept"}{object} );
-        ::print_log
-          "\nConcept.pm initialzed Concept on hardware $port at $speed baud"
+        ::print_log "\nConcept.pm initialzed Concept on hardware $port at $speed baud"
           if $main::Debug{concept};
     }
 
@@ -67,11 +64,8 @@ sub serial_startup {
         $FirstCall = 1;
         &::MainLoop_pre_add_hook( \&Concept::UserCodePreHook, 1 );
         &::MainLoop_post_add_hook( \&Concept::UserCodePostHook, 1 );
-        $::Year_Month_Day =
-          &::time_date_stamp( 18, time );    # Not yet set when we init.
-        &::logit(
-            "$::config_parms{data_dir}/logs/Concept.$::Year_Month_Day.log",
-            "Concept.pm Initialized" );
+        $::Year_Month_Day = &::time_date_stamp( 18, time );    # Not yet set when we init.
+        &::logit( "$::config_parms{data_dir}/logs/Concept.$::Year_Month_Day.log", "Concept.pm Initialized" );
         ::print_log "Concept.pm adding hooks" if $main::Debug{concept};
     }
 }
@@ -91,10 +85,9 @@ sub init {
 }
 
 sub UserCodePreHook {
-    if ($::New_Day)    # Move the log file name if it's a new day
+    if ($::New_Day)                         # Move the log file name if it's a new day
     {
-        $::Year_Month_Day =
-          &::time_date_stamp( 18, time );    # Not yet set when we init.
+        $::Year_Month_Day = &::time_date_stamp( 18, time );    # Not yet set when we init.
     }
 
     if ($::New_Msecond_100) {
@@ -110,10 +103,7 @@ sub UserCodePreHook {
             }
 
             # Hey, we got something, So we had best do the logging bit
-            &::logit(
-                "$::config_parms{data_dir}/logs/Concept.$::Year_Month_Day.log",
-                "$data"
-            );
+            &::logit( "$::config_parms{data_dir}/logs/Concept.$::Year_Month_Day.log", "$data" );
             ::print_log "Concept.pm, Recieved data = $data, $::Loop_Count"
               if $main::Debug{concept};
 
@@ -145,9 +135,7 @@ sub UserCodePreHook {
                     ::print_log "Concept.pm, No handler for zone:$zone_name";
                 }
             }
-            elsif (
-                substr( $data, 22, 11 ) eq
-                "Restore on " )    # Is it a Zone Restore?
+            elsif ( substr( $data, 22, 11 ) eq "Restore on " )    # Is it a Zone Restore?
             {
                 # Get the zone name
                 my $zone_name = substr( $data, 33 );
@@ -287,8 +275,7 @@ sub new {
     };
     bless( $self, $class );
     $self->{timer}->unset;
-    $timer_refs[ $self->{timer_index} ] =
-      $self;    # ugly code to handle the ocuppied timer
+    $timer_refs[ $self->{timer_index} ] = $self;    # ugly code to handle the ocuppied timer
     push @Zone_Objects, $self;
 
     return $self;
@@ -337,8 +324,7 @@ sub restore {
         # so I store the instance in an array and pass the index to the array
         # element to the timer function.
 
-        $self->{timer}->set( $self->{idle_time},
-            "&ConceptZone::timer_expired( $self->{ timer_index } )" );
+        $self->{timer}->set( $self->{idle_time}, "&ConceptZone::timer_expired( $self->{ timer_index } )" );
     }
 
     return;

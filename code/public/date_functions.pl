@@ -35,16 +35,10 @@ sub dayofweek {
         return ("Invalid Date - $month\/$day\/$year");
     }
     else {
-        $a = int( ( 14 - $month ) / 12 );
-        $y = $year - $a;
-        $m = $month + ( 12 * $a ) - 2;
-        $dow =
-          ( $day + $y +
-              int( $y / 4 ) -
-              int( $y / 100 ) +
-              int( $y / 400 ) +
-              int( ( 31 * $m ) / 12 ) )
-          % 7;
+        $a   = int( ( 14 - $month ) / 12 );
+        $y   = $year - $a;
+        $m   = $month + ( 12 * $a ) - 2;
+        $dow = ( $day + $y + int( $y / 4 ) - int( $y / 100 ) + int( $y / 400 ) + int( ( 31 * $m ) / 12 ) ) % 7;
         return ($dow);
     }
 }
@@ -67,10 +61,7 @@ sub dayofmonth {
     my $day;
     $which =~ tr/A-Z/a-z/;
     $dow_name =~ tr/A-Z/a-z/;
-    my %daysofweek = (
-        "sunday",   0, "monday", 1, "tuesday",  2, "wednesday", 3,
-        "thursday", 4, "friday", 5, "saturday", 6
-    );
+    my %daysofweek = ( "sunday", 0, "monday", 1, "tuesday", 2, "wednesday", 3, "thursday", 4, "friday", 5, "saturday", 6 );
     my $dow = $daysofweek{$dow_name};
 
     if (   $which ne "first"
@@ -89,13 +80,11 @@ sub dayofmonth {
     }
     else {
         if ( $which eq "last" ) {
-            ( $month, $day, $year ) =
-              &lastnameddayofmonth( $dow, $month, $year );
+            ( $month, $day, $year ) = &lastnameddayofmonth( $dow, $month, $year );
             return ( $month, $day, $year );
         }
         else {
-            ( $month, $day, $year ) =
-              &firstnameddayofmonth( $dow, $month, $year );
+            ( $month, $day, $year ) = &firstnameddayofmonth( $dow, $month, $year );
             if ( $which eq "first" ) {
                 return ( $month, $day, $year );
             }
@@ -138,8 +127,7 @@ sub firstnameddayofmonth {
     }
     else {
         while ( $dayofweek != $dow ) {
-            ( $dayofweek, $month, $day, $year ) =
-              &addday( $dayofweek, $month, $day, $year );
+            ( $dayofweek, $month, $day, $year ) = &addday( $dayofweek, $month, $day, $year );
         }
         return ( $month, $day, $year );
     }
@@ -214,8 +202,7 @@ sub lastnameddayofmonth {
     }
     else {
         while ( $dayofweek != $dow ) {
-            ( $dayofweek, $month, $day, $year ) =
-              &subtractday( $dayofweek, $month, $day, $year );
+            ( $dayofweek, $month, $day, $year ) = &subtractday( $dayofweek, $month, $day, $year );
         }
         return ( $month, $day, $year );
     }

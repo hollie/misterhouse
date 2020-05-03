@@ -21,7 +21,7 @@ use RRDs;
 my ( $rrd_name, $rrd, $img_dir, $t, $descr, $height, $width, $dt ) = @ARGV;
 
 my $timenow = localtime( time() );
-$timenow =~ s/:/\\:/g;   #RRD doesn't like colons, so put leading backslashes in
+$timenow =~ s/:/\\:/g;    #RRD doesn't like colons, so put leading backslashes in
 
 RRDs::graph "$img_dir/$rrd_name-temp-$t.png",
   "--start",          "-$t",

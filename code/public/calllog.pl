@@ -21,11 +21,10 @@ use vars qw($PhoneName $PhoneNumber $PhoneTime $PhoneDate);
 my ( $PhoneModemString, $NameDone,   $NumberDone, $i,        $j );
 my ( @rejloglines,      $NumofCalls, $callerba,   $callerbn, $PhoneNumberz );
 my ( @callloglines, $CallLogTempLine, $RejLogTempLine );
-my ( $PhoneDateLog, $PhoneTimeLog, $PhoneNameLog, $PhoneNumberLog );
-my ( $last, $first, $middle, $areacode, $local_number, $caller );
+my ( $PhoneDateLog, $PhoneTimeLog,    $PhoneNameLog, $PhoneNumberLog );
+my ( $last,         $first,           $middle, $areacode, $local_number, $caller );
 
-$phone_modem =
-  new Serial_Item( 'ATE1V1X4&C1&D2S0=0+VCID=1', 'init', 'serial3' );
+$phone_modem = new Serial_Item( 'ATE1V1X4&C1&D2S0=0+VCID=1', 'init', 'serial3' );
 $timer_hangup = new Timer;
 
 #-----> Provide PalmPad Controller Access for some Items
@@ -34,8 +33,7 @@ $request_phone_stuff = new X10_Item('A6');
 # Web Interface Commands
 
 $v_phone_lastcaller = new Voice_Cmd('Show Recent Call Log');
-if ( ( said $v_phone_lastcaller) || ( state_now $request_phone_stuff eq 'on' ) )
-{
+if ( ( said $v_phone_lastcaller) || ( state_now $request_phone_stuff eq 'on' ) ) {
     open( CALLLOG, "$config_parms{data_dir}/calllog.log" );    # Open for input
     @callloglines = <CALLLOG>;                                 # Open array and
                                                                # read in data
@@ -49,32 +47,24 @@ if ( ( said $v_phone_lastcaller) || ( state_now $request_phone_stuff eq 'on' ) )
         $NumofCalls = $NumofCalls + 1;
         ( $PhoneDateLog, $PhoneTimeLog, $PhoneNameLog, $PhoneNumberLog ) =
           ( split( '`', $CallLogTempLine ) )[ 0, 1, 2, 3 ];
-        if ( $PhoneNameLog eq 'Out of the Area' and $PhoneDateLog ne $Date_Now )
-        {
-            speak
-              "At $PhoneTimeLog on $PhoneDateLog, an unidentified party called.";
+        if ( $PhoneNameLog eq 'Out of the Area' and $PhoneDateLog ne $Date_Now ) {
+            speak "At $PhoneTimeLog on $PhoneDateLog, an unidentified party called.";
         }
-        if ( $PhoneNameLog eq 'Out of the Area' and $PhoneDateLog eq $Date_Now )
-        {
+        if ( $PhoneNameLog eq 'Out of the Area' and $PhoneDateLog eq $Date_Now ) {
             speak "At $PhoneTimeLog, an unidentified party called.";
         }
-        if ( $PhoneNameLog ne 'Out of the Area' and $PhoneDateLog ne $Date_Now )
-        {
-            speak
-              "At $PhoneTimeLog on $PhoneDateLog, $PhoneNameLog called. Call back at $PhoneNumberLog.";
+        if ( $PhoneNameLog ne 'Out of the Area' and $PhoneDateLog ne $Date_Now ) {
+            speak "At $PhoneTimeLog on $PhoneDateLog, $PhoneNameLog called. Call back at $PhoneNumberLog.";
         }
-        if ( $PhoneNameLog ne 'Out of the Area' and $PhoneDateLog eq $Date_Now )
-        {
-            speak
-              "At $PhoneTimeLog, $PhoneNameLog called. Call back at $PhoneNumberLog.";
+        if ( $PhoneNameLog ne 'Out of the Area' and $PhoneDateLog eq $Date_Now ) {
+            speak "At $PhoneTimeLog, $PhoneNameLog called. Call back at $PhoneNumberLog.";
         }
     }
     speak "$NumofCalls total calls.";
 }
 
 $v_phone_clearlog = new Voice_Cmd('Clear Recent Call Log');
-if ( ( said $v_phone_clearlog) || ( state_now $request_phone_stuff eq 'off' ) )
-{
+if ( ( said $v_phone_clearlog) || ( state_now $request_phone_stuff eq 'off' ) ) {
     open( CALLLOG, ">$config_parms{data_dir}/calllog.log" );    # CLEAR Log
     close CALLLOG;
     print_log "Call Log Cleared.";
@@ -175,10 +165,8 @@ if ( $PhoneModemString = said $phone_modem) {
 
         # Log the data for use by display_callers
 
-        logit( "$Pgm_Path/../data/phone/logs/callerid.$Year_Month_Now.log",
-            "$PhoneNumber $PhoneName" );
-        logit_dbm( "$Pgm_Path/../data/phone/callerid.dbm",
-            $PhoneNumber, "$Time_Now $Date_Now $Year name=$PhoneName" );
+        logit( "$Pgm_Path/../data/phone/logs/callerid.$Year_Month_Now.log", "$PhoneNumber $PhoneName" );
+        logit_dbm( "$Pgm_Path/../data/phone/callerid.dbm", $PhoneNumber, "$Time_Now $Date_Now $Year name=$PhoneName" );
 
         # Check to see if callers phone number is in reject table.  If so,
         # let them have it.
@@ -202,14 +190,10 @@ if ( $PhoneModemString = said $phone_modem) {
         # announce reasons
 
         if ( length( $PhoneNumber == 7 ) ) {
-            $PhoneNumber =
-              substr( $PhoneNumber, 0, 3 ) . "." . substr( $PhoneNumber, 3, 4 );
+            $PhoneNumber = substr( $PhoneNumber, 0, 3 ) . "." . substr( $PhoneNumber, 3, 4 );
         }
         if ( length( $PhoneNumber == 10 ) ) {
-            $PhoneNumber =
-                substr( $PhoneNumber, 0, 3 ) . "."
-              . substr( $PhoneNumber, 3, 3 ) . "."
-              . substr( $PhoneNumber, 6, 4 );
+            $PhoneNumber = substr( $PhoneNumber, 0, 3 ) . "." . substr( $PhoneNumber, 3, 3 ) . "." . substr( $PhoneNumber, 6, 4 );
         }
 
         # Put Spaces in the Phone Number for Announce Reasons

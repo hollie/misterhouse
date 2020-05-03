@@ -24,8 +24,7 @@ if ( my $header = said $mhsend_server) {
     my ( $name, $name_short );
 
     #   my ($name, $name_short) = net_domain_name('server_data');
-    print_log
-      "Received server_data data: name=$name: action=$action arg=$action_arg"
+    print_log "Received server_data data: name=$name: action=$action arg=$action_arg"
       unless $config_parms{no_log} =~ /mhsend_server/;
 
     # Read header and optional password (until blank record)
@@ -71,8 +70,7 @@ if ( my $header = said $mhsend_server) {
 
         #       print_msg "mhsend: $msg";
         $response = "Data was displayed for $action_arg seconds";
-        logit( "$config_parms{data_dir}/mhsend/display.log", $msg )
-          ;    # Also logit
+        logit( "$config_parms{data_dir}/mhsend/display.log", $msg );    # Also logit
     }
     elsif ( $action eq 'state' ) {
         my $state = eval "state $msg";
@@ -85,8 +83,7 @@ if ( my $header = said $mhsend_server) {
         }
         else {
             display( $msg, 120, "Internet Message from $name" );
-            $response =
-              "Data was too long ... it was displayed instead of being spoken";
+            $response = "Data was too long ... it was displayed instead of being spoken";
         }
     }
     elsif ( $action eq 'run' ) {
@@ -95,8 +92,7 @@ if ( my $header = said $mhsend_server) {
         #       if (&run_voice_cmd($msg)) {
         #       my $respond = "object_set name=mhsend_server";
         my $respond = "mhsend name=mhsend_server ";
-        $respond .=
-          "proxyip=" . $Socket_Ports{'server_mhsend'}{client_ip_address};
+        $respond .= "proxyip=" . $Socket_Ports{'server_mhsend'}{client_ip_address};
         if ( &process_external_command( $msg, 0, 'mhsend', $respond ) ) {
             $response = "Command was run: $msg";
         }

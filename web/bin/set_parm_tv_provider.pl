@@ -66,13 +66,9 @@ sub edit {
         # Update tv_provider_name if changed
         if (    $args{provider}
             and $providers{ $args{provider} }
-            and $providers{ $args{provider} } ne
-            $config_parms{tv_provider_name} )
+            and $providers{ $args{provider} } ne $config_parms{tv_provider_name} )
         {
-            my %parms = (
-                'tv_provider', '', 'tv_provider_name',
-                $providers{ $args{provider} }
-            );
+            my %parms = ( 'tv_provider', '', 'tv_provider_name', $providers{ $args{provider} } );
             print "db writing out new parm: $config_parms{tv_provider_name}\n";
             &write_mh_opts( \%parms );
             &read_parms;    # Re-read parms
@@ -91,9 +87,7 @@ sub edit {
         $html .= ' selected'
           if $id eq $config_parms{tv_provider}
           or $name eq $config_parms{tv_provider_name};
-        $html .= '>'
-          . $name
-          . '&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp' . "\n";
+        $html .= '>' . $name . '&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp' . "\n";
     }
     $html .= '</select></form></html>';
 

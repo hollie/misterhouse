@@ -2,8 +2,7 @@
 # This is an example of how to tie and untie items and events
 
 # Create test command and items
-$v_test_tie = new Voice_Cmd
-  '[tie_a,untie_a,tie_b,untie_b,tie_all,untie_all] test2 to test1';
+$v_test_tie   = new Voice_Cmd '[tie_a,untie_a,tie_b,untie_b,tie_all,untie_all] test2 to test1';
 $v_test_item1 = new Voice_Cmd 'set test1 to [a,b,c]';
 $item1        = new Generic_Item;
 $item2        = new Generic_Item;
@@ -47,8 +46,7 @@ $item1->tie_time( '* * * * *',   TOGGLE, 'Item1 toggled by time_cron test' );
 $windy = new Generic_Item;
 $windy->set_states( ON, OFF );
 
-$item1->tie_filter( 'state $windy eq ON',
-    ON, 'Overriding item1 ON command because of wind' );
+$item1->tie_filter( 'state $windy eq ON', ON, 'Overriding item1 ON command because of wind' );
 
 # This code will disable an item when we are away from the house
 

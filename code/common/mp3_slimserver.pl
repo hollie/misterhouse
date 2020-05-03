@@ -72,8 +72,7 @@ sub mp3_play {
     print_log "Player IP address for playing slimserver " . $client_ip;
     print_log "mp3 play: $file";
     $file =~ s./.%2f.g;
-    my $url =
-      "http://$host/status.txt?p0=playlist&p1=load&p2=$file&player=$client_ip";
+    my $url = "http://$host/status.txt?p0=playlist&p1=load&p2=$file&player=$client_ip";
     get $url;
 }
 
@@ -86,8 +85,7 @@ sub mp3_queue {
     print_log "Player IP address queueing slimserver " . $client_ip;
     print_log "mp3 queue: $file";
     $file = &escape($file);
-    my $url =
-      "http://$host/status.txt?p0=playlist&p1=add&p2=$file&player=$client_ip";
+    my $url = "http://$host/status.txt?p0=playlist&p1=add&p2=$file&player=$client_ip";
     get $url;
 }
 
@@ -116,8 +114,7 @@ sub mp3_get_playlist_pos {
 }
 
 # noloop=start      This directive allows this code to be run on startup/reload
-my $mp3_states =
-  "Play,Stop,Pause,Next Song,Previous Song,Volume up, Volume down";
+my $mp3_states    = "Play,Stop,Pause,Next Song,Previous Song,Volume up, Volume down";
 my %slim_commands = (
     'play'          => 'play',
     'stop'          => 'stop',
@@ -127,8 +124,7 @@ my %slim_commands = (
     'volume up'     => 'volume_up',
     'volume down'   => 'volume_down'
 );
-$v_slimserver_control =
-  new Voice_Cmd("Set the house mp3 player to [$mp3_states]");
+$v_slimserver_control = new Voice_Cmd("Set the house mp3 player to [$mp3_states]");
 
 # noloop=stop
 

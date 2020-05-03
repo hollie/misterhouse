@@ -7,12 +7,8 @@
 $lan_code = new Voice_Cmd '[enable,disable] local lan code';
 
 if ( $state = said $lan_code) {
-    for my $member (
-        'monitor_shoutcast', 'lcd',
-        'audrey',            'monitor_mh',
-        'speak_proxy',       'monitor_house_im'
-      )
-    {
+    for my $member ( 'monitor_shoutcast', 'lcd', 'audrey', 'monitor_mh', 'speak_proxy', 'monitor_house_im' ) {
+
         #       $state = (($Run_Members{$member}) ? 'disable' : 'enable') if $state eq 'toggle';
         if ( $state eq 'disable' ) {
             print_log "Disabling local lan code file $member";

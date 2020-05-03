@@ -123,9 +123,8 @@ $robot_control->tie_items($robot);
 $robot_program->tie_items($robot);
 
 # Create sequence commands
-$robot_sequence1 = new Voice_Cmd
-  'Robot sequence [pickup,tilt,strike,arms,step,talk,all,random,stop]';
-$robot_timer1 = new Timer;
+$robot_sequence1 = new Voice_Cmd 'Robot sequence [pickup,tilt,strike,arms,step,talk,all,random,stop]';
+$robot_timer1    = new Timer;
 
 my @robot_sequence_cmds;
 if ( $state = said $robot_sequence1) {
@@ -143,27 +142,22 @@ if ( $state = said $robot_sequence1) {
             randomize_list @robot_sequence_cmds;
         }
         elsif ( $state eq 'pickup' ) {
-            @robot_sequence_cmds =
-              qw(RightHandPickUp LeftHandPickUp RightHandThrow LeftHandThrow Burp);
+            @robot_sequence_cmds = qw(RightHandPickUp LeftHandPickUp RightHandThrow LeftHandThrow Burp);
         }
         elsif ( $state eq 'tilt' ) {
-            @robot_sequence_cmds =
-              qw(TiltBodyRight LeanBackward TiltBodyLeft LeanForward Burp);
+            @robot_sequence_cmds = qw(TiltBodyRight LeanBackward TiltBodyLeft LeanForward Burp);
         }
         elsif ( $state eq 'strike' ) {
-            @robot_sequence_cmds =
-              qw(RightHandStrike1 LeftHandStrike1 RightHandStrike2
+            @robot_sequence_cmds = qw(RightHandStrike1 LeftHandStrike1 RightHandStrike2
               LeftHandStrike2 RightHandStrike3 LeftHandStrike3
               RightHandSweep  LeftHandSweep Burp);
         }
         elsif ( $state eq 'arms' ) {
-            @robot_sequence_cmds =
-              qw(RightArmDown LeftArmDown RightArmIn LeftArmIn
+            @robot_sequence_cmds = qw(RightArmDown LeftArmDown RightArmIn LeftArmIn
               RightArmOut LeftArmOut RightArmUp LeftArmUp Burp);
         }
         elsif ( $state eq 'step' ) {
-            @robot_sequence_cmds =
-              qw (ForwardStep BackwardStep RightTurnStep LeftTurnStep Burp );
+            @robot_sequence_cmds = qw (ForwardStep BackwardStep RightTurnStep LeftTurnStep Burp );
         }
         elsif ( $state eq 'talk' ) {
             @robot_sequence_cmds = qw (High5 Oops Roar TalkBack Whistle Burp);
@@ -185,9 +179,8 @@ if ( expired $robot_timer1) {
     }
 }
 
-$robot_keepawake =
-  new Voice_Cmd 'Set robot to [keepawake, letsleep, WakeUp, Sleep]';
-$robot_timer2 = new Timer;
+$robot_keepawake = new Voice_Cmd 'Set robot to [keepawake, letsleep, WakeUp, Sleep]';
+$robot_timer2    = new Timer;
 
 if ( $state = said $robot_keepawake) {
     if ( $state eq 'keepawake' ) {
@@ -254,7 +247,7 @@ if ( expired $robot_timer3) {
 
 if ( $New_Msecond_250 and $Misc{robosapien}{speaking_flag} ) {
     print '.';
-    if ( !&Voice_Text::is_speaking( $config_parms{robot_robosapien_speak_card} )
+    if (  !&Voice_Text::is_speaking( $config_parms{robot_robosapien_speak_card} )
         or $Misc{robosapien}{speaking_flag}++ > 120 )
     {
         print "*\n";
@@ -276,16 +269,14 @@ if ( $state = state_now $robot_dance) {
         speak 'app=robot no_animate=1 Time to dance!';
         set $robot_song "mplay32.exe  /play /close m:/sounds/ymca.mid";
         start $robot_song;
-        @robot_sequence_cmds =
-          qw(DanceDemo BackwardStep Burp BackwardStep High5 Demo2 BackwardStep);
+        @robot_sequence_cmds = qw(DanceDemo BackwardStep Burp BackwardStep High5 Demo2 BackwardStep);
         set $robot_timer1 2;
         set $robot_speak_timer 4;
     }
 }
 
 # Speak random fun words while danceing
-$robot_words =
-  new File_Item "$config_parms{data_dir}/remarks/list_fun_words.txt";
+$robot_words       = new File_Item "$config_parms{data_dir}/remarks/list_fun_words.txt";
 $robot_speak_timer = new Timer;
 if ( expired $robot_speak_timer) {
     speak

@@ -97,8 +97,7 @@ sub _check_values {
     if ( $main::Startup or $main::Reload ) {
         foreach (@CheckStartup) {
             if ( $$_{'attached_object'} ) {
-                &::print_log(
-                    "$$_{object_name}: Checking attached object after startup")
+                &::print_log("$$_{object_name}: Checking attached object after startup")
                   if $main::Debug{occupancy};
                 $_->_check_watched_value( $$_{'attached_object'}->state() );
             }
@@ -117,26 +116,21 @@ sub _check_scalar {
         $self->_check_watched_value( ${ $$self{'scalar_ref'} } );
     }
     elsif ( ref $$self{'hash_ref'} and $$self{'hash_key'} ) {
-        $self->_check_watched_value(
-            $$self{'hash_ref'}->{ $$self{'hash_key'} } );
+        $self->_check_watched_value( $$self{'hash_ref'}->{ $$self{'hash_key'} } );
     }
 }
 
 sub _check_watched_value ($$) {
     my ( $self, $value ) = @_;
     if ( $value ne $$self{'last_watched_val'} ) {
-        &::print_log(
-            "$$self{object_name}: New value $value different than $$self{last_watched_val}"
-        ) if $main::Debug{occupancy};
+        &::print_log("$$self{object_name}: New value $value different than $$self{last_watched_val}") if $main::Debug{occupancy};
         $$self{'last_watched_val'} = $value;
         if ( $$self{'ok_values'} ) {
             foreach ( @{ $$self{'ok_values'} } ) {
                 if ( $$self{'last_watched_val'} eq $_ ) {
 
                     # New scalar value is one of the OK ones
-                    &::print_log(
-                        "$$self{object_name}: New value $value matches ok values: light_ok"
-                    ) if $main::Debug{occupancy};
+                    &::print_log("$$self{object_name}: New value $value matches ok values: light_ok") if $main::Debug{occupancy};
                     unless ( $self->state() eq 'light_ok' ) {
                         $self->SUPER::set('light_ok');
                     }
@@ -147,9 +141,7 @@ sub _check_watched_value ($$) {
         else {
             if ( $$self{'last_watched_val'} ) {
                 unless ( $self->state() eq 'light_ok' ) {
-                    &::print_log(
-                        "$$self{object_name}: New value $value is true: light_ok"
-                    ) if $main::Debug{occupancy};
+                    &::print_log("$$self{object_name}: New value $value is true: light_ok") if $main::Debug{occupancy};
                     $self->SUPER::set('light_ok');
                 }
                 return;
@@ -201,8 +193,7 @@ sub attach_hash_key {
         push @CheckScalars, $self;
     }
     else {
-        print
-          "ERROR: Light_Restriction_Item::attach_hash_key() called with a non-reference first parameter!\n";
+        print "ERROR: Light_Restriction_Item::attach_hash_key() called with a non-reference first parameter!\n";
     }
 }
 
@@ -217,8 +208,7 @@ sub attach_scalar {
         push @CheckScalars, $self;
     }
     else {
-        print
-          "ERROR: Light_Restriction_Item::attach_scalar() called with a non-reference first parameter!\n";
+        print "ERROR: Light_Restriction_Item::attach_scalar() called with a non-reference first parameter!\n";
     }
 }
 

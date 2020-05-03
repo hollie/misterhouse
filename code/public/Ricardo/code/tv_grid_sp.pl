@@ -8,9 +8,7 @@
 #       Do not change it.
 # This is what downloads tv data.  This needs to be forked/detatched, as it can take a while
 $v_get_tv_grid_data = new Voice_Cmd('Leer rejilla de televisión');
-$v_get_tv_grid_data->set_info(
-    'Lee la rejilla de TV para los canales seleccionados y genera la base de datos de TV.'
-);
+$v_get_tv_grid_data->set_info('Lee la rejilla de TV para los canales seleccionados y genera la base de datos de TV.');
 if ( ( said $v_get_tv_grid_data) or time_now('6:35') ) {
     if (&net_connect_check) {
 

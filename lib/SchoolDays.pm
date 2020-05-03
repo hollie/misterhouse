@@ -66,11 +66,7 @@ sub new {
     foreach ( split( ",", $school_terms ) ) {
         my ( $start, $finish ) = split("-");
 
-        push @{ $self->{terms} },
-          [
-            $self->_convert_to_ISO8601_date($start),
-            $self->_convert_to_ISO8601_date($finish)
-          ];
+        push @{ $self->{terms} }, [ $self->_convert_to_ISO8601_date($start), $self->_convert_to_ISO8601_date($finish) ];
     }
 
     # Load inset dates
@@ -79,11 +75,7 @@ sub new {
         if (m/-/) {
             my ( $start, $finish ) = split("-");
 
-            push @{ $self->{insets} },
-              [
-                $self->_convert_to_ISO8601_date($start),
-                $self->_convert_to_ISO8601_date($finish)
-              ];
+            push @{ $self->{insets} }, [ $self->_convert_to_ISO8601_date($start), $self->_convert_to_ISO8601_date($finish) ];
         }
         else {
             my $date = $self->_convert_to_ISO8601_date($_);
@@ -96,8 +88,7 @@ sub new {
     foreach ( @{ $self->{terms} } ) {
         my ( $start, $finish ) = @{$_};
 
-        $self->_log(
-            "\t" . $self->_hr_date($start) . " - " . $self->_hr_date($finish) );
+        $self->_log( "\t" . $self->_hr_date($start) . " - " . $self->_hr_date($finish) );
     }
     $self->_log("In-session breaks:");
     foreach ( @{ $self->{insets} } ) {
@@ -107,9 +98,7 @@ sub new {
             $self->_log( "\t" . $self->_hr_date($start) );
         }
         else {
-            $self->_log( "\t"
-                  . $self->_hr_date($start) . " - "
-                  . $self->_hr_date($finish) );
+            $self->_log( "\t" . $self->_hr_date($start) . " - " . $self->_hr_date($finish) );
         }
     }
 
@@ -240,12 +229,10 @@ sub is_schoolday {
     if ( $testdate =~ /\// ) {
         $testdate = $self->_convert_to_ISO8601_date($testdate);
     }
-    $self->_log(
-        "is_schoolday($testdate, " . $self->_hr_date($testdate) . ")" );
+    $self->_log( "is_schoolday($testdate, " . $self->_hr_date($testdate) . ")" );
 
     # No school at the weekend
-    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
-      localtime($testdate);
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime($testdate);
     if ( ( $wday == 6 ) || ( $wday == 0 ) ) {
         return 0;
     }

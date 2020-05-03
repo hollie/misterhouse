@@ -37,8 +37,7 @@ if ( ( time_now '9 pm' and $Save{phone_minutes_left} < 300 )
     or said $v_phone_minutes_zack)
 {
     my $msg = "Zack, you have $Save{phone_minutes_left} phone minutes left.";
-    $msg .=
-      " $Save{phone_minutes_left_day} per day for the next $Save{phone_minutes_days} days";
+    $msg .= " $Save{phone_minutes_left_day} per day for the next $Save{phone_minutes_days} days";
     speak "app=notice $msg";
     $msg = file_tail "$config_parms{data_dir}/logs/phone_minutes.log", 30;
     display

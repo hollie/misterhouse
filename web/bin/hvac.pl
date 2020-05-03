@@ -68,8 +68,7 @@ $html
     $html .= "</tr></table>";
 
     if ( $state eq 'hold' ) {
-        $html .=
-          '<P>Click <a href="hvac.pl?cancel">here to cancel the hold</a>.</P>';
+        $html .= '<P>Click <a href="hvac.pl?cancel">here to cancel the hold</a>.</P>';
     }
     else {
         $html .= qq|

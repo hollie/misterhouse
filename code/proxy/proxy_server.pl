@@ -22,8 +22,7 @@ See 'Using distributed MisterHouse proxies' in mh/docs/mh.*  for more info.
 
 =cut
 
-$proxy_server =
-  new Socket_Item( undef, undef, 'server_proxy', undef, undef, undef, "\035" );
+$proxy_server = new Socket_Item( undef, undef, 'server_proxy', undef, undef, undef, "\035" );
 
 #print '.';                      # A heartbeat
 
@@ -35,19 +34,16 @@ if ( $config_parms{mh_proxyreg_port}
     and ( $Startup or said $v_proxy_init) )
 {
     print "Connecting to server\n";
-    my $s_proxy_init = new Socket_Item( undef, undef,
-        $config_parms{mh_server} . ":" . $config_parms{mh_proxyreg_port} );
+    my $s_proxy_init = new Socket_Item( undef, undef, $config_parms{mh_server} . ":" . $config_parms{mh_proxyreg_port} );
     start $s_proxy_init;
-    set $s_proxy_init
-      "$config_parms{password},$config_parms{proxy_name},$config_parms{server_proxy_port}";
+    set $s_proxy_init "$config_parms{password},$config_parms{proxy_name},$config_parms{server_proxy_port}";
 }
 
 # Process incoming requests from the real mh
 if ( $state = said $proxy_server) {
     my ( $interface, $function, @data ) = split $;, $state;
     my $client = $Socket_Ports{'server_proxy'}{client_ip_address};
-    print
-      "Proxy data received from mh: client=$client, interface=$interface function=$function data=@data.\n"
+    print "Proxy data received from mh: client=$client, interface=$interface function=$function data=@data.\n"
       if $Debug{'proxy'};
 
     if ( $function eq 'send_serial_data' ) {
@@ -61,13 +57,11 @@ if ( $state = said $proxy_server) {
         # It is first set on the host MH by x10_priority.pl to the $interface
         # string and then we set it here to 'idle' when done sending.
         if ( $config_parms{mh_proxy_status} and $proxy_server->active() ) {
-            set $proxy_server join( $;, 'set', '$proxy_x10_send', 'idle' ),
-              'all';
+            set $proxy_server join( $;, 'set', '$proxy_x10_send', 'idle' ), 'all';
         }
     }
     elsif ( $function eq 'send_ir' ) {
-        &ControlX10::CM17::send_ir( $main::Serial_Ports{cm17}{object},
-            $data[0] );
+        &ControlX10::CM17::send_ir( $main::Serial_Ports{cm17}{object}, $data[0] );
     }
     elsif ( $function eq 'uirt2_send' ) {
         $main::Serial_Ports{UIRT2}{object}->write( pack 'C*', @data );
@@ -97,12 +91,10 @@ if ( $state = said $proxy_server) {
     elsif ( $function eq 'lynx10plc' ) {
         my $function2 = shift @data;
         if ( $function2 eq 'send_plc' ) {
-            &Lynx10PLC::send_plc( $main::Serial_Ports{Lynx10PLC}{object},
-                $data[0], $data[1] );
+            &Lynx10PLC::send_plc( $main::Serial_Ports{Lynx10PLC}{object}, $data[0], $data[1] );
         }
         elsif ( $function2 eq 'readDeviceInfo' ) {
-            &Lynx10PLC::readDeviceInfo( $main::Serial_Ports{Lynx10PLC}{object},
-                $data[0] );
+            &Lynx10PLC::readDeviceInfo( $main::Serial_Ports{Lynx10PLC}{object}, $data[0] );
         }
     }
 }
@@ -116,8 +108,7 @@ sub proxy_serial_data {
     print "Proxy serial data sent to mh: interface=$interface data=$data.\n"
       if $Debug{proxy};
     if ( $proxy_server->active() ) {
-        set $proxy_server join( $;, 'serial', $data, $interface ),
-          'all';    # all writes out to all clients
+        set $proxy_server join( $;, 'serial', $data, $interface ), 'all';    # all writes out to all clients
     }
 }
 

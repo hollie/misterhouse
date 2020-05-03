@@ -20,8 +20,7 @@ $prog_version = "1.0.28";
 
 # Not for Win32
 if ( $^O =~ /Win32/ ) {
-    die
-      "install.pl is not for use on Win32 systems. Please see INSTALL file.\n";
+    die "install.pl is not for use on Win32 systems. Please see INSTALL file.\n";
 }
 
 # Editable paths
@@ -100,12 +99,7 @@ if ( system("install -d $options{'docdir'}") ) {
     die "Error creating documentation directory. See above for reason.\n";
 }
 
-if (
-    system(
-        "install BUGS CHANGELOG CONTRIBUTORS COPYING INSTALL README README.DEFS README.LOCAL TODO $options{'docdir'}"
-    )
-  )
-{
+if ( system("install BUGS CHANGELOG CONTRIBUTORS COPYING INSTALL README README.DEFS README.LOCAL TODO $options{'docdir'}") ) {
     die "Error installing documentation files. See above for reason.\n";
 }
 
@@ -118,12 +112,7 @@ if ( system("install -d $options{'scriptdir'}") ) {
     die "Error creating scripts directory. See above for reason.\n";
 }
 
-if (
-    system(
-        "install dailystrips dailystrips-clean dailystrips-update $options{'scriptdir'}"
-    )
-  )
-{
+if ( system("install dailystrips dailystrips-clean dailystrips-update $options{'scriptdir'}") ) {
     die "Error installing script. See above for reason.\n";
 }
 

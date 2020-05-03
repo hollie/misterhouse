@@ -32,16 +32,13 @@ if ( $PhoneModemString = said $phone_modem) {
     my $caller_id_data = ' ' . $PhoneModemString;
 
     if ( $PhoneModemString =~ /NMBR/ ) {
-        my ($dbh) =
-          DBI->connect( "DBI:mysql:callerid:localhost", "USER", "PASS" );
-        my ( $caller, $cid_number, $cid_name, $cid_time ) =
-          &Caller_ID::make_speakable( $caller_id_data, 2 );
+        my ($dbh) = DBI->connect( "DBI:mysql:callerid:localhost", "USER", "PASS" );
+        my ( $caller, $cid_number, $cid_name, $cid_time ) = &Caller_ID::make_speakable( $caller_id_data, 2 );
 
         my $number = $cid_number;
         $number =~ tr/\-//d;
 
-        my $query_search =
-          "SELECT name FROM calls WHERE number = \"$number\" LIMIT 1;";
+        my $query_search = "SELECT name FROM calls WHERE number = \"$number\" LIMIT 1;";
 
         my $sth = $dbh->prepare($query_search);
         $sth->execute();

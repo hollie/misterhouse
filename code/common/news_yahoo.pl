@@ -4,39 +4,29 @@
 #@ news from yahoo.com, then read or display it.
 
 #my $f_all_news_html = "$config_parms{data_dir}/web/all_news.html"; # *** Makes more sense
-my $f_all_news_html =
-  "$Pgm_Root/web/ia5/news/news.html";    # *** Why put this in IA5?
-my $f_Top_news = "$config_parms{data_dir}/web/Top_news.txt";
+my $f_all_news_html = "$Pgm_Root/web/ia5/news/news.html";           # *** Why put this in IA5?
+my $f_Top_news      = "$config_parms{data_dir}/web/Top_news.txt";
 
 my %news_files;
-$news_files{"US"}    = "$config_parms{data_dir}/web/US_news.txt";
-$news_files{"World"} = "$config_parms{data_dir}/web/World_news.txt";
-$news_files{"Entertainment"} =
-  "$config_parms{data_dir}/web/Entertainment_news.txt";
-$news_files{"Business"} = "$config_parms{data_dir}/web/Business_news.txt";
-$news_files{"Tech"}     = "$config_parms{data_dir}/web/Tech_news.txt";
-$news_files{"Science"}  = "$config_parms{data_dir}/web/Science_news.txt";
-$news_files{"Health"}   = "$config_parms{data_dir}/web/Health_news.txt";
-$news_files{"Sports"}   = "$config_parms{data_dir}/web/Sports_news.txt";
+$news_files{"US"}            = "$config_parms{data_dir}/web/US_news.txt";
+$news_files{"World"}         = "$config_parms{data_dir}/web/World_news.txt";
+$news_files{"Entertainment"} = "$config_parms{data_dir}/web/Entertainment_news.txt";
+$news_files{"Business"}      = "$config_parms{data_dir}/web/Business_news.txt";
+$news_files{"Tech"}          = "$config_parms{data_dir}/web/Tech_news.txt";
+$news_files{"Science"}       = "$config_parms{data_dir}/web/Science_news.txt";
+$news_files{"Health"}        = "$config_parms{data_dir}/web/Health_news.txt";
+$news_files{"Sports"}        = "$config_parms{data_dir}/web/Sports_news.txt";
 
-$p_all_news =
-  new Process_Item("get_url http://dailynews.yahoo.com/fc $f_all_news_html");
+$p_all_news = new Process_Item("get_url http://dailynews.yahoo.com/fc $f_all_news_html");
 $v_all_news = new Voice_Cmd('Get current news');
 $v_all_news->set_authority('anyone');
-$v_news = new Voice_Cmd(
-    'Tell me the [Top,U S,World,Entertainment,Business,Technology,Science,Health,Sports] news'
-);
+$v_news = new Voice_Cmd('Tell me the [Top,U S,World,Entertainment,Business,Technology,Science,Health,Sports] news');
 $v_news->set_authority('anyone');
 
 # Create trigger
 
 if ($Reload) {
-    &trigger_set(
-        "time_cron('13 6,12,18 * * *')",
-        "run_voice_cmd('Get daily news')",
-        'NoExpire',
-        'get daily news'
-    ) unless &trigger_get('get daily news');
+    &trigger_set( "time_cron('13 6,12,18 * * *')", "run_voice_cmd('Get daily news')", 'NoExpire', 'get daily news' ) unless &trigger_get('get daily news');
 }
 
 # Events
@@ -63,8 +53,7 @@ if ( said $v_all_news) {
         start $p_all_news;
     }
     else {
-        $v_all_news->respond(
-            'Cannot retrieve current news until connected to the Internet.');
+        $v_all_news->respond('Cannot retrieve current news until connected to the Internet.');
     }
 }
 
@@ -72,10 +61,7 @@ if ( done_now $p_all_news) {
     my $text;
     $text = "Here is what is making news right now: \n";
     for ( file_read "$f_all_news_html" ) {
-        if (
-            m!<a href="http://story\.news\.yahoo\.com/fc\?cid=34&tmpl=fc&in=[\w&=]+">([ \w\.,'":\-]+)!
-          )
-        {
+        if (m!<a href="http://story\.news\.yahoo\.com/fc\?cid=34&tmpl=fc&in=[\w&=]+">([ \w\.,'":\-]+)!) {
             $text .= "$1.\n";
             $text =~ s! <td width="30%" align=right valign=middle>\n!!g;
         }
@@ -95,10 +81,7 @@ if ( done_now $p_all_news) {
 
     my %news;
     while (<FN>) {
-        if (
-            m!<a href="http://story\.news\.yahoo\.com/fc\?cid=34&tmpl=fc&in=(\w+)&cat=[=&\w]+">!
-          )
-        {
+        if (m!<a href="http://story\.news\.yahoo\.com/fc\?cid=34&tmpl=fc&in=(\w+)&cat=[=&\w]+">!) {
             my $cat = $1;
             $text = <FN>;
             $text =~ s! <td width="30%" align="right" valign="middle">\n!!g;

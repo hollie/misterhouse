@@ -72,10 +72,9 @@ our %message_types = (
     store  => 0x31,
 
     #UPB Core Reports
-    device_state_report  => 0x86,
-    device_status_report => 0x87,
-    device_variable_report =>
-      0xA9    #RCS Autosend (or request_rcs_variable response) data
+    device_state_report    => 0x86,
+    device_status_report   => 0x87,
+    device_variable_report => 0xA9    #RCS Autosend (or request_rcs_variable response) data
 );
 
 sub new {
@@ -135,11 +134,11 @@ sub set {
     #   &::print_log($self->get_object_name() . "::set($p_state, $p_setby)") if $main::Debug{upbd};
 
     if ( $p_setby eq $self->interface() ) {
-        my $network     = unpack( "C", pack( "H*", substr( $p_state, 4, 2 ) ) );
-        my $destination = unpack( "C", pack( "H*", substr( $p_state, 6, 2 ) ) );
-        my $source      = unpack( "C", pack( "H*", substr( $p_state, 8, 2 ) ) );
-        my $msg = unpack( "C", pack( "H*", substr( $p_state, 10, 2 ) ) );
-        my $l_state = $p_state;
+        my $network     = unpack( "C", pack( "H*", substr( $p_state, 4,  2 ) ) );
+        my $destination = unpack( "C", pack( "H*", substr( $p_state, 6,  2 ) ) );
+        my $source      = unpack( "C", pack( "H*", substr( $p_state, 8,  2 ) ) );
+        my $msg         = unpack( "C", pack( "H*", substr( $p_state, 10, 2 ) ) );
+        my $l_state     = $p_state;
         $p_state = undef;
         if ( $network == $self->network_id() or $network == 0 ) {
             if (   $destination == $self->device_id()
@@ -148,8 +147,7 @@ sub set {
             {
                 if ( !( $source != $self->device_id() and $msg >= 0x80 ) ) {
                     $p_state = $self->_xlate_upb_mh($l_state);
-                    &::print_log(
-                        $self->get_object_name() . "::set($p_state, $p_setby)" )
+                    &::print_log( $self->get_object_name() . "::set($p_state, $p_setby)" )
                       if $main::Debug{upbd};
                 }
             }

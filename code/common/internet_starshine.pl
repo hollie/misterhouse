@@ -25,16 +25,12 @@ Note: Correct long. and time_zone parms for those of us in the
 =cut
 
 $v_starshine_check = new Voice_Cmd '[Get,List,Browse] starshine flares';
-$v_starshine_check->set_info(
-    'Lists times and locations of visible starshine 3 satellite passes');
+$v_starshine_check->set_info('Lists times and locations of visible starshine 3 satellite passes');
 
 # Create trigger
 
 if ($Reload) {
-    &trigger_set(
-        '$New_Week', "run_voice_cmd('Get starshine flares')",
-        'NoExpire',  'get starshine info'
-    ) unless &trigger_get('get starshine info');
+    &trigger_set( '$New_Week', "run_voice_cmd('Get starshine flares')", 'NoExpire', 'get starshine info' ) unless &trigger_get('get starshine info');
 }
 
 sub uninstall_internet_starshine {
@@ -45,22 +41,18 @@ sub uninstall_internet_starshine {
 # so use UCT (GMT+0) and translate.
 my $starshine_check_e = "$Code_Dirs[0]/starshine_check_events.pl";
 my $f_starshine_check = "$config_parms{data_dir}/web/starshine.html";
-my $starshine_check_u = "http://www.heavens-above.com/PassSummary.asp?"
-  . "lat=$config_parms{latitude}&lng=$config_parms{longitude}&alt=0&TZ=UCT&satid=26929";
-$p_starshine_check =
-  new Process_Item qq[get_url "$starshine_check_u" "$f_starshine_check"];
+my $starshine_check_u = "http://www.heavens-above.com/PassSummary.asp?" . "lat=$config_parms{latitude}&lng=$config_parms{longitude}&alt=0&TZ=UCT&satid=26929";
+$p_starshine_check = new Process_Item qq[get_url "$starshine_check_u" "$f_starshine_check"];
 
 sub respond_starshine {
     my $connected = shift;
     my $display   = &list_starshine();
     if ($display) {
-        $v_starshine_check->respond(
-            "app=starshine connected=$connected Listing starshine data.");
+        $v_starshine_check->respond("app=starshine connected=$connected Listing starshine data.");
         display $display, 0, 'Starshine list', 'fixed';
     }
     else {
-        $v_starshine_check->respond(
-            "app=starshine connected=$connected Nothing to report.");
+        $v_starshine_check->respond("app=starshine connected=$connected Nothing to report.");
     }
 }
 
@@ -77,21 +69,18 @@ sub list_starshine {
 
     open( MYCODE, ">$starshine_check_e" )
       or print_log "Error in writing to $starshine_check_e";
-    print MYCODE
-      "\n#@ Auto-generated from code/common/internet_starshine.pl\n\n";
+    print MYCODE "\n#@ Auto-generated from code/common/internet_starshine.pl\n\n";
     for ( split "\n", $text ) {
         if (/^\d{2}\s\S{3}\s/) {
             my @a = split;
-            $time = my_str2time("$a[1]/$a[0] $a[3]") +
-              3600 * $config_parms{time_zone};
-            $time += 3600 if (localtime)[8];  # Adjust for daylight savings time
+            $time = my_str2time("$a[1]/$a[0] $a[3]") + 3600 * $config_parms{time_zone};
+            $time += 3600 if (localtime)[8];    # Adjust for daylight savings time
             ($time_sec) =
               time_date_stamp( 6, $time ) . ' ' . time_date_stamp( 16, $time );
             ( $time, $sec ) = time_date_stamp( 9, $time );
-            $display .= sprintf "%s, alt=%3d, azimuth=%s\n", $time_sec,
-              @a[ 4, 5 ];
+            $display .= sprintf "%s, alt=%3d, azimuth=%s\n", $time_sec, @a[ 4, 5 ];
 
-            next unless $a[4] > 20;    # We can not see them if they are too low
+            next unless $a[4] > 20;             # We can not see them if they are too low
 
             # Create a seperate code file with a time_now for each event
             print MYCODE<<eof;
@@ -109,7 +98,7 @@ eof
     close MYCODE;
     return $display;
 
-    do_user_file $starshine_check_e; # This will enable the code file written above (MYCODE)
+    do_user_file $starshine_check_e;    # This will enable the code file written above (MYCODE)
 }
 
 if ( said $v_starshine_check) {
@@ -123,8 +112,7 @@ if ( said $v_starshine_check) {
         &respond_starshine(1);
     }
     else {
-        $v_starshine_check->respond(
-            "app=starshine $state2" . 'ing starshine report...' );
+        $v_starshine_check->respond( "app=starshine $state2" . 'ing starshine report...' );
     }
 }
 

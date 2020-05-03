@@ -35,12 +35,15 @@ if ( @ARGV > 2 ) {
         }
     }
     $func = "$func($args)";
-	#&main::print_log("func=$func($args)");
+
+    #&main::print_log("func=$func($args)");
     my $html = eval $func;
     print "\nError in set_func.pl: $@\n" if $@;
-#print_log "html=$html";
+
+    #print_log "html=$html";
     return $html if $html;    # Allow function to override response
-#print_log "redir=" &http_redirect($resp). 
+
+    #print_log "redir=" &http_redirect($resp).
     return &http_redirect($resp);
 }
 

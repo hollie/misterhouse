@@ -45,9 +45,7 @@ sub new {
     my %commands;
     my $doIt;
     my $type = uc $main::config_parms{ $portname . "_type" };
-    &main::serial_port_create( $portname,
-        $main::config_parms{ $portname . "_port" },
-        9600, 'none', 'raw' );
+    &main::serial_port_create( $portname, $main::config_parms{ $portname . "_port" }, 9600, 'none', 'raw' );
     if ( $main::Serial_Ports{$portname}{object} ) {
         push( @DSS_Ports, $portname );
     }
@@ -239,10 +237,7 @@ sub GetReply {
         $new_data  = $serial_data;
         $strreturn = "OK:";
 
-        $strreturn .= "YEAR="
-          . ( $ret[0] + 1993 )
-          . ",MONTH=$ret[1],"
-          . "DAY=$ret[2],HOUR=$ret[3],MINUTE=$ret[4],SECOND=$ret[5],DAYOFWEEK=$ret[6]"
+        $strreturn .= "YEAR=" . ( $ret[0] + 1993 ) . ",MONTH=$ret[1]," . "DAY=$ret[2],HOUR=$ret[3],MINUTE=$ret[4],SECOND=$ret[5],DAYOFWEEK=$ret[6]"
           if ( $cmd eq "GETTIME" and @ret + 0 == 7 );
 
         $strreturn .= "CHANNEL="

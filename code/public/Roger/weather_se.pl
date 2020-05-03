@@ -18,26 +18,14 @@
 #my	$StateProvince = $config_parms{state};
 #my	$CityPage =	$config_parms{city};
 #
-my (
-    $text,     @data,           $data,       $data_temp,
-    $data_dew, $wind_direction, $wind_speed, $gust_speed,
-    $temp,     $dew,            $presure,    $dag
-);
-my (
-    @airport,        $aprs_ws,        $aprs_winddir,
-    $aprs_windspeed, $aprs_gustspeed, $aprs_temp,
-    $aprs_dev,       $aprs_presure,   $aprs_time
-);
-my (
-    $aprs_humidity, $AirportCode, $AirportPos,
-    $AirportName,   $AirportLine, $Metar
-);
+my ( $text, @data, $data, $data_temp, $data_dew, $wind_direction, $wind_speed, $gust_speed, $temp, $dew, $presure, $dag );
+my ( @airport, $aprs_ws, $aprs_winddir, $aprs_windspeed, $aprs_gustspeed, $aprs_temp, $aprs_dev, $aprs_presure, $aprs_time );
+my ( $aprs_humidity, $AirportCode, $AirportPos, $AirportName, $AirportLine, $Metar );
 my ( $E_pressure, $Es_pressure );
 my $HtmlFindFlag = 0;
 ######my $WeatherURL="http://www.egats.org/cgibin/wxread2.cgi?stations=ESKN";	###	Does not work yet, ESKN	in 2 places
-my $WeatherURL = "http://blinder.lfv.se/cgi/met/metar.sweden";
-my $WeatherURLForecast =
-  "http://www.tv4.se/nyheterna/vadret/vadret_sverige2.asp?lan=13&location=156";
+my $WeatherURL         = "http://blinder.lfv.se/cgi/met/metar.sweden";
+my $WeatherURLForecast = "http://www.tv4.se/nyheterna/vadret/vadret_sverige2.asp?lan=13&location=156";
 
 ######my $WeatherFile=(split(/\./, (split(/\//,$WeatherURL))[5]	))[0];
 my $WeatherFile         = "weather_conditions";
@@ -48,12 +36,9 @@ my $f_weather_html = "$config_parms{data_dir}/web/$WeatherFile.html";
 $p_weather_page = new Process_Item("get_url	$WeatherURL	$f_weather_html");
 $v_weather_page = new Voice_Cmd('[Get,Read,Show] weather conditions');
 $v_weather_page->set_info('Get	the	weather	conditions at Skavsta airport');
-my $f_weather_forecast_page =
-  "$config_parms{data_dir}/web/$WeatherFileForecast.txt";
-my $f_weather_forecast_html =
-  "$config_parms{data_dir}/web/$WeatherFileForecast.html";
-$p_weather_forecast_page =
-  new Process_Item("get_url $WeatherURLForecast $f_weather_forecast_html");
+my $f_weather_forecast_page = "$config_parms{data_dir}/web/$WeatherFileForecast.txt";
+my $f_weather_forecast_html = "$config_parms{data_dir}/web/$WeatherFileForecast.html";
+$p_weather_forecast_page = new Process_Item("get_url $WeatherURLForecast $f_weather_forecast_html");
 $v_weather_forecast_page = new Voice_Cmd('[Get,Read,Show] weather forecast');
 $v_weather_forecast_page->set_info('Get the weather forecast from TV4');
 ####$v_weather_page-> set_info("Weather	conditions and forecast	for	$config_parms{city}, $config_parms{state}  $config_parms{country}");
@@ -69,8 +54,8 @@ $v_weather_forecast_page->set_info('Get the weather forecast from TV4');
 
 if ($Reload) {
     open( AIRPOS, "$config_parms{code_dir}/weather.pos" );    #	Open for input
-    @airport = <AIRPOS>;    #	Open array and read	in data
-    close AIRPOS;           #	Close the file
+    @airport = <AIRPOS>;                                      #	Open array and read	in data
+    close AIRPOS;                                             #	Close the file
 }
 
 #speak($f_weather_page)
@@ -116,8 +101,7 @@ if ( said $v_weather_forecast_page eq 'Get' ) {
     # Do this only if we the file has not already been updated today and it	is not empty
     if (    0
         and -s $f_weather_forecast_html > 10
-        and time_date_stamp( 6, $f_weather_forecast_html ) eq
-        time_date_stamp(6) )
+        and time_date_stamp( 6, $f_weather_forecast_html ) eq time_date_stamp(6) )
     {
         print_log "Weather forecast	page is	current";
         display $f_weather_forecast_page;
@@ -140,8 +124,7 @@ if ( said $v_weather_forecast_page eq 'Get' ) {
 if ( done_now $p_weather_page) {
     my $html = file_read $f_weather_html;
 
-    $text = HTML::FormatText->new( leftmargin => 0, rightmargin => 150 )
-      ->format( HTML::TreeBuilder->new()->parse($html) );
+    $text = HTML::FormatText->new( leftmargin => 0, rightmargin => 150 )->format( HTML::TreeBuilder->new()->parse($html) );
 
     # New section for APRS Weather objects - Roger Bille
     # V0.1	2001-06-16
@@ -151,103 +134,84 @@ if ( done_now $p_weather_page) {
     foreach $AirportLine (@airport) {    # Run for each airport in array
         ( $AirportCode, $AirportPos, $AirportName ) =
           ( split( ',', $AirportLine ) )[ 0, 1, 2 ];    # Split	each line
-        chomp $AirportName;    # Remove any trailing linefeed
+        chomp $AirportName;                             # Remove any trailing linefeed
 
-        if ( $text =~ /$AirportCode / ) {    # Check	if Airport is in text
-            $Metar = $text;                     # Copy text	so it is not changed
-            $Metar =~ s/.+$AirportCode /$1/s;   # Remove all before
-            $Metar =~ s/=.+/$1/s;               # Remove all after
+        if ( $text =~ /$AirportCode / ) {               # Check	if Airport is in text
+            $Metar = $text;                             # Copy text	so it is not changed
+            $Metar =~ s/.+$AirportCode /$1/s;           # Remove all before
+            $Metar =~ s/=.+/$1/s;                       # Remove all after
 
-            @data = split( ' ', $Metar );       # Split	field by field
-            foreach $data (@data) {             # Process each field
+            @data = split( ' ', $Metar );               # Split	field by field
+            foreach $data (@data) {                     # Process each field
 
-                if ( $data =~ /KT/ ) {    # Check	if Wind	data (03010KT,VRB02KT)
+                if ( $data =~ /KT/ ) {                  # Check	if Wind	data (03010KT,VRB02KT)
                     $aprs_winddir = substr( $data, 0, 3 );    # Wind direction
-                    if ( $aprs_winddir eq "VRB" )
-                    {    # Check	if variable	direction
-                        $aprs_winddir = "...";    # Set aprs to variable
+                    if ( $aprs_winddir eq "VRB" ) {           # Check	if variable	direction
+                        $aprs_winddir = "...";                # Set aprs to variable
                     }
-                    $wind_speed = substr( $data, 3, 2 );    # Windspeed	in knot
-                    $wind_speed =~ s/^0+/$1/s;    # Remove beginning 0´s
-                    $aprs_windspeed =
-                      sprintf( "%03d", $wind_speed * 1.852 / 1.609344 )
-                      ;    # Convert to mph with 3 characters	beginning with 0's
+                    $wind_speed = substr( $data, 3, 2 );      # Windspeed	in knot
+                    $wind_speed =~ s/^0+/$1/s;                # Remove beginning 0´s
+                    $aprs_windspeed = sprintf( "%03d", $wind_speed * 1.852 / 1.609344 );    # Convert to mph with 3 characters	beginning with 0's
                     $gust_speed = 0;
                     if ( $data =~ /G/ ) {
                         $gust_speed = substr( $data, 6, 2 );
-                        $aprs_gustspeed =
-                          sprintf( "%03d", $gust_speed * 1.852 / 1.609344 )
-                          ; # Convert to mph with 3 characters	beginning with 0's
+                        $aprs_gustspeed = sprintf( "%03d", $gust_speed * 1.852 / 1.609344 );    # Convert to mph with 3 characters	beginning with 0's
                     }
                 }
 
-                if ( $data =~ /\// ) {    # Check	if Temp	and	Dew
+                if ( $data =~ /\// ) {                                                          # Check	if Temp	and	Dew
                     ( $data_temp, $data_dew ) =
-                      split( "/", $data );    # Split	temp and dew
-                    if ( $data_temp =~ /M/ ) {    # Check	if negative
-                        $temp = substr( $data_temp, 1, 2 );    # Temperatur in	C
-                        $temp =~ s/^0+/$1/s;    # Remove beginning 0's
-                        $temp = $temp * -1;     # Negative
+                      split( "/", $data );                                                      # Split	temp and dew
+                    if ( $data_temp =~ /M/ ) {                                                  # Check	if negative
+                        $temp = substr( $data_temp, 1, 2 );                                     # Temperatur in	C
+                        $temp =~ s/^0+/$1/s;                                                    # Remove beginning 0's
+                        $temp = $temp * -1;                                                     # Negative
                     }
                     else {
-                        $temp = substr( $data_temp, 0, 2 );    # Temperatur in	C
-                        $temp =~ s/^0+/$1/s;    # Remove beginning 0's
+                        $temp = substr( $data_temp, 0, 2 );                                     # Temperatur in	C
+                        $temp =~ s/^0+/$1/s;                                                    # Remove beginning 0's
                     }
-                    if ( $data_dew =~ /M/ ) {    # Check	if negative
-                        $dew = substr( $data_dew, 1, 2 );    # Dewpoint in C
-                        $dew =~ s/^0+/$1/s;    # Remove beginning 0's
-                        $dew = $dew * -1;      # Negative
+                    if ( $data_dew =~ /M/ ) {                                                   # Check	if negative
+                        $dew = substr( $data_dew, 1, 2 );                                       # Dewpoint in C
+                        $dew =~ s/^0+/$1/s;                                                     # Remove beginning 0's
+                        $dew = $dew * -1;                                                       # Negative
                     }
                     else {
-                        $dew = substr( $data_dew, 0, 2 );    # Dewpoint in C
-                        $dew =~ s/^0+/$1/s;    # Remove beginning 0's
+                        $dew = substr( $data_dew, 0, 2 );                                       # Dewpoint in C
+                        $dew =~ s/^0+/$1/s;                                                     # Remove beginning 0's
                     }
-                    $aprs_temp = sprintf( "%03d", $temp * 9 / 5 + 32 )
-                      ;                        # Convert to F with	formating
-                    $aprs_dev = sprintf( "%03d", $dew * 9 / 5 + 32 )
-                      ;                        # Convert to F with	formating
-                    $Es_pressure =
-                      6.11 * 10.0**( 7.5 * $temp / ( 237.7 + $temp ) )
-                      ;    # Caluculate Saturation	Vapor Pressure
-                    $E_pressure = 6.11 * 10.0**( 7.5 * $dew / ( 237.7 + $dew ) )
-                      ;    # Caluculate Actual	Vapor Pressure
-                    $aprs_humidity = ( $E_pressure / $Es_pressure ) *
-                      100;    # Calculate	Relative Humidity
-                    if ( $aprs_humidity >= 100 )
-                    {         # Check	if humidity	is 100%	or more
-                        $aprs_humidity =
-                          99;    # Convert to APRS format (of 100% =	00)
+                    $aprs_temp = sprintf( "%03d", $temp * 9 / 5 + 32 );                         # Convert to F with	formating
+                    $aprs_dev  = sprintf( "%03d", $dew * 9 / 5 + 32 );                          # Convert to F with	formating
+                    $Es_pressure = 6.11 * 10.0**( 7.5 * $temp / ( 237.7 + $temp ) );            # Caluculate Saturation	Vapor Pressure
+                    $E_pressure  = 6.11 * 10.0**( 7.5 * $dew /  ( 237.7 + $dew ) );             # Caluculate Actual	Vapor Pressure
+                    $aprs_humidity = ( $E_pressure / $Es_pressure ) * 100;                      # Calculate	Relative Humidity
+                    if ( $aprs_humidity >= 100 ) {                                              # Check	if humidity	is 100%	or more
+                        $aprs_humidity = 99;                                                    # Convert to APRS format (of 100% =	00)
                     }
-                    $aprs_humidity = sprintf( "%02d", $aprs_humidity )
-                      ;          # Convert to APRS format
+                    $aprs_humidity = sprintf( "%02d", $aprs_humidity );                         # Convert to APRS format
                 }
 
-                if ( $data =~ /Q\d{4}/ ) {    # Check	if Presure (Q1011)
-                    $presure = substr( $data, 1, 4 );    # Presure in mbar
-                    $aprs_presure = $presure . "0"
-                      ;    # Format and add extra 0 for presure in	thenth:s mbar
+                if ( $data =~ /Q\d{4}/ ) {                                                      # Check	if Presure (Q1011)
+                    $presure = substr( $data, 1, 4 );                                           # Presure in mbar
+                    $aprs_presure = $presure . "0";                                             # Format and add extra 0 for presure in	thenth:s mbar
                 }
 
-                if ( $data =~ /\d{6}Z/ ) {    # Check	for	time stamp (172130Z)
-                    $aprs_time = substr( $data, 0, 6 );    # Time stamp in	zulu
+                if ( $data =~ /\d{6}Z/ ) {                                                      # Check	for	time stamp (172130Z)
+                    $aprs_time = substr( $data, 0, 6 );                                         # Time stamp in	zulu
                 }
 
             }    # End foreach field
                  # Create APRS packet
-            $aprs_ws =
-                "SM5NRK-1>APRS,TRACE5-5:;"
-              . $AirportCode
-              . "     *";    # Header + Airport
-            $aprs_ws =
-              $aprs_ws . $aprs_time . "z" . $AirportPos . "_";    # Time + Pos
-            $aprs_ws = $aprs_ws . $aprs_winddir . "/" . $aprs_windspeed;  # Wind
+            $aprs_ws = "SM5NRK-1>APRS,TRACE5-5:;" . $AirportCode . "     *";    # Header + Airport
+            $aprs_ws = $aprs_ws . $aprs_time . "z" . $AirportPos . "_";         # Time + Pos
+            $aprs_ws = $aprs_ws . $aprs_winddir . "/" . $aprs_windspeed;        # Wind
             if ( $gust_speed != 0 ) {
-                $aprs_ws = $aprs_ws . "g" . $aprs_gustspeed;              # Gust
+                $aprs_ws = $aprs_ws . "g" . $aprs_gustspeed;                    # Gust
             }
-            $aprs_ws = $aprs_ws . "t" . $aprs_temp;        # Temperatur
-            $aprs_ws = $aprs_ws . "b" . $aprs_presure;     # Presure
-            $aprs_ws = $aprs_ws . "h" . $aprs_humidity;    # Humidity
-            $aprs_ws = $aprs_ws . " $AirportName";         # Comment
+            $aprs_ws = $aprs_ws . "t" . $aprs_temp;                             # Temperatur
+            $aprs_ws = $aprs_ws . "b" . $aprs_presure;                          # Presure
+            $aprs_ws = $aprs_ws . "h" . $aprs_humidity;                         # Humidity
+            $aprs_ws = $aprs_ws . " $AirportName";                              # Comment
 
             #			print "$aprs_ws\n";
             set $tnc_output $aprs_ws;
@@ -375,8 +339,7 @@ if ( done_now $p_weather_page) {
 if ( done_now $p_weather_forecast_page) {
     my $html = file_read $f_weather_forecast_html;
 
-    $text = HTML::FormatText->new( leftmargin => 0, rightmargin => 150 )
-      ->format( HTML::TreeBuilder->new()->parse($html) );
+    $text = HTML::FormatText->new( leftmargin => 0, rightmargin => 150 )->format( HTML::TreeBuilder->new()->parse($html) );
 
     print_log $text;
     print_log $Day;

@@ -72,8 +72,7 @@ sub for_each_cvsnode {
         }
     }
     else {
-        die
-          "illogic:  can't change cvs_dir [$cvs_dir] to tar_dir [$tar_dir] for file: [$tar_test]\n";
+        die "illogic:  can't change cvs_dir [$cvs_dir] to tar_dir [$tar_dir] for file: [$tar_test]\n";
     }
 }
 
@@ -125,8 +124,7 @@ sub for_each_tarnode {
         }
     }
     else {
-        die
-          "illogic:  can't change tar_dir [$tar_dir] to cvs_dir [$cvs_dir] for file: [$cvs_test]\n";
+        die "illogic:  can't change tar_dir [$tar_dir] to cvs_dir [$cvs_dir] for file: [$cvs_test]\n";
     }
     $tar_log{$relative_base}++;
 ### 	print "$File::Find::dir\n" if (! $dir{$File::Find::dir}++);

@@ -45,8 +45,7 @@ $Master_Control->add( 'XC8CK', 'SecurityAll' );
 
 if ($New_Minute) {
     if ( time_now("$Time_Sunset - 0:30") ) {
-        print_log
-          "Sunset at $Time_Sunset; now dusk, set up Master Bedroom for evening";
+        print_log "Sunset at $Time_Sunset; now dusk, set up Master Bedroom for evening";
         set $Debbie_Lamp ON;
         set $Danal_Lamp ON;
     }
@@ -141,12 +140,10 @@ sub master_morning {
     my $tnow  = parsedate('now');
     my $tmst  = parsedate("$date $time");
     my $tdiff = $tnow - $tmst;
-    print_log
-      "Master Control Timers: Last date/time $date $time, seconds $tmst, secs now $tnow, diff $tdiff";
+    print_log "Master Control Timers: Last date/time $date $time, seconds $tmst, secs now $tnow, diff $tdiff";
 
     if ( $tdiff < 6 * 60 * 60 ) {
-        print_log
-          "Master Control manipulated this morning; morning routine automation canceled";
+        print_log "Master Control manipulated this morning; morning routine automation canceled";
     }
     else {
         set $Debbie_Fan OFF;

@@ -23,8 +23,7 @@ my $html = qq[
 ];
 
 if ( $param{autorefresh} > 0 ) {
-    $html .=
-      qq[<meta http-equiv="refresh" content="$param{autorefresh}; URL=$myURL?autorefresh=$param{autorefresh}">\n];
+    $html .= qq[<meta http-equiv="refresh" content="$param{autorefresh}; URL=$myURL?autorefresh=$param{autorefresh}">\n];
 }
 
 $html .= qq[</head>
@@ -49,8 +48,7 @@ elsif ( $param{action} eq 'counter' ) {
     for ( $i = 1; $i <= $numCounters; $i++ ) {
         if ( $param{"c$i"} ne '' ) {
             $k8055->setDebounce( $i, $param{"c$i"} );
-            push( @result,
-                "Setting Counter $i Debounce to " . $param{"c$i"} . " ms" );
+            push( @result, "Setting Counter $i Debounce to " . $param{"c$i"} . " ms" );
         }
     }
 }
@@ -74,8 +72,7 @@ elsif ( $param{action} =~ /update-(.)(\d)/ ) {
 }
 elsif ( $param{action} eq 'autoupdate' ) {
     $k8055->setUpdatePeriod( $param{autoupdatetime} );
-    push( @result,
-        "Setting auto-update period to $param{autoupdatetime} seconds" );
+    push( @result, "Setting auto-update period to $param{autoupdatetime} seconds" );
 }
 elsif ( $param{action} eq 'update' ) {
     $k8055->update();
@@ -147,8 +144,7 @@ $html .= qq[</p>
 ];
 
 for ( $i = 1; $i <= $numAnalogueOutputPorts; $i++ ) {
-    $html .=
-      qq[<p>Port $i: <input type="text" name="a$i" value="" maxlength=3></p>];
+    $html .= qq[<p>Port $i: <input type="text" name="a$i" value="" maxlength=3></p>];
 }
 $html .= qq[<p><input type="submit" name="action" value="analogue"></p>\n];
 
@@ -161,8 +157,7 @@ for ( $i = 1; $i <= $numCounters; $i++ ) {
 
 $html .= "</p>";
 for ( $i = 1; $i <= $numCounters; $i++ ) {
-    $html .=
-      qq[<p>Counter $i: <input type="text" name="c$i" value="" maxlength=4></p>];
+    $html .= qq[<p>Counter $i: <input type="text" name="c$i" value="" maxlength=4></p>];
 }
 $html .= qq[<p><input type="submit" name="action" value="counter"></p>\n];
 

@@ -112,8 +112,7 @@ sub web_fp    #render table representation of objects and their co-ordinates
     my $l_bcolor = '#CCCCCC';
     my $l_acolor = '#00FF00';
 
-    my $title_room = $svg->text( id => "title", x => 50, y => 75 )
-      ->cdata( web_fp_filter_name($object_name) );
+    my $title_room = $svg->text( id => "title", x => 50, y => 75 )->cdata( web_fp_filter_name($object_name) );
     my $y = $svg->group(
         id    => 'group_y',
         style => { stroke => 'black', fill => 'white' }
@@ -128,11 +127,9 @@ sub web_fp    #render table representation of objects and their co-ordinates
             # It was 10, I'm not sure that 12 is correct
             # times 10, the rooms are given in feet (I guess)
             $l_x *= 12;
-            $l_x += $xOffset
-              ; # Corrective offset to move it of the right edge of the display area
+            $l_x += $xOffset;    # Corrective offset to move it of the right edge of the display area
             $l_y *= 12;
-            $l_y += $yOffset
-              ; # Corrective offset to move it of the top edge of the display area
+            $l_y += $yOffset;    # Corrective offset to move it of the top edge of the display area
             $l_w *= 12;
             $l_h *= 12;
 
@@ -153,7 +150,7 @@ sub web_fp    #render table representation of objects and their co-ordinates
                 )->cdata( web_fp_filter_name( $obj->{object_name} ) );
                 $i++;
             }
-            @n_objs = @{ $$obj{members} }; # This is the Devices within the Room
+            @n_objs = @{ $$obj{members} };    # This is the Devices within the Room
             for my $item (@n_objs) {
                 my ( $width, $height );
                 my $ob = Ob($item);
@@ -204,8 +201,7 @@ sub web_fp    #render table representation of objects and their co-ordinates
     else {
         ( $l_x, $l_y, $l_w, $l_h ) = $p_obj->get_fp_location();
         my ( $l_text, $l_state, $l_image ) = web_fp_item($p_obj);
-        $svg->text( x => $l_x + 6, y => $l_y + 6 )
-          ->cdata( web_fp_filter_name($l_text) );
+        $svg->text( x => $l_x + 6, y => $l_y + 6 )->cdata( web_fp_filter_name($l_text) );
         $svg->image(
             x       => $l_x,
             y       => $l_y,

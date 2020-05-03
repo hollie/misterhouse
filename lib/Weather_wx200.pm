@@ -98,8 +98,7 @@ sub read_wx200 {
         }
         $checksum2 &= 0xff;    # Checksum is lower 8 bits of the sum
         if ( $checksum1 != $checksum2 ) {
-            print
-              "Warning, bad wx200 type=$$dtp[0] checksum: cs1=$checksum1 cs2=$checksum2\n";
+            print "Warning, bad wx200 type=$$dtp[0] checksum: cs1=$checksum1 cs2=$checksum2\n";
             next;
         }
 
@@ -187,8 +186,7 @@ sub wx_baro {
           DewOutdoor
         );
     }
-    print
-      "baro = $$wptr{Barom}, $$wptr{BaromSea} dew=$$wptr{DewIndoor}, $$wptr{DewOutdoor}\n"
+    print "baro = $$wptr{Barom}, $$wptr{BaromSea} dew=$$wptr{DewIndoor}, $$wptr{DewOutdoor}\n"
       if $debug;
 
     #   $wx_counts{baro}++;
@@ -213,8 +211,7 @@ sub wx_rain {
       unless $skip{RainTotal};
 
     if ( $main::config_parms{weather_uom_rain} eq 'in' ) {
-        grep { $$wptr{$_} = &::convert_mm2in( $$wptr{$_} ) unless $skip{$_}; }
-          qw(
+        grep { $$wptr{$_} = &::convert_mm2in( $$wptr{$_} ) unless $skip{$_}; } qw(
           RainRate
           RainYest
           RainTotal
@@ -223,9 +220,7 @@ sub wx_rain {
     print "rain = $$wptr{RainRate}, $$wptr{RainYest}, $$wptr{RainTotal}\n"
       if $debug;
 
-    $$wptr{SummaryRain} =
-      sprintf( "Rain Recent/Total: %3.1f / %4.1f  Barom: %4d",
-        $$wptr{RainYest}, $$wptr{RainTotal}, $$wptr{Barom} );
+    $$wptr{SummaryRain} = sprintf( "Rain Recent/Total: %3.1f / %4.1f  Barom: %4d", $$wptr{RainYest}, $$wptr{RainTotal}, $$wptr{Barom} );
 
     #   print "rain=@data\n";
     #   $wx_counts{rain}++;
@@ -259,21 +254,18 @@ sub wx_wind {
     #    }
 
     if ( $main::config_parms{weather_uom_wind} eq 'mph' ) {
-        grep { $$wptr{$_} = &::convert_mps2mph( $$wptr{$_} ) unless $skip{$_}; }
-          qw(
+        grep { $$wptr{$_} = &::convert_mps2mph( $$wptr{$_} ) unless $skip{$_}; } qw(
           WindAvgSpeed
           WindGustSpeed
         );
     }
     if ( $main::config_parms{weather_uom_wind} eq 'kph' ) {
-        grep { $$wptr{$_} = &::convert_mps2kph( $$wptr{$_} ) unless $skip{$_}; }
-          qw(
+        grep { $$wptr{$_} = &::convert_mps2kph( $$wptr{$_} ) unless $skip{$_}; } qw(
           WindAvgSpeed
           WindGustSpeed
         );
     }
-    print
-      "wind = $$wptr{WindGustSpeed}, $$wptr{WindAvgSpeed}, $$wptr{WindGustDir}, $$wptr{WindAvgDir}\n"
+    print "wind = $$wptr{WindGustSpeed}, $$wptr{WindAvgSpeed}, $$wptr{WindGustDir}, $$wptr{WindAvgDir}\n"
       if $debug;
 
     #   print "wind=@data\n";

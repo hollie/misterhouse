@@ -3,8 +3,7 @@
 #@ Create a launry timer
 
 $v_laundry_timer = new Voice_Cmd('Laundry timer [on,off]');
-$v_laundry_timer->set_info(
-    'Set a 35 minute timer to remind when the cloths are washed/dried');
+$v_laundry_timer->set_info('Set a 35 minute timer to remind when the cloths are washed/dried');
 
 $timer_laundry = new Timer;
 
@@ -39,13 +38,11 @@ sub laundry_reminder {
         'are having dinner',
         'are electrocuting each other with static'
     );
-    speak "rooms=all The laundry clothes "
-      . $laundry_reminders[ int rand @laundry_reminders ];
+    speak "rooms=all The laundry clothes " . $laundry_reminders[ int rand @laundry_reminders ];
 }
 
 $v_tramp_timer = new Voice_Cmd('[Start,Stop] the tramp timer');
-$v_tramp_timer->set_info(
-    'Set a timer for fair usage on the trampoline.  Peace will rule :)');
+$v_tramp_timer->set_info('Set a timer for fair usage on the trampoline.  Peace will rule :)');
 
 $timer_tramp = new Timer;
 if ( 'Start' eq said $v_tramp_timer) {

@@ -5,5 +5,4 @@
 
 # Authority: anyone
 
-return
-  "<a href='/RUN;&referer(/ia5/modes/main.shtml)?Toggle_the_house_mode'><img src=images/$Save{mode}.gif alt='Mode $Save{mode}' border=0></a>";
+return "<a href='/RUN;&referer(/ia5/modes/main.shtml)?Toggle_the_house_mode'><img src=images/$Save{mode}.gif alt='Mode $Save{mode}' border=0></a>";

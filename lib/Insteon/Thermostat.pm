@@ -204,9 +204,7 @@ Causes thermostat to return mode; detected as state change if mode changes
 sub poll_mode {
     my ($self) = @_;
     $$self{_control_action} = "mode";
-    my $message =
-      new Insteon::InsteonMessage( 'insteon_send', $self, 'thermostat_control',
-        '02' );
+    my $message = new Insteon::InsteonMessage( 'insteon_send', $self, 'thermostat_control', '02' );
     $self->_send_cmd($message);
     return;
 }
@@ -232,8 +230,7 @@ sub fan {
         $state = 'fan_auto';
     }
     else {
-        main::print_log(
-            "[Insteon::Thermostat] ERROR: Invalid Fan state: $state");
+        main::print_log("[Insteon::Thermostat] ERROR: Invalid Fan state: $state");
         return ();
     }
     $self->_send_cmd( $self->simple_message( 'thermostat_control', $fan ) );
@@ -250,15 +247,10 @@ sub cool_setpoint {
     main::print_log("[Insteon::Thermostat] Cool setpoint -> $temp")
       if $self->debuglevel( 1, 'insteon' );
     if ( $temp !~ /^\d+$/ ) {
-        main::print_log(
-            "[Insteon::Thermostat] ERROR: cool_setpoint $temp not numeric");
+        main::print_log("[Insteon::Thermostat] ERROR: cool_setpoint $temp not numeric");
         return;
     }
-    $self->_send_cmd(
-        $self->simple_message(
-            'thermostat_setpoint_cool', sprintf( '%02X', ( $temp * 2 ) )
-        )
-    );
+    $self->_send_cmd( $self->simple_message( 'thermostat_setpoint_cool', sprintf( '%02X', ( $temp * 2 ) ) ) );
 }
 
 =item C<heat_setpoint()>
@@ -272,15 +264,10 @@ sub heat_setpoint {
     main::print_log("[Insteon::Thermostat] Heat setpoint -> $temp")
       if $self->debuglevel( 1, 'insteon' );
     if ( $temp !~ /^\d+$/ ) {
-        main::print_log(
-            "[Insteon::Thermostat] ERROR: heat_setpoint $temp not numeric");
+        main::print_log("[Insteon::Thermostat] ERROR: heat_setpoint $temp not numeric");
         return;
     }
-    $self->_send_cmd(
-        $self->simple_message(
-            'thermostat_setpoint_heat', sprintf( '%02X', ( $temp * 2 ) )
-        )
-    );
+    $self->_send_cmd( $self->simple_message( 'thermostat_setpoint_heat', sprintf( '%02X', ( $temp * 2 ) ) ) );
 }
 
 =item C<poll_temp()>
@@ -292,8 +279,7 @@ Causes thermostat to return temp; detected as state change.
 sub poll_temp {
     my ($self) = @_;
     $$self{_zone_action} = "temp";
-    my $message = new Insteon::InsteonMessage( 'insteon_send', $self,
-        'thermostat_get_zone_info', '00' );
+    my $message = new Insteon::InsteonMessage( 'insteon_send', $self, 'thermostat_get_zone_info', '00' );
     $self->_send_cmd($message);
     return;
 }
@@ -324,8 +310,7 @@ sub poll_setpoint {
     my ($self) = @_;
     $self->poll_mode();
     $$self{_zone_action} = "setpoint";
-    my $message = new Insteon::InsteonMessage( 'insteon_send', $self,
-        'thermostat_get_zone_info', '20' );
+    my $message = new Insteon::InsteonMessage( 'insteon_send', $self, 'thermostat_get_zone_info', '20' );
     $self->_send_cmd($message);
     return;
 }
@@ -415,9 +400,7 @@ sub _is_info_request {
     my $is_info_request = ( $cmd eq 'thermostat_get_zone_info' ) ? 1 : 0;
     if ($is_info_request) {
         my $val = $msg{extra};
-        main::print_log(
-            "[Insteon::Thermostat] Processing is_info_request for $cmd with value: $val"
-        ) if $self->debuglevel( 1, 'insteon' );
+        main::print_log("[Insteon::Thermostat] Processing is_info_request for $cmd with value: $val") if $self->debuglevel( 1, 'insteon' );
         if ( $$self{_zone_action} eq "temp" ) {
             $val = ( hex $val ) / 2;    # returned value is twice the real value
             if ( exists $$self{'temp'} and ( $$self{'temp'} != $val ) ) {
@@ -427,7 +410,7 @@ sub _is_info_request {
         }
         elsif ( $$self{_zone_action} eq 'setpoint' ) {
             $val = ( hex $val ) / 2;    # returned value is twice the real value
-              # in auto modes, expect direct message with cool_setpoint to follow
+                                        # in auto modes, expect direct message with cool_setpoint to follow
             if ( $self->get_mode() eq 'auto' or 'program_auto' ) {
                 $self->_heat_sp($val);
                 $$self{'m_pending_setpoint'} = 1;
@@ -445,8 +428,7 @@ sub _is_info_request {
     else    #This was not a thermostat info_request
     {
         #Check if this was a generic info_request
-        $is_info_request =
-          $self->SUPER::_is_info_request( $cmd, $ack_setby, %msg );
+        $is_info_request = $self->SUPER::_is_info_request( $cmd, $ack_setby, %msg );
     }
     return $is_info_request;
 
@@ -471,9 +453,7 @@ sub _process_message {
     }
     elsif ( $msg{command} eq "thermostat_setpoint_cool" && $msg{is_ack} ) {
         $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
-        main::print_log(
-            "[Insteon::Thermostat] Received ACK of cool setpoint " . "for "
-              . $self->get_object_name )
+        main::print_log( "[Insteon::Thermostat] Received ACK of cool setpoint " . "for " . $self->get_object_name )
           if $self->debuglevel( 1, 'insteon' );
         $self->_cool_sp( ( hex( $msg{extra} ) / 2 ) );
         $clear_message = 1;
@@ -481,9 +461,7 @@ sub _process_message {
     }
     elsif ( $msg{command} eq "thermostat_setpoint_heat" && $msg{is_ack} ) {
         $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
-        main::print_log(
-            "[Insteon::Thermostat] Received ACK of heat setpoint " . "for "
-              . $self->get_object_name )
+        main::print_log( "[Insteon::Thermostat] Received ACK of heat setpoint " . "for " . $self->get_object_name )
           if $self->debuglevel( 1, 'insteon' );
         $self->_heat_sp( ( hex( $msg{extra} ) / 2 ) );
         $clear_message = 1;
@@ -493,9 +471,7 @@ sub _process_message {
         $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
 
         # we got our cool setpoint in auto mode
-        main::print_log(
-            "[Insteon::Thermostat] Processing data for $msg{command} with value: $msg{extra}"
-        ) if $self->debuglevel( 1, 'insteon' );
+        main::print_log("[Insteon::Thermostat] Processing data for $msg{command} with value: $msg{extra}") if $self->debuglevel( 1, 'insteon' );
         my $val = ( hex $msg{extra} ) / 2;
         $self->_cool_sp($val);
         $$self{m_setpoint_pending} = 0;
@@ -534,12 +510,10 @@ sub parent_event {
         $$self{child_status}->set_receive( $self->get_status(), $self );
     }
     elsif ( $p_state eq 'low_humid_setpoint_change' ) {
-        $$self{child_setpoint_humid_l}
-          ->set_receive( $self->get_low_humid_sp(), $self );
+        $$self{child_setpoint_humid_l}->set_receive( $self->get_low_humid_sp(), $self );
     }
     elsif ( $p_state eq 'high_humid_setpoint_change' ) {
-        $$self{child_setpoint_humid_h}
-          ->set_receive( $self->get_high_humid_sp(), $self );
+        $$self{child_setpoint_humid_h}->set_receive( $self->get_high_humid_sp(), $self );
     }
 }
 
@@ -615,8 +589,7 @@ sub mode {
         $mode = "0c";
     }
     else {
-        main::print_log(
-            "[Insteon::Thermostat] ERROR: Invalid Mode state: $state");
+        main::print_log("[Insteon::Thermostat] ERROR: Invalid Mode state: $state");
         return ();
     }
     $$self{_control_action} = "mode";
@@ -628,9 +601,7 @@ sub _is_info_request {
     my $is_info_request;
     if ( $cmd eq 'thermostat_control' && $$self{_control_action} eq "mode" ) {
         my $val = $msg{extra};
-        main::print_log(
-            "[Insteon::Thermo_i1] Processing is_info_request for $cmd with value: $val"
-        ) if $self->debuglevel( 1, 'insteon' );
+        main::print_log("[Insteon::Thermo_i1] Processing is_info_request for $cmd with value: $val") if $self->debuglevel( 1, 'insteon' );
         if ( $val eq '00' ) {
             $self->_mode('off');
         }
@@ -664,8 +635,7 @@ sub _is_info_request {
     else    #This was not a thermo_1 info_request
     {
         #Check if this was a generic info_request
-        $is_info_request =
-          $self->SUPER::_is_info_request( $cmd, $ack_setby, %msg );
+        $is_info_request = $self->SUPER::_is_info_request( $cmd, $ack_setby, %msg );
     }
     return $is_info_request;
 }
@@ -674,8 +644,7 @@ sub _is_info_request {
 sub simple_message {
     my ( $self, $type, $extra ) = @_;
     my $message;
-    $message =
-      new Insteon::InsteonMessage( 'insteon_send', $self, $type, $extra );
+    $message = new Insteon::InsteonMessage( 'insteon_send', $self, $type, $extra );
     return $message;
 }
 
@@ -708,8 +677,7 @@ B<Insteon::Thermostat>
 package Insteon::Thermo_i2CS;
 use strict;
 
-@Insteon::Thermo_i2CS::ISA =
-  ( 'Insteon::Thermostat', 'Insteon::MultigroupDevice' );
+@Insteon::Thermo_i2CS::ISA = ( 'Insteon::Thermostat', 'Insteon::MultigroupDevice' );
 
 our %message_types = (
     %Insteon::Thermostat::message_types,
@@ -726,10 +694,7 @@ sub init {
     $$self{message_types} = \%message_types;
 
     #Set saved state unique to i2CS devices
-    $self->restore_data(
-        'humid',         'cooling',       'heating', 'humidifying',
-        'dehumidifying', 'high_humid_sp', 'low_humid_sp'
-    );
+    $self->restore_data( 'humid', 'cooling', 'heating', 'humidifying', 'dehumidifying', 'high_humid_sp', 'low_humid_sp' );
     if ( $self->group eq '01' ) {
         $self->tie_event('$object->_cooling("$state")');
     }
@@ -757,12 +722,9 @@ sub derive_link_state {
     if ( $self->group eq '01' ) {
         $link_state = 'off';    #default to off if bad state
         my @allowed_states = (
-            'on',                        'off',
-            'temp_change',               'status_change',
-            'humid_change',              'high_humid_setpoint_change',
-            'low_humid_setpoint_change', 'heat_setpoint_change',
-            'cool_setpoint_change',      'fan_mode_change',
-            'mode_change'
+            'on',                   'off',                        'temp_change',               'status_change',
+            'humid_change',         'high_humid_setpoint_change', 'low_humid_setpoint_change', 'heat_setpoint_change',
+            'cool_setpoint_change', 'fan_mode_change',            'mode_change'
         );
         if ( grep( /$p_state/i, @allowed_states ) ) {
             $link_state = $p_state;
@@ -782,9 +744,7 @@ sub sync_links {
     if ( !$audit_mode && ref $bcast_obj && $self->is_root ) {
 
         #Make sure thermostat is set to broadcast changes
-        ::print_log(
-            "[Insteon::Thermo_i2CS] (sync_links) Enabling thermostat broadcast setting."
-        ) unless $audit_mode;
+        ::print_log("[Insteon::Thermo_i2CS] (sync_links) Enabling thermostat broadcast setting.") unless $audit_mode;
         my $extra = "000008";
         my $message = $self->simple_message( 'extended_set_get', $extra );
         $$self{_ext_set_get_action} = 'set';
@@ -792,8 +752,7 @@ sub sync_links {
     }
 
     # Call the main sync_links code
-    return $self->SUPER::sync_links( $audit_mode, $callback,
-        $failure_callback );
+    return $self->SUPER::sync_links( $audit_mode, $callback, $failure_callback );
 }
 
 =item C<_poll_simple()>
@@ -842,11 +801,8 @@ Prints the currently known status to the log as a text string.
 
 sub print_status() {
     my ($self) = @_;
-    my $root = $self->get_root();
-    my $output =
-        "[Insteon:Thermo_i2CS] The status of "
-      . $root->get_object_name
-      . " is:\n";
+    my $root   = $self->get_root();
+    my $output = "[Insteon:Thermo_i2CS] The status of " . $root->get_object_name . " is:\n";
     $output .= "Mode: ";
     $output .= $root->get_mode();
     $output .= "; Status: ";
@@ -866,9 +822,9 @@ sub print_status() {
     $output        .= "; Cool SP: ";
     $output        .= $root->get_cool_sp();
     $output        .= "; High Humid SP: ";
-    $output .= $root->get_high_humid_sp();
-    $output .= "; Low Humid SP: ";
-    $output .= $root->get_low_humid_sp();
+    $output        .= $root->get_high_humid_sp();
+    $output        .= "; Low Humid SP: ";
+    $output        .= $root->get_low_humid_sp();
     ::print_log($output);
 }
 
@@ -886,12 +842,10 @@ sub get_humid() {
 sub request_status {
     my ($self) = @_;
     $self = $self->get_root();
-    my $self_name = $self->get_object_name;
-    my $failure_callback =
-      "::print_log('[Insteon:Thermo_i2CS] ERROR: Failed to get status for $self_name.');";
-    my $print_callback = $self_name . "->print_status";
-    my $humid_callback = $self_name
-      . "->_poll_humid_setpoints(\'$print_callback\', \"$failure_callback\")";
+    my $self_name        = $self->get_object_name;
+    my $failure_callback = "::print_log('[Insteon:Thermo_i2CS] ERROR: Failed to get status for $self_name.');";
+    my $print_callback   = $self_name . "->print_status";
+    my $humid_callback   = $self_name . "->_poll_humid_setpoints(\'$print_callback\', \"$failure_callback\")";
     $self->_poll_simple( $humid_callback, $failure_callback );
 }
 
@@ -915,9 +869,7 @@ sub _process_message {
         $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
 
         #If this was a get request don't clear until data packet received
-        main::print_log(
-            "[Insteon::Thermo_i2CS] Extended Set/Get ACK Received for "
-              . $self->get_object_name )
+        main::print_log( "[Insteon::Thermo_i2CS] Extended Set/Get ACK Received for " . $self->get_object_name )
           if $self->debuglevel( 1, 'insteon' );
         if ( $$self{_ext_set_get_action} eq 'set' ) {
             main::print_log("[Insteon::Thermo_i2CS] Clearing active message")
@@ -927,10 +879,7 @@ sub _process_message {
             $self->_process_command_stack(%msg);
         }
         elsif ( $$self{_ext_set_get_action} eq 'set_high_humid' ) {
-            main::print_log(
-                    "[Insteon::Thermostat] Received ACK of high humid setpoint "
-                  . "for "
-                  . $self->get_object_name )
+            main::print_log( "[Insteon::Thermostat] Received ACK of high humid setpoint " . "for " . $self->get_object_name )
               if $self->debuglevel( 1, 'insteon' );
             $self->_high_humid_sp( $$self{_high_humid_pending} );
             $clear_message              = 1;
@@ -939,10 +888,7 @@ sub _process_message {
             $self->_process_command_stack(%msg);
         }
         elsif ( $$self{_ext_set_get_action} eq 'set_low_humid' ) {
-            main::print_log(
-                    "[Insteon::Thermostat] Received ACK of low humid setpoint "
-                  . "for "
-                  . $self->get_object_name )
+            main::print_log( "[Insteon::Thermostat] Received ACK of low humid setpoint " . "for " . $self->get_object_name )
               if $self->debuglevel( 1, 'insteon' );
             $self->_low_humid_sp( $$self{_low_humid_pending} );
             $clear_message              = 1;
@@ -954,9 +900,7 @@ sub _process_message {
     elsif ( $msg{command} eq "extended_set_get" && $msg{is_extended} ) {
         if ( substr( $msg{extra}, 0, 4 ) eq "0201" ) {
             $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
-            main::print_log( "[Insteon::Thermo_i2CS] Extended Set/Get Data "
-                  . "Received for "
-                  . $self->get_object_name )
+            main::print_log( "[Insteon::Thermo_i2CS] Extended Set/Get Data " . "Received for " . $self->get_object_name )
               if $self->debuglevel( 1, 'insteon' );
 
             #0 = 2				#14 = Cool SP
@@ -984,22 +928,16 @@ sub _process_message {
                 my $message;
                 my $extra;
                 my @time_array = localtime(time);
-                my @req_items  = (
-                    $time_array[6], $time_array[2],
-                    $time_array[1], $time_array[0]
-                );
-                my $time_str = '';
+                my @req_items  = ( $time_array[6], $time_array[2], $time_array[1], $time_array[0] );
+                my $time_str   = '';
                 foreach (@req_items) {
                     $time_str .= sprintf( "%02x", $_ );
                 }
-                $extra =
-                  $extra . "0202" . $time_str . substr( $msg{extra}, 12, 18 );
+                $extra = $extra . "0202" . $time_str . substr( $msg{extra}, 12, 18 );
 
                 #This will include the prior CRC16 message, but it will
                 #get overwritten with the correct value in Message.pm
-                $message =
-                  new Insteon::InsteonMessage( 'insteon_ext_send', $self,
-                    'extended_set_get', $extra );
+                $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self, 'extended_set_get', $extra );
                 $$message{add_crc16}        = 1;
                 $$self{_ext_set_get_action} = 'set';
                 $$self{sync_time}           = undef;
@@ -1040,51 +978,37 @@ sub _process_message {
             $self->_process_command_stack(%msg);
         }
         else {
-            main::print_log( "[Insteon::Thermo_i2CS] WARN: Unknown Extended "
-                  . "Set/Get Data Received for "
-                  . $self->get_object_name )
+            main::print_log( "[Insteon::Thermo_i2CS] WARN: Unknown Extended " . "Set/Get Data Received for " . $self->get_object_name )
               if $self->debuglevel( 1, 'insteon' );
         }
     }
     elsif ( $msg{command} eq "status_temp" && !$msg{is_ack} ) {
         $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
-        main::print_log(
-            "[Insteon::Thermo_i2CS] Received Temp Change Message " . "from "
-              . $self->get_object_name )
+        main::print_log( "[Insteon::Thermo_i2CS] Received Temp Change Message " . "from " . $self->get_object_name )
           if $self->debuglevel( 1, 'insteon' );
         $self->hex_short_temp( $msg{extra} );
     }
     elsif ( $msg{command} eq "status_mode" && !$msg{is_ack} ) {
         $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
-        main::print_log(
-            "[Insteon::Thermo_i2CS] Received Mode Change Message " . "from "
-              . $self->get_object_name )
+        main::print_log( "[Insteon::Thermo_i2CS] Received Mode Change Message " . "from " . $self->get_object_name )
           if $self->debuglevel( 1, 'insteon' );
         $self->status_mode( $msg{extra} );
     }
     elsif ( $msg{command} eq "status_cool" && !$msg{is_ack} ) {
         $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
-        main::print_log(
-                "[Insteon::Thermo_i2CS] Received Cool Setpoint Change Message "
-              . "from "
-              . $self->get_object_name )
+        main::print_log( "[Insteon::Thermo_i2CS] Received Cool Setpoint Change Message " . "from " . $self->get_object_name )
           if $self->debuglevel( 1, 'insteon' );
         $self->hex_cool( $msg{extra} );
     }
     elsif ( $msg{command} eq "status_humid" && !$msg{is_ack} ) {
         $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
-        main::print_log(
-            "[Insteon::Thermo_i2CS] Received Humidity Change Message " . "from "
-              . $self->get_object_name )
+        main::print_log( "[Insteon::Thermo_i2CS] Received Humidity Change Message " . "from " . $self->get_object_name )
           if $self->debuglevel( 1, 'insteon' );
         $self->hex_humid( $msg{extra} );
     }
     elsif ( $msg{command} eq "status_heat" && !$msg{is_ack} ) {
         $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
-        main::print_log(
-                "[Insteon::Thermo_i2CS] Received Heat Setpoint Change Message "
-              . "from "
-              . $self->get_object_name )
+        main::print_log( "[Insteon::Thermo_i2CS] Received Heat Setpoint Change Message " . "from " . $self->get_object_name )
           if $self->debuglevel( 1, 'insteon' );
         $self->hex_heat( $msg{extra} );
     }
@@ -1099,9 +1023,7 @@ sub _is_info_request {
     my $is_info_request;
     if ( $cmd eq 'thermostat_control' && $$self{_control_action} eq "mode" ) {
         my $val = $msg{extra};
-        main::print_log(
-            "[Insteon::Thermo_i2CS] Processing is_info_request for $cmd with value: $val"
-        ) if $self->debuglevel( 1, 'insteon' );
+        main::print_log("[Insteon::Thermo_i2CS] Processing is_info_request for $cmd with value: $val") if $self->debuglevel( 1, 'insteon' );
         if ( $val eq '09' ) {
             $self->_mode('Off');
         }
@@ -1123,8 +1045,7 @@ sub _is_info_request {
     else    #This was not a thermo_i2CS info_request
     {
         #Check if this was a generic info_request
-        $is_info_request =
-          $self->SUPER::_is_info_request( $cmd, $ack_setby, %msg );
+        $is_info_request = $self->SUPER::_is_info_request( $cmd, $ack_setby, %msg );
     }
     return $is_info_request;
 }
@@ -1333,8 +1254,7 @@ sub mode {
         $mode = "0a" if $self->_aldb->isa('Insteon::ALDB_i2');
     }
     else {
-        main::print_log(
-            "[Insteon::Thermostat] ERROR: Invalid Mode state: $state");
+        main::print_log("[Insteon::Thermostat] ERROR: Invalid Mode state: $state");
         return ();
     }
     $$self{_control_action} = "mode";
@@ -1346,8 +1266,7 @@ sub simple_message {
     my ( $self, $type, $extra ) = @_;
     my $message;
     $extra = $extra . "0000000000000000000000000000";
-    $message =
-      new Insteon::InsteonMessage( 'insteon_ext_send', $self, $type, $extra );
+    $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self, $type, $extra );
     return $message;
 }
 
@@ -1375,24 +1294,19 @@ Sets the high humidity setpoint.
 
 sub high_humid_setpoint {
     my ( $self, $value ) = @_;
-    main::print_log(
-        "[Insteon::Thermo_i2CS] Setting high humid setpoint -> $value")
+    main::print_log("[Insteon::Thermo_i2CS] Setting high humid setpoint -> $value")
       if $self->debuglevel( 1, 'insteon' );
     if ( $value !~ /^\d+$/ ) {
-        main::print_log(
-            "[Insteon::Thermo_i2CS] ERROR: Setpoint $value not numeric");
+        main::print_log("[Insteon::Thermo_i2CS] ERROR: Setpoint $value not numeric");
         return;
     }
     if ( $value > 99 || $value < 1 ) {
-        main::print_log(
-            "[Insteon::Thermo_i2CS] ERROR: Setpoint must be between 1-99, not $value"
-        );
+        main::print_log("[Insteon::Thermo_i2CS] ERROR: Setpoint must be between 1-99, not $value");
         return;
     }
     my $extra = "00000B" . sprintf( "%02x", $value );
     $extra .= '0' x ( 30 - length $extra );
-    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self,
-        'extended_set_get', $extra );
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self, 'extended_set_get', $extra );
     $$self{_ext_set_get_action} = 'set_high_humid';
     $$self{_high_humid_pending} = $value;
     $self->_send_cmd($message);
@@ -1406,24 +1320,19 @@ Sets the low humidity setpoint.
 
 sub low_humid_setpoint {
     my ( $self, $value ) = @_;
-    main::print_log(
-        "[Insteon::Thermo_i2CS] Setting low humid setpoint -> $value")
+    main::print_log("[Insteon::Thermo_i2CS] Setting low humid setpoint -> $value")
       if $self->debuglevel( 1, 'insteon' );
     if ( $value !~ /^\d+$/ ) {
-        main::print_log(
-            "[Insteon::Thermo_i2CS] ERROR: Setpoint $value not numeric");
+        main::print_log("[Insteon::Thermo_i2CS] ERROR: Setpoint $value not numeric");
         return;
     }
     if ( $value > 99 || $value < 1 ) {
-        main::print_log(
-            "[Insteon::Thermo_i2CS] ERROR: Setpoint must be between 1-99, not $value"
-        );
+        main::print_log("[Insteon::Thermo_i2CS] ERROR: Setpoint must be between 1-99, not $value");
         return;
     }
     my $extra = "00000C" . sprintf( "%02x", $value );
     $extra .= '0' x ( 30 - length $extra );
-    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self,
-        'extended_set_get', $extra );
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self, 'extended_set_get', $extra );
     $$self{_ext_set_get_action} = 'set_low_humid';
     $$self{_low_humid_pending}  = $value;
     $self->_send_cmd($message);
@@ -1439,8 +1348,7 @@ sub _poll_humid_setpoints {
     my ( $self, $success_callback, $failure_callback ) = @_;
     my $extra = "00000001";
     $extra .= '0' x ( 30 - length $extra );
-    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self,
-        'extended_set_get', $extra );
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self, 'extended_set_get', $extra );
     $$self{_ext_set_get_action} = 'get';
     $message->failure_callback($failure_callback);
     $message->success_callback($success_callback);
@@ -1513,8 +1421,7 @@ sub new {
     $$self{parent} = $parent;
     @{ $$self{states} } = ( 'Off', 'Heat', 'Cool', 'Auto', 'Program' );
     $$self{parent}{child_mode} = $self;
-    $$self{parent}
-      ->tie_event( '$object->parent_event("$state")', "mode_change" );
+    $$self{parent}->tie_event( '$object->parent_event("$state")', "mode_change" );
     return $self;
 }
 
@@ -1527,10 +1434,7 @@ sub set {
         }
     }
     if ($found_state) {
-        ::print_log( "[Insteon::Thermo_i2CS] Received set mode request to "
-              . $p_state
-              . " for device "
-              . $self->get_object_name );
+        ::print_log( "[Insteon::Thermo_i2CS] Received set mode request to " . $p_state . " for device " . $self->get_object_name );
         $$self{parent}->mode($p_state);
     }
 }
@@ -1578,8 +1482,7 @@ sub new {
     $$self{parent} = $parent;
     @{ $$self{states} } = ( 'Auto', 'On' );
     $$self{parent}{child_fan} = $self;
-    $$self{parent}
-      ->tie_event( '$object->parent_event("$state")', "fan_mode_change" );
+    $$self{parent}->tie_event( '$object->parent_event("$state")', "fan_mode_change" );
     return $self;
 }
 
@@ -1592,10 +1495,7 @@ sub set {
         }
     }
     if ($found_state) {
-        ::print_log( "[Insteon::Thermo_i2CS] Received set fan to "
-              . $p_state
-              . " for device "
-              . $self->get_object_name );
+        ::print_log( "[Insteon::Thermo_i2CS] Received set fan to " . $p_state . " for device " . $self->get_object_name );
         $$self{parent}->fan($p_state);
     }
 }
@@ -1642,8 +1542,7 @@ sub new {
     bless $self, $class;
     $$self{parent} = $parent;
     $$self{parent}{child_temp} = $self;
-    $$self{parent}
-      ->tie_event( '$object->parent_event("$state")', "temp_change" );
+    $$self{parent}->tie_event( '$object->parent_event("$state")', "temp_change" );
     return $self;
 }
 
@@ -1689,8 +1588,7 @@ sub new {
     bless $self, $class;
     $$self{parent} = $parent;
     $$self{parent}{child_humidity} = $self;
-    $$self{parent}
-      ->tie_event( '$object->parent_event("$state")', "humid_change" );
+    $$self{parent}->tie_event( '$object->parent_event("$state")', "humid_change" );
     return $self;
 }
 
@@ -1736,33 +1634,29 @@ sub new {
     bless $self, $class;
     $$self{parent} = $parent;
     @{ $$self{states} } = ( 'Cooler', 'Warmer' );
+    for my $i (50..85) { push @{ $$self{states} }, "$i"; }
     $$self{parent}{child_setpoint_h} = $self;
-    $$self{parent}
-      ->tie_event( '$object->parent_event("$state")', "heat_setpoint_change" );
+    $$self{parent}->tie_event( '$object->parent_event("$state")', "heat_setpoint_change" );
     return $self;
 }
 
 sub set {
     my ( $self, $p_state, $p_setby, $p_response ) = @_;
-    my $found_state = 0;
-    foreach my $test_state ( @{ $$self{states} } ) {
-        if ( lc($test_state) eq lc($p_state) ) {
-            $found_state = 1;
-        }
-    }
-    if ($found_state) {
-        ::print_log(
-                "[Insteon::Thermo_i2CS] Received request to set heat setpoint "
-              . $p_state
-              . " for device "
-              . $self->get_object_name );
+    my $message = "[Insteon::Thermo_i2CS] Received request to set heat setpoint " . $p_state . " for device " . $self->get_object_name;
+
         if ( lc($p_state) eq 'cooler' ) {
+            ::print_log( $message );
             $$self{parent}->heat_setpoint( $$self{parent}->get_heat_sp - 1 );
         }
         elsif ( lc($p_state) eq 'warmer' ) {
+            ::print_log( $message );
             $$self{parent}->heat_setpoint( $$self{parent}->get_heat_sp + 1 );
         }
-    }
+        elsif ( $p_state =~ /(\d+)/ ) {
+            $p_state =~ s/\%//;
+            ::print_log( $message );
+            $$self{parent}->heat_setpoint( $p_state );
+        }
 }
 
 sub set_receive {
@@ -1807,33 +1701,29 @@ sub new {
     bless $self, $class;
     $$self{parent} = $parent;
     @{ $$self{states} } = ( 'Cooler', 'Warmer' );
+    for my $i (50..85) { push @{ $$self{states} }, "$i"; }
     $$self{parent}{child_setpoint_c} = $self;
-    $$self{parent}
-      ->tie_event( '$object->parent_event("$state")', "cool_setpoint_change" );
+    $$self{parent}->tie_event( '$object->parent_event("$state")', "cool_setpoint_change" );
     return $self;
 }
 
 sub set {
     my ( $self, $p_state, $p_setby, $p_response ) = @_;
-    my $found_state = 0;
-    foreach my $test_state ( @{ $$self{states} } ) {
-        if ( lc($test_state) eq lc($p_state) ) {
-            $found_state = 1;
-        }
-    }
-    if ($found_state) {
-        ::print_log(
-                "[Insteon::Thermo_i2CS] Received request to set cool setpoint "
-              . $p_state
-              . " for device "
-              . $self->get_object_name );
+    my $message = "[Insteon::Thermo_i2CS] Received request to set cool setpoint " . $p_state . " for device " . $self->get_object_name;
+
         if ( lc($p_state) eq 'cooler' ) {
+            ::print_log( $message );
             $$self{parent}->cool_setpoint( $$self{parent}->get_cool_sp - 1 );
         }
         elsif ( lc($p_state) eq 'warmer' ) {
+            ::print_log( $message );
             $$self{parent}->cool_setpoint( $$self{parent}->get_cool_sp + 1 );
         }
-    }
+        elsif ( $p_state =~ /(\d+)/ ) {
+            $p_state =~ s/\%//;
+            ::print_log( $message );
+            $$self{parent}->cool_setpoint( $p_state );
+        }
 }
 
 sub set_receive {
@@ -1879,8 +1769,7 @@ sub new {
     bless $self, $class;
     $$self{parent} = $parent;
     $$self{parent}{child_status} = $self;
-    $$self{parent}
-      ->tie_event( '$object->parent_event("$state")', "status_change" );
+    $$self{parent}->tie_event( '$object->parent_event("$state")', "status_change" );
     return $self;
 }
 
@@ -1926,35 +1815,29 @@ sub new {
     bless $self, $class;
     $$self{parent} = $parent;
     @{ $$self{states} } = ( 'Lower', 'Higher' );
+    for my $i (1..100) { push @{ $$self{states} }, "$i"; }
     $$self{parent}{child_setpoint_humid_h} = $self;
-    $$self{parent}->tie_event( '$object->parent_event("$state")',
-        "high_humid_setpoint_change" );
+    $$self{parent}->tie_event( '$object->parent_event("$state")', "high_humid_setpoint_change" );
     return $self;
 }
 
 sub set {
     my ( $self, $p_state, $p_setby, $p_response ) = @_;
-    my $found_state = 0;
-    foreach my $test_state ( @{ $$self{states} } ) {
-        if ( lc($test_state) eq lc($p_state) ) {
-            $found_state = 1;
-        }
-    }
-    if ($found_state) {
-        ::print_log(
-            "[Insteon::Thermo_i2CS] Received request to set high humidity setpoint to "
-              . $p_state
-              . " for device "
-              . $self->get_object_name );
+    my $message = "[Insteon::Thermo_i2CS] Received request to set high humidity setpoint to " . $p_state . " for device " . $self->get_object_name;
+    
         if ( lc($p_state) eq 'lower' ) {
-            $$self{parent}
-              ->high_humid_setpoint( $$self{parent}->get_high_humid_sp - 1 );
+            ::print_log( $message );
+            $$self{parent}->high_humid_setpoint( $$self{parent}->get_high_humid_sp - 1 );
         }
         elsif ( lc($p_state) eq 'higher' ) {
-            $$self{parent}
-              ->high_humid_setpoint( $$self{parent}->get_high_humid_sp + 1 );
+            ::print_log( $message );
+            $$self{parent}->high_humid_setpoint( $$self{parent}->get_high_humid_sp + 1 );
         }
-    }
+        elsif ( $p_state =~ /(\d+)/ ) {
+            $p_state =~ s/\%//;
+            ::print_log( $message );
+            $$self{parent}->high_humid_setpoint( $p_state );
+        }
 }
 
 sub set_receive {
@@ -1999,35 +1882,29 @@ sub new {
     bless $self, $class;
     $$self{parent} = $parent;
     @{ $$self{states} } = ( 'Lower', 'Higher' );
+    for my $i (1..100) { push @{ $$self{states} }, "$i"; }
     $$self{parent}{child_setpoint_humid_l} = $self;
-    $$self{parent}->tie_event( '$object->parent_event("$state")',
-        "low_humid_setpoint_change" );
+    $$self{parent}->tie_event( '$object->parent_event("$state")', "low_humid_setpoint_change" );
     return $self;
 }
 
 sub set {
     my ( $self, $p_state, $p_setby, $p_response ) = @_;
-    my $found_state = 0;
-    foreach my $test_state ( @{ $$self{states} } ) {
-        if ( lc($test_state) eq lc($p_state) ) {
-            $found_state = 1;
-        }
-    }
-    if ($found_state) {
-        ::print_log(
-            "[Insteon::Thermo_i2CS] Received request to set low humidity setpoint to "
-              . $p_state
-              . " for device "
-              . $self->get_object_name );
+    my $message = "[Insteon::Thermo_i2CS] Received request to set low humidity setpoint to " . $p_state . " for device " . $self->get_object_name;
+
         if ( lc($p_state) eq 'lower' ) {
-            $$self{parent}
-              ->low_humid_setpoint( $$self{parent}->get_low_humid_sp - 1 );
+            ::print_log( $message );
+            $$self{parent}->low_humid_setpoint( $$self{parent}->get_low_humid_sp - 1 );
         }
         elsif ( lc($p_state) eq 'higher' ) {
-            $$self{parent}
-              ->low_humid_setpoint( $$self{parent}->get_low_humid_sp + 1 );
+            ::print_log( $message );
+            $$self{parent}->low_humid_setpoint( $$self{parent}->get_low_humid_sp + 1 );
         }
-    }
+        elsif ( $p_state =~ /(\d+)/ ) {
+            $p_state =~ s/\%//;
+            ::print_log( $message );
+            $$self{parent}->low_humid_setpoint( $p_state );
+        }
 }
 
 sub set_receive {

@@ -116,8 +116,7 @@ if ( $lcd_data{refresh} ) {
 }
 
 # Displayed delayed last response text
-if ( $Menus{last_response_loop} and $Menus{last_response_loop} <= $Loop_Count )
-{
+if ( $Menus{last_response_loop} and $Menus{last_response_loop} <= $Loop_Count ) {
     $Menus{last_response_loop} = 0;
     &menu_lcd_display( &last_response, $Menus{last_response_menu} );
 }

@@ -36,14 +36,10 @@ Info on how to set up a shoutcast server is at:
 # Check to see if the winamp shoutcast player is playing or connected
 #  - this requires the httpq winamp plugin
 $v_shoutcast_check = new Voice_Cmd 'Check the shoutcast player';
-$v_shoutcast_check->set_info(
-    'Will check the status the shoutcast winamp player and server');
+$v_shoutcast_check->set_info('Will check the status the shoutcast winamp player and server');
 
-$v_shoutcast_connect =
-  new Voice_Cmd '[Connect,Disconnect] the shoutcast player';
-$v_shoutcast_connect->set_info(
-    'Use this to connect or disconnect the shoutcast winamp player from the shoutcast server'
-);
+$v_shoutcast_connect = new Voice_Cmd '[Connect,Disconnect] the shoutcast player';
+$v_shoutcast_connect->set_info('Use this to connect or disconnect the shoutcast winamp player from the shoutcast server');
 
 my $sc_player_url;
 if ($Reload) {
@@ -54,35 +50,21 @@ if ($Reload) {
 if ( said $v_shoutcast_check) {
 
     # 0 => stopped, 1 => playing, 3 => paused
-    $temp =
-      '  playing='
-      . filter_cr get
-      "$sc_player_url/isplaying?p=$config_parms{mp3_program_password}";
-    $temp .= ',  time='
-      . int(
-        (
-            filter_cr get
-              "$sc_player_url/getoutputtime?p=$config_parms{mp3_program_password}&a=0"
-        ) / 60000
-      );
-    $temp .=
-      ' minutes,  status='
-      . filter_cr get
-      "$sc_player_url/shoutcast_status?p=$config_parms{mp3_program_password}";
+    $temp = '  playing=' . filter_cr get "$sc_player_url/isplaying?p=$config_parms{mp3_program_password}";
+    $temp .= ',  time=' . int( ( filter_cr get "$sc_player_url/getoutputtime?p=$config_parms{mp3_program_password}&a=0" ) / 60000 );
+    $temp .= ' minutes,  status=' . filter_cr get "$sc_player_url/shoutcast_status?p=$config_parms{mp3_program_password}";
     print_log "Shoutcast data: $temp";
 }
 
 if ( $state = said $v_shoutcast_connect) {
     print_log "Connectiong to $sc_player_url";
-    my $status = filter_cr get
-      "$sc_player_url/shoutcast_status?p=$config_parms{mp3_program_password}";
+    my $status = filter_cr get "$sc_player_url/shoutcast_status?p=$config_parms{mp3_program_password}";
     if ( $state eq 'Connect' ) {
         if ( $status =~ /sent/ ) {
             print_log "Shoutcast player already connected: $status";
         }
         else {
-            $status = filter_cr get
-              "$sc_player_url/shoutcast_connect?p=$config_parms{mp3_program_password}";
+            $status = filter_cr get "$sc_player_url/shoutcast_connect?p=$config_parms{mp3_program_password}";
             print_log "Shoutcast connect status: $status";
         }
     }
@@ -91,8 +73,7 @@ if ( $state = said $v_shoutcast_connect) {
             print_log "Shoutcast player already disconnected";
         }
         else {
-            $status = filter_cr get
-              "$sc_player_url/shoutcast_connect?p=$config_parms{mp3_program_password}";
+            $status = filter_cr get "$sc_player_url/shoutcast_connect?p=$config_parms{mp3_program_password}";
             print_log "Shoutcast disconnect status: $status";
         }
     }
@@ -100,13 +81,11 @@ if ( $state = said $v_shoutcast_connect) {
 
 # Open the port ... check periodically, in case server was restarted.
 
-$shoutcast_server =
-  new Socket_Item( undef, undef, $config_parms{shoutcast_server}, 'shoutcast' );
+$shoutcast_server = new Socket_Item( undef, undef, $config_parms{shoutcast_server}, 'shoutcast' );
 $shoutcast_log = new File_Item( $config_parms{shoutcast_log} );
 
 $v_shoutcast_server = new Voice_Cmd '[Start,Stop] the shoutcast server monitor';
-$v_shoutcast_server->set_info(
-    'The shoutcast server monitor announces when new listeners come');
+$v_shoutcast_server->set_info('The shoutcast server monitor announces when new listeners come');
 
 print "Shoutcast server close\n"     if inactive_now $shoutcast_server;
 print "Shoutcast server started\n"   if active_now $shoutcast_server;
@@ -121,8 +100,7 @@ if (    ( $Startup or new_minute 15 or said $v_shoutcast_server eq 'Start' )
 
     #   speak 'Shoutcast monitor started' unless $Startup;
 
-    print_log
-      "Starting a connection to the shoutcast server $config_parms{shoutcast_server}";
+    print_log "Starting a connection to the shoutcast server $config_parms{shoutcast_server}";
     start $shoutcast_server;
 
     # Use HTTP with shoutcast 1.1+
@@ -150,9 +128,7 @@ if ( said $v_shoutcast_server eq 'Stop' ) {
 my ( %shoutcast_clients, $shoutcast_record );
 
 if (   $config_parms{shoutcast_server} and $state = said $shoutcast_server
-    or $config_parms{shoutcast_log}
-    and $New_Second
-    and $state = said $shoutcast_log)
+    or $config_parms{shoutcast_log} and $New_Second and $state = said $shoutcast_log)
 {
     # Can somehow get multiple reports on one record ... us only the last one.
     #<12/30/00@07:16:59> [dest: 192.168.0.2] connection closed (15 seconds) (UID: 78)[L: 0]<12/30/00@14:40:14> [dest: 192.168.0.2] starting stream (UID: 84)[L: 1]...
@@ -174,18 +150,15 @@ if (   $config_parms{shoutcast_server} and $state = said $shoutcast_server
 
 # This will be true when the DNS lookup started above finishes
 if ( my ( $domain_name, $name_short ) = net_domain_name_done 'shoutcast' ) {
-    my ( $ip_address, $status ) =
-      $shoutcast_record =~ /: ?(\S+)\] ([^\(\[\,]+)/;
+    my ( $ip_address, $status ) = $shoutcast_record =~ /: ?(\S+)\] ([^\(\[\,]+)/;
 
     #   my $Save{shoutcast_users} = $1 if $shoutcast_record =~ /\((\d+)\/\d+/; # looking for the first number here: (1/4)
     $Save{shoutcast_users} = $1
-      if $shoutcast_record =~
-      /\[L: *(\d+)/;    # looking for the first number here: [L: 1]
+      if $shoutcast_record =~ /\[L: *(\d+)/;    # looking for the first number here: [L: 1]
 
-    print_log
-      "shoutcast users=$Save{shoutcast_users} domain=$domain_name, status=$status, ip=$ip_address, r=$shoutcast_record";
+    print_log "shoutcast users=$Save{shoutcast_users} domain=$domain_name, status=$status, ip=$ip_address, r=$shoutcast_record";
 
-    $name_short =~ s/[\d\.]/ /g;    # Get rid of digits and dots
+    $name_short =~ s/[\d\.]/ /g;                # Get rid of digits and dots
     $name_short = 'unknown'
       if $name_short =~ /^ *$/ or is_local_address $ip_address;
 
@@ -224,8 +197,7 @@ if ( my ( $domain_name, $name_short ) = net_domain_name_done 'shoutcast' ) {
 
     #   display("$Time_Now: $msg", 0);
     logit( "$config_parms{data_dir}/logs/shoutcast_server.$Year_Month_Now.log",
-        "domain=$domain_name ip=$ip_address status=$status count=$Save{shoutcast_users}"
-    );
+        "domain=$domain_name ip=$ip_address status=$status count=$Save{shoutcast_users}" );
 }
 
 # Give listeners some chatter to listen to

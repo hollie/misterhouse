@@ -25,8 +25,7 @@ if ( new_second 2 ) {
             my $member = $camera . sprintf "__%03d.jpg", $Save{$index};
             my $file2 = "$config_parms{data_dir}/web/motion/$member";
 
-            copy $file,
-              "$config_parms{data_dir}/web/motion/${camera}_Latest.jpg";
+            copy $file, "$config_parms{data_dir}/web/motion/${camera}_Latest.jpg";
             copy $file, $file2;
 
             # These can be monitored from other code files (e.g. motion monitoring)

@@ -3,11 +3,7 @@
 # Roger Bille
 
 use DBI;
-my (
-    $dbh,      $query_update, $query_insert, $query_select,
-    $sth,      @row,          @vv,           $lan,
-    $BerStart, $BerStopp,     $myTime
-);
+my ( $dbh, $query_update, $query_insert, $query_select, $sth, @row, @vv, $lan, $BerStart, $BerStopp, $myTime );
 
 # RoadWork_2	Stockholms Län
 
@@ -22,15 +18,15 @@ my $HtmlFindFlag = 0;
 
 if ($Reload) {
     open( VV, "$config_parms{code_dir}/vvurl.txt" );    # Open for input
-    @vv = <VV>;    # Open array and read in data
-    close VV;      # Close the file
+    @vv = <VV>;                                         # Open array and read in data
+    close VV;                                           # Close the file
     $count = 0;
     foreach $vvLine (@vv) {
 
         #    	print_log $vvLine;
         if ( $vvLine !~ /^\#/ ) {
             ( $vvLan[$count], $vvLanName[$count], $URLList[$count] ) =
-              ( split( ',', $vvLine ) )[ 0, 1, 2 ];    # Split each line
+              ( split( ',', $vvLine ) )[ 0, 1, 2 ];     # Split each line
             $vvNbr = $count;
 
             #			print_log $vvLanName[$count];
@@ -39,48 +35,27 @@ if ($Reload) {
     }
 }
 
-my $vvURL2 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_2.shtml";
-my $vvURL3 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_3.shtml";
-my $vvURL4 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_4.shtml";
-my $vvURL5 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_5.shtml";
-my $vvURL6 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_6.shtml";
-my $vvURL7 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_7.shtml";
-my $vvURL8 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_8.shtml";
-my $vvURL9 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_9.shtml";
-my $vvURL10 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_10.shtml";
-my $vvURL12 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_12.shtml";
-my $vvURL13 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_13.shtml";
-my $vvURL14 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_14.shtml";
-my $vvURL17 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_17.shtml";
-my $vvURL18 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_18.shtml";
-my $vvURL19 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_19.shtml";
-my $vvURL20 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_20.shtml";
-my $vvURL21 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_21.shtml";
-my $vvURL22 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_22.shtml";
-my $vvURL23 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_23.shtml";
-my $vvURL24 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_24.shtml";
-my $vvURL25 =
-  "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_25.shtml";
+my $vvURL2  = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_2.shtml";
+my $vvURL3  = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_3.shtml";
+my $vvURL4  = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_4.shtml";
+my $vvURL5  = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_5.shtml";
+my $vvURL6  = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_6.shtml";
+my $vvURL7  = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_7.shtml";
+my $vvURL8  = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_8.shtml";
+my $vvURL9  = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_9.shtml";
+my $vvURL10 = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_10.shtml";
+my $vvURL12 = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_12.shtml";
+my $vvURL13 = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_13.shtml";
+my $vvURL14 = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_14.shtml";
+my $vvURL17 = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_17.shtml";
+my $vvURL18 = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_18.shtml";
+my $vvURL19 = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_19.shtml";
+my $vvURL20 = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_20.shtml";
+my $vvURL21 = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_21.shtml";
+my $vvURL22 = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_22.shtml";
+my $vvURL23 = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_23.shtml";
+my $vvURL24 = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_24.shtml";
+my $vvURL25 = "http://www.vv.se/triss/trafikinfo/rapporter/RoadWorks/RoadWork_25.shtml";
 
 my $vvFile = "vv";
 
@@ -199,18 +174,14 @@ if ( done_now $p_vv_page25) { &update( "BD", $f_vv_html25, $f_vv_page25 ) }
 sub update {
     my ( $lan, $myhtml, $mypage ) = @_;
     my $html = file_read $myhtml;
-    $text = HTML::FormatText->new( leftmargin => 0, rightmargin => 150 )
-      ->format( HTML::TreeBuilder->new()->parse($html) );
+    $text = HTML::FormatText->new( leftmargin => 0, rightmargin => 150 )->format( HTML::TreeBuilder->new()->parse($html) );
     $text =~ s/\n//g;
     (@vvList) = split( /-----+/, $text );
 
     #	if($text =~ /.*Vägarbeten, (.*) LÄN.*/) { $lan = $1 };
     #	print "$lan\n";
     foreach $vvLine (@vvList) {
-        if ( $vvLine =~
-            /.*Läge: ?(.*)Namn: ?(.*)Typ: ?(.*)Beräknas pågå: ?(.*)Restriktioner: ?(.*)Beskrivning: ?(.*)/
-          )
-        {
+        if ( $vvLine =~ /.*Läge: ?(.*)Namn: ?(.*)Typ: ?(.*)Beräknas pågå: ?(.*)Restriktioner: ?(.*)Beskrivning: ?(.*)/ ) {
             &process( $lan, $vvLine, $1, $2, $3, $4, $5, $6 );
         }
     }
@@ -218,13 +189,11 @@ sub update {
 }
 
 sub process {
-    my ( $myLan, $myraw, $myLage, $myNamn, $myTyp, $myBer, $myRes, $myBesk ) =
-      @_;
+    my ( $myLan, $myraw, $myLage, $myNamn, $myTyp, $myBer, $myRes, $myBesk ) = @_;
     if ( $myraw !~ /Läge:Namn:Typ:/ and $myLage !~ /^Lv/ ) {
-        $dbh = DBI->connect('DBI:ODBC:vv');
-        $query_select =
-          "SELECT raw FROM Roadwork WHERE raw = \'$myLage $myNamn $myTyp\'";
-        $sth = $dbh->prepare($query_select)
+        $dbh          = DBI->connect('DBI:ODBC:vv');
+        $query_select = "SELECT raw FROM Roadwork WHERE raw = \'$myLage $myNamn $myTyp\'";
+        $sth          = $dbh->prepare($query_select)
           or print "Can't prepare $query_select: $dbh->errstr\n";
         $sth->execute() or print "can't execute the query: $sth->errstr\n";
 
@@ -242,9 +211,8 @@ sub process {
             $sth->execute() or print "can't execute the query: $sth->errstr\n";
         }
         else {
-            $query_update =
-              "UPDATE Roadwork SET Last = \'$myTime\' WHERE raw = \'$myLage $myNamn $myTyp\'";
-            $sth = $dbh->prepare($query_update)
+            $query_update = "UPDATE Roadwork SET Last = \'$myTime\' WHERE raw = \'$myLage $myNamn $myTyp\'";
+            $sth          = $dbh->prepare($query_update)
               or print "Can't prepare $query_update: $dbh->errstr\n";
             $sth->execute() or print "can't execute the query: $sth->errstr\n";
         }

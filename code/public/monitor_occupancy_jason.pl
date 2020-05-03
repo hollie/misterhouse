@@ -69,8 +69,7 @@ if (    ( state $status_occupied_house eq ON )
 elsif ( ( state $status_occupied_house ne ON )
     and ( state_now $sensors) )
 {
-    print_log
-      "MODE: House is now occupied state=$status_occupied_house->{state}";
+    print_log "MODE: House is now occupied state=$status_occupied_house->{state}";
     speak "Hello";
     set $status_occupied_house ON;
 }

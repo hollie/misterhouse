@@ -16,6 +16,5 @@ elsif ( $Weather{TempOutdoor} < ( $Weather{TempIndoor} - .5 )
     set $weather_outside_flag 'cooler';
 }
 if ( $state = state_now $weather_outside_flag) {
-    speak
-      "app=notice Weather notice.  The temperature is now $state outside than inside at $Weather{TempOutdoor} degrees";
+    speak "app=notice Weather notice.  The temperature is now $state outside than inside at $Weather{TempOutdoor} degrees";
 }

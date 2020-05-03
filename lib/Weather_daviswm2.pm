@@ -8,9 +8,7 @@ use strict;
 use Weather_Common;
 eval 'use Digest::mhCRC qw(crc16);';
 if ($@) {
-    die(
-        "Weather_daviswm2:  Can't find the Digest::mhCRC package (mhCRC.pm).  Please ensure that it is installed.\n$@"
-    );
+    die("Weather_daviswm2:  Can't find the Digest::mhCRC package (mhCRC.pm).  Please ensure that it is installed.\n$@");
 }
 
 =begin comment
@@ -85,10 +83,7 @@ sub startup {
     $DavisWMII_port = new Serial_Item( undef, undef, 'serial_daviswm2' );
     &requestData;
     &::MainLoop_pre_add_hook( \&Weather_daviswm2::update, 1 );
-    &::trigger_set(
-        'new_minute(1)', '&Weather_daviswm2::requestData',
-        'NoExpire',      'daviswm2 data request'
-    ) unless &::trigger_get('daviswm2 data request');
+    &::trigger_set( 'new_minute(1)', '&Weather_daviswm2::requestData', 'NoExpire', 'daviswm2 data request' ) unless &::trigger_get('daviswm2 data request');
 }
 
 # called by trigger every minute
@@ -154,34 +149,23 @@ sub process {
 
     my $foundHeader = 0;
 
-    my (
-        $indoor_temp,      $outdoor_temp, $wind_speed,
-        $wind_direction,   $barometer,    $indoor_humidity,
-        $outdoor_humidity, $total_rain,   $not_used,
-        $crc16,            $rain_rate
-    );
+    my ( $indoor_temp, $outdoor_temp, $wind_speed, $wind_direction, $barometer, $indoor_humidity, $outdoor_humidity, $total_rain, $not_used,
+        $crc16, $rain_rate );
 
     # go through data until we have found a header
     &::print_log("daviswm2: looking for header") if $::Debug{weather};
     my $headerByte;
     while ( defined( $headerByte = shift(@data) ) ) {
-        next if $headerByte != 1;    # need a 1 at start of data
-        &::print_log(
-            "daviswm2: found header, checking length and crc16 of remaining data"
-        ) if $::Debug{weather};
+        next if $headerByte != 1;                                                                                   # need a 1 at start of data
+        &::print_log("daviswm2: found header, checking length and crc16 of remaining data") if $::Debug{weather};
         $data = pack( 'C*', @data );
-        if ( length($data) < 17 ) {    # we need 17 bytes left to proceed
+        if ( length($data) < 17 ) {                                                                                 # we need 17 bytes left to proceed
             &::print_log("daviswm2: not enough bytes left to process")
               if $::Debug{weather};
-            return
-              chr($headerByte) . $data; # need to return the header byte as well
+            return chr($headerByte) . $data;                                                                        # need to return the header byte as well
         }
-        (
-            $indoor_temp,      $outdoor_temp, $wind_speed,
-            $wind_direction,   $barometer,    $indoor_humidity,
-            $outdoor_humidity, $total_rain,   $not_used,
-            $crc16
-        ) = unpack( 'vvCvvCCvvn', $data );
+        ( $indoor_temp, $outdoor_temp, $wind_speed, $wind_direction, $barometer, $indoor_humidity, $outdoor_humidity, $total_rain, $not_used, $crc16 ) =
+          unpack( 'vvCvvCCvvn', $data );
         if ( Digest::mhCRC::crc16( substr( $data, 0, 15 ) ) != $crc16 ) {
             &::print_log("daviswm2: wrong crc16, looking again for header")
               if $::Debug{weather};
@@ -249,9 +233,7 @@ sub process {
             }
         }
         if ( $::Debug{weather} ) {
-            &::print_log( "daviswm2:   "
-                  . localtime($btr_datetime)
-                  . " -> $btr_barom $btr_exflag $datediff" );
+            &::print_log( "daviswm2:   " . localtime($btr_datetime) . " -> $btr_barom $btr_exflag $datediff" );
         }
         $btr_tmp_counter++;
     }
@@ -264,8 +246,7 @@ sub process {
     my $btr_diff = $btr_sum_tail - $btr_sum_head;
 
     ## fetch last sample
-    my $btr_last_diff =
-      abs( $barometer - $barom_samples->Values( $barom_samples->Length - 2 ) );
+    my $btr_last_diff  = abs( $barometer - $barom_samples->Values( $barom_samples->Length - 2 ) );
     my $btr_last_value = $barom_samples->Values( $barom_samples->Length - 2 );
 
     &::print_log("daviswm2: last value($btr_last_value) diff($btr_last_diff)")
@@ -273,8 +254,7 @@ sub process {
 
     ## calculate tendency
     if ( $btr_last_diff >= .03 or $barom_samples->Length < 15 ) {
-        &::print_log(
-            "daviswm2: unsteading reading $btr_last_diff $btr_last_value")
+        &::print_log("daviswm2: unsteading reading $btr_last_diff $btr_last_value")
           if $::Debug{weather};
         $barom_tendency = "unsteady";
     }
@@ -300,22 +280,17 @@ sub process {
     my $barometer_sea = convert_local_barom_to_sea_in($barometer);
 
     # these dewpoints will be in Celsius
-    my $indoor_dewpoint =
-      &::convert_humidity_to_dewpoint( $indoor_humidity,
-        &::convert_f2c($indoor_temp) );
-    my $outdoor_dewpoint =
-      &::convert_humidity_to_dewpoint( $outdoor_humidity,
-        &::convert_f2c($outdoor_temp) );
+    my $indoor_dewpoint  = &::convert_humidity_to_dewpoint( $indoor_humidity,  &::convert_f2c($indoor_temp) );
+    my $outdoor_dewpoint = &::convert_humidity_to_dewpoint( $outdoor_humidity, &::convert_f2c($outdoor_temp) );
 
     $rain_rate = undef;
     if ( defined($lastRainReadingTime) ) {
         $rain_rate = ( $total_rain - $lastRainReading );    # delta in inches
         my $time_delta = ( time - $lastRainReadingTime );
         if ( $time_delta != 0 ) {
-            $rain_rate /= $time_delta;    # rate in inches per second
-            $rain_rate *= 3600;           # rate in inches per hour
-            if ( $rain_rate < 0 )
-            {    # if total rain was reset to zero, this could happen
+            $rain_rate /= $time_delta;                      # rate in inches per second
+            $rain_rate *= 3600;                             # rate in inches per hour
+            if ( $rain_rate < 0 ) {                         # if total rain was reset to zero, this could happen
                 $rain_rate = 0;
             }
         }
@@ -329,8 +304,7 @@ sub process {
         # remember, dewpoints are in Celsius by default
     }
     elsif ( $main::config_parms{weather_uom_temp} eq 'F' ) {
-        grep { $_ = &::convert_c2f($_); }
-          ( $indoor_dewpoint, $outdoor_dewpoint );
+        grep { $_ = &::convert_c2f($_); } ( $indoor_dewpoint, $outdoor_dewpoint );
     }
     if ( $main::config_parms{weather_uom_baro} eq 'mb' ) {
         grep { $_ = &::convert_in2mb($_); } ( $barometer, $barometer_sea );
@@ -343,8 +317,7 @@ sub process {
         $rain_rate = sprintf( '%.0f', $rain_rate );    # round to nearest mm/hr
     }
     else {
-        $rain_rate =
-          sprintf( '%.2f', $rain_rate );    # round to nearest 0.01 in/hr
+        $rain_rate = sprintf( '%.2f', $rain_rate );    # round to nearest 0.01 in/hr
     }
     if ( $main::config_parms{weather_uom_wind} eq 'kph' ) {
         grep { $_ = &::convert_mile2km($_); } ($wind_speed);

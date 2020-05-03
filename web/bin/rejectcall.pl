@@ -20,8 +20,7 @@ sub rejected_call_list {
     my $html_calls;
     my @calls = read_reject_call_list;
     for my $r (@calls) {
-        my ( $number, $name, $sound, $type ) =
-          $r =~ /number=(.+) name=(.+) sound=(.*) type=(.*)/;
+        my ( $number, $name, $sound, $type ) = $r =~ /number=(.+) name=(.+) sound=(.*) type=(.*)/;
         $html_calls .=
           "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'><td nowrap><a href=/SUB;rej_call_item_delete($pos)>Delete</a>   $number</td><td nowrap>$name</a></td><td nowrap>$sound</td><td nowrap>$type</td></tr>";
         $pos = $pos + 1;
@@ -45,9 +44,7 @@ $html_calls
 </font></tbody></table>
 </body>
 ";
-    my $form_type =
-      &html_form_select( 'type', 0, 'Friend', 'Friend', 'Business', 'reject',
-        'Family' );
+    my $form_type = &html_form_select( 'type', 0, 'Friend', 'Friend', 'Business', 'reject', 'Family' );
 
     #form action='/bin/items.pl?add' method=post>
 
@@ -106,8 +103,7 @@ sub rej_call_item_delete {
     my @ReadRejFile = read_reject_call_list;
     unlink "$phone_dir/phone.caller_id.list";
     for $line (@ReadRejFile) {
-        ( $number, $name, $sound, $type ) =
-          $line =~ /number=(.+) name=(.+) sound=(.*) type=(.*)/;
+        ( $number, $name, $sound, $type ) = $line =~ /number=(.+) name=(.+) sound=(.*) type=(.*)/;
 
         $number =~ s/\s*$//;    #trim the fat off the end
         $name =~ s/\s*$//;      #trim the fat off the end
@@ -115,8 +111,7 @@ sub rej_call_item_delete {
         $type =~ s/\s*$//;      #trim the fat off the end
         $writeparms = "$number\t\t$name\t\t$sound\t\t$type";
         if ( $filePos ne $deletepos ) {
-            &rej_call_file_write( "$phone_dir/phone.caller_id.list",
-                $writeparms );
+            &rej_call_file_write( "$phone_dir/phone.caller_id.list", $writeparms );
 
         }
 

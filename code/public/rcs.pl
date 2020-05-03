@@ -40,11 +40,7 @@ if ( $MW and $Reload ) {
 
     # build the 'send setpoint' menu
     $Tk_objects{Send_setpoint}{$TX10} = $Tk_objects{menu_RCS_items}->menu->Menu;
-    &tk_cascade_entry(
-        'Send setpoint',
-        $Tk_objects{menu_RCS_items},
-        $Tk_objects{Send_setpoint}{$TX10}
-    );
+    &tk_cascade_entry( 'Send setpoint', $Tk_objects{menu_RCS_items}, $Tk_objects{Send_setpoint}{$TX10} );
 
     for my $cmd ( list_by_type $TX10 'setpoint' ) {
         $Tk_objects{Send_setpoint}{$TX10}->add(
@@ -56,11 +52,7 @@ if ( $MW and $Reload ) {
 
     # build the 'send command' menu
     $Tk_objects{Send_command}{$TX10} = $Tk_objects{menu_RCS_items}->menu->Menu;
-    &tk_cascade_entry(
-        'Send commmand',
-        $Tk_objects{menu_RCS_items},
-        $Tk_objects{Send_command}{$TX10}
-    );
+    &tk_cascade_entry( 'Send commmand', $Tk_objects{menu_RCS_items}, $Tk_objects{Send_command}{$TX10} );
 
     for my $cmd ( list_by_type $TX10 'cmd' ) {
         $Tk_objects{Send_command}{$TX10}->add(
@@ -73,11 +65,7 @@ if ( $MW and $Reload ) {
     # build the 'request status' menu
     $Tk_objects{request_status}{$TX10} =
       $Tk_objects{menu_RCS_items}->menu->Menu;
-    &tk_cascade_entry(
-        'Request status',
-        $Tk_objects{menu_RCS_items},
-        $Tk_objects{request_status}{$TX10}
-    );
+    &tk_cascade_entry( 'Request status', $Tk_objects{menu_RCS_items}, $Tk_objects{request_status}{$TX10} );
 
     for my $cmd ( list_by_type $TX10 'request' ) {
         $Tk_objects{request_status}{$TX10}->add(

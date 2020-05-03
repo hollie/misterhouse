@@ -27,8 +27,7 @@ if (    $Weather{TempOutdoor} < 50
     and $Hour > 9
     and $Hour < 16 )
 {
-    speak
-      "Notice, the sun as warmed us up to $Weather{TempIndoor} degrees, so I am turning the fans on at $Time_Now";
+    speak "Notice, the sun as warmed us up to $Weather{TempIndoor} degrees, so I am turning the fans on at $Time_Now";
     set $furnace_fan ON;
     set $living_room_fan ON;
     set $bedroom_fan ON;
@@ -39,8 +38,7 @@ if (    state $furnace_fan eq ON
     and $Weather{TempIndoor}
     and ( $Weather{TempIndoor} < 74 or $Hour > 18 ) )
 {
-    speak
-      "Notice, it has cooled down to $Weather{TempIndoor} degrees, so I am turning the fans off at $Time_Now";
+    speak "Notice, it has cooled down to $Weather{TempIndoor} degrees, so I am turning the fans off at $Time_Now";
     set $furnace_fan OFF;
     set $living_room_fan OFF;
     set $bedroom_fan OFF;
@@ -58,14 +56,9 @@ if (    $state eq OFF
     and $Weather{TempIndoor} < ( $Save{heat_temp} - $hyster ) )
 {
     my $heat_time_diff = &time_diff( $Save{heat_time}, $Time );
-    speak
-      "Turning furnace heat on after $heat_time_diff at $Weather{TempIndoor} degrees";
-    print_log
-      "Furnace heat has been turned on: temp=$Weather{TempIndoor} time=$heat_time_diff";
-    logit(
-        "$config_parms{data_dir}/logs/furnace.$Year_Month_Now.log",
-        "state=on   temp=$Weather{TempIndoor}  time=$heat_time_diff  "
-    );
+    speak "Turning furnace heat on after $heat_time_diff at $Weather{TempIndoor} degrees";
+    print_log "Furnace heat has been turned on: temp=$Weather{TempIndoor} time=$heat_time_diff";
+    logit( "$config_parms{data_dir}/logs/furnace.$Year_Month_Now.log", "state=on   temp=$Weather{TempIndoor}  time=$heat_time_diff  " );
     set $furnace_heat ON;
     $Save{heat_time} = $Time;
 }
@@ -76,14 +69,9 @@ elsif ( $state eq ON
     and $Weather{TempIndoor} > ( $Save{heat_temp} + $hyster ) )
 {
     my $heat_time_diff = &time_diff( $Save{heat_time}, $Time );
-    speak
-      "Turning furnace heat off after $heat_time_diff at $Weather{TempIndoor} degrees";
-    print_log
-      "Furnace heat has been turned off: temp=$Weather{TempIndoor} time=$heat_time_diff";
-    logit(
-        "$config_parms{data_dir}/logs/furnace.$Year_Month_Now.log",
-        "state=off  temp=$Weather{TempIndoor}  time=$heat_time_diff"
-    );
+    speak "Turning furnace heat off after $heat_time_diff at $Weather{TempIndoor} degrees";
+    print_log "Furnace heat has been turned off: temp=$Weather{TempIndoor} time=$heat_time_diff";
+    logit( "$config_parms{data_dir}/logs/furnace.$Year_Month_Now.log", "state=off  temp=$Weather{TempIndoor}  time=$heat_time_diff" );
     set $furnace_heat OFF;
     $Save{heat_time} = $Time;
 }
@@ -91,35 +79,22 @@ elsif ( $state eq ON
 # Safeguard to make we don't leave the furnace heat on if somehow its state got lost
 #  - skip if we already set for this pass
 
-if (
-    new_minute 10
-    and !(
-        $furnace_heat->{state_next_pass}
-        and @{ $furnace_heat->{state_next_pass} }
-    )
-  )
+if ( new_minute 10
+    and !( $furnace_heat->{state_next_pass} and @{ $furnace_heat->{state_next_pass} } ) )
 {
-    if (
-        (
-                $Weather{TempIndoor}
-            and $Weather{TempIndoor} > ( $Save{heat_temp} + $hyster + 0.5 )
-        )
-        and $Weather{TempOutdoor} < 50
-      )
+    if ( ( $Weather{TempIndoor} and $Weather{TempIndoor} > ( $Save{heat_temp} + $hyster + 0.5 ) )
+        and $Weather{TempOutdoor} < 50 )
     {
         if ( $state ne OFF ) {
             my $heat_time_diff = $Time - $Save{heat_time};
             $heat_time_diff = &time_diff($heat_time_diff);
-            my $msg =
-              "Danger Will Winterson, the furnace has been left on for $heat_time_diff.";
-            $msg .=
-              "The outdoor temperature is $Weather{TempOutdoor} degrees and indoor is $Weather{TempIndoor} degrees";
+            my $msg = "Danger Will Winterson, the furnace has been left on for $heat_time_diff.";
+            $msg .= "The outdoor temperature is $Weather{TempOutdoor} degrees and indoor is $Weather{TempIndoor} degrees";
             $msg .= "I am turning that silly furnace off";
             display $msg, 0;
             speak $msg;
         }
-        print_log
-          "Furnace heat was left on.  Turning off at $Weather{TempIndoor} degrees";
+        print_log "Furnace heat was left on.  Turning off at $Weather{TempIndoor} degrees";
         set $furnace_heat OFF;
     }
 

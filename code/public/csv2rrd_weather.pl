@@ -296,8 +296,7 @@ sub file_read_dir {
     my @dirs = @_;
     for my $dir (@dirs) {
         opendir( DIR, $dir )
-          or print
-          "\nError in file_dir_read, can not open directory:  $dir. $!\n";
+          or print "\nError in file_dir_read, can not open directory:  $dir. $!\n";
         my @files = readdir(DIR);
         close DIR;
 

@@ -27,26 +27,21 @@ my ( $Pgm_Path, $Pgm_Name, $Version );
 use vars '$Pgm_Root';    # So we can see it in eval var subs in read_parms
 
 BEGIN {
-    ($Version) =
-      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
     $Pgm_Root = "$Pgm_Path/..";
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"
-      ;                           # Use BEGIN eval to keep perl2exe happy
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";    # Use BEGIN eval to keep perl2exe happy
 }
 
 use Getopt::Long;
 my %parms;
-if (
-    !&GetOptions( \%parms, "h", "help", "message=s", "name:s", "pin:i",
-        "service:s" )
+if (  !&GetOptions( \%parms, "h", "help", "message=s", "name:s", "pin:i", "service:s" )
     or @ARGV
     or $parms{h}
     or $parms{help}
     or !$parms{message}
-    or !$parms{service}
-  )
+    or !$parms{service} )
 {
     print <<eof;
 
@@ -78,23 +73,19 @@ my (%pin_numbers);
 &setup;
 
 $parms{service} = "PageMart" unless $parms{service};
-unless ( ( $parms{service} eq "PageMart" ) | ( $parms{service} eq "Arch1way" ) |
-    ( $parms{service} eq "Arch2way" ) )
-{
+unless ( ( $parms{service} eq "PageMart" ) | ( $parms{service} eq "Arch1way" ) | ( $parms{service} eq "Arch2way" ) ) {
     print "\nParameter error: $parms{service}\n";
     print "The only accepted values for -service are:\n";
     print "    PageMart\n";
     print "    Arch1way\n";
     print "    Arch2way\n";
-    print
-      "(Note: not specifying -service will default to PageMart for backward compatibility.)\n";
+    print "(Note: not specifying -service will default to PageMart for backward compatibility.)\n";
     exit;
 }
 
 $parms{pin} = $pin_numbers{ $parms{name} } unless $parms{pin};
 unless ( $parms{pin} ) {
-    print
-      "\nYou must specifies mh.ini parm alpha_page_NAME_pin and -name option\n";
+    print "\nYou must specifies mh.ini parm alpha_page_NAME_pin and -name option\n";
     print "or specify -pin option.\n";
     exit;
 }

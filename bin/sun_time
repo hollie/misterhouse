@@ -32,22 +32,15 @@ my ( $Pgm_Path, $Pgm_Name );
 BEGIN {
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval
-      "use lib '$Pgm_Path/../lib/site'"; # Use BEGIN eval to keep perl2exe happy
+    eval "use lib '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";    # Use BEGIN eval to keep perl2exe happy
 }
 
 use Getopt::Long;
 my %parms;
-if (
-    !&GetOptions(
-        \%parms,      "h",           "help",   "return",
-        "latitude=s", "longitude=s", "no_dst", "time_zone=s",
-        "day_of_year=s"
-    )
+if (  !&GetOptions( \%parms, "h", "help", "return", "latitude=s", "longitude=s", "no_dst", "time_zone=s", "day_of_year=s" )
     or @ARGV != 0
     or $parms{h}
-    or $parms{help}
-  )
+    or $parms{help} )
 {
     print <<eof;
 
@@ -74,10 +67,7 @@ eof
 }
 
 # Globals
-my (
-    $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L,
-    $M, $N, $O, $P, $Q, $R, $S, $T, $U, $V, $yday
-);
+my ( $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q, $R, $S, $T, $U, $V, $yday );
 
 &setup_suntime;
 my ($sunrise) = &compute_time("rise");
@@ -131,13 +121,13 @@ sub compute_time {
     elsif ( $M > $A ) {
         $P += $B;
     }
-    $Q = .39782 * sin($M);           # Solar Declination
-    $Q = $Q / sqrt( -$Q * $Q + 1 );  # This is how the original author wrote it!
+    $Q = .39782 * sin($M);               # Solar Declination
+    $Q = $Q / sqrt( -$Q * $Q + 1 );      # This is how the original author wrote it!
     $Q = atan2( $Q, 1 );
 
     $S = $R - ( sin($Q) * sin($E) );
     $S = $S / ( cos($Q) * cos($E) );
-    return ( 0, 0 ) if abs($S) > 1;    # Null phenomenon
+    return ( 0, 0 ) if abs($S) > 1;      # Null phenomenon
     $S = $S / sqrt( -$S * $S + 1 );
     $S = $A - atan2( $S, 1 );
     $S = $D - $S if $rise_set eq "rise";
@@ -158,8 +148,8 @@ sub compute_time {
 
     BEGIN {
         eval "use lib '$Pgm_Path/../lib'";
-    }                                # Use BEGIN eval to keep perl2exe happy
-    require 'handy_utilities.pl';    # Has time_to_ampm
+    }                                           # Use BEGIN eval to keep perl2exe happy
+    require 'handy_utilities.pl';               # Has time_to_ampm
     print "db t=$time\n";
     return ( &main::time_to_ampm($time) );
 }

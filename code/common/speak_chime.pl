@@ -22,8 +22,7 @@ sub speak_chime {
 
     # Only chime on time-based events, not
     # interactive events like tk/web/email/IM/vr triggered
-    print
-      "db speak_chime respond=$Respond_Target app=$parms{app} t=$parms{text}\n"
+    print "db speak_chime respond=$Respond_Target app=$parms{app} t=$parms{text}\n"
       if $main::Debug{chime};
 
     if ( !$parms{force_chime} ) {

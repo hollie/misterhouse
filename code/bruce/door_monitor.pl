@@ -20,13 +20,7 @@ if ( $state = state_now $garage_door) {
 }
 
 # Note:  testing on state $item seems to reset it!! use $item->{state} instead :(
-if (
-    (
-            time_cron('0,5,10,15,30,45 22,23 * * *')
-        and ( OPENED eq ( $garage_door->{state} ) )
-        and inactive $timer_garage_door)
-  )
-{
+if ( ( time_cron('0,5,10,15,30,45 22,23 * * *') and ( OPENED eq ( $garage_door->{state} ) ) and inactive $timer_garage_door) ) {
     &speak(
         mode => 'unmuted',
         text => "The garage door has been left opened."
@@ -131,8 +125,7 @@ if ( new_hour 2 and inactive $timer_garage_movement2) {
 
 if ( expired $timer_garage_movement) {
     set $garage_light OFF;
-    print_log
-      "Garage timer expired: light=$$garage_light{state} lights=$$garage_lights{state}";
+    print_log "Garage timer expired: light=$$garage_light{state} lights=$$garage_lights{state}";
 
     #    set $garage_light  OFF if $garage_light  ne 'OFF';
     #    set $garage_lights OFF if $garage_lights ne 'OFF';

@@ -36,8 +36,7 @@ function openparmhelp(parm1){
 <a name='Top'></a>
 $html
 The following fils are all the code files in you code_dir list:  $config_parms{code_dir}.|;
-    $html .=
-      qq|<br><font color=red><b>Read-Only</b>: <a href="/bin/SET_PASSWORD">Login as admin</a> to edit</font>|
+    $html .= qq|<br><font color=red><b>Read-Only</b>: <a href="/bin/SET_PASSWORD">Login as admin</a> to edit</font>|
       unless $Authorized eq 'admin';
     $html .= qq|Simply uncheck files you want to disable or check to re-enable.|
       if $Authorized eq 'admin';
@@ -49,10 +48,8 @@ The following fils are all the code files in you code_dir list:  $config_parms{c
     $html .= "&nbsp;Searching for: \"$search\"" if $search;
     $html .= "</td>";
 
-    my %files_deselected = map { $_, 1 }
-      &file_read( "$config_parms{data_dir}/$config_parms{code_unselect}", 2 );
-    my %standard_parms = map { $_, 1 }
-      qw(html_dir code_dir code_dir_common data_dir http_port debug);
+    my %files_deselected = map { $_, 1 } &file_read( "$config_parms{data_dir}/$config_parms{code_unselect}", 2 );
+    my %standard_parms = map { $_, 1 } qw(html_dir code_dir code_dir_common data_dir http_port debug);
 
     my @files_read;
     for my $file_dir (@Code_Dirs) {
@@ -62,8 +59,7 @@ The following fils are all the code files in you code_dir list:  $config_parms{c
           unless $file_dir eq $config_parms{code_dir_common};
         close MYDIR;
     }
-    @files_read = grep( /^[a-z0-9].*\.(pl|mhp)$/i, @files_read )
-      ; # Must start with alphanumeric ... emacs edited checkpoints can start with #
+    @files_read = grep( /^[a-z0-9].*\.(pl|mhp)$/i, @files_read );    # Must start with alphanumeric ... emacs edited checkpoints can start with #
 
     my ( %modules, %categories );
 
@@ -93,17 +89,13 @@ The following fils are all the code files in you code_dir list:  $config_parms{c
             $category =~ s/\s+$//;    # Drop trailing whitespace
 
             # Ignore $config_parm{$xyz} entries
-            while ( $line =~ /config_parms{([^\$]+)}/g ) {
+            while ( $line =~ /config_parms\{([^\$]+)\}/g ) {
                 $file_parms{$1}++ unless $standard_parms{$1};
             }
         }
         next
           if $search
-          and !(
-               $category =~ /$search/i
-            or $file =~ /$search/i
-            or $description =~ /$search/i
-          );
+          and !( $category =~ /$search/i or $file =~ /$search/i or $description =~ /$search/i );
 
         if (%file_parms) {
             my $description_part;
@@ -112,20 +104,17 @@ The following fils are all the code files in you code_dir list:  $config_parms{c
                     $description_part .= ", ";
                     $parms_list       .= ',';
                 }
-                $description_part .=
-                  "<a href='#' onclick=\"openparmhelp('$f_parm');return(false);\">";
+                $description_part .= "<a href='#' onclick=\"openparmhelp('$f_parm');return(false);\">";
                 if ( $config_parms{$f_parm} ) {
                     $description_part .= "<font color=black>$f_parm</font>";
                 }
                 else {
-                    $description_part .=
-                      "<font color=red><i>$f_parm</i></font>";
+                    $description_part .= "<font color=red><i>$f_parm</i></font>";
                 }
                 $description_part .= "</a>";
                 $parms_list .= $f_parm;
             }
-            $description .=
-              "<br><a href='#' onclick=\"edit_parms('$parms_list','$file');return(false);\">EDIT</a>&nbsp;<b>Config parms</b>: $description_part";
+            $description .= "<br><a href='#' onclick=\"edit_parms('$parms_list','$file');return(false);\">EDIT</a>&nbsp;<b>Config parms</b>: $description_part";
         }
 
         $categories{$category}++;
@@ -153,8 +142,7 @@ The following fils are all the code files in you code_dir list:  $config_parms{c
     for my $module ( sort { lc($a) cmp lc($b) } keys %modules ) {
         my ($category) = $module =~ /(.*)\|.*/;
         if ( $category ne $lastcategory ) {
-            $html .=
-              "<TR bgcolor='#AAAAAA'><TD><B>$category</B> (<a name='$category' href='#Top'>back to top</a>)</TD><TD>$submit_html</TD></TR>";
+            $html .= "<TR bgcolor='#AAAAAA'><TD><B>$category</B> (<a name='$category' href='#Top'>back to top</a>)</TD><TD>$submit_html</TD></TR>";
             $lastcategory = $category;
             $rowcount     = 0;
         }
@@ -182,8 +170,7 @@ sub select_code_update {
     # Allow un-authorized users to browse only (if listed in password_allow)
     return 'Not authorized to make updates' unless $Authorized eq 'admin';
 
-    my %modules_deselected = map { $_, 1 }
-      &file_read( "$config_parms{data_dir}/$config_parms{code_unselect}", 2 );
+    my %modules_deselected = map { $_, 1 } &file_read( "$config_parms{data_dir}/$config_parms{code_unselect}", 2 );
 
     my ( %modules_added, %modules_dropped, %modules_selected );
 
@@ -225,14 +212,10 @@ sub select_code_update {
     run_voice_cmd "reload code" if $modules_added or $modules_dropped;
 
     $html = "<H1>MisterHouse Code Activation Confirmation</H1>";
-    $html .=
-      "<b>The following code files are now      activated:</b><P><PRE>$modules_added</PRE>";
-    $html .=
-      "<b>The following code files are now   de-activated:</b><P><PRE>$modules_dropped</PRE>";
-    $html .=
-      "<b>Here are all your deactivated files:</b><P><PRE>$modules_deselected</PRE>";
-    $html .=
-      "<b>Here are all your   activated files:</b><P><PRE>$modules_selected</PRE>";
+    $html .= "<b>The following code files are now      activated:</b><P><PRE>$modules_added</PRE>";
+    $html .= "<b>The following code files are now   de-activated:</b><P><PRE>$modules_dropped</PRE>";
+    $html .= "<b>Here are all your deactivated files:</b><P><PRE>$modules_deselected</PRE>";
+    $html .= "<b>Here are all your   activated files:</b><P><PRE>$modules_selected</PRE>";
 
     return &html_page( '', $html );
 }

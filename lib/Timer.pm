@@ -47,14 +47,14 @@ B<>
 
 =cut
 
-my ( $class, $self, $id, $state, $action, $repeat, @timers_with_actions,
-    $resort_timers_with_actions, @sets_from_previous_pass );
+my ( $class, $self, $id, $state, $action, $repeat, @timers_with_actions, $resort_timers_with_actions, @sets_from_previous_pass );
 
 # This is called from mh each pass
 sub check_for_timer_actions {
     my $ref;
     while ( $ref = shift @sets_from_previous_pass ) {
         &set_from_last_pass($ref);
+#        &update_state($ref);
     }
     for $ref (&expired_timers_with_actions) {
         &run_action($ref);
@@ -77,8 +77,7 @@ sub expired_timers_with_actions {
 
         #       print "db3 s=$self ex=$self->{expire_time}\n";
         if ( !$self->{expire_time} ) {
-            shift
-              @timers_with_actions;  # These timers were 'unset' ... delete them
+            shift @timers_with_actions;    # These timers were 'unset' ... delete them
         }
 
         # Use this method avoids problems with Timer is called from X10_Items
@@ -91,8 +90,7 @@ sub expired_timers_with_actions {
             }
         }
         else {
-            last
-              ; # The first timer has not expired yet, so don't check the others
+            last;    # The first timer has not expired yet, so don't check the others
         }
     }
     return @expired_timers;
@@ -113,6 +111,31 @@ sub delete_timer_with_action {
     }
 }
 
+sub update_state {
+    my ($self) = @_;
+ 
+    return unless ($::New_Second);
+    if ($self->active() ) {
+        my $repeat = 0;
+        $repeat = $self->{repeat} if (defined $self->{repeat});
+        my $seconds = $self->seconds_remaining;
+        my $hours = int($seconds / 3600);
+        my $minutes = int (($seconds % 3600) / 60);
+        my $seconds = int($seconds % 60);
+        my $state = sprintf("%d:%02d:%02d",$hours, $minutes, $seconds);
+        #&::print_log("****** state=$state");
+        $state .= ",$repeat" if ($repeat);
+        $self->{state} = $state;
+        $self->{set_time} = $::Time;
+    } else {
+        unless ($self->{state} eq "inactive") {
+            $self->{state} = "inactive" ;
+            $self->{set_time} = $::Time;
+        }
+    }
+   
+}
+
 =item C<new>
 
 Used to create the object.
@@ -125,6 +148,17 @@ sub new {
 
     # Not sure why this gives an error without || Timer
     bless $self, $class || 'Timer';
+    # $id isn't actually used? Going to use that as a flag to enable/disable state setting
+    $self->{state_enable} = 1;
+    $self->{state_enable} = $::config_parms{enable_timer_state_updates} if (defined $::config_parms{enable_timer_state_updates});
+    $self->{state_enable} = $id if (defined $id);
+    if ($self->{state_enable}) {
+        $self->{state} = "inactive";
+    } else {
+        $self->{state} = undef;  #restore the previous default behavior
+    }
+    $self->{state_updating} = 0; #&::MainLoop_pre_add_hook doesn't seem to be available yet, so add it to the set
+
     return $self;
 }
 
@@ -142,16 +176,13 @@ sub restore_string {
     $restore_string .= ", $self->{repeat}"    if $self->{repeat};
     $restore_string .= ";\n";
     $restore_string .= $self->{object_name} . "->set_from_last_pass();\n";
-    $restore_string .=
-      $self->{object_name} . "->{expire_time} = $expire_time;\n"
+    $restore_string .= $self->{object_name} . "->{expire_time} = $expire_time;\n"
       if $expire_time;
     $restore_string .= $self->{object_name} . "->{time} = q~$self->{time}~;\n"
       if $self->{time};
-    $restore_string .=
-      $self->{object_name} . "->{time_pause} = q~$self->{time_pause}~;\n"
+    $restore_string .= $self->{object_name} . "->{time_pause} = q~$self->{time_pause}~;\n"
       if $self->{time_pause};
-    $restore_string .=
-      $self->{object_name} . "->{time_adjust} = q~$self->{time_adjust}~;\n"
+    $restore_string .= $self->{object_name} . "->{time_adjust} = q~$self->{time_adjust}~;\n"
       if $self->{time_adjust};
 
     return $restore_string;
@@ -184,6 +215,11 @@ sub state_log {
     return @{ $$self{state_log} } if $$self{state_log};
 }
 
+sub get_idle_time {
+    return undef unless $_[0]->{set_time};
+    return $main::Time - $_[0]->{set_time};
+}
+
 =item C<set($period, $action, $cycles)>
 
 $period is the timer period in seconds
@@ -200,6 +236,11 @@ sub set {
 
     #   print "db1 $main::Time_Date running set s=$self s=$state a=$action t=$self->{text} c=@c\n";
     return if &main::check_for_tied_filters( $self, $state );
+
+    if (($self->{state_updating} == 0) and ($self->{state_enable})) {
+        &::MainLoop_pre_add_hook( \&Timer::update_state, 0, $self) unless ($self->{state_updating} == 1);
+        $self->{state_updating} = 1;
+    }
 
     # Set states for NEXT pass, so expired, active, etc,
     # checks are consistent for one pass.
@@ -221,6 +262,8 @@ sub set_from_last_pass {
         $self->{time}        = undef;
         &delete_timer_with_action($self);
         $resort_timers_with_actions = 1;
+        &::MainLoop_pre_drop_hook( \&Timer::update_state, 0, $self) unless ($self->{state_updating} == 0);
+        $self->{state_updating} = 0;
     }
 
     # Turn a timer on
@@ -260,6 +303,8 @@ sub unset {
     undef $self->{time};
     undef $self->{action};
     &delete_timer_with_action($self);
+    &::MainLoop_pre_drop_hook( \&Timer::update_state, 0, $self) unless ($self->{state_updating} == 0);
+    $self->{state_updating} = 0;
 }
 
 sub delete_old_timers {
@@ -290,17 +335,13 @@ sub run_action {
         elsif ( $action_type eq '' ) {
 
             #       &::print_log("Action");
-            package main
-              ; # Had to do this to get the 'speak' function recognized without having to &main::speak() it
-            my $timer_name = $self->{object_name}
-              ;    # So we can use this in the timer action eval
-            $state = $self->{object_name}
-              ;    # So we can use this in the timer action eval
+            package main;    # Had to do this to get the 'speak' function recognized without having to &main::speak() it
+            my $timer_name = $self->{object_name};    # So we can use this in the timer action eval
+            $state = $self->{object_name};            # So we can use this in the timer action eval
             eval $action;
 
             package Timer;
-            print
-              "\nError in running timer action: action=$action\n error: $@\n"
+            print "\nError in running timer action: action=$action\n error: $@\n"
               if $@;
         }
         else {
@@ -362,8 +403,7 @@ sub hours_remaining {
 sub hours_remaining_now {
     ($self) = @_;
     return if inactive $self;
-    my $hours_left = int(
-        .5 + ( $self->{expire_time} - main::get_tickcount ) / ( 60 * 60000 ) );
+    my $hours_left = int( .5 + ( $self->{expire_time} - main::get_tickcount ) / ( 60 * 60000 ) );
     if (    $hours_left
         and $self->{hours_remaining} != $hours_left )
     {
@@ -431,13 +471,8 @@ Returns true if the timer is still running.
 
 sub active {
     ($self) = @_;
-    if (
-        (
-                $self->{expire_time}
-            and $self->{expire_time} >= main::get_tickcount
-        )
-        or ( $self->{set_next_pass} )
-      )
+    if (   ( $self->{expire_time} and $self->{expire_time} >= main::get_tickcount )
+        or ( $self->{set_next_pass} ) )
     {
         return 1;
     }
@@ -485,8 +520,7 @@ sub restart {
     $self->{time}        = time;
     $self->{time_adjust} = 0;
     $self->{time_pause}  = 0;
-    if ( $$self{expire_time} )
-    {    # If this timer is countdown type then restart it instead
+    if ( $$self{expire_time} ) {    # If this timer is countdown type then restart it instead
 
         #           $self->{expire_time} = ($$self{period} * 1000) + main::get_tickcount;
         #       push @sets_from_previous_pass, $self;

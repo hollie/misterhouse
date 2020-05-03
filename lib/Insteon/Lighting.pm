@@ -83,6 +83,32 @@ sub get_voice_cmds {
     return \%voice_cmds;
 }
 
+=item C<led_level([0-100])>
+
+Sets the LED to brightness percentage.
+
+=cut
+
+sub led_level {
+    my ( $self, $level ) = @_;
+    return unless defined $level;
+    my $name = $self->get_object_name;
+
+    ::print_log( "[Insteon::BaseLight] Setting LED level of $name to" . " $level." )
+        if $self->debuglevel( 1, 'insteon' );
+
+
+    #For whatever reason 100% = 127 and 50% = 64
+    $level = $level * 1.28;
+    $level = 127 if $level > 127;
+    $level = 0 if $level < 0;
+
+    my $extra = '000107' . sprintf( '%02X', $level );
+    $extra .= '0' x ( 30 - length $extra );
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self, 'extended_set_get', $extra );
+    $self->_send_cmd($message);
+}
+
 =back
 
 =head2 AUTHOR
@@ -269,8 +295,7 @@ sub new {
     bless $self, $class;
 
     if ( $main::config_parms{insteon_menu_states} ) {
-        $self->set_states(
-            split( ',', $main::config_parms{insteon_menu_states} ) );
+        $self->set_states( split( ',', $main::config_parms{insteon_menu_states} ) );
     }
 
     return $self;
@@ -345,16 +370,13 @@ sub update_local_properties {
         #Queue Ramp Rate First
         my $extra = '000005' . $self->local_ramprate();
         $extra .= '0' x ( 30 - length $extra );
-        my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self,
-            'extended_set_get', $extra );
+        my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self, 'extended_set_get', $extra );
         $self->_send_cmd($message);
 
         #Now queue on level
-        $extra = '000006'
-          . ::Insteon::DimmableLight::convert_level( $self->local_onlevel() );
+        $extra = '000006' . ::Insteon::DimmableLight::convert_level( $self->local_onlevel() );
         $extra .= '0' x ( 30 - length $extra );
-        $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self,
-            'extended_set_get', $extra );
+        $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self, 'extended_set_get', $extra );
         $self->_send_cmd($message);
     }
 }
@@ -416,10 +438,7 @@ sub get_voice_cmds {
     my $object_name         = $self->get_object_name;
     my $insteon_menu_states = $main::config_parms{insteon_menu_states}
       if $main::config_parms{insteon_menu_states};
-    my %voice_cmds = (
-        %{ $self->SUPER::get_voice_cmds },
-        'update onlevel/ramprate' => "$object_name->update_local_properties"
-    );
+    my %voice_cmds = ( %{ $self->SUPER::get_voice_cmds }, 'update onlevel/ramprate' => "$object_name->update_local_properties" );
     if ($insteon_menu_states) {
         foreach my $state ( split( /,/, $insteon_menu_states ) ) {
             $voice_cmds{$state} = "$object_name->set(\"$state\")";
@@ -429,6 +448,24 @@ sub get_voice_cmds {
 }
 
 =back
+
+=item C<beep()>
+
+Beep the device;
+
+=cut
+
+sub beep {
+    my ( $self ) = @_;
+    my $name = $self->get_object_name;
+
+    ::print_log( "[Insteon::DimmableLight] Beeping $name." )
+          if $self->debuglevel( 1, 'insteon' );
+
+    my $message = new Insteon::InsteonMessage( 'insteon_send', $self, 'beep', 0x00 );
+    $self->_send_cmd($message);
+}
+
 
 =head2 AUTHOR
 
@@ -636,11 +673,11 @@ sub link_data3 {
     my $link_data3 = $self->SUPER::link_data3( $group, $is_controller );
 
     if ( !$is_controller ) {    #is_responder
-            #For I2CS devices the default data3 for responder links is 01.
-            #This is to support the I2CS In-LineLinc Relay.  There may be more
-            #permutations of the 00 vs. 01 problem and I1 devices may have
-            #the same requirement.  This code is a work in progress as more
-            #information is gathered about Relay type devices.
+                                #For I2CS devices the default data3 for responder links is 01.
+                                #This is to support the I2CS In-LineLinc Relay.  There may be more
+                                #permutations of the 00 vs. 01 problem and I1 devices may have
+                                #the same requirement.  This code is a work in progress as more
+                                #information is gathered about Relay type devices.
         if ( $self->can('engine_version') && $self->engine_version eq 'I2CS' ) {
 
             #Default to 01 if no group was supplied
@@ -771,8 +808,7 @@ package Insteon::KeyPadLincRelay;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::KeyPadLincRelay::ISA =
-  ( 'Insteon::BaseLight', 'Insteon::MultigroupDevice' );
+@Insteon::KeyPadLincRelay::ISA = ( 'Insteon::BaseLight', 'Insteon::MultigroupDevice' );
 
 our %operating_flags = (
     'program_lock_on'   => '00',
@@ -819,10 +855,8 @@ sub set {
             $$self{surrogate}->set( $p_state, $p_setby, $p_respond );
         }
         else {
-            ::print_log(
-                "[Insteon::KeyPadLinc] You may not directly attempt to set a keypadlinc's button "
-                  . "unless you have defined a reverse link with the \"surrogate\" keyword"
-            );
+            ::print_log( "[Insteon::KeyPadLinc] You may not directly attempt to set a keypadlinc's button "
+                  . "unless you have defined a reverse link with the \"surrogate\" keyword" );
         }
     }
     else {
@@ -894,22 +928,15 @@ sub get_voice_cmds {
     if ( $self->is_root ) {
         %voice_cmds = (
             %voice_cmds,
-            'set 8 button - backlight dim' =>
-              "$object_name->update_flags(\"0a\")",
-            'set 8 button - backlight off' =>
-              "$object_name->update_flags(\"06\")",
-            'set 8 button - backlight normal' =>
-              "$object_name->update_flags(\"02\")",
-            'set 6 button - backlight dim' =>
-              "$object_name->update_flags(\"08\")",
-            'set 6 button - backlight off' =>
-              "$object_name->update_flags(\"04\")",
-            'set 6 button - backlight normal' =>
-              "$object_name->update_flags(\"00\")",
-            'sync all device links'       => "$object_name->sync_all_links()",
-            'AUDIT sync all device links' => "$object_name->sync_all_links(1)",
-            'sync intradevice links' =>
-              "$object_name->sync_intradevice_links()",
+            'set 8 button - backlight dim'    => "$object_name->update_flags(\"0a\")",
+            'set 8 button - backlight off'    => "$object_name->update_flags(\"06\")",
+            'set 8 button - backlight normal' => "$object_name->update_flags(\"02\")",
+            'set 6 button - backlight dim'    => "$object_name->update_flags(\"08\")",
+            'set 6 button - backlight off'    => "$object_name->update_flags(\"04\")",
+            'set 6 button - backlight normal' => "$object_name->update_flags(\"00\")",
+            'sync all device links'           => "$object_name->sync_all_links()",
+            'AUDIT sync all device links'     => "$object_name->sync_all_links(1)",
+            'sync intradevice links'          => "$object_name->sync_intradevice_links()",
         );
     }
     return \%voice_cmds;
@@ -1009,10 +1036,7 @@ sub sync_intradevice_links {
     my %byte_hash;    #Key is the lsb of the byte location
     my $lsb;          #used to store the lsb address
 
-    ::print_log( '[Insteon::KeyPadLinc] '
-          . $self->get_object_name
-          . 'will be '
-          . 'programmed with the following IntraDevice Links:' );
+    ::print_log( '[Insteon::KeyPadLinc] ' . $self->get_object_name . 'will be ' . 'programmed with the following IntraDevice Links:' );
 
     # Find all subgroup items check groups from 1 - 8;
     for ( my $dec_group = 1; $dec_group <= 8; $dec_group++ ) {
@@ -1022,7 +1046,7 @@ sub sync_intradevice_links {
 
             #SubGroup Object Exists, Now Look for IntraDevice Link on Object
             foreach my $member_ref ( keys %{ $$subgroup_object{members} } ) {
-                my $member = $$subgroup_object{members}{$member_ref}{object};
+                my $member       = $$subgroup_object{members}{$member_ref}{object};
                 my $member_group = hex( $member->group );
                 my $member_root  = $member->get_root;
                 if ( $member_root eq $self ) {
@@ -1042,9 +1066,7 @@ sub sync_intradevice_links {
                         $byte_hash{$lsb} |= 0b1 << ( $member_group - 1 );
                         $link_type = "TURN OFF";
                     }
-                    ::print_log(
-                            "[Insteon::KeyPadLinc] Group $member_group will "
-                          . "$link_type when Group $dec_group is pressed." );
+                    ::print_log( "[Insteon::KeyPadLinc] Group $member_group will " . "$link_type when Group $dec_group is pressed." );
                 }
             }
         }
@@ -1090,23 +1112,14 @@ sub _write_intradevice_links {
     # Define our callbacks
     my $next_group = ( $sub == 2 ) ? $group : $group + 1;
     my $next_sub   = ( $sub == 2 ) ? 3      : 2;
-    my $success_callback = $self->get_object_name
-      . "->_write_intradevice_links('',$next_group,$next_sub)";
-    my $failure_callback =
-        "::print_log('[Insteon::KeyPadLinc] ERROR - Syncing"
-      . "IntraDevice Links to "
-      . $self->get_object_name
-      . " failed.')";
+    my $success_callback = $self->get_object_name . "->_write_intradevice_links('',$next_group,$next_sub)";
+    my $failure_callback = "::print_log('[Insteon::KeyPadLinc] ERROR - Syncing" . "IntraDevice Links to " . $self->get_object_name . " failed.')";
     if ( $group == 8 && $sub == 3 ) {
-        $success_callback =
-            "::print_log('[Insteon::KeyPadLinc] Successfully wrote "
-          . "IntraDevice links for "
-          . $self->get_object_name . "')";
+        $success_callback = "::print_log('[Insteon::KeyPadLinc] Successfully wrote " . "IntraDevice links for " . $self->get_object_name . "')";
     }
 
     # Now write values to device
-    my $extra =
-      "00" . sprintf( "%02X", $group ) . "0" . $sub . sprintf( "%02X", $mask );
+    my $extra = "00" . sprintf( "%02X", $group ) . "0" . $sub . sprintf( "%02X", $mask );
     my $message = $self->simple_message( 'extended_set_get', $extra );
     $message->failure_callback($failure_callback);
     $message->success_callback($success_callback);
@@ -1118,8 +1131,7 @@ sub simple_message {
     my ( $self, $type, $extra ) = @_;
     my $message;
     $extra .= '0' x ( 30 - length $extra );
-    $message =
-      new Insteon::InsteonMessage( 'insteon_ext_send', $self, $type, $extra );
+    $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self, $type, $extra );
     return $message;
 }
 
@@ -1176,8 +1188,7 @@ package Insteon::KeyPadLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::KeyPadLinc::ISA =
-  ( 'Insteon::KeyPadLincRelay', 'Insteon::DimmableLight' );
+@Insteon::KeyPadLinc::ISA = ( 'Insteon::KeyPadLincRelay', 'Insteon::DimmableLight' );
 
 =item C<new()>
 
@@ -1349,13 +1360,11 @@ sub enable_blink_traffic {
     my $name = $self->get_object_name;
 
     if ($is_true) {
-        ::print_log( "[Insteon::MicroSwitch] Setting LED on $name to"
-              . " blink on traffic." );
+        ::print_log( "[Insteon::MicroSwitch] Setting LED on $name to" . " blink on traffic." );
         $self->set_operating_flag('blink_traffic');
     }
     else {
-        ::print_log( "[Insteon::MicroSwitch] Setting LED on $name to"
-              . " not blink on traffic." );
+        ::print_log( "[Insteon::MicroSwitch] Setting LED on $name to" . " not blink on traffic." );
         $self->set_operating_flag('no_blink_traffic');
     }
 }
@@ -1372,13 +1381,11 @@ sub enable_blink_error {
     my $name = $self->get_object_name;
 
     if ($is_true) {
-        ::print_log( "[Insteon::MicroSwitch] Setting LED on $name to"
-              . " blink on error." );
+        ::print_log( "[Insteon::MicroSwitch] Setting LED on $name to" . " blink on error." );
         $self->set_operating_flag('blink_error');
     }
     else {
-        ::print_log( "[Insteon::MicroSwitch] Setting LED on $name to"
-              . " not blink on error." );
+        ::print_log( "[Insteon::MicroSwitch] Setting LED on $name to" . " not blink on error." );
         $self->set_operating_flag('no_blink_error');
     }
 }
@@ -1395,41 +1402,13 @@ sub enable_beep_button {
     my $name = $self->get_object_name;
 
     if ($is_true) {
-        ::print_log( "[Insteon::MicroSwitch] Setting $name to"
-              . " beep on button press." );
+        ::print_log( "[Insteon::MicroSwitch] Setting $name to" . " beep on button press." );
         $self->set_operating_flag('beep_button');
     }
     else {
-        ::print_log( "[Insteon::MicroSwitch] Setting $name to"
-              . " not beep on button press." );
+        ::print_log( "[Insteon::MicroSwitch] Setting $name to" . " not beep on button press." );
         $self->set_operating_flag('no_beep_button');
     }
-}
-
-=item C<led_level([0-100])>
-
-Sets the LED to brightness percentage.
-
-=cut
-
-sub led_level {
-    my ( $self, $level ) = @_;
-    return unless defined $level;
-    my $name = $self->get_object_name;
-
-    ::print_log(
-        "[Insteon::MicroSwitch] Setting LED level of $name to" . " $level." );
-
-    #For whatever reason 100% = 127 and 50% = 64
-    $level = $level * 1.28;
-    $level = 127 if $level > 127;
-    $level = 0 if $level < 0;
-
-    my $extra = '000107' . sprintf( '%02X', $level );
-    $extra .= '0' x ( 30 - length $extra );
-    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self,
-        'extended_set_get', $extra );
-    $self->_send_cmd($message);
 }
 
 =item C<get_voice_cmds>
@@ -1452,28 +1431,20 @@ sub get_voice_cmds {
     if ( $self->is_root ) {
         %voice_cmds = (
             %voice_cmds,
-            'set latching mode' => "$object_name->set_mode(\"latching\")",
-            'set single momentary mode' =>
-              "$object_name->set_mode(\"single_momentary\")",
-            'set dual momentary mode' =>
-              "$object_name->set_mode(\"dual_momentary\")",
-            'set to 3-way' => "$object_name->enable_3_way(1)",
-            'set to 1-way' => "$object_name->enable_3_way(0)",
-            'set LED to blink on traffic' =>
-              "$object_name->enable_blink_traffic(1)",
-            'set LED to not blink on traffic' =>
-              "$object_name->enable_blink_traffic(0)",
-            'set LED to blink on error' =>
-              "$object_name->enable_blink_error(1)",
-            'set LED to not blink on error' =>
-              "$object_name->enable_blink_error(0)",
-            'set device to beep on button press' =>
-              "$object_name->enable_beep_button(1)",
-            'set device to not beep on button press' =>
-              "$object_name->enable_beep_button(0)",
-            'set LED to 100%' => "$object_name->led_level(100)",
-            'set LED to 50%'  => "$object_name->led_level(50)",
-            'set LED to 0%'   => "$object_name->led_level(\"0\")",
+            'set latching mode'                      => "$object_name->set_mode(\"latching\")",
+            'set single momentary mode'              => "$object_name->set_mode(\"single_momentary\")",
+            'set dual momentary mode'                => "$object_name->set_mode(\"dual_momentary\")",
+            'set to 3-way'                           => "$object_name->enable_3_way(1)",
+            'set to 1-way'                           => "$object_name->enable_3_way(0)",
+            'set LED to blink on traffic'            => "$object_name->enable_blink_traffic(1)",
+            'set LED to not blink on traffic'        => "$object_name->enable_blink_traffic(0)",
+            'set LED to blink on error'              => "$object_name->enable_blink_error(1)",
+            'set LED to not blink on error'          => "$object_name->enable_blink_error(0)",
+            'set device to beep on button press'     => "$object_name->enable_beep_button(1)",
+            'set device to not beep on button press' => "$object_name->enable_beep_button(0)",
+            'set LED to 100%'                        => "$object_name->led_level(100)",
+            'set LED to 50%'                         => "$object_name->led_level(50)",
+            'set LED to 0%'                          => "$object_name->led_level(\"0\")",
         );
     }
     return \%voice_cmds;
@@ -1526,8 +1497,7 @@ package Insteon::MicroSwitch;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::MicroSwitch::ISA =
-  ( 'Insteon::MicroSwitchRelay', 'Insteon::DimmableLight' );
+@Insteon::MicroSwitch::ISA = ( 'Insteon::MicroSwitchRelay', 'Insteon::DimmableLight' );
 
 =item C<new()>
 
@@ -1595,8 +1565,7 @@ package Insteon::FanLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::FanLinc::ISA =
-  ( 'Insteon::DimmableLight', 'Insteon::MultigroupDevice' );
+@Insteon::FanLinc::ISA = ( 'Insteon::DimmableLight', 'Insteon::MultigroupDevice' );
 
 =item C<new()>
 
@@ -1637,9 +1606,7 @@ sub derive_message {
         }
         $command = ::Insteon::DimmableLight::convert_level($command);
         my $extra = $command . "0200000000000000000000000000";
-        my $message =
-          new Insteon::InsteonMessage( 'insteon_ext_send', $self, 'on',
-            $extra );
+        my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self, 'on', $extra );
         return $message;
     }
 }
@@ -1662,8 +1629,7 @@ sub request_status {
         my $parent = $self->get_root();
         $$parent{child_status_request_pending} = $self->group;
         $$self{m_status_request_pending} = ($requestor) ? $requestor : 1;
-        my $message = new Insteon::InsteonMessage( 'insteon_send', $parent,
-            'status_request', '03' );
+        my $message = new Insteon::InsteonMessage( 'insteon_send', $parent, 'status_request', '03' );
         $parent->_send_cmd($message);
     }
 }
@@ -1684,10 +1650,7 @@ sub _is_info_request {
         $is_info_request++;
         my $child_obj = Insteon::get_object( $self->device_id, '02' );
         my $child_state = $child_obj->derive_link_state( hex( $msg{extra} ) );
-        &::print_log( "[Insteon::FanLinc] received status for "
-              . $child_obj->{object_name}
-              . " of: $child_state "
-              . "hops left: $msg{hopsleft}" )
+        &::print_log( "[Insteon::FanLinc] received status for " . $child_obj->{object_name} . " of: $child_state " . "hops left: $msg{hopsleft}" )
           if $self->debuglevel( 1, 'insteon' );
         $ack_setby = $$child_obj{m_status_request_pending}
           if ref $$child_obj{m_status_request_pending};
@@ -1695,8 +1658,7 @@ sub _is_info_request {
         delete( $$parent{child_status_request_pending} );
     }
     else {
-        $is_info_request =
-          $self->SUPER::_is_info_request( $cmd, $ack_setby, %msg );
+        $is_info_request = $self->SUPER::_is_info_request( $cmd, $ack_setby, %msg );
     }
     return $is_info_request;
 }
@@ -1714,19 +1676,13 @@ sub is_acknowledged {
     my $parent = $self->get_root();
     if ( $p_ack && $$parent{child_pending_state} ) {
         my $child_obj = Insteon::get_object( $self->device_id, '02' );
-        $child_obj->set_receive(
-            $$child_obj{pending_state},
-            $$child_obj{pending_setby},
-            $$child_obj{pending_response}
-        ) if defined $$child_obj{pending_state};
+        $child_obj->set_receive( $$child_obj{pending_state}, $$child_obj{pending_setby}, $$child_obj{pending_response} ) if defined $$child_obj{pending_state};
         $$child_obj{is_acknowledged}  = $p_ack;
         $$child_obj{pending_state}    = undef;
         $$child_obj{pending_setby}    = undef;
         $$child_obj{pending_response} = undef;
         $$parent{child_pending_state} = undef;
-        &::print_log(
-            "[Insteon::FanLinc] received command/state acknowledge from "
-              . $child_obj->{object_name} )
+        &::print_log( "[Insteon::FanLinc] received command/state acknowledge from " . $child_obj->{object_name} )
           if $self->debuglevel( 1, 'insteon' );
         return $$self{is_acknowledged};
     }
@@ -1879,8 +1835,7 @@ sub enable_linking_on_powerup {
         $self->set_operating_flag('linking_on_powerup_on');
     }
     else {
-        ::print_log(
-            "[Insteon::BulbLinc] Disabling Linking on Startup on $name");
+        ::print_log("[Insteon::BulbLinc] Disabling Linking on Startup on $name");
         $self->set_operating_flag('linking_on_powerup_off');
     }
 }
@@ -1905,10 +1860,8 @@ sub get_voice_cmds {
     if ( $self->is_root ) {
         %voice_cmds = (
             %voice_cmds,
-            'set linking on powerup on' =>
-              "$object_name->enable_linking_on_powerup(1)",
-            'set linking on powerup off' =>
-              "$object_name->enable_linking_on_powerup(0)"
+            'set linking on powerup on'  => "$object_name->enable_linking_on_powerup(1)",
+            'set linking on powerup off' => "$object_name->enable_linking_on_powerup(0)"
         );
     }
     return \%voice_cmds;

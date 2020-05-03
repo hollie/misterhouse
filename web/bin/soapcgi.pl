@@ -24,8 +24,7 @@ if ( $main::Debug{soap} ) {
     my ( $key, $header );
     while ( ( $key, $header ) = each %Http ) {
         logit "$config_parms{data_dir}/logs/soapdebug.log", "$key $header";
-        logit "$config_parms{data_dir}/logs/soapdebug.log",
-          "$ENV{HTTP_QUERY_STRING}";
+        logit "$config_parms{data_dir}/logs/soapdebug.log", "$ENV{HTTP_QUERY_STRING}";
     }
 }
 

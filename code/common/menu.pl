@@ -49,8 +49,7 @@ if ($Reread) {
     }
 
     # Set default menus, based on ip addresses
-    set_menu_default( 'main', 'Top', 'default' )
-      ;    # Default to top of main for unknown ip address
+    set_menu_default( 'main', 'Top', 'default' );    # Default to top of main for unknown ip address
 
     #   set_menu_default('main', 'Top|Main|Rooms|Living Room',   '127.0.0.1');
     #   set_menu_default('main', 'Main|Rooms|Living Room', '192.168.0.81');
@@ -61,8 +60,7 @@ if ($Reread) {
 if ( $Http{loop} == $Loop_Count ) {
     if ( $Http{request} =~ /menu_wml/ ) {
         play 'wap';    # Defined in event_sounds.pl
-        my $msg =
-          "WAP call from $Http{'User-Agent'}, $Http{'x-up-subno'} $Http{request}";
+        my $msg = "WAP call from $Http{'User-Agent'}, $Http{'x-up-subno'} $Http{request}";
 
         #       display $msg, 0;        # See if this can be used for security
         logit "$config_parms{data_dir}/logs/menu_wml.$Year_Month_Now.log", $msg;
@@ -71,7 +69,6 @@ if ( $Http{loop} == $Loop_Count ) {
         play 'tell_me';    # Defined in event_sounds.pl
         my $msg = "Tellme call: $Http{request}";
         print_log $msg;
-        logit "$config_parms{data_dir}/logs/menu_vxml.$Year_Month_Now.log",
-          $msg;
+        logit "$config_parms{data_dir}/logs/menu_vxml.$Year_Month_Now.log", $msg;
     }
 }

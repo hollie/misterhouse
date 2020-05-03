@@ -7,19 +7,14 @@ my ( $Pgm_Path, $Pgm_Name );
 BEGIN {
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"
-      ;    # Use BEGIN eval to keep perl2exe happy
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";    # Use BEGIN eval to keep perl2exe happy
 }
 
 my %parms;
 use Getopt::Long;
 if (
-    !&GetOptions(
-        \%parms,      'h',         'help',      'user=s',
-        'password=s', 'server=s',  'account=s', 'from=s',
-        'to=s',       'subject=s', 'mime=s',    'text=s',
-        'file=s',     'filename=s'
-    )
+    !&GetOptions( \%parms, 'h', 'help', 'user=s', 'password=s', 'server=s', 'account=s', 'from=s', 'to=s', 'subject=s', 'mime=s', 'text=s',
+        'file=s', 'filename=s' )
     or @ARGV
     or ( $parms{h} or $parms{help} )
   )

@@ -19,7 +19,7 @@ if ( state_now $xAP_news) {
         print "xAP_news: s=$station $section t=$title\n" if $Debug{xap_news};
         next if !$title or $News->{titles}{$title};
         $link = $1
-          if $link =~ /base=(http.+)/; # Drop redirect prefix found on some urls
+          if $link =~ /base=(http.+)/;    # Drop redirect prefix found on some urls
         $News->{titles}{$title}{link}    = $link;
         $News->{titles}{$title}{station} = $station;
         $News->{titles}{$title}{time}    = $Time_Now;
@@ -33,8 +33,7 @@ if ( my $title = state_now $News) {
     my $news    = "$station: $title";
 
     my ( %log, $log );
-    $config_parms{xAP_news} =
-      'cnn => msg&display, slashdot => speak&display, default => display&print'
+    $config_parms{xAP_news} = 'cnn => msg&display, slashdot => speak&display, default => display&print'
       unless $config_parms{xAP_news};
     &main::read_parm_hash( \%log, lc $config_parms{xAP_news} );
     $log = $log{$station};

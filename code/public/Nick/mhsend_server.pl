@@ -21,8 +21,7 @@ if ( my $header = said $mhsend_server) {
     my ( $name, $name_short );
 
     #   my ($name, $name_short) = net_domain_name('server_data');
-    print_log
-      "Received server_data data: name=$name: action=$action arg=$action_arg";
+    print_log "Received server_data data: name=$name: action=$action arg=$action_arg";
 
     # Read header and optional password (until blank record)
     my $handle = handle $mhsend_server;
@@ -68,8 +67,7 @@ if ( my $header = said $mhsend_server) {
         }
         else {
             display( $msg, 120, "Internet Message from $name" );
-            $response =
-              "Data was too long ... it was displayed instead of being spoken";
+            $response = "Data was too long ... it was displayed instead of being spoken";
         }
     }
     elsif ( $action eq 'run' ) {

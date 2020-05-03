@@ -21,12 +21,10 @@ if ( $state = said $v_test_process1) {
     # Example of mixing external and internal processes
     #  - internal & functions only work on unix systems.
     if ( $state == 3 and !$OS_win ) {
-        set $test_process1 'sleep 2', '&main::print_log("mid sleep")',
-          'sleep 2';
+        set $test_process1 'sleep 2', '&main::print_log("mid sleep")', 'sleep 2';
     }
     if ( $state == 4 ) {
-        set $test_process1
-          q[perl -e "print 'test to stdout'; warn 'test to stderr'; sleep 5;"];
+        set $test_process1 q[perl -e "print 'test to stdout'; warn 'test to stderr'; sleep 5;"];
         set_timeout $test_process1 99;
         set_output $test_process1 "/tmp/t.out";
         set_errlog $test_process1 "/tmp/t.err";

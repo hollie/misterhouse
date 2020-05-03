@@ -20,13 +20,11 @@ my ( $Pgm_Path, $Pgm_Name, $Version, $Pgm_Root );
 #use vars '$Pgm_Root';           # So we can see it in eval var subs in read_parms
 
 BEGIN {
-    ($Version) =
-      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
     $Pgm_Root = "$Pgm_Path/..";
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"
-      ;                           # Use BEGIN eval to keep perl2exe happy
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";    # Use BEGIN eval to keep perl2exe happy
 }
 
 use Getopt::Long;
@@ -34,18 +32,10 @@ my %parms;
 my $cmd;
 if (
     !&GetOptions(
-        \%parms,           "h",
-        "help",            "debug",
-        "nomixer",         "text=s",
-        "voice=s",         "text_first",
-        "volume=s",        "play_volume=s",
-        "voice_volume=s",  "default_volume=s",
-        "prescript=s",     "postscript=s",
-        "play=s",          "playcmd=s",
-        "default_sound=s", 'to_file=s',
-        "pa_control",      "xcmd_file=s",
-        "rooms=s",         "default_room=s",
-        "engine=s"
+        \%parms,       "h",            "help",     "debug",          "nomixer",         "text=s",
+        "voice=s",     "text_first",   "volume=s", "play_volume=s",  "voice_volume=s",  "default_volume=s",
+        "prescript=s", "postscript=s", "play=s",   "playcmd=s",      "default_sound=s", 'to_file=s',
+        "pa_control",  "xcmd_file=s",  "rooms=s",  "default_room=s", "engine=s"
     )
     or @ARGV
     or $parms{h}
@@ -114,8 +104,7 @@ while ( stat($lockfile) && $cnt < 120 ) {
     # printf("%s: lockfile exists, sleep ($cnt of 60)\n",$Pgm_Name,$cnt);
     sleep(1);
     if ( $cnt++ == 120 ) {
-        printf( "%s: timed out waiting for lock, lets go anyway.\n",
-            $Pgm_Name );
+        printf( "%s: timed out waiting for lock, lets go anyway.\n", $Pgm_Name );
     }
 }
 
@@ -130,9 +119,7 @@ my $have_mixer = 0;
 unless ( $parms{nomixer} ) {
     eval "use Audio::Mixer";
     if ($@) {
-        printf(
-            "\n%s: Audio::Mixer not installed ... volume control is disabled\n\n",
-            $Pgm_Name );
+        printf( "\n%s: Audio::Mixer not installed ... volume control is disabled\n\n", $Pgm_Name );
     }
     else {
         $have_mixer = 1;
@@ -195,22 +182,17 @@ sub play_sound() {
     if ( $parms{playcmd} and $parms{play} ne 'none' ) {
         if ($have_mixer) {
             if ( $parms{play_volume} ) {
-                printf(
-                    "%s: using play_volume($parms{play_volume}) for play sound\n",
-                    $Pgm_Name )
+                printf( "%s: using play_volume($parms{play_volume}) for play sound\n", $Pgm_Name )
                   if $parms{debug};
                 &set_vol( $parms{play_volume} );
             }
             elsif ( $parms{volume} ) {
-                printf( "%s: using volume ($parms{volume}) for play sound\n",
-                    $Pgm_Name )
+                printf( "%s: using volume ($parms{volume}) for play sound\n", $Pgm_Name )
                   if $parms{debug};
                 &set_vol( $parms{volume} );
             }
             elsif ( $parms{default_volume} ) {
-                printf(
-                    "%s: using default_volume ($parms{default_volume}) for play sound\n",
-                    $Pgm_Name )
+                printf( "%s: using default_volume ($parms{default_volume}) for play sound\n", $Pgm_Name )
                   if $parms{debug};
                 &set_vol( $parms{default_volume} );
             }
@@ -232,22 +214,17 @@ sub speak_text {
     if ( $parms{text} ) {
         if ($have_mixer) {
             if ( $parms{voice_volume} ) {
-                printf(
-                    "%s: using voice_volume($parms{voice_volume}) for voice\n",
-                    $Pgm_Name )
+                printf( "%s: using voice_volume($parms{voice_volume}) for voice\n", $Pgm_Name )
                   if $parms{debug};
                 &set_vol( $parms{voice_volume} );
             }
             elsif ( $parms{volume} ) {
-                printf( "%s: using volume ($parms{volume}) for voice\n",
-                    $Pgm_Name )
+                printf( "%s: using volume ($parms{volume}) for voice\n", $Pgm_Name )
                   if $parms{debug};
                 &set_vol( $parms{volume} );
             }
             elsif ( $parms{default_volume} ) {
-                printf(
-                    "%s: using default_volume ($parms{default_volume}) for voice\n",
-                    $Pgm_Name )
+                printf( "%s: using default_volume ($parms{default_volume}) for voice\n", $Pgm_Name )
                   if $parms{debug};
                 &set_vol( $parms{default_volume} );
             }
@@ -261,8 +238,7 @@ sub speak_text {
                 unlink $parms{to_file};
                 my $h = eciNew() or die "ViaVoice: Unable to connect";
                 eciSetOutputFilename( $h, $parms{to_file} )
-                  or warn
-                  "ViaVoice: Unable to set output file: $parms{to_file}";
+                  or warn "ViaVoice: Unable to set output file: $parms{to_file}";
                 eciAddText( $h, $parms{text} )
                   or warn "ViaVoice Unable to add text";
                 eciSynthesize($h) or warn "ViaVoice Unable to synthesize text";
@@ -282,8 +258,7 @@ sub speak_text {
                 unlink $parms{to_file};
                 printf( "%s: running festival tts engine\n", $Pgm_Name )
                   if $parms{debug};
-                open( FEST,
-                    "| festival_client --ttw --output $parms{to_file}" );
+                open( FEST, "| festival_client --ttw --output $parms{to_file}" );
                 print FEST qq[$parms{text}];
                 close(FEST);
             }
@@ -345,15 +320,13 @@ sub save_vol {
     my @pcm = Audio::Mixer::get_cval('pcm');
     $old_vol = ( $vol[0] + $vol[1] ) / 2;
     $old_pcm = ( $pcm[0] + $pcm[1] ) / 2;
-    printf( "%s: saving current vol,pcm settings ($old_vol,$old_pcm)\n",
-        $Pgm_Name )
+    printf( "%s: saving current vol,pcm settings ($old_vol,$old_pcm)\n", $Pgm_Name )
       if $parms{debug};
     return;
 }
 
 sub restore_vol {
-    printf( "%s: restoring old vol,pcm settings ($old_vol, $old_pcm)\n",
-        $Pgm_Name )
+    printf( "%s: restoring old vol,pcm settings ($old_vol, $old_pcm)\n", $Pgm_Name )
       if $parms{debug};
     Audio::Mixer::set_cval( 'vol', $old_vol );
     Audio::Mixer::set_cval( 'pcm', $old_pcm );
@@ -365,7 +338,7 @@ sub write_xcmd_file {
     printf( "%s: opening xcmd_file:$xcmd_file\n", $Pgm_Name ) if $parms{debug};
     printf( "%s: writing to xcmd_file, rooms:$rooms\n", $Pgm_Name )
       if $parms{debug};
-    open( CMDFILE, "> $xcmd_file" );   # don't die because we will speak anyway.
+    open( CMDFILE, "> $xcmd_file" );    # don't die because we will speak anyway.
     print CMDFILE "set pa speaker to $rooms\n";
     close(CMDFILE);
     return;

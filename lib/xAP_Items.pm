@@ -30,11 +30,8 @@ package xAP;
 #se IO::Socket::INET;           # Gives us the INADDR constants, but not in perl 5.0 :(
 
 my (
-    @xap_item_names,    $started,             $xap_listen,
-    $xap_hub_listen,    $xap_send,            %hub_ports,
-    %xap_uids,          %xap_virtual_devices, $xap_hbeat_interval,
-    $xap_hbeat_counter, @send_queue,          %timeouts,
-    $send_queue_timeout
+    @xap_item_names,      $started,            $xap_listen,        $xap_hub_listen, $xap_send, %hub_ports, %xap_uids,
+    %xap_virtual_devices, $xap_hbeat_interval, $xap_hbeat_counter, @send_queue,     %timeouts, $send_queue_timeout
 );
 use vars '$xap_data';
 
@@ -45,8 +42,7 @@ use constant XAP_REAL_DEVICE_NAME => 'core';
 sub startup {
 
     return
-      if $started++
-      ;    # Allows us to call with $Reload or with xap_module mh.ini parm
+      if $started++;    # Allows us to call with $Reload or with xap_module mh.ini parm
 
     @xap_item_names = ();
     @send_queue     = ();
@@ -84,13 +80,11 @@ sub startup {
         }
         else {
             if ( &open_port( $port, 'listen', 'xap_hub_listen', 0, 1 ) ) {
-                $xap_hub_listen =
-                  new Socket_Item( undef, undef, 'xap_hub_listen' );
+                $xap_hub_listen = new Socket_Item( undef, undef, 'xap_hub_listen' );
                 print " - mh in xAP Hub mode\n";
             }
             else {
-                print
-                  " - mh automatically switching out of xAP Hub mode.  Another application is binding to the hub port ($port)\n";
+                print " - mh automatically switching out of xAP Hub mode.  Another application is binding to the hub port ($port)\n";
             }
         }
 
@@ -115,8 +109,7 @@ sub reload_hook {
 sub exit_hook {
     return if $main::Save{mh_exit} eq 'restart';
     for my $virtual_device_name ( keys %{xap_virtual_devices} ) {
-        &send_xap_heartbeat( $xap_virtual_devices{$virtual_device_name}{port},
-            $virtual_device_name, 'stopped' );
+        &send_xap_heartbeat( $xap_virtual_devices{$virtual_device_name}{port}, $virtual_device_name, 'stopped' );
     }
 }
 
@@ -133,11 +126,9 @@ sub init_xap_virtual_device {
         for my $p ( 49152 .. 65535 ) {
             $port = $p;
             last
-              if &open_port( $port, 'listen', "xap_listen_$virtual_device_name",
-                1, 1 );
+              if &open_port( $port, 'listen', "xap_listen_$virtual_device_name", 1, 1 );
         }
-        my $xap_socket =
-          new Socket_Item( undef, undef, "xap_listen_$virtual_device_name" );
+        my $xap_socket = new Socket_Item( undef, undef, "xap_listen_$virtual_device_name" );
         $xap_virtual_devices{$virtual_device_name}{socket} = $xap_socket;
         $xap_virtual_devices{$virtual_device_name}{port}   = $port;
 
@@ -145,8 +136,7 @@ sub init_xap_virtual_device {
         if ( !( $::config_parms{xap_nohub} ) ) {
 
             # now set up the hub port that will send to mh
-            $hub_ports{$port} =
-              &xAP::get_xap_mh_source_info($virtual_device_name);
+            $hub_ports{$port} = &xAP::get_xap_mh_source_info($virtual_device_name);
             my $port_name = "xap_send_$port";
             &open_port( $port, 'send', $port_name, 1, 1 );
         }
@@ -167,8 +157,7 @@ sub main::display_xap {
         &main::display_xap_message_display(%args);
     }
     else {
-        &main::print_log(
-            "Display support for the schema, $schema, does not yet exist");
+        &main::print_log("Display support for the schema, $schema, does not yet exist");
     }
 
 }
@@ -332,8 +321,7 @@ sub open_port {
         return 0;
     }
 
-    printf " - creating %-15s on %3s %5s %s\n", $port_name, 'udp', $port,
-      $send_listen
+    printf " - creating %-15s on %3s %5s %s\n", $port_name, 'udp', $port, $send_listen
       if $verbose;
 
     print "db xAP_Items open_port: p=$port pn=$port_name l=$local s=$sock\n"
@@ -343,7 +331,7 @@ sub open_port {
     $::Socket_Ports{$port_name}{datatype} = 'raw';
     $::Socket_Ports{$port_name}{port}     = $port;
     $::Socket_Ports{$port_name}{sock}     = $sock;
-    $::Socket_Ports{$port_name}{socka} = $sock;  # UDP ports are always "active"
+    $::Socket_Ports{$port_name}{socka}    = $sock;    # UDP ports are always "active"
 
     return $sock;
 }
@@ -367,9 +355,7 @@ sub check_for_data {
         if ($xap_send) {
             if ( $xap_hbeat_counter == 1 ) {
                 for my $virtual_device_name ( keys %{xap_virtual_devices} ) {
-                    &send_xap_heartbeat(
-                        $xap_virtual_devices{$virtual_device_name}{port},
-                        $virtual_device_name, 'alive' );
+                    &send_xap_heartbeat( $xap_virtual_devices{$virtual_device_name}{port}, $virtual_device_name, 'alive' );
                 }
                 $xap_hbeat_counter = $xap_hbeat_interval;
             }
@@ -460,8 +446,7 @@ sub _process_incoming_xap_hub_data {
             or $main::Debug{xap} )
         {
             my $sock = $::Socket_Ports{"xap_send_$port"}{sock};
-            print
-              "db2 xap hub: sending $protocol data to p=$port s=$sock d=\n$data.\n"
+            print "db2 xap hub: sending $protocol data to p=$port s=$sock d=\n$data.\n"
               if $main::Debug{xap} and $main::Debug{xap} == 2;
             print $sock $data if defined($sock);
         }
@@ -488,8 +473,7 @@ sub _process_incoming_xap_hub_data {
                   if $main::Debug{xap};
 
                 # xAP apps want local
-                &open_port( $port, 'send', $port_name, 1,
-                    $msg eq 'registering' );
+                &open_port( $port, 'send', $port_name, 1, $msg eq 'registering' );
             }
         }
     }
@@ -535,17 +519,15 @@ sub _process_incoming_xap_data {
     if ( !( $source eq &xAP::get_xap_mh_source_info() ) ) {
 
         # Set states in matching xAP objects
-        for my $name (@xap_item_names) { #&::list_objects_by_type('xAP_Item')) {
+        for my $name (@xap_item_names) {    #&::list_objects_by_type('xAP_Item')) {
             my $o = &main::get_object_by_name($name);
             $o = $name
-              unless $o
-              ;  # In case we stored object directly (e.g. lib/Telephony_xAP.pm)
+              unless $o;                    # In case we stored object directly (e.g. lib/Telephony_xAP.pm)
 
             # don't continue processing object if it's not bound to the device
             next unless $o->device_name() eq $device_name;
 
-            print
-              "db3 xap test  o=$name s=$source os=$$o{source} c=$class oc=$$o{class} \n"
+            print "db3 xap test  o=$name s=$source os=$$o{source} c=$class oc=$$o{class} \n"
               if $main::Debug{xap} and $main::Debug{xap} == 3;
             my $regex_source = &wildcard_2_regex( $$o{source} );
             next unless $source =~ /^$regex_source$/i;
@@ -608,16 +590,14 @@ sub _process_incoming_xap_data {
                     my $value_convertor = $$o{_value_convertors}{$key}
                       if defined( $$o{_value_convertors} );
                     if ($value_convertor) {
-                        print
-                          "db xap: located value convertor: $value_convertor\n"
+                        print "db xap: located value convertor: $value_convertor\n"
                           if $main::Debug{xap};
                         my $converted_value = eval $value_convertor;
                         if ($@) {
                             print $@;
                         }
                         else {
-                            print
-                              "db xap: converted value is: $converted_value\n"
+                            print "db xap: converted value is: $converted_value\n"
                               if $main::Debug{xap};
                         }
                         $value = $converted_value if $converted_value;
@@ -626,10 +606,8 @@ sub _process_incoming_xap_data {
 
                     # Monitor what changed (real data, not hbeat).
                     $$o{changed} .= "$section : $key = $value | "
-                      unless $section eq 'xap-header'
-                      ; # or ($section eq 'xap-hbeat' and !($$o{class} =~ /^xap-hbeat/i));
-                    print
-                      "db3 xap state check m=$$o{state_monitor} key=$section : $key  value=$value\n"
+                      unless $section eq 'xap-header';    # or ($section eq 'xap-hbeat' and !($$o{class} =~ /^xap-hbeat/i));
+                    print "db3 xap state check m=$$o{state_monitor} key=$section : $key  value=$value\n"
                       if $main::Debug{xap} and $main::Debug{xap} == 3;
                     if (    $$o{state_monitor}
                         and $$o{state_monitor} =~ /$section\s*[:=]\s*$key/i
@@ -653,8 +631,7 @@ sub _process_incoming_xap_data {
             # Can not use Generic_Item set method, as state_next_path only carries state, not all other $section data, to the next pass
             #              $o -> SUPER::set($state_value, 'xAP') if defined $state_value;
             my $set_by_name = 'xAP';
-            $set_by_name .= " [$source]"
-              ;   # no longer needed: if ($::config_parms{'xap_use_to_target'});
+            $set_by_name .= " [$source]";    # no longer needed: if ($::config_parms{'xap_use_to_target'});
             $o->SUPER::set_now( $state_value, $set_by_name )
               if $o->allow_empty_state()
               or ( defined $state_value and $state_value ne '' );
@@ -664,8 +641,7 @@ sub _process_incoming_xap_data {
 
 sub get_xap_uid {
     my ( $device_type, $subaddress_name ) = @_;
-    my $uid = &get_xap_base_uid($device_type)
-      . &get_xap_subaddress_uid( $device_type, $subaddress_name );
+    my $uid = &get_xap_base_uid($device_type) . &get_xap_subaddress_uid( $device_type, $subaddress_name );
     return $uid;
 }
 
@@ -673,45 +649,32 @@ sub get_xap_subaddress_uid {
     my ( $p_type_name, $subaddress_name, $requested_uid ) = @_;
     my $subaddress_uid = "00";
     if ($subaddress_name) {
-        if ( exists( $xap_uids{$p_type_name} )
-            && exists(
-                $xap_uids{$p_type_name}{'sub-fwd-map'}{$subaddress_name} ) )
+        if (   exists( $xap_uids{$p_type_name} )
+            && exists( $xap_uids{$p_type_name}{'sub-fwd-map'}{$subaddress_name} ) )
         {
             $subaddress_uid =
               $xap_uids{$p_type_name}{'sub-fwd-map'}{$subaddress_name};
         }
         else {
             # did we get a $requested_uid?
-            if ( $requested_uid && ( length($requested_uid) == 2 ) )
-            {    # not a very robust validation
-                    # try to honor the request
-                if (
-                    !(
-                        exists(
-                            $xap_uids{$p_type_name}{'sub-rvs-map'}
-                              {$requested_uid}
-                        )
-                    )
-                  )
-                {
+            if ( $requested_uid && ( length($requested_uid) == 2 ) ) {    # not a very robust validation
+                                                                          # try to honor the request
+                if ( !( exists( $xap_uids{$p_type_name}{'sub-rvs-map'}{$requested_uid} ) ) ) {
                     $subaddress_uid = $requested_uid;
                 }
             }
             if ( !($requested_uid) || $subaddress_uid eq '00' ) {
-                my $last_xap_subaddress_uid =
-                  $xap_uids{$p_type_name}{'last_sub_uid'};
+                my $last_xap_subaddress_uid = $xap_uids{$p_type_name}{'last_sub_uid'};
                 $last_xap_subaddress_uid = 0 unless $last_xap_subaddress_uid;
                 $last_xap_subaddress_uid++;
 
                 # store it
-                $xap_uids{$p_type_name}{'last_sub_uid'} =
-                  $last_xap_subaddress_uid;
+                $xap_uids{$p_type_name}{'last_sub_uid'} = $last_xap_subaddress_uid;
 
                 #convert to hex
                 $subaddress_uid = sprintf( "%X", $last_xap_subaddress_uid );
                 if ( length($subaddress_uid) % 2 ) {
-                    $subaddress_uid =
-                      "0$subaddress_uid"; # pad w/ a 0 if number of chars is odd
+                    $subaddress_uid = "0$subaddress_uid";    # pad w/ a 0 if number of chars is odd
                 }
             }
 
@@ -787,8 +750,7 @@ sub get_xap_base_uid {
         }
         else {
             # get the last base uid and convert hex string to number
-            my $uid = &get_xap_base_uid(XAP_REAL_DEVICE_NAME)
-              ;    # make sure it's initialized
+            my $uid = &get_xap_base_uid(XAP_REAL_DEVICE_NAME);    # make sure it's initialized
             $uid = $xap_uids{'last_base_uid'};
             my $uid_num = $uid;
 
@@ -797,7 +759,7 @@ sub get_xap_base_uid {
             $uid                       = sprintf( "%X", $uid_num );
             $xap_uids{'last_base_uid'} = $uid_num;
             if ( length($uid) % 2 ) {
-                $uid = "0$uid";    # pad w/ a 0 if an odd number of chars
+                $uid = "0$uid";                                   # pad w/ a 0 if an odd number of chars
             }
             $xap_uids{$p_type_name}{'base'} = $uid;
             return $uid;
@@ -821,11 +783,7 @@ sub get_xap_mh_source_info {
     $device = $::config_parms{title} unless $device;
     $device = ( $device =~ /misterhouse(.*)pid/i ) ? 'misterhouse' : $device;
     $device = &xAP::get_ok_name_part($device);
-    return
-        &get_mh_vendor_info() . '.'
-      . &get_mh_device_info() . '.'
-      . $device . '.'
-      . $instance;
+    return &get_mh_vendor_info() . '.' . &get_mh_device_info() . '.' . $device . '.' . $instance;
 }
 
 sub get_ok_name_part {
@@ -842,8 +800,7 @@ sub is_target {
         ( !( $source eq &xAP::get_xap_mh_source_info() ) ) && ( ( !($target) )
             || $target eq '*'
             || $target eq ( &get_mh_vendor_info() . '.*' )
-            || $target eq
-            ( &get_mh_vendor_info() . '.' & get_mh_device_info() . '.*' )
+            || $target eq ( &get_mh_vendor_info() . '.' & get_mh_device_info() . '.*' )
             || $target eq &xAP::get_xap_mh_source_info() )
     );
 
@@ -879,8 +836,7 @@ sub send {
     #    print "db5 $protocol send: ca=$class_address d=@data xap_send=$xap_send\n" if ($main::Debug{xap} and $main::Debug{xap} == 5) or ($main::Debug{xpl} and $main::Debug{xpl} == 5);
 
     my $target = '*';
-    my @data2
-      ;    # this will hold the "stripped" data after looking for a target arg
+    my @data2;    # this will hold the "stripped" data after looking for a target arg
     while (@data) {
         my $section = shift @data;
         if ( lc $section eq 'xap_target' ) {
@@ -908,8 +864,7 @@ sub sendXap {
         &sendXapWithHeaderVars(@data2);
     }
     else {
-        print
-          "WARNING! xAP is disabled and you are trying to send xAP data!! (xAP::sendXap())\n";
+        print "WARNING! xAP is disabled and you are trying to send xAP data!! (xAP::sendXap())\n";
     }
 }
 
@@ -968,8 +923,7 @@ sub sendXapWithHeaderVars {
 
     }
     else {
-        print
-          "WARNING! xAP is disabled and you are trying to send xAP data!! (xAP::sendXapWIthHeaderVars())\n";
+        print "WARNING! xAP is disabled and you are trying to send xAP data!! (xAP::sendXapWIthHeaderVars())\n";
     }
 }
 
@@ -981,7 +935,7 @@ sub send_xap_heartbeat {
 
         my $xap_hbeat_interval_in_secs = $xap_hbeat_interval * 60;
         my $xap_version                = '12';
-        my $msg = "xap-hbeat\n{\nv=$xap_version\nhop=1\n";
+        my $msg                        = "xap-hbeat\n{\nv=$xap_version\nhop=1\n";
         $msg .= "uid=" . &get_xap_base_uid($base_ref) . "00" . "\n";
         $msg .= "class=xap-hbeat.$hbeat_type\n";
         $msg .= "source=" . &xAP::get_xap_mh_source_info($base_ref) . "\n";
@@ -1029,19 +983,11 @@ sub _handleStaleXapSockets {
     # check main sending socket
     my $port_name = 'xap_send';
     if ( !( $::Socket_Ports{$port_name}{socka} ) ) {
-        if (
-            &xAP::open_port(
-                $::Socket_Ports{$port_name}{port},
-                'send', $port_name, 0, 1
-            )
-          )
-        {
-            print
-              "Notice. xAP socket ($port_name) had been closed and has been reopened\n";
+        if ( &xAP::open_port( $::Socket_Ports{$port_name}{port}, 'send', $port_name, 0, 1 ) ) {
+            print "Notice. xAP socket ($port_name) had been closed and has been reopened\n";
         }
         else {
-            print
-              "WARNING! xAP socket ($port_name) had been closed and can not be reopened\n";
+            print "WARNING! xAP socket ($port_name) had been closed and can not be reopened\n";
         }
     }
 
@@ -1049,19 +995,11 @@ sub _handleStaleXapSockets {
     for my $virtual_device_name ( keys %{xap_virtual_devices} ) {
         $port_name = "xap_listen_$virtual_device_name";
         if ( !( $::Socket_Ports{$port_name}{socka} ) ) {
-            if (
-                &xAP::open_port(
-                    $::Socket_Ports{$port_name}{port},
-                    'listen', $port_name, 0, 1
-                )
-              )
-            {
-                print
-                  "Notice. xAP socket ($port_name) had been closed and has been reopened\n";
+            if ( &xAP::open_port( $::Socket_Ports{$port_name}{port}, 'listen', $port_name, 0, 1 ) ) {
+                print "Notice. xAP socket ($port_name) had been closed and has been reopened\n";
             }
             else {
-                print
-                  "WARNING! xAP socket ($port_name) had been closed and can not be reopened\n";
+                print "WARNING! xAP socket ($port_name) had been closed and can not be reopened\n";
             }
         }
     }
@@ -1070,19 +1008,11 @@ sub _handleStaleXapSockets {
     if ( !( $::config_parms{xap_nohub} ) ) {
         $port_name = 'xap_hub_listen';
         if ( !( $::Socket_Ports{$port_name}{socka} ) ) {
-            if (
-                &xAP::open_port(
-                    $::Socket_Ports{$port_name}{port},
-                    'listen', $port_name, 0, 1
-                )
-              )
-            {
-                print
-                  "Notice. xAP socket ($port_name) had been closed and has been reopened\n";
+            if ( &xAP::open_port( $::Socket_Ports{$port_name}{port}, 'listen', $port_name, 0, 1 ) ) {
+                print "Notice. xAP socket ($port_name) had been closed and has been reopened\n";
             }
             else {
-                print
-                  "WARNING! xAP socket ($port_name) had been closed and can not be reopened\n";
+                print "WARNING! xAP socket ($port_name) had been closed and can not be reopened\n";
             }
         }
 
@@ -1157,20 +1087,19 @@ sub new {
 
     $xap_class  = '*' if !$xap_class;
     $xap_source = '*' if !$xap_source;
-    $$self{state}              = '';
-    $$self{class}              = $xap_class;
-    $$self{source}             = $xap_source;
-    $$self{protocol}           = 'xAP';
-    $$self{target_address}     = '*';
-    $$self{m_timeoutHeartBeat} = 0;             # don't monitor heart beats
-    $$self{m_appStatus}        = 'unknown';
-    $$self{m_timerHeartBeat}   = new Timer();
+    $$self{state}               = '';
+    $$self{class}               = $xap_class;
+    $$self{source}              = $xap_source;
+    $$self{protocol}            = 'xAP';
+    $$self{target_address}      = '*';
+    $$self{m_timeoutHeartBeat}  = 0;                           # don't monitor heart beats
+    $$self{m_appStatus}         = 'unknown';
+    $$self{m_timerHeartBeat}    = new Timer();
     $$self{m_device_name}       = xAP::XAP_REAL_DEVICE_NAME;
     $$self{m_allow_empty_state} = 0;
     &store_data( $self, @data );
 
-    $self->state_overload('off')
-      ;    # By default, do not process ~;: strings as substate/multistate
+    $self->state_overload('off');                              # By default, do not process ~;: strings as substate/multistate
 
     return $self;
 }
@@ -1235,11 +1164,7 @@ sub manage_heartbeat_timeout {
         $m_repeatAction = $p_repeatAction if $p_repeatAction;
         $$self{m_actionHeartBeat}  = $p_actionHeartBeat;
         $$self{m_timeoutHeartBeat} = $p_timeoutHeartBeat;
-        $$self{m_timerHeartBeat}->set(
-            $$self{m_timeoutHeartBeat},
-            $$self{m_actionHeartBeat},
-            $m_repeatAction
-        );
+        $$self{m_timerHeartBeat}->set( $$self{m_timeoutHeartBeat}, $$self{m_actionHeartBeat}, $m_repeatAction );
         $$self{m_timerHeartBeat}->start();
     }
 }
@@ -1318,8 +1243,7 @@ sub default_setstate {
     my @parms;
     for my $section ( sort keys %{ $$self{sections} } ) {
         next
-          unless $$self{sections}{$section} eq
-          'send';    # Do not echo received data
+          unless $$self{sections}{$section} eq 'send';    # Do not echo received data
         push @parms, $section, $$self{$section};
     }
 
@@ -1353,8 +1277,7 @@ sub state_now {
                 }
             }
         }
-        print
-          "db xAP_Item:state_now: section data for $section_name is: $section_state_now\n"
+        print "db xAP_Item:state_now: section data for $section_name is: $section_state_now\n"
           if $main::Debug{xap} and $section_state_now;
         $state_now = $section_state_now;
     }

@@ -60,8 +60,7 @@ if ( $state = said $comfort) {
 
     my @comfort_alarm_states = ( "Idle", "Trouble", "Alert", "Alarm" );
 
-    my @comfort_modes = ( "Security OFF", "Away Mode", "Night Mode", "Day Mode",
-        "Vacation Mode" );
+    my @comfort_modes = ( "Security OFF", "Away Mode", "Night Mode", "Day Mode", "Vacation Mode" );
 
     my @comfort_users = ( "Keypad", "Response" );
 
@@ -119,12 +118,10 @@ if ( $state = said $comfort) {
     elsif ( $c_command eq "MD" ) {
 
         if ( $c_p2 < 16 ) {
-            print_log
-              "Security Mode Changed to : $comfort_modes[$c_p1] by user $c_p2\n";
+            print_log "Security Mode Changed to : $comfort_modes[$c_p1] by user $c_p2\n";
         }
         else {
-            print_log
-              "Security Mode Changed to : $comfort_modes[$c_p1] by $comfort_users[$c_p2 - 90]\n";
+            print_log "Security Mode Changed to : $comfort_modes[$c_p1] by $comfort_users[$c_p2 - 90]\n";
         }
     }
     else {
@@ -172,8 +169,7 @@ sub Set_Comfort_Time() {
     $comfort_time_set_string = strftime( "%Y%m%d%H%M%S", localtime );
     print_log "Setting Comfort Clock : $comfort_time_set_string\n";
 
-    $comfort->add( $C3 . "DT" . $comfort_time_set_string . "\r",
-        'Set_Time', 'serial_comfort' );
+    $comfort->add( $C3 . "DT" . $comfort_time_set_string . "\r", 'Set_Time', 'serial_comfort' );
     set $comfort 'Set_Time';
 }
 

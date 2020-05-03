@@ -36,8 +36,7 @@ sub new {
     #Tell MH to call our routine each time something is spoken
     #&::Speak_parms_add_hook(\&Andoid_Server::pre_speak_to_android, $self);
     #&::Play_parms_add_hook(\&Andoid_Server::pre_play_to_android, $self);
-    &::MainLoop_pre_add_hook( \&Android_Item::state_machine,
-        'persistent', $self );
+    &::MainLoop_pre_add_hook( \&Android_Item::state_machine, 'persistent', $self );
 
     $self->{toggle_item} = new Generic_Item();
     $self->{toggle_item}->set_states( 'on', 'off' );
@@ -58,15 +57,13 @@ sub state_machine {
 
 sub speech_log {
     my ($self) = @_;
-    my @last_spoken =
-      &main::speak_log_last( $main::config_parms{max_log_entries} );
+    my @last_spoken = &main::speak_log_last( $main::config_parms{max_log_entries} );
     return @last_spoken;
 }
 
 sub print_log {
     my ($self) = @_;
-    my @last_printed =
-      &main::print_log_last( $main::config_parms{max_log_entries} );
+    my @last_printed = &main::print_log_last( $main::config_parms{max_log_entries} );
     return @last_printed;
 }
 
@@ -129,15 +126,12 @@ sub get_hash_example ( ) {
 
 sub android_xml {
     my ( $self, $depth, $fields, $num_tags, $attributes ) = @_;
-    my @f =
-      qw( speech_log print_log text_item toggle_item spinner_item image_button array_example hash_example);
+    my @f = qw( speech_log print_log text_item toggle_item spinner_item image_button array_example hash_example);
 
     # Avoid filter due to no state
     $attributes->{noFilterState} = "true";
 
-    my $xml_objects =
-      $self->SUPER::android_xml( $depth, $fields, $num_tags + scalar(@f),
-        $attributes );
+    my $xml_objects = $self->SUPER::android_xml( $depth, $fields, $num_tags + scalar(@f), $attributes );
     my $prefix = '  ' x $depth;
 
     foreach my $f (@f) {
@@ -217,8 +211,7 @@ sub android_xml {
             $attributes->{object}       = $value->{object_name};
             $attributes->{type}         = ref $value;
             $attributes->{memberObject} = "true";
-            $xml_objects .=
-              $value->android_xml( $depth + 1, $fields, 0, $attributes );
+            $xml_objects .= $value->android_xml( $depth + 1, $fields, 0, $attributes );
             $xml_objects .= $prefix . "</$value->{object_name}>\n";
         }
 
@@ -230,8 +223,7 @@ sub android_xml {
                 $_ = "" unless defined $_;
                 my $val = $_;
                 $val = encode_entities( $val, "\200-\377&<>" );
-                $xml_objects .=
-                  $self->android_xml_tag( $prefix, "value", $attributes, $val );
+                $xml_objects .= $self->android_xml_tag( $prefix, "value", $attributes, $val );
             }
             $prefix = '  ' x $depth;
             $xml_objects .= $prefix . "</$f>\n";
@@ -248,8 +240,7 @@ sub android_xml {
                 $key = encode_entities( $key, "\200-\377&<>" );
                 $key =~ s/ /_/g;
                 $key =~ s/[\[\]]/_/g;
-                $xml_objects .=
-                  $self->android_xml_tag( $prefix, $key, $attributes, $val );
+                $xml_objects .= $self->android_xml_tag( $prefix, $key, $attributes, $val );
             }
             $prefix = '  ' x $depth;
             $xml_objects .= $prefix . "</$f>\n";
@@ -257,8 +248,7 @@ sub android_xml {
 
         else {
             $value = "" unless defined $value;
-            $xml_objects .=
-              $self->android_xml_tag( $prefix, $f, $attributes, $value );
+            $xml_objects .= $self->android_xml_tag( $prefix, $f, $attributes, $value );
         }
     }
     return $xml_objects;

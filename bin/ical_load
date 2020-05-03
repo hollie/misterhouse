@@ -24,26 +24,18 @@ use strict;
 my ( $Pgm_Path, $Pgm_Name, $Version );
 
 BEGIN {
-    ($Version) =
-      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval
-      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";    # So perl2exe works
 }
 
 use Getopt::Long;
 my (%parms);
-if (
-    !&GetOptions(
-        \%parms,     "calendar_file=s", "quiet",  "debug",
-        "pl_file=s", "date=s",          "days=s", "h",
-        "help"
-    )
+if (  !&GetOptions( \%parms, "calendar_file=s", "quiet", "debug", "pl_file=s", "date=s", "days=s", "h", "help" )
     or @ARGV > 0
     or $parms{h}
-    or $parms{help}
-  )
+    or $parms{help} )
 {
     print <<eof;
    
@@ -93,22 +85,19 @@ my ($ical_cmd);    # Globals
 
 sub setup {
 
-    require 'handy_utilities.pl'
-      ;            # For misc. functions (e.g. time/date stamp routines)
+    require 'handy_utilities.pl';    # For misc. functions (e.g. time/date stamp routines)
 
     # Setup the defaults
-    $parms{date} = &time_date_stamp(11) unless $parms{date};  # Returns mm/dd/yy
+    $parms{date} = &time_date_stamp(11) unless $parms{date};    # Returns mm/dd/yy
     $parms{days} = 0 unless $parms{days};
     $parms{date_end} = &time_date_stamp( 11, time + 3600 * 24 * $parms{days} );
 
     $ical_cmd = "ical -list ";
     $ical_cmd .= " -calendar $parms{calendar}" if $parms{calendar};
     $ical_cmd .= " -date $parms{date}"         if $parms{date};
-    $ical_cmd .=
-      " -show +$parms{days}";  #always want days otherwise it will default to 1.
+    $ical_cmd .= " -show +$parms{days}";                        #always want days otherwise it will default to 1.
 
-    print
-      "$Pgm_Name: Searching calendar: Start: $parms{date}  Stop: $parms{date_end}\n\n"
+    print "$Pgm_Name: Searching calendar: Start: $parms{date}  Stop: $parms{date_end}\n\n"
       unless $parms{quiet};
 
     open( PL, ">$parms{pl_file}" )
@@ -152,13 +141,11 @@ sub find_items {
         my $start_datetime = $event_date . " " . $start;
         my $end_datetime   = $event_date . " " . $end;
         $subject =~ s/\s+/ /g;
-        printf( "start=%15s end=%15s   subject=%s\n\n",
-            $start_datetime, $end_datetime, $subject )
+        printf( "start=%15s end=%15s   subject=%s\n\n", $start_datetime, $end_datetime, $subject )
           unless $parms{quiet};
 
         if ( my ( $channel, $show ) = $subject =~ /^ *vcr +(\d+) +(.+)/i ) {
-            &create_vcr_event( $start_datetime, $end_datetime, $channel,
-                $show );
+            &create_vcr_event( $start_datetime, $end_datetime, $channel, $show );
         }
         &create_other_event( $start_datetime, $subject )
           unless !$start and !$subject;
@@ -171,22 +158,19 @@ sub find_items {
             &parse_event;
             next LINE;
         }
-        if (/^[A-Z]/)
-        {    # dates always start first column, nothing else does, i hope.
+        if (/^[A-Z]/) {    # dates always start first column, nothing else does, i hope.
             s/,//g;
             my ( $event_wday, $event_month, $event_day, $event_year ) =
               split '\s+';
-            my $longedate =
-              str2time( $event_month . " " . $event_day . " " . $event_year );
+            my $longedate = str2time( $event_month . " " . $event_day . " " . $event_year );
             $event_date = &time_date_stamp( 11, $longedate );
             next LINE;
         }
-        if (/^ \*/)
-        {    # times always start second column preceeded by an asterick.
-                # all day events with no time are also here.
+        if (/^ \*/) {      # times always start second column preceeded by an asterick.
+                           # all day events with no time are also here.
             &parse_event if $subject;
 
-            s/^ \*//g;    # get rid of that stupid asterick.
+            s/^ \*//g;     # get rid of that stupid asterick.
 
             if (/:\d\d[ap]m/i) {    # got a timed event
                 s/to //g;
@@ -216,8 +200,7 @@ sub create_vcr_event {
         $channel_commified = "0,$channel";
     }
     else {
-        $channel_commified =
-          substr( $channel, 0, 1 ) . "," . substr( $channel, 1, 1 );
+        $channel_commified = substr( $channel, 0, 1 ) . "," . substr( $channel, 1, 1 );
     }
 
     print "VCR on channel $channel from $start to $end\n" unless $parms{quiet};

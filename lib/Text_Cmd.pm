@@ -77,9 +77,7 @@ sub set_matches {
         my ($state) = &check_match( $object, $text );
         next unless defined $state;
         set $object $state, $set_by, $respond;
-        &main::print_log(
-            "Text_Cmd match: '$text' matches $object->{object_name} text '$object->{text}'"
-        ) unless $no_log;
+        &main::print_log("Text_Cmd match: '$text' matches $object->{object_name} text '$object->{text}'") unless $no_log;
         push @list_matches, $object;
     }
     return @list_matches;

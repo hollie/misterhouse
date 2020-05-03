@@ -2,8 +2,7 @@
 
 my $f_bballscores_html = "$config_parms{data_dir}/web/bballScores.html";
 
-$p_bballscores = new Process_Item(
-    "get_url http://scores.nba.com/games/kings.html $f_bballscores_html");
+$p_bballscores = new Process_Item("get_url http://scores.nba.com/games/kings.html $f_bballscores_html");
 
 $v_get_bballscores = new Voice_Cmd('Get basketball scores');
 $v_get_bballscores->set_info("Report status of defined objects.");
@@ -42,14 +41,12 @@ if ( file_change "$f_bballscores_html" ) {
 
 sub web_status_line {
     my $html;
-    $html .=
-      qq[&nbsp;<img src='/ia5/images/barometer.gif' border=0>&nbsp;$Save{BX24_Barometer}];
+    $html .= qq[&nbsp;<img src='/ia5/images/barometer.gif' border=0>&nbsp;$Save{BX24_Barometer}];
     my $CPU_Temp = sensor_output('temp1');
     if ( $CPU_Temp > 130 ) {
         $CPU_Temp = qq[<FONT color='red'><BLINK>$CPU_Temp</BLINK></FONT>];
     }
-    $html .=
-      qq[&nbsp;<img src='/ia5/images/temp.gif' border=0>&nbsp;CPU:$CPU_Temp];
+    $html .= qq[&nbsp;<img src='/ia5/images/temp.gif' border=0>&nbsp;CPU:$CPU_Temp];
     $html .= qq[&nbsp;&nbsp;$Save{BBallScores}];
     return $html;
 }

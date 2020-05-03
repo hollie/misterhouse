@@ -30,14 +30,9 @@ if ( $New_Second and $state = said $callerisdn_log) {
         my $cid_name       = "Unknown";
         my $caller_id_data = "Unknown";
 
-        print_log
-          "Callerid data: number=$cid_number name=$cid_name time=$Time to=$to";
-        logit(
-            "$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log",
-            "$cid_number name=$cid_name data=$caller_id_data line=$to"
-        );
-        logit_dbm( "$config_parms{data_dir}/phone/callerid.dbm",
-            $cid_number, "$Time_Now $Date_Now $Year name=$cid_name" );
+        print_log "Callerid data: number=$cid_number name=$cid_name time=$Time to=$to";
+        logit( "$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log", "$cid_number name=$cid_name data=$caller_id_data line=$to" );
+        logit_dbm( "$config_parms{data_dir}/phone/callerid.dbm", $cid_number, "$Time_Now $Date_Now $Year name=$cid_name" );
         speak("Incoming call from $cid_number");
     }
 }

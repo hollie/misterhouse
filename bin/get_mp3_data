@@ -7,8 +7,7 @@ use IO::File;
 my ( $Pgm_Path, $Pgm_Name, $Version );
 
 BEGIN {
-    ($Version) =
-      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
@@ -49,8 +48,7 @@ for my $dir (@ARGV) {
     print "\nTraversing dir $dir\n";
     &read_mp3_dir($dir);
 }
-print
-  "\nRead $counts{dir} directories and $counts{file} files.\n  - Found  $counts{tag} files with TAG data\n";
+print "\nRead $counts{dir} directories and $counts{file} files.\n  - Found  $counts{tag} files with TAG data\n";
 my @tags = qw(title artist album year comment genre file);
 for ( 0 .. 6 ) {
     printf "  - Found %4d files with a $tags[$_] tag\n", $counts{$_}
@@ -130,8 +128,7 @@ sub GetOggInfo ($) {
 
     #Find out if the Ogg Stream uses Vorbis version 0 encoding.
     return
-      if unpack( 'H22', OggRead( $fh, \$temp, 11 ) ) ne
-      '01766f7262697300000000';
+      if unpack( 'H22', OggRead( $fh, \$temp, 11 ) ) ne '01766f7262697300000000';
 
     #Skip the next 18 bytes of the identification header.
     $buf = OggRead( $fh, \$temp, 18 );
@@ -183,80 +180,31 @@ sub read_mp3_dir {
     close MP3DIR;
 
     my @mp3_genres = (
-        'Blues',                  'Classic Rock',
-        'Country',                'Dance',
-        'Disco',                  'Funk',
-        'Grunge',                 'Hip-Hop',
-        'Jazz',                   'Metal',
-        'New Age',                'Oldies',
-        'Other',                  'Pop',
-        'R&B',                    'Rap',
-        'Reggae',                 'Rock',
-        'Techno',                 'Industrial',
-        'Alternative',            'Ska',
-        'Death Metal',            'Pranks',
-        'Soundtrack',             'Euro-Techno',
-        'Ambient',                'Trip-Hop',
-        'Vocal',                  'Jazz+Funk',
-        'Fusion',                 'Trance',
-        'Classical',              'Instrumental',
-        'Acid',                   'House',
-        'Game',                   'Sound Clip',
-        'Gospel',                 'Noise',
-        'Alt. Rock',              'Bass',
-        'Soul',                   'Punk',
-        'Space',                  'Meditative',
-        'Instrumental Pop',       'Instrumental Rock',
-        'Ethnic',                 'Gothic',
-        'Darkwave',               'Techno-Industrial',
-        'Electronic',             'Pop-Folk',
-        'Eurodance',              'Dream',
-        'Southern Rock',          'Comedy',
-        'Cult',                   'Gangsta Rap',
-        'Top 40',                 'Christian Rap',
-        'Pop/Funk',               'Jungle',
-        'Native American',        'Cabaret',
-        'New Wave',               'Psychedelic',
-        'Rave',                   'Showtunes',
-        'Trailer',                'Lo-Fi',
-        'Tribal',                 'Acid Punk',
-        'Acid Jazz',              'Polka',
-        'Retro',                  'Musical',
-        'Rock & Roll',            'Hard Rock',
-        'Folk',                   'Folk/Rock',
-        'National Folk',          'Swing',
-        'Fast-Fusion',            'Bebob',
-        'Latin',                  'Revival',
-        'Celtic',                 'Bluegrass',
-        'Avantgarde',             'Gothic Rock',
-        'Progressive Rock',       'Psychedelic Rock',
-        'Symphonic Rock',         'Slow Rock',
-        'Big Band',               'Chorus',
-        'Easy Listening',         'Acoustic',
-        'Humour',                 'Speech',
-        'Chanson',                'Opera',
-        'Chamber Music',          'Sonata',
-        'Symphony',               'Booty Bass',
-        'Primus',                 'Porn Groove',
-        'Satire',                 'Slow Jam',
-        'Club',                   'Tango',
-        'Samba',                  'Folklore',
-        'Ballad',                 'Power Ballad',
-        'Rhythmic Soul',          'Freestyle',
-        'Duet',                   'Punk Rock',
-        'Drum Solo',              'A Cappella',
-        'Euro-House',             'Dance Hall',
-        'Goa',                    'Drum & Bass',
-        'Club-House',             'Hardcore',
-        'Terror',                 'Indie',
-        'BritPop',                'Negerpunk',
-        'Polsk Punk',             'Beat',
-        'Christian Gangsta Rap',  'Heavy Metal',
-        'Black Metal',            'Crossover',
-        'Contemporary Christian', 'Christian Rock',
-        'Merengue',               'Salsa',
-        'Thrash Metal',           'Anime',
-        'JPop',                   'Synthpop'
+        'Blues',        'Classic Rock',  'Country',                'Dance',             'Disco',                 'Funk',
+        'Grunge',       'Hip-Hop',       'Jazz',                   'Metal',             'New Age',               'Oldies',
+        'Other',        'Pop',           'R&B',                    'Rap',               'Reggae',                'Rock',
+        'Techno',       'Industrial',    'Alternative',            'Ska',               'Death Metal',           'Pranks',
+        'Soundtrack',   'Euro-Techno',   'Ambient',                'Trip-Hop',          'Vocal',                 'Jazz+Funk',
+        'Fusion',       'Trance',        'Classical',              'Instrumental',      'Acid',                  'House',
+        'Game',         'Sound Clip',    'Gospel',                 'Noise',             'Alt. Rock',             'Bass',
+        'Soul',         'Punk',          'Space',                  'Meditative',        'Instrumental Pop',      'Instrumental Rock',
+        'Ethnic',       'Gothic',        'Darkwave',               'Techno-Industrial', 'Electronic',            'Pop-Folk',
+        'Eurodance',    'Dream',         'Southern Rock',          'Comedy',            'Cult',                  'Gangsta Rap',
+        'Top 40',       'Christian Rap', 'Pop/Funk',               'Jungle',            'Native American',       'Cabaret',
+        'New Wave',     'Psychedelic',   'Rave',                   'Showtunes',         'Trailer',               'Lo-Fi',
+        'Tribal',       'Acid Punk',     'Acid Jazz',              'Polka',             'Retro',                 'Musical',
+        'Rock & Roll',  'Hard Rock',     'Folk',                   'Folk/Rock',         'National Folk',         'Swing',
+        'Fast-Fusion',  'Bebob',         'Latin',                  'Revival',           'Celtic',                'Bluegrass',
+        'Avantgarde',   'Gothic Rock',   'Progressive Rock',       'Psychedelic Rock',  'Symphonic Rock',        'Slow Rock',
+        'Big Band',     'Chorus',        'Easy Listening',         'Acoustic',          'Humour',                'Speech',
+        'Chanson',      'Opera',         'Chamber Music',          'Sonata',            'Symphony',              'Booty Bass',
+        'Primus',       'Porn Groove',   'Satire',                 'Slow Jam',          'Club',                  'Tango',
+        'Samba',        'Folklore',      'Ballad',                 'Power Ballad',      'Rhythmic Soul',         'Freestyle',
+        'Duet',         'Punk Rock',     'Drum Solo',              'A Cappella',        'Euro-House',            'Dance Hall',
+        'Goa',          'Drum & Bass',   'Club-House',             'Hardcore',          'Terror',                'Indie',
+        'BritPop',      'Negerpunk',     'Polsk Punk',             'Beat',              'Christian Gangsta Rap', 'Heavy Metal',
+        'Black Metal',  'Crossover',     'Contemporary Christian', 'Christian Rock',    'Merengue',              'Salsa',
+        'Thrash Metal', 'Anime',         'JPop',                   'Synthpop'
     );
 
     for my $file ( sort @files ) {
@@ -328,7 +276,7 @@ sub read_mp3_dir {
                       if defined $tag_data[$i];
                 }
 
-                $tag_data[$i] =~ tr/\x20-\x7e//cd;   # Drop non-ascii characters
+                $tag_data[$i] =~ tr/\x20-\x7e//cd;    # Drop non-ascii characters
                 $tag_data[$i] =~ s/^\s+//;
                 $tag_data[$i] =~ s/\s+$//;
                 if ( $i == 1 ) {

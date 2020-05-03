@@ -52,7 +52,7 @@ sub serial_startup {
         $count = 0;
     }
 
-    if ( 1 == scalar @RCSs_Thermistat_Ports ) {   # Add hooks on first call only
+    if ( 1 == scalar @RCSs_Thermistat_Ports ) {    # Add hooks on first call only
         &::MainLoop_pre_add_hook( \&RCSs::check_for_data, 1 );
     }
 
@@ -208,15 +208,13 @@ sub _poll {
 
 sub heating_cycle_time {
     my ( $self, $time ) = @_;
-    print
-      "$::Time_Date: RCSs -> Heat cycle time $time IGNORED: controller enforces embedded cycle time\n"
+    print "$::Time_Date: RCSs -> Heat cycle time $time IGNORED: controller enforces embedded cycle time\n"
       unless $main::config_parms{no_log} =~ /RCSs/;
 }
 
 sub cooling_cycle_time {
     my ( $self, $time ) = @_;
-    print
-      "$::Time_Date: RCSs -> Cool cycle time $time IGNORED: controller enforces embedded cycle time\n"
+    print "$::Time_Date: RCSs -> Cool cycle time $time IGNORED: controller enforces embedded cycle time\n"
       unless $main::config_parms{no_log} =~ /RCSs/;
 }
 

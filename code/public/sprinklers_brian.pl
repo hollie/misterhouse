@@ -125,17 +125,15 @@ while ( $start_minute_sprinkler_zone2 >= 60 ) {
     $start_minute_sprinkler_zone2 = $start_minute_sprinkler_zone2 - 60;
 }
 
-$start_hour_sprinkler_zone3 = $start_hour_sprinkler_zone2;
-$start_minute_sprinkler_zone3 =
-  $start_minute_sprinkler_zone2 + $sprinkler_zone2_timeout + 1;
+$start_hour_sprinkler_zone3   = $start_hour_sprinkler_zone2;
+$start_minute_sprinkler_zone3 = $start_minute_sprinkler_zone2 + $sprinkler_zone2_timeout + 1;
 while ( $start_minute_sprinkler_zone3 >= 60 ) {
     $start_hour_sprinkler_zone3++;
     $start_minute_sprinkler_zone3 = $start_minute_sprinkler_zone3 - 60;
 }
 
-$start_hour_drip_line = $start_hour_sprinkler_zone3;
-$start_minute_drip_line =
-  $start_minute_sprinkler_zone3 + $sprinkler_zone3_timeout + 1;
+$start_hour_drip_line   = $start_hour_sprinkler_zone3;
+$start_minute_drip_line = $start_minute_sprinkler_zone3 + $sprinkler_zone3_timeout + 1;
 while ( $start_minute_drip_line >= 60 ) {
     $start_hour_drip_line++;
     $start_minute_drip_line = $start_minute_drip_line - 60;
@@ -160,12 +158,7 @@ if ( expired $sprinkler_zone1_timer) {
 }
 
 # Lawn zone 2 loop
-if (
-    time_cron(
-        "$start_minute_sprinkler_zone2 $start_hour_sprinkler_zone2 * * $lawn_watering_interval"
-    )
-  )
-{
+if ( time_cron("$start_minute_sprinkler_zone2 $start_hour_sprinkler_zone2 * * $lawn_watering_interval") ) {
     print_log "Starting sprinklers in zone 2.";
     set $sprinkler_zone2_timer ( $sprinkler_zone2_timeout * 60 );
     set $sprinkler_zone2 ON;
@@ -176,12 +169,7 @@ if ( expired $sprinkler_zone2_timer) {
 }
 
 # Lawn zone 3 loop
-if (
-    time_cron(
-        "$start_minute_sprinkler_zone3 $start_hour_sprinkler_zone3 * * $lawn_watering_interval"
-    )
-  )
-{
+if ( time_cron("$start_minute_sprinkler_zone3 $start_hour_sprinkler_zone3 * * $lawn_watering_interval") ) {
     print_log "Starting sprinklers in zone 3.";
     set $sprinkler_zone3_timer ( $sprinkler_zone3_timeout * 60 );
     set $sprinkler_zone3 ON;
@@ -192,12 +180,7 @@ if ( expired $sprinkler_zone3_timer) {
 }
 
 # Drip line loop
-if (
-    time_cron(
-        "$start_minute_drip_line $start_hour_drip_line * * $drip_watering_interval"
-    )
-  )
-{
+if ( time_cron("$start_minute_drip_line $start_hour_drip_line * * $drip_watering_interval") ) {
     print_log "Starting drip line watering.";
     set $drip_line_timer ( $drip_line_timeout * 60 );
     set $drip_line ON;
@@ -208,12 +191,7 @@ if ( expired $drip_line_timer) {
 }
 
 # Soaker loop
-if (
-    time_cron(
-        "$start_minute_soaker_hose $start_hour_soaker_hose * * $soaker_watering_interval"
-    )
-  )
-{
+if ( time_cron("$start_minute_soaker_hose $start_hour_soaker_hose * * $soaker_watering_interval") ) {
     print_log "Starting soaker hose watering.";
     set $soaker_hose_timer ( $soaker_hose_timeout * 60 );
     set $soaker_hose ON;
@@ -226,22 +204,8 @@ if ( expired $soaker_hose_timer) {
 # Voice command stuff
 if ( said $v_when_water) {
     speak("Sprinkler zone 1 will start at $watering_time:00.");
-    speak(
-        'Sprinkler zone 2 will start at '
-          . join( ':',
-            $start_hour_sprinkler_zone2, $start_minute_sprinkler_zone2 )
-          . '.'
-    );
-    speak(
-        'Sprinkler zone 3 will start at '
-          . join( ':',
-            $start_hour_sprinkler_zone3, $start_minute_sprinkler_zone3 )
-          . '.'
-    );
-    speak(  'Drip line will start at '
-          . join( ':', $start_hour_drip_line, $start_minute_drip_line )
-          . '.' );
-    speak(  'Soaker hose will start at '
-          . join( ':', $start_hour_soaker_hose, $start_minute_soaker_hose )
-          . '.' );
+    speak( 'Sprinkler zone 2 will start at ' . join( ':', $start_hour_sprinkler_zone2, $start_minute_sprinkler_zone2 ) . '.' );
+    speak( 'Sprinkler zone 3 will start at ' . join( ':', $start_hour_sprinkler_zone3, $start_minute_sprinkler_zone3 ) . '.' );
+    speak( 'Drip line will start at ' . join( ':', $start_hour_drip_line, $start_minute_drip_line ) . '.' );
+    speak( 'Soaker hose will start at ' . join( ':', $start_hour_soaker_hose, $start_minute_soaker_hose ) . '.' );
 }

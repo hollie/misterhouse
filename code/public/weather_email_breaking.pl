@@ -4,13 +4,11 @@
 #weather announcement every 15 minutes and sends out a message to my pager.
 #Larry Roudebush
 
-my $person3email = $config_parms{person3email};
-my $speakweathertimes =
-  0;    # get_email_scan_file and $p_get_email are created by internet_mail.pl
+my $person3email      = $config_parms{person3email};
+my $speakweathertimes = 0;                             # get_email_scan_file and $p_get_email are created by internet_mail.pl
 if ( done_now $p_get_email and -e $get_email_scan_file ) {
     for my $line ( file_read $get_email_scan_file) {
-        my ( $from, $to, $subject, $body ) =
-          $line =~ /From:(.+?) To:(.+?) Subject:(.+?) Body:(.+)/;
+        my ( $from, $to, $subject, $body ) = $line =~ /From:(.+?) To:(.+?) Subject:(.+?) Body:(.+)/;
         if ( $from =~ /NBC4Columbus/i ) {
             my $msg = "Notice, just received Weather Information: $subject.\n";
             display $msg, 120;
@@ -29,10 +27,8 @@ if ( done_now $p_get_email and -e $get_email_scan_file ) {
 
 if ( time_cron '0,15,30,45 * * * *' ) {    #speaks every 15 minutes
     if ( -e "$config_parms{data_dir}/logs/weatherwarning.txt" ) {
-        $speakweathertimes =
-          $speakweathertimes + 1;          #remembers how many times it spoke
-        open( weatherwariningfile,
-            "$config_parms{data_dir}/logs/weatherwarning.txt" )
+        $speakweathertimes = $speakweathertimes + 1;    #remembers how many times it spoke
+        open( weatherwariningfile, "$config_parms{data_dir}/logs/weatherwarning.txt" )
           or die "No Warnings available.\n";
         while (<weatherwariningfile>) {
             speak $_;
@@ -41,8 +37,7 @@ if ( time_cron '0,15,30,45 * * * *' ) {    #speaks every 15 minutes
         close(weatherwariningfile);
         if ( $speakweathertimes == '4' ) {
             $speakweathertimes = '0';
-            unlink "$config_parms{data_dir}/logs/weatherwarning.txt"
-              ;                            #deletes it after an hour
+            unlink "$config_parms{data_dir}/logs/weatherwarning.txt";    #deletes it after an hour
             print_log "Deleting weather warning file";
         }
     }

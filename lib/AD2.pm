@@ -200,8 +200,7 @@ original code design.
 
 =cut
 
-sub restore_string
-{
+sub restore_string {
 	my ($self) = @_;
 	# Do the normal restore_string
 	my $restore_string = $self->SUPER::restore_string();
@@ -209,11 +208,9 @@ sub restore_string
 	for my $partition (keys %{$$self{partition_address}}){
 	   for my $zone (keys %{$$self{$partition}{zone_status}}){
 	      my $status = $$self{$partition}{zone_status}{$zone};
-	      $restore_string .= $self->{object_name} 
-	         . "->ChangeZoneState($zone, q~$status~, 0);\n";
+	      $restore_string .= $self->{object_name} . "->ChangeZoneState($zone, q~$status~, 0);\n";
 	      my $bypass = $$self{$partition}{zone_bypass}{$zone};
-	      $restore_string .= $self->{object_name} 
-	         . "->zone_bypassed($zone, $bypass);\n";	      
+	      $restore_string .= $self->{object_name} . "->zone_bypassed($zone, $bypass);\n";	      
 	   }
 	}
 	return $restore_string;
@@ -270,8 +267,7 @@ sub read_parms{
                }
                else {
                   my ($sensortype, $ZoneLoop) = split("", $wnum);
-                  $$self{wireless}{"$rf_id.$ZoneLoop.$sensortype"} 
-                     = $ZoneNum;
+                  $$self{wireless}{"$rf_id.$ZoneLoop.$sensortype"} = $ZoneNum;
                }
                $lc++;
             }
@@ -342,7 +338,7 @@ sub serial_startup {
       $BaudRate = ( defined $::config_parms{$instance . '_baudrate'} ) ? $::config_parms{"$instance" . '_baudrate'} : 115200;
       if ( &main::serial_port_create( $instance, $port, $BaudRate, 'none', 'raw' ) ) {
          init( $::Serial_Ports{$instance}{object}, $port );
-         ::print_log("[AD2] initializing $instance on port $port at $BaudRate baud") if $main::Debug{'AD2'};
+         ::print_log("[AD2] initializing $instance on port $port at $BaudRate baud") if $main::Debug{'ad2'};
          ::MainLoop_pre_add_hook( sub {AD2::check_for_data($instance, 'serial');}, 1 ) if $main::Serial_Ports{"$instance"}{object};
       }
    }
@@ -360,7 +356,7 @@ sub server_startup {
    $Socket_Items{"$instance"}{recon_timer} = ::Timer::new();
    my $ip = $::config_parms{"$instance".'_server_ip'};
    my $port = $::config_parms{"$instance" . '_server_port'};
-   ::print_log("  AD2.pm initializing $instance TCP session with $ip on port $port") if $main::Debug{'AD2'};
+   ::print_log("  AD2.pm initializing $instance TCP session with $ip on port $port") if $main::Debug{'ad2'};
    $Socket_Items{"$instance"}{'socket'} = new Socket_Item($instance, undef, "$ip:$port", $instance, 'tcp', 'raw');
    $Socket_Items{"$instance" . '_sender'}{'socket'} = new Socket_Item($instance . '_sender', undef, "$ip:$port", $instance . '_sender', 'tcp', 'rawout');
    $Socket_Items{"$instance"}{'socket'}->start;
@@ -429,7 +425,7 @@ sub check_for_data {
       if (substr($Cmd, -1) eq "\r"){
          # Valid Message, Strip off last line ending
          $Cmd = substr($Cmd, 0, -1);
-         ::print_log("[AD2] " . $Cmd) if $main::Debug{AD2} >= 1;
+         ::print_log("[AD2] " . $Cmd) if $main::Debug{'ad2'} >= 1;
 
          # Get the Message Type, and Ignore Duplicate Status Messages
          my $status_type = $self->GetStatusType($Cmd);
@@ -684,7 +680,7 @@ sub CheckCmd {
       # ARMED AWAY
       if ( $status_type->{armed_away_flag}) {
          # TODO The setting of modes needs to be done on partitions
-         my $mode = "armed away - error";
+            $mode = "armed away - error";
          if (index($status_type->{alphanumeric}, "ALL SECURE") >= 1) {
             $mode = "armed away";
          }
@@ -792,7 +788,7 @@ sub GetStatusType {
    $message{cmd} = $AdemcoStr;
 
    # Panel Message Format
-   if ($AdemcoStr =~ /(!KPM:)?\[([\d-]*)\],(\d{3}),\[(.*)\],\"(.*)\"/) {
+   if ($AdemcoStr =~ /(!KPM:)?\[([\dABCDEF\-]*)\],(\d{3}),\[(.*)\],\"(.*)\"/) {
       $message{keypad} = 1;
 
       # Parse The Cmd into Message Parts
@@ -936,8 +932,7 @@ sub ChangeZoneState {
       #  Log everything if requested
       if ($log == 1) {
          my $ZoneNumPadded = sprintf("%03d", $zone);
-         $self->debug_log( "Zone $zone (".$self->zone_name($zone)
-            .") changed to '$new_status'" );
+         $self->debug_log( "Zone $zone (".$self->zone_name($zone).") changed to '$new_status'" );
       }
    }
 }
@@ -1520,8 +1515,7 @@ type is the letter k.
 
 =cut
 
-sub new
-{
+sub new {
    my ($class,$type,$interface,$zone,$partition,$expander,$relay,$wireless) = @_;
 
    my $self = new Generic_Item();
@@ -1544,14 +1538,13 @@ Sets the object's state.
 
 =cut
 
-sub set
-{
+sub set {
    my ($self,$p_state,$p_setby) = @_;
 
       if (ref $p_setby and $p_setby->can('get_set_by')) {
-         ::print_log("AD2_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by) if $main::Debug{AD2};
+         ::print_log("AD2_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by) if $main::Debug{'ad2'};
       } else {
-         ::print_log("AD2_Item($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{AD2};
+         ::print_log("AD2_Item($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{'ad2'};
       }
 
       if ($p_state =~ /^fault/) {
@@ -1740,8 +1733,7 @@ addresses, only ONE address is needed in $address.
 
 =cut
 
-sub new
-{
+sub new {
    my ($class,$interface, $partition, $address) = @_;
    my $self = new Generic_Item();
    bless $self,$class;
@@ -1749,8 +1741,7 @@ sub new
    $$interface{partition_address}{$partition} = $address;
    $interface->register($self,$partition);
    $$self{interface} = $interface;
-   @{$$self{states}} = ('Disarm', 'ArmAway','ArmStay','ArmAwayMax','Test','Bypass',
-        'ArmStayInstant','Code','Chime','ToggleVoice');
+   @{$$self{states}} = ('Disarm', 'ArmAway','ArmStay','ArmAwayMax','Test','Bypass','ArmStayInstant','Code','Chime','ToggleVoice');
    return $self;
 }
 
@@ -1763,8 +1754,7 @@ sub set {
 		}
 	}
 	if ($found_state){
-		::print_log("[AD2::Partition] Received request to "
-			. $p_state . " for partition " . $self->get_object_name);
+		::print_log("[AD2::Partition] Received request to ". $p_state . " for partition " . $self->get_object_name);
 		$$self{interface}->set($p_state);
 	}
 	else {
@@ -1844,8 +1834,7 @@ package AD2_Output;
 
 =cut
 
-sub new
-{
+sub new {
    my ($class,$interface,$output) = @_;
 
    my $self = new Generic_Item();
@@ -1867,14 +1856,13 @@ Sets the object's state.
 
 =cut
 
-sub set
-{
+sub set {
    my ($self,$p_state,$p_setby) = @_;
 
       if (ref $p_setby and $p_setby->can('get_set_by')) {
-         ::print_log("AD2_Output($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by) if $main::Debug{AD2};
+         ::print_log("AD2_Output($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by) if $main::Debug{'ad2'};
       } else {
-         ::print_log("AD2_Output($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{AD2};
+         ::print_log("AD2_Output($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{'ad2'};
       }
       my $reported_state;
       if ($p_state =~ /^start/i || $p_state =~ /^stop/i) {

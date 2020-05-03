@@ -38,9 +38,7 @@ package RedRat;
 @RedRat::ISA = ('Serial_Item');
 
 sub serial_startup {
-    &main::serial_port_create( 'RedRat',
-        $main::config_parms{RedRat_serial_port},
-        19200, 'none' );
+    &main::serial_port_create( 'RedRat', $main::config_parms{RedRat_serial_port}, 19200, 'none' );
 }
 
 sub new {

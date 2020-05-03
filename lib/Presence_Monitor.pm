@@ -106,8 +106,7 @@ sub new {
     $$self{m_occupancy_expire}     = 0;
     $$self{wdog_interval}          = 60;
     $$self{m_timer_wdog}           = new Timer;
-    $$self{m_timer_wdog}->set( $self->{wdog_interval},
-        sub { &Presence_Monitor::watch_dog($self) } );
+    $$self{m_timer_wdog}->set( $self->{wdog_interval}, sub { &Presence_Monitor::watch_dog($self) } );
     $$self{debug} = $main::Debug{presence};
     return $self;
 }
@@ -128,23 +127,18 @@ sub watch_dog {
     my ($self) = @_;
     if ( $self->state eq 'occupied' ) {
         if ( !$self->{m_timerOccupancyExpire}->active() ) {
-            &::print_log(
-                "$$self{object_name}: watch_dog, occupied without timer!")
+            &::print_log("$$self{object_name}: watch_dog, occupied without timer!")
               if $self->{debug};
             if ( defined $self->{m_occupancy_expire} ) {
-                &::print_log(
-                    "$$self{object_name}: occupancy timer set $$self{m_occupancy_expire}, watchdog condition!"
-                ) if $self->{debug};
-                $self->{m_timerOccupancyExpire}
-                  ->set( $self->{m_occupancy_expire}, $self );
+                &::print_log("$$self{object_name}: occupancy timer set $$self{m_occupancy_expire}, watchdog condition!") if $self->{debug};
+                $self->{m_timerOccupancyExpire}->set( $self->{m_occupancy_expire}, $self );
                 $self->{wdog_interval} = $self->{m_occupancy_expire} + 2;
             }
         }
     }
 
     # reload the timer
-    $self->{m_timer_wdog}->set( $self->{wdog_interval},
-        sub { &Presence_Monitor::watch_dog($self) } );
+    $self->{m_timer_wdog}->set( $self->{wdog_interval}, sub { &Presence_Monitor::watch_dog($self) } );
 }
 
 sub handle_presence {
@@ -161,11 +155,8 @@ sub handle_presence {
     }
     foreach my $action ( keys %{ $$self{'presence_timers'} } ) {
         foreach my $time ( keys %{ $$self{'presence_timers'}{$action} } ) {
-            unless (
-                $$self{'presence_timers'}{$action}{$time}{'timer'}->active() )
-            {
-                $$self{'presence_timers'}{$action}{$time}{'timer'}->set( $time,
-                    $$self{'presence_timers'}{$action}{$time}{'action'} );
+            unless ( $$self{'presence_timers'}{$action}{$time}{'timer'}->active() ) {
+                $$self{'presence_timers'}{$action}{$time}{'timer'}->set( $time, $$self{'presence_timers'}{$action}{$time}{'action'} );
             }
         }
     }
@@ -178,19 +169,15 @@ sub handle_vacancy {
     return unless ( $self->state eq 'occupied' );
     foreach my $action ( keys %{ $$self{'presence_timers'} } ) {
         foreach my $time ( keys %{ $$self{'presence_timers'}{$action} } ) {
-            if ( $$self{'presence_timers'}{$action}{$time}{'timer'}->active() )
-            {
+            if ( $$self{'presence_timers'}{$action}{$time}{'timer'}->active() ) {
                 $$self{'presence_timers'}{$action}{$time}{'timer'}->unset();
             }
         }
     }
     foreach my $action ( keys %{ $$self{'vacancy_timers'} } ) {
         foreach my $time ( keys %{ $$self{'vacancy_timers'}{$action} } ) {
-            unless (
-                $$self{'vacancy_timers'}{$action}{$time}{'timer'}->active() )
-            {
-                $$self{'vacancy_timers'}{$action}{$time}{'timer'}->set( $time,
-                    $$self{'vacancy_timers'}{$action}{$time}{'action'} );
+            unless ( $$self{'vacancy_timers'}{$action}{$time}{'timer'}->active() ) {
+                $$self{'vacancy_timers'}{$action}{$time}{'timer'}->set( $time, $$self{'vacancy_timers'}{$action}{$time}{'action'} );
             }
         }
     }
@@ -206,9 +193,7 @@ sub process_count {
         $$self{m_timerCancelPredict}->set( 60, $self );
 
         #    $$self{m_timerOccupancyExpire}->unset( );
-        &::print_log(
-            "$$self{object_name}: predict timer set 60, marking room as predict"
-        ) if $self->{debug};
+        &::print_log("$$self{object_name}: predict timer set 60, marking room as predict") if $self->{debug};
         $p_state = 'predict';
     }
     elsif ( $l_count >= 1 ) {
@@ -222,11 +207,8 @@ sub process_count {
             and $$self{m_obj}->state =~ /(motion|open)/i )
         {
             #            and ref $p_setby and ref $p_setby->get_set_by and $p_setby->get_set_by eq $$self{m_obj}
-            $$self{m_timerOccupancyExpire}
-              ->set( $$self{m_occupancy_expire}, $self );
-            &::print_log(
-                "$$self{object_name}: occupancy timer set $$self{m_occupancy_expire}, marking room as occupied"
-            ) if $self->{debug};
+            $$self{m_timerOccupancyExpire}->set( $$self{m_occupancy_expire}, $self );
+            &::print_log("$$self{object_name}: occupancy timer set $$self{m_occupancy_expire}, marking room as occupied") if $self->{debug};
         }
         elsif ( !( defined $$self{m_occupancy_expire} ) ) {
             $$self{m_timerOccupancyExpire}->unset();
@@ -243,9 +225,7 @@ sub process_count {
         and !$$self{m_timerOccupancyExpire}->active
       )
     {
-        &::print_log(
-            "$$self{object_name}: room count ($l_count) zero, marking room as vacant"
-        ) if $self->{debug};
+        &::print_log("$$self{object_name}: room count ($l_count) zero, marking room as vacant") if $self->{debug};
         $p_state = 'vacant';
         $self->handle_vacancy();
     }
@@ -310,9 +290,7 @@ sub set {
         and $self->state() eq 'predict' )
     {    #timer up reset
         if ( $$self{m_OM}->sensor_count( $$self{m_obj} ) eq -1 ) {
-            &::print_log(
-                "$$self{object_name}: prediction timer expired, marking room as vacant"
-            ) if $self->{debug};
+            &::print_log("$$self{object_name}: prediction timer expired, marking room as vacant") if $self->{debug};
             $$self{m_OM}->sensor_count( $$self{m_obj}, 0 );
             $p_state = 'vacant';
             $self->handle_vacancy();
@@ -326,9 +304,7 @@ sub set {
     {    #timer up
         $p_state = 'vacant';
         $$self{m_OM}->sensor_count( $$self{m_obj}, 0 );
-        &::print_log(
-            "$$self{object_name}: occupancy timer expired, marking room as vacant"
-        ) if $self->{debug};
+        &::print_log("$$self{object_name}: occupancy timer expired, marking room as vacant") if $self->{debug};
         $self->handle_vacancy();
     }
     else {

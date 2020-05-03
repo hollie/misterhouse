@@ -74,14 +74,8 @@ use vars '$GPSSpeakString', '$GPSSpeakString2', '$WXSpeakString',
   '$WXWindSpeed', '$WXHrPrecip';
 
 my ( $APRSFoundAPRS, $APRSPacketDigi, $GPSTime, $APRSStatus, $MsgLine );
-my (
-    $GPSLatitudeDegrees,  $GPSLatitudeMinutes,
-    $GPSLongitudeDegrees, $GPSCallsign
-);
-my (
-    $GPSLongitudeMinutes, $GPSLatitude, $GPSLongitude,
-    $GPSDistance,         $GPSLongitudeMinutes100
-);
+my ( $GPSLatitudeDegrees, $GPSLatitudeMinutes, $GPSLongitudeDegrees, $GPSCallsign );
+my ( $GPSLongitudeMinutes, $GPSLatitude, $GPSLongitude, $GPSDistance, $GPSLongitudeMinutes100 );
 my ( $GPSLstBr, $GPSLstBrLat, $GPSLstBrLon );
 
 my ( @gpscomplines, $GPSTempCompPlace, $GPSTempCompDist, $GPSTempCompLine );
@@ -96,8 +90,7 @@ my ( $WXCompLstBr, $WXCompLstBrLat, $WXCompLstBrLon );
 
 my ( @namelines, $TempName, $TempNameCall, $TempNameName );
 
-my ( $i, $j, $k, $CallsignPart, $PacketPart, $GPSSpeed, $GPSCourse,
-    $GPSCourseVoice );
+my ( $i, $j, $k, $CallsignPart, $PacketPart, $GPSSpeed, $GPSCourse, $GPSCourseVoice );
 my ( $ToCallsignPart, $LastGPSCallsign,  $LastGPSDistance, $LastGPSLstBr );
 my ( $APRSCallsign,   $APRSStringLength, $APRSString,      $MessageX10Command );
 my ($MessageX10Action);
@@ -113,13 +106,11 @@ my ( $LastWXHrPrecip, $LastWX24HrPrecip, $CurrentHrPrecip, $Current24HrPrecip );
 
 # Setup TELNET Server 2 (port 14439) to output what the TNC hears
 
-$telnet = new Socket_Item( '#Welcome to MisterHouse APRS Tracking!',
-    'APRSWelcome', 'server_aprs' );
+$telnet = new Socket_Item( '#Welcome to MisterHouse APRS Tracking!', 'APRSWelcome', 'server_aprs' );
 
 # Send Welcome Message out port 2 if connected.
 set $telnet 'APRSWelcome' if active_now $telnet;
-set $telnet
-  'APRSERVE>APRS:javaTITLE:N0QVC MisterHouse - tracking.pl - Brian Klier, N0QVC'
+set $telnet 'APRSERVE>APRS:javaTITLE:N0QVC MisterHouse - tracking.pl - Brian Klier, N0QVC'
   if active_now $telnet;
 
 my $socket_speak_loop;
@@ -130,9 +121,8 @@ if ( my $telnetdata = said $telnet) {
 
 # TNC Output Lines
 
-$tnc_output = new Socket_Item(
-    'user MYCALL pass MYPASS vers Misterhouse Win32 filter f/N0QVC-1/75',
-    'login', 'midwest.aprs2.net:14580', undef, 'tcp', 'records' );
+$tnc_output =
+  new Socket_Item( 'user MYCALL pass MYPASS vers Misterhouse Win32 filter f/N0QVC-1/75', 'login', 'midwest.aprs2.net:14580', undef, 'tcp', 'records' );
 $tnc_output->add( '?WX?', 'wxquery' );
 $tnc_output->add(
     sprintf(
@@ -154,7 +144,7 @@ if ($Reload) {
     set $timer_email_digipeat 1;
     set $timer_myvehicle_process 1;
     set $enable_transmit 'yes';
-    $HamCall = $config_parms{tracking_callsign};  # Feed in my Tracking Callsign
+    $HamCall = $config_parms{tracking_callsign};    # Feed in my Tracking Callsign
     open( GPSCOMP, "$config_parms{code_dir}/tracking.pos" );    # Open for input
     @gpscomplines = <GPSCOMP>;                                  # Open array and
                                                                 # read in data
@@ -265,16 +255,12 @@ if ( $state = said $v_curr_cond) {
             speak "Temperature is $CurrentTemp degrees.";
         }
         if ( $CurrentTemp ne $CurrentChill ) {
-            print_log
-              "Temperature is $CurrentTemp degrees.  Wind Chill is $CurrentChill degrees.";
-            speak
-              "Temperature is $CurrentTemp degrees.  Winnd Chill is $CurrentChill degrees.";
+            print_log "Temperature is $CurrentTemp degrees.  Wind Chill is $CurrentChill degrees.";
+            speak "Temperature is $CurrentTemp degrees.  Winnd Chill is $CurrentChill degrees.";
         }
         if ( $CurrentHrPrecip != 0 ) {
-            print_log
-              "$CurrentHrPrecip inches of rain in the last hour. $Current24HrPrecip total inches of rain today.";
-            speak
-              "$CurrentHrPrecip inches of rain in the last hour. $Current24HrPrecip total inches of rain today.";
+            print_log "$CurrentHrPrecip inches of rain in the last hour. $Current24HrPrecip total inches of rain today.";
+            speak "$CurrentHrPrecip inches of rain in the last hour. $Current24HrPrecip total inches of rain today.";
         }
     }
     elsif ( $CurrentTemp eq '' ) {
@@ -287,10 +273,8 @@ $v_curr_precip = new Voice_Cmd("Current Precipitation");
 
 if ( $state = said $v_curr_precip) {
     if ( $CurrentHrPrecip != 0 ) {
-        print_log
-          "$CurrentHrPrecip inches of rain in the last hour. $Current24HrPrecip total inches of rain today.";
-        speak
-          "$CurrentHrPrecip inches of rain in the last hour. $Current24HrPrecip total inches of rain today.";
+        print_log "$CurrentHrPrecip inches of rain in the last hour. $Current24HrPrecip total inches of rain today.";
+        speak "$CurrentHrPrecip inches of rain in the last hour. $Current24HrPrecip total inches of rain today.";
     }
     elsif ( $CurrentTemp eq '' ) {
         print_log "No weather packets received.";
@@ -308,9 +292,7 @@ if ( time_cron('0,10,20,30,40,50 * * * *') or $Startup ) {
     logit( "$Pgm_Path/../web/mh/weather.html",
         "<FONT SIZE=-2>Temp: $CurrentTemp &nbsp;&nbsp;&nbsp;Wind Chill: $CurrentChill &nbsp;&nbsp;&nbsp;Wind: $LastWXWindDir/$LastWXWindSpeed &nbsp;&nbsp;&nbsp;Precipitation: $WXHrPrecip/$WX24HrPrecip<BR></FONT>"
     );
-    logit( "$Pgm_Path/../data/logs/weather.log",
-        ",$CurrentTemp,$LastWXWindDir,$LastWXWindSpeed,$WXHrPrecip,$WX24HrPrecip"
-    );
+    logit( "$Pgm_Path/../data/logs/weather.log", ",$CurrentTemp,$LastWXWindDir,$LastWXWindSpeed,$WXHrPrecip,$WX24HrPrecip" );
 }
 
 # Daily Weather and Tracking Log Backup
@@ -323,10 +305,8 @@ if ( time_cron('0 0 * * *') ) {
     close WXGRAPHIN;
     open( NEWDAY, ">$config_parms{html_dir}/mh/tracking/today.html" );
     close NEWDAY;
-    my $html =
-      qq[<link rel="STYLESHEET" href="/default.css" type="text/css">\n<table>\n];
-    $html .=
-      qq[<tr><td><b>Date Time</b></td><td><b>Vehicle Heading and Speed</b></td><td><b>Location</b></td><td><b>New Location</b></td></tr>\n];
+    my $html = qq[<link rel="STYLESHEET" href="/default.css" type="text/css">\n<table>\n];
+    $html .= qq[<tr><td><b>Date Time</b></td><td><b>Vehicle Heading and Speed</b></td><td><b>Location</b></td><td><b>New Location</b></td></tr>\n];
     logit "$config_parms{html_dir}/mh/tracking/today.html", $html, 0, 1;
     logit "$config_parms{html_dir}/mh/tracking/week1.html", "<hr>\n", 0, 1;
 }
@@ -337,10 +317,8 @@ if ( time_cron('0 0 * * 0') ) {
 
     #file_cat "$config_parms{html_dir}/mh/tracking/week2.html", "$config_parms{html_dir}/mh/tracking/old/${Year_Month_Now}.html";
     #rename "$config_parms{html_dir}/mh/tracking/week1.html", "$config_parms{html_dir}/mh/tracking/week2.html"  or print_log "Error in aprs rename 2: $!";
-    my $html =
-      qq[<link rel="STYLESHEET" href="/default.css" type="text/css">\n<table>\n];
-    $html .=
-      qq[<tr><td><b>Date Time</b></td><td><b>Vehicle Heading and Speed</b></td><td><b>Location</b></td><td><b>New Location</b></td></tr>\n];
+    my $html = qq[<link rel="STYLESHEET" href="/default.css" type="text/css">\n<table>\n];
+    $html .= qq[<tr><td><b>Date Time</b></td><td><b>Vehicle Heading and Speed</b></td><td><b>Location</b></td><td><b>New Location</b></td></tr>\n];
     logit "$config_parms{html_dir}/mh/tracking/week1.html", $html, 1;
 }
 
@@ -364,11 +342,11 @@ if ( $APRSString = said $tnc_output) {
     print APRSLOG "$APRSString\n";
     close APRSLOG;
 
-    print_msg "TRACK: $APRSString";    # Monitor to Msg Window
+    print_msg "TRACK: $APRSString";                         # Monitor to Msg Window
 
-    $APRSFoundAPRS    = "";                         # Reset Found Flag
-                                                    # $APRSPacketDigi = "";
-    $APRSStringLength = ( length($APRSString) );    # Save Length of Ser
+    $APRSFoundAPRS    = "";                                 # Reset Found Flag
+                                                            # $APRSPacketDigi = "";
+    $APRSStringLength = ( length($APRSString) );            # Save Length of Ser
 
     # Send the packet out TELNET if connected...
     set $telnet $APRSString if active $telnet;
@@ -376,7 +354,7 @@ if ( $APRSString = said $tnc_output) {
     # Decode the Callsign and different parts from the Packet
 
     ( $CallsignPart, $MsgLine ) =
-      ( split( '::', $APRSString ) )[ 0, 1 ];       #New Line for Msging
+      ( split( '::', $APRSString ) )[ 0, 1 ];               #New Line for Msging
     ( $CallsignPart, $PacketPart ) = ( split( ':', $APRSString ) )[ 0, 1 ];
     ( $APRSCallsign, $ToCallsignPart ) =
       ( split( '>', $CallsignPart ) )[ 0, 1 ];
@@ -454,8 +432,8 @@ if ( $APRSString = said $tnc_output) {
             }
 
             if ( substr( $PacketPart, 0, 6 ) eq '$GPRMC' ) {
-                ( $GPSTime, $GPSLatitude, $GPSLongitude, $GPSSpeed, $GPSCourse )
-                  = ( split( ',', $PacketPart ) )[ 1, 3, 5, 7, 8 ];
+                ( $GPSTime, $GPSLatitude, $GPSLongitude, $GPSSpeed, $GPSCourse ) =
+                  ( split( ',', $PacketPart ) )[ 1, 3, 5, 7, 8 ];
             }
 
             if ( substr( $PacketPart, 0, 6 ) eq '$GPGGA' ) {
@@ -467,15 +445,13 @@ if ( $APRSString = said $tnc_output) {
                 || ( substr( $PacketPart, 0, 6 ) eq '$GPGGA' ) )
             {
 
-                $GPSTime = ( substr( $GPSTime, 0, 6 ) );    # Get the GPS Time
+                $GPSTime            = ( substr( $GPSTime,     0, 6 ) );    # Get the GPS Time
                 $GPSLatitudeDegrees = ( substr( $GPSLatitude, 0, 2 ) );
                 $GPSLatitudeMinutes = ( substr( $GPSLatitude, 2, 8 ) );
-                $GPSLatitude =
-                  ( $GPSLatitudeDegrees + ( $GPSLatitudeMinutes / 60 ) );
+                $GPSLatitude = ( $GPSLatitudeDegrees + ( $GPSLatitudeMinutes / 60 ) );
                 $GPSLongitudeDegrees = ( substr( $GPSLongitude, 0, 3 ) );
                 $GPSLongitudeMinutes = ( substr( $GPSLongitude, 3, 8 ) );
-                $GPSLongitude =
-                  ( $GPSLongitudeDegrees + ( $GPSLongitudeMinutes / 60 ) );
+                $GPSLongitude = ( $GPSLongitudeDegrees + ( $GPSLongitudeMinutes / 60 ) );
 
                 # Convert the GPS Speed to MPH
                 $GPSSpeed = ( $GPSSpeed * 1.853248 ) / 1.609344;
@@ -488,8 +464,7 @@ if ( $APRSString = said $tnc_output) {
             {
 
                 $GPSLongitudeDegrees = ( substr( $PacketPart, 1, 1 ) );
-                $GPSLongitudeDegrees =
-                  ( unpack( 'C', $GPSLongitudeDegrees ) ) - 28;
+                $GPSLongitudeDegrees = ( unpack( 'C', $GPSLongitudeDegrees ) ) - 28;
                 if (    $GPSLongitudeDegrees >= 180
                     and $GPSLongitudeDegrees <= 189 )
                 {
@@ -502,29 +477,23 @@ if ( $APRSString = said $tnc_output) {
                 }
 
                 $GPSLongitudeMinutes = ( substr( $PacketPart, 2, 1 ) );
-                $GPSLongitudeMinutes =
-                  ( unpack( 'C', $GPSLongitudeMinutes ) ) - 28;
+                $GPSLongitudeMinutes = ( unpack( 'C', $GPSLongitudeMinutes ) ) - 28;
                 if ( $GPSLongitudeMinutes > 60 ) {
                     $GPSLongitudeMinutes = $GPSLongitudeMinutes - 60;
                 }
 
                 # Added Lines from Roger
                 $GPSLongitudeMinutes100 = ( substr( $PacketPart, 3, 1 ) );
-                $GPSLongitudeMinutes100 =
-                  ( unpack( 'C', $GPSLongitudeMinutes100 ) ) - 28;
+                $GPSLongitudeMinutes100 = ( unpack( 'C', $GPSLongitudeMinutes100 ) ) - 28;
 
-                $GPSLongitude =
-                  ( $GPSLongitudeDegrees +
-                      ( $GPSLongitudeMinutes / 60 ) +
-                      ( $GPSLongitudeMinutes100 / 6000 ) );
+                $GPSLongitude = ( $GPSLongitudeDegrees + ( $GPSLongitudeMinutes / 60 ) + ( $GPSLongitudeMinutes100 / 6000 ) );
 
                 $GPSSpeed = ( substr( $PacketPart, 4, 1 ) );
                 $GPSSpeed = ( ( unpack( 'C', $GPSSpeed ) ) - 28 ) * 10;
 
                 # $CallsignPart simply used as a temp variable
                 $CallsignPart = ( substr( $PacketPart, 5, 1 ) );
-                $GPSSpeed = ( ( ( unpack( 'C', $CallsignPart ) ) - 28 ) / 10 ) +
-                  $GPSSpeed;
+                $GPSSpeed = ( ( ( unpack( 'C', $CallsignPart ) ) - 28 ) / 10 ) + $GPSSpeed;
 
                 $GPSCourse = ( ( unpack( 'C', $CallsignPart ) ) - 28 ) % 10;
 
@@ -548,8 +517,7 @@ if ( $APRSString = said $tnc_output) {
 
                 # Load the tens digit of Degrees Latitude
                 $GPSLatitudeDegrees = ( substr( $ToCallsignPart, 0, 1 ) );
-                $GPSLatitudeDegrees =
-                  ( unpack( 'C', $GPSLatitudeDegrees ) ) - 32;
+                $GPSLatitudeDegrees = ( unpack( 'C', $GPSLatitudeDegrees ) ) - 32;
                 $GPSLatitudeDegrees = ( $GPSLatitudeDegrees & 15 ) * 10;
 
                 # Load the ones digit of Degrees Latitude (temp variable used)
@@ -562,8 +530,7 @@ if ( $APRSString = said $tnc_output) {
 
                 # Load the tens digit of Minutes Latitude
                 $GPSLatitudeMinutes = ( substr( $ToCallsignPart, 2, 1 ) );
-                $GPSLatitudeMinutes =
-                  ( unpack( 'C', $GPSLatitudeMinutes ) ) - 32;
+                $GPSLatitudeMinutes = ( unpack( 'C', $GPSLatitudeMinutes ) ) - 32;
                 $GPSLatitudeMinutes = ( $GPSLatitudeMinutes & 15 ) * 10;
 
                 # Load the ones digit of Minutes Latitude (temp variable used)
@@ -589,20 +556,13 @@ if ( $APRSString = said $tnc_output) {
                 # Here's our hundreds of Minutes Latitude
                 $CallsignPart = $CallsignPart + $GPSDistance;
 
-                $GPSLatitude =
-                  ( $GPSLatitudeDegrees +
-                      ( $GPSLatitudeMinutes / 60 ) +
-                      ( $CallsignPart / 6000 ) );
+                $GPSLatitude = ( $GPSLatitudeDegrees + ( $GPSLatitudeMinutes / 60 ) + ( $CallsignPart / 6000 ) );
             }
 
             # --- Do the following for all received GPS Strings
 
             # Calculate distance station is away
-            $GPSDistance = &great_circle_distance(
-                $GPSLatitude, $GPSLongitude,
-                abs $config_parms{latitude},
-                abs $config_parms{longitude}
-            );
+            $GPSDistance = &great_circle_distance( $GPSLatitude, $GPSLongitude, abs $config_parms{latitude}, abs $config_parms{longitude} );
             $GPSDistance = round( $GPSDistance, 1 );
 
             # Calculate bearing from the Position file
@@ -611,14 +571,10 @@ if ( $APRSString = said $tnc_output) {
                   ( split( ',', $GPSTempCompLine ) )[ 0, 1, 2 ];
 
                 # Calculate distance station is away from pos file
-                $GPSTempCompDist = &great_circle_distance(
-                    $GPSLatitude,    $GPSLongitude,
-                    $GPSTempCompLat, abs $GPSTempCompLong
-                );
+                $GPSTempCompDist = &great_circle_distance( $GPSLatitude, $GPSLongitude, $GPSTempCompLat, abs $GPSTempCompLong );
                 $GPSTempCompDist = round( $GPSTempCompDist, 1 );
 
-                if ( $GPSTempCompDist < 15 and $GPSTempCompDist < $GPSCompDist )
-                {
+                if ( $GPSTempCompDist < 15 and $GPSTempCompDist < $GPSCompDist ) {
                     $GPSCompPlace = $GPSTempCompPlace;
                     $GPSCompDist  = $GPSTempCompDist;
                     $GPSCompLat   = $GPSTempCompLat;
@@ -692,40 +648,30 @@ if ( $APRSString = said $tnc_output) {
             }
 
             # Add bearing from station in position file IF it's a new position report
-            if (
-                (
-                       ( $GPSCallsign ne $LastGPSCallsign )
-                    || ( $GPSDistance ne $LastGPSDistance )
-                )
-                and ( $GPSCompDist ne '9999' )
-              )
+            if (    ( ( $GPSCallsign ne $LastGPSCallsign ) || ( $GPSDistance ne $LastGPSDistance ) )
+                and ( $GPSCompDist ne '9999' ) )
             {
-                $GPSSpeakString2 =
-                  "Currently $GPSCompDist miles $GPSCompLstBr of $GPSCompPlace.";
+                $GPSSpeakString2 = "Currently $GPSCompDist miles $GPSCompLstBr of $GPSCompPlace.";
 
                 # and form a special speak string just for on the air
-                $GPSSpeakString3 =
-                  "$HamCall>APRSMH,TCPIP*:>$RealAPRSCallsign $GPSCompDist mi $GPSCompLstBr of $GPSCompPlace.";
+                $GPSSpeakString3 = "$HamCall>APRSMH,TCPIP*:>$RealAPRSCallsign $GPSCompDist mi $GPSCompLstBr of $GPSCompPlace.";
 
                 if ( $GPSDistance <= 0.2 ) {
                     $GPSSpeakString2 = "Currently near $GPSCompPlace.";
-                    $GPSSpeakString3 =
-                      "$HamCall>APRSMH,TCPIP*:>$RealAPRSCallsign near $GPSCompPlace.";
+                    $GPSSpeakString3 = "$HamCall>APRSMH,TCPIP*:>$RealAPRSCallsign near $GPSCompPlace.";
                 }
                 if (    ( substr( $PacketPart, 0, 6 ) eq '$GPRMC' )
                     and ( $GPSDistance <= 0.1 )
                     and ( $GPSSpeed <= 1 ) )
                 {
                     $GPSSpeakString2 = "Currently parked at $GPSCompPlace.";
-                    $GPSSpeakString3 =
-                      "$HamCall>APRSMH,TCPIP*:>$RealAPRSCallsign parked at $GPSCompPlace.";
+                    $GPSSpeakString3 = "$HamCall>APRSMH,TCPIP*:>$RealAPRSCallsign parked at $GPSCompPlace.";
                 }
                 if (    ( substr( $PacketPart, 0, 6 ) eq '$GPGGA' )
                     and ( $GPSDistance <= 0.1 ) )
                 {
                     $GPSSpeakString2 = "Currently at $GPSCompPlace.";
-                    $GPSSpeakString3 =
-                      "$HamCall>APRSMH,TCPIP*:>$RealAPRSCallsign at $GPSCompPlace.";
+                    $GPSSpeakString3 = "$HamCall>APRSMH,TCPIP*:>$RealAPRSCallsign at $GPSCompPlace.";
                 }
 
 ### ***         ### REMARKED OUT, DON'T TRANSMIT WHERE PEOPLE ARE AT
@@ -790,13 +736,8 @@ if ( $APRSString = said $tnc_output) {
 
                 # If It's not the same as the last report, say it.
 
-                if (
-                    (
-                           ( $GPSCallsign ne $LastGPSCallsign )
-                        || ( $GPSDistance ne $LastGPSDistance )
-                    )
-                    and ( $GPSSpeed ne '0' )
-                  )
+                if (    ( ( $GPSCallsign ne $LastGPSCallsign ) || ( $GPSDistance ne $LastGPSDistance ) )
+                    and ( $GPSSpeed ne '0' ) )
                 {
 
                     if ( $config_parms{tracking_shortannounce} == 0 ) {
@@ -807,8 +748,7 @@ if ( $APRSString = said $tnc_output) {
                     if ( $config_parms{tracking_shortannounce} == 1 ) {
                         $GPSSpeakString = "$GPSCallsign is $GPSSpeakString2";
                         if ( $GPSSpeakString2 eq '' ) {
-                            $GPSSpeakString =
-                              "$GPSCallsign is $GPSDistance miles $GPSLstBr of us, heading $GPSCourseVoice at $GPSSpeed miles an hour.";
+                            $GPSSpeakString = "$GPSCallsign is $GPSDistance miles $GPSLstBr of us, heading $GPSCourseVoice at $GPSSpeed miles an hour.";
                         }
                     }
 
@@ -830,25 +770,18 @@ if ( $APRSString = said $tnc_output) {
 
                 # If the GPS is Stationary, say the following.
 
-                if (
-                    (
-                           ( $GPSCallsign ne $LastGPSCallsign )
-                        || ( $GPSDistance ne $LastGPSDistance )
-                    )
-                    and ( $GPSSpeed eq '0' )
-                  )
+                if (    ( ( $GPSCallsign ne $LastGPSCallsign ) || ( $GPSDistance ne $LastGPSDistance ) )
+                    and ( $GPSSpeed eq '0' ) )
                 {
 
                     if ( $config_parms{tracking_shortannounce} == 0 ) {
-                        $GPSSpeakString =
-                          "$GPSCallsign is parked $GPSDistance miles $GPSLstBr of us.  $GPSSpeakString2";
+                        $GPSSpeakString = "$GPSCallsign is parked $GPSDistance miles $GPSLstBr of us.  $GPSSpeakString2";
                     }
 
                     if ( $config_parms{tracking_shortannounce} == 1 ) {
                         $GPSSpeakString = "$GPSCallsign is $GPSSpeakString2";
                         if ( $GPSSpeakString2 eq '' ) {
-                            $GPSSpeakString =
-                              "$GPSCallsign is parked $GPSDistance miles $GPSLstBr of us.";
+                            $GPSSpeakString = "$GPSCallsign is parked $GPSDistance miles $GPSLstBr of us.";
                         }
                     }
 
@@ -882,15 +815,13 @@ if ( $APRSString = said $tnc_output) {
                 {
 
                     if ( $config_parms{tracking_shortannounce} == 0 ) {
-                        $GPSSpeakString =
-                          "$GPSCallsign is $GPSDistance miles $GPSLstBr of us.  $GPSSpeakString2";
+                        $GPSSpeakString = "$GPSCallsign is $GPSDistance miles $GPSLstBr of us.  $GPSSpeakString2";
                     }
 
                     if ( $config_parms{tracking_shortannounce} == 1 ) {
                         $GPSSpeakString = "$GPSCallsign is $GPSSpeakString2";
                         if ( $GPSSpeakString2 eq '' ) {
-                            $GPSSpeakString =
-                              "$GPSCallsign is $GPSDistance miles $GPSLstBr of us.";
+                            $GPSSpeakString = "$GPSCallsign is $GPSDistance miles $GPSLstBr of us.";
                         }
                     }
 
@@ -918,11 +849,7 @@ if ( $APRSString = said $tnc_output) {
             # Procedure to Complete a process when my vehicle is close to home
             # But only every 5 minutes, we don't want this process happening every time a position is received.
 
-            if (
-                (
-                    substr( $RealAPRSCallsign, 0, ( length($HamCall) ) ) eq
-                    $HamCall
-                )
+            if (    ( substr( $RealAPRSCallsign, 0, ( length($HamCall) ) ) eq $HamCall )
                 and ( $GPSDistance < 0.2 )
                 and expired $timer_myvehicle_process)
             {
@@ -936,15 +863,12 @@ if ( $APRSString = said $tnc_output) {
             $j = $GPSLatitude;
 
             my $html = qq[<FORM ACTION='/SET:last_response' target='speech'>\n];
-            $html .=
-              qq[<tr><td>$Date_Now $Time_Now </td><td>$GPSSpeakString</td>\n];
+            $html .= qq[<tr><td>$Date_Now $Time_Now </td><td>$GPSSpeakString</td>\n];
             $html .= qq[<td><a href="http://www.mapblast.com/myblast/map.mb?];
             $html .= qq|CT=$j\%3A$i\%3A10000">$GPSSpeakString2</a></td>\n|;
-            $html .=
-              qq[<td><INPUT name=aprs_location_name type='text' SIZE=10 onChange=submit>\n];
+            $html .= qq[<td><INPUT name=aprs_location_name type='text' SIZE=10 onChange=submit>\n];
             $i = -$i;    # For logging form data in .pos
-            $html .=
-              qq[<INPUT name=aprs_location_loc type='hidden' value='$j,$i'></td></tr></FORM>\n\n];
+            $html .= qq[<INPUT name=aprs_location_loc type='hidden' value='$j,$i'></td></tr></FORM>\n\n];
 
             logit "$config_parms{html_dir}/mh/tracking/today.html", $html, 0;
             logit "$config_parms{html_dir}/mh/tracking/week1.html", $html, 0;
@@ -974,31 +898,21 @@ if ( $APRSString = said $tnc_output) {
             $k = ' ';
             $k = ( $k x $i );
 
-            print_log
-              "Email gateway: Callsign=$RealAPRSCallsign, to=$CallsignPart data=$PacketPart\n";
+            print_log "Email gateway: Callsign=$RealAPRSCallsign, to=$CallsignPart data=$PacketPart\n";
             set $timer_email_digipeat 10;    # ensure it doesn't send twice
 
             # Send the mail!!
             #if (&net_connect_check) {
-            $i =
-                "$HamCall>APRSMH,TCPIP*::"
-              . $RealAPRSCallsign
-              . $k . ":ack"
-              . $MessageAck;
+            $i = "$HamCall>APRSMH,TCPIP*::" . $RealAPRSCallsign . $k . ":ack" . $MessageAck;
             if ( state $enable_transmit eq 'yes' ) { set $tnc_output $i }
 
             &net_mail_send(
                 to      => $CallsignPart,
                 subject => "A message from $RealAPRSCallsign (APRS)",
-                text =>
-                  "The following is an E-Mail sent to you through the $HamCall MisterHouse APRS Radio Gateway\n\n$PacketPart"
+                text    => "The following is an E-Mail sent to you through the $HamCall MisterHouse APRS Radio Gateway\n\n$PacketPart"
             );
 
-            $i =
-                "$HamCall>APRSMH,TCPIP*::"
-              . $RealAPRSCallsign
-              . $k
-              . ":Your E-Mail Message has been sent.{7";
+            $i = "$HamCall>APRSMH,TCPIP*::" . $RealAPRSCallsign . $k . ":Your E-Mail Message has been sent.{7";
             if ( state $enable_transmit eq 'yes' ) { set $tnc_output $i }
 
             #}
@@ -1040,8 +954,7 @@ if ( $APRSString = said $tnc_output) {
             # Check to see if it is a voice command to process from our CALLSIGN:
 
             if (    substr( $PacketPart, 0, 4 ) eq 'X10-'
-                and substr( $RealAPRSCallsign, 0, length($HamCall) ) eq
-                $HamCall )
+                and substr( $RealAPRSCallsign, 0, length($HamCall) ) eq $HamCall )
             {
 
                 # Split the line so $PacketPart is actually the message received to process.
@@ -1052,17 +965,9 @@ if ( $APRSString = said $tnc_output) {
                 print_log "X10 received from APRS: $PacketPart";
                 speak "X10 received from A P R S: $PacketPart";
 
-                $i =
-                    "$HamCall>APRSMH,TCPIP*::"
-                  . $RealAPRSCallsign
-                  . $k . ":ack"
-                  . $MessageAck;
+                $i = "$HamCall>APRSMH,TCPIP*::" . $RealAPRSCallsign . $k . ":ack" . $MessageAck;
                 if ( state $enable_transmit eq 'yes' ) { set $tnc_output $i }
-                $i =
-                    "$HamCall>APRSMH,TCPIP*::"
-                  . $RealAPRSCallsign
-                  . $k
-                  . ":X-10 Message Received.{9";
+                $i = "$HamCall>APRSMH,TCPIP*::" . $RealAPRSCallsign . $k . ":X-10 Message Received.{9";
                 if ( state $enable_transmit eq 'yes' ) { set $tnc_output $i }
                 $MsgLine = "";
             }
@@ -1076,17 +981,9 @@ if ( $APRSString = said $tnc_output) {
             # Respond to ?WX? requests with the temperature.
 
             elsif ( substr( $PacketPart, 0, 4 ) eq '?WX?' ) {
-                $i =
-                    "$HamCall>APRSMH,TCPIP*::"
-                  . $RealAPRSCallsign
-                  . $k . ":ack"
-                  . $MessageAck;
+                $i = "$HamCall>APRSMH,TCPIP*::" . $RealAPRSCallsign . $k . ":ack" . $MessageAck;
                 if ( state $enable_transmit eq 'yes' ) { set $tnc_output $i }
-                $i =
-                    "$HamCall>APRSMH,TCPIP*::"
-                  . $RealAPRSCallsign
-                  . $k
-                  . ": Current Temperature: $CurrentTemp.{4";
+                $i = "$HamCall>APRSMH,TCPIP*::" . $RealAPRSCallsign . $k . ": Current Temperature: $CurrentTemp.{4";
                 if ( state $enable_transmit eq 'yes' ) { set $tnc_output $i }
                 $MsgLine = "";
             }
@@ -1094,17 +991,9 @@ if ( $APRSString = said $tnc_output) {
             # Respond to ?PHONE? requests with last call.
 
             elsif ( substr( $PacketPart, 0, 7 ) eq '?PHONE?' ) {
-                $i =
-                    "$HamCall>APRSMH,TCPIP*::"
-                  . $RealAPRSCallsign
-                  . $k . ":ack"
-                  . $MessageAck;
+                $i = "$HamCall>APRSMH,TCPIP*::" . $RealAPRSCallsign . $k . ":ack" . $MessageAck;
                 if ( state $enable_transmit eq 'yes' ) { set $tnc_output $i }
-                $i =
-                    "$HamCall>APRSMH,TCPIP*::"
-                  . $RealAPRSCallsign
-                  . $k
-                  . ": Last Call: $PhoneName ($PhoneNumber){6";
+                $i = "$HamCall>APRSMH,TCPIP*::" . $RealAPRSCallsign . $k . ": Last Call: $PhoneName ($PhoneNumber){6";
                 if ( state $enable_transmit eq 'yes' ) { set $tnc_output $i }
                 $MsgLine = "";
             }
@@ -1114,11 +1003,7 @@ if ( $APRSString = said $tnc_output) {
             else {
                 print_log "Incoming Message from $APRSCallsign: $PacketPart";
                 speak "Incoming Message from $APRSCallsign. $PacketPart";
-                $i =
-                    "$HamCall>APRSMH,TCPIP*::"
-                  . $RealAPRSCallsign
-                  . $k . ":ack"
-                  . $MessageAck;
+                $i = "$HamCall>APRSMH,TCPIP*::" . $RealAPRSCallsign . $k . ":ack" . $MessageAck;
                 if ( state $enable_transmit eq 'yes' ) { set $tnc_output $i }
                 if ( state $enable_transmit eq 'yes' ) { set $tnc_output $i }
                 $MsgLine = "";
@@ -1131,10 +1016,8 @@ if ( $APRSString = said $tnc_output) {
         # At miles of us, temperature is 31 degrees.  Winnd is out of the north at 4N/ miles an hour.
 
         if (
-            ( substr( $APRSString, ( $APRSStringLength - 4 ), 2 ) eq 'dU' )
-            || (
-                substr( $APRSString, ( $APRSStringLength - 6 ), 6 ) eq
-                'dU2kFM' )
+               ( substr( $APRSString, ( $APRSStringLength - 4 ), 2 ) eq 'dU' )
+            || ( substr( $APRSString, ( $APRSStringLength - 6 ), 6 ) eq 'dU2kFM' )
             || ( substr( $APRSString, ( $APRSStringLength - 4 ), 2 ) eq 'wU' )
             || ( substr( $APRSString, ( $APRSStringLength - 4 ), 4 ) eq 'DsVP' )
             || (    substr( $PacketPart, 38, 1 ) eq 't'
@@ -1173,23 +1056,19 @@ if ( $APRSString = said $tnc_output) {
 
             # If It's a DOS Weather String,
 
-            if (
-                ( substr( $APRSString, ( $APRSStringLength - 4 ), 2 ) eq 'dU' )
-                || (
-                    substr( $APRSString, ( $APRSStringLength - 6 ), 6 ) eq
-                    'dU2kFM' )
-              )
+            if (   ( substr( $APRSString, ( $APRSStringLength - 4 ), 2 ) eq 'dU' )
+                || ( substr( $APRSString, ( $APRSStringLength - 6 ), 6 ) eq 'dU2kFM' ) )
             {
 
-                $WXTime = ( substr( $PacketPart, 3, 4 ) );   # Time of WX Report
-                $WXWindDir = ( substr( $PacketPart, 27, 3 ) );  # Wind Direction
+                $WXTime      = ( substr( $PacketPart, 3,  4 ) );    # Time of WX Report
+                $WXWindDir   = ( substr( $PacketPart, 27, 3 ) );    # Wind Direction
                 $WXWindSpeed = ( substr( $PacketPart, 31, 3 ) );    # Wind Speed
 
                 # Get rid of those damn 0's in the Speed
                 if ( substr( $WXWindSpeed, 0, 2 ) eq '00' ) {
                     $WXWindSpeed = ( substr( $WXWindSpeed, 2, 1 ) );
                 }
-                if ( $WXWindSpeed ne '0' ) {    # Except if wind speed IS 0
+                if ( $WXWindSpeed ne '0' ) {                        # Except if wind speed IS 0
                     if ( substr( $WXWindSpeed, 0, 1 ) eq '0' ) {
                         $WXWindSpeed = ( substr( $WXWindSpeed, 1, 2 ) );
                     }
@@ -1197,18 +1076,12 @@ if ( $APRSString = said $tnc_output) {
 
                 $WXLatitudeDegrees = ( substr( $PacketPart, 8,  2 ) );
                 $WXLatitudeMinutes = ( substr( $PacketPart, 10, 5 ) );
-                $WXLatitude =
-                  ( $WXLatitudeDegrees + ( $WXLatitudeMinutes / 60 ) );
+                $WXLatitude = ( $WXLatitudeDegrees + ( $WXLatitudeMinutes / 60 ) );
                 $WXLongitudeDegrees = ( substr( $PacketPart, 17, 3 ) );
                 $WXLongitudeMinutes = ( substr( $PacketPart, 20, 5 ) );
-                $WXLongitude =
-                  ( $WXLongitudeDegrees + ( $WXLongitudeMinutes / 60 ) );
+                $WXLongitude = ( $WXLongitudeDegrees + ( $WXLongitudeMinutes / 60 ) );
 
-                $WXDistance = &great_circle_distance(
-                    $WXLatitude, $WXLongitude,
-                    abs $config_parms{latitude},
-                    abs $config_parms{longitude}
-                );
+                $WXDistance = &great_circle_distance( $WXLatitude, $WXLongitude, abs $config_parms{latitude}, abs $config_parms{longitude} );
                 $WXDistance = round( $WXDistance, 1 );
 
                 # Calculate if station is north/west/east/south of ours
@@ -1243,33 +1116,25 @@ if ( $APRSString = said $tnc_output) {
             # For New Windows UII/U2000 String Only
 
             if (
-                ( substr( $APRSString, ( $APRSStringLength - 4 ), 2 ) eq 'wU' )
-                || (
-                    substr( $APRSString, ( $APRSStringLength - 2 ), 2 ) eq
-                    'WD' )
-                || (
-                    substr( $APRSString, ( $APRSStringLength - 5 ), 2 ) eq
-                    'WD' )
-                || (
-                    substr( $APRSString, ( $APRSStringLength - 3 ), 2 ) eq
-                    'WX' )
+                   ( substr( $APRSString, ( $APRSStringLength - 4 ), 2 ) eq 'wU' )
+                || ( substr( $APRSString, ( $APRSStringLength - 2 ), 2 ) eq 'WD' )
+                || ( substr( $APRSString, ( $APRSStringLength - 5 ), 2 ) eq 'WD' )
+                || ( substr( $APRSString, ( $APRSStringLength - 3 ), 2 ) eq 'WX' )
                 || (    substr( $PacketPart, 38, 1 ) eq 't'
                     and substr( $PacketPart, 42, 1 ) eq 'r' )
-                || (
-                    substr( $APRSString, ( $APRSStringLength - 4 ), 4 ) eq
-                    'DsVP' )
+                || ( substr( $APRSString, ( $APRSStringLength - 4 ), 4 ) eq 'DsVP' )
               )
             {
 
-                $WXTime = ( substr( $PacketPart, 5, 4 ) );   # Time of WX Report
-                $WXWindDir = ( substr( $PacketPart, 10, 3 ) );  # Wind Direction
+                $WXTime      = ( substr( $PacketPart, 5,  4 ) );    # Time of WX Report
+                $WXWindDir   = ( substr( $PacketPart, 10, 3 ) );    # Wind Direction
                 $WXWindSpeed = ( substr( $PacketPart, 14, 3 ) );    # Wind Speed
 
                 # Get rid of those damn 0's in the Speed
                 if ( substr( $WXWindSpeed, 0, 2 ) eq '00' ) {
                     $WXWindSpeed = ( substr( $WXWindSpeed, 2, 1 ) );
                 }
-                if ( $WXWindSpeed ne '0' ) {    # Except if wind speed IS 0
+                if ( $WXWindSpeed ne '0' ) {                        # Except if wind speed IS 0
                     if ( substr( $WXWindSpeed, 0, 1 ) eq '0' ) {
                         $WXWindSpeed = ( substr( $WXWindSpeed, 1, 2 ) );
                     }
@@ -1319,11 +1184,7 @@ if ( $APRSString = said $tnc_output) {
                   ( split( ',', $WXTempCompLine ) )[ 0, 1, 2 ];
 
                 # Calculate distance station is away from pos file
-                $WXTempCompDist = &great_circle_distance(
-                    $WXLatitude, $WXLongitude,
-                    abs $WXTempCompLat,
-                    abs $WXTempCompLong
-                );
+                $WXTempCompDist = &great_circle_distance( $WXLatitude, $WXLongitude, abs $WXTempCompLat, abs $WXTempCompLong );
                 $WXTempCompDist = round( $WXTempCompDist, 1 );
 
                 if ( $WXTempCompDist < 150 and $WXTempCompDist < $WXCompDist ) {
@@ -1371,16 +1232,10 @@ if ( $APRSString = said $tnc_output) {
             }
 
             # Add bearing from station in position file IF it's a new position report
-            if (
-                (
-                       ( $WXCallsign ne $LastWXCallsign )
-                    || ( $WXDistance ne $LastWXDistance )
-                )
-                and ( $GPSCompDist ne '9999' )
-              )
+            if (    ( ( $WXCallsign ne $LastWXCallsign ) || ( $WXDistance ne $LastWXDistance ) )
+                and ( $GPSCompDist ne '9999' ) )
             {
-                $WXSpeakString2 =
-                  "Station is located $WXCompDist miles $WXCompLstBr of $WXCompPlace.";
+                $WXSpeakString2 = "Station is located $WXCompDist miles $WXCompLstBr of $WXCompPlace.";
             }
 
             if ( substr( $PacketPart, 35, 1 ) eq 'T' ) {    # If a traditional,
@@ -1390,7 +1245,7 @@ if ( $APRSString = said $tnc_output) {
                 if ( substr( $WXTemp, 0, 2 ) eq '00' ) {
                     $WXTemp = ( substr( $WXTemp, 2, 1 ) );
                 }
-                if ( $WXTemp ne '0' ) {    # Except if temp IS 0
+                if ( $WXTemp ne '0' ) {                     # Except if temp IS 0
                     if ( substr( $WXTemp, 0, 1 ) eq '0' ) {
                         $WXTemp = ( substr( $WXTemp, 1, 2 ) );
                     }
@@ -1398,10 +1253,7 @@ if ( $APRSString = said $tnc_output) {
 
                 # Calculate Wind Chill if temp is less than 45 degrees
                 if ( $WXTemp <= 45 ) {
-                    $WXWindChill =
-                      .0817 *
-                      ( 3.71 * sqrt($WXWindSpeed) + 5.81 - .25 * $WXWindSpeed )
-                      * ( $WXTemp - 91.4 ) + 91.4;
+                    $WXWindChill = .0817 * ( 3.71 * sqrt($WXWindSpeed) + 5.81 - .25 * $WXWindSpeed ) * ( $WXTemp - 91.4 ) + 91.4;
                     $WXWindChill = round( $WXWindChill, 0 );
                     if ( $WXWindSpeed <= 5 ) { $WXWindChill = $WXTemp }
                 }
@@ -1443,24 +1295,16 @@ if ( $APRSString = said $tnc_output) {
 
                 # If It's not the same as the last report, say it.
 
-                if (
-                    (
-                           ( $WXCallsign ne $LastWXCallsign )
-                        || ( $WXDistance ne $LastWXDistance )
-                        || ( $WXTemp ne $LastWXTemp )
-                    )
-                    and ( $WXWindSpeed ne '0' )
-                  )
+                if (    ( ( $WXCallsign ne $LastWXCallsign ) || ( $WXDistance ne $LastWXDistance ) || ( $WXTemp ne $LastWXTemp ) )
+                    and ( $WXWindSpeed ne '0' ) )
                 {
                     $WXSpeakString =
                       "At $WXDistance miles $WXLstBr of us, temperature is $WXTemp degrees.  Winnd is out of the $WXWindDirVoice at $WXWindSpeed miles an hour.";
                     if ( $WXTemp <= 45 and $WXTemp ne $WXWindChill ) {
-                        $WXSpeakString =
-                          $WXSpeakString . "  The winnd chill is $WXWindChill.";
+                        $WXSpeakString = $WXSpeakString . "  The winnd chill is $WXWindChill.";
                     }
                     if ( $WXHrPrecip != 0 ) {
-                        $WXSpeakString = $WXSpeakString
-                          . "  $WXHrPrecip inches of rain in the last hour.";
+                        $WXSpeakString = $WXSpeakString . "  $WXHrPrecip inches of rain in the last hour.";
                     }
                     $WXSpeakString = $WXSpeakString . "  $WXSpeakString2";
 
@@ -1476,20 +1320,12 @@ if ( $APRSString = said $tnc_output) {
 
                 # If the wind is calm, say the following.
 
-                if (
-                    (
-                           ( $WXCallsign ne $LastWXCallsign )
-                        || ( $WXDistance ne $LastWXDistance )
-                        || ( $WXTemp ne $LastWXTemp )
-                    )
-                    and ( $WXWindSpeed eq '0' )
-                  )
+                if (    ( ( $WXCallsign ne $LastWXCallsign ) || ( $WXDistance ne $LastWXDistance ) || ( $WXTemp ne $LastWXTemp ) )
+                    and ( $WXWindSpeed eq '0' ) )
                 {
-                    $WXSpeakString =
-                      "At $WXDistance miles $WXLstBr of us, temperature is $WXTemp degrees.  Winnd is calm.";
+                    $WXSpeakString = "At $WXDistance miles $WXLstBr of us, temperature is $WXTemp degrees.  Winnd is calm.";
                     if ( $WXHrPrecip != 0 ) {
-                        $WXSpeakString = $WXSpeakString
-                          . "  $WXHrPrecip inches of rain in the last hour.";
+                        $WXSpeakString = $WXSpeakString . "  $WXHrPrecip inches of rain in the last hour.";
                     }
                     $WXSpeakString = $WXSpeakString . "  $WXSpeakString2";
 
@@ -1503,7 +1339,7 @@ if ( $APRSString = said $tnc_output) {
                     }
                 }
 
-                $LastWXCallsign   = $WXCallsign;  # Save last WX rpt information
+                $LastWXCallsign   = $WXCallsign;     # Save last WX rpt information
                 $LastWXDistance   = $WXDistance;
                 $LastWXTemp       = $WXTemp;
                 $LastWXWindDir    = $WXWindDir;
@@ -1513,14 +1349,14 @@ if ( $APRSString = said $tnc_output) {
                 $LastWX24HrPrecip = $WX24HrPrecip;
             }
 
-            elsif ( substr( $PacketPart, 38, 1 ) eq 't' ) {   # If a new format,
+            elsif ( substr( $PacketPart, 38, 1 ) eq 't' ) {    # If a new format,
                 $WXTemp = ( substr( $PacketPart, 39, 3 ) );
 
                 # Get rid of those damn 0's in the Temperature
                 if ( substr( $WXTemp, 0, 2 ) eq '00' ) {
                     $WXTemp = ( substr( $WXTemp, 2, 1 ) );
                 }
-                if ( $WXTemp ne '0' ) {    # Except if temp IS 0
+                if ( $WXTemp ne '0' ) {                        # Except if temp IS 0
                     if ( substr( $WXTemp, 0, 1 ) eq '0' ) {
                         $WXTemp = ( substr( $WXTemp, 1, 2 ) );
                     }
@@ -1528,10 +1364,7 @@ if ( $APRSString = said $tnc_output) {
 
                 # Calculate Wind Chill if temp is less than 45 degrees
                 if ( $WXTemp <= 45 ) {
-                    $WXWindChill =
-                      .0817 *
-                      ( 3.71 * sqrt($WXWindSpeed) + 5.81 - .25 * $WXWindSpeed )
-                      * ( $WXTemp - 91.4 ) + 91.4;
+                    $WXWindChill = .0817 * ( 3.71 * sqrt($WXWindSpeed) + 5.81 - .25 * $WXWindSpeed ) * ( $WXTemp - 91.4 ) + 91.4;
                     $WXWindChill = round( $WXWindChill, 0 );
                     if ( $WXWindSpeed <= 5 ) { $WXWindChill = $WXTemp }
                 }
@@ -1573,28 +1406,19 @@ if ( $APRSString = said $tnc_output) {
 
                 # If It's not the same as the last report, say it.
 
-                if (
-                    (
-                           ( $WXCallsign ne $LastWXCallsign )
-                        || ( $WXDistance ne $LastWXDistance )
-                        || ( $WXTemp ne $LastWXTemp )
-                    )
-                    and ( $WXWindSpeed ne '0' )
-                  )
+                if (    ( ( $WXCallsign ne $LastWXCallsign ) || ( $WXDistance ne $LastWXDistance ) || ( $WXTemp ne $LastWXTemp ) )
+                    and ( $WXWindSpeed ne '0' ) )
                 {
                     $WXSpeakString =
                       "At $WXDistance miles $WXLstBr of us, temperature is $WXTemp degrees.  Winnd is out of the $WXWindDirVoice at $WXWindSpeed miles an hour.";
                     if ( $WXTemp <= 45 and $WXTemp ne $WXWindChill ) {
-                        $WXSpeakString =
-                          $WXSpeakString . "  The winnd chill is $WXWindChill.";
+                        $WXSpeakString = $WXSpeakString . "  The winnd chill is $WXWindChill.";
                     }
                     if ( $WXHrPrecip != 0 ) {
-                        $WXSpeakString = $WXSpeakString
-                          . "  $WXHrPrecip inches of rain in the last hour.";
+                        $WXSpeakString = $WXSpeakString . "  $WXHrPrecip inches of rain in the last hour.";
                     }
                     if ( $WX24HrPrecip != 0 ) {
-                        $WXSpeakString = $WXSpeakString
-                          . "  $WX24HrPrecip inches of rain total today.";
+                        $WXSpeakString = $WXSpeakString . "  $WX24HrPrecip inches of rain total today.";
                     }
                     $WXSpeakString = $WXSpeakString . "  $WXSpeakString2";
 
@@ -1610,24 +1434,15 @@ if ( $APRSString = said $tnc_output) {
 
                 # If the wind is calm, say the following.
 
-                if (
-                    (
-                           ( $WXCallsign ne $LastWXCallsign )
-                        || ( $WXDistance ne $LastWXDistance )
-                        || ( $WXTemp ne $LastWXTemp )
-                    )
-                    and ( $WXWindSpeed eq '0' )
-                  )
+                if (    ( ( $WXCallsign ne $LastWXCallsign ) || ( $WXDistance ne $LastWXDistance ) || ( $WXTemp ne $LastWXTemp ) )
+                    and ( $WXWindSpeed eq '0' ) )
                 {
-                    $WXSpeakString =
-                      "At $WXDistance miles $WXLstBr of us, temperature is $WXTemp degrees.  Winnd is calm.";
+                    $WXSpeakString = "At $WXDistance miles $WXLstBr of us, temperature is $WXTemp degrees.  Winnd is calm.";
                     if ( $WXHrPrecip != 0 ) {
-                        $WXSpeakString = $WXSpeakString
-                          . "  $WXHrPrecip inches of rain in the last hour.";
+                        $WXSpeakString = $WXSpeakString . "  $WXHrPrecip inches of rain in the last hour.";
                     }
                     if ( $WX24HrPrecip != 0 ) {
-                        $WXSpeakString = $WXSpeakString
-                          . "  $WX24HrPrecip inches of rain total today.";
+                        $WXSpeakString = $WXSpeakString . "  $WX24HrPrecip inches of rain total today.";
                     }
                     $WXSpeakString = $WXSpeakString . "  $WXSpeakString2";
 
@@ -1641,7 +1456,7 @@ if ( $APRSString = said $tnc_output) {
                     }
                 }
 
-                $LastWXCallsign   = $WXCallsign;  # Save last WX rpt information
+                $LastWXCallsign   = $WXCallsign;     # Save last WX rpt information
                 $LastWXDistance   = $WXDistance;
                 $LastWXTemp       = $WXTemp;
                 $LastWXWindDir    = $WXWindDir;
@@ -1652,16 +1467,16 @@ if ( $APRSString = said $tnc_output) {
 
             }
 
-            elsif ( substr( $PacketPart, 21, 1 ) eq 't' ) { # If WINDOWS format,
-                $WXDistance = 999.9;                        # Because we don't
-                                                            # have the position
-                $WXTemp = ( substr( $PacketPart, 22, 3 ) );
+            elsif ( substr( $PacketPart, 21, 1 ) eq 't' ) {    # If WINDOWS format,
+                $WXDistance = 999.9;                              # Because we don't
+                                                                  # have the position
+                $WXTemp     = ( substr( $PacketPart, 22, 3 ) );
 
                 # Get rid of those damn 0's in the Temperature
                 if ( substr( $WXTemp, 0, 2 ) eq '00' ) {
                     $WXTemp = ( substr( $WXTemp, 2, 1 ) );
                 }
-                if ( $WXTemp ne '0' ) {    # Except if temp IS 0
+                if ( $WXTemp ne '0' ) {                           # Except if temp IS 0
                     if ( substr( $WXTemp, 0, 1 ) eq '0' ) {
                         $WXTemp = ( substr( $WXTemp, 1, 2 ) );
                     }
@@ -1669,10 +1484,7 @@ if ( $APRSString = said $tnc_output) {
 
                 # Calculate Wind Chill if temp is less than 45 degrees
                 if ( $WXTemp <= 45 ) {
-                    $WXWindChill =
-                      .0817 *
-                      ( 3.71 * sqrt($WXWindSpeed) + 5.81 - .25 * $WXWindSpeed )
-                      * ( $WXTemp - 91.4 ) + 91.4;
+                    $WXWindChill = .0817 * ( 3.71 * sqrt($WXWindSpeed) + 5.81 - .25 * $WXWindSpeed ) * ( $WXTemp - 91.4 ) + 91.4;
                     $WXWindChill = round( $WXWindChill, 0 );
                     if ( $WXWindSpeed <= 5 ) { $WXWindChill = $WXTemp }
                 }
@@ -1714,28 +1526,19 @@ if ( $APRSString = said $tnc_output) {
 
                 # If It's not the same as the last report, say it.
 
-                if (
-                    (
-                           ( $WXCallsign ne $LastWXCallsign )
-                        || ( $WXDistance ne $LastWXDistance )
-                        || ( $WXTemp ne $LastWXTemp )
-                    )
-                    and ( $WXWindSpeed ne '0' )
-                  )
+                if (    ( ( $WXCallsign ne $LastWXCallsign ) || ( $WXDistance ne $LastWXDistance ) || ( $WXTemp ne $LastWXTemp ) )
+                    and ( $WXWindSpeed ne '0' ) )
                 {
                     $WXSpeakString =
                       "$APRSCallsign reports temperature of $WXTemp degrees.  Winnd is out of the $WXWindDirVoice at $WXWindSpeed miles an hour.";
                     if ( $WXTemp <= 45 and $WXTemp ne $WXWindChill ) {
-                        $WXSpeakString =
-                          $WXSpeakString . "  The winnd chill is $WXWindChill.";
+                        $WXSpeakString = $WXSpeakString . "  The winnd chill is $WXWindChill.";
                     }
                     if ( $WXHrPrecip != 0 ) {
-                        $WXSpeakString = $WXSpeakString
-                          . "  $WXHrPrecip inches of rain in the last hour.";
+                        $WXSpeakString = $WXSpeakString . "  $WXHrPrecip inches of rain in the last hour.";
                     }
                     if ( $WX24HrPrecip != 0 ) {
-                        $WXSpeakString = $WXSpeakString
-                          . "  $WX24HrPrecip inches of rain total today.";
+                        $WXSpeakString = $WXSpeakString . "  $WX24HrPrecip inches of rain total today.";
                     }
 
                     print_log "$WXSpeakString";
@@ -1750,24 +1553,15 @@ if ( $APRSString = said $tnc_output) {
 
                 # If the wind is calm, say the following.
 
-                if (
-                    (
-                           ( $WXCallsign ne $LastWXCallsign )
-                        || ( $WXDistance ne $LastWXDistance )
-                        || ( $WXTemp ne $LastWXTemp )
-                    )
-                    and ( $WXWindSpeed eq '0' )
-                  )
+                if (    ( ( $WXCallsign ne $LastWXCallsign ) || ( $WXDistance ne $LastWXDistance ) || ( $WXTemp ne $LastWXTemp ) )
+                    and ( $WXWindSpeed eq '0' ) )
                 {
-                    $WXSpeakString =
-                      "$APRSCallsign reports temperature of $WXTemp degrees.  Winnd is calm.";
+                    $WXSpeakString = "$APRSCallsign reports temperature of $WXTemp degrees.  Winnd is calm.";
                     if ( $WXHrPrecip != 0 ) {
-                        $WXSpeakString = $WXSpeakString
-                          . "  $WXHrPrecip inches of rain in the last hour.";
+                        $WXSpeakString = $WXSpeakString . "  $WXHrPrecip inches of rain in the last hour.";
                     }
                     if ( $WX24HrPrecip != 0 ) {
-                        $WXSpeakString = $WXSpeakString
-                          . "  $WX24HrPrecip inches of rain total today.";
+                        $WXSpeakString = $WXSpeakString . "  $WX24HrPrecip inches of rain total today.";
                     }
 
                     print_log "$WXSpeakString";
@@ -1780,7 +1574,7 @@ if ( $APRSString = said $tnc_output) {
                     }
                 }
 
-                $LastWXCallsign   = $WXCallsign;  # Save last WX rpt information
+                $LastWXCallsign   = $WXCallsign;     # Save last WX rpt information
                 $LastWXDistance   = $WXDistance;
                 $LastWXTemp       = $WXTemp;
                 $LastWXWindDir    = $WXWindDir;
@@ -1826,9 +1620,8 @@ sub great_circle_distance {
     my ( $lat1, $lon1, $lat2, $lon2 ) = map { &degrees_to_radians($_) } @_;
 
     #   my $radius = 6367; # km
-    my $radius = 3956;                              # miles
-    my $d = ( sin( ( $lat2 - $lat1 ) / 2 ) )**2 +
-      cos($lat1) * cos($lat2) * ( sin( ( $lon2 - $lon1 ) / 2 ) )**2;
+    my $radius = 3956;                                                                                             # miles
+    my $d = ( sin( ( $lat2 - $lat1 ) / 2 ) )**2 + cos($lat1) * cos($lat2) * ( sin( ( $lon2 - $lon1 ) / 2 ) )**2;
     $d = $radius * 2 * atan2( sqrt($d), sqrt( 1 - $d ) );
     return round( $d, 1 );
 }

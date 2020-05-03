@@ -60,10 +60,8 @@ else {
     my $html = "<form action='/bin/set_cookie.pl' ";
     $html .= "target='$target' " if $target;
     $html .= ">\n$text\n"        if $text;
-    $html .=
-      "   <input type='radio' name='$string' value='0' $checked_off onClick='form.submit()'>Off\n";
-    $html .=
-      "   <input type='radio' name='$string' value='1' $checked_on  onClick='form.submit()'>On\n";
+    $html .= "   <input type='radio' name='$string' value='0' $checked_off onClick='form.submit()'>Off\n";
+    $html .= "   <input type='radio' name='$string' value='1' $checked_on  onClick='form.submit()'>On\n";
     $html .= "</form>\n";
 
     # Checkboxes do not return values when not checked :(

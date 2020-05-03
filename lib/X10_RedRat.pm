@@ -94,10 +94,7 @@ sub X10RR_send {
     my ( $house, $unit, $func, $lev ) = ( $cmd =~ /X(.)(..)(.)(..)/ );
     my $fullunit = $unit;
 
-    $buffer[0] = (
-        0x60, 0x70, 0x40, 0x50, 0x80, 0x90, 0xA0, 0xB0,
-        0xE0, 0xF0, 0xC0, 0xD0, 0x00, 0x10, 0x20, 0x30
-    )[ ord($house) - ord('A') ];
+    $buffer[0] = ( 0x60, 0x70, 0x40, 0x50, 0x80, 0x90, 0xA0, 0xB0, 0xE0, 0xF0, 0xC0, 0xD0, 0x00, 0x10, 0x20, 0x30 )[ ord($house) - ord('A') ];
     if ( $unit > 8 ) {
         $buffer[0] |= 4;
         $unit -= 8;
@@ -113,26 +110,16 @@ sub X10RR_send {
 
     if ( $func eq "N" ) {    # send ON
         if ( not $X10RR{ "$house$fullunit" . "ON" } ) {
-            $X10RR{ "$house$fullunit" . "ON" } = gen_X10RR(
-                sprintf "%08b%08b%08b%08b",
-                $buffer[0], $buffer[0] ^ 0xff,
-                $buffer[1], $buffer[1] ^ 0xff
-            );
-            $ir_x10->add( "$house$fullunit" . "ON",
-                $X10RR{ "$house$fullunit" . "ON" } );
+            $X10RR{ "$house$fullunit" . "ON" } = gen_X10RR( sprintf "%08b%08b%08b%08b", $buffer[0], $buffer[0] ^ 0xff, $buffer[1], $buffer[1] ^ 0xff );
+            $ir_x10->add( "$house$fullunit" . "ON", $X10RR{ "$house$fullunit" . "ON" } );
         }
         $ir_x10->set( "$house$fullunit" . "ON" );
     }
     elsif ( $func eq "F" ) {    # send OFF
         $buffer[1] |= 0x20 if $fullunit ne "00";    # set "OFF" bit
         if ( not $X10RR{ "$house$fullunit" . "OFF" } ) {
-            $X10RR{ "$house$fullunit" . "OFF" } = gen_X10RR(
-                sprintf "%08b%08b%08b%08b",
-                $buffer[0], $buffer[0] ^ 0xff,
-                $buffer[1], $buffer[1] ^ 0xff
-            );
-            $ir_x10->add( "$house$fullunit" . "OFF",
-                $X10RR{ "$house$fullunit" . "OFF" } );
+            $X10RR{ "$house$fullunit" . "OFF" } = gen_X10RR( sprintf "%08b%08b%08b%08b", $buffer[0], $buffer[0] ^ 0xff, $buffer[1], $buffer[1] ^ 0xff );
+            $ir_x10->add( "$house$fullunit" . "OFF", $X10RR{ "$house$fullunit" . "OFF" } );
         }
         $ir_x10->set( "$house$fullunit" . "OFF" );
     }
@@ -140,23 +127,14 @@ sub X10RR_send {
 
         # send ON code
         if ( not $X10RR{ "$house$fullunit" . "ON" } ) {
-            $X10RR{ "$house$fullunit" . "ON" } = gen_X10RR(
-                sprintf "%08b%08b%08b%08b",
-                $buffer[0], $buffer[0] ^ 0xff,
-                $buffer[1], $buffer[1] ^ 0xff
-            );
-            $ir_x10->add( "$house$fullunit" . "ON",
-                $X10RR{ "$house$fullunit" . "ON" } );
+            $X10RR{ "$house$fullunit" . "ON" } = gen_X10RR( sprintf "%08b%08b%08b%08b", $buffer[0], $buffer[0] ^ 0xff, $buffer[1], $buffer[1] ^ 0xff );
+            $ir_x10->add( "$house$fullunit" . "ON", $X10RR{ "$house$fullunit" . "ON" } );
         }
         $ir_x10->set( "$house$fullunit" . "ON" );
         $buffer[0] &= 0xFB;
         $buffer[1] = 0x98;
         if ( not $X10RR{ "$house" . "B" } ) {
-            $X10RR{ "$house" . "B" } = gen_X10RR(
-                sprintf "%08b%08b%08b%08b",
-                $buffer[0], $buffer[0] ^ 0xff,
-                $buffer[1], $buffer[1] ^ 0xff
-            );
+            $X10RR{ "$house" . "B" } = gen_X10RR( sprintf "%08b%08b%08b%08b", $buffer[0], $buffer[0] ^ 0xff, $buffer[1], $buffer[1] ^ 0xff );
             $ir_x10->add( "$house" . "B", $X10RR{ "$house" . "B" } );
         }
         while ( $lev > 0 ) {
@@ -166,23 +144,14 @@ sub X10RR_send {
     }
     elsif ( $func eq "D" ) {
         if ( not $X10RR{ "$house$fullunit" . "ON" } ) {
-            $X10RR{ "$house$fullunit" . "ON" } = gen_X10RR(
-                sprintf "%08b%08b%08b%08b",
-                $buffer[0], $buffer[0] ^ 0xff,
-                $buffer[1], $buffer[1] ^ 0xff
-            );
-            $ir_x10->add( "$house$fullunit" . "ON",
-                $X10RR{ "$house$fullunit" . "ON" } );
+            $X10RR{ "$house$fullunit" . "ON" } = gen_X10RR( sprintf "%08b%08b%08b%08b", $buffer[0], $buffer[0] ^ 0xff, $buffer[1], $buffer[1] ^ 0xff );
+            $ir_x10->add( "$house$fullunit" . "ON", $X10RR{ "$house$fullunit" . "ON" } );
         }
         $ir_x10->set( "$house$fullunit" . "ON" );
         $buffer[0] &= 0xFB;
         $buffer[1] = 0x98;
         if ( not $X10RR{ "$house" . "D" } ) {
-            $X10RR{ "$house" . "D" } = gen_X10RR(
-                sprintf "%08b%08b%08b%08b",
-                $buffer[0], $buffer[0] ^ 0xff,
-                $buffer[1], $buffer[1] ^ 0xff
-            );
+            $X10RR{ "$house" . "D" } = gen_X10RR( sprintf "%08b%08b%08b%08b", $buffer[0], $buffer[0] ^ 0xff, $buffer[1], $buffer[1] ^ 0xff );
             $ir_x10->add( "$house" . "D", $X10RR{ "$house" . "D" } );
         }
         while ( $lev > 0 ) {
@@ -191,17 +160,11 @@ sub X10RR_send {
         }
     }
     elsif ( $func eq "X" ) {
-        $house = ( 6, 14, 2, 10, 1, 9, 5, 13, 7, 15, 3, 11, 0, 8, 4, 12 )
-          [ ord($house) - ord('A') ];
-        $unit =
-          ( 6, 14, 2, 10, 1, 9, 5, 13, 7, 15, 3, 11, 0, 8, 4, 12 )[ $unit - 1 ];
+        $house = ( 6, 14, 2, 10, 1, 9, 5, 13, 7, 15, 3, 11, 0, 8, 4, 12 )[ ord($house) - ord('A') ];
+        $unit  = ( 6, 14, 2, 10, 1, 9, 5, 13, 7, 15, 3, 11, 0, 8, 4, 12 )[ $unit - 1 ];
         my $code = 16 * $house + $unit;
         if ( not $X10RR{ "$house" . "X$lev" } ) {
-            $X10RR{ "$house" . "X$lev" } = gen_X10RR(
-                sprintf "%08b%08b%08b%08b",
-                $code, $code ^ 0xf0,
-                $lev, $lev ^ 0xff
-            );
+            $X10RR{ "$house" . "X$lev" } = gen_X10RR( sprintf "%08b%08b%08b%08b", $code, $code ^ 0xf0, $lev, $lev ^ 0xff );
             $ir_x10->add( "$house" . "X$lev", $X10RR{ "$house" . "X$lev" } );
         }
         $ir_x10->set( "$house" . "X$lev" );

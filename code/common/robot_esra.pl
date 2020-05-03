@@ -20,8 +20,7 @@ $robot_neck = new Servo_Item 'esra', 7;
 
 my $robot_esra_states = '0,10,20,30,40,50,60,70,80,90,100';
 my @robot_esra_states = split ',', $robot_esra_states;
-my @robot_esra_servos =
-  qw ($robot_lids $robot_eyes $robot_lipt $robot_lipb $robot_neck);
+my @robot_esra_servos = qw ($robot_lids $robot_eyes $robot_lipt $robot_lipb $robot_neck);
 
 # Enable better web control by setting valid states
 set_states $robot_lids @robot_esra_states;

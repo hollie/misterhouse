@@ -16,9 +16,7 @@ my $ping_test_host    = 'google.com';
 $ping_test = new Process_Item $ping_test_cmd . $ping_test_host;
 $ping_test->set_output($ping_test_results);
 $v_ping_test = new Voice_Cmd 'Ping test [on,off,run]';
-$v_ping_test->set_info(
-    "Run a ping test to see if there is an internet connection. Set to 'On' to run it periodically.  'Run' runs it once."
-);
+$v_ping_test->set_info("Run a ping test to see if there is an internet connection. Set to 'On' to run it periodically.  'Run' runs it once.");
 
 #&tk_radiobutton('Ping Test', \$Save{ping_test_flag}, [1,0], ['On', 'Off']);
 
@@ -66,19 +64,14 @@ if ( done_now $ping_test) {
         if (    $Save{ping_test_results} eq 'down'
             and $Save{ping_test_count} >= 3 )
         {
-            my $time_diff = time_diff $Save{ping_test_time}, $Time, 'minute',
-              'numeric';
-            logit "$config_parms{data_dir}/logs/internet_down.log",
-              "Net up.  Was $Save{ping_test_results}.  Downtime: $time_diff";
+            my $time_diff = time_diff $Save{ping_test_time}, $Time, 'minute', 'numeric';
+            logit "$config_parms{data_dir}/logs/internet_down.log", "Net up.  Was $Save{ping_test_results}.  Downtime: $time_diff";
             $time_diff = time_diff $Save{ping_test_time}, $Time, 'minute';
 
             #           play file => 'timer', mode => 'unmute'; # Set in event_sounds.pl
-            $v_ping_test->respond(
-                "app=network The internet connection is back up after $time_diff"
-            );
+            $v_ping_test->respond("app=network The internet connection is back up after $time_diff");
             display
-              text =>
-              "The internet connection is back up  (was $Save{ping_test_results}).  Time=$time_diff",
+              text        => "The internet connection is back up  (was $Save{ping_test_results}).  Time=$time_diff",
               time        => 0,
               window_name => 'Internet Connect Check',
               append      => 'bottom';
@@ -94,8 +87,7 @@ if ( done_now $ping_test) {
             $Save{ping_test_time}    = $Time;
         }
         elsif ( ++$Save{ping_test_count} == 3 ) {
-            $v_ping_test->respond(
-                "app=network Internet connection just went down.");
+            $v_ping_test->respond("app=network Internet connection just went down.");
             display
               text        => 'The internet connection is down',
               time        => 0,

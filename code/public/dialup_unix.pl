@@ -141,13 +141,11 @@ sub start_dialup {
     unless (&net_connect_check) {
         my $IFUP = "down";
         my $INET;
-        my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
-          localtime(time);
+        my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime(time);
         $year += 1900;
         $mon  += 1;
 
-        my $LogFile =
-          join( ".", "\/tmp\/wvdial.error", $year, $mon, $mday, $hour, $min );
+        my $LogFile = join( ".", "\/tmp\/wvdial.error", $year, $mon, $mday, $hour, $min );
         print_log "Starting Internet connection";
 
         # we use nohup call to disconnect from the parent process, so if
@@ -155,9 +153,7 @@ sub start_dialup {
         # keep the connection attach to MH, just remove nohup
         # the "&" detach the process and put in background, so
         # we could get control back to MH
-        system(
-            "cd \/tmp ; $config_parms{net_connect_up} >$LogFile  2>$LogFile & "
-        );
+        system("cd \/tmp ; $config_parms{net_connect_up} >$LogFile  2>$LogFile & ");
         my $count = 0;
 
         # we have to validate if the interface come up
@@ -176,10 +172,8 @@ sub start_dialup {
                 return 1;
             }
         }
-        print_log
-          "Can't start Internet, $config_parms{net_connect_time} sec. exceeded";
-        print_log
-          "The status of the interface $config_parms{net_connect_if} was $IFUP";
+        print_log "Can't start Internet, $config_parms{net_connect_time} sec. exceeded";
+        print_log "The status of the interface $config_parms{net_connect_if} was $IFUP";
         print_log "Log file can be found in $LogFile";
         print_log "Trying to stop internet";
         &stop_dialup;

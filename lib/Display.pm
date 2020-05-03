@@ -33,10 +33,7 @@ sub new {
     my %parms;
     %parms = @parms unless @parms % 2;
     unless ( $parms{text} ) {
-        (
-            $parms{text}, $parms{time},        $parms{title},
-            $parms{font}, $parms{window_name}, $parms{append}
-        ) = @parms;
+        ( $parms{text}, $parms{time}, $parms{title}, $parms{font}, $parms{window_name}, $parms{append} ) = @parms;
     }
     $parms{time}      = 120            unless defined $parms{time};
     $parms{auto_quit} = 1              unless $parms{time} == 0;
@@ -45,8 +42,7 @@ sub new {
     bless $self, $class;
 
     print "New window:\n" if $main::Debug{display};
-    print
-      " - time: $parms{time}, title: $parms{title}, window_name: $parms{window_name}\n"
+    print " - time: $parms{time}, title: $parms{title}, window_name: $parms{window_name}\n"
       if $main::Debug{display};
     print "\nCalling display sub...\n" if $main::Debug{display};
     &display($self);
@@ -72,7 +68,7 @@ sub read_text {
         if ( $file =~ /\.gif$/i or $file =~ /\.jpg$/i or $file =~ /\.png$/i ) {
             $$self{type}  = 'photo';
             $$self{title} = "Image: $file"
-              unless $$self{title};  # *** Get rid of that timestamp in caption!
+              unless $$self{title};    # *** Get rid of that timestamp in caption!
             return;
         }
         $$self{text} = '';
@@ -85,13 +81,13 @@ sub read_text {
     }
 
     # Find width and height of text ( *** oh come on!)
-    my ( $width, $height );  # Pass explicit height/width always, let text wrap!
+    my ( $width, $height );    # Pass explicit height/width always, let text wrap!
     while (@data) {
         $_ = shift @data;
         my $length = length;
         $width = $length if !$width or $length > $width;
         $height++;
-        $height += int( $length / 100 ); # Add more rows if we are line wrapping
+        $height += int( $length / 100 );    # Add more rows if we are line wrapping
         $$self{text} .= $_ if $file;
     }
 
@@ -144,8 +140,7 @@ sub display {
     if ( $$self{font} eq 'fixed' ) {
         $$self{font} = 'Courier 10';
     }
-    elsif ( $$self{font} eq 'biggest' )
-    {    # *** Only abstraction is biggest? This is strange too.
+    elsif ( $$self{font} eq 'biggest' ) {    # *** Only abstraction is biggest? This is strange too.
         $$self{geometry} = '+0+0';
         my $w = $$self{MW}->screenwidth;
 
@@ -166,13 +161,12 @@ sub display {
         $$self{MW}   = $Windows{ $$self{window_name} }{mw};
         $$self{loop} = 0;
         $reuse_flag++;
-        $$self{activated} =
-          1;    # let instantiating code know that re-use occurred.
+        $$self{activated} = 1;    # let instantiating code know that re-use occurred.
 
     }
 
-    if ( !$reuse_flag ) {    # Not reusing extant window
-                             # New window from main tk
+    if ( !$reuse_flag ) {         # Not reusing extant window
+                                  # New window from main tk
 
         if ($main::MW) {
             $$self{MW} = $main::MW->Toplevel;
@@ -223,16 +217,14 @@ sub display {
 
         &main::configure_element( 'button', \$b1 ) if $$self{time};
 
-        $l =
-          $f1->Label( -textvariable => \$$self{time} )->pack( -side => 'left' )
+        $l = $f1->Label( -textvariable => \$$self{time} )->pack( -side => 'left' )
           if $$self{time};
 
         &main::configure_element( 'frame', \$l ) if $l;
 
         my $b2 = $f1->Button(
-            -text => 'Pause [F1]',
-            -command =>
-              sub { $$self{auto_quit} = ( $$self{auto_quit} ) ? 0 : 1 }
+            -text    => 'Pause [F1]',
+            -command => sub { $$self{auto_quit} = ( $$self{auto_quit} ) ? 0 : 1 }
           )->pack( -side => 'left' )
           if $$self{time};
 
@@ -315,8 +307,7 @@ sub display {
                 -scrollbars => $$self{scroll}
             );
 
-            &main::configure_element( 'frame', \$t1 )
-              ;    # *** set state of this textbox to read only unless editable!
+            &main::configure_element( 'frame', \$t1 );    # *** set state of this textbox to read only unless editable!
             $t1->configure(qw/-font $$self{font}/)  if $$self{font};
             $t1->configure(qw/-bg $$self{bgcolor}/) if $$self{bgcolor};
 
@@ -333,8 +324,7 @@ sub display {
         sub {
             return unless $$self{auto_quit};
             $$self{time}--;
-            $l->configure( -textvariable => \$$self{time} )
-              ;    # Shouldn't have to do this
+            $l->configure( -textvariable => \$$self{time} );    # Shouldn't have to do this
 
             #                                 print "$$self{time} mw=$$self{MW}\n";
             $self->destroy unless $$self{time} > 0;
@@ -355,15 +345,11 @@ sub display {
 
     #$$self{app}_$$self{window_name}_window_closed()
 
-    $$self{MW}->protocol( 'WM_DELETE_WINDOW', sub { $self->destroy } )
-      ;    # *** Added to kill on close
+    $$self{MW}->protocol( 'WM_DELETE_WINDOW', sub { $self->destroy } );    # *** Added to kill on close
 
-    $$self{MW}->bind(
-        '<F1>' => sub { $$self{auto_quit} = ( $$self{auto_quit} ) ? 0 : 1 } );
+    $$self{MW}->bind( '<F1>' => sub { $$self{auto_quit} = ( $$self{auto_quit} ) ? 0 : 1 } );
 
-    my $f2 =
-      $$self{MW}->Frame->pack(qw/-anchor s -side bottom -fill both -expand 1/)
-      ;    # add bottom frame
+    my $f2 = $$self{MW}->Frame->pack(qw/-anchor s -side bottom -fill both -expand 1/);    # add bottom frame
     $$self{MW}{bottom_frame} = $f2;
 
     &main::configure_element( 'frame', \$f2 );

@@ -86,8 +86,7 @@ sub AudioPlayerRelayCommand {
 
     print "AudioPlayerRelayCommand $object $command\n";
 
-    ( $audio_zones{ $object->{music_zone_name} }[0] )->{zone_device}
-      ->set("$command");
+    ( $audio_zones{ $object->{music_zone_name} }[0] )->{zone_device}->set("$command");
 }
 
 sub AudioZoneSetup {
@@ -99,75 +98,39 @@ sub AudioZoneSetup {
     $defaultzone = $object->{music_zone_name}
       if $object->{music_zone_name} ne undef;
 
-    $object->tie_event( '&::AudioZoneSetNext($object,\'' . $defaultzone . '\')',
-        "startup" );
-    $object->tie_event( '&::AudioZoneSetNext($object, "next")', "macro243" );
-    $object->tie_event( '&::AudioZoneSetNext($object, "prev")', "macro244" );
+    $object->tie_event( '&::AudioZoneSetNext($object,\'' . $defaultzone . '\')', "startup" );
+    $object->tie_event( '&::AudioZoneSetNext($object, "next")',                  "macro243" );
+    $object->tie_event( '&::AudioZoneSetNext($object, "prev")',                  "macro244" );
 
     #$object->tie_event('&::AudioInputSetNext($object, "next")', "macro245");
     #$object->tie_event('&::AudioInputSetNext($object, "prev")', "macro246");
 
-    $object->tie_event( '&::AudioZoneRelayCommand($object, "on")', "macro252" );
-    $object->tie_event( '&::AudioZoneRelayCommand($object, "off")',
-        "macro253" );
-    $object->tie_event( '&::AudioZoneRelayCommand($object, "mute")',
-        "macro247" );
-    $object->tie_event( '&::AudioZoneRelayCommand($object, "volume:up")',
-        "macro248" );
-    $object->tie_event( '&::AudioZoneRelayCommand($object, "volume:down")',
-        "macro249" );
+    $object->tie_event( '&::AudioZoneRelayCommand($object, "on")',          "macro252" );
+    $object->tie_event( '&::AudioZoneRelayCommand($object, "off")',         "macro253" );
+    $object->tie_event( '&::AudioZoneRelayCommand($object, "mute")',        "macro247" );
+    $object->tie_event( '&::AudioZoneRelayCommand($object, "volume:up")',   "macro248" );
+    $object->tie_event( '&::AudioZoneRelayCommand($object, "volume:down")', "macro249" );
 
-    $object->tie_event( '&::AudioZoneRelayCommand($object, "input:01")',
-        "macro222" );
-    $object->tie_event( '&::AudioZoneRelayCommand($object, "input:02")',
-        "macro223" );
-    $object->tie_event( '&::AudioZoneRelayCommand($object, "input:03")',
-        "macro224" );
-    $object->tie_event( '&::AudioZoneRelayCommand($object, "input:04")',
-        "macro225" );
-    $object->tie_event( '&::AudioZoneRelayCommand($object, "input:05")',
-        "macro226" );
-    $object->tie_event( '&::AudioZoneRelayCommand($object, "input:06")',
-        "macro227" );
-    $object->tie_event( '&::AudioZoneRelayCommand($object, "input:07")',
-        "macro228" );
-    $object->tie_event( '&::AudioZoneRelayCommand($object, "input:08")',
-        "macro229" );
+    $object->tie_event( '&::AudioZoneRelayCommand($object, "input:01")', "macro222" );
+    $object->tie_event( '&::AudioZoneRelayCommand($object, "input:02")', "macro223" );
+    $object->tie_event( '&::AudioZoneRelayCommand($object, "input:03")', "macro224" );
+    $object->tie_event( '&::AudioZoneRelayCommand($object, "input:04")', "macro225" );
+    $object->tie_event( '&::AudioZoneRelayCommand($object, "input:05")', "macro226" );
+    $object->tie_event( '&::AudioZoneRelayCommand($object, "input:06")', "macro227" );
+    $object->tie_event( '&::AudioZoneRelayCommand($object, "input:07")', "macro228" );
+    $object->tie_event( '&::AudioZoneRelayCommand($object, "input:08")', "macro229" );
 
-    $object->tie_event(
-        '&::AudioPlayerRelayCommand($object, "playlist://centari/media/playlists/background.m3u")',
-        'macro230'
-    );
-    $object->tie_event(
-        '&::AudioPlayerRelayCommand($object, "playlist://centari/media/playlists/classical.m3u")',
-        'macro231'
-    );
-    $object->tie_event(
-        '&::AudioPlayerRelayCommand($object, "playlist://centari/media/playlists/romance.m3u")',
-        'macro232'
-    );
-    $object->tie_event(
-        '&::AudioPlayerRelayCommand($object, "playlist://centari/media/playlists/baby.m3u")',
-        'macro233'
-    );
-    $object->tie_event(
-        '&::AudioPlayerRelayCommand($object, "playlist://centari/media/playlists/party.m3u")',
-        'macro234'
-    );
-    $object->tie_event(
-        '&::AudioPlayerRelayCommand($object, "playlist://centari/media/playlists/all.m3u")',
-        'macro235'
-    );
-    $object->tie_event( '&::AudioPlayerRelayCommand($object, "next")',
-        'macro250' );
-    $object->tie_event( '&::AudioPlayerRelayCommand($object, "prev")',
-        'macro251' );
-    $object->tie_event( '&::AudioPlayerRelayCommand($object, "stop")',
-        'macro254' );
-    $object->tie_event( '&::AudioPlayerRelayCommand($object, "pause")',
-        'macro255' );
-    $object->tie_event( '&::AudioPlayerRelayCommand($object, "play")',
-        'macro256' );
+    $object->tie_event( '&::AudioPlayerRelayCommand($object, "playlist://centari/media/playlists/background.m3u")', 'macro230' );
+    $object->tie_event( '&::AudioPlayerRelayCommand($object, "playlist://centari/media/playlists/classical.m3u")',  'macro231' );
+    $object->tie_event( '&::AudioPlayerRelayCommand($object, "playlist://centari/media/playlists/romance.m3u")',    'macro232' );
+    $object->tie_event( '&::AudioPlayerRelayCommand($object, "playlist://centari/media/playlists/baby.m3u")',       'macro233' );
+    $object->tie_event( '&::AudioPlayerRelayCommand($object, "playlist://centari/media/playlists/party.m3u")',      'macro234' );
+    $object->tie_event( '&::AudioPlayerRelayCommand($object, "playlist://centari/media/playlists/all.m3u")',        'macro235' );
+    $object->tie_event( '&::AudioPlayerRelayCommand($object, "next")',                                              'macro250' );
+    $object->tie_event( '&::AudioPlayerRelayCommand($object, "prev")',                                              'macro251' );
+    $object->tie_event( '&::AudioPlayerRelayCommand($object, "stop")',                                              'macro254' );
+    $object->tie_event( '&::AudioPlayerRelayCommand($object, "pause")',                                             'macro255' );
+    $object->tie_event( '&::AudioPlayerRelayCommand($object, "play")',                                              'macro256' );
 }
 
 sub AudioDeviceSetupPlayers {

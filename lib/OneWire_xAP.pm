@@ -99,21 +99,17 @@ sub add {
                 $xap_address = "liming.oxc.house";
             }
             if ( $is_oxc and $device->id !~ /^\S*\.\S*/ ) {
-                $xap_address =
-                  $xap_address . ':' . lc $device->type . "." . $device->id;
+                $xap_address = $xap_address . ':' . lc $device->type . "." . $device->id;
             }
             else {
                 $xap_address = $xap_address . ':' . $device->id;
             }
-            print
-              "Adding BSC_Item to a OneWire_xAP instance with address: $xap_address\n"
+            print "Adding BSC_Item to a OneWire_xAP instance with address: $xap_address\n"
               if $::Debug{onewire};
             my $xap_item = new BSC_Item($xap_address);
-            $xap_item->always_set_state(1)
-              ;    # needed so that we always update from info or event messages
+            $xap_item->always_set_state(1);    # needed so that we always update from info or event messages
             $$self{source_map}{$xap_item} = $device;
-            $self->SUPER::add_item_if_not_present($xap_item)
-              ;    # add it so that it can set this obejct
+            $self->SUPER::add_item_if_not_present($xap_item);    # add it so that it can set this obejct
             $xap_item->query();
         }
     }
@@ -146,20 +142,17 @@ sub set {
                 # parse the data from the level member stripping % char
                 if ( $source->level ) {
                     if ( $source->level =~ /\d+\/\d+/ ) {
-                        my ( $humid1, $range ) =
-                          $source->level =~ /^(\d+\.?\d*)\/(\d+)/;
+                        my ( $humid1, $range ) = $source->level =~ /^(\d+\.?\d*)\/(\d+)/;
                         $device->measurement( 100 * ( $humid1 / $range ) )
                           if ( defined($humid1) and ($range) );
                     }
                     else {
-                        my ( $humid, $humid_scale ) =
-                          $source->level =~ /^(-?\d*\.?\d*)\s*(\S*)/;
+                        my ( $humid, $humid_scale ) = $source->level =~ /^(-?\d*\.?\d*)\s*(\S*)/;
                         $device->measurement($humid) if defined($humid);
                     }
                 }
                 elsif ( $source->text ) {
-                    my ( $humid, $humid_scale ) =
-                      $source->text =~ /^(-?\d*\.?\d*)\s*(\S*)/;
+                    my ( $humid, $humid_scale ) = $source->text =~ /^(-?\d*\.?\d*)\s*(\S*)/;
                     $device->measurement($humid) if defined($humid);
                 }
             }
@@ -167,8 +160,7 @@ sub set {
 
                 # parse the data from the text member using the last char for scale
                 # TO-DO: perform conversion if temp_scale is not what device wants
-                my ( $temp, $temp_scale ) =
-                  $source->text =~ /^(-?\d*\.?\d*)\s*(\S*)/;
+                my ( $temp, $temp_scale ) = $source->text =~ /^(-?\d*\.?\d*)\s*(\S*)/;
                 $device->measurement($temp) if defined($temp);
             }
             elsif ( $device->type eq 'solar' ) {

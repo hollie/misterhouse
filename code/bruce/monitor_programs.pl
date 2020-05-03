@@ -9,15 +9,12 @@ track packets going to and from the internet.
 
 =cut
 
-$monitor_programs = new Voice_Cmd
-  'What programs are running on [localhost,C1,C2,WARP,Z,P90,House]';
-$monitor_programs->set_info(
-    'Uses Windows WMI to monitor programs on other computers in the house');
+$monitor_programs = new Voice_Cmd 'What programs are running on [localhost,C1,C2,WARP,Z,P90,House]';
+$monitor_programs->set_info('Uses Windows WMI to monitor programs on other computers in the house');
 
 $active_programs = new Generic_Item;
 
-my $monitor_program_results =
-  "$config_parms{data_dir}/find_program_results.txt";
+my $monitor_program_results = "$config_parms{data_dir}/find_program_results.txt";
 $monitor_programs_p = new Process_Item;
 $monitor_programs_p->set_output($monitor_program_results);
 
@@ -38,10 +35,8 @@ if ( done_now $monitor_programs_p) {
         set $active_programs $programs;
     }
     else {
-        logit "$config_parms{data_dir}/logs/monitor_programs.log",
-          "$box: $programs";
-        display $results . "\nPrograms: $programs", 30,
-          "Program Monitor results for $box", 'fixed'
+        logit "$config_parms{data_dir}/logs/monitor_programs.log", "$box: $programs";
+        display $results . "\nPrograms: $programs", 30, "Program Monitor results for $box", 'fixed'
           if $monitor_programs_p->{done_action} eq 'display';
     }
 

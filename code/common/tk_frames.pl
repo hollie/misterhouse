@@ -27,12 +27,9 @@ if ( $MW and $Reload ) {
 
         $Tk_objects{grid} =
           $Tk_objects{ft}->Frame->pack(qw/-side right -anchor n/);
-        $Tk_objects{fb2} =
-          $MW->Frame->pack(qw/-side bottom -fill both -expand 1/);
-        $Tk_objects{fb3} =
-          $MW->Frame->pack(qw/-side bottom -fill both -expand 1/);
-        $Tk_objects{fb4} =
-          $MW->Frame->pack(qw/-side bottom -fill both -expand 1/);
+        $Tk_objects{fb2} = $MW->Frame->pack(qw/-side bottom -fill both -expand 1/);
+        $Tk_objects{fb3} = $MW->Frame->pack(qw/-side bottom -fill both -expand 1/);
+        $Tk_objects{fb4} = $MW->Frame->pack(qw/-side bottom -fill both -expand 1/);
 
         # *** Put in to make window menu fonts sync with scheme change (doesn't seem to work)
 
@@ -48,8 +45,7 @@ if ( $MW and $Reload ) {
     # This file changed, so re-create all frames
     else {
         file_change("$config_parms{code_dir_common}/tk_frames.pl")
-          if $Startup
-          ; # Set file change time stamp *** Why? display_alpha doesn't do this for bitmaps
+          if $Startup;    # Set file change time stamp *** Why? display_alpha doesn't do this for bitmaps
 
         $Invalidate_Window = 0;
 
@@ -64,14 +60,11 @@ if ( $MW and $Reload ) {
         print "Creating Frames\n";
 
         # Create top and bottom frames
-        $Tk_objects{ft} = $MW->Frame->pack(qw/-side top -fill both -expand 1/);
-        $Tk_objects{fb} = $MW->Frame->pack(qw/-side top -fill both -expand 1/);
-        $Tk_objects{fb2} =
-          $MW->Frame->pack(qw/-side bottom -fill both -expand 1/);
-        $Tk_objects{fb3} =
-          $MW->Frame->pack(qw/-side bottom -fill both -expand 1/);
-        $Tk_objects{fb4} =
-          $MW->Frame->pack(qw/-side bottom -fill both -expand 1/);
+        $Tk_objects{ft}  = $MW->Frame->pack(qw/-side top -fill both -expand 1/);
+        $Tk_objects{fb}  = $MW->Frame->pack(qw/-side top -fill both -expand 1/);
+        $Tk_objects{fb2} = $MW->Frame->pack(qw/-side bottom -fill both -expand 1/);
+        $Tk_objects{fb3} = $MW->Frame->pack(qw/-side bottom -fill both -expand 1/);
+        $Tk_objects{fb4} = $MW->Frame->pack(qw/-side bottom -fill both -expand 1/);
 
         &configure_element( 'frame', \$Tk_objects{ft} );
         &configure_element( 'frame', \$Tk_objects{fb} );
@@ -116,8 +109,7 @@ if ( $MW and $Reload ) {
             -scrollbars => 'se',
             -setgrid    => 'true'
         )->pack(qw/-side top -expand 1 -fill both/);
-        $Tk_objects{speak_window}->insert( '0.0', ( join "\n", @Speak_Log ) )
-          ;    # Seed with previous entries
+        $Tk_objects{speak_window}->insert( '0.0', ( join "\n", @Speak_Log ) );    # Seed with previous entries
 
         &configure_element( 'log', \$Tk_objects{speak_window} );
 
@@ -129,8 +121,7 @@ if ( $MW and $Reload ) {
             -scrollbars => 'osoe',
             -setgrid    => 'true'
         )->pack(qw/-side top -expand 1 -fill both/);
-        $Tk_objects{log_window}->insert( '0.0', ( join "\n", @Print_Log ) )
-          ;    # Seed with previous entries
+        $Tk_objects{log_window}->insert( '0.0', ( join "\n", @Print_Log ) );      # Seed with previous entries
 
         &configure_element( 'log', \$Tk_objects{log_window} );
 

@@ -30,7 +30,7 @@ sub new {
     $$self{'pump_is_running'} = 0;    # assume it is not running
     @{ $$self{'valve_id_list'} } = ();
     @{ $$self{'queue_id_list'} } = ();
-    $self->restore_data( 'pump_is_running', 'default_queue_id' );   # keep track
+    $self->restore_data( 'pump_is_running', 'default_queue_id' );    # keep track
 
     return $self;
 }
@@ -66,11 +66,7 @@ sub get_queue {
     my $new_queue = xPL_IrrigationQueue->new( $queue_id, $self );
 
     # persist the newly created item
-    &main::store_object_data(
-        $new_queue, 'xPL_IrrigationQueue',
-        'IrrigationQueue' . $queue_id,
-        'IrrigationQueue' . $queue_id
-    );
+    &main::store_object_data( $new_queue, 'xPL_IrrigationQueue', 'IrrigationQueue' . $queue_id, 'IrrigationQueue' . $queue_id );
     $self->add_item_if_not_present($new_queue);
     return $new_queue;
 }
@@ -78,18 +74,15 @@ sub get_queue {
 sub get_default_queue {
     my ($self) = @_;
     if ( !( defined $self->default_queue_id ) ) {
-        $$self{default_queue_id} = '0'; # invent one; this should never happen!!
-        &::print_log(
-            "[xPL_IrrigationGateway] WARN: automatically creating a new default queue id of "
-              . $self->default_queue_id );
+        $$self{default_queue_id} = '0';    # invent one; this should never happen!!
+        &::print_log( "[xPL_IrrigationGateway] WARN: automatically creating a new default queue id of " . $self->default_queue_id );
     }
     return $self->get_queue( $self->default_queue_id );
 }
 
 sub request_stat {
     my ( $self, $request_all ) = @_;
-    $self->SUPER::send_cmnd(
-        'sprinklr.request' => { 'request' => 'gateinfo' } );
+    $self->SUPER::send_cmnd( 'sprinklr.request' => { 'request' => 'gateinfo' } );
     if ($request_all) {
         for my $valve ( $self->find_members('xPL_IrrigationValve') ) {
             if ($valve) {
@@ -104,9 +97,7 @@ sub default_setstate {
     if ( $set_by =~ /^xpl/i ) {
         if ( $$self{changed} =~ /sprinklr\.gateinfo/ ) {
             &::print_log(
-                "[xPL_IrrigationGateway] Received sprinklr.gateinfo message."
-                  . " Default queue id= "
-                  . $$self{'sprinklr.gateinfo'}{'default-queue-id'} )
+                "[xPL_IrrigationGateway] Received sprinklr.gateinfo message." . " Default queue id= " . $$self{'sprinklr.gateinfo'}{'default-queue-id'} )
               if $main::Debug{irrigation};
             $$self{'default_queue_id'} =
               $$self{'sprinklr.gateinfo'}{'default-queue-id'};
@@ -120,56 +111,45 @@ sub default_setstate {
                   split( /,/, $$self{'sprinklr.gateinfo'}{'queue-id-list'} );
                 @{ $$self{'queue_id_list'} } = @list;
             }
-            $self->SUPER::send_cmnd(
-                'sprinklr.request' => { 'request' => 'pumpinfo' } );
+            $self->SUPER::send_cmnd( 'sprinklr.request' => { 'request' => 'pumpinfo' } );
         }
         elsif ( $$self{changed} =~ /sprinklr\.pumpinfo/ ) {
-            &::print_log(
-                "[xPL_IrrigationGateway] Received sprinkler.pumpinfo message: pump is "
-                  . $$self{'sprinklr.pumpinfo'}{state} )
+            &::print_log( "[xPL_IrrigationGateway] Received sprinkler.pumpinfo message: pump is " . $$self{'sprinklr.pumpinfo'}{state} )
               if $main::Debug{irrigation};
             $$self{pump_is_running} =
               ( $$self{'sprinklr.pumpinfo'}{state} =~ /^running/i ) ? 1 : 0;
         }
         elsif ( $$self{changed} =~ /sprinkler\.gateway/ ) {
-            &::print_log(
-                "[xPL_IrrigationGateway] Received sprinkler.gateway message")
+            &::print_log("[xPL_IrrigationGateway] Received sprinkler.gateway message")
               if $main::Debug{irrigation};
         }
         elsif ( $$self{changed} =~ /sprinklr\.pump/ ) {
-            &::print_log(
-                "[xPL_IrrigationGateway] Received sprinkler.pump message: pump is "
-                  . $$self{'sprinklr.pump'}{state} )
+            &::print_log( "[xPL_IrrigationGateway] Received sprinkler.pump message: pump is " . $$self{'sprinklr.pump'}{state} )
               if $main::Debug{irrigation};
             $$self{pump_is_running} =
               ( $$self{'sprinklr.pump'}{state} =~ /^running/i ) ? 1 : 0;
         }
         elsif ( $$self{changed} =~ /sprinklr\.vrequest/ ) {
-            my $queue_id      = $$self{'sprinklr.vrequest'}{'queue-id'};
-            my $request_index = $$self{'sprinklr.vrequest'}{'request-index'};
-            my $action        = $$self{'sprinklr.vrequest'}{'action'};
-            my $valve_id      = $$self{'sprinklr.vrequest'}{'valve-id'};
-            my $run_minutes   = $$self{'sprinklr.vrequest'}{'run-minutes'};
-            my $remaining_minutes =
-              $$self{'sprinklr.vrequest'}{'remaining-minutes'};
+            my $queue_id          = $$self{'sprinklr.vrequest'}{'queue-id'};
+            my $request_index     = $$self{'sprinklr.vrequest'}{'request-index'};
+            my $action            = $$self{'sprinklr.vrequest'}{'action'};
+            my $valve_id          = $$self{'sprinklr.vrequest'}{'valve-id'};
+            my $run_minutes       = $$self{'sprinklr.vrequest'}{'run-minutes'};
+            my $remaining_minutes = $$self{'sprinklr.vrequest'}{'remaining-minutes'};
 
-            &::print_log(
-                "[xPL_IrrigationGateway] Received sprinklr.vrequest message."
+            &::print_log( "[xPL_IrrigationGateway] Received sprinklr.vrequest message."
                   . " queue_id=$queue_id, request_index=$request_index, action=$action,"
-                  . " valve_id=$valve_id, run_minutes=$run_minutes, remaining_minutes=$remaining_minutes"
-            ) if $main::Debug{irrigation};
+                  . " valve_id=$valve_id, run_minutes=$run_minutes, remaining_minutes=$remaining_minutes" )
+              if $main::Debug{irrigation};
 
         }
         elsif ( $$self{changed} =~ /sprinklr\.rqstinfo/ ) {
-            &::print_log(
-                "[xPL_IrrigationGateway] Received sprinkler.rqstinfo message")
+            &::print_log("[xPL_IrrigationGateway] Received sprinkler.rqstinfo message")
               if $main::Debug{irrigation};
         }
     }
     else {
-        &::print_log(
-            "[xPL_IrrigationGateway] WARN: Gateway state may not be explicitely set.  Ignoring."
-        ) if $main::Debug{irrigation};
+        &::print_log("[xPL_IrrigationGateway] WARN: Gateway state may not be explicitely set.  Ignoring.") if $main::Debug{irrigation};
 
         # return a -1 if not changed by xpl so that state is not revised until receipt of gateinfo
         return -1;
@@ -342,12 +322,8 @@ sub new {
     $self->SUPER::device_monitor("valve-id=$id") if defined $id;
 
     # remap the state values to on and off
-    $self->tie_value_convertor( 'state',
-        '($section eq "sprinklr.valvinfo" and $value eq "closed") ? "off" : "on"'
-    );
-    $self->tie_value_convertor( 'action',
-        '($section eq "sprinklr.valve" and $value eq "closed") ? "off" : "on"'
-    );
+    $self->tie_value_convertor( 'state',  '($section eq "sprinklr.valvinfo" and $value eq "closed") ? "off" : "on"' );
+    $self->tie_value_convertor( 'action', '($section eq "sprinklr.valve" and $value eq "closed") ? "off" : "on"' );
 
     $self->state_overload('on');
 
@@ -356,8 +332,7 @@ sub new {
 
 sub request_stat {
     my ($self) = @_;
-    $self->SUPER::send_cmnd(
-        'sprinklr.request' => { 'request' => 'valvinfo' } );
+    $self->SUPER::send_cmnd( 'sprinklr.request' => { 'request' => 'valvinfo' } );
 }
 
 sub id {
@@ -376,10 +351,7 @@ sub ignore_message {
     my $ignore_message = 0;
     if (
         !(
-            (
-                defined( $$p_data{'sprinklr.valvinfo'} )
-                and $$p_data{'sprinklr.valvinfo'}{'valve-id'} eq $self->id
-            )
+            ( defined( $$p_data{'sprinklr.valvinfo'} ) and $$p_data{'sprinklr.valvinfo'}{'valve-id'} eq $self->id )
             or ( defined( $$p_data{'sprinklr.valve'} )
                 and $$p_data{'sprinklr.valve'}{'valve-id'} eq $self->id )
         )
@@ -394,37 +366,27 @@ sub default_setstate {
     my ( $self, $state, $substate, $set_by ) = @_;
     if ( $set_by =~ /^xpl/i ) {
         if ( $$self{changed} =~ /sprinklr\.valvinfo/ ) {
-            &::print_log( "[xPL_IrrigationValve] valve: "
-                  . $self->get_object_name
-                  . " state is $state" )
+            &::print_log( "[xPL_IrrigationValve] valve: " . $self->get_object_name . " state is $state" )
               if $main::Debug{irrigation};
             return -1
-              if $self->state eq
-              $state;    # don't propagate state unless it has changed
+              if $self->state eq $state;    # don't propagate state unless it has changed
         }
         elsif ( $$self{changed} =~ /sprinklr\.valve/ ) {
-            &::print_log( "[xPL_IrrigationValve] valve: "
-                  . $self->get_object_name
-                  . " state is $state" )
+            &::print_log( "[xPL_IrrigationValve] valve: " . $self->get_object_name . " state is $state" )
               if $main::Debug{irrigation};
             return -1
-              if $self->state eq
-              $state;    # don't propagate state unless it has changed
+              if $self->state eq $state;    # don't propagate state unless it has changed
         }
     }
     else {
         if ( $state =~ /^\d+/ ) {
             if ($substate) {
-                &::print_log( "[xPL_IrrigationValve] Request valve: "
-                      . $self->get_object_name
-                      . " queued for $state minutes on queue: $substate" )
+                &::print_log( "[xPL_IrrigationValve] Request valve: " . $self->get_object_name . " queued for $state minutes on queue: $substate" )
                   if $main::Debug{irrigation};
                 $$self{gateway}->queue_request( $self, $state, $substate );
             }
             else {
-                &::print_log( "[xPL_IrrigationValve] Request valve: "
-                      . $self->get_object_name
-                      . " queued for $state minutes on default queue" )
+                &::print_log( "[xPL_IrrigationValve] Request valve: " . $self->get_object_name . " queued for $state minutes on default queue" )
                   if $main::Debug{irrigation};
                 $$self{gateway}->queue_request( $self, $state );
             }
@@ -440,14 +402,11 @@ sub default_setstate {
                       . $self->default_run_time
                       . " minutes on default queue" )
                   if $main::Debug{irrigation};
-                $$self{gateway}
-                  ->queue_request( $self, $self->default_run_time );
+                $$self{gateway}->queue_request( $self, $self->default_run_time );
             }
             else {
-                &::print_log( "[xPL_IrrigationValve] Request valve: "
-                      . $self->get_object_name
-                      . " queued for gateway default run time on default queue"
-                ) if $main::Debug{irrigation};
+                &::print_log( "[xPL_IrrigationValve] Request valve: " . $self->get_object_name . " queued for gateway default run time on default queue" )
+                  if $main::Debug{irrigation};
                 $$self{gateway}->queue_request($self);
             }
         }
@@ -455,9 +414,7 @@ sub default_setstate {
 
             # TO-DO;  this is a bit more difficult since it involves locating the active
             #    request and deleting it from it's queue
-            &::print_log(
-                "[xPL_IrrigationValve] WARN: Unable to support off state.  Request is ignored."
-            ) if $main::Debug{irrigation};
+            &::print_log("[xPL_IrrigationValve] WARN: Unable to support off state.  Request is ignored.") if $main::Debug{irrigation};
         }
 
         # return a -1 if not changed by xpl so that state is not revised until receipt of gateinfo
@@ -481,7 +438,7 @@ sub new {
 
     # default the default run time as 5 minutes; possibly this should be longer?
     $$self{default_run_time} = 5;
-    $$self{state_monitor} = "sprinklr.queinfo : state|sprinklr.queue : action";
+    $$self{state_monitor}    = "sprinklr.queinfo : state|sprinklr.queue : action";
     $self->SUPER::device_monitor("queue-id=$id") if defined $id;
 
     $self->state_overload('on');
@@ -515,10 +472,7 @@ sub ignore_message {
     my $ignore_message = 0;
     if (
         !(
-            (
-                defined( $$p_data{'sprinklr.queinfo'} )
-                and $$p_data{'sprinklr.queinfo'}{'queue-id'} eq $self->id
-            )
+            ( defined( $$p_data{'sprinklr.queinfo'} ) and $$p_data{'sprinklr.queinfo'}{'queue-id'} eq $self->id )
             or ( defined( $$p_data{'sprinklr.queue'} )
                 and $$p_data{'sprinklr.queue'}{'queue-id'} eq $self->id )
         )
@@ -572,8 +526,7 @@ sub clear {
     my $cmd_block = {};
     $$cmd_block{'command'}  = 'CLEAR-QUEUE';
     $$cmd_block{'queue-id'} = $self->id;
-    &::print_log(
-        "[xPL_IrrigationQueue] Received request to clear queue: " . $self->id )
+    &::print_log( "[xPL_IrrigationQueue] Received request to clear queue: " . $self->id )
       if $main::Debug{irrigation};
     $self->SUPER::send_cmnd( 'sprinklr.basic', $cmd_block );
 }
@@ -583,8 +536,7 @@ sub hold {
     my $cmd_block = {};
     $$cmd_block{'command'}  = 'HOLD-QUEUE';
     $$cmd_block{'queue-id'} = $self->id;
-    &::print_log(
-        "[xPL_IrrigationQueue] Received request to hold queue: " . $self->id )
+    &::print_log( "[xPL_IrrigationQueue] Received request to hold queue: " . $self->id )
       if $main::Debug{irrigation};
     $self->SUPER::send_cmnd( 'sprinklr.basic', $cmd_block );
 }
@@ -594,8 +546,7 @@ sub release {
     my $cmd_block = {};
     $$cmd_block{'command'}  = 'RELEASE-QUEUE';
     $$cmd_block{'queue-id'} = $self->id;
-    &::print_log( "[xPL_IrrigationQueue] Received request to release queue: "
-          . $self->id )
+    &::print_log( "[xPL_IrrigationQueue] Received request to release queue: " . $self->id )
       if $main::Debug{irrigation};
     $self->SUPER::send_cmnd( 'sprinklr.basic', $cmd_block );
 }

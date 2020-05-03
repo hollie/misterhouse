@@ -17,12 +17,7 @@ $xap_echo_all = 1 unless defined $xap_echo_all;
 if ( new_minute 1 and ( $xap_echo_all or $config_parms{xap_echo_weather} ) ) {
 
     # Scheme from: From: http://www.xapautomation.org/modules.php?name=Sections&op=viewarticle&artid=2
-    my $f_date =
-        $Year
-      . ( ( length($Month) == 1 ) ? '0' : '' )
-      . $Month
-      . ( ( length($Mday) == 1 ) ? '0' : '' )
-      . $Mday;
+    my $f_date = $Year . ( ( length($Month) == 1 ) ? '0' : '' ) . $Month . ( ( length($Mday) == 1 ) ? '0' : '' ) . $Mday;
     my $f_tod = ($Dark) ? 'Night' : 'Day';
     my $f_time =
         ( ( length($Hour) == 1 ) ? '0' : '' )
@@ -31,8 +26,7 @@ if ( new_minute 1 and ( $xap_echo_all or $config_parms{xap_echo_weather} ) ) {
       . $Minute . ':'
       . ( ( length($Second) == 1 ) ? '0' : '' )
       . $Second;
-    my ( $sunriseh, $sunrisem, $sunrisec ) =
-      $Time_Sunrise =~ /(\S+):(\S+) (\S+)/;
+    my ( $sunriseh, $sunrisem, $sunrisec ) = $Time_Sunrise =~ /(\S+):(\S+) (\S+)/;
     $sunriseh += 12 if $sunrisec =~ /pm/i;
     my ( $sunseth, $sunsetm, $sunsetc ) = $Time_Sunset =~ /(\S+):(\S+) (\S+)/;
     $sunseth += 12 if $sunsetc =~ /pm/i;
@@ -42,10 +36,7 @@ if ( new_minute 1 and ( $xap_echo_all or $config_parms{xap_echo_weather} ) ) {
     my $windspeedc = ( $config_parms{weather_uom_wind} =~ /mph/i ) ? 'M' : 'K';
     my $tempc      = ( $config_parms{weather_uom_temp} =~ /^f$/i ) ? 'F' : 'C';
 
-    my $f_description =
-        $Weather{Clouds}
-      . ( ( $Weather{Clouds} ) ? ' ' : '' )
-      . $Weather{Conditions};
+    my $f_description = $Weather{Clouds} . ( ( $Weather{Clouds} ) ? ' ' : '' ) . $Weather{Conditions};
     my $conditions =
       ( $Weather{Conditions} ) ? $Weather{Conditions} : $Weather{Clouds};
     my $f_icon = '';
@@ -56,8 +47,7 @@ if ( new_minute 1 and ( $xap_echo_all or $config_parms{xap_echo_weather} ) ) {
         $f_icon = 'sunny';
     }
 
-    my $f_winddir =
-      &Weather_Common::convert_wind_dir_to_abbr( $Weather{WindAvgDir} );
+    my $f_winddir = &Weather_Common::convert_wind_dir_to_abbr( $Weather{WindAvgDir} );
 
     my ( $weatherrpt, $timerpt );
     $weatherrpt->{'UTC'}             = $f_utc;
@@ -154,8 +144,7 @@ sub xAP_send_speak {
     my $voice = $$parms_ref{'voice'};
     if ($voice) {
         my (%voice_names);
-        &main::read_parm_hash( \%voice_names,
-            $main::config_parms{voice_names} );
+        &main::read_parm_hash( \%voice_names, $main::config_parms{voice_names} );
         if ( exists( $voice_names{$voice} ) ) {
             $voice = $voice_names{$voice};
         }
@@ -193,12 +182,9 @@ if ( $_xap_speech_echo_obj->state_now ) {
     my $source    = $_xap_speech_echo_obj->{'xap-header'}{source};
     my $classname = $_xap_speech_echo_obj->{'xap-header'}{class};
     return
-      unless (
-           ( ( $classname eq 'tts.speak' ) and $config_parms{xap_echo_speech} )
-        or
-        ( ( $classname eq 'mhtts.speak' ) and $config_parms{xap_echo_mhspeech} )
-        or $xap_echo_all
-      );
+      unless ( ( ( $classname eq 'tts.speak' ) and $config_parms{xap_echo_speech} )
+        or ( ( $classname eq 'mhtts.speak' ) and $config_parms{xap_echo_mhspeech} )
+        or $xap_echo_all );
     my $local_xap_address = &xAP::get_xap_mh_source_info();
     my $text_to_speak     = $_xap_speech_echo_obj->{'tts.speak'}{say};
     print "DBG xAP speech echo source = $source says: $text_to_speak\n"

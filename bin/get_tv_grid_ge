@@ -21,60 +21,34 @@ use LWP::UserAgent;
 
 my @lchannels;
 @lchannels = (
-    'nuller',            'SF 1',
-    'SF 2',              'SF INFO',
-    'RTL',               'RTL II',
-    'PRO SIEBEN',        'VOX',
-    'KABEL 1',           'ORF 1',
-    'ORF 2',             'SAT.1',
-    'ARD',               'ZDF',
-    '3SAT',              'VIVA',
-    'WDR',               'ONYX',
-    'CNN',               'NBC',
-    'MTV',               'CNN',
-    'MTV',               'ORB',
-    'ARTE',              'N 24',
-    'EUROSPORT',         'DSF',
-    'SFB 1',             'NDR',
-    'MDR',               'MTV 2',
-    'VPLUS',             'ONYX',
-    'Goldstar TV',       '13th Street',
-    'Phoenix',           'TV Berlin',
-    'EinsExtra',         'EinsMuXx',
-    'HESSEN',            'HH 1',
-    'EinsFestival',      'Heimatkanal',
-    'BAYERN',            'ArteDigital',
-    'NEUN LIVE',         'Theaterkanal',
-    'Euronews',          'PREMIERE ONE',
-    'PREMIERE MOVIE 2',  'PREMIERE MOVIE 3',
-    'PREMIERE WORLD',    'Premiere Action',
-    'Premiere Star',     'Premiere Comedy',
-    'Discovery Channel', 'Beate Uhse TV',
-    'Sport 1',           'Sport 2',
-    'Sport 3',           'Studio Universal',
-    'BBC WORLD'
+    'nuller',        'SF 1',             'SF 2',              'SF INFO',          'RTL',            'RTL II',
+    'PRO SIEBEN',    'VOX',              'KABEL 1',           'ORF 1',            'ORF 2',          'SAT.1',
+    'ARD',           'ZDF',              '3SAT',              'VIVA',             'WDR',            'ONYX',
+    'CNN',           'NBC',              'MTV',               'CNN',              'MTV',            'ORB',
+    'ARTE',          'N 24',             'EUROSPORT',         'DSF',              'SFB 1',          'NDR',
+    'MDR',           'MTV 2',            'VPLUS',             'ONYX',             'Goldstar TV',    '13th Street',
+    'Phoenix',       'TV Berlin',        'EinsExtra',         'EinsMuXx',         'HESSEN',         'HH 1',
+    'EinsFestival',  'Heimatkanal',      'BAYERN',            'ArteDigital',      'NEUN LIVE',      'Theaterkanal',
+    'Euronews',      'PREMIERE ONE',     'PREMIERE MOVIE 2',  'PREMIERE MOVIE 3', 'PREMIERE WORLD', 'Premiere Action',
+    'Premiere Star', 'Premiere Comedy',  'Discovery Channel', 'Beate Uhse TV',    'Sport 1',        'Sport 2',
+    'Sport 3',       'Studio Universal', 'BBC WORLD'
 );
 
 my ( $Pgm_Path, $Pgm_Name, $Version );
 
 BEGIN {
-    ($Version) =
-      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval
-      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";    # So perl2exe works
 }
 my %parms;
 use Getopt::Long;
 if (
     !&GetOptions(
-        \%parms,          "h",        "help",       "infile=s",
-        "outfile=s",      "outdir=s", "reget",      "redo",
-        "db=s",           "name=s",   "keep=s",     "skip=s",
-        "channel_max=s",  "zip:s",    "provider:s", "debug",
-        "label=s",        "keep_old", "mail_to=s",  "mail_server=s",
-        "mail_baseref=s", "days=s",   "day=s",      "hour=s"
+        \%parms,   "h",        "help",      "infile=s",      "outfile=s",      "outdir=s", "reget",      "redo",
+        "db=s",    "name=s",   "keep=s",    "skip=s",        "channel_max=s",  "zip:s",    "provider:s", "debug",
+        "label=s", "keep_old", "mail_to=s", "mail_server=s", "mail_baseref=s", "days=s",   "day=s",      "hour=s"
     )
     or @ARGV
     or ( $parms{h} or $parms{help} )
@@ -138,18 +112,12 @@ eof
 }
 
 # Globals
-my (
-    @days,          @hours, $infile, $outfile,
-    %DBM,           %DBM2,  %DBM3,   %channels_skip,
-    %channels_keep, $channel_data
-);
-my ( $url, $ua, $cookies, $req_get, $req_get1, $req_get2, $req_post,
-    $logged_in );
+my ( @days, @hours, $infile, $outfile, %DBM, %DBM2, %DBM3, %channels_skip, %channels_keep, $channel_data );
+my ( $url, $ua, $cookies, $req_get, $req_get1, $req_get2, $req_post, $logged_in );
 
 $logged_in = 1;    # German STOLL
 
-use vars
-  '%config_parms';    # Not a my, as it is called from handy_net_utils for sent
+use vars '%config_parms';    # Not a my, as it is called from handy_net_utils for sent
 &setup;
 for my $day_data (@days) {
     my ( $down, $dow, $day, $month, $year, $day_time, $countDay ) =
@@ -169,8 +137,7 @@ for my $day_data (@days) {
             use File::Copy;
             copy( $outfile, "$parms{outdir}/index.html" );
             if ( $parms{mail_to} ) {
-                &mail_file( $parms{mail_to}, $parms{mail_server}, $outfile,
-                    "$parms{name} Schedule for $dow, $month/$day/$year" );
+                &mail_file( $parms{mail_to}, $parms{mail_server}, $outfile, "$parms{name} Schedule for $dow, $month/$day/$year" );
             }
         }
     }
@@ -196,8 +163,7 @@ sub get_html {
     }
     else {
         &login unless $logged_in;
-        print
-          "Requesting data for hour=$hour day=$day month=$month year=$year .";
+        print "Requesting data for hour=$hour day=$day month=$month year=$year .";
         my $hours = ( $parms{hour} eq 'all_by_3' ) ? 3 : 4;
 
         print " .";
@@ -227,11 +193,7 @@ sub get_html {
           . $day
           . "_3456_1-2-3-4-5-6-7-9-10-172-174-151-152-153-162-111-33-114-112-113-_0_adsl_1_360_360_1,00.html";
 
-        $localUrlCall =
-            $url
-          . "programm/tvplaner/0,8484,"
-          . $countDay
-          . "_alle_alle_alle_1_2000_2000_1,00.html";
+        $localUrlCall = $url . "programm/tvplaner/0,8484," . $countDay . "_alle_alle_alle_1_2000_2000_1,00.html";
 
         #	$localUrlCall = $url . "programm/tvplaner/0,8484,".$countDay."_alle_alle_alle_1_40_2000_1,00.html";
 
@@ -271,14 +233,8 @@ sub filter_html {
 </HEAD>
 <body bgcolor=gray>
 eof
-    my ( $record, $record_prev, $script, $script_flag, $data_flag, $count1,
-        $count2, $count3 );
-    my (
-        $channel_number, $channel_name, $pgm_name,  $pgm_link,
-        $pgm_genre,      $pgm_desc,     $min_start, $min_end,
-        $min_pgm,        $von,          $bis,       $vonM,
-        $bisM,           $datum
-    );
+    my ( $record, $record_prev, $script, $script_flag, $data_flag, $count1, $count2, $count3 );
+    my ( $channel_number, $channel_name, $pgm_name, $pgm_link, $pgm_genre, $pgm_desc, $min_start, $min_end, $min_pgm, $von, $bis, $vonM, $bisM, $datum );
 
     $count1 = $count2 = $count3 = 0;
     while ( $record = <IN> ) {
@@ -297,10 +253,8 @@ eof
         if ( $record =~ /\>\|/gi ) {
 
             #			$record =~ /\>\|(.*):(.*)-(.*):(.*)\|([A-Z|a-z|0-9| ]*)\</ &&  ($von = $1.":".$2 ,$bis = $3.":".$4 ,$channel_name=$5 );
-            $record =~
-              /\>([.|0-9| ]*)<\/font\>\|(.*):(.*)-(.*):(.*)\|([A-Z|a-z|0-9| ]*)\</
-              && ( $datum = $1, $von = $2 . ":" . $3, $bis = $4 . ":" . $5,
-                $channel_name = $6 );
+            $record =~ /\>([.|0-9| ]*)<\/font\>\|(.*):(.*)-(.*):(.*)\|([A-Z|a-z|0-9| ]*)\</
+              && ( $datum = $1, $von = $2 . ":" . $3, $bis = $4 . ":" . $5, $channel_name = $6 );
         }
         if ( $record =~ /class=text\>\<b\>/gi ) {
             $record =~ /\<a href=\/(.*)\.html\>/
@@ -347,11 +301,9 @@ eof
                 $count3++;
 
                 # Clean up the program description
-                $pgm_name =~
-                  s/\<.+?\>//g;    # Drop extra HTML directives (e.g. font)
-                $pgm_link =~
-                  s/\<.+?\>//g;    # Drop extra HTML directives (e.g. font)
-                $pgm_link =~ s/  / /g;    # Drop extra spaces
+                $pgm_name =~ s/\<.+?\>//g;    # Drop extra HTML directives (e.g. font)
+                $pgm_link =~ s/\<.+?\>//g;    # Drop extra HTML directives (e.g. font)
+                $pgm_link =~ s/  / /g;        # Drop extra spaces
 
                 my $ChannelCounter = 0;
                 my ( $channel_nameint, $channel_nameint2 );
@@ -400,20 +352,18 @@ eof
                 #                    print "db $pgm_name, $min_pgm, $min_start, $min_end, $time_start, $time_end, $pgm_date\n" if $parms{debug};
                 # Insert the mh link
                 my $vcr_ref =
-                  "<a href='/SET:last_spoken?\$tv_grid?channel_${channel_number}_from_${time_start}"
+                    "<a href='/SET:last_spoken?\$tv_grid?channel_${channel_number}_from_${time_start}"
                   . "_to_${time_end}_on_${pgm_date}_for_${pgm_name_html}'>$parms{label}</a>";
 
                 $record =~ s|<a href=|$vcr_ref for <a href=|
                   unless lc $parms{label} eq 'none';
 
                 # Store the data in the DBM
-                my $db_key =
-                  join( $;, $channel_number, $pgm_date, $time_start );
+                my $db_key = join( $;, $channel_number, $pgm_date, $time_start );
 
                 #                    my $db_data= join($;, $time_end, $pgm_name,$pgm_genre, $pgm_link);
                 #                    my $db_data= join($;, $time_end, $pgm_name, $pgm_desc);
-                my $db_data = join( $;,
-                    $time_end, $pgm_name, $pgm_desc, $pgm_genre, $pgm_link );
+                my $db_data = join( $;, $time_end, $pgm_name, $pgm_desc, $pgm_genre, $pgm_link );
 
                 $DBM{$db_key}          = $db_data;
                 $DBM2{$channel_number} = $lchannels[$channel_number];
@@ -422,13 +372,11 @@ eof
                 $DBM3{$genre_key} = $pgm_genre;
                 print "db key=$db_key\n  data=$db_data.\n" if $parms{debug};
             }
-            $von = $bis = $channel_name = $pgm_name = $pgm_genre = $pgm_link =
-              $pgm_desc = "";
+            $von = $bis = $channel_name = $pgm_name = $pgm_genre = $pgm_link = $pgm_desc = "";
         }
 
     }
-    print
-      "$count1 records with $count2 grid rows were read.  $count3 programs stored.\n";
+    print "$count1 records with $count2 grid rows were read.  $count3 programs stored.\n";
     close IN;
     close OUT;
 }
@@ -436,18 +384,14 @@ eof
 # Create the index table, for the next 2 weeks, and for other hours in this day
 sub make_index {
     my ( $hour, $down, $day, $day_time ) = @_;
-    print OUT "<center>\n<table border=1 width=100%>\n<tr>\n<td align=left>\n"
-      ;    ### DW: remove bgcolors
-    print OUT
-      "<font face=arial size=+1 color=white> $parms{name} Listings</td><td align=right>";
+    print OUT "<center>\n<table border=1 width=100%>\n<tr>\n<td align=left>\n";    ### DW: remove bgcolors
+    print OUT "<font face=arial size=+1 color=white> $parms{name} Listings</td><td align=right>";
     print OUT "<FORM>";
-    print OUT
-      "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'_top')>";
+    print OUT "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'_top')>";
     my $dow_start = -$down - 7;
     my $dow_stop  = $dow_start + 20;
     for my $count ( $dow_start .. $dow_stop ) {
-        my ( $dow2n, $dow2, $day2, $month2, $year2 ) =
-          &days_from_now( $day_time, $count );
+        my ( $dow2n, $dow2, $day2, $month2, $year2 ) = &days_from_now( $day_time, $count );
         print OUT "<option value='/" . $parms{db} . "/${day2}_$hour.html'";
         if ( $day2 == $day ) {
             print OUT " Selected ";
@@ -455,8 +399,7 @@ sub make_index {
         print OUT ">$dow2, $month2/$day2\n";
     }
     print OUT "</select>\n";
-    print OUT
-      "<SELECT NAME=tvtime onchange=window.open(this.options[this.selectedIndex].value,'_top')>";
+    print OUT "<SELECT NAME=tvtime onchange=window.open(this.options[this.selectedIndex].value,'_top')>";
 
     #   for my $hour2 (2, 6, 10, 14, 18, 22) {
     for my $hour2 (@hours) {
@@ -499,8 +442,7 @@ sub delete_old_data {
     for my $channel_number (@channels) {
         for my $hour ( 00 .. 23 ) {
             for my $min ( '00', '30' ) {
-                my $db_key =
-                  join( $;, $channel_number, $pgm_date, "$hour:$min" );
+                my $db_key = join( $;, $channel_number, $pgm_date, "$hour:$min" );
 
                 #               print "deleting $db_key\n" if $parms{debug};
                 delete $DBM{$db_key};
@@ -523,8 +465,7 @@ sub days_from_now {
     #   $day_time = time if $parms{day}; # Need to do a string to time thing here.
     my $day_time2 = $day_time + $days * 60 * 60 * 24;
     my ( $day, $month, $year, $down ) = ( localtime($day_time2) )[ 3, 4, 5, 6 ];
-    my $dow =
-      (qw(Sunday Monday Tuesday Wednesday Thursday Friday Saturday))[$down];
+    my $dow = (qw(Sunday Monday Tuesday Wednesday Thursday Friday Saturday))[$down];
 
     #   $month= (January,February,March,April,May,June,July,August,Septermber,October,November,December)[$month];
     $month++;
@@ -577,7 +518,7 @@ sub setup {
       unless $parms{provider};
     $parms{hour}  = $config_parms{ $parms{db} . '_hours' } unless $parms{hour};
     $parms{label} = $config_parms{ $parms{db} . '_label' } unless $parms{label};
-    $parms{skip} = $config_parms{ $parms{db} . '_channels_skip' }
+    $parms{skip}  = $config_parms{ $parms{db} . '_channels_skip' }
       unless $parms{skip};
     $parms{keep} = $config_parms{ $parms{db} . '_channels_keep' }
       unless $parms{keep};
@@ -586,7 +527,7 @@ sub setup {
     $parms{zip}         = '55901'  unless $parms{zip};
     $parms{provider}    = '255248' unless $parms{provider};
     $parms{channel_max} = '999'    unless $parms{channel_max};
-    $parms{label} = "VCR" unless $parms{label}; # This can also be an image link
+    $parms{label}       = "VCR"    unless $parms{label};         # This can also be an image link
 
     #   $parms{label} = qq[<img src="/tv/vcr.jpg">] unless $parms{label};
     $parms{days} = 1 unless $parms{days};
@@ -597,7 +538,7 @@ sub setup {
 
     for my $count ( 0 .. $parms{days} - 1 ) {
         my @day_data = &days_from_now( time, $count ), $count;
-        push( @days, "@day_data" );             # $dow $month $day $year");
+        push( @days, "@day_data" );                              # $dow $month $day $year");
     }
 
     $parms{hour} = '6pm' unless $parms{hour};
@@ -609,7 +550,7 @@ sub setup {
     }
     elsif ( 1 < ( @hours = split( ',', $parms{hour} ) ) ) {
         for (@hours) {
-            $_ = sprintf( "%02d", $_ );         # force hour to be  zero padded
+            $_ = sprintf( "%02d", $_ );                          # force hour to be  zero padded
 
             #           print "$_/n";
         }
@@ -657,15 +598,14 @@ sub setup {
 
     #    $req_get = HTTP::Request->new(GET  => $url . "programm/freetv/0,8484,1234567_-20020128_3456_1-2-3-4-5-6-7-9-10-172-174-151-152-153-162-111-33-114-112-113-_0_adsl_1_21_360_18,00.html" );
     #    $req_get = GET $url . "programm/freetv/0,8484,1234567_-20020128_3456_1-2-3-4-5-6-7-9-10-172-174-151-152-153-162-111-33-114-112-113-_0_adsl_1_360_360_1,00.html";
-    $req_get = GET $url
-      . "programm/freetv/0,8484,1234567_-20020128_3456_1-2-3-4-5-6-7-9-10-172-174-151-152-153-162-111-33-114-112-113-_0_adsl_1_40_360_1,00.html";
-    $req_get = GET $url
-      . "programm/freetv/0,8484,1234567_-20020128_3456_1-2-3-4-5-6-7-9-10-172-174-151-152-153-162-111-33-114-112-113-_0_adsl_1_360_360_1,00.html";
+    $req_get =
+      GET $url . "programm/freetv/0,8484,1234567_-20020128_3456_1-2-3-4-5-6-7-9-10-172-174-151-152-153-162-111-33-114-112-113-_0_adsl_1_40_360_1,00.html";
+    $req_get =
+      GET $url . "programm/freetv/0,8484,1234567_-20020128_3456_1-2-3-4-5-6-7-9-10-172-174-151-152-153-162-111-33-114-112-113-_0_adsl_1_360_360_1,00.html";
 
     $req_get1 = HTTP::Request->new( GET  => $url . 'gridall.asp' );
     $req_post = HTTP::Request->new( POST => $url . 'programm/freetv' );
-    $req_get2 =
-      HTTP::Request->new( GET => $url . 'listings_redirect.asp?spp=0' );
+    $req_get2 = HTTP::Request->new( GET  => $url . 'listings_redirect.asp?spp=0' );
 
     $req_post->content_type('application/x-www-form-urlencoded');
 

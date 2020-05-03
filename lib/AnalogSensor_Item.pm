@@ -120,17 +120,12 @@ sub new {
     $$self{m_activityTime} = 24 * 3600;
 
     # maintain measurement member as it is like state
-    $self->restore_data(
-        'm_measurement',         'm_timestamp',
-        'm_time_since_previous', 'm_measurement_change',
-        'm_activityTime'
-    );
+    $self->restore_data( 'm_measurement', 'm_timestamp', 'm_time_since_previous', 'm_measurement_change', 'm_activityTime' );
     $$self{m_max_records} = 10;
     for my $token (@args) {
         my ( $tag, $value ) = split( /=/, $token );
         if ( defined($tag) and defined($value) ) {
-            print "[AnalogSensor_Item] Adding analog sensor token: $tag "
-              . "having value: $value\n"
+            print "[AnalogSensor_Item] Adding analog sensor token: $tag " . "having value: $value\n"
               if $main::Debug{analogsensor};
             $self->token( $tag, $value );
         }
@@ -181,17 +176,13 @@ sub measurement {
         # if we have a prior record, then compute the deltas
         if ( !($p_skip_delta) && @measurement_records ) {
             my $last_index = 0;    #scalar(@measurement_records)-1;
-            $$self{m_time_since_previous} =
-              $p_timestamp -
-              $measurement_records[$last_index]->{time_since_previous};
+            $$self{m_time_since_previous} = $p_timestamp - $measurement_records[$last_index]->{time_since_previous};
             $$self{m_measurement_change} =
               $p_measurement - $measurement_records[$last_index]->{measurement};
 
             # and update this record
-            $measurement_record->{time_since_previous} =
-              $$self{m_time_since_previous};
-            $measurement_record->{measurement_change} =
-              $$self{m_measurement_change};
+            $measurement_record->{time_since_previous} = $$self{m_time_since_previous};
+            $measurement_record->{measurement_change}  = $$self{m_measurement_change};
         }
         else {
             $measurement_record->{time_since_previous} = 0;
@@ -218,8 +209,7 @@ sub measurement {
         if ( $$self{m_objects} ) {
             for my $averager ( @{ $$self{m_objects} } ) {
                 if ( $averager && $averager->can('update_measurement') ) {
-                    $averager->update_measurement( $self, $p_measurement,
-                        $p_timestamp );
+                    $averager->update_measurement( $self, $p_measurement, $p_timestamp );
                 }
             }
         }
@@ -239,9 +229,7 @@ sub set {
             package AnalogSensor_Item;
         }
         else {
-            &print_log(
-                "$$self{object_name}->Has not received a measurement in $$self{'m_inactivityTime'} seconds"
-            );
+            &print_log("$$self{object_name}->Has not received a measurement in $$self{'m_inactivityTime'} seconds");
         }
         $p_state = 'check';
         $self->SUPER::set( $p_state, $p_setby );
@@ -323,16 +311,13 @@ sub map_to_weather {
             if ( $sensor_names !~ /$rrd_ref\W/i ) {
                 $sensor_names .= ", $rrd_ref => $p_sensor_name";
                 $main::config_parms{weather_graph_sensor_names} = $sensor_names;
-                print
-                  "[AnalogSensor] weather_graph_sensor_names: $sensor_names\n"
+                print "[AnalogSensor] weather_graph_sensor_names: $sensor_names\n"
                   if $main::Debug{analogsensor};
             }
         }
         else {
-            $main::config_parms{weather_graph_sensor_names} =
-              "$rrd_ref => $p_sensor_name";
-            print
-              "[AnalogSensor] weather_graph_sensor_names: $main::config_parms{weather_graph_sensor_names}\n"
+            $main::config_parms{weather_graph_sensor_names} = "$rrd_ref => $p_sensor_name";
+            print "[AnalogSensor] weather_graph_sensor_names: $main::config_parms{weather_graph_sensor_names}\n"
               if $main::Debug{analogsensor};
         }
     }
@@ -382,8 +367,7 @@ sub check_tied_state_conditions {
     # construct the tokens
     my $token_string = "";
     for my $token ( keys %{ $$self{tokens} } ) {
-        $token_string .=
-          'my $token_' . $token . ' = ' . $$self{tokens}{$token} . '; ';
+        $token_string .= 'my $token_' . $token . ' = ' . $$self{tokens}{$token} . '; ';
     }
     print "[AnalogSensor] token_string: $token_string\n"
       if ($token_string) && $main::Debug{analogsensor};
@@ -399,14 +383,11 @@ sub check_tied_state_conditions {
         my $recent_change_rate  = $self->get_average_change_rate(3);
         my $state               = $self->state;
         my $code                = "no strict; ";
-        $code .=
-          ($token_string) ? ( $token_string . ' ' . $condition ) : $condition;
+        $code .= ($token_string) ? ( $token_string . ' ' . $condition ) : $condition;
         my $result = eval($code);
 
         if ($@) {
-            &::print_log( "Problem encountered when evaluating "
-                  . $self->{object_name}
-                  . " condition: $condition: $@" );
+            &::print_log( "Problem encountered when evaluating " . $self->{object_name} . " condition: $condition: $@" );
             $self->untie_state_condition($condition);
         }
         elsif ($result) {
@@ -438,8 +419,7 @@ sub check_tied_event_conditions {
     # construct the tokens
     my $token_string = "";
     for my $token ( keys %{ $$self{tokens} } ) {
-        $token_string .=
-          'my $token_' . $token . ' = ' . $$self{tokens}{$token} . '; ';
+        $token_string .= 'my $token_' . $token . ' = ' . $$self{tokens}{$token} . '; ';
     }
     print "[AnalogSensor] token_string: $token_string\n"
       if ($token_string) && $main::Debug{analogsensor};
@@ -455,27 +435,21 @@ sub check_tied_event_conditions {
         my $recent_change_rate  = $self->get_average_change_rate(3);
         my $state               = $self->state;
         my $code                = "no strict; ";
-        $code .=
-          ($token_string) ? ( $token_string . ' ' . $condition ) : $condition;
+        $code .= ($token_string) ? ( $token_string . ' ' . $condition ) : $condition;
         my $result = eval($code);
 
         if ($@) {
-            &::print_log( "Problem encountered when evaluating "
-                  . $self->{object_name}
-                  . " condition: $condition; $@" );
+            &::print_log( "Problem encountered when evaluating " . $self->{object_name} . " condition: $condition; $@" );
             $self->untie_state_condition($condition);
         }
         elsif ($result) {
 
-            package main
-              ; # needed to do this to allow usercode callbacks and vars to be used w/o needing main::
+            package main;    # needed to do this to allow usercode callbacks and vars to be used w/o needing main::
             my $code = "no strict; ";
             $code .= $$self{tied_event_conditions}{$condition};
             eval($code);
             if ($@) {
-                &::print_log( "Problem encountered when executing event for "
-                      . $self->{object_name}
-                      . " and code: $code; $@" );
+                &::print_log( "Problem encountered when executing event for " . $self->{object_name} . " and code: $code; $@" );
             }
 
             package AnalogSensor_Item;
@@ -584,8 +558,7 @@ sub new {
     for my $token (@args) {
         my ( $tag, $value ) = split( /=/, $token );
         if ( defined($tag) and defined($value) ) {
-            print "[AnalogRangeSensor_Item] Adding analog sensor token: $tag "
-              . "having value: $value\n"
+            print "[AnalogRangeSensor_Item] Adding analog sensor token: $tag " . "having value: $value\n"
               if $main::Debug{analogsensor};
             $diag_config{$tag} = $value;
         }
@@ -615,9 +588,7 @@ sub new {
 
     $states{"normal"} = "normal";
 
-    &::print_log( "[AnalogRangeSensor_Item] Specified ranges for "
-          . $self->{object_name}
-          . " : $alert_low,$warning_low,$warning_high,$alert_high" )
+    &::print_log( "[AnalogRangeSensor_Item] Specified ranges for " . $self->{object_name} . " : $alert_low,$warning_low,$warning_high,$alert_high" )
       if $main::Debug{analogsensor};
 
     #if ($diag_config) { #need to put this back
@@ -763,17 +734,13 @@ sub new {
 
     my $self = {};
     bless $self, $class;
-    $$self{m_activityTime} = 24 * 3600;
-    $$self{m_sensorTimeout} = 3600; # ignore any sensors whose value is 1 hr old
+    $$self{m_activityTime}  = 24 * 3600;
+    $$self{m_sensorTimeout} = 3600;        # ignore any sensors whose value is 1 hr old
     $self->id('');
     $self->type('averaging');
 
     # maintain measurement member as it is like state
-    $self->restore_data(
-        'm_measurement',         'm_timestamp',
-        'm_time_since_previous', 'm_measurement_change',
-        'm_activityTime'
-    );
+    $self->restore_data( 'm_measurement', 'm_timestamp', 'm_time_since_previous', 'm_measurement_change', 'm_activityTime' );
     $$self{m_max_records} = 10;
 
     if ( $p_sensor_item && $p_sensor_item->isa('AnalogSensor_Item') ) {
@@ -782,9 +749,7 @@ sub new {
         for my $token (@p_tokens) {
             my ( $tag, $value ) = split( /=/, $token );
             if ( defined($tag) and defined($value) ) {
-                print
-                  "[AnalogAveraging_Item] Adding analog averager token: $tag "
-                  . "having value: $value\n"
+                print "[AnalogAveraging_Item] Adding analog averager token: $tag " . "having value: $value\n"
                   if $main::Debug{analogsensor};
                 $self->token( $tag, $value );
             }
@@ -818,13 +783,7 @@ sub update_measurement {
     my $measurement_count       = 0;
 
     for my $measurement_key ( keys %{ $$self{m_measurements} } ) {
-        if (
-            (
-                $p_timestamp -
-                $$self{m_measurements}{$measurement_key}{timestamp}
-            ) < $self->sensor_timeout
-          )
-        {
+        if ( ( $p_timestamp - $$self{m_measurements}{$measurement_key}{timestamp} ) < $self->sensor_timeout ) {
             $measurement_accumulator +=
               $$self{m_measurements}{$measurement_key}{measurement};
             $measurement_count++;
@@ -833,10 +792,9 @@ sub update_measurement {
 
     if ($measurement_count) {
         my $average = $measurement_accumulator / $measurement_count;
-        &::print_log( "[AnalogAveraging_Item] average value for "
-              . $self->get_object_name
-              . " is $average using a total of $measurement_count individual sensors"
-        ) if $main::Debug{analogsensor};
+        &::print_log(
+            "[AnalogAveraging_Item] average value for " . $self->get_object_name . " is $average using a total of $measurement_count individual sensors" )
+          if $main::Debug{analogsensor};
         $self->measurement($average);
     }
 }

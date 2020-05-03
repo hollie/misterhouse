@@ -61,8 +61,7 @@ sub main::batch {
 
     #   print BAT ":exit\necho on\ndel $bat_file\nexit\n";
     close BAT;
-    system("start /min command /c $bat_file")
-      ; # Use cmd so the console will disappear when done ... exit after delete doesn't work :(
+    system("start /min command /c $bat_file");    # Use cmd so the console will disappear when done ... exit after delete doesn't work :(
 
     #   system("start /min cmd /c $bat_file"); # Use cmd so the console will disappear when done ... exit after delete doesn't work :(
 }
@@ -123,8 +122,7 @@ sub main::file_tail {
 
     # Get the last few lines of a file
     $records = 3 unless $records;
-    my $bytes =
-      $records * 400;    # Guess on where to put the file pointer ... faster
+    my $bytes = $records * 400;    # Guess on where to put the file pointer ... faster
     seek DATA, -$bytes, 2;
     my @data = <DATA>;
     $records = @data if @data < $records;
@@ -139,8 +137,7 @@ sub main::file_read_dir {
     my %files;
     for my $dir (@dirs) {
         opendir( DIR, $dir )
-          or print
-          "\nError in file_dir_read, can not open directory:  $dir. $!\n";
+          or print "\nError in file_dir_read, can not open directory:  $dir. $!\n";
         my @files = readdir(DIR);
         close DIR;
 
@@ -170,11 +167,9 @@ sub main::file_read {
     # Read is faster than <> (?)
     else {
         binmode LOG
-          unless $textmode
-          ;   # Don't use this on wantarray ... chomp will only get \n, not \r\n
+          unless $textmode;    # Don't use this on wantarray ... chomp will only get \n, not \r\n
         my ( $data, $buffer );
-        while ( read( LOG, $buffer, 8192 ) )
-        {     # 8*2**10 bytes ... is this optimal??
+        while ( read( LOG, $buffer, 8192 ) ) {    # 8*2**10 bytes ... is this optimal??
             $data .= $buffer;
         }
         close LOG;
@@ -182,11 +177,11 @@ sub main::file_read {
     }
 }
 
-sub main::file_write {    # Same as fileit
+sub main::file_write {                            # Same as fileit
     my ( $file, $data ) = @_;
     open( LOG, ">$file" )
       or print "Warning, could not open file_write $file: $!\n";
-    binmode LOG;          # Without this, \n newlines get messed up
+    binmode LOG;                                  # Without this, \n newlines get messed up
     print LOG $data;
 
     #   print LOG $data . "\n";
@@ -254,8 +249,7 @@ sub main::find_pgm_path {
     print "db Finding program path=$pgm_path\n" if $::Debug{misc};
 
     unless ( $pgm_path = &main::which($pgm_path) ) {
-        print
-          "Warning, new Process:  Can not find path to pgm=$pgm, pgm_path=$pgm_path arg=$pgm_args\n";
+        print "Warning, new Process:  Can not find path to pgm=$pgm, pgm_path=$pgm_path arg=$pgm_args\n";
 
         #       return;
     }
@@ -304,7 +298,7 @@ sub main::get_tickcount {
         }
     }
     $time += 2**32
-      if $time < 0;  # This wraps to negative after 25 days.  Resets after 49 :(
+      if $time < 0;                                        # This wraps to negative after 25 days.  Resets after 49 :(
     return $time;
 }
 
@@ -312,7 +306,7 @@ sub main::logit {
     my ( $log_file, $log_data, $log_format, $head_tail ) = @_;
     $log_format = 14 unless defined $log_format;
     unless ( $log_format == 0 ) {
-        $log_data =~ s/[\n\r]+/ /g;    # So log only takes one line.
+        $log_data =~ s/[\n\r]+/ /g;                        # So log only takes one line.
         my $time_date = &main::time_date_stamp($log_format);
         $log_data = "$time_date $log_data\n";
     }
@@ -482,8 +476,7 @@ sub main::memory_used {
         }
         last if $perf_pid;
     }
-    return ( $perf_mem_virt / 1024000, $perf_mem_real / 1024000,
-        $perf_cpu / 10**7 );
+    return ( $perf_mem_virt / 1024000, $perf_mem_real / 1024000, $perf_cpu / 10**7 );
 }
 
 sub main::my_use {
@@ -491,8 +484,7 @@ sub main::my_use {
     eval "use $module";
     if ($@) {
         print "\nError in loading module=$module:\n  $@";
-        print
-          "\n - See install.html for instructions on how to install perl module $module\n\n";
+        print "\n - See install.html for instructions on how to install perl module $module\n\n";
     }
     return $@;
 }
@@ -612,8 +604,7 @@ sub main::read_mh_opts {
             # Do this, since %config_parms may be a 'my' var, which can not
             # be change directly outside of the main program.
             $value =~ s/\$config_parms/\$\$ref_parms/g;
-            print
-              "read_mh_opts .ini parm evaled:  parm==$parm\n   value=$value\n"
+            print "read_mh_opts .ini parm evaled:  parm==$parm\n   value=$value\n"
               if $debug;
             eval "\$value = qq[$value]";
             print "   value=$value\n" if $debug;
@@ -685,8 +676,7 @@ sub main::read_opts {
                 $$ref_parms{ $key . "_MHINTERNAL_filename" } = $config_file;
             }
         }
-        print main::STDOUT
-          "parm vc=$value_continued key=$key value=$$ref_parms{$key} file=$config_file\n"
+        print main::STDOUT "parm vc=$value_continued key=$key value=$$ref_parms{$key} file=$config_file\n"
           if $debug;
     }
     close CONFIG;
@@ -926,11 +916,8 @@ sub main::run {
         my $pgm_path2 = $pgm_path;
         $pgm_path2 = "\"$pgm_path2\"" if $pgm_path2 =~ /\x20/;
 
-        my $pid =
-          Win32::Process::Create( $process, $pgm_path, "$pgm_path2 $pgm_args",
-            0, $cflag, '.' )
-          or print
-          "Warning, run error: pgm_path=$pgm_path\n  -   pgm=$pgm   error=",
+        my $pid = Win32::Process::Create( $process, $pgm_path, "$pgm_path2 $pgm_args", 0, $cflag, '.' )
+          or print "Warning, run error: pgm_path=$pgm_path\n  -   pgm=$pgm   error=",
           Win32::FormatMessage( Win32::GetLastError() ), "\n";
         push( @Processes, [ $process, $pgm ] );
 
@@ -960,8 +947,7 @@ sub main::run_old {
         # Running system will leave a CMD window up after it has finished :(
         # Unless ... you use cmd /c :)
         # Need to use cmd with nt??
-        $pgm = qq[command "/e:4000 /c $pgm"]
-          ;    # Do this so the cmd window dissapears after the command is done
+        $pgm = qq[command "/e:4000 /c $pgm"];    # Do this so the cmd window dissapears after the command is done
 
         my $start = '';
         $start = 'start /min';
@@ -970,7 +956,7 @@ sub main::run_old {
         $pgm   = "$start $pgm";
     }
     else {
-        $pgm = "./$pgm";    # Not all systems have the current dir in the path
+        $pgm = "./$pgm";                         # Not all systems have the current dir in the path
         $pgm .= " &" unless $mode eq 'inline';
     }
     print "\nrunning command: $pgm\n";
@@ -1137,26 +1123,14 @@ sub main::time_date_stamp {
     }
 
     my @time_data = ( $style == 19 ) ? gmtime($time) : localtime($time);
-    my ( $sec, $min, $hour, $mday, $mon, $year, $wday ) =
-      @time_data[ 0, 1, 2, 3, 4, 5, 6 ];
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday ) = @time_data[ 0, 1, 2, 3, 4, 5, 6 ];
 
-    my ( $day, $day_long, $month, $month_long, $year_full, $time_date_stamp,
-        $time_ampm, $ampm );
+    my ( $day, $day_long, $month, $month_long, $year_full, $time_date_stamp, $time_ampm, $ampm );
 
-    $day = ( "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" )[$wday];
-    $day_long = (
-        "Sunday",   "Monday", "Tuesday",  "Wednesday",
-        "Thursday", "Friday", "Saturday", "Sunday"
-    )[$wday];
-    $month = (
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-    )[$mon];
-    $month_long = (
-        "January",   "February", "March",    "April",
-        "May",       "June",     "July",     "August",
-        "September", "October",  "November", "December"
-    )[$mon];
+    $day      = ( "Sun",    "Mon",    "Tue",     "Wed",       "Thu",      "Fri",    "Sat",      "Sun" )[$wday];
+    $day_long = ( "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" )[$wday];
+    $month    = ( "Jan",    "Feb",    "Mar",     "Apr",       "May",      "Jun",    "Jul",      "Aug", "Sep", "Oct", "Nov", "Dec" )[$mon];
+    $month_long = ( "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" )[$mon];
     $mon++;
 
     $year_full = $year + 1900;
@@ -1191,20 +1165,16 @@ sub main::time_date_stamp {
       : ( $mon, $mday );
 
     if ( $style == 1 ) {
-        $time_date_stamp = sprintf( "%s, %02d/%02d/$year_format  %02d:%02d %s",
-            $day_long, @day_month, $year, $hour, $min, $ampm );
+        $time_date_stamp = sprintf( "%s, %02d/%02d/$year_format  %02d:%02d %s", $day_long, @day_month, $year, $hour, $min, $ampm );
     }
     elsif ( $style == 2 ) {
-        $time_date_stamp = sprintf( "%s %s %02d %02d:%02d %s",
-            $day_long, $month, $mday, $hour, $min, $year_full );
+        $time_date_stamp = sprintf( "%s %s %02d %02d:%02d %s", $day_long, $month, $mday, $hour, $min, $year_full );
     }
     elsif ( $style == 3 ) {
-        $time_date_stamp = sprintf( "%s, %s %02d at %2d %s",
-            $day_long, $month, $mday, $hour, $ampm );
+        $time_date_stamp = sprintf( "%s, %s %02d at %2d %s", $day_long, $month, $mday, $hour, $ampm );
     }
     elsif ( $style == 4 ) {
-        $time_date_stamp = sprintf( "%2d:%02d %s on %s, %s %02d",
-            $hour, $min, $ampm, $day_long, $month, $mday );
+        $time_date_stamp = sprintf( "%2d:%02d %s on %s, %s %02d", $hour, $min, $ampm, $day_long, $month, $mday );
     }
     elsif ( $style == 5 ) {
         $time_date_stamp = sprintf( "%2d:%02d %s", $hour, $min, $ampm );
@@ -1213,63 +1183,52 @@ sub main::time_date_stamp {
         $time_date_stamp = sprintf( "%s, %s %2d", $day, $month, $mday );
     }
     elsif ( $style == 7 ) {
-        $time_date_stamp =
-          sprintf( "%s %02d:%02d%s", $day, $hour, $min, $ampm );
+        $time_date_stamp = sprintf( "%s %02d:%02d%s", $day, $hour, $min, $ampm );
     }
     elsif ( $style == 8 ) {
         $time_date_stamp = sprintf( "%2d:%02d", $hour, $min );
     }
     elsif ( $style == 9 ) {
-        $time_date_stamp = sprintf( "%02d/%02d/$year_format  %02d:%02d %s",
-            @day_month, $year, $hour, $min, $ampm );
+        $time_date_stamp = sprintf( "%02d/%02d/$year_format  %02d:%02d %s", @day_month, $year, $hour, $min, $ampm );
     }
     elsif ( $style == 10 ) {
         $time_date_stamp = sprintf( "%04d_%02d", $year_full, $mon );
     }
     elsif ( $style == 11 ) {
-        $time_date_stamp =
-          sprintf( "%02d/%02d/$year_format", @day_month, $year );
+        $time_date_stamp = sprintf( "%02d/%02d/$year_format", @day_month, $year );
     }
     elsif ( $style == 12 ) {
-        $time_date_stamp = sprintf( "%02d/%02d/$year_format %02d:%02d:%02d",
-            @day_month, $year, $hour, $min, $sec );
+        $time_date_stamp = sprintf( "%02d/%02d/$year_format %02d:%02d:%02d", @day_month, $year, $hour, $min, $sec );
     }
     elsif ( $style == 13 ) {
         $time_date_stamp = sprintf( "%02d:%02d:%02d", $hour, $min, $sec );
     }
     elsif ( $style == 14 ) {
-        $time_date_stamp = sprintf( "%s %02d/%02d/$year_format %02d:%02d:%02d",
-            $day, @day_month, $year, $hour, $min, $sec );
+        $time_date_stamp = sprintf( "%s %02d/%02d/$year_format %02d:%02d:%02d", $day, @day_month, $year, $hour, $min, $sec );
     }
     elsif ( $style == 15 ) {
-        $time_date_stamp =
-          sprintf( "%s, %s %s", $day_long, $month_long, &main::plural2($mday) );
+        $time_date_stamp = sprintf( "%s, %s %s", $day_long, $month_long, &main::plural2($mday) );
     }
     elsif ( $style == 16 ) {
-        $time_date_stamp = sprintf( "%02d/%02d/$year_format %02d:%02d:%02d %s",
-            @day_month, $year, $hour, $min, $sec, $ampm );
+        $time_date_stamp = sprintf( "%02d/%02d/$year_format %02d:%02d:%02d %s", @day_month, $year, $hour, $min, $sec, $ampm );
     }
     elsif ( $style == 17 ) {
-        $time_date_stamp = sprintf( "%s-%02d-%02d %02d:%02d:%02d",
-            $year_full, $mon, $mday, $hour, $min, $sec );
+        $time_date_stamp = sprintf( "%s-%02d-%02d %02d:%02d:%02d", $year_full, $mon, $mday, $hour, $min, $sec );
     }
     elsif ( $style == 18 ) {
         $time_date_stamp = sprintf( "%04d%02d%02d", $year_full, $mon, $mday );
     }
     elsif ( $style == 19 ) {
-        $time_date_stamp = sprintf( "%s, %2d %s %4d %02d:%02d:%02d GMT",
-            $day, $mday, $month, $year_full, $hour, $min, $sec );
+        $time_date_stamp = sprintf( "%s, %2d %s %4d %02d:%02d:%02d GMT", $day, $mday, $month, $year_full, $hour, $min, $sec );
     }
     elsif ( $style == 20 ) {
-        $time_date_stamp = sprintf( "%04d%02d%02d%02d%02d%02d",
-            $year_full, $mon, $mday, $hour, $min, $sec );
+        $time_date_stamp = sprintf( "%04d%02d%02d%02d%02d%02d", $year_full, $mon, $mday, $hour, $min, $sec );
     }
     elsif ( $style == 21 ) {
         $time_date_stamp = sprintf( "%2d:%02d $day $mday", $hour, $min );
     }
     elsif ( $style == 22 ) {
-        $time_date_stamp = sprintf( "%s, %s %2d %2d:%02d%s",
-            $day, $month, $mday, $hour, $min, $ampm );
+        $time_date_stamp = sprintf( "%s, %s %2d %2d:%02d%s", $day, $month, $mday, $hour, $min, $ampm );
     }
     elsif ( $style == 23 ) {
         my $diff = $time - $main::Time;
@@ -1280,12 +1239,9 @@ sub main::time_date_stamp {
         my $a_week  = 7 * $a_day;
         my $a_month = 30 * $a_day;
         my $a_year  = 365 * $a_day;
-        my (
-            $now_sec, $now_min,  $now_hour, $now_mday,
-            $now_mon, $now_year, $now_wday
-        ) = localtime();
-        my $today = &::timelocal( 0, 0, 0, $now_mday, $now_mon, $now_year );
-        my $tomorrow = $today + $a_day;
+        my ( $now_sec, $now_min, $now_hour, $now_mday, $now_mon, $now_year, $now_wday ) = localtime();
+        my $today          = &::timelocal( 0, 0, 0, $now_mday, $now_mon, $now_year );
+        my $tomorrow       = $today + $a_day;
         my $twodayshence   = $today + 2 * $a_day;
         my $yesterday      = $today - $a_day;
         my $thisweek       = $today - $now_wday * $a_day;
@@ -1302,8 +1258,7 @@ sub main::time_date_stamp {
         my $lastyear       = $thisyear - $a_year;
 
         if ( $diff < 60 ) {
-            $time_date_stamp =
-              "$diff Seconds " . ( $past ? "ago" : "from now" );
+            $time_date_stamp = "$diff Seconds " . ( $past ? "ago" : "from now" );
         }
         elsif ( $diff < 120 ) {
             $time_date_stamp = "1 Minute " . ( $past ? "ago" : "from now" );
@@ -1316,27 +1271,19 @@ sub main::time_date_stamp {
             or $diff < 12 * 60 * 60 )
         {
             my $t = &::round( $diff / ( 60 * 60 ) );
-            $time_date_stamp =
-                "$t Hour"
-              . ( $t != 1 ? "s "  : " " )
-              . ( $past   ? "ago" : "from now" );
+            $time_date_stamp = "$t Hour" . ( $t != 1 ? "s " : " " ) . ( $past ? "ago" : "from now" );
         }
         elsif ( $past and $time > $yesterday ) {
-            $time_date_stamp =
-              "Yesterday at " . sprintf( "%2d:%02d %s", $hour, $min, $ampm );
+            $time_date_stamp = "Yesterday at " . sprintf( "%2d:%02d %s", $hour, $min, $ampm );
         }
         elsif ( not $past and $time < $twodayshence ) {
-            $time_date_stamp =
-              "Tomorrow at " . sprintf( "%2d:%02d %s", $hour, $min, $ampm );
+            $time_date_stamp = "Tomorrow at " . sprintf( "%2d:%02d %s", $hour, $min, $ampm );
         }
         elsif ( ( $time > $thisweek and $time < $nextweek )
             or $diff < 4 * $a_day )
         {
             my $t = int( $diff / ($a_day) + 1 );
-            $time_date_stamp =
-                "$t Day"
-              . ( $t != 1 ? "s "  : " " )
-              . ( $past   ? "ago" : "from now" );
+            $time_date_stamp = "$t Day" . ( $t != 1 ? "s " : " " ) . ( $past ? "ago" : "from now" );
         }
         elsif ( $past and $time > $lastweek ) {
             $time_date_stamp = "Last Week";
@@ -1348,10 +1295,7 @@ sub main::time_date_stamp {
             or $diff < 3 * $a_week )
         {
             my $t = int( $diff / ($a_week) + 1 );
-            $time_date_stamp =
-                "$t Week"
-              . ( $t != 1 ? "s "  : " " )
-              . ( $past   ? "ago" : "from now" );
+            $time_date_stamp = "$t Week" . ( $t != 1 ? "s " : " " ) . ( $past ? "ago" : "from now" );
         }
         elsif ( $past and $time > $lastmonth ) {
             $time_date_stamp = "Last Month";
@@ -1363,10 +1307,7 @@ sub main::time_date_stamp {
             or $diff < 4 * $a_month )
         {
             my $t = int( $diff / ($a_month) + 1 );
-            $time_date_stamp =
-                "$t Month"
-              . ( $t != 1 ? "s "  : " " )
-              . ( $past   ? "ago" : "from now" );
+            $time_date_stamp = "$t Month" . ( $t != 1 ? "s " : " " ) . ( $past ? "ago" : "from now" );
         }
         elsif ( $past and $time > $lastyear ) {
             $time_date_stamp = "Last Year";
@@ -1376,38 +1317,28 @@ sub main::time_date_stamp {
         }
         else {
             my $t = int( $diff / ($a_year) + 1 );
-            $time_date_stamp =
-                "$t Year"
-              . ( $t != 1 ? "s "  : " " )
-              . ( $past   ? "ago" : "from now" );
+            $time_date_stamp = "$t Year" . ( $t != 1 ? "s " : " " ) . ( $past ? "ago" : "from now" );
         }
     }
     else {
         $time_date_stamp = "time_date_stamp format=$style not recognized";
     }
     return wantarray
-      ? (
-        $time_date_stamp, $sec, $min, $hour, $ampm,
-        $day_long, $mon, $mday, $year
-      )
+      ? ( $time_date_stamp, $sec, $min, $hour, $ampm, $day_long, $mon, $mday, $year )
       : $time_date_stamp;
 }
 
 sub main::time_add {
     my ($time_date) = @_;
     my $time2 = &main::my_str2time($time_date);
-    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
-      localtime($time2);
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime($time2);
     $time_date = sprintf( "%d:%02d", $hour, $min );
     return $time_date;
 }
 
 sub main::time_diff {
     my ( $time1, $time2, $nearest_unit, $format ) = @_;
-    my (
-        $diff,  $nu,    $seconds, $minutes, $hours, $days,
-        $weeks, $years, @diff,    $last,    $string
-    );
+    my ( $diff, $nu, $seconds, $minutes, $hours, $days, $weeks, $years, @diff, $last, $string );
     $diff = abs( $time2 - $time1 );
 
     undef $nu;
@@ -1453,11 +1384,7 @@ sub main::time_diff {
     $weeks -= 52 * $years;
 
     if ( $format eq 'numeric' ) {
-        $string = sprintf(
-            "%3d days %02d:%02d:%02d",
-            7 * ( 52 * $years + $weeks ) + $days,
-            $hours, $minutes, $seconds
-        );
+        $string = sprintf( "%3d days %02d:%02d:%02d", 7 * ( 52 * $years + $weeks ) + $days, $hours, $minutes, $seconds );
     }
     else {
         undef @diff;
@@ -1520,9 +1447,7 @@ sub main::which {
       ($main::OS_win)
       ? split( ';',      $ENV{PATH} )
       : split( /[\:\;]/, $ENV{PATH} );
-    for
-      my $path ( $main::config_parms{bin_dir}, ".", "$main::Pgm_Path", @paths )
-    {
+    for my $path ( $main::config_parms{bin_dir}, ".", "$main::Pgm_Path", @paths ) {
         chop $path if $path =~ /\\$/;    # Drop trailing slash
         my $pgm_path = "$path/$pgm";
         if ($main::OS_win) {
@@ -1627,8 +1552,7 @@ sub main::get_idle_item_data {
                     my $name = $object->get_object_name;
                     $name =~ s/^\$//;    # strip the $
                     my $idleduration = $object->get_idle_time;
-                    my $idlehours =
-                      sprintf( "%d", $idleduration / ( 60 * 60 ) );
+                    my $idlehours = sprintf( "%d", $idleduration / ( 60 * 60 ) );
                     my $idleminutes =
                       sprintf( "%d", ( $idleduration % ( 60 * 60 ) ) / 60 );
                     my $idleseconds = ( $idleduration % ( 60 * 60 ) ) % 60;
@@ -1660,6 +1584,288 @@ sub main::get_idle_item_data {
     }
 
     return @results;
+}
+
+sub main::Groups {
+ use Storable;
+ my ($function, $group, $user, $type, $cmd, $cmdperm, $line ) = @_;
+
+my $file = $::config_parms{'data_dir'} . '/groups.data';
+#my $file = '/home/wayne/groups2';
+my @ugroups;
+my @users;
+my $UserGroups;
+
+ unless ( $UserGroups ) {
+        $UserGroups = retrieve($file) if ( -e $file );
+ }
+#dump($UserGroups);
+
+
+
+# If the group file is empty, add user/group admin by default so we dont crash
+unless ( ref($UserGroups) eq 'HASH' ) {
+                $UserGroups->{user}->{admin}->{status} = 1;
+                $UserGroups->{group}->{admin}->{status} = 1;
+        $UserGroups->{user}->{admin}->{group}->{admin} = 1;
+        push @{ $UserGroups->{user}->{admin}->{grouplist} }, 'admin';
+        $UserGroups->{user}->{admin}->{defaultperm}->{_global_} = 'allow';
+        store $UserGroups, $file;
+}
+
+
+# Modify and get user to group relationships
+        if ( $user and $group and ($function eq 'add') ) { #Add user to group and add the group if needed
+                $UserGroups->{user}->{$user}->{status} = 1 unless ( defined($UserGroups->{user}->{$user}->{status}) ); #Add the user if needed
+                $UserGroups->{group}->{$group}->{status} = 1 unless ( defined($UserGroups->{group}->{$group}->{status}) ); #Add the group if needed
+                unless ( $UserGroups->{user}->{$user}->{group}->{$group} ) {
+                        $UserGroups->{user}->{$user}->{group}->{$group} = 1;  #Add the user to the group
+                        if ( defined($line) ) {                                                           #Add the group to the user on a specific line if line is defined
+                                my $cmdindex = 0;
+                                if ( $UserGroups->{user}->{$user}->{grouplist} ) {
+                                        $cmdindex = scalar(@{ $UserGroups->{user}->{$user}->{grouplist} });
+                                }
+                                return 0 if $line > $cmdindex;
+                                splice(@{ $UserGroups->{user}->{$user}->{grouplist} }, $line, 1);
+                                ${ $UserGroups->{user}->{$user}->{grouplist} }[$line] = $group;
+                        } else {
+                                push @{ $UserGroups->{user}->{$user}->{grouplist} }, $group; #Add the user to the group to the bottom of the list
+                        }
+                }
+                store $UserGroups, $file;
+                return 1;
+        } elsif ( $user and ($function eq 'add') ) { #Add a new user
+                unless ( defined($UserGroups->{user}->{$user}->{status}) ) {
+                        $UserGroups->{user}->{$user}->{status} = 1;
+                        $UserGroups->{user}->{$user}->{password} = "";                       
+                        $UserGroups->{user}->{$user}->{password} = $type if (defined $type and $type ne "");                       
+                        store $UserGroups, $file;
+                        return 1;
+                }
+                return 0;
+        } elsif ( $UserGroups and $user and ($function eq 'disable') ) { #Disable user
+                if ( $user eq 'admin' ) { return 0 } # Disallow admin from being disabled
+                if ( defined($UserGroups->{user}->{$user}->{status}) && ( not $UserGroups->{user}->{$user}->{status} == 0 ) ) {
+                        $UserGroups->{user}->{$user}->{status} = 0;
+                        store $UserGroups, $file;
+                        return 1;
+                }
+                return 0;
+        } elsif ( $UserGroups and $user and ($function eq 'enable') ) { #Enable user
+                if ( defined($UserGroups->{user}->{$user}->{status}) && ( not $UserGroups->{user}->{$user}->{status} == 1 ) ) {
+                        $UserGroups->{user}->{$user}->{status} = 1;
+                        store $UserGroups, $file;
+                        return 1;
+                }
+                return 0;
+        } elsif ( $UserGroups and $user and ($function eq 'getpw') ) { #Return stored password
+                if ( defined($UserGroups->{user}->{$user}->{password}) ) {
+print "PWD = $UserGroups->{user}->{$user}->{password}\n";
+                        return ($UserGroups->{user}->{$user}->{password});
+                }
+                return "";
+         } elsif ( $UserGroups and $user and $group and ($function eq 'remove') ) { #Remove a user from a group
+                if ( ( $user eq 'admin' ) && ( $group eq 'admin' ) ) { return 0 } # Disallow admin from being removed from admin group
+                delete $UserGroups->{user}->{$user}->{group}->{$group};
+                my $lc = -1;
+                foreach my $ugroup ( @{ $UserGroups->{user}->{$user}->{grouplist} } ) {
+                        $lc++;
+                        if ( $ugroup eq $group ) { splice @{ $UserGroups->{user}->{$user}->{grouplist} }, $lc, 1 } ## Delete group from user group array
+                }
+                store $UserGroups, $file;
+                return 1;
+        } elsif ( $UserGroups and $user and ($function eq 'delete') ) { #Delete a user
+                if ( $user eq 'admin' ) { return 0 } # Disallow admin from being deleted
+                if ( defined($UserGroups->{user}->{$user}->{status}) ) {
+                        delete $UserGroups->{user}->{$user};
+                        return 1;
+                }
+                return 0;
+        } elsif ( $UserGroups and $user and $group and ($function eq 'memberof') ) { #Check is user is a member of a specific group
+                return 1 if $UserGroups->{user}->{$user}->{group}->{$group};
+                return 0;
+        } elsif ( $UserGroups and $user and ($function eq 'get') ) { #Get all of the groups for a specific user
+                return \@{ $UserGroups->{user}->{$user}->{grouplist} };
+        } elsif ( $UserGroups and $user and $cmdperm and $type and ($function eq 'defaultperm') ) { #Set the default permission for a user and specific ACL type
+                if ( $user eq 'admin' ) { return 0 } # Disallow admin user from being modified
+                $UserGroups->{user}->{$user}->{defaultperm}->{$type} = $cmdperm;
+                store $UserGroups, $file;
+                return 1;
+        } elsif ( $UserGroups and $user and $cmdperm and ($function eq 'defaultperm') ) { #Set the default global (all types) permission for a user
+                if ( $user eq 'admin' ) { return 0 } # Disallow admin user from being modified
+                $UserGroups->{user}->{$user}->{defaultperm}->{_global_} = $cmdperm;
+                store $UserGroups, $file;
+                return 1;
+        } elsif ( $UserGroups and $user and $type and $cmd and ($function eq 'check') ) { #Check a CMD to see if its allowed for the user (requires ACL type)
+                return 'deny' unless $UserGroups->{user}->{$user}->{status}; #User is disabled
+                foreach my $ugroup ( @{ $UserGroups->{user}->{$user}->{grouplist} } ) {
+                next if ( $UserGroups->{group}->{$ugroup}->{status} == 0 ); #Group is disabled, skip it
+                        foreach my $cmdarray ( @{ $UserGroups->{group}->{$ugroup}->{acl}->{$type} } ) {
+                                my $matchcmd = ${ $cmdarray }[0];
+                                my $permission = ${ $cmdarray }[1];
+
+                                if ( $cmd =~  /$matchcmd/ ) {
+                                        return $permission;
+                                } elsif ( $matchcmd eq 'all' ) {
+                                        return $permission;
+                                }
+                        }
+                }
+                return $UserGroups->{user}->{$user}->{defaultperm}->{$type} if ( $UserGroups->{user}->{$user}->{defaultperm}->{$type} ); #Return user default permission for cmd type if defined
+                return $UserGroups->{user}->{$user}->{defaultperm}->{_global_} if ( $UserGroups->{user}->{$user}->{defaultperm}->{_global_} ); #Return user default permission if defined
+                return 'deny'; #Return deny by default
+
+        } elsif ( $UserGroups and $user and $type and ($function eq 'fullacl') ) { #Get the full user ACL for a specific ACL type (returns array)
+                my @aclarray;
+                foreach my $ugroup ( @{ $UserGroups->{user}->{$user}->{grouplist} } ) {
+                next if ( $UserGroups->{group}->{$ugroup}->{status} == 0 ); #Group is disabled, skip it
+                        foreach my $cmdarray ( @{ $UserGroups->{group}->{$ugroup}->{acl}->{$type} } ) {
+                                my $matchcmd = ${ $cmdarray }[0];
+                                my $permission = ${ $cmdarray }[1];
+                                my $index = push @aclarray, $matchcmd;
+                                ${ $aclarray[$index] }[0] = $permission
+                        }
+                }
+                return \@aclarray;
+        } elsif ( $UserGroups and $user and ($function eq 'fullacl') ) { #Get the full user ACL for all ACL types (returns hash of arrays)
+                my $aclhash;
+                foreach my $ugroup ( @{ $UserGroups->{user}->{$user}->{grouplist} } ) {
+                next if ( $UserGroups->{group}->{$ugroup}->{status} == 0 ); #Group is disabled, skip it
+                        foreach my $type ( keys %{$UserGroups->{group}->{$ugroup}->{acl}} ) {
+                                foreach my $cmdarray ( @{ $UserGroups->{group}->{$ugroup}->{acl}->{$type} } ) {
+                                        my $matchcmd = ${ $cmdarray }[0];
+                                        my $permission = ${ $cmdarray }[1];
+                                        my $index = push @{ $aclhash->{$type} }, $matchcmd;
+                                        ${ ${ $aclhash->{$type} }[$index] }[0] = $permission
+                                }
+                        }
+                }
+                return \$aclhash;
+
+        # Modify and get group permissions
+        } elsif ( $UserGroups and $group and $cmd and ($function eq 'add') and $cmdperm and $type) { #Add an allowed/denied CMD for a group
+                my $cmdindex = 0;
+                if ( $UserGroups->{group}->{$group}->{acl}->{$type} ) {
+                        $cmdindex = scalar(@{ $UserGroups->{group}->{$group}->{acl}->{$type} });
+                }
+                my $lc = -1;
+                foreach my $cmdarray ( @{ $UserGroups->{group}->{$group}->{acl}->{$type} } ) {
+                        $lc++;
+                        my $matchcmd = ${ $cmdarray }[0];
+                        my $permission = ${ $cmdarray }[1];
+                        if ( $matchcmd eq $cmd ) {
+                                if ( defined($line) ) {
+                                        splice @{ $UserGroups->{group}->{$group}->{acl}->{$type} }, $lc, 1; #A specific line number was specified, so delete the matching cmd
+                                        $cmdindex--;
+                                        last;
+                                 }
+                                if ( $permission eq $cmdperm ) { return 0 } #Duplicate, dont add anything
+                                ${ ${ $UserGroups->{group}->{$group}->{acl}->{$type} }[$lc] }[1] = $cmdperm; #update perm only
+                                store $UserGroups, $file;
+                                return 1;
+                        }
+                }
+                if ( defined($line) ) { #A specific line number was specified
+                        $line = $cmdindex if $line > $cmdindex;
+                        splice(@{ $UserGroups->{group}->{$group}->{acl}->{$type} }, $line, 0, undef); #Insert a new line on the specified line number
+                        ${ ${ $UserGroups->{group}->{$group}->{acl}->{$type} }[$line] }[0] = $cmd;
+                        ${ ${ $UserGroups->{group}->{$group}->{acl}->{$type} }[$line] }[1] = $cmdperm;
+                        store $UserGroups, $file;
+                        return 1;
+                }
+                ${ ${ $UserGroups->{group}->{$group}->{acl}->{$type} }[$cmdindex] }[0] = $cmd;
+                ${ ${ $UserGroups->{group}->{$group}->{acl}->{$type} }[$cmdindex] }[1] = $cmdperm;
+                store $UserGroups, $file;
+                return 1;
+        } elsif ( $UserGroups and $group and $type and ($function eq 'removeall') ) { #Remove all ACL lines for an ACL type
+                 if ( defined($UserGroups->{group}->{$group}->{acl}->{$type}) ) {
+                        delete $UserGroups->{group}->{$group}->{acl}->{$type};
+                        delete $UserGroups->{group}->{$group}->{acl} unless ( keys %{ $UserGroups->{group}->{$group}->{acl} } );
+                        store $UserGroups, $file;
+                        return 1;
+                 }
+                return 0;
+        } elsif ( $UserGroups and $group and $cmd and $type and ($function eq 'removebyname') ) { #Remove an ACL line by the CMD
+                 my $c = 0;
+                 my $deleted = 0;
+                 foreach my $cmdarray ( @{ $UserGroups->{group}->{$group}->{acl}->{$type} } ) {
+                        if ( ${ $cmdarray }[0] eq $cmd ) { # Delete matching cmd
+                                splice @{ $UserGroups->{group}->{$group}->{acl}->{$type} }, $c, 1;
+                                $deleted++
+                        }
+                        $c++;
+                 }
+                 store $UserGroups, $file if $deleted;
+                 return $deleted;
+        } elsif ( $UserGroups and $group and $type and ($function eq 'removebyindex') and defined($line) ) { #Remove an ACL line by line number
+                my $cmdindex = 0;
+                if ( $UserGroups->{group}->{$group}->{acl}->{$type} ) {
+                        $cmdindex = scalar(@{ $UserGroups->{group}->{$group}->{acl}->{$type} });
+                }
+                return 0 if $line > $cmdindex;
+
+                splice @{ $UserGroups->{group}->{$group}->{acl}->{$type} }, $cmd, 1;
+                store $UserGroups, $file;
+                return 1;
+        } elsif ( $UserGroups and $group and ($function eq 'get') ) { #Get all users in a group (returns an array)
+                my @users;
+                foreach my $cuser ( keys %{$UserGroups->{user}} ) {
+                        push (@users, $cuser) if $UserGroups->{user}->{$cuser}->{group}->{$group};
+                }
+                return \@users;
+        } elsif ( $UserGroups and $group and ($function eq 'getgroupdet') ) {
+                return \$UserGroups->{group}->{$group};
+        } elsif ( $UserGroups and $group and ($function eq 'add') ) { #Add a new group
+                unless ( defined($UserGroups->{group}->{$group}->{status}) ) {
+                        $UserGroups->{group}->{$group}->{status} = 1; #Add the group
+                        store $UserGroups, $file;
+                        return 1;
+                }
+                return 0;
+        } elsif ( $UserGroups and $group and ($function eq 'delete') ) { #Delete a group
+            if ( $group eq 'admin' ) { return 0 } # Disallow admin group from being deleted
+            delete $UserGroups->{group}->{$group}; #Delete group from group hash
+              foreach my $cuser ( keys %{$UserGroups->{user}} ) {
+                 foreach my $ugroup ( keys %{$UserGroups->{user}->{$cuser}->{group}} ) {
+                                        if ( $ugroup eq $group ) {
+                                                delete $UserGroups->{user}->{$cuser}->{group}->{$group}; #Delete group from users
+                                                my $lc = -1;
+                                                foreach my $usrgroup ( @{ $UserGroups->{user}->{$cuser}->{grouplist} } ) {
+                                                        $lc++;
+                                                        if ( $usrgroup eq $group ) { splice @{ $UserGroups->{user}->{$cuser}->{grouplist} }, $lc, 1 } ## Delete group from user group array
+                                                }
+                                        }
+                 }
+              }
+            store $UserGroups, $file;
+            return 1;
+        } elsif ( $UserGroups and $group and ($function eq 'disable') ) { #Disable a group
+                if ( $group eq 'admin' ) { return 0 } # Disallow admin from being disabled
+                if ( defined($UserGroups->{group}->{$group}->{status}) && ( not $UserGroups->{group}->{$group}->{status} == 0 ) ) {
+                        $UserGroups->{group}->{$group}->{status} = 0;
+                        store $UserGroups, $file;
+                        return 1;
+                }
+                return 0;
+        } elsif ( $UserGroups and $group and ($function eq 'enable') ) { #Enable a group
+                if ( defined($UserGroups->{group}->{$group}->{status}) && ( not $UserGroups->{group}->{$group}->{status} == 1 ) ) {
+                        $UserGroups->{group}->{$group}->{status} = 1;
+                        store $UserGroups, $file;
+                        return 1;
+                }
+                return 0;
+        } elsif ( $UserGroups and ($function eq 'getgroupnames') ) { #Get all the group names (returns array)
+                my @ugroups;
+                foreach my $ugroup ( keys %{$UserGroups->{group}} ) {
+                        push (@ugroups, $ugroup);
+                }
+                return \@ugroups;
+        } elsif ( $UserGroups and ($function eq 'getgroupdet') ) { #Get all groups and their details (allowedd cmd, etc)
+                return \$UserGroups->{group};
+        } elsif ( $UserGroups and ($function eq 'getall') ) { #Get entire hash with user and group details, for caching in MH because storable reads from a file.
+                return \$UserGroups;
+        }
+return 0;
 }
 
 #print " done\n";

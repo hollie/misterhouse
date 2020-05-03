@@ -58,9 +58,7 @@ sub init {
     %pa_zone_types = ();
     my $ref2 = &::get_object_by_name("pa_allspeakers");
     if ( !$ref2 ) {
-        print(
-            "\n\nWARNING! PA Zones were not found! Your *.mht file probably doesn't list the PA zones correctly.\n\n"
-        );
+        print("\n\nWARNING! PA Zones were not found! Your *.mht file probably doesn't list the PA zones correctly.\n\n");
         return 0;
     }
     $self->check_group('default');
@@ -106,18 +104,14 @@ sub init_weeder {
 
         $weeder_ref{$card} = '' unless $weeder_ref{$card};
         $weeder_ref{$card} .= $id;
-        &::print_log(
-            "PAobj: init card: $card, id: $id, Room: $room, List: $weeder_ref{$card}"
-        ) if $main::Debug{pa};
+        &::print_log("PAobj: init card: $card, id: $id, Room: $room, List: $weeder_ref{$card}") if $main::Debug{pa};
     }
 
     for my $card ( 'A' .. 'P', 'a' .. 'p' ) {
         if ( $weeder_ref{$card} ) {
             my $data = $weeder_ref{$card};
             $weeder_max{$card} = $self->last_char($data);
-            &::print_log(
-                "PAobj: init weeder board=$card, ports=$data, max port="
-                  . $weeder_max{$card} )
+            &::print_log( "PAobj: init weeder board=$card, ports=$data, max port=" . $weeder_max{$card} )
               if $main::Debug{pa};
         }
     }
@@ -143,8 +137,7 @@ sub active {
 sub prep_parms {
     my ( $self, $parms ) = @_;
     &::print_log("PAobj: delay: $$self{pa_delay}\n") if $main::Debug{pa} >= 3;
-    &::print_log(
-        "PAobj: set,mode: " . $parms->{mode} . ",rooms: " . $parms->{rooms} )
+    &::print_log( "PAobj: set,mode: " . $parms->{mode} . ",rooms: " . $parms->{rooms} )
       if $main::Debug{pa} >= 3;
 
     my @speakers = $self->get_speakers( $parms->{rooms} );
@@ -161,21 +154,22 @@ sub prep_parms {
     for my $room (@speakers) {
         my $ref  = &::get_object_by_name("pa_$room");
         my $type = $ref->get_type();
-        &::print_log("PAobj: speakers_$type: Adding $room") if $main::Debug{pa} >=3;
-#        $pa_zone_types{$type}++ unless $pa_zone_types{$type};
-        push(@{$speakertype{$type}}, $room);
+        &::print_log("PAobj: speakers_$type: Adding $room") if $main::Debug{pa} >= 3;
+
+        #        $pa_zone_types{$type}++ unless $pa_zone_types{$type};
+        push( @{ $speakertype{$type} }, $room );
     }
-    
-    foreach my $type (keys(%pa_zone_types)) {
+
+    foreach my $type ( keys(%pa_zone_types) ) {
         undef $pa_zones{active}{$type};
     }
 
-    foreach my $type (keys(%speakertype)) {
-        my @thespeakers = @{$speakertype{$type}};
-        &::print_log("PAobj: speakers_$type: ".($#thespeakers+1).": " . join(',',@thespeakers)) if $main::Debug{pa};
-        $pa_zones{active}{$type}=join(',',@thespeakers);
-        if ($#thespeakers > -1) {
-            $parms->{web_file}="web_file" if $type eq 'audrey';
+    foreach my $type ( keys(%speakertype) ) {
+        my @thespeakers = @{ $speakertype{$type} };
+        &::print_log( "PAobj: speakers_$type: " . ( $#thespeakers + 1 ) . ": " . join( ',', @thespeakers ) ) if $main::Debug{pa};
+        $pa_zones{active}{$type} = join( ',', @thespeakers );
+        if ( $#thespeakers > -1 ) {
+            $parms->{web_file} = "web_file" if $type eq 'audrey';
         }
     }
 
@@ -228,8 +222,7 @@ sub audio_hook {
     foreach my $serial ( keys(%speakers_aviosys) ) {
         &::print_log("PAobj: calling set for aviosys serial port: $serial")
           if $main::Debug{pa} >= 3;
-        $results = $self->set_aviosys( $state, $serial,
-            @{ $speakers_aviosys{$serial} } );
+        $results = $self->set_aviosys( $state, $serial, @{ $speakers_aviosys{$serial} } );
     }
     for my $room ( split( ',', $pa_zones{active}{wdio} ) ) {
         my $ref    = &::get_object_by_name( 'pa_' . $room );
@@ -357,9 +350,7 @@ sub set_xap {
                     voice  => $voiceparms{voice}
                 }
             );
-            &::print_log(
-                "PAobj: xap cmd: $ref->{object_name} is sending voice text: $voiceparms{text}"
-            ) if $main::Debug{pa};
+            &::print_log("PAobj: xap cmd: $ref->{object_name} is sending voice text: $voiceparms{text}") if $main::Debug{pa};
         }
         else {
             &::print_log("PAobj: Unable to locate object for: pa_$room");
@@ -392,9 +383,7 @@ sub set_xpl {
                     mode   => $voiceparms{mode}
                 }
             );
-            &::print_log(
-                "PAobj: set_xpl: $ref->{object_name} is sending voice text: $voiceparms{text}"
-            ) if $main::Debug{pa};
+            &::print_log("PAobj: set_xpl: $ref->{object_name} is sending voice text: $voiceparms{text}") if $main::Debug{pa};
         }
         else {
             &::print_log("PAobj: Unable to locate object for: pa_$room");
@@ -449,8 +438,7 @@ sub get_weeder_string {
     my ( $bit_flag, $state, $ref, $bit, $byte_code, $weeder_code, $id );
 
     # yea, there are cleaner ways to do this, but this should work
-    my %decimal_to_hex =
-      qw(0 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 A 11 B 12 C 13 D 14 E 15 F);
+    my %decimal_to_hex = qw(0 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 A 11 B 12 C 13 D 14 E 15 F);
     $byte_code = $bit_counter = 0;
     $weeder_code = '';
 
@@ -468,10 +456,9 @@ sub get_weeder_string {
         }
 
         $bit_flag = ( $state eq 'on' ) ? 1 : 0;    # get 0 or 1
-        &::print_log(
-            "PAobj: get_weeder_string card: $card, bit=$bit state=$bit_flag")
+        &::print_log("PAobj: get_weeder_string card: $card, bit=$bit state=$bit_flag")
           if $main::Debug{pa} >= 2;
-        $byte_code += ( $bit_flag << $bit_counter );  # get bit in byte position
+        $byte_code += ( $bit_flag << $bit_counter );    # get bit in byte position
 
         if ( $bit_counter++ >= 3 ) {
 
@@ -488,8 +475,7 @@ sub get_weeder_string {
         $weeder_code = $decimal_to_hex{$byte_code} . $weeder_code;
     }
 
-    if ( $self->{pa_type} eq 'wdio_old' )
-    {    #TODO: Find way to implement this with new code
+    if ( $self->{pa_type} eq 'wdio_old' ) {    #TODO: Find way to implement this with new code
         $card        = "D$card";
         $weeder_code = 'h' . $weeder_code;
     }
@@ -555,11 +541,7 @@ sub set_amixer {
     $mixpercent = '100%' if lc $state eq 'on';
     for my $room (@speakers) {
         my $ref = &::get_object_by_name( 'pa_' . $room );
-        &::print_log( "PAobj: set_amixer: "
-              . $room . " / "
-              . $state . " / "
-              . $ref->{mixer} . " / "
-              . $ref->{mixerchan} )
+        &::print_log( "PAobj: set_amixer: " . $room . " / " . $state . " / " . $ref->{mixer} . " / " . $ref->{mixerchan} )
           if $main::Debug{pa} >= 3;
 
         if ( defined( $ref->{mixerchan} ) ) {
@@ -576,10 +558,7 @@ sub set_amixer {
         }
     }
     foreach my $mixer ( keys(%amixerref) ) {
-        my $mixcmd =
-            "amixer -q set $mixer "
-          . $amixerref{$mixer}{'l'} . ','
-          . $amixerref{$mixer}{'r'};
+        my $mixcmd = "amixer -q set $mixer " . $amixerref{$mixer}{'l'} . ',' . $amixerref{$mixer}{'r'};
         &main::print_log("PAobj: set_amixer: CMD: $mixcmd")
           if $main::Debug{pa} >= 2;
         my $r = system $mixcmd;
@@ -666,9 +645,7 @@ sub get_speakers_speakable {
                 && ( $gss_mode eq 'normal' || $mode eq 'unmuted' ) )
             {
                 push( @pazones, $room );
-                &::print_log(
-                    "PAobj: speakable: Pushed $room into pazones array. New count:"
-                      . ( $#pazones + 1 ) )
+                &::print_log( "PAobj: speakable: Pushed $room into pazones array. New count:" . ( $#pazones + 1 ) )
                   if $main::Debug{pa} >= 2;
             }
         }
@@ -712,8 +689,7 @@ sub last_char {
 
 #Type Address	Name			Groups               		Serial   Type
 sub new {
-    my ( $class, $paz_address, $paz_name, $paz_groups, $paz_serial, $paz_type )
-      = @_;
+    my ( $class, $paz_address, $paz_name, $paz_groups, $paz_serial, $paz_type ) = @_;
     my $self = {};
 
     bless $self, $class;

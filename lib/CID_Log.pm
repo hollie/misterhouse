@@ -104,7 +104,7 @@ sub log {
           if $p_telephony->formated_number() ne '';
     }
     $l_name = $p_telephony->cid_name()
-      || $p_telephony->city();    # Needed in UK, as there is no NAME data in UK
+      || $p_telephony->city();           # Needed in UK, as there is no NAME data in UK
     $l_address = $p_telephony->address();
 
     #Log to text file
@@ -121,24 +121,16 @@ sub log {
               if $p_telephony->call_duration();
             $call_type = $p_telephony->call_type() if $p_telephony->call_type();
         }
-        my $log_line =
-          "O$l_number name=$duration ext=$extension line=$l_address type=$call_type";
+        my $log_line = "O$l_number name=$duration ext=$extension line=$l_address type=$call_type";
         print "LOG LINE: $log_line\n";
-        &::logit(
-            "$::config_parms{data_dir}/phone/logs/phone.$::Year_Month_Now.log",
-            $log_line
-        );
+        &::logit( "$::config_parms{data_dir}/phone/logs/phone.$::Year_Month_Now.log", $log_line );
     }
     else {
-        &::logit(
-            "$::config_parms{data_dir}/phone/logs/callerid.$::Year_Month_Now.log",
-            "$l_number name=$l_name line=$l_address type=$tempsource"
-        );
+        &::logit( "$::config_parms{data_dir}/phone/logs/callerid.$::Year_Month_Now.log", "$l_number name=$l_name line=$l_address type=$tempsource" );
     }
 
     #Log to dbm
-    &::logit_dbm( "$::config_parms{data_dir}/phone/callerid.dbm",
-        $l_number, "$::Time_Now $::Date_Now $::Year name=$l_name" );
+    &::logit_dbm( "$::config_parms{data_dir}/phone/callerid.dbm", $l_number, "$::Time_Now $::Date_Now $::Year name=$l_name" );
 
     # If this caller is not in our caller_id_file, let's save their info
     # in the same format as caller_id_file but to a different file.
@@ -151,8 +143,7 @@ sub log {
 
             #			&::print_log("LOG:". $::config_parms{caller_id_file2} .":");
             if ( $::config_parms{caller_id_file2} ) {
-                &::logit( $::config_parms{caller_id_file2},
-                    "$l_number\t$l_name\t*\n", 0 );
+                &::logit( $::config_parms{caller_id_file2}, "$l_number\t$l_name\t*\n", 0 );
             }
         }
     }

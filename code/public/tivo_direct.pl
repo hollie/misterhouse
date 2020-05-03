@@ -41,8 +41,7 @@ Category = Test
 ############################
 
 # noloop=start
-$directivo = new Socket_Item( undef, undef, "192.168.0.103:4560", 'tivo', 'tcp',
-    'record' );
+$directivo = new Socket_Item( undef, undef, "192.168.0.103:4560", 'tivo', 'tcp', 'record' );
 start $directivo;
 
 # noloop=stop
@@ -87,22 +86,18 @@ if ( $state_test = said $test1) {
         elsif ( $state_test eq "COM" ) {
             set $directivo "SENDKEY: 2 4 9";
         }
-        set $directivo
-          "OSD: *LWRP*1*SECS*5*FGCL*2*BGCL*1*XPOS*1*YPOS*1*TEXT*$state_test*";
+        set $directivo "OSD: *LWRP*1*SECS*5*FGCL*2*BGCL*1*XPOS*1*YPOS*1*TEXT*$state_test*";
     }
 }
 
 if ( $said_dtivo = said $directivo) {
-    set $directivo
-      "OSD: *LWRP*1*SECS*5*FGCL*2*BGCL*1*XPOS*1*YPOS*1*TEXT*$said_dtivo*";
+    set $directivo "OSD: *LWRP*1*SECS*5*FGCL*2*BGCL*1*XPOS*1*YPOS*1*TEXT*$said_dtivo*";
 }
 
 if ( inactive_now $directivo) {
     print_log "Direct Tivo Telnet session closed";
     set restartTimer 10, sub {
-        $directivo =
-          new Socket_Item( undef, undef, "192.168.0.103:4560", 'tivo', 'tcp',
-            'record' );
+        $directivo = new Socket_Item( undef, undef, "192.168.0.103:4560", 'tivo', 'tcp', 'record' );
     };
 
 }

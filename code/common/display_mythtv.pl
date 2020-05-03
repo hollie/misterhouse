@@ -24,12 +24,10 @@ sub display_mythtv {
     my $container = lc ${args}{container};
     my $text      = ${args}{text};
 
-    print_log
-      "display_mythtv() address=$address, container=$container, text=$text"
+    print_log "display_mythtv() address=$address, container=$container, text=$text"
       if $Debug{display_mythtv};
 
-    my $mythtv_osd =
-      new Socket_Item( undef, undef, $address, 'display_mythtv', 'udp' );
+    my $mythtv_osd = new Socket_Item( undef, undef, $address, 'display_mythtv', 'udp' );
     start $mythtv_osd;
 
     if ( not defined $container or $container eq '' or $container eq 'cid' ) {
@@ -60,8 +58,7 @@ EOT
 
     }
     else {
-        print_log
-          "display_mythtv: MythTV container \'$container\' not available";
+        print_log "display_mythtv: MythTV container \'$container\' not available";
     }
 
     stop $mythtv_osd;

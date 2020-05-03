@@ -59,8 +59,7 @@ if ( $state = said $v_mp3_control_state) {
 }
 
 $v_mp3_control_cmd = new Voice_Cmd(
-    "Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off]"
-);
+    "Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off]");
 
 # if xmms is not running, we will start it
 # have we defined mp3_program
@@ -156,8 +155,7 @@ if ( $state = said $v_play_clear_music) {
 }
 
 # noloop=start      This directive allows this code to be run on startup/reload
-my $mp3playlist = &load_mp3_file_list( $config_parms{mp3_playlist_dir},
-    $config_parms{mp3_playlist_ext} );
+my $mp3playlist = &load_mp3_file_list( $config_parms{mp3_playlist_dir}, $config_parms{mp3_playlist_ext} );
 
 # noloop=stop
 
@@ -169,13 +167,7 @@ if ( $state = said $v_play_music) {
     speak("Added MP3 playlist $playlist.");
     $remote->playlist_clear;
     Xmms::sleep(0.25);
-    $remote->playlist(
-        [
-                $config_parms{mp3_playlist_dir} . "/"
-              . "$playlist" . "."
-              . $config_parms{mp3_playlist_ext}
-        ]
-    );
+    $remote->playlist( [ $config_parms{mp3_playlist_dir} . "/" . "$playlist" . "." . $config_parms{mp3_playlist_ext} ] );
 
     #$Save{mp3_playlist} = $playlist;
     print_log "mp3 player set to playlist $playlist";
@@ -199,13 +191,11 @@ my $session = 0;
 my $remote  = Xmms::Remote->new($session);
 $v_what_playing = new Voice_Cmd('What is now playing');
 if ( $state = said $v_what_playing) {
-    my $mp3playing =
-      ${ $remote->get_playlist_titles }[ $remote->get_playlist_pos ];
+    my $mp3playing = ${ $remote->get_playlist_titles }[ $remote->get_playlist_pos ];
     speak $mp3playing;
 }
 
-$Save{NowPlaying} =
-  ${ $remote->get_playlist_titles }[ $remote->get_playlist_pos ]
+$Save{NowPlaying} = ${ $remote->get_playlist_titles }[ $remote->get_playlist_pos ]
   if new_second 30;
 
 #$v_what_playlist = new Voice_Cmd('Show playlist');

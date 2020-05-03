@@ -2,8 +2,7 @@
 # An example of how to add some character to your timer reminders :)
 
 $v_laundry_timer = new Voice_Cmd('Laundry timer [on,off]');
-$v_laundry_timer->set_info(
-    'Set a 35 minute timer to remind when the cloths are washed/dried');
+$v_laundry_timer->set_info('Set a 35 minute timer to remind when the cloths are washed/dried');
 
 $timer_laundry = new Timer;
 
@@ -40,7 +39,6 @@ sub laundry_reminder {
         'are having dinner',
         'are electrocuting each other with static'
     );
-    speak "rooms=all The laundry clothes "
-      . $laundry_reminders[ int rand @laundry_reminders ];
+    speak "rooms=all The laundry clothes " . $laundry_reminders[ int rand @laundry_reminders ];
 }
 

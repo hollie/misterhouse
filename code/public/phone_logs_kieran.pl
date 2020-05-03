@@ -1,13 +1,11 @@
 
 $v_phone_summarize = new Voice_Cmd('[Summarize,Itemize] Recent Call Log');
 if ( $state = said $v_phone_summarize) {
-    open( CALLLOG, "$config_parms{code_dir}/data/phone/logs/calllog.log" )
-      ;    # Open for input
-    @callloglines = <CALLLOG>;    # Open array and
-                                  # read in data
-    close CALLLOG;                # Close the file
-    my ( $FirstPhoneLogDate, $LastPhoneLogDate, %CallerKeys, $Summary_Message,
-        $key );
+    open( CALLLOG, "$config_parms{code_dir}/data/phone/logs/calllog.log" );    # Open for input
+    @callloglines = <CALLLOG>;                                                 # Open array and
+                                                                               # read in data
+    close CALLLOG;                                                             # Close the file
+    my ( $FirstPhoneLogDate, $LastPhoneLogDate, %CallerKeys, $Summary_Message, $key );
 
     $NumofCalls = 0;
 
@@ -32,12 +30,10 @@ if ( $state = said $v_phone_summarize) {
             $CallerKeys{$PhoneNameLog} = 1;
         }
     }
-    $Summary_Message =
-      "The Recent Call Log contains $NumofCalls entries between $FirstPhoneLogDate and $LastPhoneLogDate.\n\n";
+    $Summary_Message = "The Recent Call Log contains $NumofCalls entries between $FirstPhoneLogDate and $LastPhoneLogDate.\n\n";
 
     foreach $key ( sort keys %CallerKeys ) {
-        $Summary_Message .=
-          plural( $CallerKeys{$key}, 'call' ) . " from $key.\n"
+        $Summary_Message .= plural( $CallerKeys{$key}, 'call' ) . " from $key.\n"
           if ( $state eq 'Itemize' );
     }
 

@@ -40,8 +40,7 @@ if ( $New_Minute
     my $tcat  = parsedate("$date $time");
     my $tdiff = $tnow - $tcat;
     my $days  = int 0.5 + ( $tdiff / ( 24 * 60 * 60 ) );
-    print_log
-      "Cat Box Timers: Last date/time $date $time, Seconds before now $tdiff, Days before now $days";
+    print_log "Cat Box Timers: Last date/time $date $time, Seconds before now $tdiff, Days before now $days";
 
     if ( $days > 3 ) {
         print_log "Speaking Cat Box nag message";
@@ -78,10 +77,8 @@ if ( $New_Minute
     my $days  = int $tdiff / ( 24 * 60 * 60 );
 
     if ( $tdiff > 9 * 24 * 60 * 60 ) {
-        print_log
-          "Automated Cat box last changed $days days ago; speaking nag message";
-        speak
-          "Djeeni says: Meeeoow, Change the automated cat box.  It has been $days days.";
+        print_log "Automated Cat box last changed $days days ago; speaking nag message";
+        speak "Djeeni says: Meeeoow, Change the automated cat box.  It has been $days days.";
     }
 
 }

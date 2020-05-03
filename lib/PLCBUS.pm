@@ -1,7 +1,6 @@
 use strict;
 use warnings;
 use Time::HiRes;
-use experimental 'smartmatch';
 use Group;
 use Process_Item;
 use IO::Socket::INET;
@@ -106,17 +105,17 @@ my %cmd_to_hex = (
         expected_response => undef,
     },
     fade_stop => {
-        cmd         => 0x0B,
-        flags       => 0x20,
-        data        => 0,
-        description => "In Same HOME & UNIT, “One light Stop Dimming”. +",
+        cmd               => 0x0B,
+        flags             => 0x20,
+        data              => 0,
+        description       => "In Same HOME & UNIT, “One light Stop Dimming”. +",
         expected_response => undef,
     },
     presetdim => {
-        cmd         => 0x0C,
-        flags       => 0x20,
-        data        => 1,
-        description => "In Same HOME & UNIT, “Preset Brightness Level”. *+",
+        cmd               => 0x0C,
+        flags             => 0x20,
+        data              => 1,
+        description       => "In Same HOME & UNIT, “Preset Brightness Level”. *+",
         expected_response => undef,
     },
     status_on => {
@@ -173,10 +172,10 @@ my %cmd_to_hex = (
         expected_response => undef,
     },
     all_scenes_addrs_erase => {
-        cmd         => 0x14,
-        flags       => 0x20,
-        data        => 1,
-        description => "Clean all the Scene a ddresses in each receiver. *+",
+        cmd               => 0x14,
+        flags             => 0x20,
+        data              => 1,
+        description       => "Clean all the Scene a ddresses in each receiver. *+",
         expected_response => undef,
     },
     future1 => {
@@ -229,11 +228,10 @@ my %cmd_to_hex = (
         expected_response => undef,
     },
     get_all_id_pulse => {
-        cmd   => 0x1C,
-        flags => 0x00,
-        data  => 0,
-        description =>
-        "(THE SAME USER AND THE SAME HOME) Check the ID PULSE in the same USER & HOME.",
+        cmd               => 0x1C,
+        flags             => 0x00,
+        data              => 0,
+        description       => "(THE SAME USER AND THE SAME HOME) Check the ID PULSE in the same USER & HOME.",
         expected_response => ['report_all_id_pulse'],
         home_cmd          => 1,
         noreplay          => 1,
@@ -242,10 +240,9 @@ my %cmd_to_hex = (
         cmd               => 0x1D,
         flags             => 0x00,
         data              => 0,
-        expected_response => ['report_only_on_pulse'],
+        expected_response => ['report_all_id_pulse', 'report_only_on_pulse'],
         home_cmd          => 1,
-        description =>
-        "(THE SAME USER AND THE SAME HOME) Check the Only ON ID PULSE in the same USER & HOME."
+        description       => "(THE SAME USER AND THE SAME HOME) Check the Only ON ID PULSE in the same USER & HOME."
     },
     report_all_id_pulse => {
         cmd               => 0x1E,
@@ -267,29 +264,27 @@ my %hex_to_cmd = (
     ##  * = contains data
     ##  + = needs feedback
 
-    0x00 => "all_unit_off",    #  In Same HOME, “All Units Off”.
-    0x01 => "all_lts_on",      #  In Same HOME, “All Lights On”.
-    0x02 => "on",              #  In Same HOME +UNIT, “One UNIT On”.  +
-    0x03 => "off",             #  In Same HOME + UNIT,”One UNIT Off”. +
-    0x04 => "dim",             #  In Same HOME + UNIT,”One UNIT Dim”. *+
-    0x05 => "bright",          #  In Same HOME + UNIT,”One UNIT Brighten” *+
-    0x06 => "all_light_off",   #  In Same HOME, “All Lights Off”.
-    0x07 => "all_user_lts_on", #  Under Same USER, “All USER Lights On”.
-    0x08 => "all_user_unit_off",   #  Under Same USER, “All USER Units Off”.
-    0x09 => "all_user_light_off",  #  Under Same USER, “All USER Lights Off”
-    0x0A => "blink",     #  In Same HOME+ UNIT, “One Light Blink”. *+
-    0x0B => "fade_stop", #  In Same HOME+ UNIT, “One light Stop Dimming”. +
-    0x0C => "presetdim", #  In Same HOME+UNIT, “Preset Brightness Level”. *+
-    0x0D => "status_on", #  Status feedback as “ON”.*
-    0x0E => "status_off",           #  Status feedback as “OFF”.
-    0x0F => "status_req",           #  Status Checking
-    0x10 => "r_master_addrs_setup", #  Setup the main address of Receiver. *+
-    0x11 => "t_master_addrs_setup", #  Setup the main address of Transmitter. *+
-    0x12 => "scenes_addrs_setup",   #  Setup Scene address *
-    0x13 => "scenes_addrs_erase"
-    ,    #  Clean    Scene    address    under the    same HOME+UNIT
-    0x14 => "all_scenes_addrs_erase"
-    ,    #  Clean all the Scene addresses in each receiver. *+
+    0x00 => "all_unit_off",              #  In Same HOME, “All Units Off”.
+    0x01 => "all_lts_on",                #  In Same HOME, “All Lights On”.
+    0x02 => "on",                        #  In Same HOME +UNIT, “One UNIT On”.  +
+    0x03 => "off",                       #  In Same HOME + UNIT,”One UNIT Off”. +
+    0x04 => "dim",                       #  In Same HOME + UNIT,”One UNIT Dim”. *+
+    0x05 => "bright",                    #  In Same HOME + UNIT,”One UNIT Brighten” *+
+    0x06 => "all_light_off",             #  In Same HOME, “All Lights Off”.
+    0x07 => "all_user_lts_on",           #  Under Same USER, “All USER Lights On”.
+    0x08 => "all_user_unit_off",         #  Under Same USER, “All USER Units Off”.
+    0x09 => "all_user_light_off",        #  Under Same USER, “All USER Lights Off”
+    0x0A => "blink",                     #  In Same HOME+ UNIT, “One Light Blink”. *+
+    0x0B => "fade_stop",                 #  In Same HOME+ UNIT, “One light Stop Dimming”. +
+    0x0C => "presetdim",                 #  In Same HOME+UNIT, “Preset Brightness Level”. *+
+    0x0D => "status_on",                 #  Status feedback as “ON”.*
+    0x0E => "status_off",                #  Status feedback as “OFF”.
+    0x0F => "status_req",                #  Status Checking
+    0x10 => "r_master_addrs_setup",      #  Setup the main address of Receiver. *+
+    0x11 => "t_master_addrs_setup",      #  Setup the main address of Transmitter. *+
+    0x12 => "scenes_addrs_setup",        #  Setup Scene address *
+    0x13 => "scenes_addrs_erase",        #  Clean    Scene    address    under the    same HOME+UNIT
+    0x14 => "all_scenes_addrs_erase",    #  Clean all the Scene addresses in each receiver. *+
     0x15 => "",                          #  * for future
     0x16 => "",                          #  * for future
     0x17 => "",                          #  * for future
@@ -297,12 +292,10 @@ my %hex_to_cmd = (
     0x19 => "get_noise_strength",        #  Check the Noise Strength.   +
     0x1A => "report_signal_strength",    #  Report the Signal Strength. *
     0x1B => "report_noise_strength",     #  Report the Noise Strength. *
-    0x1C => "get_all_id_pulse"
-    , #  (THE SAME USER AND THE SAME HOM E) Check the ID PULSE in the same USER + HOME.
-    0x1D => "get_only_on_id_pulse"
-    , #  (THE SAME USER AND THE SAME HOME) Check the Only ON ID PULSE in the same USER+ HOME.
-    0x1E => "report_all_id_pulse",     #  （ For 3-phase power line only ）
-    0x1F => "report_only_on_pulse",    #  （ For 3-phase power line only ）
+    0x1C => "get_all_id_pulse",          #  (THE SAME USER AND THE SAME HOM E) Check the ID PULSE in the same USER + HOME.
+    0x1D => "get_only_on_id_pulse",      #  (THE SAME USER AND THE SAME HOME) Check the Only ON ID PULSE in the same USER+ HOME.
+    0x1E => "report_all_id_pulse",       #  （ For 3-phase power line only ）
+    0x1F => "report_only_on_pulse",      #  （ For 3-phase power line only ）
 );
 
 ## NOTES
@@ -383,7 +376,7 @@ sub _new_instance {
     }
     my $serial = $::config_parms{plcbus_serial_port};
     die("plcbus interface missing. Set 'plcbus_serial_port' in mh.private.ini")
-    unless $serial;
+      unless $serial;
 
     $self->{last_data_to_from_bus} = [ Time::HiRes::gettimeofday() ];
 
@@ -394,13 +387,12 @@ sub _new_instance {
     $self->{plc_devices} = ();
 
     # only used for code generation so we know which home commands have alreay been created
-    $self->{homes} = ();
-    $self->{plcbussrv_proc} =
-    new Process_Item();    # to start/stop the plcbussrv server
+    $self->{homes}          = ();
+    $self->{plcbussrv_proc} = new Process_Item();                        # to start/stop the plcbussrv server
     $self->{plcbussrv_port} = $::config_parms{plcbussrv_port} || 4567;
 
     my $c = "plcbussrv $serial $self->{plcbussrv_port}";
-    if ($::config_parms{plcbussrv_logfile}) {
+    if ( $::config_parms{plcbussrv_logfile} ) {
         $c .= " 2>&1 > $::config_parms{plcbussrv_logfile}";
     }
     _log($c);
@@ -466,7 +458,7 @@ sub add_device($) {
 sub _handle_commands () {
     my ($self) = @_;
     $self->_check_external_plcbus_command_file();
-    if($::New_Day){
+    if ($::New_Day) {
         &main::file_backup("$main::config_parms{data_dir}/logs/plcbus.log");
     }
 
@@ -536,7 +528,7 @@ sub _handle_incoming_commands {
         }
         if (   $self->{current_cmd}->{expected_response}
             && !$dec->{REPRQ}
-            && $cmd ~~ ( $self->{current_cmd}->{expected_response} ) )
+            && grep { $_ eq $cmd } @{ $self->{current_cmd}->{expected_response} } )
         {
             $self->{current_cmd}->{expected_response_seen} = 1;
 
@@ -555,8 +547,7 @@ sub _handle_incoming_commands {
         if ( defined( $self->{current_cmd} ) ) {
             $current_cmd_home = $self->{current_cmd}->{home};
         }
-        $self->_handle_REPORT_ONLY_ON_PULSE( $current_cmd_home, $dec->{d1},
-            $dec->{d2} );
+        $self->_handle_REPORT_ONLY_ON_PULSE( $current_cmd_home, $dec->{d1}, $dec->{d2} );
         return 1;
     }
     elsif ( $cmd =~ /^report_all_id_pulse$/ ) {
@@ -566,8 +557,7 @@ sub _handle_incoming_commands {
         if ( defined( $self->{current_cmd} ) ) {
             $current_cmd_home = $self->{current_cmd}->{home};
         }
-        $self->_handle_REPORT_ALL_ID_PULSE( $current_cmd_home, $dec->{d1},
-            $dec->{d2} );
+        $self->_handle_REPORT_ALL_ID_PULSE( $current_cmd_home, $dec->{d1}, $dec->{d2} );
         return 1;
     }
     else {
@@ -600,10 +590,7 @@ sub _handle_REPORT_ONLY_ON_PULSE($$$) {
             }
         }
     }
-    _logdd( "$home report_only_on_pulse 'd1d2': '"
-        . bin_rep($d1)
-        . bin_rep($d2)
-        . "'" );
+    _logdd( "$home report_only_on_pulse 'd1d2': '" . bin_rep($d1) . bin_rep($d2) . "'" );
     _log("$home ON : '$on' OFF: '$off'");
 }
 
@@ -618,11 +605,8 @@ sub _handle_REPORT_ALL_ID_PULSE($$$) {
             $exist .= "$home$unit";
         }
     }
-    _logdd( "$home report_all_id_pulse 'd1d2': '"
-        . bin_rep($d1)
-        . bin_rep($d2)
-        . "'" );
-    _log("$home present: $exist");
+    _logdd( "$home report_all_id_pulse 'd1d2': '" . bin_rep($d1) . bin_rep($d2) . "'" );
+    _log("$home present: '$exist'");
 }
 
 sub _check_external_plcbus_command_file() {
@@ -674,26 +658,24 @@ sub _is_current_command_complete() {
     }
     my $current = $self->{current_cmd};
     my $ok      = 1;
-    my $what;
+    my $what = "";
     if ( !$current->{echo_seen} ) {
-        $what = $what . "'echo' ";
+        $what .= "'echo' ";
         $ok   = 0;
     }
     if ( $current->{waits_for_ack} && !$current->{ack_seen} ) {
         $what .= "'ack' ";
         $ok = 0;
     }
-    if ( $current->{expected_response} && !$current->{expected_response_seen} )
-    {
-        $what .= "'response ("
-        . join( "|", @{ $self->{current_cmd}->{expected_response} } ) . ")' ";
+    if ( $current->{expected_response} && !$current->{expected_response_seen} ) {
+        $what .= "'response (" . join( "|", @{ $self->{current_cmd}->{expected_response} } ) . ")' ";
         $ok = 0;
     }
     if (
         $current->{three_phase}
         && (   !$cmd_to_hex{ $current->{cmd} }{noreplay}
             && !$current->{replay_seen} )
-    )
+      )
     {
         if (   $current->{expected_response}
             && $current->{expected_response_seen} )
@@ -709,30 +691,25 @@ sub _is_current_command_complete() {
     }
 
     if (    ( $current->{cmd} eq "on" or $current->{cmd} eq "off" )
-            and $current->{three_phase} == 0
-            and $current->{ack_seen} )
+        and $current->{ack_seen} )
     {
-        _logdd(
-            "Considering 1-Phase command completed, because ACK was received");
+        _logdd("Considering command completed, because ACK was received");
         $ok = 1;
         $current->{completed} = 1;
         my $module =
-        $self->{plc_devices}->{ $current->{home} }->{ $current->{unit} };
-        $module->_set( $current->{cmd}, $current->{setby},
-            $current->{respond} );
+          $self->{plc_devices}->{ $current->{home} }->{ $current->{unit} };
+        $module->_set( $current->{cmd}, $current->{setby}, $current->{respond} );
     }
-    elsif (    ( $current->{cmd} eq "on" or $current->{cmd} eq "off" )
-            and $current->{is_scene} == 1
-            and $current->{ack_seen} )
+    elsif ( ( $current->{cmd} eq "on" or $current->{cmd} eq "off" )
+        and $current->{is_scene} == 1
+        and $current->{ack_seen} )
     {
-        _logdd(
-            "Considering scene command completed, because ACK was received");
+        _logdd("Considering scene command completed, because ACK was received");
         $ok = 1;
         $current->{completed} = 1;
         my $module =
-        $self->{plc_devices}->{ $current->{home} }->{ $current->{unit} };
-        $module->_set( $current->{cmd}, $current->{setby},
-            $current->{respond} );
+          $self->{plc_devices}->{ $current->{home} }->{ $current->{unit} };
+        $module->_set( $current->{cmd}, $current->{setby}, $current->{respond} );
     }
     elsif ( $ok && !$self->{current_cmd}->{completed} ) {
         $current->{completed} = 1;
@@ -740,12 +717,9 @@ sub _is_current_command_complete() {
 
     if ( $current->{completed} ) {
         $current->{duration} =
-        Time::HiRes::tv_interval( $current->{last_write} );
+          Time::HiRes::tv_interval( $current->{last_write} );
         my $name = "$self->{current_cmd}->{home}$self->{current_cmd}->{unit}";
-        _logdd(
-            "$name completed within $self->{current_cmd}->{duration} (allowed: "
-            . $self->_get_timeout()
-            . ")" );
+        _logdd( "$name completed within $self->{current_cmd}->{duration} (allowed: " . $self->_get_timeout() . ")" );
     }
     return $ok;
 }
@@ -777,12 +751,12 @@ sub _has_current_command_timeout() {
         return 0;
     }
     my $maxwait = $self->_get_timeout();
-    my $diff = Time::HiRes::tv_interval( $self->{current_cmd}->{last_write} );
+    my $diff    = Time::HiRes::tv_interval( $self->{current_cmd}->{last_write} );
     if ( $diff < $maxwait ) {
         return 0;
     }
     my ( $home, $unit ) =
-    ( $self->{current_cmd}->{home}, $self->{current_cmd}->{unit} );
+      ( $self->{current_cmd}->{home}, $self->{current_cmd}->{unit} );
     my $name = "$home$unit";
     my $c = $self->{current_cmd}->{three_phase} ? "3" : "1";
     $c .= "-Phase command";
@@ -811,19 +785,20 @@ sub _check_current_command() {
     }
 
     my $delete_cmd = 0;
-    my $retry_cmd = 0;
+    my $retry_cmd  = 0;
     if ( $self->_is_current_command_complete() ) {
         $delete_cmd = 1;
     }
     elsif ( $self->_has_current_command_timeout() ) {
         $delete_cmd = 1;
-        if (!$self->{current_cmd}->{retry}
-            || $self->{current_cmd}->{retry} lt 2){
+        if (  !$self->{current_cmd}->{retry}
+            || $self->{current_cmd}->{retry} lt 2 )
+        {
             $retry_cmd = 1;
             $self->{current_cmd}->{retry}++;
-            _log("Requeuing after timeout. Retry=". $self->{current_cmd}->{retry});
+            _log( "Requeuing after timeout. Retry=" . $self->{current_cmd}->{retry} );
         }
-        else{
+        else {
             _log("Retries exceeded. Won't requeue.");
         }
     }
@@ -831,11 +806,11 @@ sub _check_current_command() {
     if ($delete_cmd) {
         my $cmd = $self->{current_cmd};
         $self->{current_cmd} = undef;
-        if ($retry_cmd){
-            if(grep {$_->{home} eq $cmd->{home} &&  $_->{unit} == $cmd->{unit} } @{$self->{command_queue}}) {
+        if ($retry_cmd) {
+            if ( grep { $_->{home} eq $cmd->{home} && $_->{unit} == $cmd->{unit} } @{ $self->{command_queue} } ) {
                 _log("Won't requeue. Queue already contains new command for $cmd->{home}$cmd->{unit}.");
             }
-            else{
+            else {
                 $self->queue_command($cmd);
             }
         }
@@ -870,9 +845,7 @@ sub _can_transmit() {
     }
 
     if ( !$self->{plcbussrv_connection} || !$self->{select} ) {
-        _log(
-            "not connected to plcpus command server can't transmit, dropping all pending commands"
-        );
+        _log("not connected to plcpus command server can't transmit, dropping all pending commands");
         $self->{command_queue} = [];
         return 0;
     }
@@ -894,8 +867,7 @@ sub _read_from_server() {
                 $self->{select}->remove( $self->{plcbussrv_connection} );
                 $self->{select}               = undef;
                 $self->{plcbussrv_connection} = undef;
-                _log(
-                    "Connection to comman server broken, trying to reconnect.");
+                _log("Connection to comman server broken, trying to reconnect.");
                 $self->_connect_command_server();
             }
             return $data;
@@ -917,8 +889,7 @@ sub _read_packet() {
         for my $cur (@u) {
             if ( scalar @rx_tmp == 0 ) {
                 if ( $cur != $STX ) {
-                    _log( "< not a startbyte. Dropped "
-                        . sprintf( "0x%02x", $cur ) );
+                    _log( "< not a startbyte. Dropped " . sprintf( "0x%02x", $cur ) );
                 }
                 else {
                     push @rx_tmp, $cur;
@@ -937,11 +908,8 @@ sub _read_packet() {
 
         my @rx = splice( @rx_tmp, 0, 9 );
 
-        if ( sum(@rx) % 0x100 != 0x0 )
-        { ## aus pcbbus.pl geklaut, kp warum das so ghet, nirgends steht wie die checksumme funktioniert..
-            _log(   "< READ INVALID PACKET: \n"
-                . sprintf( " 0x%02x" x scalar @rx, @rx )
-                . "\n" );
+        if ( sum(@rx) % 0x100 != 0x0 ) {    ## aus pcbbus.pl geklaut, kp warum das so ghet, nirgends steht wie die checksumme funktioniert..
+            _log( "< READ INVALID PACKET: \n" . sprintf( " 0x%02x" x scalar @rx, @rx ) . "\n" );
             my @tmp = @rx_tmp;
             @rx_tmp = ();
             for my $cur (@tmp) {
@@ -971,11 +939,7 @@ sub _decode_incoming($) {
 
     return 0 unless scalar(@rx) == 9;
 
-    my (
-        $rx_STX,       $rx_length,       $rx_USER_CODE,
-        $rx_home_unit, $rx_command,      $rx_data1,
-        $rx_data2,     $rx_RX_TX_SWITCH, $rx_ETX
-    ) = @rx;
+    my ( $rx_STX, $rx_length, $rx_USER_CODE, $rx_home_unit, $rx_command, $rx_data1, $rx_data2, $rx_RX_TX_SWITCH, $rx_ETX ) = @rx;
 
     my $rx_decoded = decode_command($rx_command);
     my $home       = get_home($rx_home_unit);
@@ -986,12 +950,7 @@ sub _decode_incoming($) {
     my $cmd     = $hex_to_cmd{$cmd_hex};
     my $datastr = "";
     if ( $cmd_to_hex{$cmd}{data} == 1 ) {
-        $datastr =
-        ", d1=0x"
-        . hex_rep($rx_data1)
-        . "($rx_data1) d2=0x"
-        . hex_rep($rx_data2)
-        . "($rx_data2)";
+        $datastr            = ", d1=0x" . hex_rep($rx_data1) . "($rx_data1) d2=0x" . hex_rep($rx_data2) . "($rx_data2)";
         $rx_decoded->{data} = 1;
         $rx_decoded->{d1}   = $rx_data1;
         $rx_decoded->{d2}   = $rx_data2;
@@ -1001,8 +960,7 @@ sub _decode_incoming($) {
 
     $m .= _command_to_string($rx_command);
 
-    my $rxtx =
-    decode_rx_tx_switch( $rx_RX_TX_SWITCH, $rx_data1, $rx_data2, \$m );
+    my $rxtx = decode_rx_tx_switch( $rx_RX_TX_SWITCH, $rx_data1, $rx_data2, \$m );
     $rx_decoded->{rxtx} = $rxtx;
     $m .= ", R_ID_SW"  if ( $rxtx->{R_ID_SW} );
     $m .= ", R_ACK_SW" if ( $rxtx->{R_ACK_SW} );
@@ -1033,8 +991,7 @@ sub queue_command {
     }
 
     if ( !$cmd_to_hex{ $command->{cmd} } ) {
-        _logw( "command '$command->{cmd}' unknown => not queued.\n"
-            . Dumper($command) );
+        _logw( "command '$command->{cmd}' unknown => not queued.\n" . Dumper($command) );
         return;
     }
 
@@ -1043,23 +1000,20 @@ sub queue_command {
     my $msg = $self->_get_module_name( $command->{home}, $command->{unit} );
 
     $msg .= " queued '$command->{cmd}";
-    $msg .= " d1=$command->{d1}" if defined  $command->{d1};
-    $msg .= " d2=$command->{d2}" if defined  $command->{d2};
+    $msg .= " d1=$command->{d1}" if defined $command->{d1};
+    $msg .= " d2=$command->{d2}" if defined $command->{d2};
     $msg .= "'";
     _logd($msg);
 }
 
 sub _write_current_command {
     my ($self) = @_;
-    my ( $home, $unit, $cmd, $d1, $d2 ) = (
-        $self->{current_cmd}->{home}, $self->{current_cmd}->{unit},
-        $self->{current_cmd}->{cmd},  $self->{current_cmd}->{d1},
-        $self->{current_cmd}->{d2}
-    );
+    my ( $home, $unit, $cmd, $d1, $d2 ) =
+      ( $self->{current_cmd}->{home}, $self->{current_cmd}->{unit}, $self->{current_cmd}->{cmd}, $self->{current_cmd}->{d1}, $self->{current_cmd}->{d2} );
     my $tx_home_unit = 0x00;
     $tx_home_unit = $unit - 1 if $unit;
     $tx_home_unit =
-    $tx_home_unit | ( ( ord($home) - 0x41 ) << 4 );    # 0x41 == 'A'
+      $tx_home_unit | ( ( ord($home) - 0x41 ) << 4 );    # 0x41 == 'A'
 
     my $tx_STX = 0x02;
     my $tx_ETX = 0x03;
@@ -1067,15 +1021,14 @@ sub _write_current_command {
     my $tx_command = $cmd_to_hex{$cmd}{cmd};
 
     my $phase_flag = $self->_get_phase_flag( $home, $unit );
-    $tx_command = $tx_command | $phase_flag;                   #  3-/1-phase
-    $tx_command = $tx_command | $cmd_to_hex{$cmd}{'flags'};    # ack_pulse
+    $tx_command                           = $tx_command | $phase_flag;                   #  3-/1-phase
+    $tx_command                           = $tx_command | $cmd_to_hex{$cmd}{'flags'};    # ack_pulse
     $self->{current_cmd}->{waits_for_ack} = $cmd_to_hex{$cmd}{'flags'};
 
-
     $self->{current_cmd}->{expected_response} =
-    $cmd_to_hex{$cmd}{expected_response};
+      $cmd_to_hex{$cmd}{expected_response};
     my $dev = $self->{plc_devices}{$home}{$unit};
-    if ($dev && $dev->isa('PLCBUS_Scene')){
+    if ( $dev && $dev->isa('PLCBUS_Scene') ) {
         $self->{current_cmd}->{is_scene} = 1;
     }
     else {
@@ -1091,13 +1044,9 @@ sub _write_current_command {
 
     my $usercode = _get_user_code();
 
-    my $m = sprintf( "$home$unit TX " . " %02x" x 8,
-        $tx_STX, $tx_length, $usercode, $tx_home_unit, $tx_command, $tx_data1,
-        $tx_data2, $tx_ETX );
+    my $m = sprintf( "$home$unit TX " . " %02x" x 8, $tx_STX, $tx_length, $usercode, $tx_home_unit, $tx_command, $tx_data1, $tx_data2, $tx_ETX );
     $m .= "    => " . _command_to_string($tx_command);
-    my $tx = pack( 'C*',
-        $tx_STX, $tx_length, $usercode, $tx_home_unit, $tx_command, $tx_data1,
-        $tx_data2, $tx_ETX );
+    my $tx = pack( 'C*', $tx_STX, $tx_length, $usercode, $tx_home_unit, $tx_command, $tx_data1, $tx_data2, $tx_ETX );
 
     my $result = $self->{plcbussrv_connection}->send($tx);
 
@@ -1107,14 +1056,11 @@ sub _write_current_command {
         _log( $m . ": WRITE TO COMAND SERVER FAILED" );
     }
     elsif ( $result != length $tx ) {
-        _log(   $m
-            . ": WRITE incomplete. have written '$result' of '"
-            . length $tx
-            . "'" );
+        _log( $m . ": WRITE incomplete. have written '$result' of '" . length $tx . "'" );
     }
     else {
         my $resp = $self->{current_cmd}->{respond};
-        if ($resp){
+        if ($resp) {
             &::respond( $resp, "OK" );
         }
         _logd($m);
@@ -1209,7 +1155,7 @@ sub decode_rx_tx_switch($$$$) {
 sub _split_homeunit {
     my ($address) = @_;
     die("$address is not a valid PLCBUS home unit address")
-    unless ( $address =~ /^([A-O])([0-9]{1,2})$/ );
+      unless ( $address =~ /^([A-P])([0-9]{1,2})$/ );
     return ( $1, $2 );
 }
 
@@ -1229,11 +1175,13 @@ sub get_cmd_list($) {
 my $homes = ();
 
 sub generate_code(@) {
-    my ( $self, $type, $address, $name, $grouplist, $scene_list ) = @_;
+    my ( $self, $type, $address, $name, $grouplist, $scene_list, $totaltime ) = @_;
     my ( $home, $unit ) = _split_homeunit($address);
 
+    _log("Got @_");
+
     my $home_name = "PLCBUS_$home";
-    $grouplist = "" unless $grouplist;
+    $grouplist  = "" unless $grouplist;
     $scene_list = "" unless $scene_list;
 
     # $grouplist .= "|$phome";
@@ -1250,8 +1198,7 @@ sub generate_code(@) {
         $object = "PLCBUS_Shutter('$name', '$home','$unit', '$grouplist')";
     }
     elsif ( $type =~ /^PLCBUS.*/i ) {
-        _log(
-            "Unknown PLCBUS device type '$type'. Creating generic PLCBUS item");
+        _log("Unknown PLCBUS device type '$type'. Creating generic PLCBUS item");
         $object = "PLCBUS_Item('$name', '$home','$unit', '$grouplist', '$scene_list')";
     }
     else {
@@ -1267,73 +1214,61 @@ sub generate_code(@) {
         $homes->{$home}++;
         my $vc = "\$" . $home_name . "_voice_cmds";
         $more .= "\n";
-        $more .= "# Category = PLCBUS_House\n"
-        ."   $vc = new Voice_Cmd(\"PLCBUS " . $home . " ["
-        . get_cmd_list('home')
-        . "]\");\n";
+        $more .= "# Category = PLCBUS_House\n" . "   $vc = new Voice_Cmd(\"PLCBUS " . $home . " [" . get_cmd_list('home') . "]\");\n";
         $more .= ::store_object_data( $vc, 'Voice_Cmd', 'PLCBUS_House', 'PLCBUS_House' );
 
         $more .= " if (my \$status = said $vc){\n";
         $more .= "     \$status =~ s/ /_/g;\n";
         $more .= "     respond \"queued \$status for home '$home'\";\n";
-        $more .=
-        "     PLCBUS->instance()->queue_command( {home => '$home', unit => 0, cmd => \$status});\n";
+        $more .= "     PLCBUS->instance()->queue_command( {home => '$home', unit => 0, cmd => \$status});\n";
         $more .= " }\n";
     }
     my $usercode = _get_user_code();
     if ( !$homes->{$usercode} ) {
         $homes->{$usercode}++;
-        $more .= "# Category = PLCBUS_House\n"
-        ."   \$PLCBUS_USER_Commands = new Voice_Cmd(\"PLCBUS ["
-        . get_cmd_list('user')
-        . "]\");\n";
-        $more .=
-        ::store_object_data( "\$PLCBUS_USER_Commands", 'Voice_Cmd', 'PLCBUS_House',
-            'PLCBUS_House' );
+        $more .= "# Category = PLCBUS_House\n" . "   \$PLCBUS_USER_Commands = new Voice_Cmd(\"PLCBUS [" . get_cmd_list('user') . "]\");\n";
+        $more .= ::store_object_data( "\$PLCBUS_USER_Commands", 'Voice_Cmd', 'PLCBUS_House', 'PLCBUS_House' );
 
         $more .= "\n"
-        ."if (my \$status = said \$PLCBUS_USER_Commands){\n"
-        ."     \$status =~ s/ /_/g;\n"
-        ."     respond \"queued comand \$status for all\";\n"
-        ."     if(\$status eq 'all user unit off'){\n"
-        ."         my \$setby = \$PLCBUS_USER_Commands->get_set_by();\n"
-        ."         PLCBUS->instance()->all_user_unit_off('A',0,\$setby);\n"
-        ."     }\n"
-        ."     elsif(\$status eq 'all user light off'){\n"
-        ."         my \$setby = \$PLCBUS_USER_Commands->get_set_by();\n"
-        ."         PLCBUS->instance()->all_user_light_off('A',0,\$setby);\n"
-        ."     }\n"
-        ."     else{\n"
-        ."         PLCBUS->instance()->queue_command( {home => 'A', unit => 0, cmd => \$status});\n"
-        ."     }\n"
-        ." }\n";
+          . "if (my \$status = said \$PLCBUS_USER_Commands){\n"
+          . "     \$status =~ s/ /_/g;\n"
+          . "     respond \"queued comand \$status for all\";\n"
+          . "     if(\$status eq 'all user unit off'){\n"
+          . "         my \$setby = \$PLCBUS_USER_Commands->get_set_by();\n"
+          . "         PLCBUS->instance()->all_user_unit_off('A',0,\$setby);\n"
+          . "     }\n"
+          . "     elsif(\$status eq 'all user light off'){\n"
+          . "         my \$setby = \$PLCBUS_USER_Commands->get_set_by();\n"
+          . "         PLCBUS->instance()->all_user_light_off('A',0,\$setby);\n"
+          . "     }\n"
+          . "     else{\n"
+          . "         PLCBUS->instance()->queue_command( {home => 'A', unit => 0, cmd => \$status});\n"
+          . "     }\n" . " }\n";
 
-        $more .=
-        "   \$PLCBUS_scan_house = new Voice_Cmd(\"PLCBUS scan house\");\n";
-        $more .=
-        ::store_object_data( "\$PLCBUS_scan_house", 'Voice_Cmd', 'PLCBUS_House',
-            'PLCBUS_House' );
+        $more .= "   \$PLCBUS_scan_house = new Voice_Cmd(\"PLCBUS scan house\");\n";
+        $more .= ::store_object_data( "\$PLCBUS_scan_house", 'Voice_Cmd', 'PLCBUS_House', 'PLCBUS_House' );
         $more .= " if (my \$status = said \$PLCBUS_scan_house){\n";
         $more .= "     \$status =~ s/ /_/g;\n";
         $more .= "     respond \"scanning home codes A .. P\";\n";
         $more .= "     PLCBUS->instance()->scan_whole_house();\n";
         $more .= " }\n";
         $more .= "\n";
-        $more .=
-        "   \$PLCBUS_setup_house = new Voice_Cmd(\"PLCBUS setup house\");\n";
-        $more .=
-        ::store_object_data( "\$PLCBUS_setup_house", 'Voice_Cmd', 'PLCBUS_House',
-            'PLCBUS_House' );
+        $more .= "   \$PLCBUS_setup_house = new Voice_Cmd(\"PLCBUS setup house\");\n";
+        $more .= ::store_object_data( "\$PLCBUS_setup_house", 'Voice_Cmd', 'PLCBUS_House', 'PLCBUS_House' );
         $more .= " if (my \$status = said \$PLCBUS_setup_house){\n";
         $more .= "     \$status =~ s/ /_/g;\n";
         $more .= "     respond \"setting up preset dim and scenes\";\n";
         $more .= "     PLCBUS->instance()->setup_house();\n";
         $more .= " }\n";
+        $more .= "   \$PLCBUS_scan_only_on_house = new Voice_Cmd(\"PLCBUS scan house only on\");\n";
+        $more .= ::store_object_data( "\$PLCBUS_scan_only_on_house", 'Voice_Cmd', 'PLCBUS_House', 'PLCBUS_House' );
+        $more .= " if (my \$status = said \$PLCBUS_scan_only_on_house){\n";
+        $more .= "     respond \"scanning home codes A .. P for devices in  'on' state\";\n";
+        $more .= "     PLCBUS->instance()->scan_whole_house_for_on();\n";
+        $more .= " }\n";
+        $more .= "\n";
     }
 
-    # if ($more){
-    #     _logdd($more);
-    # }
     return ( $object, $grouplist, $more );
 }
 
@@ -1341,10 +1276,11 @@ sub setup_house {
     my ($self) = @_;
 
     for my $home ( keys %{ $self->{plc_devices} } ) {
-        for my $unit ( keys %{ $self->{plc_devices}{$home}} ) {
+        for my $unit ( keys %{ $self->{plc_devices}{$home} } ) {
             my $dev = $self->{plc_devices}{$home}{$unit};
-            if ($dev->isa("PLCBUS_Scene")){
-                # do scene setup later so preset dim is configured 
+            if ( $dev->isa("PLCBUS_Scene") ) {
+
+                # do scene setup later so preset dim is configured
                 # and can be used for scenes without specific dim values configured
                 next;
             }
@@ -1356,32 +1292,37 @@ sub setup_house {
 sub scan_whole_house {
     my ($self) = @_;
     foreach my $home ( "A" .. "P" ) {
-        $self->queue_command(
-            { home => $home, unit => 0, cmd => 'report_all_id_pulse' } );
+        $self->queue_command( { home => $home, unit => 0, cmd => 'get_all_id_pulse' } );
     }
 }
 
-
-sub all_user_unit_off{
-    my ($self,$home,$unit,$setby) = @_;
-    my $cmd = { home => $home , unit => $unit, cmd => "all_user_unit_off" };
-    $self->queue_command($cmd);
-    $self->set_state_on_all("off",$setby);
+sub scan_whole_house_for_on {
+    my ($self) = @_;
+    foreach my $home ( "A" .. "P" ) {
+        $self->queue_command( { home => $home, unit => 0, cmd => 'get_only_on_id_pulse' } );
+    }
 }
 
-sub all_user_light_off{
-    my ($self,$home,$unit,$setby) = @_;
-    my $cmd = { home => $home , unit => $unit, cmd => "all_user_light_off" };
+sub all_user_unit_off {
+    my ( $self, $home, $unit, $setby ) = @_;
+    my $cmd = { home => $home, unit => $unit, cmd => "all_user_unit_off" };
     $self->queue_command($cmd);
-    $self->set_state_on_all("off",$setby);
+    $self->set_state_on_all( "off", $setby );
 }
 
-sub set_state_on_all{
-    my ($self,$state,$setby) = @_;
+sub all_user_light_off {
+    my ( $self, $home, $unit, $setby ) = @_;
+    my $cmd = { home => $home, unit => $unit, cmd => "all_user_light_off" };
+    $self->queue_command($cmd);
+    $self->set_state_on_all( "off", $setby );
+}
+
+sub set_state_on_all {
+    my ( $self, $state, $setby ) = @_;
     for my $home ( keys %{ $self->{plc_devices} } ) {
-        for my $unit ( keys %{ $self->{plc_devices}{$home}} ) {
+        for my $unit ( keys %{ $self->{plc_devices}{$home} } ) {
             my $dev = $self->{plc_devices}{$home}{$unit};
-            $dev->_set($state,$setby);
+            $dev->_set( $state, $setby );
         }
     }
 }
@@ -1414,6 +1355,7 @@ started by this module
     plcbussrv_port=4567
     debug=plcbus:2|plcbus_module:2
     plcbus_logfile=1
+    plcbus_setup_voice_cmds=1
 
 =over
 
@@ -1452,6 +1394,14 @@ able to debug plcbus. All logmessages are written regardless of your 'debug='
 setting.
 
 if set to '0' or omitted, no logfile is created.
+
+=item B<plcbus_setup_voice_cmds>
+
+if set to anything but '0' the module creates a bunch of setup voice comands
+to program the devices. Since this may create quite a lot of commands it may 
+slow down misterhouse.
+
+if set to '0' or omitted only on/off voice commands are created.
 
 =back
 
@@ -1651,33 +1601,36 @@ sub new {
     $self->{name}   = $name;
     $self->{groups} = $grouplist;
     $self->{scenes} = $scenes || "";
-    foreach ( split(/\|/, $self->{scenes})){
+    foreach ( split( /\|/, $self->{scenes} ) ) {
         my $s = $_;
-        next if $s  =~ /^\s*$/;
-        if ( $s =~ /$home$unit:(\d+)\@(\d+)/){
+        next if $s =~ /^\s*$/;
+        if ( $s =~ /$home$unit:(\d+)\@(\d+)/ ) {
             $self->_logd("Default Level '$1%' Rate '$2s'");
             $self->{defautl_presetdim_level} = $1;
-            $self->{defautl_presetdim_rate} = $2;
+            $self->{defautl_presetdim_rate}  = $2;
         }
-        elsif ($s =~ /([A-P])(\d+):(\d+)\@(\d+)/){
-            my $home = $1;
-            my $unit = $2;
+        elsif ( $s =~ /([A-P])(\d+):(\d+)\@(\d+)/ ) {
+            my $home  = $1;
+            my $unit  = $2;
             my $level = $3;
-            my $rate = $4;
+            my $rate  = $4;
             my $scene = PLCBUS->instance()->{plc_devices}{$home}{$unit};
-            if (!$scene){
+            if ( !$scene ) {
                 $self->_log("Scene '$home$unit' not found. Was it defined already me?");
             }
-            $scene->add_member($self, $level, $rate);
-            push (@{$self->{scene_items}}, $scene);
-            $self->_logd("Added to scene $scene->{name}; Level '$level%' Rate '".$rate."s'");
+            $scene->add_member( $self, $level, $rate );
+            push( @{ $self->{scene_items} }, $scene );
+            $self->_logd( "Added to scene $scene->{name}; Level '$level%' Rate '" . $rate . "s'" );
         }
         else {
             $self->_log("Can not parse scenesetting '$s'. Requiered format: Sceneaddress:Dimlevel\@Faderate");
         }
     }
-    my @default_states =
-    qw|on off bright dim status_req get_noise_strength get_signal_strength all_scenes_addrs_erase|;
+    my @default_states = qw|on off status_req|;
+    if ($::config_parms{plcbus_setup_voice_cmds})
+    {
+        push(@default_states, qw |bright dim get_noise_strength get_signal_strength all_scenes_addrs_erase|);
+    }
     $self->set_states(@default_states);
     $self->_logd("ctor $self->{name} home: $self->{home} unit: $self->{unit} scenes: $self->{scenes}");
     PLCBUS->instance()->add_device($self);
@@ -1689,7 +1642,7 @@ sub new {
 sub generate_voice_commands {
     my ($self) = @_;
     $self->_log("Generating Voice commands");
-    my $object_string;
+    my $object_string = "";
     my $name = $self->{name};
 
     my $varlist;
@@ -1700,16 +1653,18 @@ sub generate_voice_commands {
 
     foreach ( sort keys %$voice_cmds ) {
         my $vc_var_name = "\$${name}_$_";
-        $varlist .= " $vc_var_name";
-        $object_string .=
-        "$vc_var_name  = new Voice_Cmd '$vc_pref $voice_cmds->{$_}[0]';\n";
-        $object_string .=
-        "$vc_var_name -> tie_event('" . $voice_cmds->{$_}[1] . "');\n";
-        $object_string .=
-        ::store_object_data( "$vc_var_name", 'Voice_Cmd', 'PLCBUS_Devices', 'PLCBUS_Devices' ); }
+        $varlist       .= " $vc_var_name";
+        $object_string .= "$vc_var_name  = new Voice_Cmd '$vc_pref $voice_cmds->{$_}[0]';\n";
+        $object_string .= "$vc_var_name -> tie_event('" . $voice_cmds->{$_}[1] . "');\n";
+        $object_string .= ::store_object_data( "$vc_var_name", 'Voice_Cmd', 'PLCBUS_Devices', 'PLCBUS_Devices' );
+    }
+
+    return if $object_string eq "";
+
+
     $object_string = "use vars qw($varlist);\n" . $object_string;
 
-#    $self->_log("\n\n$object_string");
+    #$self->_log("\n\n$object_string");
 
     #Evaluate the resulting object generating string
     package main;
@@ -1722,27 +1677,27 @@ sub generate_voice_commands {
 sub get_voice_cmds {
     my ($self)      = @_;
     my $object_name = $self->{name};
-    my $level = '[5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]';
-    my %voice_cmds  = (
-        'change_state' => [
-            '[on,off,status req,get signal strength,get noise strength,1 phase,3 phase,use mh ini phase mode]',
-            "\$$object_name->set(\$state)"
-        ],
-        'bright_cmd' => [
-            'bright '.$level.'%',
-            "\$$object_name->command(\"bright\", \$state, 1)"
-        ],
-        'dim_cmd' => [
-            'dim '.$level.'%',
-            "\$$object_name->command(\"dim\", \$state, 1)"
-        ],
-    );
+    my $level       = '[5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]';
+    my %voice_cmds  = ();
+    if ($::config_parms{plcbus_setup_voice_cmds})
+    {
+        %voice_cmds = (
+            'change_state' =>
+            [ '[on,off,status req,get signal strength,get noise strength,1 phase,3 phase,use mh ini phase mode]', "\$$object_name->set(\$state)" ],
+            'bright_cmd' => [ 'bright ' . $level . '%', "\$$object_name->command(\"bright\", \$state, 1)" ],
+            'dim_cmd'    => [ 'dim ' . $level . '%',    "\$$object_name->command(\"dim\", \$state, 1)" ],
+        );
 
-    for (my $i = 5; $i <= 100; $i+= 5){
-        $voice_cmds{'bright_'.sprintf("%03d",$i)} = [
-            'presetdim to '.$i.'% within [0,1,2,3,4,5,6,7,8,9,10]s',
-            "\$$object_name->preset_dim_from_voice_cmd($i, \$state)"
-        ];
+        for ( my $i = 5; $i <= 100; $i += 5 ) {
+            $voice_cmds{ 'bright_' . sprintf( "%03d", $i ) } =
+            [ 'presetdim to ' . $i . '% within [0,1,2,3,4,5,6,7,8,9,10]s', "\$$object_name->preset_dim_from_voice_cmd($i, \$state)" ];
+        }
+    }
+    else
+    {
+        %voice_cmds = (
+            'change_state' => [ '[on,off]', "\$$object_name->set(\$state)" ],
+        );
     }
 
     return \%voice_cmds;
@@ -1767,8 +1722,9 @@ sub handle_incoming {
     my $data = "";
     $data .= "d1=$c->{d1} " if $c->{d1};
     $data .= "d2=$c->{d2}"  if $c->{d2};
-    if (    $c->{cmd} eq "status_on"
-        ||  $c->{cmd} eq "presetdim" ) {
+    if (   $c->{cmd} eq "status_on"
+        || $c->{cmd} eq "presetdim" )
+    {
         $msg = "On $data";
         my $mState = 'on';
         if ( $c->{d1} ) {
@@ -1809,15 +1765,14 @@ sub _set {
     $msg .= ", respond $respond" if $respond;
     $self->_logd($msg);
     $self->SUPER::set( $new_state, $setby, $respond );
-    if( $new_state eq 'off') {
-        map { $_->_set('off')  } @{$self->{scene_items}};
+    if ( $new_state eq 'off' ) {
+        map { $_->_set('off') } @{ $self->{scene_items} };
     }
 }
 
 sub preset_dim_from_voice_cmd() {
     my ( $self, $brightness, $faderate ) = @_;
-    my $msg =
-    "change preset brightness to $brightness% at a faderate of $faderate seconds for $self->{name} was requested";
+    my $msg = "change preset brightness to $brightness% at a faderate of $faderate seconds for $self->{name} was requested";
     ::respond("$msg");
     $self->preset_dim( $brightness, $faderate );
 }
@@ -1830,16 +1785,8 @@ sub preset_dim {
     $self->command( 'presetdim', $bright_percent, $fade_rate_secs );
 }
 
-my @light_cmds = [ "on", "off", "bright", "dim" ];
-my @plc_cmds = [
-    "status req",
-    "blink",
-    "status on",
-    "status off",
-    "get signal strength",
-    "get noise strength",
-    "all scenes addrs erase",
-];
+my @light_cmds = ( "on", "off", "bright", "dim" );
+my @plc_cmds = ( "status req", "blink", "status on", "status off", "get signal strength", "get noise strength", "all scenes addrs erase", );
 
 sub set {
     my ( $self, $new_state, $setby, $respond ) = @_;
@@ -1849,13 +1796,13 @@ sub set {
     $l .= "respond $respond " if $respond;
     $self->_logd($l);
 
-    if ( $new_state ~~ @light_cmds ) {
-        if ($self->{state} && $new_state eq $self->{state} ) {
+    if ( grep { $new_state eq $_ } @light_cmds ) {
+        if ( $self->{state} && $new_state eq $self->{state} ) {
             $self->_logd("Already in state $new_state, sending command anyway");
         }
         $self->command( $new_state, undef, undef, $setby, $respond );
     }
-    elsif ( $new_state ~~ @plc_cmds ) {
+    elsif ( grep { $_ eq $new_state } @plc_cmds ) {
         $new_state =~ s/ /_/g;
         $self->command( $new_state, undef, undef, $setby, $respond );
     }
@@ -1902,11 +1849,11 @@ sub _get_phase_mode {
         $mode = $self->{phase_override};
         $self->_logd("using module specific phase mode '$mode'");
     }
-    elsif ($self->{groups} &&  $self->{groups} =~ /onephase/i){
+    elsif ( $self->{groups} && $self->{groups} =~ /onephase/i ) {
         $mode = 1;
         $self->_logd("is part of onephase group using mode '$mode'");
     }
-    elsif ($self->{groups} &&  $self->{groups} =~ /threephase/i){
+    elsif ( $self->{groups} && $self->{groups} =~ /threephase/i ) {
         $mode = 3;
         $self->_logd("is part of threephase group using mode '$mode'");
     }
@@ -1928,20 +1875,44 @@ sub setup {
 package PLCBUS_LightItem;
 @PLCBUS_LightItem::ISA = ('PLCBUS_Item');
 
-sub setup {
-    my ($self) = @_;
+sub new {
+    my $class = shift;
+    my $self  = $class->SUPER::new(@_);
+    my @states = qw|on off status_req|;
+    if ($::config_parms{plcbus_setup_voice_cmds})
+    {
+        push(@states, qw |bright dim get_noise_strength get_signal_strength all_scenes_addrs_erase set_default_brightness|);
+    }
+    $self->set_states(@states);
+    return $self;
+}
+
+sub set {
+    my ( $self, $new_state, $setby, $respond ) = @_;
     my $home = $self->{home};
     my $unit = $self->{unit};
-    $self->_logd( "home: $home, unit $unit, scene=$self->{scenes}");
+    $new_state =~ s/ /_/g;
+    if ( $new_state eq 'set_default_brightness' ) {
+        $self->setup();
+        return;
+    }
+    PLCBUS_Item::set(@_);
+}
+
+sub setup {
+    my ($self) = @_;
+    my $home   = $self->{home};
+    my $unit   = $self->{unit};
+    $self->_logd("home: $home, unit $unit, scene=$self->{scenes}");
     my $level = $self->{defautl_presetdim_level} || 100;
-    my $rate = $self->{defautl_presetdim_rate} || 0;
-    $self->_log("changing presetdim to ".$level.'% @'.$rate."s");
+    my $rate  = $self->{defautl_presetdim_rate}  || 0;
+    $self->_log( "changing presetdim to " . $level . '% @' . $rate . "s" );
     my $cmd = {
-        cmd => 'presetdim',
+        cmd  => 'presetdim',
         home => $home,
         unit => $unit,
-        d1 => $level,
-        d2 => $rate,
+        d1   => $level,
+        d2   => $rate,
     };
     PLCBUS->instance()->queue_command($cmd);
 }
@@ -1954,108 +1925,122 @@ package PLCBUS_2263;
 
 package PLCBUS_2268;
 @PLCBUS_2268::ISA = ('PLCBUS_Item');
-sub new {
-    my $class = shift;
-    my $self = $class->SUPER::new(@_);
-    $self->set_states(qw |on off|);
-    return $self;
-}
 
 package PLCBUS_Shutter;
 @PLCBUS_Shutter::ISA = ('PLCBUS_Item');
+
 sub new {
     my $class = shift;
-    my $self = $class->SUPER::new(@_);
+    my $self  = $class->SUPER::new(@_);
     $self->set_states(qw |up down status_req|);
     return $self;
 }
 
-sub set{
+sub set {
     my ( $self, $state, $setby, $respond ) = @_;
-    my $home = $self->{home};
-    my $unit = $self->{unit};
+    my $home      = $self->{home};
+    my $unit      = $self->{unit};
     my $new_state = $state;
-    if ($state eq 'up'){
+    if ( $state eq 'up' ) {
         $new_state = 'off';
     }
-    if ($state eq 'down'){
+    if ( $state eq 'down' ) {
         $new_state = 'on';
     }
 
-    PLCBUS_Item::set($self, $new_state, $setby, $respond);
+    PLCBUS_Item::set( $self, $new_state, $setby, $respond );
 }
 
-sub _set{
+sub _set {
     my ( $self, $state, $setby, $respond ) = @_;
     my $new_state = $state;
-    if ($state eq 'on'){
+    if ( $state eq 'on' ) {
         $new_state = 'down';
     }
-    elsif ($state eq 'off'){
+    elsif ( $state eq 'off' ) {
         $new_state = 'up';
     }
 
-    PLCBUS_Item::_set($self, $new_state, $setby, $respond);
+    PLCBUS_Item::_set( $self, $new_state, $setby, $respond );
+}
+
+sub get_voice_cmds 
+{
+    my ($self) = @_;
+    my %voice_cmds  = ();
+    if ($::config_parms{plcbus_setup_voice_cmds})
+    {
+        return PLCBUS_Item::get_voice_cmds($self);
+    }
+    else
+    {
+        my %voice_cmds  =
+        (
+            'change_state' => [ '[up,down]', "\$".$self->{name}."->set(\$state)" ],
+        );
+        return \%voice_cmds;
+    }
 }
 
 package PLCBUS_Scene;
 @PLCBUS_Scene::ISA = ('PLCBUS_Item');
 use Data::Dumper qw(Dumper);
+
 sub new {
     my $class = shift;
-    my $self = $class->SUPER::new(@_);
+    my $self  = $class->SUPER::new(@_);
     $self->set_states(qw |on off prepare_program program prepare_delete delete set_members_defaults|);
     $self->{members} = ();
     return $self;
 }
 
-sub set{
+sub set {
     my ( $self, $new_state, $setby, $respond ) = @_;
     my $home = $self->{home};
     my $unit = $self->{unit};
-    if ($new_state eq 'delete'){
+    if ( $new_state eq 'delete' ) {
         $self->delete_sceneaddr();
         return;
     }
-    if ($new_state eq 'prepare delete'){
+    if ( $new_state eq 'prepare delete' ) {
         $self->prepare_delete($setby);
         return;
     }
-    if ($new_state eq 'prepare program'){
+    if ( $new_state eq 'prepare program' ) {
         $self->prepare_scene($setby);
         return;
     }
-    if ($new_state eq 'program'){
+    if ( $new_state eq 'program' ) {
         $self->program_sceneaddr();
         return;
     }
-    if ($new_state eq 'set members defaults'){
+    if ( $new_state eq 'set members defaults' ) {
         $self->set_members_defaults();
         return;
     }
 
     PLCBUS_Item::set(@_);
-    foreach (@{$self->{members}}){
-        $_->{module}->_set($new_state, $setby);
+    foreach ( @{ $self->{members} } ) {
+        $_->{module}->_set( $new_state, $setby );
     }
 }
 
-sub add_member{
-    my ( $self, $member, $level, $rate) = @_;
-    push(@{$self->{members}}, { module => $member, level => $level, rate => $rate});
+sub add_member {
+    my ( $self, $member, $level, $rate ) = @_;
+    push( @{ $self->{members} }, { module => $member, level => $level, rate => $rate } );
 }
 
 sub get_voice_cmds {
     my ($self)      = @_;
     my $object_name = $self->{name};
-    my $home = $self->{home};
-    my $unit = $self->{unit};
+    my $home        = $self->{home};
+    my $unit        = $self->{unit};
     my %voice_cmds  = ();
 
-    $voice_cmds{'program_sceneaddr_'.$object_name} = [
-        'program scene',
-        "\$$object_name->program_sceneaddr()"
-    ];
+    if ($::config_parms{plcbus_setup_voice_cmds})
+    {
+        $voice_cmds{ 'program_sceneaddr_' . $object_name } = [ 'program scene', "\$$object_name->program_sceneaddr()" ];
+    }
 
     return \%voice_cmds;
 }
@@ -2065,67 +2050,70 @@ sub setup {
     ##$self->program_scene();
 }
 
-sub prepare_scene{
-    my ($self,$setby) = @_;
-    my $home = $self->{home};
-    my $unit = $self->{unit};
-    my $scene_addr = $home.$unit;
-    PLCBUS->instance()->all_user_unit_off($home,$unit,$setby);
-    PLCBUS->instance()->all_user_light_off($home,$unit,$setby);
+sub prepare_scene {
+    my ( $self, $setby ) = @_;
+    my $home       = $self->{home};
+    my $unit       = $self->{unit};
+    my $scene_addr = $home . $unit;
+    PLCBUS->instance()->all_user_unit_off( $home, $unit, $setby );
+    PLCBUS->instance()->all_user_light_off( $home, $unit, $setby );
     $Data::Dumper::Maxdepth = 2;
-    my @members = @{$self->{members}};
-    foreach (@members){
+    my @members = @{ $self->{members} };
+
+    foreach (@members) {
+
         #$self->_logd("gugsdu: " . Dumper($_));
-        my $dev = $_->{module};
+        my $dev   = $_->{module};
         my $level = $_->{level};
-        my $rate = $_->{rate};
-        $self->_logd('set '.$dev->{name} .' dim '.$level.'% @'.$rate.'s');
+        my $rate  = $_->{rate};
+        $self->_logd( 'set ' . $dev->{name} . ' dim ' . $level . '% @' . $rate . 's' );
         my $cmd = {
-            cmd => 'presetdim',
-            home => $dev->{home},
-            unit => $dev->{unit},
-            d1 => $level,
-            d2 => $rate,
+            cmd   => 'presetdim',
+            home  => $dev->{home},
+            unit  => $dev->{unit},
+            d1    => $level,
+            d2    => $rate,
             setby => $setby,
         };
         PLCBUS->instance()->queue_command($cmd);
     }
 }
 
-sub set_members_defaults{
-    my ($self) = @_;
-    my $home = $self->{home};
-    my $unit = $self->{unit};
-    my $scene_addr = $home.$unit;
-    my @members = @{$self->{members}};
-    foreach (@members){
+sub set_members_defaults {
+    my ($self)     = @_;
+    my $home       = $self->{home};
+    my $unit       = $self->{unit};
+    my $scene_addr = $home . $unit;
+    my @members    = @{ $self->{members} };
+    foreach (@members) {
         my $dev = $_->{module};
         $dev->setup();
     }
 }
 
-sub program_sceneaddr{
-    my ($self) = @_;
-    my $home = $self->{home};
-    my $unit = $self->{unit};
-    my $scene_addr = $home.$unit;
-    $self->command('scenes_addrs_setup', 2, undef, undef, undef );
+sub program_sceneaddr {
+    my ($self)     = @_;
+    my $home       = $self->{home};
+    my $unit       = $self->{unit};
+    my $scene_addr = $home . $unit;
+    $self->command( 'scenes_addrs_setup', 2, undef, undef, undef );
 }
 
-sub prepare_delete{
-    my ($self,$setby) = @_;
-    my $home = $self->{home};
-    my $unit = $self->{unit};
-    my $scene_addr = $home.$unit;
-    PLCBUS->instance()->all_user_unit_off($home,$unit,$setby);
+sub prepare_delete {
+    my ( $self, $setby ) = @_;
+    my $home       = $self->{home};
+    my $unit       = $self->{unit};
+    my $scene_addr = $home . $unit;
+    PLCBUS->instance()->all_user_unit_off( $home, $unit, $setby );
     $self->set('on');
 }
-sub delete_sceneaddr{
-    my ($self) = @_;
-    my $home = $self->{home};
-    my $unit = $self->{unit};
-    my $scene_addr = $home.$unit;
-    $self->command('scenes_addrs_erase', undef, undef, undef, undef );
+
+sub delete_sceneaddr {
+    my ($self)     = @_;
+    my $home       = $self->{home};
+    my $unit       = $self->{unit};
+    my $scene_addr = $home . $unit;
+    $self->command( 'scenes_addrs_erase', undef, undef, undef, undef );
 }
 
 1;

@@ -21,8 +21,7 @@
 #
 
 # mh.ini parm "MBM_module=MBM_mh" required.
-$config_parms{MBM_module}
-  ;    # Use in void context, just so web interface will show it.
+$config_parms{MBM_module};    # Use in void context, just so web interface will show it.
 
 # Most motherboards have 1 or 2 temp, 6 voltage, 1 or 2 fans... let's demo more than enough
 
@@ -50,44 +49,25 @@ $MBM_f4 = new MBM_mh( 'fan', 4 );
 $v_MBM_sensors = new Voice_Cmd("Show MBM Sensors");
 if ( my $state = said $v_MBM_sensors) {
     my $line = '<pre>';
-    $line .= sprintf( "MBM Timestamp for %d total readings is %s<br>",
-        $MBM_t1->count, $MBM_t1->time );
-    $line .= sprintf( "Temp 1 name %-12.12s is %3d max %3d min %3d<br>",
-        $MBM_t1->name, $MBM_t1->state, $MBM_t1->high, $MBM_t1->low );
-    $line .= sprintf( "Temp 2 name %-12.12s is %3d max %3d min %3d<br>",
-        $MBM_t2->name, $MBM_t2->state, $MBM_t2->high, $MBM_t2->low );
-    $line .= sprintf( "Temp 3 name %-12.12s is %3d max %3d min %3d<br>",
-        $MBM_t3->name, $MBM_t3->state, $MBM_t3->high, $MBM_t3->low );
-    $line .= sprintf( "Temp 4 name %-12.12s is %3d max %3d min %3d<br>",
-        $MBM_t4->name, $MBM_t4->state, $MBM_t4->high, $MBM_t4->low );
-    $line .= sprintf( "Temp 5 name %-12.12s is %3d max %3d min %3d<br>",
-        $MBM_t5->name, $MBM_t5->state, $MBM_t5->high, $MBM_t5->low );
-    $line .= sprintf( "Temp 6 name %-12.12s is %3d max %3d min %3d<br>",
-        $MBM_t6->name, $MBM_t6->state, $MBM_t6->high, $MBM_t6->low );
-    $line .= sprintf( "Volt 1 name %-12.12s is %7.3f max %7.3f min %7.3f<br>",
-        $MBM_v1->name, $MBM_v1->state, $MBM_v1->high, $MBM_v1->low );
-    $line .= sprintf( "Volt 2 name %-12.12s is %7.3f max %7.3f min %7.3f<br>",
-        $MBM_v2->name, $MBM_v2->state, $MBM_v2->high, $MBM_v2->low );
-    $line .= sprintf( "Volt 3 name %-12.12s is %7.3f max %7.3f min %7.3f<br>",
-        $MBM_v3->name, $MBM_v3->state, $MBM_v3->high, $MBM_v3->low );
-    $line .= sprintf( "Volt 4 name %-12.12s is %7.3f max %7.3f min %7.3f<br>",
-        $MBM_v4->name, $MBM_v4->state, $MBM_v4->high, $MBM_v4->low );
-    $line .= sprintf( "Volt 5 name %-12.12s is %7.3f max %7.3f min %7.3f<br>",
-        $MBM_v5->name, $MBM_v5->state, $MBM_v5->high, $MBM_v5->low );
-    $line .= sprintf( "Volt 6 name %-12.12s is %7.3f max %7.3f min %7.3f<br>",
-        $MBM_v6->name, $MBM_v6->state, $MBM_v6->high, $MBM_v6->low );
-    $line .= sprintf( "Volt 7 name %-12.12s is %7.3f max %7.3f min %7.3f<br>",
-        $MBM_v7->name, $MBM_v7->state, $MBM_v7->high, $MBM_v7->low );
-    $line .= sprintf( "Volt 8 name %-12.12s is %7.3f max %7.3f min %7.3f<br>",
-        $MBM_v8->name, $MBM_v8->state, $MBM_v8->high, $MBM_v8->low );
-    $line .= sprintf( "Fan 1  name %-12.12s is %4d max %4d min %4d<br>",
-        $MBM_f1->name, $MBM_f1->state, $MBM_f1->high, $MBM_f1->low );
-    $line .= sprintf( "Fan 2  name %-12.12s is %4d max %4d min %4d<br>",
-        $MBM_f2->name, $MBM_f2->state, $MBM_f2->high, $MBM_f2->low );
-    $line .= sprintf( "Fan 3  name %-12.12s is %4d max %4d min %4d<br>",
-        $MBM_f3->name, $MBM_f3->state, $MBM_f3->high, $MBM_f3->low );
-    $line .= sprintf( "Fan 4  name %-12.12s is %4d max %4d min %4d<br>",
-        $MBM_f4->name, $MBM_f4->state, $MBM_f4->high, $MBM_f4->low );
+    $line .= sprintf( "MBM Timestamp for %d total readings is %s<br>",         $MBM_t1->count, $MBM_t1->time );
+    $line .= sprintf( "Temp 1 name %-12.12s is %3d max %3d min %3d<br>",       $MBM_t1->name,  $MBM_t1->state, $MBM_t1->high, $MBM_t1->low );
+    $line .= sprintf( "Temp 2 name %-12.12s is %3d max %3d min %3d<br>",       $MBM_t2->name,  $MBM_t2->state, $MBM_t2->high, $MBM_t2->low );
+    $line .= sprintf( "Temp 3 name %-12.12s is %3d max %3d min %3d<br>",       $MBM_t3->name,  $MBM_t3->state, $MBM_t3->high, $MBM_t3->low );
+    $line .= sprintf( "Temp 4 name %-12.12s is %3d max %3d min %3d<br>",       $MBM_t4->name,  $MBM_t4->state, $MBM_t4->high, $MBM_t4->low );
+    $line .= sprintf( "Temp 5 name %-12.12s is %3d max %3d min %3d<br>",       $MBM_t5->name,  $MBM_t5->state, $MBM_t5->high, $MBM_t5->low );
+    $line .= sprintf( "Temp 6 name %-12.12s is %3d max %3d min %3d<br>",       $MBM_t6->name,  $MBM_t6->state, $MBM_t6->high, $MBM_t6->low );
+    $line .= sprintf( "Volt 1 name %-12.12s is %7.3f max %7.3f min %7.3f<br>", $MBM_v1->name,  $MBM_v1->state, $MBM_v1->high, $MBM_v1->low );
+    $line .= sprintf( "Volt 2 name %-12.12s is %7.3f max %7.3f min %7.3f<br>", $MBM_v2->name,  $MBM_v2->state, $MBM_v2->high, $MBM_v2->low );
+    $line .= sprintf( "Volt 3 name %-12.12s is %7.3f max %7.3f min %7.3f<br>", $MBM_v3->name,  $MBM_v3->state, $MBM_v3->high, $MBM_v3->low );
+    $line .= sprintf( "Volt 4 name %-12.12s is %7.3f max %7.3f min %7.3f<br>", $MBM_v4->name,  $MBM_v4->state, $MBM_v4->high, $MBM_v4->low );
+    $line .= sprintf( "Volt 5 name %-12.12s is %7.3f max %7.3f min %7.3f<br>", $MBM_v5->name,  $MBM_v5->state, $MBM_v5->high, $MBM_v5->low );
+    $line .= sprintf( "Volt 6 name %-12.12s is %7.3f max %7.3f min %7.3f<br>", $MBM_v6->name,  $MBM_v6->state, $MBM_v6->high, $MBM_v6->low );
+    $line .= sprintf( "Volt 7 name %-12.12s is %7.3f max %7.3f min %7.3f<br>", $MBM_v7->name,  $MBM_v7->state, $MBM_v7->high, $MBM_v7->low );
+    $line .= sprintf( "Volt 8 name %-12.12s is %7.3f max %7.3f min %7.3f<br>", $MBM_v8->name,  $MBM_v8->state, $MBM_v8->high, $MBM_v8->low );
+    $line .= sprintf( "Fan 1  name %-12.12s is %4d max %4d min %4d<br>",       $MBM_f1->name,  $MBM_f1->state, $MBM_f1->high, $MBM_f1->low );
+    $line .= sprintf( "Fan 2  name %-12.12s is %4d max %4d min %4d<br>",       $MBM_f2->name,  $MBM_f2->state, $MBM_f2->high, $MBM_f2->low );
+    $line .= sprintf( "Fan 3  name %-12.12s is %4d max %4d min %4d<br>",       $MBM_f3->name,  $MBM_f3->state, $MBM_f3->high, $MBM_f3->low );
+    $line .= sprintf( "Fan 4  name %-12.12s is %4d max %4d min %4d<br>",       $MBM_f4->name,  $MBM_f4->state, $MBM_f4->high, $MBM_f4->low );
     respond "$line";
 }
 ##

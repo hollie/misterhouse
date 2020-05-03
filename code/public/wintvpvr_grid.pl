@@ -51,8 +51,7 @@ if ( my $data = state_now $tv_grid) {
 
     # command line I need: C:\PROGRA~1\WinTV\WinTV2K.EXE  -c3 -ntod -startr:WinTV_(0)###.mpg -qvcd -limit:3600
     # so: runline = "$wintv_loc -c$channel -ntod -startr:$show_name###.mpg -qvcd -limit:(seconds time_diff{$stop - $start}+60)
-    my ( $channel, $start, $stop, $date, $show_name ) =
-      $data =~ /(\d+) from (\S+) to (\S+) on (\S+) for (.*)/;
+    my ( $channel, $start, $stop, $date, $show_name ) = $data =~ /(\d+) from (\S+) to (\S+) on (\S+) for (.*)/;
     my ( $stop_hr,  $stop_min )  = $stop =~ /(\d+):(\d+)/;
     my ( $start_hr, $start_min ) = $start =~ /(\d+):(\d+)/;
     my $end_date = $date;
@@ -64,8 +63,7 @@ if ( my $data = state_now $tv_grid) {
         return;
     }
 
-    my $msg =
-      "Adding WinTV PVR schedule for $show_name.  Channel $channel from $start to $stop on $date.";
+    my $msg = "Adding WinTV PVR schedule for $show_name.  Channel $channel from $start to $stop on $date.";
     speak $msg;
     print_log $msg;
 
@@ -90,14 +88,12 @@ if ( my $data = state_now $tv_grid) {
         #display "debug: start = $start, $date";
     }
 
-    my $showsecs =
-      &my_str2time("$stop + 00:01") - &my_str2time("$start - 00:01");
+    my $showsecs = &my_str2time("$stop + 00:01") - &my_str2time("$start - 00:01");
 
     #display "debug: difference = $showsecs";
 
     $show_name = _clean_text_string("$show_name");
-    my $WinTV_Cmdline =
-      "$wintv_loc -c$channel -nss -ntod -startr:\\\"$show_name###.mpg\\\" -qvcd -limit:$showsecs";
+    my $WinTV_Cmdline = "$wintv_loc -c$channel -nss -ntod -startr:\\\"$show_name###.mpg\\\" -qvcd -limit:$showsecs";
     display "start: $start Commandline: $WinTV_Cmdline";
     print_log "Recording stopped" if done_now $p_pvr_rec;
 
@@ -144,17 +140,13 @@ if ( $state = said $v_kill_wintv32) {
 
 # This is what downloads tv data.  This needs to be forked/detatched, as it can take a while
 $v_get_tv_grid_data1 = new Voice_Cmd('[Get,reget,redo] tv grid data for today');
-$v_get_tv_grid_data7 =
-  new Voice_Cmd('[Get,reget,redo] tv grid data for the next week');
-$v_get_tv_grid_data1->set_info(
-    'Updates the TV database with.  reget will reget html, redo re-uses.  Get will only reget or redo if the data is old.'
-);
+$v_get_tv_grid_data7 = new Voice_Cmd('[Get,reget,redo] tv grid data for the next week');
+$v_get_tv_grid_data1->set_info('Updates the TV database with.  reget will reget html, redo re-uses.  Get will only reget or redo if the data is old.');
 if ( $state = said $v_get_tv_grid_data1 or $state = said $v_get_tv_grid_data7) {
     if (&net_connect_check) {
         my $days = ( said $v_get_tv_grid_data7) ? 7 : 1;
         $state = ( $state eq 'Get' ) ? '' : "-$state";
-        my $pgm =
-          "get_tv_grid -zip $config_parms{zip_code} -provider $config_parms{tv_provider} $state -days $days";
+        my $pgm = "get_tv_grid -zip $config_parms{zip_code} -provider $config_parms{tv_provider} $state -days $days";
         $pgm .= qq[ -hour  "$config_parms{tv_hours}"]
           if $config_parms{tv_hours};
         $pgm .= qq[ -label "$config_parms{tv_label}"]
@@ -166,13 +158,11 @@ if ( $state = said $v_get_tv_grid_data1 or $state = said $v_get_tv_grid_data7) {
 
         # If we have set the net_mail_send_account, send default web page via email
         my $mail_account = $config_parms{net_mail_send_account};
-        my $mail_server =
-          $main::config_parms{"net_mail_${mail_account}_server_send"};
-        my $mail_to = $main::config_parms{"net_mail_${mail_account}_address"};
+        my $mail_server  = $main::config_parms{"net_mail_${mail_account}_server_send"};
+        my $mail_to      = $main::config_parms{"net_mail_${mail_account}_address"};
         if ( $mail_to and $mail_server ) {
             $pgm .= " -mail_to $mail_to -mail_server $mail_server ";
-            $pgm .=
-              " -mail_baseref $config_parms{http_server}:$config_parms{http_port} ";
+            $pgm .= " -mail_baseref $config_parms{http_server}:$config_parms{http_port} ";
         }
 
         run $pgm;

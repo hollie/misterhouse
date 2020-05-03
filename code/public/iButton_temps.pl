@@ -5,8 +5,7 @@
 #@ Download linux or windows digitemp from: http://www.digitemp.com
 
 $v_iButton_readtemps = new Voice_Cmd "Read the iButton temperature buttons";
-$v_iButton_readtemps->set_info(
-    'This reads all all iButton temperature devices.');
+$v_iButton_readtemps->set_info('This reads all all iButton temperature devices.');
 $ibutton_read = new Process_Item('digitemp.exe -c/bin/digitemp.cfg -a');
 
 if ( new_minute 1 or said $v_iButton_readtemps) {

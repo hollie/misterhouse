@@ -87,12 +87,8 @@ $html
         my $i = 1;
 
         for my $periodgraph (@$tabperiod) {
-            unless ( $config_parms{weather_graph_period_skip} =~
-                /$periodgraph->[0]/ )
-            {
-                $html .=
-                  "\n<TD><IMG src=\"/graphics/graph.gif\" align=\"absbottom\"><B><A href=\"#"
-                  . $periodgraph->[0];
+            unless ( $config_parms{weather_graph_period_skip} =~ /$periodgraph->[0]/ ) {
+                $html .= "\n<TD><IMG src=\"/graphics/graph.gif\" align=\"absbottom\"><B><A href=\"#" . $periodgraph->[0];
                 $html .= "\"> " . $periodgraph->[1] . "</A></B></TD>";
 
                 # Max 6 periods by row
@@ -108,21 +104,13 @@ $html
 
         # Build link for graphs
         for my $periodgraph (@$tabperiod) {
-            unless ( $config_parms{weather_graph_period_skip} =~
-                /$periodgraph->[0]/ )
-            {
+            unless ( $config_parms{weather_graph_period_skip} =~ /$periodgraph->[0]/ ) {
                 $j = 0;
                 $html .= "\n" . qq|<A NAME="$periodgraph->[0]"></A><BR>|;
                 $html .= "\n<IMG SRC = ";
 
                 #    $html .= "\'/rrd/weather_" . $typegraph . "_" . $periodgraph->[0] . ".png?" . int(100000*rand) . "'>\n";
-                $html .=
-                    "\'/rrd/weather_"
-                  . $typegraph . "_"
-                  . $periodgraph->[0]
-                  . ".$rrd_format?"
-                  . time()
-                  . '\' border=0><BR><BR>';
+                $html .= "\'/rrd/weather_" . $typegraph . "_" . $periodgraph->[0] . ".$rrd_format?" . time() . '\' border=0><BR><BR>';
             }
         }
     }

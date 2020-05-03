@@ -28,10 +28,7 @@ sub check_for_x10_interface {
 
     return if not defined $self->{interface};
 
-    if (
-        grep ( { lc( $self->{interface} ) eq lc($_); } @X10_Interface_Names ) >
-        0 )
-    {
+    if ( grep ( { lc( $self->{interface} ) eq lc($_); } @X10_Interface_Names ) > 0 ) {
         my $interface = $self->{interface};
         $self->{X10Interface} = 1;
     }
@@ -105,7 +102,7 @@ sub processData {
             or    # extended direct dim cmd
             $data =~ /^([A-P]Z\S*)/
             or    # Extended Code cmd with arbitrary extended bytes
-            $data =~ /^([A-P]\d+\%)(\S*)/ or   # these are converted to &P above
+            $data =~ /^([A-P]\d+\%)(\S*)/ or    # these are converted to &P above
             $data =~ /^([A-P][\+\-]?\d+)(\S*)/
           )
         {
@@ -117,7 +114,7 @@ sub processData {
 
             $self->send_x10_data( $interface, 'X' . $chunk, $self->{type} );
 
-            &send_x10_data_hooks($chunk);      # Created by &add_hooks
+            &send_x10_data_hooks($chunk);       # Created by &add_hooks
 
         }
         else {
@@ -147,8 +144,7 @@ sub set_prev_pass_check {
     {
 
         my $item_name = $self->{object_name};
-        print
-          "X10 item set skipped on consecutive pass.  item=$item_name state= $state id=$state\n";
+        print "X10 item set skipped on consecutive pass.  item=$item_name state= $state id=$state\n";
         return 1;
     }
     return 0;

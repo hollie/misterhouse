@@ -12,12 +12,8 @@
 
 # Category = Vehicles
 
-my ( $ItsRunning, @callretlines, $Temp, $get_url_string, @QVCArray, $StripInfo,
-    $QVCArrayBit );
-my (
-    $ValidReport, $TimeStamp, $GRLatitude, $GRLongitude,
-    $GRDirection, $GRSpeed,   $GRTest,     $FinalOutput
-);
+my ( $ItsRunning, @callretlines, $Temp, $get_url_string, @QVCArray, $StripInfo, $QVCArrayBit );
+my ( $ValidReport, $TimeStamp, $GRLatitude, $GRLongitude, $GRDirection, $GRSpeed, $GRTest, $FinalOutput );
 my ( $ShortCallsign, $ShortCallsignLength, $OtherStuff );
 
 $p_get_track_data   = new Process_Item;
@@ -32,8 +28,7 @@ if ( $ItsRunning eq '' and said $v_create_placefile) {
     open( APRSLOG, ">c:/mh/data/web/grlevel3.txt" );    # Log it
     print APRSLOG "Refresh: 1\n";
     print APRSLOG "Color: 255 255 255\n";
-    print APRSLOG
-      'IconFile: 1, 16, 16, 8, 8, "http://kliers.net/skywarn/APRS.png"';
+    print APRSLOG 'IconFile: 1, 16, 16, 8, 8, "http://kliers.net/skywarn/APRS.png"';
     print APRSLOG "\n";
     print APRSLOG 'Font: 1, 11, 1, "Courier New"';
     print APRSLOG "\n";
@@ -51,8 +46,7 @@ if ( $ItsRunning eq '' and said $v_create_placefile) {
 
     foreach $Temp (@callretlines) {
         chomp $Temp;    # get rid of CR/LF
-        $get_url_string =
-          "get_url http://www.findu.com/cgi-bin/posit.cgi?call=";
+        $get_url_string = "get_url http://www.findu.com/cgi-bin/posit.cgi?call=";
         $get_url_string .= $Temp;
         $get_url_string .= "\&time=1\&comma=1 c:/mh/data/web/";
         $get_url_string .= $Temp;
@@ -93,8 +87,7 @@ if ( done_now $p_get_track_data) {
         if ( $ValidReport eq '1' ) {
             ( $ShortCallsign, $OtherStuff ) = ( split( '-', $Temp ) )[ 0, 1 ];
             $ShortCallsignLength = ( length($ShortCallsign) );
-            $ShortCallsign =
-              substr( $ShortCallsign, ( $ShortCallsignLength - 3 ), 3 );
+            $ShortCallsign = substr( $ShortCallsign, ( $ShortCallsignLength - 3 ), 3 );
 
             open( APRSLOG, ">>c:/mh/data/web/grlevel3.txt" );
             print APRSLOG "Object: ";

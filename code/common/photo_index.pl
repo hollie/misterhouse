@@ -33,14 +33,11 @@ your browser screen (e.g. 640x480 for Audrey).
 use vars '@photos';    # This will be persistent across code reloads
 
 $v_photo_reindex = new Voice_Cmd 'Reindex the photo album [,name,date,random]';
-$v_photo_reindex->set_info(
-    "Re-creates a photo index for all the photos under $config_parms{photo_dirs} that match $config_parms{photo_filter}"
-);
+$v_photo_reindex->set_info("Re-creates a photo index for all the photos under $config_parms{photo_dirs} that match $config_parms{photo_filter}");
 
 # Resize new photos using image_resize
 $v_photo_resize = new Voice_Cmd 'Resize new photo album pictures';
-$v_photo_resize->set_info(
-    "Re-sizes any new photos in the photo album directories");
+$v_photo_resize->set_info("Re-sizes any new photos in the photo album directories");
 $p_photo_resize = new Process_Item;
 
 my @subdirs;
@@ -49,9 +46,7 @@ set_casesensitive $photo_subdir;
 
 # Add form to Photos page
 # The include will take too long if there are lots of files/dirs, so use a link instead
-$Included_HTML{Photos} .=
-  '<br><a href="SUB;photo_html" target=control>Pick a photo subdirectory to index</a>'
-  . "\n";
+$Included_HTML{Photos} .= '<br><a href="SUB;photo_html" target=control>Pick a photo subdirectory to index</a>' . "\n";
 
 # Just a reference to $config_parms{photo_viewer} so it shows up in the code_select list
 
@@ -67,8 +62,7 @@ if ( said $v_photo_reindex) {
 sub photo_index {
     my ($sequence) = @_;
     $sequence = $config_parms{photo_sequence} unless $sequence;
-    print_log
-      "Reading photos that match photo_filter parm $config_parms{photo_filter} from photo_dirs parm $config_parms{photo_dirs}";
+    print_log "Reading photos that match photo_filter parm $config_parms{photo_filter} from photo_dirs parm $config_parms{photo_dirs}";
     &read_parms;    # Re-read parms, if they have changes
     undef @photos;
     for my $dir ( split ',', $config_parms{photo_dirs} ) {
@@ -101,8 +95,7 @@ sub photo_dir {
     my ($realdir);
     ($realdir) = &http_get_local_file($dir);
     unless ($realdir) {
-        print_log
-          "can't find real directory associated with web directory $dir, skipping";
+        print_log "can't find real directory associated with web directory $dir, skipping";
         return;
     }
 
@@ -120,8 +113,7 @@ sub photo_dir {
     close DIR;
 }
 
-if ( my $string = quotemeta $Tk_results{'Photo Search'} )
-{    # *** This is very odd (?)
+if ( my $string = quotemeta $Tk_results{'Photo Search'} ) {    # *** This is very odd (?)
     undef $Tk_results{'Photo Search'};
     print_log "Searching for photos that match $string";
     my @match   = grep /$string/i, @photos;
@@ -140,21 +132,18 @@ if ( said $v_photo_resize) {
         my ( $realdir, $realdir2, $originals );
         ($realdir) = &http_get_local_file($webdir);
         unless ($realdir) {
-            print_log
-              "can't find real directory associated with web directory $webdir, skipping";
+            print_log "can't find real directory associated with web directory $webdir, skipping";
             next;
         }
         $originals = $bigs[$next];
         unless ( $originals or $config_parms{photo_prefix} ) {
-            print_log
-              "can't find webdir where your originals are located for $webdir, skipping";
+            print_log "can't find webdir where your originals are located for $webdir, skipping";
             next;
         }
         ($realdir2) = &http_get_local_file($originals);
         $realdir2 = "" if $realdir eq $realdir2;
         unless ( $realdir2 or $config_parms{photo_prefix} ) {
-            print_log
-              "can't find real directory associated with web directory $originals, skipping";
+            print_log "can't find real directory associated with web directory $originals, skipping";
             next;
         }
         $config_parms{photo_size} =~ m/(\d+)[x|X](\d+)/;
@@ -190,11 +179,8 @@ sub photo_html {
     my $html;
 
     # Create a form to pick which photo subdirectories to index
-    $html .=
-      '<table border><tr><form action="SET;referer" target=control><td>Pick which photo subdirectory to index'
-      . "\n";
-    $html .= &html_form_select( '$photo_subdir', 1, $selected, @subdirs )
-      . "</td></form></tr></table>\n";
+    $html .= '<table border><tr><form action="SET;referer" target=control><td>Pick which photo subdirectory to index' . "\n";
+    $html .= &html_form_select( '$photo_subdir', 1, $selected, @subdirs ) . "</td></form></tr></table>\n";
     return $html;
 }
 

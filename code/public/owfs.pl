@@ -83,10 +83,8 @@ if ( my $state = said $palmPad) {
 }
 
 # I use some latching sensors to detect doorbell activity.
-my $frontDoorBell =
-  new Owfs_Item( "12.487344000000", "Front DoorBell", undef, "A" );
-my $backDoorBell =
-  new Owfs_Item( "12.487344000000", "Back DoorBell", undef, "B" );
+my $frontDoorBell = new Owfs_Item( "12.487344000000", "Front DoorBell", undef, "A" );
+my $backDoorBell  = new Owfs_Item( "12.487344000000", "Back DoorBell",  undef, "B" );
 
 if ( new_second 1 ) {
     if ( $frontDoorBell->get("latch.A") ) {

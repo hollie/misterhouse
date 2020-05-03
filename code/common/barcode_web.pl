@@ -18,8 +18,7 @@ if ( my $scan = state_now $barcode_data) {
 
     # Build a web page with search options
     my $html;
-    $html .=
-      "<head><META HTTP-EQUIV='pragma' CONTENT='nocache'</meta></head>\n";
+    $html .= "<head><META HTTP-EQUIV='pragma' CONTENT='nocache'</meta></head>\n";
 
     #   $html .= "<META HTTP-EQUIV='expires' CONTENT='0'>\n";
     $html .= "<base target='other'>\n";
@@ -28,34 +27,27 @@ if ( my $scan = state_now $barcode_data) {
 
     # If a book, fire the browser to Amazon
     if ($isbn) {
+        $html .= "<li><a href=http://www.amazon.com/exec/obidos/ISBN=$isbn>Amazon.com</a>\n";
         $html .=
-          "<li><a href=http://www.amazon.com/exec/obidos/ISBN=$isbn>Amazon.com</a>\n";
-        $html .=
-          "<li><a href=http://search.borders.com/fcgi-bin/db2www/search/search.d2w/Details?"
-          . "code=$isbn&mediaType=Book&searchType=ISBNUPC>Borders.com</a>\n";
-        $html .=
-          "<li><a href=http://shop.barnesandnoble.com/BookSearch/search.asp?ISBN=$isbn>Barnes & Nobel</a>\n";
-        $html .=
-          "<li><a href=http://www.price-hunter.net/booksearch/bottom.cgi?isbn=$isbn>Price-hunter price search</a>\n";
+          "<li><a href=http://search.borders.com/fcgi-bin/db2www/search/search.d2w/Details?" . "code=$isbn&mediaType=Book&searchType=ISBNUPC>Borders.com</a>\n";
+        $html .= "<li><a href=http://shop.barnesandnoble.com/BookSearch/search.asp?ISBN=$isbn>Barnes & Nobel</a>\n";
+        $html .= "<li><a href=http://www.price-hunter.net/booksearch/bottom.cgi?isbn=$isbn>Price-hunter price search</a>\n";
     }
 
     # If a UPC ...
     else {
         #       $html .= "<li><a href=http://www.barpoint.com/frame.cfm?UPCNumber=$code>BarPoint: Most anything</a>\n";
         $html .=
-          "<li><a href=http://search.borders.com/fcgi-bin/db2www/search/search.d2w/Details?"
+            "<li><a href=http://search.borders.com/fcgi-bin/db2www/search/search.d2w/Details?"
           . "code=$code&mediaType=Music&searchType=ISBNUPC>Music search at borders.com</a>";
         $html .=
-          "<li><a href=http://search.borders.com/fcgi-bin/db2www/search/search.d2w/Details?"
+            "<li><a href=http://search.borders.com/fcgi-bin/db2www/search/search.d2w/Details?"
           . "code=$code&mediaType=Video&searchType=ISBNUPC>Video search at borders.com</a>";
+        $html .= "<li><a href=http://www.upcdatabase.com/item.pl?upc=$code>UPC search at upcdatabase.com</a>";
         $html .=
-          "<li><a href=http://www.upcdatabase.com/item.pl?upc=$code>UPC search at upcdatabase.com</a>";
-        $html .=
-          "<li><a href=http://wwwapps.ups.com/etracking/tracking.cgi?tracknums_displayed=5"
+            "<li><a href=http://wwwapps.ups.com/etracking/tracking.cgi?tracknums_displayed=5"
           . "&TypeOfInquiryNumber=T&HTMLVersion=4.0&InquiryNumber1=$code>UPS Tracking</a>\n";
-        $html .=
-          "<li><a href=http://fedex.com/cgi-bin/tracking?action=track&language=english&cntry_code=us "
-          . "&tracknumbers=$code>FedEx Tracking</a>\n";
+        $html .= "<li><a href=http://fedex.com/cgi-bin/tracking?action=track&language=english&cntry_code=us " . "&tracknumbers=$code>FedEx Tracking</a>\n";
     }
 
     # Not sure how to force a browser refresh here

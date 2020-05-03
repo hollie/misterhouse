@@ -82,14 +82,12 @@ sub compress_track {
         die "FATAL: The command '$cmd' failed: check the log file.\n";
     }
     unless ( -s "$output.tmp" ) {
-        die
-          "FATAL: The command '$cmd' produced a zero-length output file: $output.\n";
+        die "FATAL: The command '$cmd' produced a zero-length output file: $output.\n";
     }
     my $totaltime = &FormatTime( time() - $starttime );
     move( "$output.tmp", $output );
     system( 'chmod', 'a+r', $output );
-    print
-      "Done compressing track $track to $output (compress time: $totaltime)\n";
+    print "Done compressing track $track to $output (compress time: $totaltime)\n";
 }
 
 sub rip_track {
@@ -108,8 +106,7 @@ sub rip_track {
         die "FATAL: The command '$cmd' failed: check the log file.\n";
     }
     unless ( -s "$output.tmp" ) {
-        die
-          "FATAL: The command '$cmd' produced a zero-length output file: $output.\n";
+        die "FATAL: The command '$cmd' produced a zero-length output file: $output.\n";
     }
     my $totaltime = &FormatTime( time() - $starttime );
     move( "$output.tmp", $output );
@@ -206,8 +203,7 @@ if ( $data{disc_data_file} ) {
         close DATA;
     }
     else {
-        print
-          "WARNING: Could not save disc data in file '$data{disc_data_file}': $!\n";
+        print "WARNING: Could not save disc data in file '$data{disc_data_file}': $!\n";
     }
 }
 

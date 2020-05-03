@@ -95,11 +95,8 @@ sub startup {
         and $main::config_parms{tivocontrol_host}
         and $main::config_parms{tivocontrol_port} )
     {
-        my $port =
-          "$main::config_parms{tivocontrol_host}:$main::config_parms{tivocontrol_port}";
-        $tivo_socket =
-          new Socket_Item( undef, undef, $port, 'tivocontrol', 'tcp',
-            'record' );
+        my $port = "$main::config_parms{tivocontrol_host}:$main::config_parms{tivocontrol_port}";
+        $tivo_socket = new Socket_Item( undef, undef, $port, 'tivocontrol', 'tcp', 'record' );
         start $tivo_socket;
     }
 }

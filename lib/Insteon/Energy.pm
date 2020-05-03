@@ -107,8 +107,7 @@ sub _set_parameters {
     $$self{_ext_set_get_action} = 'set';
     my $extra = "000002" . $trigger_bytes . $delay_byte . $threshold_byte;
     $extra .= '0' x ( 30 - length $extra );
-    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self,
-        'extended_set_get', $extra );
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self, 'extended_set_get', $extra );
     $self->_send_cmd($message);
 }
 
@@ -121,8 +120,7 @@ These reported parameters are printed to the log and cached in MH.
 
 sub request_parameters {
     my ($self) = @_;
-    $$self{_ext_set_get_success_callback} =
-      $self->get_object_name . "->print_parameters();";
+    $$self{_ext_set_get_success_callback} = $self->get_object_name . "->print_parameters();";
     $self->_get_parameters();
 }
 
@@ -152,8 +150,7 @@ sub _get_parameters {
     my ($self) = @_;
     $$self{_ext_set_get_action} = 'get';
     my $extra .= '0' x 30;
-    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self,
-        'extended_set_get', $extra );
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self, 'extended_set_get', $extra );
     $self->_send_cmd($message);
 }
 
@@ -177,13 +174,10 @@ sub set_trigger {
 
     #Round to nearest .5 Value
     $trigger_watts = int( ( $trigger_watts * 2 ) + 0.5 ) / 2;
-    ::print_log( "[Insteon::SynchroLinc] Setting Trigger to "
-          . $trigger_watts
-          . " watts." );
+    ::print_log( "[Insteon::SynchroLinc] Setting Trigger to " . $trigger_watts . " watts." );
 
     #Set Callback
-    $$self{_ext_set_get_success_callback} =
-      $self->get_object_name . "->_set_parameters($trigger_watts,'','');";
+    $$self{_ext_set_get_success_callback} = $self->get_object_name . "->_set_parameters($trigger_watts,'','');";
     $self->_get_parameters();
 }
 
@@ -216,13 +210,10 @@ sub set_delay {
 
     #Round to nearest .15 Value
     $delay_seconds = int( ( $delay_seconds / 0.15 ) + 0.5 ) * .15;
-    ::print_log( "[Insteon::SynchroLinc] Setting Delay to "
-          . $delay_seconds
-          . " seconds." );
+    ::print_log( "[Insteon::SynchroLinc] Setting Delay to " . $delay_seconds . " seconds." );
 
     #Set Callback
-    $$self{_ext_set_get_success_callback} =
-      $self->get_object_name . "->_set_parameters('','',$delay_seconds);";
+    $$self{_ext_set_get_success_callback} = $self->get_object_name . "->_set_parameters('','',$delay_seconds);";
     $self->_get_parameters();
 }
 
@@ -250,13 +241,10 @@ sub set_threshold {
 
     #Round to nearest .5 Value
     $threshold_watts = int( ( $threshold_watts * 2 ) + 0.5 ) / 2;
-    ::print_log( "[Insteon::SynchroLinc] Setting Threshold to "
-          . $threshold_watts
-          . " watts." );
+    ::print_log( "[Insteon::SynchroLinc] Setting Threshold to " . $threshold_watts . " watts." );
 
     #Set Callback
-    $$self{_ext_set_get_success_callback} =
-      $self->get_object_name . "->_set_parameters('',$threshold_watts,'');";
+    $$self{_ext_set_get_success_callback} = $self->get_object_name . "->_set_parameters('',$threshold_watts,'');";
     $self->_get_parameters();
 }
 
@@ -288,8 +276,7 @@ sub _process_message {
         $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
 
         #If this was a get request don't clear until data packet received
-        ::print_log( "[Insteon::SynchroLinc] Extended Set/Get ACK Received for "
-              . $self->get_object_name )
+        ::print_log( "[Insteon::SynchroLinc] Extended Set/Get ACK Received for " . $self->get_object_name )
           if $self->debuglevel( 1, 'insteon' );
         if ( $$self{_ext_set_get_action} eq 'set' ) {
             ::print_log("[Insteon::SynchroLinc] Clearing active message.")
@@ -302,9 +289,7 @@ sub _process_message {
     elsif ( $msg{command} eq "extended_set_get" && $msg{is_extended} ) {
         if ( substr( $msg{extra}, 0, 6 ) eq "000001" ) {
             $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
-            main::print_log( "[Insteon::SynchroLinc] Extended Set/Get Data "
-                  . "Received for "
-                  . $self->get_object_name )
+            main::print_log( "[Insteon::SynchroLinc] Extended Set/Get Data " . "Received for " . $self->get_object_name )
               if $self->debuglevel( 1, 'insteon' );
 
             #D3+D4 = trigger, D5 = delay, D6 = threshold
@@ -323,8 +308,7 @@ sub _process_message {
 
                 package main;
                 eval( $$self{_ext_set_get_success_callback} );
-                &::print_log(
-                    "[Insteon::SynchroLinc] Error in Get/Set Callback: " . $@ )
+                &::print_log( "[Insteon::SynchroLinc] Error in Get/Set Callback: " . $@ )
                   if $@ and $self->debuglevel( 1, 'insteon' );
 
                 package Insteon::SynchroLinc;
@@ -356,10 +340,7 @@ sub get_voice_cmds {
     my $object_name = $self->get_object_name;
     my %voice_cmds  = ( %{ $self->SUPER::get_voice_cmds } );
     if ( $self->is_root ) {
-        %voice_cmds = (
-            %{ $self->SUPER::get_voice_cmds },
-            'request parameters' => "$object_name->request_parameters()"
-        );
+        %voice_cmds = ( %{ $self->SUPER::get_voice_cmds }, 'request parameters' => "$object_name->request_parameters()" );
     }
     return \%voice_cmds;
 }
@@ -486,8 +467,7 @@ sub set {
         $self->request_status();
     }
     elsif ( $p_setby ne $self ) {
-        ::print_log(
-            "[Insteon::iMeter] failed state validation with state=$p_state");
+        ::print_log("[Insteon::iMeter] failed state validation with state=$p_state");
     }
 }
 
@@ -504,9 +484,7 @@ command
 sub request_status {
     my ( $self, $requestor ) = @_;
     my $extra = '00';
-    my $message =
-      new Insteon::InsteonMessage( 'insteon_send', $self, 'imeter_query',
-        $extra );
+    my $message = new Insteon::InsteonMessage( 'insteon_send', $self, 'imeter_query', $extra );
     $self->_send_cmd($message);
     return;
 }
@@ -539,8 +517,7 @@ sub _process_message {
         $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
 
         #Don't clear until data packet received
-        ::print_log(
-            "[Insteon::iMeter] ACK Received for " . $self->get_object_name )
+        ::print_log( "[Insteon::iMeter] ACK Received for " . $self->get_object_name )
           if $self->debuglevel( 1, 'insteon' );
     }
     elsif ( $msg{command} eq "imeter_query" && $msg{is_extended} ) {
@@ -560,14 +537,12 @@ sub _process_message {
 
                 # 1 Accumulated energy is equal to: 65535 watts/AC Cycle.
                 # 65535 is the maximum value of a 16 bit number.
-                $$self{'accumenergy'} = sprintf( "%.2f",
-                    ( $intenergy * 65535 ) / ( 1000 * 60.0 * 60.0 * 60.0 ) );
+                $$self{'accumenergy'} = sprintf( "%.2f", ( $intenergy * 65535 ) / ( 1000 * 60.0 * 60.0 * 60.0 ) );
             }
             ::print_log( "[Insteon::iMeter] received status for "
                   . $self->get_object_name
                   . ". Current Usage: $$self{'power'}/watts "
-                  . "Accumulated Usage: $$self{'accumenergy'}/kWh Hops left: $msg{hopsleft}"
-            );
+                  . "Accumulated Usage: $$self{'accumenergy'}/kWh Hops left: $msg{hopsleft}" );
 
             #Forced setby to be $Self as nothing can control iMeter
             $self->Generic_Item::set( $$self{'power'}, $self );
@@ -622,9 +597,7 @@ Resets the accumulated usage on the device to 0.
 sub reset_accumulated_usage {
     my ($self) = @_;
     $$self{'accumenergy'} = 0;
-    my $message =
-      new Insteon::InsteonMessage( 'insteon_send', $self, 'imeter_reset',
-        '00' );
+    my $message = new Insteon::InsteonMessage( 'insteon_send', $self, 'imeter_reset', '00' );
     $self->_send_cmd($message);
     return $$self{'accumenergy'};
 }
@@ -662,9 +635,8 @@ sub get_voice_cmds {
     if ( $self->is_root ) {
         %voice_cmds = (
             %{ $self->SUPER::get_voice_cmds },
-            'log accumulated usage' => "$object_name->log_accumulated_usage()",
-            'reset accumulated usage' =>
-              "$object_name->reset_accumulated_usage()",
+            'log accumulated usage'   => "$object_name->log_accumulated_usage()",
+            'reset accumulated usage' => "$object_name->reset_accumulated_usage()",
         );
     }
     return \%voice_cmds;

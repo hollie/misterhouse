@@ -6,18 +6,12 @@
 # - Note: extended codes only work with the CM11 interface and a compatable receiver
 #   like the LM14A/PLM21 2 way X10 pro lamp modules.
 
-$test_light1 =
-  new X10_Item('O7');  # X10_Item supports relative brightness level states +-##
-$test_light2 = new X10_Item( 'O7', 'CM11', 'LM14' )
-  ;                    # X10_Lamp supports direct   brightness level states ##%
+$test_light1 = new X10_Item('O7');                      # X10_Item supports relative brightness level states +-##
+$test_light2 = new X10_Item( 'O7', 'CM11', 'LM14' );    # X10_Lamp supports direct   brightness level states ##%
 
 # All X10 items support direct preset dim commands &P## (1->64)
-$v_test_light1 = new Voice_Cmd(
-    "Set test light to [on,off,bright,dim,-10,-20,-30,-50,-70,+10,+20,+30,+50,+70,&P3,&P10,&P30,&P40,&P50,&P60]"
-);
-$v_test_light2 = new Voice_Cmd(
-    "Set test light to [on,off,bright,dim,2%,4%,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%,&P3,&P10,&P30,&P40,&P50,&P60]"
-);
+$v_test_light1 = new Voice_Cmd("Set test light to [on,off,bright,dim,-10,-20,-30,-50,-70,+10,+20,+30,+50,+70,&P3,&P10,&P30,&P40,&P50,&P60]");
+$v_test_light2 = new Voice_Cmd("Set test light to [on,off,bright,dim,2%,4%,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%,&P3,&P10,&P30,&P40,&P50,&P60]");
 
 set $test_light1 $state if $state = said $v_test_light1;
 set $test_light2 $state if $state = said $v_test_light2;
@@ -33,8 +27,7 @@ set $test_light2 $state if $state = said $v_test_light2;
 
 #For example:
 
-$TX10 = new Serial_Item( 'XM4' . 'E' . 'PRESET_DIM1', 'Increase temp' )
-  ;    #preset  8='E'
-$TX10->add( 'XM4' . 'F' . 'PRESET_DIM1', 'Decrease temp' );    #preset  9='F'
-$TX10->add( 'XM4' . 'O' . 'PRESET_DIM2', 'Preset on' );        #preset 18='O'
-$TX10->add( 'XM4' . 'P' . 'PRESET_DIM2', 'Preset off' );       #preset 19='P'
+$TX10 = new Serial_Item( 'XM4' . 'E' . 'PRESET_DIM1', 'Increase temp' );    #preset  8='E'
+$TX10->add( 'XM4' . 'F' . 'PRESET_DIM1', 'Decrease temp' );                 #preset  9='F'
+$TX10->add( 'XM4' . 'O' . 'PRESET_DIM2', 'Preset on' );                     #preset 18='O'
+$TX10->add( 'XM4' . 'P' . 'PRESET_DIM2', 'Preset off' );                    #preset 19='P'

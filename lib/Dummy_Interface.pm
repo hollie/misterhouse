@@ -40,20 +40,14 @@ sub new {
 
     $self->firstWarning();
 
-    $self->warning(
-        "Creating dummy interface for id=$id, state=$state and interface=$interface.",
-        1
-    );
+    $self->warning( "Creating dummy interface for id=$id, state=$state and interface=$interface.", 1 );
     return $self;
 }
 
 sub firstWarning {
     my ($self) = @_;
 
-    $self->warning(
-        "This Dummy_Interface is being used because MrHouse can't find a real hardware device to support some requested functionality",
-        3
-    );
+    $self->warning( "This Dummy_Interface is being used because MrHouse can't find a real hardware device to support some requested functionality", 3 );
 }
 
 sub warning {

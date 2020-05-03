@@ -88,8 +88,7 @@ foreach my $year (@hyears) {
             my $offset;
             my ( $tmpdow, $tmpday, $tmpmonth, $tmpyear ) =
               split( /\,/, UnixDate( $tmpdate, "%w,%e,%B,%Y" ) );
-            print
-              "db: $tmpdow, $tmpday, $tmpmonth, $tmpyear -> $nday $dow{\"$nday\"}"
+            print "db: $tmpdow, $tmpday, $tmpmonth, $tmpyear -> $nday $dow{\"$nday\"}"
               if ( $DB > 1 );
             if ( lc $op eq "after" ) {
                 $offset = ( $dow{$nday} + $tmpdow ) % 7;
@@ -142,8 +141,7 @@ foreach my $year (@hyears) {
             }
 
             if ( $olddate and ( !$noweekend ) ) {
-                my ( $hyear1, $hmon1, $hday1 ) =
-                  $olddate =~ /(\d\d\d\d)(\d\d)(\d\d)/;
+                my ( $hyear1, $hmon1, $hday1 ) = $olddate =~ /(\d\d\d\d)(\d\d)(\d\d)/;
 
                 #strip leading zeros
                 $hmon1 =~ s/^0*//g;
@@ -171,8 +169,7 @@ $calendar->add_properties( method => "PUBLISH", );
 foreach my $line (@icaldata) {
     my ( $year, $month, $day, $summary ) = split /\t/, $line;
     my $event = Data::ICal::Entry::Event->new();
-    my $start =
-      Date::ICal->new( year => $year, month => $month, day => $day )->ical;
+    my $start = Date::ICal->new( year => $year, month => $month, day => $day )->ical;
 
     #	my $end = $start->clone;
     my $end = $start;
@@ -186,8 +183,8 @@ foreach my $line (@icaldata) {
 
         #description => "FreeFormText.\\nMore FreeFormText.\\n\\n",
         #dtstart     => Date::ICal->new( epoch => time )->ical,
-        dtstart => $start,    #->ical (localtime => 1),
-        dtend   => $end,      #->ical (localtime => 1),
+        dtstart => $start,                                   #->ical (localtime => 1),
+        dtend   => $end,                                     #->ical (localtime => 1),
         dtstamp => Date::ICal->new( epoch => time )->ical,
 
         #class       => "PUBLIC",
@@ -216,11 +213,9 @@ sub print_help {
 
     print "Help:	$progname $version\n";
     print "usage:	$progname [-h]\n";
-    print
-      "	$progname [-y year(s)] [-y +year(s)] [-f output_file] [-n] region_file_definition\n";
+    print "	$progname [-y year(s)] [-y +year(s)] [-f output_file] [-n] region_file_definition\n";
     print "	-h: Help\n";
-    print
-      "	-y: Year(s) to generate, comma separated list (ie, 2006,2007,2008)\n";
+    print "	-y: Year(s) to generate, comma separated list (ie, 2006,2007,2008)\n";
     print "	    current year is used if no year(s) specified\n";
     print "	or\n";
     print "	-y: + additional years to generate from current year\n";

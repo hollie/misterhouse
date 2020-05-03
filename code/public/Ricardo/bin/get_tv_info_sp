@@ -19,23 +19,19 @@ use strict;
 my ( $Pgm_Path, $Pgm_Name, $Version );
 
 BEGIN {
-    ($Version) =
-      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
 
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval
-      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";    # So perl2exe works
 }
 
 my %parms;
 use Getopt::Long;
 if (
     !&GetOptions(
-        \%parms,      "h",          "help",        "db=s",
-        "channels=s", "dates=s",    "times=s",     "keys=s",
-        "keyfile=s",  'title_only', "increment=s", "outfile1=s",
-        "outfile2=s", "type=s",     "debug",       "quiet"
+        \%parms,     "h",          "help",        "db=s",       "channels=s", "dates=s", "times=s", "keys=s",
+        "keyfile=s", 'title_only', "increment=s", "outfile1=s", "outfile2=s", "type=s",  "debug",   "quiet"
     )
     or @ARGV
     or !(
@@ -106,17 +102,12 @@ eof
 }
 
 # Globals
-my (
-    @channels,   @dates,    @times,     @keys,        @types,
-    %DBM,        %DBM2,     $match_cnt, $match_list1, $match_list2,
-    $date_today, $time_now, $min_begin, $min_now,     $symbol
-);
+my ( @channels, @dates, @times, @keys, @types, %DBM, %DBM2, $match_cnt, $match_list1, $match_list2, $date_today, $time_now, $min_begin, $min_now, $symbol );
 my %config_parms;
 
 &setup;
 &find_match;
-print
-  "\nEncontrados $match_cnt programas. resultados detallados en fichero $parms{outfile2}\n"
+print "\nEncontrados $match_cnt programas. resultados detallados en fichero $parms{outfile2}\n"
   unless $parms{quiet};
 print $match_list1 if $match_cnt < 10;
 
@@ -165,18 +156,15 @@ sub find_match {
                             # I have added case-sensitive upper-case in $pgm_desc.
                             if (
                                 (
-                                    $pgm_name =~ /\b$key/i
-                                    or ( $pgm_desc =~ /\b$key/i
+                                    $pgm_name =~ /\b$key/i or ( $pgm_desc =~ /\b$key/i
                                         and !$parms{title_only} )
                                 )
                                 and ( $pgm_type =~ /\b$type/i )
                               )
                             {
                                 # The next 2 lines highlight the selected key-word(s), using the selected symbol in mh.ini
-                                $pgm_desc =~
-                                  s/($key)/$symbol$symbol\1$symbol/gi;
-                                $pgm_name =~
-                                  s/($key)/$symbol$symbol\1$symbol/gi;
+                                $pgm_desc =~ s/($key)/$symbol$symbol\1$symbol/gi;
+                                $pgm_name =~ s/($key)/$symbol$symbol\1$symbol/gi;
 
                                 my $ch_data = $DBM2{$ch_key};
                                 my ( $ch_number, $ch_name ) =
@@ -184,20 +172,16 @@ sub find_match {
                                 if ( $parms{debug} ) {
                                     print "\nEncontrado un programa:\n";
                                     print "    Canal: $ch_number $ch_name\n";
-                                    print
-                                      "     Hora: $pgm_date $time_start -> $time_end\n";
+                                    print "     Hora: $pgm_date $time_start -> $time_end\n";
                                     print " Duración: $pgm_length minutos\n";
                                     print "   Título: $pgm_name\n";
                                     print "    Desc.:  $pgm_desc\n\n";
                                 }
 
                                 $match_cnt++;
-                                $pgm_name =~
-                                  s/\*+//g;  # Change **show name** => show name
-                                $pgm_name =~ s/[\\\$\^]//g
-                                  ; # Remove regular expression chars introduced above
-                                my $temp =
-                                  "\n$match_cnt|  $pgm_name| Canal $ch_name| $ch_key| Dial $ch_number|  ";
+                                $pgm_name =~ s/\*+//g;         # Change **show name** => show name
+                                $pgm_name =~ s/[\\\$\^]//g;    # Remove regular expression chars introduced above
+                                my $temp = "\n$match_cnt|  $pgm_name| Canal $ch_name| $ch_key| Dial $ch_number|  ";
 
                                 $temp .= "El $pgm_date| "
                                   if @dates > 1 or $pgm_date ne $date_today;
@@ -228,8 +212,7 @@ sub find_match {
     print OUT1 "Encontrados $match_cnt programas.\n$match_list1";
 
     #    It's a bit tidier like this (I can't actually see the bottom two lines without the CRs)
-    print OUT2
-      "Found $match_cnt $parms{name} shows.                             $print_date\n\n$match_list2";
+    print OUT2 "Found $match_cnt $parms{name} shows.                             $print_date\n\n$match_list2";
     print OUT2 "\n \n \n \n \n \n \n";
 
     close OUT1;
@@ -277,8 +260,7 @@ sub setup {
     }
     if ( my ( $time_start, $hours ) = $parms{times} =~ /(\S*)\+(\S+)/ ) {
         $time_start = $time_now unless $time_start;
-        my $time_stop =
-          $hours * 60 + &hour_to_min( &ampm_to_hour24($time_start) );
+        my $time_stop = $hours * 60 + &hour_to_min( &ampm_to_hour24($time_start) );
         $time_stop = &min_to_hour($time_stop);
         $parms{times} = "$time_start-$time_stop";
     }
@@ -326,8 +308,7 @@ sub setup {
     $parms{outfile2} = "$config_parms{data_dir}/$parms{db}_info2.txt"
       unless $parms{outfile2};
 
-    print "\nSearching for:\n  channels: @channels\n  times: @times\n  "
-      . "dates: @dates\n  keys: @keys\n  type: @types\n\n"
+    print "\nSearching for:\n  channels: @channels\n  times: @times\n  " . "dates: @dates\n  keys: @keys\n  type: @types\n\n"
       unless $parms{quiet};
 
 }
@@ -411,7 +392,7 @@ sub increment_date {
     my ( $day, $month, $year ) = split( '/', $date );
     $year += 2000;
     my $timeinsec = str2time("$year-$month-$day");
-    $timeinsec += $days * 24 * 60 * 60;   # Add the offest (adjusted to seconds)
+    $timeinsec += $days * 24 * 60 * 60;    # Add the offest (adjusted to seconds)
     ( $day, $month, $year ) = ( localtime($timeinsec) )[ 3, 4, 5 ];
     $year = $year % 100;
     return sprintf( "%02d/%02d/%02d", $day, ++$month, $year );

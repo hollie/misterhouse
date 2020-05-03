@@ -49,9 +49,7 @@ my $f_weather_short    = "$config_parms{data_dir}/web/${WeatherFile}_short.txt";
 
 $p_weather_page = new Process_Item;
 $v_weather_page = new Voice_Cmd('[Get,Read,Show,Short] internet weather');
-$v_weather_page->set_info(
-    "Weather conditions and forecast for $config_parms{city}, $config_parms{state}  $config_parms{country}"
-);
+$v_weather_page->set_info("Weather conditions and forecast for $config_parms{city}, $config_parms{state}  $config_parms{country}");
 $v_weather_page->set_authority('anyone');
 
 #speak($f_weather_page)
@@ -141,17 +139,12 @@ if ( done_now $p_weather_page) {
 
     # Details stored here
     my ($update_time) = $text =~ /Updated: (.+?, 20\d\d)/;
-    my ( $temp_F, $temp_C ) =
-      $text =~ /Temperature.+?(.+?) degrees.+?\/ (.+?) degrees/;
+    my ( $temp_F, $temp_C ) = $text =~ /Temperature.+?(.+?) degrees.+?\/ (.+?) degrees/;
     my ($humidity) = $text =~ /Humidity (.+?)%/;
-    my ( $dewpoint_F, $dewpoint_C ) =
-      $text =~ /Dewpoint.+?(.+?) degrees.+?\/ (.+?) degrees/;
-    my ( $windchill_F, $windchill_C ) =
-      $text =~ /Windchill.+?(.+?) degrees.+?\/ (.+?) degrees/;
-    my ( $wind_dir, $wind_mph, $wind_kph ) =
-      $text =~ /Wind (.+?) at (\d+?) mph \/ (.+?) km\/h/;
-    my ( $pressure_in, $pressure_hPa ) =
-      $text =~ /Pressure (.+?) in \/ (.+?) hPa/;
+    my ( $dewpoint_F,  $dewpoint_C )  = $text =~ /Dewpoint.+?(.+?) degrees.+?\/ (.+?) degrees/;
+    my ( $windchill_F, $windchill_C ) = $text =~ /Windchill.+?(.+?) degrees.+?\/ (.+?) degrees/;
+    my ( $wind_dir, $wind_mph, $wind_kph ) = $text =~ /Wind (.+?) at (\d+?) mph \/ (.+?) km\/h/;
+    my ( $pressure_in, $pressure_hPa ) = $text =~ /Pressure (.+?) in \/ (.+?) hPa/;
     my ($conditions) = $text =~ /Conditions (.+?)\n/;
     my ($clouds)     = $text =~ /Clouds (.+?)Sunrise/s;
     my ($today)      = $text =~ /Today(.+?)Tonight/s;
@@ -180,8 +173,7 @@ if ( done_now $p_weather_page) {
 
     my $data   = file_read($f_weather_log_html);
     my $header = "<HTML><HEAD><TITLE>Weather records</TITLE>\r\n";
-    $header .=
-      "<link rel=STYLESHEET href='../../list.css' type=text/css></HEAD>\r\n";
+    $header .= "<link rel=STYLESHEET href='../../list.css' type=text/css></HEAD>\r\n";
     $header .= "<BODY><table border=1>\r\n";
     $header .= "<tr><td>Date/time</td><td>Temp</td>\r\n";
     $header .= "<td>Humidity</td><td>Dewpoint</td>\r\n";
@@ -198,6 +190,5 @@ if ( done_now $p_weather_page) {
     );
     file_write( $f_weather_page, $text );
     display $f_weather_page;
-    browser
-      "http://localhost:$config_parms{http_port}/data/web/${WeatherFile}_log.html";
+    browser "http://localhost:$config_parms{http_port}/data/web/${WeatherFile}_log.html";
 }

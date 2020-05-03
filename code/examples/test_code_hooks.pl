@@ -15,8 +15,7 @@ sub test_speak_hook {
 }
 
 $v_test_play = new Voice_Cmd 'Test the play code hooks';
-tie_event $v_test_play
-  "&play(rooms => 'living', time => 5, file => 'sound_beep1.wav')";
+tie_event $v_test_play "&play(rooms => 'living', time => 5, file => 'sound_beep1.wav')";
 
 $v_test_speak = new Voice_Cmd 'Test the speak code hooks';
 tie_event $v_test_speak "&speak('rooms=all Testing speak hook')";

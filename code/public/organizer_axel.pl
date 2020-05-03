@@ -16,8 +16,7 @@ $organizer_file = new File_Item "$config_parms{organizer_dir}/calendar.tab";
 set_watch $organizer_file if $Reload;
 
 $organizer_check = new Voice_Cmd 'Check for new calendar events';
-$organizer_check->set_info(
-    'Creates MisterHouse events based on organizer calendar events');
+$organizer_check->set_info('Creates MisterHouse events based on organizer calendar events');
 
 if ( said $organizer_check or ( $New_Minute and changed $organizer_file) ) {
     print_log 'Reading calendar file';
@@ -52,7 +51,7 @@ sub updateOrganizer {
 
         #	$time ||= "00:00";
         my $time_date = "$date/$date[0]";
-        next if time_greater_than( $time_date . " 00:00" );   # Skip past events
+        next if time_greater_than( $time_date . " 00:00" );    # Skip past events
         $who = "for $who" if $who;
         $event = &make_event_speakable($event);
         $event =~ s/'/\\'/g;
@@ -61,18 +60,14 @@ sub updateOrganizer {
         if ($time) {
             $time_date .= " $time";
             $time = "at " . time_to_ampm($time);
-            print MYCODE
-              "if (time_now '$time_date - $alarm') {speak 'rooms=all Calendar notice $who.  In $speakalarm, $event'}\n"
+            print MYCODE "if (time_now '$time_date - $alarm') {speak 'rooms=all Calendar notice $who.  In $speakalarm, $event'}\n"
               if $alarm;
-            print MYCODE
-              "if (time_now '$time_date') {speak 'rooms=all Calendar notice $who $time: $event'}\n";
+            print MYCODE "if (time_now '$time_date') {speak 'rooms=all Calendar notice $who $time: $event'}\n";
         }
         else {
-            print MYCODE
-              qq!if ((time_now "$time_date \$Save{wakeup_time} - $alarm") and \$Save{alarm_sounding}) {speak 'rooms=all In $speakalarm, $event'}\n!
+            print MYCODE qq!if ((time_now "$time_date \$Save{wakeup_time} - $alarm") and \$Save{alarm_sounding}) {speak 'rooms=all In $speakalarm, $event'}\n!
               if $alarm;
-            print MYCODE
-              qq!if ((time_now "$time_date \$Save{wakeup_time} + 0:02") and \$Save{alarm_sounding}) {speak 'rooms=all Today $event'}\n!;
+            print MYCODE qq!if ((time_now "$time_date \$Save{wakeup_time} + 0:02") and \$Save{alarm_sounding}) {speak 'rooms=all Today $event'}\n!;
         }
     }
     close MYCODE;
@@ -88,8 +83,7 @@ sub getCalendarEvents {
 
     if ( scalar @calendarEvents == 0 ) {
 
-        my ($objDB) =
-          new vsDB( file => $organizer_file->name, delimiter => '\t' );
+        my ($objDB) = new vsDB( file => $organizer_file->name, delimiter => '\t' );
         if ( $objDB->Open ) {
 
             $objDB->RemoveFilter;
@@ -127,22 +121,19 @@ sub getCalendarEvents {
             }
         }
         else {
-            speak "Unable to read from calendar data file. "
-              . $objDB->LastError;
+            speak "Unable to read from calendar data file. " . $objDB->LastError;
         }
     }
 }
 
-$v_todaysevents =
-  new Voice_Cmd( "What {are,is} [Debbie,Axel,we] doing today", "" );
+$v_todaysevents = new Voice_Cmd( "What {are,is} [Debbie,Axel,we] doing today", "" );
 
 if ( $state = said $v_todaysevents) {
     my $thisDate = "$Year.$Month.$Mday";
     getCalendarEvents( $state, $thisDate, "Today" );
 }
 
-$v_tomorrowsevents =
-  new Voice_Cmd( "What {are,is} [Debbie,Axel,we] doing tomorrow", "" );
+$v_tomorrowsevents = new Voice_Cmd( "What {are,is} [Debbie,Axel,we] doing tomorrow", "" );
 if ( $state = said $v_tomorrowsevents) {
     my $now = time + ( 60 * 60 * 24 );
     my @ndate = localtime($now);

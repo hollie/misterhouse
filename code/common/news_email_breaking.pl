@@ -8,8 +8,7 @@
 # get_email_scan_file and $p_get_email are created by internet_mail.pl
 if ( done_now $p_get_email and -e $get_email_scan_file ) {
     for my $line ( file_read $get_email_scan_file) {
-        my ( $from, $to, $subject, $body ) =
-          $line =~ /From:(.+?) To:(.+?) Subject:(.+?) Body:(.+)/;
+        my ( $from, $to, $subject, $body ) = $line =~ /From:(.+?) To:(.+?) Subject:(.+?) Body:(.+)/;
         if ( $subject =~ /CNN breaking news/i or $subject =~ /News Alert/i ) {
 
             #           print "dbx1 s=$subject body=$body\nline=$line\n";
@@ -35,12 +34,11 @@ Subject: CNN Breaking News
 Body: 
 -- CNN confirms Sen. Barack Obama has chosen Delaware Sen. Joe Biden to be his vice-presidential running mate.
 
->+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
+>+...[line break removed as it breaks pod comments]
 CNN covers the conventions: the Democrats live from Denver starting
 Monday and the Republicans live from Minneapolis-St. Paul starting
 September 1 on CNN and CNN.com. http://www.cnnpolitics.com
->+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
-
+>+...[line break removed as it breaks pod comments]
 
 
 You have opted-in in to receive this e-mail from CNN.com.

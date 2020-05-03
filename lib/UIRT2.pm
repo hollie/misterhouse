@@ -70,11 +70,7 @@ package UIRT2;
 my $prev     = '';
 my $learning = 0;
 my $dbm_file = "$main::config_parms{data_dir}/uirt2_codes.dbm";
-my (
-    $db,          %DBM,              @learned,       $device,
-    $function,    $frequency,        $repeat,        @transmit_queue,
-    @learn_queue, $transmit_timeout, $learn_timeout, $receive_timeout
-);
+my ( $db, %DBM, @learned, $device, $function, $frequency, $repeat, @transmit_queue, @learn_queue, $transmit_timeout, $learn_timeout, $receive_timeout );
 
 sub startup {
     my $baudrate = 115200;
@@ -160,17 +156,10 @@ sub save_code {
             push @code2, $code;
         }
         else {
-            print
-              "UIRT2: Learning error, received more than two different codes \n";
+            print "UIRT2: Learning error, received more than two different codes \n";
         }
     }
-    set_ir_code(
-        $device,
-        $function,
-        raw_to_struct(
-            $frequency, $repeat, raw_average(@code1), raw_average(@code2)
-        )
-    );
+    set_ir_code( $device, $function, raw_to_struct( $frequency, $repeat, raw_average(@code1), raw_average(@code2) ) );
     print "UIRT2: Saved device $device function $function \n";
 }
 
@@ -369,9 +358,7 @@ sub transmit_pronto {
         $code = $code1 . ( unpack 'H2', pack 'C', $repeat | $frequency_bits );
     }
     else {
-        $code =
-          ( unpack 'H2', pack 'C', ( $code2 ? 0 : $repeat ) | $frequency_bits )
-          . $code1
+        $code = ( unpack 'H2', pack 'C', ( $code2 ? 0 : $repeat ) | $frequency_bits ) . $code1
           if $code1;
         $code .= ( unpack 'H2', pack 'C', $repeat | $frequency_bits ) . $code2
           if $code2;
@@ -426,13 +413,11 @@ sub raw_to_struct {
               if $_ > ( $i & 1 ? $big_gap : $big_pulse );
             $i++;
         }
-        print
-          "raw_to_struct code $_\nsmall_gap : $small_gap  small_pulse : $small_pulse big_gap : $big_gap  big_pulse : $big_pulse \n"
+        print "raw_to_struct code $_\nsmall_gap : $small_gap  small_pulse : $small_pulse big_gap : $big_gap  big_pulse : $big_pulse \n"
           if $main::Debug{UIRT2};
         $i = 0;
         foreach ( @bytes[ 4 .. $#bytes - 1 ] ) {
-            my $bit =
-              ( $_ > 1.5 * ( $i & 1 ? $small_gap : $small_pulse ) ) ? '1' : '0';
+            my $bit = ( $_ > 1.5 * ( $i & 1 ? $small_gap : $small_pulse ) ) ? '1' : '0';
             $bits .= $bit;
             push @{
                 $sums{
@@ -453,8 +438,7 @@ sub raw_to_struct {
             }
             push @struct, $sum ? ( $sum / ( $#{ $sums{$_} } + 1 ) ) : 0;
         }
-        push @struct,
-          unpack( 'C*', pack( ( $second ? 'b96' : 'b128' ), $bits ) );
+        push @struct, unpack( 'C*', pack( ( $second ? 'b96' : 'b128' ), $bits ) );
         $second++;
         $_ = unpack 'H*', pack 'C*', @struct;
     }
@@ -504,29 +488,20 @@ sub pronto_to_raw {
     my $repeat = shift;
     $pronto =~ s/\s+/ /gs;
     $pronto =~ s/[^0-9a-fA-F]//gs;
-    my @bytes = unpack 'n*', pack 'H*', $pronto;
-    my $kind  = shift @bytes;
-    my $units = shift(@bytes) * .241246;
-    my $frequency =
-      ( $kind == 0 && $units != 0.0 ) ? round( 1000.0 / $units ) : 0;
-    my $first  = shift(@bytes) * 2;
-    my $second = shift(@bytes) * 2;
+    my @bytes     = unpack 'n*', pack 'H*', $pronto;
+    my $kind      = shift @bytes;
+    my $units     = shift(@bytes) * .241246;
+    my $frequency = ( $kind == 0 && $units != 0.0 ) ? round( 1000.0 / $units ) : 0;
+    my $first     = shift(@bytes) * 2;
+    my $second    = shift(@bytes) * 2;
     map { $_ = round( $_ * $units / 50 ) } @bytes;
-    print "pronto_to_raw $pronto First $first second $second frequency  "
-      . $frequency . "\n"
+    print "pronto_to_raw $pronto First $first second $second frequency  " . $frequency . "\n"
       if $main::Debug{UIRT2};
     my ( $code1, $code2 );
-    $code1 = unpack 'H*',
-      pack( 'C*',
-        $bytes[ $first - 1 ] >> 8,
-        $bytes[ $first - 1 ] & 0xff,
-        @bytes[ 0 .. $first - 2 ], 0xff )
+    $code1 = unpack 'H*', pack( 'C*', $bytes[ $first - 1 ] >> 8, $bytes[ $first - 1 ] & 0xff, @bytes[ 0 .. $first - 2 ], 0xff )
       if $first;
     $code2 = unpack 'H*',
-      pack( 'C*',
-        $bytes[ $first + $second - 1 ] >> 8,
-        $bytes[ $first + $second - 1 ] & 0xff,
-        @bytes[ $first .. $first + $second - 2 ], 0xff )
+      pack( 'C*', $bytes[ $first + $second - 1 ] >> 8, $bytes[ $first + $second - 1 ] & 0xff, @bytes[ $first .. $first + $second - 2 ], 0xff )
       if $second;
     return ( $frequency, $repeat, $code1, $code2 );
 }
@@ -629,9 +604,7 @@ sub set_ir_code {
         $code = $code1 . ( unpack 'H2', pack 'C', $repeat | $frequency_bits );
     }
     else {
-        $code =
-          ( unpack 'H2', pack 'C', ( $code2 ? 0 : $repeat ) | $frequency_bits )
-          . $code1
+        $code = ( unpack 'H2', pack 'C', ( $code2 ? 0 : $repeat ) | $frequency_bits ) . $code1
           if $code1;
         $code .= ( unpack 'H2', pack 'C', $repeat | $frequency_bits ) . $code2
           if $code2;

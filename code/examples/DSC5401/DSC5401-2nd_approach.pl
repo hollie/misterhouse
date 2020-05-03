@@ -26,15 +26,12 @@ if ( my $AlarmState = $DSC->state_now ) {
 
     DSC2SQL("system $AlarmState by $DSC->{user_name} ($DSC->{user_id})")
       if $AlarmState =~ /^armed/i;
-    Send_Email( "misterhouse",
-        "Alarm armed by user $DSC->{user_name} or MH reboot",
-        $::config_parms{Pager} )
+    Send_Email( "misterhouse", "Alarm armed by user $DSC->{user_name} or MH reboot", $::config_parms{Pager} )
       if $AlarmState =~ /^armed/i;
 
     DSC2SQL("system $AlarmState by $DSC->{user_name} ($DSC->{user_id})")
       if $AlarmState =~ /^disarmed/i;
-    Send_Email( "misterhouse", "Alarm disarmed by user $DSC->{user_name}",
-        $::config_parms{Pager} )
+    Send_Email( "misterhouse", "Alarm disarmed by user $DSC->{user_name}", $::config_parms{Pager} )
       if $AlarmState =~ /^disarmed/i;
 
     DSC2SQL("system is now in $AlarmState") if $AlarmState =~ /^alarm/i;
@@ -110,13 +107,8 @@ if ( new_second 5 ) {
                 }
 
                 # send a page to my cell phone
-                ($MovieFile) = $MovieFile =~
-                  /.*\/(.*)$/;    # get only the file name without path
-                Send_Email(
-                    "Motion detected",
-                    "Motion detected in file $MovieFile",
-                    $::config_parms{Pager}
-                );
+                ($MovieFile) = $MovieFile =~ /.*\/(.*)$/;    # get only the file name without path
+                Send_Email( "Motion detected", "Motion detected in file $MovieFile", $::config_parms{Pager} );
                 print_log "Motion detected while alarm is on ($MovieFile)";
                 unlink $::config_parms{MotionLastMovie};
             }
@@ -223,16 +215,13 @@ $DSC->cmd("000") if said $v_alarm_poll;
 $v_alarm_status = new Voice_Cmd "DSC Status Report";
 $DSC->cmd("001") if said $v_alarm_status;
 
-$v_alarm_partition_arm =
-  new Voice_Cmd "DSC Arm partition 1 without access code";
+$v_alarm_partition_arm = new Voice_Cmd "DSC Arm partition 1 without access code";
 $DSC->cmd( "PartitionArmControl", 1 ) if said $v_alarm_partition_arm;
 
 # 010
-$v_alarm_set_time_date =
-  new Voice_Cmd "DSC Set Alarm system to the current computer time";
+$v_alarm_set_time_date = new Voice_Cmd "DSC Set Alarm system to the current computer time";
 if ( said $v_alarm_set_time_date) {
-    my ( $sec, $m, $h, $mday, $mon, $year, $wday, $yday, $isdst ) =
-      localtime(time);
+    my ( $sec, $m, $h, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime(time);
     $year = sprintf( "%02d", $year % 100 );
     $mon += 1;
     $m    = ( $m < 10 )    ? "0" . $m    : $m;
@@ -241,26 +230,21 @@ if ( said $v_alarm_set_time_date) {
     $mon  = ( $mon < 10 )  ? "0" . $mon  : $mon;
     my $TimeStamp = "$h$m$mon$mday$year";
     &::print_log("Setting time on DSC panel to $TimeStamp");
-    &::logit(
-        "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
-        "Setting time on DSC panel to $TimeStamp"
-    );
+    &::logit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "Setting time on DSC panel to $TimeStamp" );
     $DSC->cmd( "SetDateTime", $TimeStamp );
 }
 
 # here you have to give the user access code, replace #### with the access code
 # note this is not secure
 # 033
-$v_alarm_partition_arm_code =
-  new Voice_Cmd "DSC Arm partition 1 from webpage with user code";
+$v_alarm_partition_arm_code = new Voice_Cmd "DSC Arm partition 1 from webpage with user code";
 $DSC->cmd( "PartitionArmControlWithCode", "1", "$PWD" )
   if said $v_alarm_partition_arm_code;
 
 # here you have to give the user access code, replace #### with the access code
 # note this is not secure
 # 040
-$v_alarm_partition_disarm =
-  new Voice_Cmd "DSC Disarm partition 1 from webpage with user code";
+$v_alarm_partition_disarm = new Voice_Cmd "DSC Disarm partition 1 from webpage with user code";
 $DSC->cmd( "PartitionDisarmControl", "1", "$PWD" )
   if said $v_alarm_partition_disarm;
 

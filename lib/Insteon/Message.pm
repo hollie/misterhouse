@@ -209,18 +209,10 @@ sub send {
     if ( $self->send_attempts < $self->retry_count ) {
 
         if ( $self->send_attempts > 0 ) {
-            if (
-                (
-                    ref $self->setby && $self->setby->debuglevel( 1, 'insteon' )
-                )
-                || ( ( !ref $self->setby ) && $::Debug{'insteon'} )
-              )
+            if (   ( ref $self->setby && $self->setby->debuglevel( 1, 'insteon' ) )
+                || ( ( !ref $self->setby ) && $::Debug{'insteon'} ) )
             {
-                ::print_log( "[Insteon::BaseMessage] WARN: now resending "
-                      . $self->to_string()
-                      . " after "
-                      . $self->send_attempts
-                      . " attempts." );
+                ::print_log( "[Insteon::BaseMessage] WARN: now resending " . $self->to_string() . " after " . $self->send_attempts . " attempts." );
             }
 
             # revise default hop count to reflect retries
@@ -231,8 +223,7 @@ sub send {
                 $self->setby->retry_count_log(1)
                   if $self->setby->can('retry_count_log');
                 if ( $self->setby->default_hop_count < 3 ) {
-                    $self->setby->default_hop_count(
-                        $self->setby->default_hop_count + 1 );
+                    $self->setby->default_hop_count( $self->setby->default_hop_count + 1 );
                 }
             }
             elsif (defined( $$self{no_hop_increase} )
@@ -240,9 +231,7 @@ sub send {
                 && $self->setby->isa('Insteon::BaseObject') )
             {
                 &main::print_log(
-                        "[Insteon::BaseMessage] Hop count not increased for "
-                      . $self->setby->get_object_name
-                      . " because no_hop_increase flag was set." )
+                    "[Insteon::BaseMessage] Hop count not increased for " . $self->setby->get_object_name . " because no_hop_increase flag was set." )
                   if $self->setby->debuglevel( 1, 'insteon' );
                 $$self{no_hop_increase} = undef;
             }
@@ -745,21 +734,17 @@ sub _derive_interface_data {
             }
         }
     }
-    $cmd .=
-      unpack( "H*",
-        pack( "C", $self->setby->message_type_code( $self->command ) ) );
+    $cmd .= unpack( "H*", pack( "C", $self->setby->message_type_code( $self->command ) ) );
     if ( $self->extra ) {
         $cmd .= $self->extra;
     }
-    elsif ( $self->command_type eq 'insteon_send' )
-    {    # auto append '00' if no extra defined for a standard insteon send
+    elsif ( $self->command_type eq 'insteon_send' ) {    # auto append '00' if no extra defined for a standard insteon send
         $cmd .= '00';
     }
 
     if ( $self->command_type eq 'insteon_ext_send' and $$self{add_crc16} ) {
         if ( length($cmd) < 40 ) {
-            main::print_log( "[Insteon::InsteonMessage] WARN: insert_crc16 "
-                  . "failed; cmd to short: $cmd" );
+            main::print_log( "[Insteon::InsteonMessage] WARN: insert_crc16 " . "failed; cmd to short: $cmd" );
         }
         else {
             $cmd =
@@ -775,12 +760,10 @@ sub _derive_interface_data {
         #           0123456789012345678901234567890123456789
         #          '2042d31f2e000107110000000000000000000000'
         if ( length($cmd) < 40 ) {
-            main::print_log( "[Insteon::InsteonMessage] WARN: insert_checksum "
-                  . "failed; cmd to short: $cmd" );
+            main::print_log( "[Insteon::InsteonMessage] WARN: insert_checksum " . "failed; cmd to short: $cmd" );
         }
         else {
-            $cmd = substr( $cmd, 0, 38 )
-              . calculate_checksum( substr( $cmd, 8, 30 ) );
+            $cmd = substr( $cmd, 0, 38 ) . calculate_checksum( substr( $cmd, 8, 30 ) );
         }
     }
 
@@ -1086,8 +1069,7 @@ sub generate_commands {
     my $uc = lc( substr( $p_setby->{x10_id}, 2, 1 ) );
 
     if ( $hc eq undef ) {
-        &main::print_log(
-            "[Insteon::Message] Object:$p_setby Doesnt have an x10 id (yet)");
+        &main::print_log("[Insteon::Message] Object:$p_setby Doesnt have an x10 id (yet)");
         return undef;
     }
 
@@ -1098,21 +1080,10 @@ sub generate_commands {
     else {
 
         #Every X10 message starts with the House and unit code
-        $msg = substr(
-            unpack(
-                "H*", pack( "C", $x10_house_codes{ substr( $id, 1, 1 ) } )
-            ),
-            1, 1
-        );
-        $msg .= substr(
-            unpack( "H*", pack( "C", $x10_unit_codes{ substr( $id, 2, 1 ) } ) ),
-            1, 1
-        );
+        $msg = substr( unpack( "H*", pack( "C", $x10_house_codes{ substr( $id, 1, 1 ) } ) ), 1, 1 );
+        $msg .= substr( unpack( "H*", pack( "C", $x10_unit_codes{ substr( $id, 2, 1 ) } ) ), 1, 1 );
         $msg .= "00";
-        &main::print_log( "[Insteon_PLM] x10 sending code: "
-              . uc( $hc . $uc )
-              . " as insteon msg: "
-              . $msg )
+        &main::print_log( "[Insteon_PLM] x10 sending code: " . uc( $hc . $uc ) . " as insteon msg: " . $msg )
           if ( ref $p_setby && $p_setby->debuglevel( 1, 'insteon' ) );
 
         push @data, $msg;
@@ -1126,12 +1097,7 @@ sub generate_commands {
 
     #	&::print_log("PLM:PAIR:$id:$spos:$ecmd:");
     for ( my $pos = $spos; $pos < length($id); $pos++ ) {
-        $msg = substr(
-            unpack(
-                "H*", pack( "C", $x10_house_codes{ substr( $id, $pos, 1 ) } )
-            ),
-            1, 1
-        );
+        $msg = substr( unpack( "H*", pack( "C", $x10_house_codes{ substr( $id, $pos, 1 ) } ) ), 1, 1 );
         $pos++;
 
         #look for an explicit command
@@ -1144,19 +1110,11 @@ sub generate_commands {
         }
         else {
             $x10_arg = $x10_commands{ substr( $id, $pos, 1 ) };
-            $msg .= substr(
-                unpack(
-                    "H*", pack( "C", $x10_commands{ substr( $id, $pos, 1 ) } )
-                ),
-                1, 1
-            );
+            $msg .= substr( unpack( "H*", pack( "C", $x10_commands{ substr( $id, $pos, 1 ) } ) ), 1, 1 );
         }
         $msg .= "80";
 
-        &main::print_log( "[Insteon_PLM] x10 sending code: "
-              . uc( $hc . $x10_arg )
-              . " as insteon msg: "
-              . $msg )
+        &main::print_log( "[Insteon_PLM] x10 sending code: " . uc( $hc . $x10_arg ) . " as insteon msg: " . $msg )
           if ( ref $p_setby && $p_setby->debuglevel( 1, 'insteon' ) );
 
         push @data, $msg;

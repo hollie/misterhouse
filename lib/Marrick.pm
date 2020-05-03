@@ -97,12 +97,11 @@ sub init {
     $Mserial_port->parity("none");
     $Mserial_port->buffers( 4096, 4096 );
     @ReplyBuf = ();
-    $Mserial_port->write("M00=00\r")
-      ;    # Setting to 0 for old dim modes (needed for TXB16)
+    $Mserial_port->write("M00=00\r");    # Setting to 0 for old dim modes (needed for TXB16)
     sleep(1);
     &read();
     @ReplyBuf = ();
-    $Mserial_port->write("V0\r");    # Get the version of Marrick firmware
+    $Mserial_port->write("V0\r");        # Get the version of Marrick firmware
     sleep(1);
     &read();
 
@@ -145,8 +144,7 @@ sub startup {
     $Marrick{SENABLE}        = 0;
     $Marrick{STATUS_REQUEST} = "";
     @ReplyBuf                = ();
-    &main::print_log(
-        "Marrick unit has been started - Main events processor initialized.")
+    &main::print_log("Marrick unit has been started - Main events processor initialized.")
       if $main::Debug{marrick};
 
 }
@@ -205,8 +203,7 @@ sub Process_Event {
                 my $rslt = "";
                 $Marrick{HOUSEID} = $table_rhcodes{$2};
                 foreach my $unit ( "1" .. "G" ) {
-                    $rslt .=
-                      "X" . $Marrick{HOUSEID} . $unit . $Marrick{HOUSEID} . "K";
+                    $rslt .= "X" . $Marrick{HOUSEID} . $unit . $Marrick{HOUSEID} . "K";
                 }
                 return $rslt;
             }
@@ -214,43 +211,28 @@ sub Process_Event {
                 my $rslt = "";
                 $Marrick{HOUSEID} = $table_rhcodes{$2};
                 foreach my $unit ( "1" .. "G" ) {
-                    $rslt .=
-                      "X" . $Marrick{HOUSEID} . $unit . $Marrick{HOUSEID} . "J";
+                    $rslt .= "X" . $Marrick{HOUSEID} . $unit . $Marrick{HOUSEID} . "J";
                 }
                 return $rslt;
             }
             elsif ( $3 eq "2" ) {
                 my $rslt = "";
                 $Marrick{HOUSEID} = $table_rhcodes{$2};
-                $rslt .= "X"
-                  . $Marrick{HOUSEID}
-                  . $Marrick{UNITID}
-                  . $Marrick{HOUSEID} . "J";
+                $rslt .= "X" . $Marrick{HOUSEID} . $Marrick{UNITID} . $Marrick{HOUSEID} . "J";
                 return $rslt;
             }
             elsif ( $3 eq "3" ) {
                 my $rslt = "";
                 $Marrick{HOUSEID} = $table_rhcodes{$2};
-                $rslt .= "X"
-                  . $Marrick{HOUSEID}
-                  . $Marrick{UNITID}
-                  . $Marrick{HOUSEID} . "K";
+                $rslt .= "X" . $Marrick{HOUSEID} . $Marrick{UNITID} . $Marrick{HOUSEID} . "K";
                 return $rslt;
             }
             elsif ( $3 eq "A" ) {
-                my $rslt = "X"
-                  . $Marrick{HOUSEID}
-                  . $Marrick{UNITID}
-                  . $table_rhcodes{$2}
-                  . "PRESET_DIM1";
+                my $rslt = "X" . $Marrick{HOUSEID} . $Marrick{UNITID} . $table_rhcodes{$2} . "PRESET_DIM1";
                 return $rslt;
             }
             elsif ( $3 eq "B" ) {
-                my $rslt = "X"
-                  . $Marrick{HOUSEID}
-                  . $Marrick{UNITID}
-                  . $table_rhcodes{$2}
-                  . "PRESET_DIM2";
+                my $rslt = "X" . $Marrick{HOUSEID} . $Marrick{UNITID} . $table_rhcodes{$2} . "PRESET_DIM2";
                 return $rslt;
             }
         }
@@ -292,9 +274,7 @@ sub send_X10 {
     if ( $code =~ /PRESET_DIM/ ) {
         $header = "X0" . $house_bits . $device_bits;
         $header .= "X1" . $table_hcodes{$level} . $code_bits;
-        &main::print_log(
-            "DIM PRESET Encoded House: $house, Unit: $device Code: $code Level: $level"
-        ) if $main::Debug{marrick};
+        &main::print_log("DIM PRESET Encoded House: $house, Unit: $device Code: $code Level: $level") if $main::Debug{marrick};
         &main::print_log("DIM PRESET SENT Code: $header")
           if $main::Debug{marrick};
     }
@@ -303,9 +283,7 @@ sub send_X10 {
             and defined $device_bits
             and defined $code_bits )
         {
-            &main::print_log(
-                "Error, invalid Marrick X10 data.  data=$house_code house=$house_bits device=$device_bits code=$code_bits"
-            );
+            &main::print_log("Error, invalid Marrick X10 data.  data=$house_code house=$house_bits device=$device_bits code=$code_bits");
             return;
         }
         $header = $code_bits . $house_bits . $device_bits;
@@ -321,8 +299,7 @@ sub send_X10 {
         $rslt = &GetReply();
     }
     if ( $rslt =~ /E.*/ ) {
-        &main::print_log(
-            "Marrick - Error received when sending command $header to X10.");
+        &main::print_log("Marrick - Error received when sending command $header to X10.");
         goto retrns;
     }
     elsif ( $rslt =~ /\*/ ) {

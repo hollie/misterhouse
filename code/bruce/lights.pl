@@ -88,16 +88,10 @@ set $nick_reading_light $state if $state = $v_nick_reading_light->{said};
 #}
 
 set $nick_reading_light OFF if time_cron '00 9,17,23 * * * ';
-if (
-    (
-           $nick_reading_light->{state_now} eq ON
-        or $all_lights_on_nick->{state_now}
-    )
-    and time_greater_than '11:45 PM'
-  )
+if ( ( $nick_reading_light->{state_now} eq ON or $all_lights_on_nick->{state_now} )
+    and time_greater_than '11:45 PM' )
 {
-    speak
-      "room=nick Master Nick, you bad boy.  It is time to sleep, not to speak.";
+    speak "room=nick Master Nick, you bad boy.  It is time to sleep, not to speak.";
     set $nick_reading_light OFF;
 }
 

@@ -17,8 +17,7 @@ if ( time_cron '30 22,0-5 * * * '
 }
 
 &tk_entry( 'Wakeup Time', \$Save{wakeup_time} );
-&tk_radiobutton( 'Wakeup Time', \$Save{wakeup_time},
-    [ '5:50 am', '6 am', '6:20 am', '6:40 am', ' ' ] );
+&tk_radiobutton( 'Wakeup Time', \$Save{wakeup_time}, [ '5:50 am', '6 am', '6:20 am', '6:40 am', ' ' ] );
 
 $Save{wakeup_time} = '5:50 am' unless $Save{wakeup_time};
 
@@ -49,12 +48,7 @@ $timer_wakeup = new Timer;
 #my $benchmark_member;
 #my @original_item_code;
 
-if (
-    (
-            time_now( $Save{wakeup_time} )
-        and $Weekday
-        and $Save{mode} ne 'offline'
-    )
+if (   ( time_now( $Save{wakeup_time} ) and $Weekday and $Save{mode} ne 'offline' )
     or time_cron('0 10 * * 0,6')
     or said $v_wakeup)
 {
@@ -72,15 +66,11 @@ if (
 
     if ( time_cron('* * * * 1') ) {
         play( 'file' => "roosterc.wav" );
-        speak(
-            "Good morning cottage bears.  It's marvelous Monday. Time to get up."
-        );
+        speak("Good morning cottage bears.  It's marvelous Monday. Time to get up.");
     }
     elsif ( time_cron('* * * * 2') ) {
         play( 'file' => "goodmo.wav" );
-        speak(
-            "Good morning cottage bears.  It's titalating Tuesday.  Time to get up."
-        );
+        speak("Good morning cottage bears.  It's titalating Tuesday.  Time to get up.");
     }
     elsif ( time_cron('* * * * 3') ) {
         play( 'file' => "truman~1.wav" );
@@ -88,15 +78,12 @@ if (
     }
     elsif ( time_cron('* * * * 4') ) {
         play( 'file' => "reveille.wav" );
-        speak(
-            "Good morning cottage bears.  It's Garbage Day!.  Time to get up.");
+        speak("Good morning cottage bears.  It's Garbage Day!.  Time to get up.");
 
     }
     elsif ( time_cron('* * * * 5') ) {
         play( 'file' => "btls3.wav" );
-        speak(
-            "Good morning cottage bears.  It's dress down day!.  Time to get up."
-        );
+        speak("Good morning cottage bears.  It's dress down day!.  Time to get up.");
     }
     else {
         play( 'file' => "moonstep.wav" );
@@ -104,8 +91,7 @@ if (
     }
     speak("It is $Time_Now on $Date_Now.");
     speak("Sunrise is at $Time_Sunrise and sunset is at $Time_Sunset");
-    speak
-      qq[The moon is $Moon{phase}, $Moon{brightness}% bright, and $Moon{age} days old];
+    speak qq[The moon is $Moon{phase}, $Moon{brightness}% bright, and $Moon{age} days old];
     my $days = &time_diff( $Moon{"time_$state"}, $Time );
 
     #	speak qq[The next $state moon is in $days, on $Moon{$state}];

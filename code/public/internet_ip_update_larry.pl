@@ -5,8 +5,7 @@
 #Larry Roudebush
 my $f_get_external_ip = "$config_parms{data_dir}/web/externalip.html";
 $v_get_external_ip = new Voice_Cmd 'Check external IP address';
-$p_get_external_ip =
-  new Process_Item "get_url http://www.whatismyip.com $f_get_external_ip";
+$p_get_external_ip = new Process_Item "get_url http://www.whatismyip.com $f_get_external_ip";
 
 if ( said $v_get_external_ip or $New_Hour ) {
     unlink $f_get_external_ip;
@@ -44,8 +43,7 @@ if ( done_now $p_get_external_ip) {
 # Shared funtion to update the label
 sub TkIpAddressLabel {
     if (&net_connect_check) {
-        $Tk_objects{ip_address} =
-          "External IP address: $Save{ip_address_server}";
+        $Tk_objects{ip_address} = "External IP address: $Save{ip_address_server}";
     }
     else {
         $Tk_objects{ip_address} = "Not Connected";

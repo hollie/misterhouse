@@ -3,16 +3,9 @@
 # Roger Bille
 
 use DBI;
-my (
-    $dbh2,    $query_update2, $query_insert2, $query_select2,
-    $sth2,    $sth3,          @row2,          $count,
-    $aprs_vv, $aprs_time2
-);
+my ( $dbh2, $query_update2, $query_insert2, $query_select2, $sth2, $sth3, @row2, $count, $aprs_vv, $aprs_time2 );
 my ($myTime);
-my (
-    $myraw,  $myTyp,  $myLan, $myLatLon, $myID,
-    $myNamn, $myDesc, $i,     $k,        $objName
-);
+my ( $myraw, $myTyp, $myLan, $myLatLon, $myID, $myNamn, $myDesc, $i, $k, $objName );
 my ( $mySecond, $myMinute, $myHour,  $myMday, $myMonth, $myYear );
 my ( $RID,      $RName,    $RLatLon, $LID,    $LName,   $LLatLon );
 
@@ -38,17 +31,14 @@ if ( new_second 20 ) {
     $myTime = $Time - 1800;
 ##		$myTime = $Time - 60;  # Used for debug
     #		print_msg "$Time $myTime";
-    $query_select2 =
-      "SELECT raw,LatLon,ID,Typ,Lan,Namn FROM Roadwork WHERE Sent < $myTime and LatLon <> Null and Send = Yes ORDER BY Sent ";
-    $sth2 = $dbh2->prepare($query_select2)
+    $query_select2 = "SELECT raw,LatLon,ID,Typ,Lan,Namn FROM Roadwork WHERE Sent < $myTime and LatLon <> Null and Send = Yes ORDER BY Sent ";
+    $sth2          = $dbh2->prepare($query_select2)
       or print "Can't prepare $query_select2: $dbh2->errstr\n";
     $sth2->execute() or print "can't execute the query: $sth2->errstr\n";
     $count = 0;
 
     #		$myTime = $Year . "-" . $Month . "-" . $Mday . " " . $Time_Now;
-    while ( ( $myraw, $myLatLon, $myID, $myTyp, $myLan, $myNamn ) =
-        $sth2->fetchrow_array )
-    {
+    while ( ( $myraw, $myLatLon, $myID, $myTyp, $myLan, $myNamn ) = $sth2->fetchrow_array ) {
         $count++;
 
         #			print_msg "==> $myraw";
@@ -64,8 +54,7 @@ if ( new_second 20 ) {
             $i       = ( 9 - length($objName) );
             $k       = ' ';
             $k       = ( $k x $i );
-            ( $mySecond, $myMinute, $myHour, $myMday, $myMonth, $myYear ) =
-              gmtime $Time;
+            ( $mySecond, $myMinute, $myHour, $myMday, $myMonth, $myYear ) = gmtime $Time;
             if ( $myMday < 10 )   { $myMday   = "0" . $myMday }
             if ( $myHour < 10 )   { $myHour   = "0" . $myHour }
             if ( $myMinute < 10 ) { $myMinute = "0" . $myMinute }
@@ -82,9 +71,8 @@ if ( new_second 20 ) {
 
             #				set	$tnc_output3	$aprs_vv;
 
-            $query_update2 =
-              "UPDATE Roadwork SET Sent = $Time,Send = No WHERE raw = \'$myraw\'";
-            $sth3 = $dbh2->prepare($query_update2)
+            $query_update2 = "UPDATE Roadwork SET Sent = $Time,Send = No WHERE raw = \'$myraw\'";
+            $sth3          = $dbh2->prepare($query_update2)
               or print "Can't prepare $query_update2: $dbh2->errstr\n";
             $sth3->execute()
               or print "can't execute the query: $sth3->errstr\n";
@@ -145,33 +133,28 @@ if ( new_minute 15 or said $vv_mail eq 'Mail' ) {
       or print "Can't prepare $query_select: $dbh5->errstr\n";
     $sth5->execute() or print "can't execute the query: $sth5->errstr\n";
     $count = 1;
-    while ( ( $RID, $RName, $RLatLon, $LID, $LName, $LLatLon ) =
-        $sth5->fetchrow_array )
-    {
+    while ( ( $RID, $RName, $RLatLon, $LID, $LName, $LLatLon ) = $sth5->fetchrow_array ) {
         $count++;
         print "==> $RID, $RName, $RLatLon, $LID, $LName, $LLatLon";
         if ( $RLatLon eq "" and $LLatLon ne "" ) {
-            $query_update2 =
-              "UPDATE Roadwork SET LatLon = \'$LLatLon\' WHERE ID = $RID";
-            $sth3 = $dbh5->prepare($query_update2)
+            $query_update2 = "UPDATE Roadwork SET LatLon = \'$LLatLon\' WHERE ID = $RID";
+            $sth3          = $dbh5->prepare($query_update2)
               or print "Can't prepare $query_update2: $dbh5->errstr\n";
             $sth3->execute()
               or print "can't execute the query: $sth3->errstr\n";
             $sth3->finish();
         }
         if ( $RLatLon ne "" and $LLatLon eq "" ) {
-            $query_update2 =
-              "UPDATE Location SET LatLon = \'$RLatLon\' WHERE ID = $LID";
-            $sth3 = $dbh5->prepare($query_update2)
+            $query_update2 = "UPDATE Location SET LatLon = \'$RLatLon\' WHERE ID = $LID";
+            $sth3          = $dbh5->prepare($query_update2)
               or print "Can't prepare $query_update2: $dbh5->errstr\n";
             $sth3->execute()
               or print "can't execute the query: $sth3->errstr\n";
             $sth3->finish();
         }
     }
-    $query_insert2 =
-      "INSERT into Location (Namn) SELECT DISTINCT Namn FROM Roadwork WHERE Namn not in (select namn from Location) order by namn";
-    $sth3 = $dbh5->prepare($query_insert2)
+    $query_insert2 = "INSERT into Location (Namn) SELECT DISTINCT Namn FROM Roadwork WHERE Namn not in (select namn from Location) order by namn";
+    $sth3          = $dbh5->prepare($query_insert2)
       or print "Can't prepare $query_insert2: $dbh5->errstr\n";
     $sth3->execute() or print "can't execute the query: $sth3->errstr\n";
     $sth3->finish();

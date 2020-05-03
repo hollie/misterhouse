@@ -16,10 +16,8 @@ Nice demonstration of reading and writing wav files though :)
 
 $v_voices_speak_many = new Voice_Cmd 'Test speech with many voices [1,2,3]';
 
-$f_deep_thoughts =
-  new File_Item("$config_parms{data_dir}/remarks/deep_thoughts.txt");
-$f_house_tagline =
-  new File_Item("$config_parms{data_dir}/remarks/1100tags.txt");
+$f_deep_thoughts = new File_Item("$config_parms{data_dir}/remarks/deep_thoughts.txt");
+$f_house_tagline = new File_Item("$config_parms{data_dir}/remarks/1100tags.txt");
 
 if ( said $v_voices_speak_many) {
     my $state = $v_voices_speak_many->{state};

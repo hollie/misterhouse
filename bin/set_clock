@@ -23,22 +23,16 @@ BEGIN {
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
-my ($Version) =
-  q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
+my ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
 
 print "Command: $Pgm_Name @ARGV\n";
 print "Version: $Version\n";
 
 my %parms;
 use Getopt::Long;
-if (
-    !&GetOptions(
-        \%parms,    "h",        "help",   "server=s",
-        "method=s", "ignore=s", "no_set", "log=s"
-    )
+if (  !&GetOptions( \%parms, "h", "help", "server=s", "method=s", "ignore=s", "no_set", "log=s" )
     or @ARGV
-    or ( $parms{h} or $parms{help} )
-  )
+    or ( $parms{h} or $parms{help} ) )
 {
     print <<eof;
 
@@ -95,7 +89,7 @@ print "Requesting the time from $parms{server} using $parms{method} method\n";
 #use my_lib "$Pgm_Path/../lib";      # See note in lib/mh_perl2exe.pl for lib -> my_lib explaination
 #use my_lib "$Pgm_Path/../lib/site"; # See note in lib/mh_perl2exe.pl for lib -> my_lib explaination
 BEGIN {
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";
 }    # Use BEGIN eval to keep perl2exe happy
 
 my $time_record;
@@ -133,8 +127,7 @@ else {
         }
     }
     $time_record =~ s/\n//g;
-    ( $julian_date, $date, $hour, $min, $sec ) =
-      $time_record =~ /(\S+) (\S+) (\d+):(\d+):(\d+) /
+    ( $julian_date, $date, $hour, $min, $sec ) = $time_record =~ /(\S+) (\S+) (\d+):(\d+):(\d+) /
       if $time_record;
     print "time_record:  $time_record\n";
 }
@@ -144,13 +137,11 @@ else {
 my ( $old_sec, $old_min, $old_hour, $mday, $mon, $year, $wday ) =
   ( localtime(time) )[ 0, 1, 2, 3, 4, 5, 6 ];
 $mon++;    # Jan = 0
-$date = sprintf( "%04d-%02d-%02d", 1900 + $year, $mon, $mday )
-  ;        # Use local date for logging
+$date = sprintf( "%04d-%02d-%02d", 1900 + $year, $mon, $mday );    # Use local date for logging
 
 if ( defined $sec ) {
-    printf( "Time from NIST   : %02d:%02d:%02d\n", $hour, $min, $sec );
-    printf( "Time local       : %02d:%02d:%02d\n",
-        $old_hour, $old_min, $old_sec );
+    printf( "Time from NIST   : %02d:%02d:%02d\n", $hour,     $min,     $sec );
+    printf( "Time local       : %02d:%02d:%02d\n", $old_hour, $old_min, $old_sec );
 
     my $min_diff = $min - $old_min;
     my $new_hour = $old_hour;
@@ -158,11 +149,9 @@ if ( defined $sec ) {
     if (    abs($min_diff) > $parms{ignore}
         and abs($min_diff) < ( 60 - $parms{ignore} ) )
     {
-        $data_logged =
-          "System clock NOT adjusted because difference of $min_diff minutes > $parms{ignore} minutes (-ignore parm)";
+        $data_logged = "System clock NOT adjusted because difference of $min_diff minutes > $parms{ignore} minutes (-ignore parm)";
         print $data_logged, "\n";
-        printf( LOG "%s %02d:%02d:%02d  %s\n",
-            $date, $old_hour, $old_min, $old_sec, $data_logged );
+        printf( LOG "%s %02d:%02d:%02d  %s\n", $date, $old_hour, $old_min, $old_sec, $data_logged );
         print LOG2 $data_logged;
         close LOG;
         close LOG2;
@@ -176,10 +165,7 @@ if ( defined $sec ) {
         $new_hour++;
     }
 
-    my $sec_diff =
-      60 * ( 60 * $new_hour + $min ) +
-      $sec -
-      ( 60 * ( 60 * $old_hour + $old_min ) + $old_sec );
+    my $sec_diff = 60 * ( 60 * $new_hour + $min ) + $sec - ( 60 * ( 60 * $old_hour + $old_min ) + $old_sec );
     if ( $parms{no_set} ) {
         $data_logged = "System clock NOT adjusted because of -no_set parm.";
     }
@@ -204,8 +190,7 @@ if ( defined $sec ) {
             $rc = system("date -s '$time_new'");
         }
         if ($rc) {
-            $data_logged =
-              "System clock NOT adjusted due to time command error. rc=$rc.";
+            $data_logged = "System clock NOT adjusted due to time command error. rc=$rc.";
         }
         else {
             $data_logged = "System clock adjusted.";
@@ -213,14 +198,12 @@ if ( defined $sec ) {
     }
 
     print "$sec_diff second difference.  $data_logged\n";
-    printf( LOG "%s %02d:%02d:%02d  %s second error.  $data_logged\n",
-        $date, $old_hour, $old_min, $old_sec, $sec_diff );
+    printf( LOG "%s %02d:%02d:%02d  %s second error.  $data_logged\n", $date, $old_hour, $old_min, $old_sec, $sec_diff );
     $data_returned = "$sec_diff second difference.  $data_logged";
 }
 else {
     print "Error from server.  Data recieved: $time_record\n";
-    printf( LOG "%s %02d:%02d:%02d  Internet error\n",
-        $date, $old_hour, $old_min, $old_sec );
+    printf( LOG "%s %02d:%02d:%02d  Internet error\n", $date, $old_hour, $old_min, $old_sec );
     $data_returned = "System clock not adjusted due to an internet error";
 }
 

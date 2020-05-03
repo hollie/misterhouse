@@ -11,8 +11,7 @@ if ($Startup) {
     # Date::Manip needs it in ISO 8601 form: +-HHMM
     # ... hmmm, this messes up str2time from Date::Parse
     # used by net_mail_summary :(
-    $ENV{TZ} = ( ( $config_parms{time_zone} < 0 ) ? '-' : '+' )
-      . sprintf( "%02d00", abs $config_parms{time_zone} );
+    $ENV{TZ} = ( ( $config_parms{time_zone} < 0 ) ? '-' : '+' ) . sprintf( "%02d00", abs $config_parms{time_zone} );
 }
 
 if ( said $test_dates) {

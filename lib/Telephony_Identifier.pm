@@ -91,8 +91,7 @@ sub new {
     &open_port($self);
 
     unless ( $hooks_added++ ) {
-        &::MainLoop_pre_add_hook( \&Telephony_Identifier::check_for_data,
-            'persistent' );
+        &::MainLoop_pre_add_hook( \&Telephony_Identifier::check_for_data, 'persistent' );
     }
 
     $identifier_object = $self;
@@ -165,10 +164,7 @@ sub process_identifier_data {
         if ( $status eq '0' ) {    # On hook, idle (hangup)
             $msg .= "onhook (hangup)";
             if ( my $dtmf = $identifier_object->dtmf_buffer() ) {
-                &::logit(
-                    "$::config_parms{data_dir}/phone/logs/phone.$::Year_Month_Now.log",
-                    "O$dtmf"
-                );
+                &::logit( "$::config_parms{data_dir}/phone/logs/phone.$::Year_Month_Now.log", "O$dtmf" );
                 $identifier_object->dtmf_buffer('');
             }
             $identifier_object->SUPER::set('onhook');
@@ -176,8 +172,7 @@ sub process_identifier_data {
         }
         elsif ( $status eq '1' ) {    #ring start
             $identifier_object->SUPER::set( 'ring', 'identifier' );
-            $identifier_object->ring_count(
-                $identifier_object->ring_count() + 1 );
+            $identifier_object->ring_count( $identifier_object->ring_count() + 1 );
             $msg .= "ring #" . $identifier_object->ring_count();
         }
         elsif ( $status eq '2' ) {    #ring stop
@@ -226,8 +221,7 @@ sub process_identifier_data {
         ( $event, $digit, $line ) = split /,/, $data;
         $identifier_object->SUPER::dtmf($digit);
         $identifier_object->SUPER::set('dtmf');
-        $msg .=
-          "DTMF digit:$digit, buffer:" . $identifier_object->dtmf_buffer();
+        $msg .= "DTMF digit:$digit, buffer:" . $identifier_object->dtmf_buffer();
     }
     elsif ( $event eq '7' ) {    # Status
         $msg .= "status event";

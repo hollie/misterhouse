@@ -207,30 +207,23 @@ sub new {
     $$self{m_write} = 0;
 
     if ($monitor_name) {
-        $monitor_name =
-          lc $monitor_name;    # convert to lowercase to be consistent w/ xAP
-        my $xap_address =
-          "zm.zoneminder.$ZoneMinder_xAP::device_name:$monitor_name";
-        my $xap_item = new xAP_Item( 'VMI.*', $xap_address );
+        $monitor_name = lc $monitor_name;    # convert to lowercase to be consistent w/ xAP
+        my $xap_address   = "zm.zoneminder.$ZoneMinder_xAP::device_name:$monitor_name";
+        my $xap_item      = new xAP_Item( 'VMI.*', $xap_address );
         my $friendly_name = "xap_zm_$monitor_name";
-        &main::store_object_data( $xap_item, 'xAP_Item', $friendly_name,
-            $friendly_name );
+        &main::store_object_data( $xap_item, 'xAP_Item', $friendly_name, $friendly_name );
         $$self{xap_item} = $xap_item;
         $$self{xap_item}->tie_items($self);
-        $$self{monitor_name} = $monitor_name;
-        $$self{m_light_blanking_duration} =
-          5;    # defaults to 5 seconds to allow minor delay plus ramp
-        $$self{m_light_blanking_timer} = new Timer();
-        $$self{m_auto_off_duration} =
-          120;    # automatically set to idle if no track reports
-        $$self{m_auto_off_timer} = new Timer();
+        $$self{monitor_name}              = $monitor_name;
+        $$self{m_light_blanking_duration} = 5;               # defaults to 5 seconds to allow minor delay plus ramp
+        $$self{m_light_blanking_timer}    = new Timer();
+        $$self{m_auto_off_duration}       = 120;             # automatically set to idle if no track reports
+        $$self{m_auto_off_timer}          = new Timer();
         $self->restore_data('m_id');
         $self->add(@p_objects);
     }
     else {
-        &::print_log(
-            "You must supply a monitor name when creating a new ZM_MonitorItem\n"
-        );
+        &::print_log("You must supply a monitor name when creating a new ZM_MonitorItem\n");
     }
 
     return $self;
@@ -244,26 +237,17 @@ sub add_item {
         $self->SUPER::add_item($p_object);
     }
     elsif ( $p_object->isa('Light_Item') ) {
-        print "Adding "
-          . $p_object->{object_name} . " to "
-          . $self->name
-          . " for use in suspend/resume motion analysis\n"
+        print "Adding " . $p_object->{object_name} . " to " . $self->name . " for use in suspend/resume motion analysis\n"
           if $main::Debug{zone_minder};
-        $p_object->tie_items($self)
-          ; # tie--don't add since we don't need to do lookup and don't want to cascade state
+        $p_object->tie_items($self);    # tie--don't add since we don't need to do lookup and don't want to cascade state
     }
     elsif ( $p_object->isa('Photocell_Item') ) {
-        print "Adding "
-          . $p_object->{object_name} . " to "
-          . $self->name
-          . " for use in suspend/resume motion analysis\n"
+        print "Adding " . $p_object->{object_name} . " to " . $self->name . " for use in suspend/resume motion analysis\n"
           if $main::Debug{zone_minder};
         $self->SUPER::add_item($p_object);
     }
     else {
-        print "WARNING!! objects of type "
-          . ref($p_object)
-          . " cannot be added to ZM_MonitorItems!"
+        print "WARNING!! objects of type " . ref($p_object) . " cannot be added to ZM_MonitorItems!"
           if $main::Debug{zone_minder};
     }
 
@@ -383,8 +367,7 @@ sub set {
                         if (@zones) {
                             for my $zone (@zones) {
                                 if ( lc $zone_name eq lc $zone->name ) {
-                                    $zone->set_alarm_event( $id, $self,
-                                        %zone_data );
+                                    $zone->set_alarm_event( $id, $self, %zone_data );
                                 }
                             }
                         }
@@ -428,17 +411,14 @@ sub set {
 
         # check to see if any Photocell_Items exist; if so and they are light then
         # don't perform any blanking operation
-        for my $photocell ( my @photocells =
-            $self->find_members('Photocell_Item') )
-        {
+        for my $photocell ( my @photocells = $self->find_members('Photocell_Item') ) {
             if ( $photocell->state eq 'light' ) {
                 $photo_continue = 0;
                 last;
             }
         }
         if ( $photo_continue && $self->light_blanking_duration ) {
-            $$self{m_light_blanking_timer}
-              ->set( $self->light_blanking_duration, $self );
+            $$self{m_light_blanking_timer}->set( $self->light_blanking_duration, $self );
             $self->suspend_motion_analysis();
         }
     }
@@ -646,20 +626,15 @@ sub set_alarm_event {
     my ( $self, $alarm_id, $p_setby, %zone_data ) = @_;
     if ( $zone_data{state} eq 'on' ) {
         if ( $$self{m_delayMotionTimerTime} ) {
-            $$self{m_delayMotionTimer}
-              ->set( $$self{m_delayMotionTimerTime}, $self );
-            print "zm_ZoneItem("
-              . $self->name
-              . "):: [$alarm_id] started motion w/ delay: $$self{m_delayMotionTimerTime}\n"
+            $$self{m_delayMotionTimer}->set( $$self{m_delayMotionTimerTime}, $self );
+            print "zm_ZoneItem(" . $self->name . "):: [$alarm_id] started motion w/ delay: $$self{m_delayMotionTimerTime}\n"
               if $main::Debug{zone_minder};
         }
         else {
             $$self{m_delayStillTimer}->unset();    # cancel the still timer
-            print "zm_ZoneItem("
-              . $self->name
-              . "):: [$alarm_id] started motion w/o delay\n"
+            print "zm_ZoneItem(" . $self->name . "):: [$alarm_id] started motion w/o delay\n"
               if $main::Debug{zone_minder};
-            $self->set( 'motion', $p_setby );    # be consistent w/ Motion_Item
+            $self->set( 'motion', $p_setby );      # be consistent w/ Motion_Item
         }
     }
     else {
@@ -670,8 +645,7 @@ sub set_alarm_event {
         $self->totalscore( $zone_data{totalscore} );
         $self->avgscore( $zone_data{avgscore} );
         if ( $$self{m_delayStillTimerTime} ) {
-            $$self{m_delayStillTimer}
-              ->set( $$self{m_delayStillTimerTime}, $self );
+            $$self{m_delayStillTimer}->set( $$self{m_delayStillTimerTime}, $self );
             print "zm_ZoneItem("
               . $self->name
               . "):: [$alarm_id] stopped w/ delay: $$self{m_delayStillTimerTime}; "
@@ -688,7 +662,7 @@ sub set_alarm_event {
               . "maxscore:$zone_data{maxscore}, frames:$zone_data{frames}, alarmframes:$zone_data{alarmframes}, "
               . "duration:$zone_data{duration}, totalscore:$zone_data{totalscore}, avgscore:$zone_data{avgscore}\n"
               if $main::Debug{zone_minder};
-            $self->set( 'still', $p_setby );    # be consistent w/ Motion_Item
+            $self->set( 'still', $p_setby );        # be consistent w/ Motion_Item
         }
     }
 }

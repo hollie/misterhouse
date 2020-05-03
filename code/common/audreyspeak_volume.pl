@@ -62,8 +62,7 @@ In addition to the instructions in audreyspeak.pl you will need
 &Speak_parms_add_hook( \&Audrey_volume_adjust ) if $Reload;
 &Play_parms_add_hook( \&Audrey_volume_adjust )  if $Reload;
 
-my ( $audreyWrIndex, $audreyRdIndex, $audreyMaxIndex, @speakRooms,
-    @speakVolume );
+my ( $audreyWrIndex, $audreyRdIndex, $audreyMaxIndex, @speakRooms, @speakVolume );
 
 #MH is about to say or play something.  Adjust the volume if necessary.
 sub Audrey_volume_adjust {
@@ -74,8 +73,7 @@ sub Audrey_volume_adjust {
       or (  $Save{mode}
         and ( $Save{mode} eq 'mute' or $Save{mode} eq 'offline' )
         and $$parms{mode} !~ /unmute/i );
-    $volume =~ s/%//g
-      ; # Audrey doesn't like percent signs in the volume setting.  It should be a raw number from 0 to 100.
+    $volume =~ s/%//g;    # Audrey doesn't like percent signs in the volume setting.  It should be a raw number from 0 to 100.
 
     #   my $MHWeb = get_ip_address . ":" . $config_parms{http_port};
     #   my $MHWeb = hostname() . ":" . $config_parms{http_port};
@@ -102,8 +100,7 @@ sub Audrey_volume_adjust {
             my $ip   = $2;
             if ( grep( /$room/, @rooms ) ) {
                 push @audreyRooms, $room;
-                run
-                  "get_url -quiet http://$ip/cgi-bin/volume?$volume /dev/null";
+                run "get_url -quiet http://$ip/cgi-bin/volume?$volume /dev/null";
             }
         }
         @rooms = @audreyRooms;

@@ -131,12 +131,9 @@ sub check_for_triggers {
 
             if ( lc($status) eq "sleeping" || lc($status) eq "occupied" ) {
                 next
-                  if ( $i->{Occupied} - $temperature ) *
-                  $i->{TimeToHeat} *
-                  60 < $nexttime - time;
+                  if ( $i->{Occupied} - $temperature ) * $i->{TimeToHeat} * 60 < $nexttime - time;
                 set $roomobj "Occupied";
-                print_log
-                  "$i->{ Name } set to Occupied to prepare for $eventname";
+                print_log "$i->{ Name } set to Occupied to prepare for $eventname";
             }
         }
     }
@@ -268,8 +265,7 @@ sub control_hvac {
 
             if ( lc($currentstate) ne lc($desiredState) ) {
                 if ( lc($desiredState) eq "on" ) {
-                    $Save{hvac_statistics}->[0]->{heatcycle}
-                      ->{ $zone->{Name} }++;
+                    $Save{hvac_statistics}->[0]->{heatcycle}->{ $zone->{Name} }++;
                 }
                 set $controller $desiredState;
                 select undef, undef, undef, 0.025;
@@ -309,18 +305,13 @@ sub time_to_trigger_fire {
             $interval = 1 if !$interval || $interval < 1;
             $interval = 59 if $interval && $interval > 59;
 
-            $t =
-              time - $Second + 60 * ( $interval - ( $Minute % $interval ) ) - 1;
+            $t = time - $Second + 60 * ( $interval - ( $Minute % $interval ) ) - 1;
         }
         if ( $type eq "hour" ) {
             $interval = 1 if !$interval || $interval < 1;
             $interval = 23 if $interval && $interval > 23;
 
-            $t =
-              time -
-              $Second -
-              60 * $Minute +
-              3600 * ( $interval - ( $Hour % $interval ) ) - 1;
+            $t = time - $Second - 60 * $Minute + 3600 * ( $interval - ( $Hour % $interval ) ) - 1;
         }
     }
     else {

@@ -10,8 +10,7 @@ my $f_top10_html = "$config_parms{data_dir}/web/top10_list.html";
 
 #noloop=stop
 
-$p_top10_list = new Process_Item(
-    "get_url http://www.cbs.com/latenight/lateshow/top_ten/ $f_top10_html");
+$p_top10_list = new Process_Item("get_url http://www.cbs.com/latenight/lateshow/top_ten/ $f_top10_html");
 
 # *** Split these up for security (allow anyone to read)
 
@@ -28,14 +27,11 @@ else {
 
     if ( $state eq 'Get' or $state eq 'Check' ) {
         if (&net_connect_check) {
-            $v_top10_list->respond(
-                "app=top10 Retrieving Top 10 list from the Internet...");
+            $v_top10_list->respond("app=top10 Retrieving Top 10 list from the Internet...");
             start $p_top10_list;
         }
         else {
-            $v_top10_list->respond(
-                "app=top10 Cannot retrieve Top 10 list while disconnected from the Internet."
-            );
+            $v_top10_list->respond("app=top10 Cannot retrieve Top 10 list while disconnected from the Internet.");
         }
     }
 
@@ -86,19 +82,11 @@ if ( done_now $p_top10_list) {
 
 if ($Reload) {
     if ( $Run_Members{'internet_dialup'} ) {
-        &trigger_set(
-            "state_now \$net_connect eq 'connected'",
-            "run_voice_cmd 'Get the Top 10 List'",
-            'NoExpire',
-            'get top 10 list'
-        ) unless &trigger_get('get top 10 list');
+        &trigger_set( "state_now \$net_connect eq 'connected'", "run_voice_cmd 'Get the Top 10 List'", 'NoExpire', 'get top 10 list' )
+          unless &trigger_get('get top 10 list');
     }
     else {
-        &trigger_set(
-            "time_cron '30 6 * * *' and net_connect_check",
-            "run_voice_cmd 'Get the Top 10 List'",
-            'NoExpire',
-            'get top 10 list'
-        ) unless &trigger_get('get top 10 list');
+        &trigger_set( "time_cron '30 6 * * *' and net_connect_check", "run_voice_cmd 'Get the Top 10 List'", 'NoExpire', 'get top 10 list' )
+          unless &trigger_get('get top 10 list');
     }
 }

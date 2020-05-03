@@ -132,15 +132,11 @@ sub set {
     my ( $self, $p_state, $p_setby ) = @_;
     if ( ref $p_setby ) {
         if ( $p_setby->can('get_set_by') ) {
-            &::print_log(
-                "Light_Switch_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by "
-                  . $p_setby->get_set_by )
+            &::print_log( "Light_Switch_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by )
               if $main::Debug{occupancy};
         }
         else {
-            &::print_log(
-                "Light_Switch_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name}"
-            ) if $main::Debug{occupancy};
+            &::print_log("Light_Switch_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name}") if $main::Debug{occupancy};
         }
     }
     return if ( $p_state eq 'manual' );
@@ -153,9 +149,7 @@ sub set {
                     and $p_setby eq $p_setby->get_set_by() )
               )
             {
-                &::print_log(
-                    "Light_Switch_Item($$self{object_name}): setting state to 'pressed'"
-                ) if $main::Debug{occupancy};
+                &::print_log("Light_Switch_Item($$self{object_name}): setting state to 'pressed'") if $main::Debug{occupancy};
                 $self->SUPER::set( 'pressed', $p_setby );
                 last;
             }

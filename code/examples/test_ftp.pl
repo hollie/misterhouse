@@ -25,8 +25,7 @@ if ( $state = said $v_test_ftpb) {
     # Process cmds that start with & are assumed
     # to be internal subroutine and are run with eval
     # Currently this only works on unix systems.
-    set $p_test_ftpb
-      "&main::net_ftp(file => 'c:/junk1.txt', file_remote => 'incoming/junk1.txt',"
+    set $p_test_ftpb "&main::net_ftp(file => 'c:/junk1.txt', file_remote => 'incoming/junk1.txt',"
       . "command => '$state', server => 'misterhouse.net',"
       . "user => 'anonymous', password => 'bruce\@misterhouse.net')";
     start $p_test_ftpb;
@@ -40,8 +39,7 @@ if ( done_now $p_test_ftpb) {
 $v_test_ftpb2 = new Voice_Cmd 'Test external ftp [get,put]';
 if ( $state = said $v_test_ftpb2) {
     print_log "Testing external ftp $state";
-    set $p_test_ftpb
-      "net_ftp -file c:/junk1.txt -file_remote incoming/junk1.txt "
+    set $p_test_ftpb "net_ftp -file c:/junk1.txt -file_remote incoming/junk1.txt "
       . "-command $state -server misterhouse.net "
       . "-user anonymous -password bruce\@misterhouse.net";
     start $p_test_ftpb;

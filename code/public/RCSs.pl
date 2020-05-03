@@ -43,8 +43,7 @@ if ( $state = said $v_rcs_cool) {
     $rcs0->cool_setpoint($state);
 }
 
-$v_rcs_heat =
-  new Voice_Cmd("Set Thermostat heat setpoint to [$rcs_temperatures]");
+$v_rcs_heat = new Voice_Cmd("Set Thermostat heat setpoint to [$rcs_temperatures]");
 if ( $state = said $v_rcs_heat) {
     $rcs0->heat_setpoint($state);
 }

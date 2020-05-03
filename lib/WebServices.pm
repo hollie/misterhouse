@@ -57,8 +57,7 @@ sub SetItemState {
     $item =~ s/\$//;
     $item = '$main::' . $item;
 
-    my $eval_cmd =
-      qq[($item and ref($item) ne '' and ref($item) ne 'SCALAR' and $item->can('set')) ?
+    my $eval_cmd = qq[($item and ref($item) ne '' and ref($item) ne 'SCALAR' and $item->can('set')) ?
 		           ($item->set("$state", 'SOAP')) : ($item = "$state")];
 
     eval $eval_cmd;
@@ -81,8 +80,7 @@ sub GetItemState {
 
     #my $eval_cmd = qq^\$state = $item->state^;
 
-    my $eval_cmd =
-      qq[($item and ref($item) ne '' and ref($item) ne 'SCALAR' and $item->can('state')) ? (\$state = $item->state) : ($item)];
+    my $eval_cmd = qq[($item and ref($item) ne '' and ref($item) ne 'SCALAR' and $item->can('state')) ? (\$state = $item->state) : ($item)];
 
     eval $eval_cmd;
 

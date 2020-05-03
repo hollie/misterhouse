@@ -241,8 +241,7 @@ elsif ( $in{'cmd'} eq 'delete' ) {
 
 }
 else {
-    &HTMLdie( "The command <b>$safein{'cmd'}</b> is not supported.",
-        "Command not supported" );
+    &HTMLdie( "The command <b>$safein{'cmd'}</b> is not supported.", "Command not supported" );
 
 }
 
@@ -283,9 +282,7 @@ sub updaterecord {
     unless ( $in{'confirm'} ) {
 
         unless ( defined( $dbdata{ $in{'key'} } ) ) {
-            &verifycmd( "That record has apparently been deleted recently.  "
-                  . "Would you like to add it back with the values you just "
-                  . "entered?" );
+            &verifycmd( "That record has apparently been deleted recently.  " . "Would you like to add it back with the values you just " . "entered?" );
         }
 
         if ( $in{'time'} && $in{'time'} < ( stat($dbfilename) )[9] ) {
@@ -406,10 +403,8 @@ sub calcglobals {
     @safein{ keys %in } = map { &HTMLescape($_) } values %in;
 
     # Save database definition to send to script again
-    $dbdefnget =
-      &urlencodelist( &subhash( *in, qw(file delim columns referer) ) );
-    $dbdefnpost =
-      &hiddenvars( &subhash( *in, qw(file delim columns referer) ) );
+    $dbdefnget = &urlencodelist( &subhash( *in, qw(file delim columns referer) ) );
+    $dbdefnpost = &hiddenvars( &subhash( *in, qw(file delim columns referer) ) );
 
     $delim =
       ( $in{'delim'} =~ /\d/ )
@@ -557,8 +552,7 @@ EOF
     }
 
     print "</table>\n\n";
-    print
-      "<p><b><i>* Backslashes indicate escaped characters, as in Perl.</i></b>\n\n"
+    print "<p><b><i>* Backslashes indicate escaped characters, as in Perl.</i></b>\n\n"
       if $has_backslashes;
 
     print <<EOF ;
@@ -597,8 +591,7 @@ EOF
             $width  = $width < 60        ? $width             : 60;
             $height = $maxheight[$_] > 1 ? $maxheight[$_] + 1 : 2;
             $height = $height < 10       ? $height            : 10;
-            print
-              qq(    <td><textarea name="$fieldname" rows=$height cols=$width></textarea></td></tr>\n);
+            print qq(    <td><textarea name="$fieldname" rows=$height cols=$width></textarea></td></tr>\n);
         }
         else {
             $width = $maxwidth[$_] ? $maxwidth[$_] + 1 : 20;
@@ -678,29 +671,25 @@ EOF
               &HTMLescape( &slashescapetextarea( $field[$_] ) );
             if ( $flags[$_]{'r'} ) {
                 $safefieldta =~ s/\n/<br>\n/g;
-                print
-                  qq(    <td><input type=hidden name="$fieldname" value="$safefield[$_]">$safefieldta</td></tr>\n);
+                print qq(    <td><input type=hidden name="$fieldname" value="$safefield[$_]">$safefieldta</td></tr>\n);
             }
             else {
                 $width  = $maxwidth[$_] > 20 ? $maxwidth[$_]      : 20;
                 $width  = $width < 60        ? $width             : 60;
                 $height = $maxheight[$_] > 1 ? $maxheight[$_] + 1 : 2;
                 $height = $height < 10       ? $height            : 10;
-                print
-                  qq(    <td><textarea name="$fieldname" rows=$height cols=$width>$safefieldta</textarea></td></tr>\n);
+                print qq(    <td><textarea name="$fieldname" rows=$height cols=$width>$safefieldta</textarea></td></tr>\n);
             }
 
             # ordinary text fields
         }
         else {
             if ( $flags[$_]{'r'} ) {
-                print
-                  qq(    <td><input type=hidden name="$fieldname" value="$safefield[$_]">$safefield[$_]</td></tr>\n);
+                print qq(    <td><input type=hidden name="$fieldname" value="$safefield[$_]">$safefield[$_]</td></tr>\n);
             }
             else {
                 $width = $maxwidth[$_] ? $maxwidth[$_] + 1 : 20;
-                print
-                  qq(    <td><input name="$fieldname" value="$safefield[$_]" size="$width"></td></tr>\n);
+                print qq(    <td><input name="$fieldname" value="$safefield[$_]" size="$width"></td></tr>\n);
             }
         }
 
@@ -868,7 +857,7 @@ sub getcgivars {
         ( $name, $value ) = split( '=', $_, 2 );
         $name =~ s/%(..)/sprintf("%c",hex($1))/ge;
         $value =~ s/%(..)/sprintf("%c",hex($1))/ge;
-        $in{$name} .= "\0" if defined( $in{$name} ); # concatenate multiple vars
+        $in{$name} .= "\0" if defined( $in{$name} );    # concatenate multiple vars
         $in{$name} .= $value;
     }
 
@@ -909,9 +898,10 @@ sub urlencode {
 # create URL-encoded QUERY_STRING for an associative array
 sub urlencodelist {
     local (%a) = @_;
-    return join( '&',
-        map { &urlencode($_) . '=' . &urlencode( $a{$_} ) }
-        grep( defined( $a{$_} ), keys %a ) );
+    return join(
+        '&', map { &urlencode($_) . '=' . &urlencode( $a{$_} ) }
+          grep( defined( $a{$_} ), keys %a )
+    );
 }
 
 # returns a subset of associative array
@@ -939,11 +929,7 @@ sub hiddenvars {
 
     foreach ( keys %a ) {
         if ( defined( $a{$_} ) ) {
-            $ret .=
-                '<input type=hidden name="'
-              . &HTMLescape($_)
-              . '" value="'
-              . &HTMLescape( $a{$_} ) . "\">\n";
+            $ret .= '<input type=hidden name="' . &HTMLescape($_) . '" value="' . &HTMLescape( $a{$_} ) . "\">\n";
         }
     }
     return $ret;

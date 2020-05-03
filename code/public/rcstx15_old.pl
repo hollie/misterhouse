@@ -17,10 +17,8 @@
 # Set Item codes
 my $TX15_hc = 'A';
 
-my @TX15_table_p_on =
-  qw(65 66 67 68 69 70 71 72 heat_on cool_on auto_on fan_on sb_on sb_6 sb_8 sb_10);
-my @TX15_table_p_off =
-  qw(73 74 75 76 77 78 79 80 heat_off cool_off auto_off fan_off sb_off sb_12 sb_14 sb_16);
+my @TX15_table_p_on  = qw(65 66 67 68 69 70 71 72 heat_on cool_on auto_on fan_on sb_on sb_6 sb_8 sb_10);
+my @TX15_table_p_off = qw(73 74 75 76 77 78 79 80 heat_off cool_off auto_off fan_off sb_off sb_12 sb_14 sb_16);
 
 my $thermostat = new Serial_Item( 'X' . $TX15_hc );
 
@@ -28,10 +26,8 @@ my $thermostat = new Serial_Item( 'X' . $TX15_hc );
 # noloop=start
 my $i = 0;
 for my $device_code (qw(1 2 3 4 5 6 7 8 9 A B C D E F G)) {
-    $thermostat->add( 'X' . $TX15_hc . $device_code . $TX15_hc . 'J',
-        $TX15_table_p_on[$i] );
-    $thermostat->add( 'X' . $TX15_hc . $device_code . $TX15_hc . 'K',
-        $TX15_table_p_off[ $i++ ] );
+    $thermostat->add( 'X' . $TX15_hc . $device_code . $TX15_hc . 'J', $TX15_table_p_on[$i] );
+    $thermostat->add( 'X' . $TX15_hc . $device_code . $TX15_hc . 'K', $TX15_table_p_off[ $i++ ] );
 }
 
 # noloop=stop
@@ -47,13 +43,10 @@ set $thermostat 'cool_' . $state if $state = said $v_thermostat_cool;
 $v_thermostat_setback = new Voice_Cmd('Thermostat setback [on,off]');
 set $thermostat 'sb_' . $state if $state = said $v_thermostat_setback;
 
-$v_thermostat_sp = new Voice_Cmd(
-    'Set the thermostat to [65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80] degrees'
-);
+$v_thermostat_sp = new Voice_Cmd('Set the thermostat to [65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80] degrees');
 set $thermostat $state if $state = said $v_thermostat_sp;
 
-$v_thermostat_sb =
-  new Voice_Cmd('Set the thermostat setback to [6,8,10,12,14,16] degrees');
+$v_thermostat_sb = new Voice_Cmd('Set the thermostat setback to [6,8,10,12,14,16] degrees');
 set $thermostat 'sb_' . $state if $state = said $v_thermostat_sb;
 
 if ( $Month > 10 and $Month < 3 ) {

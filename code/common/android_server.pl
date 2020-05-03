@@ -94,8 +94,7 @@ if ( my $state = said $v_test_android_inventory) {
     }
 }
 
-$v_android_volume =
-  new Voice_Cmd("Set Android Volume to [0,10,20,30,40,50,60,70,80,90,100]");
+$v_android_volume = new Voice_Cmd("Set Android Volume to [0,10,20,30,40,50,60,70,80,90,100]");
 if ( defined said $v_android_volume) {
     my $volume = $v_android_volume->state();
     &android_volume( "all", $volume );
@@ -123,8 +122,7 @@ if ( $state = said $android_server) {
 
     # Fetch socket and ip_address
     $client    = $main::Socket_Ports{server_android}{socka};
-    $client_ip = $main::Socket_Ports{server_android}{client_ip_address} . ":"
-      . $main::Socket_Ports{server_android}{client_port};
+    $client_ip = $main::Socket_Ports{server_android}{client_ip_address} . ":" . $main::Socket_Ports{server_android}{client_port};
 
     # Check for JSON message
     if ( $state =~ /^{/ ) {
@@ -141,9 +139,8 @@ if ( $state = said $android_server) {
         $version      = $ref->{version}      if exists $ref->{version};
         $model        = $ref->{model}        if exists $ref->{model};
         $serialNumber = $ref->{serialNumber} if exists $ref->{serialNumber};
-        &print_log(
-            "android_server:: json_login_request:: pass: $pass version: $version room: $room model: $model device: $device serialNumber: $serialNumber"
-        ) if $Debug{android};
+        &print_log("android_server:: json_login_request:: pass: $pass version: $version room: $room model: $model device: $device serialNumber: $serialNumber")
+          if $Debug{android};
         $androidClients{$client_ip}{version}      = $version;
         $androidClients{$client_ip}{model}        = $model;
         $androidClients{$client_ip}{device}       = $device;
@@ -154,25 +151,19 @@ if ( $state = said $android_server) {
     else {
         my $port;
         ( $pass, $device, $port, $room ) = split /,/, $state;
-        &print_log(
-            "android_server:: legacy_login_request:: pass: $pass device: $device, port: $port, room: $room"
-        ) if $Debug{android};
+        &print_log("android_server:: legacy_login_request:: pass: $pass device: $device, port: $port, room: $room") if $Debug{android};
         delete $androidClients{$client_ip}{version};
     }
 
     if ( my $user = password_check $pass, 'server_android' ) {
         $room = $client_ip unless defined $room;
-        &print_log(
-            "android_server:: login_accepted:: user: $user room: $room device: $device ip: $client_ip client: $client "
-        ) if $Debug{android};
+        &print_log("android_server:: login_accepted:: user: $user room: $room device: $device ip: $client_ip client: $client ") if $Debug{android};
         $androidClients{$client_ip}{room}   = $room;
         $androidClients{$client_ip}{client} = $client;
         $response_data{status}              = "success";
     }
     else {
-        &print_log(
-            "android_server:: login_denied:: room: $room device: $device ip: $client_ip"
-        ) if $Debug{android};
+        &print_log("android_server:: login_denied:: room: $room device: $device ip: $client_ip") if $Debug{android};
         delete $androidClients{$client_ip};
         $response_data{status} = "failed";
     }
@@ -249,8 +240,7 @@ sub file_ready_for_android {
     foreach my $client_ip ( keys %androidClients ) {
         my $room   = lc $androidClients{$client_ip}{room};
         my $client = $androidClients{$client_ip}{client};
-        &print_log(
-            "file_ready_for_android ip: $client_ip room: $room client: $client")
+        &print_log("file_ready_for_android ip: $client_ip room: $room client: $client")
           if $Debug{android};
         my %data;
         $data{url} = $speakFile;
@@ -397,8 +387,7 @@ sub android_volume {
 sub android_xml {
 
     my ( $request, $options ) = @_;
-    my ( $xml, $xml_types, $xml_groups, $xml_categories, $xml_vars,
-        $xml_objects );
+    my ( $xml, $xml_types, $xml_groups, $xml_categories, $xml_vars, $xml_objects );
 
     return &android_usage unless $request;
 
@@ -567,8 +556,7 @@ sub android_object_detail {
 
     my $prefix = '  ' x $depth;
     if ( $object->can('android_xml') ) {
-        $xml_objects .=
-          $object->android_xml( $depth + 1, $fields, 0, $attributes );
+        $xml_objects .= $object->android_xml( $depth + 1, $fields, 0, $attributes );
     }
     else {
         $xml_objects .= $prefix . "<object>\n";
@@ -586,11 +574,7 @@ sub android_page {
     # handle blank xsl name
     my $style;
     $style = qq|<?xml-stylesheet type="text/xsl" href="$xsl"?>| if $xsl;
-    return <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: text/xml
-
+my $body = <<eof;
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 $style
 <misterhouse>
@@ -598,14 +582,19 @@ $xml</misterhouse>
 
 eof
 
+    my $output = "HTTP/1.1 200 OK\r\n";
+    $output .= "Server: MisterHouse\r\n";
+    $output .= "Content-type: text/xml\r\n";
+    $output .= "Connection: close\r\n" if &http_close_socket;
+    $output .= "Content-Length: " . ( length $body ) . "\r\n";
+    $output .= "Date: " . time2str(time) . "\r\n";
+    $output .= "\r\n";
+    $output .= $body;
+    return $output;
 }
 
 sub android_usage {
     my $html = <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: text/html
-
 <html>
 <head>
 </head>
@@ -629,9 +618,7 @@ eof
         my $url = "/sub?android_xml($r)";
         $html .= "<h2>$r</h2>\n<p><a href='$url'>$url</a></p>\n<ul>\n";
         foreach my $opt ( sort keys %options ) {
-            if ( $options{$opt}{applyto} eq 'all' or grep /^$r$/,
-                split /\|/, $options{$opt}{applyto} )
-            {
+            if ( $options{$opt}{applyto} eq 'all' or grep /^$r$/, split /\|/, $options{$opt}{applyto} ) {
                 $url = "/sub?android_xml($r,$opt";
                 if ( defined $options{$opt}{example} ) {
                     foreach ( split /\|/, $options{$opt}{example} ) {
@@ -651,5 +638,13 @@ eof
 </html>
 eof
 
-    return $html;
+    my $output = "HTTP/1.1 200 OK\r\n";
+    $output .= "Server: MisterHouse\r\n";
+    $output .= "Content-type: text/html\r\n";
+    $output .= "Connection: close\r\n" if &http_close_socket;
+    $output .= "Content-Length: " . ( length $html ) . "\r\n";
+    $output .= "Date: " . time2str(time) . "\r\n";
+    $output .= "\r\n";
+    $output .= $html;
+    return $output;
 }

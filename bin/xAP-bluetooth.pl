@@ -25,8 +25,7 @@ $|++;
 my ( $address, $name, $bt_threshold ) = @ARGV
   or die "Missing the phone mac address\n";
 
-printf "Will monitor bluetooth stats for address=%s name=%s device=%s\n",
-  $address, $name, devname($address);
+printf "Will monitor bluetooth stats for address=%s name=%s device=%s\n", $address, $name, devname($address);
 
 # Setup constants
 my ( $bt_debug, $bt_linger );
@@ -36,8 +35,7 @@ $bt_threshold = $ENV{bt_threshold} unless defined $bt_threshold;
 
 $bt_debug = 0 unless $bt_debug;
 $bt_linger = 3
-  unless
-  $bt_linger;  # No. of measurements above/below threshold before changing state
+  unless $bt_linger;    # No. of measurements above/below threshold before changing state
 $bt_threshold = 1 unless defined $bt_threshold;
 
 my $XAP_PORT       = 3639;
@@ -65,8 +63,7 @@ my $xap_listen = new IO::Socket::INET->new(
 );
 
 if ($xap_listen) {
-    print "No hub active.  Listening on broadcast socket",
-      $xap_listen->sockport(), "\n";
+    print "No hub active.  Listening on broadcast socket", $xap_listen->sockport(), "\n";
 }
 else {
     # Hub is active.  Loop until we find an available port
@@ -113,16 +110,14 @@ while (1) {
 
 sub send_heartbeat {
     print "Sending heartbeat on port ", $xap_send->peerport, "\n" if $bt_debug;
-    print $xap_send
-      "xap-hbeat\n{\nv=12\nhop=1\nuid=$XAP_GUID\nclass=xap-hbeat.alive\n"
+    print $xap_send "xap-hbeat\n{\nv=12\nhop=1\nuid=$XAP_GUID\nclass=xap-hbeat.alive\n"
       . "source=$XAP_ME.$XAP_SOURCE.$XAP_INSTANCE\ninterval=$HBEAT_INTERVAL\nport=$XAP_PORT\npid=$$\n}\n";
 }
 
 sub send_xap_data {
     my ( $address, $name, $status ) = @_;
     print "\nSending address=$address status=$status\n";
-    my $msg =
-      "xap-header\n{\nv=12\nhop=1\nuid=$XAP_GUID\nsource=$XAP_ME.$XAP_SOURCE.$XAP_INSTANCE\n";
+    my $msg = "xap-header\n{\nv=12\nhop=1\nuid=$XAP_GUID\nsource=$XAP_ME.$XAP_SOURCE.$XAP_INSTANCE\n";
     $msg .= "class=xap-bt.status\n}\nxap-bt.status\n{\n";
     $msg .= "address=$address\nname=$name\nstatus=$status\n}\n";
     print $xap_send $msg;
@@ -151,9 +146,7 @@ sub get_bt_status {
 
     push @bt_stack, $current_rssi;
 
-    printf "[%s] a=%s, n=%s, s=%s, t=%s, l=%s, s=%s, stack=@bt_stack\n",
-      scalar localtime,
-      $address, $name, $current_rssi, $bt_threshold, $bt_linger, $state
+    printf "[%s] a=%s, n=%s, s=%s, t=%s, l=%s, s=%s, stack=@bt_stack\n", scalar localtime, $address, $name, $current_rssi, $bt_threshold, $bt_linger, $state
       if $bt_debug;
 
     # Check if we need to change state

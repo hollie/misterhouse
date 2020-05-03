@@ -26,8 +26,7 @@ sub choose_menu {
 
     #===============
 
-    local ( $CON_IN, $CON_OUT, @choices ) =
-      @_;    # Could use my, but then need to pass CON_OUT to highlight subs
+    local ( $CON_IN, $CON_OUT, @choices ) = @_;    # Could use my, but then need to pass CON_OUT to highlight subs
 
     # save settings
     my $oldT = $CON_OUT->Title();
@@ -99,11 +98,7 @@ sub choose_menu {
                     if (    ( $mX >= $cX + 1 and $mX <= $cX + $dX )
                         and ( $mY == $cY + $m ) )
                     {
-                        $return = (
-                            "",          "testInfo",
-                            "testBox",   "testScroll",
-                            "testTitle", "testWindow"
-                        )[$m];
+                        $return = ( "", "testInfo", "testBox", "testScroll", "testTitle", "testWindow" )[$m];
                         $key = 27;
                     }
                 }
@@ -173,14 +168,10 @@ sub highlightMenu {
     my $m;
     for $m ( 1 .. 3 ) {
         if ( $m == $menu ) {
-            $CON_OUT->FillAttr(
-                $FG_BLACK | $BG_WHITE, $menulen[$m],
-                $menupos[$m],          $wTop + 1
-            );
+            $CON_OUT->FillAttr( $FG_BLACK | $BG_WHITE, $menulen[$m], $menupos[$m], $wTop + 1 );
         }
         else {
-            $CON_OUT->FillAttr( $FG_WHITE | $BG_BLUE,
-                $menulen[$m], $menupos[$m], $wTop + 1 );
+            $CON_OUT->FillAttr( $FG_WHITE | $BG_BLUE, $menulen[$m], $menupos[$m], $wTop + 1 );
         }
     }
 }
@@ -192,12 +183,10 @@ sub highlightTest {
     my ($i) = @_;
     for $m ( 1 .. 5 ) {
         if ( $m == $i ) {
-            $CON_OUT->FillAttr( $FG_BLACK | $BG_WHITE,
-                43, $wLeft + 1, $wTop + 13 + $m );
+            $CON_OUT->FillAttr( $FG_BLACK | $BG_WHITE, 43, $wLeft + 1, $wTop + 13 + $m );
         }
         else {
-            $CON_OUT->FillAttr( $FG_WHITE | $BG_BLUE,
-                43, $wLeft + 1, $wTop + 13 + $m );
+            $CON_OUT->FillAttr( $FG_WHITE | $BG_BLUE, 43, $wLeft + 1, $wTop + 13 + $m );
         }
     }
 }

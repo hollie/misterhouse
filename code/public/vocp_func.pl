@@ -46,8 +46,7 @@ sub vocp_message_list {
     return ("$return_msg </table>");
 }
 
-$v_vocp_voice_mail =
-  new Voice_Cmd('[Count,Listen to,Delete] all voice mail messages');
+$v_vocp_voice_mail = new Voice_Cmd('[Count,Listen to,Delete] all voice mail messages');
 
 if ( $state = said $v_vocp_voice_mail) {
     my $num            = 0;
@@ -90,8 +89,7 @@ if ( $state = said $v_vocp_voice_mail) {
                 my ($caller) = <CALLER>;
                 chomp $caller;
                 close CALLER;
-                my $msg =
-                  "Voice mail message number " . $curnum++ . " from $caller";
+                my $msg = "Voice mail message number " . $curnum++ . " from $caller";
                 speak(
                     text_first => 1,
                     play       => "$config_parms{data_dir}/$vfile.wav",
@@ -127,18 +125,14 @@ if ( $state = said $f_vgetty_log) {
     }
     if ( $vgetty_record =~ /NAME =/ ) {
         $callerid_data .= ' ' . $vgetty_record;
-        my ( $caller, $cid_number, $cid_name, $cid_time ) =
-          &Caller_ID::make_speakable( $callerid_data, 5 );
+        my ( $caller, $cid_number, $cid_name, $cid_time ) = &Caller_ID::make_speakable( $callerid_data, 5 );
         $Save{last_caller} = $caller;
         speak(
             play => "none",
             text => "Call from $caller.  Phone call is from $caller."
         );
-        print_log
-          "callerid data: number=$cid_number name=$cid_name time=$cid_time";
-        logit(
-            "$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log",
-            "$cid_number $cid_name" );
+        print_log "callerid data: number=$cid_number name=$cid_name time=$cid_time";
+        logit( "$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log", "$cid_number $cid_name" );
         undef $callerid_data;
     }
 }
@@ -161,8 +155,7 @@ if ( $state = said $f_vocp_log) {
         my $vmail_file = $1;
         my $vmail_base = basename($vmail_file);
         print_log "New voice mail file $vmail_file";
-        set $p_rmdtowav
-          qq[rmdtopvf $vmail_file | pvftowav > $config_parms{data_dir}/$vmail_base.wav];
+        set $p_rmdtowav qq[rmdtopvf $vmail_file | pvftowav > $config_parms{data_dir}/$vmail_base.wav];
         set $timer_rmdtowav 15;
         open( CALLER, ">>$config_parms{data_dir}/$vmail_base.txt" );
         print CALLER "$Save{last_caller}";

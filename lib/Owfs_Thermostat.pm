@@ -78,8 +78,7 @@ sub new {
     $self->{interval} = $interval;
 
     $self->{t_run_timer} = new Timer;
-    $self->{t_run_timer}
-      ->set( $self->{interval}, sub { &Owfs_Thermostat::run_loop($self) } );
+    $self->{t_run_timer}->set( $self->{interval}, sub { &Owfs_Thermostat::run_loop($self) } );
     $self->{t_hold_timer} = new Timer;
 
     # create a timer to identify how long the compressor is on (maintain minimum on time)
@@ -107,64 +106,21 @@ sub new {
     $self->{zone}         = ();
     $self->restore_defaults();
 
-    $self->restore_data( "system_mode", "fan_mode", "hold", "hold_timer",
-        "temp_sp" );
-    $self->restore_data(
-        "sun_0_time", "sun_0_temp", "sun_0_zone", "sun_1_time",
-        "sun_1_temp", "sun_1_zone"
-    );
-    $self->restore_data(
-        "sun_2_time", "sun_2_temp", "sun_2_zone", "sun_3_time",
-        "sun_3_temp", "sun_3_zone"
-    );
-    $self->restore_data(
-        "mon_0_time", "mon_0_temp", "mon_0_zone", "mon_1_time",
-        "mon_1_temp", "mon_1_zone"
-    );
-    $self->restore_data(
-        "mon_2_time", "mon_2_temp", "mon_2_zone", "mon_3_time",
-        "mon_3_temp", "mon_3_zone"
-    );
-    $self->restore_data(
-        "tue_0_time", "tue_0_temp", "tue_0_zone", "tue_1_time",
-        "tue_1_temp", "tue_1_zone"
-    );
-    $self->restore_data(
-        "tue_2_time", "tue_2_temp", "tue_2_zone", "tue_3_time",
-        "tue_3_temp", "tue_3_zone"
-    );
-    $self->restore_data(
-        "wed_0_time", "wed_0_temp", "wed_0_zone", "wed_1_time",
-        "wed_1_temp", "wed_1_zone"
-    );
-    $self->restore_data(
-        "wed_2_time", "wed_2_temp", "wed_2_zone", "wed_3_time",
-        "wed_3_temp", "wed_3_zone"
-    );
-    $self->restore_data(
-        "thu_0_time", "thu_0_temp", "thu_0_zone", "thu_1_time",
-        "thu_1_temp", "thu_1_zone"
-    );
-    $self->restore_data(
-        "thu_2_time", "thu_2_temp", "thu_2_zone", "thu_3_time",
-        "thu_3_temp", "thu_3_zone"
-    );
-    $self->restore_data(
-        "fri_0_time", "fri_0_temp", "fri_0_zone", "fri_1_time",
-        "fri_1_temp", "fri_1_zone"
-    );
-    $self->restore_data(
-        "fri_2_time", "fri_2_temp", "fri_2_zone", "fri_3_time",
-        "fri_3_temp", "fri_3_zone"
-    );
-    $self->restore_data(
-        "sat_0_time", "sat_0_temp", "sat_0_zone", "sat_1_time",
-        "sat_1_temp", "sat_1_zone"
-    );
-    $self->restore_data(
-        "sat_2_time", "sat_2_temp", "sat_2_zone", "sat_3_time",
-        "sat_3_temp", "sat_3_zone"
-    );
+    $self->restore_data( "system_mode", "fan_mode",   "hold",       "hold_timer", "temp_sp" );
+    $self->restore_data( "sun_0_time",  "sun_0_temp", "sun_0_zone", "sun_1_time", "sun_1_temp", "sun_1_zone" );
+    $self->restore_data( "sun_2_time",  "sun_2_temp", "sun_2_zone", "sun_3_time", "sun_3_temp", "sun_3_zone" );
+    $self->restore_data( "mon_0_time",  "mon_0_temp", "mon_0_zone", "mon_1_time", "mon_1_temp", "mon_1_zone" );
+    $self->restore_data( "mon_2_time",  "mon_2_temp", "mon_2_zone", "mon_3_time", "mon_3_temp", "mon_3_zone" );
+    $self->restore_data( "tue_0_time",  "tue_0_temp", "tue_0_zone", "tue_1_time", "tue_1_temp", "tue_1_zone" );
+    $self->restore_data( "tue_2_time",  "tue_2_temp", "tue_2_zone", "tue_3_time", "tue_3_temp", "tue_3_zone" );
+    $self->restore_data( "wed_0_time",  "wed_0_temp", "wed_0_zone", "wed_1_time", "wed_1_temp", "wed_1_zone" );
+    $self->restore_data( "wed_2_time",  "wed_2_temp", "wed_2_zone", "wed_3_time", "wed_3_temp", "wed_3_zone" );
+    $self->restore_data( "thu_0_time",  "thu_0_temp", "thu_0_zone", "thu_1_time", "thu_1_temp", "thu_1_zone" );
+    $self->restore_data( "thu_2_time",  "thu_2_temp", "thu_2_zone", "thu_3_time", "thu_3_temp", "thu_3_zone" );
+    $self->restore_data( "fri_0_time",  "fri_0_temp", "fri_0_zone", "fri_1_time", "fri_1_temp", "fri_1_zone" );
+    $self->restore_data( "fri_2_time",  "fri_2_temp", "fri_2_zone", "fri_3_time", "fri_3_temp", "fri_3_zone" );
+    $self->restore_data( "sat_0_time",  "sat_0_temp", "sat_0_zone", "sat_1_time", "sat_1_temp", "sat_1_zone" );
+    $self->restore_data( "sat_2_time",  "sat_2_temp", "sat_2_zone", "sat_3_time", "sat_3_temp", "sat_3_zone" );
 
     return $self;
 }
@@ -179,8 +135,7 @@ sub add_thermometer {
     my ( $self, $thermometer, $location, $zone ) = @_;
     return if $self->{thermometers}{$thermometer};
     $zone = "1" unless defined $zone;
-    &main::print_log(
-        "Owfs_Thermostat::adding_thermometer: $thermometer zone: $zone")
+    &main::print_log("Owfs_Thermostat::adding_thermometer: $thermometer zone: $zone")
       if $::Debug{owfs};
     $self->{thermometers}{$thermometer} =
       new Owfs_Item( $thermometer, $location );
@@ -245,11 +200,7 @@ sub set_fan_sensor {
 sub set_system_mode {
     my ( $self, $value ) = @_;
     if ( $value =~ /off|heat|cool/ ) {
-        &main::logit(
-            "$::config_parms{data_dir}/logs/hvac/$::Year_Month_Now.log",
-            "System Mode change to $value",
-            , 1
-        );
+        &main::logit( "$::config_parms{data_dir}/logs/hvac/$::Year_Month_Now.log", "System Mode change to $value",, 1 );
         $self->{system_mode} = $value;
     }
 }
@@ -262,11 +213,7 @@ sub get_system_mode {
 sub set_fan_mode {
     my ( $self, $value ) = @_;
     if ( $value =~ /on|auto/ ) {
-        &main::logit(
-            "$::config_parms{data_dir}/logs/hvac/$::Year_Month_Now.log",
-            "Fan Mode change to $value",
-            , 1
-        );
+        &main::logit( "$::config_parms{data_dir}/logs/hvac/$::Year_Month_Now.log", "Fan Mode change to $value",, 1 );
         $self->{fan_mode} = $value;
     }
 }
@@ -349,11 +296,7 @@ sub get_state {
 sub set_temp_sp {
     my ( $self, $temp_sp ) = @_;
     if ( ( $temp_sp >= 60 ) && ( $temp_sp <= 80 ) ) {
-        &main::logit(
-            "$::config_parms{data_dir}/logs/hvac/$::Year_Month_Now.log",
-            "Set Point change to $temp_sp",
-            , 1
-        );
+        &main::logit( "$::config_parms{data_dir}/logs/hvac/$::Year_Month_Now.log", "Set Point change to $temp_sp",, 1 );
         $self->{temp_sp} = $temp_sp;
     }
 }
@@ -372,10 +315,7 @@ sub set_hold {
             my $min     = $2;
             my $seconds = ( $hour * 3600 ) + ( $min * 60 );
             if ($seconds) {
-                &main::logit(
-                    "$::config_parms{data_dir}/logs/hvac/$::Year_Month_Now.log",
-                    "Hold Timer change to $hold",, 1
-                );
+                &main::logit( "$::config_parms{data_dir}/logs/hvac/$::Year_Month_Now.log", "Hold Timer change to $hold",, 1 );
                 $self->{t_hold_timer}->set($seconds);
             }
         }
@@ -644,12 +584,7 @@ sub get_schedule_sp {
     $currZone = $schedule[$dayIndex][$index][2];
     $dayIndex = $main::Wday;
     for ( $index = 0; $index < 4; $index++ ) {
-        if (
-            &main::time_less_than(
-                $self->time_from_ampm( $schedule[$dayIndex][$index][0] )
-            )
-          )
-        {
+        if ( &main::time_less_than( $self->time_from_ampm( $schedule[$dayIndex][$index][0] ) ) ) {
             return ( $currTemp, $currZone );
         }
         $currTemp = $schedule[$dayIndex][$index][1];
@@ -685,11 +620,7 @@ sub heat_relay {
             my $display   = $value ? "On" : "Off";
             my $zone_temp = $self->{zone}->[ $self->{temp_zone} ]->{average};
             my $sp        = $self->{temp_sp};
-            &main::logit(
-                "$::config_parms{data_dir}/logs/hvac/$::Year_Month_Now.log",
-                "Heat $display zone_temp: $zone_temp temp_sp: $sp",
-                , 1
-            );
+            &main::logit( "$::config_parms{data_dir}/logs/hvac/$::Year_Month_Now.log", "Heat $display zone_temp: $zone_temp temp_sp: $sp",, 1 );
         }
     }
 }
@@ -722,10 +653,7 @@ sub cool_relay {
                 my $zone_temp =
                   $self->{zone}->[ $self->{temp_zone} ]->{average};
                 my $sp = $self->{temp_sp};
-                &main::logit(
-                    "$::config_parms{data_dir}/logs/hvac/$::Year_Month_Now.log",
-                    "Cool $display zone_temp: $zone_temp temp_sp: $sp",, 1
-                );
+                &main::logit( "$::config_parms{data_dir}/logs/hvac/$::Year_Month_Now.log", "Cool $display zone_temp: $zone_temp temp_sp: $sp",, 1 );
             }
         }
     }
@@ -740,11 +668,7 @@ sub fan_relay {
             my $display   = $value ? "On" : "Off";
             my $zone_temp = $self->{zone}->[ $self->{temp_zone} ]->{average};
             my $sp        = $self->{temp_sp};
-            &main::logit(
-                "$::config_parms{data_dir}/logs/hvac/$::Year_Month_Now.log",
-                "Fan $display $zone_temp temp_sp: $sp",
-                , 1
-            );
+            &main::logit( "$::config_parms{data_dir}/logs/hvac/$::Year_Month_Now.log", "Fan $display $zone_temp temp_sp: $sp",, 1 );
         }
     }
 }
@@ -830,8 +754,7 @@ sub run_loop {
     }
 
     # reschedule the timer for next pass
-    $self->{t_run_timer}
-      ->set( $self->{interval}, sub { &Owfs_Thermostat::run_loop($self) } );
+    $self->{t_run_timer}->set( $self->{interval}, sub { &Owfs_Thermostat::run_loop($self) } );
 
     # has the hold timer expired?
     if ( $self->{t_hold_timer}->inactive() ) {
@@ -859,9 +782,8 @@ sub run_loop {
         $self->fan_relay(0);
         if ( exists $self->{zone}->[ $self->{temp_zone} ]->{average} ) {
             if (
-                ( $self->{temp_sp} < 75 )
-                && ( $self->{temp_sp} >
-                    $self->{zone}->[ $self->{temp_zone} ]->{average} )
+                   ( $self->{temp_sp} < 75 )
+                && ( $self->{temp_sp} > $self->{zone}->[ $self->{temp_zone} ]->{average} )
                 && (   ( not exists $::Weather{TempOutdoor} )
                     || ( $::Weather{TempOutdoor} < $self->{temp_sp} )
                     || $self->{hold} )
@@ -882,9 +804,8 @@ sub run_loop {
         $self->heat_relay(0);
         if ( exists $self->{zone}->[ $self->{temp_zone} ]->{average} ) {
             if (
-                ( $self->{temp_sp} >= 70 )
-                && ( $self->{temp_sp} <
-                    $self->{zone}->[ $self->{temp_zone} ]->{average} )
+                   ( $self->{temp_sp} >= 70 )
+                && ( $self->{temp_sp} < $self->{zone}->[ $self->{temp_zone} ]->{average} )
                 && (   ( not exists $::Weather{TempOutdoor} )
                     || ( $::Weather{TempOutdoor} >= ( $self->{temp_sp} - 2 ) )
                     || 1

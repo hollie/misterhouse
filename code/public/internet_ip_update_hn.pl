@@ -30,7 +30,7 @@ use strict;
 BEGIN {
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval "use lib '$Pgm_Path/../lib'";   # Use BEGIN eval to keep perl2exe happy
+    eval "use lib '$Pgm_Path/../lib'";    # Use BEGIN eval to keep perl2exe happy
 }
 
 use Getopt::Long;
@@ -71,7 +71,7 @@ my ( $myip, $pass, $url, $sock, @result, $result, $code );
 use MIME::Base64 ();
 use IO::Socket;
 
-if ( $config_parms_startup{update} ) {  # If account in cmd line arg, compare it
+if ( $config_parms_startup{update} ) {    # If account in cmd line arg, compare it
     $myip = $config_parms_startup{update};
 }
 
@@ -122,9 +122,7 @@ if ( $code == 101 ) {
     print("(UPDATE_IP) Success. Hammernode DNS dynamic IP set to $myip.\n");
 }
 elsif ( $code == 201 ) {
-    print(
-        "(UPDATE_IP) Failed. Previous update occured less than 300 seconds ago.\n"
-    );
+    print("(UPDATE_IP) Failed. Previous update occured less than 300 seconds ago.\n");
 }
 elsif ( $code == 202 ) {
     print("(UPDATE_IP) Failed. Server error.\n");

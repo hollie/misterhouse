@@ -51,12 +51,7 @@ set to $Save{wakeup_time} wakeup time"
 $v_wakeup_parents = new Voice_Cmd('Wakeup the parents');
 $v_wakeup_parents->set_info("Do not do this!  Parents like to sleep.");
 
-if (
-    (
-            time_now( $Save{wakeup_time} )
-        and $Weekday
-        and $Save{mode} ne 'offline'
-    )
+if ( ( time_now( $Save{wakeup_time} ) and $Weekday and $Save{mode} ne 'offline' )
     or said $v_wakeup_parents)
 {
     $Save{mode}             = 'normal';

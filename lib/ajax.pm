@@ -27,13 +27,11 @@ use strict;
 #use diagnostics;
 
 sub html_ajax_long_poll () {
-    my ( $socket, $get_req, $get_arg ) = @_;
+    my ( $socket, $get_req, $get_arg, $client_number, $requestnum, $delay_passes ) = @_;
 
-    my $waiter = new ChangeWaiter( $socket, $get_arg );
+    my $waiter = new ChangeWaiter( $socket, $get_arg, $client_number, $requestnum, $delay_passes );
 
     ChangeChecker::addWaiter($waiter);
-
-    #ChangeChecker::checkWaiters();
 
     return 1;
 }
@@ -41,21 +39,26 @@ sub html_ajax_long_poll () {
 package ChangeWaiter;
 
 sub new {
-    my ( $class, $socket, $sub ) = @_;
+    my ( $class, $socket, $sub, $client_number, $requestnum, $delay_passes ) = @_;
     my $self = {};
 
     bless $self, $class;
 
-    &main::print_log(
-        "creating ChangeWaiter object for socket $socket and sub $sub")
+    &main::print_log("ajax: creating ChangeWaiter object for socket $socket and sub $sub")
       if $main::Debug{ajax};
 
     $sub =~ s/^/&main::/;
     ${ $$self{waitingSocket} } = $socket;
     ${ $$self{expireTime} }    = time() + 60;
-    ${ $$self{changed} } = 0;    # Flag if at least on state is changed
-    ${ $$self{event} } = "&ChangeChecker::setWaiterToChanged ('$self')";
-    ${ $$self{sub} }   = $sub;
+    ${ $$self{changed} }       = 0;                                                # Flag if at least on state is changed
+    ${ $$self{event} }         = "&ChangeChecker::setWaiterToChanged ('$self')";
+    ${ $$self{sub} }           = $sub;
+    ${ $$self{checkTime} }     = 1;
+    ${ $$self{passes} }        = 0;
+    ${ $$self{client_number} } = $client_number;
+    ${ $$self{requestnum} }    = $requestnum;
+    ${ $$self{delay_passes} }  = $delay_passes;
+
 
     return $self;
 }
@@ -75,36 +78,65 @@ Function to check for changes in the objects state on change a message is sent t
 
 sub checkForUpdate {
     my ($self) = @_;
+    my $client_number = ${$$self{client_number}};
+    my $requestnum = ${$$self{requestnum}};
+    my ( $port, $iaddr, $client_ip_address );
+    my %HttpHeader = &::http_get_headers($client_number,$requestnum);
+
+    if ( $main::Debug{ajax} ) {
+       my $peer = ${ $$self{waitingSocket} }->peername;
+       ( $port, $iaddr ) = &main::unpack_sockaddr_in($peer) if $peer;
+       $client_ip_address = &main::inet_ntoa($iaddr) if $iaddr;
+    }
+
+
 
     if ( ${ $$self{expireTime} } < time() ) {
-        &main::print_log(
-            "checkForUpdate waiter for sub ${$$self{sub}} timed out, closing socket"
-        ) if $main::Debug{ajax};
 
+	if ( $main::Debug{ajax} ) {
+	   if ( &::http_close_socket(%HttpHeader) ) {
+             &main::print_log("ajax: checkForUpdate - waiter for sub ${$$self{sub}} timed out, responding with 204, closing socket - Client: $client_ip_address Port: $port");
+	    } else {
+	     &main::print_log("ajax: checkForUpdate - waiter for sub ${$$self{sub}} timed out, responding with 204 - Client: $client_ip_address Port: $port");
+	   }
+	}
+	
         # Sending a status code makes it easier to distinish No Content from a lost
         # connection on the client end.
-        &::print_socket_fork( ${ $$self{waitingSocket} },
-            "HTTP/1.0 204 No Content\n\n" );
-        ${ $$self{waitingSocket} }->close;
+	 my $html_head = "HTTP/1.1 204 No Content\r\n";
+	 $html_head .= "Server: MisterHouse\r\n";
+	 $html_head .= "Connection: close\r\n" if &::http_close_socket(%HttpHeader);
+	 $html_head .= "Date: " . ::time2str(time) . "\r\n";
+	 $html_head .= "\r\n";
+         &::print_socket_fork( ${ $$self{waitingSocket} }, $html_head, $client_number, $requestnum, &::http_close_socket(%HttpHeader) );
         return 1;
+    }
+
+    if ( ${$$self{sub}} =~ /(.*\:\:json\(\'.*\',\'.*\',\'.*\',\'.*\')\)/ ) {  
+        ${$$self{sub}} = $1.',$client_number,$requestnum )'; 
+        &main::print_log ("ajax: checkForUpdate - sub updated to ${$$self{sub}}") if $main::Debug{ajax};
+    }
+    elsif ( ${$$self{sub}} =~ /(.*\:\:json\(\'.*\',\'.*\',\'.*\')\)/ ) {  
+        ${$$self{sub}} = $1.',"",$client_number,$requestnum )';
+        &main::print_log ("ajax: checkForUpdate - sub updated to ${$$self{sub}}") if $main::Debug{ajax};
     }
 
     my $xml = eval ${ $$self{sub} };
     if ($@) {
-        &main::print_log(
-            "checkForUpdate syntax error in sub ${$$self{sub}}\n\t$@")
-          if $main::Debug{ajax};
+        &main::print_log("ajax: checkForUpdate - syntax error in sub ${$$self{sub}}\n\t$@") if $main::Debug{ajax};
         return 1;
     }
 
     if ($xml) {
-        &main::print_log("checkForUpdate sub ${$$self{sub}} returned $xml")
-          if $main::Debug{ajax};
-        &::print_socket_fork( ${ $$self{waitingSocket} }, $xml );
-        &main::print_log( "Closing Socket " . ${ $$self{waitingSocket} } )
-          if $main::Debug{ajax};
-        ${ $$self{waitingSocket} }->shutdown(2)
-          ; #Changed this from close() to shutdown(2). In some cases, the parent port wasn't being closed -- ie. speech events
+        if ( $main::Debug{ajax} ) {
+           if ( &::http_close_socket(%HttpHeader) ) {
+		&main::print_log("ajax: checkForUpdate - sub: ${$$self{sub}} returned data, closing socket,  Client: $client_ip_address Port: $port");
+            } else {
+        	&main::print_log("ajax: checkForUpdate - sub: ${$$self{sub}} returned data, Client: $client_ip_address Port: $port");
+           }
+        }
+
+        &::print_socket_fork( ${ $$self{waitingSocket} }, $xml, $client_number, $requestnum, &::http_close_socket(%HttpHeader) );
         ${ $$self{changed} } = 1;
     }
     else {
@@ -175,7 +207,7 @@ sub startup {
     return if $started++;
     printf " - initializing state tracker ...\n";
     %waiters = ();
-    &main::print_log("adding hook for checkWaiters") if $main::Debug{ajax};
+    &main::print_log("ajax: adding hook for checkWaiters") if $main::Debug{ajax};
     &::MainLoop_post_add_hook( \&ChangeChecker::checkWaiters, 1 );
 }
 
@@ -183,20 +215,29 @@ sub addWaiter {
     my ($waiter) = @_;
 
     $waiters{$waiter} = $waiter;
-    &main::print_log("waiter '$waiter' added") if $main::Debug{ajax};
+    &main::print_log("ajax: addWaiter - waiter '$waiter' added") if $main::Debug{ajax};
 }
 
 sub checkWaiters {
     my ($class) = @_;
-
+    my $delay = 250;
+    my $currenttime = &main::get_tickcount;
+    #my $push_flag = &::get_waiter_flags('push_flag');
     foreach my $key ( keys %waiters ) {
+	my $self = $waiters{$key};
+	${ $$self{passes} }++;
+    	my $push_flag = 0;
+    	$push_flag = 1 if ( ${ $$self{delay_passes} } && ( ${ $$self{passes} } >= ${ $$self{delay_passes} }) );
+	next unless ( ( ($currenttime - ${ $$self{checkTime} }) >= $delay ) || $push_flag );
+	${ $$self{checkTime} } = $currenttime; 
+	#&main::print_log("waiter: checkWaiters Push flag: $push_flag checking sub sub ".${$$self{sub}} ) if $main::Debug{ajax} and $push_flag;
         if ( $waiters{$key}->checkForUpdate ) {
-
             # waiter can be removed
             delete $waiters{$key};
-            &main::print_log("waiter '$key' removed") if $main::Debug{ajax};
+            &main::print_log("ajax: checkWaiters - waiter '$key' removed") if $main::Debug{ajax};
         }
     }
+  &::set_waiter_flags('push_flag',0);
 }
 
 sub setWaiterToChanged {

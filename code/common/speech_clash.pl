@@ -42,10 +42,7 @@ sub speak_clash_stub {
         if ( $main::Debug{voice} ) {
             $ref->{clash_retry} = 0 unless $ref->{clash_retry};
             $ref->{clash_retry}++;    #To track how many loops are made
-            &print_log(
-                "SPEECH_CLASH($ref->{clash_retry}): Delaying speech call for "
-                  . $ref->{text}
-                  . "\n" );
+            &print_log( "SPEECH_CLASH($ref->{clash_retry}): Delaying speech call for " . $ref->{text} . "\n" );
         }
         $ref->{nolog} = 1;            #To stop MH from logging the speech again
         delete( $ref->{web_hook} );
@@ -73,8 +70,7 @@ sub speak_clash_stub {
     }
 
     if ( $ref->{clash_retry} ) {
-        &print_log("SPEECH_CLASH: Resolved, continuing speech.")
-          ;                      # if $main::Debug{voice};
+        &print_log("SPEECH_CLASH: Resolved, continuing speech.");    # if $main::Debug{voice};
         $is_speaking      = 0;
         $is_speaking_flag = 0;
     }

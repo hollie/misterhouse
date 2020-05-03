@@ -46,7 +46,7 @@ sub serial_startup {
         $count = 0;
     }
 
-    if ( 1 == scalar @Telephone_logger_Ports ) {  # Add hooks on first call only
+    if ( 1 == scalar @Telephone_logger_Ports ) {    # Add hooks on first call only
         &::MainLoop_pre_add_hook( \&Telephone_logger::check_for_data, 1 );
     }
 }

@@ -170,8 +170,7 @@ sub EOF {
 sub FieldValue {
     my ($this) = shift;
     return "EOF" if ( $this->{'EOF'} );
-    my ($fieldName) =
-      shift || return "ERROR: FieldValue(): Field Name Required";
+    my ($fieldName)      = shift || return "ERROR: FieldValue(): Field Name Required";
     my ($newValue)       = shift;
     my ($fieldNumber)    = $this->{'fieldNames'}{$fieldName};
     my ($lineFeed)       = chr(10);
@@ -503,13 +502,8 @@ sub Filter {
         {
             $filterSetting = 1;
         }
-        elsif (
-            $operator eq "like"
-            && !(
-                index( lc( $this->FieldValue($fieldName) ), lc($criteria), 0 )
-                + 1
-            )
-          )
+        elsif ( $operator eq "like"
+            && !( index( lc( $this->FieldValue($fieldName) ), lc($criteria), 0 ) + 1 ) )
         {
             $filterSetting = 1;
         }
@@ -559,26 +553,19 @@ sub Commit {
         # if only new records were added, just append to the file
         my ($nCount);
         if ( !open( OUTPUTFILE, ">>$fileName" ) ) {
-            $this->{'lastError'} =
-              "Commit: Couldn't Open DataFile '$fileName' For Appending";
+            $this->{'lastError'} = "Commit: Couldn't Open DataFile '$fileName' For Appending";
             return 0;
         }
         flock( OUTPUTFILE, 2 ) if ($useFlock);
         my ($tempArray) = $this->{'fileArray'};
-        for (
-            $nCount = $this->{'originalCount'} + 1;
-            $nCount <= $this->{'recordCount'};
-            $nCount++
-          )
-        {
+        for ( $nCount = $this->{'originalCount'} + 1; $nCount <= $this->{'recordCount'}; $nCount++ ) {
             print OUTPUTFILE @$tempArray[$nCount];
         }
     }
     else {
         # if records were changed or deleted, we have to replace them all
         if ( !open( OUTPUTFILE, ">$fileName" ) ) {
-            $this->{'lastError'} =
-              "Commit: Couldn't Open DataFile '$fileName' For Writing";
+            $this->{'lastError'} = "Commit: Couldn't Open DataFile '$fileName' For Writing";
             return 0;
         }
         flock( OUTPUTFILE, 2 ) if ($useFlock);
@@ -664,8 +651,7 @@ sub Open {
         return 0;
     }
     elsif ( !( -r $fileName ) ) {
-        $this->{'lastError'} =
-          "Open: Couldn't Open DataFile '$fileName' For Reading";
+        $this->{'lastError'} = "Open: Couldn't Open DataFile '$fileName' For Reading";
         return 0;
     }
 

@@ -183,19 +183,16 @@ sub new {
             $self->add( $id . $hc . 'STATUS',                    'status' );
             $self->add( $id . $hc . 'STATUS_ON',                 'status on' );
             $self->add( $id . $hc . 'STATUS_OFF',                'status off' );
-            $self->add( $id,                                     'manual' )
-              ; # Used in Group.pm.  This is what we get with a manual kepress, with on ON/OFF after it
+            $self->add( $id, 'manual' );    # Used in Group.pm.  This is what we get with a manual kepress, with on ON/OFF after it
 
             if ( $self->{type} and $self->{type} =~ /(preset3)/i ) {
-                my @preset_dim_levels =
-                  qw(M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J);
+                my @preset_dim_levels = qw(M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J);
 
                 # 0% is MPRESET_DIM1
                 $self->add( $id . $preset_dim_levels[0] . 'PRESET_DIM1', "0%" );
 
                 # 100% is JPRESET_DIM2
-                $self->add( $id . $preset_dim_levels[15] . 'PRESET_DIM2',
-                    "100%" );
+                $self->add( $id . $preset_dim_levels[15] . 'PRESET_DIM2', "100%" );
 
                 # 30 levels, 1% to 99%
                 for ( my $percent = 1; $percent <= 99; $percent++ ) {
@@ -222,8 +219,7 @@ sub add {
     #print "self not defined\n" if not defined $self;
     #print "interface not defined\n" if $self and not defined $self->{interface};
 
-    if ( $$self{interface}->isa('Insteon_PLM')
-      )    # not sure if this is ever needed
+    if ( $$self{interface}->isa('Insteon_PLM') )    # not sure if this is ever needed
     {
         $self->{interface}->add_id_state( $id, $state );
     }
@@ -243,29 +239,25 @@ sub set_interface {
     # possible interface modules until we find one that will work with it
     if ($interface) {
         if ( X10_Interface->supports($interface) ) {
-            print
-              "[X10] for id $id, x10 interface supplied ($interface) and supported by X10_Interface\n"
+            print "[X10] for id $id, x10 interface supplied ($interface) and supported by X10_Interface\n"
               if $localDebug;
             $self->{interface} = new X10_Interface( undef, undef, $interface );
         }
         elsif ( Serial_Item->supports($interface) ) {
-            print
-              "[X10] for id $id, x10 interface supplied ($interface) and supported by Serial_Item\n"
+            print "[X10] for id $id, x10 interface supplied ($interface) and supported by Serial_Item\n"
               if $localDebug;
             $self->{interface} = new Serial_Item( undef, undef, $interface );
         }
         elsif ( defined $interface_object
             and $interface_object->isa('Insteon_PLM') )
         {
-            print
-              "[X10] for id $id, x10 interface supplied ($interface) and supported by an Insteon PLM\n"
+            print "[X10] for id $id, x10 interface supplied ($interface) and supported by an Insteon PLM\n"
               if $localDebug;
             $self->{interface} = $interface_object;
         }
         else {
             # we can't find a real interface, so use a Dummy_Interface
-            print
-              "[X10] warning, using dummy interface for id $id and supplied interface $interface\n"
+            print "[X10] warning, using dummy interface for id $id and supplied interface $interface\n"
               if $localDebug;
             $self->{interface} = new Dummy_Interface( $id, undef, $interface );
         }
@@ -273,14 +265,12 @@ sub set_interface {
     else {
         # an interface wasn't specified, we'll use the first one that we find
         if ( $interface = X10_Interface->lookup_interface ) {
-            print
-              "[X10] for id $id, x10 interface not supplied, supported by X10_Interface $interface\n"
+            print "[X10] for id $id, x10 interface not supplied, supported by X10_Interface $interface\n"
               if $localDebug;
             $self->{interface} = new X10_Interface( undef, undef, $interface );
         }
         elsif ( $interface = Serial_Item->lookup_interface ) {
-            print
-              "[X10] for id $id, x10 interface not supplied, supported by Serial_Item $interface\n"
+            print "[X10] for id $id, x10 interface not supplied, supported by Serial_Item $interface\n"
               if $localDebug;
             $self->{interface} = new Serial_Item( undef, undef, $interface );
         }
@@ -368,9 +358,7 @@ sub set {
         else {
             $state = 'on';
         }
-        &main::print_log(
-            "[X10] Toggling X10_Item object $self->{object_name} from $$self{state} to $state"
-        ) if $main::Debug{x10};
+        &main::print_log("[X10] Toggling X10_Item object $self->{object_name} from $$self{state} to $state") if $main::Debug{x10};
     }
 
     # Make sure we do the right thing if light was off
@@ -401,8 +389,7 @@ sub set {
 
         # Round of to nearest 5 for dumb modules, since Serial Item rounds by 5
         $level_diff = 5 * int $level_diff / 5 unless $presetable;
-        &main::print_log(
-            "[X10] Changing light by $level_diff ($level_now * $change%)")
+        &main::print_log("[X10] Changing light by $level_diff ($level_now * $change%)")
           if $main::config_parms{x10_errata} >= 3;
         $state = $level_diff;
     }
@@ -416,21 +403,19 @@ sub set {
 
         # Round of to nearest 5 for dumb modules, since Serial Item rounds by 5
         $level_diff = 5 * int $level_diff / 5;
-        &main::print_log(
-            "[X10] Changing light by $level_diff ($level - $level_now)")
+        &main::print_log("[X10] Changing light by $level_diff ($level - $level_now)")
           if $main::config_parms{x10_errata} >= 3;
         $state = $level_diff;
     }
 
     $state = "+$state"
-      if $state =~ /^\d+$/; # In case someone trys a state of 30 instead of +30.
+      if $state =~ /^\d+$/;    # In case someone trys a state of 30 instead of +30.
 
     # Convert relative dims to direct dims for supported devices
     if ( $presetable and $state =~ /^([\+\-]?)(\d+)$/ ) {
         my $level = $$self{level};
         $level = 100
-          unless
-          defined $level;    # bright and dim from on or off will start at 100%
+          unless defined $level;    # bright and dim from on or off will start at 100%
         $level += $state;
         $level = 0   if $level < 0;
         $level = 100 if $level > 100;
@@ -784,8 +769,7 @@ sub new {
 
     $self->set_interface( $interface, $id );
 
-    print
-      "\n\nWarning: X10_Garage_Door object should not specify unit code; ignored\n\n"
+    print "\n\nWarning: X10_Garage_Door object should not specify unit code; ignored\n\n"
       if length($id) > 1;
     my $hc = substr( $id, 0, 1 );
     $id = "X$hc" . 'Z';
@@ -799,8 +783,7 @@ sub new {
     # "d" is door that caused transmission, numeric 1, 2, or 3
     # "ccc" is C=Closed, O=Open, indexed by door #
 
-    $self->add( $id . '00001d', '0000CCC' )
-      ;    # Only on initial power up of receiver; no doors enrolled.
+    $self->add( $id . '00001d', '0000CCC' );    # Only on initial power up of receiver; no doors enrolled.
 
     $self->add( $id . '01101d', '1001CCC' );
     $self->add( $id . '01111d', '1001OCC' );
@@ -1058,8 +1041,7 @@ sub new {
     $self->add( "X" . $hc . "F" . $hc . 'K', '15-off' );
     $self->add( "X" . $hc . "G" . $hc . 'K', '16-off' );
 
-    $self->{zone_runtimes} =
-      [ 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10 ];
+    $self->{zone_runtimes} = [ 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10 ];
     $self->{zone_runcount} = 0;
     $self->{zone_runnning} = 0;
     $self->{zone_delay}    = 10;
@@ -1073,15 +1055,13 @@ sub set_runtimes {
     my $count = @_;
 
     if ( &Timer::active( $self->{timer} ) ) {
-        print
-          "X10_IrrigationController: skipping set_runtimes because of running timer\n"
+        print "X10_IrrigationController: skipping set_runtimes because of running timer\n"
           if $main::Debug{x10};
         return;
     }
 
     if ( $count < 1 ) {
-        print
-          "X10_IrrigationController: set_runtimes called without data, ignoring\n";
+        print "X10_IrrigationController: set_runtimes called without data, ignoring\n";
     }
     else {
         $self->{zone_runtimes} = [@_];
@@ -1095,15 +1075,13 @@ sub set_rundelay {
     my ( $self, $rundelay ) = @_;
 
     if ( &Timer::active( $self->{timer} ) ) {
-        print
-          "X10_IrrigationController: skipping set_rundelay because of running timer\n"
+        print "X10_IrrigationController: skipping set_rundelay because of running timer\n"
           if $main::Debug{x10};
         return;
     }
 
     if ( $rundelay < 1 ) {
-        print
-          "X10_IrrigationController: set_rundelay called without data, ignoring\n";
+        print "X10_IrrigationController: set_rundelay called without data, ignoring\n";
     }
     else {
         $self->{zone_delay} = $rundelay;
@@ -1119,14 +1097,11 @@ sub set {
         $state = $1;
 
         if ( &Timer::active( $self->{timer} ) ) {
-            print
-              "X10_IrrigationController: skipping set_runtimes because of running timer\n"
+            print "X10_IrrigationController: skipping set_runtimes because of running timer\n"
               if $main::Debug{x10};
         }
         else {
-            print
-              "X10_IrrigationController set with times found: state=$1 times=$2\n"
-              ;    # if $main::Debug{x10};
+            print "X10_IrrigationController set with times found: state=$1 times=$2\n";    # if $main::Debug{x10};
             return if &main::check_for_tied_filters( $self, $state );
 
             my @runtimes = split ',', $2;
@@ -1139,8 +1114,7 @@ sub set {
 
     if ( lc($state) eq 'on' ) {
         if ( &Timer::active( $self->{timer} ) ) {
-            print
-              "X10_IrrigationController: skipping zone cascade because of running timer.\n"
+            print "X10_IrrigationController: skipping zone cascade because of running timer.\n"
               if $main::Debug{x10};
             return;
         }
@@ -1175,8 +1149,7 @@ sub all_zones_off {
         if (    $self->{zone_running} > 0
             and $self->{zone_running} <= $self->{zone_runcount} )
         {
-            $self->X10_IrrigationController::Inherit::set(
-                $self->{zone_running} . '-off' );
+            $self->X10_IrrigationController::Inherit::set( $self->{zone_running} . '-off' );
         }
     }
 
@@ -1224,10 +1197,9 @@ sub zone_cascade {
         # Set a timer to turn it off and turn the next zone on
         my $sprinkler_timer = $self->{timer};
         my $object          = $self->{object_name};
-        my $action = "$object->zone_delay($zone," . $runtime * 60 . ")";
+        my $action          = "$object->zone_delay($zone," . $runtime * 60 . ")";
         &Timer::set( $sprinkler_timer, $self->{zone_delay}, $action );
-        print
-          "X10_IrrigationController: Delaying zone $zone start for $self->{zone_delay} seconds\n"
+        print "X10_IrrigationController: Delaying zone $zone start for $self->{zone_delay} seconds\n"
           if $main::Debug{x10};
     }
     else {
@@ -1249,9 +1221,7 @@ sub zone_delay {
     my $action          = "$object->zone_cascade(" . ( $zone + 1 ) . ")";
     &Timer::set( $sprinkler_timer, $runtime, $action );
     $self->{zone_running} = $zone;
-    print "X10_IrrigationController: Running zone $zone for "
-      . ( $runtime / 60 )
-      . " minute(s)\n"
+    print "X10_IrrigationController: Running zone $zone for " . ( $runtime / 60 ) . " minute(s)\n"
       if $main::Debug{x10};
     return;
 }
@@ -1320,42 +1290,17 @@ sub new {
 
     # The following states are used by X10_Scene and avoid the set sequencing required by the above states
     # As a result, they are likely more safe and should be used in preference
-    $self->add( ( 'XOGNGMGPGMG' . substr( $id, 1 ) . 'OGPGNGMGMG' ),
-        'set ramp rate' );
-    $self->add( 'XOGNGMGPGMG' . substr( $id, 1 ) . 'PGNGMGOGMG',
-        'set on level' );
+    $self->add( ( 'XOGNGMGPGMG' . substr( $id, 1 ) . 'OGPGNGMGMG' ), 'set ramp rate' );
+    $self->add( 'XOGNGMGPGMG' . substr( $id, 1 ) . 'PGNGMGOGMG', 'set on level' );
 
     #    $self-> add ('XOGNGMGPGMG' . substr($id, 1) . substr($id, 1, 1) . 'J' . 'MGNGOGPG',   'add to scene');
     $self->add( 'XOGNGMGPGMG' . substr( $id, 1 ) . 'MGNGOGPG', 'add to scene' );
-    $self->add(
-        'XOGNGMGPGMG'
-          . substr( $id, 1 )
-          . substr( $id, 1, 1 ) . 'J'
-          . 'OGPGMGNG',
-        'remove from scene'
-    );
-    $self->add( 'XOGNGMGPGMG' . substr( $id, 1 ) . 'NGOGPGMG',
-        'set scene ramp rate' );
-    $self->add(
-        'X'
-          . substr( $id, 1 )
-          . substr( $id, 1, 1 ) . 'K'
-          . 'OGNGMGPGMG'
-          . substr( $id, 1 )
-          . substr( $id, 1, 1 ) . 'J'
-          . 'MGNGPGOGPG',
-        'disable transmit'
-    );
-    $self->add(
-        'X'
-          . substr( $id, 1 )
-          . substr( $id, 1, 1 ) . 'K'
-          . 'OGNGMGPGMG'
-          . substr( $id, 1 )
-          . substr( $id, 1, 1 ) . 'J'
-          . 'OGMGNGPGPG',
-        'enable transmit'
-    );
+    $self->add( 'XOGNGMGPGMG' . substr( $id, 1 ) . substr( $id, 1, 1 ) . 'J' . 'OGPGMGNG', 'remove from scene' );
+    $self->add( 'XOGNGMGPGMG' . substr( $id, 1 ) . 'NGOGPGMG', 'set scene ramp rate' );
+    $self->add( 'X' . substr( $id, 1 ) . substr( $id, 1, 1 ) . 'K' . 'OGNGMGPGMG' . substr( $id, 1 ) . substr( $id, 1, 1 ) . 'J' . 'MGNGPGOGPG',
+        'disable transmit' );
+    $self->add( 'X' . substr( $id, 1 ) . substr( $id, 1, 1 ) . 'K' . 'OGNGMGPGMG' . substr( $id, 1 ) . substr( $id, 1, 1 ) . 'J' . 'OGMGNGPGPG',
+        'enable transmit' );
 
     # WARNING!! any Switchlinc, Appliancelinc, Lamplinc, Keypadlinc, Relaylinc that are plugged in
     # or active will receive the following commands and also be locked out (per Smarthome docs)
@@ -1401,20 +1346,8 @@ sub new {
     my ( $class, $id, $interface, $type ) = @_;
     my $self = &X10_Switchlinc::new( $class, $id, $interface, $type );
 
-    $self->add(
-        'XOGNGMGPGMG'
-          . substr( $id, 1 )
-          . substr( $id, 1, 1 ) . 'J'
-          . 'PGOGMGNGOG',
-        'lamp mode'
-    );
-    $self->add(
-        'XOGNGMGPGMG'
-          . substr( $id, 1 )
-          . substr( $id, 1, 1 ) . 'J'
-          . 'PGNGOGMGOG',
-        'appliance mode'
-    );
+    $self->add( 'XOGNGMGPGMG' . substr( $id, 1 ) . substr( $id, 1, 1 ) . 'J' . 'PGOGMGNGOG', 'lamp mode' );
+    $self->add( 'XOGNGMGPGMG' . substr( $id, 1 ) . substr( $id, 1, 1 ) . 'J' . 'PGNGOGMGOG', 'appliance mode' );
 
     return $self;
 }
@@ -1442,40 +1375,12 @@ sub new {
     $self->{x10_id}              = $id;
     $self->{interface}->{x10_id} = $id;
 
-    $self->add(
-        'XOGNGMGPGMG'
-          . substr( $id, 1 )
-          . substr( $id, 1, 1 ) . 'J'
-          . 'MGNGOGPG',
-        'add to scene'
-    );
-    $self->add(
-        'XOGNGMGPGMG'
-          . substr( $id, 1 )
-          . substr( $id, 1, 1 ) . 'J'
-          . 'OGPGMGNG',
-        'remove from scene'
-    );
-    $self->add(
-        'X'
-          . substr( $id, 1 )
-          . substr( $id, 1, 1 ) . 'K'
-          . 'OGNGMGPGMG'
-          . substr( $id, 1 )
-          . substr( $id, 1, 1 ) . 'J'
-          . 'MGNGPGOGPG',
-        'disable transmit'
-    );
-    $self->add(
-        'X'
-          . substr( $id, 1 )
-          . substr( $id, 1, 1 ) . 'K'
-          . 'OGNGMGPGMG'
-          . substr( $id, 1 )
-          . substr( $id, 1, 1 ) . 'J'
-          . 'OGMGNGPGPG',
-        'enable transmit'
-    );
+    $self->add( 'XOGNGMGPGMG' . substr( $id, 1 ) . substr( $id, 1, 1 ) . 'J' . 'MGNGOGPG', 'add to scene' );
+    $self->add( 'XOGNGMGPGMG' . substr( $id, 1 ) . substr( $id, 1, 1 ) . 'J' . 'OGPGMGNG', 'remove from scene' );
+    $self->add( 'X' . substr( $id, 1 ) . substr( $id, 1, 1 ) . 'K' . 'OGNGMGPGMG' . substr( $id, 1 ) . substr( $id, 1, 1 ) . 'J' . 'MGNGPGOGPG',
+        'disable transmit' );
+    $self->add( 'X' . substr( $id, 1 ) . substr( $id, 1, 1 ) . 'K' . 'OGNGMGPGMG' . substr( $id, 1 ) . substr( $id, 1, 1 ) . 'J' . 'OGMGNGPGPG',
+        'enable transmit' );
 
     $self->add( $id . $hc . 'J',      'on' );
     $self->add( $id . $hc . 'K',      'off' );
@@ -1598,24 +1503,22 @@ sub new {
     $id                          = "X$id";
     $self->{x10_id}              = $id;
     $self->{interface}->{x10_id} = $id;
-    $self->add( $id . $hc . 'J',                           'eco' );
-    $self->add( $id . $hc . 'K',                           'normal' );
-    $self->add( $id . $hc . 'J' . $hc . '+5',              'plus' );
-    $self->add( $id . $hc . 'J' . $hc . '-5',              'moins' );
-    $self->add( $id . $hc . 'J' . $hc . '+5' . $hc . '+5', 'plus2' );
-    $self->add( $id . $hc . 'J' . $hc . '-5' . $hc . '-5', 'moins2' );
-    $self->add( $id . $hc . 'J' . $hc . '+5' . $hc . '+5' . $hc . 'L',
-        'plus3' );
-    $self->add( $id . $hc . 'J' . $hc . '-5' . $hc . '-5' . $hc . 'M',
-        'moins3' );
-    $self->add( $id . $hc . 'J',  'off' );
-    $self->add( $id . $hc . 'K',  'on' );
-    $self->add( $id . $hc . '+5', 'brighten' );
-    $self->add( $id . $hc . '-5', 'dim' );
-    $self->add( $id . $hc . 'M',  'C+1' );
-    $self->add( $id . $hc . 'N',  'C-1' );
-    $self->add( $id . $hc . 'L',  'JN' );
-    $self->add( $id,              'manual' );
+    $self->add( $id . $hc . 'J',                                       'eco' );
+    $self->add( $id . $hc . 'K',                                       'normal' );
+    $self->add( $id . $hc . 'J' . $hc . '+5',                          'plus' );
+    $self->add( $id . $hc . 'J' . $hc . '-5',                          'moins' );
+    $self->add( $id . $hc . 'J' . $hc . '+5' . $hc . '+5',             'plus2' );
+    $self->add( $id . $hc . 'J' . $hc . '-5' . $hc . '-5',             'moins2' );
+    $self->add( $id . $hc . 'J' . $hc . '+5' . $hc . '+5' . $hc . 'L', 'plus3' );
+    $self->add( $id . $hc . 'J' . $hc . '-5' . $hc . '-5' . $hc . 'M', 'moins3' );
+    $self->add( $id . $hc . 'J',                                       'off' );
+    $self->add( $id . $hc . 'K',                                       'on' );
+    $self->add( $id . $hc . '+5',                                      'brighten' );
+    $self->add( $id . $hc . '-5',                                      'dim' );
+    $self->add( $id . $hc . 'M',                                       'C+1' );
+    $self->add( $id . $hc . 'N',                                       'C-1' );
+    $self->add( $id . $hc . 'L',                                       'JN' );
+    $self->add( $id,                                                   'manual' );
     return $self;
 }
 
@@ -1680,8 +1583,7 @@ sub new {
 ##    my ($class, $id, $name, $type) = @_;
 ##    my $self = X10_Item->new();
     my ( $class, $id, $name, $type, $interface ) = @_;
-    print
-      "[X10_Sensor] class=$class, id=$id, name=$name, interface=$interface\n"
+    print "[X10_Sensor] class=$class, id=$id, name=$name, interface=$interface\n"
       if $main::Debug{x10};
     my $self = X10_Item->new( $id, $interface, $type );
 
@@ -1714,19 +1616,16 @@ sub add {
         $id = 'X' . $id . $hc . 'J';
     }
 
-    &::print_log(
-        "[X10_Sensor] Adding X10_Sensor timer for $id, name=$name type=$type")
+    &::print_log("[X10_Sensor] Adding X10_Sensor timer for $id, name=$name type=$type")
       if $main::Debug{x10_sensor};
 
     #24 hour countdown Timer
     $self->{battery_timer} = new Timer;
     $self->{battery_timer}->set(
-        ( $main::config_parms{MS13_Battery_timer} )
-        ? $main::config_parms{MS13_Battery_timer}
+        ( $main::config_parms{MS13_Battery_timer} ) ? $main::config_parms{MS13_Battery_timer}
         : 24 * 60 * 60,
         (
-            ( $main::config_parms{MS13_Battery_action} )
-            ? $main::config_parms{MS13_Battery_action}
+            ( $main::config_parms{MS13_Battery_action} ) ? $main::config_parms{MS13_Battery_action}
             : "print_log"
           )
           . " \"rooms=all Battery timer for $name expired\"",
@@ -1793,12 +1692,10 @@ sub sensorhook {
     # must still be good, so reset the countdown timer $main::config_parms{MS13_Battery_timer} hours
     # default is 24 more hours if not specified:
     $ref->{battery_timer}->set(
-        ( $main::config_parms{MS13_Battery_timer} )
-        ? $main::config_parms{MS13_Battery_timer}
+        ( $main::config_parms{MS13_Battery_timer} ) ? $main::config_parms{MS13_Battery_timer}
         : 24 * 60 * 60,
         (
-            ( $main::config_parms{MS13_Battery_action} )
-            ? $main::config_parms{MS13_Battery_action}
+            ( $main::config_parms{MS13_Battery_action} ) ? $main::config_parms{MS13_Battery_action}
             : "print_log"
           )
           . " \"rooms=all Battery timer for $ref->{name} expired\"",
@@ -1831,9 +1728,7 @@ sub new {
     my $id           = $self->{x10_id};
     my ($house_code) = $id =~ /^X(.)/;
 
-    $self->add(
-        $id . $id . $id . $id . $id . $id . $id . $id . $house_code . 'O',
-        'attention' );
+    $self->add( $id . $id . $id . $id . $id . $id . $id . $id . $house_code . 'O', 'attention' );
 
     # 0% is MPRESET_DIM1
     $self->add( $id . $preset_dim_levels[0] . 'PRESET_DIM1', "0%" );
@@ -1944,10 +1839,9 @@ sub new {
         $unit_code = substr( $id, 2, 1 );
     }
 
-    my $unit_code_index =
-      ( $unit_code =~ /\d/ ) ? $unit_code : ord($unit_code) - 55;
+    my $unit_code_index = ( $unit_code =~ /\d/ ) ? $unit_code : ord($unit_code) - 55;
     my $offset =
-      ( int( ( $unit_code_index - 1 ) / 4 ) * 4 ) + 1;   # start of camera group
+      ( int( ( $unit_code_index - 1 ) / 4 ) * 4 ) + 1;    # start of camera group
 
     for ( 0 .. 3 ) {
         my $i = substr( $unit_codes, $_ + $offset - 1, 1 );
@@ -1973,8 +1867,7 @@ sub new {
     my ( $class, $id, $interface, $type ) = @_;
 
     if ( $id eq '' ) {
-        warn
-          'X10_6ButtonRemote You need to specify the X10 code of the first button e.g. H12';
+        warn 'X10_6ButtonRemote You need to specify the X10 code of the first button e.g. H12';
     }
 
     my $self = X10_Item->new( undef, $interface, $type );

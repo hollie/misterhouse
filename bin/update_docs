@@ -53,8 +53,7 @@ my ( $Pgm_Path, $Pgm_Name );
 BEGIN {
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval
-      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";    # So perl2exe works
 }
 
 use strict;
@@ -137,11 +136,8 @@ foreach my $libsubdir ( keys %libsubdirs ) {
             print "converting $libfile to $htmlfile\n";
             $changes++;
             pod2html(
-                "--title=$lib",         "--infile=$libfile",
-                "--outfile=$htmlfile",  "--header",
-                "--htmlroot=/docs/lib", "--htmldir=$htmldir/",
-                "--podroot=../lib",     "--podpath=.",
-                "--css=/lib/pod.css",
+                "--title=$lib",     "--infile=$libfile", "--outfile=$htmlfile", "--header", "--htmlroot=/docs/lib", "--htmldir=$htmldir/",
+                "--podroot=../lib", "--podpath=.",       "--css=/lib/pod.css",
             );
         }
     }
@@ -209,11 +205,7 @@ if ($changes) {
         s/\//::/g;
         my $pod = "=item $_\n\n";
         if ( $packages{$_}{haspod} ) {
-            $pod .=
-                "L<$_|lib::"
-              . $packages{$_}{class}
-              . $packages{$_}{noext}
-              . "/$_>\n\n";
+            $pod .= "L<$_|lib::" . $packages{$_}{class} . $packages{$_}{noext} . "/$_>\n\n";
         }
         else {
             $pod .= "package $_ in $packages{$_}{pm} isn't documented yet\n\n";
@@ -257,14 +249,8 @@ closedir POD;
 my $docsi = ( stat($docdir) )[1];
 my $outi  = ( stat($outdir) )[1];
 print("[bin/update_docs] \$docsi:$docsi \$outi:$outi\n");
-if (
-    (
-           ( $docsi == $outi )
-        && ( $outi == 0 )
-        && ( abs_path($docdir) eq abs_path($outdir) )
-    )
-    || ( ( $docsi eq $outi ) && ( $outi != 0 ) )
-  )
+if (   ( ( $docsi == $outi ) && ( $outi == 0 ) && ( abs_path($docdir) eq abs_path($outdir) ) )
+    || ( ( $docsi eq $outi ) && ( $outi != 0 ) ) )
 {
     print "you should set the html_alias2_docs directory to a place outside"
       . " the mh distribution\n directory.  Otherwise, everytime this script is"
@@ -312,12 +298,8 @@ foreach my $doc ( keys %podfiles ) {
     if ( !-e "$outdir/$doc.html" or $pdate > $hdate ) {
         print "pod2html $podfile > $htmlfile\n";
 
-        pod2html(
-            "--infile=$podfile",  "--outfile=$htmlfile",
-            "--noheader",         "--htmldir=$outdir",
-            "--podroot=$docdir2", "--podpath=.",
-            "--css=/lib/pod.css", $ind
-        );
+        pod2html( "--infile=$podfile", "--outfile=$htmlfile", "--noheader", "--htmldir=$outdir", "--podroot=$docdir2", "--podpath=.",
+            "--css=/lib/pod.css", $ind );
     }
 }
 

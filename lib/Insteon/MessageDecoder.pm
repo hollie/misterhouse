@@ -116,8 +116,7 @@ my %plmcmdlen = (
     '0258' => [ 3,  3 ],
     '0260' => [ 2,  9 ],
     '0261' => [ 5,  6 ],
-    '0262' => [ 8,  9, 22, 23 ]
-    ,    # could get 9 or 23 (Standard or Extended Message received)
+    '0262' => [ 8,  9, 22, 23 ],    # could get 9 or 23 (Standard or Extended Message received)
     '0263' => [ 4,  5 ],
     '0264' => [ 4,  5 ],
     '0265' => [ 2,  3 ],
@@ -317,8 +316,7 @@ my %insteonCmd = (
         Cmd2Value => '0x02',
         Cmd2Name  => 'i2CS'
     },
-    'SD0f' =>
-      { Cmd1Name => 'Ping', Cmd2Flag => 'NA', Cmd2Value => '', Cmd2Name => '' },
+    'SD0f' => { Cmd1Name => 'Ping', Cmd2Flag => 'NA', Cmd2Value => '', Cmd2Name => '' },
     'SD10' => {
         Cmd1Name  => 'ID Request',
         Cmd2Flag  => 'NA',
@@ -1818,25 +1816,15 @@ sub plm_decode {
             else {
                 #include the STX for historical reasons
                 $plm_cmd_id = substr( $plm_string, 0, 4 );
-                $plm_message .=
-                    sprintf( "%20s: (", "PLM Command" )
-                  . $plm_cmd_id . ") "
-                  . $plmcmd2string{$plm_cmd_id} . "\n";
-                if (
-                    length($plm_string) <
-                    $plmcmdlen{ uc($plm_cmd_id) }->[0] * 2 )
-                {
-                    $plm_message .=
-                      "        Message length too short for PLM command.  Not parsed\n";
+                $plm_message .= sprintf( "%20s: (", "PLM Command" ) . $plm_cmd_id . ") " . $plmcmd2string{$plm_cmd_id} . "\n";
+                if ( length($plm_string) < $plmcmdlen{ uc($plm_cmd_id) }->[0] * 2 ) {
+                    $plm_message .= "        Message length too short for PLM command.  Not parsed\n";
                     $abort++;
                 }
-                elsif (
-                    length($plm_string) > $plmcmdlen{ uc($plm_cmd_id) }->[0] * 2
-                    and length($plm_string) <
-                    $plmcmdlen{ uc($plm_cmd_id) }->[1] * 2 )
+                elsif ( length($plm_string) > $plmcmdlen{ uc($plm_cmd_id) }->[0] * 2
+                    and length($plm_string) < $plmcmdlen{ uc($plm_cmd_id) }->[1] * 2 )
                 {
-                    $plm_message .=
-                      "        Message length too short for PLM command.  Not parsed\n";
+                    $plm_message .= "        Message length too short for PLM command.  Not parsed\n";
                     $abort++;
                 }
                 elsif ( substr( $plm_string, 2, 1 ) == '5' ) {
@@ -1863,13 +1851,10 @@ sub plm_decode {
                   . substr( $plm_string, 10, 2 ) . ":"
                   . substr( $plm_string, 12, 2 ) . ":"
                   . substr( $plm_string, 14, 2 ) . "\n";
-                $plm_message .= sprintf( "%24s: ", 'Message Flags' )
-                  . substr( $plm_string, 16, 2 ) . "\n";
-                $plm_message .=
-                  insteon_message_flags_decode( substr( $plm_string, 16, 2 ) );
+                $plm_message .= sprintf( "%24s: ", 'Message Flags' ) . substr( $plm_string, 16, 2 ) . "\n";
+                $plm_message .= insteon_message_flags_decode( substr( $plm_string, 16, 2 ) );
                 my $flag_ext = hex( substr( $plm_string, 16, 1 ) ) & 0b0001;
-                $plm_message .= sprintf( "%24s: ", 'Insteon Message' )
-                  . substr( $plm_string, 18, ( $flag_ext ? 32 : 4 ) ) . "\n";
+                $plm_message .= sprintf( "%24s: ", 'Insteon Message' ) . substr( $plm_string, 18, ( $flag_ext ? 32 : 4 ) ) . "\n";
                 $plm_message .= insteon_decode( substr( $plm_string, 16 ) );
             }
             elsif ( $plm_cmd_id eq '0251' ) {
@@ -1883,48 +1868,31 @@ sub plm_decode {
                   . substr( $plm_string, 10, 2 ) . ":"
                   . substr( $plm_string, 12, 2 ) . ":"
                   . substr( $plm_string, 14, 2 ) . "\n";
-                $plm_message .= sprintf( "%24s: ", 'Message Flags' )
-                  . substr( $plm_string, 16, 2 ) . "\n";
-                $plm_message .=
-                  insteon_message_flags_decode( substr( $plm_string, 16, 2 ) );
+                $plm_message .= sprintf( "%24s: ", 'Message Flags' ) . substr( $plm_string, 16, 2 ) . "\n";
+                $plm_message .= insteon_message_flags_decode( substr( $plm_string, 16, 2 ) );
                 my $flag_ext = hex( substr( $plm_string, 16, 1 ) ) & 0b0001;
-                $plm_message .= sprintf( "%24s: ", 'Insteon Message' )
-                  . substr( $plm_string, 18, ( $flag_ext ? 32 : 4 ) ) . "\n";
+                $plm_message .= sprintf( "%24s: ", 'Insteon Message' ) . substr( $plm_string, 18, ( $flag_ext ? 32 : 4 ) ) . "\n";
                 $plm_message .= insteon_decode( substr( $plm_string, 16 ) );
             }
             elsif ( $plm_cmd_id eq '0252' ) {
-                $plm_message .= sprintf( "%20s: ", 'X10 Message' )
-                  . substr( $plm_string, 4, 4 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'X10 Message' ) . substr( $plm_string, 4, 4 ) . "\n";
                 $plm_message .= plm_x10_decode( substr( $plm_string, 4, 4 ) );
             }
             elsif ( $plm_cmd_id eq '0253' ) {
-                my @link_string = (
-                    'PLM is Responder',
-                    'PLM is Controller',
-                    'All-Link deleted'
-                );
-                $plm_message .=
-                    sprintf( "%20s: (", 'Link Code' )
-                  . substr( $plm_string, 4, 2 ) . ") "
-                  . $link_string[ substr( $plm_string, 4, 2 ) ] . "\n";
-                $plm_message .= sprintf( "%20s: ", 'All-Link Group' )
-                  . substr( $plm_string, 6, 2 ) . "\n";
+                my @link_string = ( 'PLM is Responder', 'PLM is Controller', 'All-Link deleted' );
+                $plm_message .= sprintf( "%20s: (", 'Link Code' ) . substr( $plm_string, 4, 2 ) . ") " . $link_string[ substr( $plm_string, 4, 2 ) ] . "\n";
+                $plm_message .= sprintf( "%20s: ", 'All-Link Group' ) . substr( $plm_string, 6, 2 ) . "\n";
                 $plm_message .=
                     sprintf( "%20s: ", 'Linked Device' )
                   . substr( $plm_string, 8,  2 ) . ":"
                   . substr( $plm_string, 10, 2 ) . ":"
                   . substr( $plm_string, 12, 2 ) . "\n";
-                $plm_message .=
-                    sprintf( "%20s: ", 'Device Category' )
-                  . substr( $plm_string, 14, 2 ) . ":"
-                  . substr( $plm_string, 16, 2 ) . "\n";
-                $plm_message .= sprintf( "%20s: ", 'Firmware' )
-                  . substr( $plm_string, 18, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'Device Category' ) . substr( $plm_string, 14, 2 ) . ":" . substr( $plm_string, 16, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'Firmware' ) . substr( $plm_string, 18, 2 ) . "\n";
             }
             elsif ( $plm_cmd_id eq '0254' ) {
                 my @buttons = ( 'SET Button ', 'Button 2 ', 'Button 3 ' );
-                my @button_event =
-                  ( '', '', 'Tapped', 'Held 3 seconds', 'Released' );
+                my @button_event = ( '', '', 'Tapped', 'Held 3 seconds', 'Released' );
                 $plm_message .=
                     sprintf( "%20s: (", 'Button Event' )
                   . substr( $plm_string, 4, 2 ) . ") "
@@ -1936,34 +1904,23 @@ sub plm_decode {
                 #Nothing else to do
             }
             elsif ( $plm_cmd_id eq '0256' ) {
-                $plm_message .= sprintf( "%20s: ", 'All-Link Group' )
-                  . substr( $plm_string, 4, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'All-Link Group' ) . substr( $plm_string, 4, 2 ) . "\n";
                 $plm_message .=
-                    sprintf( "%20s: ", 'Device' )
-                  . substr( $plm_string, 6,  2 ) . ":"
-                  . substr( $plm_string, 8,  2 ) . ":"
-                  . substr( $plm_string, 10, 2 ) . "\n";
+                  sprintf( "%20s: ", 'Device' ) . substr( $plm_string, 6, 2 ) . ":" . substr( $plm_string, 8, 2 ) . ":" . substr( $plm_string, 10, 2 ) . "\n";
             }
             elsif ( $plm_cmd_id eq '0257' ) {
-                $plm_message .= sprintf( "%20s: ", 'All-Link Flags' )
-                  . substr( $plm_string, 4, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'All-Link Flags' ) . substr( $plm_string, 4, 2 ) . "\n";
                 my $flags = hex( substr( $plm_string, 4, 2 ) );
-                $plm_message .= sprintf( "%20s: Record is ", 'Bit 7' )
-                  . ( $flags & 0b10000000 ? 'in use' : 'available' ) . "\n";
-                $plm_message .= sprintf( "%20s: PLM is ", 'Bit 6' )
-                  . ( $flags & 0b01000000 ? 'controller' : 'responder' ) . "\n";
-                $plm_message .=
-                    sprintf( "%20s: ACK is ", 'Bit 5' )
-                  . ( $flags & 0b00100000 ? 'required' : 'not required' )
-                  . "\n";
+                $plm_message .= sprintf( "%20s: Record is ", 'Bit 7' ) . ( $flags & 0b10000000 ? 'in use'     : 'available' ) . "\n";
+                $plm_message .= sprintf( "%20s: PLM is ",    'Bit 6' ) . ( $flags & 0b01000000 ? 'controller' : 'responder' ) . "\n";
+                $plm_message .= sprintf( "%20s: ACK is ",    'Bit 5' ) . ( $flags & 0b00100000 ? 'required'   : 'not required' ) . "\n";
                 $plm_message .= sprintf( "%20s: Record has ", 'Bit 1' )
                   . (
                     $flags & 0b00000001
                     ? 'been used before'
                     : 'not been used before'
                   ) . "\n";
-                $plm_message .= sprintf( "%20s: ", 'All-Link Group' )
-                  . substr( $plm_string, 6, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'All-Link Group' ) . substr( $plm_string, 6, 2 ) . "\n";
                 $plm_message .=
                     sprintf( "%20s: ", 'Linked Device' )
                   . substr( $plm_string, 8,  2 ) . ":"
@@ -1971,25 +1928,18 @@ sub plm_decode {
                   . substr( $plm_string, 12, 2 ) . "\n";
 
                 #XXXX				$plm_message .= sprintf("%20s: ",'Link Data').substr($plm_string,14,6)."\n";
-                $plm_message .= sprintf( "%20s: ", 'All-Link Command1' )
-                  . substr( $plm_string, 14, 2 ) . "\n";
-                $plm_message .= sprintf( "%20s: ", 'All-Link Command2' )
-                  . substr( $plm_string, 16, 2 ) . "\n";
-                $plm_message .= sprintf( "%20s: ", 'All-Link Data' )
-                  . substr( $plm_string, 18, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'All-Link Command1' ) . substr( $plm_string, 14, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'All-Link Command2' ) . substr( $plm_string, 16, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'All-Link Data' ) . substr( $plm_string, 18, 2 ) . "\n";
 
                 #TODO:  Find insteon information for link data decode
             }
             elsif ( $plm_cmd_id eq '0258' ) {
                 $plm_message .=
-                    sprintf( "%20s: (", 'Status Byte' )
-                  . substr( $plm_string, 4, 2 ) . ") "
-                  . ( substr( $plm_string, 4, 2 ) eq '06' ? "ACK" : "NACK" )
-                  . "\n";
+                  sprintf( "%20s: (", 'Status Byte' ) . substr( $plm_string, 4, 2 ) . ") " . ( substr( $plm_string, 4, 2 ) eq '06' ? "ACK" : "NACK" ) . "\n";
             }
             else {
-                $plm_message .= sprintf( "%20s: (", 'Undefined Cmd Data' )
-                  . substr( $plm_string, 4 ) . ")\n";
+                $plm_message .= sprintf( "%20s: (", 'Undefined Cmd Data' ) . substr( $plm_string, 4 ) . ")\n";
             }
             $finished++;
         }
@@ -2004,22 +1954,15 @@ sub plm_decode {
                       . substr( $plm_string, 4, 2 ) . ":"
                       . substr( $plm_string, 6, 2 ) . ":"
                       . substr( $plm_string, 8, 2 ) . "\n";
-                    $plm_message .=
-                        sprintf( "%20s: ", 'Device Category' )
-                      . substr( $plm_string, 10, 2 ) . ":"
-                      . substr( $plm_string, 12, 2 ) . "\n";
-                    $plm_message .= sprintf( "%20s: ", 'Firmware' )
-                      . substr( $plm_string, 14, 2 ) . "\n";
+                    $plm_message .= sprintf( "%20s: ", 'Device Category' ) . substr( $plm_string, 10, 2 ) . ":" . substr( $plm_string, 12, 2 ) . "\n";
+                    $plm_message .= sprintf( "%20s: ", 'Firmware' ) . substr( $plm_string, 14, 2 ) . "\n";
                 }
                 $plm_ack_pos = 16;
             }
             elsif ( $plm_cmd_id eq '0261' ) {
-                $plm_message .= sprintf( "%20s: ", 'All-Link Group' )
-                  . substr( $plm_string, 4, 2 ) . "\n";
-                $plm_message .= sprintf( "%20s: ", 'All-Link Command1' )
-                  . substr( $plm_string, 6, 2 ) . "\n";
-                $plm_message .= sprintf( "%20s: ", 'All-Link Command2' )
-                  . substr( $plm_string, 8, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'All-Link Group' ) . substr( $plm_string, 4, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'All-Link Command1' ) . substr( $plm_string, 6, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'All-Link Command2' ) . substr( $plm_string, 8, 2 ) . "\n";
                 $plm_ack_pos = 10;
 
                 #TODO:  look up insteon information for all-link command1 / command2 decode
@@ -2030,19 +1973,15 @@ sub plm_decode {
                   . substr( $plm_string, 4, 2 ) . ":"
                   . substr( $plm_string, 6, 2 ) . ":"
                   . substr( $plm_string, 8, 2 ) . "\n";
-                $plm_message .= sprintf( "%24s: ", 'Message Flags' )
-                  . substr( $plm_string, 10, 2 ) . "\n";
-                $plm_message .=
-                  insteon_message_flags_decode( substr( $plm_string, 10, 2 ) );
+                $plm_message .= sprintf( "%24s: ", 'Message Flags' ) . substr( $plm_string, 10, 2 ) . "\n";
+                $plm_message .= insteon_message_flags_decode( substr( $plm_string, 10, 2 ) );
                 my $flag_ext = hex( substr( $plm_string, 10, 1 ) ) & 0b0001;
-                $plm_message .= sprintf( "%24s: ", 'Insteon Message' )
-                  . substr( $plm_string, 12, ( $flag_ext ? 32 : 4 ) ) . "\n";
+                $plm_message .= sprintf( "%24s: ", 'Insteon Message' ) . substr( $plm_string, 12, ( $flag_ext ? 32 : 4 ) ) . "\n";
                 $plm_message .= insteon_decode( substr( $plm_string, 10 ) );
                 $plm_ack_pos = $flag_ext ? 44 : 16;
             }
             elsif ( $plm_cmd_id eq '0263' ) {
-                $plm_message .= sprintf( "%20s: ", 'X10 Message' )
-                  . substr( $plm_string, 4, 4 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'X10 Message' ) . substr( $plm_string, 4, 4 ) . "\n";
                 $plm_message .= plm_x10_decode( substr( $plm_string, 4, 4 ) );
                 $plm_ack_pos = 8;
             }
@@ -2053,32 +1992,23 @@ sub plm_decode {
                     '03' => 'PLM is either Responder or Controller',
                     'ff' => 'Delete All-Link'
                 );
-                $plm_message .=
-                    sprintf( "%20s: (", 'Link Code' )
-                  . substr( $plm_string, 4, 2 ) . ") "
-                  . $link_string{ substr( $plm_string, 4, 2 ) } . "\n";
-                $plm_message .= sprintf( "%20s: ", 'All-Link Group' )
-                  . substr( $plm_string, 6, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: (", 'Link Code' ) . substr( $plm_string, 4, 2 ) . ") " . $link_string{ substr( $plm_string, 4, 2 ) } . "\n";
+                $plm_message .= sprintf( "%20s: ", 'All-Link Group' ) . substr( $plm_string, 6, 2 ) . "\n";
                 $plm_ack_pos = 8;
             }
             elsif ( $plm_cmd_id eq '0265' ) {
                 $plm_ack_pos = 4;
             }
             elsif ( $plm_cmd_id eq '0266' ) {
-                $plm_message .=
-                    sprintf( "%20s: ", 'Device Category' )
-                  . substr( $plm_string, 4, 2 ) . ":"
-                  . substr( $plm_string, 6, 2 ) . "\n";
-                $plm_message .= sprintf( "%20s: ", 'Firmware' )
-                  . substr( $plm_string, 8, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'Device Category' ) . substr( $plm_string, 4, 2 ) . ":" . substr( $plm_string, 6, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'Firmware' ) . substr( $plm_string, 8, 2 ) . "\n";
                 $plm_ack_pos = 10;
             }
             elsif ( $plm_cmd_id eq '0267' ) {
                 $plm_ack_pos = 4;
             }
             elsif ( $plm_cmd_id eq '0268' ) {
-                $plm_message .= sprintf( "%20s: ", 'Command2 Data' )
-                  . substr( $plm_string, 4, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'Command2 Data' ) . substr( $plm_string, 4, 2 ) . "\n";
                 $plm_ack_pos = 6;
             }
             elsif ( $plm_cmd_id eq '0269' ) {
@@ -2088,17 +2018,12 @@ sub plm_decode {
                 $plm_ack_pos = 4;
             }
             elsif ( $plm_cmd_id eq '026b' ) {
-                $plm_message .= sprintf( "%20s: (", 'PLM Config Flags' )
-                  . substr( $plm_string, 4, 2 ) . ")\n";
+                $plm_message .= sprintf( "%20s: (", 'PLM Config Flags' ) . substr( $plm_string, 4, 2 ) . ")\n";
                 my $flags = hex( substr( $plm_string, 4, 2 ) );
-                $plm_message .= sprintf( "%20s: Automatic Linking ", 'Bit 7' )
-                  . ( $flags & 0b10000000 ? 'Disabled' : 'Enabled' ) . "\n";
-                $plm_message .= sprintf( "%20s: Monitor Mode ", 'Bit 6' )
-                  . ( $flags & 0b01000000 ? 'Enabled' : 'Disabled' ) . "\n";
-                $plm_message .= sprintf( "%20s: Automatic LED ", 'Bit 5' )
-                  . ( $flags & 0b00100000 ? 'Disabled' : 'Enabled' ) . "\n";
-                $plm_message .= sprintf( "%20s: Deadman Feature ", 'Bit 4' )
-                  . ( $flags & 0b00010000 ? 'Disabled' : 'Enabled' ) . "\n";
+                $plm_message .= sprintf( "%20s: Automatic Linking ", 'Bit 7' ) . ( $flags & 0b10000000 ? 'Disabled' : 'Enabled' ) . "\n";
+                $plm_message .= sprintf( "%20s: Monitor Mode ",      'Bit 6' ) . ( $flags & 0b01000000 ? 'Enabled'  : 'Disabled' ) . "\n";
+                $plm_message .= sprintf( "%20s: Automatic LED ",     'Bit 5' ) . ( $flags & 0b00100000 ? 'Disabled' : 'Enabled' ) . "\n";
+                $plm_message .= sprintf( "%20s: Deadman Feature ",   'Bit 4' ) . ( $flags & 0b00010000 ? 'Disabled' : 'Enabled' ) . "\n";
                 $plm_ack_pos = 6;
             }
             elsif ( $plm_cmd_id eq '026c' ) {
@@ -2120,28 +2045,19 @@ sub plm_decode {
                     '80' => 'Delete All-Link Record'
                 );
                 $plm_message .=
-                    sprintf( "%20s: (", 'Control code' )
-                  . substr( $plm_string, 4, 2 ) . ") "
-                  . $control_string{ substr( $plm_string, 4, 2 ) } . "\n";
-                $plm_message .= sprintf( "%20s: ", 'All-Link Flags' )
-                  . substr( $plm_string, 6, 2 ) . "\n";
+                  sprintf( "%20s: (", 'Control code' ) . substr( $plm_string, 4, 2 ) . ") " . $control_string{ substr( $plm_string, 4, 2 ) } . "\n";
+                $plm_message .= sprintf( "%20s: ", 'All-Link Flags' ) . substr( $plm_string, 6, 2 ) . "\n";
                 my $flags = hex( substr( $plm_string, 6, 2 ) );
-                $plm_message .= sprintf( "%20s: Record is ", 'Bit 7' )
-                  . ( $flags & 0b10000000 ? 'in use' : 'available' ) . "\n";
-                $plm_message .= sprintf( "%20s: PLM is ", 'Bit 6' )
-                  . ( $flags & 0b01000000 ? 'controller' : 'responder' ) . "\n";
-                $plm_message .=
-                    sprintf( "%20s: ACK is ", 'Bit 5' )
-                  . ( $flags & 0b00100000 ? 'required' : 'not required' )
-                  . "\n";
+                $plm_message .= sprintf( "%20s: Record is ", 'Bit 7' ) . ( $flags & 0b10000000 ? 'in use'     : 'available' ) . "\n";
+                $plm_message .= sprintf( "%20s: PLM is ",    'Bit 6' ) . ( $flags & 0b01000000 ? 'controller' : 'responder' ) . "\n";
+                $plm_message .= sprintf( "%20s: ACK is ",    'Bit 5' ) . ( $flags & 0b00100000 ? 'required'   : 'not required' ) . "\n";
                 $plm_message .= sprintf( "%20s: Record has ", 'Bit 1' )
                   . (
                     $flags & 0b00000001
                     ? 'been used before'
                     : 'not been used before'
                   ) . "\n";
-                $plm_message .= sprintf( "%20s: ", 'All-Link Group' )
-                  . substr( $plm_string, 8, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'All-Link Group' ) . substr( $plm_string, 8, 2 ) . "\n";
                 $plm_message .=
                     sprintf( "%20s: ", 'Linked Device' )
                   . substr( $plm_string, 10, 2 ) . ":"
@@ -2149,26 +2065,20 @@ sub plm_decode {
                   . substr( $plm_string, 14, 2 ) . "\n";
 
                 #				$plm_message .= sprintf("%20s: ",'Link Data').substr($plm_string,16,6)."\n";
-                $plm_message .= sprintf( "%20s: ", 'All-Link Command1' )
-                  . substr( $plm_string, 16, 2 ) . "\n";
-                $plm_message .= sprintf( "%20s: ", 'All-Link Command2' )
-                  . substr( $plm_string, 18, 2 ) . "\n";
-                $plm_message .= sprintf( "%20s: ", 'All-Link Data' )
-                  . substr( $plm_string, 20, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'All-Link Command1' ) . substr( $plm_string, 16, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'All-Link Command2' ) . substr( $plm_string, 18, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'All-Link Data' ) . substr( $plm_string, 20, 2 ) . "\n";
                 $plm_ack_pos = 22;
 
                 #TODO:  Find insteon information for link data decode
             }
             elsif ( $plm_cmd_id eq '0270' ) {
-                $plm_message .= sprintf( "%20s: ", 'Command2 Data' )
-                  . substr( $plm_string, 4, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'Command2 Data' ) . substr( $plm_string, 4, 2 ) . "\n";
                 $plm_ack_pos = 6;
             }
             elsif ( $plm_cmd_id eq '0271' ) {
-                $plm_message .= sprintf( "%20s: ", 'Command1 Data' )
-                  . substr( $plm_string, 4, 2 ) . "\n";
-                $plm_message .= sprintf( "%20s: ", 'Command2 Data' )
-                  . substr( $plm_string, 6, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'Command1 Data' ) . substr( $plm_string, 4, 2 ) . "\n";
+                $plm_message .= sprintf( "%20s: ", 'Command2 Data' ) . substr( $plm_string, 6, 2 ) . "\n";
                 $plm_ack_pos = 8;
             }
             elsif ( $plm_cmd_id eq '0272' ) {
@@ -2176,28 +2086,19 @@ sub plm_decode {
             }
             elsif ( $plm_cmd_id eq '0273' ) {
                 if ( length($plm_string) > 4 ) {
-                    $plm_message .= sprintf( "%20s: (", 'PLM Config Flags' )
-                      . substr( $plm_string, 4, 2 ) . ")\n";
+                    $plm_message .= sprintf( "%20s: (", 'PLM Config Flags' ) . substr( $plm_string, 4, 2 ) . ")\n";
                     my $flags = hex( substr( $plm_string, 4, 2 ) );
-                    $plm_message .=
-                      sprintf( "%20s: Automatic Linking ", 'Bit 7' )
-                      . ( $flags & 0b10000000 ? 'Disabled' : 'Enabled' ) . "\n";
-                    $plm_message .= sprintf( "%20s: Monitor Mode ", 'Bit 6' )
-                      . ( $flags & 0b01000000 ? 'Enabled' : 'Disabled' ) . "\n";
-                    $plm_message .= sprintf( "%20s: Automatic LED ", 'Bit 5' )
-                      . ( $flags & 0b00100000 ? 'Disabled' : 'Enabled' ) . "\n";
-                    $plm_message .= sprintf( "%20s: Deadman Feature ", 'Bit 4' )
-                      . ( $flags & 0b00010000 ? 'Disabled' : 'Enabled' ) . "\n";
-                    $plm_message .= sprintf( "%20s: ", 'Spare 1' )
-                      . substr( $plm_string, 6, 2 ) . "\n";
-                    $plm_message .= sprintf( "%20s: ", 'Spare 2' )
-                      . substr( $plm_string, 8, 2 ) . "\n";
+                    $plm_message .= sprintf( "%20s: Automatic Linking ", 'Bit 7' ) . ( $flags & 0b10000000 ? 'Disabled' : 'Enabled' ) . "\n";
+                    $plm_message .= sprintf( "%20s: Monitor Mode ",      'Bit 6' ) . ( $flags & 0b01000000 ? 'Enabled'  : 'Disabled' ) . "\n";
+                    $plm_message .= sprintf( "%20s: Automatic LED ",     'Bit 5' ) . ( $flags & 0b00100000 ? 'Disabled' : 'Enabled' ) . "\n";
+                    $plm_message .= sprintf( "%20s: Deadman Feature ",   'Bit 4' ) . ( $flags & 0b00010000 ? 'Disabled' : 'Enabled' ) . "\n";
+                    $plm_message .= sprintf( "%20s: ", 'Spare 1' ) . substr( $plm_string, 6, 2 ) . "\n";
+                    $plm_message .= sprintf( "%20s: ", 'Spare 2' ) . substr( $plm_string, 8, 2 ) . "\n";
                 }
                 $plm_ack_pos = 10;
             }
             else {
-                $plm_message .= sprintf( "%20s: (", 'Undefined Cmd Data' )
-                  . substr( $plm_string, 4 ) . ")\n";
+                $plm_message .= sprintf( "%20s: (", 'Undefined Cmd Data' ) . substr( $plm_string, 4 ) . ")\n";
                 $plm_ack_pos = 255;
             }
 
@@ -2228,21 +2129,13 @@ sub plm_x10_decode {
     $x10_string = lc($x10_string);
 
     my $x10_message = '';
-    $x10_message .=
-        sprintf( "%24s: (", 'X10 House Code' )
-      . substr( $x10_string, 0, 1 ) . ") "
-      . uc( $x10_house_codes{ substr( $x10_string, 0, 1 ) } ) . "\n";
+    $x10_message .= sprintf( "%24s: (", 'X10 House Code' ) . substr( $x10_string, 0, 1 ) . ") " . uc( $x10_house_codes{ substr( $x10_string, 0, 1 ) } ) . "\n";
     if ( substr( $x10_string, 2, 1 ) == '8' ) {
-        $x10_message .=
-            sprintf( "%24s: (", 'X10 Command' )
-          . substr( $x10_string, 1, 1 ) . ") "
-          . $x10_commands{ substr( $x10_string, 1, 1 ) } . "\n";
+        $x10_message .= sprintf( "%24s: (", 'X10 Command' ) . substr( $x10_string, 1, 1 ) . ") " . $x10_commands{ substr( $x10_string, 1, 1 ) } . "\n";
     }
     else {
         $x10_message .=
-            sprintf( "%24s: (", 'X10 Unit Code' )
-          . substr( $x10_string, 1, 1 ) . ") "
-          . uc( $x10_unit_codes{ substr( $x10_string, 1, 1 ) } ) . "\n";
+          sprintf( "%24s: (", 'X10 Unit Code' ) . substr( $x10_string, 1, 1 ) . ") " . uc( $x10_unit_codes{ substr( $x10_string, 1, 1 ) } ) . "\n";
     }
     return ($x10_message);
 }
@@ -2271,14 +2164,10 @@ sub insteon_message_flags_decode {
 
     my $flag_msg = hex( substr( $flags_string, 0, 1 ) ) >> 1;
     my $flag_ext = hex( substr( $flags_string, 0, 1 ) ) & 0b0001;
-    $flags_message .= sprintf( "%28s: (%03b) ", 'Message Type', $flag_msg )
-      . $message_string{$flag_msg} . "\n";
-    $flags_message .= sprintf( "%28s: (%01b) ", 'Message Length', $flag_ext )
-      . ( $flag_ext ? 'Extended Length' : 'Standard Length' ) . "\n";
-    $flags_message .= sprintf( "%28s: %d\n",
-        'Hops Left', hex( substr( $flags_string, 1, 1 ) ) >> 2 );
-    $flags_message .= sprintf( "%28s: %d\n",
-        'Max Hops', hex( substr( $flags_string, 1, 1 ) ) & 0b0011 );
+    $flags_message .= sprintf( "%28s: (%03b) ", 'Message Type', $flag_msg ) . $message_string{$flag_msg} . "\n";
+    $flags_message .= sprintf( "%28s: (%01b) ", 'Message Length', $flag_ext ) . ( $flag_ext ? 'Extended Length' : 'Standard Length' ) . "\n";
+    $flags_message .= sprintf( "%28s: %d\n", 'Hops Left', hex( substr( $flags_string, 1, 1 ) ) >> 2 );
+    $flags_message .= sprintf( "%28s: %d\n", 'Max Hops',  hex( substr( $flags_string, 1, 1 ) ) & 0b0011 );
     return ($flags_message);
 }
 
@@ -2333,36 +2222,30 @@ sub insteon_decode {
     if ( $msg_type == 0 ) {
 
         #SD/ED: Standard/Extended Direct
-        $insteon_message .= insteon_decode_cmd( ( $extended ? 'ED' : 'SD' ),
-            $cmd1, $cmd2, $extended, $data );
+        $insteon_message .= insteon_decode_cmd( ( $extended ? 'ED' : 'SD' ), $cmd1, $cmd2, $extended, $data );
     }
     elsif ( $msg_type == 1 or $msg_type == 5 ) {
 
         #SDA/EDA: Standard/Extended Direct ACK/NACK
-        $insteon_message .= insteon_decode_cmd( ( $extended ? 'EDA' : 'SDA' ),
-            $cmd1, $cmd2, $extended, $data );
+        $insteon_message .= insteon_decode_cmd( ( $extended ? 'EDA' : 'SDA' ), $cmd1, $cmd2, $extended, $data );
     }
     elsif ( $msg_type == 6 ) {
 
         #SA: Standard All-Link Broadcast
-        $insteon_message .=
-          insteon_decode_cmd( 'SA', $cmd1, $cmd2, $extended, $data );
+        $insteon_message .= insteon_decode_cmd( 'SA', $cmd1, $cmd2, $extended, $data );
     }
     elsif ( $msg_type == 2 ) {
 
         #SC: Standard Direct Cleanup
-        $insteon_message .=
-          insteon_decode_cmd( 'SC', $cmd1, $cmd2, $extended, $data );
+        $insteon_message .= insteon_decode_cmd( 'SC', $cmd1, $cmd2, $extended, $data );
     }
     elsif ( $msg_type == 3 or $msg_type == 7 ) {
 
         #SCA: Standard Direct Cleanup ACK/NACK
-        $insteon_message .=
-          insteon_decode_cmd( 'SCA', $cmd1, $cmd2, $extended, $data );
+        $insteon_message .= insteon_decode_cmd( 'SCA', $cmd1, $cmd2, $extended, $data );
     }
     else {
-        $insteon_message .=
-          sprintf( "%28s: ", '' ) . "Insteon message type not decoded\n";
+        $insteon_message .= sprintf( "%28s: ", '' ) . "Insteon message type not decoded\n";
     }
 
     return $insteon_message;
@@ -2391,10 +2274,7 @@ sub insteon_decode_cmd {
         if ( !defined($cmdDecoder1) ) {
 
             #still not found so quit trying to decode
-            $insteon_message .=
-                sprintf( "%28s: ", 'Cmd 1' )
-              . $cmd1
-              . " Insteon command not decoded\n";
+            $insteon_message .= sprintf( "%28s: ", 'Cmd 1' ) . $cmd1 . " Insteon command not decoded\n";
             $insteon_message .= sprintf( "%28s: ", 'Cmd 2' ) . $cmd2 . "\n";
             $insteon_message .= sprintf( "%28s: ", 'D1-D14' ) . $Data . "\n"
               if ($extended);
@@ -2422,51 +2302,32 @@ sub insteon_decode_cmd {
         if ( !defined($cmdDecoder2) ) {
 
             #still not found so don't decode
-            $insteon_message .=
-                sprintf( "%28s: ", 'Cmd 1' )
-              . $cmd1
-              . " Insteon command not decoded\n";
+            $insteon_message .= sprintf( "%28s: ", 'Cmd 1' ) . $cmd1 . " Insteon command not decoded\n";
             $insteon_message .= sprintf( "%28s: ", 'Cmd 2' ) . $cmd2 . "\n";
             $insteon_message .= sprintf( "%28s: ", 'D1-D14' ) . $Data . "\n"
               if ($extended);
         }
         else {
-            $insteon_message .=
-                sprintf( "%28s: (", 'Cmd 1' )
-              . $cmd1 . ") "
-              . $cmdDecoder2->{'Cmd1Name'} . "\n";
-            $insteon_message .=
-                sprintf( "%28s: (", 'Cmd 2' )
-              . $cmd2 . ") "
-              . $cmdDecoder2->{'Cmd2Name'} . "\n";
-            $insteon_message .= sprintf( "%28s: ", 'D1-D14' ) . $Data . "\n"
+            $insteon_message .= sprintf( "%28s: (", 'Cmd 1' ) . $cmd1 . ") " . $cmdDecoder2->{'Cmd1Name'} . "\n";
+            $insteon_message .= sprintf( "%28s: (", 'Cmd 2' ) . $cmd2 . ") " . $cmdDecoder2->{'Cmd2Name'} . "\n";
+            $insteon_message .= sprintf( "%28s: ",  'D1-D14' ) . $Data . "\n"
               if ($extended);
         }
     }
     elsif ( $cmdDecoder1->{'Cmd2Flag'} eq 'Value' ) {
-        $insteon_message .=
-            sprintf( "%28s: (", 'Cmd 1' )
-          . $cmd1 . ") "
-          . $cmdDecoder1->{'Cmd1Name'} . "\n";
-        $insteon_message .=
-            sprintf( "%28s: (", 'Cmd 2' )
-          . $cmd2 . ") "
-          . $cmdDecoder1->{'Cmd2Name'} . "\n";
-        $insteon_message .= sprintf( "%28s: ", 'D1-D14' ) . $Data . "\n"
+        $insteon_message .= sprintf( "%28s: (", 'Cmd 1' ) . $cmd1 . ") " . $cmdDecoder1->{'Cmd1Name'} . "\n";
+        $insteon_message .= sprintf( "%28s: (", 'Cmd 2' ) . $cmd2 . ") " . $cmdDecoder1->{'Cmd2Name'} . "\n";
+        $insteon_message .= sprintf( "%28s: ",  'D1-D14' ) . $Data . "\n"
           if ($extended);
     }
     elsif ( $cmdDecoder1->{'Cmd2Flag'} eq 'NA' ) {
-        $insteon_message .=
-            sprintf( "%28s: (", 'Cmd 1' )
-          . $cmd1 . ") "
-          . $cmdDecoder1->{'Cmd1Name'} . "\n";
-        $insteon_message .= sprintf( "%28s: ", 'Cmd 2' ) . $cmd2 . "\n";
-        $insteon_message .= sprintf( "%28s: ", 'D1-D14' ) . $Data . "\n"
+        $insteon_message .= sprintf( "%28s: (", 'Cmd 1' ) . $cmd1 . ") " . $cmdDecoder1->{'Cmd1Name'} . "\n";
+        $insteon_message .= sprintf( "%28s: ",  'Cmd 2' ) . $cmd2 . "\n";
+        $insteon_message .= sprintf( "%28s: ",  'D1-D14' ) . $Data . "\n"
           if ($extended);
     }
     else {
-        $insteon_message .= "Parse database has undefined Cmd2Flag: "
-          . $cmdDecoder1->{'Cmd2Flag'};
+        $insteon_message .= "Parse database has undefined Cmd2Flag: " . $cmdDecoder1->{'Cmd2Flag'};
     }
 
     return $insteon_message;

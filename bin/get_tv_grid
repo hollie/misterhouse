@@ -42,36 +42,32 @@ use strict;
 my ( $Pgm_Path, $Pgm_Name, $Version );
 
 BEGIN {
-    ($Version) =
-      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ($Version) = q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval
-      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";    # So perl2exe works
 }
 
 require "RedirAgent.pm";
 
 #require "SMSAgent.pm";
-require 'handy_utilities.pl';                                # For read_mh_opts
-require 'handy_net_utilities.pl'
-  ;    # For net_mail_send <-- causes probs in perl 5.6.1 with -w flag!
+require 'handy_utilities.pl';                                      # For read_mh_opts
+require 'handy_net_utilities.pl';                                  # For net_mail_send <-- causes probs in perl 5.6.1 with -w flag!
 
 use Getopt::Long;
 use LWP::Simple;
 use LWP::UserAgent;
 use HTTP::Cookies;
 use HTTP::Request::Common;
-use vars '%config_parms';    # Not a my, as called from handy_net_utils
+use vars '%config_parms';                                          # Not a my, as called from handy_net_utils
 
 #======================================================================
 # Variable declarations and other init
 #======================================================================
 # Globals
 #
-my ( %parms, $didLogIn, $infile, $outfile, %channels_skip, %channels_keep,
-    $channel_data );
-my ( $url, $ua, $cookie_jar, $req_get1, $req_get2, $req_post, $logged_in );
+my ( %parms, $didLogIn, $infile,     $outfile,  %channels_skip, %channels_keep, $channel_data );
+my ( $url,   $ua,       $cookie_jar, $req_get1, $req_get2,      $req_post,      $logged_in );
 my ( @hours, %providers, @uas );
 my ( $dbm_file, $dbm_file2 );
 my ( %DBM,      %DBM2 );
@@ -96,22 +92,10 @@ my $dbgSubmitRequest = 1;    # Set to 0 to turn off URL requests
 #======================================================================
 if (
     !&GetOptions(
-        \%parms,          "h",
-        "help",           "infile=s",
-        "outfile=s",      "outdir=s",
-        "reget",          "redo",
-        "db=s",           "name=s",
-        "preserveRaw",    "keep=s",
-        "skip=s",         "channel_max=s",
-        "channel_min=s",  "zip:s",
-        "debug",          "label=s",
-        "keep_old",       "mail_to=s",
-        "provider:s",     "provider_name:s",
-        "get_providers",  "mail_server=s",
-        "mail_baseref=s", "purge=s",
-        "mail_baseref=s", "include_footer",
-        "days=s",         "day=s",
-        "hour=s",         "tableChannels=s",
+        \%parms,          "h",       "help",           "infile=s",       "outfile=s",  "outdir=s",        "reget",         "redo",
+        "db=s",           "name=s",  "preserveRaw",    "keep=s",         "skip=s",     "channel_max=s",   "channel_min=s", "zip:s",
+        "debug",          "label=s", "keep_old",       "mail_to=s",      "provider:s", "provider_name:s", "get_providers", "mail_server=s",
+        "mail_baseref=s", "purge=s", "mail_baseref=s", "include_footer", "days=s",     "day=s",           "hour=s",        "tableChannels=s",
         "timebars=s"
     )
     or @ARGV
@@ -213,8 +197,7 @@ sub days_from_now {
     my ( $day_time, $days ) = @_;
     my $day_time2 = $day_time + $days * 60 * 60 * 24;
     my ( $day, $month, $year, $down ) = ( localtime($day_time2) )[ 3, 4, 5, 6 ];
-    my $dow =
-      (qw(Sunday Monday Tuesday Wednesday Thursday Friday Saturday))[$down];
+    my $dow = (qw(Sunday Monday Tuesday Wednesday Thursday Friday Saturday))[$down];
 
     $month++;
     $year += 1900;
@@ -250,7 +233,7 @@ sub setup {
     $parms{tableChannels} = 40   unless $parms{tableChannels};
     $parms{days}          = 1    unless $parms{days};
     $parms{db}            = 'tv' unless $parms{db};
-    $parms{outdir} = "$config_parms{html_dir}/$parms{db}"
+    $parms{outdir}        = "$config_parms{html_dir}/$parms{db}"
       unless $parms{outdir};
     $parms{zip}   = $config_parms{zip_code} unless $parms{zip};
     $parms{proxy} = $ENV{http_proxy}        unless $parms{proxy};
@@ -261,9 +244,9 @@ sub setup {
       unless $parms{provider};
     $parms{provider_name} = $config_parms{ $parms{db} . '_provider_name' }
       unless $parms{provider_name};
-    $parms{get_providers} = 0 unless ( $parms{get_providers} );
-    $parms{hour} = $config_parms{ $parms{db} . '_hours' } unless $parms{hour};
-    $parms{skip} = $config_parms{ $parms{db} . '_channels_skip' }
+    $parms{get_providers} = 0                                      unless ( $parms{get_providers} );
+    $parms{hour}          = $config_parms{ $parms{db} . '_hours' } unless $parms{hour};
+    $parms{skip}          = $config_parms{ $parms{db} . '_channels_skip' }
       if ( $config_parms{ $parms{db} . '_channels_skip' } and !$parms{skip} );
     $parms{keep} = $config_parms{ $parms{db} . '_channels_keep' }
       if ( $config_parms{ $parms{db} . '_channels_keep' } and !$parms{keep} );
@@ -307,8 +290,8 @@ sub setup {
       || die "Missing provider!";
     $parms{channel_min} = '1'     unless $parms{channel_min};
     $parms{channel_max} = '99999' unless $parms{channel_max};
-    $parms{label} = "VCR" unless $parms{label}; # This can also be an image link
-    $parms{days}  = 1     unless $parms{days};
+    $parms{label}       = "VCR"   unless $parms{label};         # This can also be an image link
+    $parms{days}        = 1       unless $parms{days};
     $parms{redo}  = 1 if $parms{reget};
     $parms{reget} = 1 if $parms{get_providers};
     $parms{duration} = 6 unless $parms{duration};
@@ -409,9 +392,8 @@ sub submitRequest {
     my $res;    # Reponse
     $request->content_type('application/x-www-form-urlencoded');
     $request->header(
-        'User-Agent' => 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT 4.0)',
-        'Referer' =>
-          ( $referer ? $referer : 'http://tvlistings.zap2it.com/grid.asp' ),
+        'User-Agent'      => 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT 4.0)',
+        'Referer'         => ( $referer ? $referer : 'http://tvlistings.zap2it.com/grid.asp' ),
         'Accept'          => '*/*',
         'Accept-Language' => 'en',
     );
@@ -423,9 +405,7 @@ sub submitRequest {
     }
 
     # Submit request
-    print "Request: ["
-      . ( $request->as_string )
-      . ( $cookie_jar->as_string ) . "]\n"
+    print "Request: [" . ( $request->as_string ) . ( $cookie_jar->as_string ) . "]\n"
       if ( $parms{debug} );
     if ($outFile) {
         print "Submitting request with output file: $outFile \n"
@@ -452,9 +432,7 @@ sub submitRequest {
           or die "missing location: ", $res->as_string;
         print "is redirect to $ur\n" if ( $parms{debug} );
         $request = HTTP::Request->new( GET => $url . $ur );
-        print "Request: ["
-          . ( $request->as_string )
-          . ( $cookie_jar->as_string ) . "]\n"
+        print "Request: [" . ( $request->as_string ) . ( $cookie_jar->as_string ) . "]\n"
           if ( $parms{debug} );
         $res = $ua->request( $request, $outFile );
         return 1;
@@ -506,17 +484,11 @@ sub login {
     # Second submission, to submit our zip code
     #------------------------------------------------------------
 
-    my $req_zip =
-      HTTP::Request->new(
-        POST => $url . "zipcode.asp?partner_id=national&zipcode=$parms{zip}" );
-    $req_zip->content( "zipcode=$parms{zip}&"
-          . "partner_id=national&"
-          . "FormName=zipcode.asp&"
-          . "submit1=Continue" );
+    my $req_zip = HTTP::Request->new( POST => $url . "zipcode.asp?partner_id=national&zipcode=$parms{zip}" );
+    $req_zip->content( "zipcode=$parms{zip}&" . "partner_id=national&" . "FormName=zipcode.asp&" . "submit1=Continue" );
     $req_zip->content_type('application/x-www-form-urlencoded');
     print "2 of 4\n" if $parms{debug};
-    $submitResult =
-      submitRequest( $req_zip, "$config_parms{data_dir}/tv_providers.html" );
+    $submitResult = submitRequest( $req_zip, "$config_parms{data_dir}/tv_providers.html" );
     if ( 1 != $submitResult ) {
         return -1;
     }
@@ -547,17 +519,10 @@ sub login {
     }
 
     if ( !defined $this_provider ) {
-        ($this_provider) = split( /,\s*/, $parms{provider} )
-          ;    # first time through, take the first one
+        ($this_provider) = split( /,\s*/, $parms{provider} );    # first time through, take the first one
     }
-    my $req_prov =
-      HTTP::Request->new(
-        POST => $url . "system.asp?partner_id=national&zipcode=$parms{zip}" );
-    $req_prov->content( "provider=$this_provider&"
-          . "saveProvider=See%20Listings&"
-          . "zipCode=$parms{zip}&"
-          . "FormName=system.asp&"
-          . "page_from=" );
+    my $req_prov = HTTP::Request->new( POST => $url . "system.asp?partner_id=national&zipcode=$parms{zip}" );
+    $req_prov->content( "provider=$this_provider&" . "saveProvider=See%20Listings&" . "zipCode=$parms{zip}&" . "FormName=system.asp&" . "page_from=" );
     $req_prov->content_type('application/x-www-form-urlencoded');
 
     #submitRequest( $req_prov, "out3.txt" );
@@ -573,8 +538,7 @@ sub login {
     # so we have to do that with this step before asking for specific
     # dates/times
     #------------------------------------------------------------
-    my $req_allChans =
-      HTTP::Request->new( GET => $url . 'listings_redirect.asp?spp=0' );
+    my $req_allChans = HTTP::Request->new( GET => $url . 'listings_redirect.asp?spp=0' );
     print "4 of 4\n" if $parms{debug};
     $submitResult = submitRequest($req_allChans);
     if ( 1 != $submitResult ) {
@@ -646,8 +610,7 @@ sub fetchDataToFile {
                 }
                 if ( !@uas ) {
                     @providers = split( /,\s*/, $parms{provider} );
-                    $this_provider =
-                      shift @providers;    # what we just logged-into
+                    $this_provider = shift @providers;    # what we just logged-into
                 }
                 push(
                     @uas,
@@ -657,8 +620,7 @@ sub fetchDataToFile {
                         'provider'   => $this_provider
                     }
                 );
-                if ( $this_provider = shift @providers )
-                {                          # prepare for next request
+                if ( $this_provider = shift @providers ) {    # prepare for next request
                     $ua         = new RedirAgent();
                     $cookie_jar = HTTP::Cookies->new;
                     $ua->cookie_jar($cookie_jar);
@@ -669,8 +631,7 @@ sub fetchDataToFile {
         #------------------------------------------------------------
         # Retrieve the file we need
         #------------------------------------------------------------
-        print
-          "Requesting data for ${startDay} at $startHour for $parms{duration} hours\n";
+        print "Requesting data for ${startDay} at $startHour for $parms{duration} hours\n";
 
         #     $startHour -= 2;
         my $provnum;
@@ -678,8 +639,7 @@ sub fetchDataToFile {
             $ua         = $_->{ua};
             $cookie_jar = $_->{cookie_jar};
             my $ofile = providerFilename( $outfile, $provnum );
-            my $loopReq =
-              HTTP::Request->new( POST => $url . 'listings_redirect.asp' );
+            my $loopReq = HTTP::Request->new( POST => $url . 'listings_redirect.asp' );
             $loopReq->content( "displayType=Grid&"
                   . "duration=$parms{duration}&"
                   . "startDay=${startDay}&"
@@ -690,8 +650,7 @@ sub fetchDataToFile {
 
             $loopReq->content_type('application/x-www-form-urlencoded');
             my $submitResult = submitRequest( $loopReq, $ofile );
-            my $loopReq =
-              HTTP::Request->new( GET => $url . 'listings_redirect.asp?spp=0' );
+            my $loopReq = HTTP::Request->new( GET => $url . 'listings_redirect.asp?spp=0' );
             my $submitResult = submitRequest( $loopReq, $ofile );
             if ( 1 != $submitResult ) {
                 return -1;
@@ -734,9 +693,7 @@ sub prov_count {
 # SUB: processRawFile
 #======================================================================
 sub processRawFile {
-    my ( $day_time, $hour, $down, $rawFile, $outfile, $dow, $month, $day,
-        $year, $tomorrow_month, $tomorrow_day )
-      = @_;
+    my ( $day_time, $hour, $down, $rawFile, $outfile, $dow, $month, $day, $year, $tomorrow_month, $tomorrow_day ) = @_;
     print "Processing $rawFile to $outfile\n" if ( $parms{debug} );
 
     #------------------------------------------------------------
@@ -766,21 +723,17 @@ eof
         #------------------------------------------------------------
         # Create & initialize local variables for processing
         #------------------------------------------------------------
-        my (
-            $record, $record_prev, $script, $loop_phase,
-            $count1, $count2,      $count3
-        );
+        my ( $record, $record_prev, $script, $loop_phase, $count1, $count2, $count3 );
         my ( $pgm_desc, $min_start, $min_end, $min_pgm ) = 0;
 
         $count1 = $count2 = $count3 = 0;
-        my $channel_number   = '';
-        my $channel_name     = '';
-        my $pgm_name         = '';
-        my $channelRowsSaved = 0;
-        my $current_time_bar = '';
-        my $rowOfLastTimeBar = 0;
-        my $tableStartText =
-          qq|<table border="1" BGCOLOR="#FFFFFF" CELLPADDING="2" CELLSPACING="1" WIDTH="">|;
+        my $channel_number        = '';
+        my $channel_name          = '';
+        my $pgm_name              = '';
+        my $channelRowsSaved      = 0;
+        my $current_time_bar      = '';
+        my $rowOfLastTimeBar      = 0;
+        my $tableStartText        = qq|<table border="1" BGCOLOR="#FFFFFF" CELLPADDING="2" CELLSPACING="1" WIDTH="">|;
         my $rowsInCurrentOutTable = 0;
         my $script_flag           = 0;
 
@@ -920,10 +873,7 @@ eof
                 #------------------------------------------------------------
                 # remove Shockwave ads
                 #------------------------------------------------------------
-                if ( $record =~
-                    m!<tr>\s*<td\s+colspan=12><b><nobr><center><OBJECT.*?</tr>!
-                  )
-                {
+                if ( $record =~ m!<tr>\s*<td\s+colspan=12><b><nobr><center><OBJECT.*?</tr>! ) {
                     next;
                 }
 
@@ -994,11 +944,9 @@ eof
                         # (Don't do this if this is the last line of the table.)
                         #------------------------------------------------------------
                         if (    $rowsInCurrentOutTable % $parms{timebars} == 0
-                            and $rowsInCurrentOutTable !=
-                            $parms{tableChannels} )
+                            and $rowsInCurrentOutTable != $parms{tableChannels} )
                         {
-                            my $tempResult =
-                              $rowsInCurrentOutTable % $parms{timebars};
+                            my $tempResult = $rowsInCurrentOutTable % $parms{timebars};
                             print OUT $current_time_bar;
                         }
 
@@ -1058,17 +1006,12 @@ eof
                 # can show them on the local output webpage. Also, alter url ref
                 # so that it points to our logos directory.
                 #-----------------------------------------------------------------
-                if ( $record =~
-                    s!/tms_network_logos/([^/]*\.(jpg|gif))!/$parms{db}/logos/$1!
-                  )
-                {
+                if ( $record =~ s!/tms_network_logos/([^/]*\.(jpg|gif))!/$parms{db}/logos/$1! ) {
                     unless ( -f "$parms{outdir}/logos/$1" ) {
 
                         #print "Retrieving logo: $1\n" if ( $parms{debug} );
                         print "Retrieving logo: $1\n";
-                        my $logoRequest =
-                          HTTP::Request->new(
-                            GET => $url . "tms_network_logos/$1" );
+                        my $logoRequest = HTTP::Request->new( GET => $url . "tms_network_logos/$1" );
 
                         $ua->request( $logoRequest, "$parms{outdir}/logos/$1" );
 
@@ -1080,15 +1023,12 @@ eof
                 # can show them on the local output webpage. Also, alter url ref
                 # so that it points to our logos directory.
                 #-----------------------------------------------------------------
-                if ( $record =~
-                    s!images/([^/]*\.(jpg|gif))!/$parms{db}/logos/$1! )
-                {
+                if ( $record =~ s!images/([^/]*\.(jpg|gif))!/$parms{db}/logos/$1! ) {
                     unless ( -f "$parms{outdir}/logos/$1" ) {
 
                         #print "Retrieving logo: $1\n" if ( $parms{debug} );
                         print "Retrieving logo: $1\n";
-                        my $logoRequest =
-                          HTTP::Request->new( GET => $url . "images/$1" );
+                        my $logoRequest = HTTP::Request->new( GET => $url . "images/$1" );
 
                         $ua->request( $logoRequest, "$parms{outdir}/logos/$1" );
                     }
@@ -1102,8 +1042,7 @@ eof
                 #  <a href="listings_redirect.asp?station_num=10715">
                 #  <form method="post" action="listings_redirect.asp"><TD height=3 width = "100%" align=center>
                 #------------------------------------------------------------
-                $record =~
-                  s|\"([_a-z]+\.asp\??)|\"http://tvlistings2.zap2it.com/$1|g;
+                $record =~ s|\"([_a-z]+\.asp\??)|\"http://tvlistings2.zap2it.com/$1|g;
 
                 # last if $record =~ / END GRID TABLE /;
 
@@ -1158,8 +1097,7 @@ eof
                         $pgm_name_html =~ s/&/and/g;
                         $pgm_name_html =~ s/\'/&#39;/g;
                         $pgm_name_html =~ s/\?/&#63;/g;
-                        $pgm_name =~
-                          s/\<.+?\>//g; # Drop extra HTML directives (e.g. font)
+                        $pgm_name =~ s/\<.+?\>//g;    # Drop extra HTML directives (e.g. font)
 
                         # Set program times/dates
                         my $time_start = &min_to_hour($min_start);
@@ -1172,16 +1110,14 @@ eof
                             $time_start = &min_to_hour( $min_start - 24 * 60 );
                             $time_end   = &min_to_hour( $min_end - 24 * 60 );
                         }
-                        print
-                          "found program start $time_start pgm_date $pgm_date\n";
+                        print "found program start $time_start pgm_date $pgm_date\n";
 
-                        print
-                          "db $pgm_name, $min_pgm, $min_start, $min_end, $time_start, $time_end, $pgm_date\n"
+                        print "db $pgm_name, $min_pgm, $min_start, $min_end, $time_start, $time_end, $pgm_date\n"
                           if $parms{debug};
 
                         # Insert the mh VCR link
                         my $vcr_ref =
-                          "<a href='/SET:last_spoken?\$tv_grid?channel_${channel_number}_from_${time_start}"
+                            "<a href='/SET:last_spoken?\$tv_grid?channel_${channel_number}_from_${time_start}"
                           . "_to_${time_end}_on_${pgm_date}_for_${pgm_name_html}'>$parms{label}</a>";
                         $pgm_data = "$vcr_ref for $pgm_data"
                           unless lc $parms{label} eq 'none';
@@ -1194,21 +1130,17 @@ eof
                         $pgm_data .= $record;
                         ($pgm_desc) = $record =~ /> *(.+)/;
 
-                        $record =
-                          $pgm_data;    # This will get saved to $channel_data;
+                        $record = $pgm_data;    # This will get saved to $channel_data;
 
                         # Clean up the program description
-                        $pgm_desc =~
-                          s/\<.+?\>//g; # Drop extra HTML directives (e.g. font)
-                        $pgm_desc =~ s/  / /g;    # Drop extra spaces
+                        $pgm_desc =~ s/\<.+?\>//g;    # Drop extra HTML directives (e.g. font)
+                        $pgm_desc =~ s/  / /g;        # Drop extra spaces
 
                         #------------------------------------------------------------
                         # Store the data in the DBM
                         #------------------------------------------------------------
-                        my $db_key =
-                          join( $;, $channel_number, $pgm_date, $time_start );
-                        my $db_data =
-                          join( $;, $time_end, $pgm_name, $pgm_desc );
+                        my $db_key  = join( $;, $channel_number, $pgm_date, $time_start );
+                        my $db_data = join( $;, $time_end,       $pgm_name, $pgm_desc );
                         $DBM{$db_key}          = $db_data;
                         $DBM2{$channel_number} = $channel_name;
                         print "db key=$db_key\n  data=$db_data.\n"
@@ -1236,8 +1168,7 @@ eof
             }
         }    # Main while-loop
 
-        print "$count1 records with $count2 grid records were read. "
-          . "$count3 programs stored for $channelRowsSaved channels.\n";
+        print "$count1 records with $count2 grid records were read. " . "$count3 programs stored for $channelRowsSaved channels.\n";
         close IN;
         $provnum++;
     }
@@ -1252,11 +1183,9 @@ eof
 #======================================================================
 sub make_index {
     my ( $hour, $down, $day, $day_time ) = @_;
-    print OUT "<center>\n<table border=1 width=100%>\n<tr>\n<td align=left>\n"
-      ;    ### DW: remove bgcolors
+    print OUT "<center>\n<table border=1 width=100%>\n<tr>\n<td align=left>\n";    ### DW: remove bgcolors
 
-    print OUT
-      "<font face=arial size=+1 color=white> TV Listings for $parms{name} </td><td align=right>";
+    print OUT "<font face=arial size=+1 color=white> TV Listings for $parms{name} </td><td align=right>";
     print OUT "<FORM>";
 
     #----------------------------------------------------------------------
@@ -1270,8 +1199,7 @@ sub make_index {
     #  be the friendliest way to do this (in my own humble opinion.)
     #  Feel free to change this if you like.
     #----------------------------------------------------------------------
-    print OUT
-      "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'main')>\n";
+    print OUT "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'main')>\n";
 
     #my $dow_start = -$down - 7;
     my $dow_start = -$parms{purge};
@@ -1279,8 +1207,7 @@ sub make_index {
 
     #  my $dow_stop  = $parms{days} -1;
     for my $count ( $dow_start .. $dow_stop ) {
-        my ( $dow2, $dow2n, $day2, $month2, $year2 ) =
-          &days_from_now( $day_time, $count );
+        my ( $dow2, $dow2n, $day2, $month2, $year2 ) = &days_from_now( $day_time, $count );
         print OUT "<option value='/" . $parms{db} . "/${day2}_$hour.html'";
 
         if ( $day2 == $day ) {
@@ -1289,8 +1216,7 @@ sub make_index {
         print OUT ">$dow2, $month2/$day2\n";
     }
     print OUT "</select>\n";
-    print OUT
-      "<SELECT NAME=tvtime onchange=window.open(this.options[this.selectedIndex].value,'main')>\n";
+    print OUT "<SELECT NAME=tvtime onchange=window.open(this.options[this.selectedIndex].value,'main')>\n";
 
     for my $hour2 (@hours) {
         my $hour2_ampm;
@@ -1422,8 +1348,7 @@ sub fetchLoop {
             #------------------------------------------------------------
             # Calculate the name of the output file
             #------------------------------------------------------------
-            my $rawFile = "$parms{outdir}/download/"
-              . "${month}_${day}_${startHour}_$parms{duration}.html";
+            my $rawFile = "$parms{outdir}/download/" . "${month}_${day}_${startHour}_$parms{duration}.html";
             my $outfile = "$parms{outdir}/${day}_${startHour}.html";
             $outfile = $parms{outfile} if ( $parms{outfile} );
 
@@ -1451,8 +1376,7 @@ sub fetchLoop {
                 #------------------------------------------------------------
                 # Process this file for insertion into the DB
                 #------------------------------------------------------------
-                processRawFile( time, $startHour, $down, $rawFile, $outfile,
-                    $dow, $month, $day, $year, $tomorrow_month, $tomorrow_day );
+                processRawFile( time, $startHour, $down, $rawFile, $outfile, $dow, $month, $day, $year, $tomorrow_month, $tomorrow_day );
 
                 #------------------------------------------------------------
                 # Delete the raw file, unless we're told to keep it.
@@ -1478,8 +1402,7 @@ sub fetchLoop {
                 use File::Copy;
                 copy( $outfile, "$parms{outdir}/index.html" );
                 if ( $parms{mail_to} ) {
-                    &mail_file( $parms{mail_to}, $parms{mail_server}, $outfile,
-                        "$parms{name} Schedule for $dow, $month/$day/$year" );
+                    &mail_file( $parms{mail_to}, $parms{mail_server}, $outfile, "$parms{name} Schedule for $dow, $month/$day/$year" );
                 }
             }
 

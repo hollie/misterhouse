@@ -47,10 +47,7 @@ $TV = new IR_Item 'TV', 'addEnter', 'ncpuxa', \%tvmap;
 
 my $tv_controls       = 'power,vol+,vol-,ch+,ch-,display,last';
 my $tv_local_channels = '2,4,5,7,9,11,13,14';
-my %tv_cable_channels = (
-    'TLC', 69, 'Discovery', 67, 'Comedy', 62, 'VH1', 38,
-    'CNN', 46, 'Animal',    68, 'Food',   55,
-);
+my %tv_cable_channels = ( 'TLC', 69, 'Discovery', 67, 'Comedy', 62, 'VH1', 38, 'CNN', 46, 'Animal', 68, 'Food', 55, );
 
 my $tv_states =
     $tv_controls . ','
@@ -126,8 +123,7 @@ my %ampmap = qw(
 
 $AMP = new IR_Item 'AMP', '', 'ncpuxa', \%ampmap;
 
-$v_amp_control =
-  new Voice_Cmd("amp [on,off,mute,vol+,vol-,dvd,cd,tv,vcr,tape]");
+$v_amp_control = new Voice_Cmd("amp [on,off,mute,vol+,vol-,dvd,cd,tv,vcr,tape]");
 
 if ( $state = said $v_amp_control) {
     print_log "Setting AMP to $state";
@@ -168,9 +164,7 @@ my %dvdmap = qw(
 
 $DVD = new IR_Item 'DVD', '', 'ncpuxa', \%dvdmap;
 
-$v_dvd_control = new Voice_Cmd(
-    "dvd [power,play,pause,stop,chap+,chap-,menu,up,down,left,right,select,rew,ff]"
-);
+$v_dvd_control = new Voice_Cmd("dvd [power,play,pause,stop,chap+,chap-,menu,up,down,left,right,select,rew,ff]");
 
 if ( $state = said $v_dvd_control) {
     print_log "Setting DVD to $state";
@@ -208,9 +202,7 @@ my %vcrmap = qw(
 
 $VCR = new IR_Item 'VCR', '', 'ncpuxa', \%vcrmap;
 
-$v_vcr_control = new Voice_Cmd(
-    "vcr [power,cable,v4,video2,video3,mute,vol+,vol-,ch+,ch-,record,play,pause,stop,ff,rew]"
-);
+$v_vcr_control = new Voice_Cmd("vcr [power,cable,v4,video2,video3,mute,vol+,vol-,ch+,ch-,record,play,pause,stop,ff,rew]");
 
 if ( $state = said $v_vcr_control) {
     print_log "Setting VCR to $state";
@@ -257,9 +249,7 @@ my %cdmap = qw(
 
 $CD = new IR_Item 'CD', '', 'ncpuxa', \%cdmap;
 
-$v_cd_control = new Voice_Cmd(
-    "cd control [on,off,play,stop,next track,previous track,next disc,previous disc,pause]"
-);
+$v_cd_control = new Voice_Cmd("cd control [on,off,play,stop,next track,previous track,next disc,previous disc,pause]");
 
 if ( $state = said $v_cd_control) {
     $state = "disc+"  if $state eq 'next disc';

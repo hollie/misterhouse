@@ -86,8 +86,7 @@ BEGIN {
         # i give up!  user is going to have to set it manually
         print "Content-type: text/html\n\n";
         print "<b>Installation path could not be determined.</b>\n";
-        print
-          "<p>Please edit the script and set \$ENV{\"CWD\"} to the full path in which the script is installed.";
+        print "<p>Please edit the script and set \$ENV{\"CWD\"} to the full path in which the script is installed.";
         exit 1;
     }
 }    # / BEGIN
@@ -263,30 +262,21 @@ sub PrintAllRecords {
 
     $objMyDB->PageSize($visiblePageSize);
     $objMyDB->ActivePage($activePage);
-    $activePage =
-      $objMyDB->ActivePage;    # (in case we specified one out of range)
+    $activePage = $objMyDB->ActivePage;    # (in case we specified one out of range)
 
     my ($pageCount) = $objMyDB->PageCount;
 
     print "<form action='$scriptName' method='GET'>\n";
-    print
-      "<table cellspacing='2' cellpadding='2' border='0'><tr valign='middle'><td bgcolor='$dataDarkColor'>\n";
+    print "<table cellspacing='2' cellpadding='2' border='0'><tr valign='middle'><td bgcolor='$dataDarkColor'>\n";
     if ( !$showforAudrey ) {
         if ($showAll) {
-            print
-              "<input type='button' onclick=\"window.location='$scriptName?vsALL=0&"
-              . $ia7_suffix
-              . "';\" value='Show $pageSize Per Page'>";
+            print "<input type='button' onclick=\"window.location='$scriptName?vsALL=0&" . $ia7_suffix . "';\" value='Show $pageSize Per Page'>";
         }
         else {
-            print
-              "<input type='button' onclick=\"window.location='$scriptName?vsALL=1&"
-              . $ia7_suffix
-              . "';\" value='Show All'>";
+            print "<input type='button' onclick=\"window.location='$scriptName?vsALL=1&" . $ia7_suffix . "';\" value='Show All'>";
         }
     }
-    print
-      "&nbsp;<input type='button' onclick=\"window.location='$scriptName?vsSORT=$sortField&vsMA=$showforAudrey&vsAP=$activePage&vsCOM=ADD&"
+    print "&nbsp;<input type='button' onclick=\"window.location='$scriptName?vsSORT=$sortField&vsMA=$showforAudrey&vsAP=$activePage&vsCOM=ADD&"
       . $ia7_suffix
       . "';\" value='New Contact'>\n";
     print "</td><td>\n";
@@ -302,16 +292,13 @@ sub PrintAllRecords {
     print " selected" if ( $filterField eq "FirstName" );
     print ">First Name</option>\n";
     print "</select>&nbsp;";
-    print
-      "<font face='Arial,Helvetica' size='2'><b>&nbsp;~=&nbsp;</b></font>\n";
-    print
-      "<input type='text' size='10' name='vsFilterValue' value='$filterValue'>&nbsp;";
+    print "<font face='Arial,Helvetica' size='2'><b>&nbsp;~=&nbsp;</b></font>\n";
+    print "<input type='text' size='10' name='vsFilterValue' value='$filterValue'>&nbsp;";
     print "<input type='hidden' name='vsMA' value='$showforAudrey'>\n";
     print "<input type='submit' value='Search'>&nbsp;";
 
     if ( $filterField && $filterValue ) {
-        print
-          "<input type='submit' value='Clear' onclick=\"this.form.vsFilterValue.value = ''; return true;\">";
+        print "<input type='submit' value='Clear' onclick=\"this.form.vsFilterValue.value = ''; return true;\">";
     }
     print "</td></tr></table>\n";
     print "</form>\n";
@@ -342,15 +329,10 @@ sub PrintAllRecords {
             $fieldValue = $objMyDB->FieldValue($fieldName);
             $fieldValue = "&nbsp;" if ( $fieldValue eq "" );
             if ( $fieldName eq "PrimaryEmail" && $fieldValue ne "&nbsp;" ) {
-                print "<td><font face='arial' size='2'><a href='mailto:"
-                  . $fieldValue . "'>"
-                  . $objMyDB->FieldValue($fieldName)
-                  . "</a></font></td>\n";
+                print "<td><font face='arial' size='2'><a href='mailto:" . $fieldValue . "'>" . $objMyDB->FieldValue($fieldName) . "</a></font></td>\n";
             }
             else {
-                print "<td><font face='arial' size='2'>"
-                  . $fieldValue
-                  . "</font></td>\n";
+                print "<td><font face='arial' size='2'>" . $fieldValue . "</font></td>\n";
             }
         }
         print "</tr>\n";
@@ -362,16 +344,14 @@ sub PrintAllRecords {
 
     print "Result Page " . $activePage . " of " . $pageCount;
     if ( $activePage > 1 ) {
-        print
-          " <a href='?vsALL=$showAll&vsMA=$showforAudrey&vsSORT=$sortField&vsAP="
+        print " <a href='?vsALL=$showAll&vsMA=$showforAudrey&vsSORT=$sortField&vsAP="
           . ( $activePage - 1 )
           . "&vsFilterField=$filterField&vsFilterValue=$filterValue&"
           . $ia7_suffix
           . "'>Previous</a>";
     }
     if ( $activePage < $pageCount ) {
-        print
-          " <a href='?vsALL=$showAll&vsMA=$showforAudrey&vsSORT=$sortField&vsAP="
+        print " <a href='?vsALL=$showAll&vsMA=$showforAudrey&vsSORT=$sortField&vsAP="
           . ( $activePage + 1 )
           . "&vsFilterField=$filterField&vsFilterValue=$filterValue&"
           . $ia7_suffix
@@ -394,15 +374,13 @@ sub PrintCurrentRecord {
         elsif ( $fieldName eq "Notes" ) {
             print "<tr valign='top' bgcolor='$dataLightColor'>\n";
             print "<td><font face='arial' size='2'>$fieldName</font></td>\n";
-            print
-              "<td><textarea cols=\"38\" rows='3' name=\"$fieldName\">$fieldValue</textarea></td>\n";
+            print "<td><textarea cols=\"38\" rows='3' name=\"$fieldName\">$fieldValue</textarea></td>\n";
             print "</tr>\n";
         }
         else {
             print "<tr valign='top' bgcolor='$dataLightColor'>\n";
             print "<td><font face='arial' size='2'>$fieldName</font></td>\n";
-            print
-              "<td><input size=\"50\" name=\"$fieldName\" value=\"$fieldValue\"></td>\n";
+            print "<td><input size=\"50\" name=\"$fieldName\" value=\"$fieldValue\"></td>\n";
             print "</tr>\n";
         }
     }
@@ -427,8 +405,7 @@ sub PrintCurrentRecord {
         print "<input type='submit' value='Add'>\n";
     }
     print "<input type='hidden' name='ia7' value='$ia7_keys'>\n";
-    print
-      "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
+    print "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
     print "<p>\n";
 }
 
@@ -459,19 +436,15 @@ sub FatalError {
     my ($strMessage) = shift || "Unknown Error";
     print "Content-type: text/html\n\n" unless defined($HEADER_PRINTED);
     print "<p><font face='arial,helvetica' size='2'>\n";
-    print
-      "<b>A fatal error occured.  The script cannot continue.  Details are below:</b>";
+    print "<b>A fatal error occured.  The script cannot continue.  Details are below:</b>";
     print "<p><font color='red'>" . $strMessage . "</font>";
     print "<p>The most common causes of fatal errors are:\n";
     print "<ol>\n";
-    print
-      "<li>One of the script files was uploaded via FTP in Binary mode instead of ASCII\n";
-    print
-      "<li>The file permissions for the data directory and all .tab and .cfg files is not readable/writable\n";
+    print "<li>One of the script files was uploaded via FTP in Binary mode instead of ASCII\n";
+    print "<li>The file permissions for the data directory and all .tab and .cfg files is not readable/writable\n";
     print "</ol>\n";
     print "<p>If you have already tried these, you may want to visit the ";
-    print
-      "<a href='http://www.verysimple.com/support/'>VerySimple Support Forum</a> \n";
+    print "<a href='http://www.verysimple.com/support/'>VerySimple Support Forum</a> \n";
     print "to see if there is a solution available.\n";
     print "</font>\n";
     exit 1;

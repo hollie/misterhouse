@@ -3,21 +3,15 @@
 #@ Logs weather data
 
 # Use Generic_Item so we can save between reloads/restarts
-my @weather_vars =
-  qw(TempIndoor TempOutdoor WindChill HumidIndoor HumidOutdoor WindAvgSpeed sun_sensor);
+my @weather_vars = qw(TempIndoor TempOutdoor WindChill HumidIndoor HumidOutdoor WindAvgSpeed sun_sensor);
 $weather_stats = new Generic_Item;
-$weather_stats->restore_data( 'count',
-    ( map { $_ . '_min', $_ . '_max', $_ . '_avg' } @weather_vars ) )
+$weather_stats->restore_data( 'count', ( map { $_ . '_min', $_ . '_max', $_ . '_avg' } @weather_vars ) )
   if $Reload;
 
 # Log data and keep stats
 if ( new_minute 1 ) {
     logit "$config_parms{data_dir}/logs/weather.$Year_Month_Now.log",
-      sprintf(
-        "tin=%4.1f tout=%4.1f wc=%4.1f hi=%4.1f ho=%4.1f wind=%4.1f sun=%4.1f cnt=%5d",
-        ( map { $Weather{$_} } @weather_vars ),
-        $$weather_stats{count}
-      );
+      sprintf( "tin=%4.1f tout=%4.1f wc=%4.1f hi=%4.1f ho=%4.1f wind=%4.1f sun=%4.1f cnt=%5d", ( map { $Weather{$_} } @weather_vars ), $$weather_stats{count} );
 
     for my $var (@weather_vars) {
         next
@@ -36,7 +30,8 @@ if ( new_minute 1 ) {
 
 # Log stats daily
 if ($New_Day) {
-    logit "$config_parms{data_dir}/logs/weather_avg.$Year.log", sprintf(
+    logit "$config_parms{data_dir}/logs/weather_avg.$Year.log",
+      sprintf(
         "tim=%4.1f tix=%4.1f tia=%4.1f "
           . "tom=%4.1f tox=%4.1f toa=%4.1f "
           . "wcm=%4.1f wcx=%4.1f wca=%4.1f "
@@ -45,14 +40,9 @@ if ($New_Day) {
           . "wdm=%4.1f wdx=%4.1f wda=%4.1f "
           . "snm=%4.1f snx=%4.1f sna=%4.1f "
           . "count=%4d",
-        (
-            map {
-                $$weather_stats{ $_ . '_min' }, $$weather_stats{ $_ . '_max' },
-                  $$weather_stats{ $_ . '_avg' } / $$weather_stats{count}
-            } @weather_vars
-        ),
+        ( map { $$weather_stats{ $_ . '_min' }, $$weather_stats{ $_ . '_max' }, $$weather_stats{ $_ . '_avg' } / $$weather_stats{count} } @weather_vars ),
         $$weather_stats{count}
-    );
+      );
     $$weather_stats{count} = 0;
     map {
         $$weather_stats{ $_ . '_max' } = -999;

@@ -50,27 +50,26 @@ use constant osdCLRmagenta => 5;
 use constant osdCLRyellow  => 6;
 use constant osdCLRwhite   => 7;
 
-use constant osdCTLmode        => 128; # parm=1: 0=overlay, 1=full screen
-use constant osdCTLposition    => 129; # parm=2: xpos(1-28), ypos(1-11)
-use constant osdCTLclear       => 130; # parm=0: (wait 10 ms after command sent)
-use constant osdCTLvisible     => 131; # parm=1: 0=hide text, 1=show text
-use constant osdCTLtranslucent => 132; # parm=1: 0=off, 1=on
-use constant osdCTLbgcolor     => 133; # parm=1: see osdCLRxxxxxx above
-use constant osdCTLzoom =>
-  134;    # parm=3: zoom row (1-11), h-zoom (1-4), v-zoom (1-4)
-use constant osdCTLcolor   => 135;   # parm-1: see osdCLRxxxxxx above
-use constant osdCTLblink   => 136;   # parm=1: 0=off, 1=on
-use constant osdCTLreset   => 137;   # parm=0: (wait 10 ms after command sent)
-use constant osdCTLvertoff => 138;   # parm=1: vertical position offset (1-63)
-use constant osdCTLhorzoff => 139;   # parm=1: horizontal position offset (1-58)
-use constant osdCTLframe   => 140;   # parm=1: black character frame 0=off, 1=on
+use constant osdCTLmode        => 128;    # parm=1: 0=overlay, 1=full screen
+use constant osdCTLposition    => 129;    # parm=2: xpos(1-28), ypos(1-11)
+use constant osdCTLclear       => 130;    # parm=0: (wait 10 ms after command sent)
+use constant osdCTLvisible     => 131;    # parm=1: 0=hide text, 1=show text
+use constant osdCTLtranslucent => 132;    # parm=1: 0=off, 1=on
+use constant osdCTLbgcolor     => 133;    # parm=1: see osdCLRxxxxxx above
+use constant osdCTLzoom        => 134;    # parm=3: zoom row (1-11), h-zoom (1-4), v-zoom (1-4)
+use constant osdCTLcolor       => 135;    # parm-1: see osdCLRxxxxxx above
+use constant osdCTLblink       => 136;    # parm=1: 0=off, 1=on
+use constant osdCTLreset       => 137;    # parm=0: (wait 10 ms after command sent)
+use constant osdCTLvertoff     => 138;    # parm=1: vertical position offset (1-63)
+use constant osdCTLhorzoff     => 139;    # parm=1: horizontal position offset (1-58)
+use constant osdCTLframe       => 140;    # parm=1: black character frame 0=off, 1=on
 
 sub new {
-    my $classname = shift;           # What class are we constructing?
-    my $this      = {};              # Allocate new memory
+    my $classname = shift;                # What class are we constructing?
+    my $this      = {};                   # Allocate new memory
 
-    bless( $this, $classname );      # Mark it of the right type
-    $this->_init(@_);                # Call _init with remaining args
+    bless( $this, $classname );           # Mark it of the right type
+    $this->_init(@_);                     # Call _init with remaining args
     return $this;
 }
 
@@ -82,15 +81,14 @@ sub _init {
     $this->{currentpage} = 0;
     $this->{fliptimer}   = &Timer::new();
     $this->{flipping}    = 0;
-    $this->{fliparray} = [];    # Array to store list of flip-able pages
-    if (@_) {                   # Save any other initialization parameters
+    $this->{fliparray}   = [];              # Array to store list of flip-able pages
+    if (@_) {                               # Save any other initialization parameters
         my %extra = @_;
         @$this{ keys %extra } = values %extra;
     }
     $this->{PORT}  = "/dev/osd232" unless $this->{PORT};
     $this->{SPEED} = "4800"        unless $this->{SPEED};
-    &main::serial_port_create( 'osd232', $this->{PORT}, $this->{SPEED}, 'none',
-        'raw' );
+    &main::serial_port_create( 'osd232', $this->{PORT}, $this->{SPEED}, 'none', 'raw' );
     $this->reset();
 }
 
@@ -261,8 +259,7 @@ sub reset {
     $main::Serial_Ports{osd232}{object}->write( chr(osdCTLreset) );
     select undef, undef, undef, 0.02;    # delay 20ms just to be safe
     $this->{overlay} = 1 unless $this->{overlay};
-    $main::Serial_Ports{osd232}{object}
-      ->write( chr(osdCTLmode) . chr( $this->{overlay} ) );
+    $main::Serial_Ports{osd232}{object}->write( chr(osdCTLmode) . chr( $this->{overlay} ) );
     $this->clearscreen();
 }
 
@@ -306,8 +303,7 @@ set the display background color
 sub background {
     my ( $this, $color ) = @_;
 
-    $main::Serial_Ports{osd232}{object}
-      ->write( chr(osdCTLbgcolor) . chr($color) );
+    $main::Serial_Ports{osd232}{object}->write( chr(osdCTLbgcolor) . chr($color) );
 }
 
 =item C<showpage(PAGE NAME)>
@@ -573,18 +569,11 @@ sub writedisplay {
     my $outstring;
 
     foreach $line ( keys %{ $this->{LINES} } ) {
-        if ( $this->{LINES}->{$line}->{'X'} && $this->{LINES}->{$line}->{'Y'} )
-        {
-            $outstring =
-                chr(129)
-              . chr( $this->{LINES}->{$line}->{'X'} )
-              . chr( $this->{LINES}->{$line}->{'Y'} );
+        if ( $this->{LINES}->{$line}->{'X'} && $this->{LINES}->{$line}->{'Y'} ) {
+            $outstring = chr(129) . chr( $this->{LINES}->{$line}->{'X'} ) . chr( $this->{LINES}->{$line}->{'Y'} );
         }
         if ( $this->{LINES}->{$line}->{'TEXTCOLOR'} ) {
-            $outstring =
-                $outstring
-              . chr(135)
-              . chr( $this->{LINES}->{$line}->{'TEXTCOLOR'} );
+            $outstring = $outstring . chr(135) . chr( $this->{LINES}->{$line}->{'TEXTCOLOR'} );
         }
         $outstring = $outstring . $this->{LINES}->{$line}->{'TEXT'};
         $main::Serial_Ports{osd232}{object}->write($outstring);

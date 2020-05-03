@@ -2,8 +2,7 @@
 
 #@ Get URL for Earth Globe every hour once a month.  Used in mh/web/newclock
 
-my $URL =
-  "http://www.fourmilab.ch/cgi-bin/uncgi/Earth?img=learth.evif&imgsize=150&dynimg=y&opt=-p&lat=&lon=&alt=&tle=&date=0&utc=&jd=";
+my $URL    = "http://www.fourmilab.ch/cgi-bin/uncgi/Earth?img=learth.evif&imgsize=150&dynimg=y&opt=-p&lat=&lon=&alt=&tle=&date=0&utc=&jd=";
 my $MAPDIR = "$Pgm_Root/web/clock/maps";
 
 # Update earth.jpg for each Hour, once a month

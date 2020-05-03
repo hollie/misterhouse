@@ -36,8 +36,7 @@ if ( time_cron('* * * * *') ) {
     $Weather{WindSpeed}   = state $ib_wind_speed;
     #
     # Define the derived variables
-    $Weather{WindGustDir} =
-      $Weather{WindDir};    # Whats the relation between Dir and GustDir?
+    $Weather{WindGustDir}   = $Weather{WindDir};                        # Whats the relation between Dir and GustDir?
     $Weather{WindAvgDir}    = &average_wind_dir( $Weather{WindDir} );
     $Weather{WindGustSpeed} = $Weather{WindSpeed}
       if $Weather{WindSpeed} > $Weather{WindGustSpeed};
@@ -49,16 +48,11 @@ if ( time_cron('* * * * *') ) {
     $Weather{SummaryWind} = sprintf(
         "cur/avg %s(%3.1f)/%s(%3.1f) %3.1f%s/%3.1f%s",
         ( &convert_wind_dir_to_abbr( $Weather{WindDir} ) ),
-        $Weather{WindDir},
-        ( &convert_wind_dir_to_abbr( $Weather{WindAvgDir} ) ),
-        $Weather{WindAvgDir},
-        $Weather{WindSpeed},
-        $main::config_parms{weather_uom_wind},
-        $Weather{WindAvgSpeed},
-        $main::config_parms{weather_uom_wind}
+        $Weather{WindDir}, ( &convert_wind_dir_to_abbr( $Weather{WindAvgDir} ) ),
+        $Weather{WindAvgDir}, $Weather{WindSpeed}, $main::config_parms{weather_uom_wind},
+        $Weather{WindAvgSpeed}, $main::config_parms{weather_uom_wind}
     );
-    $Weather{SummaryTemp} = sprintf( "%3.1f%s",
-        $Weather{TempOutdoor}, $main::config_parms{weather_uom_temp} );
+    $Weather{SummaryTemp} = sprintf( "%3.1f%s", $Weather{TempOutdoor}, $main::config_parms{weather_uom_temp} );
     #
     print_log "Wind $Weather{SummaryWind}, Temperature $Weather{SummaryTemp}";
     &Weather_Common::weather_updated;
@@ -104,9 +98,7 @@ sub convert_wind_dir_to_abbr {
     my ($dir) = @_;
     return 'unknown' if $dir !~ /^[\d \.]+$/;
     if ( $dir >= 0 and $dir <= 360 ) {
-        return
-          qw{North NNE NE ENE East ESE SE SSE South SSW SW WSW West WNW NW NNW North}
-          [ ( ( $dir + 11.25 ) / 22.5 ) % 16 ];
+        return qw{North NNE NE ENE East ESE SE SSE South SSW SW WSW West WNW NW NNW North} [ ( ( $dir + 11.25 ) / 22.5 ) % 16 ];
     }
     return 'unknown';
 }
@@ -116,15 +108,11 @@ sub windchill {
     my $wind = shift;
     my $chill;
 
-    if ( ( $wind < 5 ) || ( $wind > 100 ) || ( $temp < -50 ) || ( $temp > 5 ) )
-    {
+    if ( ( $wind < 5 ) || ( $wind > 100 ) || ( $temp < -50 ) || ( $temp > 5 ) ) {
         $chill = '';
     }
     else {
-        $chill =
-          ( 13.12 + 0.6215 * $temp -
-              11.37 * ( $wind**0.16 ) +
-              0.3965 * $temp * ( $wind**0.16 ) );
+        $chill = ( 13.12 + 0.6215 * $temp - 11.37 * ( $wind**0.16 ) + 0.3965 * $temp * ( $wind**0.16 ) );
         $chill = int( $chill + 0.5 );
         print "temp $temp wind $wind chill $chill\n";
     }
@@ -136,13 +124,10 @@ sub iButton_wind_read {
     #wind speed (mph)
     #
     my $wind_time1 = &get_tickcount;
-    my $count =
-      $ib_wind_speed->Hardware::iButton::Device::DS2423::read_counter();
+    my $count      = $ib_wind_speed->Hardware::iButton::Device::DS2423::read_counter();
     #
     if ($wind_time2) {
-        my $revolution_sec =
-          ( ( $count - $last_wind_count ) * 1000 ) /
-          ( $wind_time1 - $wind_time2 ) / 2.0;
+        my $revolution_sec = ( ( $count - $last_wind_count ) * 1000 ) / ( $wind_time1 - $wind_time2 ) / 2.0;
         set $ib_wind_speed sprintf( "%3.2f", $revolution_sec * 2.453 );
     }
     #
@@ -207,17 +192,12 @@ sub read_ds2450 {
     # H=high,M=medium,L=low,Z=zero
     #
     $ib_wind_dir->Hardware::iButton::Device::DS2450::convert('all');
-    my ( $A, $B, $C, $D ) =
-      $ib_wind_dir->Hardware::iButton::Device::DS2450::readAD('all');
+    my ( $A, $B, $C, $D ) = $ib_wind_dir->Hardware::iButton::Device::DS2450::readAD('all');
     my $channel_A_state = &volts_to_state($A);
     my $channel_B_state = &volts_to_state($B);
     my $channel_C_state = &volts_to_state($C);
     my $channel_D_state = &volts_to_state($D);
-    return
-        $channel_A_state
-      . $channel_B_state
-      . $channel_C_state
-      . $channel_D_state;
+    return $channel_A_state . $channel_B_state . $channel_C_state . $channel_D_state;
 }
 
 sub volts_to_state {
@@ -254,20 +234,14 @@ sub setup_ds2450 {
         $D{resolution} = 4;
         $D{range}      = 5.12;
         #
-        if (
-            $ib_wind_dir->Hardware::iButton::Device::DS2450::setup(
-                $VCC, \%A, \%B, \%C, \%D
-            )
-          )
-        {
+        if ( $ib_wind_dir->Hardware::iButton::Device::DS2450::setup( $VCC, \%A, \%B, \%C, \%D ) ) {
             $setupds2450 = 1;
         }
         if ( $setupds2450 = 1 ) {
             print_log "Initialised weather station DS2450";
         }
         else {
-            print_log
-              "Failed to initialise weather station DS2450, retrying...";
+            print_log "Failed to initialise weather station DS2450, retrying...";
             sleep 1;
         }
     }
