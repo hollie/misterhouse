@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.670";
+var ia7_ver = "v2.0.820";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -97,6 +97,8 @@ function HashtoURL(URLHash) {
 	}
 	return location.path + "#" + pairs.join('&');
 }
+
+var MD5 = function(s){function L(k,d){return(k<<d)|(k>>>(32-d))}function K(G,k){var I,d,F,H,x;F=(G&2147483648);H=(k&2147483648);I=(G&1073741824);d=(k&1073741824);x=(G&1073741823)+(k&1073741823);if(I&d){return(x^2147483648^F^H)}if(I|d){if(x&1073741824){return(x^3221225472^F^H)}else{return(x^1073741824^F^H)}}else{return(x^F^H)}}function r(d,F,k){return(d&F)|((~d)&k)}function q(d,F,k){return(d&k)|(F&(~k))}function p(d,F,k){return(d^F^k)}function n(d,F,k){return(F^(d|(~k)))}function u(G,F,aa,Z,k,H,I){G=K(G,K(K(r(F,aa,Z),k),I));return K(L(G,H),F)}function f(G,F,aa,Z,k,H,I){G=K(G,K(K(q(F,aa,Z),k),I));return K(L(G,H),F)}function D(G,F,aa,Z,k,H,I){G=K(G,K(K(p(F,aa,Z),k),I));return K(L(G,H),F)}function t(G,F,aa,Z,k,H,I){G=K(G,K(K(n(F,aa,Z),k),I));return K(L(G,H),F)}function e(G){var Z;var F=G.length;var x=F+8;var k=(x-(x%64))/64;var I=(k+1)*16;var aa=Array(I-1);var d=0;var H=0;while(H<F){Z=(H-(H%4))/4;d=(H%4)*8;aa[Z]=(aa[Z]| (G.charCodeAt(H)<<d));H++}Z=(H-(H%4))/4;d=(H%4)*8;aa[Z]=aa[Z]|(128<<d);aa[I-2]=F<<3;aa[I-1]=F>>>29;return aa}function B(x){var k="",F="",G,d;for(d=0;d<=3;d++){G=(x>>>(d*8))&255;F="0"+G.toString(16);k=k+F.substr(F.length-2,2)}return k}function J(k){k=k.replace(/rn/g,"n");var d="";for(var F=0;F<k.length;F++){var x=k.charCodeAt(F);if(x<128){d+=String.fromCharCode(x)}else{if((x>127)&&(x<2048)){d+=String.fromCharCode((x>>6)|192);d+=String.fromCharCode((x&63)|128)}else{d+=String.fromCharCode((x>>12)|224);d+=String.fromCharCode(((x>>6)&63)|128);d+=String.fromCharCode((x&63)|128)}}}return d}var C=Array();var P,h,E,v,g,Y,X,W,V;var S=7,Q=12,N=17,M=22;var A=5,z=9,y=14,w=20;var o=4,m=11,l=16,j=23;var U=6,T=10,R=15,O=21;s=J(s);C=e(s);Y=1732584193;X=4023233417;W=2562383102;V=271733878;for(P=0;P<C.length;P+=16){h=Y;E=X;v=W;g=V;Y=u(Y,X,W,V,C[P+0],S,3614090360);V=u(V,Y,X,W,C[P+1],Q,3905402710);W=u(W,V,Y,X,C[P+2],N,606105819);X=u(X,W,V,Y,C[P+3],M,3250441966);Y=u(Y,X,W,V,C[P+4],S,4118548399);V=u(V,Y,X,W,C[P+5],Q,1200080426);W=u(W,V,Y,X,C[P+6],N,2821735955);X=u(X,W,V,Y,C[P+7],M,4249261313);Y=u(Y,X,W,V,C[P+8],S,1770035416);V=u(V,Y,X,W,C[P+9],Q,2336552879);W=u(W,V,Y,X,C[P+10],N,4294925233);X=u(X,W,V,Y,C[P+11],M,2304563134);Y=u(Y,X,W,V,C[P+12],S,1804603682);V=u(V,Y,X,W,C[P+13],Q,4254626195);W=u(W,V,Y,X,C[P+14],N,2792965006);X=u(X,W,V,Y,C[P+15],M,1236535329);Y=f(Y,X,W,V,C[P+1],A,4129170786);V=f(V,Y,X,W,C[P+6],z,3225465664);W=f(W,V,Y,X,C[P+11],y,643717713);X=f(X,W,V,Y,C[P+0],w,3921069994);Y=f(Y,X,W,V,C[P+5],A,3593408605);V=f(V,Y,X,W,C[P+10],z,38016083);W=f(W,V,Y,X,C[P+15],y,3634488961);X=f(X,W,V,Y,C[P+4],w,3889429448);Y=f(Y,X,W,V,C[P+9],A,568446438);V=f(V,Y,X,W,C[P+14],z,3275163606);W=f(W,V,Y,X,C[P+3],y,4107603335);X=f(X,W,V,Y,C[P+8],w,1163531501);Y=f(Y,X,W,V,C[P+13],A,2850285829);V=f(V,Y,X,W,C[P+2],z,4243563512);W=f(W,V,Y,X,C[P+7],y,1735328473);X=f(X,W,V,Y,C[P+12],w,2368359562);Y=D(Y,X,W,V,C[P+5],o,4294588738);V=D(V,Y,X,W,C[P+8],m,2272392833);W=D(W,V,Y,X,C[P+11],l,1839030562);X=D(X,W,V,Y,C[P+14],j,4259657740);Y=D(Y,X,W,V,C[P+1],o,2763975236);V=D(V,Y,X,W,C[P+4],m,1272893353);W=D(W,V,Y,X,C[P+7],l,4139469664);X=D(X,W,V,Y,C[P+10],j,3200236656);Y=D(Y,X,W,V,C[P+13],o,681279174);V=D(V,Y,X,W,C[P+0],m,3936430074);W=D(W,V,Y,X,C[P+3],l,3572445317);X=D(X,W,V,Y,C[P+6],j,76029189);Y=D(Y,X,W,V,C[P+9],o,3654602809);V=D(V,Y,X,W,C[P+12],m,3873151461);W=D(W,V,Y,X,C[P+15],l,530742520);X=D(X,W,V,Y,C[P+2],j,3299628645);Y=t(Y,X,W,V,C[P+0],U,4096336452);V=t(V,Y,X,W,C[P+7],T,1126891415);W=t(W,V,Y,X,C[P+14],R,2878612391);X=t(X,W,V,Y,C[P+5],O,4237533241);Y=t(Y,X,W,V,C[P+12],U,1700485571);V=t(V,Y,X,W,C[P+3],T,2399980690);W=t(W,V,Y,X,C[P+10],R,4293915773);X=t(X,W,V,Y,C[P+1],O,2240044497);Y=t(Y,X,W,V,C[P+8],U,1873313359);V=t(V,Y,X,W,C[P+15],T,4264355552);W=t(W,V,Y,X,C[P+6],R,2734768916);X=t(X,W,V,Y,C[P+13],O,1309151649);Y=t(Y,X,W,V,C[P+4],U,4149444226);V=t(V,Y,X,W,C[P+11],T,3174756917);W=t(W,V,Y,X,C[P+2],R,718787259);X=t(X,W,V,Y,C[P+9],O,3951481745);Y=K(Y,h);X=K(X,E);W=K(W,v);V=K(V,g)}var i=B(Y)+B(X)+B(W)+B(V);return i.toLowerCase()};
 
 //Takes a hash and spits out the JSON request argument string
 function HashtoJSONArgs(URLHash) {
@@ -532,7 +534,7 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
                contentType: 'application/json',
                data: JSON.stringify(json_store.ia7_config),
                success: function( data, status, error ){
-                     console.log("data="+data+" status="+status+" error="+error);
+                     //console.log("data="+data+" status="+status+" error="+error);
                      //throw up red warning if the response isn't good from MH
                      $('#lastResponse').modal({
 						    show: true
@@ -559,8 +561,6 @@ function loadPrefs (config_name){ //show ia7 prefs, args ia7_prefs, ia7_rrd_pref
                      config_modal_loop = setTimeout(function(){
 					    $('#lastResponse').modal('hide');
 				     }, 3000);
-                     console.log("status="+status);
-                     console.log("error="+error);
                      $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
                      $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
                }
@@ -603,7 +603,6 @@ function security (){
                 }
             }                                          
             for (var i in data){
-                console.log("sec="+i);
                 if (i == "group") {
                     html += "<tr class='info'><td colspan='4'><b>"+ i + "</b></td></tr>";
                     //if data[i].length > 0 otherwise print no group data found
@@ -642,7 +641,6 @@ function security (){
                         row++;
                         var groups="";
                         for (var p in data.user[j]) {
-                            console.log(p + ":" + data.user[j][p] + "<br>");
                             groups += group_pos[p]+",";
                         }
                         groups = groups.slice(0,-1);
@@ -748,7 +746,6 @@ function security (){
                     }
             });
             $('.security-submit').off('click').on('click', function(){   
-                console.log("submit");                                                  
                 var data = {};
                 var name = '#new_group';
                 var pk = 'add_group';
@@ -759,11 +756,11 @@ function security (){
                     entity_name = '#user_name';
                 }                
                 var row = $(name).attr("row");
+                data.md5pw = true;
                 data.pk = pk;
                 data.name = $(entity_name).val();
                 if (data.name == '') {
                     $(entity_name).css('border-color', 'red');
-                    console.log('return1'+entity_name);
                     return
                 } else {
                     $(entity_name).css('border-color', '');
@@ -778,7 +775,6 @@ function security (){
                 } else {
                     var groups = $('#usr_groups_'+row).editable('getValue').user_new;
                     data.groups = [];
-                    console.log("g="+JSON.stringify(groups));
                     for (var i in groups) {
                             data.groups.push(group_data[groups[i]-1].text);
                     }                    
@@ -789,9 +785,9 @@ function security (){
                     } else {
                         $('#user_password').css('border-color', '');
                     }
-                    data.submit = "true";                     
+                    data.submit = "true"; 
+                    MD5(data.password);                    
                 }
-                console.log("row="+row+" data="+JSON.stringify(data)); 
                 $.ajax({
                     url: "/json/security",
                     type: 'post',
@@ -1054,7 +1050,7 @@ var loadList = function() {
 	var button_text = '';
 	var button_html = '';
 	var entity_arr = [];
-	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status,link";
+	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status,link,rgb";
 	$.ajax({
 		type: "GET",
 		url: "/json/"+HashtoJSONArgs(URLHash),
@@ -1167,6 +1163,11 @@ var loadList = function() {
 					if (json_store.ia7_config.prefs.always_double_buttons == "yes") {
 						if (name.length < 30) dbl_btn = "<br>"; 
 					}
+					var btn_rgb = "";
+					if (json_store.objects[entity].rgb !== undefined) {
+					    btn_rgb = '<span class="pull-right">';
+					    btn_rgb += '<i class="fa fa-lg fa-circle fa-rgb-border object-color" style="color:rgb('+json_store.objects[entity].rgb+');"></i></span>';			    
+					}
 					// direct control item, differentiate the button
 					var btn_direct = "";
 					if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
@@ -1176,7 +1177,7 @@ var loadList = function() {
                 	} 
 					button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' ";
 					button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover "+btn_direct+" btn-state-cmd navbutton-padding'>";
-					button_html += name+dbl_btn+"<span class='pull-right'>"+json_store.objects[entity].state+"</span></button></div>";
+					button_html += name+btn_rgb+dbl_btn+"<span class='pull-right object-state'>"+json_store.objects[entity].state+"</span></button></div>";
 					entity_arr.push(button_html);
 				}
 			}//entity each loop
@@ -1376,6 +1377,7 @@ var sliderDetails = function (states) {
     var pct = 0;
     var slider_array = [];
     for(var i = 0; i < states.length; i++) {
+//TODO gives tostring error on null object items sensor_garage_motion_off
         var val = states[i].toString();
         if(val.indexOf('%') != -1) pct=1;
         val = val.replace(/\%/g,'');
@@ -1414,7 +1416,7 @@ var sortArrayByArray = function (listArray, sortArray){
 //Used to dynamically update the state of objects
 var updateList = function(path) {
 	var URLHash = URLToHash();
-	URLHash.fields = "state,state_log,schedule,logger_status,type";
+	URLHash.fields = "state,state_log,schedule,logger_status,type,rgb";
 	URLHash.long_poll = 'true';
 	URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -1433,20 +1435,24 @@ var updateList = function(path) {
 				ajax_req_success("objects");
 				JSONStore(json);
 				for (var entity in json.data){
-					if (json.data[entity] === undefined && json.data[entity].type === undefined){
-						// This is not an entity, skip it
-						continue;
-					}
+					// This is not an entity, skip it
+					if (json.data[entity] === undefined ) continue;
+					if (json.data[entity].type === undefined) continue;
+                    if ($('button[entity="'+entity+'"]').hasClass('btn-voice-cmd')) continue; //don't change color for voice commands
 					var color;
 					if (json.data[entity].state === undefined) {
 					    color = "default";
 					} else {
 					    color = getButtonColor(json.data[entity].state);
 					}
-					$('button[entity="'+entity+'"]').find('.pull-right').text(
-						json.data[entity].state);
+					var btn_rgb = "";
+					if (json.data[entity].rgb !== undefined) {
+						$('button[entity="'+entity+'"]').find('.object-color').css("color",'rgb('+json.data[entity].rgb+')');
+					}
+					$('button[entity="'+entity+'"]').find('.object-state').text(json.data[entity].state);
 					$('button[entity="'+entity+'"]').removeClass("btn-default");
 					$('button[entity="'+entity+'"]').removeClass("btn-success");
+					$('button[entity="'+entity+'"]').removeClass("btn-purple");
 					$('button[entity="'+entity+'"]').removeClass("btn-warning");
 					$('button[entity="'+entity+'"]').removeClass("btn-danger");
 					$('button[entity="'+entity+'"]').removeClass("btn-info");
@@ -1485,7 +1491,7 @@ var updateItem = function(item,link,time) {
 		time = "";
 	}
 	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
-	var arg_str = "fields=state,states,label,state_log,schedule,logger_status&long_poll=true&items="+item+"&time="+time;
+	var arg_str = "fields=state,states,label,state_log,schedule,logger_status,rgb&long_poll=true&items="+item+"&time="+time;
 	$.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
@@ -1497,9 +1503,9 @@ var updateItem = function(item,link,time) {
 				JSONStore(json);
 				requestTime = json_store.meta.time;
 				var color = getButtonColor(json.data[item].state);
-				$('button[entity="'+item+'"]').find('.pull-right').text(
-					json.data[item].state);
+				$('button[entity="'+item+'"]').find('.object-state').text(json.data[item].state);
 				$('button[entity="'+item+'"]').removeClass("btn-default");
+				$('button[entity="'+item+'"]').removeClass("btn-purple");
 				$('button[entity="'+item+'"]').removeClass("btn-success");
 				$('button[entity="'+item+'"]').removeClass("btn-warning");
 				$('button[entity="'+item+'"]').removeClass("btn-danger");
@@ -1563,9 +1569,10 @@ var updateStaticPage = function(link,time) {
 					if ($(this).attr('entity') != '' && json.data[$(this).attr('entity')] != undefined ) { //need an entity item for this to work.
 						entity = $(this).attr('entity');
 						var color = getButtonColor(json.data[entity].state);
-						$('button[entity="'+entity+'"]').find('.pull-right').text(json.data[entity].state);
+						$('button[entity="'+entity+'"]').find('.object-state').text(json.data[entity].state);
 						$('button[entity="'+entity+'"]').removeClass("btn-default");
 						$('button[entity="'+entity+'"]').removeClass("btn-success");
+						$('button[entity="'+entity+'"]').removeClass("btn-purple");
 						$('button[entity="'+entity+'"]').removeClass("btn-warning");
 						$('button[entity="'+entity+'"]').removeClass("btn-danger");
 						$('button[entity="'+entity+'"]').removeClass("btn-info");
@@ -1740,7 +1747,7 @@ var loadCollection = function(collection_keys) {
 				if (name.length < 30) dbl_btn = "<br>"; 
 				var button_html = "<div style='vertical-align:middle'><button entity='"+item+"' ";
 				button_html += "class='btn  btn-"+color+" btn-lg btn-block btn-list btn-popover "+ btn_direct +" btn-state-cmd navbutton-padding'>";
-				button_html += name+dbl_btn+"<span class='pull-right'>"+json_store.objects[item].state+"</span></button></div>";
+				button_html += name+dbl_btn+"<span class='pull-right object-state'>"+json_store.objects[item].state+"</span></button></div>";
 			    button_html = "<div class='col-sm-4' colid='"+i+"'>" + button_html + "</div>";
 				entity_arr.push(button_html);
 				items += item+",";		
@@ -1862,7 +1869,6 @@ var loadCollection = function(collection_keys) {
 		});	
 			
 // test multiple items at some point
-        console.log("items="+items);
 		updateItem(items);
 	}	
     loadModule('developer');
@@ -1952,12 +1958,21 @@ var something_went_wrong = function(module,text,fadeout) {
 
     if ((json_store.ia7_config.prefs.show_errors !== undefined) &&  json_store.ia7_config.prefs.show_errors == "yes") {
 
+        // if a module SWW is already displayed, don't display another duplicate message
+        var found = 0;
+        $('.sww-background').each(function (){
+            if ($(this).attr('module') == module) {
+                console.log("INFO: Something went Wrong module "+module+" already displayed");
+                found = 1;
+            }
+        });
+        if (found) return;
        var type = "dark";
        var mobile = "";
        if ($(window).width() <= 768) { // override the responsive mobile top-buffer
            mobile = "mobile-alert";
        }
-       var html = "<div class='alert sww-background fade in "+mobile+"' data-alert>";
+       var html = "<div class='alert sww-background fade in "+mobile+"' data-alert module='"+module+"'>";
        //if fadeout is -1 then don't display data-dismiss?
        if (fadeout == undefined || (fadeout !== undefined && fadeout !== 0)) html += "<button type='button' class='close' data-dismiss='alert'><span style='color:white'>x</span></button>";
        html += "<div>";
@@ -2134,14 +2149,13 @@ var get_wi_icon = function (conditions,rain,snow,night) {
 var get_notifications = function(time) {
 	if (updateSocketN !== undefined && updateSocketN.readyState != 4){
 		// Only allow one update thread to run at once
-		console.log ("Notify aborted "+updateSocketN.readyState);
+		//console.log ("Notify aborted "+updateSocketN.readyState);
 		updateSocketN.abort();
 	}
 	if (time === undefined) time = new Date().getTime(); //this triggers on failure.
 	var arg_str = "long_poll=true&time="+time;	
 	var path_str = "/notifications";
 	var requestTime;
-	console.log("in get_notifications");
 	updateSocketN = $.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
@@ -2208,9 +2222,13 @@ var get_notifications = function(time) {
 
 };
 
-var ajax_req_error = function(xhr, status, error, module) {
+var ajax_req_error = function(xhr, status, error, module, modal) {
     //ignore abort messages, not a communication issue
+    //close any open modals if an error encountered (unless the ajax error is through a modal interface)
     if (status == "abort" && error == "abort") return;
+
+    if (modal == undefined) modal = false;
+    if (modal !== true) $('.modal').modal('hide');
      var message = "Unknown ajax request error";
      if (xhr == undefined || xhr.responseText == undefined || xhr.responseText == "") {
          message = "Lost communication with server";
@@ -2235,9 +2253,7 @@ var ajax_req_success = function(module) {
     var errors = 0;
     for(var i in req_errors) {
         errors += req_errors[i];
-        console.log("success reconnect "+i+" "+req_errors[i]+" "+errors);
     }
-    console.log("In success reconnect for "+module+ ":"+errors);
     
 //	if (errors === 0) {
 	     //$("#mh_title").css("color", "black");
@@ -2376,10 +2392,14 @@ var graph_rrd = function(start,group,time) {
 	var new_data = 1;
 	var data_timeout = 0;
 	var refresh = 60; //refresh data every 60 seconds by default
-	
-	if (!$('#rrd-graph').is(':visible')) {
+	if (!$('#rrd-graph').is(':visible')) { //If not on an RRD page then stop the timer, otherwise show the loader
+        //console.log("checking loader "+URLHash.path+" : x : "+$('#top-graph').length);
+        if (URLHash.path === undefined || URLHash.path.substring(0,4) !== "/rrd") {
+            clearTimeout(rrd_refresh_loop);
+            return;
+        }
         $('#loader').show();
-    } 
+    }
     
 	if (json_store.ia7_config.prefs.rrd_refresh !== undefined) refresh = json_store.ia7_config.prefs.rrd_refresh;
 
@@ -2520,6 +2540,7 @@ var graph_rrd = function(start,group,time) {
 				var previousPoint = null;
 
 				$("#rrd-graph").bind("plothover", function(event, pos, item) {
+//tofixed caused a problem
     				$("#x").text(pos.x.toFixed(2));
     				$("#y").text(pos.y.toFixed(2));
     				if (item) {
@@ -3532,6 +3553,10 @@ var create_state_modal = function(entity) {
 		var name = entity;
 		if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
 		$('#slider').remove();
+		$('#sliderR').remove();
+		$('#sliderG').remove();
+		$('#sliderB').remove();
+		
 //		$('#control').modal('show');
 
         //make sure the modal is centered on all devices
@@ -3551,7 +3576,11 @@ var create_state_modal = function(entity) {
 
 		
 		var modal_state = json_store.objects[entity].state;
-		$('#control').find('.object-title').html(name + " - <span class='object-state'>" + json_store.objects[entity].state + "</span>");
+		var title = name + " - <span class='modal-object-state'>" + json_store.objects[entity].state + "</span>";
+        if (json_store.objects[entity].rgb !== undefined) {
+            title += '  <i class="fa fa-lg fa-circle fa-rgb-border object-color" style="color:rgb('+json_store.objects[entity].rgb+');"></i></span>';
+        }
+		$('#control').find('.object-title').html(title);
 		$('#control').find('.control-dialog').attr("entity", entity);
 		var modal_states = json_store.objects[entity].states;
 		// HP need to have at least 2 states to be a controllable object...
@@ -3621,8 +3650,7 @@ var create_state_modal = function(entity) {
                     }
                    var slider_data = sliderDetails(modal_states);		                
                    $('#control').find('.states').append("<div id='slider' class='brightness-slider'></div>");					
-                   var val = $(".object-state").text().replace(/\%/,'');
-              
+                   var val = $(".modal-object-state").text().replace(/\%/,'');              
                    var position = slider_data.values.indexOf(val);
                    if (val == "on") position = slider_data.max;
                    if (val == "off") position = slider_data.min;
@@ -3641,7 +3669,7 @@ var create_state_modal = function(entity) {
                        } else {
                            if (slider_data.pct) sliderstate += "%";
                        }
-                       $('#control').find('.object-state').text(sliderstate);
+                       $('#control').find('.modal-object-state').text(sliderstate);
 
                    });
                    $( "#slider" ).on( "slidechange", function(event, ui) {
@@ -3660,7 +3688,47 @@ var create_state_modal = function(entity) {
                             $(".get-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });                          
                        });
                    });
-
+                if (json_store.objects[entity].rgb !== undefined) {
+                        $('#control').find('.states').append("<br><div id='sliderR' class='rgb-slider brightness-slider red-handle'></div>");					
+                        $('#control').find('.states').append("<br><div id='sliderG' class='rgb-slider brightness-slider green-handle'></div>");					
+                        $('#control').find('.states').append("<br><div id='sliderB' class='rgb-slider brightness-slider blue-handle'></div>");
+                        
+                        $('#sliderR' ).slider({
+                            min: 0,
+                            max: 255,
+                            value: json_store.objects[entity].rgb.split(',')[0]
+                        });	
+                        $('#sliderG' ).slider({
+                            min: 0,
+                            max: 255,
+                            value: json_store.objects[entity].rgb.split(',')[1]
+                        });	
+                        $('#sliderB' ).slider({
+                            min: 0,
+                            max: 255,
+                            value: json_store.objects[entity].rgb.split(',')[2]
+                        });	 
+                        $( ".rgb-slider" ).on( "slide", function(event, ui) {
+                            var sliderstate;
+                            if ($(this).hasClass("red-handle")) {
+                                sliderstate = ui.value+","+$('#sliderG').slider("value")+","+$('#sliderB').slider("value");
+                            } else if ($(this).hasClass("green-handle")) {
+                                sliderstate = $('#sliderR').slider("value")+","+ui.value+","+$('#sliderB').slider("value");
+                            } else if ($(this).hasClass("blue-handle")) {
+                                sliderstate = $('#sliderR').slider("value")+","+$('#sliderG').slider("value")+","+ui.value;
+                            }
+                            $('.object-color').css("color","rgb("+sliderstate+")");
+                        });  
+                        $( ".rgb-slider" ).on( "slidechange", function(event, ui) {
+                            var sliderstate = $('#sliderR').slider("value")+","+$('#sliderG').slider("value")+","+$('#sliderB').slider("value");
+                            var rgb_url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+sliderstate+'&select_setby=rgb';
+                            $.get(rgb_url).fail(function() {
+                                 $(".modal-header").append($("<div class='get-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;Could not send command to Misterhouse</p></div>"));
+                                 $(".get-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });                          
+                            });
+                        });
+                                                                                             				
+                    }
                  }
         if (slider_active) {
 		    advanced_html = "<br>"+advanced_html; //this is clunky but showing advanced states is kinda ugly anyways
@@ -3812,7 +3880,6 @@ var create_state_modal = function(entity) {
                     contentType: 'application/json',
                     data: JSON.stringify(data),
                     success: function( data, status, error ){
-                          console.log("data="+data+" status="+status+" error="+error);
                           //throw up red warning if the response isn't good from MH
                           if (data.status !== undefined || data.status == "error") {
                               var message = "Unknown server error";
@@ -3833,8 +3900,6 @@ var create_state_modal = function(entity) {
                           var message = "Unknown ajax request error";
                           var data = JSON.parse(xhr.responseText);
                           if (data !== undefined && data.text !== undefined) message = data.text;
-                          console.log("status="+status);
-                          console.log("error="+error);
                           $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
                           $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
                   }                    
@@ -3871,6 +3936,7 @@ var create_state_modal = function(entity) {
 //			$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
 			$('#control').find('.modal-body').append(object_log_header);
 			for (var i = 0; i < json_store.ia7_config.prefs.state_log_entries; i++) {
+			    if (json_store.objects[entity].state_log == undefined) continue;
 				if (json_store.objects[entity].state_log[i] == undefined) continue;
 				var slog = json_store.objects[entity].state_log[i].split("set_by=");
 				$('#control').find('.obj_log').append(slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br>");
@@ -4016,7 +4082,6 @@ var create_develop_item_modal = function(colid,col_parent) {
                      if (!(prop == "mode")) {
                         // loop through properties
                           if ($('#col_'+prop).val() !== '') json_store.collections[colid][prop] = $('#col_'+prop).val();                      
-                          console.log("prop="+prop+" val="+$('#col_'+prop).val());
                     }
                 }
             }
@@ -4061,8 +4126,10 @@ var create_develop_item_modal = function(colid,col_parent) {
                   type: 'post',
                   contentType: 'application/json',
                   data: JSON.stringify(data),
-                  success: function( data, status, error ){
-                        console.log("data="+data+" status="+status+" error="+error);
+                  currentUser: {user: current_user},
+                  success: function( data, status, error){
+                        var user = this.currentUser.user;
+                        console.log("data="+data+" status="+status+" error="+error+" user="+user);
                         //throw up red warning if the response isn't good from MH
                         if (data.status !== undefined || data.status == "error") {
                             var message = "Unknown server error";
@@ -4076,17 +4143,18 @@ var create_develop_item_modal = function(colid,col_parent) {
                             $('.btn-dev-apply').addClass('disabled');
                             dev_changes = 0;
                         }
-                        data[700].user = current_user;
+                        json_store.collections[700].user = user;
                   },
                   error: function( xhr, status, error ){
                         var message = "Unknown ajax request error";
+                        var user = this.currentUser.user;                        
                         var data = JSON.parse(xhr.responseText);
                         if (data !== undefined && data.text !== undefined) message = data.text;
                         console.log("status="+status);
                         console.log("error="+error);
                         $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
    	 		            $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
-   	 		            data[700].user = current_user;
+   	 		            json_store.collections[700].user = user;
                   }
               });
         });
@@ -4360,7 +4428,6 @@ var trigger = function() {
                     contentType: 'application/json',
                     data: JSON.stringify(data),
                     success: function( data, status, error ){
-                        console.log("trigger success data="+data+" status="+status+" error="+error);  
                         if (data.status !== undefined || data.status == "error") {
                             console.log("error!");
                         } else {   
@@ -4710,14 +4777,14 @@ function getScript(source, callback) {
 var loadModule = function(name,callback) {
 
     if (modules[name].loaded == 1) {
-        console.log("Module "+name+" already loaded");
+        //console.log("Module "+name+" already loaded");
         return 0;
     }
 
     //loop through all modules if all
     if (modules[name].script !== undefined ) {
         for (var i = 0, len = modules[name].script.length; i < len; i++) {
-            console.log("loading script "+name+" "+modules[name].script[i]);
+            //console.log("loading script "+name+" "+modules[name].script[i]);
             modules[name].loaded = 1;
             if (modules[name].callback !== undefined && (i + 1) == (len)) callback = modules[name].callback;
             getScript("/ia7/include/"+modules[name].script[i], callback);
@@ -4726,7 +4793,7 @@ var loadModule = function(name,callback) {
     if (modules[name].css !== undefined ) {
         for (var i = 0, len = modules[name].css.length; i < len; i++) {
             modules[name].loaded = 1;
-            console.log("loading css "+name+" "+modules[name].css[i]);
+            //console.log("loading css "+name+" "+modules[name].css[i]);
             var fileref = document.createElement("link")
             fileref.setAttribute("rel", "stylesheet")
             fileref.setAttribute("type", "text/css")

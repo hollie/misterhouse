@@ -30,10 +30,7 @@
 	<link rel="stylesheet" href="/ia7/include/bootstrap.3.3.7.min.css.gz">
 	<link rel="stylesheet" href="/ia7/include/bootstrap-theme.3.3.7.min.css.gz">
 	<script src="/ia7/include/bootstrap.3.3.7.min.js.gz"></script>
-    
-    <!-- Load ia7_pref options -->
-<!--    <script type="text/javascript" src="/ia7/include/ia7_prefs.json"></script> -->
-	
+    	
 	<!-- Misterhouse ia7 System JS File-->
 	<script src="/ia7/include/javascript.js"></script>
 	
@@ -44,7 +41,7 @@
 	  white-space: nowrap;
 	  text-align: left;
 	  padding-left: 15px;
-	  padding-right: 15px;
+	  padding-right: 15px; 
 	}
 	@media (min-width: 768px) {
 		.top-buffer {
@@ -236,7 +233,6 @@
 	.sched-dropdown-menu {
 		margin-left: 14px !important;	
 	}
-	
 	.brightness-slider {
 	    margin-left: 16px;
 	    margin-right: 16px;
@@ -252,35 +248,42 @@
         width: 32px;
         margin-left: -16px
     }  
+    .red-handle .ui-slider-handle {
+        background: red;
+    }   
+    .green-handle .ui-slider-handle {
+        background: green;
+    } 
+    .blue-handle .ui-slider-handle {
+        background: blue;
+    }          
 	.popover {
 	    min-width: 200px;
-	}
-	
+	}	
 	.mh-page-link {
 	    padding-left: 30px;
 	}
-	
 	.mh-wi-text {
         font-size: 15px;
         margin-top: 13px;
     }
-    
     .mh-wi-icon {
         margin-top: 2px;
     }
-    
     #option_collection {
         margin-top: 5px;
     }
-    
     .whatsnew-panel {
         margin-right: 15px;
     }
+   .fa-rgb-border {
+        text-shadow: -1px 0 #000, 0 1px #000, 1px 0 #000, 0 -1px #000;
+   }
 
     #loader {
       position: absolute;
-      left: 50%;
-      top: 70%;
+      right: 45%;
+      top: 60%;
       z-index: 1;
       width: 150px;
       height: 150px;
@@ -303,6 +306,12 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }	
+    
+	@media (max-width: 500px) {
+	    #loader {
+	        right: 35%;
+	    }
+	}
 
     .btn-purple {
       color: #fff;
@@ -333,7 +342,12 @@
       background-color: #834087;
       border-color: #834087;
     }
-
+    
+    html, body {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+    
 	</style>
 </head>
 <body>
@@ -346,7 +360,7 @@
                 </button>
                 
             <button id="mhstatus" entity="ia7_status" type="button" class="btn btn-info toolbar-btn pull-right" style="display:none">
-                <span class='pull-right'>checking</span>
+                <span class='pull-right object-state'>checking</span>
                 </button>		
             <span id="wtemp" class='pull-right mh-wi text-muted mh-wi-text'></span>
             <i id="wicon" class='pull-right mh-wi text-muted mh-wi-icon wi'></i>
@@ -357,9 +371,10 @@
 
 	</div>
 
-</div>
-
 <div id="loader"></div>
+
+
+</div>
 
 <div id="list_content">
 </div>

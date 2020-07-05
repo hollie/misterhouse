@@ -1,6 +1,6 @@
 package Nanoleaf_Aurora;
 
-# v1.1.01
+# v1.1.03
 
 #if any effect is changed, by definition the static child should be set to off.
 #cmd data returns, need to check by command
@@ -129,7 +129,7 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.1.01";
+    $self->{module_version}         = "v1.1.03";
     $self->{ssdp_timeout}           = 4000;
     $self->{last_static}            = "";
 
@@ -164,7 +164,7 @@ sub new {
     $self->{poll_process}->set_output( $self->{poll_data_file} );
     @{ $self->{cmd_queue} } = ();
     $self->{cmd_data_file} = "$::config_parms{data_dir}/Aurora_cmd_" . $self->{name} . ".data";
-    unlink "$::config_parms{data_dir}/Auroroa_cmd_" . $self->{name} . ".data";
+    unlink "$::config_parms{data_dir}/Aurora_cmd_" . $self->{name} . ".data";
     $self->{cmd_process} = new Process_Item;
     $self->{cmd_process}->set_output( $self->{cmd_data_file} );
     $self->{init}      = 0;
@@ -721,7 +721,6 @@ sub print_info {
     } else {
         main::print_log( "[Aurora:" . $self->{name} . "] Rhythm Module:     Not Present");
     }
-    main::print_log( "[Aurora:" . $self->{name} . "] Firmware:          " . $self->{data}->{info}->{firmwareVersion} );
     
     main::print_log( "[Aurora:" . $self->{name} . "] Connected Panels:  " . $self->{data}->{panels} );
     main::print_log( "[Aurora:" . $self->{name} . "] Panel Size:        " . $self->{data}->{panel_size} );
@@ -763,9 +762,9 @@ sub print_info {
     main::print_log( "[Aurora:"
           . $self->{name}
           . "]    Color Temp:\t  "
-          . $self->{data}->{info}->{state}->{brightness}->{value} . "\t["
-          . $self->{data}->{info}->{state}->{brightness}->{min} . "-"
-          . $self->{data}->{info}->{state}->{brightness}->{max}
+          . $self->{data}->{info}->{state}->{ct}->{value} . "\t["
+          . $self->{data}->{info}->{state}->{ct}->{min} . "-"
+          . $self->{data}->{info}->{state}->{ct}->{max}
           . "]" );
     main::print_log( "[Aurora:" . $self->{name} . "] -- Active Effects --" );
     if ( defined $self->{data}->{info}->{effects}->{list} ) {
@@ -1331,4 +1330,4 @@ sub set {
 # v1.0.13 - ability to print and purge the command queue in case a network error prevents clearing, empty poll queue if max reached
 # v1.0.14 - commands now queue properly
 # v1.0.15 - fixed polling
-# v1.1.01 - firmware v2.2.0 and rhythm module
+# v1.1.03 - fixed a few typos

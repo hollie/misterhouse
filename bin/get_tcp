@@ -1,0 +1,124 @@
+#!/usr/bin/env perl
+# -*- Perl -*-
+
+use strict;
+use IO::Socket;
+
+# Similar to get_url, open a socket and then get the data. Useful to spawn off as a process_item to avoid pauses
+
+my ( $Pgm_Path, $Pgm_Name );
+
+BEGIN {
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";    # So perl2exe works
+}
+
+my ( %config_parms, %parms );
+
+use Getopt::Long;
+
+if (
+    !&GetOptions( \%parms, 'h', 'help', 'quiet', 'timeout=s', 'rn')
+    or !@ARGV
+    or $parms{h}
+    or $parms{help}
+  )
+{
+
+    print <<eof;
+
+    $Pgm_Name similar to get_url, opens a socket to host and echos response to STDOUT or a local file.
+
+Usage:
+
+    $Pgm_Name [-quiet] host:post data [local_file]
+
+    -quiet: no output on stdout
+    -timeout: in seconds. Defaults is 3 seconds
+    -rn: send \r\n to the data
+    
+    If local_file is specified, data is stored there.
+    If local_file = /dev/null, data is not returned.
+    Otherwise, data is echoed to STDOUT.
+
+
+eof
+    exit;
+}
+
+my $timeout = 3;
+$timeout = $parms{timeout} if ($parms{timeout});
+
+my $location = shift;
+
+my ($host, $port) = $location =~ /^(\S+)(:\d+)/;
+
+$port =~ s/://g;
+
+my $data = shift;
+
+$data .= "\r\n" if ($parms{rn});
+
+unless ($host and $port and $data) {
+    print "get_tcp_error: missing parameters: ";
+    print "host " unless ($host);
+    print "port " unless ($port);
+    print "data " unless ($data);
+    print "\n";
+    exit;
+}
+
+
+# Get parms from mh.ini
+require 'handy_utilities.pl';
+&main::read_mh_opts( \%config_parms, $Pgm_Path );
+
+my $file = shift;
+my $response = "";
+my $error = 1;
+
+my $tcp = new IO::Socket::INET(
+PeerHost => $host,
+PeerPort => $port,
+Timeout  => $timeout,
+Proto => "tcp") or $response = "get_tcp_error: opening socket: $!.\n";
+#print "error $host:$port\n" if ($tcp->connected());
+
+unless ($response) {
+    $error = 0;
+    print "Sending data to $location " unless $parms{quiet}; 
+    print "into $file" unless ($parms{quiet} or !$file);
+    print "..." unless $parms{quiet};
+
+    $tcp->send($data) or $response = "get_tcp_error: Couldn't send: $!";
+
+    unless ($response) {
+        $tcp->recv($response, 1024);
+        print " data retrieved\n" unless $parms{quiet};
+    } else {
+        $error = 1;
+    }
+}
+    if ($file) {
+        #       print $data;
+        unless ( $file eq '/dev/null' ) {
+            if ($response) {
+                open( OUT, ">$file" )
+                  or die "get_tcp_error: could not open file '$file' for output: $!\n";
+                binmode OUT;
+                print OUT $response;
+                close OUT;
+            }
+            else {
+                print " empty data response\n";
+            }
+        }
+    } else {
+        print $response;
+    }
+
+
+$tcp->close() unless ($error);
+
+

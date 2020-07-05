@@ -32,7 +32,7 @@ my ( $Pgm_Path, $Pgm_Name );
 BEGIN {
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval "use lib '$Pgm_Path/../lib/site'";
+    eval "use lib '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";
 }
 
 my %parms;
