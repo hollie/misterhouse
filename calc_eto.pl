@@ -1,9 +1,6 @@
 # Category = Irrigation
 
 # March 2019
-# v2.0.2
-# - fixed date check false positive if january
-#
 # v2
 # - moved to DarkSky as data provider. Location has to be lats and longs
 #
@@ -1123,8 +1120,6 @@ sub main_calc_eto {
     my $tdew          = safe_float( $hist->{dewPoint} );
 
     my ($cday,$cmon,$cyear) = (localtime($hist->{time}))[3,4,5];
-    #it looks like a 0 is the same as undef, so if $cmon == 0 then add 1.
-    $cmon++ if ($cmon == 0);
 
     if ($cday == undef || $cmon == undef || $cyear == undef) {
         #problem with the data
@@ -1138,7 +1133,7 @@ sub main_calc_eto {
         }
         return "[[-1,-1,-1,-1],[0]]";    
     }
-    $cmon++ unless ($cmon == 1); #timelocal months start at 0, don't double adjust for january
+    $cmon++; #timelocal months start at 0
     $cyear += 1900;
     my $doy           = Day_of_Year( $cyear, $cmon, $cday );
     my $sun_hours     = sun_block( $wuData, $sun->{rise}, $sun->{set}, $conditions );
