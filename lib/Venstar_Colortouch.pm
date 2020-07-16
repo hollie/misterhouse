@@ -1,6 +1,6 @@
 package Venstar_Colortouch;
 
-# v2.1.2
+# v2.1.3
 
 #added in https support and don't retry commands that have a valid error reason code. Only retry if the device doesn't respond. (ie error 500)
 
@@ -176,7 +176,7 @@ sub _init {
                 $self->{active}                = 1;
                 $self->{previous}->{tempunits} = $self->{data}->{tempunits};
                 $self->{previous}->{name}      = $self->{data}->{name};
-                foreach my $key1 ( keys $self->{data}->{info} ) {
+                foreach my $key1  (keys %{$self->{data}->{info}} ) {
                     $self->{previous}->{info}->{$key1} = $self->{data}->{info}->{$key1};
                 }
                 $self->{previous}->{sensors}->{sensors}[0]->{temp} = $self->{data}->{sensors}->{sensors}[0]->{temp};
@@ -288,7 +288,7 @@ sub process_check {
                 $com_status = "offline";
             }
             else {
-                if ( keys $data ) {
+                if ( keys %{$data} ) {
                     $self->{poll_data_timestamp} = &main::get_tickcount();
                     if ( $self->{poll_process_mode} eq "info" ) {
                         $self->{data}->{tempunits} = $data->{tempunits};
@@ -356,7 +356,7 @@ sub process_check {
 
         }
         else {
-            if ( keys $data ) {
+            if ( keys %{$data} ) {
                 if ( $data->{success} eq "true" ) {
                     shift @{ $self->{cmd_queue} };    #remove the command from queue since it was successful
                     $self->{cmd_process_retry} = 0;
