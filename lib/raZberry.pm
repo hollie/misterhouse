@@ -1,4 +1,4 @@
-=head1 B<raZberry> v3.0.4
+=head1 B<raZberry> v3.0.6
 
 #test command setup
 #command queue
@@ -186,7 +186,7 @@ sub new {
     my ( $class, $addr, $poll, $options ) = @_;
     my $self = new Generic_Item();
     bless $self, $class;
-    &main::print_log("[raZberry]: v3.0.4 Controller Initializing...");
+    &main::print_log("[raZberry]: v3.0.6 Controller Initializing...");
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
     
@@ -232,7 +232,7 @@ sub new {
     ( $self->{debug} )              = ( $options =~ /debug=(\d+)/i ) if ( ( defined $options ) and ( $options =~ m/debug=/i ) );
     $self->{debug}                  = $main::Debug{razberry} if ( defined $main::Debug{razberry} );
     $self->{lastupdate}             = undef;
-    $self->{status}                 = "";
+    $self->{status}                 = "online";
     $self->{controller_data}        = ();
     &main::print_log("[raZberry:" . $self->{host} . "]: options are $options") if ( ( $self->{debug} ) and ( defined $options ) );
 
@@ -688,7 +688,8 @@ sub poll {
 
 sub set_dev {
     my ( $self, $device, $mode ) = @_;
-
+    &main::print_log("[raZberry:" . $self->{host} . "]: WARNING. Device $device not in raZberry device table. Set operation may not work") unless (defined $self->{data}->{devices}->{$device});
+    
     &main::print_log("[raZberry:" . $self->{host} . "]: set_dev Setting $device to $mode") if ( $self->{debug} );
     my $cmd;
 
@@ -858,7 +859,7 @@ sub register {
     my ( $self, $object, $dev, $options ) = @_;
     if ( lc $dev eq 'comm' ) {
         &main::print_log("[raZberry:" . $self->{host} . "]: Registering Communication object to controller");
-        $self->{child_object}->{'comm'} = $object;
+        $self->{child_object}->{comm} = $object;
     }
     else {
         my $type = $object->{type};
@@ -1653,7 +1654,7 @@ sub new {
     $$self{master_object} = $object;
     push( @{ $$self{states} }, 'online', 'offline' );
     $object->register( $self, 'comm' );
-#    $self->SUPER::set('online'); #start online at initialization
+    $self->SUPER::set('online'); #start online at initialization
     return $self;
 
 }
@@ -1694,10 +1695,10 @@ sub new {
     }
 
     $$self{master_object} = $object;
-    $devid = $devid . "-0-67" if ( $devid =~ m/^\d+$/ );
-    #check if the thermostat is a subitem? ie xx-0-67-1, which happened on 2.3.5?
-    my $testdev = $devid . "-1";
-    $devid = $testdev if (defined $$self{master_object}->{data}->{devices}->{$testdev});
+    $devid = $devid . "-0-67-1" if ( $devid =~ m/^\d+$/ );
+    ##check if the thermostat is a subitem? ie xx-0-67-1, which happened on 2.3.5?
+    #my $testdev = $devid . "-1";
+    #$devid = $testdev if (defined $$self{master_object}->{data}->{devices}->{$testdev});
     $$self{devid} = $devid;
     $$self{type}  = "Thermostat";
 
@@ -2001,7 +2002,7 @@ sub new {
     #ZWayVDev_zway_x-0-50-5 - Current Sensor A
     #push( @{ $$self{states} }, 'on', 'off'); I'm not sure we should set the states here, since it's not a controlable item?
 
-    unless ( $devid =~ m/^\d+$/ ) {
+    if ( $devid =~ m/^\d+$/ ) {
         $$self{master_object} = $object;
         $$self{type}          = "Multilevel Voltage";
         $$self{devid}         = $devid;
