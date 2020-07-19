@@ -1840,7 +1840,24 @@ sub read_table_A {
         $object = '';
     }
     #-------------- End Alexa Objects ----------------
-
+    #-------------- BondHome Objects -----------------
+    elsif ( $type eq "BONDHOME" ) {
+        #<Bond Home (BONDHOME),BONDHOME,Name,Instance>#
+        require 'BondHome.pm';
+        my ($instance);
+        ( $name, $instance, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $object = "BondHome('$instance','$other')";
+    }
+    elsif ( $type eq "BONDHOME_DEVICE" ) {
+        #<Bond Home (BONDHOME_DEVICE),BONDHOME_DEVICE,Name,Instance,BondDevName>#
+        require 'BondHome.pm';
+	my ($instance, $bonddevname);
+        ( $name, $instance, $bonddevname, $grouplist, @other ) = @item_info;
+	$other = join ', ', ( map { "'$_'" } @other );
+        $object = "BondHome_Device('$instance','$bonddevname')";
+    }
+    #-------------- End BondHome Objects -----------------
     #-------------- AoGSmartHome Objects -----------------
     elsif ( $type eq "AOGSMARTHOME_ITEMS" ) {
 	#<Actions on Google (AOGSMARTHOME_ITEMS),AOGSMARTHOME_ITEMS,Name>#
