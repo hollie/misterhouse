@@ -4,27 +4,38 @@
 
 =head2 DESCRIPTION
 
-Module for interfacing with the BondHome Hub to control devices configured in it.
+Module for interfacing with the BondHome Hub to control IR/RF devices such as fans.
 
 =head2 CONFIGURATION
 
 At minimum, you must define the BondHome_ip in the mh.private.ini and the Interface
-object. Once they are configured you can restart MH, then restart the Bond Hub once
-MH is back up, next set the Bond Hub interface object to "GetToken" within a few min of the 
-Bond Hub reboot. Once the token is successfuly retreved, set the Bond Hub interface object to "LogDevs"
-and copy the device code from the MH logs and paste into a MH .mht file. You will need all the devices 
-preconfigured in the BondHome Hub because MH pulls them including the names from it.
+object. Once they are configured you can restart MH, once MH is back up restart the Bond Hub, 
+next set the Bond Hub interface object to "GetToken" within a few min after the Bond Hub reboot. 
+Once the token is successfuly retreved, set the Bond Hub interface object to "LogDevs"
+and copy the device code from the MH logs and paste into a MH .mht file in your code directory. 
+You will need all the devices preconfigured in the BondHome Hub because MH pulls them including the names from it.
 The BondHome_Device objects allow for the display and control of these objects as separate items 
 in the MH interface and allows users to interact directly with these objects 
 using the basic Generic_Item functions such as tie_event.
 
 
 The BondHome_Device object is for tracking the state of and controlling
-devices configured in the bondhome hub.
+devices configured in the BondHome hub through the BondHome app and stored in 
+the local BondHome hub database. These devices are pulled from the BondHome Hub 
+with the local api.
 
 Misterhouse loads all devices and device commands from BondHome when it is started. 
 You must reload the BondHome device and trigger and retrieve an auth token by setting the 
-parent object to "GetToken" with in 1 min after the reboot.
+parent object to "GetToken" with in a few min after the reboot.
+
+The BondHome_Manual object is for manually recording remote signals and sending them from Misterhouse.
+This bypasses the BondHome Hub database and just tells the BondHome Hub what signal to transmit directly. 
+To record a signal, set the Bond Hub interface object to ScanRF or ScanIR depending on what kind of remote 
+you are recording. Once scan is enabled, put the remote close to the hub and push the button you want to 
+record a few times and watch for the hub lights to change colors (This is the same process as the initial hub setup
+through the app). Next set the Bond Hub interface object to ScanCheck and the .mht code for the recorded 
+command will be logged, update the device name IE: MasterFan and the command name IE: PowerOff and 
+paste the code in your .mht file.
 
 =head2 Interface Configuration
 
@@ -57,7 +68,7 @@ Wherein the format for the definition is:
    $BondHomeHub = new BondHome(INSTANCE);
 
 States:
-GetToken,Reboot,LogDevs,ReloadCache
+GetToken,Reboot,LogDevs,ReloadCache,LogVersion,ScanRF,ScanIR,ScanStop,ScanCheck
 
 
 
@@ -72,10 +83,27 @@ An example mh.private.ini:
 An example user code:
 
         #noloop=start
+		
         use BondHome;
+		
         $BondHomeHub = new BondHome('BondHome');
+		
         $MasterFan = new BondHome_Device('BondHome','MasterFan');
+		
+		$TV = new BondHome_Manual('BondHome');
+		$TV->addcmd('power', '38', 'OOK', 'hex', '40000', '1', '00000<snip>');
+		
         #noloop=stop
+		
+		
+An example .mht code:
+		BONDHOME,           BondHome,           BondHome
+		BONDHOME_DEVICE,    masterfan,          BondHome,           masterfan
+		BONDHOME_DEVICE,    guestfan,           BondHome,           guestfan
+
+
+		BONDHOME_MANUAL,     TV,           BondHome
+		BONDHOME_MANUAL_CMD, TV,  power, 38, OOK, hex, 40000, 1, 0000000<snip>
 
 
 =head2 INHERITS
@@ -103,7 +131,7 @@ sub new {
 
     # Initialize Variables
     $$self{instance} = $instance;
-    $$self{maxretry} = $::config_parms{ $instance . '_maxretry' };
+    $$self{maxretry} = $::config_parms{ $instance . '_maxretry' } || 4;
     $$self{ip} = $::config_parms{ $instance . '_ip' };
     my $year_mon = &::time_date_stamp( 10, time );
     $$self{log_file} = $::config_parms{'data_dir'} . "/logs/BondHome.$year_mon.log";
@@ -142,10 +170,10 @@ Used to associate child objects with the interface.
 sub register {
     my ( $self, $object, $class ) = @_;
     if ( $object->isa('BondHome_Device') ) {
-        ::print_log("Registering BondHome Device Child Object: ".$object->get_object_name." for interface: ".$self->get_object_name );
+        ::print_log("Registering BondHome Device Child Object");
 	push @{ $self->{device_object} }, $object;
 	} elsif ( $object->isa('BondHome_Manual') ) {
-        ::print_log("Registering BondHome Manual Child Object: ".$object->get_object_name." for interface: ".$self->get_object_name );
+        ::print_log("Registering BondHome Manual Child Object" );
 	push @{ $self->{manual_object} }, $object;
     }
 }
@@ -423,7 +451,9 @@ sub getbonddevs {
                 $self->{devicehash}->{devicename}->{$devicename}->{id}=$deviceid;
 				
 				foreach my $action ( @{$message->{actions}} ) {
-					next if ( $action =~ /^Set/ ); #Skip the set actions because the require arguments. 
+					next if ( $action =~ /^Set/ ); #Skip the Set actions because they require arguments. 
+					next if ( $action =~ /^IncreaseSpeed/ ); #Skip the IncreaseSpeed actions because they require arguments.
+					next if ( $action =~ /^DecreaseSpeed/ ); #Skip the DecreaseSpeed actions because they require arguments.
 					$self->{devicehash}->{devicename}->{$devicename}->{commands}->{name}->{normalize($action)}->{action}=$action;
 				}
                 #::print_log Dumper $message;
@@ -744,7 +774,7 @@ sub set {
 		$content->{use_scan}='false';
 		
 		$content = encode_json($content);
-		::print_log( "[BondHome::Manual] content: $content" );
+		#::print_log( "[BondHome::Manual] content: $content" );
 		$$self{parent}->bondcmd( $class, '/v2/signal/tx', 'PUT', $content );
 		
         $self->SUPER::set( $p_state, $p_setby );
