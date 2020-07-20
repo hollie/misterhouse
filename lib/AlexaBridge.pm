@@ -861,13 +861,18 @@ sub process_http {
                     next unless $name;
                     my $state = &get_set_state( $self, $AlexaObjects, $uuid, 'get' );
                     $statep1 = qq[{"];
-                    $statep2=qq[":{"state":{$state,"alert": "select","mode": "homeautomation","reachable": true},"swupdate": {"state": "readytoinstall","lastinstall": null},"type": "Dimmable light","name": "];
-                    $statep3=qq[","modelid": "LWB014","manufacturername": "Philips","productname": "Hue white lamp","capabilities": {"certified": true,"control": {"mindimlevel": 5000,"maxlumen": 840},"streaming": {"renderer": false,"proxy": false}},"config": {"archetype": "classicbulb","function": "functional","direction": "omnidirectional"},"uniqueid": "00:17:88:01:04:00:3d:96-0b","swversion": "1.23.0_r20156","swconfigid": "321D79EA","productid": "Philips-LWB014-1-A19DLv4"}];
-                    #$statep2 = qq[":{"state":{$state,"reachable":true},"type":"Extended color light","name":"];
-                    #$statep3 = qq[","modelid":"LCT001","manufacturername":"Philips","swversion":"65003148"}];
+                    if ( $Http{'Accept-Encoding'} =~ m/gzip/ ) {
+                        &main::print_log("[Alexa] Debug: Returning long format. Accept-Encoding=" . $Http{'Accept-Encoding'}) if $main::Debug{'alexa'};
+                        $statep2=qq[":{"state":{$state,"alert": "select","mode": "homeautomation","reachable": true},"swupdate": {"state": "readytoinstall","lastinstall": null},"type": "Dimmable light","name": "];
+                        $statep3=qq[","modelid": "LWB014","manufacturername": "Philips","productname": "Hue white lamp","capabilities": {"certified": true,"control": {"mindimlevel": 5000,"maxlumen": 840},"streaming": {"renderer": false,"proxy": false}},"config": {"archetype": "classicbulb","function": "functional","direction": "omnidirectional"},"uniqueid": "00:17:88:01:04:00:3d:96-0b","swversion": "1.23.0_r20156","swconfigid": "321D79EA","productid": "Philips-LWB014-1-A19DLv4"}];
+                    } else { 
+                        &main::print_log("[Alexa] Debug: Returning short format. Accept-Encoding=" . $Http{'Accept-Encoding'}) if $main::Debug{'alexa'};
+                        $statep2 = qq[":{"state":{$state,"reachable":true},"type":"Extended color light","name":"];
+                        $statep3 = qq[","modelid":"LCT001","manufacturername":"Philips","swversion":"65003148"}];
+                    }
                     $end     = qq[}];
                     $delm    = qq[,"];
-		    $name    =~ s/_/ /g;
+                    $name    =~ s/_/ /g;
                     if   ( $count >= 1 ) { $content = $content . $delm . $uuid . $statep2 . $name . $statep3 }
                     else                 { $content = $statep1 . $uuid . $statep2 . $name . $statep3 }
                     $count++;

@@ -209,6 +209,10 @@ BEGIN {
         # Pick local mh modules first, over any site install ones
         unshift( @INC, "${Pgm_Path}/../lib", "${Pgm_Path}/../lib/site", '.' );
 
+	# Keep fallback versions of CPAN modules, in case they're not present on the system.  Place them last
+	# so the sysadmin can install more current versions in the normal Perl places if they wish.
+	push @INC,"${Pgm_Path}/../lib/fallback";
+
         #       my $pwd=cwd(); print "pwd=$pwd inc=@INC\n";
         #       push (@INC, './../lib', './../lib/site', '.');
         #       push (@INC, './../lib');

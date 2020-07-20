@@ -1388,6 +1388,7 @@ our %message_types = (
     poke_internal         => 0x2d,
     extended_set_get      => 0x2e,
     read_write_aldb       => 0x2f,
+    beep                  => 0x30,
     imeter_reset          => 0x80,
     imeter_query          => 0x82,
 );

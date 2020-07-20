@@ -53,6 +53,7 @@ BEGIN {
     }
     push @INC, './../lib/site';
     push @INC, './../lib';
+    push @INC, './../lib/fallback';
 }
 
 require "$Pgm_Path/../lib/handy_utilities.pl";
