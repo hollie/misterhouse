@@ -11,7 +11,8 @@
 #   perl test_x10 CM17 COM1 B 2
 
 use strict;
-use lib '../lib', '../lib/site', '../lib/fallback';
+use lib '../lib', '../lib/site';
+push @INC, '$Pgm_Path/../lib/fallback';
 
 my ( $device, $port, $house, $unit, $interface, %config_parms );
 

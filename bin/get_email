@@ -31,7 +31,8 @@ BEGIN {
     ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
     $Pgm_Root = "$Pgm_Path/..";
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";    # Use BEGIN eval to keep perl2exe happy
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site';";    # Use BEGIN eval to keep perl2exe happy
+    eval "push \@INC, '$Pgm_Path/../lib/fallback';";
 }
 
 use Getopt::Long;
