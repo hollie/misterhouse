@@ -10,14 +10,14 @@
 
 my $suff;
 
-if (time_cron "0,15,30,45 * * * *") {
-	if ($Minute == 0) {
-		$suff = $Hour;
-		$suff -= 12 if $Hour > 12;
-            $suff = 12 if $Hour == 0;
-	}
-	else {
-		$suff = $Minute;
-	}
-	play (time => 60, volume => 20, file => "chimes/west" . $suff . ".wav");
+if ( time_cron "0,15,30,45 * * * *" ) {
+    if ( $Minute == 0 ) {
+        $suff = $Hour;
+        $suff -= 12 if $Hour > 12;
+        $suff = 12 if $Hour == 0;
+    }
+    else {
+        $suff = $Minute;
+    }
+    play( time => 60, volume => 20, file => "chimes/west" . $suff . ".wav" );
 }

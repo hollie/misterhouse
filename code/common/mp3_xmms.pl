@@ -1,11 +1,11 @@
 
 # Category=Music
 
-#@ This script controls the <a href='http://www.xmms.org'>Xmms MP3 player</a> for Linux. It 
-#@ handles operation of the mp3 player. Enable mp3.pl to manage the MP3 database.  
+#@ This script controls the <a href='http://www.xmms.org'>Xmms MP3 player</a> for Linux. It
+#@ handles operation of the mp3 player. Enable mp3.pl to manage the MP3 database.
 #@ This script requires Xmms::Remote.
 #@
-#@ Set mp3_program to where xmms is installed.  For example, 
+#@ Set mp3_program to where xmms is installed.  For example,
 #@   mp3_program=/usr/bin/xmms
 
 =begin comment
@@ -65,101 +65,104 @@
 use Xmms;
 use Xmms::Remote ();
 use Xmms::Config ();
+
 #use Getopt::Std;
 
 my $session = 0;
-my $remote = Xmms::Remote->new($session);
+my $remote  = Xmms::Remote->new($session);
 
 $v_mp3_control_state = new Voice_Cmd("MP3 Control [off,on]");
-if ($state = said $v_mp3_control_state) {
-    $Save{mp3_mode}=$state;
-    if ($state eq 'off'){
-      $remote->quit;
+if ( $state = said $v_mp3_control_state) {
+    $Save{mp3_mode} = $state;
+    if ( $state eq 'off' ) {
+        $remote->quit;
     }
     else {
-      &mp3_running;
+        &mp3_running;
     }
     speak "MP3 control now $state.";
 }
 
-$v_mp3_control_cmd = new Voice_Cmd("Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off,Hide Window,Show Window,track]");
+$v_mp3_control_cmd = new Voice_Cmd(
+    "Set the house mp3 player to [Play,Stop,Pause,Restart,Next Song,Previous Song,Volume Down,Volume Up,Shuffle On,Shuffle Off,Repeat On,Repeat Off,Hide Window,Show Window,track]"
+);
 
 my $state;
 mp3_control($state) if $state = said $v_mp3_control_cmd;
 
 sub mp3_control {
-    my $state = shift; 
+    my $state = shift;
     return 0 unless &mp3_running;
-    if ($state eq 'Play') {
-      $remote->play;
+    if ( $state eq 'Play' ) {
+        $remote->play;
     }
-    elsif ($state eq 'Stop') {
-      $remote->stop;
+    elsif ( $state eq 'Stop' ) {
+        $remote->stop;
     }
-    elsif ($state eq 'Pause') {
-      $remote->pause;
+    elsif ( $state eq 'Pause' ) {
+        $remote->pause;
     }
-    elsif ($state eq 'Restart') {
-      $remote->set_playlist_pos(0);
-      Xmms::sleep(0.25);
-      $remote->play;
+    elsif ( $state eq 'Restart' ) {
+        $remote->set_playlist_pos(0);
+        Xmms::sleep(0.25);
+        $remote->play;
     }
-    elsif ($state eq 'Next Song') {
-      $remote->playlist_next;
+    elsif ( $state eq 'Next Song' ) {
+        $remote->playlist_next;
     }
-    elsif ($state eq 'Previous Song') {
-      $remote->playlist_prev;
+    elsif ( $state eq 'Previous Song' ) {
+        $remote->playlist_prev;
     }
-    elsif ($state eq 'Volume Down') {
-      my $vol = $remote->get_main_volume;
-      $vol -= 10;
-      if ($vol < 0) {
-        $vol = 0;
-      }
-      $remote->set_main_volume($vol);
+    elsif ( $state eq 'Volume Down' ) {
+        my $vol = $remote->get_main_volume;
+        $vol -= 10;
+        if ( $vol < 0 ) {
+            $vol = 0;
+        }
+        $remote->set_main_volume($vol);
     }
-    elsif ($state eq 'Volume Up') {
-      my $vol = $remote->get_main_volume;
-      $vol += 10;
-      if ($vol > 100) {
-        $vol = 100;
-      }
-      $remote->set_main_volume($vol);
+    elsif ( $state eq 'Volume Up' ) {
+        my $vol = $remote->get_main_volume;
+        $vol += 10;
+        if ( $vol > 100 ) {
+            $vol = 100;
+        }
+        $remote->set_main_volume($vol);
     }
-    elsif ($state eq 'Shuffle On') {
-      my $shufflestat = $remote->is_shuffle;
-      if (!$shufflestat) {
-        $remote->toggle_shuffle;
-      } 
+    elsif ( $state eq 'Shuffle On' ) {
+        my $shufflestat = $remote->is_shuffle;
+        if ( !$shufflestat ) {
+            $remote->toggle_shuffle;
+        }
     }
-    elsif ($state eq 'Shuffle Off') {
-      my $shufflestat = $remote->is_shuffle;
-      if ($shufflestat) {
-        $remote->toggle_shuffle;
-      } 
+    elsif ( $state eq 'Shuffle Off' ) {
+        my $shufflestat = $remote->is_shuffle;
+        if ($shufflestat) {
+            $remote->toggle_shuffle;
+        }
     }
-    elsif ($state eq 'Repeat On') {
-      my $repeatstat = $remote->is_repeat;
-      if (!$repeatstat) {
-        $remote->toggle_repeat;
-      } 
+    elsif ( $state eq 'Repeat On' ) {
+        my $repeatstat = $remote->is_repeat;
+        if ( !$repeatstat ) {
+            $remote->toggle_repeat;
+        }
     }
-    elsif ($state eq 'Repeat Off') {
-      my $repeatstat = $remote->is_repeat;
-      if ($repeatstat) {
-        $remote->toggle_repeat;
-      }
+    elsif ( $state eq 'Repeat Off' ) {
+        my $repeatstat = $remote->is_repeat;
+        if ($repeatstat) {
+            $remote->toggle_repeat;
+        }
     }
-    elsif ($state eq 'Hide Window') {
-      $remote->main_win_toggle(0);
+    elsif ( $state eq 'Hide Window' ) {
+        $remote->main_win_toggle(0);
     }
-    elsif ($state eq 'Show Window') {
-      $remote->main_win_toggle(1);
+    elsif ( $state eq 'Show Window' ) {
+        $remote->main_win_toggle(1);
     }
 
-#    elsif ($state eq 'track') {
-#      $remote->track($pos);
-#    }
+    #    elsif ($state eq 'track') {
+    #      $remote->track($pos);
+    #    }
     print_log "mp3 player set to " . said $v_mp3_control_cmd . $state;
 }
 
@@ -177,73 +180,73 @@ sub mp3_queue {
     print_log "mp3 queue: $file";
 }
 
-        # clears the current playlist
+# clears the current playlist
 sub mp3_clear {
     $remote->playlist_clear;
     print_log "mp3 playlist cleared";
 }
 
-        # return a reference to a list containing the playlist titles
+# return a reference to a list containing the playlist titles
 sub mp3_get_playlist {
     return $remote->get_playlist_titles;
 }
 
-        # get current song position
+# get current song position
 sub mp3_get_playlist_pos {
     return $remote->get_playlist_pos;
 }
 
-        # set current song to position
+# set current song to position
 sub mp3_set_playlist_pos {
-    my $pos = shift; 
+    my $pos = shift;
     return $remote->set_playlist_pos($pos);
 }
 
-        # add to the current playlist (argument received is reference to array)
+# add to the current playlist (argument received is reference to array)
 sub mp3_playlist_add {
     return $remote->playlist_add($1);
 }
 
-        # delete from the current playlist (argument received is reference to array)
+# delete from the current playlist (argument received is reference to array)
 sub mp3_playlist_delete {
-    my $pos = shift; 
+    my $pos = shift;
     print_log "deleting track $pos";
     return $remote->playlist_delete($pos);
 }
 
-        # return an array reference to a list containing the current playlist
+# return an array reference to a list containing the current playlist
 sub mp3_get_playlist_files {
     return $remote->get_playlist_files;
 }
 
-        # return the time from the song in the playlist position
+# return the time from the song in the playlist position
 sub mp3_get_playlist_timestr {
-    my $pos = shift; 
+    my $pos = shift;
     return $remote->get_playlist_timestr($pos);
 }
 
-        # return the title of the current song 
-sub mp3_get_playlist_title { 
-    return $remote->get_playlist_title; 
+# return the title of the current song
+sub mp3_get_playlist_title {
+    return $remote->get_playlist_title;
 }
 
-        # return the current volume 
+# return the current volume
 sub mp3_get_volume {
     return $remote->get_volume;
 }
 
-        # return the elapsed/total time of current song  
+# return the elapsed/total time of current song
 sub mp3_get_output_timestr {
     return $remote->get_output_timestr();
 }
 
-        # return the number of songs in the current playlist 
-sub mp3_get_playlist_length { 
+# return the number of songs in the current playlist
+sub mp3_get_playlist_length {
     return $remote->get_playlist_length();
 }
 
-        # return if the player is running  
-sub mp3_playing { 
+# return if the player is running
+sub mp3_playing {
     return $remote->is_playing();
 }
 
@@ -252,11 +255,12 @@ sub mp3_player_running {
 }
 
 sub mp3_running {
+
     # have we defined mp3_program
     my $mp3_program = $main::config_parms{mp3_program};
     if ( $mp3_program eq "" ) {
-       print_log "mp3_program not defined";
-       return 0;
+        print_log "mp3_program not defined";
+        return 0;
     }
 
     # if xmms is not running, we will start it
@@ -267,7 +271,8 @@ sub mp3_running {
 
         #sleep 5 sec to let the process start
         sleep 5;
-        # 09/05/05 dnorwood, took out the /sbin/ path to pidof, because it's in /bin on debian 
+
+        # 09/05/05 dnorwood, took out the /sbin/ path to pidof, because it's in /bin on debian
         $XmmsStatus = `pidof $mp3_program`;
         chop $XmmsStatus;
         if ( $XmmsStatus eq "" ) {

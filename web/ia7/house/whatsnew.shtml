@@ -1,0 +1,182 @@
+<h1 style="text-align:left;float:left;margin-top:10px">v5.1</h1>
+<h3 style="text-align:right;float:right;margin-right:15px;">Released 2018/xx/xx</h3>
+<hr style="clear:both;margin-right:15px"/>
+
+<div class="panel-group whatsnew-panel">
+
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse51_1">Native Triggers</a>
+      </h4>
+    </div>
+    <div id="collapse51_1" class="panel-collapse collapse">
+      <div class="panel-body">
+        <ul class="fa-ul">     
+         <li><i class="fa-li fa fa-chevron-right"></i>Support for adding, and editing triggers   
+         <li><i class="fa-li fa fa-chevron-right"></i>Controls only visible in expert mode  
+         </ul>    
+      </div>
+    </div>
+  </div>
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse51_2">Dynamic Modules and Zoneminder events</a>
+      </h4>
+    </div>
+    <div id="collapse51_2" class="panel-collapse collapse">
+      <div class="panel-body">
+        <ul class="fa-ul">     
+         <li><i class="fa-li fa fa-chevron-right"></i>Faster Loading on pages  
+         <li><i class="fa-li fa fa-chevron-right"></i>Zoneminder will now generate a modal if an event is detected. Requires external utility zmeventserver         
+         </ul>    
+      </div>
+    </div>
+  </div>  
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse51_3">Users and Groups</a>
+      </h4>
+    </div>
+    <div id="collapse51_3" class="panel-collapse collapse">
+      <div class="panel-body">
+        <ul class="fa-ul">     
+         <li><i class="fa-li fa fa-chevron-right"></i>Users and Groups can be created from the GUI   
+         <li><i class="fa-li fa fa-chevron-right"></i>MH can be used as an authentication source /json/security/authorize?username=&password=MD5HASHYYYYDDMM
+         </ul>    
+      </div>
+    </div>
+  </div>    
+</div>
+
+<h1 style="text-align:left;float:left;margin-top:10px">v5.0</h1>
+<h3 style="text-align:right;float:right;margin-right:15px;">Released 2017/10/31</h3>
+<hr style="clear:both;margin-right:15px"/>
+
+<div class="panel-group whatsnew-panel">
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse1">Add live Weather to the header</a>
+      </h4>
+    </div>
+    <div id="collapse1" class="panel-collapse collapse">
+      <div class="panel-body">
+        <ul class="fa-ul">     
+         <li><i class="fa-li fa fa-chevron-right"></i>Enable any of the supported common code modules: 
+         <ul>
+           <li>internet_weather.pl
+           <li>internet_weather_noaa.pl
+           <li>weather_metar.pl
+           <li>weather_wunderground.pl
+         </ul>     
+         <li><i class="fa-li fa fa-chevron-right"></i>Make sure the ia7_pref "show_weather" is not set to "no"  
+         </ul>    
+      </div>
+    </div>
+  </div>
+    
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse2">Change the layout from the web interface</a>
+      </h4>
+    </div>
+    <div id="collapse2" class="panel-collapse collapse">
+      <div class="panel-body">
+
+       <ul class="fa-ul">
+         <li><i class="fa-li fa fa-chevron-right"></i>Toggle developer mode in the 'options menu' (<i class="fa fa-gear"></i>)</li>
+         <li><i class="fa-li fa fa-chevron-right"></i>Drag and Drop any collections item to the new location</li>
+         <li><i class="fa-li fa fa-chevron-right"></i>To write the new layout to misterhouse, hold any collection button until an edit dialog box appears</li>
+         <li><i class="fa-li fa fa-chevron-right"></i>This dialog box also allows you to edit the button properties, such as icon, name, link</li>
+         <li><i class="fa-li fa fa-chevron-right"></i>If expert mode is checked, that item will be hidden in the simple view</li>         
+         <li><i class="fa-li fa fa-chevron-right"></i>To move the button to another page, pick a new parent.</li>
+         <li><i class="fa-li fa fa-chevron-right"></i>Apply will save the changes to the current browser session. Write to MH will save the new layout to the server</li>       
+         <li><i class="fa-li fa fa-chevron-right"></i>Write to MH requires logging in as admin. Note, logging out will revert any changes, so make sure to log in as admin before making changes</li>       
+         <li><i class="fa-li fa fa-chevron-right"></i>You can see if you're logged in as admin as the gear icon will be purple</li>  
+         <li><i class="fa-li fa fa-chevron-right"></i>Developer mode also allows you to drag around icons on the floorplan view and will show the MH usercode needed.</li>                
+
+       </ul>  
+    
+      </div>
+
+    </div>
+  </div>
+
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse3">Add a dynamic floorplan</a>
+      </h4>
+    </div>
+    <div id="collapse3" class="panel-collapse collapse">
+      <div class="panel-body">
+
+       <ul class="fa-ul">
+         <li><i class="fa-li fa fa-chevron-right"></i>To have a floorplan mapped to a group, there needs to be a base image, and a MH group of items. For this example, we'll use the MH group floor1
+         <li><i class="fa-li fa fa-chevron-right"></i>The IA7 path for floor1 will be:/ia7/#path=/floorplan?floor1
+         <li><i class="fa-li fa fa-chevron-right"></i>by default, the floorplans are stored with the rest of the graphics in /ia7/graphics. 
+         <li><i class="fa-li fa fa-chevron-right"></i>there is a config.json item: "floorplan_baseimg_dir" : "/ia7_floorplans",
+         <li><i class="fa-li fa fa-chevron-right"></i>you can set up a custom directory and then this setting will override /ia7/graphics.
+         <li><i class="fa-li fa fa-chevron-right"></i>in the graphics directory there should be a floorplan-GROUP.png file that is the base image to put the group objects on. for the example it would be floorplan-floor1.png
+         <li><i class="fa-li fa fa-chevron-right"></i>Adding Floorplan Cameras to usercode (Zoneminder example)
+         <li><i class="fa-li fa fa-chevron-right"></i>$cam = new FPCamera_Item;
+         <li><i class="fa-li fa fa-chevron-right"></i>$cam -> set_img("http://ZMIP/cgi-bin/nph-zms?mode=jpeg&monitor=5&scale=100&maxfps=30");
+         <li><i class="fa-li fa fa-chevron-right"></i>$cam -> set_link("http://ZMIP/zm/?view=watch&mid=5");                           
+         <li><i class="fa-li fa fa-chevron-right"></i>$cam -> set_label("Camera1 ");
+         <li><i class="fa-li fa fa-chevron-right"></i>$floor1 -> add($cam);
+         <li><i class="fa-li fa fa-chevron-right"></i>Clicking the developer icon will allow the icons to be dragged and dropped around the floorplan. The usercode needed for this layout will be below the image. You will have to create a usercode file with this perl code.
+         <li><i class="fa-li fa fa-chevron-right"></i>Icon sets are defined in usercode   $object->set_fp_icon_set("blinds");      
+         <li><i class="fa-li fa fa-chevron-right"></i>Location is set in usercode $object->set_fp_location(29.97250229147571,91.71122994652407);
+         <li><i class="fa-li fa fa-chevron-right"></i>To set multiple icons for the same object, specify additional locations $object->set_fp_location(10,20,30,40,50,60);
+       </ul>
+      
+      </div>
+    </div>
+  </div>
+ 
+ 
+   <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse4">Add dynamic RRD graphs</a>
+      </h4>
+    </div>
+    <div id="collapse4" class="panel-collapse collapse">
+      <div class="panel-body">
+
+       <ul class="fa-ul">         
+         <li><i class="fa-li fa fa-chevron-right"></i>The link format is /ia7/#path=/rrd?TIME?SOURCE
+         <li><i class="fa-li fa fa-chevron-right"></i>SOURCE can either be the built in weather or an external RRD
+         <li><i class="fa-li fa fa-chevron-right"></i>ie /ia7/#path=/rrd?now-6hour?outdoor_temp will graph the internal outdoor_temp group
+         <li><i class="fa-li fa fa-chevron-right"></i>   /ia7/#path=/rrd?now-6hour?ext.temps will graph the external temps group from source ext         
+         <li><i class="fa-li fa fa-chevron-right"></i>The external source also needs a config_parm: $config_parms{"rrd_source_" .$rrd_source . "_path"}
+         <li><i class="fa-li fa fa-chevron-right"></i>The groups are defined in the ia7_rrd_config.json file, in the ds section;
+         <ul>
+            <li>"temp" : {
+            <li>         "type" : "temperature",
+            <li>         "label" : "Outside Temperature",
+            <li>         "color" : "#330099",
+            <li>         "round" : "1",
+            <li>         "group" : "outdoor_temp,temp"
+            <li>    },
+         </ul>
+         <li><i class="fa-li fa fa-chevron-right"></i>A DS can be in multiple groups.
+         <li><i class="fa-li fa fa-chevron-right"></i>Times are also stored in the ia7_rrd_config.json file in the periods section, with the label, and the rrdtool time value in the value
+         <ul>
+            <li>     "periods" : {
+            <li>    "1"  : "6 hours,now-6hour",
+            <li>    "2"  : "12 hours,now-12hour",
+            <li>    "3"  : "1 day,now-1day",
+            <li>    "4"  : "2 days,now-2day",
+          </ul>                                       
+       </ul>
+      
+      </div>
+    </div>
+  </div> 
+  
+</div>

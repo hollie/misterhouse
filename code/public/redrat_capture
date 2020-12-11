@@ -7,13 +7,13 @@ use strict;
 
 use lib '/misterhouse/mh/lib/site';
 
-$|=1;
+$| = 1;
 
-my $port=shift || &cmdline;
-my $file=shift || &cmdline;
+my $port = shift || &cmdline;
+my $file = shift || &cmdline;
 
 sub cmdline {
-	print <<"eof";
+    print <<"eof";
 $0 is supposed to ease signal capture from the redrat2
 This program will prompt you for a device, and a button 
 then write the appropriate perl script to create the objects
@@ -29,7 +29,7 @@ WARNING:
 \tfile will be overwritten if it exists
 eof
 
-	exit;
+    exit;
 }
 
 #se Win32::SerialPort;
@@ -38,11 +38,12 @@ use Device::SerialPort;
 #y $PortObj = new Win32::SerialPort($port)  or die "Can not open $port: $^E\n";
 my $PortObj = new Device::SerialPort($port) or die "Can not open $port: $^E\n";
 
-$PortObj->baudrate(19200);  
+$PortObj->baudrate(19200);
 $PortObj->parity('none');
 $PortObj->databits(8);
 $PortObj->stopbits(1);
-$PortObj->handshake('none');  # none, rts, dtr, xoff
+$PortObj->handshake('none');    # none, rts, dtr, xoff
+
 #$PortObj->buffers(4096, 4096);  # read, write
 
 $PortObj->write_settings;
@@ -50,40 +51,41 @@ $PortObj->write_settings;
 my $device;
 my $button;
 
-open(CODEFILE,">$file") || die "Can't open $file $!\n";
+open( CODEFILE, ">$file" ) || die "Can't open $file $!\n";
 
 print "What device are you capturing? ";
-$device=<STDIN>;
-chomp($device);;
+$device = <STDIN>;
+chomp($device);
 
-print(CODEFILE "\$$device=new RedRat;\n")||die "can't write to file $!\n";;
+print( CODEFILE "\$$device=new RedRat;\n" ) || die "can't write to file $!\n";
 
 print "What button? ";
-$button=<STDIN>;
+$button = <STDIN>;
 chomp($button);
 
-my $bytes=$PortObj->write("[S]");
+my $bytes = $PortObj->write("[S]");
 while (1) {
     my $data .= $PortObj->input;
-    if ($data =~ /(\[.+\])/) {
-	    my $tmpdata=$1;
-	    if (!($tmpdata =~ /\[#00\]/) ) {
-        	print " Read in data: $tmpdata\n";
-	###change [SF.... to [PF.... from signal to play..
-		$tmpdata =~ s/\[S/[P/;
-	###remove #XX checksum from the end.
-		$tmpdata =~ s/#..]/]/;
-		print CODEFILE "\$$device->add(\"$button\",\"$tmpdata\");\n";
-		print "What button? (quit to exit)  ";
-		$button=<STDIN>;
-		chomp($button);
-		if ($button eq "quit") {
-			last;
-		}
-		$bytes=$PortObj->write("[S]");
-	    } else {
-		print "Ready for capture\n";
-	    }
+    if ( $data =~ /(\[.+\])/ ) {
+        my $tmpdata = $1;
+        if ( !( $tmpdata =~ /\[#00\]/ ) ) {
+            print " Read in data: $tmpdata\n";
+            ###change [SF.... to [PF.... from signal to play..
+            $tmpdata =~ s/\[S/[P/;
+            ###remove #XX checksum from the end.
+            $tmpdata =~ s/#..]/]/;
+            print CODEFILE "\$$device->add(\"$button\",\"$tmpdata\");\n";
+            print "What button? (quit to exit)  ";
+            $button = <STDIN>;
+            chomp($button);
+            if ( $button eq "quit" ) {
+                last;
+            }
+            $bytes = $PortObj->write("[S]");
+        }
+        else {
+            print "Ready for capture\n";
+        }
     }
     sleep 1;
 }

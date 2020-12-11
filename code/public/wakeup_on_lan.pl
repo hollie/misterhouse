@@ -46,5 +46,5 @@ hibernated systems (thats how I use it here).
 
 use WakeOnLan;
 
-$BillsOfficeComputer -> set("on") if time_now '7 am';
+$BillsOfficeComputer->set("on") if time_now '7 am';
 

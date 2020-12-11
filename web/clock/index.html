@@ -1,29 +1,49 @@
 <HEAD>
 <TITLE>JavaClock</TITLE>
 <SCRIPT LANGUAGE="JavaScript">
-<!-- Original:  Ramandeep Singh (ramandeepji@yahoo.com) -->
+
+<!-- <!-- Original:  Ramandeep Singh (ramandeepji@yahoo.com) -->
 <!-- Web Site:  http://hard-drive.hypermart.net -->
 
 <!-- This script and many more are available free online at -->
 <!-- The JavaScript Source!! http://javascript.internet.com -->
 
 <!-- Begin
+
+<!-- IA7 updates -->
+var img_prefix = "";
+var img_suffix = "";
+
+var loc = window.location.toString();
+if (loc.indexOf("&_collection_key") !== 0) {
+  img_prefix = "/clock/";
+  img_suffix = "w";
+}
+
+
 var dn;
-c1 = new Image(); c1.src = "numbers/c1.gif";
-c2 = new Image(); c2.src = "numbers/c2.gif";
-c3 = new Image(); c3.src = "numbers/c3.gif";
-c4 = new Image(); c4.src = "numbers/c4.gif";
-c5 = new Image(); c5.src = "numbers/c5.gif";
-c6 = new Image(); c6.src = "numbers/c6.gif";
-c7 = new Image(); c7.src = "numbers/c7.gif";
-c8 = new Image(); c8.src = "numbers/c8.gif";
-c9 = new Image(); c9.src = "numbers/c9.gif";
-c0 = new Image(); c0.src = "numbers/c0.gif";
-cb = new Image(); cb.src = "numbers/cb.gif";
-cam = new Image(); cam.src = "numbers/cam.gif";
-cpm = new Image(); cpm.src = "numbers/cpm.gif";
+c1 = new Image(); c1.src = img_prefix+"numbers/c1"+img_suffix+".gif";
+c2 = new Image(); c2.src = img_prefix+"numbers/c2"+img_suffix+".gif";
+c3 = new Image(); c3.src = img_prefix+"numbers/c3"+img_suffix+".gif";
+c4 = new Image(); c4.src = img_prefix+"numbers/c4"+img_suffix+".gif";
+c5 = new Image(); c5.src = img_prefix+"numbers/c5"+img_suffix+".gif";
+c6 = new Image(); c6.src = img_prefix+"numbers/c6"+img_suffix+".gif";
+c7 = new Image(); c7.src = img_prefix+"numbers/c7"+img_suffix+".gif";
+c8 = new Image(); c8.src = img_prefix+"numbers/c8"+img_suffix+".gif";
+c9 = new Image(); c9.src = img_prefix+"numbers/c9"+img_suffix+".gif";
+c0 = new Image(); c0.src = img_prefix+"numbers/c0"+img_suffix+".gif";
+cb = new Image(); cb.src = img_prefix+"numbers/cb"+img_suffix+".gif";
+cc = new Image(); cc.src = img_prefix+"numbers/colon"+img_suffix+".gif";
+cam = new Image(); cam.src = img_prefix+"numbers/cam"+img_suffix+".gif";
+cpm = new Image(); cpm.src = img_prefix+"numbers/cpm"+img_suffix+".gif";
 function extract(h,m,s,type) {
 if (!document.images) return;
+
+document.images.c.src = cc.src;
+document.images.c.src = eval("cc.src");
+document.images.f.src = cc.src;
+document.images.f.src = eval("cc.src");
+
 if (h <= 9) {
 document.images.a.src = cb.src;
 document.images.b.src = eval("c"+h+".src");
@@ -78,10 +98,10 @@ setTimeout("show3()", 1000);
 <table>
 <tr>
 <td><a href='javascript:history.go(-1)'>              <img src='/graphics/1pixel.gif' width='200' height='150' border=0></a></td>
-<td><a href='/'                        target='_top'> <img src='/graphics/1pixel.gif' width='200' height='150' border=0></a></td>
-<td><a href='/ia5/index_menu.shtml'    target='_top'> <img src='/graphics/1pixel.gif' width='200' height='150' border=0></a></td>
+<td><a href='/'              target='_top'> <img src='/graphics/1pixel.gif' width='200' height='150' border=0></a></td>
 </tr></table>
 
+<table>
 <center>
 <img height=100 src="numbers/cb.gif" width=72 name=a>
 <img height=100 src="numbers/cb.gif" width=72 name=b>
@@ -93,12 +113,16 @@ setTimeout("show3()", 1000);
 <img height=100 src="numbers/cb.gif" width=72 name=h>
 <img height=100 src="numbers/cam.gif" width=72 name=j>
 </center>
+</table>
 
 <table>
 <tr>
 <td><a href='/misc/photos.html' target='_top'> <img src='/graphics/1pixel.gif' width='600' height='150' border=0></a></td>
 </tr></table>
 
+<script>
+ show3();
+ </script>
 <!-- Ever seen the TV series 24?  :) 
 
 <EMBED src='/data/clock_tick2.wav' autostart=true loop=false volume=10 hidden=true>

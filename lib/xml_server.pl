@@ -22,8 +22,7 @@ use HTML::Entities;    # So we can encode characters like <>& etc
 
 sub xml {
     my ( $request, $options ) = @_;
-    my ( $xml, $xml_types, $xml_groups, $xml_categories, $xml_vars,
-        $xml_objects );
+    my ( $xml, $xml_types, $xml_groups, $xml_categories, $xml_vars, $xml_objects );
 
     return &xml_usage unless $request;
 
@@ -181,16 +180,14 @@ sub xml {
     # List packages
     if ( $request{packages} or $request{package} ) {
         $xml .= "  <packages>\n    <vars>\n";
-        if ( $request{packages}{members} and @{ $request{packages}{members} } )
-        {
+        if ( $request{packages}{members} and @{ $request{packages}{members} } ) {
             foreach my $member ( @{ $request{packages}{members} } ) {
                 no strict 'refs';
                 my ( $type, $base ) = $member =~ /^(.)(.*)/;
                 my $ref;
                 eval "\$ref = \\$member";
                 print_log "xml packages error: $@" if $@;
-                $xml .=
-                  &walk_var( $ref, $member, 3, qw( SCALAR ARRAY HASH CODE ) );
+                $xml .= &walk_var( $ref, $member, 3, qw( SCALAR ARRAY HASH CODE ) );
             }
         }
         else {
@@ -199,8 +196,7 @@ sub xml {
                 next unless $key =~ /.+::$/;
                 next if $key eq 'main::';
                 my $iref = ${$ref}{$key};
-                $xml .=
-                  &walk_var( $iref, $key, 3, qw( SCALAR ARRAY HASH CODE ) );
+                $xml .= &walk_var( $iref, $key, 3, qw( SCALAR ARRAY HASH CODE ) );
             }
         }
         $xml .= "    </vars>\n  </packages>\n";
@@ -212,9 +208,7 @@ sub xml {
         if (   ( $request{vars}{members} and @{ $request{vars}{members} } )
             or ( $request{var}{members} and @{ $request{var}{members} } ) )
         {
-            foreach my $member ( @{ $request{vars}{members} },
-                @{ $request{var}{members} } )
-            {
+            foreach my $member ( @{ $request{vars}{members} }, @{ $request{var}{members} } ) {
                 no strict 'refs';
                 my ( $type, $name ) = $member =~ /^([\$\@\%\&])?(.+)/;
                 my $ref;
@@ -232,8 +226,7 @@ sub xml {
                 }
                 elsif ( $member =~ /.+::$/ ) {
                     eval "\$ref = \\\%$member";
-                    $xml .=
-                      &walk_var( $ref, $name, 2, qw( SCALAR ARRAY HASH CODE ) )
+                    $xml .= &walk_var( $ref, $name, 2, qw( SCALAR ARRAY HASH CODE ) )
                       if $ref;
                 }
                 else {
@@ -275,6 +268,52 @@ sub xml {
         $xml .= "  </vars>\n";
     }
 
+    # List print_log phrases
+    if ( $request{print_log} ) {
+        $xml .= "  <print_log>\n";
+        my $time = ::print_log_current_time();
+        $xml .= "    <time>$time</time>\n";
+        my @log;
+        $xml .= "    <text>\n";
+        if ( $options{time}{active} ) {
+            @log = ::print_log_since( $options{time}{members}[0] );
+        }
+        else {
+            @log = ::print_log_since();
+        }
+        my $value = \@log;
+        $value = encode_entities( $value, "\200-\377&<>" );
+        foreach (@$value) {
+            $_ = 'undef' unless defined $_;
+            $xml .= "      <value>$_</value>\n";
+        }
+        $xml .= "    </text>\n";
+        $xml .= "  </print_log>\n";
+    }
+
+    # List speak phrases
+    if ( $request{print_speaklog} ) {
+        $xml .= "  <print_speaklog>\n";
+        my $time = ::print_speaklog_current_time();
+        $xml .= "    <time>$time</time>\n";
+        my @log;
+        $xml .= "    <text>\n";
+        if ( $options{time}{active} ) {
+            @log = ::print_speaklog_since( $options{time}{members}[0] );
+        }
+        else {
+            @log = ::print_speaklog_since();
+        }
+        my $value = \@log;
+        $value = encode_entities( $value, "\200-\377&<>" );
+        foreach (@$value) {
+            $_ = 'undef' unless defined $_;
+            $xml .= "      <value>$_</value>\n";
+        }
+        $xml .= "    </text>\n";
+        $xml .= "  </print_speaklog>\n";
+    }
+
     # List hash values
     foreach my $hash (
         qw( config_parms Menus photos Save Socket_Ports triggers
@@ -303,7 +342,7 @@ sub xml {
     $xml = encode_entities( $xml, "\200-\377&" );
     $options{xsl}{members}[0] = ''
       if exists $options{xsl}
-          and not defined $options{xsl}{members}[0];
+      and not defined $options{xsl}{members}[0];
     return &xml_page( $xml, $options{xsl}{members}[0] );
 }
 
@@ -333,9 +372,9 @@ sub walk_var {
     }
 
     my ( $iref, $iname );
-    for ( my $i = $indent ; $i-- ; $i > 0 ) { $xml_vars .= '  ' }
+    for ( my $i = $indent; $i--; $i > 0 ) { $xml_vars .= '  ' }
     $xml_vars .= "<var>\n";
-    for ( my $i = $indent + 1 ; $i-- ; $i > 0 ) { $xml_vars .= '  ' }
+    for ( my $i = $indent + 1; $i--; $i > 0 ) { $xml_vars .= '  ' }
     $name = encode_entities($name);
 
     if ( $type eq '' ) {
@@ -381,7 +420,7 @@ sub walk_var {
         $xml_vars .= "<name>\&$name</name>\n";
     }
 
-    for ( my $i = $indent ; $i-- ; $i > 0 ) { $xml_vars .= '  ' }
+    for ( my $i = $indent; $i--; $i > 0 ) { $xml_vars .= '  ' }
     $xml_vars .= "</var>\n";
 
     return $xml_vars;
@@ -427,8 +466,7 @@ sub object_detail {
             print_log "xml: object_dets f $f ev $value" if $Debug{xml};
         }
         elsif ( $f eq 'html' and $object->can('get_type') ) {
-            $value = "<!\[CDATA\["
-              . &html_item_state( $object, $object->get_type ) . "\]\]>";
+            $value = "<!\[CDATA\[" . &html_item_state( $object, $object->get_type ) . "\]\]>";
             print_log "xml: object_dets f $f" if $Debug{xml};
         }
         else {
@@ -458,11 +496,7 @@ sub xml_page {
     # handle blank xsl name
     my $style;
     $style = qq|<?xml-stylesheet type="text/xsl" href="$xsl"?>| if $xsl;
-    return <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: text/xml
-
+my $html = <<eof;
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 $style
 <misterhouse>
@@ -470,6 +504,15 @@ $xml</misterhouse>
 
 eof
 
+my $html_head = "HTTP/1.1 200 OK\r\n";
+$html_head .= "Server: MisterHouse\r\n";
+$html_head .= "Connection: close\r\n" if &http_close_socket;
+$html_head .= "Content-type: text/xml\r\n";
+$html_head .= "Content-Length: " . ( length $html ) . "\r\n";
+$html_head .= "Date: " . time2str(time) . "\r\n";
+$html_head .= "\r\n";
+
+return $html_head.$html;
 }
 
 sub xml_entities_encode {
@@ -484,22 +527,24 @@ sub xml_entities_encode {
 
 sub svg_page {
     my ($svg) = @_;
-    return <<eof;
-HTTP/1.0 200 OK
-Server: Homegrow
-Content-type: image/svg+xml
+my $html = <<eof;
 
 $svg
 eof
 
+my $html_head = "HTTP/1.1 200 OK\r\n";
+$html_head .= "Server: MisterHouse\r\n";
+$html_head .= "Connection: close\r\n" if &http_close_socket;
+$html_head .= "Content-type: image/svg+xml\r\n";
+$html_head .= "Content-Length: " . ( length $html ) . "\r\n";
+$html_head .= "Date: " . time2str(time) . "\r\n";
+$html_head .= "\r\n";
+
+return $html_head.$html;
 }
 
 sub xml_usage {
     my $html = <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: text/html
-
 <html>
 <head>
 </head>
@@ -524,9 +569,7 @@ eof
         my $url = "/sub?xml($r)";
         $html .= "<h2>$r</h2>\n<p><a href='$url'>$url</a></p>\n<ul>\n";
         foreach my $opt ( sort keys %options ) {
-            if ( $options{$opt}{applyto} eq 'all' or grep /^$r$/,
-                split /\|/, $options{$opt}{applyto} )
-            {
+            if ( $options{$opt}{applyto} eq 'all' or grep /^$r$/, split /\|/, $options{$opt}{applyto} ) {
                 $url = "/sub?xml($r,$opt";
                 if ( defined $options{$opt}{example} ) {
                     foreach ( split /\|/, $options{$opt}{example} ) {
@@ -546,7 +589,15 @@ eof
 </html>
 eof
 
-    return $html;
+ my $html_head = "HTTP/1.1 200 OK\r\n";
+ $html_head .= "Server: MisterHouse\r\n";
+$html_head .= "Connection: close\r\n" if &http_close_socket;
+ $html_head .= "Content-type: text/html\r\n";
+ $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
+ $html_head .= "Date: " . time2str(time) . "\r\n";
+ $html_head .= "\r\n";
+
+ return $html_head.$html;
 }
 
 return 1;    # Make require happy

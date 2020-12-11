@@ -1,3 +1,4 @@
+
 =head1 B<SMS_Item>
 
 =head2 SYNOPSIS
@@ -40,32 +41,32 @@ use LWP::UserAgent;
 my $smsurl = "http://www.smsboy.com/cgi-bin/sendsms9.pl";
 
 sub new {
-	
-	my($class)=shift(@_);
-	my($self) = {};
-	
-	$$self{country} = shift(@_);
-	$$self{number} = shift(@_);
 
-	bless $self, $class;
-	return $self;
+    my ($class) = shift(@_);
+    my ($self)  = {};
+
+    $$self{country} = shift(@_);
+    $$self{number}  = shift(@_);
+
+    bless $self, $class;
+    return $self;
 }
 
 sub send {
-	my($self, $message) = @_;
-	
-	my $ua = new LWP::UserAgent;
-	my $req = new HTTP::Request POST => $smsurl;
-	$req->content_type('application/x-www-form-urlencoded');
-	$req->content("C=$$self{country}&N=$$self{number}&M=$message -- ");
+    my ( $self, $message ) = @_;
 
-	my $res = $ua->request($req);
+    my $ua = new LWP::UserAgent;
+    my $req = new HTTP::Request POST => $smsurl;
+    $req->content_type('application/x-www-form-urlencoded');
+    $req->content("C=$$self{country}&N=$$self{number}&M=$message -- ");
+
+    my $res = $ua->request($req);
 }
 
 sub set {
-	my($self, $IntlCode, $Number) = @_;
-	$$self{country}=$IntlCode;
-	$$self{number}=$Number;
+    my ( $self, $IntlCode, $Number ) = @_;
+    $$self{country} = $IntlCode;
+    $$self{number}  = $Number;
 }
 
 =back

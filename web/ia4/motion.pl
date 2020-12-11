@@ -1,5 +1,4 @@
 
-
 return "
 
 <table width=480 cellpadding=5 cellspacing=5 columns=6>

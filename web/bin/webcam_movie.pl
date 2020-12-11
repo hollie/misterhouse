@@ -6,11 +6,11 @@
 # generate a webcam Movie file for the directory passed in
 # we sxpect an argument that is the path to the jpg files
 
-my $movieDir=$ARGV[0];
+my $movieDir = $ARGV[0];
 
 chdir $config_parms{html_dir} . $config_parms{wc_slide_dir} . "/" . $movieDir;
 
-my $html="
+my $html = "
 <html><head>
 <META HTTP-EQUIV='CACHE-CONTROL' CONTENT='NO-STORE'>
 <script src='/bin/webcam_applet_data.pl?" . $movieDir . "'></script>
@@ -64,5 +64,4 @@ my $html="
 ";
 
 return $html;
-
 

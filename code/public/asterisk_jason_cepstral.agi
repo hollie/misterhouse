@@ -1,7 +1,7 @@
 #!/usr/bin/perl -W
 #
 # Cepstral TTS Engine
-# 
+#
 # Adapted by: Jason Sharpee <jason@sharpee.com>
 # Based on code by: Eric Wieling <eric@fnords.org>
 
@@ -24,7 +24,7 @@ my %input = $AGI->ReadParse();
 # allows us to clean up any pending things that need to be done, like delete
 # temp flies.
 
-$AGI->setcallback(\&mycallback);
+$AGI->setcallback( \&mycallback );
 
 $failed = 0;
 
@@ -34,44 +34,50 @@ $mydir = dirname($0);
 #$ttstype = basename($ARGV[0]);
 #$ttscommand = $ARGV[0];
 $ttscommand = "/opt/theta/bin/theta";
-$text = $ARGV[0];
+$text       = $ARGV[0];
 
-  # Create a temporary file
-  (undef, $filename) = tempfile( "/tmp/cepstralXXXXXX", SUFFIX => ".wav");
-  # Run the actual Text-To-Speech, output to the temp file Microsoft RIFF (.wav)
+# Create a temporary file
+( undef, $filename ) = tempfile( "/tmp/cepstralXXXXXX", SUFFIX => ".wav" );
 
-  # Needs to be told where home is, I can figure it out, why can't they?
-  $ENV{THETA_HOME} = dirname(dirname($ttscommand));
-	$commandstring = "$ttscommand -F 8000 -o $filename \"$text\"";
-	verbose("CEPSTRAL: $commandstring");
+# Run the actual Text-To-Speech, output to the temp file Microsoft RIFF (.wav)
+
+# Needs to be told where home is, I can figure it out, why can't they?
+$ENV{THETA_HOME} = dirname( dirname($ttscommand) );
+$commandstring = "$ttscommand -F 8000 -o $filename \"$text\"";
+verbose("CEPSTRAL: $commandstring");
+
 #  system("$ttscommand -F 8000 -o $filename \"$text\"");
-  system($commandstring);
+system($commandstring);
 
-  # Chop the extension off the filename, streamfile doesn't want a
-  # file extension
-  $streamfile = substr($filename, 0, -4);
-  # Play the file back to them, stream_file deals with all the hard work.
-  $AGI->stream_file($streamfile);
-  # DON'T leave temp files laying around.
-  unlink($filename);
-  exit(0);
+# Chop the extension off the filename, streamfile doesn't want a
+# file extension
+$streamfile = substr( $filename, 0, -4 );
+
+# Play the file back to them, stream_file deals with all the hard work.
+$AGI->stream_file($streamfile);
+
+# DON'T leave temp files laying around.
+unlink($filename);
+exit(0);
 
 # In theory this gets called if the caller hung up.
 sub mycallback {
-  # DON'T leave temp files laying around.
-  unlink($filename);
-  # Try to tell asterisk any exit code.
-  my ($returncode) = @_;
-  print STDERR "MYCALLBACK: User Hungup ($returncode)\n";
-  exit($returncode);
+
+    # DON'T leave temp files laying around.
+    unlink($filename);
+
+    # Try to tell asterisk any exit code.
+    my ($returncode) = @_;
+    print STDERR "MYCALLBACK: User Hungup ($returncode)\n";
+    exit($returncode);
 }
 
 # A little utility function so I can turn on and off messages with one
 # variable.
 sub verbose {
-  if (defined($verbose)) {
-    $AGI->verbose("@_", $verbose);
-    return(0);
-  }
+    if ( defined($verbose) ) {
+        $AGI->verbose( "@_", $verbose );
+        return (0);
+    }
 }
 

@@ -1,0 +1,22 @@
+
+<iframe id="mhIframe" src="" width="100%" height="100%" marginheight="0" frameborder="0"></iframe>
+
+<script>
+  //set up the iframe to have height of the window and then add in the src passed in the URL...
+  var newheight = $(window.parent.document).height();
+  var loc = window.location.toString(),
+  params = loc.split('?');
+  var url = params[1];
+  for (var i = 2; i < params.length; i++){
+	url += "?"+params[i];
+  }
+  //check if http / https is in the URL...
+  var prefix = "http://";
+  if (url.indexOf("http") == 0) prefix = "";
+  var params2 = prefix + url.split('&_collection_key')[0];
+  //alert("pref="+prefix+" url="+params2);
+  
+  $('#mhIframe').attr("src",params2);
+  $('#mhIframe').attr("height",newheight+"px");
+
+</script>

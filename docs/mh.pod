@@ -369,13 +369,13 @@ These constants are defined, so we can use them without quoting them
 The Misterhouse documentation refers to perl objects as items.  Most
 of these are derived from L<Generic_Item|lib::Generic_Item>.
 
-The old list of items is L<here|::objects>.  These will be moved to the 
+The old list of items is L<here|objects>.  These will be moved to the 
 new list soon.
 
-The new list of items is L<here|::items>.  This documentation is maintained
+The new list of items is L<here|items>.  This documentation is maintained
 in the .pm files along side the code.
 
-The list of modules that are not items is L<here|::modules>.
+The list of modules that are not items is L<here|modules>.
 
 =head2 List of functions
 
@@ -3285,7 +3285,6 @@ my lawyer.  Actually, I suppose you could try to call my lawyer, since I don't h
 you will get too far (grin).
 
 =cut
-
 
 #
 # $Log: mh.pod,v $

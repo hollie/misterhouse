@@ -7,17 +7,23 @@
 #
 # by Matthew Williams
 
-my $weather=qq[HTTP/1.0 200 OK
-Server: MisterHouse
-Content-Type: text/plain
-Cache-Control: no-cache
+my $weather;
 
-];
-
-if ($Weather{Summary_Long}) { 
-	$weather.=$Weather{Summary_Long};
-} else {
-	$weather = 'unknown - enable a weather module';
+if ( $Weather{Summary_Long} ) {
+    $weather .= $Weather{Summary_Long};
+}
+else {
+    $weather = 'unknown - enable a weather module';
 }
 
-return $weather;
+    my $output = "HTTP/1.1 200 OK\r\n";
+    $output .= "Server: MisterHouse\r\n";
+    $output .= "Content-type: text/plain\r\n";
+    $output .= "Connection: close\r\n" if &http_close_socket;
+    $output .= "Content-Length: " . ( length $weather ) . "\r\n";
+    $output .= "Cache-Control: no-cache\r\n";
+    $output .= "Date: " . time2str(time) . "\r\n";
+    $output .= "\r\n";
+    $output .= $weather;
+
+return $output;

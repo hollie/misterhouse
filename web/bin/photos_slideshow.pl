@@ -42,17 +42,17 @@ my $height = $2;
 my $images = "";
 
 foreach (@photos) {
-	my $file = $_;
-	my @dirs = split( /,/, $config_parms{photo_dirs} );
-	$file =~ s/ /%20/g;
-	$file =~ s/\#/%23/g;
-	$file =~ s/&/%26/g;
-	$file =~ s/\'/%27/g;
-	$file =~ s/\/photos//g;
-	$file =~ s/^\///g;
-	my @caption = split(/\//, $file);
-	my $caption_text = pop @caption;
-	$images .= <<eof;
+    my $file = $_;
+    my @dirs = split( /,/, $config_parms{photo_dirs} );
+    $file =~ s/ /%20/g;
+    $file =~ s/\#/%23/g;
+    $file =~ s/&/%26/g;
+    $file =~ s/\'/%27/g;
+    $file =~ s/\/photos//g;
+    $file =~ s/^\///g;
+    my @caption = split( /\//, $file );
+    my $caption_text = pop @caption;
+    $images .= <<eof;
 	'$file': { caption: '$caption_text' },
 eof
 }
@@ -61,33 +61,28 @@ $images =~ s/\},$/}/;
 
 my $sseffect = "var myShow = new Slideshow";
 if ( $effect eq 'flash' ) {
-	$sseffect .= ".Flash";
+    $sseffect .= ".Flash";
 }
 elsif ( $effect eq 'fold' ) {
-	$sseffect .= ".Fold";
+    $sseffect .= ".Fold";
 }
 elsif ( $effect eq 'push' ) {
-	$sseffect .= ".Push";
+    $sseffect .= ".Push";
 }
 elsif ( $effect eq 'kenburns' ) {
-	$sseffect .= ".KenBurns";
+    $sseffect .= ".KenBurns";
 }
 $sseffect .= "('show', data, { ";
 if ( $captions ne '0' ) {
-	$sseffect .= "captions: true, ";
+    $sseffect .= "captions: true, ";
 }
-$sseffect .=
-"controller: true, delay: ${time}000, duration: 1000, height: $height, hu: '$config_parms{photo_dirs}', ";
+$sseffect .= "controller: true, delay: ${time}000, duration: 1000, height: $height, hu: '$config_parms{photo_dirs}', ";
 if ( $thumbs ne '0' ) {
-	$sseffect .= "thumbnails: true, ";
+    $sseffect .= "thumbnails: true, ";
 }
 $sseffect .= "width: $width });";
 
 my $js = <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: application/x-javascript
-
 window.addEvent('domready', function(){
     var data = {
 $images
@@ -96,4 +91,13 @@ $images
 });
 
 eof
-return $js;
+
+my $html_head = "HTTP/1.1 200 OK\r\n";
+$html_head .= "Server: MisterHouse\r\n";
+$html_head .= "Connection: close\r\n" if &http_close_socket;
+$html_head .= "Content-type: application/x-javascript\r\n";
+$html_head .= "Content-Length: " . ( length $js ) . "\r\n";
+$html_head .= "Date: " . time2str(time) . "\r\n";
+$html_head .= "\r\n";
+
+return $html_head.$js;

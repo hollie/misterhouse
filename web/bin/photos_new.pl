@@ -18,27 +18,27 @@ Example mh.ini parms:
 
 =cut
 
-use vars '@photos';             # This will be persistent across passes and code reloads
+use vars '@photos';    # This will be persistent across passes and code reloads
 @photos = file_read $config_parms{photo_index} unless @photos;
 
-                                # Set up defaults
+# Set up defaults
 my $time = $config_parms{photo_time};
 $time = 60 unless defined $time;
-$config_parms{photo_url}     = '/ia5'       unless $config_parms{photo_url};
+$config_parms{photo_url} = '/ia5' unless $config_parms{photo_url};
 my $images = "";
-foreach (@photos){
-	my $file = $_;
-	my $img = $file;
-	my @dirs = split(/,/, $config_parms{photo_dirs});
-	$file     =~  s/ /%20/g;
-	$file     =~  s/\#/%23/g;
-	$file     =~  s/\'/%27/g;
-	foreach (@dirs){
-		$img =~ s/$_//;
-	}
-	$img =~ m/(\/)?(.+)\.(\S+)/;
-	$img = $2;
-	$images .= <<eof;
+foreach (@photos) {
+    my $file = $_;
+    my $img  = $file;
+    my @dirs = split( /,/, $config_parms{photo_dirs} );
+    $file =~ s/ /%20/g;
+    $file =~ s/\#/%23/g;
+    $file =~ s/\'/%27/g;
+    foreach (@dirs) {
+        $img =~ s/$_//;
+    }
+    $img =~ m/(\/)?(.+)\.(\S+)/;
+    $img = $2;
+    $images .= <<eof;
 <div class="imageElement">
 	<h3>$img</h3>
 	<p></p>
@@ -50,10 +50,6 @@ eof
 }
 
 my $html = <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: text/html
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html>
 	<head>
@@ -84,4 +80,13 @@ Content-type: text/html
 	</body>
 </html>
 eof
-return $html;
+
+my $html_head = "HTTP/1.1 200 OK\r\n";
+$html_head .= "Server: MisterHouse\r\n";
+$html_head .= "Connection: close\r\n" if &http_close_socket;
+$html_head .= "Content-type: text/html\r\n";
+$html_head .= "Content-Length: " . ( length $html ) . "\r\n";
+$html_head .= "Date: " . time2str(time) . "\r\n";
+$html_head .= "\r\n";
+
+return $html_head.$html;

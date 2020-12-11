@@ -1,3 +1,4 @@
+
 =head1 B<lirc_mh>
 
 =head2 SYNOPSIS
@@ -60,40 +61,43 @@ package lirc_mh;
 use strict;
 
 sub send {
-        my $device = lc shift;
-        my $command = lc shift;
+    my $device  = lc shift;
+    my $command = lc shift;
 
-	print "Lirc_mh::send: Device: $device Cmd: $command\n" if $main::Debug{lirc};
-	
-	if ($command  =~ / /) {
-	    my @fields = split / /, $command;	    print "Lirc_mh::send: sending SEND_ONCE $device $command" if $main::Debug{lirc};;
+    print "Lirc_mh::send: Device: $device Cmd: $command\n"
+      if $main::Debug{lirc};
 
-	    my $repeat = @fields[1];
+    if ( $command =~ / / ) {
+        my @fields = split / /, $command;
+        print "Lirc_mh::send: sending SEND_ONCE $device $command"
+          if $main::Debug{lirc};
 
-	    print "Lirc_mh::send Sending $command $repeat times\n" if $main::Debug{lirc};
-            set $main::lirc_client "SEND_ONCE $device $command";
-	} 
-	else {
-	    print "Lirc_mh::send: Sending SEND_ONCE $device $command" if $main::Debug{lirc};;
-	    set $main::lirc_client "SEND_ONCE $device $command\n";
-	}
-	return;
+        my $repeat = @fields[1];
+
+        print "Lirc_mh::send Sending $command $repeat times\n"
+          if $main::Debug{lirc};
+        set $main::lirc_client "SEND_ONCE $device $command";
+    }
+    else {
+        print "Lirc_mh::send: Sending SEND_ONCE $device $command"
+          if $main::Debug{lirc};
+        set $main::lirc_client "SEND_ONCE $device $command\n";
+    }
+    return;
 }
 
-sub status 
-{
+sub status {
     set $main::lirc_client "LIST\n";
     return;
 }
 
 sub test_code {
-        my $device = shift;
-        my $command = shift;
-        print "device $device command $command\n";
+    my $device  = shift;
+    my $command = shift;
+    print "device $device command $command\n";
 }
 
 1;
-
 
 =back
 

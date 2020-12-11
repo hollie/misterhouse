@@ -1,3 +1,4 @@
+
 =begin comment
 
 Weird. I have been playing with my own version of a cuckoo clock. I thought
@@ -16,22 +17,23 @@ point--if there is onee.
 =cut
 
 # Play sound every half-hour
-if (time_cron ('30 7-22 * * *')) {
-    play(file => "cuckoo.wav");
+if ( time_cron('30 7-22 * * *') ) {
+    play( file => "cuckoo.wav" );
 }
 
 # On hour, set number of cuckoos
 my $CuckooHour;
-if (time_cron ('0 7-22 * * *')) {
-    if ($Hour > 12) {
-        $CuckooHour = $Hour-12;
-    } else {
+if ( time_cron('0 7-22 * * *') ) {
+    if ( $Hour > 12 ) {
+        $CuckooHour = $Hour - 12;
+    }
+    else {
         $CuckooHour = $Hour;
     }
 }
 
 # Play cuckoos and decrement hour counter.
-if ($CuckooHour > 0) {
-    play(mode => 'wait', file => "chimes/gongcuckoo.wav");
+if ( $CuckooHour > 0 ) {
+    play( mode => 'wait', file => "chimes/gongcuckoo.wav" );
     $CuckooHour--;
 }

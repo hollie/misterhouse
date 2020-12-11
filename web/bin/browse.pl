@@ -5,11 +5,11 @@
 #
 
 my ($url) = @ARGV;
-my ($file, $http_dir) = &http_get_local_file($url);
+my ( $file, $http_dir ) = &http_get_local_file($url);
 
-			# &test_file_req checks for illicit or password protected dirs
-if (&test_file_req($socket, $url, $http_dir) == 1) {
-    my $data   = &file_read($file, 0, 1);
+# &test_file_req checks for illicit or password protected dirs
+if ( &test_file_req( $socket, $url, $http_dir ) == 1 ) {
+    my $data = &file_read( $file, 0, 1 );
     $data =~ s/\n/\r/g;
-    return &html_page('', "<PRE>$data</PRE>");
+    return &html_page( '', "<PRE>$data</PRE>" );
 }

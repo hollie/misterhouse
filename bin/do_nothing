@@ -3,11 +3,11 @@
 # Call this if you don't want to do anything :)
 #
 # For example, say you want to debug code that parses html, but
-# you do not want to retrieve the html, simply start the 
+# you do not want to retrieve the html, simply start the
 # Process_Item with a do_nothing override:
 #
 #  $get_url = new Process_Item "get_url http://misterhouse.sf.net temp.html";
 #  start $get_url              if said $normal_usage;
 #  start $get_url 'do_nothing' if said $test_usage;
-#  &parse_html if done_now $get_url; 
+#  &parse_html if done_now $get_url;
 

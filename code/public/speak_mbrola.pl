@@ -5,7 +5,7 @@
 
 sub speak_mbrola {
     my %parms = @_;
-    if ($parms{to_file}) {
+    if ( $parms{to_file} ) {
         print "Sending text to $parms{to_file}\n";
         file_write '/tmp/sp.pho', $parms{text};
         my $mpath = '/home/users/usto/eHouse/mbrola';
@@ -14,7 +14,7 @@ sub speak_mbrola {
         sleep(6);
     }
     else {
-                                # Do nothing, since you have no sound card
+        # Do nothing, since you have no sound card
         print "Text not spoken: $parms{text}\n";
     }
 }

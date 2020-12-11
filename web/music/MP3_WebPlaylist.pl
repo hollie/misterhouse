@@ -1,5 +1,5 @@
 
-# this script will display the current mp3 playlist, 
+# this script will display the current mp3 playlist,
 # and will also display the playlist file (m3u).
 # this work with closely with MP3_WebCtrl.pl. All the call
 # to this script are done via the other script.
@@ -8,7 +8,7 @@
 use strict;
 
 my $RC;
-my ( $Cmd, $arg ) = split ( /=/, $ARGV[0] );
+my ( $Cmd, $arg ) = split( /=/, $ARGV[0] );
 $Cmd = ( $Cmd eq "" ) ? "refresh" : $Cmd;
 $Cmd = lc($Cmd);
 
@@ -38,13 +38,13 @@ if ( $Cmd eq "clearplaylist" ) {
 # there is a sort done on the dir content, to ease the search
 
 if ( $Cmd eq "list" ) {
-    my ($playlists, %playfiles) = &mp3_playlists;
-    for my $playlist (sort keys %playfiles) {
-            my $DisplayName = $playlist;
-            $DisplayName =~ tr/_/ /;
-            $DisplayName =~ s/-/ - /g;
-            $DisplayName =~ s/.m3u$//;
-            $HTTP = $HTTP . "<td><a href=/music/MP3_WebPlaylist.pl?Add=$playfiles{$playlist} target=MP3_Playlist>$DisplayName</a></td><tr>\n";
+    my ( $playlists, %playfiles ) = &mp3_playlists;
+    for my $playlist ( sort keys %playfiles ) {
+        my $DisplayName = $playlist;
+        $DisplayName =~ tr/_/ /;
+        $DisplayName =~ s/-/ - /g;
+        $DisplayName =~ s/.m3u$//;
+        $HTTP = $HTTP . "<td><a href=/music/MP3_WebPlaylist.pl?Add=$playfiles{$playlist} target=MP3_Playlist>$DisplayName</a></td><tr>\n";
     }
     $HTTP = $HTTP . "</table>\n";
 }
@@ -70,7 +70,7 @@ sub DisplayPlaylist {
 
         foreach my $item (@$titles) {
             my $Time = &mp3_get_playlist_timestr( $pos - 1 );
-            my $Str = "                                                            ";
+            my $Str  = "                                                            ";
             $Str = substr( "$pos. $item", 1 );
             $HTTP = $HTTP . "<td><a href=/music/MP3_WebPlaylist.pl?Jump=$pos target=MP3_Playlist>$pos. $item</a><right> .... $Time</right></td><tr>\n";
             $pos++;

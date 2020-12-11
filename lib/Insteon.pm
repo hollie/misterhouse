@@ -379,13 +379,12 @@ device in awake mode for a longer period of time.  See B<Mark as Manually Awake>
 
 =cut
 
-
-my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_sync_cnt,$_sync_failure_cnt);
+my ( @_insteon_plm, @_insteon_device, @_insteon_link, @_scannable_link, $_scan_cnt, $_sync_cnt, $_sync_failure_cnt );
 my $init_complete;
-my (@_scan_devices,@_scan_device_failures,$current_scan_device);
-my (@_sync_devices,@_sync_device_failures,$current_sync_device);
-my ($_stress_test_count, $_stress_test_one_pass, @_stress_test_devices);
-my ($_ping_count, @_ping_devices);
+my ( @_scan_devices,      @_scan_device_failures, $current_scan_device );
+my ( @_sync_devices,      @_sync_device_failures, $current_sync_device );
+my ( $_stress_test_count, $_stress_test_one_pass, @_stress_test_devices );
+my ( $_ping_count,        @_ping_devices );
 
 =item C<stress_test_all(count, [is_one_pass])>
 
@@ -402,39 +401,41 @@ Parameters:
 
 =cut
 
-sub stress_test_all
-{
-	my ($p_count, $is_one_pass) = @_;
-	if (defined $p_count){
-		$_stress_test_count = $p_count; 
-		$_stress_test_one_pass = $is_one_pass;
-		@_stress_test_devices = undef; 
-		push @_stress_test_devices, Insteon::find_members("Insteon::BaseDevice");
-		main::print_log("[Insteon::Stress Test All Devices] Stress Testing All Devices $p_count times");
-	};	
-	if (!@_stress_test_devices) {
-		#Iteration may be complete, start over from the beginning
-		$_stress_test_count = ($_stress_test_one_pass) ? 0 : $_stress_test_count--; 
-		push @_stress_test_devices, Insteon::find_members("Insteon::BaseDevice");
-	}
-	if ($_stress_test_count > 0){
-		my $current_stress_test_device;
-		my $complete_callback = '&Insteon::stress_test_all()';
-		while (@_stress_test_devices){
-			$current_stress_test_device = pop @_stress_test_devices;
-			next unless $current_stress_test_device->is_root();
-			next unless $current_stress_test_device->is_responder();
-			last;
-		}
-		my $run_count = ($_stress_test_one_pass) ? $_stress_test_count : 1;
-		if (ref $current_stress_test_device && $current_stress_test_device->can('stress_test')){
-			$current_stress_test_device->stress_test($run_count, $complete_callback);
-		}
-	} 
-	else {
-		$_stress_test_one_pass = 0;
-		main::print_log("[Insteon::Stress Test All Devices] Complete");
-	}
+sub stress_test_all {
+    my ( $p_count, $is_one_pass ) = @_;
+    if ( defined $p_count ) {
+        $_stress_test_count    = $p_count;
+        $_stress_test_one_pass = $is_one_pass;
+        @_stress_test_devices  = undef;
+        push @_stress_test_devices, Insteon::find_members("Insteon::BaseDevice");
+        main::print_log("[Insteon::Stress Test All Devices] Stress Testing All Devices $p_count times");
+    }
+    if ( !@_stress_test_devices ) {
+
+        #Iteration may be complete, start over from the beginning
+        $_stress_test_count = ($_stress_test_one_pass) ? 0 : $_stress_test_count--;
+        push @_stress_test_devices, Insteon::find_members("Insteon::BaseDevice");
+    }
+    if ( $_stress_test_count > 0 ) {
+        my $current_stress_test_device;
+        my $complete_callback = '&Insteon::stress_test_all()';
+        while (@_stress_test_devices) {
+            $current_stress_test_device = pop @_stress_test_devices;
+            next unless $current_stress_test_device->is_root();
+            next unless $current_stress_test_device->is_responder();
+            last;
+        }
+        my $run_count = ($_stress_test_one_pass) ? $_stress_test_count : 1;
+        if ( ref $current_stress_test_device
+            && $current_stress_test_device->can('stress_test') )
+        {
+            $current_stress_test_device->stress_test( $run_count, $complete_callback );
+        }
+    }
+    else {
+        $_stress_test_one_pass = 0;
+        main::print_log("[Insteon::Stress Test All Devices] Complete");
+    }
 }
 
 =item C<scan_all_linktables()>
@@ -445,57 +446,54 @@ entries in the device.
 
 =cut
 
-sub scan_all_linktables
-{
-	my $skip_unchanged = pop(@_);
-	$skip_unchanged = 0 if (ref $skip_unchanged || !defined($skip_unchanged));
-	if ($current_scan_device)
-        {
-        	&main::print_log("[Scan all linktables] WARN: link already underway. Ignoring request for new scan ...");
-                return;
-        }
-        my @candidate_devices = ();
-        # clear @_scan_devices
-        @_scan_devices = ();
-        @_scan_device_failures = ();
-        $current_scan_device = undef;
-        # alwayws include the active interface (e.g., plm)
-       	push @_scan_devices, &Insteon::active_interface;
+sub scan_all_linktables {
+    my $skip_unchanged = pop(@_);
+    $skip_unchanged = 0 if ( ref $skip_unchanged || !defined($skip_unchanged) );
+    if ($current_scan_device) {
+        &main::print_log("[Scan all linktables] WARN: link already underway. Ignoring request for new scan ...");
+        return;
+    }
+    my @candidate_devices = ();
 
-       	push @candidate_devices, &Insteon::find_members("Insteon::BaseDevice");
+    # clear @_scan_devices
+    @_scan_devices         = ();
+    @_scan_device_failures = ();
+    $current_scan_device   = undef;
 
-        # don't try to scan devices that are not responders
-        if (@candidate_devices) {
-        	foreach (@candidate_devices) {
-        		my $candidate_object = $_;
-        		if ($candidate_object->is_deaf){
-        		        ::print_log("[Scan all linktables] INFO: !!! "
-                        		. $candidate_object->get_object_name
-                        		. " is deaf. To scan this object you"
-                        		. " must run 'Scan Link Table' on it"
-                        		. " directly.");
-        		}
-        		elsif ($candidate_object->is_root and
-                		!($candidate_object->isa('Insteon::InterfaceController')))
-                	{
-		       		push @_scan_devices, $candidate_object;
-                		&main::print_log("[Scan all linktables] INFO1: "
-                        		. $candidate_object->get_object_name
-                        		. " will be scanned.") if $candidate_object->debuglevel(1, 'insteon');
-        		}
-                	else {
-                		&main::print_log("[Scan all linktables] INFO: !!! "
-                        		. $candidate_object->get_object_name
-                        		. " is NOT a candidate for scanning.");
-                	}
-		}
-        }
-        else {
-        	&main::print_log("[Scan all linktables] WARN: No insteon devices could be found");
-        }
-        $_scan_cnt = scalar @_scan_devices;
+    # alwayws include the active interface (e.g., plm)
+    push @_scan_devices, &Insteon::active_interface;
 
-        &_get_next_linkscan($skip_unchanged);
+    push @candidate_devices, &Insteon::find_members("Insteon::BaseDevice");
+
+    # don't try to scan devices that are not responders
+    if (@candidate_devices) {
+        foreach (@candidate_devices) {
+            my $candidate_object = $_;
+            if ( $candidate_object->is_deaf ) {
+                ::print_log( "[Scan all linktables] INFO: !!! "
+                      . $candidate_object->get_object_name
+                      . " is deaf. To scan this object you"
+                      . " must run 'Scan Link Table' on it"
+                      . " directly." );
+            }
+            elsif ( $candidate_object->is_root
+                and !( $candidate_object->isa('Insteon::InterfaceController') ) )
+            {
+                push @_scan_devices, $candidate_object;
+                &main::print_log( "[Scan all linktables] INFO1: " . $candidate_object->get_object_name . " will be scanned." )
+                  if $candidate_object->debuglevel( 1, 'insteon' );
+            }
+            else {
+                &main::print_log( "[Scan all linktables] INFO: !!! " . $candidate_object->get_object_name . " is NOT a candidate for scanning." );
+            }
+        }
+    }
+    else {
+        &main::print_log("[Scan all linktables] WARN: No insteon devices could be found");
+    }
+    $_scan_cnt = scalar @_scan_devices;
+
+    &_get_next_linkscan($skip_unchanged);
 }
 
 =item C<_get_next_linkscan_failure()>
@@ -505,13 +503,11 @@ the next device.
 
 =cut
 
-sub _get_next_linkscan_failure
-{
-	my($skip_unchanged) = @_;
-        push @_scan_device_failures, $current_scan_device;
-        &main::print_log("[Scan all link tables] WARN: failure occurred when scanning "
-                	. $current_scan_device->get_object_name . ".  Moving on...");
-        &_get_next_linkscan($skip_unchanged);
+sub _get_next_linkscan_failure {
+    my ($skip_unchanged) = @_;
+    push @_scan_device_failures, $current_scan_device;
+    &main::print_log( "[Scan all link tables] WARN: failure occurred when scanning " . $current_scan_device->get_object_name . ".  Moving on..." );
+    &_get_next_linkscan($skip_unchanged);
 
 }
 
@@ -521,32 +517,32 @@ Gets the next device to scan.
 
 =cut
 
-sub _get_next_linkscan
-{
-	my($skip_unchanged, $changed_device) = @_;
-	$current_scan_device = shift @_scan_devices;
-	if ($current_scan_device) {
-          	::print_log("[Scan all link tables] Now scanning: "
-                	. $current_scan_device->get_object_name . " ("
-                        . ($_scan_cnt - scalar @_scan_devices)
-                        . " of $_scan_cnt)");
-                # pass first the success callback followed by the failure callback
-          	$current_scan_device->scan_link_table(
-          	     '&Insteon::_get_next_linkscan('.$skip_unchanged.')',
-          	     '&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')',
-          	     $skip_unchanged);
-    	} 
-    	else {
-          	::print_log("[Scan all link tables] Completed scanning of all regular items.");
-                if (scalar @_scan_device_failures){
-			my $obj_list;
-			for my $failed_obj (@_scan_device_failures){
-				$obj_list .= $failed_obj->get_object_name .", ";
-			}
-			::print_log("[Scan all link tables] WARN, unable to "
-			." complete a scan of the following devices: $obj_list");
-		}
-    	}
+sub _get_next_linkscan {
+    my ( $skip_unchanged, $changed_device ) = @_;
+    $current_scan_device = shift @_scan_devices;
+    if ($current_scan_device) {
+        ::print_log( "[Scan all link tables] Now scanning: "
+              . $current_scan_device->get_object_name . " ("
+              . ( $_scan_cnt - scalar @_scan_devices )
+              . " of $_scan_cnt)" );
+
+        # pass first the success callback followed by the failure callback
+        $current_scan_device->scan_link_table(
+            '&Insteon::_get_next_linkscan(' . $skip_unchanged . ')',
+            '&Insteon::_get_next_linkscan_failure(' . $skip_unchanged . ')',
+            $skip_unchanged
+        );
+    }
+    else {
+        ::print_log("[Scan all link tables] Completed scanning of all regular items.");
+        if ( scalar @_scan_device_failures ) {
+            my $obj_list;
+            for my $failed_obj (@_scan_device_failures) {
+                $obj_list .= $failed_obj->get_object_name . ", ";
+            }
+            ::print_log( "[Scan all link tables] WARN, unable to " . " complete a scan of the following devices: $obj_list" );
+        }
+    }
 }
 
 =item C<sync_all_links()>
@@ -562,24 +558,22 @@ troubleshooting.
 
 =cut
 
-sub sync_all_links
-{
-	my ($audit_mode) = @_;
-        &main::print_log("[Sync all links] Starting now!");
-        @_sync_devices = ();
-        @_sync_device_failures = ();
-	# iterate over all registered objects and compare whether the link tables match defined scene linkages in known Insteon_Links
-	for my $obj (&Insteon::find_members('Insteon::BaseController'))
-	{
-		my %sync_req = ('sync_object' => $obj, 'audit_mode' => ($audit_mode) ? 1 : 0);
-		&main::print_log("[Sync all links] Adding " . $obj->get_object_name
-			. " to sync queue");
-		push @_sync_devices, \%sync_req
-	}
+sub sync_all_links {
+    my ($audit_mode) = @_;
+    &main::print_log("[Sync all links] Starting now!");
+    @_sync_devices         = ();
+    @_sync_device_failures = ();
 
-        $_sync_cnt = scalar @_sync_devices;
+    # iterate over all registered objects and compare whether the link tables match defined scene linkages in known Insteon_Links
+    for my $obj ( &Insteon::find_members('Insteon::BaseController') ) {
+        my %sync_req = ( 'sync_object' => $obj, 'audit_mode' => ($audit_mode) ? 1 : 0 );
+        &main::print_log( "[Sync all links] Adding " . $obj->get_object_name . " to sync queue" );
+        push @_sync_devices, \%sync_req;
+    }
 
-        &_get_next_linksync();
+    $_sync_cnt = scalar @_sync_devices;
+
+    &_get_next_linksync();
 }
 
 =item C<_get_next_linksync()>
@@ -591,41 +585,35 @@ call _get_next_linksync_failure() if sync_links() fails.
 
 =cut
 
-sub _get_next_linksync
-{
-	my $sync_req_ptr = shift(@_sync_devices);
-        my %sync_req = ($sync_req_ptr) ? %$sync_req_ptr : undef;
-        if (%sync_req) {
-        	$current_sync_device = $sync_req{'sync_object'};
-        }
-        else {
-        	$current_sync_device = undef;
-        }
+sub _get_next_linksync {
+    my $sync_req_ptr = shift(@_sync_devices);
+    my %sync_req = ($sync_req_ptr) ? %$sync_req_ptr : undef;
+    if (%sync_req) {
+        $current_sync_device = $sync_req{'sync_object'};
+    }
+    else {
+        $current_sync_device = undef;
+    }
 
-	if ($current_sync_device) {
-          	&main::print_log("[Sync all links] Now syncing: "
-                	. $current_sync_device->get_object_name . " ("
-                        . ($_sync_cnt - scalar @_sync_devices)
-                        . " of $_sync_cnt)");
-		my $skip_deaf = 1;
-                # pass first the success callback followed by the failure callback
-          	$current_sync_device->sync_links($sync_req{'audit_mode'}, 
-          	        '&Insteon::_get_next_linksync()',
-          	        '&Insteon::_get_next_linksync_failure()', $skip_deaf);
-    	}
-        else {
-          	&main::print_log("[Sync all links] All links have completed syncing");
-                my $_sync_failure_cnt = scalar @_sync_device_failures;
-                if ($_sync_failure_cnt){
-			my $obj_list;
-			for my $failed_obj (@_sync_device_failures){
-				$obj_list .= $failed_obj->get_object_name .", ";
-			}
-			::print_log("[Sync all links] WARN! Failures occured, "
-				."some links involving the following objects "
-				."remain out-of-sync: $obj_list");
-		}
-    	}
+    if ($current_sync_device) {
+        &main::print_log(
+            "[Sync all links] Now syncing: " . $current_sync_device->get_object_name . " (" . ( $_sync_cnt - scalar @_sync_devices ) . " of $_sync_cnt)" );
+        my $skip_deaf = 1;
+
+        # pass first the success callback followed by the failure callback
+        $current_sync_device->sync_links( $sync_req{'audit_mode'}, '&Insteon::_get_next_linksync()', '&Insteon::_get_next_linksync_failure()', $skip_deaf );
+    }
+    else {
+        &main::print_log("[Sync all links] All links have completed syncing");
+        my $_sync_failure_cnt = scalar @_sync_device_failures;
+        if ($_sync_failure_cnt) {
+            my $obj_list;
+            for my $failed_obj (@_sync_device_failures) {
+                $obj_list .= $failed_obj->get_object_name . ", ";
+            }
+            ::print_log( "[Sync all links] WARN! Failures occured, " . "some links involving the following objects " . "remain out-of-sync: $obj_list" );
+        }
+    }
 
 }
 
@@ -636,19 +624,18 @@ the failed device to the module global variable @_sync_device_failures.
 
 =cut
 
-sub _get_next_linksync_failure
-{
-        push @_sync_device_failures, $current_sync_device 
-		unless (grep{$current_sync_device == $_} @_sync_device_failures);
-        &main::print_log("[Sync all links] WARN: failure occurred when syncing links for "
-                	. $current_sync_device->get_object_name . ". Resuming sync queue if it exists.");
-	my $num_sync_queue = @{$$current_sync_device{sync_queue}};
-	if ($num_sync_queue){
-		$current_sync_device->_process_sync_queue();
-	}
-	else { #No other pending links in the queue
-		&_get_next_linksync();
-	}
+sub _get_next_linksync_failure {
+    push @_sync_device_failures, $current_sync_device
+      unless ( grep { $current_sync_device == $_ } @_sync_device_failures );
+    &main::print_log(
+        "[Sync all links] WARN: failure occurred when syncing links for " . $current_sync_device->get_object_name . ". Resuming sync queue if it exists." );
+    my $num_sync_queue = @{ $$current_sync_device{sync_queue} };
+    if ($num_sync_queue) {
+        $current_sync_device->_process_sync_queue();
+    }
+    else {    #No other pending links in the queue
+        &_get_next_linksync();
+    }
 
 }
 
@@ -660,32 +647,29 @@ for a more detailed description of ping.
 
 =cut
 
-sub ping_all
-{
-	my ($p_count) = @_;
-	if (defined $p_count){
-		$_ping_count = $p_count;
-		@_ping_devices = ();
-		push @_ping_devices, Insteon::find_members("Insteon::BaseDevice");
-		main::print_log("[Insteon::Ping All Devices] Ping All Devices $p_count times");
-	}
-	if (@_ping_devices)
-	{
-		my $current_ping_device;
-		while(@_ping_devices)
-		{
-			$current_ping_device = pop @_ping_devices;
-			next unless $current_ping_device->is_root();
-			next unless $current_ping_device->is_responder(); 
-			last;
-		}
-		$current_ping_device->ping($_ping_count, '&Insteon::ping_all()')
-                		if $current_ping_device->can('ping');
-	} else
-	{
-		$_ping_count = 0;
-		main::print_log("[Insteon::Ping All Devices] Ping All Complete");
-	}
+sub ping_all {
+    my ($p_count) = @_;
+    if ( defined $p_count ) {
+        $_ping_count   = $p_count;
+        @_ping_devices = ();
+        push @_ping_devices, Insteon::find_members("Insteon::BaseDevice");
+        main::print_log("[Insteon::Ping All Devices] Ping All Devices $p_count times");
+    }
+    if (@_ping_devices) {
+        my $current_ping_device;
+        while (@_ping_devices) {
+            $current_ping_device = pop @_ping_devices;
+            next unless $current_ping_device->is_root();
+            next unless $current_ping_device->is_responder();
+            last;
+        }
+        $current_ping_device->ping( $_ping_count, '&Insteon::ping_all()' )
+          if $current_ping_device->can('ping');
+    }
+    else {
+        $_ping_count = 0;
+        main::print_log("[Insteon::Ping All Devices] Ping All Complete");
+    }
 }
 
 =item C<log_all_ADLB_status()>
@@ -722,41 +706,37 @@ ALDB Scan Time
 
 =cut
 
-sub log_all_ADLB_status
-{
-	my @_log_ALDB_devices = ();
-	# alwayws include the active interface (e.g., plm)
-#	push @_log_ALDB_devices, &Insteon::active_interface;
+sub log_all_ADLB_status {
+    my @_log_ALDB_devices = ();
 
-	push @_log_ALDB_devices, Insteon::find_members("Insteon::BaseDevice");
+    # alwayws include the active interface (e.g., plm)
+    #	push @_log_ALDB_devices, &Insteon::active_interface;
 
-	# don't try to scan devices that are not responders
-	if (@_log_ALDB_devices)
-	{
-		my $log_ALDB_cnt = @_log_ALDB_devices;
-		my $count = 0;
-		foreach my $current_log_ALDB_device (@_log_ALDB_devices)
-		{
-			$count++;
-			if ($current_log_ALDB_device->is_root and
-				!($current_log_ALDB_device->isa('Insteon::InterfaceController')))
-			{
-				&main::print_log("[log all device ALDB status] Now logging: "
-					. $current_log_ALDB_device->get_object_name()
-					. " ($count of $log_ALDB_cnt)");
-				$current_log_ALDB_device->log_aldb_status();
-			} else
-			{
-				main::print_log("[log all device ALDB status] INFO: !!! "
-					. $current_log_ALDB_device->get_object_name
-					. " is NOT a candidate for logging ($count of $log_ALDB_cnt)");
-			}
-		}
-		main::print_log("[log all device ALDB status] All devices have completed logging");
-	} else
-	{
-		main::print_log("[log all device ALDB status] WARN: No insteon devices could be found");
-	}
+    push @_log_ALDB_devices, Insteon::find_members("Insteon::BaseDevice");
+
+    # don't try to scan devices that are not responders
+    if (@_log_ALDB_devices) {
+        my $log_ALDB_cnt = @_log_ALDB_devices;
+        my $count        = 0;
+        foreach my $current_log_ALDB_device (@_log_ALDB_devices) {
+            $count++;
+            if ( $current_log_ALDB_device->is_root
+                and !( $current_log_ALDB_device->isa('Insteon::InterfaceController') ) )
+            {
+                &main::print_log( "[log all device ALDB status] Now logging: " . $current_log_ALDB_device->get_object_name() . " ($count of $log_ALDB_cnt)" );
+                $current_log_ALDB_device->log_aldb_status();
+            }
+            else {
+                main::print_log( "[log all device ALDB status] INFO: !!! "
+                      . $current_log_ALDB_device->get_object_name
+                      . " is NOT a candidate for logging ($count of $log_ALDB_cnt)" );
+            }
+        }
+        main::print_log("[log all device ALDB status] All devices have completed logging");
+    }
+    else {
+        main::print_log("[log all device ALDB status] WARN: No insteon devices could be found");
+    }
 }
 
 =item C<print_all_message_stats>
@@ -783,103 +763,99 @@ be associated with any know device.
 
 =cut
 
-sub print_all_message_stats
-{
+sub print_all_message_stats {
     my @_log_devices = ();
-	push @_log_devices, Insteon::find_members("Insteon::BaseDevice");
+    push @_log_devices, Insteon::find_members("Insteon::BaseDevice");
 
-	if (@_log_devices)
-	{
-		#Initialize all of the tracking variables
-		my $retry_average = 0;
-    	my $fail_percentage = 0;
-    	my $corrupt_percentage = 0; 
-    	my $dupe_percentage = 0;
-    	my $avg_hops_left = 0;
-    	my $avg_max_hops = 0;
-		my $avg_out_hops = 0;
-    	my $curr_hops_avg = 0;
-    	
-		my $incoming_count_log = 0;
-		my $corrupt_count_log = 0;
-		my $dupe_count_log = 0;
-		my $retry_count_log = 0;
-		my $outgoing_count_log = 0;
-		my $fail_count_log = 0;
-		my $default_hop_count = 0;
-		my $hops_left_count = 0;
-		my $max_hops_count = 0;
-		my $outgoing_hop_count =0;
-		
-		my $device_count = 0;
+    if (@_log_devices) {
 
-		foreach my $current_log_device (@_log_devices)
-		{
-			#Skip non-root items
-			next unless $current_log_device->is_root;
-			
-			$device_count++;
-			
-			#Prints the Individual Message for the Device
-			$current_log_device->print_message_stats;
-			
-			#Add values for each device to the master count
-			$incoming_count_log += $current_log_device->incoming_count_log;
-			$corrupt_count_log += $current_log_device->corrupt_count_log;
-			$dupe_count_log += $current_log_device->dupe_count_log;
-			$retry_count_log += $current_log_device->retry_count_log;
-			$outgoing_count_log += $current_log_device->outgoing_count_log;
-			$fail_count_log += $current_log_device->fail_count_log;
-			$default_hop_count += $current_log_device->default_hop_count;
-			$hops_left_count += $current_log_device->hops_left_count;
-			$max_hops_count += $current_log_device->max_hops_count;
-			$outgoing_hop_count += $current_log_device->outgoing_hop_count;
-		}
-		
-		#Calculate the averages
-	    $retry_average = sprintf("%.1f", ($retry_count_log / 
-	        $outgoing_count_log) + 1) if ($outgoing_count_log > 0); 
-	    $fail_percentage = sprintf("%.1f", ($fail_count_log / 
-	        $outgoing_count_log) * 100 ) if ($outgoing_count_log > 0);
-	    $corrupt_percentage = sprintf("%.1f", ($corrupt_count_log / 
-	        $incoming_count_log) * 100 ) if ($incoming_count_log > 0);
-	    $dupe_percentage = sprintf("%.1f", ($dupe_count_log / 
-	        $incoming_count_log) * 100 ) if ($incoming_count_log > 0);
-	    $avg_hops_left = sprintf("%.1f", ($hops_left_count / 
-	        $incoming_count_log)) if ($incoming_count_log > 0);
-	    $avg_max_hops = sprintf("%.1f", ($max_hops_count / 
-	        $incoming_count_log)) if ($incoming_count_log > 0);
-    	$avg_out_hops = sprintf("%.1f", ($outgoing_hop_count / 
-        	$outgoing_count_log)) if ($outgoing_count_log > 0);
-    	$curr_hops_avg = sprintf("%.1f", ($default_hop_count / 
-        	$device_count)) if ($device_count > 0);
-    	::print_log(
-	        "[Insteon] Average Network Statistics:\n"
-	        . "    In Corrupt %Corrpt  Dupe   %Dupe HopsLeft Max_Hops Act_Hops Unk_Error\n"
-	        . sprintf("%6s", $incoming_count_log)
-	        . sprintf("%8s", $corrupt_count_log)
-	        . sprintf("%8s", $corrupt_percentage . '%')
-	        . sprintf("%6s", $dupe_count_log)
-	        . sprintf("%8s", $dupe_percentage . '%')
-	        . sprintf("%9s", $avg_hops_left)
-	        . sprintf("%9s", $avg_max_hops)
-	        . sprintf("%9s", $avg_max_hops - $avg_hops_left)
-	        . sprintf("%10s", &Insteon::active_interface->corrupt_count_log)
-	        . "\n"
-	        . "   Out    Fail   %Fail Retry AvgSend Avg_Hops CurrHops\n"
-	        . sprintf("%6s", $outgoing_count_log)
-	        . sprintf("%8s", $fail_count_log)
-	        . sprintf("%8s", $fail_percentage . '%')
-	        . sprintf("%6s", $retry_count_log)
-	        . sprintf("%8s", $retry_average)
-	        . sprintf("%9s", $avg_out_hops)
-	        . sprintf("%9s", $curr_hops_avg)
-    	);
-		main::print_log("[Insteon::Print_All_Message_Stats] All devices have completed logging");
-	} else
-	{
-		main::print_log("[Insteon::Print_All_Message_Stats] WARN: No insteon devices could be found");
-	}
+        #Initialize all of the tracking variables
+        my $retry_average      = 0;
+        my $fail_percentage    = 0;
+        my $corrupt_percentage = 0;
+        my $dupe_percentage    = 0;
+        my $avg_hops_left      = 0;
+        my $avg_max_hops       = 0;
+        my $avg_out_hops       = 0;
+        my $curr_hops_avg      = 0;
+
+        my $incoming_count_log = 0;
+        my $corrupt_count_log  = 0;
+        my $dupe_count_log     = 0;
+        my $retry_count_log    = 0;
+        my $outgoing_count_log = 0;
+        my $fail_count_log     = 0;
+        my $default_hop_count  = 0;
+        my $hops_left_count    = 0;
+        my $max_hops_count     = 0;
+        my $outgoing_hop_count = 0;
+
+        my $device_count = 0;
+
+        foreach my $current_log_device (@_log_devices) {
+
+            #Skip non-root items
+            next unless $current_log_device->is_root;
+
+            $device_count++;
+
+            #Prints the Individual Message for the Device
+            $current_log_device->print_message_stats;
+
+            #Add values for each device to the master count
+            $incoming_count_log += $current_log_device->incoming_count_log;
+            $corrupt_count_log  += $current_log_device->corrupt_count_log;
+            $dupe_count_log     += $current_log_device->dupe_count_log;
+            $retry_count_log    += $current_log_device->retry_count_log;
+            $outgoing_count_log += $current_log_device->outgoing_count_log;
+            $fail_count_log     += $current_log_device->fail_count_log;
+            $default_hop_count  += $current_log_device->default_hop_count;
+            $hops_left_count    += $current_log_device->hops_left_count;
+            $max_hops_count     += $current_log_device->max_hops_count;
+            $outgoing_hop_count += $current_log_device->outgoing_hop_count;
+        }
+
+        #Calculate the averages
+        $retry_average = sprintf( "%.1f", ( $retry_count_log / $outgoing_count_log ) + 1 )
+          if ( $outgoing_count_log > 0 );
+        $fail_percentage = sprintf( "%.1f", ( $fail_count_log / $outgoing_count_log ) * 100 )
+          if ( $outgoing_count_log > 0 );
+        $corrupt_percentage = sprintf( "%.1f", ( $corrupt_count_log / $incoming_count_log ) * 100 )
+          if ( $incoming_count_log > 0 );
+        $dupe_percentage = sprintf( "%.1f", ( $dupe_count_log / $incoming_count_log ) * 100 )
+          if ( $incoming_count_log > 0 );
+        $avg_hops_left = sprintf( "%.1f", ( $hops_left_count / $incoming_count_log ) )
+          if ( $incoming_count_log > 0 );
+        $avg_max_hops = sprintf( "%.1f", ( $max_hops_count / $incoming_count_log ) )
+          if ( $incoming_count_log > 0 );
+        $avg_out_hops = sprintf( "%.1f", ( $outgoing_hop_count / $outgoing_count_log ) )
+          if ( $outgoing_count_log > 0 );
+        $curr_hops_avg = sprintf( "%.1f", ( $default_hop_count / $device_count ) )
+          if ( $device_count > 0 );
+        ::print_log( "[Insteon] Average Network Statistics:\n"
+              . "    In Corrupt %Corrpt  Dupe   %Dupe HopsLeft Max_Hops Act_Hops Unk_Error\n"
+              . sprintf( "%6s",  $incoming_count_log )
+              . sprintf( "%8s",  $corrupt_count_log )
+              . sprintf( "%8s",  $corrupt_percentage . '%' )
+              . sprintf( "%6s",  $dupe_count_log )
+              . sprintf( "%8s",  $dupe_percentage . '%' )
+              . sprintf( "%9s",  $avg_hops_left )
+              . sprintf( "%9s",  $avg_max_hops )
+              . sprintf( "%9s",  $avg_max_hops - $avg_hops_left )
+              . sprintf( "%10s", &Insteon::active_interface->corrupt_count_log ) . "\n"
+              . "   Out    Fail   %Fail Retry AvgSend Avg_Hops CurrHops\n"
+              . sprintf( "%6s", $outgoing_count_log )
+              . sprintf( "%8s", $fail_count_log )
+              . sprintf( "%8s", $fail_percentage . '%' )
+              . sprintf( "%6s", $retry_count_log )
+              . sprintf( "%8s", $retry_average )
+              . sprintf( "%9s", $avg_out_hops )
+              . sprintf( "%9s", $curr_hops_avg ) );
+        main::print_log("[Insteon::Print_All_Message_Stats] All devices have completed logging");
+    }
+    else {
+        main::print_log("[Insteon::Print_All_Message_Stats] WARN: No insteon devices could be found");
+    }
 }
 
 =item C<reset_all_message_stats>
@@ -889,24 +865,21 @@ its message handling.
 
 =cut
 
-sub reset_all_message_stats
-{
+sub reset_all_message_stats {
     my @_log_devices = ();
     &Insteon::active_interface->reset_message_stats;
     push @_log_devices, Insteon::find_members("Insteon::BaseDevice");
 
-	if (@_log_devices)
-	{
-		foreach my $current_log_device (@_log_devices)
-		{
-			$current_log_device->reset_message_stats 
-                if $current_log_device->can('reset_message_stats');
-		}
-		main::print_log("[Insteon::Reset_All_Message_Stats] All devices have been reset");
-	} else
-	{
-		main::print_log("[Insteon::Reset_All_Message_Stats] WARN: No insteon devices could be found");
-	}
+    if (@_log_devices) {
+        foreach my $current_log_device (@_log_devices) {
+            $current_log_device->reset_message_stats
+              if $current_log_device->can('reset_message_stats');
+        }
+        main::print_log("[Insteon::Reset_All_Message_Stats] All devices have been reset");
+    }
+    else {
+        main::print_log("[Insteon::Reset_All_Message_Stats] WARN: No insteon devices could be found");
+    }
 }
 
 =item C<init()>
@@ -922,39 +895,40 @@ sub init {
     $init_complete = 1;
 
     # initialize scan and sync counters
-    $_scan_cnt = 0;
-    $_sync_cnt = 0;
+    $_scan_cnt     = 0;
+    $_sync_cnt     = 0;
     @_scan_devices = ();
 
     #################################################################
     ## Trigger creation
     #################################################################
-    my ($trigger_event, $trigger_code, $trigger_type);
+    my ( $trigger_event, $trigger_code, $trigger_type );
 
     my @trigger_info = &main::trigger_get('scan insteon link tables');
     if (@trigger_info) {
-	# Trigger exists; modify just the minimum so the trigger continues
-	# to work if we change the trigger code, but respect everything
-	# else (trigger type and time to run). This prevents unconditionally
-	# re-enabling the trigger if the user has disabled it.
-	$trigger_event = $trigger_info[0];
-	$trigger_type = $trigger_info[2];
-    } else {
-	# Trigger does not exist; create one with our default values.
-	$trigger_event = "time_cron '00 02 * * *'";
-	$trigger_type = 'NoExpire';
+
+        # Trigger exists; modify just the minimum so the trigger continues
+        # to work if we change the trigger code, but respect everything
+        # else (trigger type and time to run). This prevents unconditionally
+        # re-enabling the trigger if the user has disabled it.
+        $trigger_event = $trigger_info[0];
+        $trigger_type  = $trigger_info[2];
+    }
+    else {
+        # Trigger does not exist; create one with our default values.
+        $trigger_event = "time_cron '00 02 * * *'";
+        $trigger_type  = 'NoExpire';
     }
 
     $trigger_code = '&Insteon::scan_all_linktables()';
 
     # Create/update trigger for a nightly link table scan
-    &main::trigger_set($trigger_event, $trigger_code, $trigger_type,
-		       'scan insteon link tables', 1);
+    &main::trigger_set( $trigger_event, $trigger_code, $trigger_type, 'scan insteon link tables', 1 );
     #################################################################
 
-    @_insteon_plm = ();
+    @_insteon_plm    = ();
     @_insteon_device = ();
-    @_insteon_link = ();
+    @_insteon_link   = ();
 
 }
 
@@ -967,48 +941,48 @@ so that each class can have its own unique set of voice commands.
 
 =cut
 
-sub generate_voice_commands
-{
+sub generate_voice_commands {
 
     &main::print_log("Generating Voice commands for all Insteon objects");
     my $object_string;
     for my $object (&main::list_all_objects) {
         next unless ref $object;
-        next unless $object->isa('Insteon::BaseInterface') or $object->isa('Insteon::BaseObject');
-        
+        next
+          unless $object->isa('Insteon::BaseInterface')
+          or $object->isa('Insteon::BaseObject');
+
         #get object name to use as part of variable in voice command
-        my $object_name = $object->get_object_name;
+        my $object_name   = $object->get_object_name;
         my $object_name_v = $object_name . '_v';
         $object_string .= "use vars '${object_name}_v';\n";
-        
+
         #Convert object name into readable voice command words
         my $command = $object_name;
         $command =~ s/^\$//;
         $command =~ tr/_/ /;
-        
-        my $group = ($object->isa('Insteon_PLM')) ? '' : $object->group;
-        
+
+        my $group = ( $object->isa('Insteon_PLM') ) ? '' : $object->group;
+
         #Get list of all voice commands from the object
         my $voice_cmds = $object->get_voice_cmds();
-        
+
         #Initialize the voice command with all of the possible device commands
-        $object_string .= "$object_name_v  = new Voice_Cmd '$command [" 
-            . join(",", sort keys %$voice_cmds) . "]';\n";
-        
+        $object_string .= "$object_name_v  = new Voice_Cmd '$command [" . join( ",", sort keys %$voice_cmds ) . "]';\n";
+
         #Tie the proper routine to each voice command
-        foreach (keys %$voice_cmds) {
-            $object_string .= "$object_name_v -> tie_event('" . $voice_cmds->{$_}
-                . "', '$_');\n\n";
+        foreach ( keys %$voice_cmds ) {
+            $object_string .= "$object_name_v -> tie_event('" . $voice_cmds->{$_} . "', '$_');\n\n";
         }
-        
+
         #Add this object to the list of Insteon Voice Commands on the Web Interface
-        $object_string .= ::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands');
+        $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands' );
     }
 
     #Evaluate the resulting object generating string
     package main;
     eval $object_string;
     print "Error in insteon_item_commands: $@\n" if $@;
+
     package Insteon;
 }
 
@@ -1019,15 +993,15 @@ the object eligible for linking, scanning, and global functions.
 
 =cut
 
-sub add
-{
-   my ($object) = @_;
+sub add {
+    my ($object) = @_;
 
-   my $insteon_manager = InsteonManager->instance();
-   if ($insteon_manager->remove_item($object)) {
-      # print out debug info
-   }
-   $insteon_manager->add_item($object);
+    my $insteon_manager = InsteonManager->instance();
+    if ( $insteon_manager->remove_item($object) ) {
+
+        # print out debug info
+    }
+    $insteon_manager->add_item($object);
 }
 
 =item C<find_members(name)>
@@ -1036,12 +1010,11 @@ Called as a non-object routine.  Returns the object named name.
 
 =cut
 
-sub find_members
-{
-   my ($name) = @_;
+sub find_members {
+    my ($name) = @_;
 
-   my $insteon_manager = InsteonManager->instance();
-   return $insteon_manager->find_members($name);
+    my $insteon_manager = InsteonManager->instance();
+    return $insteon_manager->find_members($name);
 }
 
 =item C<get_object(p_id[, p_group])>
@@ -1056,38 +1029,36 @@ Returns undef if there is no matching object
 
 =cut
 
-sub get_object
-{
-	my ($p_deviceid, $p_group) = @_;
+sub get_object {
+    my ( $p_deviceid, $p_group ) = @_;
 
-	my $retObj = undef;
+    my $retObj = undef;
 
-        my $insteon_manager = InsteonManager->instance();
-        my @search_objects = ();
-        push @search_objects, $insteon_manager->find_members('Insteon::BaseObject');
-	for my $obj (@search_objects)
-	{
-		#Match on Insteon objects only
-	#	if ($obj->isa("Insteon::Insteon_Device"))
-	#	{
-			if (lc $obj->device_id() eq lc $p_deviceid)
-			{
-				if ($p_group)
-				{
-					if (lc $p_group eq lc $obj->group)
-					{
-						$retObj = $obj;
-						last;
-					}
-				} else {
-					$retObj = $obj;
-					last;
-				}
-			}
-	#	}
-	}
+    my $insteon_manager = InsteonManager->instance();
+    my @search_objects  = ();
+    push @search_objects, $insteon_manager->find_members('Insteon::BaseObject');
+    for my $obj (@search_objects) {
 
-	return $retObj;
+        #Match on Insteon objects only
+        #	if ($obj->isa("Insteon::Insteon_Device"))
+        #	{
+        if ( lc $obj->device_id() eq lc $p_deviceid ) {
+            if ($p_group) {
+                if ( lc $p_group eq lc $obj->group ) {
+                    $retObj = $obj;
+                    last;
+                }
+            }
+            else {
+                $retObj = $obj;
+                last;
+            }
+        }
+
+        #	}
+    }
+
+    return $retObj;
 }
 
 =item C<active_interface(p_interface)>
@@ -1097,15 +1068,17 @@ startup or reload.
 
 =cut
 
-sub active_interface
-{
-   my ($interface) = @_;
-   my $insteon_manager = InsteonManager->instance();
+sub active_interface {
+    my ($interface) = @_;
+    my $insteon_manager = InsteonManager->instance();
 
-   $insteon_manager->_active_interface($interface)
-   	if $interface && ref $interface && $interface->isa('Insteon::BaseInterface');
-#print "############### active interface is: " . $insteon_manager->_active_interface->get_object_name . "\n";
-   return $insteon_manager->_active_interface;
+    $insteon_manager->_active_interface($interface)
+      if $interface
+      && ref $interface
+      && $interface->isa('Insteon::BaseInterface');
+
+    #print "############### active interface is: " . $insteon_manager->_active_interface->get_object_name . "\n";
+    return $insteon_manager->_active_interface;
 
 }
 
@@ -1115,57 +1088,53 @@ Walks through every Insteon device and checks the aldb object version for I1 vs.
 
 =cut
 
-sub check_all_aldb_versions
-{
-	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices") if ($main::Debug{insteon} >= 4);
+sub check_all_aldb_versions {
+    main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices")
+      if ( $main::Debug{insteon} >= 4 );
 
-	my @ALDB_devices = ();
-	push @ALDB_devices, Insteon::find_members("Insteon::BaseDevice");
-	my $ALDB_cnt = @ALDB_devices;
-	my $count = 0;
-	foreach my $ALDB_device (@ALDB_devices)
-	{
-		$count++;
-		if ($ALDB_device->is_root and
-			!($ALDB_device->isa('Insteon::InterfaceController')))
-		{
-			main::print_log("[Insteon] DEBUG4 Checking aldb version for "
-				. $ALDB_device->get_object_name()
-				. " ($count of $ALDB_cnt)") if ($ALDB_device->debuglevel(4, 'insteon'));
-			$ALDB_device->check_aldb_version();
-		} else
-		{
-			main::print_log("[Insteon] DEBUG4 " . $ALDB_device->get_object_name
-				. " does not have its own aldb ($count of $ALDB_cnt)")
-				if ($ALDB_device->debuglevel(4, 'insteon'));
-		}
-	}
-	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices completed") if ($main::Debug{insteon} >= 4);
+    my @ALDB_devices = ();
+    push @ALDB_devices, Insteon::find_members("Insteon::BaseDevice");
+    my $ALDB_cnt = @ALDB_devices;
+    my $count    = 0;
+    foreach my $ALDB_device (@ALDB_devices) {
+        $count++;
+        if ( $ALDB_device->is_root
+            and !( $ALDB_device->isa('Insteon::InterfaceController') ) )
+        {
+            main::print_log( "[Insteon] DEBUG4 Checking aldb version for " . $ALDB_device->get_object_name() . " ($count of $ALDB_cnt)" )
+              if ( $ALDB_device->debuglevel( 4, 'insteon' ) );
+            $ALDB_device->check_aldb_version();
+        }
+        else {
+            main::print_log( "[Insteon] DEBUG4 " . $ALDB_device->get_object_name . " does not have its own aldb ($count of $ALDB_cnt)" )
+              if ( $ALDB_device->debuglevel( 4, 'insteon' ) );
+        }
+    }
+    main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices completed")
+      if ( $main::Debug{insteon} >= 4 );
 }
 
-sub check_thermo_versions
-{
-	main::print_log("[Insteon] DEBUG4 Initializing thermostat versions") if ($main::Debug{insteon} >= 4);
+sub check_thermo_versions {
+    main::print_log("[Insteon] DEBUG4 Initializing thermostat versions")
+      if ( $main::Debug{insteon} >= 4 );
 
-	my @thermo_devices = ();
-	push @thermo_devices, Insteon::find_members("Insteon::Thermostat");
-	foreach my $thermo_device (@thermo_devices)
-	{
-		if ($thermo_device->isa('Insteon::Thermostat') && 
-			$thermo_device->get_root()->engine_version eq "I2CS"){
-			main::print_log("[Insteon] DEBUG4 Setting thermostat "
-				. $thermo_device->get_object_name() . " to i2CS") 
-			if ($thermo_device->debuglevel(4, 'insteon'));
-			bless $thermo_device, 'Insteon::Thermo_i2CS';
-			$thermo_device->init();
-		}
-		else {
-			main::print_log("[Insteon] DEBUG4 Setting thermostat "
-				. $thermo_device->get_object_name() . " to i1") 
-			if ($thermo_device->debuglevel(4, 'insteon'));
-			bless $thermo_device, 'Insteon::Thermo_i1';
-		}
-	}
+    my @thermo_devices = ();
+    push @thermo_devices, Insteon::find_members("Insteon::Thermostat");
+    foreach my $thermo_device (@thermo_devices) {
+        if (   $thermo_device->isa('Insteon::Thermostat')
+            && $thermo_device->get_root()->engine_version eq "I2CS" )
+        {
+            main::print_log( "[Insteon] DEBUG4 Setting thermostat " . $thermo_device->get_object_name() . " to i2CS" )
+              if ( $thermo_device->debuglevel( 4, 'insteon' ) );
+            bless $thermo_device, 'Insteon::Thermo_i2CS';
+            $thermo_device->init();
+        }
+        else {
+            main::print_log( "[Insteon] DEBUG4 Setting thermostat " . $thermo_device->get_object_name() . " to i1" )
+              if ( $thermo_device->debuglevel( 4, 'insteon' ) );
+            bless $thermo_device, 'Insteon::Thermo_i1';
+        }
+    }
 }
 
 =back
@@ -1221,12 +1190,11 @@ Defines a new instance of the class.
 
 =cut
 
-sub _new_instance
-{
-	my $class = shift;
-	my $self = bless {}, $class;
+sub _new_instance {
+    my $class = shift;
+    my $self = bless {}, $class;
 
-	return $self;
+    return $self;
 }
 
 =item C<_active_interface()>
@@ -1236,22 +1204,23 @@ or reload.  It also sets all of the hooks for the Insteon stack.
 
 =cut
 
-sub _active_interface
-{
-   my ($self, $interface) = @_;
-   # setup hooks the first time that an interface is made active
-   if (!($$self{active_interface}) and $interface) {
-      &main::print_log("[Insteon] Setting up initialization hooks") if $main::Debug{insteon};
-      &main::MainLoop_pre_add_hook(\&Insteon::BaseInterface::check_for_data, 1);
-      &main::Reload_post_add_hook(\&Insteon::check_all_aldb_versions, 1);
-      &main::Reload_post_add_hook(\&Insteon::BaseInterface::poll_all, 1);
-      $init_complete = 0;
-      &main::MainLoop_pre_add_hook(\&Insteon::init, 1);
-      &main::Reload_post_add_hook(\&Insteon::check_thermo_versions, 1);
-      &main::Reload_post_add_hook(\&Insteon::generate_voice_commands, 1);
-   }
-   $$self{active_interface} = $interface if $interface;
-   return $$self{active_interface};
+sub _active_interface {
+    my ( $self, $interface ) = @_;
+
+    # setup hooks the first time that an interface is made active
+    if ( !( $$self{active_interface} ) and $interface ) {
+        &main::print_log("[Insteon] Setting up initialization hooks")
+          if $main::Debug{insteon};
+        &main::MainLoop_pre_add_hook( \&Insteon::BaseInterface::check_for_data, 1 );
+        &main::Reload_post_add_hook( \&Insteon::check_all_aldb_versions, 1 );
+        &main::Reload_post_add_hook( \&Insteon::BaseInterface::poll_all, 1 );
+        $init_complete = 0;
+        &main::MainLoop_pre_add_hook( \&Insteon::init, 1 );
+        &main::Reload_post_add_hook( \&Insteon::check_thermo_versions,   1 );
+        &main::Reload_post_add_hook( \&Insteon::generate_voice_commands, 1 );
+    }
+    $$self{active_interface} = $interface if $interface;
+    return $$self{active_interface};
 }
 
 =item C<add()>
@@ -1260,22 +1229,22 @@ Adds a list of objects to be tracked.
 
 =cut
 
-sub add
-{
-	my ($self,@p_objects) = @_;
+sub add {
+    my ( $self, @p_objects ) = @_;
 
-	my @l_objects;
+    my @l_objects;
 
-	for my $l_object (@p_objects) {
-		if ($l_object->isa('Group_Item') ) {
-			@l_objects = $$l_object{members};
-			for my $obj (@l_objects) {
-				$self->add($obj);
-			}
-		} else {
-		    $self->add_item($l_object);
-        	}
-	}
+    for my $l_object (@p_objects) {
+        if ( $l_object->isa('Group_Item') ) {
+            @l_objects = $$l_object{members};
+            for my $obj (@l_objects) {
+                $self->add($obj);
+            }
+        }
+        else {
+            $self->add_item($l_object);
+        }
+    }
 }
 
 =item C<add()>
@@ -1284,15 +1253,14 @@ Adds an object to be tracked.
 
 =cut
 
-sub add_item
-{
-   my ($self,$p_object) = @_;
+sub add_item {
+    my ( $self, $p_object ) = @_;
 
-   push @{$$self{objects}}, $p_object;
-   if ($p_object->isa('Insteon::BaseInterface')) {
-      $self->_active_interface($p_object);
-   }
-   return $p_object;
+    push @{ $$self{objects} }, $p_object;
+    if ( $p_object->isa('Insteon::BaseInterface') ) {
+        $self->_active_interface($p_object);
+    }
+    return $p_object;
 }
 
 =item C<remove_all_items()>
@@ -1302,14 +1270,15 @@ Removes all of the Insteon objects.
 =cut
 
 sub remove_all_items {
-   my ($self) = @_;
+    my ($self) = @_;
 
-   if (ref $$self{objects}) {
-      foreach (@{$$self{objects}}) {
- #        $_->untie_items($self);
-      }
-   }
-   delete $self->{objects};
+    if ( ref $$self{objects} ) {
+        foreach ( @{ $$self{objects} } ) {
+
+            #        $_->untie_items($self);
+        }
+    }
+    delete $self->{objects};
 }
 
 =item C<add_item_if_not_present()>
@@ -1319,17 +1288,17 @@ Adds an item to be tracked if it is not already in the list.
 =cut
 
 sub add_item_if_not_present {
-   my ($self, $p_object) = @_;
+    my ( $self, $p_object ) = @_;
 
-   if (ref $$self{objects}) {
-      foreach (@{$$self{objects}}) {
-         if ($_->equals($p_object)) {
-            return 0;
-         }
-      }
-   }
-   $self->add_item($p_object);
-   return 1;
+    if ( ref $$self{objects} ) {
+        foreach ( @{ $$self{objects} } ) {
+            if ( $_->equals($p_object) ) {
+                return 0;
+            }
+        }
+    }
+    $self->add_item($p_object);
+    return 1;
 }
 
 =item C<remove_item()>
@@ -1339,17 +1308,17 @@ Removes the Insteon object.
 =cut
 
 sub remove_item {
-   my ($self, $p_object) = @_;
-   return 0 unless $p_object and ref $p_object;
-   if (ref $$self{objects}) {
-      for (my $i = 0; $i < scalar(@{$$self{objects}}); $i++) {
-         if ($p_object->equals($$self{objects}->[$i])) {
-            splice @{$$self{objects}}, $i, 1;
-            return 1;
-         }
-      }
-   }
-   return 0;
+    my ( $self, $p_object ) = @_;
+    return 0 unless $p_object and ref $p_object;
+    if ( ref $$self{objects} ) {
+        for ( my $i = 0; $i < scalar( @{ $$self{objects} } ); $i++ ) {
+            if ( $p_object->equals( $$self{objects}->[$i] ) ) {
+                splice @{ $$self{objects} }, $i, 1;
+                return 1;
+            }
+        }
+    }
+    return 0;
 }
 
 =item C<is_member()>
@@ -1359,13 +1328,13 @@ Returns true if object is in the list.
 =cut
 
 sub is_member {
-    my ($self, $p_object) = @_;
+    my ( $self, $p_object ) = @_;
 
-    my @l_objects = @{$$self{objects}};
+    my @l_objects = @{ $$self{objects} };
     for my $l_object (@l_objects) {
-	if ($l_object->equals($p_object)) {
-	    return 1;
-	}
+        if ( $l_object->equals($p_object) ) {
+            return 1;
+        }
     }
     return 0;
 }
@@ -1378,16 +1347,16 @@ class.
 =cut
 
 sub find_members {
-	my ($self,$p_type) = @_;
+    my ( $self, $p_type ) = @_;
 
-	my @l_found;
-	my @l_objects = @{$$self{objects}};
-	for my $l_object (@l_objects) {
-		if ($l_object->isa($p_type)) {
-			push @l_found, $l_object;
-		}
-	}
-	return @l_found;
+    my @l_found;
+    my @l_objects = @{ $$self{objects} };
+    for my $l_object (@l_objects) {
+        if ( $l_object->isa($p_type) ) {
+            push @l_found, $l_object;
+        }
+    }
+    return @l_found;
 }
 
 =back
@@ -1428,6 +1397,5 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 MA  02110-1301, USA.
 
 =cut
-
 
 1;

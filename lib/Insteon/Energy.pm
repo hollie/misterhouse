@@ -1,3 +1,4 @@
+
 =head1 B<Insteon::SynchroLinc>
 
 =head2 SYNOPSIS
@@ -74,13 +75,12 @@ Instantiates a new object.
 
 =cut
 
-sub new
-{
-	my ($class,$p_deviceid,$p_interface) = @_;
-	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
-	bless $self,$class;
-	$self->restore_data('trigger_watts', 'delay_seconds', 'threshold_watts');
-	return $self;
+sub new {
+    my ( $class, $p_deviceid, $p_interface ) = @_;
+    my $self = new Insteon::BaseDevice( $p_deviceid, $p_interface );
+    bless $self, $class;
+    $self->restore_data( 'trigger_watts', 'delay_seconds', 'threshold_watts' );
+    return $self;
 }
 
 =item C<_set_parameters($trigger_bytes,$threshold_byte,$delay_byte)>
@@ -90,23 +90,25 @@ device. If a value is not specified, the cached value in MH will be used.
 
 =cut
 
-sub _set_parameters
-{
-	my ($self,$trigger_watts,$threshold_watts,$delay_seconds) = @_;
-	#Set values from cache if not passed
-	$threshold_watts = $$self{threshold_watts} if $threshold_watts eq '';
-    $trigger_watts = $$self{trigger_watts} if $trigger_watts eq '';
-	$delay_seconds = $$self{delay_seconds} if $delay_seconds eq '';
-	#Convert to bytes
-    my $trigger_bytes = sprintf('%04X', ($trigger_watts * 2));
-    my $delay_byte = sprintf('%02X', ($delay_seconds/.15));
-    my $threshold_byte = sprintf('%02X', ($threshold_watts * 2));
+sub _set_parameters {
+    my ( $self, $trigger_watts, $threshold_watts, $delay_seconds ) = @_;
+
+    #Set values from cache if not passed
+    $threshold_watts = $$self{threshold_watts} if $threshold_watts eq '';
+    $trigger_watts   = $$self{trigger_watts}   if $trigger_watts eq '';
+    $delay_seconds   = $$self{delay_seconds}   if $delay_seconds eq '';
+
+    #Convert to bytes
+    my $trigger_bytes  = sprintf( '%04X', ( $trigger_watts * 2 ) );
+    my $delay_byte     = sprintf( '%02X', ( $delay_seconds / .15 ) );
+    my $threshold_byte = sprintf( '%02X', ( $threshold_watts * 2 ) );
+
     #Send the set command
-	$$self{_ext_set_get_action} = 'set';
-	my $extra = "000002".$trigger_bytes.$delay_byte.$threshold_byte;
-	$extra .= '0' x (30 - length $extra);
-	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
-	$self->_send_cmd($message);
+    $$self{_ext_set_get_action} = 'set';
+    my $extra = "000002" . $trigger_bytes . $delay_byte . $threshold_byte;
+    $extra .= '0' x ( 30 - length $extra );
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self, 'extended_set_get', $extra );
+    $self->_send_cmd($message);
 }
 
 =item C<request_parameters()>
@@ -116,11 +118,9 @@ These reported parameters are printed to the log and cached in MH.
 
 =cut
 
-sub request_parameters
-{
+sub request_parameters {
     my ($self) = @_;
-    $$self{_ext_set_get_success_callback} = 
-        $self->get_object_name."->print_parameters();";
+    $$self{_ext_set_get_success_callback} = $self->get_object_name . "->print_parameters();";
     $self->_get_parameters();
 }
 
@@ -130,14 +130,14 @@ Prints the current cached parameters from the device to the print log.
 
 =cut
 
-sub print_parameters
-{
+sub print_parameters {
     my ($self) = @_;
-    ::print_log("[Insteon::SynchroLinc] Parameters obtained from " .
-        $self->get_object_name . ". Trigger = $$self{trigger_watts} watts, ".
-        "Delay = $$self{delay_seconds} seconds, Threshold = ".
-        "$$self{threshold_watts} watts.");
-};
+    ::print_log( "[Insteon::SynchroLinc] Parameters obtained from "
+          . $self->get_object_name
+          . ". Trigger = $$self{trigger_watts} watts, "
+          . "Delay = $$self{delay_seconds} seconds, Threshold = "
+          . "$$self{threshold_watts} watts." );
+}
 
 =item C<_get_parameters()>
 
@@ -146,13 +146,12 @@ The reported parameters are cached within MH.
 
 =cut
 
-sub _get_parameters
-{
-	my ($self) = @_;
-	$$self{_ext_set_get_action} = 'get';
-	my $extra .= '0' x 30;
-	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
-	$self->_send_cmd($message);
+sub _get_parameters {
+    my ($self) = @_;
+    $$self{_ext_set_get_action} = 'get';
+    my $extra .= '0' x 30;
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $self, 'extended_set_get', $extra );
+    $self->_send_cmd($message);
 }
 
 =item C<set_trigger(trigger_watts)>
@@ -166,19 +165,19 @@ value.
 
 =cut
 
-sub set_trigger
-{
-    my ($self, $trigger_watts) = @_;
+sub set_trigger {
+    my ( $self, $trigger_watts ) = @_;
+
     #Adjust to valid range
-    $trigger_watts = 0 if $trigger_watts < 0;
+    $trigger_watts = 0    if $trigger_watts < 0;
     $trigger_watts = 1800 if $trigger_watts > 1800;
+
     #Round to nearest .5 Value
-    $trigger_watts = int(($trigger_watts * 2) + 0.5)/2;
-    ::print_log("[Insteon::SynchroLinc] Setting Trigger to ".
-        $trigger_watts . " watts.");
+    $trigger_watts = int( ( $trigger_watts * 2 ) + 0.5 ) / 2;
+    ::print_log( "[Insteon::SynchroLinc] Setting Trigger to " . $trigger_watts . " watts." );
+
     #Set Callback
-    $$self{_ext_set_get_success_callback} = 
-        $self->get_object_name."->_set_parameters($trigger_watts,'','');";
+    $$self{_ext_set_get_success_callback} = $self->get_object_name . "->_set_parameters($trigger_watts,'','');";
     $self->_get_parameters();
 }
 
@@ -202,19 +201,19 @@ value.
 
 =cut
 
-sub set_delay
-{
-    my ($self, $delay_seconds) = @_;
+sub set_delay {
+    my ( $self, $delay_seconds ) = @_;
+
     #Adjust to valid range
-    $delay_seconds = 0.15 if $delay_seconds < 0.15;
+    $delay_seconds = 0.15  if $delay_seconds < 0.15;
     $delay_seconds = 38.25 if $delay_seconds > 38.25;
+
     #Round to nearest .15 Value
-    $delay_seconds = int(($delay_seconds / 0.15) + 0.5)*.15;
-    ::print_log("[Insteon::SynchroLinc] Setting Delay to ".
-        $delay_seconds . " seconds.");
+    $delay_seconds = int( ( $delay_seconds / 0.15 ) + 0.5 ) * .15;
+    ::print_log( "[Insteon::SynchroLinc] Setting Delay to " . $delay_seconds . " seconds." );
+
     #Set Callback
-    $$self{_ext_set_get_success_callback} = 
-        $self->get_object_name."->_set_parameters('','',$delay_seconds);";
+    $$self{_ext_set_get_success_callback} = $self->get_object_name . "->_set_parameters('','',$delay_seconds);";
     $self->_get_parameters();
 }
 
@@ -233,19 +232,19 @@ value.
 
 =cut
 
-sub set_threshold
-{
-    my ($self, $threshold_watts) = @_;
+sub set_threshold {
+    my ( $self, $threshold_watts ) = @_;
+
     #Adjust to valid range
-    $threshold_watts = 0 if $threshold_watts < 0;
+    $threshold_watts = 0     if $threshold_watts < 0;
     $threshold_watts = 127.5 if $threshold_watts > 127.5;
+
     #Round to nearest .5 Value
-    $threshold_watts = int(($threshold_watts * 2) + 0.5)/2;
-    ::print_log("[Insteon::SynchroLinc] Setting Threshold to ".
-        $threshold_watts . " watts.");
+    $threshold_watts = int( ( $threshold_watts * 2 ) + 0.5 ) / 2;
+    ::print_log( "[Insteon::SynchroLinc] Setting Threshold to " . $threshold_watts . " watts." );
+
     #Set Callback
-    $$self{_ext_set_get_success_callback} = 
-        $self->get_object_name."->_set_parameters('',$threshold_watts,'');";
+    $$self{_ext_set_get_success_callback} = $self->get_object_name . "->_set_parameters('',$threshold_watts,'');";
     $self->_get_parameters();
 }
 
@@ -258,54 +257,69 @@ all other responses are handed off to the C<Insteon::BaseObject::_process_messag
 =cut
 
 sub _process_message {
-	my ($self,$p_setby,%msg) = @_;
-	my $clear_message = 0;
-	my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
-	my $ack_setby = (ref $$self{m_status_request_pending}) ? $$self{m_status_request_pending} : $p_setby;
-	if ($msg{is_ack} && $self->_is_info_request($pending_cmd,$ack_setby,%msg)) {
-		$clear_message = 1;
-		$$self{m_status_request_pending} = 0;
-		$self->_process_command_stack(%msg);
-	}
-	elsif ($msg{command} eq "extended_set_get" && $msg{is_ack}){
-		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		#If this was a get request don't clear until data packet received
-		::print_log("[Insteon::SynchroLinc] Extended Set/Get ACK Received for " . $self->get_object_name) if $self->debuglevel(1, 'insteon');
-		if ($$self{_ext_set_get_action} eq 'set'){
-			::print_log("[Insteon::SynchroLinc] Clearing active message.") if $self->debuglevel(1, 'insteon');
-			$clear_message = 1;
-			$$self{_ext_set_get_action} = undef;
-			$self->_process_command_stack(%msg);	
-		}
-	}
-    elsif ($msg{command} eq "extended_set_get" && $msg{is_extended}) {
-		if (substr($msg{extra},0,6) eq "000001") {
-			$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-			main::print_log("[Insteon::SynchroLinc] Extended Set/Get Data ".
-				"Received for ". $self->get_object_name) if $self->debuglevel(1, 'insteon');
-			#D3+D4 = trigger, D5 = delay, D6 = threshold
-			$$self{trigger_watts} = hex(substr($msg{extra}, 6, 4))/2;
-			$$self{delay_seconds} = sprintf("%.2f",hex(substr($msg{extra}, 10, 2))*.15);
-			$$self{threshold_watts} = hex(substr($msg{extra}, 12, 2))/2;
-			#All Done
-			$clear_message = 1;
-			$$self{_ext_set_get_action} = undef;
-			$self->_process_command_stack(%msg);
-			#If Callback exists, execute it
-		    if ($$self{_ext_set_get_success_callback}) {
-    			package main;
-    			eval ($$self{_ext_set_get_success_callback});
-    			&::print_log("[Insteon::SynchroLinc] Error in Get/Set Callback: " . $@)
-    				if $@ and $self->debuglevel(1, 'insteon');
-    			package Insteon::SynchroLinc;
-    			$$self{_ext_set_get_success_callback} = undef;
-		    }
-		}
+    my ( $self, $p_setby, %msg ) = @_;
+    my $clear_message = 0;
+    my $pending_cmd =
+      ( $$self{_prior_msg} ) ? $$self{_prior_msg}->command : $msg{command};
+    my $ack_setby =
+      ( ref $$self{m_status_request_pending} )
+      ? $$self{m_status_request_pending}
+      : $p_setby;
+    if (   $msg{is_ack}
+        && $self->_is_info_request( $pending_cmd, $ack_setby, %msg ) )
+    {
+        $clear_message = 1;
+        $$self{m_status_request_pending} = 0;
+        $self->_process_command_stack(%msg);
     }
-	else {
-		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
-	}
-	return $clear_message;
+    elsif ( $msg{command} eq "extended_set_get" && $msg{is_ack} ) {
+        $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
+
+        #If this was a get request don't clear until data packet received
+        ::print_log( "[Insteon::SynchroLinc] Extended Set/Get ACK Received for " . $self->get_object_name )
+          if $self->debuglevel( 1, 'insteon' );
+        if ( $$self{_ext_set_get_action} eq 'set' ) {
+            ::print_log("[Insteon::SynchroLinc] Clearing active message.")
+              if $self->debuglevel( 1, 'insteon' );
+            $clear_message = 1;
+            $$self{_ext_set_get_action} = undef;
+            $self->_process_command_stack(%msg);
+        }
+    }
+    elsif ( $msg{command} eq "extended_set_get" && $msg{is_extended} ) {
+        if ( substr( $msg{extra}, 0, 6 ) eq "000001" ) {
+            $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
+            main::print_log( "[Insteon::SynchroLinc] Extended Set/Get Data " . "Received for " . $self->get_object_name )
+              if $self->debuglevel( 1, 'insteon' );
+
+            #D3+D4 = trigger, D5 = delay, D6 = threshold
+            $$self{trigger_watts} = hex( substr( $msg{extra}, 6, 4 ) ) / 2;
+            $$self{delay_seconds} =
+              sprintf( "%.2f", hex( substr( $msg{extra}, 10, 2 ) ) * .15 );
+            $$self{threshold_watts} = hex( substr( $msg{extra}, 12, 2 ) ) / 2;
+
+            #All Done
+            $clear_message = 1;
+            $$self{_ext_set_get_action} = undef;
+            $self->_process_command_stack(%msg);
+
+            #If Callback exists, execute it
+            if ( $$self{_ext_set_get_success_callback} ) {
+
+                package main;
+                eval( $$self{_ext_set_get_success_callback} );
+                &::print_log( "[Insteon::SynchroLinc] Error in Get/Set Callback: " . $@ )
+                  if $@ and $self->debuglevel( 1, 'insteon' );
+
+                package Insteon::SynchroLinc;
+                $$self{_ext_set_get_success_callback} = undef;
+            }
+        }
+    }
+    else {
+        $clear_message = $self->SUPER::_process_message( $p_setby, %msg );
+    }
+    return $clear_message;
 }
 
 =item C<get_voice_cmds>
@@ -321,18 +335,12 @@ necessary voice commands.
 
 =cut 
 
-sub get_voice_cmds
-{
-    my ($self) = @_;
+sub get_voice_cmds {
+    my ($self)      = @_;
     my $object_name = $self->get_object_name;
-    my %voice_cmds = (
-        %{$self->SUPER::get_voice_cmds}
-    );
-    if ($self->is_root){
-        %voice_cmds = (
-            %{$self->SUPER::get_voice_cmds},
-            'request parameters' => "$object_name->request_parameters()"
-        );
+    my %voice_cmds  = ( %{ $self->SUPER::get_voice_cmds } );
+    if ( $self->is_root ) {
+        %voice_cmds = ( %{ $self->SUPER::get_voice_cmds }, 'request parameters' => "$object_name->request_parameters()" );
     }
     return \%voice_cmds;
 }
@@ -434,15 +442,15 @@ Instantiates a new object.
 
 =cut
 
-sub new
-{
-	my ($class,$p_deviceid,$p_interface) = @_;
-	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
-	bless $self,$class;
+sub new {
+    my ( $class, $p_deviceid, $p_interface ) = @_;
+    my $self = new Insteon::BaseDevice( $p_deviceid, $p_interface );
+    bless $self, $class;
+
     # include refresh as state so it appears in web interface
     $self->set_states('refresh');
     $self->restore_data('accumenergy');
-	return $self;
+    return $self;
 }
 
 =item C<set(state[,setby,response])>
@@ -453,15 +461,14 @@ to refresh will cause MH to query these values.
 
 =cut
 
-sub set
-{
-	my ($self,$p_state,$p_setby,$p_response) = @_;
-	if (lc($p_state) eq 'refresh'){
-	    $self->request_status();   
-	}
-	elsif ($p_setby ne $self) {
-	    ::print_log("[Insteon::iMeter] failed state validation with state=$p_state");    
-	}
+sub set {
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
+    if ( lc($p_state) eq 'refresh' ) {
+        $self->request_status();
+    }
+    elsif ( $p_setby ne $self ) {
+        ::print_log("[Insteon::iMeter] failed state validation with state=$p_state");
+    }
 }
 
 =item C<request_status([requestor])>
@@ -474,11 +481,10 @@ command
 
 =cut
 
-sub request_status
-{
-	my ($self,$requestor) = @_;
-	my $extra = '00';
-    my $message = new Insteon::InsteonMessage('insteon_send', $self, 'imeter_query', $extra);
+sub request_status {
+    my ( $self, $requestor ) = @_;
+    my $extra = '00';
+    my $message = new Insteon::InsteonMessage( 'insteon_send', $self, 'imeter_query', $extra );
     $self->_send_cmd($message);
     return;
 }
@@ -492,51 +498,64 @@ all other responses are handed off to the C<Insteon::BaseObject::_process_messag
 =cut
 
 sub _process_message {
-	my ($self,$p_setby,%msg) = @_;
-	my $clear_message = 0;
-	my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
-	my $ack_setby = (ref $$self{m_status_request_pending}) ? $$self{m_status_request_pending} : $p_setby;
-	if ($msg{is_ack} && $self->_is_info_request($pending_cmd,$ack_setby,%msg)) {
-		$clear_message = 1;
-		$$self{m_status_request_pending} = 0;
-		$self->_process_command_stack(%msg);
-	}
-	elsif ($msg{command} eq "imeter_query" && $msg{is_ack}){
-	    $self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		#Don't clear until data packet received
-		::print_log("[Insteon::iMeter] ACK Received for " . $self->get_object_name) if $self->debuglevel(1, 'insteon');
-	}
-	elsif ($msg{command} eq "imeter_query" && $msg{is_extended}) {
-		if (substr($msg{extra},0,2) eq "00") {
-    		# Power is D7-D8; Accumulated Energy is D9-D12.
-    		# CRC16 Signature is D13-D14, we currently ignore this check
-            my ($load,$intenergy) = $msg{extra} =~ m/^.{14}(.{4})(.{8})/;
-            $$self{'power'} = hex($load);
-            $intenergy = hex($intenergy);
+    my ( $self, $p_setby, %msg ) = @_;
+    my $clear_message = 0;
+    my $pending_cmd =
+      ( $$self{_prior_msg} ) ? $$self{_prior_msg}->command : $msg{command};
+    my $ack_setby =
+      ( ref $$self{m_status_request_pending} )
+      ? $$self{m_status_request_pending}
+      : $p_setby;
+    if (   $msg{is_ack}
+        && $self->_is_info_request( $pending_cmd, $ack_setby, %msg ) )
+    {
+        $clear_message = 1;
+        $$self{m_status_request_pending} = 0;
+        $self->_process_command_stack(%msg);
+    }
+    elsif ( $msg{command} eq "imeter_query" && $msg{is_ack} ) {
+        $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
+
+        #Don't clear until data packet received
+        ::print_log( "[Insteon::iMeter] ACK Received for " . $self->get_object_name )
+          if $self->debuglevel( 1, 'insteon' );
+    }
+    elsif ( $msg{command} eq "imeter_query" && $msg{is_extended} ) {
+        if ( substr( $msg{extra}, 0, 2 ) eq "00" ) {
+
+            # Power is D7-D8; Accumulated Energy is D9-D12.
+            # CRC16 Signature is D13-D14, we currently ignore this check
+            my ( $load, $intenergy ) = $msg{extra} =~ m/^.{14}(.{4})(.{8})/;
+            $$self{'power'}       = hex($load);
+            $intenergy            = hex($intenergy);
             $$self{'accumenergy'} = 0;
+
             # Best I can tell, the highest byte is set to FF or 255 when the device
             # is reset.  So value must be less than 254*256*256*256=4261412864 in
             # order for it to be valid.
-            if ($intenergy < 4261412864) {
+            if ( $intenergy < 4261412864 ) {
+
                 # 1 Accumulated energy is equal to: 65535 watts/AC Cycle.
                 # 65535 is the maximum value of a 16 bit number.
-            	$$self{'accumenergy'} = sprintf("%.2f", ($intenergy * 65535) 
-            	    / (1000 * 60.0 * 60.0 * 60.0));
-            } 
-    		::print_log("[Insteon::iMeter] received status for " .
-    			$self->get_object_name . ". Current Usage: $$self{'power'}/watts ".
-    			"Accumulated Usage: $$self{'accumenergy'}/kWh Hops left: $msg{hopsleft}");
-    		#Forced setby to be $Self as nothing can control iMeter
-    		$self->Generic_Item::set($$self{'power'}, $self);
-    		#Clear message from message queue
-    		$clear_message = 1;
+                $$self{'accumenergy'} = sprintf( "%.2f", ( $intenergy * 65535 ) / ( 1000 * 60.0 * 60.0 * 60.0 ) );
+            }
+            ::print_log( "[Insteon::iMeter] received status for "
+                  . $self->get_object_name
+                  . ". Current Usage: $$self{'power'}/watts "
+                  . "Accumulated Usage: $$self{'accumenergy'}/kWh Hops left: $msg{hopsleft}" );
+
+            #Forced setby to be $Self as nothing can control iMeter
+            $self->Generic_Item::set( $$self{'power'}, $self );
+
+            #Clear message from message queue
+            $clear_message = 1;
             $self->_process_command_stack(%msg);
-		}
-	}
-	else {
-		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
-	}
-	return $clear_message;
+        }
+    }
+    else {
+        $clear_message = $self->SUPER::_process_message( $p_setby, %msg );
+    }
+    return $clear_message;
 }
 
 =item C<log_accumulated_usage()>
@@ -547,12 +566,12 @@ or calling the 'request status' voice command.
 
 =cut
 
-sub log_accumulated_usage
-{
+sub log_accumulated_usage {
     my ($self) = @_;
-    ::print_log("[Insteon::iMeter] Current values for " .
-			$self->get_object_name . ". Current Usage: $$self{'power'}/watts ".
-			"Accumulated Usage: $$self{'accumenergy'}/kWh");
+    ::print_log( "[Insteon::iMeter] Current values for "
+          . $self->get_object_name
+          . ". Current Usage: $$self{'power'}/watts "
+          . "Accumulated Usage: $$self{'accumenergy'}/kWh" );
     return;
 }
 
@@ -564,8 +583,7 @@ or calling the 'request status' voice command.
 
 =cut
 
-sub get_accumulated_usage
-{
+sub get_accumulated_usage {
     my ($self) = @_;
     return $$self{'accumenergy'};
 }
@@ -576,11 +594,10 @@ Resets the accumulated usage on the device to 0.
 
 =cut
 
-sub reset_accumulated_usage
-{
+sub reset_accumulated_usage {
     my ($self) = @_;
     $$self{'accumenergy'} = 0;
-    my $message = new Insteon::InsteonMessage('insteon_send', $self, 'imeter_reset', '00');
+    my $message = new Insteon::InsteonMessage( 'insteon_send', $self, 'imeter_reset', '00' );
     $self->_send_cmd($message);
     return $$self{'accumenergy'};
 }
@@ -593,8 +610,7 @@ fuplicative of simply calling $self->state.
 
 =cut
 
-sub get_power
-{
+sub get_power {
     my ($self) = @_;
     return $$self{'power'};
 }
@@ -612,24 +628,19 @@ necessary voice commands.
 
 =cut 
 
-sub get_voice_cmds
-{
-    my ($self) = @_;
+sub get_voice_cmds {
+    my ($self)      = @_;
     my $object_name = $self->get_object_name;
-    my %voice_cmds = (
-        %{$self->SUPER::get_voice_cmds}
-    );
-    if ($self->is_root){
+    my %voice_cmds  = ( %{ $self->SUPER::get_voice_cmds } );
+    if ( $self->is_root ) {
         %voice_cmds = (
-            %{$self->SUPER::get_voice_cmds},
-            'log accumulated usage' => "$object_name->log_accumulated_usage()",
+            %{ $self->SUPER::get_voice_cmds },
+            'log accumulated usage'   => "$object_name->log_accumulated_usage()",
             'reset accumulated usage' => "$object_name->reset_accumulated_usage()",
         );
     }
     return \%voice_cmds;
 }
-
-
 
 =back
 

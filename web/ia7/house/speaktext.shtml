@@ -1,0 +1,40 @@
+<div class='row top-buffer'>
+	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+		<div class='col-sm-12'>
+		
+Type something below to have MisterHouse
+process the text to speech and send a wav file to your browser, using
+<a href=/bin/browse.pl?/code/common/eliza_server.pl>common/eliza_server.pl</a>.
+If you are in need of some consoling, click the Eliza checkbot,
+and a ChatBot version of the famous Eliza psychologist will have a conversation with you.
+Or have MisterHouse read you a deep thought, read a tagline or
+show what was <a target=speech href=/ia7/#path=/print_speaklog>recently spoken</a>,<br>
+
+		<center>
+		<form target="speech">
+		<textarea rows=2 cols=40 id="speakText" name=eliza_data></textarea>
+		<input type="button" value="Speak it!" id="speakNow"/>
+		</form>
+
+		</div>
+	</div>
+</div>
+
+<script>
+
+$(document).ready(function() {
+    $('#speakNow').click(function() {
+      //alert($('#speakText').val());
+	  var url = '/SET;last_response?eliza_data=' + $('#speakText').val();
+	  $.get( url, function(data) {
+		var start = data.toLowerCase().indexOf('<body>') + 6;
+		var end = data.toLowerCase().indexOf('</body>');
+		$('#lastResponse').find('.modal-body').html(data.substring(start, end));
+		$('#lastResponse').modal({
+			show: true
+		});
+	});
+  });
+});
+
+</script>

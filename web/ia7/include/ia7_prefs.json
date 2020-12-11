@@ -1,0 +1,23 @@
+ia7_defaults = { 
+  "prefs" : {
+     "header_button" : ["yes","no"],
+     "state_log_show" : ["yes","no"],
+     "always_double_buttons" : ["yes","no"],
+     "fp_state_popovers" : ["yes","no"],
+     "substate_percentages" : ["20","25","10"],
+     "disable_current_state" : ["yes","no"],
+     "audio_controls" : ["no","yes"],     
+     "notifications" : ["yes","no"],
+     "speech_default_audio" : ["yes","no"],
+     "speech_default_banner" : ["yes","no"],
+     "floorplan_slider" : ["yes","no"],
+     "state_slider" : ["yes","no"],
+     "static_tagline" : ["no","yes"],
+     "stat_refresh" : ["60","30","120"],
+     "rrd_refresh" : ["60","30","120"],     
+     "tooltips" : ["yes","no"],     
+     "show_errors" : ["yes","no"],
+     "use_cookies" : ["yes","no"],
+     "show_weather" : ["yes","no"]
+  }  	
+};

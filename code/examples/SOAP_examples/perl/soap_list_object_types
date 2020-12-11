@@ -9,15 +9,14 @@ my $soap = SOAP::Lite->uri('urn:mhsoap')->proxy($endpoint);
 
 my $som = $soap->ListObjectTypes;
 
-if ($som->fault) {
-	die "$0: Operation failed: " . $som->faultstring;
+if ( $som->fault ) {
+    die "$0: Operation failed: " . $som->faultstring;
 }
-else{
-	my $results = $som->result;
-	foreach my $v (@$results){
-		print "$v\n";
-	}
+else {
+    my $results = $som->result;
+    foreach my $v (@$results) {
+        print "$v\n";
+    }
 }
 exit;
-
 

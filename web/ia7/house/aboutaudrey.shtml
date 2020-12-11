@@ -1,0 +1,46 @@
+<div class='row top-buffer'>
+	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+		<div class='col-xs-3'>
+			<a href="http://localhost/cgi-bin/GetSystemValue?kcrontab" target='output'><img src="/ia5/house/images/viewcrontab.gif" alt='Contab' border="0"></a>
+		</div>
+		<div class='col-xs-3'>
+			<a href="http://localhost/cgi-bin/GetSystemValue?Timeserver0" target='output'><img src="/ia5/house/images/timeserver0.gif" alt='Timeserver 1' border="0"></a>
+		</div>
+		<div class='col-xs-3'>
+			<a href="http://localhost/cgi-bin/GetSystemValue?Timeserver1" target='output'><img src="/ia5/house/images/timeserver1.gif" alt='Timeserver 2' border="0"></a>
+		</div>
+		<div class='col-xs-3'>
+			<a href="http://localhost/SystemProfile.shtml" target='output'><img src="/ia5/house/images/settings.gif" alt='Settings' border="0"></a>
+		</div>
+	</div>
+</div>
+<div class='row top-buffer'>
+	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+		<div class='col-xs-3'>
+			<a href="http://localhost/shell.shtml?pterm"><img src="/ia5/house/images/openshell.gif" alt='Shell' border="0"></a>
+		</div>
+		<div class='col-xs-3'>
+			<a href="http://localhost/cgi-bin/SetLEDState?2"><img src="/ia5/house/images/ledsolid.gif" alt='Led on' border="0"></a>
+		</div>
+		<div class='col-xs-3'>
+			<a href="http://localhost/cgi-bin/SetLEDState?1"><img src="/ia5/house/images/ledblink.gif" alt='Led blink' border="0"></a>
+		</div>
+		<div class='col-xs-3'>
+			<a href="http://localhost/cgi-bin/SetLEDState?0"><img src="/ia5/house/images/ledoff.gif" alt='Led off' border="0"></a>
+		</div>
+	</div>
+</div>
+<div class='row top-buffer'>
+	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+		<div class='col-xs-3'>
+			<a href="http://www.sowbug.com/audrey/hack_index.html" target="main"><img src="/ia5/house/images/sowbug.gif" alt='Sowbug site' border="0"></a>
+		</div>
+		<div class='col-xs-3'>
+			<a href="http://www.audreyhacking.com/" target="main"><img src="/ia5/house/images/audreyhacking.gif" alt='Audrey Hacking site' border="0"></a>
+		</div>
+		<div class='col-xs-3'>
+			<a href="http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&Board=3Com_Audrey&Idle=&Sort=&Order=&Session=" target="main"><img src="/ia5/house/images/linuxhacker.gif" alt='Linux Hacker site' border="0"></a><br><br>
+		</div>
+	</div>
+</div>
+<!--#include file="/list?Audrey"-->

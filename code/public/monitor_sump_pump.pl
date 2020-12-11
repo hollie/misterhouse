@@ -14,7 +14,7 @@ so I coded up the following:
 $sump_pump_dead = new Timer();
 
 # increment the counter and reset the timer each time it pumps
-if (state_now $sump_pump_a eq 'empty') {
+if ( state_now $sump_pump_a eq 'empty' ) {
     $Save{sump}++;
     set $sump_pump_dead $Save{sump_timer};
 }
@@ -22,20 +22,20 @@ if (state_now $sump_pump_a eq 'empty') {
 # log the count, re-calc the timer, and reset the counter
 # the timer value is 5 * the average interval between cycles
 # (during the last 24 hours)
-if (time_now '23:59') {
-    logit("$config_parms{data_dir}/logs/sump.log", $Save{sump}, 11);
-    $Save{sump_timer} = int(5*86400/($Save{sump} + 1));
+if ( time_now '23:59' ) {
+    logit( "$config_parms{data_dir}/logs/sump.log", $Save{sump}, 11 );
+    $Save{sump_timer} = int( 5 * 86400 / ( $Save{sump} + 1 ) );
     $Save{sump} = 0;
 }
 
 # warn if we haven't pumped in a while
-if (expired $sump_pump_dead) {
+if ( expired $sump_pump_dead) {
     speak "The sump pump may be dead";
     print_log "The sump pump may be dead";
-    &alarm_trip (0, "The sump pump may be dead");
+    &alarm_trip( 0, "The sump pump may be dead" );
     set $sump_pump_dead $Save{sump_timer};
 }
 
-if ($Startup or $Reload) {
+if ( $Startup or $Reload ) {
     set $sump_pump_dead $Save{sump_timer} if inactive $sump_pump_dead;
 }

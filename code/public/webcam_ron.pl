@@ -26,7 +26,7 @@ Use with mh/web/public/webcam_ron.shml
 
 sub backgrab {
     my $pid = fork;
-    if (defined $pid && $pid == 0) {
+    if ( defined $pid && $pid == 0 ) {
         exec qq[grab -type jpeg -width 320 -height 240 -output \
                 /mh/web_my/cameras/captures/back_latest.jpg -quality 90 -settle 1];
         die 'cant exec backgrab';

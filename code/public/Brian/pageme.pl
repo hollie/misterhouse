@@ -16,7 +16,7 @@
 
 # Declare Variables
 
-my ($page_status, $page_email);
+my ( $page_status, $page_email );
 $timer_hangup_pager = new Timer;
 
 # Setup Phone Hangup Info
@@ -61,15 +61,19 @@ $timer_hangup_pager = new Timer;
 # Set up Phone Item to Page Me
 
 $v_page_me_email = new Voice_Cmd('Test Page Me On Phone');
-if (said $v_page_me_email) {
+if ( said $v_page_me_email) {
     speak "Sending out Manual E-Mail Page.";
     $page_email = "Test Page";
 }
 
 # Send an E-Mail Page
-if ($page_email ne '') {
+if ( $page_email ne '' ) {
     print_log "Sending out E-Mail Page - $page_email...";
-    &net_mail_send(subject => "MH", text => "$page_email", 
-                        to => '507xxxxxxx@vtext.com', from => 'mh@klier.us');
+    &net_mail_send(
+        subject => "MH",
+        text    => "$page_email",
+        to      => '507xxxxxxx@vtext.com',
+        from    => 'mh@klier.us'
+    );
     $page_email = '';
 }

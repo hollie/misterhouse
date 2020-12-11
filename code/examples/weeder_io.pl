@@ -24,26 +24,26 @@ motion detector fires, or the sump pump fills/empties).
 =cut
 
 # digital items
-$kitchen_motion_b    = new  Serial_Item('BJH', OPENED);	#J
-$kitchen_motion_b   -> add             ('BJL', CLOSED);
-$kitchen_motion_b   -> add             ('BSJ', 'init');
-$kitchen_motion_b   -> add             ('BRJ', 'read');
+$kitchen_motion_b = new Serial_Item( 'BJH', OPENED );    #J
+$kitchen_motion_b->add( 'BJL', CLOSED );
+$kitchen_motion_b->add( 'BSJ', 'init' );
+$kitchen_motion_b->add( 'BRJ', 'read' );
 
-$sump_pump_b         = new  Serial_Item('BKH', 'empty'); #K
-$sump_pump_b        -> add             ('BKL', 'full');
-$sump_pump_b        -> add             ('BSK', 'init');
-$sump_pump_b        -> add             ('BRK', 'read');
+$sump_pump_b = new Serial_Item( 'BKH', 'empty' );        #K
+$sump_pump_b->add( 'BKL', 'full' );
+$sump_pump_b->add( 'BSK', 'init' );
+$sump_pump_b->add( 'BRK', 'read' );
 
-$bedroom_motion_b    = new  Serial_Item('BLH', OPENED);	#L
-$bedroom_motion_b   -> add             ('BLL', CLOSED);
-$bedroom_motion_b   -> add             ('BSL', 'init');
-$bedroom_motion_b   -> add             ('BRL', 'read');
+$bedroom_motion_b = new Serial_Item( 'BLH', OPENED );    #L
+$bedroom_motion_b->add( 'BLL', CLOSED );
+$bedroom_motion_b->add( 'BSL', 'init' );
+$bedroom_motion_b->add( 'BRL', 'read' );
 
 # Analog items
-$analog_request_a    = new Serial_Item('AS','read' , 'weeder');
-$analog_request_z    = new Serial_Item('AZ','reset' , 'weeder');
-$analog_results      = new Serial_Item('A',  , 'weeder');
-$temp_outside        = new Serial_Item('A1', , 'weeder');
-$temp_computer_room  = new Serial_Item('A2', , 'weeder');
-$temp_sensor3        = new Serial_Item('A3', , 'weeder');
-$temp_archy          = new Serial_Item('A4', , 'weeder');
+$analog_request_a = new Serial_Item( 'AS', 'read',  'weeder' );
+$analog_request_z = new Serial_Item( 'AZ', 'reset', 'weeder' );
+$analog_results   = new Serial_Item( 'A',, 'weeder' );
+$temp_outside       = new Serial_Item( 'A1',, 'weeder' );
+$temp_computer_room = new Serial_Item( 'A2',, 'weeder' );
+$temp_sensor3       = new Serial_Item( 'A3',, 'weeder' );
+$temp_archy         = new Serial_Item( 'A4',, 'weeder' );

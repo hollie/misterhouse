@@ -14,22 +14,27 @@
 # As such, I haven't had a chance to verify that the wind direction and
 # wind speed are accurate.
 
-$weather = new iButton::Weather( CHIPS => [ qw( 01000002C77C1FFE 01000002C7681465 01000002C77C12B4 
-                                                01000002C76CD4E5 01000002C77C1EC9 01000002C76724E7 
-                                                01000002C761AF69 01000002C7798A76 1D000000010C46AA 
-                                                1200000013571545 10000000364A826A) ] );
+$weather = new iButton::Weather(
+    CHIPS => [
+        qw( 01000002C77C1FFE 01000002C7681465 01000002C77C12B4
+          01000002C76CD4E5 01000002C77C1EC9 01000002C76724E7
+          01000002C761AF69 01000002C7798A76 1D000000010C46AA
+          1200000013571545 10000000364A826A)
+    ]
+);
+
 #                                PORT => $port );
-if ($New_Second) {                                
-    if ( $Second == 29) {
+if ($New_Second) {
+    if ( $Second == 29 ) {
         my $temp = $weather->read_temp;
         print "Weather Temp = $temp\n" if defined $temp;
     }
     if ( $Second % 5 == 0 ) {
         my $windspeed = $weather->read_windspeed;
         print "Speed = $windspeed MPH\n" if defined $windspeed;
-        
+
         my $dir = $weather->read_dir;
         print "Direction = $dir\n" if defined $dir;
     }
 }
-       
+

@@ -1,3 +1,4 @@
+
 =head1 B<Insteon::MotionSensor>
 
 =head2 SYNOPSIS
@@ -115,19 +116,18 @@ Instantiates a new object.
 
 =cut
 
-sub new
-{
-	my ($class,$p_deviceid,$p_interface) = @_;
+sub new {
+    my ( $class, $p_deviceid, $p_interface ) = @_;
 
-	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
-	if ($self->is_root){ 
-		$self->restore_data('query_timer', 'last_query_time');
-		$$self{queue_timer} = new Timer;
-	}
-	bless $self,$class;
-	$$self{is_responder} = 0;
-	$$self{is_deaf} = 1;
-	return $self;
+    my $self = new Insteon::BaseDevice( $p_deviceid, $p_interface );
+    if ( $self->is_root ) {
+        $self->restore_data( 'query_timer', 'last_query_time' );
+        $$self{queue_timer} = new Timer;
+    }
+    bless $self, $class;
+    $$self{is_responder} = 0;
+    $$self{is_deaf}      = 1;
+    return $self;
 }
 
 =item C<get_extended_info()>
@@ -145,16 +145,16 @@ expired.
 =cut
 
 sub get_extended_info {
-	my ($self, $no_retry) = @_;
-	my $root = $self->get_root();
-	my $extra = '000000000000000000000000000000';
-	$$root{_ext_set_get_action} = "get";
-	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
-	if ($no_retry){
-		$message->retry_count(1);
-	}
-	$root->_send_cmd($message);
-	return;
+    my ( $self, $no_retry ) = @_;
+    my $root  = $self->get_root();
+    my $extra = '000000000000000000000000000000';
+    $$root{_ext_set_get_action} = "get";
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $root, 'extended_set_get', $extra );
+    if ($no_retry) {
+        $message->retry_count(1);
+    }
+    $root->_send_cmd($message);
+    return;
 }
 
 =item C<set_query_timer([minutes])>
@@ -176,12 +176,11 @@ This setting will be saved between MisterHouse reboots.
 =cut
 
 sub set_query_timer {
-	my ($self, $minutes) = @_;
-	my $root = $self->get_root();
-	$$root{query_timer} = sprintf("%u", $minutes);
-	::print_log("[Insteon::MotionSensor] Set query timer to ".
-		$$root{query_timer}." minutes");
-	return;
+    my ( $self, $minutes ) = @_;
+    my $root = $self->get_root();
+    $$root{query_timer} = sprintf( "%u", $minutes );
+    ::print_log( "[Insteon::MotionSensor] Set query timer to " . $$root{query_timer} . " minutes" );
+    return;
 }
 
 =item C<set_led_brightness([0-255])>
@@ -198,16 +197,16 @@ MisterHouse.
 =cut
 
 sub set_led_brightness {
-	my ($self, $value) = @_;
-	my $root = $self->get_root();
-	::print_log("[Insteon::MotionSensor] Setting LED Brightness to $value of 255");
-	$value = sprintf("%02x", $value);
-	my $extra = '000002' . $value;
-	$extra .= '0' x (30 - length $extra);
-	$$root{_ext_set_get_action} = "set";
-	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
-	$root->_send_cmd($message);
-	return;
+    my ( $self, $value ) = @_;
+    my $root = $self->get_root();
+    ::print_log("[Insteon::MotionSensor] Setting LED Brightness to $value of 255");
+    $value = sprintf( "%02x", $value );
+    my $extra = '000002' . $value;
+    $extra .= '0' x ( 30 - length $extra );
+    $$root{_ext_set_get_action} = "set";
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $root, 'extended_set_get', $extra );
+    $root->_send_cmd($message);
+    return;
 }
 
 =item C<set_timeout([30-7680]seconds)>
@@ -230,18 +229,18 @@ MisterHouse.
 =cut
 
 sub set_timeout {
-	my ($self, $value) = @_;
-	my $root = $self->get_root();
-	$value = (sprintf("%d", ($value / 30)) - 1);
-	my $readable_value = ($value + 1) * 30;
-	::print_log("[Insteon::MotionSensor] Setting timeout to $readable_value seconds.");
-	$value = sprintf("%02x", $value);
-	my $extra = '000003' . $value;
-	$extra .= '0' x (30 - length $extra);
-	$$root{_ext_set_get_action} = "set";
-	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
-	$root->_send_cmd($message);
-	return;
+    my ( $self, $value ) = @_;
+    my $root = $self->get_root();
+    $value = ( sprintf( "%d", ( $value / 30 ) ) - 1 );
+    my $readable_value = ( $value + 1 ) * 30;
+    ::print_log("[Insteon::MotionSensor] Setting timeout to $readable_value seconds.");
+    $value = sprintf( "%02x", $value );
+    my $extra = '000003' . $value;
+    $extra .= '0' x ( 30 - length $extra );
+    $$root{_ext_set_get_action} = "set";
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $root, 'extended_set_get', $extra );
+    $root->_send_cmd($message);
+    return;
 }
 
 =item C<set_light_sensitivity([0-255])>
@@ -263,16 +262,16 @@ MisterHouse.
 =cut
 
 sub set_light_sensitivity {
-	my ($self, $value) = @_;
-	my $root = $self->get_root();
-	::print_log("[Insteon::MotionSensor] Setting light sensitivity level to $value of 255.");
-	$value = sprintf("%02x", $value);
-	my $extra = '000004' . $value;
-	$extra .= '0' x (30 - length $extra);
-	$$root{_ext_set_get_action} = "set";
-	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
-	$root->_send_cmd($message);
-	return;
+    my ( $self, $value ) = @_;
+    my $root = $self->get_root();
+    ::print_log("[Insteon::MotionSensor] Setting light sensitivity level to $value of 255.");
+    $value = sprintf( "%02x", $value );
+    my $extra = '000004' . $value;
+    $extra .= '0' x ( 30 - length $extra );
+    $$root{_ext_set_get_action} = "set";
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $root, 'extended_set_get', $extra );
+    $root->_send_cmd($message);
+    return;
 }
 
 =item C<enable_night_only([0/1])>
@@ -292,11 +291,11 @@ MisterHouse.
 =cut
 
 sub enable_night_only {
-	my ($self, $value) = @_;
-	my $root = $self->get_root();
-	$$root{_set_bit_action} = ($value) ? "night_on" : "night_off";		
-	$root->get_extended_info();
-	return;
+    my ( $self, $value ) = @_;
+    my $root = $self->get_root();
+    $$root{_set_bit_action} = ($value) ? "night_on" : "night_off";
+    $root->get_extended_info();
+    return;
 }
 
 =item C<enable_on_only([0/1])>
@@ -315,11 +314,11 @@ MisterHouse.
 =cut
 
 sub enable_on_only {
-	my ($self, $value) = @_;
-	my $root = $self->get_root();
-	$$root{_set_bit_action} = ($value) ? "on_mode_on" : "on_mode_off";		
-	$root->get_extended_info();
-	return;
+    my ( $self, $value ) = @_;
+    my $root = $self->get_root();
+    $$root{_set_bit_action} = ($value) ? "on_mode_on" : "on_mode_off";
+    $root->get_extended_info();
+    return;
 }
 
 =item C<enable_all_motion([0/1])>
@@ -340,11 +339,11 @@ MisterHouse.
 =cut
 
 sub enable_all_motion {
-	my ($self, $value) = @_;
-	my $root = $self->get_root();
-	$$root{_set_bit_action} = ($value) ? "all_motion_on" : "all_motion_off";		
-	$root->get_extended_info();
-	return;
+    my ( $self, $value ) = @_;
+    my $root = $self->get_root();
+    $$root{_set_bit_action} = ($value) ? "all_motion_on" : "all_motion_off";
+    $root->get_extended_info();
+    return;
 }
 
 =item C<_is_query_time_expired()>
@@ -355,13 +354,14 @@ than C<set_timeout>.
 =cut
 
 sub _is_query_time_expired {
-	my ($self) = @_;
-	my $root = $self->get_root();
-	if ($$root{query_timer} > 0 && 
-		(time - $$root{last_query_time}) > ($$root{query_timer} * 60)) {
-		return 1;
-	}
-	return 0;
+    my ($self) = @_;
+    my $root = $self->get_root();
+    if ( $$root{query_timer} > 0
+        && ( time - $$root{last_query_time} ) > ( $$root{query_timer} * 60 ) )
+    {
+        return 1;
+    }
+    return 0;
 }
 
 =item C<_process_message()>
@@ -373,94 +373,121 @@ L<Insteon::BaseObject|Insteon::BaseInsteon/Insteon::BaseObject>.
 =cut
 
 sub _process_message {
-	my ($self,$p_setby,%msg) = @_;
-	my $clear_message = 0;
-	my $root = $self->get_root();
-	if ($root->_is_query_time_expired && $msg{type} eq "cleanup" && $msg{command} ne "extended_set_get"){
-		#Don't queue if incoming msg is an ext_set_get to avoid loop
-		my $no_retry = 1;
-		$root->get_extended_info($no_retry);
-	}
-	my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
-	my $ack_setby = (ref $$self{m_status_request_pending}) ? $$self{m_status_request_pending} : $p_setby;
-	if ($msg{is_ack} && $self->_is_info_request($pending_cmd,$ack_setby,%msg)) {
-		$clear_message = 1;
-		$$self{m_status_request_pending} = 0;
-		$self->_process_command_stack(%msg);
-	}
-	elsif ($msg{command} eq "extended_set_get" && $msg{is_ack}){
-		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		#If this was a get request don't clear until data packet received
-		main::print_log("[Insteon::MotionSensor] Extended Set/Get ACK Received for " . $self->get_object_name) if $self->debuglevel(1, 'insteon');
-		if ($$self{_ext_set_get_action} eq 'set'){
-			if (defined($$root{_set_bit_action})){
-				::print_log("[Insteon::MotionSensor] Set of ".
-					$$root{_set_bit_action} . " flag acknowledged by ".
-					$root->get_object_name);
-				$$root{_set_bit_action} = undef;
-			} else {
-				main::print_log("[Insteon::MotionSensor] Clearing active message") if $self->debuglevel(1, 'insteon');
-			}
-			$clear_message = 1;
-			$$self{_ext_set_get_action} = undef;
-			$self->_process_command_stack(%msg);	
-		}
-	}
-	elsif ($msg{command} eq "extended_set_get" && $msg{is_extended}) {
-		if (substr($msg{extra},0,6) eq "000001" || substr($msg{extra},0,6) eq "000101") {
-			$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-			#D11 = Light; D12 = Battery;
-			my $voltage = (hex(substr($msg{extra}, 24, 2))/10);
-			my $light_level = hex(substr($msg{extra}, 22, 2));
-			main::print_log("[Insteon::MotionSensor] The battery level ".
-				"for device ". $self->get_object_name . " is: ".
-				$voltage . " of 9.0 volts and the light level is ".
-				$light_level . " of 255.");
-			$$root{last_query_time} = time;
-			if (ref $$root{battery_object} && $$root{battery_object}->can('set_receive'))
-			{
-				$$root{battery_object}->set_receive($voltage, $root);
-			}
-			if (ref $$root{light_level_object} && $$root{light_level_object}->can('set_receive'))
-			{
-				$$root{light_level_object}->set_receive($light_level, $root);
-			}
-			if (defined $$root{_set_bit_action}){
-				#Take current flags and apply changes
-				my $curr_flags = substr($msg{extra}, 12, 2);
-				my $bitflags = sprintf('%08b',hex($curr_flags));
-				substr($bitflags,5,1) = 0 if ($$root{_set_bit_action} eq "night_on");
-				substr($bitflags,5,1) = 1 if ($$root{_set_bit_action} eq "night_off");
-				substr($bitflags,6,1) = 0 if ($$root{_set_bit_action} eq "on_mode_on");
-				substr($bitflags,6,1) = 1 if ($$root{_set_bit_action} eq "on_mode_off");
-				substr($bitflags,3,1) = 1 if ($$root{_set_bit_action} eq "all_motion_on");
-				substr($bitflags,3,1) = 0 if ($$root{_set_bit_action} eq "all_motion_off");
-				$bitflags = sprintf("%02x", oct("0b$bitflags"));
-				#Send command to set bits
-				if ($curr_flags ne $bitflags) {
-					my $extra = '000005' . $bitflags;
-					$extra .= '0' x (30 - length $extra);
-					$$root{_ext_set_get_action} = "set";
-					my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
-					$root->_send_cmd($message);
-				} else {
-					::print_log("[Insteon::MotionSensor] The ".
-						$$root{_set_bit_action} . " flag was already ".
-						"set on device ". $root->get_object_name);
-					$$root{_set_bit_action} = undef;
-				}
-			}
-			$clear_message = 1;
-			$self->_process_command_stack(%msg);
-		} else {
-			main::print_log("[Insteon::MotionSensor] WARN: Unknown Extended "
-				."Set/Get Data Message Received for ". $self->get_object_name) if $self->debuglevel(1, 'insteon');
-		}
-	}
-	else {
-		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
-	}
-	return $clear_message;
+    my ( $self, $p_setby, %msg ) = @_;
+    my $clear_message = 0;
+    my $root          = $self->get_root();
+    if (   $root->_is_query_time_expired
+        && $msg{type} eq "cleanup"
+        && $msg{command} ne "extended_set_get" )
+    {
+        #Don't queue if incoming msg is an ext_set_get to avoid loop
+        my $no_retry = 1;
+        $root->get_extended_info($no_retry);
+    }
+    my $pending_cmd =
+      ( $$self{_prior_msg} ) ? $$self{_prior_msg}->command : $msg{command};
+    my $ack_setby =
+      ( ref $$self{m_status_request_pending} )
+      ? $$self{m_status_request_pending}
+      : $p_setby;
+    if (   $msg{is_ack}
+        && $self->_is_info_request( $pending_cmd, $ack_setby, %msg ) )
+    {
+        $clear_message = 1;
+        $$self{m_status_request_pending} = 0;
+        $self->_process_command_stack(%msg);
+    }
+    elsif ( $msg{command} eq "extended_set_get" && $msg{is_ack} ) {
+        $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
+
+        #If this was a get request don't clear until data packet received
+        main::print_log( "[Insteon::MotionSensor] Extended Set/Get ACK Received for " . $self->get_object_name )
+          if $self->debuglevel( 1, 'insteon' );
+        if ( $$self{_ext_set_get_action} eq 'set' ) {
+            if ( defined( $$root{_set_bit_action} ) ) {
+                ::print_log( "[Insteon::MotionSensor] Set of " . $$root{_set_bit_action} . " flag acknowledged by " . $root->get_object_name );
+                $$root{_set_bit_action} = undef;
+            }
+            else {
+                main::print_log("[Insteon::MotionSensor] Clearing active message")
+                  if $self->debuglevel( 1, 'insteon' );
+            }
+            $clear_message = 1;
+            $$self{_ext_set_get_action} = undef;
+            $self->_process_command_stack(%msg);
+        }
+    }
+    elsif ( $msg{command} eq "extended_set_get" && $msg{is_extended} ) {
+        if (   substr( $msg{extra}, 0, 6 ) eq "000001"
+            || substr( $msg{extra}, 0, 6 ) eq "000101" )
+        {
+            $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
+
+            #D11 = Light; D12 = Battery;
+            my $voltage = ( hex( substr( $msg{extra}, 24, 2 ) ) / 10 );
+            my $light_level = hex( substr( $msg{extra}, 22, 2 ) );
+            main::print_log( "[Insteon::MotionSensor] The battery level "
+                  . "for device "
+                  . $self->get_object_name . " is: "
+                  . $voltage
+                  . " of 9.0 volts and the light level is "
+                  . $light_level
+                  . " of 255." );
+            $$root{last_query_time} = time;
+            if ( ref $$root{battery_object}
+                && $$root{battery_object}->can('set_receive') )
+            {
+                $$root{battery_object}->set_receive( $voltage, $root );
+            }
+            if ( ref $$root{light_level_object}
+                && $$root{light_level_object}->can('set_receive') )
+            {
+                $$root{light_level_object}->set_receive( $light_level, $root );
+            }
+            if ( defined $$root{_set_bit_action} ) {
+
+                #Take current flags and apply changes
+                my $curr_flags = substr( $msg{extra}, 12, 2 );
+                my $bitflags = sprintf( '%08b', hex($curr_flags) );
+                substr( $bitflags, 5, 1 ) = 0
+                  if ( $$root{_set_bit_action} eq "night_on" );
+                substr( $bitflags, 5, 1 ) = 1
+                  if ( $$root{_set_bit_action} eq "night_off" );
+                substr( $bitflags, 6, 1 ) = 0
+                  if ( $$root{_set_bit_action} eq "on_mode_on" );
+                substr( $bitflags, 6, 1 ) = 1
+                  if ( $$root{_set_bit_action} eq "on_mode_off" );
+                substr( $bitflags, 3, 1 ) = 1
+                  if ( $$root{_set_bit_action} eq "all_motion_on" );
+                substr( $bitflags, 3, 1 ) = 0
+                  if ( $$root{_set_bit_action} eq "all_motion_off" );
+                $bitflags = sprintf( "%02x", oct("0b$bitflags") );
+
+                #Send command to set bits
+                if ( $curr_flags ne $bitflags ) {
+                    my $extra = '000005' . $bitflags;
+                    $extra .= '0' x ( 30 - length $extra );
+                    $$root{_ext_set_get_action} = "set";
+                    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $root, 'extended_set_get', $extra );
+                    $root->_send_cmd($message);
+                }
+                else {
+                    ::print_log( "[Insteon::MotionSensor] The " . $$root{_set_bit_action} . " flag was already " . "set on device " . $root->get_object_name );
+                    $$root{_set_bit_action} = undef;
+                }
+            }
+            $clear_message = 1;
+            $self->_process_command_stack(%msg);
+        }
+        else {
+            main::print_log( "[Insteon::MotionSensor] WARN: Unknown Extended " . "Set/Get Data Message Received for " . $self->get_object_name )
+              if $self->debuglevel( 1, 'insteon' );
+        }
+    }
+    else {
+        $clear_message = $self->SUPER::_process_message( $p_setby, %msg );
+    }
+    return $clear_message;
 }
 
 =item C<get_voice_cmds>
@@ -476,22 +503,22 @@ necessary voice commands.
 
 =cut 
 
-sub get_voice_cmds
-{
-    my ($self) = @_;
+sub get_voice_cmds {
+    my ($self)      = @_;
     my $object_name = $self->get_object_name;
-    my %voice_cmds = (
-        %{$self->SUPER::get_voice_cmds},
-        'enable night only' => "$object_name->enable_night_only(1)",
-        'disable night only' => "$object_name->enable_night_only(0)",
-        'enable on only mode' => "$object_name->enable_on_only(1)",
-        'disable on only mode' => "$object_name->enable_on_only(0)",
-        'enable all motion mode' => "$object_name->enable_all_motion(1)",
-        'disable all motion mode' => "$object_name->enable_all_motion(0)"
+    my %voice_cmds  = (
+        %{ $self->SUPER::get_voice_cmds },
+        'enable night only'       => "$object_name->enable_night_only(1)",
+        'disable night only'      => "$object_name->enable_night_only(0)",
+        'enable on only mode'     => "$object_name->enable_on_only(1)",
+        'disable on only mode'    => "$object_name->enable_on_only(0)",
+        'enable all motion mode'  => "$object_name->enable_all_motion(1)",
+        'disable all motion mode' => "$object_name->enable_all_motion(0)",
+        'enable LED'              => "$object_name->set_led_brightness(255)",
+        'disable LED'             => "$object_name->set_led_brightness(0)"
     );
     return \%voice_cmds;
 }
-
 
 =back
 
@@ -557,12 +584,12 @@ Instantiates a new object.
 =cut
 
 sub new {
-	my ($class, $parent) = @_;
-	my $self = new Generic_Item();
-	my $root = $parent->get_root();
-	bless $self, $class;
-	$$root{battery_object} = $self;
-	return $self;
+    my ( $class, $parent ) = @_;
+    my $self = new Generic_Item();
+    my $root = $parent->get_root();
+    bless $self, $class;
+    $$root{battery_object} = $self;
+    return $self;
 }
 
 =item C<set_receive()>
@@ -572,8 +599,8 @@ Handles state updates provided by the parent object.
 =cut
 
 sub set_receive {
-	my ($self, $p_state) = @_;
-	$self->SUPER::set($p_state);
+    my ( $self, $p_state ) = @_;
+    $self->SUPER::set($p_state);
 }
 
 =back
@@ -641,12 +668,12 @@ Instantiates a new object.
 =cut
 
 sub new {
-	my ($class, $parent) = @_;
-	my $self = new Generic_Item();
-	my $root = $parent->get_root();
-	bless $self, $class;
-	$$root{light_level_object} = $self;
-	return $self;
+    my ( $class, $parent ) = @_;
+    my $self = new Generic_Item();
+    my $root = $parent->get_root();
+    bless $self, $class;
+    $$root{light_level_object} = $self;
+    return $self;
 }
 
 =item C<set_receive()>
@@ -656,8 +683,8 @@ Handles state updates provided by the parent object.
 =cut
 
 sub set_receive {
-	my ($self, $p_state) = @_;
-	$self->SUPER::set($p_state);
+    my ( $self, $p_state ) = @_;
+    $self->SUPER::set($p_state);
 }
 
 =back
@@ -732,9 +759,7 @@ use Insteon::BaseInsteon;
 
 @Insteon::TriggerLinc::ISA = ('Insteon::BaseDevice');
 
-my %message_types = (
-	%Insteon::BaseDevice::message_types
-);
+my %message_types = (%Insteon::BaseDevice::message_types);
 
 =item C<new()>
 
@@ -742,16 +767,15 @@ Instantiates a new object.
 
 =cut
 
-sub new
-{
-	my ($class,$p_deviceid,$p_interface) = @_;
+sub new {
+    my ( $class, $p_deviceid, $p_interface ) = @_;
 
-	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
-        $$self{message_types} = \%message_types;
-	bless $self,$class;
-	$$self{is_responder} = 0;
-	$$self{is_deaf} = 1;
-	return $self;
+    my $self = new Insteon::BaseDevice( $p_deviceid, $p_interface );
+    $$self{message_types} = \%message_types;
+    bless $self, $class;
+    $$self{is_responder} = 0;
+    $$self{is_deaf}      = 1;
+    return $self;
 }
 
 =item C<set_awake_time([0-255 seconds])>
@@ -763,14 +787,14 @@ with scan link table or sync links.
 =cut
 
 sub set_awake_time {
-	my ($self, $awake) = @_;
-	$awake = sprintf("%02x", $awake);
-	my $root = $self->get_root();
-	my $extra = '000102' . $awake . '0000000000000000000000';
-	$$root{_ext_set_get_action} = "set";
-	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
-	$root->_send_cmd($message);
-	return;
+    my ( $self, $awake ) = @_;
+    $awake = sprintf( "%02x", $awake );
+    my $root  = $self->get_root();
+    my $extra = '000102' . $awake . '0000000000000000000000';
+    $$root{_ext_set_get_action} = "set";
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $root, 'extended_set_get', $extra );
+    $root->_send_cmd($message);
+    return;
 }
 
 =item C<get_extended_info()>
@@ -782,16 +806,16 @@ will be printed to the log.
 =cut
 
 sub get_extended_info {
-	my ($self,$no_retry) = @_;
-	my $root = $self->get_root();
-	my $extra = '000100000000000000000000000000';
-	$$root{_ext_set_get_action} = "get";
-	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
-	if ($no_retry){
-		$message->retry_count(1);
-	}
-	$root->_send_cmd($message);
-	return;
+    my ( $self, $no_retry ) = @_;
+    my $root  = $self->get_root();
+    my $extra = '000100000000000000000000000000';
+    $$root{_ext_set_get_action} = "get";
+    my $message = new Insteon::InsteonMessage( 'insteon_ext_send', $root, 'extended_set_get', $extra );
+    if ($no_retry) {
+        $message->retry_count(1);
+    }
+    $root->_send_cmd($message);
+    return;
 }
 
 =item C<_process_message()>
@@ -802,46 +826,55 @@ All other messages are transferred to L<Insteon::BaseObject::_process_message()|
 =cut
 
 sub _process_message {
-	my ($self,$p_setby,%msg) = @_;
-	my $clear_message = 0;
-	my $root = $self->get_root();
-	my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
-	my $ack_setby = (ref $$self{m_status_request_pending}) ? $$self{m_status_request_pending} : $p_setby;
-	if ($msg{is_ack} && $self->_is_info_request($pending_cmd,$ack_setby,%msg)) {
-		$clear_message = 1;
-		$$self{m_status_request_pending} = 0;
-		$self->_process_command_stack(%msg);
-	}
-	elsif ($msg{command} eq "extended_set_get" && $msg{is_ack}){
-		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		#If this was a get request don't clear until data packet received
-		main::print_log("[Insteon::TriggerLinc] Extended Set/Get ACK Received for " . $self->get_object_name) if $self->debuglevel(1, 'insteon');
-		if ($$self{_ext_set_get_action} eq 'set'){
-			main::print_log("[Insteon::TriggerLinc] Clearing active message") if $self->debuglevel(1, 'insteon');
-			$clear_message = 1;
-			$$self{_ext_set_get_action} = undef;
-			$self->_process_command_stack(%msg);	
-		}
-	}
-	elsif ($msg{command} eq "extended_set_get" && $msg{is_extended}) {
-		if (substr($msg{extra},0,6) eq "000001") {
-			$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-			#D3 = Awake Time;
-			my $awake = (hex(substr($msg{extra}, 6, 2)));
-			main::print_log("[Insteon::TriggerLinc] The awake seconds ".
-				"for device ". $self->get_object_name . " is set to: ".
-				$awake);
-			$clear_message = 1;
-			$self->_process_command_stack(%msg);
-		} else {
-			main::print_log("[Insteon::TriggerLinc] WARN: Corrupt Extended "
-				."Set/Get Data Received for ". $self->get_object_name) if $self->debuglevel(1, 'insteon');
-		}
-	}
-	else {
-		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
-	}
-	return $clear_message;
+    my ( $self, $p_setby, %msg ) = @_;
+    my $clear_message = 0;
+    my $root          = $self->get_root();
+    my $pending_cmd =
+      ( $$self{_prior_msg} ) ? $$self{_prior_msg}->command : $msg{command};
+    my $ack_setby =
+      ( ref $$self{m_status_request_pending} )
+      ? $$self{m_status_request_pending}
+      : $p_setby;
+    if (   $msg{is_ack}
+        && $self->_is_info_request( $pending_cmd, $ack_setby, %msg ) )
+    {
+        $clear_message = 1;
+        $$self{m_status_request_pending} = 0;
+        $self->_process_command_stack(%msg);
+    }
+    elsif ( $msg{command} eq "extended_set_get" && $msg{is_ack} ) {
+        $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
+
+        #If this was a get request don't clear until data packet received
+        main::print_log( "[Insteon::TriggerLinc] Extended Set/Get ACK Received for " . $self->get_object_name )
+          if $self->debuglevel( 1, 'insteon' );
+        if ( $$self{_ext_set_get_action} eq 'set' ) {
+            main::print_log("[Insteon::TriggerLinc] Clearing active message")
+              if $self->debuglevel( 1, 'insteon' );
+            $clear_message = 1;
+            $$self{_ext_set_get_action} = undef;
+            $self->_process_command_stack(%msg);
+        }
+    }
+    elsif ( $msg{command} eq "extended_set_get" && $msg{is_extended} ) {
+        if ( substr( $msg{extra}, 0, 6 ) eq "000001" ) {
+            $self->default_hop_count( $msg{maxhops} - $msg{hopsleft} );
+
+            #D3 = Awake Time;
+            my $awake = ( hex( substr( $msg{extra}, 6, 2 ) ) );
+            main::print_log( "[Insteon::TriggerLinc] The awake seconds " . "for device " . $self->get_object_name . " is set to: " . $awake );
+            $clear_message = 1;
+            $self->_process_command_stack(%msg);
+        }
+        else {
+            main::print_log( "[Insteon::TriggerLinc] WARN: Corrupt Extended " . "Set/Get Data Received for " . $self->get_object_name )
+              if $self->debuglevel( 1, 'insteon' );
+        }
+    }
+    else {
+        $clear_message = $self->SUPER::_process_message( $p_setby, %msg );
+    }
+    return $clear_message;
 }
 
 =back

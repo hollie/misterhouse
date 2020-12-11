@@ -1,4 +1,4 @@
- 
+
 my $fishtank_light_on_time;
 my $fishtank_light_off_time;
 my $fishtank_light_duration;
@@ -10,8 +10,8 @@ if ($Startup) {
 }
 
 if ($Reread) {
-    print "db1 $Time_Sunrise_Twilight\n";  
-    print "db2 $fishtank_light_on_time\n";  
-    print "db3 $fishtank_light_off_time\n";  
-    print "db4 $fishtank_light_duration\n";  
+    print "db1 $Time_Sunrise_Twilight\n";
+    print "db2 $fishtank_light_on_time\n";
+    print "db3 $fishtank_light_off_time\n";
+    print "db4 $fishtank_light_duration\n";
 }

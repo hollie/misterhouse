@@ -1,15 +1,13 @@
 #!/usr/bin/perl
 
-
 use CGI;
-my $query = new CGI ;
-my $mode = $query->param("mode");
+my $query   = new CGI;
+my $mode    = $query->param("mode");
 my $hourOpt = $query->param("hourOpt");
-my $minOpt = $query->param("minOpt");
-my $ampm = $query->param("ampm");
+my $minOpt  = $query->param("minOpt");
+my $ampm    = $query->param("ampm");
 
 my $alarmfile = "C:/mh/data/web/data_clock.txt";
-
 
 my $script_url = "alarm.pl";
 
@@ -17,9 +15,9 @@ print "Content-Type: text/html\n\n";
 
 print "<html><Body bgcolor ='white'><font size='3' face='Arial'><body>";
 
-  if ($mode ne "setdate") {
+if ( $mode ne "setdate" ) {
 
-	print qq~
+    print qq~
 	
 
 <form name=clock action=$script_url method=post>	
@@ -48,13 +46,14 @@ Current Alarm: $alarmfile OR $hourOpt:$minOpt $ampm
 
 
 ~;
-} else {
+}
+else {
 
-	print "<br><P>SET DATE TO $hourOpt:$minOpt $ampm";
+    print "<br><P>SET DATE TO $hourOpt:$minOpt $ampm";
 
-&file_write($alarmfile, "$hourOpt:$minOpt $ampm");
+    &file_write( $alarmfile, "$hourOpt:$minOpt $ampm" );
 
 }
-	print "</body></html>";
+print "</body></html>";
 
 1;

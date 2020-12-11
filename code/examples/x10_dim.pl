@@ -4,9 +4,9 @@
 $test_x10a = new Voice_Cmd 'Test bright [30,80,+30,+80,-80]';
 set $pedestal_light $state if $state = said $test_x10a;
 
-if ($state = state_now $pedestal_light) {
+if ( $state = state_now $pedestal_light) {
     my $level = level $pedestal_light;
-    print_log "Pedestal is state=$state, level=$level"
+    print_log "Pedestal is state=$state, level=$level";
 }
 
 # This will monitor bright/dim commands on a specific house code

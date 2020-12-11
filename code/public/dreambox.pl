@@ -75,8 +75,12 @@ not all of these are tested
 
 my $Dreambox_IP = $config_parms{dreambox_ip};
 
-if (time_cron "34 17 * * 1-5") {
-     my $epg = get "http://$Dreambox_IP/channels/getcurrent";
-     speak(mode => 'unmuted', volume => 80, text => "The Dreambox is set to channel, $epg");
-     display $epg
+if ( time_cron "34 17 * * 1-5" ) {
+    my $epg = get "http://$Dreambox_IP/channels/getcurrent";
+    speak(
+        mode   => 'unmuted',
+        volume => 80,
+        text   => "The Dreambox is set to channel, $epg"
+    );
+    display $epg;
 }

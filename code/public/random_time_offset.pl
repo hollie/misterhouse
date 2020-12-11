@@ -27,35 +27,33 @@
 
 # Variance sets the range of randomness, in minutes (range = +/- $Random_Variance/2)
 my $Random_Variance = 30;
-my $Random_Number = 0;
-my $Random_Value = '0:00';
+my $Random_Number   = 0;
+my $Random_Value    = '0:00';
 
-if (($New_Day) || ($Startup))
-{
-   print_log "Random Time Offset: Generating new random time offsets...";
-   for (keys %Random_Time)
-   {
-      # Generate a random number
-      $Random_Number = (int(rand($Random_Variance))-($Random_Variance/2));
-      # Decide on the formatting prefix required for proper offset
-      if ($Random_Number > 9)
-      {
-         $Random_Value = '+0:';
-      }
-      elsif ($Random_Number >= 0)
-      {
-         $Random_Value = '+0:0';
-      }
-      elsif ($Random_Number < -9)
-      {
-         $Random_Value = '-0:';
-      }
-      elsif ($Random_Number < 0)
-      {
-         $Random_Value = '-0:0';
-      }
-      # Append the actual number to the formatting prefix
-      $Random_Time{"$_"} = $Random_Value.abs($Random_Number);
-      print_log "$_ offset is $Random_Time{\"$_\"}";
-   }
+if ( ($New_Day) || ($Startup) ) {
+    print_log "Random Time Offset: Generating new random time offsets...";
+    for ( keys %Random_Time ) {
+
+        # Generate a random number
+        $Random_Number =
+          ( int( rand($Random_Variance) ) - ( $Random_Variance / 2 ) );
+
+        # Decide on the formatting prefix required for proper offset
+        if ( $Random_Number > 9 ) {
+            $Random_Value = '+0:';
+        }
+        elsif ( $Random_Number >= 0 ) {
+            $Random_Value = '+0:0';
+        }
+        elsif ( $Random_Number < -9 ) {
+            $Random_Value = '-0:';
+        }
+        elsif ( $Random_Number < 0 ) {
+            $Random_Value = '-0:0';
+        }
+
+        # Append the actual number to the formatting prefix
+        $Random_Time{"$_"} = $Random_Value . abs($Random_Number);
+        print_log "$_ offset is $Random_Time{\"$_\"}";
+    }
 }

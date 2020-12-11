@@ -28,19 +28,15 @@ my $test_light2 = new X10_Item($dev2);
 
 &check_lights;
 
-sub check_lights
-{
-    if ($New_Second and !($Second % 3))
-    {
-      $state1 = state $test_light1;
-      print "$dev1 is $state1\n";
-      $state2 = state $test_light2;
-      print "$dev2 is $state2\n";
-     if ($state1 ne $state2)
-     {
-        set $test_light2 $state1;
-      }
+sub check_lights {
+    if ( $New_Second and !( $Second % 3 ) ) {
+        $state1 = state $test_light1;
+        print "$dev1 is $state1\n";
+        $state2 = state $test_light2;
+        print "$dev2 is $state2\n";
+        if ( $state1 ne $state2 ) {
+            set $test_light2 $state1;
+        }
     }
 }
-
 

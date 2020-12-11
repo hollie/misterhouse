@@ -1,3 +1,4 @@
+
 =begin comment
  
 From Kirk Bauer on 10/2003
@@ -22,24 +23,25 @@ The arguments are:
 
 =cut
 
-
 my $X10_controller = new X10_Item;
+
 sub Flash_Light ($$$) {
-   my ($light, $count, $final) = @_;
-   my $code = $light->{'x10_id'};
-   my ($hc, $uc) = ($code =~ /^X(.)(.)/);
-   my $cmd = "X$hc$uc";
-   for (my $i = 0; $i < $count; $i++) {
-      $cmd .= "${hc}J${hc}K";
-   }
-   if ($final eq OFF) {
-      $light->set_receive(OFF);
-   } else {
-      $light->set_receive(ON);
-      $cmd .= "${hc}J";
-   }
-   print_log "FlashLights($code, $count, $final) sending '$cmd'\n" if 
-      $config_parms{x10_errata} >= 3;
-   set $X10_controller $cmd;
+    my ( $light, $count, $final ) = @_;
+    my $code = $light->{'x10_id'};
+    my ( $hc, $uc ) = ( $code =~ /^X(.)(.)/ );
+    my $cmd = "X$hc$uc";
+    for ( my $i = 0; $i < $count; $i++ ) {
+        $cmd .= "${hc}J${hc}K";
+    }
+    if ( $final eq OFF ) {
+        $light->set_receive(OFF);
+    }
+    else {
+        $light->set_receive(ON);
+        $cmd .= "${hc}J";
+    }
+    print_log "FlashLights($code, $count, $final) sending '$cmd'\n"
+      if $config_parms{x10_errata} >= 3;
+    set $X10_controller $cmd;
 }
 

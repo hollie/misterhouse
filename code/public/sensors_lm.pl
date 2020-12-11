@@ -56,14 +56,13 @@ enough :(
 
 my ($sensors_output);
 
-sub sensor_output($)
-{
-  my ($which_sensor) = @_;
+sub sensor_output($) {
+    my ($which_sensor) = @_;
 
-  $sensors_output = qx/$config_parms{sensors_cmd}/;
+    $sensors_output = qx/$config_parms{sensors_cmd}/;
 
-  my ($ret) = $sensors_output =~ /${which_sensor}:\s+(.+?)\s+\(/i;
+    my ($ret) = $sensors_output =~ /${which_sensor}:\s+(.+?)\s+\(/i;
 
-  return $ret;
+    return $ret;
 }
 

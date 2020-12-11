@@ -3,7 +3,7 @@
 # $Revision$
 # $Date$
 
-my $html=qq[
+my $html = qq[
 <html>
 <script language="JavaScript" type="text/JavaScript">
 <!--
@@ -18,21 +18,22 @@ if (content.images.length == 0) {
 ];
 
 my @name = DSC5401->ZoneName;
-my $size = scalar(@name)-1 ;
+my $size = scalar(@name) - 1;
 
-$html.=qq[
+$html .= qq[
 ];
 for ( 1 .. $size ) {
-  if ( $name[$_] ) {
-    $html.=qq{content.images["ZONE_$_"].src="};
-    my $status = $DSC->{zone_status}{$_};
-    if ($status eq 'restored') {
-      $html .= '/graphics/green_bullet.gif';
-    } else { 
-      $html .= '/graphics/red_bullet.gif';
+    if ( $name[$_] ) {
+        $html .= qq{content.images["ZONE_$_"].src="};
+        my $status = $DSC->{zone_status}{$_};
+        if ( $status eq 'restored' ) {
+            $html .= '/graphics/green_bullet.gif';
+        }
+        else {
+            $html .= '/graphics/red_bullet.gif';
+        }
+        $html .= qq[";\n];
     }
-    $html .= qq[";\n];
-  }
 }
 $html .= qq[
 }
@@ -54,4 +55,3 @@ location.href="DSC5401_status.pl";
 
 return &html_page( '', $html );
 
-    

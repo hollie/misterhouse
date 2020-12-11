@@ -6,26 +6,26 @@ my $PlaylistDir = $config_parms{mp3_playlist_dir};
 # and an optional argument
 
 my $RC;
-my ( $Cmd, $Arg ) = split ( /=/, $ARGV[0] );
+my ( $Cmd, $Arg ) = split( /=/, $ARGV[0] );
 $Cmd = lc($Cmd);
 
-if ( ! &Xmms_Running ) {
-   return &XmmsNotRunning;
+if ( !&Xmms_Running ) {
+    return &XmmsNotRunning;
 }
 
 # the Cmd received will then be pass to xmms
 if ( $Cmd ne "status" && $Cmd ne "" ) {
     CMD: {
-    if ( $Cmd eq "play" )     { Xmms_Control("Play"); last CMD;}
-    if ( $Cmd eq "stop" )     { Xmms_Control("Stop"); last CMD;}
-    if ( $Cmd eq "pause" )    { Xmms_Control("pause"); last CMD;}
-    if ( $Cmd eq "volume" )   { Xmms_Control("Volume",$Arg); last CMD;}
-    if ( $Cmd eq "volumeup" )   { Xmms_Control("VolumeUp"); last CMD;}
-    if ( $Cmd eq "volumedown" )   { Xmms_Control("VolumeDown"); last CMD;}
-    if ( $Cmd eq "random" )   { Xmms_Control("Random"); last CMD;}
-    if ( $Cmd eq "nextsong" ) { Xmms_Control("NextSong");last CMD;}
-    if ( $Cmd eq "prevsong" ) { Xmms_Control("PrevSong");last CMD;}
-    if ( $Cmd eq "playlistctrl" ) { return PlaylistCtrl(); last CMD;}
+        if ( $Cmd eq "play" )  { Xmms_Control("Play");  last CMD; }
+        if ( $Cmd eq "stop" )  { Xmms_Control("Stop");  last CMD; }
+        if ( $Cmd eq "pause" ) { Xmms_Control("pause"); last CMD; }
+        if ( $Cmd eq "volume" ) { Xmms_Control( "Volume", $Arg ); last CMD; }
+        if ( $Cmd eq "volumeup" )     { Xmms_Control("VolumeUp");   last CMD; }
+        if ( $Cmd eq "volumedown" )   { Xmms_Control("VolumeDown"); last CMD; }
+        if ( $Cmd eq "random" )       { Xmms_Control("Random");     last CMD; }
+        if ( $Cmd eq "nextsong" )     { Xmms_Control("NextSong");   last CMD; }
+        if ( $Cmd eq "prevsong" )     { Xmms_Control("PrevSong");   last CMD; }
+        if ( $Cmd eq "playlistctrl" ) { return PlaylistCtrl();      last CMD; }
     }
     Xmms::sleep(0.25);
 }
@@ -66,7 +66,7 @@ sub mp3_top {
   ";
     my $Value;
 
-    for $Value( 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ) {
+    for $Value ( 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 ) {
         if ( $Volume == $Value ) {
             $HTTP = $HTTP . "<option value=\"$Value\" SELECTED>Vol: $Value\n";
         }
@@ -97,29 +97,25 @@ EOF
     return $HTTP;
 }
 
-
-
 sub NotUsingLinux {
-	   
-	   my $HTTP = "<html><body>";
-           $HTTP = $HTTP . "<H1><CENTER>";
-           $HTTP = $HTTP . "You need Linux to run this program";
-           $HTTP = $HTTP . "With the Xmms-perl module installed";
-           $HTTP = $HTTP . "</CENTER></H1>";
-	   $HTTP = $HTTP . "</body></html>";
-	   return $HTTP;
+
+    my $HTTP = "<html><body>";
+    $HTTP = $HTTP . "<H1><CENTER>";
+    $HTTP = $HTTP . "You need Linux to run this program";
+    $HTTP = $HTTP . "With the Xmms-perl module installed";
+    $HTTP = $HTTP . "</CENTER></H1>";
+    $HTTP = $HTTP . "</body></html>";
+    return $HTTP;
 }
-				  
 
 sub XmmsNotRunning {
-           my $HTTP = "<html><body>";
-           $HTTP = $HTTP . "<H1><CENTER>";
-           $HTTP = $HTTP . "Xmms is not currently running on the system";
-           $HTTP = $HTTP . "</CENTER></H1>";
-           $HTTP = $HTTP . "</body></html>";
-           return $HTTP;
+    my $HTTP = "<html><body>";
+    $HTTP = $HTTP . "<H1><CENTER>";
+    $HTTP = $HTTP . "Xmms is not currently running on the system";
+    $HTTP = $HTTP . "</CENTER></H1>";
+    $HTTP = $HTTP . "</body></html>";
+    return $HTTP;
 }
-
 
 # this generate the playlist control frame
 # display refreh the playlist loaded in XMMS

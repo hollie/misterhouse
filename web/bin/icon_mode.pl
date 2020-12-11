@@ -5,4 +5,3 @@
 
 return "<a href='/RUN;referer?Toggle_the_house_mode'><img src=/ia5/images/$Save{mode}.gif alt='$Save{mode} Mode' border=0></a>";
 
-

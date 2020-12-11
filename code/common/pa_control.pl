@@ -3,7 +3,7 @@
 #@ Allows the rooms= speak and play parm to target specific rooms via a weeder relay or X10 controled PA system.
 #@ See comment at the end of this file for example .mht entries.
 
-=begin comment
+=begin
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 File:
@@ -34,92 +34,99 @@ Special Thanks to:
 use PAobj;
 
 #noloop=start
-my $pa_delay	= $config_parms{pa_delay};
+my $pa_delay       = $config_parms{pa_delay};
 my $pa_clash_delay = $config_parms{pa_clash_delay};
-my $pa_timer	= $config_parms{pa_timer};
-$pa_clash_delay	= 1		unless $pa_clash_delay;
-$pa_delay	= 0.5		unless $pa_delay;
-$pa_timer	= 60		unless $pa_timer;
-$pactrl = new PAobj();
+my $pa_timer       = $config_parms{pa_timer};
+$pa_clash_delay = 1   unless $pa_clash_delay;
+$pa_delay       = 0.5 unless $pa_delay;
+$pa_timer       = 60  unless $pa_timer;
+$pactrl         = new PAobj();
 $pactrl->set_delay($pa_delay);
-$v_pa_test = new Voice_Cmd('test pa');
+$v_pa_test     = new Voice_Cmd('test pa');
 $v_pa_speakers = new Voice_Cmd('speakers [on,off]');
-$v_pa_speakers-> set_info('Turn all the PA speakers on/off');
+$v_pa_speakers->set_info('Turn all the PA speakers on/off');
+
 #noloop=stop
 
 $pactrl->init() if $Startup or $Reload;
 
 # Hooks to flag which rooms to turn on based on "rooms=" parm in speak command
 if ($Reload) {
-    print_log("PA: Hooking into speech events");
-    &Speak_parms_add_hook(\&pa_parms_stub);
-    &Speak_pre_add_hook(\&pa_control_stub);
-    &Play_parms_add_hook(\&pa_parms_stub);
-    &Play_pre_add_hook(\&pa_control_stub);
+    print_log("[PA] Hooking into speech events");
+    &Speak_parms_add_hook( \&pa_parms_stub );
+    &Speak_pre_add_hook( \&pa_control_stub );
+    &Play_parms_add_hook( \&pa_parms_stub );
+    &Play_pre_add_hook( \&pa_control_stub );
 }
-if (said $v_pa_test) {
+if ( said $v_pa_test) {
     my $state = $v_pa_test->{state};
     $v_pa_test->respond('app=pa Testing PA...');
     speak "nolog=1 rooms=all mode=unmuted volume=80 Hello. This is a PA system test.";
+
     #speak "nolog=1 rooms=downstairs mode=unmuted volume=100 Hi!";
 }
 
 # turn all speakers on/off
-if (said $v_pa_speakers) {
+if ( said $v_pa_speakers) {
     my $state = $v_pa_speakers->{state};
     $v_pa_speakers->respond("app=pa Turning speakers $state...");
-    $state = ($state eq 'on') ? ON : OFF;
-    print_log("PA: Turning speakers $state") if $Debug{pa};
-    $pactrl->set('allspeakers',$state,'unmuted');
+    $state = ( $state eq 'on' ) ? ON : OFF;
+    print_log("[PA] Turning speakers $state") if $Debug{pa};
+    $pactrl->set( 'allspeakers', $state, 'unmuted' );
 }
 
 sub pa_parms_stub {
     my ($parms) = @_;
     my $mode = $parms->{mode};
     unless ($mode) {
-        if (defined $mode_mh) { # *** Outdated (?)
+        if ( defined $mode_mh ) {    # *** Outdated (?)
             $mode = state $mode_mh;
-        } else {
+        }
+        else {
             $mode = $Save{mode};
         }
     }
     $parms->{pa_mode} = $mode;
     return if $mode eq 'mute' or $mode eq 'offline';
 
-    if($pactrl->active(1)) {
-        my $results = $pactrl->prep_parms($parms);
+    if ( $pactrl->active(1) ) {
+        my $results  = $pactrl->prep_parms($parms);
         my %pa_zones = $pactrl->get_pa_zones();
 
-        if (defined $pa_zones{audrey} && $pa_zones{audrey} ne '') {
-            print_log("PA: audrey zone detected, hooking via web_hook. (".$pa_zones{audrey}.")") if $Debug{pa};
-            push(@{$parms->{web_hook}},\&pa_web_hook);
+        if ( defined $pa_zones{all}{audrey} && $pa_zones{all}{audrey} ne '' ) {
+            print_log( "[PA] audrey zone detected, hooking via web_hook. (" . $pa_zones{all}{audrey} . ")" )
+              if $Debug{pa};
+            push( @{ $parms->{web_hook} }, \&pa_web_hook );
         }
 
-        print_log("PA: parms_stub set results: $results") if $Debug{pa} >=2;
+        print_log("[PA] parms_stub set results: $results") if $Debug{pa} >= 2;
 
-    } else {
+    }
+    else {
         #MH is already speaking, and other PA zones are already active. Delay speech.
-        if ($main::Debug{voice}) {
-            $parms->{clash_retry}=0 unless $parms->{clash_retry};
-            &print_log("PA SPEECH CLASH($parms->{clash_retry}): Delaying speech call for " . $parms->{text} . "\n") unless $parms->{clash_retry} lt 1;
-            $parms->{clash_retry}++; #To track how many loops are made
+        if ( $main::Debug{voice} ) {
+            $parms->{clash_retry} = 0 unless $parms->{clash_retry};
+            &print_log( "[PA] SPEECH CLASH($parms->{clash_retry}): Delaying speech call for " . $parms->{text} . "\n" )
+              unless $parms->{clash_retry} lt 1;
+            $parms->{clash_retry}++;    #To track how many loops are made
         }
-        $parms->{nolog}=1;       #To stop MH from logging the speech again
+        $parms->{nolog} = 1;            #To stop MH from logging the speech again
 
         my $parmstxt;
-        my ($pkey,$pval);
-        while (($pkey,$pval) = each(%{$parms})) {
-            $parmstxt.=', ' if $parmstxt;
+        my ( $pkey, $pval );
+        while ( ( $pkey, $pval ) = each( %{$parms} ) ) {
+            $parmstxt .= ', ' if $parmstxt;
             $parmstxt .= "$pkey => q($pval)";
         }
-        &print_log("PA SPEECH CLASH Parameters: $parmstxt") if $main::Debug{voice} && $parms->{clash_retry} eq 0;
-        &run_after_delay($pa_clash_delay, "speak($parmstxt)");
+        &print_log("[PA] SPEECH CLASH Parameters: $parmstxt")
+          if $main::Debug{voice} && $parms->{clash_retry} eq 0;
+        &run_after_delay( $pa_clash_delay, "speak($parmstxt)" );
 
-        $parms->{no_speak}=1;    #To stop MH from speaking this time around
+        $parms->{no_speak} = 1;         #To stop MH from speaking this time around
         return;
     }
-    if ($parms->{clash_retry}) {
-        &print_log("PA SPEECH CLASH: Resolved, continuing speech.");
+    if ( $parms->{clash_retry} ) {
+        &print_log("[PA] SPEECH CLASH: Resolved, continuing speech.");
     }
 }
 
@@ -129,33 +136,32 @@ sub pa_control_stub {
     my $mode = $parms{pa_mode};
     return if $mode eq 'mute' or $mode eq 'offline';
 
-    my $rooms = $parms{rooms};
-    print_log("PA: control_stub: rooms=$rooms, mode=$mode") if $Debug{pa};
-    my $results = $pactrl->audio_hook(ON,\%parms);
-    print_log("PA: control_stub set results: $results") if $Debug{pa} >=2;
+    print_log("[PA] control_stub: rooms=$parms{pa_zones}, mode=$mode")
+      if $Debug{pa};
+    my $results = $pactrl->audio_hook( ON, \%parms );
+    print_log("[PA] control_stub set results: $results") if $Debug{pa} >= 2;
     set $pa_speaker_timer $pa_timer if $results;
     return $results;
 }
 
 sub pa_web_hook {
     my (%parms) = @_;
-    $pactrl->web_hook(\%parms);
+    $pactrl->web_hook( \%parms );
 }
 
-
-          #Turn off speakers when MH says it's done speaking/playing
-if (state_now $mh_speakers eq OFF) {
+#Turn off speakers when MH says it's done speaking/playing
+if ( state_now $mh_speakers eq OFF ) {
     unset $pa_speaker_timer;
-    print_log("PA: Turning speakers off") if $Debug{pa};
-    $pactrl->audio_hook(OFF,'normal');
+    print_log("[PA] Turning speakers off") if $Debug{pa};
+    $pactrl->audio_hook( OFF, 'normal' );
     $pactrl->active(0);
 }
 
-          #Setup Fail-safe speaker shutoff
+#Setup Fail-safe speaker shutoff
 $pa_speaker_timer = new Timer;
 set $pa_speaker_timer 60 if state_now $mh_speakers eq ON;
-if (expired $pa_speaker_timer) {
-    print_log("PA: Timer expired. Forcing PA speakers off.") if $Debug{pa};
+if ( expired $pa_speaker_timer) {
+    print_log("[PA] Timer expired. Forcing PA speakers off.") if $Debug{pa};
     set $mh_speakers OFF;
 }
 
@@ -210,9 +216,10 @@ Groups:      "all" and "default" are required. "all" should not include speaker 
              used.
 
 Serial:      The name of the serial port that you use for communcating to the IO device.
-             The default is "weeder". Note that this can be changed with an INI parm.
+             Leave this blank unless the "Type" of the PA control line is wdio, wdio_old or
+             aviosys. The default is "weeder". Note that this can be changed with an INI parm.
 
-Other:       Optional. Sets the type of PA control. Defaults to 'wdio'. Available options are:
+Type:       Optional. Sets the type of PA control. Defaults to 'wdio'. Available options are:
              wdio,wdio_old,X10,xpl,xap,audrey,amixer,object
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@

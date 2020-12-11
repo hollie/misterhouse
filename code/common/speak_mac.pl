@@ -27,36 +27,39 @@ side effect from this.
 
 =cut
 
-
 # noloop=start
-    use Mac::Sound;
-    use Mac::Speech;
-		$TimerVolume = new Timer;
+use Mac::Sound;
+use Mac::Speech;
+$TimerVolume = new Timer;
+
 #		my $volume_reset;
-    my $voice = $main::config_parms{speak_voice};
-    $voice = 'Victoria' unless $voice;
-    my $Mac_voice   = $Mac::Speech::Voice{$voice};
-    my $Mac_Channel = NewSpeechChannel($Mac_voice); # Need a default voice here?
-    print "TTS Channel Created As: $Mac_Channel\n";
+my $voice = $main::config_parms{speak_voice};
+$voice = 'Victoria' unless $voice;
+my $Mac_voice   = $Mac::Speech::Voice{$voice};
+my $Mac_Channel = NewSpeechChannel($Mac_voice);    # Need a default voice here?
+print "TTS Channel Created As: $Mac_Channel\n";
+
 # noloop=stop
 
 sub speak_mac {
-  print "Speak_mac @_\n";
-  my ($mac_text) = @_;
-#	$volume_reset = GetDefaultOutputVolume();
-#	print("reset volume: $volume_reset \t 2**$volume_reset\n");
-  SetDefaultOutputVolume(0x01000100);
-#	print("Trying to Speak \t $mac_text\n");
-  SpeakText($Mac_Channel, $mac_text);
-	set $TimerVolume 6;
-#  SetDefaultOutputVolume($volume_reset);
+    print "Speak_mac @_\n";
+    my ($mac_text) = @_;
+
+    #	$volume_reset = GetDefaultOutputVolume();
+    #	print("reset volume: $volume_reset \t 2**$volume_reset\n");
+    SetDefaultOutputVolume(0x01000100);
+
+    #	print("Trying to Speak \t $mac_text\n");
+    SpeakText( $Mac_Channel, $mac_text );
+    set $TimerVolume 6;
+
+    #  SetDefaultOutputVolume($volume_reset);
 }
-if (expired $TimerVolume)
-{
-	SetDefaultOutputVolume(0x00500050);#$volume_reset
+if ( expired $TimerVolume) {
+    SetDefaultOutputVolume(0x00500050);    #$volume_reset
 }
 
-sub Dispose_Speech_Channel{
-  print "TTS Channel Destroyed: $Mac_Channel\n";
-  DisposeSpeechChannel($Mac_Channel);
+sub Dispose_Speech_Channel {
+    print "TTS Channel Destroyed: $Mac_Channel\n";
+    DisposeSpeechChannel($Mac_Channel);
 }
