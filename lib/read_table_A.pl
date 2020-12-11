@@ -1840,7 +1840,45 @@ sub read_table_A {
         $object = '';
     }
     #-------------- End Alexa Objects ----------------
-
+    #-------------- BondHome Objects -----------------
+    elsif ( $type eq "BONDHOME" ) {
+        #<Bond Home (BONDHOME),BONDHOME,Name,Instance>#
+        require 'BondHome.pm';
+	$code .= '#noloop=start'."\n";
+        my ($instance);
+        ( $name, $instance, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $object = "BondHome('$instance','$other')".';'."\n".'#noloop=stop'."\n";
+    }
+    elsif ( $type eq "BONDHOME_DEVICE" ) {
+        #<Bond Home (BONDHOME_DEVICE),BONDHOME_DEVICE,Name,Instance,BondDevName>#
+	require 'BondHome.pm';
+	$code .= '#noloop=start'."\n";
+	my ($instance, $bonddevname);
+        ( $name, $instance, $bonddevname, $grouplist, @other ) = @item_info;
+	$other = join ', ', ( map { "'$_'" } @other );
+        $object = "BondHome_Device('$instance','$bonddevname')".';'."\n".'#noloop=stop'."\n";
+	$code .= '#noloop=stop'."\n";
+    }
+    elsif ( $type eq "BONDHOME_MANUAL" ) {
+        #<Bond Home (BONDHOME_MANUAL),BONDHOME_MANUAL,Name,Instance>#
+	require 'BondHome.pm';
+	$code .= '#noloop=start'."\n";
+        my ($instance);
+        ( $name, $instance, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );
+        $object = "BondHome_Manual('$instance')".';'."\n".'#noloop=stop'."\n";
+	$code .= '#noloop=stop'."\n";
+    }
+    elsif ( $type eq "BONDHOME_MANUAL_CMD" ) {
+        #<Bond Home (BONDHOME_MANUAL_CMD),BONDHOME_MANUAL_CMD,BondHomeManualObject,CommandName,Frequency,Modulation,Encoding,Bps,Reps,Data>#
+        $code .= '#noloop=start'."\n";
+	my ($parent, $cmdname, $frequency, $modulation, $encoding, $bps, $reps, $data) = @item_info;;
+	$code .= sprintf "\$%-35s -> addcmd('$cmdname', '$frequency', '$modulation', '$encoding', '$bps', '$reps', '$data');\n", $parent;
+        $object = '';
+	$code .= '#noloop=stop'."\n";
+    }
+    #-------------- End BondHome Objects -----------------
     #-------------- AoGSmartHome Objects -----------------
     elsif ( $type eq "AOGSMARTHOME_ITEMS" ) {
 	#<Actions on Google (AOGSMARTHOME_ITEMS),AOGSMARTHOME_ITEMS,Name>#
