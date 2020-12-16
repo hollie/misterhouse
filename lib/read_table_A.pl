@@ -1901,7 +1901,39 @@ sub read_table_A {
         $object = '';
     }
     #-------------- End AoGSmartHome Objects ----------------
-
+    #-------------- MQTT Objects -----------------
+    elsif ( $type eq "MQTT_BROKER" ) {
+         # there must be one record for the broker above any MQTT_DEVICE definitions
+        # it takes the following format
+        # MQTT_BROKER, name_of_broker
+        # e.g.MQTT_BROKER, mqtt_1
+        require 'mqtt.pm';
+        ( $name ) = @item_info;
+        $code .= sprintf( "\n\$%-35s = new mqtt(\"%s\", \$config_parms{mqtt_host},
+                \$config_parms{mqtt_server_port},
+                \$config_parms{mqtt_topic},
+                \$config_parms{mqtt_username},
+                \$config_parms{mqtt_password}, 121);\n",
+            $name,
+            $name
+        );
+    }
+    elsif ( $type eq "MQTT_DEVICE" ) {
+        # there is one record per mqtt device and it must be below the MQTT_BROKER definition
+        # it takes the following form
+        # MQTT_DEVICE, name_of_device, groups, name_of_broker, topic
+        # e.g. MQTT_DEVICE, MQTT_test, Kitchen, mqtt_1, stat/mh_mqtt_test/SENSOR
+        # if the device is to transmit to MH, its topic must match the
+        # config parameter mqtt_topic in the mh.ini file   
+        require 'mqtt.pm';
+        my ($MQTT_broker_name, $MQTT_topic);
+        ( $name, $grouplist, $MQTT_broker_name, $MQTT_topic ) = @item_info;
+       
+        $code .= sprintf( "\n\$%-35s = new mqtt_Item(\$%s\,\"%s\");\n",
+            $name, $MQTT_broker_name, $MQTT_topic );
+       
+    }
+    #-------------- End MQTT Objects ----------------
     elsif ( $type =~ /PLCBUS_.*/ ) {
 	#<,PLCBUS_Scene,Address,Name,Groups,Default|Scenes>#
         require PLCBUS;
