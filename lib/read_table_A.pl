@@ -1918,6 +1918,11 @@ sub read_table_A {
             &::MainLoop_pre_add_hook( \&Wink::GetDevicesAndStatus, 1 );
         }
     }
+    elsif ( $type eq "TASMOTA_HTTP_SWITCH" ) {
+        require Tasmota_HTTP_Item;
+        ( $address, $name, $grouplist ) = @item_info;
+        $object = "Tasmota_HTTP::Switch('$address')";
+    }
     else {
         print "\nUnrecognized .mht entry: $record\n";
         return;
