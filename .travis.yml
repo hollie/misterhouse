@@ -6,10 +6,10 @@ os:
 dist: trusty
 
 perl:
+    - "5.32"
     - "5.24"
     - "5.18"
     - "5.16"
-    - "5.08"
 
 install: true
 
