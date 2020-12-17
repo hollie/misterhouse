@@ -241,6 +241,7 @@ sub set_state {
     }
     elsif ( ref $sub eq 'CODE' ) {
         my $mh_object = ::get_object_by_name($realname);
+	&main::print_log("[AoGSmartHome] Invalid device $realname; ignoring AoG item.") if ( !defined $mh_object );
         return undef if !defined $mh_object;
 
 	print STDERR "[AoGSmartHome] Debug: running sub $sub(set, $state)\n" if $main::Debug{'aog'};
@@ -253,6 +254,7 @@ sub set_state {
         #
 
         my $mh_object = ::get_object_by_name($realname);
+	&main::print_log("[AoGSmartHome] Invalid device $realname; ignoring AoG item.") if ( !defined $mh_object );
         return undef if !defined $mh_object;
 
 	if ( ($mh_object->isa('Insteon::DimmableLight')
@@ -291,6 +293,7 @@ sub get_state {
     }
     elsif ( ref $statesub eq 'CODE' ) {
         my $mh_object = ::get_object_by_name($realname);
+	&main::print_log("[AoGSmartHome] Invalid device $realname; ignoring AoG item.") if ( !defined $mh_object );
         return undef if !defined $mh_object;
 
 	my $debug = "[AoGSmartHome] Debug: get_state() running sub: $statesub('$realname') - ";
@@ -304,6 +307,7 @@ sub get_state {
         #
 
         my $mh_object = ::get_object_by_name($realname);
+	&main::print_log("[AoGSmartHome] Invalid device $realname; ignoring AoG item.") if ( !defined $mh_object );
         return undef if !defined $mh_object;
 
 	my $cstate = $mh_object->$statesub();
@@ -452,6 +456,9 @@ EOF
 	    # INSTEON and X10 dimmable lights).
 	    &main::print_log("[AoGSmartHome] Object Name: ". $self->{'uuids'}->{$uuid}->{'realname'} ."\n");
 	    my $mh_object = ::get_object_by_name($self->{'uuids'}->{$uuid}->{'realname'});
+	    &main::print_log("[AoGSmartHome] Invalid device ".$self->{'uuids'}->{$uuid}->{'realname'}."; ignoring AoG item.") if ( !defined $mh_object );
+	    return undef if !defined $mh_object;
+
 	    if ( (defined $mh_object) && ($mh_object->isa('Insteon::DimmableLight') || $mh_object->can('state_level')) ) {
 		$response .= <<EOF;
      "action.devices.traits.Brightness",
@@ -515,6 +522,9 @@ EOF
 EOF
         } elsif ( $type eq 'thermostat') {
 	    my $mh_object = ::get_object_by_name($self->{'uuids'}->{$uuid}->{'realname'});
+	    &main::print_log("[AoGSmartHome] Invalid device ".$self->{'uuids'}->{$uuid}->{'realname'}."; ignoring AoG item.") if ( !defined $mh_object );
+	    return undef if !defined $mh_object;
+
 	    if (!$mh_object->isa('Insteon::Thermostat') ) {
 		&main::print_log("[AoGSmartHome] '$self->{'uuids'}->{$uuid}->{'realname'} is an unsupported thermostat; ignoring AoG item.");
 		next;
@@ -624,6 +634,9 @@ EOF
         }
         elsif ( $self->{'uuids'}->{$uuid}->{'type'} eq 'thermostat' ) {
 	    my $mh_object = ::get_object_by_name($self->{'uuids'}->{$uuid}->{'realname'});
+	    &main::print_log("[AoGSmartHome] Invalid device ".$self->{'uuids'}->{$uuid}->{'realname'}."; ignoring AoG item.") if ( !defined $mh_object );
+	    return undef if !defined $mh_object;
+
 	    if ($mh_object->isa('Insteon::Thermostat') ) {
 		my $mode = lc($mh_object->get_mode());
 		$mode = 'heatcool' if ($mode =~ /auto/);
@@ -701,6 +714,8 @@ EOF
 	# If the device is dimmable we provided the "Brightness" trait, so we
 	# have to supply the "brightness" state.
 	my $mh_object = ::get_object_by_name($self->{'uuids'}->{$uuid}->{'realname'});
+	&main::print_log("[AoGSmartHome] Invalid device ".$self->{'uuids'}->{$uuid}->{'realname'}."; ignoring AoG item.") if ( !defined $mh_object );
+	return undef if !defined $mh_object;
 	if ($mh_object->isa('Insteon::DimmableLight')
 	    || $mh_object->can('state_level') ) {
 
@@ -840,6 +855,7 @@ sub execute_ThermostatX {
 	my $realname = $self->{'uuids'}->{$device->{'id'} }->{'realname'};
 
         my $mh_object = ::get_object_by_name($realname);
+	&main::print_log("[AoGSmartHome] Invalid device $realname; ignoring AoG item.") if ( !defined $mh_object );
         return undef if !defined $mh_object;
 
 	if ($mh_object->isa('Insteon::Thermostat') ) {
