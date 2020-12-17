@@ -636,6 +636,9 @@ sub _process_incoming_xap_data {
               if $o->allow_empty_state()
               or ( defined $state_value and $state_value ne '' );
         }
+    } else {
+        print "db1 xap discarded, source is mh: s=$source d=$data\n"
+          if $main::Debug{xap} and $main::Debug{xap} == 1;
     }
 }
 
