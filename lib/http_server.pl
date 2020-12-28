@@ -345,14 +345,33 @@ sub http_process_request {
       if $main::Debug{http};
     if ( $req_typ eq "POST" || $req_typ eq "PUT" ) {
 	      $http_data =~ s/^(POST|PUT).+?^\R//smi;
-        my $cl = $Http{'Content-Length'};
-        print "http POST query has $cl bytes of args\n"  if $main::Debug{http};
+        my $cl;
         my $buf;
-	      $cl = $cl - length($http_data);
-        read $socket, $buf, $cl;
-	      $buf = $http_data.$buf if $http_data;
-	      $http_data = '';
-
+        if ($Http{'Content-Length'}) {
+            $cl = $Http{'Content-Length'};
+            print "http POST query has $cl bytes of args\n"  if $main::Debug{http};
+	    $cl = $cl - length($http_data);
+            read $socket, $buf, $cl;
+	    $buf = $http_data.$buf if $http_data;
+	    $http_data = '';
+        } elsif ($Http{'Transfer-Encoding'} && ($Http{'Transfer-Encoding'} eq 'chunked')) {
+            print "http POST query has chunked Transfer-Encoding\n"  if $main::Debug{http};
+            # We can't read the post body from the socket, so need to get this from $http_data instead
+            # Note that this only works with one chunk right now.
+            print "http_data ->$http_data<-\n" if $main::Debug{http};
+            if ($http_data =~ s/^([^\015\012]*)\015\012//) {
+                my $chunk_head = $1;
+                print "Chunk header = $chunk_head\n"  if $main::Debug{http};
+                unless ($chunk_head =~ /^([0-9A-Fa-f]+)/) {
+                    print "Bad chunk header\n"  if $main::Debug{http};
+                } else {
+                    $cl = hex($chunk_head);
+                    print "Reading chunk size = $cl bytes\n"  if $main::Debug{http};
+                    $buf = substr $http_data, 0, $cl;
+                    $http_data = '';
+                }
+            }
+        }
         # Save the body into the global var
         $HTTP_BODY = $buf;
         print "http POST buf=$buf get_arg=$get_arg\n" if $main::Debug{http};
@@ -375,8 +394,14 @@ sub http_process_request {
 	# For this reason we use a regular expresion here instead of
 	# checking for "application/json" using the "eq" operator.
 	#
-        } elsif ($Http{'Content-Type'} =~ m%^application/json%i && $HTTP_BODY =~ /^\{/) {
+    # alex/echo sends
+    # Content-type: application/x-www-form-urlencoded
+    # with a json body
+    #
+        } elsif ($Http{'Content-Type'} =~ m%^application/(json|x-www-form-urlencoded)%i && $HTTP_BODY =~ /^\{/) {
              print "[http_server.pl]: posting json data\n" if $main::Debug{http};
+        } elsif ($Http{'Transfer-Encoding'} && $HTTP_BODY =~ /^\{/) {
+             print "[http_server.pl]: posting chunked json data\n" if $main::Debug{http};
         } else {
             &main::print_log("[http_server.pl]: Warning, invalid argument string detected ($buf) ($Http{'Content-Type'}) ($HTTP_BODY)\n");
         }
@@ -2318,7 +2343,7 @@ sub http_redirect {
  $html_head .= "Server: MisterHouse\r\n";
  $html_head .= "Location: $url\r\n";
  $html_head .= "Content-Length: 0\r\n";
- $html_head .= "Connection: close\r\n " if &http_close_socket;
+ $html_head .= "Connection: close\r\n" if &http_close_socket;
  $html_head .= "Cache-Control: no-cache\r\n";
  $html_head .= "\r\n";
 

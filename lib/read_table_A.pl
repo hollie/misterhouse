@@ -1840,7 +1840,45 @@ sub read_table_A {
         $object = '';
     }
     #-------------- End Alexa Objects ----------------
-
+    #-------------- BondHome Objects -----------------
+    elsif ( $type eq "BONDHOME" ) {
+        #<Bond Home (BONDHOME),BONDHOME,Name,Instance>#
+        require 'BondHome.pm';
+	$code .= '#noloop=start'."\n";
+        my ($instance);
+        ( $name, $instance, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $object = "BondHome('$instance','$other')".';'."\n".'#noloop=stop'."\n";
+    }
+    elsif ( $type eq "BONDHOME_DEVICE" ) {
+        #<Bond Home (BONDHOME_DEVICE),BONDHOME_DEVICE,Name,Instance,BondDevName>#
+	require 'BondHome.pm';
+	$code .= '#noloop=start'."\n";
+	my ($instance, $bonddevname);
+        ( $name, $instance, $bonddevname, $grouplist, @other ) = @item_info;
+	$other = join ', ', ( map { "'$_'" } @other );
+        $object = "BondHome_Device('$instance','$bonddevname')".';'."\n".'#noloop=stop'."\n";
+	$code .= '#noloop=stop'."\n";
+    }
+    elsif ( $type eq "BONDHOME_MANUAL" ) {
+        #<Bond Home (BONDHOME_MANUAL),BONDHOME_MANUAL,Name,Instance>#
+	require 'BondHome.pm';
+	$code .= '#noloop=start'."\n";
+        my ($instance);
+        ( $name, $instance, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );
+        $object = "BondHome_Manual('$instance')".';'."\n".'#noloop=stop'."\n";
+	$code .= '#noloop=stop'."\n";
+    }
+    elsif ( $type eq "BONDHOME_MANUAL_CMD" ) {
+        #<Bond Home (BONDHOME_MANUAL_CMD),BONDHOME_MANUAL_CMD,BondHomeManualObject,CommandName,Frequency,Modulation,Encoding,Bps,Reps,Data>#
+        $code .= '#noloop=start'."\n";
+	my ($parent, $cmdname, $frequency, $modulation, $encoding, $bps, $reps, $data) = @item_info;;
+	$code .= sprintf "\$%-35s -> addcmd('$cmdname', '$frequency', '$modulation', '$encoding', '$bps', '$reps', '$data');\n", $parent;
+        $object = '';
+	$code .= '#noloop=stop'."\n";
+    }
+    #-------------- End BondHome Objects -----------------
     #-------------- AoGSmartHome Objects -----------------
     elsif ( $type eq "AOGSMARTHOME_ITEMS" ) {
 	#<Actions on Google (AOGSMARTHOME_ITEMS),AOGSMARTHOME_ITEMS,Name>#
@@ -1863,7 +1901,39 @@ sub read_table_A {
         $object = '';
     }
     #-------------- End AoGSmartHome Objects ----------------
-
+    #-------------- MQTT Objects -----------------
+    elsif ( $type eq "MQTT_BROKER" ) {
+         # there must be one record for the broker above any MQTT_DEVICE definitions
+        # it takes the following format
+        # MQTT_BROKER, name_of_broker
+        # e.g.MQTT_BROKER, mqtt_1
+        require 'mqtt.pm';
+        ( $name ) = @item_info;
+        $code .= sprintf( "\n\$%-35s = new mqtt(\"%s\", \$config_parms{mqtt_host},
+                \$config_parms{mqtt_server_port},
+                \$config_parms{mqtt_topic},
+                \$config_parms{mqtt_username},
+                \$config_parms{mqtt_password}, 121);\n",
+            $name,
+            $name
+        );
+    }
+    elsif ( $type eq "MQTT_DEVICE" ) {
+        # there is one record per mqtt device and it must be below the MQTT_BROKER definition
+        # it takes the following form
+        # MQTT_DEVICE, name_of_device, groups, name_of_broker, topic
+        # e.g. MQTT_DEVICE, MQTT_test, Kitchen, mqtt_1, stat/mh_mqtt_test/SENSOR
+        # if the device is to transmit to MH, its topic must match the
+        # config parameter mqtt_topic in the mh.ini file   
+        require 'mqtt.pm';
+        my ($MQTT_broker_name, $MQTT_topic);
+        ( $name, $grouplist, $MQTT_broker_name, $MQTT_topic ) = @item_info;
+       
+        $code .= sprintf( "\n\$%-35s = new mqtt_Item(\$%s\,\"%s\");\n",
+            $name, $MQTT_broker_name, $MQTT_topic );
+       
+    }
+    #-------------- End MQTT Objects ----------------
     elsif ( $type =~ /PLCBUS_.*/ ) {
 	#<,PLCBUS_Scene,Address,Name,Groups,Default|Scenes>#
         require PLCBUS;
@@ -1879,6 +1949,11 @@ sub read_table_A {
             $code .= "use Wink;\n";
             &::MainLoop_pre_add_hook( \&Wink::GetDevicesAndStatus, 1 );
         }
+    }
+    elsif ( $type eq "TASMOTA_HTTP_SWITCH" ) {
+        require Tasmota_HTTP_Item;
+        ( $address, $name, $grouplist ) = @item_info;
+        $object = "Tasmota_HTTP::Switch('$address')";
     }
     else {
         print "\nUnrecognized .mht entry: $record\n";
