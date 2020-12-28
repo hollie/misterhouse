@@ -71,7 +71,6 @@ sub setup {
     for my $parm ( keys %config_parms_startup ) {
         $config_parms{$parm} = $config_parms_startup{$parm};
     }
-
     # Ignore any non-email debug parm in .ini file or command line flag used
     $config_parms{debug} = undef
       unless $config_parms{debug} eq 'email' or $config_parms_startup{debug};

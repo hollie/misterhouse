@@ -238,7 +238,8 @@ sub set {
     return if &main::check_for_tied_filters( $self, $state );
 
     if (($self->{state_updating} == 0) and ($self->{state_enable})) {
-        &::MainLoop_pre_add_hook( \&Timer::update_state, 0, $self);
+        &::MainLoop_pre_add_hook( \&Timer::update_state, 0, $self) unless ($self->{state_updating} == 1);
+        $self->{state_updating} = 1;
     }
 
     # Set states for NEXT pass, so expired, active, etc,
@@ -261,6 +262,8 @@ sub set_from_last_pass {
         $self->{time}        = undef;
         &delete_timer_with_action($self);
         $resort_timers_with_actions = 1;
+        &::MainLoop_pre_drop_hook( \&Timer::update_state, 0, $self) unless ($self->{state_updating} == 0);
+        $self->{state_updating} = 0;
     }
 
     # Turn a timer on
@@ -300,6 +303,8 @@ sub unset {
     undef $self->{time};
     undef $self->{action};
     &delete_timer_with_action($self);
+    &::MainLoop_pre_drop_hook( \&Timer::update_state, 0, $self) unless ($self->{state_updating} == 0);
+    $self->{state_updating} = 0;
 }
 
 sub delete_old_timers {
