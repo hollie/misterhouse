@@ -883,34 +883,52 @@ sub json_get {
     }
 
     if ( $path[0] eq 'security' ) {
-    #check if $Authorized
     if (defined $path[1] and $path[1] eq 'authorize') {
-        print "IN AUTHORIZE\n";
+        # Passwords are stored as MD5 hashes in the user data file
+        # Take that MD5, then take the current date (in YYYYDDMM format) and then calculate
+        # an authorization MD5 value. Adding in the current date means that the lifespan of a compromised
+        # password token is at most 1 day.
         my $status = "";
         if ($args{user} && $args{user}[0] eq "") {
-            $status = "Empty Username";
+            $status = "fail";
+            &main::print_log("json_server.pl: ERROR, authorize attempt with no username");
         } elsif ($args{password} && $args{password}[0] eq "") {
-            $status = "Empty Password";
+            $status = "fail";
+            &main::print_log("json_server.pl: ERROR, authorize attempt with no password");
+            
         } else {
             my $password = &Groups('getpw','',$args{user}[0]);
             my $time_seed = &main::time_date_stamp('18',$Time);
-            my $time_seedY = &main::time_date_stamp('18',$Time - 86400);
-            my $time_seedT = &main::time_date_stamp('18',$Time + 86400);
-       
+            #to account for clock drift, check today and tomorrow values around midnight
             #if time is between 11:55 and midnight then also check tomorrow
             #if time is between midnight and 00:05 then also check yesterday
-            print "PW=$password, time_seed=$time_seed, $time_seedY, $time_seedT\n";
+            if (time_greater_than("11:55 PM")) {
+                my $time_seedT = &main::time_date_stamp('18',$Time + 86400);
+                my $pwdcheck1 = md5_hex($password . $time_seedT);
+                $status = "success" if (lc $args{password}[0] eq lc $pwdcheck1);
+            }
+            if (time_less_than("00:05 AM")) {
+                my $time_seedY = &main::time_date_stamp('18',$Time - 86400);
+                my $pwdcheck2 = md5_hex($password . $time_seedY);
+                $status = "success" if (lc $args{password}[0] eq lc $pwdcheck2);
+            }
+            #print "PW=$password, time_seed=$time_seed";
             my $pwdcheck = md5_hex($password . $time_seed);
-            print "PWC=$pwdcheck\n";
+            #print "PWC=$pwdcheck\n";
        
-            if (lc $args{password}[0] eq lc $pwdcheck) {
+            if ($status eq "" and (lc $args{password}[0] eq lc $pwdcheck)) {
                 $status = "success";
+                &main::print_log("json_server.pl: INFO, user $args{user}[0] successfully authenticated");
+                
             } else {
                 $status = "fail";
+                &main::print_log("json_server.pl: WARNING, user $args{user}[0] authentication attempt failed");
+                
             }
         }    
         $json_data{security}->{authorize} = $status;
     } else {
+        #check if $Authorized
         my $ref;
         my $users;
         my $found = 0;
@@ -1508,7 +1526,7 @@ sub json_object_detail {
     my %json_complete_object;
     my @f = qw( category filename measurement rf_id set_by members
       state states state_log type label sort_order groups hidden parents schedule logger_status
-      idle_time text html seconds_remaining fp_location fp_icons fp_icon_set img link level);
+      idle_time text html seconds_remaining fp_location fp_icons fp_icon_set img link level rgb);
 
     # Build list of fields based on those requested.
     foreach my $f ( sort @f ) {
@@ -1549,6 +1567,14 @@ sub json_object_detail {
                 my $a = $object->$method;
 
                 $value = $a if ( defined $a and $a ne "" );    #don't return a null value
+            }
+
+            elsif ( $f eq 'rgb' ) {
+                my ($a,$b,$c) = $object->$method;
+
+                $value = "$a,$b,$c" if (( defined $a and $a ne "" )    #don't return a null value
+                                        and ( defined $b and $b ne "" )
+                                        and ( defined $c and $c ne "" ));
             }
 
             #if ( $f eq 'hidden' ) {

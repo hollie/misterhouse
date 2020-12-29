@@ -7,6 +7,21 @@
   <div class="panel panel-default">
     <div class="panel-heading">
       <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse51_0">Color Object Support</a>
+      </h4>
+    </div>
+    <div id="collapse51_0" class="panel-collapse collapse">
+      <div class="panel-body">
+        <ul class="fa-ul">     
+         <li><i class="fa-li fa fa-chevron-right"></i>Color dot shows on objects that have color controls  
+         <li><i class="fa-li fa fa-chevron-right"></i>Modal has RGB sliders that can change the color. Click OK or outside modal to close
+         </ul>    
+      </div>
+    </div>
+  </div>
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
         <a data-toggle="collapse" href="#collapse51_1">Native Triggers</a>
       </h4>
     </div>
@@ -44,7 +59,7 @@
       <div class="panel-body">
         <ul class="fa-ul">     
          <li><i class="fa-li fa fa-chevron-right"></i>Users and Groups can be created from the GUI   
-         <li><i class="fa-li fa fa-chevron-right"></i>MH can be used as an authentication source /json/security/authorize?username=&password=MD5HASHYYYYDDMM
+         <li><i class="fa-li fa fa-chevron-right"></i>MH can be used as an authentication source /json/security/authorize?username=&password=MD5(MD5(PWD)YYYYDDMM)
          </ul>    
       </div>
     </div>
