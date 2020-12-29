@@ -3109,7 +3109,7 @@ sub add {
         and ( $obj->isa('Light_Item') or $obj->isa('Insteon::BaseDevice') ) )
     {
         if ( $$self{members} && $$self{members}{$obj} ) {
-            print "[Insteon::BaseController] An object (" . $obj->{object_name} . ") already exists " . "in this scene.  Aborting add request.\n";
+            print "[Insteon::BaseController] An object (" . $obj->{object_name} . ":" . $obj->{device_id} . ") already exists " . "in this scene (" . $self->{object_name} . ").  Aborting add request.\n";            
             return;
         }
         if ( $on_level =~ /^sur/i ) {
