@@ -1950,6 +1950,17 @@ sub read_table_A {
             &::MainLoop_pre_add_hook( \&Wink::GetDevicesAndStatus, 1 );
         }
     }
+    elsif ( $type eq "KASA" ) {
+        require Kasa_Item;
+        my ( $type, $index );
+        ( $address, $name, $type, $index, $grouplist ) = @item_info;
+        # Check if device has an index 
+        if ($index eq '') {
+            $object = "Kasa_Item('$address', '$type')";
+        } else {
+            $object = "Kasa_Item('$address', '$type', $index)";
+        }
+    }   
     elsif ( $type eq "TASMOTA_HTTP_SWITCH" ) {
         require Tasmota_HTTP_Item;
         ( $address, $name, $grouplist ) = @item_info;
