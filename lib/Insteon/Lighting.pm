@@ -19,8 +19,10 @@ package Insteon::BaseLight;
 
 use strict;
 use Insteon::BaseInsteon;
+use Data::Dumper;
 
 @Insteon::BaseLight::ISA = ('Insteon::BaseDevice');
+
 
 =item C<new()>
 
@@ -512,6 +514,7 @@ package Insteon::ApplianceLinc;
 
 use strict;
 use Insteon::BaseInsteon;
+use Data::Dumper;
 
 @Insteon::ApplianceLinc::ISA = ('Insteon::BaseLight');
 
@@ -1738,6 +1741,250 @@ sub get_voice_cmds {
             %voice_cmds,
             'enable status LEDs'          => "$object_name->enable_led(1)",
             'disable status LEDs'         => "$object_name->enable_led(0)",
+            'sync all device links'       => "$object_name->sync_all_links()",
+            'AUDIT sync all device links' => "$object_name->sync_all_links(1)"
+        );
+    }
+    return \%voice_cmds;
+}
+
+=back
+
+=head2 AUTHOR
+
+Dave Neudoerffer
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+=head1 B<Insteon::OutletLinc>
+
+=head2 SYNOPSIS
+
+User code:
+
+    use Insteon::OutletLinc;
+    $plug1_device = new Insteon::OutletLinc('12.34.56:01',$myPLM);
+    $plug2_device = new Insteon::OutletLinc('12.34.56:02',$myPLM);
+
+In mht file:
+
+    INSTEON_OUTLETLINC, 12.34.56:01, plug1_device, All_Lights
+    INSTEON_OUTLETLINC, 12.34.56:02, plug2_device, All_Lights
+
+=head2 DESCRIPTION
+
+Provides support for the Insteon OutletLinc.
+
+=head2 INHERITS
+
+L<Insteon::BaseLight|Insteon::Lighting/Insteon::BaseLight>
+,
+L<Insteon::Insteon::MultigroupDevice|Insteon::BaseInsteon/Insteon::Insteon::MultigroupDevice>
+
+=head2 METHODS
+
+=over
+
+=cut
+
+package Insteon::OutletLinc;
+
+use strict;
+use Insteon::BaseInsteon;
+use Data::Dumper;
+
+@Insteon::OutletLinc::ISA = ( 'Insteon::BaseLight', 'Insteon::MultigroupDevice' );
+
+my %message_types = (
+    %Insteon::BaseDevice::message_types,
+    group_on  => 0x32,
+    group_off => 0x33
+);
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
+
+sub new {
+    my ( $class, $p_deviceid, $p_interface ) = @_;
+    my $self = new Insteon::BaseLight( $p_deviceid, $p_interface );
+    bless $self, $class;
+    $$self{message_types} = \%message_types;
+    &::print_log( "Insteon OUTLETLINC $p_deviceid created" )
+      if $self->debuglevel( 2, 'insteon' );
+    return $self;
+}
+
+=item C<derive_message([command,extra])>
+
+Generates set commands for the plug2, plug1 requests are passed to BaseObject
+
+=cut
+
+sub derive_message {
+    my ( $self, $p_command, $p_extra ) = @_;
+    if ( $self->is_root ) {
+        $self->SUPER::derive_message( $p_command, $p_extra );
+    }
+    else {
+        my $parent = $self->get_root();
+        my ( $command, $subcommand ) = split( /:/, $p_command, 2 );
+        $command = lc($command);
+
+        if ( $command eq 'on' ) {
+            $command = 'group_on';
+        }
+        elsif ( $command eq 'off' ) {
+            $command = 'group_off';
+        }
+	else {
+	    &::print_log( "[Insteon::OutletLinc] invalid command '$command' for group:$$self{m_group}" );
+	    return;
+	}
+        my $extra = '02';
+        my $message = new Insteon::InsteonMessage( 'insteon_send', $self, $command, $extra );
+        return $message;
+    }
+}
+
+=item C<request_status()>
+
+Will request the status of the device.  For the light device, the process is 
+handed off to the L<Insteon::BaseObject::request_status()|Insteon::BaseInsteon/Insteon::BaseObject> routine.  This routine
+specifically handles the plug2 request.
+
+=cut
+
+sub request_status {
+    my ( $self, $requestor ) = @_;
+    my $child_obj = Insteon::get_object( $self->device_id, '02' );
+    my $parent_obj = $self->get_root();
+
+    # Always get status on both plug1 and plug2, otherwise we can't distinguish the status messages
+    # NOTE:  status_request messages are generated in scan_link_table without calling request_status
+
+    &::print_log( "[Insteon::OutletLinc] sending request_status for outlet $$parent_obj{object_name}/$$child_obj{object_name}")
+      if $self->debuglevel( 1, 'insteon' );
+    $$parent_obj{m_status_request_pending} = ($requestor) ? $requestor : 1;
+    my $message = new Insteon::InsteonMessage( 'insteon_send', $parent_obj, 'status_request', '01' );
+    $parent_obj->_send_cmd($message);
+}
+
+=item C<_is_info_request()>
+
+Handles incoming messages from the device which are unique to the OutletLinc,
+specifically this handles the C<request_status()> and C<set()> response for the plug2 device,
+all other responses are handed off to the C<Insteon::BaseObject::request_status()>.
+
+=cut
+
+sub _is_info_request {
+    my ( $self, $cmd, $ack_setby, %msg ) = @_;
+    my $is_info_request = 0;
+    my $parent_obj = $self->get_root();
+    my $child_obj = Insteon::get_object( $self->device_id, '02' );
+    my $cmd_extra;
+
+    &::print_log( "[Insteon::OutletLinc] received $cmd/$msg{command} ack response:" )
+      if $self->debuglevel( 2, 'insteon' );
+    &::print_log( Dumper( \%msg ) )
+      if $self->debuglevel( 2, 'insteon' );
+
+    if( $parent_obj->{_prior_msg} ) {
+	$cmd_extra = $parent_obj->{_prior_msg}->extra;
+    }
+
+    if( $cmd eq 'status_request'  &&  $cmd_extra eq '01'  ) {
+	my $child_state;
+	my $parent_state;
+        &::print_log( "[Insteon::OutletLinc] received status acknowledge for $$parent_obj{object_name}/$$child_obj{object_name} $msg{extra}")
+          if $self->debuglevel( 1, 'insteon' );
+        $is_info_request++;
+	if( $msg{extra} eq '00' ) {
+	    $child_state = 'off';
+	    $parent_state = 'off';
+	} elsif( $msg{extra} eq '01' ) {
+	    $child_state = 'off';
+	    $parent_state = 'on';
+	} elsif( $msg{extra} eq '02' ) {
+	    $child_state = 'on';
+	    $parent_state = 'off';
+	} elsif( $msg{extra} eq '03' ) {
+	    $child_state = 'on';
+	    $parent_state = 'on';
+	} else {
+	    &::print_log( "[Insteon::OutletLinc] received status acknowledge for child $$child_obj{object_name} -- invalid state $msg{extra}")
+	      if $self->debuglevel( 1, 'insteon' );
+	}
+        $ack_setby = $$parent_obj{m_status_request_pending}
+          if ref $$parent_obj{m_status_request_pending};
+        $child_obj->SUPER::set( $child_state, $ack_setby );
+        $parent_obj->SUPER::set( $parent_state, $ack_setby );
+    }
+    elsif( $cmd eq 'group_on'  ||  $cmd eq 'group_off' ) {
+        &::print_log( "[Insteon::OutletLinc] received command $cmd/$msg{command} acknowledge for child $$child_obj{object_name} pending_state:'$$child_obj{pending_state}'" )
+          if $self->debuglevel( 1, 'insteon' );
+        $child_obj->set_receive( $$child_obj{pending_state}, $$child_obj{pending_setby}, $$child_obj{pending_response} )
+	  if defined $$child_obj{pending_state};
+        $$child_obj{is_acknowledged}  = 1;
+        $$child_obj{pending_state}    = undef;
+        $$child_obj{pending_setby}    = undef;
+        $$child_obj{pending_response} = undef;
+    }
+    else {
+        &::print_log( "[Insteon::OutletLinc] received ack of command/status of: $cmd, hops left: $msg{hopsleft}" )
+          if $self->debuglevel( 1, 'insteon' );
+        $is_info_request = $self->SUPER::_is_info_request( $cmd, $ack_setby, %msg );
+    }
+    return $is_info_request;
+}
+
+=item C<is_acknowledged()>
+
+Handles command acknowledgement messages received from the device.
+All instances are handed off to the C<Insteon::BaseObject>.
+
+=cut
+
+sub is_acknowledged {
+    my ( $self, $p_ack ) = @_;
+
+    &::print_log( "[Insteon::OutletLinc] received command/state acknowledge for $$self{object_name}" )
+      if $self->debuglevel( 1, 'insteon' );
+    return $self->SUPER::is_acknowledged($p_ack);
+}
+
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds {
+    my ($self)      = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds  = ( %{ $self->SUPER::get_voice_cmds } );
+    if ( $self->is_root ) {
+        %voice_cmds = (
+            %voice_cmds,
             'sync all device links'       => "$object_name->sync_all_links()",
             'AUDIT sync all device links' => "$object_name->sync_all_links(1)"
         );

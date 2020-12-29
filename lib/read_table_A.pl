@@ -329,6 +329,13 @@ sub read_table_A {
         $other = join ', ', ( map { "'$_'" } @other );             # Quote data
         $object = "Insteon::FanLinc(\'$address\', $other)";
     }
+    elsif ( $type eq "INSTEON_OUTLETLINC" ) {
+	#<,INSTEON_OUTLETLINC,Address,Name,Groups>#
+        require Insteon::Lighting;
+        ( $address, $name, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );             # Quote data
+        $object = "Insteon::OutletLinc(\'$address\', $other)";
+    }
     elsif ( $type eq "INSTEON_ICONTROLLER" ) {
 	#<,SCENE_MEMBER,MemberName,LinkName,OnLevel,RampRate>#
         require Insteon::BaseInsteon;
