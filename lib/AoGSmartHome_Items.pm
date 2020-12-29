@@ -407,6 +407,8 @@ sub add {
     # If no device type is provided we default to 'light'
     $self->{'uuids'}->{$uuid}->{'type'}     = lc($type) || 'light';
     $self->{'uuids'}->{$uuid}->{'room'}     = $room if $room;
+    print "Added AOG device:\n    " . Dumper( $self->{'uuids'}->{$uuid} )
+      if $main::Debug{'aog'} > 2;
 }
 
 =item C<sync()>
@@ -451,7 +453,10 @@ EOF
 	    # objects will have to be added here (right now we only check for
 	    # INSTEON and X10 dimmable lights).
 	    my $mh_object = ::get_object_by_name($self->{'uuids'}->{$uuid}->{'realname'});
-	    if ($mh_object->isa('Insteon::DimmableLight') 
+	    if( !ref $mh_object ) {
+		&main::print_log("[AoGSmartHome] '$self->{'uuids'}->{$uuid}->{'realname'} is not found.");
+	    }
+	    elsif ($mh_object->isa('Insteon::DimmableLight')
 		|| $mh_object->can('state_level') ) {
 		$response .= <<EOF;
      "action.devices.traits.Brightness",
@@ -728,7 +733,7 @@ sub execute_OnOff {
     my $response = '   {
     "ids": [';
 
-    my $turn_on = $command->{'execution'}->[0]->{'params'}->{'on'} eq "true" ? 1 : 0;
+    my $turn_on = $command->{'execution'}->[0]->{'params'}->{'on'};
 
     foreach my $device ( @{ $command->{'devices'} } ) {
         set_state( $self, $device->{'id'}, $turn_on ? 'on' : 'off' );
@@ -880,6 +885,8 @@ sub execute {
   "commands": [
 EOF
 
+    $Data::Dumper::Maxdepth = 0;
+    print "Aog received execute request:\n    " . Dumper( $body )  if $main::Debug{'aog'} > 2;
     #
     # First, send the commands to all the devices specified in the request.
     #

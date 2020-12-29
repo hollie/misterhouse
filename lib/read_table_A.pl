@@ -1899,12 +1899,15 @@ sub read_table_A {
         $sub =~ s%^&%\\&%; # "&my_subroutine" -> "\&my_subroutine"
         $sub =~ s%^\\\\&%\\&%; # "\\&my_subroutine" -> "\&my_subroutine"
         $sub = "'$sub'" if $sub !~ /&/;
+        $statesub =~ s%^&%\\&%; # "&my_subroutine" -> "\&my_subroutine"
+        $statesub =~ s%^\\\\&%\\&%; # "\\&my_subroutine" -> "\&my_subroutine"
+        $statesub = "'$statesub'" if $statesub !~ /&/;
         $realname = "\$$realname" if $realname;
         my $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         if (!$packages{AoGSmartHome_Items}++ ) { # first time for this object type?
             $code .= "use AoGSmartHome_Items;\n";
         }
-        $code .= sprintf "\$%-35s -> add('$realname','$name',$sub,'$on','$off','$statesub',$other);\n", $parent;
+        $code .= sprintf "\$%-35s -> add('$realname','$name',$sub,'$on','$off',$statesub,$other);\n", $parent;
         $object = '';
     }
     #-------------- End AoGSmartHome Objects ----------------
