@@ -1,6 +1,6 @@
 package Venstar_Colortouch;
 
-# v2.1.2
+# v2.1.3
 
 #added in https support and don't retry commands that have a valid error reason code. Only retry if the device doesn't respond. (ie error 500)
 

@@ -2128,9 +2128,9 @@ sub validate_def {
                 ::print_log(
                     "[Read_Table_A] WARNING: $_[0]: $$passed_values[0] On level should be 0-100%, got \"$$passed_values[$paramNum]\" "
                   )
-                  unless ( $$passed_values[$paramNum] =~ m/^(\d+)%?$/
+                  unless (( $$passed_values[$paramNum] =~ m/^(\d+)%?$/
                     && $1 <= 100
-                    && $1 >= 0 );
+                    && $1 >= 0 ) or (lc $$passed_values[$paramNum] =~ /^sur/i));
             }
             elsif ( $param_type eq 'insteon_ramp_rate' ) {
                 ::print_log(
