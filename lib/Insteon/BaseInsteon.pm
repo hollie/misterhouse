@@ -30,6 +30,7 @@ package Insteon::BaseObject;
 
 use strict;
 use Insteon::AllLinkDatabase;
+use Data::Dumper;
 
 @Insteon::BaseObject::ISA = ('Generic_Item');
 
@@ -135,6 +136,7 @@ sub new {
     $$self{logger_mintime}    = 1;
     $$self{logger_updatetime} = 0;
     &Insteon::add($self);
+&::print_log( "Insteon New Device:  $$self{device_id}:$$self{m_group} isa $$self{isa}" );
     return $self;
 }
 
@@ -372,6 +374,8 @@ sub set {
     }
 
     if ( $self->_is_valid_state($p_state) ) {
+	&::print_log( "[Insteon::BaseObject] set called on $$self{object_name} valid state: $p_state $$self{device_id}:$$self{m_group}" )
+           if $self->debuglevel( 1, 'insteon' );
 
         # always reset the is_locally_set property unless set_by is the device
         $$self{m_is_locally_set} = 0 unless ref $p_setby and $p_setby eq $self;
@@ -473,6 +477,11 @@ sub set_receive {
         $$self{set_milliseconds} = $curr_milli;
         $self->level($p_state) if $self->can('level');    # update the level value
         $self->SUPER::set( $p_state, $p_setby, $p_response );
+        ::print_log( "[Insteon::BaseObject] SUPER::set "
+              . $p_state
+              . " state command for "
+              . $self->get_object_name )
+          if $self->debuglevel( 1, 'insteon' );
     }
 }
 
@@ -550,12 +559,11 @@ sub derive_message {
     my $message;
 
     if ( $self->isa("Insteon::BaseController") ) {
-
         # only send out as all-link if the link originates from the plm
         if ( $self->isa("Insteon::InterfaceController") ) {    # return the size of the command stack
             $message = new Insteon::InsteonMessage( 'all_link_send', $self );
         }
-        elsif ( $self->is_root ) {                             # return the size of the command stack
+        elsif ( $self->is_root ) {
             $message = new Insteon::InsteonMessage( 'insteon_send', $self );
         }
         else {
@@ -565,6 +573,7 @@ sub derive_message {
     elsif ( $self->isa("Insteon::BaseObject") ) {
         $message = new Insteon::InsteonMessage( 'insteon_send', $self );
     }
+
 
     if ( !( defined $p_extra ) ) {
         if ( $command eq 'on' ) {
@@ -618,6 +627,7 @@ sub derive_message {
     }
 
     $message->command($command);
+
     return $message;
 }
 
@@ -1117,7 +1127,7 @@ sub _process_command_stack {
         ::print_log( "[Insteon::BaseObject] " . $self->get_object_name . " is deaf and not currently awake. Queuing commands" . " until device wakes up." );
     }
     else {
-        #		&::print_log("[Insteon_Device] " . $self->get_object_name . " command queued but not yet sent; awaiting ack from prior command") if $self->debuglevel(1, 'insteon');
+        &::print_log("[Insteon_Device] " . $self->get_object_name . " command queued but not yet sent; awaiting ack from prior command") if $self->debuglevel(1, 'insteon');
     }
 }
 
@@ -3106,7 +3116,7 @@ they will be used, otherwise 100% .1s will be used.
 sub add {
     my ( $self, $obj, $on_level, $ramp_rate ) = @_;
     if ( ref $obj
-        and ( $obj->isa('Light_Item') or $obj->isa('Insteon::BaseDevice') ) )
+        and ( $obj->isa('Light_Item') or $obj->isa('Insteon::BaseDevice') or $obj->isa('Insteon::InterfaceController') ) )
     {
         if ( $$self{members} && $$self{members}{$obj} ) {
             print "[Insteon::BaseController] An object (" . $obj->{object_name} . ") already exists " . "in this scene.  Aborting add request.\n";
@@ -3259,6 +3269,13 @@ sub sync_links {
         $tgt_on_level =~ s/(\d+)%?/$1/;
         $tgt_ramp_rate =~ s/(\d)s?/$1/;
         my $resp_aldbkey = $member_root->_aldb->get_linkkey( $insteon_object->device_id, $self->group, '0', $member->group );
+
+        # skip scene responders
+        if ( $member->isa('Insteon::InterfaceController') ) {
+            ::print_log("[Insteon::Sync_Links] Skipping link to scene $member_name.")
+              if $insteon_object->debuglevel( 2, 'insteon' );
+	    next MEMBER;
+	}
 
         # If this is an attempt to create a link between two objects on the same
         # device, then skip.  Currently, a KPL can do this with a seperate
@@ -3569,7 +3586,7 @@ sub set_linked_devices {
                 }
                 $member->set_on_state($local_state) unless $link_state eq 'off';
             }
-            elsif ( $member->isa('Insteon::BaseDevice') ) {
+            elsif ( $member->isa('Insteon::BaseDevice') or $member->isa('Insteon::InterfaceController') ) {
 
                 # remember the current state to support resume
                 $$self{members}{$member_ref}{resume_state} = $member->state;
