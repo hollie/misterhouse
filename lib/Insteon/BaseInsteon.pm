@@ -136,7 +136,6 @@ sub new {
     $$self{logger_mintime}    = 1;
     $$self{logger_updatetime} = 0;
     &Insteon::add($self);
-&::print_log( "Insteon New Device:  $$self{device_id}:$$self{m_group} isa $$self{isa}" );
     return $self;
 }
 
@@ -474,14 +473,14 @@ sub set_receive {
           if $self->debuglevel( 1, 'insteon' );
     }
     else {
-        $$self{set_milliseconds} = $curr_milli;
-        $self->level($p_state) if $self->can('level');    # update the level value
-        $self->SUPER::set( $p_state, $p_setby, $p_response );
         ::print_log( "[Insteon::BaseObject] SUPER::set "
               . $p_state
               . " state command for "
               . $self->get_object_name )
           if $self->debuglevel( 1, 'insteon' );
+        $$self{set_milliseconds} = $curr_milli;
+        $self->level($p_state) if $self->can('level');    # update the level value
+        $self->SUPER::set( $p_state, $p_setby, $p_response );
     }
 }
 
@@ -1127,7 +1126,8 @@ sub _process_command_stack {
         ::print_log( "[Insteon::BaseObject] " . $self->get_object_name . " is deaf and not currently awake. Queuing commands" . " until device wakes up." );
     }
     else {
-        &::print_log("[Insteon_Device] " . $self->get_object_name . " command queued but not yet sent; awaiting ack from prior command") if $self->debuglevel(1, 'insteon');
+        ::print_log("[Insteon_Device] " . $self->get_object_name . " command queued but not yet sent; awaiting ack from prior command")
+	  if $self->debuglevel(1, 'insteon');
     }
 }
 
