@@ -14,11 +14,17 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   test_master:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ['ubuntu-latest']
+        perl: [ '5.32', '5.30' ]
+    name: Perl ${{ matrix.perl }} on ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
       - uses: shogo82148/actions-setup-perl@v1
         with:
-          perl-version: '5.32'
+          perl-version: ${{ matrix.perl }}
+      - run: perl -V
       - run: sudo apt-get install libgd-gd2-perl
       - run: cd bin ; ./mh -tk 0 -debug process -code_dir ../code/test
