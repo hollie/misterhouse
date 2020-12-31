@@ -20,5 +20,5 @@ jobs:
       - uses: shogo82148/actions-setup-perl@v1
         with:
           perl-version: '5.32'
-      - run: cpanm GD
+      - run: sudo apt-get install libgd-gd2-perl
       - run: cd bin ; ./mh -tk 0 -debug process -code_dir ../code/test
