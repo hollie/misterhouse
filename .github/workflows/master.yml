@@ -1,0 +1,23 @@
+name: CI on master
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  test_master:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: '5.32'
+      - run: cd bin ; ./mh -tk 0 -debug process -code_dir ../code/test
