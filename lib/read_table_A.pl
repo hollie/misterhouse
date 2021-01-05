@@ -1980,7 +1980,7 @@ sub read_table_A {
     elsif ( $type eq "TASMOTA_HTTP_FAN" ) {
         require Tasmota_HTTP_Item;
         ( $address, $name, $grouplist ) = @item_info;
-        $object = "Tasmota_HTTP::Switch('$address')";
+        $object = "Tasmota_HTTP::Fan('$address')";
     }
     else {
         print "\nUnrecognized .mht entry: $record\n";
