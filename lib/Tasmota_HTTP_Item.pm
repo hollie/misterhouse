@@ -5,10 +5,23 @@ Tasmota_HTTP_Item.pm
 
 Basic Tasmota support using the HTTP interface rather than MQTT
 Copyright (C) 2020 Jeff Siddall (jeff@siddall.name)
-Last modified: 2020-12-15
+Last modified: 2020-12-21 to add fan item support
 
-This module currently supports Tasmota switch type devices but other devices
-can be added with extra packages added
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+This module currently supports Tasmota switch and fan type devices but other
+devices can be added with extra packages
 
 Requirements:
 
@@ -21,13 +34,14 @@ Setup:
 
 In your code define Tasmota_HTTP::Things in an MHT:
 
-  TASMOTA_HTTP_SWITCH,   192.168.x.y,   Kitchen_Light,    Kitchen
+  TASMOTA_HTTP_SWITCH,   192.168.x.y,   Kitchen_Light,   POWER1,   Kitchen
 
 Or in a code file:
 
- $Kitchen_Light = new Tasmota_HTTP::Switch("192.168.x.y");
+ $Kitchen_Light = new Tasmota_HTTP::Switch("192.168.x.y", "POWER1");
  Where:
    192.168.x.y is the IPv4 address or hostname of the Tasmota device
+   POWER1 is the name of the Tasmota output to control (POWER1 if not specified)
 
  $Kitchen_Light->set(ON);
 
@@ -47,7 +61,7 @@ use parent 'Generic_Item';
 
 # Item class constructor
 sub new {
-    my ( $class, $address ) = @_;
+    my ( $class, $address, $output ) = @_;
 
     # Call the parent class constructor to make sure all the important things are done
     my $self = new Generic_Item();
@@ -55,7 +69,11 @@ sub new {
 
     # Additional Tasmota variables
     $self->{address}     = $address;
-    $self->{output_name} = 'POWER1';
+    if (defined($output)) {
+        $self->{output_name} = $output;
+    } else {
+        $self->{output_name} = 'POWER1';
+    }
     $self->{ack}         = 0;
     $self->{last_http_status};
 
@@ -162,6 +180,60 @@ sub new {
 
     # Log the setup of the item
     &main::print_log("[Tasmota_HTTP::Switch] Created item with address $self->{address}");
+
+    return $self;
+}
+
+#=======================================================================================
+#
+# Basic Tasmota_HTTP::Fan
+#
+#=======================================================================================
+
+# To add table support, add these lines to the read_table_A.pl file:
+# elsif ( $type eq "TASMOTA_HTTP_FAN" ) {
+#     require Tasmota_HTTP_Item;
+#     ( $address, $name, $grouplist ) = @item_info;
+#     $object = "Tasmota_HTTP::Fan('$address')";
+# }
+
+package Tasmota_HTTP::Fan;
+use strict;
+use parent-norequire, 'Tasmota_HTTP::Item';
+
+# Switch class constructor
+sub new {
+    my $class = shift;
+
+    # Call the parent class constructor to make sure all the important things are done
+    my $self = $class->SUPER::new(@_);
+    # Fans use a different output name
+    $self->{output_name} = 'FanSpeed';
+
+    # Additional fan variables
+    # Add additional hash pairs (rows) to this variable to send other states to devices
+    $self->{state_to_tasmota} = {
+        "off" => "0",
+        "0" => "0",
+        "1" => "1",
+        "2" => "2",
+        "3" => "3",
+        "on" => "3",
+    };
+
+    # Add additional hash pairs (rows) to this variable to use other states from devices
+    $self->{tasmota_to_state} = {
+        "0" => "off",
+        "1" => "1",
+        "2" => "2",
+        "3" => "3",
+    };
+
+    # Initialize states
+    push( @{ $self->{states} }, keys( %{ $self->{state_to_tasmota} } ) );
+
+    # Log the setup of the item
+    &main::print_log("[Tasmota_HTTP::Fan] Created item with address $self->{address}");
 
     return $self;
 }

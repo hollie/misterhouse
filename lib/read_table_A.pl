@@ -1970,8 +1970,14 @@ sub read_table_A {
         } else {
             $object = "Kasa_Item('$address', '$type', $index)";
         }
-    }   
+    }
     elsif ( $type eq "TASMOTA_HTTP_SWITCH" ) {
+        require Tasmota_HTTP_Item;
+        my ( $output );
+        ( $address, $name, $output, $grouplist ) = @item_info;
+        $object = "Tasmota_HTTP::Switch('$address', '$output')";
+    }
+    elsif ( $type eq "TASMOTA_HTTP_FAN" ) {
         require Tasmota_HTTP_Item;
         ( $address, $name, $grouplist ) = @item_info;
         $object = "Tasmota_HTTP::Switch('$address')";
