@@ -1,6 +1,6 @@
 package Nanoleaf_Aurora;
 
-# v3.0
+# v3.0.2
 
 #if any effect is changed, by definition the static child should be set to off.
 #cmd data returns, need to check by command
@@ -123,7 +123,7 @@ $opts{brightness}  = "-response_code -json -put '{\"brightness\":{\"value\":";
 $opts{brightness2} = "-response_code -json -put '{\"brightness\":{\"increment\":";
 $opts{get_static}  = "-response_code -json -put '{\"write\":{\"command\":\"request\",\"version\":\"1.0\",\"animName\":\"*Static*\"}}'";
 $opts{get_hsb}     = "-response_code -json -put '{\"write\":{\"command\":\"request\",\"version\":\"1.0\",\"animName\":\"*Solid*\"}}'";
-$opts{get_rhythm}  = "-response_code -json -put '{\"write\":{\"command\":\"requestAll\",\"version\":\"1.0\"}}'";
+$opts{get_rhythm}  = "-response_code -json -put '{\"write\":{\"command\":\"requestAll\",\"version\":\"2.0\"}}'";
 $opts{identify}    = "-response_code -json -put '{}'";
 
 
@@ -147,7 +147,7 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v3.0.00";
+    $self->{module_version}         = "v3.0.2";
     $self->{ssdp_timeout}           = 4000;
     $self->{last_static}            = "";
 
@@ -1357,8 +1357,8 @@ sub load_effects {
 }
 
 sub get_effects {
-    my ( $self ) = @_;
-    my @effects = $$self{master_object}->get_effects();
+    my ( $self,$type ) = @_;
+    my @effects = $$self{master_object}->get_effects("$type");
     
     return @effects;
 
@@ -1487,4 +1487,4 @@ sub set {
 # v1.1.01 - firmware v2.2.0 and rhythm module
 # v1.1.03 - fixed a few typos
 # v2.0.00 - added in hue/Saturation ability
-# v3.0.00 - added rhythm attribute to scenes.
+# v3.0    - added rhythm attribute to get_effect.
