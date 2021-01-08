@@ -1133,14 +1133,15 @@ sub json_get {
         } else {
             $uptime = `uptime`;
         }
-        my ($time,$upt,$users,$load) = $uptime =~ /(\S+)\s+up\s(.*),\s+(\d+)\susers,\s+load\saverages?:\s(.*)/;
+        my ($time,$upt,$users,$load) = $uptime =~ /(\S+)\s+up\s(.*),\s+(\d+)\susers?,\s+load\saverages?:\s(.*)/g;
         $json_data{$source}{time} = $time;
         $json_data{$source}{uptime} = $upt;
         $json_data{$source}{users} = $users;
         $json_data{$source}{load} = $load;
         $json_data{$source}{cores} = $System_cores;
         $json_data{$source}{time_of_day} = $Time_Of_Day;
-
+        $json_data{$source}{sunrise} = $Time_Sunrise;
+        $json_data{$source}{sunset} = $Time_Sunset;
    }
 
    if ( $path[0] eq 'weather' || $path[0] eq 'misc' || $path[0] eq '' ) {
@@ -1161,7 +1162,9 @@ sub json_get {
         $json_data{$source}{night} = $Dark;
         $json_data{$source}{weather_lastupdated} = $Weather{"LastUpdated"};
         $json_data{$source}{weather_enabled} = $enabled;
-       
+        $json_data{$source}{ForecastHigh} = $Weather{"ForecastHigh"};
+        $json_data{$source}{ForecastLow} = $Weather{"ForecastLow"};        
+        $json_data{$source}{ForecastConditions} = $Weather{"ForecastConditions"};       
              
    }
 
@@ -1587,7 +1590,10 @@ sub json_object_detail {
             #}
             else {
                 $value = $object->$method;
+                #RF this makes a horlicks of utf8 characters
                 $value = encode_entities( $value, "\200-\377&<>" );
+                $value = encode_entities( $value, '<>&"');
+
             }
             print_log "json: object_dets f $f m $method v $value"
               if $Debug{json};
@@ -1615,7 +1621,10 @@ sub json_object_detail {
         }
         elsif ( exists $object->{$f} ) {
             $value = $object->{$f};
+            #RF this makes a horlicks of utf8 characters
             $value = encode_entities( $value, "\200-\377&<>" );
+            $value = encode_entities( $value, '<>&"');
+
             print_log "json: object_dets f $f ev $value" if $Debug{json};
         }
         elsif ( $f eq 'html' and $object->can('get_type') ) {
