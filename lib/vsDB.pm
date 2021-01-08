@@ -611,13 +611,16 @@ sub Sort {
         # custom sorting comparison routine
         my (@aVals) = split( $delimiter, $a );
         my (@bVals) = split( $delimiter, $b );
-        if ($desc) {
-            return $bVals[$fieldNumber] cmp $aVals[$fieldNumber];
-        }
-        else {
-            return $aVals[$fieldNumber] cmp $bVals[$fieldNumber];
-        }
-        undef(@aVals);
+		if ($sortMode eq "1") {				    		# alpha descending
+			return lc($bVals[$fieldNumber]) cmp lc($aVals[$fieldNumber]);
+		} elsif ($sortMode eq "2") {				    # numeric ascending
+			return $bVals[$fieldNumber] < $aVals[$fieldNumber];
+		} elsif ($sortMode eq "3") {				    # numeric descending
+			return $bVals[$fieldNumber] > $aVals[$fieldNumber];
+		} else {									    # alpha ascending
+			return lc($aVals[$fieldNumber]) cmp lc($bVals[$fieldNumber]); 
+		}        
+		undef(@aVals);
         undef(@bVals);
     } @$unsortedArray;
 
