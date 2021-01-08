@@ -584,10 +584,11 @@ sub Sort {
     # obj->Sort($field);
     # if $field is ommited, or an invalid fieldname is used, defaults to
     # the left-most column.
-
+    # $sortMode 0 = alpha ascending, 1 = alpha descending, 2 = numeric ascending, 3 = numeric descending
+	
     my ($this)      = shift;
     my ($fieldName) = shift || '0';
-    my ($desc)      = shift || '0';
+    my ($sortMode)      = shift || '0';
     my ($delimiter) = $this->{'delimiter'};
 
     # can't append once we've changed the sort order
