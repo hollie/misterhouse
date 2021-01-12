@@ -1586,6 +1586,18 @@ sub main::get_idle_item_data {
     return @results;
 }
 
+# Generic routine to handle errors and warning messages
+# passed the following;
+# a severity e.g. "WARNING"
+# a category, where did the problem occur e.g. "my_subroutine"
+# a message e.g. "Something went wrong"
+# by default it only does a print_log, however it provides a mechanism where the implementation
+# can selectively decide how to be informed about errors and warnings
+sub main::handle_errors_and_warnings {
+   my ($severity, $category , $message) = @_;
+   &main::print_log($severity . ": " . $category . " - " . $message);
+}
+
 #print " done\n";
 
 1;
