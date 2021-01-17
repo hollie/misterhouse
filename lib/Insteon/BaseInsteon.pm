@@ -486,11 +486,12 @@ sub set_receive {
 
 =item C<set_with_timer(state, time, return_state, additional_return_states)>
 
-NOTE - This routine appears to be nearly identical, if not identical to the
-C<Generic_Item::set_with_timer()> routine, it is not clear why this routine is
-needed here.
-
 See full description of this routine in C<Generic_Item>
+
+    NOTE:  This timer functionality is required here because the Generic_Item timer
+           is reset by Generic_Item set calls, and the set call for the Generic_Item
+	   in this case is delayed until the acknowledgement is received from the insteon device.
+	   ie set( 'on~10~off' ) would reset the Generic_Item timer when the ack for the 'on' is received.
 
 =cut
 

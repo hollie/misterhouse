@@ -242,7 +242,7 @@ When the above is said to the Echo, it first gets the current state, then subtra
         #Type set - this is when alexa is asked to turn this device on/off so the state should be set to $state or your action should be run.
 
         if ($type eq 'state') {
-                if ( $light1->can('state_level') ) {
+                if ( $light1->can('is_dimmable')  &&  $light1->is_dimmable ) {
                         return (state $light1).','.$light1->level; # Example returning state and level. NOTE: Ensure state is NOT numeric
                         return $light1->level; # Example returning level only.
                 }
@@ -1036,7 +1036,7 @@ sub get_set_state {
             my $type  = $object->get_type();
             my $debug = "[Alexa] Debug: get_set_state (actual object state: $cstate) - (object type: $type) - ";
             my $return;
-            if ( $object->can('state_level') ) {
+            if ( $object->can('is_dimmable')  &&  $object->is_dimmable ) {
                 my $l = $object->level;
                 $l =~ s/\%//;
                 if ( $l =~ /\d+/ ) {
@@ -1056,7 +1056,7 @@ sub get_set_state {
             return $return;
         }
         elsif ( $action eq 'set' ) {
-            if ( $object->can('state_level') && $state =~ /\d+/ ) { $state = $state . '%' }
+            if ( $object->can('is_dimmable') && $object->is_dimmable && $state =~ /\d+/ ) { $state = $state . '%' }
             &main::print_log("[Alexa] Debug: setting object ( $realname ) to state ( $state )\n") if $main::Debug{'alexa'};
             if   ( lc($type) =~ /clipsal_cbus/ ) { $object->$sub( $state, 'Alexa' ) }
             else                                 { $object->$sub( $state, 'Alexa' ) }
