@@ -1,7 +1,8 @@
 MisterHouse
 ===========
 
-[![Build Status](https://travis-ci.com/hollie/misterhouse.svg?branch=master)](https://travis-ci.com/hollie/misterhouse)
+[![Actions Status](https://github.com/hollie/misterhouse/workflows/CI%20on%20master/badge.svg)](https://github.com/hollie/misterhouse/actions)
+
 
 Perl open source home automation program. It's fun, it's free, and it's entirely geeky.
 

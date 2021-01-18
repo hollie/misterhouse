@@ -329,6 +329,13 @@ sub read_table_A {
         $other = join ', ', ( map { "'$_'" } @other );             # Quote data
         $object = "Insteon::FanLinc(\'$address\', $other)";
     }
+    elsif ( $type eq "INSTEON_OUTLETLINC" ) {
+	#<,INSTEON_OUTLETLINC,Address,Name,Groups>#
+        require Insteon::Lighting;
+        ( $address, $name, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );             # Quote data
+        $object = "Insteon::OutletLinc(\'$address\', $other)";
+    }
     elsif ( $type eq "INSTEON_ICONTROLLER" ) {
 	#<,SCENE_MEMBER,MemberName,LinkName,OnLevel,RampRate>#
         require Insteon::BaseInsteon;
@@ -1892,12 +1899,15 @@ sub read_table_A {
         $sub =~ s%^&%\\&%; # "&my_subroutine" -> "\&my_subroutine"
         $sub =~ s%^\\\\&%\\&%; # "\\&my_subroutine" -> "\&my_subroutine"
         $sub = "'$sub'" if $sub !~ /&/;
+        $statesub =~ s%^&%\\&%; # "&my_subroutine" -> "\&my_subroutine"
+        $statesub =~ s%^\\\\&%\\&%; # "\\&my_subroutine" -> "\&my_subroutine"
+        $statesub = "'$statesub'" if $statesub !~ /&/;
         $realname = "\$$realname" if $realname;
         my $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         if (!$packages{AoGSmartHome_Items}++ ) { # first time for this object type?
             $code .= "use AoGSmartHome_Items;\n";
         }
-        $code .= sprintf "\$%-35s -> add('$realname','$name',$sub,'$on','$off','$statesub',$other);\n", $parent;
+        $code .= sprintf "\$%-35s -> add('$realname','$name',$sub,'$on','$off',$statesub,$other);\n", $parent;
         $object = '';
     }
     #-------------- End AoGSmartHome Objects ----------------
@@ -1950,10 +1960,27 @@ sub read_table_A {
             &::MainLoop_pre_add_hook( \&Wink::GetDevicesAndStatus, 1 );
         }
     }
+    elsif ( $type eq "KASA" ) {
+        require Kasa_Item;
+        my ( $type, $index );
+        ( $address, $name, $type, $index, $grouplist ) = @item_info;
+        # Check if device has an index 
+        if ($index eq '') {
+            $object = "Kasa_Item('$address', '$type')";
+        } else {
+            $object = "Kasa_Item('$address', '$type', $index)";
+        }
+    }
     elsif ( $type eq "TASMOTA_HTTP_SWITCH" ) {
         require Tasmota_HTTP_Item;
+        my ( $output );
+        ( $address, $name, $output, $grouplist ) = @item_info;
+        $object = "Tasmota_HTTP::Switch('$address', '$output')";
+    }
+    elsif ( $type eq "TASMOTA_HTTP_FAN" ) {
+        require Tasmota_HTTP_Item;
         ( $address, $name, $grouplist ) = @item_info;
-        $object = "Tasmota_HTTP::Switch('$address')";
+        $object = "Tasmota_HTTP::Fan('$address')";
     }
     else {
         print "\nUnrecognized .mht entry: $record\n";
