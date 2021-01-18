@@ -1388,6 +1388,7 @@ our %message_types = (
     poke_internal         => 0x2d,
     extended_set_get      => 0x2e,
     read_write_aldb       => 0x2f,
+    beep                  => 0x30,
     imeter_reset          => 0x80,
     imeter_query          => 0x82,
 );
@@ -3108,7 +3109,7 @@ sub add {
         and ( $obj->isa('Light_Item') or $obj->isa('Insteon::BaseDevice') ) )
     {
         if ( $$self{members} && $$self{members}{$obj} ) {
-            print "[Insteon::BaseController] An object (" . $obj->{object_name} . ") already exists " . "in this scene.  Aborting add request.\n";
+            print "[Insteon::BaseController] An object (" . $obj->{object_name} . ":" . $obj->{device_id} . ") already exists " . "in this scene (" . $self->{object_name} . ").  Aborting add request.\n";            
             return;
         }
         if ( $on_level =~ /^sur/i ) {

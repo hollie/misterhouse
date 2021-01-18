@@ -209,6 +209,10 @@ BEGIN {
         # Pick local mh modules first, over any site install ones
         unshift( @INC, "${Pgm_Path}/../lib", "${Pgm_Path}/../lib/site", '.' );
 
+	# Keep fallback versions of CPAN modules, in case they're not present on the system.  Place them last
+	# so the sysadmin can install more current versions in the normal Perl places if they wish.
+	push @INC,"${Pgm_Path}/../lib/fallback";
+
         #       my $pwd=cwd(); print "pwd=$pwd inc=@INC\n";
         #       push (@INC, './../lib', './../lib/site', '.');
         #       push (@INC, './../lib');
@@ -797,6 +801,10 @@ sub setup {
     }
     else {
         require 'json_server.pl';
+
+	# Actions on Google HTTP helper
+	require 'http_server_aog.pl';
+	http_server_aog_startup();
     }
 
     if ($OS_win) {
@@ -2685,8 +2693,14 @@ sub check_for_socket_data {
             $data = <$sock>;
         }
         else {
-            # 1500 is ethernet packet size
-            my $from_saddr = recv( $sock, $data, 1500, 0 );
+            # We used to read 1500 bytes here because that is the default
+	    # MTU for Ethernet. However, larger MTUs can be in use. In fact,
+	    # the MTU of the loopback interface is set in a modern Linux
+	    # distribution at 65535 bytes. Reading only 1500 can break
+	    # things when the traffic comes to the MisterHouse HTTP server
+	    # via the loopback interface and in packets larger than 1500
+	    # bytes.
+            my $from_saddr = recv( $sock, $data, 65535, 0 );
 
             # Store udp from_* data
             if (    $Socket_Ports{$port_name}{protocol}
