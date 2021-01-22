@@ -255,7 +255,7 @@ sub set_state {
         my $mh_object = ::get_object_by_name($realname);
         return undef if !defined $mh_object;
 
-	if ( $mh_object->can('is_dimmable' && $mh_object->is_dimmable && $state =~ /\d+/ ) {
+	if ( $mh_object->can('is_dimmable') && $mh_object->is_dimmable && $state =~ /\d+/ ) {
 	    $state = $state . '%';
 	}
 
