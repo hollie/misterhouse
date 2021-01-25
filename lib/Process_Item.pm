@@ -224,7 +224,8 @@ sub start_next {
 
         #        print "  The process will not be restarted:  cmd=$cmd\n";
         #        return;
-        print "Killing unfinished process id $pid\n";
+        # added cmd to facilitate debugging
+        print "Killing unfinished process id=$pid cmd=$cmd\n";
         &stop($self);
     }
 
