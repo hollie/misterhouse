@@ -138,6 +138,73 @@ sub set {
     }
 }
 
+# Use HTTP get calls to send a command to the Tasmota item
+# returns the JSON response from the Tasmota and sets $self->{run_cmnd_response}
+# it urlencodes the command so user doesnt need to
+# if no command sent it decodes the json and returns the state of the device e.g.
+# $device->run_cmnd() returns on or off
+# $device->run_cmnd('status 10') returns a json string of the sensor status
+# $device->run_cmnd('restart 1') reboots the Tasmota
+
+sub run_cmnd {
+	my ( $self, $command ) = @_;
+
+	# Debug logging
+	my $debug = $self->{debug} || $main::Debug{tasmota};
+
+	use LWP::UserAgent ();
+	use JSON;
+	use URI::Escape;
+
+	# Use a small timeout since devices are typically local and should respond quickly
+	# 5 seconds should allow for 3 syn attempts plus another second to get a response
+	my $ua = LWP::UserAgent->new( timeout => 5 );
+
+	# Reset the ack flag
+	$self->{ack} = 0;
+	my $decode_JSON = 0;
+
+	# Send the HTTP request
+	if ( !defined($command) ) {
+		$command     = $self->{output_name};
+		$decode_JSON = 1;
+	}
+	# now URI encode the command
+	$command = URI::Escape::uri_escape_utf8($command);
+	
+	my $response = $ua->get("http://$self->{address}/cm?cmnd=$command");
+
+	# Record the status of the last request
+	$self->{last_http_status} = $response->status_line;
+
+	# Log request failures
+	if ( !$response->is_success ) {
+		&main::print_log("[Tasmota_HTTP::Item] ERROR: run_cmnd received HTTP response code $self->{last_http_status})");
+	}
+	
+	$self->{run_cmnd_response}  = $response->decoded_content;
+	
+	if ($decode_JSON) {
+		my $output_name = $self->{output_name};
+
+		# oddly if you send POWER1 or POWER it returns POWER
+		if ( $output_name eq "POWER1" ) {
+			$output_name = "POWER";
+		}
+		my $jsonstatus = decode_json($self->{run_cmnd_response});
+		$self->{run_cmnd_response} = lc( $jsonstatus->{$output_name} );
+	}
+	
+	&main::print_log(
+		"[Tasmota_HTTP::Item] DEBUG: " . substr( $self->{object_name}, 1 ) . " run_cmnnd returns " . $self->{run_cmnd_response},
+		"INFORMATIONAL", "Tasmota_HTTP::Item" )
+	  if $debug;
+	  
+	return $self->{run_cmnd_response};
+}
+
+
+
 #=======================================================================================
 #
 # Basic Tasmota_HTTP::Switch
