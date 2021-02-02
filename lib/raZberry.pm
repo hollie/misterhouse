@@ -1,4 +1,4 @@
-=head1 B<raZberry> v3.0.6
+=head1 B<raZberry> v3.0.7
 
 #test command setup
 #command queue
@@ -632,11 +632,12 @@ sub process_check {
         if ($com_status eq "online") {
             $self->{com_warning} = 0;
             if (defined $self->{com_poll_interval}) {
-                main::print_log("[RaZberry:" . $self->{host} . "] Valid Data Received. Changing poll rate to $self->{com_poll_interval}.");
+                main::print_log("[RaZberry:" . $self->{host} . "] Valid Data Received. Changing poll rate back to $self->{com_poll_interval}.");
                 $self->{config}->{poll_seconds} = $self->{com_poll_interval};
                 $self->{com_poll_interval} = undef;
                 $self->stop_timer;
                 $self->start_timer;
+                $self->{child_object}->{comm}->set( $com_status, 'poll' );
             }
         } elsif ($com_status eq "offline")  {
             $self->{com_warning}++;
@@ -646,6 +647,8 @@ sub process_check {
                 $self->{config}->{poll_seconds} = 10 unless ($self->{config}->{poll_seconds} <= 10);
                 $self->stop_timer;
                 $self->start_timer;
+                $self->{child_object}->{comm}->set( $com_status, 'poll' );
+
             }
         }
         if ( $self->{status} ne $com_status ) {
@@ -2185,6 +2188,9 @@ sub update_data {
 
 # ZWayVDev_zway_18-0-113-8-1-A
 =head2 CHANGELOG 
+v3.0.7 
+- fixed offline polling for push operation
+
 v3.0
 - added 3 10 second check on push mode status pull
 - use process_item to prevent pauses
