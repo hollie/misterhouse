@@ -15,10 +15,10 @@ Tasmota_HTTP_Item.pm
 
 Basic Tasmota support using the HTTP interface rather than MQTT
 Copyright (C) 2020 Jeff Siddall (jeff@siddall.name)
-Last modified: 2020-12-21 to add fan item support
+Last modified: 2021-02-01 to push, power and async support
 
-- Use Process_Item rather than a direct get to prevent pauses in main loop 
-- Add in web push API http://mh:port/SUB;tasmota_push(%value%)
+CONFIG.INI
+setting tasmota_async=1 in config.ini will use aProcess_Item rather than a direct get to prevent pauses in main loop 
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -33,10 +33,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-This module currently supports Tasmota switch and fan type devices but other
+This module currently supports Tasmota switch, power monitoring and fan type devices but other
 devices can be added with extra packages
-
-ADDRESS NEEDS TO BE AN IP ADDRESS FOR PUSH TO WORK
 
 Requirements:
 
@@ -45,11 +43,45 @@ Requirements:
   can be sent to MH with the rule:
   Rule1 ON Power1#State DO WebSend [192.168.0.1:80] /SET;none?select_item=Kitchen_Light&select_state=%value% ENDON
 
+  For Asynchronous setup, there are 2 rules (change mhip:port to the misterhouse ip address and port)
+  Rule1 ON Rules#Timer=1 DO BACKLOG WebSend [mhip:port] /SUB%3Btasmota_push(hb); RuleTimer1 10 ENDON
+  Rule1 4
+  RuleTimer 10
+  
+  * Rule 1 sends a 'heartbeat' web call every 10 seconds. If MH doesn't receive a heartbeat for a device within a minute, the
+    device state is set to 'unknown'
+    
+  Rule2 ON Power1#State DO WebSend [mhip:port] /SUB;tasmota_push(state,%value%) ENDON
+  
+  * Rule 2 is a more generic web call. It doesn't require setting the tasmota device to the specific MH object. Instead
+    The source address of the device is used to look up the proper MH object.
+    
+  *** IMPORTANT *** : the tasmota device needs to be set up with the IP address rather than a DNS name
+  
+  ----- Other Rules -----
+  * Power Monitoring
+  Rule3
+   ON Energy#Power DO VAR1 %value% ENDON
+   ON Energy#Current DO VAR2 %value% ENDON
+   ON Margins#PowerDelta DO BACKLOG VAR3 1; RuleTimer2 1 ENDON
+   ON VAR3#State > 6 0 DO BACKLOG RuleTimer2 0 ; VAR3 0 ENDON
+   ON Rules#Timer=2 DO BACKLOG WebSend [mhip:port] /SUB%3Btasmota_push(power,%var1%,%var2%); RuleTimer2 1; ADD3 1  ENDON
+
+  PowerDelta 10
+  VAR3 0
+  
+  * Rule 3 triggers when PowerDelta% power change has occurred. It then sends power data to MH for the next 5 seconds, to 
+    ensure a proper reading is captured.
+
+
+
 Setup:
 
 In your code define Tasmota_HTTP::Things in an MHT:
 
-  TASMOTA_HTTP_SWITCH,   192.168.x.y,   Kitchen_Light,   POWER1,   Kitchen
+  TASMOTA_HTTP_SWITCH,   192.168.x.y,   Kitchen_Light,   POWER1,   Kitchen, options
+  
+  where options are async or rrd (for power monitoring)
 
 Or in a code file:
 
