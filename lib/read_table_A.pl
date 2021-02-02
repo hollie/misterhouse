@@ -1973,14 +1973,21 @@ sub read_table_A {
     }
     elsif ( $type eq "TASMOTA_HTTP_SWITCH" ) {
         require Tasmota_HTTP_Item;
-        my ( $output );
-        ( $address, $name, $output, $grouplist ) = @item_info;
-        $object = "Tasmota_HTTP::Switch('$address', '$output')";
+        my ( $output, $options );
+        ( $address, $name, $output, $grouplist, $options ) = @item_info;
+        $object = "Tasmota_HTTP::Switch('$address', '$output', '$options')";
+    }
+    elsif ( $type eq "TASMOTA_HTTP_SWITCH_POWERMON" ) {
+        require Tasmota_HTTP_Item;
+        my ( $output, $options );
+        ( $address, $name, $output, $grouplist, $options ) = @item_info;
+        $object = "Tasmota_HTTP::Switch_PowerMon('$address', '$output', '$options')";
     }
     elsif ( $type eq "TASMOTA_HTTP_FAN" ) {
         require Tasmota_HTTP_Item;
-        ( $address, $name, $grouplist ) = @item_info;
-        $object = "Tasmota_HTTP::Fan('$address')";
+        my ( $options );
+        ( $address, $name, $grouplist, $options ) = @item_info;
+        $object = "Tasmota_HTTP::Fan('$address', '$options')";
     }
     else {
         print "\nUnrecognized .mht entry: $record\n";
