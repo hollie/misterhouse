@@ -222,7 +222,7 @@ sub set_state {
     my $sub      = $self->{'uuids'}->{$uuid}->{'sub'};
     my $statesub = $self->{'uuids'}->{$uuid}->{'statesub'};
 
-    # ???
+    # Map state if there is a mapping defined
     $state = $self->{'uuids'}->{$uuid}->{ lc($state) } if $self->{'uuids'}->{$uuid}->{ lc($state) };
 
     print STDERR "[AoGSmartHome] Debug: set_state(uuid='$uuid', state='$state', name='$name' realname='$realname' sub='$sub')\n"
@@ -255,8 +255,7 @@ sub set_state {
         my $mh_object = ::get_object_by_name($realname);
         return undef if !defined $mh_object;
 
-	if ( ($mh_object->isa('Insteon::DimmableLight')
-	      || $mh_object->can('state_level') ) && $state =~ /\d+/ ) {
+	if ( $mh_object->can('is_dimmable') && $mh_object->is_dimmable && $state =~ /\d+/ ) {
 	    $state = $state . '%';
 	}
 
@@ -334,6 +333,7 @@ sub new {
     if ( -e $file ) {
         my $restoredhash = retrieve($file);
         $self->{idmap} = $restoredhash->{idmap};
+	# delete $self->{idmap}->{objects}->{''};
 
         if ( $main::Debug{'aog'} ) {
             print STDERR "[AoGSmartHome] Debug: dumping persistent IDMAP:\n";
@@ -362,6 +362,11 @@ add('<actual object name>', '<friendly object name>',
 sub add {
     my ( $self, $realname, $name, $sub, $on, $off, $statesub, $dev_properties ) = @_;
     my ($type, $room); # AoG Smart Home Provider device properties
+
+    if( !$realname ) {
+	&main::print_log("[AoGSmartHome] Realname must be specified for persistent idmap; ignoring AoG item.");
+	return;
+    }
 
     if ( !$name ) {
         $name = $realname;
@@ -456,8 +461,7 @@ EOF
 	    if( !ref $mh_object ) {
 		&main::print_log("[AoGSmartHome] '$self->{'uuids'}->{$uuid}->{'realname'} is not found.");
 	    }
-	    elsif ($mh_object->isa('Insteon::DimmableLight')
-		|| $mh_object->can('state_level') ) {
+	    elsif( $mh_object->can('is_dimmable')  &&  $mh_object->is_dimmable ) {
 		$response .= <<EOF;
      "action.devices.traits.Brightness",
 EOF
@@ -688,8 +692,7 @@ EOF
 	# If the device is dimmable we provided the "Brightness" trait, so we
 	# have to supply the "brightness" state.
 	my $mh_object = ::get_object_by_name($self->{'uuids'}->{$uuid}->{'realname'});
-	if ($mh_object->isa('Insteon::DimmableLight')
-	    || $mh_object->can('state_level') ) {
+	if( $mh_object->can('is_dimmable')  &&  $mh_object->is_dimmable ) {
 
 	    # INSTEON devices return "on" or "off". The AoG "Brightness" trait
 	    # expects needs "100" or "0", so we adjust here accordingly.

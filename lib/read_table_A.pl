@@ -2047,8 +2047,9 @@ sub read_table_finish_A {
         if ( $objects{$scene} ) {
 
             #Since an object exists with the same name as the scene,
-            #make it a controller of the scene, too. Hopefully it can be a controller
+            #make it a controller and responder of the scene, too. Hopefully it can be a controller
             $scene_build_controllers{$scene}{$scene} = "1";
+            $scene_build_responders{$scene}{$scene} = "1";
         }
 
         #Loop through the controller hash

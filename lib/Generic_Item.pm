@@ -254,6 +254,7 @@ sub _set_process {
 
     # Override any set_by_timer requests
     if ( $$self{timer} ) {
+	print "deleting timer due to set call\n" if $::Debug{set};
         &Timer::unset( $$self{timer} );
         delete $$self{timer};
     }

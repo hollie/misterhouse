@@ -303,6 +303,18 @@ sub new {
     return $self;
 }
 
+=item C<is_dimmable()>
+
+Returns whether object is dimmable.
+
+=cut
+
+sub is_dimmable {
+    my ( $self ) = @_;
+    return 1;
+}
+
+
 =item C<local_onlevel(level)>
 
 Sets and returns the local onlevel for the device in MH only. Level is a 
