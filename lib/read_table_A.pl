@@ -1918,15 +1918,8 @@ sub read_table_A {
         # MQTT_BROKER, name_of_broker
         # e.g.MQTT_BROKER, mqtt_1
         require 'mqtt.pm';
-        ( $name ) = @item_info;
-        $code .= sprintf( "\n\$%-35s = new mqtt(\"%s\", \$config_parms{mqtt_host},
-                \$config_parms{mqtt_server_port},
-                \$config_parms{mqtt_topic},
-                \$config_parms{mqtt_username},
-                \$config_parms{mqtt_password}, 121);\n",
-            $name,
-            $name
-        );
+        my ( $name, $topic, $host, $port, $username, $password, $keepalive ) = @item_info;
+        $code .= sprintf( "\n\$%-35s = new mqtt(\"%s\", '$host', '$port', '$topic', '$username', '$password', $keepalive );\n", $name, $name );
     }
     elsif ( $type eq "MQTT_DEVICE" ) {
         # there is one record per mqtt device and it must be below the MQTT_BROKER definition
@@ -1942,6 +1935,41 @@ sub read_table_A {
         $code .= sprintf( "\n\$%-35s = new mqtt_Item(\$%s\,\"%s\");\n",
             $name, $MQTT_broker_name, $MQTT_topic );
        
+    }
+    elsif( $type eq "MQTT_LOCALITEM" ) {
+	my ($object_name, $local_obj_name, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
+	require mqtt_items;
+	if( $broker ) {
+	    $broker = '$' . $broker;
+	} else {
+	    $broker = 'undef';
+	}
+	$code .= "\$${object_name} = new mqtt_LocalItem( ${broker}, '$object_name', '$type', \$$local_obj_name, '$topicprefix', $discoverable, '$friendly_name' ); #noloop\n";
+    }
+    elsif( $type eq "MQTT_REMOTEITEM" ) {
+	my ($object_name, $grouplist, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
+	require mqtt_items;
+	$code .= "\$${object_name} = new mqtt_RemoteItem( \$${broker}, '$type', '$topicprefix', $discoverable, '$friendly_name' );\n";
+    }
+    elsif( $type eq "MQTT_INSTMQTT" ) {
+	my ($object_name, $grouplist, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
+	require mqtt_items;
+	$code .= "\$${object_name} = new mqtt_InstMqttItem( \$${broker}, '$type', '$topicprefix', $discoverable, '$friendly_name' );\n";
+    }
+    elsif( $type eq "MQTT_DISCOVERY" ) {
+	my ($object_name, $discovery_topic, $broker) = @item_info;
+	require mqtt_discovery;
+	require mqtt_items;
+	$code .= "\$${object_name} = new mqtt_Discovery( \$${broker}, '$object_name', '$discovery_topic');  #noloop\n";
+    }
+    elsif( $type eq "MQTT_DISCOVEREDITEM" ) {
+	my ($object_name, $disc_name, $disc_topic, $disc_msg ) = $record =~ /MQTT_DISCOVEREDITEM\s*,\s*([^,]+),\s*([^,]+),\s*([^,]+)\,\s*(.*)$/;
+	$object_name =~ s/\s*$//;
+	$disc_name =~ s/\s*$//;
+	$disc_topic =~ s/\s*$//;
+	$disc_msg =~ s/\s*$//;
+	$disc_msg =~ s/\'/\\'/g;
+	$code .= "\$${object_name} = new mqtt_DiscoveredItem( \$${disc_name}, '$object_name', '$disc_topic', '$disc_msg' );\n";
     }
     #-------------- End MQTT Objects ----------------
     elsif ( $type =~ /PLCBUS_.*/ ) {
