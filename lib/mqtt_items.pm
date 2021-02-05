@@ -288,10 +288,12 @@ use Data::Dumper;
 @mqtt_BaseItem::ISA = ( 'Generic_Item' );
 
 
+
 =item C<new(mqtt_interface, name, type, state_topic, command_topic, listen_topic, discoverable, friendly_name )>
 
-    Creates a MQTT Base Item.
-    This function does not setup the {disc_info} structure.  That is left up to the child classes.
+    Creates an MQTT Base Item.
+
+    Note: This function does not setup the {disc_info} structure.  That is left up to the child classes.
 
 =cut
 
@@ -332,6 +334,30 @@ sub new {   ### mqtt_BaseItem
     }
 
     return $self;
+}
+
+sub log {
+    my( $self, $str ) = @_;
+    &main::print_log( 'MQTT: '. $str );
+}
+
+sub error {
+    my( $self, $str ) = @_;
+    &main::print_log( "MQTT ERROR: $str" );
+}
+
+sub debug {
+    my( $self, $level, $str ) = @_;
+    if( $self->debuglevel( $level, 'mqtt' ) ) {
+	&main::print_log( "MQTT D$level: $str" );
+    }
+}
+
+sub set_object_debug {
+    my( $self, $level ) = @_;
+    my $objname = lc $self->get_object_name();
+    $level = 1 if !defined $level;
+    $main::Debug{$objname} = $level;
 }
 
 =item C<is_dimmable()>
@@ -390,30 +416,6 @@ sub level {
 
 }
 
-
-sub set_object_debug {
-    my( $self, $level ) = @_;
-    $level = 1 if !defined $level;
-    $self->{debug_level} = $level;
-}
-
-sub debug {
-    my( $self, $level, $msg ) = @_;
-    if( $self->{debug_level} >= $level ) {
-	$level = 0;
-    }
-    &mqtt::debug( $self->{interface}, $level, $msg );
-}
-
-sub error {
-    my( $self, $msg ) = @_;
-    &mqtt::error( $self->{interface}, $msg );
-}
-
-sub log {
-    my( $self, $msg ) = @_;
-    &mqtt::log( $self->{interface}, $msg );
-}
 
 sub transmit_mqtt_message {
     my( $self, $topic, $msg, $retain ) = @_;

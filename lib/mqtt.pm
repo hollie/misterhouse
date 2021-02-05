@@ -989,7 +989,15 @@ sub get_interface_list {
 
 # ------------------------------------------------------------------------------
 
-=item C<(cleanup_retained_topics())>
+=item C<(cleanup_retained_topics( @pattern_list ))>
+
+Over time, retained messages accumulate in the broker.  When objects change names
+or are removed from your setup, the retained messages remain.
+
+This function is used to delete retained topics from the broker.  It will
+publish an empty message to all retained topics matching a pattern in the
+pattern list that misterhouse has received from this broker.
+
 =cut
 
 sub cleanup_retained_topics {
@@ -1032,6 +1040,10 @@ sub cleanup_retained_topics {
 
 
 =item C<(list_retained_topics())>
+
+This function will list all retained topics received by misterhouse, and some
+indication as to whether the topic was handled by some defined object.
+
 =cut
 
 sub list_retained_topics {
@@ -1047,7 +1059,10 @@ sub list_retained_topics {
 # ------------------------------------------------------------------------------
 
 
-=item C<(publish_mqtt_message())>
+=item C<(publish_mqtt_message( topic, message, retain ))>
+
+Publish an mqtt message.
+
 =cut
 
 sub publish_mqtt_message {
@@ -1064,7 +1079,10 @@ sub publish_mqtt_message {
 
 # ------------------------------------------------------------------------------
 
-=item C<(broadcast_mqtt_message())>
+=item C<(broadcast_mqtt_message( topic, message, retain ))>
+
+Broadcast an mqtt message to all defined brokers.
+
 =cut
 
 sub broadcast_mqtt_message {

@@ -243,22 +243,30 @@ sub get_object_name {
     return $self->{object_name};
 }
 
-sub debug {
-    my( $self, $level, $msg ) = @_;
-    if( $self->{debug} >= $level ) {
-	$level = 0;
-    }
-    &mqtt::debug( $self->{interface}, $level, $msg );
+sub log {
+    my( $self, $str ) = @_;
+    &main::print_log( 'MQTTDisc: '. $str );
 }
 
 sub error {
-    my( $self, $msg ) = @_;
-    &mqtt::error( $self->{interface}, $msg );
+    my( $self, $str ) = @_;
+    &main::print_log( "MQTTDisc ERROR: $str" );
 }
 
-sub log {
-    my( $self, $msg ) = @_;
-    &mqtt::log( $self->{interface}, $msg );
+sub debug {
+    my( $self, $level, $str ) = @_;
+    my $objname;
+    $objname = lc $self->get_object_name() if $self;
+    if( $main::Debug{'mqtt'} >= $level  ||  ($objname && $main::Debug{$objname} >= $level) ) {
+	&main::print_log( "MQTTDisc D$level: $str" );
+    }
+}
+
+sub set_object_debug {
+    my( $self, $level ) = @_;
+    my $objname = lc $self->get_object_name();
+    $level = 1 if !defined $level;
+    $main::Debug{$objname} = $level;
 }
 
 =item C<receive_mqtt_message( mqtt_topic, mqtt_message, mqtt_retained)>
