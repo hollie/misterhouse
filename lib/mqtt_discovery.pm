@@ -124,17 +124,18 @@ sub new {   #### mqtt_DiscoveredItem
 
     # Check for objects that already exist -- for example, if they were persisted in a .mht file
     my $found = 0;
+    my $unique_id = $disc_info->{unique_id}  ||  $device_id;
     for $obj ( @{ $interface->{objects} } ) {
-	if( $obj->{disc_info}->{unique_id} eq $device_id ) {
+	if( $obj->{disc_info}->{unique_id} eq $unique_id ) {
 	    if( $obj->{local_item} ) {
 		$disc_obj->debug( 1, "Ignoring discovery message received for local object: " . $obj->{local_item}->get_object_name );
 	    } else {
 		if( $short_disc_topic eq $obj->{disc_topic} ) {
-		    $disc_obj->debug( 1, "Discovery message received for device_id ($device_id) for object that already exists: " . $obj->get_object_name );
+		    $disc_obj->debug( 1, "Discovery message received for unique_id:($unique_id) for object that already exists: " . $obj->get_object_name );
 		    # Update the discover message so that if discovered items are written out, they get the new ones
 		    $obj->{disc_msg} = $disc_msg;
 		} else {
-		    $disc_obj->error( "Discovery message received for device_id $device_id, but topics don't match" );
+		    $disc_obj->error( "Discovery message received for unique_id:$unique_id, but topics don't match" );
 		}
 	    }
 	    $found = 1;
