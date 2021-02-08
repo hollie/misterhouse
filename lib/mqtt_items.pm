@@ -310,19 +310,14 @@ sub new {   ### mqtt_BaseItem
     $self->{discoverable}	    = $discoverable;
     $self->{topic}		    = $listentopics;
     $self->{disc_type}		    = $type;
-    if( $self->{mqtt_type} eq 'light' ) {
-	$self->set_states( "off", "20%", "40%", "50%", "60%", "80%", "on", "offline" );
-    } elsif( $self->{mqtt_type} eq 'binary_sensor' ) {
-	$self->set_states( "off", "on", "offline" );
-    } elsif( $self->{mqtt_type} eq 'sensor' ) {
-    } elsif( $self->{mqtt_type} eq 'switch' ) {
-	$self->set_states( "off", "on", "offline" );
-    } elsif( $self->{mqtt_type} eq 'scene' ) {
-	$self->{disc_type} = 'switch';
-	$self->set_states( "off", "on", "offline" );
-    } else {
+
+    if( !grep( /^$type$/, ('light', 'switch', 'binary_sensor', 'sensor', 'scene') ) ) {
 	$self->error( "UNKNOWN DEVICE TYPE: '$self->{mqtt_name}':$self->{mqtt_type}" );
 	return;
+    }
+
+    if( $self->{mqtt_type} eq 'scene' ) {
+	$self->{disc_type} = 'switch';
     }
 
     if( $self->{interface} ) {
@@ -1110,6 +1105,17 @@ sub new {   ### mqtt_BaseRemoteItem
     my ( $class, $interface, $mqtt_name, $type, $listentopics, $discoverable ) = @_;
 
     my $self = new mqtt_BaseItem( $interface, $mqtt_name, $type, $listentopics, $discoverable );
+
+    if( $self->{mqtt_type} eq 'light' ) {
+	$self->set_states( "off", "20%", "40%", "50%", "60%", "80%", "on", "offline" );
+    } elsif( $self->{mqtt_type} eq 'binary_sensor' ) {
+	$self->set_states( "off", "on", "offline" );
+    } elsif( $self->{mqtt_type} eq 'sensor' ) {
+    } elsif( $self->{mqtt_type} eq 'switch' ) {
+	$self->set_states( "off", "on", "offline" );
+    } elsif( $self->{mqtt_type} eq 'scene' ) {
+	$self->set_states( "off", "on", "offline" );
+    }
 
     bless $self, $class;
 

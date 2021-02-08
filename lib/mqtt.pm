@@ -936,7 +936,7 @@ sub parse_data_to_obj {
 		@split_device   = split( "/", $device_topic );
 		$counter        = 0;
 		foreach (@split_device) {
-		    if ( $split_device[$counter] eq "+" ) {
+		    if ( $split_device[$counter] eq "+"  &&  defined $split_incoming[$counter] ) {
 			$device_topic =~ s/\+/$split_incoming[$counter]/;
 		    }
 		    if ( $split_device[$counter] eq "#" ) {
