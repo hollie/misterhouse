@@ -142,10 +142,19 @@ sub new {
     }
     $self->{ack}         = 0;
     $self->{last_http_status};
-    
-    $self->{heartbeat_timestamp} = 0;
-    $self->{heartbeat_timer} = new Timer;
-    $self->{heartbeat_timer}->set(60);
+
+    if (( $options =~ m/nohb/i ) or ( $options =~ m/noheartbeatb/i )) {
+        $self->{heartbeat_enable} = 0;
+        &main::print_log("[Tasmota_HTTP::Item] " . $self->{address} . " heartbeat check DISABLED" );   
+
+    } else {
+        $self->{heartbeat_enable} = 1;
+        $self->{heartbeat_timestamp} = 0;
+        $self->{heartbeat_timer} = new Timer;
+        $self->{heartbeat_timer}->set(60);
+        &main::print_log("[Tasmota_HTTP::Item] " . $self->{address} . " heartbeat check enabled with 60 second timeout" );   
+
+    }
     my $mode = "synchronous get";
     
     if ($self->{async}) {
@@ -338,10 +347,12 @@ sub process_check {
             $self->{cmd_process}->start();
         }
     }
-    
-    if ($self->{heartbeat_timer}->expired()) {
-        &main::print_log("[Tasmota_HTTP::Item] $self->{address} WARNING. Lost heartbeat. Device might be offline");
-        $self->SUPER::set( 'unknown', 'heartbeat');
+    if ($self->{heartbeat_enable}) {
+
+        if ($self->{heartbeat_timer}->expired()) {
+            &main::print_log("[Tasmota_HTTP::Item] $self->{address} WARNING. Lost heartbeat. Device might be offline");
+            $self->SUPER::set( 'unknown', 'heartbeat');
+        }
     }
 }
 
@@ -474,14 +485,14 @@ sub new {
         "1" => "on",
     };
 
-    $self->{RRD} = 1;
-    $self->{RRD} =1 if ( $options =~ m/rrd/i );
+    $self->{RRD} = 0;
+    $self->{RRD} = 1 if ( $options =~ m/rrd/i );
     
     if ($self->{RRD}) {
-        $self->{RRD_filename} = $::config_parms{data_dir} . "/rrd/" . $self->{address} . ".rrd";
-        unless ( -e $self->{RRD_filename}) {
-            &main::print_log("[Tasmota_HTTP::Switch_PowerMon] $self->{address} Creating RRD file $self->{RRD_filename} for power usage");
-            create_rrd($self->{RRD_filename});
+        $self->set_rrd($::config_parms{data_dir} . "/rrd/" . $self->{address} . ".rrd","power,current");
+        unless ( -e $self->get_rrd()) {
+            &main::print_log("[Tasmota_HTTP::Switch_PowerMon] $self->{address} Creating RRD file " . $self->get_rrd() . " for power usage");
+            create_rrd($self->get_rrd());
         }
         &::MainLoop_post_add_hook( \&Tasmota_HTTP::Switch_PowerMon::update_rrd, 0, $self ); #check for $New_Minute and the update the RRD with the maximum value during the last minute
     }
@@ -525,7 +536,7 @@ sub reset_power_state {
 sub update_rrd {
     my ($self) = @_;
     if ($main::New_Minute) {
-        my $rrd = RRD::Simple->new( file => $self->{RRD_filename} );
+        my $rrd = RRD::Simple->new( file => $self->get_rrd() );
         #Use maximum values in the minute to avoid the loss of any power spikes in that minute
         &main::print_log("[Tasmota_HTTP::PowerMon] $self->{address} Writing to RRD: power=" . $self->{monitor}->{maxpower} . " current=" . $self->{monitor}->{maxcurrent}) if ($self->{debug});
         
