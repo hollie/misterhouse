@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.1.100";
+var ia7_ver = "v2.1.200";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -1050,7 +1050,7 @@ var loadList = function() {
 	var button_text = '';
 	var button_html = '';
 	var entity_arr = [];
-	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status,link,rgb";
+	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status,link,rgb,rrd";
 	$.ajax({
 		type: "GET",
 		url: "/json/"+HashtoJSONArgs(URLHash),
@@ -1430,7 +1430,7 @@ var sortArrayByArray = function (listArray, sortArray){
 //Used to dynamically update the state of objects
 var updateList = function(path) {
 	var URLHash = URLToHash();
-	URLHash.fields = "state,state_log,schedule,logger_status,type,rgb";
+	URLHash.fields = "state,state_log,schedule,logger_status,type,rgb,rrd";
 	URLHash.long_poll = 'true';
 	URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -1505,7 +1505,7 @@ var updateItem = function(item,link,time) {
 		time = "";
 	}
 	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
-	var arg_str = "fields=state,states,label,state_log,schedule,logger_status,rgb&long_poll=true&items="+item+"&time="+time;
+	var arg_str = "fields=state,states,label,state_log,schedule,logger_status,rgb,rrd&long_poll=true&items="+item+"&time="+time;
 	$.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
@@ -1558,7 +1558,7 @@ var updateStaticPage = function(link,time) {
    		 }
    	})
 	var URLHash = URLToHash();
-	URLHash.fields = "state,states,state_log,schedule,logger_status,label,type";
+	URLHash.fields = "state,states,state_log,schedule,logger_status,label,type,rgb,rrd";
 	URLHash.long_poll = 'true';
 	URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -3603,10 +3603,21 @@ var create_state_modal = function(entity) {
 
 		
 //RF		var modal_state = json_store.objects[entity].state;
-		var title = name + " - <span class='modal-object-state'>" + json_store.objects[entity].state + "</span>";
+		var title = "";
+
+//TODO Find a better place for this button
+		if (json_store.objects[entity].rrd !== undefined) {
+		    console.log("rrd found "+json_store.objects[entity].rrd);
+			var link = "/ia7/#path=/rrd?"+json_store.objects[entity].rrd;
+			title += "<a href='"+link+"' class='btn btn-success btn-sm rrd_data'><i class='fa fa-line-chart'></i></a> ";
+		}
+		
+		title += name + " - <span class='modal-object-state'>" + json_store.objects[entity].state + "</span>";
         if (json_store.objects[entity].rgb !== undefined) {
             title += '  <i class="fa fa-lg fa-circle fa-rgb-border object-color" style="color:rgb('+json_store.objects[entity].rgb+');"></i></span>';
         }
+
+		
 		$('#control').find('.object-title').html(title);
 		$('#control').find('.control-dialog').attr("entity", entity);
 		var modal_states = json_store.objects[entity].states;
@@ -3957,7 +3968,7 @@ var create_state_modal = function(entity) {
 			if (json_store.objects[entity].logger_status == "1") {
 				var collid = $(location).attr('href').split("_collection_key=");
 				var link = "/ia7/#path=/history?"+entity+"?1&_collection_key="+collid[1]+",";
-				object_log_header += "<a href='"+link+"' class='pull-right btn btn-success btn-xs logger_data'><i class='fa fa-line-chart'></i></a>";
+				object_log_header += "<a href='"+link+"' class='pull-right btn btn-success btn-xs logger_data'><i class='fa fa-history'></i></a>";
 			}
 			object_log_header += "</h4>"
 //			$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
@@ -3969,7 +3980,7 @@ var create_state_modal = function(entity) {
 				$('#control').find('.obj_log').append(slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br>");
 			}
 		}
-		
+
 		if (developer === true) 
 		    $('.mhstatemode').show();
 		else
