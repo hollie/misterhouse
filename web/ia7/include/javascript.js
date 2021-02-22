@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.1.200";
+var ia7_ver = "v2.1.300";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -2446,12 +2446,19 @@ var graph_rrd = function(start,group,time) {
 		updateSocket.abort();
 	}	
 	var path_str = "/rrd"  
-	//if the group has a dot, then it is a separate source
+	console.log("db start="+start+" group="+group+" time="+time);
 	var source = "&group="+group;
-	if (group.indexOf(".") !== -1) {
+	//if the group starts with file= then it is an object/file
+	if (group.toLowerCase().startsWith("file:")) {
+	    var rrd_source = group.split(":");
+	    source = "&file="+rrd_source[1]+"&ds="+rrd_source[2];	    
+    }
+	//if the group has a dot, then it is a separate source
+	else if (group.indexOf(".") !== -1) {
 	    var rrd_source = group.split(".");
 	    source = "&source="+rrd_source[0]+"&group="+rrd_source[1];
 	}
+
 	var arg_str = "start="+start+source+"&time="+time;
 	updateSocket = $.ajax({
 		type: "GET",
@@ -3605,10 +3612,10 @@ var create_state_modal = function(entity) {
 //RF		var modal_state = json_store.objects[entity].state;
 		var title = "";
 
-//TODO Find a better place for this button
+//TODO Find a better place for this button, and close the modal when clicked.
 		if (json_store.objects[entity].rrd !== undefined) {
-		    console.log("rrd found "+json_store.objects[entity].rrd);
-			var link = "/ia7/#path=/rrd?"+json_store.objects[entity].rrd;
+			var collid = $(location).attr('href').split("_collection_key=");
+			var link = "/ia7/#path=/rrd?now-6hour?file:"+json_store.objects[entity].rrd+"?1&_collection_key="+collid[1]+",";
 			title += "<a href='"+link+"' class='btn btn-success btn-sm rrd_data'><i class='fa fa-line-chart'></i></a> ";
 		}
 		
@@ -3993,6 +4000,9 @@ var create_state_modal = function(entity) {
 		$('.logger_data').on('click',function() {
 			$('#control').modal('hide');
 		});
+		$('.rrd_data').on('click',function() {
+			$('#control').modal('hide');
+		});		
 }	
 
 var create_develop_item_modal = function(colid,col_parent) {
