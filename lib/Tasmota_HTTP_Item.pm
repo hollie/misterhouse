@@ -1,24 +1,13 @@
-use Data::Dumper;
-#config ini for async
-# command queue
-# rule instructions
-# power RRD
-# check if IP address is valid.
-# heartbeat, timer in object, set object to undefined 
-# every 10 seconds on device
-# track power changes - power_changed subv
-# at startup, query state
-
 =begin comment
 
 Tasmota_HTTP_Item.pm
 
 Basic Tasmota support using the HTTP interface rather than MQTT
 Copyright (C) 2020 Jeff Siddall (jeff@siddall.name)
-Last modified: 2021-02-01 to push, power and async support
+Last modified: 2021-02-22 to push, power, rrd and async support (hp)
 
 CONFIG.INI
-setting tasmota_async=1 in config.ini will use aProcess_Item rather than a direct get to prevent pauses in main loop 
+setting tasmota_sync=1 in config.ini will use a direct get rather than a Process_Item to prevent pauses in main loop 
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -49,7 +38,7 @@ Requirements:
   RuleTimer 10
   
   * Rule 1 sends a 'heartbeat' web call every 10 seconds. If MH doesn't receive a heartbeat for a device within a minute, the
-    device state is set to 'unknown'
+    device state is set to 'unknown'. This can be disabled with the nohb option
     
   Rule2 ON Power1#State DO WebSend [mhip:port] /SUB;tasmota_push(state,%value%) ENDON
   
@@ -81,7 +70,7 @@ In your code define Tasmota_HTTP::Things in an MHT:
 
   TASMOTA_HTTP_SWITCH,   192.168.x.y,   Kitchen_Light,   POWER1,   Kitchen, options
   
-  where options are async or rrd (for power monitoring)
+  where options are sync (for sending a get directly in the loop), nohb (disable heartbeat checking), debug or rrd (for power monitoring)
 
 Or in a code file:
 
@@ -124,16 +113,14 @@ sub new {
 
     # Additional Tasmota variables
     $self->{address}     = $address;
-    #http ip_client_address returns an IP address, which is used by the push subroutine to track the proper item
-    # so important that an IP address is used:
-#    &main::print_log("[Tasmota_HTTP::Item]  WARNING IP address [$self->{address}] does not appear to be valid!") unless _IP_Valid($self->{address});
 
-#TODO 
-    $self->{async} = 0;
-    $self->{async} = 1 if ($main::config_parms{tasmota_async} or ($options =~ /async/i));
+    $self->{async} = 1;
+    $self->{async} = 0 if ($main::config_parms{tasmota_sync} or ($options =~ /sync/i));
   
     $self->{loglevel} = 1; #show INFO messages
-    $self->{debug} = 1;
+    $self->{debug} = 0;
+    $self->{debug} = 1 if ($main::Debug{tasmota} or ($options =~ /debug/i));
+
     
     if (defined($output)) {
         $self->{output_name} = $output;
@@ -143,7 +130,7 @@ sub new {
     $self->{ack}         = 0;
     $self->{last_http_status};
 
-    if (( $options =~ m/nohb/i ) or ( $options =~ m/noheartbeatb/i )) {
+    if (( $options =~ m/nohb/i ) or ( $options =~ m/noheartbeat/i )) {
         $self->{heartbeat_enable} = 0;
         &main::print_log("[Tasmota_HTTP::Item] " . $self->{address} . " heartbeat check DISABLED" );   
 
@@ -259,6 +246,7 @@ sub send_cmd {
 # $device->run_cmnd() returns on or off
 # $device->run_cmnd('status 10') returns a json string of the sensor status
 # $device->run_cmnd('restart 1') reboots the Tasmota
+# This is a synchronous call at this time
 
 sub run_cmnd {
 	my ( $self, $command ) = @_;
@@ -326,7 +314,6 @@ sub process_check {
         my ($state) =  $file_data =~ m/\:\"([a-zA-Z0-9]+)\"}/;
         my ($power) = $file_data =~ m/\"Power\"\:(\d+\.?\d*)/;
         my ($current) = $file_data =~ m/\"Current\"\:(\d+\.?\d*)/;
-#TODO stripe out the STATUSLINE and then json parse the remainder to avoid a per variable parsing.
         main::print_log( "[Tasmota_HTTP::Item] " . $self->{address} . " file_data=[" . $file_data . "]") if ($self->{debug});   
         main::print_log( "[Tasmota_HTTP::Item] " . $self->{address} . " status=$status state=$state power=$power current=$current") if ($self->{debug});   
        
@@ -356,16 +343,6 @@ sub process_check {
     }
 }
 
-sub _IP_valid {
-    my $ip = shift;
-    $ip =~/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-    foreach ($1,$2,$3,$4){
-        if ($_  <256 && $_ >0) {next;}
-        return 0;
-    }
-    return 1;
-}
-
 sub heartbeat {
     my ($self) = @_;
 
@@ -388,18 +365,18 @@ sub main::tasmota_push {
         
         } elsif ($attribute eq "state") {
             my $state = $Tasmota_HTTP_Items->{$client_ip_address}->{object}->{tasmota_to_state}{$value};
-            &main::print_log("[Tasmota_HTTP::Item] INFO Received state $state for tasmota device with IP address $client_ip_address") if ($loglevel);
+            &main::print_log("[Tasmota_HTTP::Item] INFO Received state $state for tasmota device with IP address $client_ip_address") if ($debug);
             $Tasmota_HTTP_Items->{$client_ip_address}->{object}->set($state,'push');
 
         } elsif ($attribute eq "hb") {
-            &main::print_log("[Tasmota_HTTP::Item] INFO Received heartbeat for tasmota device with IP address $client_ip_address") if ($loglevel);
+            &main::print_log("[Tasmota_HTTP::Item] INFO Received heartbeat for tasmota device with IP address $client_ip_address") if ($debug);
             $Tasmota_HTTP_Items->{$client_ip_address}->{object}->{heartbeat_timer}->restart();
             $Tasmota_HTTP_Items->{$client_ip_address}->{object}->{heartbeat_timestamp} = $main::Time;
             $Tasmota_HTTP_Items->{$client_ip_address}->{object}->send_cmd($Tasmota_HTTP_Items->{$client_ip_address}->{object}->{output_name}) if (lc $Tasmota_HTTP_Items->{$client_ip_address}->{object}->state eq "unknown")
         }
         if ($type eq "switch_powermon") {
             if ($attribute eq "power") {
-               &main::print_log("[Tasmota_HTTP::Item] INFO received power information for $client_ip_address. Power: $value Current: $value2") if ($loglevel);
+               &main::print_log("[Tasmota_HTTP::Item] INFO received power information for $client_ip_address. Power: $value Current: $value2") if ($debug);
                $Tasmota_HTTP_Items->{$client_ip_address}->{object}->update_power($value,$value2);
             } 
         }
@@ -618,8 +595,6 @@ sub create_rrd {
 
     main::print_log( "[Tasmota_HTTP::PowerMon ] ERROR creating RRD $file!" ) if RRDs::error;
 }
-
-#be nice to stick the power into an RRD
 
 #=======================================================================================
 #
