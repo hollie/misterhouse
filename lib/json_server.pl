@@ -575,6 +575,7 @@ sub json_get {
         my $index    = 0;
         my @round    = ();
         my @type     = ();
+        my @colors   = ('#330099','#00ff00','#3300FF','#330099','#2B65EC','#FF0000','#009933','#FBB117','#CC33CC','#00FF00','#FF99CC','#990000');
         my $celsius  = 0;
         my $kph      = 0;
         my $arg_time = 0;
@@ -608,7 +609,7 @@ sub json_get {
                     }
                 }
             }
-
+            my $color_index = 0;
             foreach my $ds ( @{ $args{ds} } ) {
                 push @dss, $ds;
 
@@ -620,7 +621,10 @@ sub json_get {
                 $cf = $ds_config->{$ds}->{'cf'} if ( defined $ds_config->{$ds}->{'cf'} );
                 push @defs,   "DEF:$ds=$path/$rrd_file:$ds:$cf";
                 push @xports, "XPORT:$ds";
+                $dataset[$index]->{'label'} = $ds;
                 $dataset[$index]->{'label'} = $ds_config->{$ds}->{'label'} if ( defined $ds_config->{$ds}->{'label'} );
+                $color_index = 0 if ($color_index > scalar(@colors));
+                $dataset[$index]->{'color'} = $colors[$color_index++];
                 $dataset[$index]->{'color'} = $ds_config->{$ds}->{'color'} if ( defined $ds_config->{$ds}->{'color'} );
                 if ( lc $ds_config->{$ds}->{'type'} eq "bar" ) {
                     $dataset[$index]->{'bars'}->{'show'}      = "true";
