@@ -150,7 +150,7 @@ sub new {   #### mqtt_DiscoveredItem
     }
 
     # create local MH object
-    $obj_name = 'mqtt_';
+    $obj_name = 'mqttd_';
     if( $realm ) {
 	#  $realm helps to identify the device
 	$obj_name .= "${realm}_";
@@ -292,12 +292,10 @@ sub receive_mqtt_message {
 	$obj->{filename} = "mqtt_discovery";
 	$obj->{object_name} = "\$$obj_name";
 	&main::register_object_by_name("\$$obj_name",$obj);
+	if( $discovered_items_filename ) {
+	    &write_discovered_items( $discovered_items_filename );
+	}
     }
-
-    if( $discovered_items_filename ) {
-	&write_discovered_items( $discovered_items_filename );
-    }
-
 }
 
 
@@ -330,7 +328,7 @@ sub write_discovered_items {
 	}
     }
     if( !open( $f, "> ${outfilename}" ) ) {
-	&mqtt->error( "Unable to open discovery target file '${outfilename}" );
+	&mqtt::error( "Unable to open discovery target file '${outfilename}" );
 	return;
     }
     print {$f} "Format = A\n\n";

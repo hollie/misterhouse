@@ -313,7 +313,7 @@ sub new {   ### mqtt_BaseItem
     $self->{topic}		    = $listentopics;
     $self->{disc_type}		    = $type;
 
-    if( !grep( /^$type$/, ('light', 'switch', 'binary_sensor', 'sensor', 'scene') ) ) {
+    if( !grep( /^$type$/, ('light', 'switch', 'binary_sensor', 'sensor', 'scene', 'multi_switch') ) ) {
 	$self->error( "UNKNOWN DEVICE TYPE: '$self->{mqtt_name}':$self->{mqtt_type}" );
 	return;
     }
@@ -544,6 +544,8 @@ sub decode_mqtt_payload {
 	}
     } elsif( $$self{mqtt_type} eq 'sensor' ) {
         $msg = $value;
+    } elsif( $$self{mqtt_type} eq 'multi_switch' ) {
+        $msg = $value;
     } else {
 	$self->error( "Unknown object type '$$self{mqtt_type}' on object '$$self{topic}'" );
     }
@@ -578,6 +580,14 @@ sub encode_mqtt_payload {
     if( $self->{mqtt_type} eq 'light' ) {
 	($level) = $setval =~ /^([1]?[0-9]?[0-9])%?$/;
     }
+    if( $self->{mqtt_type} eq 'sensor'
+    ||  $self->{mqtt_type} eq 'multi_switch'
+    ) {
+	$payload = $setval;
+	return $payload;
+    }
+
+    # on/off/level type
     if( $level ) {
 	if ( $level < 1 ) {
 	    $level = 0;
@@ -593,7 +603,8 @@ sub encode_mqtt_payload {
 	$value = $value_off;
 	$brightness = 0;
     } else {
-	$value = $setval;
+	$self->error( "Unknown set value '$setval' for on/off/level mqtt type" );
+	return;
     }
 
     if( $self->{mqtt_type} eq 'light' ) {
@@ -608,12 +619,11 @@ sub encode_mqtt_payload {
 	}
     } elsif( $self->{mqtt_type} eq 'switch' 
     ||       $self->{mqtt_type} eq 'binary_sensor'
-    ||       $self->{mqtt_type} eq 'sensor'
     ||       $self->{mqtt_type} eq 'scene'
     ) {
 	$payload = $value;
     } else {
-	$self->log( "MQTT Error: unknown object type '$$self{mqtt_type}' on object '$$self{mqtt_name}'" );
+	$self->error( "Unknown object type '$$self{mqtt_type}' on object '$$self{mqtt_name}'" );
     }
     return $payload;
 }
@@ -875,7 +885,7 @@ sub new {     ### mqtt_LocalItem
 
     my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
 
-    if( !grep( /$base_type/, ('light','switch','binary_sensor', 'sensor', 'scene' ) ) ) {
+    if( !grep( /^$base_type$/, ('light','switch','binary_sensor', 'sensor', 'scene', 'multi_switch' ) ) ) {
 	$interface->error( "Invalid mqtt type '$type'" );
 	return;
     }
@@ -937,6 +947,8 @@ sub new {     ### mqtt_LocalItem
 	if( $device_class eq 'temperature' ) {
 	    $self->{disc_info}->{unit_of_measurement} = 'C';
 	}
+    } elsif( $base_type eq 'multi_switch' ) {
+	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
     }
 
     $self->{is_local} = 1;
@@ -989,7 +1001,7 @@ sub receive_mqtt_message {
 	$obj_name = $self->get_object_name();
     }
     if( $topic eq $self->{disc_info}->{state_topic} ) {
-	$self->debug( 1, "LocalItem ignoring state topic message" );
+	$self->debug( 1, "LocalItem $obj_name ignoring state topic message" );
     } elsif( $topic eq $self->{disc_info}->{command_topic} ) {
 	if( $retained ) {
 	    $self->log( "LocalItem received retained command message -- ignoring" );
