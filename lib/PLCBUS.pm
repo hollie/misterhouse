@@ -5,7 +5,7 @@ use Group;
 use Process_Item;
 use IO::Socket::INET;
 use IO::Select;
-
+use Class::Singleton;
 package PLCBUS;
 use 5.12.0;
 
