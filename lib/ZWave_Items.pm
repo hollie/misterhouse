@@ -486,6 +486,17 @@ sub convert_percents {
     return $data;
 }
 
+=item C<is_dimmable()>
+
+Returns whether object is dimmable.
+
+=cut
+
+sub is_dimmable {
+    my ( $self ) = @_;
+    return 1;
+}
+
 sub state_level {
 
     #    print "state level called\n";

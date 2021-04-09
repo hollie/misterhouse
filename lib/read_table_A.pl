@@ -329,6 +329,13 @@ sub read_table_A {
         $other = join ', ', ( map { "'$_'" } @other );             # Quote data
         $object = "Insteon::FanLinc(\'$address\', $other)";
     }
+    elsif ( $type eq "INSTEON_OUTLETLINC" ) {
+	#<,INSTEON_OUTLETLINC,Address,Name,Groups>#
+        require Insteon::Lighting;
+        ( $address, $name, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );             # Quote data
+        $object = "Insteon::OutletLinc(\'$address\', $other)";
+    }
     elsif ( $type eq "INSTEON_ICONTROLLER" ) {
 	#<,SCENE_MEMBER,MemberName,LinkName,OnLevel,RampRate>#
         require Insteon::BaseInsteon;
@@ -1840,7 +1847,45 @@ sub read_table_A {
         $object = '';
     }
     #-------------- End Alexa Objects ----------------
-
+    #-------------- BondHome Objects -----------------
+    elsif ( $type eq "BONDHOME" ) {
+        #<Bond Home (BONDHOME),BONDHOME,Name,Instance>#
+        require 'BondHome.pm';
+	$code .= '#noloop=start'."\n";
+        my ($instance);
+        ( $name, $instance, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $object = "BondHome('$instance','$other')".';'."\n".'#noloop=stop'."\n";
+    }
+    elsif ( $type eq "BONDHOME_DEVICE" ) {
+        #<Bond Home (BONDHOME_DEVICE),BONDHOME_DEVICE,Name,Instance,BondDevName>#
+	require 'BondHome.pm';
+	$code .= '#noloop=start'."\n";
+	my ($instance, $bonddevname);
+        ( $name, $instance, $bonddevname, $grouplist, @other ) = @item_info;
+	$other = join ', ', ( map { "'$_'" } @other );
+        $object = "BondHome_Device('$instance','$bonddevname')".';'."\n".'#noloop=stop'."\n";
+	$code .= '#noloop=stop'."\n";
+    }
+    elsif ( $type eq "BONDHOME_MANUAL" ) {
+        #<Bond Home (BONDHOME_MANUAL),BONDHOME_MANUAL,Name,Instance>#
+	require 'BondHome.pm';
+	$code .= '#noloop=start'."\n";
+        my ($instance);
+        ( $name, $instance, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );
+        $object = "BondHome_Manual('$instance')".';'."\n".'#noloop=stop'."\n";
+	$code .= '#noloop=stop'."\n";
+    }
+    elsif ( $type eq "BONDHOME_MANUAL_CMD" ) {
+        #<Bond Home (BONDHOME_MANUAL_CMD),BONDHOME_MANUAL_CMD,BondHomeManualObject,CommandName,Frequency,Modulation,Encoding,Bps,Reps,Data>#
+        $code .= '#noloop=start'."\n";
+	my ($parent, $cmdname, $frequency, $modulation, $encoding, $bps, $reps, $data) = @item_info;;
+	$code .= sprintf "\$%-35s -> addcmd('$cmdname', '$frequency', '$modulation', '$encoding', '$bps', '$reps', '$data');\n", $parent;
+        $object = '';
+	$code .= '#noloop=stop'."\n";
+    }
+    #-------------- End BondHome Objects -----------------
     #-------------- AoGSmartHome Objects -----------------
     elsif ( $type eq "AOGSMARTHOME_ITEMS" ) {
 	#<Actions on Google (AOGSMARTHOME_ITEMS),AOGSMARTHOME_ITEMS,Name>#
@@ -1854,16 +1899,79 @@ sub read_table_A {
         $sub =~ s%^&%\\&%; # "&my_subroutine" -> "\&my_subroutine"
         $sub =~ s%^\\\\&%\\&%; # "\\&my_subroutine" -> "\&my_subroutine"
         $sub = "'$sub'" if $sub !~ /&/;
+        $statesub =~ s%^&%\\&%; # "&my_subroutine" -> "\&my_subroutine"
+        $statesub =~ s%^\\\\&%\\&%; # "\\&my_subroutine" -> "\&my_subroutine"
+        $statesub = "'$statesub'" if $statesub !~ /&/;
         $realname = "\$$realname" if $realname;
         my $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         if (!$packages{AoGSmartHome_Items}++ ) { # first time for this object type?
             $code .= "use AoGSmartHome_Items;\n";
         }
-        $code .= sprintf "\$%-35s -> add('$realname','$name',$sub,'$on','$off','$statesub',$other);\n", $parent;
+        $code .= sprintf "\$%-35s -> add('$realname','$name',$sub,'$on','$off',$statesub,$other);\n", $parent;
         $object = '';
     }
     #-------------- End AoGSmartHome Objects ----------------
-
+    #-------------- MQTT Objects -----------------
+    elsif ( $type eq "MQTT_BROKER" ) {
+         # there must be one record for the broker above any MQTT_DEVICE definitions
+        # it takes the following format
+        # MQTT_BROKER, name_of_broker
+        # e.g.MQTT_BROKER, mqtt_1
+        require 'mqtt.pm';
+        my ( $name, $topic, $host, $port, $username, $password, $keepalive ) = @item_info;
+        $code .= sprintf( "\n\$%-35s = new mqtt(\"%s\", '$host', '$port', '$topic', '$username', '$password', $keepalive );\n", $name, $name );
+    }
+    elsif ( $type eq "MQTT_DEVICE" ) {
+        # there is one record per mqtt device and it must be below the MQTT_BROKER definition
+        # it takes the following form
+        # MQTT_DEVICE, name_of_device, groups, name_of_broker, topic
+        # e.g. MQTT_DEVICE, MQTT_test, Kitchen, mqtt_1, stat/mh_mqtt_test/SENSOR
+        # if the device is to transmit to MH, its topic must match the
+        # config parameter mqtt_topic in the mh.ini file   
+        require 'mqtt.pm';
+        my ($MQTT_broker_name, $MQTT_topic);
+        ( $name, $grouplist, $MQTT_broker_name, $MQTT_topic ) = @item_info;
+       
+        $code .= sprintf( "\n\$%-35s = new mqtt_Item(\$%s\,\"%s\");\n",
+            $name, $MQTT_broker_name, $MQTT_topic );
+       
+    }
+    elsif( $type eq "MQTT_LOCALITEM" ) {
+	my ($object_name, $local_obj_name, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
+	require mqtt_items;
+	if( $broker ) {
+	    $broker = '$' . $broker;
+	} else {
+	    $broker = 'undef';
+	}
+	$code .= "\$${object_name} = new mqtt_LocalItem( ${broker}, '$object_name', '$type', \$$local_obj_name, '$topicprefix', $discoverable, '$friendly_name' ); #noloop\n";
+    }
+    elsif( $type eq "MQTT_REMOTEITEM" ) {
+	my ($object_name, $grouplist, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
+	require mqtt_items;
+	$code .= "\$${object_name} = new mqtt_RemoteItem( \$${broker}, '$type', '$topicprefix', $discoverable, '$friendly_name' );\n";
+    }
+    elsif( $type eq "MQTT_INSTMQTT" ) {
+	my ($object_name, $grouplist, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
+	require mqtt_items;
+	$code .= "\$${object_name} = new mqtt_InstMqttItem( \$${broker}, '$type', '$topicprefix', $discoverable, '$friendly_name' );\n";
+    }
+    elsif( $type eq "MQTT_DISCOVERY" ) {
+	my ($object_name, $discovery_topic, $broker) = @item_info;
+	require mqtt_discovery;
+	require mqtt_items;
+	$code .= "\$${object_name} = new mqtt_Discovery( \$${broker}, '$object_name', '$discovery_topic');  #noloop\n";
+    }
+    elsif( $type eq "MQTT_DISCOVEREDITEM" ) {
+	my ($object_name, $disc_name, $disc_topic, $disc_msg ) = $record =~ /MQTT_DISCOVEREDITEM\s*,\s*([^,]+),\s*([^,]+),\s*([^,]+)\,\s*(.*)$/;
+	$object_name =~ s/\s*$//;
+	$disc_name =~ s/\s*$//;
+	$disc_topic =~ s/\s*$//;
+	$disc_msg =~ s/\s*$//;
+	$disc_msg =~ s/\'/\\'/g;
+	$code .= "\$${object_name} = new mqtt_DiscoveredItem( \$${disc_name}, '$object_name', '$disc_topic', '$disc_msg' );\n";
+    }
+    #-------------- End MQTT Objects ----------------
     elsif ( $type =~ /PLCBUS_.*/ ) {
 	#<,PLCBUS_Scene,Address,Name,Groups,Default|Scenes>#
         require PLCBUS;
@@ -1879,6 +1987,28 @@ sub read_table_A {
             $code .= "use Wink;\n";
             &::MainLoop_pre_add_hook( \&Wink::GetDevicesAndStatus, 1 );
         }
+    }
+    elsif ( $type eq "KASA" ) {
+        require Kasa_Item;
+        my ( $type, $index );
+        ( $address, $name, $type, $index, $grouplist ) = @item_info;
+        # Check if device has an index 
+        if ($index eq '') {
+            $object = "Kasa_Item('$address', '$type')";
+        } else {
+            $object = "Kasa_Item('$address', '$type', $index)";
+        }
+    }
+    elsif ( $type eq "TASMOTA_HTTP_SWITCH" ) {
+        require Tasmota_HTTP_Item;
+        my ( $output );
+        ( $address, $name, $output, $grouplist ) = @item_info;
+        $object = "Tasmota_HTTP::Switch('$address', '$output')";
+    }
+    elsif ( $type eq "TASMOTA_HTTP_FAN" ) {
+        require Tasmota_HTTP_Item;
+        ( $address, $name, $grouplist ) = @item_info;
+        $object = "Tasmota_HTTP::Fan('$address')";
     }
     else {
         print "\nUnrecognized .mht entry: $record\n";
@@ -1945,8 +2075,9 @@ sub read_table_finish_A {
         if ( $objects{$scene} ) {
 
             #Since an object exists with the same name as the scene,
-            #make it a controller of the scene, too. Hopefully it can be a controller
+            #make it a controller and responder of the scene, too. Hopefully it can be a controller
             $scene_build_controllers{$scene}{$scene} = "1";
+            $scene_build_responders{$scene}{$scene} = "1";
         }
 
         #Loop through the controller hash
@@ -2053,9 +2184,9 @@ sub validate_def {
                 ::print_log(
                     "[Read_Table_A] WARNING: $_[0]: $$passed_values[0] On level should be 0-100%, got \"$$passed_values[$paramNum]\" "
                   )
-                  unless ( $$passed_values[$paramNum] =~ m/^(\d+)%?$/
+                  unless (( $$passed_values[$paramNum] =~ m/^(\d+)%?$/
                     && $1 <= 100
-                    && $1 >= 0 );
+                    && $1 >= 0 ) or (lc $$passed_values[$paramNum] =~ /^sur/i));
             }
             elsif ( $param_type eq 'insteon_ramp_rate' ) {
                 ::print_log(

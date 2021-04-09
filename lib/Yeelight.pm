@@ -1,4 +1,4 @@
-=head1 B<yeelight> v1.3.0
+=head1 B<yeelight> v1.4.3
 
 =head2 Initial Setup
 # To set up, first pair with mobile app -- the Yeelight needs to be set up initially with the app
@@ -54,6 +54,7 @@ what features are supported
 
 =cut
 our $yl_instances;
+our $yl_ssdp_scanned;
 
 package Yeelight;
 
@@ -71,6 +72,7 @@ use IO::Socket::INET;
 
 @Yeelight::ISA = ('Generic_Item');
 
+my %Socket_Items; #Stores the socket instances and attributes - taken from AD2.pm
 # -------------------- START OF SUBROUTINES --------------------
 # --------------------------------------------------------------
 
@@ -114,7 +116,7 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.3.0";
+    $self->{module_version}         = "v1.4";
     $self->{ssdp_timeout}           = 1000;
     $self->{ssdp_timeout}           = $main::config_parms{yeelight_ssdp_timeout} if ( defined $main::config_parms{yeelight_ssdp_timeout} );
 
@@ -128,9 +130,9 @@ sub new {
     if ($location =~ m/:/) {
         ($self->{host}, $self->{port}) = $location =~ /(.*):(.*)/;
     } 
-
+     
     $options = "" unless ( defined $options );
-    $options = $::config_parms{ "yeelight_" . $self->{name} . "_options" } if ( $::config_parms{ "yeelight_" . $self->{name} . "_options" } );
+    $options = $::config_parms{ "yeelight_" . $location . "_options" } if ( $::config_parms{ "yeelight_" . $location . "_options" } );
 
     $self->{debug} = 0;
     ( $self->{debug} ) = ( $options =~ /debug\=(\d+)/i ) if ( $options =~ m/debug\=/i );
@@ -155,23 +157,21 @@ sub new {
     $self->{command_timeout}                = $main::config_parms{yeelight_command_timeout} if ( defined $main::config_parms{yeelight_command_timeout} );
 
     @{ $self->{poll_queue} } = ();
-    $self->{poll_data_file} = "$::config_parms{data_dir}/Yeelight_poll_" . $self->{name} . ".data";
-    unlink "$::config_parms{data_dir}/Yeelight_poll_" . $self->{name} . ".data";
+    $self->{poll_data_file} = "$::config_parms{data_dir}/Yeelight_poll_" . $location . ".data";
+    unlink "$::config_parms{data_dir}/Yeelight_poll_" . $location . ".data";
     $self->{poll_process} = new Process_Item;
     $self->{poll_process}->set_output( $self->{poll_data_file} );
     @{ $self->{cmd_queue} } = ();
-    $self->{cmd_data_file} = "$::config_parms{data_dir}/Yeelight_cmd_" . $self->{name} . ".data";
-    unlink "$::config_parms{data_dir}/Yeelight_cmd_" . $self->{name} . ".data";
+    $self->{cmd_data_file} = "$::config_parms{data_dir}/Yeelight_cmd_" . $location . ".data";
+    unlink "$::config_parms{data_dir}/Yeelight_cmd_" . $location . ".data";
     $self->{cmd_process} = new Process_Item;
     $self->{cmd_process}->set_output( $self->{cmd_data_file} );
     $self->{init}      = 0 unless ($self->{init});
     $self->{init_data} = 0;
     $self->{init_v_cmd} = 0;
-    $self->{data_socket} = new Socket_Item(undef, undef, "$self->{host}:$self->{port}", "yeelight" . $self->{id}, 'tcp', 'raw');
-    $self->{recon_timer} = new Timer;
-    $self->{reconnect_time} = 10;
+    
+    $self->server_startup unless (defined $Socket_Items{"$self->{id}"}{recon_timer});
     &::MainLoop_post_add_hook( \&Yeelight::process_check, 0, $self );
-    &::MainLoop_post_add_hook( \&Yeelight::check_for_socket_data, 0, $self );    
     &::Reload_post_add_hook( \&Yeelight::generate_voice_commands, 1, $self );
     #push( @{ $$self{states} }, 'off', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', 'on' );
     push( @{ $$self{states} }, 'off');
@@ -182,18 +182,46 @@ sub new {
     return $self;
 }
 
+sub server_startup {
+   my ($self) = @_;
+
+   $Socket_Items{"yeelight_$self->{id}"}{recon_timer} = ::Timer::new();
+   main::print_log("[Yeelight]   STARTUP: initializing instance yeelight_$self->{id} TCP session on $self->{host}:$self->{port}");
+   $Socket_Items{"yeelight_$self->{id}"}{'socket'} = new Socket_Item(undef, undef, "$self->{host}:$self->{port}", "yeelight_$self->{id}", 'tcp', 'raw');
+   #$Socket_Items{"yeelight_$self->{id}"}{'socket'}->start;
+   ::MainLoop_pre_add_hook( \&Yeelight::check_for_socket_data, 1, $self );
+   # $self->{data_socket} = new Socket_Item(undef, undef, "$self->{host}:$self->{port}", "yeelight" . $self->{id}, 'tcp', 'raw');
+   # $self->{recon_timer} = new Timer;
+    $self->{reconnect_time} = 10;  
+   # &::MainLoop_post_add_hook( \&Yeelight::check_for_socket_data, 0, $self );    
+     
+}
+
+
 sub check_for_socket_data {
     my ($self) = @_;
 
-# Other objects use a socket in $Socket_Items?
-#         $NewCmd = $Socket_Items{$instance}{'socket'}->said;
-
+    my $rec_data;
     my $com_status = "offline";
-    if ($self->{data_socket}->active) {
-        my $rec_data = $self->{data_socket}->said;
+      if ($Socket_Items{"yeelight_$self->{id}"}{'socket'}->active) {
+         $rec_data = $Socket_Items{"yeelight_$self->{id}"}{'socket'}->said;
+      } else {
+         # restart the TCP connection if its lost.
+         if (($Socket_Items{"yeelight_$self->{id}"}{recon_timer}->inactive) and ($self->{init})) {
+            main::print_log("Connection to yeelight_$self->{id} instance of Yeelight was lost, I will try to reconnect in $$self{reconnect_time} seconds");
+            $Socket_Items{"yeelight_$self->{id}"}{recon_timer}->set($$self{reconnect_time}, sub {
+               $Socket_Items{"yeelight_$self->{id}"}{'socket'}->start;
+            });
+         }
+      }
+
+   # Return if nothing received
+   #return if !$rec_data;
+   
+    if ($rec_data) {
         $self->{socket_connected} = 1;
         $com_status = "online";
-        return if (!defined $rec_data or $rec_data eq "");
+        return if ($rec_data eq "");
         $rec_data =~ s/\r\n//g;
         print "debug: rec_data=$rec_data\n" if ( $self->{debug} > 2);
         my ($json_data) = $rec_data =~ /({.*})/;
@@ -223,20 +251,13 @@ sub check_for_socket_data {
             }
         }
 
-    } else {
-        if (($self->{init}) and ($self->{socket_connected})) {
-            main::print_log( "[Yeelight:" . $self->{name} . "] Lost connection to Yeelight. Trying to connect again in $self->{reconnect_time} seconds" );
-            $self->{recon_timer}->set($self->{reconnect_time}, sub {$self->{data_socket}->start();});
-            $com_status = "offline";
-            $self->{socket_connected} = 0;
-        }
-    }
-
+    } 
+#TODO 259 & 260 give uninitialized value errors.
     if ( defined $self->{child_object}->{comm} ) {
         if (( $self->{status} ne $com_status ) or ($self->{child_object}->{comm}->state() ne $com_status)) {
             $self->{status} = $com_status;
             if ($self->{child_object}->{comm}->state() ne $com_status) {
-                main::print_log "[Yeelight:" . $self->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
+                main::print_log "[Yeelight:" . $self->{name} . "] 1 Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to " . $com_status . "..." if ( $self->{loglevel} );
                 $self->{child_object}->{comm}->set( $com_status, 'poll' );
             }
         }
@@ -259,12 +280,14 @@ sub get_data {
     if ( $self->{data}->{info}->{Location} ) {
 
         if ( ( defined $self->{data}->{info}->{model} ) and ( $self->{init} == 0 ) ) {
-            main::print_log( "[Yeelight:" . $self->{name} . "] " . $self->{module_version} . " Configuration Loaded. Starting Socket listener..." );
+            main::print_log( "[Yeelight:" . $self->{name} . "] " . $self->{module_version} . " Configuration Found. Starting Server Socket..." );
             $active_yeelights{ $self->{host} } = 1;
             $self->print_info();
             $self->{init} = 1;
             $self->process_data();
-            $self->{data_socket}->start();
+            #$self->{data_socket}->start();
+            $Socket_Items{"yeelight_$self->{id}"}{'socket'}->start;
+
         }
 
     }
@@ -329,7 +352,9 @@ sub process_check {
 
                 my $index = 0;
                 foreach my $item (@{$param_array{info}}) {
+                    #$self->{data}->{info}->{power} 
                     $self->{data}->{info}->{$item} = $data->{result}[$index] unless ($data->{result}[$index] eq "");
+                    print "poll process debug: index=$index " . '$self->{data}->{info}->{' . $item . "} = $data->{result}[$index] \n" if ( $self->{debug} > 2);
                     $index++;
                 }
 
@@ -439,6 +464,9 @@ sub _get_TCP_data {
 sub _push_TCP_data {
     my ( $self, $mode, @params ) = @_;
 
+    #check if socket is open
+#    main::print_log( "[Yeelight:" . $self->{name} . "] 
+
     my $cmdline = "{ \"id\":" . $self->{id} . ", \"method\":" . $method{$mode} . ", \"params\":[";
     $cmdline .= join(',',@params);
     $cmdline .= "] }";
@@ -520,7 +548,8 @@ SSDP
     my $data;
     my $i;
     my $count = 0;
-    &main::print_log( "[Yeelight] Discovering >" );
+    my %locations = ();
+    &main::print_log( "[Yeelight] Discovering >" ) unless ($yl_ssdp_scanned);
     while ($i++ < $timeout) {
         select undef, undef, undef, .1;
 
@@ -530,12 +559,13 @@ SSDP
         recv($sock,$data, 65536,0);
         my ($location) = $data =~ /Location:\syeelight:\/\/(.*)/;
         $location =~ s/[^a-zA-Z0-9\:\.\/]*//g;
-        if ($location) {
+        if (($location) and (! defined $locations{$location})) {
+            $locations{$location} = 1;
             $count++;
              my ($host, $port) = $location =~ /(.*):(.*)/;
              $yl{$host}->{host} = $host;
              $yl{$host}->{port} = $port; 
-             &main::print_log( "[Yeelight] Found $count (loop $i) (location $location)");
+             &main::print_log( "[Yeelight] Found Yeelight $count (location $location)") unless ($yl_ssdp_scanned);
                
              #Go through the rest of the data 
              foreach my $line (split(/\n/,$data)) {
@@ -552,6 +582,7 @@ SSDP
             $yl{$host}->{name} = "" unless (defined $yl{$host}->{name});
         }
     }
+    $yl_ssdp_scanned = $count;
     return \%yl;    
     }
 
@@ -832,6 +863,7 @@ sub set_rgb {
         my $value = ($r * 65536) + ($g * 256) + $b;
         my @params = @{$param_array{rgb}};
         unshift @params, $value;
+        main::print_log ("[Yeelight:" . $self->{name} . "] params = " . join(@params,','));
         $self->_push_TCP_data( 'rgb', @params );
     } else {
         main::print_log( "[Yeelight:" . $self->{name} . "] ERROR, RGB value out of range (0-255). Red=$r, Green=$g, Blue=$b" );
@@ -861,9 +893,11 @@ sub set_ct {
 
 sub restart_socket {
     my ($self) = @_;
-
-    $self->{data_socket}->stop();
-    $self->{data_socket}->start();
+    main::print_log( "[Yeelight:" . $self->{name} . "] Socket Active: ".    $Socket_Items{"yeelight_$self->{id}"}{'socket'}->active() . " Connected: " .    $Socket_Items{"yeelight_$self->{id}"}{'socket'}->connected());
+    main::print_log( "[Yeelight:" . $self->{name} . "] Stopping Socket...." );
+    $Socket_Items{"yeelight_$self->{id}"}{'socket'}->stop;
+    main::print_log( "[Yeelight:" . $self->{name} . "] Starting Socket...." );
+    $Socket_Items{"yeelight_$self->{id}"}{'socket'}->start;
 }
 
 sub generate_voice_commands {
@@ -943,7 +977,8 @@ sub set {
         $self->SUPER::set($p_state);
     }
     else {
-        my ($r, $g, $b) = split($p_state,',');
+        my ($r, $g, $b) = split(/,/, $p_state);
+        main::print_log("[Yeelight RGB] p_state=$p_state R=$r G=$g B=$b");        
         if (( $r >= 0 and $r <= 255 ) and ( $g >= 0 and $g <= 255 ) and( $b >= 0 and $b <= 255 )) {    
             $$self{master_object}->set_rgb($r, $g, $b)
         } else {

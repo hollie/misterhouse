@@ -1,4 +1,4 @@
-=head1 B<raZberry> v3.0.4
+=head1 B<raZberry> v3.0.7
 
 #test command setup
 #command queue
@@ -186,7 +186,7 @@ sub new {
     my ( $class, $addr, $poll, $options ) = @_;
     my $self = new Generic_Item();
     bless $self, $class;
-    &main::print_log("[raZberry]: v3.0.4 Controller Initializing...");
+    &main::print_log("[raZberry]: v3.0.6 Controller Initializing...");
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
     
@@ -232,7 +232,7 @@ sub new {
     ( $self->{debug} )              = ( $options =~ /debug=(\d+)/i ) if ( ( defined $options ) and ( $options =~ m/debug=/i ) );
     $self->{debug}                  = $main::Debug{razberry} if ( defined $main::Debug{razberry} );
     $self->{lastupdate}             = undef;
-    $self->{status}                 = "";
+    $self->{status}                 = "online";
     $self->{controller_data}        = ();
     &main::print_log("[raZberry:" . $self->{host} . "]: options are $options") if ( ( $self->{debug} ) and ( defined $options ) );
 
@@ -632,11 +632,12 @@ sub process_check {
         if ($com_status eq "online") {
             $self->{com_warning} = 0;
             if (defined $self->{com_poll_interval}) {
-                main::print_log("[RaZberry:" . $self->{host} . "] Valid Data Received. Changing poll rate to $self->{com_poll_interval}.");
+                main::print_log("[RaZberry:" . $self->{host} . "] Valid Data Received. Changing poll rate back to $self->{com_poll_interval}.");
                 $self->{config}->{poll_seconds} = $self->{com_poll_interval};
                 $self->{com_poll_interval} = undef;
                 $self->stop_timer;
                 $self->start_timer;
+                $self->{child_object}->{comm}->set( $com_status, 'poll' );
             }
         } elsif ($com_status eq "offline")  {
             $self->{com_warning}++;
@@ -646,6 +647,8 @@ sub process_check {
                 $self->{config}->{poll_seconds} = 10 unless ($self->{config}->{poll_seconds} <= 10);
                 $self->stop_timer;
                 $self->start_timer;
+                $self->{child_object}->{comm}->set( $com_status, 'poll' );
+
             }
         }
         if ( $self->{status} ne $com_status ) {
@@ -688,7 +691,8 @@ sub poll {
 
 sub set_dev {
     my ( $self, $device, $mode ) = @_;
-
+    &main::print_log("[raZberry:" . $self->{host} . "]: WARNING. Device $device not in raZberry device table. Set operation may not work") unless (defined $self->{data}->{devices}->{$device});
+    
     &main::print_log("[raZberry:" . $self->{host} . "]: set_dev Setting $device to $mode") if ( $self->{debug} );
     my $cmd;
 
@@ -858,7 +862,7 @@ sub register {
     my ( $self, $object, $dev, $options ) = @_;
     if ( lc $dev eq 'comm' ) {
         &main::print_log("[raZberry:" . $self->{host} . "]: Registering Communication object to controller");
-        $self->{child_object}->{'comm'} = $object;
+        $self->{child_object}->{comm} = $object;
     }
     else {
         my $type = $object->{type};
@@ -1653,7 +1657,7 @@ sub new {
     $$self{master_object} = $object;
     push( @{ $$self{states} }, 'online', 'offline' );
     $object->register( $self, 'comm' );
-#    $self->SUPER::set('online'); #start online at initialization
+    $self->SUPER::set('online'); #start online at initialization
     return $self;
 
 }
@@ -1694,10 +1698,10 @@ sub new {
     }
 
     $$self{master_object} = $object;
-    $devid = $devid . "-0-67" if ( $devid =~ m/^\d+$/ );
-    #check if the thermostat is a subitem? ie xx-0-67-1, which happened on 2.3.5?
-    my $testdev = $devid . "-1";
-    $devid = $testdev if (defined $$self{master_object}->{data}->{devices}->{$testdev});
+    $devid = $devid . "-0-67-1" if ( $devid =~ m/^\d+$/ );
+    ##check if the thermostat is a subitem? ie xx-0-67-1, which happened on 2.3.5?
+    #my $testdev = $devid . "-1";
+    #$devid = $testdev if (defined $$self{master_object}->{data}->{devices}->{$testdev});
     $$self{devid} = $devid;
     $$self{type}  = "Thermostat";
 
@@ -2184,6 +2188,9 @@ sub update_data {
 
 # ZWayVDev_zway_18-0-113-8-1-A
 =head2 CHANGELOG 
+v3.0.7 
+- fixed offline polling for push operation
+
 v3.0
 - added 3 10 second check on push mode status pull
 - use process_item to prevent pauses

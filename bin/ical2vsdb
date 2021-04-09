@@ -30,7 +30,8 @@ use strict;
 ##    Sometimes icals are unchanged, but the order is different when downloading. Add option to sort the ical to ensure
 ##    Data hasn't changed even if the order did. Added option sort_before_md5 = 1 to enable globally or to the specific ical
 
-use lib '../lib', '../lib/site', '../lib/fallback';
+use lib '../lib', '../lib/site';
+push @INC, "../lib/fallback";
 use iCal::Parser;
 use DateTime;
 use Digest::MD5 qw(md5 md5_hex);

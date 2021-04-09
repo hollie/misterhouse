@@ -89,7 +89,8 @@ print "Requesting the time from $parms{server} using $parms{method} method\n";
 #use my_lib "$Pgm_Path/../lib";      # See note in lib/mh_perl2exe.pl for lib -> my_lib explaination
 #use my_lib "$Pgm_Path/../lib/site"; # See note in lib/mh_perl2exe.pl for lib -> my_lib explaination
 BEGIN {
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site', '$Pgm_Path/../lib/fallback'";
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site';";    # Use BEGIN eval to keep perl2exe happy
+    eval "push \@INC, '$Pgm_Path/../lib/fallback';";
 }    # Use BEGIN eval to keep perl2exe happy
 
 my $time_record;
