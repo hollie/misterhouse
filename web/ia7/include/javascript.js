@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.820";
+var ia7_ver = "v2.0.810";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -2540,7 +2540,6 @@ var graph_rrd = function(start,group,time) {
 				var previousPoint = null;
 
 				$("#rrd-graph").bind("plothover", function(event, pos, item) {
-//tofixed caused a problem
     				$("#x").text(pos.x.toFixed(2));
     				$("#y").text(pos.y.toFixed(2));
     				if (item) {
@@ -3553,10 +3552,6 @@ var create_state_modal = function(entity) {
 		var name = entity;
 		if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
 		$('#slider').remove();
-		$('#sliderR').remove();
-		$('#sliderG').remove();
-		$('#sliderB').remove();
-		
 //		$('#control').modal('show');
 
         //make sure the modal is centered on all devices
