@@ -911,7 +911,6 @@ sub check_for_data {
     }
 
     if ( $connecttype eq 'tcp' ) {
-        $main::Socket_Ports{ "$instance" . '_sender' }{data} = undef;
         if ( $Socket_Items{$instance}{'socket'}->active ) {
             $NewCmd = uc( unpack( 'H*', ( $Socket_Items{$instance}{'socket'}->said ) ) );
         }
