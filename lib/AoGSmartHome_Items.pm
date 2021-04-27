@@ -959,6 +959,10 @@ sub execute {
   "commands": [
 EOF
 
+	if ($main::Debug{'aog'} > 2) {
+		$Data::Dumper::Maxdepth = 0;
+		print "Aog received execute request:\n    " . Dumper( $body );  
+	}
     #
     # First, send the commands to all the devices specified in the request.
     #
