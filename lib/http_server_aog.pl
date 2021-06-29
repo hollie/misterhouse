@@ -30,31 +30,44 @@ B<NONE>
 
 =cut
 
+use strict;
+
+use CGI;
 use Config;
 use MIME::Base64;
-use JSON qw(decode_json);
+use JSON qw(encode_json decode_json);
 use Storable;
-use constant RANDBITS => $Config{randbits};
-use constant RAND_MAX => 2**RANDBITS;
+use constant RANDBITS                        => $Config{randbits};
+use constant RAND_MAX                        => 2**RANDBITS;
+use constant ACCESS_TOKEN_EXPIRATION_SECONDS => 24 * 60 * 60;
+use constant NEVER_EXPIRES                   => eval( $Config{nv_overflows_integers_at} );
 
 # Cache of OAuth authentication tokens. Persistent tokens are stored
 # in $::config_parms{'aog_oauth_tokens_file'} and read on startup.
+#
+# $oauth_tokens is for implicit tokens and access tokens.
+#
+# $oauth_codes is for authorization_codes and refresh_tokens that cannot be
+# used for fulfillment.
+my $FILENAME_PARAMETER = "_FILENAME_PARAMETER";
 my $oauth_tokens;
+my $oauth_codes;
 
 sub http_server_aog_startup {
-    if ( !$::config_parms{'aog_enable'}) {
-	&main::print_log("[AoGSmartHome] AoG is disabled.");
-	return;
-    } else {
-	&main::print_log("\n[AoGSmartHome] AoG is enabled; will look for AoG requests via HTTP.");
+    if ( !$::config_parms{'aog_enable'} ) {
+        &main::print_log("[AoGSmartHome] AoG is disabled.");
+        return;
+    }
+    else {
+        &main::print_log("\n[AoGSmartHome] AoG is enabled; will look for AoG requests via HTTP.");
     }
 
     # We don't want defaults for these important parameters so we disable
     # AoG integration if one or more are missing.
     if (   !defined $::config_parms{'aog_auth_path'}
-	|| !defined $::config_parms{'aog_fulfillment_url'}
-	|| !defined $::config_parms{'aog_client_id'}
-	|| !defined $::config_parms{'aog_project_id'} )
+        || !defined $::config_parms{'aog_fulfillment_url'}
+        || !defined $::config_parms{'aog_client_id'}
+        || !defined $::config_parms{'aog_project_id'} )
     {
         print STDERR "[AoGSmartHome] AoG is enabled but one or more .ini file parameters are missing; disabling AoG!\n";
         print STDERR "[AoGSmartHome] Required .ini file parameters: aog_auth_path aog_fulfillment_url aog_client_id aog_project_id\n";
@@ -64,19 +77,29 @@ sub http_server_aog_startup {
 
     $::config_parms{'aog_oauth_tokens_file'} = "$config_parms{data_dir}/.aog_tokens"
       if !defined $::config_parms{'aog_oauth_tokens_file'};
+    $::config_parms{'aog_oauth_codes_file'} = "$config_parms{data_dir}/.aog_codes"
+      if !defined $::config_parms{'aog_oauth_codes_file'};
 
     if ( -e $::config_parms{'aog_oauth_tokens_file'} ) {
         $oauth_tokens = retrieve( $::config_parms{'aog_oauth_tokens_file'} );
     }
+    if ( -e $::config_parms{'aog_oauth_codes_file'} ) {
+        $oauth_codes = retrieve( $::config_parms{'aog_oauth_codes_file'} );
+    }
+    $oauth_tokens->{$FILENAME_PARAMETER} = 'aog_oauth_tokens_file';
+    $oauth_codes->{$FILENAME_PARAMETER}  = 'aog_oauth_codes_file';
+    remove_expired_tokens($oauth_tokens);
+    remove_expired_tokens($oauth_codes);
 
     if ( $main::Debug{'aog'} ) {
-	print STDERR <<EOF;
+        print STDERR <<EOF;
 [AoGSmartHome] Debug: aog_auth_path = $::config_parms{'aog_auth_path'}
 [AoGSmartHome] Debug: aog_fulfillment_url = $::config_parms{'aog_fulfillment_url'}
-[AoGSmartHome] Debug: aog_oauth_tokens_file = $::config_parms{'aog_oauth_tokens_file'}
 [AoGSmartHome] Debug: Dumping \$oauth_tokens...
 EOF
         print STDERR Dumper $oauth_tokens;
+        print STDERR "[AoGSmartHome] Debug: Dumping \$oauth_codes...\n";
+        print STDERR Dumper $oauth_codes;
         print STDERR "[AoGSmartHome] Debug: done.\n";
     }
 }
@@ -94,14 +117,14 @@ EOF
 # Other parts of the AoG HTTP server helper call this when some error
 # condition is detected, like a missing HTTP argument.
 #
-sub http_error($) {
-    my ($http_response) = @_;
+sub http_error($;$) {
+    my ( $http_response, $html_body ) = @_;
 
-    $style = $main::config_parms{ 'html_style' . $Http{format} }
-      if $main::config_parms{ 'html_style' . $Http{format} }
-      and !defined $style;
+    my $style = $main::config_parms{ 'html_style' . $Http{format} }
+      if $main::config_parms{ 'html_style' . $Http{format} };
 
-    my $html_body = <<EOF;
+    if ( !$html_body ) {
+        $html_body = <<EOF;
 <HTML>
 <HEAD>
 $style
@@ -114,6 +137,7 @@ $style
 </BODY>
 </HTML>
 EOF
+    }
 
     my $html_head = "HTTP/1.1 $http_response\r\n";
     $html_head .= "Server: MisterHouse\r\n";
@@ -122,6 +146,61 @@ EOF
     $html_head .= "\r\n";
 
     return $html_head . $html_body;
+}
+
+sub check_token($$) {
+    my ( $token, $token_map ) = @_;
+    return undef if ( !exists $token_map->{$token} );
+    my ( $value, $expiration ) = @{ $token_map->{$token} };
+    if ( time() >= $expiration ) {
+        print "[AoGSmartHome] Debug: token '$token' expired at $expiration, removing it.\n"
+          if $main::Debug{'aog'};
+        delete $token_map->{$token};
+        store $token_map, $::config_parms{ $token_map->{$FILENAME_PARAMETER} };
+        return undef;
+    }
+    return $value;
+}
+
+sub remove_expired_tokens($) {
+    my ($token_map) = @_;
+    my $now = time();
+    foreach my $t ( keys %{$token_map} ) {
+        next if ( $t eq $FILENAME_PARAMETER );
+        my ( $value, $expiration ) = @{ $token_map->{$t} };
+        if ( !$expiration ) {    # Probably a legacy token
+            $expiration = NEVER_EXPIRES;
+            print "[AoGSmartHome] Debug: token '$t' has no expiration, setting to $expiration.\n"
+              if $main::Debug{'aog'};
+            $token_map->{$t} = [ $value, $expiration ];
+        }
+        if ( $now >= $expiration ) {
+            print "[AoGSmartHome] Debug: token '$t' expired at $expiration, removing it.\n"
+              if $main::Debug{'aog'};
+            delete $token_map->{$t};
+        }
+    }
+    store $token_map, $::config_parms{ $token_map->{$FILENAME_PARAMETER} };
+}
+
+sub generate_new_token($$$) {
+    my ( $value, $expiration, $token_map ) = @_;
+    my $token;
+
+    # We didn't find an existing token for the authenticated user;
+    # generate a new token (making sure token is unique).
+    do {
+        $token = encode_base64( int rand(RAND_MAX), '' );
+    } while ( exists $token_map->{$token} );
+
+    $token_map->{$token} = [ $value, $expiration ];
+
+    print "[AoGSmartHome] Debug: generated token '$token' for '$value' (expiration $expiration).\n"
+      if $main::Debug{'aog'};
+
+    store $token_map, $::config_parms{ $token_map->{$FILENAME_PARAMETER} };
+
+    return $token;
 }
 
 sub process_http_aog {
@@ -136,59 +215,67 @@ sub process_http_aog {
         return 0;
     }
 
+    my $argv = \%HTTP_ARGV;
+    if ( $request_type eq 'POST' ) {
+
+        # The merging in http_server.pl uses a regular expression that excludes lots of valid parts
+        # of application/x-www-form-urlencoded bodies, such as a full URL in redirect_url, or
+        # slashes in the client ids or secrets. Using CGI directly is more robust;
+        $argv = scalar CGI->new($body)->Vars();
+    }
+
     if ( $uri eq $::config_parms{'aog_auth_path'} ) {
         print "[AoGSmartHome] Debug: Processing OAuth request.\n" if $main::Debug{'aog'};
 
         if ( $request_type eq 'POST' ) {
             print "[AoGSmartHome] Debug: Processing HTTP POST.\n" if $main::Debug{'aog'};
 
-            if ( !exists $HTTP_ARGV{'password'} ) {
+            if ( !exists $argv->{'password'} ) {
                 &main::print_log("[AoGSmartHome] missing 'password' argument in HTTP POST");
 
                 return http_error("400 Bad Request");
             }
 
-            $Authorized = password_check( $HTTP_ARGV{'password'}, 'http' );
+            $Authorized = password_check( $argv->{'password'}, 'http' );
             if ( !$Authorized ) {
                 $html = "<p>Login failed.</p>\n";
             }
         }
 
-        if ( !exists $HTTP_ARGV{'client_id'} ) {
+        if ( !exists $argv->{'client_id'} ) {
             &main::print_log("[AoGSmartHome] client_id parameter missing from OAuth request.");
             return http_error("400 Bad Request");
         }
 
-        if ( $HTTP_ARGV{'client_id'} ne $::config_parms{'aog_client_id'} ) {
-            &main::print_log(
-                "[AoGSmartHome] Received client_id \'$HTTP_ARGV{'client_id'}\' does not match our client_id \'$::config_parms{'aog_client_id'}\'.");
+        if ( $argv->{'client_id'} ne $::config_parms{'aog_client_id'} ) {
+            &main::print_log("[AoGSmartHome] Received client_id \'$argv->{'client_id'}\' does not match our client_id \'$::config_parms{'aog_client_id'}\'.");
             return http_error("400 Bad Request");
         }
 
-        if ( !exists $HTTP_ARGV{'state'} ) {
+        if ( !exists $argv->{'state'} ) {
             &main::print_log("[AoGSmartHome] state parameter missing from OAuth request.");
             return http_error("400 Bad Request");
         }
 
-        if ( !exists $HTTP_ARGV{'redirect_uri'} ) {
+        if ( !exists $argv->{'redirect_uri'} ) {
             &main::print_log("[AoGSmartHome] redirect_uri parameter missing from OAuth request.");
             return http_error("400 Bad Request");
         }
 
         # Verify "redirect_uri" value
-        if ( $HTTP_ARGV{'redirect_uri'} !~ m%https://oauth-redirect.googleusercontent.com/r/$::config_parms{'project_id'}% ) {
+        if ( $argv->{'redirect_uri'} !~ m%https://oauth-redirect.googleusercontent.com/r/$::config_parms{'project_id'}% ) {
             &main::print_log("[AoGSmartHome] invalid redirect_uri (should be \"https://oauth-redirect.googleusercontent.com/r/$::config_parms{'project_id'}\"");
             return http_error("400 Bad Request");
         }
 
-        if ( !exists $HTTP_ARGV{'response_type'} ) {
+        if ( !exists $argv->{'response_type'} ) {
             &main::print_log("[AoGSmartHome] response_type parameter missing from OAuth request.");
             return http_error("400 Bad Request");
         }
 
-        if ( $HTTP_ARGV{'response_type'} ne 'token' ) {
+        if ( $argv->{'response_type'} ne 'token' && $argv->{'response_type'} ne 'code' ) {
             &main::print_log(
-                "[AoGSmartHome] Invalid response_type \'$HTTP_ARGV{'response_type'}\' in OAuth request; must be 'token' for OAuth 2.0 implicit flow.");
+                "[AoGSmartHome] Invalid response_type \'$argv->{'response_type'}\' in OAuth request; must be 'token' or 'code' for OAuth 2.0 flow.");
             return http_error("400 Bad Request");
         }
 
@@ -202,10 +289,10 @@ sub process_http_aog {
     <b>Password:</b><INPUT size=10 name='password' type='password'>
     <INPUT type="submit" value='Submit Password'>
 
-    <INPUT type="hidden" name="redirect_uri" value="$HTTP_ARGV{'redirect_uri'}">
-    <INPUT type="hidden" name="client_id" value="$HTTP_ARGV{'client_id'}">
-    <INPUT type="hidden" name="response_type" value="token">
-    <INPUT type="hidden" name="state" value="$HTTP_ARGV{'state'}">
+    <INPUT type="hidden" name="redirect_uri" value="$argv->{'redirect_uri'}">
+    <INPUT type="hidden" name="client_id" value="$argv->{'client_id'}">
+    <INPUT type="hidden" name="response_type" value="$argv->{'response_type'}">
+    <INPUT type="hidden" name="state" value="$argv->{'state'}">
 </FORM>
 
 <P>This form is used for logging into MisterHouse.<P>
@@ -218,37 +305,102 @@ EOF
         # User is authenticated.
         #
 
-        my $token;
+        if ( $argv->{'response_type'} eq 'token' ) {
+            my $token = generate_new_token( $Authorized, NEVER_EXPIRES, $oauth_tokens );
+            return http_redirect("$argv->{'redirect_uri'}#access_token=$token&token_type=bearer&state=$argv->{'state'}");
 
-        foreach my $t ( keys %{$oauth_tokens} ) {
-            if ( $oauth_tokens->{$t} eq $Authorized ) {
-                print "[AoGSmartHome] Debug: found token '$t' for user '$Authorized'\n"
-                  if $main::Debug{'aog'};
-                $token = $t;
-                last;
-            }
+        }
+        elsif ( $argv->{'response_type'} eq 'code' ) {
+            my $code = generate_new_token(
+                $Authorized, time() + 600,    # initial code is valid for 10m
+                $oauth_codes,
+            );
+            return http_redirect("$argv->{'redirect_uri'}?code=$code&token_type=bearer&state=$argv->{'state'}");
+
+        }
+        else {
+            &main::print_log(
+                "[AoGSmartHome] Invalid response_type \'$argv->{'response_type'}\' in OAuth finalization; must be 'token' or 'code' for OAuth 2.0 flow.");
+            return http_error("400 Bad Request");
+        }
+    }
+    elsif ( defined $::config_parms{'aog_tokens_path'} && $uri eq $::config_parms{'aog_tokens_path'} ) {
+        print "[AoGSmartHome] Debug: Processing token exchange request.\n" if $main::Debug{'aog'};
+        my $invalid_grant = encode_json { error => "invalid_grant" };
+
+        if ( $request_type ne 'POST' ) {
+            &main::print_log("[AoGSmartHome] request is not a POST request!");
+            return http_error("400 Bad Request");
         }
 
-        if ( !$token ) {
-
-            # We didn't find an existing token for the authenticated user;
-            # generate a new token (making sure token is unique).
-            while (1) {
-                $token = encode_base64( int rand(RAND_MAX), '' );
-
-                if ( !exists $oauth_tokens->{$token} ) {
-                    $oauth_tokens->{$token} = $Authorized;
-                    last;
-                }
-            }
-
-            print "[AoGSmartHome] Debug: token for user '$Authorized' did not exist; generated token '$token'\n"
-              if $main::Debug{'aog'};
-
-            store $oauth_tokens, $::config_parms{'aog_oauth_tokens_file'};
+        # Verify that the client_id identifies the request origin as an authorized origin, and that
+        # the client_secret matches the expected value.
+        if ( !exists $argv->{'client_id'} ) {
+            &main::print_log("[AoGSmartHome] client_id parameter missing from OAuth request.");
+            return http_error( "400 Bad Request", $invalid_grant );
         }
 
-        return http_redirect("$HTTP_ARGV{'redirect_uri'}#access_token=$token&token_type=bearer&state=$HTTP_ARGV{'state'}");
+        if ( $argv->{'client_id'} ne $::config_parms{'aog_client_id'} ) {
+            &main::print_log("[AoGSmartHome] Received client_id \'$argv->{'client_id'}\' does not match our client_id \'$::config_parms{'aog_client_id'}\'.");
+            return http_error( "400 Bad Request", $invalid_grant );
+        }
+
+        if ( !exists $argv->{'client_secret'} ) {
+            &main::print_log("[AoGSmartHome] client_secret parameter missing from OAuth request.");
+            return http_error( "400 Bad Request", $invalid_grant );
+        }
+
+        if ( $argv->{'client_secret'} ne $::config_parms{'aog_client_secret'} ) {
+            &main::print_log(
+                "[AoGSmartHome] Received client_secret \'$argv->{'client_secret'}\' does not match our client_id \'$::config_parms{'aog_client_secret'}\'.");
+            return http_error( "400 Bad Request", $invalid_grant );
+        }
+
+        # Verify authorization code is valid and not expired, and the client ID specified in the
+        # request matches the client ID associated with the authorization code.
+        if ( !exists $argv->{'code'} && !exists $argv->{'refresh_token'} ) {
+            &main::print_log("[AoGSmartHome] code and refresh_token parameter missing from OAuth request.");
+            return http_error( "400 Bad Request", $invalid_grant );
+        }
+
+        my $code = $argv->{'code'};
+        my $refresh_token;
+        if ($code) {    # grant_type=authorization_code
+                        # Verify the URL specified by the redirect_uri parameter is identical to the value used in
+                        # the initial authorization request.
+            if ( $argv->{'redirect_uri'} !~ m%https://oauth-redirect.googleusercontent.com/r/$::config_parms{'project_id'}% ) {
+                &main::print_log(
+                        "[AoGSmartHome] invalid redirect_uri (got \'$argv->{'redirect_uri'}\', should be \"https://oauth-redirect.googleusercontent.com/r/"
+                      . $::config_parms{'project_id'}
+                      . "\"" );
+                return http_error( "400 Bad Request", $invalid_grant );
+            }
+        }
+        else {    # grant_type=refresh_token
+            $code          = $argv->{'refresh_token'};
+            $refresh_token = $code;                      # reuse existing refresh_token
+            print "[AoGSmartHome] Debug: using refresh_token '$code'.\n" if $main::Debug{'aog'};
+        }
+        my $authenticated = check_token( $code, $oauth_codes );
+        if ( !$authenticated ) {
+            &main::print_log("[AoGSmartHome] Received code \'$argv->{'code'}\' does not exist.");
+            return http_error( "400 Bad Request", $invalid_grant );
+        }
+
+        # Otherwise, using the user ID from the authorization code, generate a refresh token and an access token. These tokens can be any string value, but they must uniquely represent the user and the client the token is for, and they must not be guessable. For access tokens, also record the expiration time of the token (typically an hour after you issue the token). Refresh tokens do not expire.
+        # Return the following JSON object in the body of the HTTPS response:
+        my $token = generate_new_token( $authenticated, time() + ACCESS_TOKEN_EXPIRATION_SECONDS, $oauth_tokens, );
+
+        $refresh_token = generate_new_token( $authenticated, NEVER_EXPIRES, $oauth_codes, ) if ( !$refresh_token );
+
+        return &main::json_page(
+            encode_json {
+                token_type    => "Bearer",
+                access_token  => $token,
+                refresh_token => $refresh_token,
+                expires_in    => ACCESS_TOKEN_EXPIRATION_SECONDS,
+            }
+        );
     }
     elsif ( $uri eq $::config_parms{'aog_fulfillment_url'} ) {
         print "[AoGSmartHome] Debug: Processing fulfillment request.\n" if $main::Debug{'aog'};
@@ -259,8 +411,9 @@ EOF
 
         my $received_token = $1;
 
-        if ( exists $oauth_tokens->{$received_token} ) {
-            print "[AoGSmartHome] Debug: fulfillment request has correct token '$received_token' for user '$oauth_tokens->{$received_token}'\n"
+        my $authenticated = check_token( $received_token, $oauth_tokens );
+        if ($authenticated) {
+            print "[AoGSmartHome] Debug: fulfillment request has correct token '$received_token' for user '$authenticated'\n"
               if $main::Debug{'aog'};
         }
         else {
