@@ -47,7 +47,7 @@ use Data::Dumper;
 #  $os1->get_rainstatus()
 
 # General Notes:
-#	-only tested with firmware 2.14 and 2.15
+#	-only tested with firmware 2.14 to 2.19
 
 # Child object Notes:
 #	Master
@@ -65,6 +65,7 @@ use Data::Dumper;
 # v1.1 (May 2016) - added ability to change program runtimes
 # v1.11 (May 2016) - removed JSON::XS dependancy
 # v1.11.1 (May 2017) - changed to support logger
+# v1.2 (Sept 2021) - added changed rain sensor
 
 @OpenSprinkler::ISA = ('Generic_Item');
 
