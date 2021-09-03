@@ -216,6 +216,13 @@ sub poll {
         $self->{data}->{info}->{state}              = ( $vars->{en} == 0 ) ? "disabled" : "enabled";
         $self->{data}->{info}->{waterlevel}         = $options->{wl};
         $self->{data}->{info}->{adjustment_method}  = ( $options->{uwt} == 0 ) ? "manual" : "zimmerman";
+        if (exists($vars->{rs})) {
+            $self->{data}->{info}->{rain_sensor_status} = ( $vars->{rs} == 0 ) ? "off" : "on";
+        }
+        else {
+            # rs has been replaced by sn1 for firmware 2.1.9 and up
+            $self->{data}->{info}->{rain_sensor_status} = ( $vars->{sn1} == 0 ) ? "off" : "on";
+        }
         $self->{data}->{info}->{rain_sensor_status} = ( $vars->{rs} == 0 ) ? "off" : "on";
         $self->{data}->{info}->{sunrise}            = $vars->{sunrise};
         $self->{data}->{info}->{sunset}             = $vars->{sunset};
