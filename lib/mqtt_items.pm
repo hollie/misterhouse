@@ -1004,6 +1004,7 @@ sub receive_mqtt_message {
 	$self->debug( 1, "LocalItem $obj_name ignoring state topic message" );
     } elsif( $topic eq $self->{disc_info}->{command_topic} ) {
 	if( $retained ) {
+	    # command messages should never be retained, but just in case...
 	    $self->log( "LocalItem received retained command message -- ignoring" );
 	    return;
 	}
@@ -1011,9 +1012,9 @@ sub receive_mqtt_message {
 	if( defined $setval ) {
 	    $self->debug( 1, "LocalItem MQTT to MH setting $obj_name::set($setval) based on received message '$message'" );
 	    if( $self->{local_item} ) {
-		$self->{local_item}->set( $setval, $self->{interface} );
+		$self->{local_item}->set( $setval, 'mqtt' );
 	    } else {
-		$self->SUPER::set( $setval, $self->{interface} );
+		$self->SUPER::set( $setval, 'mqtt' );
 	    }
 	}
     } else {
@@ -1058,7 +1059,7 @@ sub set {    ### LocalItem
     }
 
     if( !$self->{local_item} ) {
-	$self->SUPER::set( $setval, $self->{interface} );
+	$self->SUPER::set( $setval, $p_setby );
     }
 }
 
@@ -1159,6 +1160,10 @@ sub new {   ### mqtt_BaseRemoteItem
 
 sub receive_mqtt_message {
     my ( $self, $topic, $message, $retained ) = @_;
+    my $p_setby;
+    my $p_response;
+    my $setval;
+
     ###
     ### Incoming MQTT to MH message for InstMqttItem
     ###
@@ -1181,17 +1186,31 @@ sub receive_mqtt_message {
 	return;
     }
 
+
     if( $topic eq $self->{disc_info}->{state_topic} 
     ||  $topic eq $self->{disc_info}->{brightness_state_topic}
     ) {
 	if( $self->{disc_info}->{optimistic} eq 'true' ) {
 	    $self->debug( 2, "BaseRemoteItem $self->{object_name} ignored state message because device is optimistic" );
 	} else {
-	    my $setval = $self->decode_mqtt_payload( $topic, $message, $retained );
+	    if( $retained ) {
+		$p_setby = 'mqtt [retained]';
+	    } elsif( $self->{pending_state} ) {
+		$setval = $self->{pending_state};
+		$p_setby = $self->{pending_setby};
+		$p_response = $self->{pending_response};
+		$self->{pending_state}    = undef;
+		$self->{pending_setby}    = undef;
+		$self->{pending_response} = undef;
+		$self->debug( 2, "Pending $self->{object_name}-->set( $setval, $p_setby, $p_response ) cleared" );
+	    } else {
+		$p_setby = 'mqtt';
+	    }
+	    $setval = $self->decode_mqtt_payload( $topic, $message, $retained );
 	    if( $setval ) {
-		$self->debug( 1, "remote item MQTT to MH $$self{mqtt_name} set($setval)" );
+		$self->debug( 1, "remote item MQTT to MH $$self{mqtt_name} set($setval, '$p_setby')" );
 		$self->level( $setval ) if $self->can( 'level' );
-		$self->SUPER::set( $setval, $self->{interface} );
+		$self->SUPER::set( $setval, $p_setby, $p_response );
 	    }
 	}
 	return;
@@ -1203,7 +1222,7 @@ sub receive_mqtt_message {
 	    }
 	} elsif( $message eq $self->{disc_info}->{payload_not_available} ) {
 	    $self->log( "$self->{mqtt_name} is not available" );
-	    $self->SUPER::set( $message, $self->{interface} );
+	    $self->SUPER::set( $message, "mqtt" );
 	} else {
 	    $self->error( "$self->{object_name} received unrecognized availability message: $message" );
 	}
@@ -1237,9 +1256,9 @@ sub transmit_topic {
 sub set {    ### BaseRemoteItem
     my ( $self, $setval, $p_setby, $p_response ) = @_;
 
-    print( "BaseRemoteItem set($setval) called\n" ) if $main::Debug{set};
+    print( "BaseRemoteItem set($setval, $p_setby) called\n" ) if $main::Debug{set};
     return if &main::check_for_tied_filters( $self, $setval );
-    print( "BaseRemoteItem set($setval) passed filters\n" ) if $main::Debug{set};
+    print( "BaseRemoteItem set($setval, $p_setby) passed filters\n" ) if $main::Debug{set};
 
     # Override any set_with_timer requests
     if ( $$self{set_timer} ) {
@@ -1271,6 +1290,11 @@ sub set {    ### BaseRemoteItem
     if( $self->{disc_info}->{optimistic} eq 'true') {
 	$self->level( $setval ) if $self->can( 'level' );
 	$self->SUPER::set( $setval, $p_setby, $p_response );
+    } else {
+	$self->{pending_state}    = $setval;
+	$self->{pending_setby}    = $p_setby;
+	$self->{pending_response} = $p_response;
+	$self->debug( 2, "Pending $self->{object_name}-->set( $setval, $p_setby, $p_response )" );
     }
 }
 
