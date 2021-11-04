@@ -40,10 +40,10 @@ sub new {
 
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
-    $self->{config}->{poll_seconds} = 300;
+    $self->{config}->{poll_seconds} = 10;
     $self->{config}->{poll_seconds} = $::config_parms{ "ditra_poll" }  if ( defined $::config_parms{ "ditra_poll" } );
     $self->{config}->{poll_seconds} = $poll if ($poll);
-    $self->{config}->{poll_seconds} = 30     if ( $self->{config}->{poll_seconds} < 30 );
+    $self->{config}->{poll_seconds} = 5     if ( $self->{config}->{poll_seconds} < 5 );
 
     $self->{config}->{username} = "";
     $self->{config}->{username} = $::config_parms{ "ditra_username" }  if ( defined $::config_parms{ "ditra_username" } );
@@ -66,7 +66,7 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.0";
+    $self->{module_version}         = "v1.2";
 
 #how to store and restore a token
     $self->{token} = "";
@@ -76,7 +76,7 @@ sub new {
     $options = "" unless ( defined $options );
     $options = $::config_parms{ "ditra_options" } if ( $::config_parms{ "ditra_options" } );
 
-    $self->{debug} = 5;
+    $self->{debug} = 0;
     ( $self->{debug} ) = ( $options =~ /debug\=(\d+)/i ) if ( $options =~ m/debug\=/i );
     $self->{debug} = 0 if ( $self->{debug} < 0 );
 
@@ -100,7 +100,6 @@ sub new {
     $self->{cmd_process} = new Process_Item;
     $self->{cmd_process}->set_output( $self->{cmd_data_file} );
     $self->{init}      = 0;
-    $self->{init_data} = 0;
     
     if ($self->{enabled}) {
         &::MainLoop_post_add_hook( \&Schulter_Ditra::process_check, 0, $self );
@@ -287,20 +286,20 @@ sub process_check {
             }
 
             if ( scalar @{ $self->{cmd_queue} } ) {
-                main::print_log( "[Aurora:" . $self->{name} . "] Command Queue found" );            
+                main::print_log( "[Schulter_Ditra] Command Queue found" );            
                 my $cmd = @{ $self->{cmd_queue} }[0];    #grab the first command, but don't take it off.
                 $self->{cmd_process}->set($cmd);
                 $self->{cmd_process}->start();
-                main::print_log( "[Aurora:" . $self->{name} . "] Command Queue " . $self->{cmd_process}->pid() . " cmd=$cmd" )
+                main::print_log( "[Schulter_Ditra] Command Queue " . $self->{cmd_process}->pid() . " cmd=$cmd" )
                   if ( ( $self->{debug} ) or ( $self->{cmd_process_retry} ) );
             }
 
         }
         else {
 
-            main::print_log( "[Aurora:" . $self->{name} . "] WARNING Issued command was unsuccessful, retrying..." );
+            main::print_log( "[Schulter_Ditra] WARNING Issued command was unsuccessful, retrying..." );
             if ( $self->{cmd_process_retry} > $self->{cmd_process_retry_limit} ) {
-                main::print_log( "[Aurora:" . $self->{name} . "] ERROR Issued command max retries reached. Abandoning command attempt..." );
+                main::print_log( "[Schulter_Ditra] ERROR Issued command max retries reached. Abandoning command attempt..." );
                 shift @{ $self->{cmd_queue} };
                 $self->{cmd_process_retry} = 0;
                 $com_status = "offline";
@@ -312,9 +311,7 @@ sub process_check {
 
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{status} ne $com_status ) {
-                main::print_log "[Aurora:"
-                  . $self->{name}
-                  . "] Communication Tracking object found. Updating from "
+                main::print_log "[Schulter_Ditra] Communication Tracking object found. Updating from "
                   . $self->{child_object}->{comm}->state() . " to "
                   . $com_status . "..."
                   if ( $self->{loglevel} );
@@ -409,21 +406,22 @@ sub stop_timer {
 
 sub print_info {
     my ($self,$serial) = @_;
-#TODO print all serials if a serial isn't given
 
     $serial = "" unless (defined $serial);
-
+    $self->{init} = 1;
+    
     foreach my $group (@{ $self->{data}->{Groups} }) {
         main::print_log( "[Schulter_Ditra] Group " . $group->{GroupName} . "..." );
         foreach my $stat (@{ $group->{Thermostats} }) {
             if ($serial eq "" or $stat->{SerialNumber} eq $serial) {
+                main::print_log( "[Schulter_Ditra] ----------------------------------------------");            
                 main::print_log( "[Schulter_Ditra] Serial:               " . $stat->{SerialNumber});
                 main::print_log( "[Schulter_Ditra] Room:                 " . $stat->{Room});
                 main::print_log( "[Schulter_Ditra] TZOffset:             " . $stat->{TZOffset});
                 main::print_log( "[Schulter_Ditra] SWVersion:            " . $stat->{SWVersion});
                 main::print_log( "[Schulter_Ditra] VacationTemperature:  " . $stat->{VacationTemperature});
                 main::print_log( "[Schulter_Ditra] ComfortTemperature:   " . $stat->{ComfortTemperature});
-                main::print_log( "[Schulter_Ditra] LoadMeasuredWatt:     " . $stat->{Room});
+                main::print_log( "[Schulter_Ditra] LoadMeasuredWatt:     " . $stat->{LoadMeasuredWatt});
                 main::print_log( "[Schulter_Ditra] SetPointTemp:         " . $stat->{SetPointTemp});
                 main::print_log( "[Schulter_Ditra] Temperature:          " . $stat->{Temperature});
                 main::print_log( "[Schulter_Ditra] ManualTemperature:    " . $stat->{ManualTemperature});
@@ -432,6 +430,8 @@ sub print_info {
                 main::print_log( "[Schulter_Ditra] Online:               " . $stat->{Online});
                 main::print_log( "[Schulter_Ditra] LastPrimaryModeIsAuto:" . $stat->{LastPrimaryModeIsAuto});
                 main::print_log( "[Schulter_Ditra] Heating:              " . $stat->{Heating});
+                main::print_log( "[Schulter_Ditra] *** Child Object Defined for this serial # ***") if (defined $self->{child_object}->{$stat->{SerialNumber}});
+                main::print_log( "[Schulter_Ditra] ----------------------------------------------");            
             }
         }
     }
@@ -454,8 +454,13 @@ sub process_data {
         foreach my $stat (@{ $group->{Thermostats} }) {
             if ($self->{child_object}->{$stat->{SerialNumber}}) {
                 my $temp = sprintf("%.1f",$stat->{Temperature} / 100);
-                $self->{child_object}->{$stat->{SerialNumber}}->{sp}->set($temp,'poll') if ($self->{child_object}->{$stat->{SerialNumber}}->{sp}->state() != $temp);
+                $self->{child_object}->{$stat->{SerialNumber}}->{temp}->set($temp,'poll') if ($self->{child_object}->{$stat->{SerialNumber}}->{temp}->state() != $temp);
                 main::print_log( "[Schulter_Ditra] Setting stat " . $stat->{Room} . " with serial #" . $stat->{SerialNumber} . " to temperature " . $temp ) if ( $self->{debug} );
+
+                my $sp = sprintf("%.1f",$stat->{SetPointTemp} / 100);
+                $self->{child_object}->{$stat->{SerialNumber}}->{sp}->set($sp,'poll') if ($self->{child_object}->{$stat->{SerialNumber}}->{sp}->state() != $sp);
+                main::print_log( "[Schulter_Ditra] Setting stat " . $stat->{Room} . " with serial #" . $stat->{SerialNumber} . " to set point " . $sp ) if ( $self->{debug} );
+
                 my $heating = "idle";
                 $heating = "heating" if ($stat->{Heating});
                 $self->{child_object}->{$stat->{SerialNumber}}->{mode_status} = $heating;
@@ -469,28 +474,28 @@ sub process_data {
         }
     }
 
-
+    $self->print_info() unless ($self->{init});
 }
 
 
 sub print_command_queue {
     my ($self) = @_;
-    main::print_log( "Aurora:" . $self->{name} . "] ------------------------------------------------------------------" );
+    main::print_log( "Schulter_Ditra] ------------------------------------------------------------------" );
     my $commands = scalar @{ $self->{cmd_queue} };
     my $name = "$commands commands";
     $name = "empty" if ($commands == 0);
-    main::print_log( "Aurora:" . $self->{name} . "] Current Command Queue: $name" );
+    main::print_log( "[Schulter_Ditra] Current Command Queue: $name" );
     for my $i ( 1 .. $commands ) {
-        main::print_log( "Aurora:" . $self->{name} . "] Command $i: " . @{ $self->{cmd_queue} }[$i - 1] );
+        main::print_log( "[Schulter_Ditra] Command $i: " . @{ $self->{cmd_queue} }[$i - 1] );
     }
-    main::print_log( "Aurora:" . $self->{name} . "] ------------------------------------------------------------------" );
+    main::print_log( "[Schulter_Ditra] ------------------------------------------------------------------" );
     
 }
 
 sub purge_command_queue {
     my ($self) = @_;
     my $commands = scalar @{ $self->{cmd_queue} };
-    main::print_log( "Aurora:" . $self->{name} . "] Purging Command Queue of $commands commands" );
+    main::print_log( "[Schulter_Ditra] Purging Command Queue of $commands commands" );
     @{ $self->{cmd_queue} } = ();
 }
 
@@ -532,10 +537,15 @@ sub register {
         $self->{child_object}->{comm} = $object;
     }
     elsif ( lc $mode eq 'sp' )  {
-        &main::print_log("[Schulter_Ditra]: Registering Serial # $serial" );
+        &main::print_log("[Schulter_Ditra]: Registering Serial # $serial Setpoint object" );
         $self->{child_object}->{$serial}->{sp} = $object;
      }
+    elsif ( lc $mode eq 'temp' )  {
+        &main::print_log("[Schulter_Ditra]: Registering Serial # $serial Temperature object" );
+        $self->{child_object}->{$serial}->{temp} = $object;
+     }
     elsif ( lc $mode eq 'mode' )  {
+        &main::print_log("[Schulter_Ditra]: Registering Serial # $serial Mode object" );
         $self->{child_object}->{$serial}->{mode} = $object; 
         $self->{child_object}->{$serial}->{mode_status} = "idle";   
     } else {
@@ -580,7 +590,6 @@ sub new {
 
 sub set {
     my ( $self, $p_state, $p_setby ) = @_;
-    main::print_log( "[Ditra_Thermostat]: p_state = $p_state p_setby=$p_setby" );
 
     if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
         $self->{level} = $p_state;
@@ -602,6 +611,36 @@ sub level {
     my ($self) = @_;
 
     return ( $self->{level} );
+}
+
+package Ditra_thermostat_temp;
+
+@Ditra_thermostat_temp::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object, $serial, $options ) = @_;
+
+    my $self = new Generic_Item();
+    bless $self, $class;
+
+    $$self{master_object} = $object;
+    $$self{serial} = $serial;
+
+    $object->register( $self, 'temp', $serial, $options );
+
+    $self->{level} = "";
+
+    $self->{debug} = $object->{debug};
+    return $self;
+
+}
+
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
+
+    if ( defined $p_setby && ( $p_setby eq 'poll' ) ) {
+        $self->SUPER::set($p_state);
+    }
 }
 
 package Ditra_thermostat_mode;
