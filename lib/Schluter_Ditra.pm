@@ -1,11 +1,14 @@
 package Schluter_Ditra;
 
-# v1.0
+# v1.5
 
 
 #TODO
 #
 # - voice commands? generate new token, enable/disable module?
+
+# - if online eq false then set mode to offline
+# - schedule item. Manual or Schedule -> {"RegulationMode":1,"VacationEnabled":false}
 
 # How to use
 #Set the username (email) and password in the mh.config like this:
@@ -70,20 +73,20 @@ sub new {
     $self->{config}->{password} = $::config_parms{ "ditra_password" }  if ( defined $::config_parms{ "ditra_password" } );
     $self->{config}->{password} = $password if ($password);
     
-    $self->{config}->{app_id} = 7; #hardcoded to 7. Manual override
+    $self->{config}->{app_id} = 7; #hardcoded to 7. Manual override. Some work as app id 0
     $self->{config}->{app_id} = $::config_parms{ "ditra_application_id" }  if ( defined $::config_parms{ "ditra_application_id" } );
 
 
     $self->{enabled} = 1;
     if ($self->{config}->{username} eq "" or $self->{config}->{password} eq "") {
-        main::print_log( "[Schluter_Ditra] ERROR, username or password undefined" );
+        main::print_log( "[Schluter_Ditra]: ERROR, username or password undefined" );
         $self->{enabled} = 0;
     }            
 
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.3";
+    $self->{module_version}         = "v1.5";
 
 #how to store and restore a token
     $self->{token} = "";
@@ -93,7 +96,7 @@ sub new {
     $options = "" unless ( defined $options );
     $options = $::config_parms{ "ditra_options" } if ( $::config_parms{ "ditra_options" } );
 
-    $self->{debug} = 5;
+    $self->{debug} = 0;
     ( $self->{debug} ) = ( $options =~ /debug\=(\d+)/i ) if ( $options =~ m/debug\=/i );
     $self->{debug} = 0 if ( $self->{debug} < 0 );
 
@@ -123,9 +126,10 @@ sub new {
         $self->get_data();    
         $self->{timer} = new Timer;
         $self->start_timer;
+        main::print_log( "[Schluter_Ditra]: module " . $self->{module_version} . " active" );            
         return $self;
     } else {
-        main::print_log( "[Schluter_Ditra] module disabled, will not fetch data" );    
+        main::print_log( "[Schluter_Ditra]: module disabled, will not fetch data" );    
     }
 }
 
@@ -138,7 +142,7 @@ sub start_timer {
         $self->{timer}->set( $self->{config}->{poll_seconds}, sub { &Schluter_Ditra::get_data($self) }, -1 );
     }
     else {
-        main::print_log( "[Schluter_Ditra] Warning, start_timer called but timer undefined" );
+        main::print_log( "[Schluter_Ditra]: Warning, start_timer called but timer undefined" );
     }
 }
 
@@ -153,7 +157,7 @@ sub get_data {
 
 sub get_token {
     my ($self) = @_;
-    main::print_log( "[Schluter_Ditra] Sending Authentication request for token..." );
+    main::print_log( "[Schluter_Ditra]: Sending Authentication request for token..." );
     $self->_push_JSON_data('auth');
     return ('1');
 }
@@ -184,7 +188,7 @@ sub process_check {
 
         return unless ($file_data);    #if there is no data, then don't process
         if ( $file_data =~ m/401 unauthorized/i ) {
-            main::print_log( "[Schluter_Ditra] Authentication request denied, requesting new token" );
+            main::print_log( "[Schluter_Ditra]: Authentication request denied, requesting new token" );
             $self->{auth_try}++;
             $self->get_token();
             return;
@@ -199,8 +203,8 @@ sub process_check {
         my ($json_data) = $file_data =~ /({.*})/;
         print "debug: json_data=$json_data\n" if ( $self->{debug} > 2);
         unless ( ($file_data) and ($json_data) ) {
-            main::print_log( "[Schluter_Ditra] ERROR! bad data returned by poll" );
-            main::print_log( "[Schluter_Ditra] ERROR! file data is [$file_data]. json data is [$json_data]" );
+            main::print_log( "[Schluter_Ditra]: ERROR! bad data returned by poll" );
+            main::print_log( "[Schluter_Ditra]: ERROR! file data is [$file_data]. json data is [$json_data]" );
             return;
         }
         my $data;
@@ -208,7 +212,7 @@ sub process_check {
 
         # catch crashes:
         if ($@) {
-            main::print_log( "[Schluter_Ditra] ERROR! JSON file parser crashed! $@\n" );
+            main::print_log( "[Schluter_Ditra]: ERROR! JSON file parser crashed! $@\n" );
             $com_status = "offline";
         }
         else {
@@ -219,14 +223,14 @@ sub process_check {
 
             }
             else {
-                main::print_log( "[Schluter_Ditra] ERROR! Returned data not structured! Not processing..." );
+                main::print_log( "[Schluter_Ditra]: ERROR! Returned data not structured! Not processing..." );
                 $com_status = "offline";
             }
         }
 
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{status} ne $com_status ) {
-                main::print_log "[Schluter_Ditra] Communication Tracking object found. Updating from "
+                main::print_log "[Schluter_Ditra]: Communication Tracking object found. Updating from "
                   . $self->{child_object}->{comm}->state() . " to "
                   . $com_status . "..."
                   if ( $self->{loglevel} );
@@ -281,7 +285,7 @@ sub process_check {
                         #{"SessionId":"xxxxxxxx","NewAccount":false,"ErrorCode":0,"RoleType":3000,"Email":"xxxx","Language":"EN"}
                         #ErrorCode = 1, bad username, ErrorCode = 2 bad password
                             if ( defined $data->{SessionId} ) {
-                                main::print_log( "[Schluter_Ditra] authentication token returned" );
+                                main::print_log( "[Schluter_Ditra]: authentication token returned" );
                                 $self->{token} = $data->{SessionId};
                             } else {
                                 my $err = "Bad Username";
@@ -303,7 +307,7 @@ sub process_check {
             }
 
             if ( scalar @{ $self->{cmd_queue} } ) {
-                main::print_log( "[Schluter_Ditra] Command Queue found" );            
+                main::print_log( "[Schluter_Ditra]: Command Queue found" );            
                 my $cmd = @{ $self->{cmd_queue} }[0];    #grab the first command, but don't take it off.
                 $self->{cmd_process}->set($cmd);
                 $self->{cmd_process}->start();
@@ -314,9 +318,9 @@ sub process_check {
         }
         else {
 
-            main::print_log( "[Schluter_Ditra] WARNING Issued command was unsuccessful, retrying..." );
+            main::print_log( "[Schluter_Ditra]: WARNING Issued command was unsuccessful, retrying..." );
             if ( $self->{cmd_process_retry} > $self->{cmd_process_retry_limit} ) {
-                main::print_log( "[Schluter_Ditra] ERROR Issued command max retries reached. Abandoning command attempt..." );
+                main::print_log( "[Schluter_Ditra]: ERROR Issued command max retries reached. Abandoning command attempt..." );
                 shift @{ $self->{cmd_queue} };
                 $self->{cmd_process_retry} = 0;
                 $com_status = "offline";
@@ -328,7 +332,7 @@ sub process_check {
 
         if ( defined $self->{child_object}->{comm} ) {
             if ( $self->{status} ne $com_status ) {
-                main::print_log "[Schluter_Ditra] Communication Tracking object found. Updating from "
+                main::print_log "[Schluter_Ditra]: Communication Tracking object found. Updating from "
                   . $self->{child_object}->{comm}->state() . " to "
                   . $com_status . "..."
                   if ( $self->{loglevel} );
@@ -373,6 +377,9 @@ sub _push_JSON_data {
     if (lc $mode eq "auth") {
         $get_url_string = "-response_code -json -post '{\"Email\":\"" . $self->{config}->{username} . "\",\"Password\":\"" . $self->{config}->{password} . "\",\"Application\":\"" . $self->{config}->{app_id} . "\"}' ";
         $get_url_string .= $api_auth_url;
+    } elsif (lc $mode eq "sched") {
+        $get_url_string = "-response_code -json -post '{\"RegulationMode\":1,\"VacationEnabled\":0}' ";
+        $get_url_string .= '"' . $api_set_temp_url . "?sessionId=" . $self->{token} . "&serialNumber=" . $serial . '"';
     } else { #assume set
         $params = int($params * 100) if ($params < 1000);
         $get_url_string = "-response_code -json -post '{\"ManualTemperature\":" . $params . ",\"RegulationMode\":3,\"VacationEnabled\":0}' ";
@@ -390,7 +397,7 @@ sub _push_JSON_data {
     }
     else {
         if ( scalar @{ $self->{cmd_queue} } < $self->{max_cmd_queue} ) {
-            main::print_log( "[Schluter_Ditra] Queue is " . scalar @{ $self->{cmd_queue} } . ". Queing command $mode, $cmd" )
+            main::print_log( "[Schluter_Ditra]: Queue is " . scalar @{ $self->{cmd_queue} } . ". Queing command $mode, $cmd" )
               if ( $self->{debug} );
             push @{ $self->{cmd_queue} }, "$cmd";
         }
@@ -398,7 +405,7 @@ sub _push_JSON_data {
             main::print_log( "[Schluter_Ditra] WARNING. Queue has grown past " . $self->{max_cmd_queue} . ". Command discarded." );
             if ( defined $self->{child_object}->{comm} ) {
                 if ( $self->{status} ne "offline" ) {
-                    main::print_log "[Schluter_Ditra] Communication Tracking object found. Updating from "
+                    main::print_log "[Schluter_Ditra]: Communication Tracking object found. Updating from "
                       . $self->{child_object}->{comm}->state()
                       . " to offline..."
                       if ( $self->{loglevel} );
@@ -417,7 +424,7 @@ sub stop_timer {
         $self->{timer}->stop() if ( $self->{timer}->active() );
     }
     else {
-        main::print_log( "[Schluter_Ditra] Warning, stop_timer called but timer undefined" );
+        main::print_log( "[Schluter_Ditra]: Warning, stop_timer called but timer undefined" );
     }
 }
 
@@ -463,32 +470,39 @@ sub process_data {
     # set state of self for state
     # for any registered child selfs, update their state if
 
-    main::print_log( "[Schluter_Ditra] Processing Data..." ) if ( $self->{debug} );
+    main::print_log( "[Schluter_Ditra]: Processing Data..." ) if ( $self->{debug} );
 
     foreach my $group (@{ $self->{data}->{Groups} }) {
-        main::print_log( "[Schluter_Ditra] Processing Data for Group " . $group->{GroupName} . "..." ) if ( $self->{debug} );
+        main::print_log( "[Schluter_Ditra]: Processing Data for Group " . $group->{GroupName} . "..." ) if ( $self->{debug} );
 
         foreach my $stat (@{ $group->{Thermostats} }) {
             if ($self->{child_object}->{$stat->{SerialNumber}}) {
                 my $temp = sprintf("%.1f",$stat->{Temperature} / 100);
                 if (defined $self->{child_object}->{$stat->{SerialNumber}}->{temp}) { 
                     $self->{child_object}->{$stat->{SerialNumber}}->{temp}->set($temp,'poll') if ($self->{child_object}->{$stat->{SerialNumber}}->{temp}->state() != $temp);
-                    main::print_log( "[Schluter_Ditra] Setting stat " . $stat->{Room} . " with serial #" . $stat->{SerialNumber} . " temperature to " . $temp ) if ( $self->{debug} );
+                    main::print_log( "[Schluter_Ditra]: Setting stat " . $stat->{Room} . " with serial #" . $stat->{SerialNumber} . " temperature to " . $temp ) if ( $self->{debug} );
                 }
                 if (defined $self->{child_object}->{$stat->{SerialNumber}}->{sp}) { 
                     my $sp = sprintf("%.1f",$stat->{SetPointTemp} / 100);
                     $self->{child_object}->{$stat->{SerialNumber}}->{sp}->set($sp,'poll') if ($self->{child_object}->{$stat->{SerialNumber}}->{sp}->state() != $sp);
-                    main::print_log( "[Schluter_Ditra] Setting stat " . $stat->{Room} . " with serial #" . $stat->{SerialNumber} . " set point to " . $sp ) if ( $self->{debug} );
+                    main::print_log( "[Schluter_Ditra]: Setting stat " . $stat->{Room} . " with serial #" . $stat->{SerialNumber} . " set point to " . $sp ) if ( $self->{debug} );
+                }
+                if (defined $self->{child_object}->{$stat->{SerialNumber}}->{sched}) { 
+                    my $schedule = "off";
+                    $schedule = "on" if ($stat->{RegulationMode} == 1);
+                    $self->{child_object}->{$stat->{SerialNumber}}->{sched}->set($schedule,'poll') if ($self->{child_object}->{$stat->{SerialNumber}}->{sched}->state() ne $schedule);
+                    main::print_log( "[Schluter_Ditra]: Setting stat " . $stat->{Room} . " with serial #" . $stat->{SerialNumber} . " schedule to " . $schedule ) if ( $self->{debug} );
                 }
                 if (defined $self->{child_object}->{$stat->{SerialNumber}}->{mode_status}) { 
                     my $heating = "idle";
                     $heating = "heating" if ($stat->{Heating});
+                    $heating = "offline" unless ($stat->{Online});
                     $self->{child_object}->{$stat->{SerialNumber}}->{mode_status} = $heating;
                     $self->{child_object}->{$stat->{SerialNumber}}->{mode}->set($heating,'poll') if ($self->{child_object}->{$stat->{SerialNumber}}->{mode}->state() ne $heating);
-                    main::print_log( "[Schluter_Ditra] Setting stat " . $stat->{Room} . " with serial #" . $stat->{SerialNumber} . " mode to " . $heating ) if ( $self->{debug} );
+                    main::print_log( "[Schluter_Ditra]: Setting stat " . $stat->{Room} . " with serial #" . $stat->{SerialNumber} . " mode to " . $heating ) if ( $self->{debug} );
                 }
             } else {
-                main::print_log( "[Schluter_Ditra] Warning: No child object defined for Stat serial #" . $stat->{SerialNumber} );
+                main::print_log( "[Schluter_Ditra]: Warning: No child object defined for Stat serial #" . $stat->{SerialNumber} );
             }
 
         }
@@ -504,9 +518,9 @@ sub print_command_queue {
     my $commands = scalar @{ $self->{cmd_queue} };
     my $name = "$commands commands";
     $name = "empty" if ($commands == 0);
-    main::print_log( "[Schluter_Ditra] Current Command Queue: $name" );
+    main::print_log( "[Schluter_Ditra]: Current Command Queue: $name" );
     for my $i ( 1 .. $commands ) {
-        main::print_log( "[Schluter_Ditra] Command $i: " . @{ $self->{cmd_queue} }[$i - 1] );
+        main::print_log( "[Schluter_Ditra]: Command $i: " . @{ $self->{cmd_queue} }[$i - 1] );
     }
     main::print_log( "[Schluter_Ditra] ------------------------------------------------------------------" );
     
@@ -549,6 +563,14 @@ sub set_stat {
     return ('1');
 }
 
+sub set_sched {
+    my ( $self, $serial) = @_;
+
+    main::print_log( "[Schluter_Ditra] DB set_sched, in master set, serial=$serial, p_setby=$serial" ) if ( $self->{debug} );
+    $self->_push_JSON_data('sched',$serial);
+
+    return ('1');
+}
 
 sub register {
     my ( $self, $object, $mode, $serial, $options ) = @_;
@@ -559,11 +581,15 @@ sub register {
     elsif ( lc $mode eq 'sp' )  {
         &main::print_log("[Schluter_Ditra]: Registering Serial # $serial Setpoint object" );
         $self->{child_object}->{$serial}->{sp} = $object;
-     }
+    }
     elsif ( lc $mode eq 'temp' )  {
         &main::print_log("[Schluter_Ditra]: Registering Serial # $serial Temperature object" );
         $self->{child_object}->{$serial}->{temp} = $object;
-     }
+    }
+    elsif ( lc $mode eq 'sched' )  {
+        &main::print_log("[Schluter_Ditra]: Registering Serial # $serial Schedule object" );
+        $self->{child_object}->{$serial}->{sched} = $object;
+    }
     elsif ( lc $mode eq 'mode' )  {
         &main::print_log("[Schluter_Ditra]: Registering Serial # $serial Mode object" );
         $self->{child_object}->{$serial}->{mode} = $object; 
@@ -631,6 +657,43 @@ sub level {
     my ($self) = @_;
 
     return ( $self->{level} );
+}
+
+package Ditra_thermostat_schedule;
+
+@Ditra_thermostat_schedule::ISA = ('Generic_Item');
+
+sub new {
+    my ( $class, $object, $serial, $options, $deg ) = @_;
+
+    my $self = new Generic_Item();
+    bless $self, $class;
+
+    push( @{ $$self{states} }, 'off', 'on' );
+
+    $$self{master_object} = $object;
+    $$self{serial} = $serial;
+
+    $object->register( $self, 'sched', $serial, $options );
+
+    $self->{debug} = $object->{debug};
+    return $self;
+
+}
+
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
+
+    if ( defined $p_setby && ( ( $p_setby eq 'poll' ) or ( $p_setby eq 'push' ) ) ) {
+        $self->SUPER::set($p_state);
+    }
+    else {
+        if (lc $p_state eq "on") {
+            $$self{master_object}->set_sched( $$self{serial} );
+        } else {
+            main::print_log( "[Ditra_Thermostat]: WARNING Schedule child object only supports set(ON), change setpoint to take off schedule" );        
+        }
+    }
 }
 
 package Ditra_thermostat_temp;
