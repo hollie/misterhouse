@@ -27,5 +27,6 @@ jobs:
           perl-version: ${{ matrix.perl }}
       - run: perl -V
       - run: sudo apt-get install libgd-gd2-perl
+      - run: sudo systemctl stop mono-xsp4.service
       - run: sudo netstat -tulpn
       - run: cd bin ; ./mh -tk 0 -debug process -code_dir ../code/test
