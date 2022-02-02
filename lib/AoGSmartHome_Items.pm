@@ -224,7 +224,7 @@ sub set_state {
     my $sub      = $self->{'uuids'}->{$uuid}->{'sub'};
     my $statesub = $self->{'uuids'}->{$uuid}->{'statesub'};
 
-    # Map state if there is a mapping defined
+	# Map state if there is a mapping defined
     $state = $self->{'uuids'}->{$uuid}->{ lc($state) } if $self->{'uuids'}->{$uuid}->{ lc($state) };
 
     print STDERR "[AoGSmartHome] Debug: set_state(uuid='$uuid', state='$state', name='$name' realname='$realname' sub='$sub')\n"
@@ -243,6 +243,7 @@ sub set_state {
     }
     elsif ( ref $sub eq 'CODE' ) {
         my $mh_object = ::get_object_by_name($realname);
+	&main::print_log("[AoGSmartHome] Invalid device $realname; ignoring AoG item.") if ( !defined $mh_object );
         return undef if !defined $mh_object;
 
 	print STDERR "[AoGSmartHome] Debug: running sub $sub(set, $state)\n" if $main::Debug{'aog'};
@@ -255,6 +256,7 @@ sub set_state {
         #
 
         my $mh_object = ::get_object_by_name($realname);
+		&main::print_log("[AoGSmartHome] Invalid device $realname; ignoring AoG item.") if ( !defined $mh_object );
         return undef if !defined $mh_object;
 
 	if ( $mh_object->can('is_dimmable') && $mh_object->is_dimmable && $state =~ /\d+/ ) {
@@ -292,6 +294,7 @@ sub get_state {
     }
     elsif ( ref $statesub eq 'CODE' ) {
         my $mh_object = ::get_object_by_name($realname);
+	&main::print_log("[AoGSmartHome] Invalid device $realname; ignoring AoG item.") if ( !defined $mh_object );
         return undef if !defined $mh_object;
 
 	my $debug = "[AoGSmartHome] Debug: get_state() running sub: $statesub('$realname') - ";
@@ -305,6 +308,7 @@ sub get_state {
         #
 
         my $mh_object = ::get_object_by_name($realname);
+	&main::print_log("[AoGSmartHome] Invalid device $realname; ignoring AoG item.") if ( !defined $mh_object );
         return undef if !defined $mh_object;
 
 	my $cstate = $mh_object->$statesub();
@@ -335,7 +339,6 @@ sub new {
     if ( -e $file ) {
         my $restoredhash = retrieve($file);
         $self->{idmap} = $restoredhash->{idmap};
-	# delete $self->{idmap}->{objects}->{''};
 
         if ( $main::Debug{'aog'} ) {
             print STDERR "[AoGSmartHome] Debug: dumping persistent IDMAP:\n";
@@ -365,11 +368,12 @@ sub add {
     my ( $self, $realname, $name, $sub, $on, $off, $statesub, $dev_properties ) = @_;
     my ($type, $room); # AoG Smart Home Provider device properties
 
-    if( !$realname ) {
-	&main::print_log("[AoGSmartHome] Realname must be specified for persistent idmap; ignoring AoG item.");
-	return;
-    }
 
+    if( !$realname ) {
+		&main::print_log("[AoGSmartHome] Realname must be specified for persistent idmap; ignoring AoG item.");
+		return;
+    }
+	
     if ( !$name ) {
         $name = $realname;
         $name =~ s/\$//g;
@@ -414,8 +418,7 @@ sub add {
     # If no device type is provided we default to 'light'
     $self->{'uuids'}->{$uuid}->{'type'}     = lc($type) || 'light';
     $self->{'uuids'}->{$uuid}->{'room'}     = $room if $room;
-    print "Added AOG device:\n    " . Dumper( $self->{'uuids'}->{$uuid} )
-      if $main::Debug{'aog'} > 2;
+	print "[AoGSmartHome] Added AOG device:\n    " . Dumper( $self->{'uuids'}->{$uuid} ) if $main::Debug{'aog'} > 2;
 }
 
 =item C<sync()>
@@ -459,11 +462,12 @@ EOF
 	    # the device has the "Brightness" trait. Other types of dimmable
 	    # objects will have to be added here (right now we only check for
 	    # INSTEON and X10 dimmable lights).
+	    &main::print_log("[AoGSmartHome] Object Name: ". $self->{'uuids'}->{$uuid}->{'realname'} ."\n");
 	    my $mh_object = ::get_object_by_name($self->{'uuids'}->{$uuid}->{'realname'});
-	    if( !ref $mh_object ) {
-		&main::print_log("[AoGSmartHome] '$self->{'uuids'}->{$uuid}->{'realname'} is not found.");
-	    }
-	    elsif( $mh_object->can('is_dimmable')  &&  $mh_object->is_dimmable ) {
+	    &main::print_log("[AoGSmartHome] Invalid device ".$self->{'uuids'}->{$uuid}->{'realname'}."; ignoring AoG item.") if ( !defined $mh_object );
+	    return undef if !defined $mh_object;
+
+	    if( $mh_object->can('is_dimmable') && $mh_object->is_dimmable ) {
 		$response .= <<EOF;
      "action.devices.traits.Brightness",
 EOF
@@ -524,9 +528,11 @@ EOF
 	    $response .= <<EOF;
    },
 EOF
-        }
-	elsif ( $type eq 'thermostat') {
+        } elsif ( $type eq 'thermostat') {
 	    my $mh_object = ::get_object_by_name($self->{'uuids'}->{$uuid}->{'realname'});
+	    &main::print_log("[AoGSmartHome] Invalid device ".$self->{'uuids'}->{$uuid}->{'realname'}."; ignoring AoG item.") if ( !defined $mh_object );
+	    return undef if !defined $mh_object;
+
 	    if (!$mh_object->isa('Insteon::Thermostat') ) {
 		&main::print_log("[AoGSmartHome] '$self->{'uuids'}->{$uuid}->{'realname'} is an unsupported thermostat; ignoring AoG item.");
 		next;
@@ -542,9 +548,9 @@ EOF
     "name": {
      "name": "$self->{'uuids'}->{$uuid}->{'name'}"
     },
-    "willReportState": false,
+    "willReportState": true,
     "attributes": {
-     "availableThermostatModes": "off,heat,cool,on",
+     "availableThermostatModes": "off,heat,cool,on,heatcool,fan-only",
      "thermostatTemperatureUnit": "F"
     },
 EOF
@@ -636,24 +642,47 @@ EOF
         }
         elsif ( $self->{'uuids'}->{$uuid}->{'type'} eq 'thermostat' ) {
 	    my $mh_object = ::get_object_by_name($self->{'uuids'}->{$uuid}->{'realname'});
+	    &main::print_log("[AoGSmartHome] Invalid device ".$self->{'uuids'}->{$uuid}->{'realname'}."; ignoring AoG item.") if ( !defined $mh_object );
+	    return undef if !defined $mh_object;
+
 	    if ($mh_object->isa('Insteon::Thermostat') ) {
-		my $mode = $mh_object->get_mode();
+		my $mode = lc($mh_object->get_mode());
+		$mode = 'heatcool' if ($mode =~ /auto/);
+
+		my $activeThermostatMode = lc($mh_object->get_status);
+		my $fanmode = lc($mh_object->get_fan_mode);
+		if ($activeThermostatMode =~ /cooling/) { 
+			$activeThermostatMode = 'cool';
+		} elsif ($activeThermostatMode =~ /heating/) { 
+			$activeThermostatMode = 'heat';
+		} elsif ( ( $fanmode =~ /always on/) and ( $activeThermostatMode =~ /off/ ) ) {
+			$activeThermostatMode = 'fan-only';
+		} else { 
+			$activeThermostatMode = 'none';
+		}
 
 		my $temp_setpoint;
 		if ($mode eq 'cool') {
-		    $temp_setpoint = $mh_object->get_cool_sp();
-		} else {
-		    $temp_setpoint = $mh_object->get_heat_sp();
+		    $temp_setpoint = '"thermostatTemperatureSetpoint": '. &FtoC($mh_object->get_cool_sp).',';
+		} elsif ($mode eq 'heat') {
+		    $temp_setpoint = '"thermostatTemperatureSetpoint": '. &FtoC($mh_object->get_heat_sp).',';
+		} elsif ($mode eq 'heatcool') {
+		     $temp_setpoint = '"thermostatTemperatureSetpointHigh": '. &FtoC($mh_object->get_cool_sp).','."\n";
+		     $temp_setpoint .= '"thermostatTemperatureSetpointLow": '. &FtoC($mh_object->get_heat_sp).',';
 		}
-
-		my $temp_ambient = $mh_object->get_temp();
-
+		
+		my $temp_ambient = &FtoC($mh_object->get_temp);
+		my $thermostatHumidityAmbient = $mh_object->get_humid;
+		
 		$response .= <<EOF;
    "$uuid": {
     "online": true,
     "thermostatMode": "$mode",
-    "thermostatTemperatureSetpoint": "$temp_setpoint",
-    "thermostatTemperatureAmbient": "$temp_ambient",
+    "activeThermostatMode": "$activeThermostatMode",
+    $temp_setpoint
+    "thermostatTemperatureAmbient": $temp_ambient,
+    "thermostatHumidityAmbient": $thermostatHumidityAmbient,
+    "status": "SUCCESS"
    },
 EOF
 	    }
@@ -662,7 +691,6 @@ EOF
 
 	    next;
 	}
-
         #
         # The device is a light, a switch, or an outlet.
         #
@@ -694,7 +722,9 @@ EOF
 	# If the device is dimmable we provided the "Brightness" trait, so we
 	# have to supply the "brightness" state.
 	my $mh_object = ::get_object_by_name($self->{'uuids'}->{$uuid}->{'realname'});
-	if( $mh_object->can('is_dimmable')  &&  $mh_object->is_dimmable ) {
+	&main::print_log("[AoGSmartHome] Invalid device ".$self->{'uuids'}->{$uuid}->{'realname'}."; ignoring AoG item.") if ( !defined $mh_object );
+	return undef if !defined $mh_object;
+	if( $mh_object->can('is_dimmable') && $mh_object->is_dimmable ) {
 
 	    # INSTEON devices return "on" or "off". The AoG "Brightness" trait
 	    # expects needs "100" or "0", so we adjust here accordingly.
@@ -732,13 +762,26 @@ EOF
     return &main::json_page($response);
 }
 
+sub FtoC { 
+	my ( $F ) = @_;
+	return ( ($F - 32) * 5/9 );
+	#return sprintf "%.0f", ( ($F - 32) * 5/9 );
+}
+
+sub CtoF { 
+	my ( $F ) = @_;
+	#return ( (9 * $F/5) + 32 );
+	return sprintf "%.0f", ( (9 * $F/5) + 32 );
+
+}
+
 sub execute_OnOff {
     my ( $self, $command ) = @_;
 
     my $response = '   {
     "ids": [';
 
-    my $turn_on = $command->{'execution'}->[0]->{'params'}->{'on'};
+    my $turn_on = $command->{'execution'}->[0]->{'params'}->{'on'} eq "true" ? 1 : 0;
 
     foreach my $device ( @{ $command->{'devices'} } ) {
         set_state( $self, $device->{'id'}, $turn_on ? 'on' : 'off' );
@@ -819,31 +862,57 @@ sub execute_ThermostatX {
 	my $realname = $self->{'uuids'}->{$device->{'id'} }->{'realname'};
 
         my $mh_object = ::get_object_by_name($realname);
+	&main::print_log("[AoGSmartHome] Invalid device $realname; ignoring AoG item.") if ( !defined $mh_object );
         return undef if !defined $mh_object;
 
 	if ($mh_object->isa('Insteon::Thermostat') ) {
+	    my $mode = lc($mh_object->get_mode);
+	    $mode = 'heatcool' if ($mode =~ /auto/);
+
 	    if ( $execution_command =~ /TemperatureSetpoint/ ) {
-		my $setpoint = $command->{'execution'}->[0]->{'params'}->{'thermostatTemperatureSetpoint'};
-		if ($mh_object->get_mode() eq 'cool') {
+		&main::print_log("[AoGSmartHome] Setting temp: ".&CtoF($command->{'execution'}->[0]->{'params'}->{'thermostatTemperatureSetpoint'}) ) if ( $main::Debug{'aog'} );
+		my $setpoint = &CtoF($command->{'execution'}->[0]->{'params'}->{'thermostatTemperatureSetpoint'});
+		if ( $mode eq 'cool') {
 		    $mh_object->cool_setpoint($setpoint);
-		} else {
+		} elsif( $mode eq 'heat') {
 		    $mh_object->heat_setpoint($setpoint);
 		}
+	    } elsif ( $execution_command =~ /ThermostatTemperatureSetRange/ ) {
+		&main::print_log("[AoGSmartHome] Setting cool: ".&CtoF($command->{'execution'}->[0]->{'params'}->{'thermostatTemperatureSetpointHigh'})." Heat: ".&CtoF($command->{'execution'}->[0]->{'params'}->{'thermostatTemperatureSetpointLow'})) if ( $main::Debug{'aog'} );
+		$mh_object->cool_setpoint( &CtoF($command->{'execution'}->[0]->{'params'}->{'thermostatTemperatureSetpointHigh'}) );
+		$mh_object->heat_setpoint( &CtoF($command->{'execution'}->[0]->{'params'}->{'thermostatTemperatureSetpointLow'}) );
 	    } elsif ( $execution_command =~ /ThermostatSetMode/ ) {
 		my $mode = $command->{'execution'}->[0]->{'params'}->{'thermostatMode'};
+		$mode = 'auto' if ($mode =~ /heatcool/);
 		$mh_object->mode($mode);
 	    }
 
-	    my $mode = $mh_object->get_mode();
+	    $mode = lc($mh_object->get_mode);
+	    $mode = 'heatcool' if ($mode =~ /auto/);
+	    my $activeThermostatMode = lc($mh_object->get_status());
+	    my $fanmode = lc($mh_object->get_fan_mode);
+	    if ($activeThermostatMode =~ /cooling/) {
+            	$activeThermostatMode = 'cool';
+	    } elsif ($activeThermostatMode =~ /heating/) {
+            	$activeThermostatMode = 'heat';
+	    } elsif ( ( $fanmode =~ /always on/) and ( $activeThermostatMode =~ /off/ ) ) {
+            	$activeThermostatMode = 'fan-only';
+            } else {
+            	$activeThermostatMode = 'none';
+            }
 
-	    my $temp_setpoint;
-	    if ($mode eq 'cool') {
-		$temp_setpoint = $mh_object->get_cool_sp();
-	    } else {
-		$temp_setpoint = $mh_object->get_heat_sp();
-	    }
+            my $temp_setpoint;
+            if ($mode eq 'cool') {
+            	$temp_setpoint = '"thermostatTemperatureSetpoint": '. &FtoC($mh_object->get_cool_sp).',';
+            } elsif ($mode eq 'heat') {
+            	$temp_setpoint = '"thermostatTemperatureSetpoint": '. &FtoC($mh_object->get_heat_sp).',';
+            } elsif ($mode eq 'heatcool') {
+            	$temp_setpoint = '"thermostatTemperatureSetpointHigh": '. &FtoC($mh_object->get_cool_sp).','."\n";
+            	$temp_setpoint .= '"thermostatTemperatureSetpointLow": '. &FtoC($mh_object->get_heat_sp).',';
+            }  
 
-	    my $temp_ambient = $mh_object->get_temp();
+	    my $temp_ambient = &FtoC($mh_object->get_temp);
+	    my $thermostatHumidityAmbient = $mh_object->get_humid;
 
 	    $response .= "   {";
 	    $response .= <<EOF
@@ -851,8 +920,10 @@ sub execute_ThermostatX {
     "status": "SUCCESS",
     "states": {
      "thermostatMode": "$mode",
-     "thermostatTemperatureSetpoint": "$temp_setpoint",
-     "thermostatTemperatureAmbient": "$temp_ambient",
+     "activeThermostatMode": $activeThermostatMode,
+     $temp_setpoint
+     "thermostatTemperatureAmbient": $temp_ambient,
+     "thermostatHumidityAmbient": $thermostatHumidityAmbient
     }
   },
 EOF
@@ -890,8 +961,10 @@ sub execute {
   "commands": [
 EOF
 
-    $Data::Dumper::Maxdepth = 0;
-    print "Aog received execute request:\n    " . Dumper( $body )  if $main::Debug{'aog'} > 2;
+	if ($main::Debug{'aog'} > 2) {
+		$Data::Dumper::Maxdepth = 0;
+		print "Aog received execute request:\n    " . Dumper( $body );  
+	}
     #
     # First, send the commands to all the devices specified in the request.
     #
@@ -990,4 +1063,3 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =cut
-
