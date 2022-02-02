@@ -20,9 +20,7 @@ provider.
  aog_auth_path = /oauth         # OAuth URI
  aog_fulfillment_url = /aog     # Fulfillment URI
  aog_client_id = <client ID>    # OAuth client ID
- aog_client_secret = <secret>   # OAuth client secret
  aog_oauth_token_file = xxxxxx  # OAuth token file
- aog_oauth_codes_file = xxxxxx  # OAuth "code" file (code and refresh_tokens)
  aog_project_id = xxxxxxx       # Google project ID
  aog_uuid_start = x		# UUID start
  aog_agentuserid = xxxxx        # Agent User ID (optional but recommended)
@@ -64,11 +62,11 @@ good with the defaults, you can add an object like:
 
 # In MHT
 
- AOGSMARTHOME_ITEM, AoGSmartHomeItems, light1
+ AOGSMARTHOME_ITEM, AoGSmartHomeItems, light1 
 
 # or in user code
 
- $AoGSmartHomeItems->add('$light1');
+ $AoGSmartHomeItems->add('$light1');         
 
 <name you want Echo/GH to see> - This defaults to using the <actual
 object name> without the $. If want to change the name you say to the
@@ -95,12 +93,12 @@ objects.
 The dim % is the actual number you say to Alexa, so if you say "Alexa,Set
 Light 1 to 75 %" then the dim % value will be 75.
 
-The module supports 300 devices which is the max supported by the Echo
+The module supports 300 devices which is the max supported by the Echo 
 
 =head2 Complete Examples
 
 MHT examples:
-
+ 
  AOGSMARTHOME_ITEMS, AoGSmartHomeItems
  AOGSMARTHOME_ITEM, AoGSmartHomeItems, light1 light1, set, on, off, state  # these are the defaults
  AOGSMARTHOME_ITEM, AoGSmartHomeItems, light1   # same as the line above
@@ -121,7 +119,7 @@ To change the name of an object to a more natural name that you would say to the
 To map a voice command, '!' is replaced by the Echo/GH command (on/off/dim%).
 My actual voice command in MH is "set night mode on", so I configure it like:
 
- $AoGSmartHomeItems->add('set night mode !','NightMode','run_voice_cmd');
+ $AoGSmartHomeItems->add('set night mode !','NightMode','run_voice_cmd');   
 
  If I say "Alexa, Turn on Night Mode",  run_voice_cmd("set night mode on") is run in MH.
 
@@ -148,7 +146,7 @@ When the sub is run 2 arguments are passed to it: Argument 1 is (state or set) A
  AOGSMARTHOME_ITEM, AoGSmartHomeItems, thermostat, Cool, cool_setpoint, on, off, get_cool_sp
 
 In order to be able to say things like "Alexa, set thermostat up by 2", a sub must be created in user code
-When the above is said to the Echo, it first gets the current state, then subtracts or adds the amount that was said.
+When the above is said to the Echo, it first gets the current state, then subtracts or adds the amount that was said. 
 
  sub temperature {
    my ($type, $state) = @_;
@@ -158,7 +156,7 @@ When the above is said to the Echo, it first gets the current state, then subtra
 
    # we are changing heat and cool so just return a static number, we just need the diff
    # because the Echo will add or subtact the amount that was said to it.
-   # so if we say "set thermostat up by 2", 52 will be returned in $state
+   # so if we say "set thermostat up by 2", 52 will be returned in $state   
    if ($type eq 'state') { return 50; }
 
    return '' unless ($state =~ /\d+/); Make sure we have a number
@@ -174,7 +172,7 @@ When the above is said to the Echo, it first gets the current state, then subtra
    set $alexa_temp_timer '7', sub { $thermostat->heat_setpoint($heatsp) }
  }
 
-# Map our new temperature sub in the .mht file so the Echo/Google Home can discover it
+# Map our new temperature sub in the .mht file so the Echo/Google Home can discover it 
 
  AOGSMARTHOME_ITEM, AoGSmartHomeItems, thermostat, thermostat, &temperature
 
