@@ -170,9 +170,16 @@ sub restore_string {
       unless $self->{time}
       or ( $expire_time and $expire_time > main::get_tickcount );
 
-    my $restore_string = "set $self->{object_name} $self->{period}"
-      if $self->{period};
-    $restore_string .= ", q|$self->{action}|" if $self->{action};
+    my $restore_string = "set $self->{object_name} $self->{period}" if $self->{period};
+    if ( $self->{action} ) {
+	if (ref $self->{action} eq 'CODE') {
+		use B::Deparse ();
+		my $deparse = B::Deparse->new;
+		$restore_string .= ", sub".$deparse->coderef2text($self->{action});
+	} else {
+		$restore_string .= ", q|$self->{action}|";
+	}
+    }
     $restore_string .= ", $self->{repeat}"    if $self->{repeat};
     $restore_string .= ";\n";
     $restore_string .= $self->{object_name} . "->set_from_last_pass();\n";
@@ -184,6 +191,8 @@ sub restore_string {
       if $self->{time_pause};
     $restore_string .= $self->{object_name} . "->{time_adjust} = q~$self->{time_adjust}~;\n"
       if $self->{time_adjust};
+    
+      #print "[TIMER] restore_string=$restore_string\n";
 
     return $restore_string;
 }
@@ -230,7 +239,10 @@ $cycles (optional) is how many times to repeat the timer.  Set to -1 to repeat f
 
 sub set {
     ( $self, $state, $action, $repeat ) = @_;
-
+    #use B::Deparse ();
+    #my $deparse = B::Deparse->new;
+    #my $textaction = $deparse->coderef2text($action);
+    #&main::print_log("[TIMER] Set Action: $textaction") if defined($action);
     my @c = caller;
     $repeat = 0 unless defined $repeat;
 
@@ -331,8 +343,7 @@ sub run_action {
 
         if ( $action_type eq 'CODE' ) {
             &{$action};
-        }
-        elsif ( $action_type eq '' ) {
+	} elsif ( $action_type eq '' ) {
 
             #       &::print_log("Action");
             package main;    # Had to do this to get the 'speak' function recognized without having to &main::speak() it
