@@ -4498,7 +4498,28 @@ sub play {
 
 }
 
+
+# 14-jan-2021 new print_log added and old print_log renamed print_log_simple 
+# see https://github.com/hollie/misterhouse/wiki/Developer-help#logging
+
 sub print_log {
+	my ($message,$severity,$source) = @_;
+	if (defined(&print_log_private)) {
+			print_log_private($message,$severity,$source);
+			return;
+	}
+	if (defined($severity)) {
+		$message .=  " " . $severity . ":";
+	}
+	if (defined($source)) {
+		$message .= " [" . $source . "] ";
+	}
+	print_log_simple($message);
+}
+
+
+# renamed from print_log
+sub print_log_simple {
 
     #   my ($data) = @_;
     my $data = "@_";
