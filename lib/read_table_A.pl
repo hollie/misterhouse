@@ -1944,7 +1944,7 @@ sub read_table_A {
 	} else {
 	    $broker = 'undef';
 	}
-	$code .= "\$${object_name} = new mqtt_LocalItem( ${broker}, '$object_name', '$type', \$$local_obj_name, '$topicprefix', $discoverable, '$friendly_name' ); #noloop\n";
+	$code .= "\$${object_name} = new mqtt_LocalItem( ${broker}, '$object_name', '$type', \$$local_obj_name, '$topicprefix', $discoverable, '$friendly_name' );\n";
     }
     elsif( $type eq "MQTT_REMOTEITEM" ) {
 	my ($object_name, $grouplist, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
