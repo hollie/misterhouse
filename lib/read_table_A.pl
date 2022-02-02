@@ -2002,13 +2002,28 @@ sub read_table_A {
     elsif ( $type eq "TASMOTA_HTTP_SWITCH" ) {
         require Tasmota_HTTP_Item;
         my ( $output );
-        ( $address, $name, $output, $grouplist ) = @item_info;
-        $object = "Tasmota_HTTP::Switch('$address', '$output')";
+        ( $address, $name, $output, $grouplist, @other ) = @item_info;
+        $other = join ',',  @other ;    # Quote data
+        $other =~ s/^[\'\"]//; #strip out quotes in case they are included
+        $other =~ s/[\'\"]$//;
+        $object = "Tasmota_HTTP::Switch('$address', '$output', '$other')";
+    }
+    elsif ( $type eq "TASMOTA_HTTP_SWITCH_POWERMON" ) {
+        require Tasmota_HTTP_Item;
+        my ( $output );
+        ( $address, $name, $output, $grouplist, @other ) = @item_info;
+        $other = join ',', @other;    # Quote data
+        $other =~ s/^[\'\"]//; #strip out quotes in case they are included
+        $other =~ s/[\'\"]$//;
+        $object = "Tasmota_HTTP::Switch_PowerMon('$address', '$output', '$other')";
     }
     elsif ( $type eq "TASMOTA_HTTP_FAN" ) {
         require Tasmota_HTTP_Item;
-        ( $address, $name, $grouplist ) = @item_info;
-        $object = "Tasmota_HTTP::Fan('$address')";
+        ( $address, $name, $grouplist, @other ) = @item_info;
+        $other = join ',',  @other ;    # Quote data
+        $other =~ s/^[\'\"]//; #strip out quotes in case they are included
+        $other =~ s/[\'\"]$//;
+        $object = "Tasmota_HTTP::Fan('$address', '$other')";
     }
     else {
         print "\nUnrecognized .mht entry: $record\n";

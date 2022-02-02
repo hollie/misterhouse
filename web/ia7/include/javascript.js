@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.0.810";
+var ia7_ver = "v2.1.300";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -1050,7 +1050,7 @@ var loadList = function() {
 	var button_text = '';
 	var button_html = '';
 	var entity_arr = [];
-	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status,link,rgb";
+	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status,link,rgb,rrd";
 	$.ajax({
 		type: "GET",
 		url: "/json/"+HashtoJSONArgs(URLHash),
@@ -1174,7 +1174,12 @@ var loadList = function() {
                 		if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
                             btn_direct = "btn-direct";
                 		}
-                	} 
+                	} else {  // RF Global fallback - only multistate items
+                      if (json_store.ia7_config.prefs.direct_control == "yes" && json_store.objects[entity].states.length > 1)  {
+                        btn_direct = "btn-direct";
+                      }
+                    }
+                    
 					button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' ";
 					button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover "+btn_direct+" btn-state-cmd navbutton-padding'>";
 					button_html += name+btn_rgb+dbl_btn+"<span class='pull-right object-state'>"+json_store.objects[entity].state+"</span></button></div>";
@@ -1239,8 +1244,12 @@ var loadList = function() {
                 	} else {
                 		create_state_modal(entity);
                 	}
-				} else {				
-					create_state_modal(entity);
+				} else {	//Use Global fallback for those that prefer direct_control
+				    if (json_store.ia7_config.prefs.direct_control == "yes" && json_store.objects[entity].states.length > 1) {
+                        direct_control(entity);
+                    } else {			
+					    create_state_modal(entity);
+					}
 				}
 			});
 			$(".btn-state-cmd").mayTriggerLongClicks().on( 'longClick', function() {		
@@ -1277,18 +1286,23 @@ var generateTooltips = function () {
     }	
 }
 
+//RF TODO Maybe reflect lighting levels as numbers, temp colours / brightness too ?
 var getButtonColor = function (state) {
 	var color = "default";
-	if (state !== undefined) state = state.toLowerCase();
-	if (state == "on" || state == "open" || state == "disarmed" || state == "unarmed" || state == "ready" || state == "dry" || state == "up" || state == "100%" || state == "online" || state == "unlocked") {
+	if (state !== undefined) {
+	    state = state.toLowerCase();
+	} else {
+	    return "purple";
+	}
+      if (state.match (/^(on|open|(dis|un)armed|ready|dry|up|100|online|unlocked|play|occupied|start)/) ) {
 		 color = "success";
-	} else if (state == "motion" || state == "armed" || state == "wet" || state == "fault" || state == "down" || state == "offline" || state == "locked") {
+      } else if (state.match (/^(motion|armed|wet|fault|down|offline|lock|error|stop)/) ) {
 		 color = "danger";
 	} else if (state == undefined || state == "unknown" ) {
 		 color = "purple";
-	} else if (state == "low" || state == "med" || state.indexOf('%') >= 0 || state == "light" || state == "heating" || state == "heat") { 
+      } else if (state.match(/^(low|med|^[1-9]+[0-9]*%$|light|heat|pause|setback)/) ) { 
 		 color = "warning";
-	} else if (state == "cooling" || state == "cool") {
+      } else if (state.match (/^(cool|unoccupied)/) ) {
 		 color = "info";
 	}
 	if (json_store.ia7_config !== undefined && json_store.ia7_config.state_colors !== undefined
@@ -1416,7 +1430,7 @@ var sortArrayByArray = function (listArray, sortArray){
 //Used to dynamically update the state of objects
 var updateList = function(path) {
 	var URLHash = URLToHash();
-	URLHash.fields = "state,state_log,schedule,logger_status,type,rgb";
+	URLHash.fields = "state,state_log,schedule,logger_status,type,rgb,rrd";
 	URLHash.long_poll = 'true';
 	URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -1491,7 +1505,7 @@ var updateItem = function(item,link,time) {
 		time = "";
 	}
 	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
-	var arg_str = "fields=state,states,label,state_log,schedule,logger_status,rgb&long_poll=true&items="+item+"&time="+time;
+	var arg_str = "fields=state,states,label,state_log,schedule,logger_status,rgb,rrd&long_poll=true&items="+item+"&time="+time;
 	$.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
@@ -1544,7 +1558,7 @@ var updateStaticPage = function(link,time) {
    		 }
    	})
 	var URLHash = URLToHash();
-	URLHash.fields = "state,states,state_log,schedule,logger_status,label,type";
+	URLHash.fields = "state,states,state_log,schedule,logger_status,label,type,rgb,rrd";
 	URLHash.long_poll = 'true';
 	URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -1591,8 +1605,11 @@ var updateStaticPage = function(link,time) {
                 					} else {
                 					create_state_modal(entity);
                 					}
-								} else {				
-									create_state_modal(entity);
+								// RF Global fallback. Toggle MIN/MAX in list of states - only multistate items
+                                } else if (json_store.ia7_config.prefs.direct_control == "yes" && json_store.objects[entity].states.length > 1) {
+                                        direct_control(entity); 
+								    } else {				
+									    create_state_modal(entity);
 								}
 							});
                             $('button[entity="'+entity+'"]').mayTriggerLongClicks().on( 'longClick', function() {		        
@@ -1652,35 +1669,29 @@ var direct_control = function (entity){
     var states;
     if (dc_states === undefined)
     {
-        var isMainstate = function(x){return filterSubstate(x) == 0;};
-        states = json_store.objects[entity].states.filter(isMainstate);
-        if (states.length !== 2){
-             something_went_wrong("direct_control","Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
-            return false;
-        }
+        // isMainstate = function(x){return filterSubstate(x) == 0;};
+        states = json_store.objects[entity].states; //.filter(isMainstate);
     }
    else
     {
-        if (dc_states.length !== 2)
-        {
-          something_went_wrong("direct_control", "Bad 'direct_control_states' configuration for '"+entity+"' in ia7_config.json. "+
-                "'direct_control_states' needs exactly 2 entries. E.g:"+
-               "<code>" + 
-                "    \""+entity+"\" : {\n" +
-                "        \"direct_control_states\": [\n" +
-                "            \"on\",\n" +
-                "            \"off\"\n" +
-                "        ],\n" +
-                "        \"direct_control\": \"yes\"\n" +
-                "    },\n"+
-                "</code>");
-            return false;
-        }
-        states = dc_states;
+        states = dc_states.split(',');
     }
-
+    if (states === undefined || states.length < 2) {
+        console.log("WARNING: Direct Control state strange for "+entity);
+        return
+    }
+    // MH seems to use lower case for states so do case insensitive search
     var current_state = json_store.objects[entity].state;
-    var new_state = current_state != states[0] ? states[0] : states[1];
+    var state_loc = 0;
+    // find element location. If no location found then assume an error and pick states[0]
+    states.forEach(function(item,index) {
+      if (item.toLowerCase() === current_state.toLowerCase()) {
+        state_loc = index + 1;
+        }
+      });
+    if (state_loc == states.length) state_loc = 0;
+    var new_state = states[state_loc++];
+
     url= '/SET;none?select_item='+entity+'&select_state='+new_state;
     $.get(url).fail(function() {
         something_went_wrong("Command","Communication issue with Misterhouse");                        
@@ -1746,7 +1757,7 @@ var loadCollection = function(collection_keys) {
 				var dbl_btn = "";
 				if (name.length < 30) dbl_btn = "<br>"; 
 				var button_html = "<div style='vertical-align:middle'><button entity='"+item+"' ";
-				button_html += "class='btn  btn-"+color+" btn-lg btn-block btn-list btn-popover "+ btn_direct +" btn-state-cmd navbutton-padding'>";
+				button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover "+ btn_direct +" btn-state-cmd navbutton-padding'>";
 				button_html += name+dbl_btn+"<span class='pull-right object-state'>"+json_store.objects[item].state+"</span></button></div>";
 			    button_html = "<div class='col-sm-4' colid='"+i+"'>" + button_html + "</div>";
 				entity_arr.push(button_html);
@@ -1844,7 +1855,10 @@ var loadCollection = function(collection_keys) {
                     create_state_modal(entity);
                 }
             }
-            else {
+            // RF Global fallback. Toggle MIN/MAX in list of states - only multistate items
+            else if (json_store.ia7_config.prefs.direct_control == "yes" && json_store.objects[entity].states.length > 1) {
+                direct_control(entity);
+            } else {
                 create_state_modal(entity);
             }
         });
@@ -2042,6 +2056,7 @@ var get_stats = function(tagline) {
                     if (json.data.raining !== undefined && json.data.raining ) raining = 1;
                     if (json.data.snowing !== undefined && json.data.snowing) snowing = 1;
                     if (json.data.night !== undefined && json.data.night) night = 1;			        
+                // RF suspect dependency on value of 'clouds' here - eg at 'night' or 'fair' NOAA sets cloud to ''. cloud = conditions
                     if (json.data.clouds !== undefined) {
                         $('.mh-wi-icon').addClass(get_wi_icon(json.data.clouds,raining,snowing,night));
                     } else {
@@ -2053,9 +2068,18 @@ var get_stats = function(tagline) {
                 $('.mh-wi').click( function () {
                     var summary = "<strong>Summary:</strong>&nbsp;&nbsp;"+json.data.summary_long+"<br>";
                     summary += "<strong>Last Updated:</strong>&nbsp;&nbsp;"+json.data.weather_lastupdated;
+                     // RF Don't understand original logic: if clouds undefined, then clouds here is blank string ?
                     if ($('.mh-wi-icon').hasClass("wi-na")) {
                         summary += "<br><strong>Clouds:</strong>&nbsp;&nbsp"+json.data.clouds;
                     }
+                    // RF TODO forecast ideally rendered as an icon - as provided
+                    $('.mh-wi-icon').addClass(get_wi_icon(json.data.clouds,raining,snowing,night));
+                    if (json.data.ForecastHigh !== undefined && json.data.ForecastLow !== undefined && json.data.ForecastConditions !== undefined) {
+                      summary += "<br><strong>Forecast High / Low / Conditions:</strong>&nbsp;&nbsp"+json.data.ForecastHigh + 
+                      "&deg / " + json.data.ForecastLow + "&deg / " + json.data.ForecastConditions
+                    }                    
+                    summary += "<br><strong>Sunrise / Sunset:</strong>&nbsp;&nbsp"+json.data.sunrise + " / " + json.data.sunset;
+
                 	$('#lastResponse').find('.modal-body').html(summary);
 					$('#lastResponse').modal({
 						    show: true
@@ -2089,28 +2113,28 @@ var get_wi_icon = function (conditions,rain,snow,night) {
         icon += "day-";
     }
 
-    if (conditions == "overcast") {
+    if (conditions.match (/overcast/) ) {
         icon = "wi-cloudy";       
         if (rain) icon = "wi-rain";
         if (snow) icon = "wi-snow";
  
-    } else if (conditions == "rain") {
+    } else if (conditions.match (/(rain|drizzle|shower)/) ) {
             icon += "rain";
      
-    } else if (conditions == "snow") {
+    } else if (conditions.match (/(snow|sleet)/) ) {
             icon += "snow";     
         
-    } else if (conditions == "sky clear" || conditions == "" || conditions == "clear" || conditions == "sunny" || conditions == "mostly sunny") {
+    } else if (conditions.match (/(clear|sunny|fair)/) ) {
         if (night) {
             icon = "wi-night-clear";
         } else {
             icon = "wi-day-sunny";
         }
         
-    } else if (conditions.includes("thunderstorm")) {
+    } else if (conditions.match(/thunder/) ) {
         icon = "wi-thunderstorm";
         
-    } else if (conditions.includes("mist") || conditions.includes("fog")) {
+    } else if (conditions.match(/(mist|fog)/) ) {
         icon += "fog";  
 
     } else if (conditions.includes("breezy")) {
@@ -2130,7 +2154,7 @@ var get_wi_icon = function (conditions,rain,snow,night) {
             }
         }
                 
-    } else if (conditions.includes("clouds") || conditions.includes("cloudy") || conditions.includes("partly sunny")) {
+    } else if (conditions.match(/(cloud|partly sunny)/) ) {
         if (rain) {
             icon += "rain";
         } else if (snow) {
@@ -2422,12 +2446,19 @@ var graph_rrd = function(start,group,time) {
 		updateSocket.abort();
 	}	
 	var path_str = "/rrd"  
-	//if the group has a dot, then it is a separate source
+	console.log("db start="+start+" group="+group+" time="+time);
 	var source = "&group="+group;
-	if (group.indexOf(".") !== -1) {
+	//if the group starts with file= then it is an object/file
+	if (group.toLowerCase().startsWith("file:")) {
+	    var rrd_source = group.split(":");
+	    source = "&file="+rrd_source[1]+"&ds="+rrd_source[2];	    
+    }
+	//if the group has a dot, then it is a separate source
+	else if (group.indexOf(".") !== -1) {
 	    var rrd_source = group.split(".");
 	    source = "&source="+rrd_source[0]+"&group="+rrd_source[1];
 	}
+
 	var arg_str = "start="+start+source+"&time="+time;
 	updateSocket = $.ajax({
 		type: "GET",
@@ -2540,6 +2571,7 @@ var graph_rrd = function(start,group,time) {
 				var previousPoint = null;
 
 				$("#rrd-graph").bind("plothover", function(event, pos, item) {
+//tofixed caused a problem
     				$("#x").text(pos.x.toFixed(2));
     				$("#y").text(pos.y.toFixed(2));
     				if (item) {
@@ -2682,7 +2714,7 @@ var object_history = function(items,start,days,time) {
     			//	$(this).datepicker();
 				//});
 				$('#datepicker').datepicker({
-					format: "yyyy-m-d"
+					format: "yyyy-mm-dd"
 				});
 				
 				$('.update_history').click(function() {
@@ -2801,8 +2833,10 @@ var object_history = function(items,start,days,time) {
 						json.data.data.reverse();
 						for (var i = 0; i < json.data.data.length; i++){
 							html +="<tr>";
-					  		html += "<td data-title='Time'>"+new Date(json.data.data[i][0]).toString().replace(/GMT-\d\d\d\d/,"")+"</td>";
-					  		html += "<td data-title='State'>"+String(json.data.data[i][1])+"</td>";
+                            // RF spells out summer time(longhand) + timezone... too much
+//					  		html += "<td data-title='Time'>"+new Date(json.data.data[i][0]).toString().replace(/GMT[+-]\d\d\d\d/,"")+"</td>";
+                            html += "<td data-title='Time'>"+new Date(json.data.data[i][0]).toLocaleString()+"</td>";
+                            html += "<td data-title='State'>"+String(json.data.data[i][1])+"</td>";
 					  		html += "<td data-title='Setby'>"+String(json.data.data[i][2])+"</td>";
 							html += "</tr>";
 						}
@@ -3524,7 +3558,8 @@ var get_fp_image = function(item,size,orientation) {
 		item.type === "EIB_Item" || item.type === "EIB1_Item" ||
 		item.type === "EIB2_Item" || item.type === "EIO_Item" ||
 		item.type === "UIO_Item" || item.type === "X10_Item" ||
-		item.type === "xPL_Plugwise" || item.type === "X10_Appliance") {
+		item.type === "xPL_Plugwise" || item.type === "X10_Appliance" ||
+		item.type === "xPL_Light" || item.type === "xPL_Control")  {
 
 			return "fp_light_"+image_color+"_"+fp_icon_image_size+".png";
   	}
@@ -3552,6 +3587,10 @@ var create_state_modal = function(entity) {
 		var name = entity;
 		if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
 		$('#slider').remove();
+		$('#sliderR').remove();
+		$('#sliderG').remove();
+		$('#sliderB').remove();
+		
 //		$('#control').modal('show');
 
         //make sure the modal is centered on all devices
@@ -3570,11 +3609,22 @@ var create_state_modal = function(entity) {
         });
 
 		
-		var modal_state = json_store.objects[entity].state;
-		var title = name + " - <span class='modal-object-state'>" + json_store.objects[entity].state + "</span>";
+//RF		var modal_state = json_store.objects[entity].state;
+		var title = "";
+
+//TODO Find a better place for this button, and close the modal when clicked.
+		if (json_store.objects[entity].rrd !== undefined) {
+			var collid = $(location).attr('href').split("_collection_key=");
+			var link = "/ia7/#path=/rrd?now-6hour?file:"+json_store.objects[entity].rrd+"?1&_collection_key="+collid[1]+",";
+			title += "<a href='"+link+"' class='btn btn-success btn-sm rrd_data'><i class='fa fa-line-chart'></i></a> ";
+		}
+		
+		title += name + " - <span class='modal-object-state'>" + json_store.objects[entity].state + "</span>";
         if (json_store.objects[entity].rgb !== undefined) {
             title += '  <i class="fa fa-lg fa-circle fa-rgb-border object-color" style="color:rgb('+json_store.objects[entity].rgb+');"></i></span>';
         }
+
+		
 		$('#control').find('.object-title').html(title);
 		$('#control').find('.control-dialog').attr("entity", entity);
 		var modal_states = json_store.objects[entity].states;
@@ -3925,7 +3975,7 @@ var create_state_modal = function(entity) {
 			if (json_store.objects[entity].logger_status == "1") {
 				var collid = $(location).attr('href').split("_collection_key=");
 				var link = "/ia7/#path=/history?"+entity+"?1&_collection_key="+collid[1]+",";
-				object_log_header += "<a href='"+link+"' class='pull-right btn btn-success btn-xs logger_data'><i class='fa fa-line-chart'></i></a>";
+				object_log_header += "<a href='"+link+"' class='pull-right btn btn-success btn-xs logger_data'><i class='fa fa-history'></i></a>";
 			}
 			object_log_header += "</h4>"
 //			$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
@@ -3937,7 +3987,7 @@ var create_state_modal = function(entity) {
 				$('#control').find('.obj_log').append(slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br>");
 			}
 		}
-		
+
 		if (developer === true) 
 		    $('.mhstatemode').show();
 		else
@@ -3950,6 +4000,9 @@ var create_state_modal = function(entity) {
 		$('.logger_data').on('click',function() {
 			$('#control').modal('hide');
 		});
+		$('.rrd_data').on('click',function() {
+			$('#control').modal('hide');
+		});		
 }	
 
 var create_develop_item_modal = function(colid,col_parent) {

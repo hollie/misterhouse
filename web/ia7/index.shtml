@@ -54,9 +54,9 @@
     	}
     }
 	.btn-direct {
-	  border-style: solid;
-	  border-width: 2px;
-	  border-color: black;
+	  border-style: solid !important;
+	  border-width: 2px !important;
+	  border-color: black !important;
 	}
 	
 	.btn-direct:focus,.btn-direct:active {

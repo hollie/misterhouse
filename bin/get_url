@@ -20,7 +20,7 @@ use Getopt::Long;
 #print "get_url: @ARGV\n";
 if (
     !&GetOptions( \%parms, 'h', 'help', 'quiet', 'cookies=s', 'cookie_file_in=s', 'cookie_file_out=s', 'post=s', 'header=s', 'userid=s', 'password=s', 'ua',
-        'put=s', 'timeout=s', 'json', 'response_code' )
+        'put=s', 'timeout=s', 'json', 'response_code', 'status_line' )
     or !@ARGV
     or $parms{h}
     or $parms{help}
@@ -58,7 +58,9 @@ Usage:
 
     -header 'header_file': HTTP headers from the server are stored in this file
     
-    -response_code: STDOUT only: Prepend output with RESPONSECODE: <response code>\n
+    -response_code: Prepend output with RESPONSECODE: <response code>\n
+    
+    -status_line: Prepend output with STATUSLINE: <status line>\n. Status line will still be printed if error
 
     -timeout: XX : number of seconds to wait for command to complete
 
@@ -91,6 +93,8 @@ if (   ( $config_parms{get_url} eq 'useragent' )
     or $parms{header}
     or $parms{cookies}
     or $parms{ua}
+    or $parms{response_code}
+    or $parms{status_line}
     or $parms{cookie_file_out}
     or $parms{password} )
 {
@@ -187,6 +191,8 @@ sub use_ua {
     else {
         $response = $ua->request($request);
         print "RESPONSECODE:" . $response->code() . "\n" if ( $parms{response_code} );
+        print "STATUSLINE:" . $response->status_line() . "\n" if ( $parms{status_line} );
+
         print $response->content();
     }
     if ( $response->is_error() ) {
