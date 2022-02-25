@@ -6,6 +6,7 @@ on:
   push:
     branches: [ master ]
   pull_request:
+    types:    [ assigned, opened, synchronize, reopened ]
     branches: [ master ]
 
   # Allows you to run this workflow manually from the Actions tab
@@ -27,4 +28,6 @@ jobs:
           perl-version: ${{ matrix.perl }}
       - run: perl -V
       - run: sudo apt-get install libgd-gd2-perl
+      - run: sudo killall mono
+      - run: sudo netstat -tulpn
       - run: cd bin ; ./mh -tk 0 -debug process -code_dir ../code/test
