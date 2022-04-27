@@ -779,7 +779,16 @@ sub execute_OnOff {
     my $response = '   {
     "ids": [';
 
-    my $turn_on = $command->{'execution'}->[0]->{'params'}->{'on'} eq "true" ? 1 : 0;
+    my $turn_on;
+
+    &main::print_log( "Received execut command " . $command->{'execution'}->[0]->{'params'}->{'on'} );
+    if( $command->{'execution'}->[0]->{'params'}->{'on'} == 1
+    ||  $command->{'execution'}->[0]->{'params'}->{'on'} eq "true"
+    ) {
+	$turn_on = 1;
+    } else {
+	$turn_on = 0;
+    }
 
     foreach my $device ( @{ $command->{'devices'} } ) {
         set_state( $self, $device->{'id'}, $turn_on ? 'on' : 'off' );
