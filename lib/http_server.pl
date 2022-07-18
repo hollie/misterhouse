@@ -354,7 +354,7 @@ sub http_process_request {
             read $socket, $buf, $cl;
 	    $buf = $http_data.$buf if $http_data;
 	    $http_data = '';
-        } elsif ($Http{'Transfer-Encoding'} && ($Http{'Transfer-Encoding'} eq 'chunked')) {
+        } elsif (($Http{'Transfer-Encoding'} && ($Http{'Transfer-Encoding'} eq 'chunked')) || (($Http{'transfer-encoding'} && ($Http{'transfer-encoding'} eq 'chunked')))) {
             print "http POST query has chunked Transfer-Encoding\n"  if $main::Debug{http};
             # We can't read the post body from the socket, so need to get this from $http_data instead
             # Note that this only works with one chunk right now.
