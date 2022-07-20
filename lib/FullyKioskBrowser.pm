@@ -185,7 +185,6 @@ sub process_check {
 
 sub handle_mqtt_event {
     my ($self, $data) = @_;
-
     my $json;
     eval { $json = JSON::XS->new->decode($data); };
     if ($@) {
@@ -193,12 +192,6 @@ sub handle_mqtt_event {
         &::print_log("FullyKiosk[$self->{_host}]: bad JSON: $data");
         return;
     }
-    if ($self->{_deviceId} ne $json->{deviceid})
-    {
-        &::print_log("FullyKiosk[$self->{_host}]: MQTT data not for me") if $::Debug{fullykiosk};
-        return;
-    }
-    &::print_log("FullyKiosk[$self->{_host}]: MQTT data: '$data'") if $::Debug{fullykiosk};
     my $ev = $json->{event};
     if (!$ev) {
         &::print_log("FullyKiosk[$self->{_host}]: MQTT event type missing: '$data'") if $::Debug{fullykiosk};
@@ -300,7 +293,7 @@ sub handle_request_result {
     elsif ($last_cmd eq "listSettings") {
         if ($json->{mqttEnabled} && $self->{_mqtt_broker}) {
             my $topic = $json->{mqttEventTopic};
-            $topic =~ s/\$event/#/;
+            $topic =~ s/\$event/+/;
             $topic =~ s/\$deviceId/$self->{_deviceId}/;
             &::print_log("FullyKiosk[$self->{_host}]: MQTT topic '$topic'") if $::Debug{fullykiosk};
             $self->{_mqtt} = new mqtt_Item($self->{_mqtt_broker}, $topic);
