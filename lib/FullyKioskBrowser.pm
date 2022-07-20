@@ -185,6 +185,7 @@ sub process_check {
 
 sub handle_mqtt_event {
     my ($self, $data) = @_;
+
     my $json;
     eval { $json = JSON::XS->new->decode($data); };
     if ($@) {
@@ -192,6 +193,12 @@ sub handle_mqtt_event {
         &::print_log("FullyKiosk[$self->{_host}]: bad JSON: $data");
         return;
     }
+    if ($self->{_deviceId} ne $json->{deviceid})
+    {
+        &::print_log("FullyKiosk[$self->{_host}]: MQTT data not for me") if $::Debug{fullykiosk};
+        return;
+    }
+    &::print_log("FullyKiosk[$self->{_host}]: MQTT data: '$data'") if $::Debug{fullykiosk};
     my $ev = $json->{event};
     if (!$ev) {
         &::print_log("FullyKiosk[$self->{_host}]: MQTT event type missing: '$data'") if $::Debug{fullykiosk};
@@ -225,6 +232,11 @@ sub send_request {
     my ($self, $cmd, %parms) = @_;
 
     if (!$self->{_process}->done()) {
+        if ($cmd eq $self->{_last_cmd})
+        {
+            &main::print_log("FullyKiosk[$self->{_host}]: already executing '$cmd'") if $::Debug{fullykiosk};
+            return;
+        }
         &main::print_log("FullyKiosk[$self->{_host}]: aborted '$self->{_last_cmd}'") if $::Debug{fullykiosk};
         $self->{_last_cmd} = undef;
         $self->{_process}->stop();
