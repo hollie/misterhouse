@@ -1,6 +1,10 @@
 =head1 DESCRIPTION
 
+<<<<<<< HEAD
 This creates a device item to remote control any Android device with FullyKiosBrowser installed (see
+=======
+This creates a device item to remote control any Android device with FullyKioskBrowser installed (see
+>>>>>>> 62ad570e080d546564d9e7cd04a455010d5e0be2
 https://www.fully-kiosk.com/)
 
 Implemented features:
@@ -293,7 +297,11 @@ sub handle_request_result {
     elsif ($last_cmd eq "listSettings") {
         if ($json->{mqttEnabled} && $self->{_mqtt_broker}) {
             my $topic = $json->{mqttEventTopic};
+<<<<<<< HEAD
             $topic =~ s/\$event/+/;
+=======
+            $topic =~ s/\$event/#/;
+>>>>>>> 62ad570e080d546564d9e7cd04a455010d5e0be2
             $topic =~ s/\$deviceId/$self->{_deviceId}/;
             &::print_log("FullyKiosk[$self->{_host}]: MQTT topic '$topic'") if $::Debug{fullykiosk};
             $self->{_mqtt} = new mqtt_Item($self->{_mqtt_broker}, $topic);
