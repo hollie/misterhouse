@@ -7,6 +7,7 @@ Implemented features:
 
     - Turn display on/off
     - Use text to speech on device
+    - Play audio from url
     - With mqtt enalbed
         - get remote on/off updates from device
         - watch the battery level
@@ -45,7 +46,11 @@ Turn display on/off:
 
 use text to speech on device
 
-    $Device1->say("The time is $Time_Now", 'en') if time_cron '30,35,40,45,50 6 * * 1-5'
+    $Device1->say("The time is $Time_Now", 'en') if time_cron '30,35,40,45,50 6 * * 1-5';
+
+play audio from URL
+
+    $Device1->play("http://fileserver/audio/bing.mp3");
 
 check battery level every 15min (Battery_Level is only available with mqtt enabled)
 
@@ -165,6 +170,12 @@ sub say {
     $locale = "en" unless $locale;
     $text   = URI::Escape::uri_escape($text);
     $self->send_request("textToSpeech", text => $text, locale => $locale);
+}
+
+sub play {
+    my ($self, $url) = @_;
+    &main::print_log("FullyKiosk[$self->{_host}]: play '$url'") if $::Debug{fullykiosk};
+    $self->send_request("playSound", url => $url);
 }
 
 sub process_check {
