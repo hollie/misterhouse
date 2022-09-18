@@ -463,10 +463,18 @@ sub new {
 
     $self->{RRD} = 0;
     $self->{RRD} = 1 if ( $options =~ m/rrd/i );
+
+    eval {
+        require RRD::Simple;
+        require RRDs;
+    };
+    if ($@) { 
+        &main::print_log("[Tasmota_HTTP::Switch_PowerMon] Warning, RRD specified but RRD::Simple and/or RRDs are not found. Disabling RRD functionality");
+        $self->{RRD} = 0;
+    }
     
     if ($self->{RRD}) {
-        use RRD::Simple;
-        use RRDs;
+        
         mkdir($$::config_parms{data_dir} . "/rrd") unless (-d $::config_parms{data_dir} . "/rrd");
         $self->set_rrd($::config_parms{data_dir} . "/rrd/" . $self->{address} . ".rrd","power,current");
         unless ( -e $self->get_rrd()) {
