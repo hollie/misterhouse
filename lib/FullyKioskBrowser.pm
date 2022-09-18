@@ -231,7 +231,7 @@ sub handle_mqtt_event {
         $self->SUPER::set('off', $self->{_mqtt});
     }
     elsif ($ev eq "onbatterylevelchanged"
-        && $self->{Battery_Level} ne $json->{level})
+        && $self->{Battery_Level} != int($json->{level}))
     {
         $self->{Battery_Level} = int($json->{level});
         &::print_log("FullyKiosk[$self->{_host}]: battery level now '$self->{Battery_Level}'") if $::Debug{fullykiosk};
@@ -336,7 +336,7 @@ sub handle_request_result {
     if ($last_cmd eq "getDeviceInfo") {
         $self->{_settings}     = $json;
         $self->{_deviceId}     = $json->{deviceId};
-        $self->{Battery_Level} = $json->{batteryLevel};
+        $self->{Battery_Level} = int($json->{batteryLevel});
         my $s = $json->{screenOn} ? 'on' : 'off';
         $self->SUPER::set($s, $by);
 
