@@ -400,7 +400,7 @@ sub http_process_request {
     #
         } elsif ($Http{'Content-Type'} =~ m%^application/(json|x-www-form-urlencoded)%i && $HTTP_BODY =~ /^\{/) {
              print "[http_server.pl]: posting json data\n" if $main::Debug{http};
-        } elsif ($Http{'Transfer-Encoding'} && $HTTP_BODY =~ /^\{/) {
+        } elsif (($Http{'Transfer-Encoding'} && $HTTP_BODY =~ /^\{/) || ($Http{'transfer-encoding'} && $HTTP_BODY =~ /^\{/)) {
              print "[http_server.pl]: posting chunked json data\n" if $main::Debug{http};
         } else {
             &main::print_log("[http_server.pl]: Warning, invalid argument string detected ($buf) ($Http{'Content-Type'}) ($HTTP_BODY)\n");
