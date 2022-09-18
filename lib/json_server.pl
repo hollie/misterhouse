@@ -1736,7 +1736,7 @@ sub json_entities_encode {
 }
 
 sub json_usage {
-my $html = <<eof;
+    my $html = <<eof;
 <html>
 <head>
 </head>

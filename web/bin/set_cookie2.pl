@@ -22,7 +22,7 @@ if ( $string =~ /=/ ) {
 
 
     if ( $Http{'User-Agent'} eq 'Audrey' ) {
-my $body = <<eof;
+    my $body = <<eof;
 <a href='javascript:history.go(-1)'><img src='/ia5/images/back.gif' border=0>
 eof
     my $output = "HTTP/1.1 200 OK\r\n";
