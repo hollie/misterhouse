@@ -2257,9 +2257,15 @@ var ajax_req_error = function(xhr, status, error, module, modal) {
      if (xhr == undefined || xhr.responseText == undefined || xhr.responseText == "") {
          message = "Lost communication with server";
      } else {
-         var data = JSON.parse(xhr.responseText);
          message = "Communication problem with server";
-         if (data !== undefined && data.text !== undefined) message = data.text;
+         try{
+             var data = JSON.parse(xhr.responseText);
+             if (data !== undefined && data.text !== undefined) message = data.text;
+         }
+         catch
+         {
+             message += `: ${xhr.status} - ${xhr.statusText}`;
+         }
      }
      console.log("Ajax Error! module="+module+" status="+status+" error="+error+" msg="+message);
      
