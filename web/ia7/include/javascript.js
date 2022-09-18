@@ -1290,7 +1290,7 @@ var generateTooltips = function () {
 var getButtonColor = function (state) {
 	var color = "default";
 	if (state !== undefined) {
-	    state = state.toLowerCase();
+	    state = state.toString().toLowerCase();
 	} else {
 	    return "purple";
 	}
