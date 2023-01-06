@@ -431,7 +431,7 @@ sub process_check {
 #check if data comes back unauthenticated
     if (($self->{login_success} == 0) and ($self->{login_attempt})) {
         if ($main::Time > ($self->{login_attempt} + 30)) { #retry log in every 30 seconds
-            main::print_log( "[raZerry:" . $self->{host} . "] Attempting to re-authenticate" );
+            main::print_log( "[raZberry:" . $self->{host} . "] Attempting to re-authenticate" );
             $self->login;
         }
     }
@@ -440,7 +440,7 @@ sub process_check {
 
         $com_status = "online";
         $processed_data = 1;
-        main::print_log( "[raZerry:" . $self->{host} . "] Background poll " . $self->{poll_process_mode} . " process completed" ) if ( $self->{debug} );
+        main::print_log( "[raZberry:" . $self->{host} . "] Background poll " . $self->{poll_process_mode} . " process completed" ) if ( $self->{debug} );
 
         my $file_data = &main::file_read( $self->{poll_data_file} );
         exit unless ($file_data);    #if there is no data, then don't process
@@ -472,7 +472,7 @@ sub process_check {
         $com_status = "online";
         $processed_data = 2;
         
-        main::print_log( "[raZerry:" . $self->{host} . "] Command " . $self->{cmd_process_mode} . " process completed" ) if ( $self->{debug} );
+        main::print_log( "[raZberry:" . $self->{host} . "] Command " . $self->{cmd_process_mode} . " process completed" ) if ( $self->{debug} );
 
         my $file_data = &main::file_read( $self->{cmd_data_file} );
         exit unless ($file_data);    #if there is no data, then don't process
