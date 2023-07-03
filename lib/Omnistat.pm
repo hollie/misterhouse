@@ -669,7 +669,7 @@ sub set_time {
     my $wday;
     my $addr = $$self{address};
 
-    omnistat_debug("Omnistat[$$self{address}] -> Setting time/day of week");
+    # omnistat_debug("Omnistat[$$self{address}] -> Setting time/day of week");
     my @cmd = qw(0x01 0x41 0x41);
 
     #set the time
@@ -681,7 +681,18 @@ sub set_time {
     $self->send_cmd( 0, @cmd );
 
     #set the weekday
+    # JAS The RC-2000 is date driven so it ignores this
+    # JAS The RC-80 uses on the UI:
+    #             (1=Monday - 6=Saturday, 7=Sunday)
+    # BUT
+    # The RC-80 appears to use on the Register:
+    #             (0=Monday - 6=Sunday)
+    # This is different than the documentation!
+    #
+    # MH uses: 0 <= wday <= 6 , the day of the week , 0=Sunday, 1=Monday, 2=Tuesday, etc.
     $wday = $::Wday ? $::Wday - 1 : 6;
+
+    omnistat_debug("Omnistat[$$self{address}] -> JAS Setting day of week = $wday = " . sprintf( "0x%02x", $wday ));
     $self->set_reg( "0x3a", sprintf( "0x%02x", $wday ) );
 }
 
@@ -1105,22 +1116,22 @@ sub set_background_color {
     $state = lc($state);
 
     my $background_hex = "0x00";
-    if ( $state = 'blue' ) {
+    if ( $state eq 'blue' ) {
         $background_hex = "0x44";
     }
-    elsif ( $state = 'green' ) {
+    elsif ( $state eq 'green' ) {
         $background_hex = "0x25";
     }
-    elsif ( $state = 'purple' ) {
+    elsif ( $state eq 'purple' ) {
         $background_hex = "0x5a";
     }
-    elsif ( $state = 'red' ) {
+    elsif ( $state eq 'red' ) {
         $background_hex = "0x01";
     }
-    elsif ( $state = 'orange' ) {
+    elsif ( $state eq 'orange' ) {
         $background_hex = "0x03";
     }
-    elsif ( $state = 'yellow' ) {
+    elsif ( $state eq 'yellow' ) {
         $background_hex = "0x05";
     }
     else {
@@ -1359,9 +1370,10 @@ sub get_temp {
 # **************************************
 sub get_humidity {
     my ($self) = @_;
-    my $temp = $self->read_cached_reg( "0xa2", 1 );
-    my $translated = translate_temp($temp);
-    return translate_temp($temp);
+    my $humid = $self->read_cached_reg( "0xa2", 1 );
+    # JAS my $translated = translate_temp($temp);
+    # JAS return translate_temp($temp);
+    return hex $humid;
 }
 
 # ********************************************************
