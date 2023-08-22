@@ -1919,6 +1919,7 @@ sub read_table_A {
         # e.g.MQTT_BROKER, mqtt_1
         require 'mqtt.pm';
         my ( $name, $topic, $host, $port, $username, $password, $keepalive ) = @item_info;
+	$topic =~ s/\*/#/g;
         $code .= sprintf( "\n\$%-35s = new mqtt(\"%s\", '$host', '$port', '$topic', '$username', '$password', $keepalive );\n", $name, $name );
     }
     elsif ( $type eq "MQTT_DEVICE" ) {
