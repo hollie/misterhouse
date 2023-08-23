@@ -1528,6 +1528,7 @@ sub new {      ### mqtt_InstMqttItem
 	    $self->{disc_info}->{command_topic} = "$topic_prefix/level";
 	    $self->{disc_info}->{schema} = 'json';
 	    $self->{disc_info}->{brightness} = "true";
+	    $self->{disc_info}->{brightness_scale} = 100;
 	} elsif( $base_type eq 'binary_sensor' ) {
 	    $self->{disc_info}->{device_class} = $device_class;
 	} elsif( $base_type eq 'sensor' ) {
