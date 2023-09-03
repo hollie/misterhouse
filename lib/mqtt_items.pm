@@ -972,7 +972,6 @@ sub new {     ### mqtt_LocalItem
 
     $self->create_discovery_message();
 
-    $Data::Dumper::Maxdepth = 3;
     $self->debug( 3, "locale item created: \n" . Dumper( $self ) );
 
     # We may need flags to deal with XML, JSON or Text
@@ -1452,9 +1451,6 @@ sub new {      ### mqtt_RemoteItem
 
     $self->create_discovery_message();
 
-    # $Data::Dumper::Maxdepth = 3;
-    # $self->debug( 1, "TasmotaItem created: \n" . Dumper( $self ) );
-
     # We may need flags to deal with XML, JSON or Text
     return $self;
 }
@@ -1540,7 +1536,6 @@ sub new {      ### mqtt_InstMqttItem
 
     $self->create_discovery_message();
 
-    # $Data::Dumper::Maxdepth = 3;
     # $self->debug( 1, "InstMqttItem created: \n" . Dumper( $self ) );
 
     # We may need flags to deal with XML, JSON or Text
