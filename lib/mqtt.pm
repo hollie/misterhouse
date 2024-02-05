@@ -224,7 +224,7 @@ sub debug {
 
 sub error {
     my ($self, $str, $level ) = @_;
-    &main::print_log( "MQTT ERROR: $str" );
+    &mqtt::log( $self, $str, "MQTT ERROR: " );
 }
 
 # ------------------------------------------------------------------------------
@@ -626,6 +626,9 @@ sub send_mqtt_msg {
 
     # print( "writing to mqtt socket '$msg'\n" );
     # syswrite ?
+    if( !defined $$self{socket} ) {
+	return;
+    }
     syswrite $$self{socket}, $msg, length $msg;
 
     # Reset the next_ping timer (we sent something so we don't need another ping
@@ -1002,7 +1005,7 @@ sub cleanup_retained_topics {
     my $ignore_count;
 
     if( scalar(@topic_pattern_list) == 0 ) {
-	mqtt::error( "cleanup_retained_topics -- must specify pattern" );
+	&mqtt::error( undef, "cleanup_retained_topics -- must specify pattern" );
 	return;
     }
     $self->debug( 2, "cleanup topic pattern list: @topic_pattern_list" );

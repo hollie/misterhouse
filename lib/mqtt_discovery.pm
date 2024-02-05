@@ -182,7 +182,9 @@ sub new {   #### mqtt_DiscoveredItem
     $obj_name = $disc_obj->get_object_name;
     $self->debug( 1, "New mqtt_DiscoveredItem( $obj_name, '$name', '$disc_topic', '$disc_msg' )" );
 
-    $self->debug( 3, "DiscoveryItem created: \n" . Dumper( $self ) );
+    my $d = Data::Dumper->new( [$self] );
+    $d->Maxdepth( 3 );
+    $self->debug( 3, "DiscoveryItem created: \n" . $d->Dump );
 
     # We may need flags to deal with XML, JSON or Text
     return $self;

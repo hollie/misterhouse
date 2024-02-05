@@ -335,18 +335,18 @@ sub new {   ### mqtt_BaseItem
 
 sub log {
     my( $self, $str ) = @_;
-    &main::print_log( 'MQTT: '. $str );
+    $self->{interface}->log( $str );
 }
 
 sub error {
     my( $self, $str ) = @_;
-    &main::print_log( "MQTT ERROR: $str" );
+    $self->{interface}->error( $str );
 }
 
 sub debug {
     my( $self, $level, $str ) = @_;
     if( $self->debuglevel( $level, 'mqtt' ) ) {
-	&main::print_log( "MQTT D$level: $str" );
+	$self->{interface}->log( $str, "MQTT D$level: " );
     }
 }
 
@@ -432,6 +432,7 @@ sub process_template {
     my( $self, $template, $value_json, $value ) = @_;
 
     if( $template ) {
+	$template =~ s/ //g;
 	$template =~ s/^\{\{value_json\.([a-zA-Z\-_]*)\}\}/\$value_json->\{\1\}/;
 	$template =~ s/^\{\{value_json\[\\?\'?([a-zA-Z\-_]*)\\?\'?\]\}\}/\$value_json->\{\1\}/;
 	if( $template !~ /^\$/ ) {
@@ -450,13 +451,14 @@ sub process_template {
 sub decode_mqtt_payload {
     my( $self, $topic, $payload, $retained ) = @_;
     my $msg;
+    my $unset_value = 'unset_value_987654123';
     my $value_json;
     my $value;
     my $brightness;
     my $value_on;
     my $value_off;
 
-    $msg = undef;
+    $msg = $unset_value;
     if( $topic eq $self->{disc_info}->{state_topic} ) {
 	$value_on = $self->{disc_info}->{state_on};
 	$value_off = $self->{disc_info}->{state_off};
@@ -549,8 +551,8 @@ sub decode_mqtt_payload {
     } else {
 	$self->error( "Unknown object type '$$self{mqtt_type}' on object '$$self{topic}'" );
     }
-    if( !$msg ) {
-	$self->error( "Unable to decode mqtt message '$payload'" );
+    if( $msg eq $unset_value ) {
+        $self->error( "Unable to decode mqtt for $$self{mqtt_name} type:$$self{mqtt_type} message:'$payload'" );
 	# $self->error( Dumper( $self ) );
     }
     return $msg;
@@ -972,7 +974,9 @@ sub new {     ### mqtt_LocalItem
 
     $self->create_discovery_message();
 
-    $self->debug( 3, "locale item created: \n" . Dumper( $self ) );
+    my $d = Data::Dumper->new( [$self] );
+    $d->Maxdepth( 3 );
+    $self->debug( 3, "locale item created: \n" . $d->Dump );
 
     # We may need flags to deal with XML, JSON or Text
     return $self;
@@ -1215,13 +1219,18 @@ sub receive_mqtt_message {
 	return;
     }
     if( $topic eq $self->{disc_info}->{availability_topic} ) {
+	if( $retained ) {
+	    $p_setby = 'mqtt [retained]';
+	} else {
+	    $p_setby = 'mqtt';
+	}
 	if( $message eq $self->{disc_info}->{payload_available} ) {
 	    if( !$retained ) {
 		$self->log( "$self->{object_name} now available" );
 	    }
 	} elsif( $message eq $self->{disc_info}->{payload_not_available} ) {
 	    $self->log( "$self->{mqtt_name} is not available" );
-	    $self->SUPER::set( $message, "mqtt" );
+	    $self->SUPER::set( $message, $p_setby );
 	} else {
 	    $self->error( "$self->{object_name} received unrecognized availability message: $message" );
 	}
@@ -1535,8 +1544,6 @@ sub new {      ### mqtt_InstMqttItem
     $self->{disc_info}->{unique_id} =~ s/ /_/g;
 
     $self->create_discovery_message();
-
-    # $self->debug( 1, "InstMqttItem created: \n" . Dumper( $self ) );
 
     # We may need flags to deal with XML, JSON or Text
     return $self;
