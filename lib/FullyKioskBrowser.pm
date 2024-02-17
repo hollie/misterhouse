@@ -12,6 +12,7 @@ Implemented features:
         - get remote on/off updates from device
         - watch the battery level
         - use device as a motion sensor
+        - foreground/brackground app state
 
 =head1 mh.private.ini
 
@@ -64,6 +65,15 @@ to use fully kiosk motion detection feature (only with mqtt enabled, motion dete
     $Device1_Motion = new Motion_Item;
     $Device1->attache_motion_item($Device1_Motion);
     #noloop=stop
+    #
+
+Check FullyKiosk foreground/background state:
+To check wether FullyKiosk is currently the app in use you can check the
+`App_State` property. It is either 'foreground' or 'background'. Note, this
+requieres mqtt to be enabled
+
+    # only turn off screen if FullyKiosk is the active app
+    set $Device1 'off' $Device1->{App_State} eq 'foreground';
 
 =head1 METHODS
 
@@ -113,6 +123,7 @@ sub new {
     $self->SUPER::set("not_initialized");
     &::print_log("FullyKiosk[$self->{_host}]: item created") if $::Debug{fullykiosk};
     $self->send_request("getDeviceInfo");    # polls device info an initializes
+    $self->{App_State} = 'background';
     return $self;
 }
 
@@ -212,21 +223,28 @@ sub handle_mqtt_event {
     }
 
     if ($ev eq "screenon" && $self->{state} ne 'on') {
-        &::print_log("FullyKiosk[$self->{_host}]: MQTT '$self->{state}' => 'on'") if $::Debug{fullykiosk};
+        &::print_log("FullyKiosk[$self->{_host}]: MQTT screen '$self->{state}' => 'on'") if $::Debug{fullykiosk};
         $self->SUPER::set('on', $self->{_mqtt});
     }
     elsif ($ev eq "screenoff" && $self->{state} ne 'off') {
-        &::print_log("FullyKiosk[$self->{_host}]: MQTT '$self->{state}' => 'off'") if $::Debug{fullykiosk};
+        &::print_log("FullyKiosk[$self->{_host}]: MQTT screen '$self->{state}' => 'off'") if $::Debug{fullykiosk};
         $self->SUPER::set('off', $self->{_mqtt});
     }
     elsif ($ev eq "onbatterylevelchanged"
         && $self->{Battery_Level} ne $json->{level})
     {
-        $self->{Battery_Level} = $json->{level};
-        &::print_log("FullyKiosk[$self->{_host}]:  battery level now '$self->{Battery_Level}'") if $::Debug{fullykiosk};
+        $self->{Battery_Level} = int($json->{level});
+        &::print_log("FullyKiosk[$self->{_host}]: battery level now '$self->{Battery_Level}'") if $::Debug{fullykiosk};
     }
     elsif ($ev eq "onmotion" && $self->{_motion}) {
         $self->{_motion}->set('motion', $self);
+    }
+    elsif (($ev eq "background" or $ev eq "foreground")
+            and $self->{App_State} ne $ev){
+            # cant tell wether this event is actually from hiding fullykiosk or from turning the screen off
+            # so we need to pool the device information
+            &::print_log("FullyKiosk[$self->{_host}]: MQTT '$ev' changed, have to poll device information") if $::Debug{fullykiosk};
+            $self->send_request("getDeviceInfo");
     }
 
     #  else {
@@ -321,7 +339,18 @@ sub handle_request_result {
         $self->{Battery_Level} = $json->{batteryLevel};
         my $s = $json->{screenOn} ? 'on' : 'off';
         $self->SUPER::set($s, $by);
-        &::print_log("FullyKiosk[$self->{_host}]: id='$self->{_deviceId}' display='$s' battery='$self->{Battery_Level}'") if $::Debug{fullykiosk};
+
+        my $package = $json->{packageName};
+        my $foregroundPackage = $json->{foreground};
+        if ($package and $foregroundPackage) {
+            if ($package eq $foregroundPackage) {
+                $self->{App_State} = 'foreground';
+            }
+            else{
+                $self->{App_State} = 'background';
+            }
+        }
+        &::print_log("FullyKiosk[$self->{_host}]: id='$self->{_deviceId}' display='$s' battery='$self->{Battery_Level}' App_State='$self->{App_State}'") if $::Debug{fullykiosk};
 
         $self->send_request("listSettings");    # settings will be checked for mqtt settings
     }
