@@ -104,7 +104,9 @@ sub new {
     };
     $self->{_base_url}    = "http://$self->{_host}/?type=json&password=$self->{_password}";
     $self->{_result_file} = "$::config_parms{data_dir}/fullykioskbrowser_$self->{_host}.json";
-    $self->{_process}     = new Process_Item(), $self->{_process}->set_output($self->{_result_file});
+    $self->{_process}     = new Process_Item();
+    $self->{_process}->set_output($self->{_result_file});
+    $self->{_work}        = ();
     bless $self, $class;
     &::MainLoop_post_add_hook(\&FullyKioskBrowser::process_check, 0, $self);
     $self->set_states("on", "off");
@@ -187,11 +189,11 @@ sub process_check {
     if ($self->{_mqtt} and my $json = $self->{_mqtt}->state_now()) {
         $self->handle_mqtt_event($json);
     }
-
     if ($::New_Minute && !$self->{_init}) {
         $self->send_request("getDeviceInfo");
     }
 
+    $self->check_queue();
 }
 
 sub handle_mqtt_event {
@@ -235,17 +237,6 @@ sub handle_mqtt_event {
 sub send_request {
     my ($self, $cmd, %parms) = @_;
 
-    if (!$self->{_process}->done()) {
-        if ($cmd eq $self->{_last_cmd})
-        {
-            &main::print_log("FullyKiosk[$self->{_host}]: already executing '$cmd'") if $::Debug{fullykiosk};
-            return;
-        }
-        &main::print_log("FullyKiosk[$self->{_host}]: aborted '$self->{_last_cmd}'") if $::Debug{fullykiosk};
-        $self->{_last_cmd} = undef;
-        $self->{_process}->stop();
-    }
-
     my $geturl = "get_url '$self->{_base_url}&cmd=$cmd";
     if (%parms) {
         foreach my $key (keys %parms) {
@@ -253,7 +244,35 @@ sub send_request {
         }
     }
     $geturl .= "'";
-    &main::print_log("FullyKiosk[$self->{_host}]: $geturl") if $::Debug{fullykiosk};
+
+    if (!$self->{_process}->done())
+    {
+        &main::print_log("FullyKiosk[$self->{_host}]: have to queue '$geturl'") if $::Debug{fullykiosk};
+        push @{$self->{_work}}, [ $cmd, $geturl ] ;
+    }
+    else{
+        $self->_sendIt($cmd, $geturl);
+    }
+}
+
+sub check_queue{
+    my ($self)  = @_;
+    return if (!$self->{_process}->done()) ;
+    my $w = shift @{$self->{_work}};
+    return if( !$w);
+
+    my ($cmd, $geturl) = @{$w};
+
+    if ($cmd){
+        &main::print_log("FullyKiosk[$self->{_host}]: run queued '$cmd'") if $::Debug{fullykiosk};
+       $self->_sendIt($cmd, $geturl); 
+    }
+}
+
+
+sub _sendIt{
+    my ($self, $cmd, $geturl) = @_;
+    &main::print_log("FullyKiosk[$self->{_host}]: run $cmd: $geturl") if $::Debug{fullykiosk};
     $self->{_last_cmd} = $cmd;
     $self->{_process}->set($geturl);
     $self->{_process}->start();
@@ -271,6 +290,7 @@ sub handle_request_result {
     my $json;
     eval { $json = JSON::XS->new->decode($data); };
     if ($@) {
+        &::print_log("$self->{_host} error for command: '$self->{_last_cmd}'");
         &::print_log("$self->{_host} got invalid JSON data: $@");
         &::print_log("$self->{_host} bad JSON: $data");
         $self->{_init}         = 0;
@@ -288,6 +308,10 @@ sub handle_request_result {
         $self->{state} = $last_cmd . '_error';
         &::print_log("FullyKiosk[$self->{_host}]: ERROR: $data");
         return;
+    }
+    else
+    {
+        &::print_log("FullyKiosk[$self->{_host}]: '$last_cmd' OK") if $::Debug{fullykiosk};
     }
 
     my $by =__PACKAGE__ ."-command-" . $last_cmd;
