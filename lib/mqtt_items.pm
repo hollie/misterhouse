@@ -313,10 +313,10 @@ sub new {   ### mqtt_BaseItem
     $self->{topic}		    = $listentopics;
     $self->{disc_type}		    = $type;
 
-    if( !grep( /^$type$/, ('light', 'switch', 'binary_sensor', 'sensor', 'scene', 'multi_switch') ) ) {
-	$self->error( "UNKNOWN DEVICE TYPE: '$self->{mqtt_name}':$self->{mqtt_type}" );
-	return;
-    }
+#     if( !grep( /^$type$/, ('light', 'switch', 'binary_sensor', 'sensor', 'scene', 'select') ) ) {
+# 	$self->error( "UNKNOWN DEVICE TYPE: '$self->{mqtt_name}':$self->{mqtt_type}" );
+# 	return;
+#     }
 
     if( $self->{mqtt_type} eq 'scene' ) {
 	$self->{disc_type} = 'switch';
@@ -349,6 +349,12 @@ sub debug {
 	$self->{interface}->log( $str, "MQTT D$level: " );
     }
 }
+
+=item C<set_object_debug( level )>
+
+Turns on debugging for the object, sets debug level.
+
+=cut
 
 sub set_object_debug {
     my( $self, $level ) = @_;
@@ -546,14 +552,16 @@ sub decode_mqtt_payload {
 	}
     } elsif( $$self{mqtt_type} eq 'sensor' ) {
         $msg = $value;
-    } elsif( $$self{mqtt_type} eq 'multi_switch' ) {
+    } elsif( $$self{mqtt_type} eq 'select' ) {
         $msg = $value;
     } else {
-	$self->error( "Unknown object type '$$self{mqtt_type}' on object '$$self{topic}'" );
+	$self->debug( 2, "Unknown object type '$$self{mqtt_type}' on object '$$self{topic}'" );
+	$msg = $value_json;
     }
     if( $msg eq $unset_value ) {
-        $self->error( "Unable to decode mqtt for $$self{mqtt_name} type:$$self{mqtt_type} message:'$payload'" );
+        $self->error( "Unable to decode mqtt message for $$self{mqtt_name} type:$$self{mqtt_type} message:'$payload'" );
 	# $self->error( Dumper( $self ) );
+	$msg = undef;
     }
     return $msg;
 }
@@ -583,7 +591,7 @@ sub encode_mqtt_payload {
 	($level) = $setval =~ /^([1]?[0-9]?[0-9])%?$/;
     }
     if( $self->{mqtt_type} eq 'sensor'
-    ||  $self->{mqtt_type} eq 'multi_switch'
+    ||  $self->{mqtt_type} eq 'select'
     ) {
 	$payload = $setval;
 	return $payload;
@@ -887,7 +895,7 @@ sub new {     ### mqtt_LocalItem
 
     my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
 
-    if( !grep( /^$base_type$/, ('light','switch','binary_sensor', 'sensor', 'scene', 'multi_switch' ) ) ) {
+    if( !grep( /^$base_type$/, ('light','switch','binary_sensor', 'sensor', 'scene', 'select' ) ) ) {
 	$interface->error( "Invalid mqtt type '$type'" );
 	return;
     }
@@ -949,8 +957,12 @@ sub new {     ### mqtt_LocalItem
 	if( $device_class eq 'temperature' ) {
 	    $self->{disc_info}->{unit_of_measurement} = 'C';
 	}
-    } elsif( $base_type eq 'multi_switch' ) {
+    } elsif( $base_type eq 'select' ) {
 	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
+	if( $local_object ) {
+	    my @state_list = $local_object->get_states();
+	    $self->{disc_info}->{options} = \@state_list;
+	}
     }
 
     $self->{is_local} = 1;
@@ -974,9 +986,9 @@ sub new {     ### mqtt_LocalItem
 
     $self->create_discovery_message();
 
-    my $d = Data::Dumper->new( [$self] );
-    $d->Maxdepth( 3 );
-    $self->debug( 3, "locale item created: \n" . $d->Dump );
+    # my $d = Data::Dumper->new( [$self] );
+    # $d->Maxdepth( 3 );
+    # $self->debug( 3, "locale item created: \n" . $d->Dump );
 
     # We may need flags to deal with XML, JSON or Text
     return $self;
@@ -1210,6 +1222,10 @@ sub receive_mqtt_message {
 		$p_setby = 'mqtt';
 	    }
 	    $setval = $self->decode_mqtt_payload( $topic, $message, $retained );
+	    if( ref $setval ) {
+		$self->{state_obj} = $setval;
+		$setval = undef;
+	    }
 	    if( $setval ) {
 		$self->debug( 1, "remote item MQTT to MH $$self{mqtt_name} set($setval, '$p_setby')" );
 		$self->level( $setval ) if $self->can( 'level' );

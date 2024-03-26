@@ -207,8 +207,15 @@ sub log {
 
     $prefix = $prefix || 'MQTT: ';
     while( length( $str ) > $maxlength ) {
-	&main::print_log( $prefix . substr($str,0,$maxlength) );
-	$str = substr( $str, $maxlength );
+	my $l = 0;
+	my $i;
+	for( $i=0; $i<length($str) && $l<$maxlength; ++$i,++$l ) {
+	    if( substr( $str, $i, 1 ) eq "\n" ) {
+		$l = 0;
+	    }
+	}
+	&main::print_log( $prefix . substr($str,0,$i) );
+	$str = substr( $str, $i );
 	$prefix = '....  ';
     }
     &main::print_log( $prefix . $str );

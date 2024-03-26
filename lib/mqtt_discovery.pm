@@ -104,7 +104,7 @@ sub new {   #### mqtt_DiscoveredItem
     } elsif( $disc_type eq 'binary_sensor' ) {
     } elsif( $disc_type eq 'sensor' ) {
     } elsif( $disc_type eq 'switch' ) {
-    } elsif( $disc_type eq 'multi_switch' ) {
+    } elsif( $disc_type eq 'select' ) {
     } else {
 	$disc_obj->log( "UNRECOGNIZED DISCOVERY TYPE: $disc_type" );
 	return;
