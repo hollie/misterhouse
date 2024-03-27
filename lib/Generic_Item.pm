@@ -282,7 +282,7 @@ sub _set_process {
         else {
             $state = ( $state_current eq 'on' ) ? 'off' : 'on';
         }
-        &main::print_log( "Toggling $self->{object_name} from $state_current " . "to $state" );
+        # &main::print_log( "Toggling $self->{object_name} from $state_current " . "to $state" );
     }
 
     # Respond_Target is write-only from here (and its use for speech chimes

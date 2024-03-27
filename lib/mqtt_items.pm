@@ -99,7 +99,7 @@ Description:
 	        - implements a statically defined mh item for Insteon devices managed
 		  by insteon-mqtt
 		- see https://github.com/TD22057/insteon-mqtt
-		- can pulish HA discovery info, as insteon-mqtt does not implement discovery yet
+		- can publish HA discovery info, as insteon-mqtt does not implement discovery yet
     
 
     Discovery (mqtt_discovery.pm):
@@ -905,9 +905,9 @@ sub new {     ### mqtt_LocalItem
 	return;
     }
 
-    my (@topic_parts) = split( "/", $topicpattern );
+    my (@topic_parts) = split( "/", $topicpattern, 2 );
     my $realm = $topic_parts[0];
-    my $mqtt_name = $topic_parts[1];
+    my $mqtt_name = ($topic_parts[1] =~ s"/[+#]?$""r);	# Remove trailing slash and wildcard, if present.
     my $topic_prefix = "$realm/$mqtt_name";
     my $listen_topic;
     if( $#topic_parts == 1 ) {
@@ -986,9 +986,11 @@ sub new {     ### mqtt_LocalItem
 
     $self->create_discovery_message();
 
+
     # my $d = Data::Dumper->new( [$self] );
     # $d->Maxdepth( 3 );
     # $self->debug( 3, "locale item created: \n" . $d->Dump );
+
 
     # We may need flags to deal with XML, JSON or Text
     return $self;
@@ -1560,6 +1562,9 @@ sub new {      ### mqtt_InstMqttItem
     $self->{disc_info}->{unique_id} =~ s/ /_/g;
 
     $self->create_discovery_message();
+
+
+    # $self->debug( 1, "InstMqttItem created: \n" . Dumper( $self ) );
 
     # We may need flags to deal with XML, JSON or Text
     return $self;

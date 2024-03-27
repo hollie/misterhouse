@@ -12,6 +12,7 @@ Implemented features:
         - get remote on/off updates from device
         - watch the battery level
         - use device as a motion sensor
+        - foreground/brackground app state
 
 =head1 mh.private.ini
 
@@ -64,6 +65,15 @@ to use fully kiosk motion detection feature (only with mqtt enabled, motion dete
     $Device1_Motion = new Motion_Item;
     $Device1->attache_motion_item($Device1_Motion);
     #noloop=stop
+    #
+
+Check FullyKiosk foreground/background state:
+To check wether FullyKiosk is currently the app in use you can check the
+`App_State` property. It is either 'foreground' or 'background'. Note, this
+requieres mqtt to be enabled
+
+    # only turn off screen if FullyKiosk is the active app
+    set $Device1 'off' $Device1->{App_State} eq 'foreground';
 
 =head1 METHODS
 
@@ -104,13 +114,16 @@ sub new {
     };
     $self->{_base_url}    = "http://$self->{_host}/?type=json&password=$self->{_password}";
     $self->{_result_file} = "$::config_parms{data_dir}/fullykioskbrowser_$self->{_host}.json";
-    $self->{_process}     = new Process_Item(), $self->{_process}->set_output($self->{_result_file});
+    $self->{_process}     = new Process_Item();
+    $self->{_process}->set_output($self->{_result_file});
+    $self->{_work}        = ();
     bless $self, $class;
     &::MainLoop_post_add_hook(\&FullyKioskBrowser::process_check, 0, $self);
     $self->set_states("on", "off");
     $self->SUPER::set("not_initialized");
     &::print_log("FullyKiosk[$self->{_host}]: item created") if $::Debug{fullykiosk};
     $self->send_request("getDeviceInfo");    # polls device info an initializes
+    $self->{App_State} = 'background';
     return $self;
 }
 
@@ -187,11 +200,11 @@ sub process_check {
     if ($self->{_mqtt} and my $json = $self->{_mqtt}->state_now()) {
         $self->handle_mqtt_event($json);
     }
-
     if ($::New_Minute && !$self->{_init}) {
         $self->send_request("getDeviceInfo");
     }
 
+    $self->check_queue();
 }
 
 sub handle_mqtt_event {
@@ -210,21 +223,28 @@ sub handle_mqtt_event {
     }
 
     if ($ev eq "screenon" && $self->{state} ne 'on') {
-        &::print_log("FullyKiosk[$self->{_host}]: MQTT '$self->{state}' => 'on'") if $::Debug{fullykiosk};
+        &::print_log("FullyKiosk[$self->{_host}]: MQTT screen '$self->{state}' => 'on'") if $::Debug{fullykiosk};
         $self->SUPER::set('on', $self->{_mqtt});
     }
     elsif ($ev eq "screenoff" && $self->{state} ne 'off') {
-        &::print_log("FullyKiosk[$self->{_host}]: MQTT '$self->{state}' => 'off'") if $::Debug{fullykiosk};
+        &::print_log("FullyKiosk[$self->{_host}]: MQTT screen '$self->{state}' => 'off'") if $::Debug{fullykiosk};
         $self->SUPER::set('off', $self->{_mqtt});
     }
     elsif ($ev eq "onbatterylevelchanged"
-        && $self->{Battery_Level} ne $json->{level})
+        && $self->{Battery_Level} != int($json->{level}))
     {
-        $self->{Battery_Level} = $json->{level};
-        &::print_log("FullyKiosk[$self->{_host}]:  battery level now '$self->{Battery_Level}'") if $::Debug{fullykiosk};
+        $self->{Battery_Level} = int($json->{level});
+        &::print_log("FullyKiosk[$self->{_host}]: battery level now '$self->{Battery_Level}'") if $::Debug{fullykiosk};
     }
     elsif ($ev eq "onmotion" && $self->{_motion}) {
         $self->{_motion}->set('motion', $self);
+    }
+    elsif (($ev eq "background" or $ev eq "foreground")
+            and $self->{App_State} ne $ev){
+            # cant tell wether this event is actually from hiding fullykiosk or from turning the screen off
+            # so we need to pool the device information
+            &::print_log("FullyKiosk[$self->{_host}]: MQTT '$ev' changed, have to poll device information") if $::Debug{fullykiosk};
+            $self->send_request("getDeviceInfo");
     }
 
     #  else {
@@ -235,17 +255,6 @@ sub handle_mqtt_event {
 sub send_request {
     my ($self, $cmd, %parms) = @_;
 
-    if (!$self->{_process}->done()) {
-        if ($cmd eq $self->{_last_cmd})
-        {
-            &main::print_log("FullyKiosk[$self->{_host}]: already executing '$cmd'") if $::Debug{fullykiosk};
-            return;
-        }
-        &main::print_log("FullyKiosk[$self->{_host}]: aborted '$self->{_last_cmd}'") if $::Debug{fullykiosk};
-        $self->{_last_cmd} = undef;
-        $self->{_process}->stop();
-    }
-
     my $geturl = "get_url '$self->{_base_url}&cmd=$cmd";
     if (%parms) {
         foreach my $key (keys %parms) {
@@ -253,7 +262,35 @@ sub send_request {
         }
     }
     $geturl .= "'";
-    &main::print_log("FullyKiosk[$self->{_host}]: $geturl") if $::Debug{fullykiosk};
+
+    if (!$self->{_process}->done())
+    {
+        &main::print_log("FullyKiosk[$self->{_host}]: have to queue '$geturl'") if $::Debug{fullykiosk};
+        push @{$self->{_work}}, [ $cmd, $geturl ] ;
+    }
+    else{
+        $self->_sendIt($cmd, $geturl);
+    }
+}
+
+sub check_queue{
+    my ($self)  = @_;
+    return if (!$self->{_process}->done()) ;
+    my $w = shift @{$self->{_work}};
+    return if( !$w);
+
+    my ($cmd, $geturl) = @{$w};
+
+    if ($cmd){
+        &main::print_log("FullyKiosk[$self->{_host}]: run queued '$cmd'") if $::Debug{fullykiosk};
+       $self->_sendIt($cmd, $geturl); 
+    }
+}
+
+
+sub _sendIt{
+    my ($self, $cmd, $geturl) = @_;
+    &main::print_log("FullyKiosk[$self->{_host}]: run $cmd: $geturl") if $::Debug{fullykiosk};
     $self->{_last_cmd} = $cmd;
     $self->{_process}->set($geturl);
     $self->{_process}->start();
@@ -271,6 +308,7 @@ sub handle_request_result {
     my $json;
     eval { $json = JSON::XS->new->decode($data); };
     if ($@) {
+        &::print_log("$self->{_host} error for command: '$self->{_last_cmd}'");
         &::print_log("$self->{_host} got invalid JSON data: $@");
         &::print_log("$self->{_host} bad JSON: $data");
         $self->{_init}         = 0;
@@ -289,15 +327,30 @@ sub handle_request_result {
         &::print_log("FullyKiosk[$self->{_host}]: ERROR: $data");
         return;
     }
+    else
+    {
+        &::print_log("FullyKiosk[$self->{_host}]: '$last_cmd' OK") if $::Debug{fullykiosk};
+    }
 
     my $by =__PACKAGE__ ."-command-" . $last_cmd;
     if ($last_cmd eq "getDeviceInfo") {
         $self->{_settings}     = $json;
         $self->{_deviceId}     = $json->{deviceId};
-        $self->{Battery_Level} = $json->{batteryLevel};
+        $self->{Battery_Level} = int($json->{batteryLevel});
         my $s = $json->{screenOn} ? 'on' : 'off';
         $self->SUPER::set($s, $by);
-        &::print_log("FullyKiosk[$self->{_host}]: id='$self->{_deviceId}' display='$s' battery='$self->{Battery_Level}'") if $::Debug{fullykiosk};
+
+        my $package = $json->{packageName};
+        my $foregroundPackage = $json->{foreground};
+        if ($package and $foregroundPackage) {
+            if ($package eq $foregroundPackage) {
+                $self->{App_State} = 'foreground';
+            }
+            else{
+                $self->{App_State} = 'background';
+            }
+        }
+        &::print_log("FullyKiosk[$self->{_host}]: id='$self->{_deviceId}' display='$s' battery='$self->{Battery_Level}' App_State='$self->{App_State}'") if $::Debug{fullykiosk};
 
         $self->send_request("listSettings");    # settings will be checked for mqtt settings
     }
