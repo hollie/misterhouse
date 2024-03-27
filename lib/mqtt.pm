@@ -209,8 +209,15 @@ sub log {
 
     $prefix = $prefix || 'MQTT: ';
     while( length( $str ) > $maxlength ) {
-	&main::print_log( $prefix . substr($str,0,$maxlength) );
-	$str = substr( $str, $maxlength );
+	my $l = 0;
+	my $i;
+	for( $i=0; $i<length($str) && $l<$maxlength; ++$i,++$l ) {
+	    if( substr( $str, $i, 1 ) eq "\n" ) {
+		$l = 0;
+	    }
+	}
+	&main::print_log( $prefix . substr($str,0,$i) );
+	$str = substr( $str, $i );
 	$prefix = '....  ';
     }
     &main::print_log( $prefix . $str );
@@ -226,7 +233,7 @@ sub debug {
 
 sub error {
     my ($self, $str, $level ) = @_;
-    &main::print_log( "MQTT ERROR: $str" );
+    &mqtt::log( $self, $str, "MQTT ERROR: " );
 }
 
 # ------------------------------------------------------------------------------
@@ -634,6 +641,9 @@ sub send_mqtt_msg {
 
     # print( "writing to mqtt socket '$msg'\n" );
     # syswrite ?
+    if( !defined $$self{socket} ) {
+	return;
+    }
     syswrite $$self{socket}, $msg, length $msg;
 
     # Reset the next_ping timer (we sent something so we don't need another ping
@@ -1010,7 +1020,7 @@ sub cleanup_retained_topics {
     my $ignore_count;
 
     if( scalar(@topic_pattern_list) == 0 ) {
-	mqtt::error( "cleanup_retained_topics -- must specify pattern" );
+	&mqtt::error( undef, "cleanup_retained_topics -- must specify pattern" );
 	return;
     }
     $self->debug( 2, "cleanup topic pattern list: @topic_pattern_list" );
