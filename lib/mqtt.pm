@@ -188,6 +188,8 @@ use Data::Dumper;
 
 eval "use bytes";    # Not on all installs, so eval to avoid errors
 
+eval "use Digest::MD5 qw(md5_hex)";    # Not sure if this is on all installs, so eval to avoid errors
+
 # Need to share this with the outside world
 my $msg_id = 1;
 my $blocking_read_timeout = .5;
@@ -448,7 +450,13 @@ sub new {
     $self->debug(1, "    Port       = $$self{port}");
     $self->debug(1, "    Topic      = $$self{topic}");
     $self->debug(1, "    User       = $$self{user_name}");
-    $self->debug(1, "    Password   = $$self{password}");
+    $self->debug(1, "    Password   = " .
+        (
+              exists($INC{'Digest/MD5.pm'})
+            ? "MD5:" . md5_hex($$self{password})
+            : '[masked]'
+	)
+    );
     $self->debug(1, "    Keep Alive = $$self{keep_alive_timer}");
 
     ### ------------------------------------------------------------------------
