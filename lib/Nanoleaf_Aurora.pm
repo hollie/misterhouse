@@ -344,6 +344,7 @@ sub process_check {
                         $self->{data}->{panels}     = $data->{panelLayout}->{layout}->{numPanels};
                         $self->{data}->{panel_size} = $data->{panelLayout}->{layout}->{sideLength};
                         $self->{data}->{rhythm}     = 0;
+			#print Dumper $data;
                         if (defined $data->{rhythm}->{rhythmConnected} and $data->{rhythm}->{rhythmConnected} eq "true") {
                             $self->{data}->{rhythm} = 1;       
                         }                
