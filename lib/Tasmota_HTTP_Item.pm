@@ -33,17 +33,20 @@ Requirements:
   Rule1 ON Power1#State DO WebSend [192.168.0.1:80] /SET;none?select_item=Kitchen_Light&select_state=%value% ENDON
 
   For Asynchronous setup, there are 2 rules (change mhip:port to the misterhouse ip address and port)
-  Rule1 ON Rules#Timer=1 DO BACKLOG WebSend [mhip:port] /SUB%3Btasmota_push(hb); RuleTimer1 10 ENDON
+  NOTE: $main::Socket_Ports{http}{client_ip_address} is not reliable to get the true source IP address of the sender. Setting an ID
+        on the device and in the rule increases the reliability of messages coming into the correct object. Replace [ID] with the value from the object option
+  
+  Rule1 ON Rules#Timer=1 DO BACKLOG WebSend [mhip:port] /SUB%3Btasmota_push(hb,[ID]); RuleTimer1 10 ENDON
   Rule1 4
-  RuleTimer 10
+  RuleTimer1 10
   
   * Rule 1 sends a 'heartbeat' web call every 10 seconds. If MH doesn't receive a heartbeat for a device within a minute, the
     device state is set to 'unknown'. This can be disabled with the nohb option
     
-  Rule2 ON Power1#State DO WebSend [mhip:port] /SUB;tasmota_push(state,%value%) ENDON
+  Rule2 ON Power1#State DO WebSend [mhip:port] /SUB;tasmota_push(state,%value%,[ID]) ENDON
   
   * Rule 2 is a more generic web call. It doesn't require setting the tasmota device to the specific MH object. Instead
-    The source address of the device is used to look up the proper MH object.
+    The source address of the device is used to look up the proper MH object, or an ID is specified.
     
   *** IMPORTANT *** : the tasmota device needs to be set up with the IP address rather than a DNS name
   
@@ -54,7 +57,7 @@ Requirements:
    ON Energy#Current DO VAR2 %value% ENDON
    ON Margins#PowerDelta DO BACKLOG VAR3 1; RuleTimer2 1 ENDON
    ON VAR3#State > 6 0 DO BACKLOG RuleTimer2 0 ; VAR3 0 ENDON
-   ON Rules#Timer=2 DO BACKLOG WebSend [mhip:port] /SUB%3Btasmota_push(power,%var1%,%var2%); RuleTimer2 1; ADD3 1  ENDON
+   ON Rules#Timer=2 DO BACKLOG WebSend [mhip:port] /SUB%3Btasmota_push(power,%var1%,%var2%,[ID]); RuleTimer2 1; ADD3 1  ENDON
 
   PowerDelta 10
   VAR3 0
@@ -70,7 +73,7 @@ In your code define Tasmota_HTTP::Things in an MHT:
 
   TASMOTA_HTTP_SWITCH,   192.168.x.y,   Kitchen_Light,   POWER1,   Kitchen, options
   
-  where options are sync (for sending a get directly in the loop), nohb (disable heartbeat checking), debug or rrd (for power monitoring)
+  where options are id=x (for specifying unique ID), sync (for sending a get directly in the loop), nohb (disable heartbeat checking), debug or rrd (for power monitoring)
 
 Or in a code file:
 
@@ -155,12 +158,15 @@ sub new {
         $self->{cmd_process} = new Process_Item;
         $self->{cmd_process}->set_output( $self->{cmd_data_file} );
         &::MainLoop_post_add_hook( \&Tasmota_HTTP::Item::process_check, 0, $self ); #check for changes to output file, and then process results
+        ( $self->{id} ) = ( $options =~ /id=(\d+)/i ) if ( ( defined $options ) and ( $options =~ m/id=/i ) );
         $Tasmota_HTTP_Items->{$self->{address}}->{object} = \%{$self};
         $Tasmota_HTTP_Items->{$self->{address}}->{type} = "generic";
+        $Tasmota_HTTP_Items->{id}->{$self->{id}} = $self->{address};
         $mode = "asynchronous process_item";
     }
-
-    &main::print_log("[Tasmota_HTTP::Item] " . $self->{address} . " set for " . $mode . " data mode" );   
+    my $id = "";
+    $id = "(ID set to " . $self->{id} . ")" if ($self->{id});
+    &main::print_log("[Tasmota_HTTP::Item] " . $self->{address} . " set for " . $mode . " data mode. " . $id );   
 
     return $self;
 }
@@ -200,7 +206,7 @@ sub set {
     } elsif ($self->{async}) {
     
         my $cmd = "$self->{output_name}%20$self->{state_to_tasmota}{$state}";
-        $self->send_cmnd($cmd);          
+        $self->send_cmd($cmd);          
 
     } else {
 
@@ -353,19 +359,28 @@ sub heartbeat {
 
 sub main::tasmota_push {
     my ($attribute,$value,$value2,$value3) = @_;
+    my $id = "";
     
+    if ($attribute eq "") {
+        &main::print_log("[Tasmota_HTTP::Item] ERROR tasmota device sent unknown attribute");
+        return "";
+    } elsif ($attribute eq "state") {
+        $id = $value2 if ($value2);
+    } elsif ($attribute eq "hb") {
+        $id = $value2 if ($value2);
+    } elsif ($attribute eq "power") {    
+        $id = $value3 if ($value3);
+    }        
+
     my $client_ip_address = $main::Socket_Ports{http}{client_ip_address};
+    $client_ip_address = $Tasmota_HTTP_Items->{id}->{$id} if ($Tasmota_HTTP_Items->{id}->{$id});
     my $type = $Tasmota_HTTP_Items->{$client_ip_address}->{type};
     if ($type) {
         my $debug =  $Tasmota_HTTP_Items->{$client_ip_address}->{object}->{debug};
         my $loglevel = $Tasmota_HTTP_Items->{$client_ip_address}->{object}->{loglevel};
         &main::print_log("[[Tasmota_HTTP::Item] webAPI client=$client_ip_address attribute=$attribute value=$value value2=$value2 value3=$value3 type=$type attribute=$attribute") if ($debug);
- 
-        if ($attribute eq "") {
-            &main::print_log("[Tasmota_HTTP::Item] ERROR tasmota device with IP address $client_ip_address send unknown attribute");
-            return "";
         
-        } elsif ($attribute eq "state") {
+        if ($attribute eq "state") {
             my $state = $Tasmota_HTTP_Items->{$client_ip_address}->{object}->{tasmota_to_state}{$value};
             &main::print_log("[Tasmota_HTTP::Item] INFO Received state $state for tasmota device with IP address $client_ip_address") if ($debug);
             $Tasmota_HTTP_Items->{$client_ip_address}->{object}->set($state,'push');
@@ -548,7 +563,12 @@ sub update_power {
     $self->{monitor}->{prevpower} = $self->{monitor}->{power};
     $self->{monitor}->{power} = $power;
     $self->{monitor}->{maxpower} = $power if ($self->{monitor}->{power} > $self->{monitor}->{maxpower});
-    $self->{power_state_changed} = $power unless ($self->{monitor}->{prevpower} == $self->{monitor}->{power});
+    if ($self->{monitor}->{prevpower} == $self->{monitor}->{power}) {
+        undef $self->{power_state_changed};
+    } else {
+        $self->{power_state_changed} = $power;
+        $self->{power_state_changed} = "0E0" if ($self->{power_state_changed} == 0);
+    }
     $self->{monitor}->{prevcurrent} = $self->{monitor}->{current};
     $self->{monitor}->{current} = $current;    
     $self->{monitor}->{maxcurrent} = $current if ($self->{monitor}->{current} > $self->{monitor}->{maxcurrent});

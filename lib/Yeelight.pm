@@ -107,7 +107,7 @@ sub new {
     } else {
         $yl_instances++;
         $self->{id} = $yl_instances;
-        $self->{name} = $yl_instances;
+        $self->{name} =  $yl_instances;
     }
 
     $self->{data}                   = undef;
@@ -188,6 +188,7 @@ sub server_startup {
    $Socket_Items{"yeelight_$self->{id}"}{recon_timer} = ::Timer::new();
    main::print_log("[Yeelight]   STARTUP: initializing instance yeelight_$self->{id} TCP session on $self->{host}:$self->{port}");
    $Socket_Items{"yeelight_$self->{id}"}{'socket'} = new Socket_Item(undef, undef, "$self->{host}:$self->{port}", "yeelight_$self->{id}", 'tcp', 'raw');
+   #$Socket_Items{"yeelight_$self->{id}"}{'socket'} = new Socket_Item(undef, undef, "$self->{host}:$self->{port}", "yeelight_$self->{name}", 'tcp', 'raw');
    #$Socket_Items{"yeelight_$self->{id}"}{'socket'}->start;
    ::MainLoop_pre_add_hook( \&Yeelight::check_for_socket_data, 1, $self );
    # $self->{data_socket} = new Socket_Item(undef, undef, "$self->{host}:$self->{port}", "yeelight" . $self->{id}, 'tcp', 'raw');
