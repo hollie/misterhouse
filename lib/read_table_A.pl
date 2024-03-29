@@ -1973,6 +1973,18 @@ sub read_table_A {
 	$code .= "\$${object_name} = new mqtt_DiscoveredItem( \$${disc_name}, '$object_name', '$disc_topic', '$disc_msg' );\n";
     }
     #-------------- End MQTT Objects ----------------
+    #-------------- Home Assistant Objects -----------------
+    elsif( $type eq "HA_SERVER" ) {
+	my ($object_name, $address, $keepalive, $api_key) = @item_info;
+	require HA_Item;
+	$code .= "\$${object_name} = new HA_Server( '$object_name', '$address', '$keepalive', '$api_key' );\n";
+    }
+    elsif( $type eq "HA_ITEM" ) {
+	my ($object_name, $domain, $entity, $ha_server) = @item_info;
+	require HA_Item;
+	$code .= "\$${object_name} = new HA_Item( '$domain', '$entity', \$$ha_server );\n";
+    }
+    #-------------- End Home Assistant Objects -----------------
     elsif ( $type =~ /PLCBUS_.*/ ) {
 	#<,PLCBUS_Scene,Address,Name,Groups,Default|Scenes>#
         require PLCBUS;
