@@ -31,6 +31,7 @@ use strict;
 ##    Data hasn't changed even if the order did. Added option sort_before_md5 = 1 to enable globally or to the specific ical
 
 use lib '../lib', '../lib/site';
+push @INC, "../lib/fallback";
 use iCal::Parser;
 use DateTime;
 use Digest::MD5 qw(md5 md5_hex);

@@ -725,6 +725,17 @@ sub set_receive {
     $self->SUPER::set_receive( $newstate, $set_by, $target );
 }
 
+=item C<is_dimmable()>
+
+Returns whether object is dimmable.
+
+=cut
+
+sub is_dimmable {
+    my ( $self ) = @_;
+    return 1;
+}
+
 =item C<state_level>
 
 return 'on', 'off' or 'dim', depending on current setting (as obtained from "value" sub-item)

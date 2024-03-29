@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head><title>MisterHouse</title>
+<html><head><title>MisterHouse 5.1</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	
 	<meta name="apple-mobile-web-app-capable" content="yes">
@@ -11,70 +11,26 @@
 	<link rel="apple-touch-icon" sizes="180x180" href="/touch-icon_180.png">
 	<link rel="shortcut icon" href="/touch-icon_76.png" type="image/x-icon">
 	
+	<!-- Minimum Set to bring up home page -->
+	
 	<!--Font Awesome-->
-	<link href="/ia7/include/font-awesome.4.7.0.min.css" rel="stylesheet">
+	<link href="/ia7/include/font-awesome.4.7.0.min.css.gz" rel="stylesheet">
 
 	<!--Weather Icons-->
-	<link href="/ia7/include/weather-icons.2.0.10.min.css" rel="stylesheet">
-	<link href="/ia7/include/weather-icons-wind.2.0.10.min.css" rel="stylesheet">
+	<link href="/ia7/include/weather-icons.2.0.10.min.css.gz" rel="stylesheet">
+	<link href="/ia7/include/weather-icons-wind.2.0.10.min.css.gz" rel="stylesheet">
 
-	
-	<!--Responsive Tables-->
-	<link href="/ia7/include/tables.css" rel="stylesheet">
-	
-	<!-- Jquery -->
-	<script src="/ia7/include/jquery.1.12.4.min.js"></script>
-	<script src="/ia7/include/jquery.longclick-1.0.min.js"></script>
+    <!-- Jquery -->
+	<script src="/ia7/include/jquery.1.12.4.min.js.gz"></script>
+    <!-- Sliders -->
+	<link rel="stylesheet" href="include/jquery-ui.smoothness.1.12.1.min.css.gz">
+	<script src="include/jquery-ui-1.12.1.min.js.gz"></script>
 
-	<!-- A custom jquery UI script to enable sortable items -->
-	<!-- ui 1.12.1 used for slider -->
-	<script src="include/jquery-ui-1.12.1.min.js"></script>
-	<link rel="stylesheet" href="include/jquery-ui.smoothness.1.12.1.min.css">
-
-	<!-- Enables Jquery UI functions (like slider) to work on touch interfaces -->
-  	<script src="/ia7/include/jquery.ui.touch-punch.0.2.3.min.js"></script>
-	
 	<!--Bootstrap-->
-	<!-- Latest compiled and minified CSS -->
-	<link rel="stylesheet" href="/ia7/include/bootstrap-custom-button.css">
-	<link rel="stylesheet" href="/ia7/include/bootstrap.3.3.7.min.css">
-	
-	<!-- Optional theme -->
-	<link rel="stylesheet" href="/ia7/include/bootstrap-theme.3.3.7.min.css">
-	
-	<!-- Latest compiled and minified bootstrap JavaScript -->
-	<script src="/ia7/include/bootstrap.3.3.7.min.js"></script>
-	
-	<!-- bootstrap editable -->
-	<link href="/ia7/include/bootstrap3-editable.1.5.0.css" rel="stylesheet"/>
-    <script src="/ia7/include/bootstrap3-editable.1.5.0.min.js"></script>
-
-	<!-- Nicer Dialog Boxes -->
-	<link href="/ia7/include/jquery.alerts.css" rel="stylesheet"/>	
-    <script src="/ia7/include/jquery.alerts.js"></script>
-		
-	<!-- Flot libraries for graphing RRDs -->
-	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.min.js"></script>
-	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.selection.min.js"></script>
-	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.resize.min.js"></script>
-	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.time.min.js"></script>
-
-	<!-- jqCon libraries for displaying cron data -->
-	<link rel="stylesheet" href="/ia7/include/jqCron.css">	
-	<script language="javascript" type="text/javascript" src="/ia7/include/jqCron.js"></script>
-	<script language="javascript" type="text/javascript" src="/ia7/include/jqCron.en.js"></script>
-	
-	<!-- bootstrap datepickers -->
-	<link href="/ia7/include/bootstrap-datepicker3.standalone.min.css" rel="stylesheet"/>	
-    <script src="/ia7/include/bootstrap-datepicker.min.js"></script>
-
-	<!-- Icon Picker 1.3.0+ for icons in dropdowns -->
-	<link href="/ia7/include/fontawesome-iconpicker.min.css" rel="stylesheet"/>	
-    <script src="/ia7/include/fontawesome-iconpicker.min.js"></script>
-    
-    <!-- Load ia7_pref options -->
-    <script type="text/javascript" src="/ia7/include/ia7_prefs.json"></script>
-	
+	<link rel="stylesheet" href="/ia7/include/bootstrap.3.3.7.min.css.gz">
+	<link rel="stylesheet" href="/ia7/include/bootstrap-theme.3.3.7.min.css.gz">
+	<script src="/ia7/include/bootstrap.3.3.7.min.js.gz"></script>
+    	
 	<!-- Misterhouse ia7 System JS File-->
 	<script src="/ia7/include/javascript.js"></script>
 	
@@ -85,7 +41,7 @@
 	  white-space: nowrap;
 	  text-align: left;
 	  padding-left: 15px;
-	  padding-right: 15px;
+	  padding-right: 15px; 
 	}
 	@media (min-width: 768px) {
 		.top-buffer {
@@ -98,9 +54,9 @@
     	}
     }
 	.btn-direct {
-	  border-style: solid;
-	  border-width: 2px;
-	  border-color: black;
+	  border-style: solid !important;
+	  border-width: 2px !important;
+	  border-color: black !important;
 	}
 	
 	.btn-direct:focus,.btn-direct:active {
@@ -147,6 +103,18 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		height: 30px;
+		padding-top: 4px;
+	}
+	.trigger-input{
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		height: 40px;
+		padding-top: 3px;
+	}	
+	.trigger-name{
+	    width: 200px;
 	}
 	.dark-row{
 		background-color: #F5F5F5;
@@ -220,10 +188,24 @@
   		left: 3px;
   		right: 3px;
 	}	
-	
+	.sww-background {
+	    position: absolute;
+	    background-color: rgba(0,0,0,0.7) !important;
+        top: 92px; 
+        left: 25px; 
+        right: 25px;  
+	    z-index: 7000;
+	}	
+	.sww-text {
+	    color: white;
+	    margin-top: 13px;
+	}
 	.mobile-alert {
 		margin-top:-22px !important;
 	}
+    tr.security_header td {
+        border-bottom:2pt solid black;
+    }
 	.dropdown-caret {
 		margin-left:-5px !important;
 	}
@@ -251,7 +233,6 @@
 	.sched-dropdown-menu {
 		margin-left: 14px !important;	
 	}
-	
 	.brightness-slider {
 	    margin-left: 16px;
 	    margin-right: 16px;
@@ -267,44 +248,119 @@
         width: 32px;
         margin-left: -16px
     }  
+    .red-handle .ui-slider-handle {
+        background: red;
+    }   
+    .green-handle .ui-slider-handle {
+        background: green;
+    } 
+    .blue-handle .ui-slider-handle {
+        background: blue;
+    }          
 	.popover {
 	    min-width: 200px;
-	}
-	
+	}	
 	.mh-page-link {
 	    padding-left: 30px;
 	}
-	
 	.mh-wi-text {
         font-size: 15px;
         margin-top: 13px;
     }
-    
     .mh-wi-icon {
         margin-top: 2px;
     }
-    
     #option_collection {
         margin-top: 5px;
     }
-    
     .whatsnew-panel {
         margin-right: 15px;
     }
-	
+   .fa-rgb-border {
+        text-shadow: -1px 0 #000, 0 1px #000, 1px 0 #000, 0 -1px #000;
+   }
+
+    #loader {
+      position: absolute;
+      right: 45%;
+      top: 60%;
+      z-index: 1;
+      width: 150px;
+      height: 150px;
+      margin: -75px 0 0 -75px;
+      border: 16px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 16px solid #000000;
+      width: 120px;
+      height: 120px;
+      -webkit-animation: spin 2s linear infinite;
+      animation: spin 2s linear infinite;
+    }
+
+    @-webkit-keyframes spin {
+      0% { -webkit-transform: rotate(0deg); }
+      100% { -webkit-transform: rotate(360deg); }
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }	
+    
+	@media (max-width: 500px) {
+	    #loader {
+	        right: 35%;
+	    }
+	}
+
+    .btn-purple {
+      color: #fff;
+      background-color: #834087;
+      border-color: #834087;
+    }
+    .btn-purple:hover,
+    .btn-purple:focus,
+    .btn-purple:active,
+    .btn-purple.active {
+      color: #fff !important;
+      background-color: #723876;
+      border-color: #613064;
+    }
+    .btn-purple.disabled:hover,
+    .btn-purple.disabled:focus,
+    .btn-purple.disabled:active,
+    .btn-purple.disabled.active,
+    .btn-purple[disabled]:hover,
+    .btn-purple[disabled]:focus,
+    .btn-purple[disabled]:active,
+    .btn-purple[disabled].active,
+    fieldset[disabled] .btn-purple:hover,
+    fieldset[disabled] .btn-purple:focus,
+    fieldset[disabled] .btn-purple:active,
+    fieldset[disabled] .btn-purple.active {
+      color: #fff;
+      background-color: #834087;
+      border-color: #834087;
+    }
+    
+    html, body {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+    
 	</style>
 </head>
 <body>
 <div class='row'>
 	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
 		<h3>
-		  	&nbsp;&nbsp;&nbsp;MisterHouse
+		  	&nbsp;&nbsp;&nbsp;<span id="mh_title">MisterHouse</span>
             <button id="toolButton" type="button" class="btn btn-default toolbar-btn toolbar-right-end pull-right">
                 <i class="fa fa-gear"></i>
                 </button>
                 
             <button id="mhstatus" entity="ia7_status" type="button" class="btn btn-info toolbar-btn pull-right" style="display:none">
-                <span class='pull-right'>checking</span>
+                <span class='pull-right object-state'>checking</span>
                 </button>		
             <span id="wtemp" class='pull-right mh-wi text-muted mh-wi-text'></span>
             <i id="wicon" class='pull-right mh-wi text-muted mh-wi-icon wi'></i>
@@ -314,6 +370,9 @@
 			<div id="alert-area"></div>
 
 	</div>
+
+<div id="loader"></div>
+
 
 </div>
 

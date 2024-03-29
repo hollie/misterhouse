@@ -12,6 +12,7 @@
 
 use strict;
 use lib '../lib', '../lib/site';
+push @INC, '$Pgm_Path/../lib/fallback';
 
 my ( $device, $port, $house, $unit, $interface, %config_parms );
 

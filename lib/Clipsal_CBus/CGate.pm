@@ -55,12 +55,22 @@ sub new {
     $$self{cbus_app_list}     => {};
     $$self{CBus_Sync}          = new Generic_Item();
     $$self{sync_in_progress}   = 0;
+    $$self{network_sync}       = 0;
+    $$self{network_sync_counter} = 0;
+    $$self{network_sync_limit} = 100;
     $$self{DELAY_CHECK_SYNC}   = 10;
     $$self{cbus_group_idx}     = undef;
     $$self{cbus_unit_idx}      = undef;
     $$self{request_cgate_scan} = 0;
 
+	$$self{monitor_check_loop_counter} = 0;
+	$$self{monitor_check_loop_limit} = 100;
+	$$self{talker_check_loop_counter} = 0;
+	$$self{talker_check_loop_limit} = 100;
+		
     bless $self, $class;
+    
+    $self->debug( "Clipsal CBus controller v4.0.1 Initializing...", $notice );
 
     $self->monitor_start();
     $self->talker_start();
@@ -373,6 +383,20 @@ sub monitor_status {
 
 sub monitor_check {
     my ($self) = @_;
+    
+    #Check the monitor socket status once every "limit" loops (rather than every loop, to 
+    #reduce log clutter) and restart it if inactive.
+
+    if ( !$Clipsal_CBus::Monitor->active() ) {
+    	if ($$self{monitor_check_loop_counter} == $$self{monitor_check_loop_limit}) {
+    		$self->monitor_start();
+    		$$self{monitor_check_loop_counter} = 0;
+    	}	
+    	else {
+    		$$self{monitor_check_loop_counter}++;
+    	}
+    }
+
 
     # Monitor Voice Command / Menu processing
     if ( my $data = $::CBus_Monitor_v->said() ) {
@@ -386,13 +410,13 @@ sub monitor_check {
 
     #Process monitor socket input
     if ( my $monitor_msg = $Clipsal_CBus::Monitor->said() ) {
-        $self->debug( "Monitor message: $monitor_msg", $debug );
+        $self->debug( "Monitor message: $monitor_msg", $trace );
 
         my @cg = split / /, $monitor_msg;
         my $cg_code = $cg[1];
 
         unless ( $cg_code == 730 ) {    # only code 730 are of interest
-            $self->debug( "Monitor ignoring uninteresting message type $cg_code", $debug );
+            $self->debug( "Monitor ignoring uninteresting message type $cg_code", $trace );
             return;
         }
 
@@ -554,9 +578,15 @@ sub talker_start {
         $$self{talker_retry} = 0;
         if ( $Clipsal_CBus::Talker->start() ) {
             $self->debug( "Talker started", $notice );
+            
+            #reinitialise CBus global variables
+    		%Clipsal_CBus::Groups              = ();
+			%Clipsal_CBus::Units               = ();
+			$Clipsal_CBus::Command_Counter     = 0;
+			$Clipsal_CBus::Command_Counter_Max = 100;
         }
         else {
-            $self->debug( "Talker failed to start", $notice );
+            $self->debug( "Talker failed to start", $warn );
         }
     }
 }
@@ -595,6 +625,19 @@ sub talker_status {
 
 sub talker_check {
     my ($self) = @_;
+    
+    #Check the talker socket status once every "limit" loops (rather than every loop, to 
+    #reduce log clutter) and restart it if inactive.
+
+    if ( !$Clipsal_CBus::Talker->active() ) {
+    	if ($$self{talker_check_loop_counter} == $$self{talker_check_loop_limit}) {
+			$self->talker_start();
+    		$$self{talker_check_loop_counter} = 0;
+    	}	
+    	else {
+    		$$self{talker_check_loop_counter}++;
+    	}
+    }
 
     # Talker Voice Command / Menu processing
     if ( my $data = $::CBus_Talker_v->said() ) {
@@ -610,6 +653,22 @@ sub talker_check {
             $self->debug( "Talker: command $data is not implemented", $warn );
         }
     }
+    
+    #If the CBus network is still in SYNC or NEW modes, query CGate for a status update
+    #every 100 loops.
+    
+    if ( !$$self{network_sync} ) {
+    	$$self{network_sync_counter}++;
+    	$self->debug( "CBus network NOT in sync. Incremented sync counter", $trace );
+    	
+    	if ( $$self{network_sync_counter} == $$self{network_sync_limit} ) {
+    	    $Clipsal_CBus::Talker->set( "get " . $self->{cbus_net_list}[0] . " state" );
+            $Clipsal_CBus::Talker_last_sent = "get " . $self->{cbus_net_list}[0] . " state";
+    		$$self{network_sync_counter} = 0;
+    		$self->debug( "Talker: Get state command sent, sync counter reset", $debug );
+    	}
+    }
+
 
     # Process data returned from CBus server after a command is sent
     #
@@ -637,6 +696,7 @@ sub talker_check {
 
             # Newly started comms, therefore find the networks available
             # then we will wait until CGate has sync'ed with the network
+            $$self{network_sync} = 0;
             $$self{request_cgate_scan} = 0;
             $Clipsal_CBus::Talker->set("session_id");
             $Clipsal_CBus::Talker_last_sent = "session_id";
@@ -690,10 +750,11 @@ sub talker_check {
                 my $network_state = $1;
                 $self->debug( "Talker CGate Status - $talker_msg", $debug );
                 if ( $network_state ne "ok" ) {
-                    $Clipsal_CBus::Talker->set( "get " . $self->{cbus_net_list}[0] . " state" );
-                    $Clipsal_CBus::Talker_last_sent = "get " . $self->{cbus_net_list}[0] . " state";
+                	#Do nothing - sync queries moved to top of Talker check loop.
                 }
                 else {
+                	#The CBus network is in sync (i.e. OK)
+                	$$self{network_sync} = 1;
                     if ( $$self{request_cgate_scan} ) {
 
                         # This state request was part of scanning startup
@@ -1013,6 +1074,10 @@ sub talker_check {
  V4.0    2016-03-25
  Refactor cbus.pl into Clipsal_CBus.pm, CGate.pm, Group.pm, and Unit.pm, and
  make CBus support more MisterHouse "native".
+ 
+ V4.0.1 2018-09-05
+ Make connectivity to CGate more robust by detecting failed sockets, attempting to restart them, and when
+ they've come back, reinitialising the CBus objects.
  
 =head1 LICENSE
  
