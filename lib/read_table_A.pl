@@ -12,6 +12,16 @@ use strict;
 #
 # See mh/code/test/test.mht for an example.
 #
+# The more generalized format is "TYPE, PARM1, PARM2, ...". There are lots
+# of types hardcoded below. However, read_table_A is also now extensible, so
+# we don't need to modify it for every new record type. Instead, just create
+# a .pm module in an accessible library that matches the lowercase of the
+# "TYPE" field (e.g. "type.pm") that has a "new" method. read_table_A will 
+# load the module and write the code to invoke the new method with the 
+# provided parameters. If the module also has an "init" method, it will be
+# invoked after the "new" method returns, as some MH operations can't be
+# performed until *after* new returns and instantiation completes. See 
+# "lib/read_table_a_sample.pm" for an example module.
 
 #print_log "Using read_table_A.pl";
 
@@ -2039,8 +2049,27 @@ sub read_table_A {
         $object = "Tasmota_HTTP::Fan('$address', '$other')";
     }
     else {
-        print "\nUnrecognized .mht entry: $record\n";
-        return;
+        # Doesn't match anything here, but don't just fail. Instead, make
+        # read_table_A extensible by searching lib for a module with
+        # the lower case of this name. See comments at the top for details,
+        # and read_table_a_sample.pm for an example.
+        my $lctype = lc($type);		# Convert to lower case.
+        eval "require $lctype;";	# Can we load it?
+        if ($@) {
+            print qq<\nUnrecognized .mht entry and "require $lctype;" returned "$@": $record.\n>;
+            return;
+        }
+        $name = $item_info[0];
+        @item_info = map {$_ =~ /^['"]/?$_:"'$_'"} @item_info;	# Add single quotes if no quoting present.
+        # Note: we don't handle grouplist here, as it may not apply to some objects. Instead,
+        # the "init" method can manage group membership if that's appropriate.
+        my $item_info = join(',',@item_info);
+        $object = "$lctype( $item_info )";
+        $additional_code = sprintf(
+		"%-36s %s", 
+		"\$${name}", "-> init( $item_info ) if (\$${name}->can('init'));	# noloop\n",
+	);
+	$grouplist = '';	# No grouplist processing here, though the init method might do that.
     }
 
     if ($object) {
@@ -2049,7 +2078,25 @@ sub read_table_A {
         $code .= $code2;
     }
 
+    # Process grouplist. This code was moved into a subroutine so it could be called by extension
+    # modules, too.
+    $code .= read_table_grouplist_A($name, $grouplist) if ($grouplist);
+
+    # Add in anything else some record-type above needed.
+    if ($additional_code) {
+        $code .= $additional_code;
+    }
+
+    return $code;
+}
+
+
+sub read_table_grouplist_A {
+
+    my($name, $grouplist) = @_;
+
     $grouplist = '' unless $grouplist;    # Avoid -w uninialized errors
+    my $code = '';
     for my $group ( split( '\|', $grouplist ) ) {
         $group =~ s/ *$//;
         $group =~ s/^ //;
@@ -2077,16 +2124,14 @@ sub read_table_A {
                 $loc .= ',1,1' if ( $loc =~ tr/,/,/ ) < 3;
                 $code .= sprintf "\$%-35s -> set_fp_location($loc);\n", $name;
             }
-            $code .= sprintf "\$%-35s =  new Group;\n", $group
-              unless $groups{$group};
-            $code .= sprintf "\$%-35s -> add(\$%s);\n", $group, $name
-              unless $groups{$group}{$name};
-            $groups{$group}{$name}++;
+            unless ($groups{$group}) {
+                $code .= sprintf "\$%-35s =  new Group unless (\$%s);\n", $group, $group;
+            }
+            unless ($groups{$group}{$name}) {
+                $code .= sprintf "\$%-35s -> add(\$%s);\n", $group, $name;
+                $groups{$group}{$name}++;
+            }
         }
-    }
-
-    if ($additional_code) {
-        $code .= $additional_code;
     }
 
     return $code;
