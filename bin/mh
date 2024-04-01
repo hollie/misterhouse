@@ -4740,7 +4740,7 @@ sub process_external_command {
     $cmd =~ s/^\s+//;                            # Deletes leading blanks
     $cmd =~ s/\s+$//;                            # Deletes trailing blanks
 
-    print "Running external command: $cmd set by $set_by\n"
+    print_log "Running external command: $cmd set by $set_by\n"
       unless $config_parms{no_log} =~ /xcmd/;
 
     if ( &run_voice_cmd( lc($cmd), undef, $set_by, 0, $respond_target ) ) {
