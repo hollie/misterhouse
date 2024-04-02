@@ -31,6 +31,7 @@ Description:
 
     Author(s):
     Dave Neudoerffer <dave@neudoerffer.com>
+    H Plato
 
     HA Items (HA_Item.pm)
     --------------------------
@@ -57,20 +58,49 @@ Description:
     HA_Item
 	- implements an MH item that is tied to a HA entity on the specified HA Server
 	- state changes from HA are monitored and reflected in the mh item state
+	- the full HA state object is saved in {ha_state}
 	- when the MH item is set locally, a state change is sent to HA
 	    - state is not reflected locally until the state change is received back from HA
-	- several HA Entity types are supported:
-	    - light:  currently only brightness attribute implemented, no colour
-	    - switch: on/off switch
+	*** IMPORTANT *** : not all HA Entity types are supported.
+	*** IMPORTANT *** : To mimic the MH 'one object one state' approach, subtypes are used in the domain based on HA attributes
+	    - light:  on, off and brightness
+		    :rgb_color : for setting an RGB value
+	    - cover: open,close
+	    - lock: lock, unlock
+	    - switch: on,off
 	    - sensor, binary_sensor:
 	        - can group multiple sensors into a single MH item -- populates $item->{attr} hash
 		- use one or more patterns to match HA entity names, separated by |
 		- currently only pattern supported is entity_prefix_* (text with a '*' at the end)
 	    - climate:
-	        - populates $thermostat->{attr} with thermostat attributes like setpoints, temperatures, mode, presets etc.
-		- can specify the HA service for modifications
-		    eg.  $thermostat->set("set_temperature:72")
-		    eg   $thermostat->set("set_hvac_mode:heat")
+	            (settable subtypes)
+		    :hvac_mode		    # hvac mode
+		    :onoff
+		    :preset_mode
+		    :fan_mode
+		    :temperature	    # setpoint for non-(auto/heatcool) hvac mode
+		    :target_temp_low	    # heat setpoint
+		    :target_temp_high	    # cool setpoint
+		    :humidity		    # humidity setpoint
+		    :swing_mode
+
+                    (sensor only subtypes)
+		    :current_temperature    # sensor only
+		    :current_humidity	    # sensor only
+		    ...
+	        - populates $thermostat->{ha_state} with thermostat set value that includes {attributes} hash 
+		  which includes thermostat attributes like setpoints, temperatures, mode, presets etc.
+		    - can use any of these attributes as subtype for MH object
+		- can use settable subtypes for modifications
+		    eg.  $thermostat_preset_mode->set( "home" );
+		    eg.  $thermostat_target_temp_low->set( 72 );
+	- ha_call_service can be used to generically call a service on an entity
+	    - this can be used for 2 different things:
+	        1. you can treat complex HA entities as a single MH item, and use
+		   this function to call the various services on the HA entity
+		2. if the MH code doesn't implement all of the HA entity services, or there
+		   are custom services on the entity, then you can call them with this function
+	    eg. $thermostat->ha_call_service( 'set_preset_mode', {preset_mode=>'away'} );
 
     
 
@@ -100,11 +130,12 @@ Usage:
 	# HA_SERVER,	obj name,	address,	keepalive, 	api_key   
 	HA_SERVER,	ha_house,	10.3.1.20:8123, 10,		XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-	#HA_ITEM,	object_name,		domain,		ha_entity,		ha_server,  systemlist,	    friendly_name
-	HA_ITEM,	shed_counter_pots,	light,		shed_counter_pots,	ha_house
-	HA_ITEM,	water,			switch,		house_water_socket,	ha_house
-	HA_ITEM,	thermostat,		climate,	family_room_thermostat,	ha_house
-	HA_ITEM,	ecowitt_weather,	sensor,		hp2551bu_pro_v1_7_6_*|ecowitt_cottage_weather_*, ha_house
+	#HA_ITEM,	object_name,		domain[:subtype],   ha_entity,			ha_server
+	HA_ITEM,	shed_counter_pots,	light,		    shed_counter_pots,		ha_house
+	HA_ITEM,	water,			switch,		    house_water_socket,		ha_house
+	HA_ITEM,	thermostat,		climate,	    family_room_thermostat,	ha_house
+	HA_ITEM,	ecowitt_weather,	sensor,		    hp2551bu_pro_v1_7_6_*|ecowitt_cottage_weather_*, ha_house
+	HA_ITEM,	led_strip,		light:rgb,	    yeelight_012342,	ha_house
 
 
 
@@ -274,6 +305,7 @@ sub new {
     $self->{next_id}		= 20;
     $self->{subscribe_id}	= 0;
     $self->{api_key}		= $api_key;
+    $self->{max_payload_size}	= 2000000; #2M Payload size
 
     $self->{next_ping}		= 0;
     $self->{got_ping_response}	= 1;
@@ -342,7 +374,7 @@ sub connect {
 	    $self->error( "ha_server received error: $buf" );
 	}
     );
-    $ws_client->{frame_buffer}->{max_payload_size} = 200000;
+    $ws_client->{frame_buffer}->{max_payload_size} = $self->{max_payload_size}; 
 
     $self->{ws_client}->connect();
 }
@@ -366,7 +398,12 @@ sub check_for_data {
 	# Parses incoming data and on every frame calls on_read
 	if( $ha_server->{socket_item}  and  $ha_data = $ha_server->{socket_item}->said() ) {
 	    # print "Received data from home assistant:\n     $ha_data\n";
-	    $ha_server->{ws_client}->read( $ha_data );
+	    eval { $ha_server->{ws_client}->read( $ha_data ); };
+
+            if ($@) {
+                print "[HA_Item] ERROR when reading WebSocket $@\n";
+                return ('0');
+            }
 	}
 	 
 	if( &::new_second($ha_server->{keep_alive_time}) and  $ha_server->{ws_client} ) {
@@ -409,7 +446,7 @@ sub ha_process_read {
 	return;
     }
     if( $data_obj->{type} eq 'pong' ) {
-	$self->debug( 1, "Received pong from HA" );
+	$self->debug( 3, "Received pong from HA" );
 	return;
     } elsif( $data_obj->{type} eq 'event'  &&  $data_obj->{id} == $self->{subscribe_id} ) {
 	$self->parse_data_to_obj( $data_obj->{event}->{data}->{new_state}, "hasvr" );
@@ -469,7 +506,6 @@ sub parse_data_to_obj {
 		}
 	    }
 	} elsif( $cmd->{entity_id} eq $obj->{entity_id} ) {
-	    $self->debug( 1, "handled event for $obj->{object_name} set to $cmd->{state}" );
 	    $obj->set( $cmd, $p_setby );
 	    if( $p_setby eq "hasvr_init" ) {
 		$obj->{ha_init} = 1;
@@ -619,7 +655,7 @@ use Data::Dumper;
 =cut
 
 sub new {
-    my ($class, $domain, $entity, $ha_server ) = @_;
+    my ($class, $fulldomain, $entity, $ha_server ) = @_;
     my $self = new Generic_Item();
     bless $self, $class;
 
@@ -628,11 +664,25 @@ sub new {
 	return;
     }
     $self->{ha_server} = $ha_server;
-    $self->debug( 1, "New HA_Item ( $class, $domain, $entity )" );
+    my ($domain,$subtype) = split /:/, $fulldomain;
+    $subtype = "" unless $subtype;
+    $self->{domain} = $domain;
+    $self->{subtype} = $subtype;    
+    $self->debug( 1, "New HA_Item ( $class, $domain, $entity, $subtype )" );
+
     if( $domain eq 'switch' ) {
 	$self->set_states( "off", "on" );
     } elsif( $domain eq 'light' ) {
-	$self->set_states( "off", "20%", "40%", "50%", "60%", "80%", "on" );
+	$self->set_states( "off", "20%", "40%", "50%", "60%", "80%", "on" ) unless (lc $self->{subtype} eq "rgb_color");
+	if ($self->{subtype} eq "rgb_color") {
+	    $self->set_states("rgb");
+	} else {
+	    $self->set_states( "off", "20%", "40%", "50%", "60%", "80%", "on" );
+	}
+    } elsif( $domain eq 'cover' ) {
+	$self->set_states( "open", "closed" );
+    } elsif( $domain eq 'lock' ) {
+	$self->set_states( "unlocked", "locked" );	
     } elsif( $domain eq 'climate' ) {
 	$self->{attr} = {};
     } elsif( $domain eq 'sensor'  ||  $domain eq 'binary_sensor' ) {
@@ -641,7 +691,7 @@ sub new {
 	$self->error( "Invalid type for HA_Item -- '$domain'" );
 	return;
     }
-    $self->{domain} = $domain;
+
     my @prefixes = split( '\|', $entity );
     if( $#prefixes  ||  substr( $entity, length($entity)-1, 1 ) eq '*' ) {
 	if( $#prefixes == 0 ) {
@@ -712,102 +762,163 @@ sub set_object_debug {
 sub set {
     my ( $self, $setval, $p_setby, $p_response ) = @_;
 
-    $self->debug( 1, "$self->{object_name} set by $p_setby to: ". $self->dump($setval) );
     if( $p_setby =~ /hasvr*/ ) {
 	# This is home assistant sending a state change via websocket
 	# This state change may or may not have been initiated by us
 	# This is sent as an object representing the json new_state
+	$self->debug( 2, "$self->{object_name} set by $p_setby to: ". $self->dump($setval) );
+
 	my $new_state = $setval;
-	if( $self->{domain} eq 'switch' ) {
+	$self->{ha_state} = $setval;
+	if( $self->{domain} eq 'switch' || $self->{domain} eq 'cover'  || $self->{domain} eq 'lock' ) {
+	    $self->debug( 1, "event for $self->{object_name} set to $new_state->{state}" );
 	    $self->SUPER::set( $new_state->{state}, $p_setby, $p_response );
 	} elsif( $self->{domain} eq 'light' ) {
-	    my $level = $new_state->{state};
-	    if( $new_state->{state} eq 'on' ){
-		if( $new_state->{attributes}->{brightness} ) {
-		    $level = $new_state->{attributes}->{brightness} * 100 / 255;
-		}
+	    if (lc $self->{subtype} eq "rgb_color") {
+		#shouldn't join, but rgb is an array so for now create a string
+		my $string = join ',', @{$new_state->{attributes}->{ $self->{subtype} }}; #$new_state->{attributes}->{ $self->{subtype} }
+		$self->debug( 1, "handled subtype $self->{subtype} event for $self->{object_name} set to $string" );
+		$self->SUPER::set( $string, $p_setby, $p_response );
+	    } else {	
+		my $level = $new_state->{state};
+		if( $new_state->{state} eq 'on' ){
+		    if( $new_state->{attributes}->{brightness} ) {
+			$level = $new_state->{attributes}->{brightness} * 100 / 255;
+		    }
+		}    
+		$self->debug( 1, "light event for $self->{object_name} set to $level" );
+		$self->SUPER::set( $level, $p_setby, $p_response );
 	    }
-	    $self->SUPER::set( $level, $p_setby, $p_response );
 	} elsif( $self->{domain} eq 'sensor'  ||  $self->{domain} eq 'binary_sensor' ) {
+	    $self->debug( 1, "sensor event for $self->{object_name} set to $new_state->{state}" );
 	    $self->SUPER::set( $new_state->{state}, $p_setby, $p_response );
 	} elsif( $self->{domain} eq 'climate' ) {
+	    my $state;
 	    foreach my $attrname (keys %{$new_state->{attributes}} ) {
 		$self->{attr}->{$attrname} = $new_state->{attributes}->{$attrname};
+		if( $self->{subtype} eq $attrname ) {
+		    $state = $new_state->{attributes}->{$attrname};
+		}
 	    }
-	    $self->debug( 1, "climate attributes set: " . $self->dump($self->{attr}) );
-	    $self->SUPER::set( $new_state->{state}, $p_setby, $p_response );
+	    if( !$state  &&  $self->{subtype} eq 'hvac_mode' ) {
+		$state = $new_state->{state};
+	    }
+	    if( !$state  &&  $self->{subtype} ) {
+		$self->error( "climate state message did not contain state for $self->{object_name}" );
+		return;
+	    }
+	    # $self->debug( 1, "climate attributes set: " . $self->dump($self->{attr}) );
+	    if( $self->{subtype} ) {
+		$self->debug( 1, "climate $self->{object_name} set: $state" );
+	    } else {
+		$self->debug( 1, "climate $self->{object_name} default object set: $state" );
+	    }
+	    $self->SUPER::set( $state, $p_setby, $p_response );
 	}
     } else {
-	my $cmd;
 	# Item has been set locally -- use HA WebSocket to change state
-	if( $self->{domain} eq 'light'  ||  $self->{domain} eq 'switch' ) {
-	    $cmd = $self->ha_rest_set_light( $setval );
+	$self->debug( 2, "$self->{object_name} set by $p_setby to: $setval" );
+
+	if( $self->{domain} eq 'light'  ||  $self->{domain} eq 'switch' ||  $self->{domain} eq 'cover' || $self->{domain} eq 'lock') {
+	    $self->ha_set_state( $setval );
 	} elsif( $self->{domain} eq 'climate' ) {
-	    $cmd = $self->ha_rest_set_therm( $setval );
-	}
-    
-	if( !$cmd ) {
-	    $self->error( "invalid domain type in set method ($self->{domain}" );
+	    $self->ha_set_climate( $setval );
 	} else {
-	    $self->{ha_server}->ha_process_write( $cmd );
+	    $self->error( "invalid domain type in set method ($self->{domain}" );
 	}
     }
 }
 
+=item C<ha_call_service(service_name, service_data_hash )>
 
-sub ha_rest_set_light {
+    Will send a message to HA to run the service 'service_name' passing in the
+    kwargs parameters specified in service_data_hash.
+    This will cause a state change to be sent to the HA entity mirrored by the item.
+    Local state will not be changed until the state_change event is received back from the HA server.
+
+=cut
+sub ha_call_service {
+    my ($self, $service, $service_data) = @_;
+    my $ha_msg = {};
+
+    $ha_msg->{id} = ++$self->{ha_server}->{next_id};
+    $ha_msg->{type} = 'call_service';
+    $ha_msg->{domain} = $self->{domain};
+    $ha_msg->{target} = {};
+    $ha_msg->{target}->{entity_id} = $self->{entity_id};
+    $ha_msg->{service} = $service;
+    if( defined( $service_data )  &&  keys %$service_data) {
+	$ha_msg->{service_data} = $service_data;
+    }
+
+    $self->debug( 2, "sending command to HA: " . $self->dump( $ha_msg ) );
+    $self->{ha_server}->ha_process_write( $ha_msg );
+}
+
+sub ha_set_state {
     my ($self, $mode) = @_;
-    my $ha_data = {};
-    my $ha_rest_cmd;
-    my $ha_data_text;
     my $cmd;
+    my $service;
+    my $service_data = {};
 
-    $ha_data->{id} = ++$self->{ha_server}->{next_id};
-    $ha_data->{type} = 'call_service';
-    $ha_data->{domain} = $self->{domain};
-    $ha_data->{target} = {};
-    $ha_data->{target}->{entity_id} = $self->{entity_id};
+    $service = $mode;
     my ($numval) = $mode =~ /^([1-9]?[0-9]?[0-9])%?$/;
     if( $numval ) {
-	$ha_data->{service} = 'turn_on';
-	$ha_data->{service_data} = {};
-	$ha_data->{service_data}->{brightness_pct} = $numval;
-    } elsif( $mode eq 'on' ) {
-	$ha_data->{service} = 'turn_on';
-    } elsif( $mode eq 'toggle' ) {
-	$ha_data->{service} = 'toggle';
-    } else {
-	$ha_data->{service} = 'turn_off';
-    }
-    return( $ha_data );
+	$service = 'turn_on';
+	$service_data->{brightness_pct} = $numval;
+    } elsif( lc $mode eq 'on' ) {
+	$service = 'turn_on';
+    } elsif( lc $mode eq 'toggle' ) {
+	$service = 'toggle';
+    } elsif( lc $mode eq 'off' ) {
+	$service = 'turn_off';
+    } elsif( lc $mode eq 'open' ) {
+        if (lc $self->{domain} eq 'lock') {
+  	    $service = 'open';
+        } else {
+	    $service = 'open_cover';
+	}
+    } elsif( lc $mode eq 'close' ) {
+	$service = 'close_cover';
+    } elsif( lc $mode eq 'locked' ) {
+	$service = 'lock';
+    } elsif( lc $mode eq 'unlocked' ) {
+	$service = 'unlock';
+    } elsif( lc $mode =~ /\d+,\d+,\d+/ && $self->{subtype} eq 'rgb_color') {
+	$service = 'turn_on';
+	@{$service_data->{rgb_color}} = split /,/, $mode;
+    }          
+    $self->ha_call_service( $service, $service_data );
 }
 
-sub ha_rest_set_therm {
+sub ha_set_climate {
     my ($self, $setval) = @_;
-    my $ha_data = {};
-    my $cmd;
+    my $service_data = {};
+    my $service;
 
-    # valid services are:  temperature, fan_mode, hvac_mode, aux_heat
-    my ($service,$value) = split( ':', $setval );
-    if( !defined $service || !defined $value ) {
-	$service = $setval;
+    if( $self->{subtype} eq 'onoff' ) {
+	if( lc $setval eq 'turn_on' || lc $setval eq 'on' ) {
+	    $service = 'turn_on';
+	} elsif( lc $setval eq 'turn_off' ||  lc $setval eq 'off' ) {
+	    $service = 'turn_off';
+	} elsif( lc $setval eq 'toggle' ) {
+	    $service = 'toggle';
+	}
+    } elsif( $self->{subtype} eq 'target_temp_low' ) {
+	$service_data->{target_temp_low} = $setval;
+	$service_data->{target_temp_high} = $self->{ha_state}->{attributes}->{target_temp_high};
+    } elsif( $self->{subtype} eq 'target_temp_high' ) {
+	$service_data->{target_temp_high} = $setval;
+	$service_data->{target_temp_low} = $self->{ha_state}->{attributes}->{target_temp_low};
+    } else {
+	my $service_name = $self->{subtype};
+	if( !service_name ) {
+	    $service_name = 'hvac_mode';
+	}
+	$service = "set_${service_name}";
+	$service_data->{$service_name} = $setval;
     }
-    my ($service_name) = $service =~ /set_(.*)/;
-    if( $service =~ /set_.*/  &&  !defined $value ) {
-	$self->error( "Invalid set value for object $self->{object_name} -- form <service>:<value>" );
-	return;
-    }
-    $ha_data->{id} = ++$self->{ha_server}->{next_id};
-    $ha_data->{type} = 'call_service';
-    $ha_data->{domain} = $self->{domain};
-    $ha_data->{target} = {};
-    $ha_data->{target}->{entity_id} = $self->{entity_id};
-    $ha_data->{service_data} = {};
-    $ha_data->{service} = "${service}";
-    if( defined $value ) {
-	$ha_data->{service_data}->{$service_name} = $value;
-    }
-    return $ha_data;
+    $self->ha_call_service( $service, $service_data );
 }
 
 =item C<is_dimmable()>
@@ -823,6 +934,23 @@ sub is_dimmable {
     }
     return 0;
 }
+
+=item C<get_rgb()>
+
+Returns a list of rgb attributes.
+Needed for the IA7 UI Sliders to show up.
+
+=cut
+
+sub get_rgb {
+    my ($self) = @_;
+    if (lc $self->{subtype} eq "rgb_color") {
+        return split /,/, $self->state();
+    } else {
+        return (undef, undef, undef);
+    }
+}
+
 
 # -[ Fini - HA_Item ]---------------------------------------------------------
 
