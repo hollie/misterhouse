@@ -254,10 +254,11 @@ sub error {
 }
 
 sub dump {
-    my( $self, $obj ) = @_;
+    my( $self, $obj, $maxdepth ) = @_;
     $obj = $obj || $self;
+    $maxdepth = $maxdepth || 2;
     my $dumper = Data::Dumper->new( [$obj] );
-    $dumper->Maxdepth( 2 );
+    $dumper->Maxdepth( $maxdepth );
     return $dumper->Dump();
 }
 
@@ -322,6 +323,8 @@ sub new {
     $HA_Server_List{$self->{name}} = $self;
 
     &::MainLoop_pre_add_hook( \&HA_Server::check_for_data, 1 );
+    &::Reload_post_add_hook( \&HA_Server::restore_entity_states, 1 );
+    &::Reload_post_add_hook( \&HA_Server::generate_voice_commands, 1 );
 
     $self->connect();
     return $self;
@@ -488,7 +491,7 @@ sub parse_data_to_obj {
     my ( $self, $cmd, $p_setby ) = @_;
     my $handled = 0;
 
-    $self->debug( 2, "Msg object: " . $self->dump( $cmd ) );
+    $self->debug( 2, "Msg object: " . $self->dump( $cmd, 3 ) );
 
     my ($cmd_domain,$cmd_entity) = split( '\.', $cmd->{entity_id} );
     for my $obj ( @{ $self->{objects} } ) {
@@ -532,6 +535,25 @@ sub process_entity_states {
     for my $obj ( @{ $self->{objects} } ) {
 	if( !$obj->{ha_init} ) {
 	    $self->log( "no HomeAssistant initial state for HA_Item object $obj->{object_name} entity_id:$obj->{entity_id}" );
+	}
+    }
+}
+
+sub restore_entity_states {
+    foreach my $ha_server ( values %HA_Server_List ) {
+	for my $obj ( @{ $ha_server->{objects} } ) {
+	    if( $obj->{ha_states}  &&  substr($obj->{ha_states},0,1) eq "'" ) {
+		$obj->debug( 1, "Restoring states on $obj->{object_name} to $obj->{ha_states}" );
+		$obj->debug( 1, "'".substr($obj->{ha_states},0,1)."'" );
+		eval '{ $obj->set_states( ' . $obj->{ha_states} . '); }';
+	    }
+	}
+    }
+}
+
+sub generate_voice_commands {
+    foreach my $ha_server ( values %HA_Server_List ) {
+	for my $obj ( @{ $ha_server->{objects} } ) {
 	}
     }
 }
@@ -684,7 +706,6 @@ sub new {
     } elsif( $domain eq 'lock' ) {
 	$self->set_states( "unlocked", "locked" );	
     } elsif( $domain eq 'climate' ) {
-	$self->{attr} = {};
     } elsif( $domain eq 'sensor'  ||  $domain eq 'binary_sensor' ) {
 	$self->{attr} = {};
     } else {
@@ -711,6 +732,8 @@ sub new {
 
     $self->{ha_server}->add( $self );
 
+    $self->restore_data( 'ha_states' );
+
     return $self;
 }
 
@@ -732,12 +755,14 @@ sub debug {
 }
 
 sub dump {
-    my( $self, $obj ) = @_;
+    my( $self, $obj, $maxdepth ) = @_;
     $obj = $obj || $self;
+    $maxdepth = $maxdepth || 2;
     my $dumper = Data::Dumper->new( [$obj] );
-    $dumper->Maxdepth( 2 );
+    $dumper->Maxdepth( $maxdepth );
     return $dumper->Dump();
 }
+
 
 =item C<set_object_debug( level )>
 
@@ -766,7 +791,7 @@ sub set {
 	# This is home assistant sending a state change via websocket
 	# This state change may or may not have been initiated by us
 	# This is sent as an object representing the json new_state
-	$self->debug( 2, "$self->{object_name} set by $p_setby to: ". $self->dump($setval) );
+	$self->debug( 2, "$self->{object_name} set by $p_setby to: ". $self->dump($setval, 3) );
 
 	my $new_state = $setval;
 	$self->{ha_state} = $setval;
@@ -775,10 +800,14 @@ sub set {
 	    $self->SUPER::set( $new_state->{state}, $p_setby, $p_response );
 	} elsif( $self->{domain} eq 'light' ) {
 	    if (lc $self->{subtype} eq "rgb_color") {
-		#shouldn't join, but rgb is an array so for now create a string
-		my $string = join ',', @{$new_state->{attributes}->{ $self->{subtype} }}; #$new_state->{attributes}->{ $self->{subtype} }
-		$self->debug( 1, "handled subtype $self->{subtype} event for $self->{object_name} set to $string" );
-		$self->SUPER::set( $string, $p_setby, $p_response );
+		if( $new_state->{attributes}  &&  ref $new_state->{attributes}->{$self->{subtype}} ) {
+		    #shouldn't join, but rgb is an array so for now create a string
+		    my $string = join ',', @{$new_state->{attributes}->{ $self->{subtype} }}; 
+		    $self->debug( 1, "handled subtype $self->{subtype} event for $self->{object_name} set to $string" );
+		    $self->SUPER::set( $string, $p_setby, $p_response );
+		} else {
+		    $self->debug( 1, "got light state for $self->{object_name} but no rgb_color attribute" );
+		}
 	    } else {	
 		my $level = $new_state->{state};
 		if( $new_state->{state} eq 'on' ){
@@ -795,12 +824,12 @@ sub set {
 	} elsif( $self->{domain} eq 'climate' ) {
 	    my $state;
 	    foreach my $attrname (keys %{$new_state->{attributes}} ) {
-		$self->{attr}->{$attrname} = $new_state->{attributes}->{$attrname};
+		# $self->{attr}->{$attrname} = $new_state->{attributes}->{$attrname};
 		if( $self->{subtype} eq $attrname ) {
 		    $state = $new_state->{attributes}->{$attrname};
 		}
 	    }
-	    if( !$state  &&  $self->{subtype} eq 'hvac_mode' ) {
+	    if( !$state  &&  (!$self->{subtype}  ||  $self->{subtype} eq 'hvac_mode' ) ) {
 		$state = $new_state->{state};
 	    }
 	    if( !$state  &&  $self->{subtype} ) {
@@ -812,6 +841,15 @@ sub set {
 		$self->debug( 1, "climate $self->{object_name} set: $state" );
 	    } else {
 		$self->debug( 1, "climate $self->{object_name} default object set: $state" );
+	    }
+	    if( $p_setby eq 'hasvr_init' ) {
+		if( $self->{subtype} eq 'hvac_mode' ) {
+		    $self->{ha_states} = $self->restore_states_string( $new_state->{attributes}->{hvac_modes} );
+		} elsif( $self->{subtype} eq 'fan_mode' ) {
+		    $self->{ha_states} = $self->restore_states_string( $new_state->{attributes}->{fan_modes} );
+		} elsif( $self->{subtype} eq 'preset_mode' ) {
+		    $self->{ha_states} = $self->restore_states_string( $new_state->{attributes}->{preset_modes} );
+		}
 	    }
 	    $self->SUPER::set( $state, $p_setby, $p_response );
 	}
@@ -827,6 +865,15 @@ sub set {
 	    $self->error( "invalid domain type in set method ($self->{domain}" );
 	}
     }
+}
+
+sub restore_states_string {
+    my ($self, $state_list) = @_;
+    if( !$state_list  ||  $#{@$state_list} == 0 ) {
+	return;
+    }
+    my $state_list_str = "'" . join("','", @{$state_list}) . "'";
+    return $state_list_str;
 }
 
 =item C<ha_call_service(service_name, service_data_hash )>
