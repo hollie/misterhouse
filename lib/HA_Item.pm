@@ -544,8 +544,7 @@ sub restore_entity_states {
 	for my $obj ( @{ $ha_server->{objects} } ) {
 	    if( $obj->{ha_states}  &&  substr($obj->{ha_states},0,1) eq "'" ) {
 		$obj->debug( 1, "Restoring states on $obj->{object_name} to $obj->{ha_states}" );
-		$obj->debug( 1, "'".substr($obj->{ha_states},0,1)."'" );
-		eval '{ $obj->set_states( ' . $obj->{ha_states} . '); }';
+		eval '$obj->set_states( ' . $obj->{ha_states} . ');';
 	    }
 	}
     }
@@ -708,6 +707,7 @@ sub new {
     } elsif( $domain eq 'climate' ) {
     } elsif( $domain eq 'sensor'  ||  $domain eq 'binary_sensor' ) {
 	$self->{attr} = {};
+    } elsif( $domain eq 'select' ) {
     } else {
 	$self->error( "Invalid type for HA_Item -- '$domain'" );
 	return;
@@ -795,9 +795,20 @@ sub set {
 
 	my $new_state = $setval;
 	$self->{ha_state} = $setval;
-	if( $self->{domain} eq 'switch' || $self->{domain} eq 'cover'  || $self->{domain} eq 'lock' ) {
-	    $self->debug( 1, "event for $self->{object_name} set to $new_state->{state}" );
+	if( $self->{domain} eq 'switch'
+	||  $self->{domain} eq 'cover'
+	||  $self->{domain} eq 'lock'
+	||  $self->{domain} eq 'sensor'
+	||  $self->{domain} eq 'binary_sensor'
+	) {
+	    $self->debug( 1, "$self->{domain} event for $self->{object_name} set to $new_state->{state}" );
 	    $self->SUPER::set( $new_state->{state}, $p_setby, $p_response );
+	} elsif( $self->{domain} eq 'select' ) {
+	    $self->debug( 1, "$self->{domain} event for $self->{object_name} set to $new_state->{state}" );
+	    $self->SUPER::set( $new_state->{state}, $p_setby, $p_response );
+	    if( $p_setby eq 'hasvr_init' ) {
+		$self->{ha_states} = $self->restore_states_string( $new_state->{attributes}->{options} );
+	    }
 	} elsif( $self->{domain} eq 'light' ) {
 	    if (lc $self->{subtype} eq "rgb_color") {
 		if( $new_state->{attributes}  &&  ref $new_state->{attributes}->{$self->{subtype}} ) {
@@ -818,9 +829,6 @@ sub set {
 		$self->debug( 1, "light event for $self->{object_name} set to $level" );
 		$self->SUPER::set( $level, $p_setby, $p_response );
 	    }
-	} elsif( $self->{domain} eq 'sensor'  ||  $self->{domain} eq 'binary_sensor' ) {
-	    $self->debug( 1, "sensor event for $self->{object_name} set to $new_state->{state}" );
-	    $self->SUPER::set( $new_state->{state}, $p_setby, $p_response );
 	} elsif( $self->{domain} eq 'climate' ) {
 	    my $state;
 	    foreach my $attrname (keys %{$new_state->{attributes}} ) {
@@ -857,12 +865,12 @@ sub set {
 	# Item has been set locally -- use HA WebSocket to change state
 	$self->debug( 2, "$self->{object_name} set by $p_setby to: $setval" );
 
-	if( $self->{domain} eq 'light'  ||  $self->{domain} eq 'switch' ||  $self->{domain} eq 'cover' || $self->{domain} eq 'lock') {
-	    $self->ha_set_state( $setval );
+	if( $self->{domain} eq 'select' ) {
+	    $self->ha_set_select( $setval );
 	} elsif( $self->{domain} eq 'climate' ) {
 	    $self->ha_set_climate( $setval );
 	} else {
-	    $self->error( "invalid domain type in set method ($self->{domain}" );
+	    $self->ha_set_state( $setval );
 	}
     }
 }
@@ -902,6 +910,47 @@ sub ha_call_service {
     $self->{ha_server}->ha_process_write( $ha_msg );
 }
 
+sub ha_set_select {
+    my ($self, $mode) = @_;
+    my $cmd;
+    my $service;
+    my $service_data = {};
+
+    $service = 'select_option';
+    $service_data->{option} = $mode;
+    $self->ha_call_service( $service, $service_data );
+}
+
+sub ha_set_climate {
+    my ($self, $setval) = @_;
+    my $service_data = {};
+    my $service;
+
+    if( $self->{subtype} eq 'onoff' ) {
+	if( lc $setval eq 'turn_on' || lc $setval eq 'on' ) {
+	    $service = 'turn_on';
+	} elsif( lc $setval eq 'turn_off' ||  lc $setval eq 'off' ) {
+	    $service = 'turn_off';
+	} elsif( lc $setval eq 'toggle' ) {
+	    $service = 'toggle';
+	}
+    } elsif( $self->{subtype} eq 'target_temp_low' ) {
+	$service_data->{target_temp_low} = $setval;
+	$service_data->{target_temp_high} = $self->{ha_state}->{attributes}->{target_temp_high};
+    } elsif( $self->{subtype} eq 'target_temp_high' ) {
+	$service_data->{target_temp_high} = $setval;
+	$service_data->{target_temp_low} = $self->{ha_state}->{attributes}->{target_temp_low};
+    } else {
+	my $service_name = $self->{subtype};
+	if( !service_name ) {
+	    $service_name = 'hvac_mode';
+	}
+	$service = "set_${service_name}";
+	$service_data->{$service_name} = $setval;
+    }
+    $self->ha_call_service( $service, $service_data );
+}
+
 sub ha_set_state {
     my ($self, $mode) = @_;
     my $cmd;
@@ -938,35 +987,6 @@ sub ha_set_state {
     $self->ha_call_service( $service, $service_data );
 }
 
-sub ha_set_climate {
-    my ($self, $setval) = @_;
-    my $service_data = {};
-    my $service;
-
-    if( $self->{subtype} eq 'onoff' ) {
-	if( lc $setval eq 'turn_on' || lc $setval eq 'on' ) {
-	    $service = 'turn_on';
-	} elsif( lc $setval eq 'turn_off' ||  lc $setval eq 'off' ) {
-	    $service = 'turn_off';
-	} elsif( lc $setval eq 'toggle' ) {
-	    $service = 'toggle';
-	}
-    } elsif( $self->{subtype} eq 'target_temp_low' ) {
-	$service_data->{target_temp_low} = $setval;
-	$service_data->{target_temp_high} = $self->{ha_state}->{attributes}->{target_temp_high};
-    } elsif( $self->{subtype} eq 'target_temp_high' ) {
-	$service_data->{target_temp_high} = $setval;
-	$service_data->{target_temp_low} = $self->{ha_state}->{attributes}->{target_temp_low};
-    } else {
-	my $service_name = $self->{subtype};
-	if( !service_name ) {
-	    $service_name = 'hvac_mode';
-	}
-	$service = "set_${service_name}";
-	$service_data->{$service_name} = $setval;
-    }
-    $self->ha_call_service( $service, $service_data );
-}
 
 =item C<is_dimmable()>
 
