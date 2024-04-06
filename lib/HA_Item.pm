@@ -269,7 +269,7 @@ sub dump {
 
     Creates a HA_Server object that captures the connection to a single HomeAssistant server.
 
-    namd:		object name of the ha_server
+    name:		object name of the ha_server
     address:		tcp/ip address and port of the HA server
     keep_alive_timer:	how long between ping requests to HA server (default 10s)
     api_key:		long lived token obtained from HA server 
@@ -306,7 +306,8 @@ sub new {
     $self->{next_id}		= 20;
     $self->{subscribe_id}	= 0;
     $self->{api_key}		= $api_key;
-    $self->{max_payload_size}	= 2000000; #2M Payload size
+    $self->{max_payload_size}	= $::config_parms{homeassistant_max_payload_size} || 2000000; #2M default Payload size
+    $self->{init_v_cmd}		= 0;
 
     $self->{next_ping}		= 0;
     $self->{got_ping_response}	= 1;
@@ -324,7 +325,7 @@ sub new {
 
     &::MainLoop_pre_add_hook( \&HA_Server::check_for_data, 1 );
     &::Reload_post_add_hook( \&HA_Server::restore_entity_states, 1 );
-    &::Reload_post_add_hook( \&HA_Server::generate_voice_commands, 1 );
+    &::Reload_post_add_hook( \&HA_Server::generate_voice_commands, 1, $self );
 
     $self->connect();
     return $self;
@@ -451,7 +452,8 @@ sub ha_process_read {
     if( $data_obj->{type} eq 'pong' ) {
 	$self->debug( 3, "Received pong from HA" );
 	return;
-    } elsif( $data_obj->{type} eq 'event'  &&  $data_obj->{id} == $self->{subscribe_id} ) {
+    }
+    if( $data_obj->{type} eq 'event'  &&  $data_obj->{id} == $self->{subscribe_id} ) {
 	$self->parse_data_to_obj( $data_obj->{event}->{data}->{new_state}, "hasvr" );
         return;
     } elsif( $data_obj->{type} eq 'auth_required' ) {
@@ -551,11 +553,116 @@ sub restore_entity_states {
 }
 
 sub generate_voice_commands {
+    my ($self) = @_;
+
+    if ($self->{init_v_cmd} == 0) {
+        my $object_string;
+        my $object_name = $self->get_object_name;
+        $self->{init_v_cmd} = 1;
+        &main::print_log("Generating Voice commands for HA Server $object_name");
+
+        my $voice_cmds = $self->get_voice_cmds();
+        my $i          = 1;
+        foreach my $cmd ( keys %$voice_cmds ) {
+
+            #get object name to use as part of variable in voice command
+            my $object_name_v = $object_name . '_' . $i . '_v';
+            $object_string .= "use vars '${object_name}_${i}_v';\n";
+
+            #Initialize the voice command with all of the possible device commands
+            $object_string .= $object_name . "_" . $i . "_v  = new Voice_Cmd '$cmd';\n";
+
+            #Tie the proper routine to each voice command
+            my $tie_event = $voice_cmds->{$cmd};
+            $tie_event =~ s/\(SAID\)$/($object_name_v->said\(\)\)/ if ($tie_event =~ m/\(SAID\)$/);
+            $object_string .= $object_name . "_" . $i . "_v -> tie_event('" . $tie_event . "');\n\n";    #, '$command $cmd');\n\n";
+
+            #Add this object to the list of HA Server Voice Commands on the Web Interface
+            $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'HA_Server', 'Controller_commands' );
+            $i++;
+        }
+        #Evaluate the resulting object generating string
+        package main;
+        eval $object_string;
+        print "Error in generating Voice Commands for HA Server: $@\n" if $@;
+
+        package HA_Server;
+    }
+}
+
+sub get_voice_cmds {
+    my ($self) = @_;
+    my $command = $self->get_object_name;
+    $command =~ s/^\$//;
+    $command =~ tr/_/ /; ## underscores in Voice_cmds cause them not to work.
+
+#todo only grab the objects assigned to this server, and all items, these are just active
+    my $objects = "[";    
     foreach my $ha_server ( values %HA_Server_List ) {
+    my %seen;
 	for my $obj ( @{ $ha_server->{objects} } ) {
+	next if $seen{$obj->{object_name}}++; #remove duplicate entity names
+	$objects .= $obj->{object_name} . ",";
+	}
+    }
+    chop $objects if (length($objects) > 1);
+    $objects .= "]";
+    $objects =~ s/\$//g;
+    $objects =~ tr/_/ /; ## underscores in Voice_cmds cause them not to work.
+    
+    #a bit of a kludge to pass along the voice command option, get the said value from the voice command.
+    my %voice_cmds = (
+        'List [all,active,inactive] ' . $command . ' objects to the print log'   => $self->get_object_name . '->print_object_list(SAID)',
+        'Print ' . $objects. ' ' . $command . ' attributes to the print log'             => $self->get_object_name . '->print_object_attrs(SAID)',
+    );
+
+    return \%voice_cmds;
+}
+
+
+sub print_object_list {
+    my ($self,$cmd) = @_; 
+    main::print_log("[HA_Server]: Showing $cmd entities known by $self->{name}");
+ 
+    my @active_entities = ();
+    my @inactive_entities = ();
+    
+    #should be replaced with just this instance.
+    foreach my $ha_server ( values %HA_Server_List ) {
+	my %seen;
+	for my $obj ( @{ $ha_server->{objects} } ) {
+	    next if $seen{$obj->{entity_id}}++; #remove duplicate entity names
+	    push (@active_entities, $obj->{entity_id});
+	}
+    }
+	
+    @inactive_entities = @{$self->{unhandled_entities}};
+    
+    if ($cmd eq 'active' or $cmd eq 'all') {
+	for my $i (@active_entities) {
+	    main::print_log("[HA_Server]: Active: $i");
+	}
+    }
+    if ($cmd eq 'inactive' or $cmd eq 'all') {
+	for my $i (@inactive_entities) {
+	    main::print_log("[HA_Server]: Inactive: $i");
 	}
     }
 }
+
+sub print_object_attrs {
+    my ($self,$obj) = @_;
+    $obj =~ tr/ /_/;
+    main::print_log("[HA_Server]: Showing details for object $obj");
+    main::print_log("[HA_Server]: -----------------------------");
+    my $object = main::get_object_by_name($obj);
+    main::print_log("[HA_Server]: Entity = " . $object->{ha_state}->{entity_id}) if ( $object->{ha_state}->{entity_id});
+    main::print_log("[HA_Server]: Subtype = " . $object->{subtype}) if ( $object->{subtype});
+
+    main::print_log("[HA_Server]: Showing attribute raw data:");
+    print Dumper $object->{ha_state}->{attributes};
+}  
+
 
 =item C<list_unhandled_entities ()>
 
