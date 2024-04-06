@@ -110,8 +110,7 @@ Description:
     The HA_Server object will send out an HA entity state query on connection.
     The response is processed for all entities that have had a local MH item defined.
 
-    There is a static function defined that will print_log all unhandled HA entities:
-        HA_Server::list_unhandled_entities()
+    There are voice commands ceated to list HA entites -- handled, unhandled or all
 
 
 
@@ -158,9 +157,6 @@ Usage:
 	    # this will toggle the light by sending a HA message
 	    $shed_counter_lights->set( 'toggle' );
 	}
-
-	# this will print_log all HA topics that have not been handled by a local MH HA_Item
-	$ha_house->list_unhandled_topics();
 
 
 Notes:
@@ -215,11 +211,11 @@ use Data::Dumper;
 
 my %HA_Server_List;
 
-sub log {
-    my ($self, $str, $prefix) = @_;
-    my $maxlength = 300;
+sub break_long_str {
+    my ($self, $str, $prefix, $maxlength) = @_;
+    my $result;
 
-    $prefix = $prefix || 'HASVR: ';
+    $result = '';
     $str = $str || '';
     while( length( $str ) > $maxlength ) {
 	my $l = 0;
@@ -229,28 +225,41 @@ sub log {
 		$l = 0;
 	    }
 	}
-	print $prefix . substr($str,0,$i) . "\n";
-	&main::print_log( $prefix . substr($str,0,$i) );
+	$result .= $prefix;
+	$result .= substr( $str, 0, $i );
 	$str = substr( $str, $i );
 	$prefix = '....  ';
     }
     if( $str ) {
-	print $prefix . $str . "\n";
-	&main::print_log( $prefix . $str );
+	$result .= $prefix;
+	$result .= $str;
     }
+    return $result;
+}
+
+sub log {
+    my ($self, $str, $prefix) = @_;
+
+    if( !defined( $prefix ) ) {
+	$prefix = '[HA_Server]: ';
+    }
+    $str = $self->break_long_str( $str, $prefix, 300 );
+
+    print $str . "\n";
+    &main::print_log( $str );
 }
 
 sub debug {
     my( $self, $level, $str ) = @_;
-    if( $main::Debug{hasvr} >= $level ) {
+    if( $main::Debug{ha_server} >= $level ) {
 	$level = 'D' if $level == 0;
-	$self->log( $str, "HASVR D$level: " );
+	$self->log( $str, "[HA_Server D$level]: " );
     }
 }
 
 sub error {
     my ($self, $str, $level ) = @_;
-    &HA_Server::log( $self, $str, "HASVR ERROR: " );
+    &HA_Server::log( $self, $str, "[HA_Server ERROR]: " );
 }
 
 sub dump {
@@ -282,9 +291,9 @@ sub new {
 
     print "creating HA Server $name on $address\n";
 
-    if( !defined $main::Debug{hasvr} ) {
-	$main::Debug{hasvr} = 0;
-	# $main::Debug{hasvr} = 2;
+    if( !defined $main::Debug{ha_server} ) {
+	$main::Debug{ha_server} = 0;
+	# $main::Debug{ha_server} = 2;
     }
 
     $address		= $address  || $::config_parms{homeassistant_address}	|| 'localhost:8123';
@@ -323,8 +332,8 @@ sub new {
 
     $HA_Server_List{$self->{name}} = $self;
 
-    &::MainLoop_pre_add_hook( \&HA_Server::check_for_data, 1 );
-    &::Reload_post_add_hook( \&HA_Server::restore_entity_states, 1 );
+    &::MainLoop_pre_add_hook( \&HA_Server::check_for_data, 1, $self );
+    &::Reload_post_add_hook( \&HA_Server::restore_entity_states, 1, $self );
     &::Reload_post_add_hook( \&HA_Server::generate_voice_commands, 1, $self );
 
     $self->connect();
@@ -384,35 +393,34 @@ sub connect {
 }
 
 sub check_for_data {
+    my ($self) = @_;
     my $ha_data;
 
-    foreach my $ha_server ( values %HA_Server_List ) {
-	if( $ha_server->{socket_item} ) {
-	    if( $ha_server->{socket_item}->active_now() ) {
-		$ha_server->debug( 1, "Homeassistant server started" );
-	    }
-	    if( $ha_server->{socket_item}->inactive_now() ) {
-		$ha_server->debug( 1, "Homeassistant server close" );
-		$ha_server->disconnect();
-		$ha_server->connect();
-		next;
-	    }
+    if( $self->{socket_item} ) {
+	if( $self->{socket_item}->active_now() ) {
+	    $self->debug( 1, "Homeassistant server started" );
 	}
-	
-	# Parses incoming data and on every frame calls on_read
-	if( $ha_server->{socket_item}  and  $ha_data = $ha_server->{socket_item}->said() ) {
-	    # print "Received data from home assistant:\n     $ha_data\n";
-	    eval { $ha_server->{ws_client}->read( $ha_data ); };
+	if( $self->{socket_item}->inactive_now() ) {
+	    $self->debug( 1, "Homeassistant server close" );
+	    $self->disconnect();
+	    $self->connect();
+	    next;
+	}
+    }
+    
+    # Parses incoming data and on every frame calls on_read
+    if( $self->{socket_item}  and  $ha_data = $self->{socket_item}->said() ) {
+	# print "Received data from home assistant:\n     $ha_data\n";
+	eval { $self->{ws_client}->read( $ha_data ); };
 
-            if ($@) {
-                print "[HA_Item] ERROR when reading WebSocket $@\n";
-                return ('0');
-            }
+	if ($@) {
+	    print "[HA_Item] ERROR when reading WebSocket $@\n";
+	    return ('0');
 	}
-	 
-	if( &::new_second($ha_server->{keep_alive_time}) and  $ha_server->{ws_client} ) {
-	    $ha_server->{ws_client}->write( '{"id":' . ++$ha_server->{next_id} . ', "type":"ping"}' );
-	}
+    }
+     
+    if( &::new_second($self->{keep_alive_time}) and  $self->{ws_client} ) {
+	$self->{ws_client}->write( '{"id":' . ++$self->{next_id} . ', "type":"ping"}' );
     }
 }
 
@@ -454,7 +462,7 @@ sub ha_process_read {
 	return;
     }
     if( $data_obj->{type} eq 'event'  &&  $data_obj->{id} == $self->{subscribe_id} ) {
-	$self->parse_data_to_obj( $data_obj->{event}->{data}->{new_state}, "hasvr" );
+	$self->parse_data_to_obj( $data_obj->{event}->{data}->{new_state}, "ha_server" );
         return;
     } elsif( $data_obj->{type} eq 'auth_required' ) {
 	my $auth_message = "{ \"type\": \"auth\", \"access_token\": \"$$self{api_key}\" }";
@@ -504,7 +512,7 @@ sub parse_data_to_obj {
 		    $obj->{attr}->{$attr_name} = $cmd->{state};
 		    $self->debug( 1, "handled event for $obj->{object_name} -- attr $attr_name set to $cmd->{state}" );
 		    # $obj->set( 'toggle', undef );
-		    if( $p_setby eq "hasvr_init" ) {
+		    if( $p_setby eq "ha_server_init" ) {
 			$obj->{ha_init} = 1;
 		    }
 		    $handled = 1;
@@ -512,7 +520,7 @@ sub parse_data_to_obj {
 	    }
 	} elsif( $cmd->{entity_id} eq $obj->{entity_id} ) {
 	    $obj->set( $cmd, $p_setby );
-	    if( $p_setby eq "hasvr_init" ) {
+	    if( $p_setby eq "ha_server_init" ) {
 		$obj->{ha_init} = 1;
 	    }
 	    $handled = 1;
@@ -529,7 +537,7 @@ sub process_entity_states {
 
     # print "Entity states response: \n" . $self->dump( $cmd );
     foreach my $state_obj (@{$cmd->{result}}) {
-	if( !$self->parse_data_to_obj( $state_obj, "hasvr_init" ) ) {
+	if( !$self->parse_data_to_obj( $state_obj, "ha_server_init" ) ) {
 	    push @{ $$self{unhandled_entities} }, $state_obj->{entity_id};
 	}
     }
@@ -542,12 +550,12 @@ sub process_entity_states {
 }
 
 sub restore_entity_states {
-    foreach my $ha_server ( values %HA_Server_List ) {
-	for my $obj ( @{ $ha_server->{objects} } ) {
-	    if( $obj->{ha_states}  &&  substr($obj->{ha_states},0,1) eq "'" ) {
-		$obj->debug( 1, "Restoring states on $obj->{object_name} to $obj->{ha_states}" );
-		eval '$obj->set_states( ' . $obj->{ha_states} . ');';
-	    }
+    my ($self) = @_;
+
+    for my $obj ( @{ $self->{objects} } ) {
+	if( $obj->{ha_states}  &&  substr($obj->{ha_states},0,1) eq "'" ) {
+	    $obj->debug( 1, "Restoring states on $obj->{object_name} to $obj->{ha_states}" );
+	    eval '$obj->set_states( ' . $obj->{ha_states} . ');';
 	}
     }
 }
@@ -663,21 +671,6 @@ sub print_object_attrs {
     print Dumper $object->{ha_state}->{attributes};
 }  
 
-
-=item C<list_unhandled_entities ()>
-
-    Lists entities from the HA server that have not been handled with local items.
-    This is an easy way to determine what HA entities you may want to create local items form
-
-=cut
-
-sub list_unhandled_entities {
-    foreach my $ha_server ( values %HA_Server_List ) {
-	for my $entity_id ( @{ $ha_server->{unhandled_entities} } ) {
-	    $ha_server->log( "unhandled HomeAssistant entity: $ha_server->{name}:${entity_id}" );
-	}
-    }
-}
 
 =item C<disconnect()>
 
@@ -846,7 +839,7 @@ sub new {
 
 sub log {
     my( $self, $str ) = @_;
-    $self->{ha_server}->log( $str );
+    $self->{ha_server}->log( $str, "[HA_Item]:" );
 }
 
 sub error {
@@ -856,8 +849,8 @@ sub error {
 
 sub debug {
     my( $self, $level, $str ) = @_;
-    if( $self->debuglevel( $level, 'hasvr' ) ) {
-	$self->{ha_server}->log( $str, "HASVR D$level: " );
+    if( $self->debuglevel( $level, 'ha_server' ) ) {
+	$self->{ha_server}->log( $str, "[HA_Item D$level]: " );
     }
 }
 
@@ -894,7 +887,7 @@ sub set_object_debug {
 sub set {
     my ( $self, $setval, $p_setby, $p_response ) = @_;
 
-    if( $p_setby =~ /hasvr*/ ) {
+    if( $p_setby =~ /ha_server*/ ) {
 	# This is home assistant sending a state change via websocket
 	# This state change may or may not have been initiated by us
 	# This is sent as an object representing the json new_state
@@ -913,7 +906,7 @@ sub set {
 	} elsif( $self->{domain} eq 'select' ) {
 	    $self->debug( 1, "$self->{domain} event for $self->{object_name} set to $new_state->{state}" );
 	    $self->SUPER::set( $new_state->{state}, $p_setby, $p_response );
-	    if( $p_setby eq 'hasvr_init' ) {
+	    if( $p_setby eq 'ha_server_init' ) {
 		$self->{ha_states} = $self->restore_states_string( $new_state->{attributes}->{options} );
 	    }
 	} elsif( $self->{domain} eq 'light' ) {
@@ -957,7 +950,7 @@ sub set {
 	    } else {
 		$self->debug( 1, "climate $self->{object_name} default object set: $state" );
 	    }
-	    if( $p_setby eq 'hasvr_init' ) {
+	    if( $p_setby eq 'ha_server_init' ) {
 		if( $self->{subtype} eq 'hvac_mode' ) {
 		    $self->{ha_states} = $self->restore_states_string( $new_state->{attributes}->{hvac_modes} );
 		} elsif( $self->{subtype} eq 'fan_mode' ) {
