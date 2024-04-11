@@ -13,8 +13,19 @@ Configure the required pushsafer settings in your mh.private.ini file:
   Pushsafer_t		= "MisterHouse" Default title for messages if none provided 
   Pushsafer_d		= <Default device or device group id to send notifications to>
   Pushsafer_i		= <Default icon>
+  Pushsafer_c		= <Default iconcolor>
   Pushsafer_s		= <Default sound>
   Pushsafer_v		= <Default vibration>
+  Pushsafer_l		= <Default time2live>
+  Pushsafer_u		= <Default url>
+  Pushsafer_ut		= <Default urltitle>
+  Pushsafer_pr		= <Default priority>
+  Pushsafer_re		= <Default retry>
+  Pushsafer_ex		= <Default expire>
+  Pushsafer_cr		= <Default confirm>
+  Pushsafer_a		= <Default answer>
+  Pushsafer_ao		= <Default answeroptions>
+  Pushsafer_af		= <Default answerforce>
   Pushsafer_disable = 1  Disable notifications.  Messages will still be logged
 
 Create a pushsafer instance in the .mht file, or in user code:
@@ -32,8 +43,19 @@ A user code file overriding parameters normally specified in mh.private.ini.   A
 					t => 'Home Notification',
 					d => '111',
 					i => '11',
+					c => '#FF0000',
 					s => '5',
 					v => '1',
+					l => '',
+					u => 'https://www.pushsafer.com',
+					ut => 'Open Pushsafer',
+					pr => '0',
+					re => '',
+					ex => '',
+					cr => '',
+					a => '1',
+					ao => 'yes|no|maybe',
+					af => '1',
 		      });
 
 
@@ -94,13 +116,24 @@ Creates a new Pushsafer object. The parameter hash is optional.  Defaults will b
 B<This must be excluded from the primary misterhouse loop, or the acknowledgment checking and duplicate message rate limiting will be lost>
 
   my $push = Pushsafer->new( {
-			k    	=> "xxxx...",    	# Set the Private or Alias Key
-			t    	=> "Some title",	# Set default title for messages
-			d    	=> "111",		   	# Set the target device or device group (leaving this unset goes to all devices)
-			i    	=> "5",			   	# Set the icon to be displayed
-			s    	=> "3",   			# Set the sound to be played
-			v    	=> "1",   			# Set the vibration to be played
-			speak	=> 1,		   	  	# Enable or disable speak of notifications and acknowledgment
+		k    	=> "xxxx...",    			# Set the Private or Alias Key
+		t    	=> "Some title",			# Set default title for messages
+		d    	=> "111",				# Set the target device or device group (leaving this unset goes to all devices)
+		i    	=> "5",			 		# Set the icon to be displayed
+		c   	=> "#FF0000",				# Set the color of icon to be displayed
+		s    	=> "3",   				# Set the sound to be played
+		v    	=> "1",   				# Set the vibration to be played
+		l    	=> "",   				# Set the Time in minutes, after a message automatically gets purged.
+		u    	=> 'https://www.pushsafer.com',		# Set the URL.
+		ut    	=> 'Open Pushsafer',			# Set the Title of URL.
+		pr    	=> '0',					# Set the Priority.
+		re    	=> '',					# Set the Retry.
+		ex    	=> '',					# Set the Expire.
+		cr    	=> '',					# Set the Confirm.
+		a    	=> '1',					# Set the Answer.
+		ao    	=> 'yes|no|maybe',			# Set the Answer Options.
+		af    	=> '1',					# Set the Force Answer.
+		speak	=> 1,		   	  		# Enable or disable speak of notifications and acknowledgment
 	});
 
 Any of these parameters may be specified in mh.private.ini by prefixing them with "Pushsafer_"
@@ -122,7 +155,7 @@ sub new {
     $self->{speak} = 1;    # Speak notifications and acknowledgements
 
     # Merge the mh.private.ini defaults into the object
-    foreach (qw( k t d i s v speak disable)) {
+    foreach (qw( k t d i c s v l u ut pr re ex cr a ao af speak disable)) {
         $self->{$_} = $params->{$_};
         $self->{$_} = $::config_parms{"Pushsafer_$_"} unless defined $self->{$_};
     }
@@ -153,12 +186,12 @@ This is the primary method of the Pushsafer object.  The message text is the onl
 
 The optional parameter hash can be used to override defaults, or specify additional
 information for the notification.  The list is not exclusive.  Additional parameters will be passed
-in the POST to Pushsafer.com.  This allows support of any API parameter as defined at https://pushsafer.net/api
+in the POST to Pushsafer.com.  This allows support of any API parameter as defined at https://www.pushsafer.com/api
 
 	$push->notify("Some urgent message", {
-			k   => "xxxx...",      # Override the Private or Alias Key
-            t   => "Some title",   # Override title of message
-            d   => "1111"			# Device or device-group id 
+		k   => "xxxx...",      # Override the Private or Alias Key
+ 		t   => "Some title",   # Override title of message
+		d   => "1111"	       # Device or device-group id 
 	});
 
 Notify will record the last message sent along with a timestamp.   If the duplicate message is sent within
@@ -197,7 +230,7 @@ sub notify {
     }
 
     # Merge in the message defaults, They can be overridden
-    foreach (qw( k t d i s v )) {
+    foreach (qw( k t d i c s v l u ut pr re ex cr a ao af )) {
         next unless ( defined $self->{$_} );
         $callparms->{$_} = $self->{$_} unless defined $callparms->{$_};
     }

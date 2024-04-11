@@ -137,6 +137,7 @@ sub new {
       if ( defined $main::config_parms{object_logger_enable} );
     $self->{logger_mintime}    = 1;
     $self->{logger_updatetime} = 0;
+    $self->{rrdfile} = undef;   #if an rrdfile is attached to the object, then it can be displayed in the ia7 interface
     $self->restore_data( 'active_state', 'schedule_count' );
 
     for my $index ( 1 .. 20 ) {
@@ -254,6 +255,7 @@ sub _set_process {
 
     # Override any set_by_timer requests
     if ( $$self{timer} ) {
+	print "deleting timer due to set call\n" if $::Debug{set};
         &Timer::unset( $$self{timer} );
         delete $$self{timer};
     }
@@ -280,7 +282,7 @@ sub _set_process {
         else {
             $state = ( $state_current eq 'on' ) ? 'off' : 'on';
         }
-        &main::print_log( "Toggling $self->{object_name} from $state_current " . "to $state" );
+        # &main::print_log( "Toggling $self->{object_name} from $state_current " . "to $state" );
     }
 
     # Respond_Target is write-only from here (and its use for speech chimes
@@ -1166,6 +1168,49 @@ sub logger {
         "$main::Time_Date,$tickcount,$object_name,$state,$set_by_name," . ( ($target) ? "$target" : '' ) . "\n", 0 );
     $self->{logger_updatetime} = $tickcount;
 }
+
+=item C<set_rrd()>
+
+Attach a rrd filename, and data source (ds) names to the object. Used to display a graph in the IA7 interface
+
+=cut
+
+sub set_rrd {
+    my ( $self, $rrdfile, $ds) = @_;
+    
+    $self->{rrdfile} = $rrdfile;
+    $self->{rrdds} = $ds;
+    
+}
+
+=item C<get_rrd()>
+
+Get the rrd filename attached to the object. 
+
+
+=cut
+
+sub get_rrd {
+    my ( $self) = @_;
+    
+    return $self->{rrdfile};
+    
+}
+
+=item C<get_rrd()>
+
+Get the rrd datasources attached to the object. 
+
+
+=cut
+
+sub get_rrd_ds {
+    my ( $self) = @_;
+    
+    return $self->{rrdds};
+    
+}
+
 
 =item C<reset_states2()>
 

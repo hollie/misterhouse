@@ -10,8 +10,7 @@ use Text::ParseWords;
 use AlexaBridge;
 require 'http_utils.pl';
 
-
-#use Data::Dumper;
+use Data::Dumper;
 #$main::Debug{http} = 4;
 #no warnings 'uninitialized';   # These seem to always show up.  Dang, will not work with 5.0
 
@@ -334,7 +333,7 @@ sub http_process_request {
         $Authorized = &password_check( $Cookies{password}, 'http', 'crypted' );
     }
 
-    my ( $req_typ, $get_req, $get_arg ) = $header =~ m|^(GET\|POST\|PUT) (\/[^ \?]*)\??(\S+)? HTTP|;
+    my ( $req_typ, $get_req, $get_arg ) = $header =~ m%^(GET|POST|PUT) (/[^ \?]*)\??(\S+)? HTTP%;
     $get_arg = '' unless defined $get_arg;
     $HTTP_REQ_TYPE = $req_typ;
 
@@ -346,14 +345,33 @@ sub http_process_request {
       if $main::Debug{http};
     if ( $req_typ eq "POST" || $req_typ eq "PUT" ) {
 	      $http_data =~ s/^(POST|PUT).+?^\R//smi;
-        my $cl = $Http{'Content-Length'};
-        print "http POST query has $cl bytes of args\n"  if $main::Debug{http};
+        my $cl;
         my $buf;
-	      $cl = $cl - length($http_data);
-        read $socket, $buf, $cl;
-	      $buf = $http_data.$buf if $http_data;
-	      $http_data = '';
-
+        if ($Http{'Content-Length'}) {
+            $cl = $Http{'Content-Length'};
+            print "http POST query has $cl bytes of args\n"  if $main::Debug{http};
+	    $cl = $cl - length($http_data);
+            read $socket, $buf, $cl;
+	    $buf = $http_data.$buf if $http_data;
+	    $http_data = '';
+        } elsif (($Http{'Transfer-Encoding'} && ($Http{'Transfer-Encoding'} eq 'chunked')) || (($Http{'transfer-encoding'} && ($Http{'transfer-encoding'} eq 'chunked')))) {
+            print "http POST query has chunked Transfer-Encoding\n"  if $main::Debug{http};
+            # We can't read the post body from the socket, so need to get this from $http_data instead
+            # Note that this only works with one chunk right now.
+            print "http_data ->$http_data<-\n" if $main::Debug{http};
+            if ($http_data =~ s/^([^\015\012]*)\015\012//) {
+                my $chunk_head = $1;
+                print "Chunk header = $chunk_head\n"  if $main::Debug{http};
+                unless ($chunk_head =~ /^([0-9A-Fa-f]+)/) {
+                    print "Bad chunk header\n"  if $main::Debug{http};
+                } else {
+                    $cl = hex($chunk_head);
+                    print "Reading chunk size = $cl bytes\n"  if $main::Debug{http};
+                    $buf = substr $http_data, 0, $cl;
+                    $http_data = '';
+                }
+            }
+        }
         # Save the body into the global var
         $HTTP_BODY = $buf;
         print "http POST buf=$buf get_arg=$get_arg\n" if $main::Debug{http};
@@ -368,13 +386,26 @@ sub http_process_request {
             print "http POST in loop\n" if $main::Debug{http};
             $get_arg .= "&" if ( $get_arg ne '' );
             $get_arg .= $buf;
-            
-        } elsif ( ( lc($Http{'Content-Type'}) eq lc('application/json') ) && ( $HTTP_BODY =~ /^\{/ ) ) {
-             print "[http_server.pl]: posting json data\n" if $main::Debug{http};        
-             
+
+	# Sample "Content-Type" header that has been seen:
+	#
+	# Content-Type: application/json;charset=UTF-8
+	#
+	# For this reason we use a regular expresion here instead of
+	# checking for "application/json" using the "eq" operator.
+	#
+    # alex/echo sends
+    # Content-type: application/x-www-form-urlencoded
+    # with a json body
+    #
+        } elsif ($Http{'Content-Type'} =~ m%^application/(json|x-www-form-urlencoded)%i && $HTTP_BODY =~ /^\{/) {
+             print "[http_server.pl]: posting json data\n" if $main::Debug{http};
+        } elsif (($Http{'Transfer-Encoding'} && $HTTP_BODY =~ /^\{/) || ($Http{'transfer-encoding'} && $HTTP_BODY =~ /^\{/)) {
+             print "[http_server.pl]: posting chunked json data\n" if $main::Debug{http};
         } else {
             &main::print_log("[http_server.pl]: Warning, invalid argument string detected ($buf) ($Http{'Content-Type'}) ($HTTP_BODY)\n");
         }
+
         print "http POST get_arg=$get_arg\n" if $main::Debug{http};
 
         #       shutdown($socket->fileno(), 0);   # "how":  0=no more receives, 1=sends, 2=both
@@ -456,12 +487,11 @@ sub http_process_request {
     $ENV{HTTP_QUERY_STRING} = $get_arg;
 
     # Prompt for password (SET_PASSWORD) and allow for UNSET_PASSWORD
-    if ( $get_req =~ /SET_PASSWORD$/ ) {
-        my ($mode) = ( $Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\// );
-
+    if ( $get_req =~ m%^/(UN)?SET_PASSWORD$% ) {
         if ( $config_parms{password_menu} eq 'html' ) {
+	    my ($mode) = $Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\//;
             my $html = &html_authorized;
-            if ( $get_req =~ /^\/UNSET_PASSWORD$/ ) {
+            if ( $get_req =~ m%^/UNSET_PASSWORD$% ) {
                 $Authorized = 0;
                 $Cookie .= "Set-Cookie: password=xyz ; ; path=/;\n";
                 $html   .= "<meta name='unset' content='true'>";
@@ -479,7 +509,7 @@ sub http_process_request {
 
             #           $html .= &html_reload_link('/', 'Refresh Main Page');   # Does not force reload?
             my ( $name, $name_short ) = &net_domain_name('http');
-            if ( $Authorized and $get_req =~ /\/SET_PASSWORD$/ ) {
+            if ( $Authorized and $get_req =~ m%^/SET_PASSWORD$% ) {
                 &print_log("Password was just accepted for User [$Authorized] browser $name");
 
                 # Speak calls cause problems with speak hooks, like in the audrey code
@@ -500,31 +530,22 @@ sub http_process_request {
     }
 
     # Process the html password form
-    elsif ( $get_req =~ /\/SET_PASSWORD_FORM$/ ) {
-        my ($mode)     = ( $Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\// );
+    elsif ( $get_req =~ m%^/SET_PASSWORD_FORM$% ) {
         my ($password) = $get_arg =~ /password=(\S+)/;
-        my ($html);
         my ( $name, $name_short )       = &net_domain_name('http');
         my ( $user, $password_crypted ) = &password_check2($password);
         $Authorized = $user if $password_crypted;
-        $html .= &html_authorized;
-        #$html .= "REMOVEME = get_arg = " . $get_arg . "<br>\n";
-        $html .= "<br>Refresh: <a target='_top' href='/'> Main Page</a>\n";
 
-        #       $html .= &html_reload_link('/', 'Refresh Main Page');
+        my $html = &html_authorized;
+        $html .= "<br>\n";
+	$html .= "Refresh: <a target='_top' href='/'> Main Page</a>\n";
         $html .= &html_password('');
+
         if ($password_crypted) {
-            $Cookie .= "Set-Cookie: password=$password_crypted; ; path=/\n"
-              if $password_crypted;
+            $Cookie .= "Set-Cookie: password=$password_crypted; ; path=/\n";
 
-            # Refresh the main page
             $html .= "<b>$user password accepted</b>";
-
-            #           $html = $Http{Referer}; # &html_page will use referer if only a url is given
-            $html =~ s/\/SET_PASSWORD.*//;
             &print_log("Password was just accepted for User [$user] browser $name");
-
-            #           &speak("app=admin $user password accepted for $name_short");
         }
         else {
             $Authorized = 0;
@@ -533,8 +554,6 @@ sub http_process_request {
             $Cookies{password_was_not_valid}++;    # So we can monitor from user code
             &print_log("Password was just NOT set; $name");
             &play( file => 'unauthorized' );       # Defined in event_sounds.pl
-
-            #           &speak("app=admin Password NOT set by $name_short");
         }
 
         print $socket &html_page( undef, $html );
@@ -561,6 +580,19 @@ sub http_process_request {
 	&http_delete_headers($client_number,$requestnum);
         return;
     }
+
+    # Handle Actions on Google Smart Home Provider fulfillment requests
+    if ($::config_parms{'aog_enable'} ) {
+	my $aog_response = process_http_aog($get_req, $req_typ, $HTTP_BODY, $socket, %Http);
+	if ($aog_response) {
+	    # Request was handled by the AoG HTTP helper; send response back
+	    # to the client and return.
+	    print $socket $aog_response if $aog_response;
+	    &http_delete_headers($client_number,$requestnum);
+
+	    return;
+	}
+    };
 
     # See if the request was for a file
     if ( &test_for_file( $socket, $get_req, $get_arg, undef, undef, $client_number, $requestnum ) ) { 
@@ -835,35 +867,31 @@ sub http_process_request {
     return ( $leave_socket_open_passes, &http_close_socket );
 }
 
+#
+# Generate the HTML markup for the login form.
+#
 sub html_password {
     my ($menu) = @_;
     $menu = $config_parms{password_menu} unless $menu;
-    my ($mode) = ( $Http{Referer} =~ /https?:\/\/\S+:?\D*\/(\S+)\// );
-
-    #   return $html_unauthorized unless $Authorized;
 
     my $html;
     if ( $menu eq 'html' ) {
-        $html = qq[<BODY onLoad="self.focus();document.pw.password.focus(); top.frames[0].location.reload()">\n]
-          unless ( lc $mode eq "ia7" );
+        $html = <<EOF;
+<FORM name=pw action="/SET_PASSWORD_FORM" method="post">
+    <b>Password:</b><INPUT size=10 name='password' type='password'>
+    <INPUT type=submit value='Submit Password'>
+</FORM>
 
-        #       $html .= qq[<BASE TARGET='_top'>\n];
-        $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="post">\n];
-
-        #       $html .= qq[<FORM name=pw action="SET_PASSWORD_FORM" method="get">\n]; ... get not secure from browser history list!!
-        #       $html .= qq[<h3>Password:<INPUT size=10 name='password' type='password'></h3>\n</FORM>\n];
-        $html .= qq[<b>Password:</b><INPUT size=10 name='password' type='password'>\n];
-        $html .= qq[<INPUT type=submit value='Submit Password'>\n</FORM>\n];
-        $html .=
-          qq[<P> This form is used for logging into MisterHouse.<br> For administration please see the documentation of <a href="http://misterhouse.net/mh.html"> set_password </a></P>\n];
-
-        #		}
+<P>This form is used for logging into MisterHouse.<br>
+For administration please see the documentation of
+<a href="http://misterhouse.net/mh.html">set_password</a></P>
+EOF
     }
     else {
-        $html = qq[HTTP/1.0 401 Unauthorized\n];
-        $html .= qq[Server: MisterHouse\n];
-        $html .= qq[Content-type: text/html\n];
-        $html .= qq[WWW-Authenticate: Basic realm="mh_control"\n];
+	$html = qq[HTTP/1.0 401 Unauthorized\n];
+	$html .= qq[Server: MisterHouse\n];
+	$html .= qq[Content-type: text/html\n];
+	$html .= qq[WWW-Authenticate: Basic realm="mh_control"\n];
     }
     return $html;
 }
@@ -871,16 +899,16 @@ sub html_password {
 sub html_authorized {
     my $html = "Status: <b>";
     if ($Authorized) {
-        $html .= "<a href=UNSET_PASSWORD>";
+        $html .= "<a href=\"/UNSET_PASSWORD\">";
         $html .= "Logged In as $Authorized";
         $html .= "</a>";
-        $html .= "</b><br>";
+        $html .= "</b><br>\n";
     }
     else {
-        $html .= "<a href=SET_PASSWORD>";
+        $html .= "<a href=\"/SET_PASSWORD\">";
         $html .= "Not Logged In";
         $html .= "</a>";
-        $html .= "</b><br>";
+        $html .= "</b><br>\n";
     }
     return $html;
 }
@@ -1961,8 +1989,8 @@ sub html_file {
             my $whoisit = &net_domain_name('http');
             &print_log("$whoisit made an unauthorized request for $file");
 
-            #           return &html_page("", &html_unauthorized("Not authorized to run perl .pl file: $file"));
-            return &html_unauthorized("Not authorized to run perl .pl file: $file");
+            return &html_page("", &html_unauthorized("Not authorized to run perl .pl file: $file"));
+            #return &html_unauthorized("Not authorized to run perl .pl file: $file");
         }
 
         @ARGV = '';                                    # Have to clear previous args
@@ -2279,34 +2307,32 @@ sub html_page {
           unless $script =~ / script /i;
         $html = $script . "\n";
     }
-$html .= "<HTML>
+    $html .= <<EOF;
+<HTML>
 <HEAD>
 $style
 <TITLE>$title</TITLE>
 </HEAD>
 <BODY>
-
 $body
 </BODY>
 </HTML>
-";
+EOF
 
+    $html =~ s/\n/\n\r/g;    # Bill S. says this is required to be standards compiliant
 
- $html =~ s/\n/\n\r/g;    # Bill S. says this is required to be standards compiliant
+    $html_head = "HTTP/1.1 200 OK\r\n";
+    $html_head .= "Server: MisterHouse\r\n";
+    $html_head .= "Connection: close\r\n" if &http_close_socket(%HttpHeader);
+    $html_head .= "Content-type: text/html\r\n";
+    $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
+    $html_head .= "Date: " . time2str(time) . "\r\n";
+    $html_head .= "Cache-Control: no-cache\r\n";
+    $html_head .= $Cookie . "\r\n" if $Cookie;
+    $html_head .= $frame . "\r\n"  if $frame;
+    $html_head .= "\r\n";
 
- $html_head = "HTTP/1.1 200 OK\r\n";
- $html_head .= "Server: MisterHouse\r\n";
- $html_head .= "Connection: close\r\n" if &http_close_socket(%HttpHeader);
- $html_head .= "Content-type: text/html\r\n";
- $html_head .= "Content-Length: " . ( length $html ) . "\r\n";
- $html_head .= "Date: " . time2str(time) . "\r\n";
- $html_head .= "Cache-Control: no-cache\r\n";
- $html_head .= $Cookie . "\r\n" if $Cookie;
- $html_head .= $frame . "\r\n"  if $frame;
- $html_head .= "\r\n";
-
- return $html_head.$html;
-
+    return $html_head . $html;
 }
 
 sub http_redirect {
@@ -2317,7 +2343,7 @@ sub http_redirect {
  $html_head .= "Server: MisterHouse\r\n";
  $html_head .= "Location: $url\r\n";
  $html_head .= "Content-Length: 0\r\n";
- $html_head .= "Connection: close\r\n " if &http_close_socket;
+ $html_head .= "Connection: close\r\n" if &http_close_socket;
  $html_head .= "Cache-Control: no-cache\r\n";
  $html_head .= "\r\n";
 
@@ -3553,7 +3579,7 @@ sub vars_global {
 sub vxml_page {
     my ($vxml) = @_;
 
-my $html = <<eof;
+    my $html = <<eof;
 <?xml version="1.0" encoding="UTF-8"?>
 
 <vxml version="2.0"

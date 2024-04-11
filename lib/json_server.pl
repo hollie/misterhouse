@@ -549,6 +549,7 @@ sub json_get {
         $rrd_file = $config_parms{weather_data_rrd}
           if ( ( defined $config_parms{weather_data_rrd} ) and ($config_parms{weather_data_rrd}));
         my $rrd_source = "";
+        $rrd_file = $args{file}[0] if (defined $args{file}[0]);
         $rrd_source = $args{source}[0] if (defined $args{source}[0]);
         $rrd_file = $config_parms{"rrd_source_" . $rrd_source} if (defined $config_parms{"rrd_source_" . $rrd_source} and $config_parms{"rrd_source_" . $rrd_source});
         $path = $config_parms{"rrd_source_" .$rrd_source . "_path"} if (defined $config_parms{"rrd_source_" . $rrd_source . "_path"} and $config_parms{"rrd_source_" . $rrd_source . "_path"});
@@ -574,6 +575,7 @@ sub json_get {
         my $index    = 0;
         my @round    = ();
         my @type     = ();
+        my @colors   = ('#330099','#00ff00','#3300FF','#330099','#2B65EC','#FF0000','#009933','#FBB117','#CC33CC','#00FF00','#FF99CC','#990000');
         my $celsius  = 0;
         my $kph      = 0;
         my $arg_time = 0;
@@ -607,7 +609,7 @@ sub json_get {
                     }
                 }
             }
-
+            my $color_index = 0;
             foreach my $ds ( @{ $args{ds} } ) {
                 push @dss, $ds;
 
@@ -619,7 +621,10 @@ sub json_get {
                 $cf = $ds_config->{$ds}->{'cf'} if ( defined $ds_config->{$ds}->{'cf'} );
                 push @defs,   "DEF:$ds=$path/$rrd_file:$ds:$cf";
                 push @xports, "XPORT:$ds";
+                $dataset[$index]->{'label'} = $ds;
                 $dataset[$index]->{'label'} = $ds_config->{$ds}->{'label'} if ( defined $ds_config->{$ds}->{'label'} );
+                $color_index = 0 if ($color_index > scalar(@colors));
+                $dataset[$index]->{'color'} = $colors[$color_index++];
                 $dataset[$index]->{'color'} = $ds_config->{$ds}->{'color'} if ( defined $ds_config->{$ds}->{'color'} );
                 if ( lc $ds_config->{$ds}->{'type'} eq "bar" ) {
                     $dataset[$index]->{'bars'}->{'show'}      = "true";
@@ -1529,7 +1534,7 @@ sub json_object_detail {
     my %json_complete_object;
     my @f = qw( category filename measurement rf_id set_by members
       state states state_log type label sort_order groups hidden parents schedule logger_status
-      idle_time text html seconds_remaining fp_location fp_icons fp_icon_set img link level rgb);
+      idle_time text html seconds_remaining fp_location fp_icons fp_icon_set img link level rgb rrd);
 
     # Build list of fields based on those requested.
     foreach my $f ( sort @f ) {
@@ -1539,6 +1544,7 @@ sub json_object_detail {
 
         my $value;
         my $method = $f;
+
         if (
             $object->can($method)
             or ( ( $method = 'get_' . $method )
@@ -1571,6 +1577,13 @@ sub json_object_detail {
 
                 $value = $a if ( defined $a and $a ne "" );    #don't return a null value
             }
+            
+            elsif ( $f eq 'rrd' ) {
+                my $a = $object->$method;
+                $a =  (split( /\/|\\/, $a))[-1];    #just take the filename
+                my $b = $object->get_rrd_ds();
+                $value = $a . ":" . $b if ( defined $a and $a ne "" );    #don't return a null value
+            }
 
             elsif ( $f eq 'rgb' ) {
                 my ($a,$b,$c) = $object->$method;
@@ -1595,8 +1608,7 @@ sub json_object_detail {
                 $value = encode_entities( $value, '<>&"');
 
             }
-            print_log "json: object_dets f $f m $method v $value"
-              if $Debug{json};
+            print_log "json: object_dets f $f m $method v $value" if $Debug{json};
         }
         elsif ( $f eq 'members' ) {
             ## Currently only list members for group items, but at some point we
@@ -1724,7 +1736,7 @@ sub json_entities_encode {
 }
 
 sub json_usage {
-my $html = <<eof;
+    my $html = <<eof;
 <html>
 <head>
 </head>
