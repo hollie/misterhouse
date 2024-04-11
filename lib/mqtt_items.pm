@@ -350,6 +350,16 @@ sub debug {
     }
 }
 
+sub dump {
+    my( $self, $obj, $maxdepth ) = @_;
+    $obj = $obj || $self;
+    $maxdepth = $maxdepth || 2;
+    my $dumper = Data::Dumper->new( [$obj] );
+    $dumper->Maxdepth( $maxdepth );
+    return $dumper->Dump();
+}
+
+
 =item C<set_object_debug( level )>
 
 Turns on debugging for the object, sets debug level.
@@ -864,7 +874,8 @@ sub create_discovery_message {
     } else {
          $disc_topic = "$self->{disc_type}/$self->{disc_info}->{unique_id}/config";
     }
-    $disc_msg = encode_json( $self->{disc_info} );
+    my $json_obj = JSON::XS->new->allow_nonref(1);
+    $disc_msg = $json_obj->encode( $self->{disc_info} );
 
     $self->{disc_topic} = $disc_topic;
     $self->{disc_msg} = $disc_msg;
