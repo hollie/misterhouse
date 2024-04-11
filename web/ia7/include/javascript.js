@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.1.300";
+var ia7_ver = "v2.2.100";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -2452,7 +2452,7 @@ var graph_rrd = function(start,group,time) {
 		updateSocket.abort();
 	}	
 	var path_str = "/rrd"  
-	console.log("db start="+start+" group="+group+" time="+time);
+	//console.log("db start="+start+" group="+group+" time="+time);
 	var source = "&group="+group;
 	//if the group starts with file= then it is an object/file
 	if (group.toLowerCase().startsWith("file:")) {
@@ -3634,9 +3634,13 @@ var create_state_modal = function(entity) {
 		$('#control').find('.object-title').html(title);
 		$('#control').find('.control-dialog').attr("entity", entity);
 		var modal_states = json_store.objects[entity].states;
+		var rgb_only = 0;
+		if (modal_states !== undefined) if (modal_states.length == 1 && modal_states[0] == 'rgb') rgb_only = 1;
+		//console.log("rgb_only ="+rgb_only+" "+modal_states.length+" "+modal_states[0]);
+//HP RGB control updates
 		// HP need to have at least 2 states to be a controllable object...
 		if (modal_states == undefined) modal_states = 1;
-		if (modal_states.length > 1) {
+		if (modal_states.length > 1 || rgb_only) {
 			$('#control').find('.states').html('<div class="btn-group stategrp0 btn-block"></div>');
 			var modal_states = json_store.objects[entity].states;
 			var buttonlength = 0;
@@ -3647,8 +3651,10 @@ var create_state_modal = function(entity) {
 			var group_buttons = 4;
 
 			var slider_active = 1;
-            if (!sliderObject(modal_states) || (json_store.ia7_config.prefs.state_slider !== undefined && json_store.ia7_config.prefs.state_slider == "no")) slider_active = 0;
+		//console.log("slider ="+sliderObject(modal_states)+", "+json_store.ia7_config.prefs.state_slider+", "+json_store.ia7_config.prefs.state_slider);
 
+            if ((!sliderObject(modal_states) && !rgb_only) || (json_store.ia7_config.prefs.state_slider !== undefined && json_store.ia7_config.prefs.state_slider == "no")) slider_active = 0;
+        //console.log("slider_active="+slider_active);
 			// get number of displayed buttons so we can display nicely.
 			for (var i = 0; i < modal_states.length; i++){
 				if (filterSubstate(modal_states[i],slider_active) !== 1) display_buttons++
@@ -3700,7 +3706,7 @@ var create_state_modal = function(entity) {
                         $(".stategrp0").remove();
                     }
                    var slider_data = sliderDetails(modal_states);		                
-                   $('#control').find('.states').append("<div id='slider' class='brightness-slider'></div>");					
+                   $('#control').find('.states').append("<div id='slider' class='brightness-slider lumen-slider'></div>");					
                    var val = $(".modal-object-state").text().replace(/\%/,'');              
                    var position = slider_data.values.indexOf(val);
                    if (val == "on") position = slider_data.max;
@@ -3740,7 +3746,9 @@ var create_state_modal = function(entity) {
                        });
                    });
                 if (json_store.objects[entity].rgb !== undefined) {
-                        $('#control').find('.states').append("<br><div id='sliderR' class='rgb-slider brightness-slider red-handle'></div>");					
+                        var firstbreak = "<br>";
+                        if (rgb_only) firstbreak = "";
+                        $('#control').find('.states').append(firstbreak+"<div id='sliderR' class='rgb-slider brightness-slider red-handle'></div>");					
                         $('#control').find('.states').append("<br><div id='sliderG' class='rgb-slider brightness-slider green-handle'></div>");					
                         $('#control').find('.states').append("<br><div id='sliderB' class='rgb-slider brightness-slider blue-handle'></div>");
                         
@@ -3783,6 +3791,11 @@ var create_state_modal = function(entity) {
                  }
         if (slider_active) {
 		    advanced_html = "<br>"+advanced_html; //this is clunky but showing advanced states is kinda ugly anyways
+        }
+        if (rgb_only) {
+            $(".stategrp0").remove();
+            $(".lumen-slider").remove();
+            
         }
 		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
 
@@ -4183,7 +4196,7 @@ var create_develop_item_modal = function(colid,col_parent) {
                   currentUser: {user: current_user},
                   success: function( data, status, error){
                         var user = this.currentUser.user;
-                        console.log("data="+data+" status="+status+" error="+error+" user="+user);
+                        //console.log("data="+data+" status="+status+" error="+error+" user="+user);
                         //throw up red warning if the response isn't good from MH
                         if (data.status !== undefined || data.status == "error") {
                             var message = "Unknown server error";
