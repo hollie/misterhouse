@@ -1958,10 +1958,10 @@ sub read_table_A {
 	$code .= "\$${object_name} = new mqtt_InstMqttItem( \$${broker}, '$type', '$topicprefix', $discoverable, '$friendly_name' );\n";
     }
     elsif( $type eq "MQTT_DISCOVERY" ) {
-	my ($object_name, $discovery_topic, $broker) = @item_info;
+	my ($object_name, $discovery_topic, $broker, $action) = @item_info;
 	require mqtt_discovery;
 	require mqtt_items;
-	$code .= "\$${object_name} = new mqtt_Discovery( \$${broker}, '$object_name', '$discovery_topic');  #noloop\n";
+	$code .= "\$${object_name} = new mqtt_Discovery( \$${broker}, '$object_name', '$discovery_topic', '$action' );  #noloop\n";
     }
     elsif( $type eq "MQTT_DISCOVEREDITEM" ) {
 	my ($object_name, $disc_name, $disc_topic, $disc_msg ) = $record =~ /MQTT_DISCOVEREDITEM\s*,\s*([^,]+),\s*([^,]+),\s*([^,]+)\,\s*(.*)$/;

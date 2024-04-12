@@ -113,6 +113,11 @@ Description:
     There are voice commands ceated to list HA entites -- handled, unhandled or all
 
 
+    Publishing MH items to HA:
+    --------------------------
+
+    You can achieve the opposite direction, publishing MH items to HA, by using MQTT.
+
 
 License:
     This free software is licensed under the terms of the GNU public license.
@@ -158,6 +163,24 @@ Usage:
             $shed_counter_lights->set( 'toggle' );
         }
 
+    publishing MH items to HA:
+
+	Put these at the top of the items.mht file:
+	
+	MQTT_BROKER,	<mh-mqtt-broker-object>, ,  <broker-ip>
+	MQTT_DISCOVERY,<mh-mqtt-discovery-object>,  <discovery_prefix>, <mh-mqtt-broker-object>, <discovery_action>
+	
+	For each MH object to synchronize, create a MQTT Local Item
+	MQTT_LOCALITEM, <mh-mqtt-object>, <mh-object-to-sync>, <mh-mqtt-broker-object>, <ha object type>,  <node-id>/<mh-object-to-sync>/+, <discoverable>, <Friendly Name>
+	
+	ie
+	MQTT_BROKER,	mqtt1, ,    10.0.0.8
+	MQTT_DISCOVERY, mqtt_disc_mqtt1,    homeassistant, mqtt1, publish
+	
+	INSTEON_SWITCHLINC,     AA.BB.CC,    entry_light,    All_Lights
+	MQTT_LOCALITEM, entry_light_mqtt, entry_light, mqtt1, light,    mh/entry_light/+, 1, Entry Light
+
+	See mqtt_items.pm for more documentation.
 
 Notes:
     @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -604,14 +627,11 @@ sub get_voice_cmds {
     $command =~ s/^\$//;
     $command =~ tr/_/ /; ## underscores in Voice_cmds cause them not to work.
 
-#todo only grab the objects assigned to this server, and all items, these are just active
     my $objects = "[";    
-    foreach my $ha_server ( values %HA_Server_List ) {
     my %seen;
-        for my $obj ( @{ $ha_server->{objects} } ) {
-        next if $seen{$obj->{object_name}}++; #remove duplicate entity names
-        $objects .= $obj->{object_name} . ",";
-        }
+    for my $obj ( @{ $ha_server->{objects} } ) {
+	next if $seen{$obj->{object_name}}++; #remove duplicate entity names
+	$objects .= $obj->{object_name} . ",";
     }
     chop $objects if (length($objects) > 1);
     $objects .= "]";
