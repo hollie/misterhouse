@@ -874,7 +874,7 @@ sub create_discovery_message {
     } else {
          $disc_topic = "$self->{disc_type}/$self->{disc_info}->{unique_id}/config";
     }
-    my $json_obj = JSON::XS->new->allow_nonref(1);
+    my $json_obj = JSON->new->allow_nonref(1);
     $disc_msg = $json_obj->encode( $self->{disc_info} );
 
     $self->{disc_topic} = $disc_topic;
