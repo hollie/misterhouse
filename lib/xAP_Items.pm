@@ -602,7 +602,13 @@ sub _process_incoming_xap_data {
                         }
                         $value = $converted_value if $converted_value;
                     }
-                    $$o{$section}{$key} = $value;
+                    
+                    #sometimes weird formated xap data causes MH to crash, so eval this to be safe             
+                    eval { $$o{$section}{$key} = $value; };
+                    if ($@) {
+                        main::print_log( "[xAP_Item] ERROR! bad xap data, skipping... $@\n" );
+                        return;
+                    }
 
                     # Monitor what changed (real data, not hbeat).
                     $$o{changed} .= "$section : $key = $value | "
@@ -636,9 +642,6 @@ sub _process_incoming_xap_data {
               if $o->allow_empty_state()
               or ( defined $state_value and $state_value ne '' );
         }
-    } else {
-        print "db1 xap discarded, source is mh: s=$source d=$data\n"
-          if $main::Debug{xap} and $main::Debug{xap} == 1;
     }
 }
 
