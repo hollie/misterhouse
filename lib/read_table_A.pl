@@ -12,6 +12,16 @@ use strict;
 #
 # See mh/code/test/test.mht for an example.
 #
+# The more generalized format is "TYPE, PARM1, PARM2, ...". There are lots
+# of types hardcoded below. However, read_table_A is also now extensible, so
+# we don't need to modify it for every new record type. Instead, just create
+# a .pm module in an accessible library that matches the lowercase of the
+# "TYPE" field (e.g. "type.pm") that has a "new" method. read_table_A will 
+# load the module and write the code to invoke the new method with the 
+# provided parameters. If the module also has an "init" method, it will be
+# invoked after the "new" method returns, as some MH operations can't be
+# performed until *after* new returns and instantiation completes. See 
+# "lib/read_table_a_sample.pm" for an example module.
 
 #print_log "Using read_table_A.pl";
 
@@ -328,6 +338,13 @@ sub read_table_A {
         ( $address, $name, $grouplist, @other ) = @item_info;
         $other = join ', ', ( map { "'$_'" } @other );             # Quote data
         $object = "Insteon::FanLinc(\'$address\', $other)";
+    }
+    elsif ( $type eq "INSTEON_OUTLETLINC" ) {
+	#<,INSTEON_OUTLETLINC,Address,Name,Groups>#
+        require Insteon::Lighting;
+        ( $address, $name, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );             # Quote data
+        $object = "Insteon::OutletLinc(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_ICONTROLLER" ) {
 	#<,SCENE_MEMBER,MemberName,LinkName,OnLevel,RampRate>#
@@ -1642,7 +1659,30 @@ sub read_table_A {
             $object = "raZberry_voltage(\$" . $controller . ",'$devid')";
         }
     }
-
+    elsif ( $type eq "RAZBERRY_MOTION" ) {
+	#<Razberry Z-Wave(RAZBERRY_MOTION),RAZBERRY_MOTION,Device_id (Full Device ID),Name,Groups,Controller,Options>#
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+            $object = "raZberry_motion(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+            $object = "raZberry_motion(\$" . $controller . ",'$devid')";
+        }
+    }
+    elsif ( $type eq "RAZBERRY_BRIGHTNESS" ) {
+	#<Razberry Z-Wave(RAZBERRY_GENERIC),RAZBERRY_GENERIC,Device_id (Full Device ID),Name,Groups,Controller,Options>#
+        my ( $devid, $controller );
+        ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if ($other) {
+            $object = "raZberry_brightness(\$" . $controller . ",'$devid','$other')";
+        }
+        else {
+            $object = "raZberry_brightness(\$" . $controller . ",'$devid')";
+        }
+    }    
     #-------------- End of RaZberry Objects -----------------
 
     # -[ MySensors ]------------------------------------------------------
@@ -1817,7 +1857,144 @@ sub read_table_A {
         $object = '';
     }
     #-------------- End Alexa Objects ----------------
-
+    #-------------- BondHome Objects -----------------
+    elsif ( $type eq "BONDHOME" ) {
+        #<Bond Home (BONDHOME),BONDHOME,Name,Instance>#
+        require 'BondHome.pm';
+	$code .= '#noloop=start'."\n";
+        my ($instance);
+        ( $name, $instance, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $object = "BondHome('$instance','$other')".';'."\n".'#noloop=stop'."\n";
+    }
+    elsif ( $type eq "BONDHOME_DEVICE" ) {
+        #<Bond Home (BONDHOME_DEVICE),BONDHOME_DEVICE,Name,Instance,BondDevName>#
+	require 'BondHome.pm';
+	$code .= '#noloop=start'."\n";
+	my ($instance, $bonddevname);
+        ( $name, $instance, $bonddevname, $grouplist, @other ) = @item_info;
+	$other = join ', ', ( map { "'$_'" } @other );
+        $object = "BondHome_Device('$instance','$bonddevname')".';'."\n".'#noloop=stop'."\n";
+	$code .= '#noloop=stop'."\n";
+    }
+    elsif ( $type eq "BONDHOME_MANUAL" ) {
+        #<Bond Home (BONDHOME_MANUAL),BONDHOME_MANUAL,Name,Instance>#
+	require 'BondHome.pm';
+	$code .= '#noloop=start'."\n";
+        my ($instance);
+        ( $name, $instance, $grouplist, @other ) = @item_info;
+        $other = join ', ', ( map { "'$_'" } @other );
+        $object = "BondHome_Manual('$instance')".';'."\n".'#noloop=stop'."\n";
+	$code .= '#noloop=stop'."\n";
+    }
+    elsif ( $type eq "BONDHOME_MANUAL_CMD" ) {
+        #<Bond Home (BONDHOME_MANUAL_CMD),BONDHOME_MANUAL_CMD,BondHomeManualObject,CommandName,Frequency,Modulation,Encoding,Bps,Reps,Data>#
+        $code .= '#noloop=start'."\n";
+	my ($parent, $cmdname, $frequency, $modulation, $encoding, $bps, $reps, $data) = @item_info;;
+	$code .= sprintf "\$%-35s -> addcmd('$cmdname', '$frequency', '$modulation', '$encoding', '$bps', '$reps', '$data');\n", $parent;
+        $object = '';
+	$code .= '#noloop=stop'."\n";
+    }
+    #-------------- End BondHome Objects -----------------
+    #-------------- AoGSmartHome Objects -----------------
+    elsif ( $type eq "AOGSMARTHOME_ITEMS" ) {
+	#<Actions on Google (AOGSMARTHOME_ITEMS),AOGSMARTHOME_ITEMS,Name>#
+        require 'AoGSmartHome_Items.pm';
+        ($name) = @item_info;
+        $object = "AoGSmartHome_Items()";
+    }
+    elsif ( $type eq "AOGSMARTHOME_ITEM" ) {
+	#<Actions on Google (AOGSMARTHOME_ITEM),AOGSMARTHOME_ITEM,Parent,Realname,Name,Sub,On,Off,Statesub,Properties>#
+        my ($parent, $realname, $name, $sub, $on, $off, $statesub, @other) = @item_info;
+        $sub =~ s%^&%\\&%; # "&my_subroutine" -> "\&my_subroutine"
+        $sub =~ s%^\\\\&%\\&%; # "\\&my_subroutine" -> "\&my_subroutine"
+        $sub = "'$sub'" if $sub !~ /&/;
+        $statesub =~ s%^&%\\&%; # "&my_subroutine" -> "\&my_subroutine"
+        $statesub =~ s%^\\\\&%\\&%; # "\\&my_subroutine" -> "\&my_subroutine"
+        $statesub = "'$statesub'" if $statesub !~ /&/;
+        $realname = "\$$realname" if $realname;
+        my $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        if (!$packages{AoGSmartHome_Items}++ ) { # first time for this object type?
+            $code .= "use AoGSmartHome_Items;\n";
+        }
+        $code .= sprintf "\$%-35s -> add('$realname','$name',$sub,'$on','$off',$statesub,$other);\n", $parent;
+        $object = '';
+    }
+    #-------------- End AoGSmartHome Objects ----------------
+    #-------------- MQTT Objects -----------------
+    elsif ( $type eq "MQTT_BROKER" ) {
+         # there must be one record for the broker above any MQTT_DEVICE definitions
+        # it takes the following format
+        # MQTT_BROKER, name_of_broker
+        # e.g.MQTT_BROKER, mqtt_1
+        require 'mqtt.pm';
+        my ( $name, $topic, $host, $port, $username, $password, $keepalive ) = @item_info;
+	$topic =~ s/\*/#/g;
+        $code .= sprintf( "\n\$%-35s = new mqtt(\"%s\", '$host', '$port', '$topic', '$username', '$password', $keepalive );\n", $name, $name );
+    }
+    elsif ( $type eq "MQTT_DEVICE" ) {
+        # there is one record per mqtt device and it must be below the MQTT_BROKER definition
+        # it takes the following form
+        # MQTT_DEVICE, name_of_device, groups, name_of_broker, topic
+        # e.g. MQTT_DEVICE, MQTT_test, Kitchen, mqtt_1, stat/mh_mqtt_test/SENSOR
+        # if the device is to transmit to MH, its topic must match the
+        # config parameter mqtt_topic in the mh.ini file   
+        require 'mqtt.pm';
+        my ($MQTT_broker_name, $MQTT_topic);
+        ( $name, $grouplist, $MQTT_broker_name, $MQTT_topic ) = @item_info;
+       
+        $code .= sprintf( "\n\$%-35s = new mqtt_Item(\$%s\,\"%s\");\n",
+            $name, $MQTT_broker_name, $MQTT_topic );
+       
+    }
+    elsif( $type eq "MQTT_LOCALITEM" ) {
+	my ($object_name, $local_obj_name, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
+	require mqtt_items;
+	if( $broker ) {
+	    $broker = '$' . $broker;
+	} else {
+	    $broker = 'undef';
+	}
+	$code .= "\$${object_name} = new mqtt_LocalItem( ${broker}, '$object_name', '$type', \$$local_obj_name, '$topicprefix', $discoverable, '$friendly_name' );\n";
+    }
+    elsif( $type eq "MQTT_REMOTEITEM" ) {
+	my ($object_name, $grouplist, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
+	require mqtt_items;
+	$code .= "\$${object_name} = new mqtt_RemoteItem( \$${broker}, '$type', '$topicprefix', $discoverable, '$friendly_name' );\n";
+    }
+    elsif( $type eq "MQTT_INSTMQTT" ) {
+	my ($object_name, $grouplist, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
+	require mqtt_items;
+	$code .= "\$${object_name} = new mqtt_InstMqttItem( \$${broker}, '$type', '$topicprefix', $discoverable, '$friendly_name' );\n";
+    }
+    elsif( $type eq "MQTT_DISCOVERY" ) {
+	my ($object_name, $discovery_topic, $broker, $action) = @item_info;
+	require mqtt_discovery;
+	require mqtt_items;
+	$code .= "\$${object_name} = new mqtt_Discovery( \$${broker}, '$object_name', '$discovery_topic', '$action' );  #noloop\n";
+    }
+    elsif( $type eq "MQTT_DISCOVEREDITEM" ) {
+	my ($object_name, $disc_name, $disc_topic, $disc_msg ) = $record =~ /MQTT_DISCOVEREDITEM\s*,\s*([^,]+),\s*([^,]+),\s*([^,]+)\,\s*(.*)$/;
+	$object_name =~ s/\s*$//;
+	$disc_name =~ s/\s*$//;
+	$disc_topic =~ s/\s*$//;
+	$disc_msg =~ s/\s*$//;
+	$disc_msg =~ s/\'/\\'/g;
+	$code .= "\$${object_name} = new mqtt_DiscoveredItem( \$${disc_name}, '$object_name', '$disc_topic', '$disc_msg' );\n";
+    }
+    #-------------- End MQTT Objects ----------------
+    #-------------- Home Assistant Objects -----------------
+    elsif( $type eq "HA_SERVER" ) {
+	my ($object_name, $address, $keepalive, $api_key) = @item_info;
+	require HA_Item;
+	$code .= "\$${object_name} = new HA_Server( '$object_name', '$address', '$keepalive', '$api_key' );\n";
+    }
+    elsif( $type eq "HA_ITEM" ) {
+	my ($object_name, $domain, $entity, $ha_server) = @item_info;
+	require HA_Item;
+	$code .= "\$${object_name} = new HA_Item( '$domain', '$entity', \$$ha_server );\n";
+    }
+    #-------------- End Home Assistant Objects -----------------
     elsif ( $type =~ /PLCBUS_.*/ ) {
 	#<,PLCBUS_Scene,Address,Name,Groups,Default|Scenes>#
         require PLCBUS;
@@ -1834,9 +2011,65 @@ sub read_table_A {
             &::MainLoop_pre_add_hook( \&Wink::GetDevicesAndStatus, 1 );
         }
     }
+    elsif ( $type eq "KASA" ) {
+        require Kasa_Item;
+        my ( $type, $index );
+        ( $address, $name, $type, $index, $grouplist ) = @item_info;
+        # Check if device has an index 
+        if ($index eq '') {
+            $object = "Kasa_Item('$address', '$type')";
+        } else {
+            $object = "Kasa_Item('$address', '$type', $index)";
+        }
+    }
+    elsif ( $type eq "TASMOTA_HTTP_SWITCH" ) {
+        require Tasmota_HTTP_Item;
+        my ( $output );
+        ( $address, $name, $output, $grouplist, @other ) = @item_info;
+        $other = join ',',  @other ;    # Quote data
+        $other =~ s/^[\'\"]//; #strip out quotes in case they are included
+        $other =~ s/[\'\"]$//;
+        $object = "Tasmota_HTTP::Switch('$address', '$output', '$other')";
+    }
+    elsif ( $type eq "TASMOTA_HTTP_SWITCH_POWERMON" ) {
+        require Tasmota_HTTP_Item;
+        my ( $output );
+        ( $address, $name, $output, $grouplist, @other ) = @item_info;
+        $other = join ',', @other;    # Quote data
+        $other =~ s/^[\'\"]//; #strip out quotes in case they are included
+        $other =~ s/[\'\"]$//;
+        $object = "Tasmota_HTTP::Switch_PowerMon('$address', '$output', '$other')";
+    }
+    elsif ( $type eq "TASMOTA_HTTP_FAN" ) {
+        require Tasmota_HTTP_Item;
+        ( $address, $name, $grouplist, @other ) = @item_info;
+        $other = join ',',  @other ;    # Quote data
+        $other =~ s/^[\'\"]//; #strip out quotes in case they are included
+        $other =~ s/[\'\"]$//;
+        $object = "Tasmota_HTTP::Fan('$address', '$other')";
+    }
     else {
-        print "\nUnrecognized .mht entry: $record\n";
-        return;
+        # Doesn't match anything here, but don't just fail. Instead, make
+        # read_table_A extensible by searching lib for a module with
+        # the lower case of this name. See comments at the top for details,
+        # and read_table_a_sample.pm for an example.
+        my $lctype = lc($type);		# Convert to lower case.
+        eval "require $lctype;";	# Can we load it?
+        if ($@) {
+            print qq<\nUnrecognized .mht entry and "require $lctype;" returned "$@": $record.\n>;
+            return;
+        }
+        $name = $item_info[0];
+        @item_info = map {$_ =~ /^['"]/?$_:"'$_'"} @item_info;	# Add single quotes if no quoting present.
+        # Note: we don't handle grouplist here, as it may not apply to some objects. Instead,
+        # the "init" method can manage group membership if that's appropriate.
+        my $item_info = join(',',@item_info);
+        $object = "$lctype( $item_info )";
+        $additional_code = sprintf(
+		"%-36s %s", 
+		"\$${name}", "-> init( $item_info ) if (\$${name}->can('init'));	# noloop\n",
+	);
+	$grouplist = '';	# No grouplist processing here, though the init method might do that.
     }
 
     if ($object) {
@@ -1845,42 +2078,11 @@ sub read_table_A {
         $code .= $code2;
     }
 
-    $grouplist = '' unless $grouplist;    # Avoid -w uninialized errors
-    for my $group ( split( '\|', $grouplist ) ) {
-        $group =~ s/ *$//;
-        $group =~ s/^ //;
+    # Process grouplist. This code was moved into a subroutine so it could be called by extension
+    # modules, too.
+    $code .= read_table_grouplist_A($name, $grouplist) if ($grouplist);
 
-        if ( lc($group) eq 'hidden' ) {
-            $code .= sprintf "\$%-35s -> hidden(1);\n", $name;
-            next;
-        }
-
-        if ( $group eq ''){
-            &::print_log("grouplist '$grouplist' contains empty group!");
-            next;
-        }
-
-        if ( $name eq $group ) {
-            &::print_log(
-                "mht object and group name are the same: $name  Bad idea!");
-        }
-        else {
-            # Allow for floorplan data:  Bedroom(5,15)|Lights
-            if ( $group =~ /(\S+)\((\S+?)\)/ ) {
-                $group = $1;
-                my $loc = $2;
-                $loc =~ s/;/,/g;
-                $loc .= ',1,1' if ( $loc =~ tr/,/,/ ) < 3;
-                $code .= sprintf "\$%-35s -> set_fp_location($loc);\n", $name;
-            }
-            $code .= sprintf "\$%-35s =  new Group;\n", $group
-              unless $groups{$group};
-            $code .= sprintf "\$%-35s -> add(\$%s);\n", $group, $name
-              unless $groups{$group}{$name};
-            $groups{$group}{$name}++;
-        }
-    }
-
+    # Add in anything else some record-type above needed.
     if ($additional_code) {
         $code .= $additional_code;
     }
@@ -1899,8 +2101,9 @@ sub read_table_finish_A {
         if ( $objects{$scene} ) {
 
             #Since an object exists with the same name as the scene,
-            #make it a controller of the scene, too. Hopefully it can be a controller
+            #make it a controller and responder of the scene, too. Hopefully it can be a controller
             $scene_build_controllers{$scene}{$scene} = "1";
+            $scene_build_responders{$scene}{$scene} = "1";
         }
 
         #Loop through the controller hash
@@ -1958,6 +2161,56 @@ sub read_table_finish_A {
     return $code;
 }
 
+
+
+sub read_table_grouplist_A {
+
+    my($name, $grouplist) = @_;
+
+    $grouplist = '' unless $grouplist;    # Avoid -w uninialized errors
+    my $code = '';
+    for my $group ( split( '\|', $grouplist ) ) {
+        $group =~ s/ *$//;
+        $group =~ s/^ //;
+
+        if ( lc($group) eq 'hidden' ) {
+            $code .= sprintf "\$%-35s -> hidden(1);\n", $name;
+            next;
+        }
+
+        if ( $group eq ''){
+            &::print_log("grouplist '$grouplist' contains empty group!");
+            next;
+        }
+
+        if ( $name eq $group ) {
+            &::print_log(
+                "mht object and group name are the same: $name  Bad idea!");
+        }
+        else {
+            # Allow for floorplan data:  Bedroom(5,15)|Lights
+            if ( $group =~ /(\S+)\((\S+?)\)/ ) {
+                $group = $1;
+                my $loc = $2;
+                $loc =~ s/;/,/g;
+                $loc .= ',1,1' if ( $loc =~ tr/,/,/ ) < 3;
+                $code .= sprintf "\$%-35s -> set_fp_location($loc);\n", $name;
+            }
+            unless ($groups{$group}) {
+                $code .= sprintf "\$%-35s =  new Group unless (\$%s);\n", $group, $group;
+            }
+            unless ($groups{$group}{$name}) {
+                $code .= sprintf "\$%-35s -> add(\$%s);\n", $group, $name;
+                $groups{$group}{$name}++;
+            }
+        }
+    }
+
+    return $code;
+}
+
+
+
 #This is called inside each definition, this is using SCENE_BUILD as an example:
 # Called with :
 #   - $type:      Name of the device being validated
@@ -2007,9 +2260,9 @@ sub validate_def {
                 ::print_log(
                     "[Read_Table_A] WARNING: $_[0]: $$passed_values[0] On level should be 0-100%, got \"$$passed_values[$paramNum]\" "
                   )
-                  unless ( $$passed_values[$paramNum] =~ m/^(\d+)%?$/
+                  unless (( $$passed_values[$paramNum] =~ m/^(\d+)%?$/
                     && $1 <= 100
-                    && $1 >= 0 );
+                    && $1 >= 0 ) or (lc $$passed_values[$paramNum] =~ /^sur/i));
             }
             elsif ( $param_type eq 'insteon_ramp_rate' ) {
                 ::print_log(

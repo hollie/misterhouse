@@ -51,7 +51,7 @@ sub main::get_imap {
     $ssl = $parms{ssl} if ( defined $parms{ssl} );
     $ssl = 1           if ( lc $service eq "gmail" );
     $ssl = 1           if ( lc $service eq "ssl" );
-
+print "db ssl=$ssl\n";
     my $size = 0;
     $size = $main::config_parms{"net_mail_scan_size"}
       if ( defined $main::config_parms{"net_mail_scan_size"} );
@@ -116,19 +116,21 @@ sub main::get_imap {
     my $isdst;
     my $time = time();
     $isdst = ( localtime($time) )[8];
+    
     my $offsethours = $local_offset / 3600;
-    print "TimeZone GMT Offset is $offsethours hours" unless ( defined $quiet );
-    print " (Daylight Savings Time)" if ( $isdst and !defined $quiet );
-    print ".\n" unless ( defined $quiet );
+    print "TimeZone GMT Offset is $offsethours hours" unless (  $quiet );
+    print " (Daylight Savings Time)" if ( $isdst and ! $quiet );
+    print ".\n" unless ( $quiet );
 
-    print "Connecting to IMAP account $account" unless ( defined $quiet );
-    print " over SSL" if ( $ssl and !( defined $quiet ) );
-    print "..." unless ( defined $quiet );
+    print "Connecting to IMAP account $account" unless (  $quiet );
+    print " over SSL" if ( $ssl and !(  $quiet ) );
+    print "..." unless (  $quiet );
     print "s=$server, p=$port, a=$account, pw=$password, size=$size\n"
       if $debug;
 
     # Connect to the IMAP server via SSL
     my $socket;
+
     if ($ssl) {
         $socket = IO::Socket::SSL->new(
             PeerAddr => $server,
@@ -149,6 +151,9 @@ sub main::get_imap {
             return;
         }
     }
+    $socket->autoflush(1);
+
+print "11\n";
 
     # Build up a client attached to the SSL socket.
     # Login is automatic as usual when we provide User and Password
@@ -158,16 +163,18 @@ sub main::get_imap {
             Socket   => $socket,
             User     => $account,
             Password => $password,
+            Debug    => 1,
         )
       )
     {
         print "Unable to connect to IMAP Server $@\n";
         return;
     }
+print "22\n";
 
     # Do something just to see that it's all ok
     if ( $client->IsAuthenticated() ) {
-        print "Authenticated\n" unless ( defined $quiet );
+        print "Authenticated\n" unless (  $quiet );
 
         $mailbox_size = $client->quota_usage;    #quota method shows size
         $mailbox_size = $mailbox_size * 1024
@@ -176,7 +183,7 @@ sub main::get_imap {
         $client->Peek($peek);
 
         print "Checking $inbox for messages newer than $age minutes...\n"
-          unless ( defined $quiet );
+          unless (  $quiet );
         $client->select($inbox);
         my @msgs;
         $message_count = $client->message_count;
@@ -192,7 +199,7 @@ sub main::get_imap {
         #print "Scanning message set...\n" unless (defined $quiet);
         foreach my $msgid (@msgs) {
             my $date = $client->internaldate($msgid);
-            print "#" if $debug;
+            print "$age $date $local_offset $isdst\n" if $debug;
             unless ( defined $date ) {
                 print "Cannot get date of message $msgid!\n";
                 next;
@@ -315,7 +322,7 @@ sub main::get_imap {
     }
     else {
         print "Could not Authenticate!\n";
-        $client->logout();
+#        $client->logout();
         return;
     }
 
@@ -379,7 +386,7 @@ sub main::get_imap_folders {
 
     # Do something just to see that it's all ok
     if ( $client->IsAuthenticated() ) {
-        print "Authenticated\n" unless ( defined $quiet );
+        print "Authenticated\n" unless (  $quiet );
 
         @folders = $client->folders();
         $client->logout();
@@ -427,17 +434,17 @@ sub _check_age {
     $year = $year - 1900;
     $epochtime = mktime( $sec, $min, $hour, $day, $monnum, $year );
 
-    #print "db: imap_utils.pl: time=$time, epochtime=$epochtime";
+    print "db: imap_utils.pl: time=$time, epochtime=$epochtime";
 
     $epochtime = $epochtime - 3600 if ( $dst and !$dst_disable );
     $epochtime = $epochtime + $offset;
 
-    #my $diff = ($time - $epochtime);
-    #print ",epochtime after offset=$epochtime, diff=$diff\n";
+    my $diff = ($time - $epochtime);
+    print ",epochtime after offset=$epochtime, diff=$diff\n";
 
     my $return = ( ( $time - $epochtime ) <= ( $age * 60 ) );
 
-    #print "db: imap_utils.pl: diff=$diff, return=$return\n";
+    print "db: imap_utils.pl: diff=$diff, return=$return\n";
     return $return;
 }
 

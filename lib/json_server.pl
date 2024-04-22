@@ -48,6 +48,7 @@ use JSON qw(decode_json);
 use IO::Compress::Gzip qw(gzip);
 use vars qw(%json_table);
 use File::Copy;
+use Digest::MD5 qw(md5 md5_hex);
 my %json_cache;
 my @json_notifications = ();    #noloop
 my $web_counter; #noloop;
@@ -175,8 +176,11 @@ sub json_put {
     eval {
         $body = decode_json($body);    #HP, wrap this in eval to prevent MH crashes
     };
+    
     if ($@ and !$empty_json) {
         &main::print_log( "Json_Server.pl: WARNING: decode_json failed for json POST!" );
+        &main::print_log( "Json_Server.pl: WARNING: Data is $body" );
+
         $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
         $response_text->{status} = "error";
         $response_text->{text} = "Failed to decode JSON file";
@@ -249,6 +253,122 @@ sub json_put {
         $response_code = "HTTP/1.1 200 OK\r\n";
         $response_text->{status} = "success";
         $response_text->{text} = "";  
+
+    } elsif ( $path[0] eq 'security' ) {
+
+    &main::print_log( "Json_Server.pl: security post");
+   
+       print Dumper $body;
+       
+       if ($body->{pk} eq 'add_group') {
+            my $members = join(',',@{$body->{members}});
+            print("add_group &Groups('add',$body->{name},$members)\n");
+            
+            &Groups('add',$body->{name},$members);
+       }
+       if ($body->{pk} eq 'add_user') {
+            my $passwd = "";
+            $passwd = $body->{password};
+            $passwd = md5_hex($passwd) unless ($body->{md5} eq "true");
+            &Groups('add','',$body->{name},$passwd); 
+            print("add_user &Groups('add','',$body->{name},$passwd), [$body->{md5}]\n"); 
+            
+            foreach my $group (@{$body->{groups}}) {
+                &Groups('add',$group,$body->{name}); 
+                print("add_user &Groups('add',$group,$body->{name})\n"); 
+            }        
+       }
+       if ($body->{pk} eq 'type') {
+            if ($body->{value} eq 'delete') {
+                my ($type,$name) = $body->{name} =~ /^(user_|group_)(.*)/i;
+                if ($type eq "user_") {
+                    print("can't delete users yet");
+                } elsif ($type eq "group_") {                    
+                    &Groups('delete',$name); 
+                    print("delete group &Groups('delete',$name);\n");
+                }
+            }
+        } 
+       
+        $response_code = "HTTP/1.1 200 OK\r\n";
+        $response_text->{status} = "success";
+        $response_text->{text} = "";  
+
+    } elsif ( $path[0] eq 'triggers' ) {
+
+        if (($empty_json or (!defined $body->{name}) or (!defined $body->{value}) or (!defined $body->{pk})) and (defined $body->{pk} and lc $body->{pk} ne 'add')) {
+                $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                $response_text->{status} = "error";
+                if ($empty_json) {
+                    $response_text->{text} = "Empty JSON string posted";
+                } else {
+                    $response_text->{text} = "Bad submitted data";                
+                }
+                &main::print_log( "Json_Server.pl: ERROR: Trigger Post:" . $response_text->{text});
+
+        } elsif (lc $Authorized ne "admin") {
+                 $response_code = "HTTP/1.1 401 Unauthorized\r\n";
+                 $response_text->{status} = "error";
+                 $response_text->{text} = "Administative Access required";
+                 &main::print_log( "Json_Server.pl: ERROR: Unauthorized Trigger update" . $response_text->{text});
+        } else {
+        print Dumper $body;
+        
+        my $err = 0;
+        my $status;
+        if ($body->{pk} eq 'code') {
+            $err = trigger_code_flag($body->{value});
+            if ($err) {
+                $status = "Error: Blacklist command found:$err";
+                &main::print_log( "Json_Server.pl: Trigger. Blacklist command ($err) found in $body->{name}");
+            } else {
+                $status = &trigger_set_code($body->{name}, $body->{value});
+            }
+           
+        } elsif ($body->{pk} eq 'name') {
+           $status = &trigger_rename($body->{name}, $body->{value});
+        
+        } elsif ($body->{pk} eq 'type') {
+           $status = &trigger_set_type($body->{name}, $body->{value});
+
+        } elsif ($body->{pk} eq 'trigger') {
+           $status = &trigger_set_trigger($body->{name}, $body->{value});
+
+        } elsif ($body->{pk} eq 'add') {
+            &main::print_log( "Json_Server.pl: adding new trigger $body->{name} ");
+            my $trigger = ( $body->{trigger1} ) ? "$body->{trigger1} $body->{trigger2}" : $body->{trigger2};
+            my $code;
+            if ( $body->{code1} ) {
+                 unless ( $body->{code1} eq 'set' ) {
+                     $body->{code2} =~ s/\'/\\'/g;
+                     $body->{code2} = "'$body->{code2}'";
+                 }
+                 $code = "$body->{code1} $body->{code2}";
+             }
+             else {
+                 $code = $body->{code2};
+             }
+             &main::print_log("trigger_set( $trigger, $code, $body->{type}, $body->{name} )");
+
+             $status = &trigger_set( $trigger, $code, $body->{type}, $body->{name} );
+        }
+                     
+            if ($status =~ m/OK/) {
+                $response_code = "HTTP/1.1 200 OK\r\n";
+                $response_text->{status} = "success";
+                my ($txt) = $status =~ /INFO: (.*)/i; 
+                $response_text->{text} = "";
+                $response_text->{text} = $txt if ($txt);             
+                &_triggers_save
+
+            } else {
+                $response_code = "HTTP/1.1 500 Internal Server Error\r\n";
+                $response_text->{status} = "error";
+                my ($txt) = $status =~ /ERROR: (.*)/i; 
+                $response_text->{text} = $txt;
+            }
+        
+        }
 
     } elsif ( $path[0] eq 'objects' ) {
 
@@ -429,6 +549,7 @@ sub json_get {
         $rrd_file = $config_parms{weather_data_rrd}
           if ( ( defined $config_parms{weather_data_rrd} ) and ($config_parms{weather_data_rrd}));
         my $rrd_source = "";
+        $rrd_file = $args{file}[0] if (defined $args{file}[0]);
         $rrd_source = $args{source}[0] if (defined $args{source}[0]);
         $rrd_file = $config_parms{"rrd_source_" . $rrd_source} if (defined $config_parms{"rrd_source_" . $rrd_source} and $config_parms{"rrd_source_" . $rrd_source});
         $path = $config_parms{"rrd_source_" .$rrd_source . "_path"} if (defined $config_parms{"rrd_source_" . $rrd_source . "_path"} and $config_parms{"rrd_source_" . $rrd_source . "_path"});
@@ -454,6 +575,7 @@ sub json_get {
         my $index    = 0;
         my @round    = ();
         my @type     = ();
+        my @colors   = ('#330099','#00ff00','#3300FF','#330099','#2B65EC','#FF0000','#009933','#FBB117','#CC33CC','#00FF00','#FF99CC','#990000');
         my $celsius  = 0;
         my $kph      = 0;
         my $arg_time = 0;
@@ -487,7 +609,7 @@ sub json_get {
                     }
                 }
             }
-
+            my $color_index = 0;
             foreach my $ds ( @{ $args{ds} } ) {
                 push @dss, $ds;
 
@@ -499,7 +621,10 @@ sub json_get {
                 $cf = $ds_config->{$ds}->{'cf'} if ( defined $ds_config->{$ds}->{'cf'} );
                 push @defs,   "DEF:$ds=$path/$rrd_file:$ds:$cf";
                 push @xports, "XPORT:$ds";
+                $dataset[$index]->{'label'} = $ds;
                 $dataset[$index]->{'label'} = $ds_config->{$ds}->{'label'} if ( defined $ds_config->{$ds}->{'label'} );
+                $color_index = 0 if ($color_index > scalar(@colors));
+                $dataset[$index]->{'color'} = $colors[$color_index++];
                 $dataset[$index]->{'color'} = $ds_config->{$ds}->{'color'} if ( defined $ds_config->{$ds}->{'color'} );
                 if ( lc $ds_config->{$ds}->{'type'} eq "bar" ) {
                     $dataset[$index]->{'bars'}->{'show'}      = "true";
@@ -762,6 +887,81 @@ sub json_get {
         }
     }
 
+    if ( $path[0] eq 'security' ) {
+    if (defined $path[1] and $path[1] eq 'authorize') {
+        # Passwords are stored as MD5 hashes in the user data file
+        # Take that MD5, then take the current date (in YYYYDDMM format) and then calculate
+        # an authorization MD5 value. Adding in the current date means that the lifespan of a compromised
+        # password token is at most 1 day.
+        my $status = "";
+        if ($args{user} && $args{user}[0] eq "") {
+            $status = "fail";
+            &main::print_log("json_server.pl: ERROR, authorize attempt with no username");
+        } elsif ($args{password} && $args{password}[0] eq "") {
+            $status = "fail";
+            &main::print_log("json_server.pl: ERROR, authorize attempt with no password");
+            
+        } else {
+            my $password = &Groups('getpw','',$args{user}[0]);
+            my $time_seed = &main::time_date_stamp('18',$Time);
+            #to account for clock drift, check today and tomorrow values around midnight
+            #if time is between 11:55 and midnight then also check tomorrow
+            #if time is between midnight and 00:05 then also check yesterday
+            if (time_greater_than("11:55 PM")) {
+                my $time_seedT = &main::time_date_stamp('18',$Time + 86400);
+                my $pwdcheck1 = md5_hex($password . $time_seedT);
+                $status = "success" if (lc $args{password}[0] eq lc $pwdcheck1);
+            }
+            if (time_less_than("00:05 AM")) {
+                my $time_seedY = &main::time_date_stamp('18',$Time - 86400);
+                my $pwdcheck2 = md5_hex($password . $time_seedY);
+                $status = "success" if (lc $args{password}[0] eq lc $pwdcheck2);
+            }
+            #print "PW=$password, time_seed=$time_seed";
+            my $pwdcheck = md5_hex($password . $time_seed);
+            #print "PWC=$pwdcheck\n";
+       
+            if ($status eq "" and (lc $args{password}[0] eq lc $pwdcheck)) {
+                $status = "success";
+                &main::print_log("json_server.pl: INFO, user $args{user}[0] successfully authenticated");
+                
+            } else {
+                $status = "fail";
+                &main::print_log("json_server.pl: WARNING, user $args{user}[0] authentication attempt failed");
+                
+            }
+        }    
+        $json_data{security}->{authorize} = $status;
+    } else {
+        #check if $Authorized
+        my $ref;
+        my $users;
+        my $found = 0;
+        if ($args{user} && $args{user}[0] ne "") {
+            $ref->{user} = &Groups('get','',$args{user}[0]);
+            #$json_data{security}{users} = 
+            $found = 1;
+        }
+        if ($args{group} && $args{group}[0] ne "") {
+            $ref->{group} = &Groups('get',$args{group}[0]);
+            #$json_data{security}{groups} = 
+            $found = 1;
+        }
+        if (!$found) {
+            $ref = ${&Groups('getall')};   
+        }
+        #ref->{acl} = ${&Groups('fullacl')};
+        print Dumper $ref;
+        $json_data{security} = $ref if (defined $ref);
+        #$json_data{security} = ${$ref} if (defined ${$ref});
+        #print Dumper $json_data{security};
+        }
+    }
+
+    if ( $path[0] eq 'authorize' ) {
+    # /json/security/authorize?$user=admin&password=MD5HASH
+    }
+
     # List subroutines
     if ( $path[0] eq 'subs' || $path[0] eq '' ) {
         my $name;
@@ -770,6 +970,48 @@ sub json_get {
             my $iref = ${$ref}{$key};
             $json_data{subs}{$key} = &json_walk_var( $iref, $key, ('CODE') );
         }
+    }
+
+    # List triggers
+    if ( $path[0] eq 'triggers' || $path[0] eq '' ) {
+        &_triggers_save; #clean up triggers before sending
+        #group by type
+        my @dataset       = ();
+        
+        for my $name (
+        sort {
+            my $t1 = $triggers{$a}{type};
+            my $t2 = $triggers{$b}{type};
+            $t1 = 0 if $t1 eq 'OneShot';
+            $t2 = 0 if $t2 eq 'OneShot';
+            $t1 = 1 if $t1 eq 'NoExpire';
+            $t2 = 1 if $t2 eq 'NoExpire';
+            $t1 = 2 if $t1 eq 'Expired';
+            $t2 = 2 if $t2 eq 'Expired';   
+            $t1 = 3 if $t1 eq 'Disabled';
+            $t2 = 3 if $t2 eq 'Disabled';                     
+            $t1 cmp $t2 or lc $a cmp lc $b
+        } keys %triggers
+      )
+    {
+        my ( $trigger, $code, $type, $triggered, $trigger_error, $code_error ) = trigger_get($name);
+        my %data;
+        $data{name} = $name;
+        $data{trigger} = $trigger;
+        $data{type} = $type;
+        $data{code} = $code;
+        if ($triggered) {
+            $data{triggered_ms} = $triggered;
+            $data{triggered} = &time_date_stamp( 12, $triggered );            
+            $data{triggered_rel} = &time_date_stamp( 23, $triggered );
+           }
+        push @dataset, \%data;
+        }
+        my %data2;
+        $data2{data}  = \@dataset;
+        $data2{options}{code} = ["speak","play","display","print_log","set","run","run_voice_cmd","net_im_send","net_mail_send"];
+        $data2{options}{trigger} = ["time_now","time_cron","time_random","new_second","new_minute","new_hour",'$New_Hour','$New_Day','$New_Week','$New_Month','$New_Year'];
+        $json_data{'triggers'} = \%data2;
     }
 
     # List packages
@@ -896,14 +1138,15 @@ sub json_get {
         } else {
             $uptime = `uptime`;
         }
-        my ($time,$upt,$users,$load) = $uptime =~ /(\S+)\s+up\s(.*),\s+(\d+)\susers,\s+load\saverages?:\s(.*)/;
+        my ($time,$upt,$users,$load) = $uptime =~ /(\S+)\s+up\s(.*),\s+(\d+)\susers?,\s+load\saverages?:\s(.*)/g;
         $json_data{$source}{time} = $time;
         $json_data{$source}{uptime} = $upt;
         $json_data{$source}{users} = $users;
         $json_data{$source}{load} = $load;
         $json_data{$source}{cores} = $System_cores;
         $json_data{$source}{time_of_day} = $Time_Of_Day;
-
+        $json_data{$source}{sunrise} = $Time_Sunrise;
+        $json_data{$source}{sunset} = $Time_Sunset;
    }
 
    if ( $path[0] eq 'weather' || $path[0] eq 'misc' || $path[0] eq '' ) {
@@ -924,7 +1167,9 @@ sub json_get {
         $json_data{$source}{night} = $Dark;
         $json_data{$source}{weather_lastupdated} = $Weather{"LastUpdated"};
         $json_data{$source}{weather_enabled} = $enabled;
-       
+        $json_data{$source}{ForecastHigh} = $Weather{"ForecastHigh"};
+        $json_data{$source}{ForecastLow} = $Weather{"ForecastLow"};        
+        $json_data{$source}{ForecastConditions} = $Weather{"ForecastConditions"};       
              
    }
 
@@ -1289,7 +1534,7 @@ sub json_object_detail {
     my %json_complete_object;
     my @f = qw( category filename measurement rf_id set_by members
       state states state_log type label sort_order groups hidden parents schedule logger_status
-      idle_time text html seconds_remaining fp_location fp_icons fp_icon_set img link level);
+      idle_time text html seconds_remaining fp_location fp_icons fp_icon_set img link level rgb rrd);
 
     # Build list of fields based on those requested.
     foreach my $f ( sort @f ) {
@@ -1299,6 +1544,7 @@ sub json_object_detail {
 
         my $value;
         my $method = $f;
+
         if (
             $object->can($method)
             or ( ( $method = 'get_' . $method )
@@ -1331,6 +1577,21 @@ sub json_object_detail {
 
                 $value = $a if ( defined $a and $a ne "" );    #don't return a null value
             }
+            
+            elsif ( $f eq 'rrd' ) {
+                my $a = $object->$method;
+                $a =  (split( /\/|\\/, $a))[-1];    #just take the filename
+                my $b = $object->get_rrd_ds();
+                $value = $a . ":" . $b if ( defined $a and $a ne "" );    #don't return a null value
+            }
+
+            elsif ( $f eq 'rgb' ) {
+                my ($a,$b,$c) = $object->$method;
+
+                $value = "$a,$b,$c" if (( defined $a and $a ne "" )    #don't return a null value
+                                        and ( defined $b and $b ne "" )
+                                        and ( defined $c and $c ne "" ));
+            }
 
             #if ( $f eq 'hidden' ) {
             #	my $a = $object->$method;
@@ -1342,10 +1603,12 @@ sub json_object_detail {
             #}
             else {
                 $value = $object->$method;
+                #RF this makes a horlicks of utf8 characters
                 $value = encode_entities( $value, "\200-\377&<>" );
+                $value = encode_entities( $value, '<>&"');
+
             }
-            print_log "json: object_dets f $f m $method v $value"
-              if $Debug{json};
+            print_log "json: object_dets f $f m $method v $value" if $Debug{json};
         }
         elsif ( $f eq 'members' ) {
             ## Currently only list members for group items, but at some point we
@@ -1370,7 +1633,10 @@ sub json_object_detail {
         }
         elsif ( exists $object->{$f} ) {
             $value = $object->{$f};
+            #RF this makes a horlicks of utf8 characters
             $value = encode_entities( $value, "\200-\377&<>" );
+            $value = encode_entities( $value, '<>&"');
+
             print_log "json: object_dets f $f ev $value" if $Debug{json};
         }
         elsif ( $f eq 'html' and $object->can('get_type') ) {
@@ -1470,7 +1736,7 @@ sub json_entities_encode {
 }
 
 sub json_usage {
-my $html = <<eof;
+    my $html = <<eof;
 <html>
 <head>
 </head>

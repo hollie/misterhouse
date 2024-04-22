@@ -57,7 +57,7 @@ sub main::ia7_notify {
 
 sub ia7_update_collection {
     &main::print_log("[IA7_Collection_Updater] : Starting");
-    my $ia7_coll_current_ver = 1.4;
+    my $ia7_coll_current_ver = 1.6;
 
     my @collection_files = (
         "$main::Pgm_Root/data/web/collections.json",
@@ -129,7 +129,45 @@ sub ia7_update_collection {
                         $updated = 1; 
                     }
                 }
-         
+                if ( $json_data->{meta}->{version} < 1.5 )  {
+                    #IA7 v2.0 required change
+                    #Native trigger support /bin/triggers.pl
+                    my $file_data2 = to_json( $json_data, { utf8 => 1, pretty => 1 } );    
+                    $file_data2 =~ s/\"link\"[\s+]:[\s+]\"\/bin\/triggers\.pl\"/\"link\" : \"\/ia7\/\#path\=triggers\"/g;
+                    eval {
+                        $json_data = decode_json($file_data2);    #HP, wrap this in eval to prevent MH crashes
+                    };
+                    if ($@) {
+                        &main::print_log("[IA7_Collection_Updater] : WARNING: decode_json failed for v1.5 update.");
+                    } else {           
+                        $json_data->{meta}->{version} = "1.5";
+                        &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.5 (MH 5.1 IA7 v2.0.300 native triggers change)");
+                        $updated = 1; 
+                    }
+                } 
+                if ( $json_data->{meta}->{version} < 1.6 )  {
+                    
+                    my $setup_key = 0;
+                    my $next_key = 0;
+                    foreach my $key (keys %{$json_data}) {
+                        $setup_key = $key if ($json_data->{$key}->{name} eq 'Setup MrHouse');
+                        $next_key = $key if (($key > $next_key) and ($key < 500));
+                    }
+                    if ($setup_key and $next_key) {
+                        $next_key++;
+                        &main::print_log("[IA7_Collection_Updater] : Adding new security button (" . $next_key . ") to Setup MrHouse (" . $setup_key . ")");
+                        $json_data->{meta}->{version} = "1.6";
+                        $json_data->{$next_key}->{icon} = "fa-users";
+                        $json_data->{$next_key}->{name} = "Users and Groups";
+                        $json_data->{$next_key}->{link} = "/ia7/#path=/security";
+                        push (@{$json_data->{$setup_key}->{children}},$next_key);
+                        &main::print_log("[IA7_Collection_Updater] : Updating $file to version 1.6 (MH 5.1 IA7 v2.0.600 user management)");
+                        $updated = 1;
+                    } else {
+                        &main::print_log("[IA7_Collection_Updater] : Could not add security key to Setup MrHouse (" . $next_key . ":" . $setup_key . ")");
+                    } 
+
+                }                        
                 if ($updated) {
                     my $json_newdata = to_json( $json_data, { utf8 => 1, pretty => 1 } );
                     my $backup_file = $file . ".t" . int( ::get_tickcount() / 1000 ) . ".backup";
