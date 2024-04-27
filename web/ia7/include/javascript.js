@@ -2452,7 +2452,7 @@ var graph_rrd = function(start,group,time) {
 		updateSocket.abort();
 	}	
 	var path_str = "/rrd"  
-	console.log("db start="+start+" group="+group+" time="+time);
+	//console.log("db start="+start+" group="+group+" time="+time);
 	var source = "&group="+group;
 	//if the group starts with file= then it is an object/file
 	if (group.toLowerCase().startsWith("file:")) {
@@ -3636,7 +3636,7 @@ var create_state_modal = function(entity) {
 		var modal_states = json_store.objects[entity].states;
 		var rgb_only = 0;
 		if (modal_states !== undefined) if (modal_states.length == 1 && modal_states[0] == 'rgb') rgb_only = 1;
-		console.log("rgb_only ="+rgb_only+" "+modal_states.length+" "+modal_states[0]);
+		//console.log("rgb_only ="+rgb_only+" "+modal_states.length+" "+modal_states[0]);
 //HP RGB control updates
 		// HP need to have at least 2 states to be a controllable object...
 		if (modal_states == undefined) modal_states = 1;
@@ -3651,10 +3651,10 @@ var create_state_modal = function(entity) {
 			var group_buttons = 4;
 
 			var slider_active = 1;
-		console.log("slider ="+sliderObject(modal_states)+", "+json_store.ia7_config.prefs.state_slider+", "+json_store.ia7_config.prefs.state_slider);
+		//console.log("slider ="+sliderObject(modal_states)+", "+json_store.ia7_config.prefs.state_slider+", "+json_store.ia7_config.prefs.state_slider);
 
             if ((!sliderObject(modal_states) && !rgb_only) || (json_store.ia7_config.prefs.state_slider !== undefined && json_store.ia7_config.prefs.state_slider == "no")) slider_active = 0;
-        console.log("slider_active="+slider_active);
+        //console.log("slider_active="+slider_active);
 			// get number of displayed buttons so we can display nicely.
 			for (var i = 0; i < modal_states.length; i++){
 				if (filterSubstate(modal_states[i],slider_active) !== 1) display_buttons++
@@ -4031,7 +4031,7 @@ var create_state_modal = function(entity) {
 var create_develop_item_modal = function(colid,col_parent) {
 
     if (colid == undefined || col_parent == undefined) {
-        console.log("create develop modal, colid="+colid+" col_parent="+col_parent);
+        //console.log("create develop modal, colid="+colid+" col_parent="+col_parent);
     } else {        
         $('#devModal').find('.modal-title').html("Edit Collection ID: <strong>"+colid+"</colid>");
         var html = "<form class='form-horizontal dev-collection-edit'>";
@@ -4200,7 +4200,7 @@ var create_develop_item_modal = function(colid,col_parent) {
                   currentUser: {user: current_user},
                   success: function( data, status, error){
                         var user = this.currentUser.user;
-                        console.log("data="+data+" status="+status+" error="+error+" user="+user);
+                        //console.log("data="+data+" status="+status+" error="+error+" user="+user);
                         //throw up red warning if the response isn't good from MH
                         if (data.status !== undefined || data.status == "error") {
                             var message = "Unknown server error";
@@ -4221,8 +4221,8 @@ var create_develop_item_modal = function(colid,col_parent) {
                         var user = this.currentUser.user;                        
                         var data = JSON.parse(xhr.responseText);
                         if (data !== undefined && data.text !== undefined) message = data.text;
-                        console.log("status="+status);
-                        console.log("error="+error);
+                        //console.log("status="+status);
+                        //console.log("error="+error);
                         $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
    	 		            $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
    	 		            json_store.collections[700].user = user;
@@ -4803,7 +4803,7 @@ $(document).ready(function() {
                 if (!cls.match('ui-sortable-helper')) {
                     var colid = $(this).attr("colid");
                     var col_parent=500;
-                    console.log("option colid="+colid+" col_parent="+col_parent);
+                    //console.log("option colid="+colid+" col_parent="+col_parent);
                     create_develop_item_modal(colid,col_parent);
                     $('#optionsModal').modal('hide');    
                 }            
