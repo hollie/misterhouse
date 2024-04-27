@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.2.100";
+var ia7_ver = "v2.2.200";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -1050,7 +1050,7 @@ var loadList = function() {
 	var button_text = '';
 	var button_html = '';
 	var entity_arr = [];
-	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status,link,rgb,rrd";
+	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status,state_override,link,rgb,rrd";
 	$.ajax({
 		type: "GET",
 		url: "/json/"+HashtoJSONArgs(URLHash),
@@ -1430,7 +1430,7 @@ var sortArrayByArray = function (listArray, sortArray){
 //Used to dynamically update the state of objects
 var updateList = function(path) {
 	var URLHash = URLToHash();
-	URLHash.fields = "state,state_log,schedule,logger_status,type,rgb,rrd";
+	URLHash.fields = "state,state_log,schedule,logger_status,state_override,type,rgb,rrd";
 	URLHash.long_poll = 'true';
 	URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -1505,7 +1505,7 @@ var updateItem = function(item,link,time) {
 		time = "";
 	}
 	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
-	var arg_str = "fields=state,states,label,state_log,schedule,logger_status,rgb,rrd&long_poll=true&items="+item+"&time="+time;
+	var arg_str = "fields=state,states,label,state_log,schedule,logger_status,state_override,rgb,rrd&long_poll=true&items="+item+"&time="+time;
 	$.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
@@ -1558,7 +1558,7 @@ var updateStaticPage = function(link,time) {
    		 }
    	})
 	var URLHash = URLToHash();
-	URLHash.fields = "state,states,state_log,schedule,logger_status,label,type,rgb,rrd";
+	URLHash.fields = "state,states,state_log,schedule,logger_status,state_override,label,type,rgb,rrd";
 	URLHash.long_poll = 'true';
 	URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -1567,7 +1567,7 @@ var updateStaticPage = function(link,time) {
 	}
 
 	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
-	var arg_str = "fields=state%2Cstates%2Cstate_log%2Cschedule%2Clogger_status%2Clabel&long_poll=true&items="+items+"&time="+time;
+	var arg_str = "fields=state%2Cstates%2Cstate_log%2Cschedule%2Clogger_status%2Cstate_override%2Clabel&long_poll=true&items="+items+"&time="+time;
 
 	updateSocket = $.ajax({
 		type: "GET",
@@ -1731,7 +1731,7 @@ var loadCollection = function(collection_keys) {
 		if (item !== undefined) {
 			if (json_store.objects === undefined || json_store.objects[item] === undefined) {
 				var path_str = "/objects";
-				var arg_str = "fields=state,states,label,state_log,schedule,logger_status,&items="+item;
+				var arg_str = "fields=state,states,label,state_log,schedule,logger_status,state_override,&items="+item;
 				$.ajax({
 					type: "GET",
 					url: "/json"+path_str+"?"+arg_str,
@@ -3175,7 +3175,7 @@ var floorplan = function(group,time) {
     };
 
     var path_str = "/objects";
-    var fields = "fields=fp_location,state,states,fp_icons,schedule,logger_status,fp_icon_set,img,link,label,type";
+    var fields = "fields=fp_location,state,states,fp_icons,schedule,logger_status,fp_icon_set,img,link,label,type,state_override";
     if (json_store.ia7_config.prefs.state_log_show === "yes") fields += ",state_log";
     var arg_str = "parents="+group+"&"+fields+"&long_poll=true&time="+time;
 
@@ -3699,6 +3699,10 @@ var create_state_modal = function(entity) {
                             disabled = "";
                         }
                     }
+                    //override state if set in the object (ie HA_Item:Cover)
+                    if (json_store.objects[entity].state_override) {
+                        disabled = "";
+                    }                  
                 $('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");					
                 }
                 if (slider_active) {
@@ -4027,7 +4031,7 @@ var create_state_modal = function(entity) {
 var create_develop_item_modal = function(colid,col_parent) {
 
     if (colid == undefined || col_parent == undefined) {
-        console.log("create develop modal, colid="+colid+" col_parent="+col_parent);
+        //console.log("create develop modal, colid="+colid+" col_parent="+col_parent);
     } else {        
         $('#devModal').find('.modal-title').html("Edit Collection ID: <strong>"+colid+"</colid>");
         var html = "<form class='form-horizontal dev-collection-edit'>";
@@ -4217,8 +4221,8 @@ var create_develop_item_modal = function(colid,col_parent) {
                         var user = this.currentUser.user;                        
                         var data = JSON.parse(xhr.responseText);
                         if (data !== undefined && data.text !== undefined) message = data.text;
-                        console.log("status="+status);
-                        console.log("error="+error);
+                        //console.log("status="+status);
+                        //console.log("error="+error);
                         $(".modal-header").append($("<div class='write-status alert alerts-modal alert-danger fade in' data-alert><p><i class='fa fa-exclamation-triangle'>&nbsp;</i><strong>Failure:</strong>&nbsp;"+message+"</p></div>"));
    	 		            $(".write-status").delay(4000).fadeOut("slow", function () { $(this).remove(); });
    	 		            json_store.collections[700].user = user;
@@ -4799,7 +4803,7 @@ $(document).ready(function() {
                 if (!cls.match('ui-sortable-helper')) {
                     var colid = $(this).attr("colid");
                     var col_parent=500;
-                    console.log("option colid="+colid+" col_parent="+col_parent);
+                    //console.log("option colid="+colid+" col_parent="+col_parent);
                     create_develop_item_modal(colid,col_parent);
                     $('#optionsModal').modal('hide');    
                 }            

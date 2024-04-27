@@ -1534,7 +1534,7 @@ sub json_object_detail {
     my %json_complete_object;
     my @f = qw( category filename measurement rf_id set_by members
       state states state_log type label sort_order groups hidden parents schedule logger_status
-      idle_time text html seconds_remaining fp_location fp_icons fp_icon_set img link level rgb rrd);
+      idle_time text html seconds_remaining fp_location fp_icons fp_icon_set img link level rgb rrd state_override);
 
     # Build list of fields based on those requested.
     foreach my $f ( sort @f ) {
@@ -1544,13 +1544,13 @@ sub json_object_detail {
 
         my $value;
         my $method = $f;
-
         if (
             $object->can($method)
             or ( ( $method = 'get_' . $method )
                 and $object->can($method) )
           )
         {
+        
             if ( $f eq 'type' ) {
 
                 # We need to hard code type, b/c x10 has a subroutine called
