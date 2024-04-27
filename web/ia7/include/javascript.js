@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.2.100";
+var ia7_ver = "v2.2.200";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -1050,7 +1050,7 @@ var loadList = function() {
 	var button_text = '';
 	var button_html = '';
 	var entity_arr = [];
-	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status,link,rgb,rrd";
+	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text,schedule,logger_status,state_override,link,rgb,rrd";
 	$.ajax({
 		type: "GET",
 		url: "/json/"+HashtoJSONArgs(URLHash),
@@ -1430,7 +1430,7 @@ var sortArrayByArray = function (listArray, sortArray){
 //Used to dynamically update the state of objects
 var updateList = function(path) {
 	var URLHash = URLToHash();
-	URLHash.fields = "state,state_log,schedule,logger_status,type,rgb,rrd";
+	URLHash.fields = "state,state_log,schedule,logger_status,state_override,type,rgb,rrd";
 	URLHash.long_poll = 'true';
 	URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -1505,7 +1505,7 @@ var updateItem = function(item,link,time) {
 		time = "";
 	}
 	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
-	var arg_str = "fields=state,states,label,state_log,schedule,logger_status,rgb,rrd&long_poll=true&items="+item+"&time="+time;
+	var arg_str = "fields=state,states,label,state_log,schedule,logger_status,state_override,rgb,rrd&long_poll=true&items="+item+"&time="+time;
 	$.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
@@ -1558,7 +1558,7 @@ var updateStaticPage = function(link,time) {
    		 }
    	})
 	var URLHash = URLToHash();
-	URLHash.fields = "state,states,state_log,schedule,logger_status,label,type,rgb,rrd";
+	URLHash.fields = "state,states,state_log,schedule,logger_status,state_override,label,type,rgb,rrd";
 	URLHash.long_poll = 'true';
 	URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -1567,7 +1567,7 @@ var updateStaticPage = function(link,time) {
 	}
 
 	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
-	var arg_str = "fields=state%2Cstates%2Cstate_log%2Cschedule%2Clogger_status%2Clabel&long_poll=true&items="+items+"&time="+time;
+	var arg_str = "fields=state%2Cstates%2Cstate_log%2Cschedule%2Clogger_status%2Cstate_override%2Clabel&long_poll=true&items="+items+"&time="+time;
 
 	updateSocket = $.ajax({
 		type: "GET",
@@ -1731,7 +1731,7 @@ var loadCollection = function(collection_keys) {
 		if (item !== undefined) {
 			if (json_store.objects === undefined || json_store.objects[item] === undefined) {
 				var path_str = "/objects";
-				var arg_str = "fields=state,states,label,state_log,schedule,logger_status,&items="+item;
+				var arg_str = "fields=state,states,label,state_log,schedule,logger_status,state_override,&items="+item;
 				$.ajax({
 					type: "GET",
 					url: "/json"+path_str+"?"+arg_str,
@@ -2452,7 +2452,7 @@ var graph_rrd = function(start,group,time) {
 		updateSocket.abort();
 	}	
 	var path_str = "/rrd"  
-	//console.log("db start="+start+" group="+group+" time="+time);
+	console.log("db start="+start+" group="+group+" time="+time);
 	var source = "&group="+group;
 	//if the group starts with file= then it is an object/file
 	if (group.toLowerCase().startsWith("file:")) {
@@ -3175,7 +3175,7 @@ var floorplan = function(group,time) {
     };
 
     var path_str = "/objects";
-    var fields = "fields=fp_location,state,states,fp_icons,schedule,logger_status,fp_icon_set,img,link,label,type";
+    var fields = "fields=fp_location,state,states,fp_icons,schedule,logger_status,fp_icon_set,img,link,label,type,state_override";
     if (json_store.ia7_config.prefs.state_log_show === "yes") fields += ",state_log";
     var arg_str = "parents="+group+"&"+fields+"&long_poll=true&time="+time;
 
@@ -3636,7 +3636,7 @@ var create_state_modal = function(entity) {
 		var modal_states = json_store.objects[entity].states;
 		var rgb_only = 0;
 		if (modal_states !== undefined) if (modal_states.length == 1 && modal_states[0] == 'rgb') rgb_only = 1;
-		//console.log("rgb_only ="+rgb_only+" "+modal_states.length+" "+modal_states[0]);
+		console.log("rgb_only ="+rgb_only+" "+modal_states.length+" "+modal_states[0]);
 //HP RGB control updates
 		// HP need to have at least 2 states to be a controllable object...
 		if (modal_states == undefined) modal_states = 1;
@@ -3651,10 +3651,10 @@ var create_state_modal = function(entity) {
 			var group_buttons = 4;
 
 			var slider_active = 1;
-		//console.log("slider ="+sliderObject(modal_states)+", "+json_store.ia7_config.prefs.state_slider+", "+json_store.ia7_config.prefs.state_slider);
+		console.log("slider ="+sliderObject(modal_states)+", "+json_store.ia7_config.prefs.state_slider+", "+json_store.ia7_config.prefs.state_slider);
 
             if ((!sliderObject(modal_states) && !rgb_only) || (json_store.ia7_config.prefs.state_slider !== undefined && json_store.ia7_config.prefs.state_slider == "no")) slider_active = 0;
-        //console.log("slider_active="+slider_active);
+        console.log("slider_active="+slider_active);
 			// get number of displayed buttons so we can display nicely.
 			for (var i = 0; i < modal_states.length; i++){
 				if (filterSubstate(modal_states[i],slider_active) !== 1) display_buttons++
@@ -3699,6 +3699,10 @@ var create_state_modal = function(entity) {
                             disabled = "";
                         }
                     }
+                    //override state if set in the object (ie HA_Item:Cover)
+                    if (json_store.objects[entity].state_override) {
+                        disabled = "";
+                    }                  
                 $('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");					
                 }
                 if (slider_active) {
@@ -4196,7 +4200,7 @@ var create_develop_item_modal = function(colid,col_parent) {
                   currentUser: {user: current_user},
                   success: function( data, status, error){
                         var user = this.currentUser.user;
-                        //console.log("data="+data+" status="+status+" error="+error+" user="+user);
+                        console.log("data="+data+" status="+status+" error="+error+" user="+user);
                         //throw up red warning if the response isn't good from MH
                         if (data.status !== undefined || data.status == "error") {
                             var message = "Unknown server error";
