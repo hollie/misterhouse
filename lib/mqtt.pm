@@ -195,6 +195,7 @@ my $msg_id = 1;
 my $blocking_read_timeout = .5;
 
 my %MQTT_Data;
+my $init_global_v_cmd = 0;
 
 # $main::Debug{mqtt} = 0;
 
@@ -1049,17 +1050,24 @@ sub get_voice_cmds {
     
     #a bit of a kludge to pass along the voice command option, get the said value from the voice command.
     my $object_name = $self->get_object_name();
+    my %global_voice_cmds = (
+        "<global> -- List all mqtt interfaces to the print log"   => "&mqtt::print_interface_list()",
+        "<global> -- Publish current states of all local items"  => "&mqtt_LocalItem::publish_current_states()",
+        "<global> -- Write all discovered items to <data_dir>/mqtt_discovered_items.mht.gen" => "&mqtt::write_discovered_items( '$::config_parms{data_dir}/mqtt_discovered_items.mht.gen' )",
+	);
     my %voice_cmds = (
-        "List all mqtt interfaces to the print log"   => "${object_name}->print_interface_list()",
-        "List retained topics for $command"  => "${object_name}->list_retained_topics()",
-        "Publish discovery data for $command"  => "${object_name}->publish_discovery_data()",
-        "Publish current states of all local items"  => "mqtt_LocalItem::publish_current_states()",
-        "Cleanup discovery info on $command and republish"  => "${object_name}->cleanup_discovery_topics()",
-        "Cleanup all retained topics on mqtt server $command and republish (BE CAREFUL)"  => "${object_name}->cleanup_all_retained_topics()",
-        "Write all discovered items to <data_dir>/mqtt_discovered_items.mht.gen" => "&mqtt::write_discovered_items( '$::config_parms{data_dir}/mqtt_discovered_items.mht.gen' )",
+        "$command -- List retained topics"  => "${object_name}->list_retained_topics()",
+        "$command -- Publish discovery data"  => "${object_name}->publish_discovery_data()",
+        "$command -- Publish current states of local items"  => "${object_name}->publish_current_states()",
+        "$command -- Cleanup discovery info and republish"  => "${object_name}->cleanup_discovery_topics()",
+        "$command -- Cleanup all retained topics on mqtt server and republish (BE CAREFUL)"  => "${object_name}->cleanup_all_retained_topics()",
 #         'List [all,active,inactive] ' . $command . ' objects to the print log'   => $self->get_object_name . '->print_object_list(SAID)',
 #         "Print $objects $command attributes to the print log"             => "${object_name}->print_object_attrs(SAID)",
     );
+    if( $init_global_v_cmd == 0 ) {
+        $init_global_v_cmd = 1;
+	%voice_cmds = (%global_voice_cmds, %voice_cmds);
+    }
 
     return \%voice_cmds;
 }
@@ -1070,13 +1078,12 @@ sub get_voice_cmds {
 =cut
 
 sub print_interface_list {
-    my ($self) = @_;
     my @interfaces;
 
     for my $inst (keys %MQTT_Data) {
 	push @interfaces, $MQTT_Data{$inst}{self}->{instance};
     }
-    $self->log( "MQTT interface list: " . join( ',', @interfaces ) );
+    &mqtt::log( undef, "MQTT interface list: " . join( ',', @interfaces ) );
 }
 
 =item C<(get_interface_list())>
