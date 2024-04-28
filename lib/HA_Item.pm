@@ -65,7 +65,8 @@ Description:
         *** IMPORTANT *** : To mimic the MH 'one object one state' approach, subtypes are used in the domain based on HA attributes
             - light:  on, off and brightness
                     :rgb_color : for setting an RGB value
-            - cover: open,close
+            - cover: open,stop,close
+                    :digital : for allowing granular setpoints
             - lock: lock, unlock
             - switch: on,off
             - sensor, binary_sensor:
@@ -268,7 +269,6 @@ sub log {
     }
     $str = $self->break_long_str( $str, $prefix, 300 );
 
-    print $str . "\n";
     &main::print_log( $str );
 }
 
@@ -316,7 +316,6 @@ sub new {
 
     if( !defined $main::Debug{ha_server} ) {
         $main::Debug{ha_server} = 0;
-        # $main::Debug{ha_server} = 2;
     }
 
     $address            = $address  || $::config_parms{homeassistant_address}   || 'localhost:8123';
@@ -550,7 +549,7 @@ sub parse_data_to_obj {
         }
     }
     if( !$handled ) {
-        $self->debug( 1, "unhandled event $cmd->{entity_id} ($cmd->{state})" );
+        $self->debug( 2, "unhandled event $cmd->{entity_id} ($cmd->{state})" );
     }
     return $handled;
 }
@@ -629,7 +628,7 @@ sub get_voice_cmds {
 
     my $objects = "[";    
     my %seen;
-    for my $obj ( @{ $ha_server->{objects} } ) {
+    for my $obj ( @{ $self->{objects} } ) {
 	next if $seen{$obj->{object_name}}++; #remove duplicate entity names
 	$objects .= $obj->{object_name} . ",";
     }
@@ -814,14 +813,17 @@ sub new {
     if( $domain eq 'switch' ) {
         $self->set_states( "off", "on" );
     } elsif( $domain eq 'light' ) {
-        $self->set_states( "off", "20%", "40%", "50%", "60%", "80%", "on" ) unless (lc $self->{subtype} eq "rgb_color");
         if ($self->{subtype} eq "rgb_color") {
             $self->set_states("rgb");
         } else {
             $self->set_states( "off", "20%", "40%", "50%", "60%", "80%", "on" );
         }
     } elsif( $domain eq 'cover' ) {
-        $self->set_states( "open", "closed" );
+        if (lc $self->{subtype} eq "digital") {
+            $self->set_states( "closed", "20%", "40%", "50%", "60%", "80%", "open" );
+        } else {
+            $self->set_states( "closed", "stop", "open" );
+        }
     } elsif( $domain eq 'lock' ) {
         $self->set_states( "unlocked", "locked" );      
     } elsif( $domain eq 'climate' ) {
@@ -916,13 +918,24 @@ sub set {
         my $new_state = $setval;
         $self->{ha_state} = $setval;
         if( $self->{domain} eq 'switch'
-        ||  $self->{domain} eq 'cover'
         ||  $self->{domain} eq 'lock'
         ||  $self->{domain} eq 'sensor'
         ||  $self->{domain} eq 'binary_sensor'
         ) {
             $self->debug( 1, "$self->{domain} event for $self->{object_name} set to $new_state->{state}" );
             $self->SUPER::set( $new_state->{state}, $p_setby, $p_response );
+        } elsif( $self->{domain} eq 'cover' ) {
+            my $level = $new_state->{state};
+            if (lc $self->{subtype} eq "digital") {
+                if( $new_state->{attributes}->{current_position} ) {
+                    $level = $new_state->{attributes}->{current_position}; # * 100 / 255;
+                    $level .= "%";
+                }
+            }    
+            $level = "open" if ($level eq "100%");
+            $level = "closed" if ($level eq "0%");
+            $self->debug( 1, "cover:$self->{subtype} event for $self->{object_name} set to $level" );
+            $self->SUPER::set( $level, $p_setby, $p_response );
         } elsif( $self->{domain} eq 'select' ) {
             $self->debug( 1, "$self->{domain} event for $self->{object_name} set to $new_state->{state}" );
             $self->SUPER::set( $new_state->{state}, $p_setby, $p_response );
@@ -1080,8 +1093,13 @@ sub ha_set_state {
     $service = $mode;
     my ($numval) = $mode =~ /^([1-9]?[0-9]?[0-9])%?$/;
     if( $numval ) {
-        $service = 'turn_on';
-        $service_data->{brightness_pct} = $numval;
+        if (lc $self->{domain} eq 'light') {
+            $service = 'turn_on';
+            $service_data->{brightness_pct} = $numval;
+        } elsif (lc $self->{domain} eq 'cover') {
+            $service = 'set_cover_position';
+            $service_data->{position} = $numval;
+        }
     } elsif( lc $mode eq 'on' ) {
         $service = 'turn_on';
     } elsif( lc $mode eq 'toggle' ) {
@@ -1094,8 +1112,10 @@ sub ha_set_state {
         } else {
             $service = 'open_cover';
         }
-    } elsif( lc $mode eq 'close' ) {
+    } elsif( lc $mode eq 'closed' ) {
         $service = 'close_cover';
+    } elsif( lc $mode eq 'stop' ) {
+        $service = 'stop_cover';        
     } elsif( lc $mode eq 'locked' ) {
         $service = 'lock';
     } elsif( lc $mode eq 'unlocked' ) {
@@ -1138,6 +1158,19 @@ sub get_rgb {
     }
 }
 
+=item C<get_rgb()>
+
+Override the default behaviour of the current state being unselectable in IA7
+
+=cut
+
+sub get_state_override {
+    my ($self) = @_;
+    my $return = 0;
+    $return = 1 if (lc $self->{domain} eq "cover");
+    
+    return $return;
+}
 
 # -[ Fini - HA_Item ]---------------------------------------------------------
 
