@@ -216,32 +216,6 @@ use Storable;
 
 #--------------Logging and debugging functions----------------------------------------
 
-sub break_long_str {
-    my ($self, $str, $prefix, $maxlength) = @_;
-    my $result;
-
-    $result = '';
-    $str = $str || '';
-    while( length( $str ) > $maxlength ) {
-        my $l = 0;
-        my $i;
-        for( $i=0; $i<length($str) && $l<$maxlength; ++$i,++$l ) {
-            if( substr( $str, $i, 1 ) eq "\n" ) {
-                $l = 0;
-            }
-        }
-        $result .= $prefix;
-        $result .= substr( $str, 0, $i );
-        $str = substr( $str, $i );
-        $prefix = '....  ';
-    }
-    if( $str ) {
-        $result .= $prefix;
-        $result .= $str;
-    }
-    return $result;
-}
-
 sub log {
     my ($self, $str, $prefix) = @_;
 
