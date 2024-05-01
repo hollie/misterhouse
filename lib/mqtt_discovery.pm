@@ -255,17 +255,15 @@ sub new {  ### mqtt_Discovery
 
     $interface->debug( 1, "New mqtt_Discovery( $interface->{instance}, '$name', '$discovery_prefix', '$action' )" );
 
-    if( $action eq 'none' ) {
-	return;
-    }
+    my $listentopics = [];
     if( $action eq 'publish'  ||  $action eq 'both' ) {
 	$interface->{discovery_publish_prefix} = $discovery_prefix;
     }
-    if( $action eq 'publish' ) {
-	return;
+    if( $action eq 'subscribe'  ||  $action eq 'both' ) {
+	$listentopics = "${discovery_prefix}/#";
     }
 
-    my $self = new mqtt_BaseItem( $interface, $name, 'discovery', "${discovery_prefix}/#", 0 );
+    my $self = new mqtt_BaseItem( $interface, $name, 'discovery', $listentopics, 0 );
 
     bless $self, $class;
 

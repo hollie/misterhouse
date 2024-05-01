@@ -344,7 +344,7 @@ use Data::Dumper;
 
 
 
-=item C<new(mqtt_interface, name, type, state_topic, command_topic, listen_topic, discoverable, friendly_name )>
+=item C<new(mqtt_interface, name, type, listen_topics, discoverable )>
 
     Creates an MQTT Base Item.
 
