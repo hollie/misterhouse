@@ -128,6 +128,7 @@ Usage:
     config parms:
         homeassistant_address=
         homeassistant_api_key=
+        homeassistant_no_labels = 1 # disable using Friendly_Name to create web object labels
 
 
     .mht file:
@@ -312,8 +313,6 @@ sub new {
     my ( $class, $name, $address, $keep_alive_timer, $api_key ) = @_;
     my $self;
 
-    print "creating HA Server $name on $address\n";
-
     if( !defined $main::Debug{ha_server} ) {
         $main::Debug{ha_server} = 0;
     }
@@ -324,8 +323,9 @@ sub new {
     $keep_alive_timer += 0;
 
     $self = {};
-
     bless $self, $class;
+
+    $self->log( "creating HA Server $name on $address" );
 
     $$self{state}               = 'off';
     $$self{said}                = '';
@@ -492,7 +492,7 @@ sub ha_process_read {
         return;
     } elsif( $data_obj->{type} eq 'auth_ok' ) {
         my $subscribe;
-        $self->log( "Authenticated to HomeAssistant server" );
+        $self->log( "$self->{name} authenticated to HomeAssistant server" );
         $self->{subscribe_id} = ++$self->{next_id};
         $subscribe->{id} = $self->{subscribe_id};
         $subscribe->{type} = 'subscribe_events';
@@ -527,6 +527,25 @@ sub parse_data_to_obj {
 
     my ($cmd_domain,$cmd_entity) = split( '\.', $cmd->{entity_id} );
     for my $obj ( @{ $self->{objects} } ) {
+        if( $cmd->{entity_id} eq $obj->{entity_id} ) {
+            $obj->set( $cmd, $p_setby );
+            my $no_label = 0;
+            if (defined $::config_parms{homeassistant_no_labels}) {
+                $no_label = $::config_parms{homeassistant_no_labels};
+            }
+            if (defined ( $obj->{ha_state}->{attributes}->{friendly_name}) and ($no_label == 0)) { 
+                my $subtype = $obj->{subtype};
+                $subtype =~ tr/_/ /;
+                $subtype = "" if (lc $subtype eq "digital");
+                my $label = $obj->{ha_state}->{attributes}->{friendly_name};
+                $label .= " " . $subtype if ($subtype);
+                $obj->set_label($label);
+            }
+            if( $p_setby eq "ha_server_init" ) {
+                $obj->{ha_init} = 1;
+            }
+            $handled = 1;
+	}
         if( $obj->{entity_prefixes} ) {
             for my $prefix (@{$obj->{entity_prefixes}}) {
                 if( $prefix eq substr($cmd_entity,0,length($prefix)) ) {
@@ -540,12 +559,6 @@ sub parse_data_to_obj {
                     $handled = 1;
                 }
             }
-        } elsif( $cmd->{entity_id} eq $obj->{entity_id} ) {
-            $obj->set( $cmd, $p_setby );
-            if( $p_setby eq "ha_server_init" ) {
-                $obj->{ha_init} = 1;
-            }
-            $handled = 1;
         }
     }
     if( !$handled ) {
@@ -589,7 +602,7 @@ sub generate_voice_commands {
         my $object_string;
         my $object_name = $self->get_object_name;
         $self->{init_v_cmd} = 1;
-        &main::print_log("Generating Voice commands for HA Server $object_name");
+        $self->log( "Generating Voice commands for HA Server $object_name" );
 
         my $voice_cmds = $self->get_voice_cmds();
         my $i          = 1;
@@ -624,7 +637,7 @@ sub get_voice_cmds {
     my ($self) = @_;
     my $command = $self->get_object_name;
     $command =~ s/^\$//;
-    $command =~ tr/_/ /; ## underscores in Voice_cmds cause them not to work.
+    $command =~ tr/_/-/; ## underscores in Voice_cmds cause them not to work.
 
     my $objects = "[";    
     my %seen;
@@ -635,12 +648,12 @@ sub get_voice_cmds {
     chop $objects if (length($objects) > 1);
     $objects .= "]";
     $objects =~ s/\$//g;
-    $objects =~ tr/_/ /; ## underscores in Voice_cmds cause them not to work.
+    $objects =~ tr/_/-/; ## underscores in Voice_cmds cause them not to work.
     
     #a bit of a kludge to pass along the voice command option, get the said value from the voice command.
     my %voice_cmds = (
         'List [all,active,inactive] ' . $command . ' objects to the print log'   => $self->get_object_name . '->print_object_list(SAID)',
-        'Print ' . $objects. ' ' . $command . ' attributes to the print log'             => $self->get_object_name . '->print_object_attrs(SAID)',
+        'Print ' . $objects. ' on ' . $command . ' attributes to the print log'             => $self->get_object_name . '->print_object_attrs(SAID)',
     );
 
     return \%voice_cmds;
@@ -649,45 +662,44 @@ sub get_voice_cmds {
 
 sub print_object_list {
     my ($self,$cmd) = @_; 
-    main::print_log("[HA_Server]: Showing $cmd entities known by $self->{name}");
+
+    $self->log( "Showing $cmd entities known by $self->{name}" );
  
     my @active_entities = ();
     my @inactive_entities = ();
     
     #should be replaced with just this instance.
-    foreach my $ha_server ( values %HA_Server_List ) {
-        my %seen;
-        for my $obj ( @{ $ha_server->{objects} } ) {
-            next if $seen{$obj->{entity_id}}++; #remove duplicate entity names
-            push (@active_entities, $obj->{entity_id});
-        }
+    my %seen;
+    for my $obj ( @{ $self->{objects} } ) {
+	next if $seen{$obj->{entity_id}}++; #remove duplicate entity names
+	push (@active_entities, $obj->{entity_id});
     }
         
     @inactive_entities = @{$self->{unhandled_entities}};
     
     if ($cmd eq 'active' or $cmd eq 'all') {
         for my $i (@active_entities) {
-            main::print_log("[HA_Server]: Active: $i");
+            $self->log( "Active: $i");
         }
     }
     if ($cmd eq 'inactive' or $cmd eq 'all') {
         for my $i (@inactive_entities) {
-            main::print_log("[HA_Server]: Inactive: $i");
+            $self->log( "Inactive: $i");
         }
     }
 }
 
 sub print_object_attrs {
     my ($self,$obj) = @_;
-    $obj =~ tr/ /_/;
-    main::print_log("[HA_Server]: Showing details for object $obj");
-    main::print_log("[HA_Server]: -----------------------------");
-    my $object = main::get_object_by_name($obj);
-    main::print_log("[HA_Server]: Entity = " . $object->{ha_state}->{entity_id}) if ( $object->{ha_state}->{entity_id});
-    main::print_log("[HA_Server]: Subtype = " . $object->{subtype}) if ( $object->{subtype});
 
-    main::print_log("[HA_Server]: Showing attribute raw data:");
-    print Dumper $object->{ha_state}->{attributes};
+    $obj =~ tr/ /_/;
+    $self->log( "Showing details for object $obj" );
+    $self->log( "-----------------------------");
+    my $object = main::get_object_by_name($obj);
+    $self->log( "Entity = " . $object->{ha_state}->{entity_id}) if ( $object->{ha_state}->{entity_id});
+    $self->log( "Subtype = " . $object->{subtype}) if ( $object->{subtype});
+    $self->log( "Showing HA entity attributes: \n" . $self->dump( $object->{ha_state}->{attributes} ) );
+    $self->log( "Showing collected entity values in attr: \n" . $self->dump( $object->{attr} ) );
 }  
 
 
@@ -810,6 +822,7 @@ sub new {
     $self->{subtype} = $subtype;    
     $self->debug( 1, "New HA_Item ( $class, $domain, $entity, $subtype )" );
 
+    $self->{attr} = {};
     if( $domain eq 'switch' ) {
         $self->set_states( "off", "on" );
     } elsif( $domain eq 'light' ) {
@@ -828,7 +841,6 @@ sub new {
         $self->set_states( "unlocked", "locked" );      
     } elsif( $domain eq 'climate' ) {
     } elsif( $domain eq 'sensor'  ||  $domain eq 'binary_sensor' ) {
-        $self->{attr} = {};
     } elsif( $domain eq 'select' ) {
     } else {
         $self->error( "Invalid type for HA_Item -- '$domain'" );
@@ -836,21 +848,28 @@ sub new {
     }
 
     my @prefixes = split( '\|', $entity );
-    if( $#prefixes  ||  substr( $entity, length($entity)-1, 1 ) eq '*' ) {
-        if( $#prefixes == 0 ) {
-            @prefixes = ($entity);
-        }
-        for my $prefix (@prefixes) {
-            if( substr( $prefix, length($prefix)-1, 1 ) eq '*' ) {
-                $prefix = substr( $prefix, 0, length($prefix)-1 );
-            }
-            push @{$self->{entity_prefixes}}, $prefix;
-        }
-        $self->debug( 1, "${domain}.${entity} prefixes: " . join( '|', @{$self->{entity_prefixes}}) );
+    if( $#prefixes == 0 ) {
+	@prefixes = ($entity);
+    }
+    $entity = undef;
+    for my $prefix (@prefixes) {
+	if( substr( $prefix, length($prefix)-1, 1 ) eq '*' ) {
+	    $prefix = substr( $prefix, 0, length($prefix)-1 );
+	    push @{$self->{entity_prefixes}}, $prefix;
+	} else {
+	    $entity = $prefix;
+	}
     }
 
+    if( !$entity ) {
+	$entity = $self->{entity_prefixes}[0];
+    }
     $self->{entity} = $entity;
     $self->{entity_id} = "${domain}.${entity}";
+
+    if( $self->{entity_prefixes} ) {
+	$self->debug( 1, "${domain}.${entity} prefixes: " . join( '|', @{$self->{entity_prefixes}}) );
+    }
 
     $self->{ha_server}->add( $self );
 
@@ -909,7 +928,11 @@ sub set_object_debug {
 sub set {
     my ( $self, $setval, $p_setby, $p_response ) = @_;
 
-    if( $p_setby =~ /ha_server*/ ) {
+if( !$p_setby ) {
+    print "ha_item->set called with undef p_setby\n";
+    print main::Stack_Trace() . "\n";
+}
+    if( $p_setby  &&  $p_setby =~ /ha_server*/ ) {
         # This is home assistant sending a state change via websocket
         # This state change may or may not have been initiated by us
         # This is sent as an object representing the json new_state

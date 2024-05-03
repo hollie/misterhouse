@@ -863,7 +863,7 @@ Specify a text label, useful for creating touch screen interfaces.  Can only be 
 =cut
 
 sub set_label {
-    return unless $main::Reload;
+    #return unless $main::Reload; #Why can't we change labels of objects? Commented so HA_Item can update labels from HA attributes
     my ( $self, $label ) = @_;
 
     # Set it
