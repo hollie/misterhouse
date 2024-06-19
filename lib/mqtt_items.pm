@@ -344,7 +344,7 @@ use Data::Dumper;
 
 
 
-=item C<new(mqtt_interface, name, type, listen_topics, discoverable )>
+=item C<new(mqtt_interface, name, type, state_topic, command_topic, listen_topic, discoverable, friendly_name )>
 
     Creates an MQTT Base Item.
 
@@ -1301,8 +1301,11 @@ sub receive_mqtt_message {
     if( $topic eq $self->{disc_info}->{state_topic} 
     ||  $topic eq $self->{disc_info}->{brightness_state_topic}
     ) {
-	if( $self->{disc_info}->{optimistic} eq 'true' ) {
+	if( $self->{disc_info}->{optimistic} eq 'true'  &&  $self->{pending_state} ) {
 	    $self->debug( 2, "BaseRemoteItem $self->{object_name} ignored state message because device is optimistic" );
+	    $self->{pending_state}    = undef;
+	    $self->{pending_setby}    = undef;
+	    $self->{pending_response} = undef;
 	} else {
 	    if( $retained ) {
 		$p_setby = 'mqtt [retained]';
@@ -1407,13 +1410,13 @@ sub set {    ### BaseRemoteItem
 	$self->transmit_topic( 'command_topic', $setval );
     }
 
+    $self->{pending_state}    = $setval;
+    $self->{pending_setby}    = $p_setby;
+    $self->{pending_response} = $p_response;
     if( $self->{disc_info}->{optimistic} eq 'true') {
 	$self->level( $setval ) if $self->can( 'level' );
 	$self->SUPER::set( $setval, $p_setby, $p_response );
     } else {
-	$self->{pending_state}    = $setval;
-	$self->{pending_setby}    = $p_setby;
-	$self->{pending_response} = $p_response;
 	$self->debug( 2, "Pending $self->{object_name}-->set( $setval, $p_setby, $p_response )" );
     }
 }
