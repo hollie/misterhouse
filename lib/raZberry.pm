@@ -1,4 +1,4 @@
-=head1 B<raZberry> v3.1.0
+=head1 B<raZberry> v3.1.1
 
 #test command setup
 #command queue
@@ -1324,7 +1324,7 @@ sub set {
     else {
         if ( $self->{digital} ) {
             if ( lc $p_state eq $s_closed ) {
-                $$self{master_object}->set_dev( $$self{devid}, $p_state );
+                $$self{master_object}->set_dev( $$self{devid}, "down" );
             }
             elsif ( lc $p_state eq $s_open ) {
                 $$self{master_object}->set_dev( $$self{devid}, "level=100" );
@@ -1341,7 +1341,10 @@ sub set {
             or ( lc $p_state eq $s_closed )
             or ( lc $p_state eq "stop" ) )
         {
-            $$self{master_object}->set_dev( $$self{devid}, $p_state );
+	    my $n_state = "stop";
+	    $n_state = "up" if ( lc $p_state eq $s_open );
+	    $n_state = "down" if ( lc $p_state eq $s_closed );
+            $$self{master_object}->set_dev( $$self{devid}, $n_state );
         }
         else {
             main::print_log("[raZberry_blind] Error. Unknown set state $p_state");
