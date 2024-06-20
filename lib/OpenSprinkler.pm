@@ -47,7 +47,7 @@ use Data::Dumper;
 #  $os1->get_rainstatus()
 
 # General Notes:
-#	-only tested with firmware 2.14 to 2.19
+#	-only tested with firmware 2.14 and 2.15 and 2.20
 
 # Child object Notes:
 #	Master
@@ -65,7 +65,7 @@ use Data::Dumper;
 # v1.1 (May 2016) - added ability to change program runtimes
 # v1.11 (May 2016) - removed JSON::XS dependancy
 # v1.11.1 (May 2017) - changed to support logger
-# v1.2 (Sept 2021) - added changed rain sensor
+# v2 (June 2024) - added support for v220. Note device support moved to HA_Item
 
 @OpenSprinkler::ISA = ('Generic_Item');
 
@@ -210,21 +210,27 @@ sub poll {
         and $isSuccessResponse3
         and $isSuccessResponse4 )
     {
+        my @adjustments;
+        $adjustments[0] = "manual";
+        $adjustments[1] = "zimmerman";
+        $adjustments[2] = "auto rain delay";
+        $adjustments[3] = "monthly";
+        
         $self->{data}->{name}    = $vars->{loc};
         $self->{data}->{loc}     = $vars->{loc};
         $self->{data}->{options} = $options;
         $self->{data}->{vars}    = $vars;
         $self->{data}->{info}->{state}              = ( $vars->{en} == 0 ) ? "disabled" : "enabled";
         $self->{data}->{info}->{waterlevel}         = $options->{wl};
-        $self->{data}->{info}->{adjustment_method}  = ( $options->{uwt} == 0 ) ? "manual" : "zimmerman";
-        if (exists($vars->{rs})) {
+        $self->{data}->{info}->{adjustment_method}  = $adjustments[ $options->{uwt} ];
+        # hardcode the rain sensor into sensor status fo FW > 220 to avoid breaking existing code
+        if ($self->{data}->{options}->{fwv} >= 220) {
+            $self->{data}->{info}->{rain_sensor_status} = ( $vars->{sn1} == 0 ) ? "off" : "on"; 
+            $self->{data}->{info}->{sensor_status} = ( $vars->{sn1} == 0 ) ? "inactive" : "active";       
+        } else {
             $self->{data}->{info}->{rain_sensor_status} = ( $vars->{rs} == 0 ) ? "off" : "on";
+            $self->{data}->{info}->{sensor_status} = "";
         }
-        else {
-            # rs has been replaced by sn1 for firmware 2.1.9 and up
-            $self->{data}->{info}->{rain_sensor_status} = ( $vars->{sn1} == 0 ) ? "off" : "on";
-        }
-        $self->{data}->{info}->{rain_sensor_status} = ( $vars->{rs} == 0 ) ? "off" : "on";
         $self->{data}->{info}->{sunrise}            = $vars->{sunrise};
         $self->{data}->{info}->{sunset}             = $vars->{sunset};
 
@@ -441,7 +447,7 @@ sub start_timer {
 sub print_info {
     my ($self) = @_;
 
-    my ( @state, @enabled, @rd, @rs, @pwenabled );
+    my ( @state, @enabled, @rd, @rs, @pwenabled, @sens );
     $state[0]     = "off";
     $state[1]     = "on";
     $enabled[1]   = "ENABLED";
@@ -452,8 +458,17 @@ sub print_info {
     $rd[1]        = "no rain delay";
     $rs[0]        = "rain is detected from rain sensor";
     $rs[1]        = "no rain detected";
+    $sens[0]      = "no sensor detected";
+    $sens[1]      = "rain sensor";
+    $sens[2]      = "flow sensor";
+    $sens[3]      = "soil sensor";
 
-    main::print_log( "[OpenSprinkler] Device Hardware v" . $self->{data}->{options}->{hwv} . " with firmware " . $self->{data}->{options}->{fwv} );
+    main::print_log( "[OpenSprinkler] MH Integration module v2. Opensprinkler device information:" );
+    main::print_log( "[OpenSprinkler] Hardware Version" . $self->{data}->{options}->{hwv} . " with firmware v" . $self->{data}->{options}->{fwv} );
+    main::print_log( "[OpenSprinkler] *******************************************************" );
+    main::print_log( "[OpenSprinkler] * Note: Opensprinkler.pm is now depreciated in favour *");
+    main::print_log( "[OpenSprinkler] *       of using Home Assistant for device access     *" );
+    main::print_log( "[OpenSprinkler] *******************************************************" );
     main::print_log( "[OpenSprinkler] *Mode is " . $self->{data}->{info}->{state} );
     main::print_log( "[OpenSprinkler] Time Zone is " . $self->get_tz() );
     main::print_log( "[OpenSprinkler] NTP Sync " . $state[ $self->{data}->{options}->{ntp} ] );
@@ -463,7 +478,11 @@ sub print_info {
     main::print_log( "[OpenSprinkler] Master station " . $self->{data}->{options}->{mas} );
     main::print_log( "[OpenSprinkler] master on time " . $self->{data}->{options}->{mton} );
     main::print_log( "[OpenSprinkler] master off time " . $self->{data}->{options}->{mtof} );
-    main::print_log( "[OpenSprinkler] Rain Sensor " . $state[ $self->{data}->{options}->{urs} ] );
+    if ($self->{data}->{options}->{fwv} >= 220) {
+        main::print_log( "[OpenSprinkler] Sensor type:" . $sens[$self->{data}->{options}->{sn1t} ] );    
+    } else {
+        main::print_log( "[OpenSprinkler] Rain Sensor " . $state[ $self->{data}->{options}->{urs} ] );    
+    }
     main::print_log( "[OpenSprinkler] *Water Level " . $self->{data}->{info}->{waterlevel} );
     main::print_log( "[OpenSprinkler] Password is " . $pwenabled[ $self->{data}->{options}->{ipas} ] );
     main::print_log( "[OpenSprinkler] Device ID " . $self->{data}->{options}->{devid} )
@@ -481,9 +500,17 @@ sub print_info {
     main::print_log( "[OpenSprinkler] Device Time " . localtime( $self->{data}->{vars}->{devt} ) );
     main::print_log( "[OpenSprinkler] Number of 8 station boards " . $self->{data}->{vars}->{nbrd} );
     main::print_log( "[OpenSprinkler] Rain delay " . $self->{data}->{vars}->{rd} );
-    main::print_log( "[OpenSprinkler] *Rain sensor status " . $self->{data}->{info}->{rain_sensor_status} );
+    if ($self->{data}->{options}->{fwv} >= 220) {
+        main::print_log( "[OpenSprinkler] *Sensor status " . $self->{data}->{info}->{sensor_status} );    
+    } else {
+        main::print_log( "[OpenSprinkler] *Rain sensor status " . $self->{data}->{info}->{rain_sensor_status} );
+    }
     main::print_log( "[OpenSprinkler] Location " . $self->{data}->{vars}->{loc} );
-    main::print_log( "[OpenSprinkler] Wunderground key " . $self->{data}->{vars}->{wtkey} );
+    if (defined $self->{data}->{vars}->{wtkey} ) {
+        main::print_log( "[OpenSprinkler] Wunderground key " . $self->{data}->{vars}->{wtkey} );
+    } else {
+        main::print_log( "[OpenSprinkler] No Wunderground key defined" );    
+    }
     main::print_log( "[OpenSprinkler] *Sun Rises at " . $self->get_sunrise() );
     main::print_log( "[OpenSprinkler] *Sun Sets at " . $self->get_sunset() );
 
