@@ -216,6 +216,32 @@ use Storable;
 
 #--------------Logging and debugging functions----------------------------------------
 
+sub break_long_str {
+    my ($self, $str, $prefix, $maxlength) = @_;
+    my $result;
+
+    $result = '';
+    $str = $str || '';
+    while( length( $str ) > $maxlength ) {
+        my $l = 0;
+        my $i;
+        for( $i=0; $i<length($str) && $l<$maxlength; ++$i,++$l ) {
+            if( substr( $str, $i, 1 ) eq "\n" ) {
+                $l = 0;
+            }
+        }
+        $result .= $prefix;
+        $result .= substr( $str, 0, $i );
+        $str = substr( $str, $i );
+        $prefix = '....  ';
+    }
+    if( $str ) {
+        $result .= $prefix;
+        $result .= $str;
+    }
+    return $result;
+}
+
 sub log {
     my ($self, $str, $prefix) = @_;
 
@@ -874,6 +900,7 @@ EOF
 	my $uuid = $device->{'id'}; # Makes things easier below...
 
         if ( !exists $self->{'uuids'}->{$uuid} ) {
+	    $self->error( "No device id $uuid found");
             $response .= <<EOF;
    "$uuid": {
     "errorCode": "deviceNotFound"
@@ -976,6 +1003,7 @@ EOF
     
 	    my $devstate = get_state( $self, $self->{'uuids'}->{$uuid} );
 	    if ( !defined $devstate ) {
+		$self->error( "Device $self->{'uuids'}->{$uuid}->{'realname'} has no state; ignoring AoG item.");
 		$response .= <<EOF;
    "$uuid": {
     "errorCode": "deviceNotFound"
