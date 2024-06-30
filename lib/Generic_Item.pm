@@ -863,9 +863,12 @@ Specify a text label, useful for creating touch screen interfaces.  Can only be 
 =cut
 
 sub set_label {
-    return unless $main::Reload;
-    my ( $self, $label ) = @_;
-
+    #return unless $main::Reload; 
+    #add in the ability to override this limitation, used in HA_Item
+    my ( $self, $label, $override ) = @_;
+    $override = 0 unless (defined $override);
+    return unless ( $main::Reload or $override);
+   
     # Set it
     if ( defined $label ) {
         $self->{label} = $label;
@@ -1017,12 +1020,18 @@ sub get_fp_icon_set {
 =item C<set_states(states)>
 
 Sets valid states to states, which is a list or array.  Can only be run at startup or reload.  TODO
-
+Since set_states is an array, if the last element is override=1, then this can override states only being created at reload
+Used in HA_Item for states that come back from the webapi
 =cut
 
 sub set_states {
-    return unless $main::Reload;
-    my ( $self, @states ) = @_;
+    my ( $self, @states) = @_;
+    my $override;
+    my $last_element = $states[-1];
+    ($override) = $last_element =~ m/override=(\d)/;
+    pop(@states) if (defined $override);
+    $override = 0 unless (defined $override);
+    return unless ( $main::Reload or $override);
     @{ $$self{states} } = @states;
 }
 
