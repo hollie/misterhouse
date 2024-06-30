@@ -137,6 +137,7 @@ sub new {
       if ( defined $main::config_parms{object_logger_enable} );
     $self->{logger_mintime}    = 1;
     $self->{logger_updatetime} = 0;
+    $self->{rrdfile} = undef;   #if an rrdfile is attached to the object, then it can be displayed in the ia7 interface
     $self->restore_data( 'active_state', 'schedule_count' );
 
     for my $index ( 1 .. 20 ) {
@@ -254,6 +255,7 @@ sub _set_process {
 
     # Override any set_by_timer requests
     if ( $$self{timer} ) {
+	print "deleting timer due to set call\n" if $::Debug{set};
         &Timer::unset( $$self{timer} );
         delete $$self{timer};
     }
@@ -280,7 +282,7 @@ sub _set_process {
         else {
             $state = ( $state_current eq 'on' ) ? 'off' : 'on';
         }
-        &main::print_log( "Toggling $self->{object_name} from $state_current " . "to $state" );
+        # &main::print_log( "Toggling $self->{object_name} from $state_current " . "to $state" );
     }
 
     # Respond_Target is write-only from here (and its use for speech chimes
@@ -861,9 +863,12 @@ Specify a text label, useful for creating touch screen interfaces.  Can only be 
 =cut
 
 sub set_label {
-    return unless $main::Reload;
-    my ( $self, $label ) = @_;
-
+    #return unless $main::Reload; 
+    #add in the ability to override this limitation, used in HA_Item
+    my ( $self, $label, $override ) = @_;
+    $override = 0 unless (defined $override);
+    return unless ( $main::Reload or $override);
+   
     # Set it
     if ( defined $label ) {
         $self->{label} = $label;
@@ -1015,12 +1020,18 @@ sub get_fp_icon_set {
 =item C<set_states(states)>
 
 Sets valid states to states, which is a list or array.  Can only be run at startup or reload.  TODO
-
+Since set_states is an array, if the last element is override=1, then this can override states only being created at reload
+Used in HA_Item for states that come back from the webapi
 =cut
 
 sub set_states {
-    return unless $main::Reload;
-    my ( $self, @states ) = @_;
+    my ( $self, @states) = @_;
+    my $override;
+    my $last_element = $states[-1];
+    ($override) = $last_element =~ m/override=(\d)/;
+    pop(@states) if (defined $override);
+    $override = 0 unless (defined $override);
+    return unless ( $main::Reload or $override);
     @{ $$self{states} } = @states;
 }
 
@@ -1166,6 +1177,49 @@ sub logger {
         "$main::Time_Date,$tickcount,$object_name,$state,$set_by_name," . ( ($target) ? "$target" : '' ) . "\n", 0 );
     $self->{logger_updatetime} = $tickcount;
 }
+
+=item C<set_rrd()>
+
+Attach a rrd filename, and data source (ds) names to the object. Used to display a graph in the IA7 interface
+
+=cut
+
+sub set_rrd {
+    my ( $self, $rrdfile, $ds) = @_;
+    
+    $self->{rrdfile} = $rrdfile;
+    $self->{rrdds} = $ds;
+    
+}
+
+=item C<get_rrd()>
+
+Get the rrd filename attached to the object. 
+
+
+=cut
+
+sub get_rrd {
+    my ( $self) = @_;
+    
+    return $self->{rrdfile};
+    
+}
+
+=item C<get_rrd()>
+
+Get the rrd datasources attached to the object. 
+
+
+=cut
+
+sub get_rrd_ds {
+    my ( $self) = @_;
+    
+    return $self->{rrdds};
+    
+}
+
 
 =item C<reset_states2()>
 
@@ -2003,7 +2057,8 @@ sub check_date {
                       . " schedule is "
                       . $self->{ 'schedule_' . $index }
                       . " time_cron return "
-                      . &main::time_cron( $self->{ 'schedule_' . $index } ) );
+                      . &main::time_cron( $self->{ 'schedule_' . $index } ) )
+			if $main::Debug{'schedule'};
                 if ( &main::time_cron( $self->{ 'schedule_' . $index } ) ) {
                     $self->set_action( $self->{ 'schedule_label_' . $index } );
                 }
