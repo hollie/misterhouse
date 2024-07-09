@@ -75,6 +75,7 @@ Description:
 	*** IMPORTANT *** :      the attribute name will be current_temperature
             - light:  on, off and brightness
                     :rgb_color : for setting an RGB value
+                    :effect    : for setting a lighting effect
             - cover: open,stop,close
                     :digital : for allowing granular setpoints
             - lock: lock, unlock
@@ -110,6 +111,9 @@ Description:
                 2. if the MH code doesn't implement all of the HA entity services, or there
                    are custom services on the entity, then you can call them with this function
             eg. $thermostat->ha_call_service( 'set_preset_mode', {preset_mode=>'away'} );
+	- ha_call_service also exists on the HA_Server class
+	    - this can be used to call services that are not entity services
+	    eg. $hasrv->ha_call_service( 'notify.mobile_app_my_phone', {title=>'HA notification', message=>'test message'} );
 
     
 
@@ -352,7 +356,6 @@ sub new {
 
 	&::MainLoop_pre_add_hook( \&HA_Server::check_for_data, 1, $self );
 	# &::Reload_pre_add_hook( \&HA_Server::disconnect, 1, $self );
-	&::Reload_post_add_hook( \&HA_Server::restore_entity_states, 1, $self );
 	&::Reload_post_add_hook( \&HA_Server::generate_voice_commands, 1, $self );
 
 	$HA_Server_List{$name}	    = $self;
@@ -519,16 +522,19 @@ sub check_for_data {
 
 sub ha_process_write {
     my ($self, $data) = @_;
+    my $msgid;
 
-    if( ref $data ) {
-        $data = encode_json( $data );
+    if( $data->{type} ne 'auth' ) {
+	$data->{id} = $msgid = ++$self->{next_id};
     }
+    $data = encode_json( $data );
     if( !$self->{socket_item}->active() ) {
 	$self->error( "$self->{name} doing write, but socket is disconnected" );
         return;
     }
     $self->debug( 1, "sending data to ha: $data" );
     $self->{ws_client}->write( $data );
+    return $msgid;
 }
 
 sub ha_process_read {
@@ -556,18 +562,18 @@ sub ha_process_read {
         $self->parse_data_to_obj( $data_obj->{event}->{data}->{new_state}, "ha_server" );
         return;
     } elsif( $data_obj->{type} eq 'auth_required' ) {
-        my $auth_message = "{ \"type\": \"auth\", \"access_token\": \"$$self{api_key}\" }";
-        $self->ha_process_write( $auth_message );
+        my $ha_msg = {};
+	$ha_msg->{type} = "auth";
+	$ha_msg->{access_token} = $self->{api_key};
+        $self->ha_process_write( $ha_msg );
         return;
     } elsif( $data_obj->{type} eq 'auth_ok' ) {
-        my $subscribe;
+        my $ha_msg = {};
 	$self->{authenticated} = 1;
         $self->log( "$self->{name} authenticated to HomeAssistant server" );
-        $self->{subscribe_id} = ++$self->{next_id};
-        $subscribe->{id} = $self->{subscribe_id};
-        $subscribe->{type} = 'subscribe_events';
-        $subscribe->{event_type} = 'state_changed';
-        $self->ha_process_write( $subscribe );
+        $ha_msg->{type} = 'subscribe_events';
+        $ha_msg->{event_type} = 'state_changed';
+        $self->{subscribe_id} = $self->ha_process_write( $ha_msg );
 	$self->request_entity_states();
         return;
     } elsif( $data_obj->{type} eq 'auth_invalid' ) {
@@ -589,6 +595,45 @@ sub ha_process_read {
     }
 }
 
+=item C<ha_call_service(service_name, service_data_hash )>
+
+    Will send a message to HA to run a service 'domain.service_name' passing in the
+    kwargs parameters specified in service_data_hash.
+
+=cut
+sub ha_call_service {
+    my ($self, $service, $service_data) = @_;
+    my $ha_msg = {};
+    my $entity_id;
+    my $service_name;
+    my $domain;
+
+    $ha_msg->{type} = 'call_service';
+    ($domain, $entity_id, $service_name) = $service =~ /^([^\.]+)\.([^\.]+)\.([^\.]+)$/;
+    if( $entity_id ) {
+	$entity_id = "$domain.$entity_id";
+    } else {
+	($domain, $service_name) = $service =~ /^([^\.]+)\.([^\.]+)$/;
+	if( $domain ) {
+	    $entity_id = undef;
+	} else {
+	    $self->error( "Invalid service name specified: $service" );
+	    return;
+	}
+    }
+    $ha_msg->{domain} = $domain;
+    if( $entity_id ) {
+	$ha_msg->{target} = {};
+	$ha_msg->{target}->{entity_id} = $entity_id;
+    }
+    $ha_msg->{service} = $service_name;
+    if( defined( $service_data )  &&  keys %$service_data) {
+        $ha_msg->{service_data} = $service_data;
+    }
+
+    $self->ha_process_write( $ha_msg );
+}
+
 sub set_object_state {
     my ( $self, $obj, $cmd, $p_setby ) = @_;
 
@@ -597,7 +642,7 @@ sub set_object_state {
     } else {
 	$obj->debug( 2, "handled event for $obj->{object_name} set by $p_setby to: $cmd->{state}" );
     }
-    $obj->set( $cmd, $p_setby );
+    $obj->process_ha_message( $cmd, $p_setby );
     if( $p_setby eq "ha_server_init" ) {
 	$obj->{ha_init} = 1;
 	my $no_label = 0;
@@ -610,7 +655,7 @@ sub set_object_state {
 	    $subtype = "" if (lc $subtype eq "digital");
 	    my $label = $obj->{ha_state}->{attributes}->{friendly_name};
 	    $label .= " " . $subtype if ($subtype);
-	    $obj->set_label($label);
+	    $obj->set_label($label,1);
 	}
     }
 }
@@ -686,12 +731,10 @@ sub process_result {
 
 sub request_entity_states {
     my ( $self ) = @_;
-    my $getstates;
+    my $ha_msg = {};
 
-    $self->{getstates_id} = ++$self->{next_id};
-    $getstates->{id} = $self->{getstates_id};
-    $getstates->{type} = 'get_states';
-    $self->ha_process_write( $getstates );
+    $ha_msg->{type} = 'get_states';
+    $self->{getstates_id} = $self->ha_process_write( $ha_msg );
 }
 
 sub process_entity_states {
@@ -708,17 +751,6 @@ sub process_entity_states {
     for my $obj ( @{ $self->{objects} } ) {
         if( !$obj->{ha_init} ) {
             $self->log( "no HomeAssistant initial state for HA_Item object $obj->{object_name} entity_id:$obj->{entity_id}" );
-        }
-    }
-}
-
-sub restore_entity_states {
-    my ($self) = @_;
-
-    for my $obj ( @{ $self->{objects} } ) {
-        if( $obj->{ha_states}  &&  substr($obj->{ha_states},0,1) eq "'" ) {
-            $obj->debug( 1, "Restoring states on $obj->{object_name} to $obj->{ha_states}" );
-            eval '$obj->set_states( ' . $obj->{ha_states} . ');';
         }
     }
 }
@@ -832,7 +864,7 @@ sub print_object_attrs {
 	# $self->log( "Showing collected entity values in attr: \n" . $self->dump( $object->{attr} ) );
 	my $str='';
 	for my $attr_name ( sort keys %{$object->{subitems}} ) {
-	    $str .= "   $attr_name: " . $object->{subitems}->{$attr_name}->state() . "\n";
+	    $str .= "   $attr_name: $object->{subitems}->{$attr_name}->{entity_id}: " . $object->{subitems}->{$attr_name}->state() . "\n";
 	}
 	$self->log( "Showing sub-item values: \n$str" );
     }
@@ -999,12 +1031,14 @@ sub new {
     } elsif( $domain eq 'light' ) {
         if ($self->{subtype} eq "rgb_color") {
             $self->set_states("rgb");
+        } elsif ($self->{subtype} eq "effect") {
+           # placeholder in case we need to do something. States are set dynamically when the object is set      
         } else {
-            $self->set_states( "off", "20%", "40%", "50%", "60%", "80%", "on" );
+            $self->set_states( "off", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "on" );
         }
     } elsif( $domain eq 'cover' ) {
         if (lc $self->{subtype} eq "digital") {
-            $self->set_states( "closed", "20%", "40%", "50%", "60%", "80%", "open" );
+            $self->set_states( "closed", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "open" );
         } else {
             $self->set_states( "closed", "stop", "open" );
         }
@@ -1013,6 +1047,7 @@ sub new {
     } elsif( $domain eq 'climate' ) {
     } elsif( $domain eq 'sensor'  ||  $domain eq 'binary_sensor' ) {
     } elsif( $domain eq 'select'  ||  $domain eq 'input_select' ) {
+    } elsif( $domain eq 'text'    ||  $domain eq 'input_text' ) {
     } elsif( $domain eq 'number'  ||  $domain eq 'input_number' ) {
         
     } else {
@@ -1053,8 +1088,6 @@ sub new {
     $self->{msg_trk}->{msg_timer}		    = ::Timer::new();
     $self->{ha_server}->add( $self );
 
-    $self->restore_data( 'ha_states' );
-
     return $self;
 }
 
@@ -1089,150 +1122,165 @@ sub set_object_debug {
 sub set {
     my ( $self, $setval, $p_setby, $p_response ) = @_;
 
-    if( $p_setby  &&  $p_setby =~ /ha_server*/ ) {
-        # This is home assistant sending a state change via websocket
-        # This state change may or may not have been initiated by us
-        # This is sent as an object representing the json new_state
+    $self->debug( 2, "$self->{object_name} set by $p_setby to: $setval" );
 
-        my $new_state = $setval;
-        $self->{ha_state} = $setval;
-	if( ref $self->{ha_pending_setparms} ) {
-	    $p_setby = $self->{ha_pending_setparms}->{mh_pending_setby};
-	    $p_response = $self->{ha_pending_setparms}->{mh_pending_response};
-	}
-	delete $self->{ha_pending_setparms};
-	if( $self->{msg_trk}->{serialize_on_state_change}  &&  !$self->{msg_trk}->{serialize_on_delay} ) {
-	    $self->ha_send_message();
-	}
-
-	if( $new_state->{state} eq 'unavailable' ) {
-	    $self->debug( 1, "received 'unavailable' value for $self->{object_name}" );
-	    $self->{unavailable_count} += 1;
-	    if( $self->{unavailable_count} < 3 ) {
-		return;
-	    }
-	} else {
-	    $self->{unavailable_count} = 0;
-	}
-	
-	if( ($self->{duplicate_states} == 0) and ( lc( $self->state() ) eq lc( $new_state->{state} )) ) {
-	    $self->debug( 2, "Duplicate state $new_state->{state} ignored on $self->{object_name}" );
-	    return;
-	}
-	
-        if( $self->{domain} eq 'switch'
-        ||  $self->{domain} eq 'lock'
-        ||  $self->{domain} eq 'sensor'
-        ||  $self->{domain} eq 'number'  ||  $self->{domain} eq 'input_number'
-        ||  $self->{domain} eq 'binary_sensor'
-        ) {
-            $self->debug( 1, "$self->{domain} event for $self->{object_name} set to $new_state->{state}" );
-            $self->SUPER::set( $new_state->{state}, $p_setby, $p_response );
-        } elsif( $self->{domain} eq 'cover' ) {
-            my $level = $new_state->{state};
-            if (lc $self->{subtype} eq "digital") {
-                if( $new_state->{attributes}->{current_position} ) {
-                    $level = $new_state->{attributes}->{current_position}; # * 100 / 255;
-                    $level .= "%";
-                }
-            }    
-            $level = "open" if ($level eq "100%");
-            $level = "closed" if ($level eq "0%");
-            $self->debug( 1, "cover:$self->{subtype} event for $self->{object_name} set to $level" );
-            $self->SUPER::set( $level, $p_setby, $p_response );
-	} elsif( $self->{domain} eq 'select'  ||  $self->{domain} eq 'input_select' ) {
-            $self->debug( 1, "$self->{domain} event for $self->{object_name} set to $new_state->{state}" );
-            $self->SUPER::set( $new_state->{state}, $p_setby, $p_response );
-            if( $p_setby eq 'ha_server_init' ) {
-                $self->{ha_states} = $self->restore_states_string( $new_state->{attributes}->{options} );
-            }
-        } elsif( $self->{domain} eq 'light' ) {
-            if (lc $self->{subtype} eq "rgb_color") {
-                if( $new_state->{attributes}  &&  ref $new_state->{attributes}->{$self->{subtype}} ) {
-                    #shouldn't join, but rgb is an array so for now create a string
-                    my $string = join ',', @{$new_state->{attributes}->{ $self->{subtype} }}; 
-                    $self->debug( 1, "handled subtype $self->{subtype} event for $self->{object_name} set to $string" );
-                    $self->SUPER::set( $string, $p_setby, $p_response );
-                } else {
-                    $self->debug( 1, "got light state for $self->{object_name} but no rgb_color attribute" );
-                }
-            } else {    
-                my $level = $new_state->{state};
-                if( $new_state->{state} eq 'on' ){
-                    if( $new_state->{attributes}->{brightness} ) {
-                        $level = int( $new_state->{attributes}->{brightness} * 100 / 255 + .5);
-                    }
-                }    
-                $self->debug( 1, "light event for $self->{object_name} set to $level" );
-                $self->SUPER::set( $level, $p_setby, $p_response );
-            }
-        } elsif( $self->{domain} eq 'climate' ) {
-            my $state;
-            foreach my $attrname (keys %{$new_state->{attributes}} ) {
-                if( $self->{subtype} eq $attrname ) {
-                    $state = $new_state->{attributes}->{$attrname};
-                }
-            }
-            #Check for duplicates again as the $new state is inside the attributes
-	    if( ($self->{duplicate_states} == 0) and ( lc( $self->state() ) eq lc( $new_state->{state} )) ) {
-		$self->debug( 2, "Duplicate climate state $new_state->{state} ignored on $self->{object_name}" );
-		return;
-	    }
-
-            if( !$state  &&  (!$self->{subtype}  ||  $self->{subtype} eq 'hvac_mode' ) ) {
-                $state = $new_state->{state};
-            }
-            if( !$state  &&  $self->{subtype} ) {
-                $self->error( "climate state message did not contain state for $self->{object_name}" );
-                return;
-            }
-            if( $self->{subtype} ) {
-                $self->debug( 1, "climate $self->{object_name} set: $state" );
-            } else {
-                $self->debug( 1, "climate $self->{object_name} default object set: $state" );
-            }
-            if( $p_setby eq 'ha_server_init' ) {
-                if( $self->{subtype} eq 'hvac_mode' ) {
-                    $self->{ha_states} = $self->restore_states_string( $new_state->{attributes}->{hvac_modes} );
-                } elsif( $self->{subtype} eq 'fan_mode' ) {
-                    $self->{ha_states} = $self->restore_states_string( $new_state->{attributes}->{fan_modes} );
-                } elsif( $self->{subtype} eq 'preset_mode' ) {
-                    $self->{ha_states} = $self->restore_states_string( $new_state->{attributes}->{preset_modes} );
-                }
-            }
-            $self->SUPER::set( $state, $p_setby, $p_response );
-        }
+    if( lc $self->{state} eq lc $setval ) {
+	# If the state is set to its current value, HA will not send back a state change
+	# call SUPER:set at this point to reflect the set call
+	$self->{ha_current_setparms} = undef;
+	$self->level( $setval ) if $self->can( 'level' );
+	$self->SUPER::set( $setval, $p_setby, $p_response );
     } else {
-        # Item has been set locally -- use HA WebSocket to change state
-        $self->debug( 2, "$self->{object_name} set by $p_setby to: $setval" );
-
 	my $setparms = {};
 	$setparms->{mh_pending_setby} = $p_setby;
 	$setparms->{mh_pending_response} = $p_response;
 	$setparms->{value} = $setval;
 	$self->{ha_current_setparms} = $setparms;
-        if( $self->{domain} eq 'select'  ||  $self->{domain} eq 'input_select' ) {
-            $self->ha_set_select( $setval );
-        } elsif( $self->{domain} eq 'climate' ) {
-            $self->ha_set_climate( $setval );
-        } else {
-            $self->ha_set_state( $setval );
-        }
     }
+    if( $self->{domain} eq 'select'  ||  $self->{domain} eq 'input_select' ) {
+	$self->ha_set_select( $setval );
+    } elsif( $self->{domain} eq 'climate' ) {
+	$self->ha_set_climate( $setval );
+    } else {
+	$self->ha_set_state( $setval );
+    }
+    $self->{ha_current_setparms} = undef;
 }
 
-sub restore_states_string {
-    my ($self, $state_list) = @_;
-    if( !$state_list  ||  $#{@$state_list} == 0 ) {
-        return;
+=item C<process_ha_message(cmd, p_setby )>
+
+    Process a message from HA, and set the local item to the corresponding value.
+    This may be a state change message initiated by us sending a message to HA, or
+    it may have been initiated in HA.
+
+=cut
+sub process_ha_message {
+    my ( $self, $cmd, $p_setby ) = @_;
+    my $p_response;
+
+    # The cmd is an object representing the json new_state
+
+    my $new_state = $cmd;
+    $self->{ha_state} = $cmd;
+    if( ref $self->{ha_pending_setparms} ) {
+	$p_setby = $self->{ha_pending_setparms}->{mh_pending_setby};
+	$p_response = $self->{ha_pending_setparms}->{mh_pending_response};
     }
-    my $state_list_str = "'" . join("','", @{$state_list}) . "'";
-    return $state_list_str;
+    delete $self->{ha_pending_setparms};
+    if( $self->{msg_trk}->{serialize_on_state_change}  &&  !$self->{msg_trk}->{serialize_on_delay} ) {
+	$self->ha_send_message();
+    }
+
+    if( $new_state->{state} eq 'unavailable' ) {
+	$self->debug( 1, "received 'unavailable' value for $self->{object_name}" );
+	$self->{unavailable_count} += 1;
+	if( $self->{unavailable_count} < 3 ) {
+	    return;
+	}
+    } else {
+	$self->{unavailable_count} = 0;
+    }
+    
+    if( ($self->{duplicate_states} == 0) and ( lc( $self->state() ) eq lc( $new_state->{state} )) ) {
+	$self->debug( 2, "Duplicate state $new_state->{state} ignored on $self->{object_name}" );
+	return;
+    }
+    
+    if( $self->{domain} eq 'switch'
+    ||  $self->{domain} eq 'lock'
+    ||  $self->{domain} eq 'sensor'
+    ||  $self->{domain} eq 'number'  ||  $self->{domain} eq 'input_number'
+    ||  $self->{domain} eq 'text'    ||  $self->{domain} eq 'input_text'
+    ||  $self->{domain} eq 'binary_sensor'
+    ) {
+	$self->debug( 1, "$self->{domain} event for $self->{object_name} set to $new_state->{state}" );
+	$self->SUPER::set( $new_state->{state}, $p_setby, $p_response );
+    } elsif( $self->{domain} eq 'cover' ) {
+	my $level = $new_state->{state};
+	if (lc $self->{subtype} eq "digital") {
+	    if( $new_state->{attributes}->{current_position} ) {
+		$level = $new_state->{attributes}->{current_position}; # * 100 / 255;
+		$level .= "%";
+	    }
+	}    
+	$level = "open" if ($level eq "100%");
+	$level = "closed" if ($level eq "0%");
+	$self->debug( 1, "cover:$self->{subtype} event for $self->{object_name} set to $level" );
+	$self->SUPER::set( $level, $p_setby, $p_response );
+    } elsif( $self->{domain} eq 'select'  ||  $self->{domain} eq 'input_select' ) {
+	$self->debug( 1, "$self->{domain} event for $self->{object_name} set to $new_state->{state}" );
+	$self->SUPER::set( $new_state->{state}, $p_setby, $p_response );
+	if( $p_setby eq 'ha_server_init' ) {
+	    $self->set_states( @{$new_state->{attributes}->{options}},"override=1" );
+	}
+    } elsif( $self->{domain} eq 'light' ) {
+	if (lc $self->{subtype} eq "rgb_color") {
+	    if( $new_state->{attributes}  &&  ref $new_state->{attributes}->{$self->{subtype}} ) {
+		#shouldn't join, but rgb is an array so for now create a string
+		my $string = join ',', @{$new_state->{attributes}->{ $self->{subtype} }}; 
+		$self->debug( 1, "handled subtype $self->{subtype} event for $self->{object_name} set to $string" );
+		$self->SUPER::set( $string, $p_setby, $p_response );
+	    } else {
+		$self->debug( 1, "got light state for $self->{object_name} but no rgb_color attribute" );
+	    }
+	} elsif (lc $self->{subtype} eq "effect") {
+	    # update the set_states based on the effects_list array
+	    $self->debug( 1, "effect_list [" . join (',',@{$new_state->{attributes}->{effect_list}}) . "]" );
+	    #override=1 is a way to bypass the returnif $main::reload in Generic Item set_state
+	    $self->set_states(@{$new_state->{attributes}->{effect_list}},"override=1");
+	    #the if clause prevents the state from disspearing if the aurora turns off.
+	    $self->SUPER::set( $setval->{attributes}->{effect}, $p_setby, $p_response ) if ($setval->{attributes}->{effect});
+	} else {    
+	    my $level = $new_state->{state};
+	    if( $new_state->{state} eq 'on' ){
+		if( $new_state->{attributes}->{brightness} ) {
+		    $level = int( $new_state->{attributes}->{brightness} * 100 / 255 + .5);
+		}
+	    }    
+	    $self->debug( 1, "light event for $self->{object_name} set to $level" );
+	    $self->SUPER::set( $level, $p_setby, $p_response );
+	}
+    } elsif( $self->{domain} eq 'climate' ) {
+	my $state;
+	foreach my $attrname (keys %{$new_state->{attributes}} ) {
+	    if( $self->{subtype} eq $attrname ) {
+		$state = $new_state->{attributes}->{$attrname};
+	    }
+	}
+	#Check for duplicates again as the $new state is inside the attributes
+	if( ($self->{duplicate_states} == 0) and ( lc( $self->state() ) eq lc( $new_state->{state} )) ) {
+	    $self->debug( 2, "Duplicate climate state $new_state->{state} ignored on $self->{object_name}" );
+	    return;
+	}
+
+	if( !$state  &&  (!$self->{subtype}  ||  $self->{subtype} eq 'hvac_mode' ) ) {
+	    $state = $new_state->{state};
+	}
+	if( !$state  &&  $self->{subtype} ) {
+	    $self->error( "climate state message did not contain state for $self->{object_name}" );
+	    return;
+	}
+	if( $self->{subtype} ) {
+	    $self->debug( 1, "climate $self->{object_name} set: $state" );
+	} else {
+	    $self->debug( 1, "climate $self->{object_name} default object set: $state" );
+	}
+	if( $p_setby eq 'ha_server_init' ) {
+	    if( $self->{subtype} eq 'hvac_mode' ) {
+		$self->set_states( @{$new_state->{attributes}->{hvac_modes}},"override=1" );
+	    } elsif( $self->{subtype} eq 'fan_mode' ) {
+		$self->set_states( @{$new_state->{attributes}->{fan_modes}},"override=1" );
+	    } elsif( $self->{subtype} eq 'preset_mode' ) {
+		$self->set_states( @{$new_state->{attributes}->{preset_modes}},"override=1" );
+	    }
+	}
+	$self->SUPER::set( $state, $p_setby, $p_response );
+    }
 }
 
 =item C<ha_call_service(service_name, service_data_hash )>
 
-    Will send a message to HA to run the service 'service_name' passing in the
+    Will send a message to HA to run the service 'service_name' on the entity passing in the
     kwargs parameters specified in service_data_hash.
     This will cause a state change to be sent to the HA entity mirrored by the item.
     Local state will not be changed until the state_change event is received back from the HA server.
@@ -1246,17 +1294,24 @@ sub ha_call_service {
     my $domain;
 
     $ha_msg->{type} = 'call_service';
-    $ha_msg->{target} = {};
     ($domain, $entity_id, $service_name) = $service =~ /^([^\.]+)\.([^\.]+)\.([^\.]+)$/;
     if( $entity_id ) {
 	$entity_id = "$domain.$entity_id";
     } else {
-	$entity_id = $self->{entity_id};
-	$service_name = $service;
-	$domain = $self->{domain};
+	($domain, $service_name) = $service =~ /^([^\.]+)\.([^\.]+)$/;
+	if( $domain ) {
+	    $entity_id = undef;
+	} else {
+	    $entity_id = $self->{entity_id};
+	    $service_name = $service;
+	    $domain = $self->{domain};
+	}
     }
     $ha_msg->{domain} = $domain;
-    $ha_msg->{target}->{entity_id} = $entity_id;
+    if( $entity_id ) {
+	$ha_msg->{target} = {};
+	$ha_msg->{target}->{entity_id} = $entity_id;
+    }
     $ha_msg->{service} = $service_name;
     if( defined( $service_data )  &&  keys %$service_data) {
         $ha_msg->{service_data} = $service_data;
@@ -1270,7 +1325,6 @@ sub ha_send_message {
 
     if( $ha_msg ) {
 	$ha_msg->{ha_setparms} = $self->{ha_current_setparms};
-	$self->{ha_current_setparms} = undef;
 	push @{$self->{msg_trk}->{pending_msg_queue}}, $ha_msg;
 	if( $self->{msg_trk}->{pending_msgid} ) {
 	    $self->debug( 1, "message to HA queued" );
@@ -1283,15 +1337,13 @@ sub ha_send_message {
     if( !$ha_msg ) {
 	return;
     }
-    $ha_msg->{id} = ++$self->{ha_server}->{next_id};
-    $self->{msg_trk}->{pending_msgid} = $ha_msg->{id};
     $self->{ha_pending_setparms} = $ha_msg->{ha_setparms};
     delete $ha_msg->{ha_setparms};
 
     $self->debug( 2, "sending command to HA: " . $self->dump( $ha_msg ) );
     $self->{msg_trk}->{msg_timer}->stop();
     $self->{msg_trk}->{msg_timer}->set($self->{msg_trk}->{msg_check_delay}, sub { &HA_Item::ha_check_message( $self, $ha_msg ) });
-    $self->{ha_server}->ha_process_write( $ha_msg );
+    $self->{msg_trk}->{pending_msgid} = $self->{ha_server}->ha_process_write( $ha_msg );
 }
 
 sub ha_check_message {
@@ -1351,17 +1403,23 @@ sub ha_set_state {
 
     $service = $mode;
     my ($numval) = $mode =~ /^([1-9]?[0-9]?[0-9])%?$/;
-    if( $numval ) {
+    if( defined $numval ) {
         if (lc $self->{domain} eq 'light') {
-            $service = 'turn_on';
-            $service_data->{brightness_pct} = $numval;
+	    if( $numval == 0 ) {
+		$service = 'turn_off';
+	    } else {
+		$service = 'turn_on';
+		$service_data->{brightness_pct} = $numval;
+	    }
         } elsif (lc $self->{domain} eq 'cover') {
             $service = 'set_cover_position';
             $service_data->{position} = $numval;
-    } elsif ( lc $self->{domain} eq 'number'  ||  lc $self->{domain} eq 'input_number' ) {
+	} elsif ( lc $self->{domain} eq 'number'  ||  lc $self->{domain} eq 'input_number' ) {
             $service = 'set_value';
             $service_data->{value} = $numval;
-        }
+        } else {
+	    $self->error( "Numeric value set for domain that doesn't handle numbers" );
+	}
     } elsif( lc $mode eq 'on' ) {
         $service = 'turn_on';
     } elsif( lc $mode eq 'toggle' ) {
@@ -1385,6 +1443,9 @@ sub ha_set_state {
     } elsif( lc $mode =~ /\d+,\d+,\d+/ && $self->{subtype} eq 'rgb_color') {
         $service = 'turn_on';
         @{$service_data->{rgb_color}} = split /,/, $mode;
+    }  elsif(  $self->{subtype} eq 'effect') {
+        $service = 'turn_on';
+        $service_data->{effect} = $mode;    
     }          
     $self->ha_call_service( $service, $service_data );
 }
