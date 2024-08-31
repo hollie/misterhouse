@@ -1990,9 +1990,11 @@ sub read_table_A {
 	$code .= "\$${object_name} = new HA_Server( '$object_name', '$address', '$keepalive', '$api_key' );\n";
     }
     elsif( $type eq "HA_ITEM" ) {
-	my ($object_name, $domain, $entity, $ha_server) = @item_info;
+	my ($object_name, $domain, $entity, $ha_server, $group, $options) = @item_info;
 	require HA_Item;
-	$code .= "\$${object_name} = new HA_Item( '$domain', '$entity', \$$ha_server );\n";
+	$code .= "\$${object_name} = new HA_Item( '$domain', '$entity', \$$ha_server ";
+	$code .= ",'$options' " if ($options);
+	$code .= ");\n";
     }
     #-------------- End Home Assistant Objects -----------------
     elsif ( $type =~ /PLCBUS_.*/ ) {

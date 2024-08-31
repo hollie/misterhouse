@@ -617,6 +617,8 @@ sub decode_mqtt_payload {
         $msg = $value;
     } elsif( $$self{mqtt_type} eq 'select' ) {
         $msg = $value;
+    } elsif( $$self{mqtt_type} eq 'text' ) {
+        $msg = $value;
     } else {
 	$self->debug( 2, "Unknown object type '$$self{mqtt_type}' on object '$$self{topic}'" );
 	$msg = $value_json;
@@ -655,6 +657,7 @@ sub encode_mqtt_payload {
     }
     if( $self->{mqtt_type} eq 'sensor'
     ||  $self->{mqtt_type} eq 'select'
+    ||  $self->{mqtt_type} eq 'text'
     ) {
 	$payload = $setval;
 	return $payload;
@@ -993,7 +996,7 @@ sub new {     ### mqtt_LocalItem
 
     my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
 
-    if( !grep( /^$base_type$/, ('light','switch','binary_sensor', 'sensor', 'scene', 'select' ) ) ) {
+    if( !grep( /^$base_type$/, ('light','switch','binary_sensor', 'sensor', 'scene', 'select', 'text' ) ) ) {
 	$interface->error( "Invalid mqtt type '$type'" );
 	return;
     }
@@ -1061,6 +1064,8 @@ sub new {     ### mqtt_LocalItem
 	    my @state_list = $local_object->get_states();
 	    $self->{disc_info}->{options} = \@state_list;
 	}
+    } elsif( $base_type eq 'text' ) {
+	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
     }
 
     $self->{is_local} = 1;
@@ -1301,8 +1306,11 @@ sub receive_mqtt_message {
     if( $topic eq $self->{disc_info}->{state_topic} 
     ||  $topic eq $self->{disc_info}->{brightness_state_topic}
     ) {
-	if( $self->{disc_info}->{optimistic} eq 'true' ) {
+	if( $self->{disc_info}->{optimistic} eq 'true'  &&  $self->{pending_state} ) {
 	    $self->debug( 2, "BaseRemoteItem $self->{object_name} ignored state message because device is optimistic" );
+	    $self->{pending_state}    = undef;
+	    $self->{pending_setby}    = undef;
+	    $self->{pending_response} = undef;
 	} else {
 	    if( $retained ) {
 		$p_setby = 'mqtt [retained]';
@@ -1407,13 +1415,13 @@ sub set {    ### BaseRemoteItem
 	$self->transmit_topic( 'command_topic', $setval );
     }
 
+    $self->{pending_state}    = $setval;
+    $self->{pending_setby}    = $p_setby;
+    $self->{pending_response} = $p_response;
     if( $self->{disc_info}->{optimistic} eq 'true') {
 	$self->level( $setval ) if $self->can( 'level' );
 	$self->SUPER::set( $setval, $p_setby, $p_response );
     } else {
-	$self->{pending_state}    = $setval;
-	$self->{pending_setby}    = $p_setby;
-	$self->{pending_response} = $p_response;
 	$self->debug( 2, "Pending $self->{object_name}-->set( $setval, $p_setby, $p_response )" );
     }
 }

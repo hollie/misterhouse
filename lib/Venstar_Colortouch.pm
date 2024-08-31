@@ -171,6 +171,10 @@ sub _init {
             $self->{type} = $stat->{type};
 
             main::print_log("[Venstar Colortouch] $stat->{type} Venstar ColorTouch found with api level $stat->{api_ver}");
+            main::print_log( "[Venstar Colortouch] *************************************************************" );
+            main::print_log( "[Venstar Colortouch] * Note: Venstar _Colortouch.pm is now depreciated in favour *");
+            main::print_log( "[Venstar Colortouch] *       of using Home Assistant for device access           *" );
+            main::print_log( "[Venstar Colortouch] *************************************************************" );
             if ( $self->poll("direct") ) {
                 main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Data Successfully Retrieved" );
                 $self->{active}                = 1;

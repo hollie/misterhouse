@@ -188,6 +188,10 @@ sub new {
     my $self = new Generic_Item();
     bless $self, $class;
     &main::print_log("[raZberry]: v3.0.6 Controller Initializing...");
+    &main::print_log("[raZberry] *******************************************************" );
+    &main::print_log("[raZberry] * Note: raZberry.pm is now depreciated in favour      *");
+    &main::print_log("[raZberry] *       of using Home Assistant for device access     *" );
+    &main::print_log("[raZberry] *******************************************************" );    
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
     
