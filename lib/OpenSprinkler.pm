@@ -46,6 +46,7 @@ use Data::Dumper;
 #  $os1->get_waterlevel()
 #  $os1->get_rainstatus()
 
+
 # General Notes:
 #	-only tested with firmware 2.14 and 2.15 and 2.20
 
@@ -105,9 +106,6 @@ sub new {
     bless $self, $class;
     $self->{data}                 = undef;
     $self->{child_object}         = undef;
-    $self->{config}->{cache_time} = 5;
-    $self->{config}->{cache_time} = $::config_params{OpenSprinkler_config_cache_time}
-      if defined $::config_params{OpenSprinkler_config_cache_time};
     $self->{config}->{tz}           = $::config_params{time_zone};
     $self->{config}->{poll_seconds} = 10;
     $self->{config}->{poll_seconds} = $poll if ($poll);
@@ -223,7 +221,7 @@ sub poll {
         $self->{data}->{info}->{state}              = ( $vars->{en} == 0 ) ? "disabled" : "enabled";
         $self->{data}->{info}->{waterlevel}         = $options->{wl};
         $self->{data}->{info}->{adjustment_method}  = $adjustments[ $options->{uwt} ];
-        # hardcode the rain sensor into sensor status fo FW > 220 to avoid breaking existing code
+        # hardcode the rain sensor into sensor status for FW > 220 to avoid breaking existing code
         if ($self->{data}->{options}->{fwv} >= 220) {
             $self->{data}->{info}->{rain_sensor_status} = ( $vars->{sn1} == 0 ) ? "off" : "on"; 
             $self->{data}->{info}->{sensor_status} = ( $vars->{sn1} == 0 ) ? "inactive" : "active";       
@@ -530,6 +528,7 @@ sub process_data {
     # for any registered child selfs, update their state if
 
     for my $index ( 0 .. $#{ $self->{data}->{stations} } ) {
+        next unless (defined  $self->{data}->{stations}->[$index]->{status}) ;
         next if ( $self->{data}->{stations}->[$index]->{status} eq "disabled" );
         my $previous = "init";
         $previous = $self->{previous}->{data}->{stations}->[$index]->{state}
