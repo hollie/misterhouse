@@ -773,7 +773,10 @@ sub stop_timer {
 
 sub print_info {
     my ($self) = @_;
-
+    main::print_log( "[Aurora:" . $self->{name} . "] ********************************************************" );
+    main::print_log( "[Aurora:" . $self->{name} . "] * Note: Nanoleaf_Aurora.pm is now depreciated in favour *");
+    main::print_log( "[Aurora:" . $self->{name} . "] *       of using Home Assistant for device access       *" );
+    main::print_log( "[Aurora:" . $self->{name} . "] *********************************************************" );
     main::print_log( "[Aurora:" . $self->{name} . "] Name:              " . $self->{data}->{info}->{name} );
     main::print_log( "[Aurora:" . $self->{name} . "] Serial Number:     " . $self->{data}->{info}->{serialNo} );
     main::print_log( "[Aurora:" . $self->{name} . "] Manufacturer:      " . $self->{data}->{info}->{manufacturer} );
