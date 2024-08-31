@@ -171,12 +171,16 @@ sub _init {
             $self->{type} = $stat->{type};
 
             main::print_log("[Venstar Colortouch] $stat->{type} Venstar ColorTouch found with api level $stat->{api_ver}");
+            main::print_log( "[Venstar Colortouch] *************************************************************" );
+            main::print_log( "[Venstar Colortouch] * Note: Venstar _Colortouch.pm is now depreciated in favour *");
+            main::print_log( "[Venstar Colortouch] *       of using Home Assistant for device access           *" );
+            main::print_log( "[Venstar Colortouch] *************************************************************" );
             if ( $self->poll("direct") ) {
                 main::print_log( "[Venstar Colortouch:" . $self->{data}->{name} . "] Data Successfully Retrieved" );
                 $self->{active}                = 1;
                 $self->{previous}->{tempunits} = $self->{data}->{tempunits};
                 $self->{previous}->{name}      = $self->{data}->{name};
-                foreach my $key1  (keys %{$self->{data}->{info}} ) {
+                foreach my $key1 ( keys %{$self->{data}->{info}} ) {
                     $self->{previous}->{info}->{$key1} = $self->{data}->{info}->{$key1};
                 }
                 $self->{previous}->{sensors}->{sensors}[0]->{temp} = $self->{data}->{sensors}->{sensors}[0]->{temp};
@@ -270,7 +274,7 @@ sub process_check {
         $file_data = "" unless ($file_data);    #just to prevent warning messages
                                                 #for some reason get_url adds garbage to the output. Clean out the characters before and after the json
         print "debug: file_data=$file_data\n" if ( $self->{debug} );
-        my ($json_data) = $file_data =~ /({.*})/;
+        my ($json_data) = $file_data =~ /(\{.*\})/;
         $json_data = "" unless ($json_data);    #just to prevent warning messages
         print "debug: json_data=$json_data\n" if ( $self->{debug} );
         unless ( ($file_data) and ($json_data) ) {
@@ -345,7 +349,7 @@ sub process_check {
         }
 
         #for some reason get_url adds garbage to the output. Clean out the characters before and after the json
-        my ($json_data) = $file_data =~ /({.*})/;
+        my ($json_data) = $file_data =~ /(\{.*\})/;
         my $data;
         eval { $data = JSON::XS->new->decode($json_data); };
 
@@ -1586,11 +1590,14 @@ sub get_units {
 }
 
 sub get_temp {
-    my ($self) = @_;
+    my ($self, $index) = @_;
+
+    $index=0 unless ( defined $index );
+
 
     #  my ($isSuccessResponse) = $self->poll;
     #    if ($isSuccessResponse) {
-    return ( $self->{data}->{sensors}->{sensors}[0]->{temp} );
+    return ( $self->{data}->{sensors}->{sensors}[$index]->{temp} );
 
     #  } else {
     #  	return ("unknown");
