@@ -438,6 +438,10 @@ sub print_info {
         main::print_log( "[Schluter_Ditra] Group " . $group->{GroupName} . "..." );
         foreach my $stat (@{ $group->{Thermostats} }) {
             if ($serial eq "" or $stat->{SerialNumber} eq $serial) {
+                main::print_log( "[Schluter_Ditra] ********************************************************" );
+                main::print_log( "[Schluter_Ditra] * Note: Schluter_Ditra.pm is now depreciated in favour *");
+                main::print_log( "[Schluter_Ditra] *       of using Home Assistant for device access      *" );
+                main::print_log( "[Schluter_Ditra] ********************************************************" );
                 main::print_log( "[Schluter_Ditra] ----------------------------------------------");            
                 main::print_log( "[Schluter_Ditra] Serial:               " . $stat->{SerialNumber});
                 main::print_log( "[Schluter_Ditra] Room:                 " . $stat->{Room});
