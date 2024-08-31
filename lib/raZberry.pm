@@ -1,4 +1,4 @@
-=head1 B<raZberry> v3.1.1
+=head1 B<raZberry> v3.1.0
 
 #test command setup
 #command queue
@@ -188,6 +188,10 @@ sub new {
     my $self = new Generic_Item();
     bless $self, $class;
     &main::print_log("[raZberry]: v3.0.6 Controller Initializing...");
+    &main::print_log("[raZberry] *******************************************************" );
+    &main::print_log("[raZberry] * Note: raZberry.pm is now depreciated in favour      *");
+    &main::print_log("[raZberry] *       of using Home Assistant for device access     *" );
+    &main::print_log("[raZberry] *******************************************************" );    
     $self->{data}                   = undef;
     $self->{child_object}           = undef;
     
@@ -1324,7 +1328,7 @@ sub set {
     else {
         if ( $self->{digital} ) {
             if ( lc $p_state eq $s_closed ) {
-                $$self{master_object}->set_dev( $$self{devid}, "down" );
+                $$self{master_object}->set_dev( $$self{devid}, $p_state );
             }
             elsif ( lc $p_state eq $s_open ) {
                 $$self{master_object}->set_dev( $$self{devid}, "level=100" );
@@ -1341,10 +1345,7 @@ sub set {
             or ( lc $p_state eq $s_closed )
             or ( lc $p_state eq "stop" ) )
         {
-	    my $n_state = "stop";
-	    $n_state = "up" if ( lc $p_state eq $s_open );
-	    $n_state = "down" if ( lc $p_state eq $s_closed );
-            $$self{master_object}->set_dev( $$self{devid}, $n_state );
+            $$self{master_object}->set_dev( $$self{devid}, $p_state );
         }
         else {
             main::print_log("[raZberry_blind] Error. Unknown set state $p_state");
