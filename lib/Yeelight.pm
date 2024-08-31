@@ -609,6 +609,10 @@ sub print_info {
     my $name = $self->{data}->{info}->{name};
     $name = "Not Set" if ($self->{data}->{info}->{name} eq "");
     
+    main::print_log( "[Yeelight:" . $self->{name} . "] *******************************************************" );
+    main::print_log( "[Yeelight:" . $self->{name} . "] * Note: Yeelight.pm is now depreciated in favour      *");
+    main::print_log( "[Yeelight:" . $self->{name} . "] *       of using Home Assistant for device access     *" );
+    main::print_log( "[Yeelight:" . $self->{name} . "] *******************************************************" );
     main::print_log( "[Yeelight:" . $self->{name} . "] Name:              " . $name );
     main::print_log( "[Yeelight:" . $self->{name} . "] Model:             " . $self->{data}->{info}->{model} );
     main::print_log( "[Yeelight:" . $self->{name} . "] Firmware:          " . $self->{data}->{info}->{fw_ver} );
