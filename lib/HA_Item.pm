@@ -1221,8 +1221,8 @@ sub process_ha_message {
     } elsif( $self->{domain} eq 'fan' ) {
 	my $level = $new_state->{state};
 	if( $new_state->{state} eq 'on' ){
-		$level = $new_state->{attributes}->{percentage} . "%" if( $new_state->{attributes}->{percentage} );
-		$level = "off" if ($level eq "0%");
+	    $level = $new_state->{attributes}->{percentage} . "%" if( $new_state->{attributes}->{percentage} );
+	    $level = "off" if ($level eq "0%");
 	}    
 	$self->debug( 1, "fan event for $self->{object_name} set to $new_state->{state} ($level)" );
 	$self->SUPER::set( $level, $p_setby, $p_response );
@@ -1238,18 +1238,18 @@ sub process_ha_message {
 	    push @states, "100%","on";
 		$self->set_states( @states,"override=1" );
 	    } else {
-		    $self->set_states( "on", "off","override=1" );
+		$self->set_states( "on", "off","override=1" );
 	    }
 	}
     } elsif( $self->{domain} eq 'light' ) {
 	if (lc $self->{subtype} eq "rgb_color") {
 	    if( $new_state->{attributes}  &&  ref $new_state->{attributes}->{$self->{subtype}} ) {
-		    #shouldn't join, but rgb is an array so for now create a string
-		    my $string = join ',', @{$new_state->{attributes}->{ $self->{subtype} }}; 
-		    $self->debug( 1, "handled subtype $self->{subtype} event for $self->{object_name} set to $string" );
-		    $self->SUPER::set( $string, $p_setby, $p_response );
+		#shouldn't join, but rgb is an array so for now create a string
+		my $string = join ',', @{$new_state->{attributes}->{ $self->{subtype} }}; 
+		$self->debug( 1, "handled subtype $self->{subtype} event for $self->{object_name} set to $string" );
+		$self->SUPER::set( $string, $p_setby, $p_response );
 	    } else {
-		    $self->debug( 1, "got light state for $self->{object_name} but no rgb_color attribute" );
+		$self->debug( 1, "got light state for $self->{object_name} but no rgb_color attribute" );
 	    }
 	} elsif (lc $self->{subtype} eq "effect") {
 	    # update the set_states based on the effects_list array
@@ -1261,9 +1261,9 @@ sub process_ha_message {
 	} else {    
 	    my $level = $new_state->{state};
 	    if( $new_state->{state} eq 'on' ){
-		    if( $new_state->{attributes}->{brightness} ) {
-			$level = int( $new_state->{attributes}->{brightness} * 100 / 255 + .5);
-		    }
+		if( $new_state->{attributes}->{brightness} ) {
+		    $level = int( $new_state->{attributes}->{brightness} * 100 / 255 + .5);
+		}
 	    }    
 	    $self->debug( 1, "light event for $self->{object_name} set to $level" );
 	    $self->SUPER::set( $level, $p_setby, $p_response );
