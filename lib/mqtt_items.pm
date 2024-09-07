@@ -64,52 +64,52 @@ Description:
     mqtt_BaseItem:
          - is the base class.
 
-        mqtt_LocalItem:
-            - implements an mqtt mh item that is tied to a local item
-            - when the local item changes state, this mqtt item will send mqtt state_topic messages
-            - it will also listen for mqtt command_topic messages and set the state of the local item,
-              if the set of the local item is successful, the mqtt item will send out the state_topic message
-            - a LocalItem can be associated with a specific broker, in which case it will
-              listen only to that broker for commands and will send state messages only to
-              that broker
-            - if there is no broker specified, then the LocalItem will listen to all brokers
-              for command messages, and broadcast state messages to all brokers
-            - can publish HA discovery info -- a fairly simple discovery language is
-              used that is based on the insteon-mqtt project
+	mqtt_LocalItem:
+	    - implements an mqtt mh item that is tied to a local item
+	    - when the local item changes state, this mqtt item will send mqtt state_topic messages
+	    - it will also listen for mqtt command_topic messages and set the state of the local item,
+	      if the set of the local item is successful, the mqtt item will send out the state_topic message
+	    - a LocalItem can be associated with a specific broker, in which case it will
+	      listen only to that broker for commands and will send state messages only to
+	      that broker
+	    - if there is no broker specified, then the LocalItem will listen to all brokers
+	      for command messages, and broadcast state messages to all brokers
+	    - can publish HA discovery info -- a fairly simple discovery language is
+	      used that is based on the insteon-mqtt project
 
-        mqtt_BaseRemoteItem:
-            - implements a base class mh item that both sends commands to and
-              receives state messages from a remote device that directly sends mqtt messages
-            - a BaseRemoteItem is always associated with a specific mqtt broker
-            - when set is called, will send command_topic messages to change the state of a device
-                - local state will not change until state_topic message is received unless
-                  the item is marked as optimistic or does not have a state_topic
-            - will listen for state_topic messages with stata changes
-            - will also listen for last will and testiment (LWT) messages reporting
-              when a device goes offline
+	mqtt_BaseRemoteItem:
+	    - implements a base class mh item that both sends commands to and
+	      receives state messages from a remote device that directly sends mqtt messages
+	    - a BaseRemoteItem is always associated with a specific mqtt broker
+	    - when set is called, will send command_topic messages to change the state of a device
+	        - local state will not change until state_topic message is received unless
+		  the item is marked as optimistic or does not have a state_topic
+	    - will listen for state_topic messages with stata changes
+	    - will also listen for last will and testiment (LWT) messages reporting
+	      when a device goes offline
 
-            mqtt_RemoteItem
-                - implements a statically defined mh item for mqtt devices
-                - it is intended to work with Tasmota, IOT4 and ESPurna devices,
-                  BUT, I have a very limited set of devices to test with
-                    - currently implements switch, light, sensor, binary-sensor
-                    - I only have Tasmota switches, and with tuya convert broken,
-                      I am not able to setup other Tasmota devices
-                      (not into soldering at this point)
-                - Remote devices can also be discovered using the gear in mqtt_discovery.pm
-                  eliminating the need to statically define them, but you need to
-                  turn discovery on on your device (eg. Tasmota: SetOption19 1)
-                  -- note that the Tasmota discovery gear is not being developed anymore...
-                - can publish HA discovery info -- a simpler discovery message
-                  than the discontinued Tasmota discovery mentioned above
+	    mqtt_RemoteItem
+	        - implements a statically defined mh item for mqtt devices
+		- it is intended to work with Tasmota, IOT4 and ESPurna devices,
+		  BUT, I have a very limited set of devices to test with
+		    - currently implements switch, light, sensor, binary-sensor
+		    - I only have Tasmota switches, and with tuya convert broken,
+		      I am not able to setup other Tasmota devices
+		      (not into soldering at this point)
+		- Remote devices can also be discovered using the gear in mqtt_discovery.pm
+		  eliminating the need to statically define them, but you need to
+		  turn discovery on on your device (eg. Tasmota: SetOption19 1)
+		  -- note that the Tasmota discovery gear is not being developed anymore...
+		- can publish HA discovery info -- a simpler discovery message
+		  than the discontinued Tasmota discovery mentioned above
 
-            mqtt_InstMqttItem
-                - implements a statically defined mh item for Insteon devices managed
-                  by insteon-mqtt OR another instance of MisterHouse (since the MH published
-                  MQTT messages are based on insteon-mqtt).  You could also use discovered items
-                  for this purpose.
-                - see https://github.com/TD22057/insteon-mqtt
-                - can publish HA discovery info, as insteon-mqtt does not implement discovery yet
+	    mqtt_InstMqttItem
+	        - implements a statically defined mh item for Insteon devices managed
+		  by insteon-mqtt OR another instance of MisterHouse (since the MH published
+		  MQTT messages are based on insteon-mqtt).  You could also use discovered items
+		  for this purpose.
+		- see https://github.com/TD22057/insteon-mqtt
+		- can publish HA discovery info, as insteon-mqtt does not implement discovery yet
     
 
     Discovery (mqtt_discovery.pm):
@@ -124,59 +124,59 @@ Description:
 
     There are several uses for mqtt discovery in MH:
         - discover mqtt devices without having to statically define them in .mht files
-        - publish discovery information for locally defined devices.  This has multiple
-          uses as well:
-            - share device information with another MH instance
-            - publish device information to Home Assistant.  This could be
-              for environments where both are running, or used when
-              transitioning one way or the other.
+	- publish discovery information for locally defined devices.  This has multiple
+	  uses as well:
+	    - share device information with another MH instance
+	    - publish device information to Home Assistant.  This could be
+	      for environments where both are running, or used when
+	      transitioning one way or the other.
 
 
     There are 2 classes implemented in mqtt_discovery.pm:
 
-        mqtt_DiscoveredItem:
-            This class extends the mqtt_BaseRemoteItem class and implements
-            a mh item from a mqtt discovery message.
-            It has been built to handle 2 types of discovery messages:
-                1. discovery messages as published by the below discovery
-                   class primarily for mqtt_LocalItems, but discovery info
-                   for RemoteItems and InstMqttItems can also be published.
-                   This allows easy sharing of device definitions between MH instances,
-                   and also allows Home Assistant to know about MH items.
-                2. discovery messages published by remote devices.
-                   It handles some Tasmota, IOT4 discovery messages published
-                   when Tasmota SetOption19 is set to 1, or HASS discovery turned on
-                   on the IOT4 device.  I don't have any ESPurna devices so I don't
-                   know about discovery for those devices.
-                   - it handles switch, light, sensor and binary-sensor
-                   - so far the handling of discovery messages is somewhat limited due
-                     to my very limited set of these devices
-                   - I have implemented these devices based on HomeAssistant documentation
-                     for discovery and information on blakaddr.com
-                   - In order to implement this properly, we would need a templating engine in perl
+	mqtt_DiscoveredItem:
+	    This class extends the mqtt_BaseRemoteItem class and implements
+	    a mh item from a mqtt discovery message.
+	    It has been built to handle 2 types of discovery messages:
+		1. discovery messages as published by the below discovery
+		   class primarily for mqtt_LocalItems, but discovery info
+		   for RemoteItems and InstMqttItems can also be published.
+		   This allows easy sharing of device definitions between MH instances,
+		   and also allows Home Assistant to know about MH items.
+		2. discovery messages published by remote devices.
+		   It handles some Tasmota, IOT4 discovery messages published
+		   when Tasmota SetOption19 is set to 1, or HASS discovery turned on
+		   on the IOT4 device.  I don't have any ESPurna devices so I don't
+		   know about discovery for those devices.
+		   - it handles switch, light, sensor and binary-sensor
+		   - so far the handling of discovery messages is somewhat limited due
+		     to my very limited set of these devices
+		   - I have implemented these devices based on HomeAssistant documentation
+		     for discovery and information on blakaddr.com
+		   - In order to implement this properly, we would need a templating engine in perl
 
-            You can move one of the items from the file written out by write_discovered_items, or
-            you could hand code an item of this type using a full discovery message.  When you are
-            hand declaring an mqtt item using this format, change the discovery_topic to just
-            the discovery_type -- that will internally mark it so that it is not written out
-            next time write_discovered_items is called.
-        
-        mqtt_Discovery:
-             This class has 2 functions.  The discovery_action parameter defines which ones
-             it does -- publish, subscribe, both, none.
+	    You can move one of the items from the file written out by write_discovered_items, or
+	    you could hand code an item of this type using a full discovery message.  When you are
+	    hand declaring an mqtt item using this format, change the discovery_topic to just
+	    the discovery_type -- that will internally mark it so that it is not written out
+	    next time write_discovered_items is called.
+	
+	mqtt_Discovery:
+	     This class has 2 functions.  The discovery_action parameter defines which ones
+	     it does -- publish, subscribe, both, none.
 
-             Subscribe:
-                 - it defines a single mqtt_BaseItem that that listens for mqtt discovery messages
-                   based on an mqtt wildcard
-                 - creates mqtt_DiscoveredItems based on the discovery information that is received
-                 - you can then write out these items to a .mht file using the mqtt::write_discovered_items class function
-                     - note that the discovered items will not appear as fully referencable MH items
-                       until you restart MH once.
-             Publish:
-                 - this class will setup publishing of discovery information for mqtt_LocalItems and
-                   even for any of the mqtt_BaseRemoteItems if they are created with the discovery flag set
-                 - this last part is useful if you have an mqtt device somewhere whose discovery
-                   info is not great, or doesn't publish discovery info
+	     Subscribe:
+	         - it defines a single mqtt_BaseItem that that listens for mqtt discovery messages
+	           based on an mqtt wildcard
+		 - creates mqtt_DiscoveredItems based on the discovery information that is received
+		 - you can then write out these items to a .mht file using the mqtt::write_discovered_items class function
+		     - note that the discovered items will not appear as fully referencable MH items
+		       until you restart MH once.
+	     Publish:
+	         - this class will setup publishing of discovery information for mqtt_LocalItems and
+	           even for any of the mqtt_BaseRemoteItems if they are created with the discovery flag set
+	         - this last part is useful if you have an mqtt device somewhere whose discovery
+		   info is not great, or doesn't publish discovery info
 
 
 
@@ -186,104 +186,104 @@ License:
 Usage:
 
     .mht file:
-        ###################################################
-        # Broker record creates object to connect to mqtt server
-        ###################################################
+	###################################################
+	# Broker record creates object to connect to mqtt server
+	###################################################
 
-        # MQTT_BROKER,  name,      subscribe topic,     host/ip,        port,   user,   pwd,    keepalive
-        MQTT_BROKER,    mqtt_1,    ,                    localhost,      1883,   ,       ,       121
+	# MQTT_BROKER,	name,	   subscribe topic,	host/ip,	port,	user,	pwd,	keepalive
+	MQTT_BROKER,	mqtt_1,	   ,			localhost,	1883,	,	,	121
 
-        ###################################################
-        # Use of Discovery functionality is optional
-        # - discovery topic prefix is used for publishing discovery info
-        #     - it can be blank which means no discovery info will be published
-        #     - the most common use is to publish discovery info to home assistant,
-        #       the home assistant default discovery topic is 'homeassistant'
-        ###################################################
+	###################################################
+	# Use of Discovery functionality is optional
+	# - discovery topic prefix is used for publishing discovery info
+	#     - it can be blank which means no discovery info will be published
+	#     - the most common use is to publish discovery info to home assistant,
+	#       the home assistant default discovery topic is 'homeassistant'
+	###################################################
 
-        # MQTT_DISCOVERY,   obj name,           discovery prefix,   broker,     publish|subscribe|both (default both)
-        MQTT_DISCOVERY,     mqtt_discovery1,    homeassistant,      mqtt_1,     both
+	# MQTT_DISCOVERY,   obj name,		discovery prefix,   broker,	publish|subscribe|both (default both)
+	MQTT_DISCOVERY,	    mqtt_discovery1,	homeassistant,	    mqtt_1,	both
 
 
-        ###################################################
-        # Different Item types for different types of MQTT functionality
-        #
-        # TopicPattern should be of the form "<node_id>/<mqtt name>/+".
-        #    - It is best to use the same <node_id> for all items, but not necessary
-        #    - It helps identify your own discovery messages in a large mqtt system
-        ###################################################
+	###################################################
+	# Different Item types for different types of MQTT functionality
+	#
+	# TopicPattern should be of the form "<node_id>/<mqtt name>/+".
+	#    - It is best to use the same <node_id> for all items, but not necessary
+	#    - It helps identify your own discovery messages in a large mqtt system
+	###################################################
 
-        # Used to define mqtt items as published by insteon-mqtt project or as published
-        # by another instance of MisterHouse which has defined MQTT_LOCALITEMs.
-        #
-        # MQTT_INSTMQTT,    name,               groups,         broker, type,           topicpattern,                               discoverable    Friendly Name
-        MQTT_INSTMQTT,      bootroom_switch,    Lights,         mqtt_1, switch,         insteon/bootroom/+,                         1,              Bootroom Light
+	# Used to define mqtt items as published by insteon-mqtt project or as published
+	# by another instance of MisterHouse which has defined MQTT_LOCALITEMs.
+	#
+	# MQTT_INSTMQTT,    name,		groups,		broker, type,		topicpattern,				    discoverable    Friendly Name
+	MQTT_INSTMQTT,	    bootroom_switch,	Lights,		mqtt_1, switch,		insteon/bootroom/+,			    1,		    Bootroom Light
 
-        # Define a Tasmota item.  Note that the topicpattern must be in the order that the device will
-        # send.  This is configured in the Tasmota MQTT configuration. 
-        #
-        # MQTT_REMOTEITEM,  name,               groups,         broker, type,           topicpattern,                               discoverable    Friendly Name
-        MQTT_REMOTEITEM,    tas_outdoor_plug,   ,               mqtt_1, switch,         tasmota_outdoor_plug/+/+,                   0,              Tasmota Outdoor Plug
+	# Define a Tasmota item.  Note that the topicpattern must be in the order that the device will
+	# send.  This is configured in the Tasmota MQTT configuration. 
+	#
+	# MQTT_REMOTEITEM,  name,		groups,		broker, type,		topicpattern,				    discoverable    Friendly Name
+	MQTT_REMOTEITEM,    tas_outdoor_plug,	,		mqtt_1, switch,		tasmota_outdoor_plug/+/+,		    0,		    Tasmota Outdoor Plug
 
 
         # Say you have a local INSTEON item  (could be any kind of misterhouse item)
-        INSTEON_SWITCHLINC, 52.9E.DD,           shed_light,     Lights|Outside
-        #
+	INSTEON_SWITCHLINC, 52.9E.DD,		shed_light,	Lights|Outside
+	#
         # Then you can create an mqtt item to publish its state and receive mqtt commands.
-        # TopicPattern should be of the form "<node_id>/<mqtt name>/+".
-        # *** This can be used to publish local MH items to Home Assistant.
-        #
-        # MQTT_LOCALITEM,   name,               local item,     broker, type,           topicpattern,                               discoverable    Friendly Name
-        MQTT_LOCALITEM,     bootroom_switch,    shed_light,     mqtt_1, switch,         insteon/bootroom/+,                         1,              Bootroom Light
-        #
+	# TopicPattern should be of the form "<node_id>/<mqtt name>/+".
+	# *** This can be used to publish local MH items to Home Assistant.
+	#
+	# MQTT_LOCALITEM,   name,		local item,	broker, type,		topicpattern,				    discoverable    Friendly Name
+	MQTT_LOCALITEM,	    bootroom_switch,	shed_light,	mqtt_1, switch,		insteon/bootroom/+,			    1,		    Bootroom Light
+	#
 
 
-        
+	
     .mht generated file:
 
-        # Discovery items are generated by the write_discovered_items function.
-        # You would not normally code these by hand.
-        #
-        # But if you want to move an item to your regular .mht file, change the discovery_topic to just
-        # the discovery_type.  That then will override any discovered item with the same unique_id,
-        # and will not be written out with write_discovered_items.
-        #
-        # You could code one of these items by hand. This would also allow you to declare a remote
-        # mqtt item using the full discovery message format.
-        #
-        # MQTT_DISCOVEREDITEM,  name,                       discovery_obj,      discovery_topic/discovery_type,                     discovery_message
-        MQTT_DISCOVEREDITEM,    mqtt_tasmota_outdoor_plug,  mqtt_discovery,      homeassistant/switch/877407_RL_1/config,   {"name":"Tasmota Outside Plug","cmd_t":"~cmnd/POWER","stat_t":"~tele/STATE","val_tpl":"{{value_json.POWER}}","pl_off":"OFF","pl_on":"ON","avty_t":"~tele/LWT","pl_avail":"Online","pl_not_avail":"Offline","uniq_id":"877407_RL_1","device":{"identifiers":["877407"],"connections":[["mac","D8:F1:5B:87:74:07"]]},"~":"tasmota_outdoor_plug/"}
+	# Discovery items are generated by the write_discovered_items function.
+	# You would not normally code these by hand.
+	#
+	# But if you want to move an item to your regular .mht file, change the discovery_topic to just
+	# the discovery_type.  That then will override any discovered item with the same unique_id,
+	# and will not be written out with write_discovered_items.
+	#
+	# You could code one of these items by hand. This would also allow you to declare a remote
+	# mqtt item using the full discovery message format.
+	#
+	# MQTT_DISCOVEREDITEM,	name,			    discovery_obj,	discovery_topic/discovery_type,			    discovery_message
+	MQTT_DISCOVEREDITEM,	mqtt_tasmota_outdoor_plug,  mqtt_discovery,	 homeassistant/switch/877407_RL_1/config,   {"name":"Tasmota Outside Plug","cmd_t":"~cmnd/POWER","stat_t":"~tele/STATE","val_tpl":"{{value_json.POWER}}","pl_off":"OFF","pl_on":"ON","avty_t":"~tele/LWT","pl_avail":"Online","pl_not_avail":"Offline","uniq_id":"877407_RL_1","device":{"identifiers":["877407"],"connections":[["mac","D8:F1:5B:87:74:07"]]},"~":"tasmota_outdoor_plug/"}
 
 
     and misterhouse user code:
 
         #
-        if( $bootroom_switch->{state_now} ) {
-            &print_log( "Bootroom light set " . $bootroom_switch->state );
-        }
+	if( $bootroom_switch->{state_now} ) {
+	    &print_log( "Bootroom light set " . $bootroom_switch->state );
+	}
 
-        #
-        if( new_minute(10) ) {
-            # this will turn on the light by sending an mqtt command
-            $bootroom_switch->set( 'toggle' );
+	#
+	if( new_minute(10) ) {
+	    # this will turn on the light by sending an mqtt command
+	    $bootroom_switch->set( 'toggle' );
 
-            # as the insteon light is toggled with this command, an mqtt state message will be published
-            $shed_light->set( 'toggle' );
+	    # as the insteon light is toggled with this command, an mqtt state message will be published
+	    $shed_light->set( 'toggle' );
 
-        }
+	}
 
-        # this will publish mqtt discovery messages for all discoverable items
-        $mqtt_1->publish_discovery_data();
+	# this will publish mqtt discovery messages for all discoverable items
+	$mqtt_1->publish_discovery_data();
 
-        # this will publish current state messages for all local items
-        $mqtt_1->publish_current_states();
+	# this will publish current state messages for all local items
+	$mqtt_1->publish_current_states();
 
-        # this will write a .mht file with data for all discovered items
-        &mqtt::write_discovered_items( "$config_parms{data_dir}/mqtt_discovered_items.mht" );
+	# this will write a .mht file with data for all discovered items
+	&mqtt::write_discovered_items( "$config_parms{data_dir}/mqtt_discovered_items.mht" );
 
     CLI generation of a command to the CR_Temp
 
-        TODO:  find a command that works to turn on the $shed_light
+	TODO:  find a command that works to turn on the $shed_light
         mosquitto_pub -d -h test.mosquitto.org -q 0 -t test.mosquitto.org/test/x10/1 -m "Off"
 
 Notes:
@@ -359,28 +359,28 @@ sub new {   ### mqtt_BaseItem
 
     bless $self, $class;
 
-    $self->{interface}              = $interface;
-    $self->{mqtt_name}              = $mqtt_name;
-    $self->{mqtt_type}              = $type;
-    $self->{discoverable}           = $discoverable;
-    $self->{topic}                  = $listentopics;
-    $self->{disc_type}              = $type;
+    $self->{interface}		    = $interface;
+    $self->{mqtt_name}		    = $mqtt_name;
+    $self->{mqtt_type}		    = $type;
+    $self->{discoverable}	    = $discoverable;
+    $self->{topic}		    = $listentopics;
+    $self->{disc_type}		    = $type;
 
 #     if( !grep( /^$type$/, ('light', 'switch', 'binary_sensor', 'sensor', 'scene', 'select') ) ) {
-#       $self->error( "UNKNOWN DEVICE TYPE: '$self->{mqtt_name}':$self->{mqtt_type}" );
-#       return;
+# 	$self->error( "UNKNOWN DEVICE TYPE: '$self->{mqtt_name}':$self->{mqtt_type}" );
+# 	return;
 #     }
 
     if( $self->{mqtt_type} eq 'scene' ) {
-        $self->{disc_type} = 'switch';
+	$self->{disc_type} = 'switch';
     }
 
     if( $self->{interface} ) {
-        $self->{interface}->add( $self );
+	$self->{interface}->add( $self );
     } else {
-        foreach $interface ( &mqtt::get_interface_list() ) {
-            $interface->add( $self );
-        }
+	foreach $interface ( &mqtt::get_interface_list() ) {
+	    $interface->add( $self );
+	}
     }
 
     return $self;
@@ -399,7 +399,7 @@ sub error {
 sub debug {
     my( $self, $level, $str ) = @_;
     if( $self->debuglevel( $level, 'mqtt' ) ) {
-        $self->{interface}->log( $str, "[MQTT D$level]: " );
+	$self->{interface}->log( $str, "[MQTT D$level]: " );
     }
 }
 
@@ -435,7 +435,7 @@ Returns whether object is dimmable.
 sub is_dimmable {
     my ( $self ) = @_;
     if( $self->{mqtt_type} eq 'light' ) {
-        return 1;
+	return 1;
     }
     return 0;
 }
@@ -487,13 +487,13 @@ sub transmit_mqtt_message {
     my( $self, $topic, $msg, $retain ) = @_;
 
     if( !$topic ) {
-        $self->error( $self->get_object_name . " attempting to publish empty topic -- ignoring" );
-        return;
+	$self->error( $self->get_object_name . " attempting to publish empty topic -- ignoring" );
+	return;
     }
     if( $self->{interface} ) {
-        $self->{interface}->publish_mqtt_message( $topic, $msg, $retain );
+	$self->{interface}->publish_mqtt_message( $topic, $msg, $retain );
     } else {
-        &mqtt::broadcast_mqtt_message( $topic, $msg, $retain );
+	&mqtt::broadcast_mqtt_message( $topic, $msg, $retain );
     }
 }
 
@@ -501,18 +501,18 @@ sub process_template {
     my( $self, $template, $value_json, $value ) = @_;
 
     if( $template ) {
-        $template =~ s/ //g;
-        $template =~ s/^\{\{value_json\.([a-zA-Z\-_]*)\}\}/\$value_json->\{\1\}/;
-        $template =~ s/^\{\{value_json\[\\?\'?([a-zA-Z\-_]*)\\?\'?\]\}\}/\$value_json->\{\1\}/;
-        if( $template !~ /^\$/ ) {
-            $self->error( "unable to process template $template" );
-            return;
-        }
-        $self->debug( 2, "fishing template value out of json with '\$value = $template'" );
-        eval "\$value = $template";
-        if( $@  || !$value_json ) {
-            $self->error( "Error '$@' applying template '$template' to payload:'$value'" );
-        }
+	$template =~ s/ //g;
+	$template =~ s/^\{\{value_json\.([a-zA-Z\-_]*)\}\}/\$value_json->\{\1\}/;
+	$template =~ s/^\{\{value_json\[\\?\'?([a-zA-Z\-_]*)\\?\'?\]\}\}/\$value_json->\{\1\}/;
+	if( $template !~ /^\$/ ) {
+	    $self->error( "unable to process template $template" );
+	    return;
+	}
+	$self->debug( 2, "fishing template value out of json with '\$value = $template'" );
+	eval "\$value = $template";
+	if( $@  || !$value_json ) {
+	    $self->error( "Error '$@' applying template '$template' to payload:'$value'" );
+	}
     }
     return $value;
 }
@@ -529,8 +529,8 @@ sub decode_mqtt_payload {
 
     $msg = $unset_value;
     if( $topic eq $self->{disc_info}->{state_topic} ) {
-        $value_on = $self->{disc_info}->{state_on};
-        $value_off = $self->{disc_info}->{state_off};
+	$value_on = $self->{disc_info}->{state_on};
+	$value_off = $self->{disc_info}->{state_off};
     }
     $value_on = $self->{disc_info}->{payload_on} if !defined $value_on;
     $value_off = $self->{disc_info}->{payload_off} if !defined $value_off;
@@ -538,12 +538,12 @@ sub decode_mqtt_payload {
     $value_off = 'OFF' if !defined $value_off;
 
     if( $payload =~ /^\s*{/ ) {
-        eval{ $value_json = decode_json( $payload ) };
-        if( $@  || !$value_json ) {
-            $self->error( "Error '$@' decoding JSON: $payload" );
-            return;
-        }
-        $self->debug( 3, "json payload decoded to: \n" . Dumper( $value_json ) );
+	eval{ $value_json = decode_json( $payload ) };
+	if( $@  || !$value_json ) {
+	    $self->error( "Error '$@' decoding JSON: $payload" );
+	    return;
+	}
+	$self->debug( 3, "json payload decoded to: \n" . Dumper( $value_json ) );
     }
 
     ####
@@ -551,68 +551,68 @@ sub decode_mqtt_payload {
     ####
 
     if( $topic eq $self->{disc_info}->{state_topic} ) {
-        $value = $self->process_template( $self->{disc_info}->{state_value_template} || $self->{disc_info}->{value_template}, $value_json, $payload );
+	$value = $self->process_template( $self->{disc_info}->{state_value_template} || $self->{disc_info}->{value_template}, $value_json, $payload );
     }
     if( $topic eq $self->{disc_info}->{brightness_state_topic} ) {
-        $brightness = $self->process_template( $self->{disc_info}->{brightness_value_template}, $value_json, $payload );
-        my $brightness_scale = $self->{disc_info}->{brightness_scale} || 255;
-        $brightness = int( $brightness * 100 / $brightness_scale ) . '%';
+	$brightness = $self->process_template( $self->{disc_info}->{brightness_value_template}, $value_json, $payload );
+	my $brightness_scale = $self->{disc_info}->{brightness_scale} || 255;
+	$brightness = int( $brightness * 100 / $brightness_scale ) . '%';
     }
     if( $topic eq $self->{disc_info}->{command_topic} ) {
-        $value = $payload;
+	$value = $payload;
     }
     $self->debug( 3, "payload '$payload' decoded to: '$value'" );
 
     # if( $$self{mqtt_type} eq 'binary_sensor'  ||  $$self{mqtt_type} eq 'sensor' ) {
-    #   if( $retained ) {
-    #       $self->debug( 1, "Retained message ignored for $$self{mqtt_type}:$$self{mqtt_name} device" );
-    #       return;
-    #   }
+    #	if( $retained ) {
+    #	    $self->debug( 1, "Retained message ignored for $$self{mqtt_type}:$$self{mqtt_name} device" );
+    #	    return;
+    #	}
     # }
 
     if( $$self{mqtt_type} eq 'light'  ) {
-        if( $self->{disc_info}->{schema} eq 'json' ) {
-            if( $value_json ) {
-                $self->debug( 3, "Decoded state:$value_json->{state} brightness:$value_json->{brightness}" );
-                if( $value_json->{state} eq $value_on ) {
-                    if( $value_json->{brightness} ) {
-                        my $brightness_scale = $self->{disc_info}->{brightness_scale} || 255;
-                        $msg = int( $value_json->{brightness} * 100 / $brightness_scale ) . '%';
-                    } else {
-                        $msg = 'on';
-                    }
-                } elsif( $value_json->{state} eq $value_off ) {
-                    $msg = 'off';
-                }
-            }
-        } else {
-            if( $value eq $value_off ) {
-                $msg = 'off';
-            } elsif( $brightness ) {
-                $msg = $brightness;
-            } elsif( $value eq $value_on ) {
-                $msg = 'on';
-            }
-        }
+	if( $self->{disc_info}->{schema} eq 'json' ) {
+	    if( $value_json ) {
+		$self->debug( 3, "Decoded state:$value_json->{state} brightness:$value_json->{brightness}" );
+		if( $value_json->{state} eq $value_on ) {
+		    if( $value_json->{brightness} ) {
+			my $brightness_scale = $self->{disc_info}->{brightness_scale} || 255;
+			$msg = int( $value_json->{brightness} * 100 / $brightness_scale ) . '%';
+		    } else {
+			$msg = 'on';
+		    }
+		} elsif( $value_json->{state} eq $value_off ) {
+		    $msg = 'off';
+		}
+	    }
+	} else {
+	    if( $value eq $value_off ) {
+		$msg = 'off';
+	    } elsif( $brightness ) {
+		$msg = $brightness;
+	    } elsif( $value eq $value_on ) {
+		$msg = 'on';
+	    }
+	}
     } elsif( $$self{mqtt_type} eq 'switch'
     ||       $$self{mqtt_type} eq 'scene'
     ) {
-        $msg = 'on' if $value eq $value_on;
-        $msg = 'off' if $value eq $value_off;
+	$msg = 'on' if $value eq $value_on;
+	$msg = 'off' if $value eq $value_off;
     } elsif( $$self{mqtt_type} eq 'binary_sensor' ) {
-        if( $value eq $value_on ) {
-            $msg = 'on';
-            if( $self->{disc_info}->{off_delay} ) {
-                $msg .= "~$self->{disc_info}->{off_delay}~off";
-            }
-        } elsif( $value eq $value_off ) {
-            if( !$self->{disc_info}->{off_delay} ) {
-                $msg = 'off';
-            } else {
-                # ignore off command if {off_delay} is set -- item will be set off by above set timer
-                return;
-            }
-        }
+	if( $value eq $value_on ) {
+	    $msg = 'on';
+	    if( $self->{disc_info}->{off_delay} ) {
+		$msg .= "~$self->{disc_info}->{off_delay}~off";
+	    }
+	} elsif( $value eq $value_off ) {
+	    if( !$self->{disc_info}->{off_delay} ) {
+		$msg = 'off';
+	    } else {
+		# ignore off command if {off_delay} is set -- item will be set off by above set timer
+		return;
+	    }
+	}
     } elsif( $$self{mqtt_type} eq 'sensor' ) {
         $msg = $value;
     } elsif( $$self{mqtt_type} eq 'select' ) {
@@ -620,13 +620,13 @@ sub decode_mqtt_payload {
     } elsif( $$self{mqtt_type} eq 'text' ) {
         $msg = $value;
     } else {
-        $self->debug( 2, "Unknown object type '$$self{mqtt_type}' on object '$$self{topic}'" );
-        $msg = $value_json;
+	$self->debug( 2, "Unknown object type '$$self{mqtt_type}' on object '$$self{topic}'" );
+	$msg = $value_json;
     }
     if( $msg eq $unset_value ) {
         $self->error( "Unable to decode mqtt message for $$self{mqtt_name} type:$$self{mqtt_type} message:'$payload'" );
-        # $self->error( Dumper( $self ) );
-        $msg = undef;
+	# $self->error( Dumper( $self ) );
+	$msg = undef;
     }
     return $msg;
 }
@@ -642,8 +642,8 @@ sub encode_mqtt_payload {
 
     $payload = undef;
     if( $topic eq $self->{disc_info}->{state_topic} ) {
-        $value_on = $self->{disc_info}->{state_on};
-        $value_off = $self->{disc_info}->{state_off};
+	$value_on = $self->{disc_info}->{state_on};
+	$value_off = $self->{disc_info}->{state_off};
     }
     $value_on = $self->{disc_info}->{payload_on} if !defined $value_on;
     $value_off = $self->{disc_info}->{payload_off} if !defined $value_off;
@@ -653,53 +653,53 @@ sub encode_mqtt_payload {
     $brightness_scale = $self->{disc_info}->{brightness_scale} || 255;
     my $level;
     if( $self->{mqtt_type} eq 'light' ) {
-        ($level) = $setval =~ /^([1]?[0-9]?[0-9])%?$/;
+	($level) = $setval =~ /^([1]?[0-9]?[0-9])%?$/;
     }
     if( $self->{mqtt_type} eq 'sensor'
     ||  $self->{mqtt_type} eq 'select'
     ||  $self->{mqtt_type} eq 'text'
     ) {
-        $payload = $setval;
-        return $payload;
+	$payload = $setval;
+	return $payload;
     }
 
     # on/off/level type
     if( $level ) {
-        if ( $level < 1 ) {
-            $level = 0;
-            $value = $value_off;
-        } else {
-            $value = $value_on;
-        }
-        $brightness = int( ( $level * $brightness_scale / 100 ) + .5 );
+	if ( $level < 1 ) {
+	    $level = 0;
+	    $value = $value_off;
+	} else {
+	    $value = $value_on;
+	}
+	$brightness = int( ( $level * $brightness_scale / 100 ) + .5 );
     } elsif( $setval eq 'on' ) {
-        $value = $value_on;
-        $brightness = $brightness_scale;
+	$value = $value_on;
+	$brightness = $brightness_scale;
     } elsif( $setval eq 'off' ) {
-        $value = $value_off;
-        $brightness = 0;
+	$value = $value_off;
+	$brightness = 0;
     } else {
-        $self->error( "Unknown set value '$setval' for on/off/level mqtt type" );
-        return;
+	$self->error( "Unknown set value '$setval' for on/off/level mqtt type" );
+	return;
     }
 
     if( $self->{mqtt_type} eq 'light' ) {
-        if( $self->{disc_info}->{schema} eq 'json' ) {
-            $payload = "{ \"state\" : \"$value\", \"brightness\" : $brightness }";
-        } else {
-            if( $topic eq $self->{disc_info}->{command_topic} ) {
-                $payload = $value;
-            } elsif( $topic eq $self->{disc_info}->{brightness_command_topic} ) {
-                $payload = $brightness;
-            }
-        }
+	if( $self->{disc_info}->{schema} eq 'json' ) {
+	    $payload = "{ \"state\" : \"$value\", \"brightness\" : $brightness }";
+	} else {
+	    if( $topic eq $self->{disc_info}->{command_topic} ) {
+		$payload = $value;
+	    } elsif( $topic eq $self->{disc_info}->{brightness_command_topic} ) {
+		$payload = $brightness;
+	    }
+	}
     } elsif( $self->{mqtt_type} eq 'switch' 
     ||       $self->{mqtt_type} eq 'binary_sensor'
     ||       $self->{mqtt_type} eq 'scene'
     ) {
-        $payload = $value;
+	$payload = $value;
     } else {
-        $self->error( "Unknown object type '$$self{mqtt_type}' on object '$$self{mqtt_name}'" );
+	$self->error( "Unknown object type '$$self{mqtt_type}' on object '$$self{mqtt_name}'" );
     }
     return $payload;
 }
@@ -895,16 +895,16 @@ sub normalize_discovery_info {
     my $topic_subst = $disc_info->{'~'};
     delete $disc_info->{'~'};
     foreach my $disc_parm ( keys %{$disc_info} ) {
-        my $longname = $short_name_map->{$disc_parm};
-        if( $longname  &&  $longname ne $disc_parm ) {
-            $disc_info->{$longname} = $disc_info->{$disc_parm};
-            delete $disc_info->{$disc_parm};
-            $disc_parm = $longname;
-        }
-        if( $topic_subst  &&  $disc_parm =~ /^.*_topic$/ ) {
-            $disc_info->{$disc_parm} =~ s/^~/$topic_subst/;
-            $disc_info->{$disc_parm} =~ s/~$/$topic_subst/;
-        }
+	my $longname = $short_name_map->{$disc_parm};
+	if( $longname  &&  $longname ne $disc_parm ) {
+	    $disc_info->{$longname} = $disc_info->{$disc_parm};
+	    delete $disc_info->{$disc_parm};
+	    $disc_parm = $longname;
+	}
+	if( $topic_subst  &&  $disc_parm =~ /^.*_topic$/ ) {
+	    $disc_info->{$disc_parm} =~ s/^~/$topic_subst/;
+	    $disc_info->{$disc_parm} =~ s/~$/$topic_subst/;
+	}
     }
 }
 
@@ -947,26 +947,26 @@ sub publish_discovery_message {
 
     $interface = $self->{interface};
     if( !$self->{interface}->isConnected() ) {
-        $self->error( "Unable to publish discovery data -- $interface->{instance} not connected" );
-        return 0;
+	$self->error( "Unable to publish discovery data -- $interface->{instance} not connected" );
+	return 0;
     }
     if( !$self->{interface}->{discovery_publish_prefix} ) {
-        return 0;
+	return 0;
     }
     if( !$self->{discoverable} ) {
-        $self->debug( 2, "Non-discoverable object skipped: ".  $self->{mqtt_name} );
-        return 0;
+	$self->debug( 2, "Non-discoverable object skipped: ".  $self->{mqtt_name} );
+	return 0;
     }
     if( $self->{mqtt_type} eq 'discovery' ) {
-        return 0;
+	return 0;
     }
 
     my ($topic, $msg) = ($self->{disc_topic}, $self->{disc_msg});
     if( $topic  &&  $msg ) {
-        $topic = "$self->{interface}->{discovery_publish_prefix}/$topic";
-        $self->debug( 2, "Publishing discovery message T:'$topic'   M:'$msg'" );
-        $self->transmit_mqtt_message( $topic, $msg, 1 );
-        return 1;
+	$topic = "$self->{interface}->{discovery_publish_prefix}/$topic";
+	$self->debug( 2, "Publishing discovery message T:'$topic'   M:'$msg'" );
+	$self->transmit_mqtt_message( $topic, $msg, 1 );
+	return 1;
     }
     return 0;
 }
@@ -997,28 +997,28 @@ sub new {     ### mqtt_LocalItem
     my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
 
     if( !grep( /^$base_type$/, ('light','switch','binary_sensor', 'sensor', 'scene', 'select', 'text' ) ) ) {
-        $interface->error( "Invalid mqtt type '$type'" );
-        return;
+	$interface->error( "Invalid mqtt type '$type'" );
+	return;
     }
 
     if( $local_object  &&  !ref $local_object ) {
-        $interface->error( "Invalid local object: $local_object" );
-        return;
+	$interface->error( "Invalid local object: $local_object" );
+	return;
     }
 
     my (@topic_parts) = split( "/", $topicpattern, 2 );
     my $node_id = $topic_parts[0];
-    my $mqtt_name = ($topic_parts[1] =~ s"/[+#]?$""r);  # Remove trailing slash and wildcard, if present.
+    my $mqtt_name = ($topic_parts[1] =~ s"/[+#]?$""r);	# Remove trailing slash and wildcard, if present.
     my $topic_prefix = "$node_id/$mqtt_name";
     my $listen_topic;
     if( $#topic_parts == 1 ) {
-        $listen_topic = "$topic_prefix/+";
+	$listen_topic = "$topic_prefix/+";
     } else {
-        $listen_topic = $topicpattern;
+	$listen_topic = $topicpattern;
     }
     if( !$mqtt_name ) {
-        $interface->error( "Invalid topic pattern '$topicpattern' on object '$name'" );
-        return;
+	$interface->error( "Invalid topic pattern '$topicpattern' on object '$name'" );
+	return;
     }
 
     my $self = new mqtt_BaseItem( $interface, $mqtt_name, $base_type, $listen_topic, $discoverable );
@@ -1032,63 +1032,63 @@ sub new {     ### mqtt_LocalItem
 
     $self->{disc_info} = {};
     if( !$friendly_name ) {
-        $friendly_name = $self->{mqtt_name};
-        $friendly_name =~ s/_/ /g;
+	$friendly_name = $self->{mqtt_name};
+	$friendly_name =~ s/_/ /g;
     }
     $self->{disc_info}->{name} = $friendly_name;
     $self->{disc_info}->{state_topic} = "$topic_prefix/state";
     if( $base_type eq 'light' ) {
-        $self->{disc_info}->{command_topic} = "$topic_prefix/level";
-        $self->{disc_info}->{schema} = 'json';
-        $self->{disc_info}->{brightness} = "true";
-        $self->{disc_info}->{brightness_scale} = 100;
+	$self->{disc_info}->{command_topic} = "$topic_prefix/level";
+	$self->{disc_info}->{schema} = 'json';
+	$self->{disc_info}->{brightness} = "true";
+	$self->{disc_info}->{brightness_scale} = 100;
     } elsif( $base_type eq 'switch' ) {
-        $self->{disc_info}->{command_topic} = "$topic_prefix/set";
+	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
     } elsif( $base_type eq 'scene' ) {
-        $self->{disc_info}->{command_topic} = "$topic_prefix/set";
-        delete $self->{disc_info}->{state_topic};
+	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
+	delete $self->{disc_info}->{state_topic};
     } elsif( $base_type eq 'binary_sensor' ) {
-        if( $device_class ) {
-            $self->{disc_info}->{device_class} = $device_class;
-        }
+	if( $device_class ) {
+	    $self->{disc_info}->{device_class} = $device_class;
+	}
     } elsif( $base_type eq 'sensor' ) {
-        if( $device_class ) {
-            $self->{disc_info}->{device_class} = $device_class;
-        }
-        if( $device_class eq 'temperature' ) {
-            $self->{disc_info}->{unit_of_measurement} = 'C';
-        }
+	if( $device_class ) {
+	    $self->{disc_info}->{device_class} = $device_class;
+	}
+	if( $device_class eq 'temperature' ) {
+	    $self->{disc_info}->{unit_of_measurement} = 'C';
+	}
     } elsif( $base_type eq 'select' ) {
-        $self->{disc_info}->{command_topic} = "$topic_prefix/set";
-        if( $local_object ) {
-            my @state_list = $local_object->get_states();
-            $self->{disc_info}->{options} = \@state_list;
-        }
+	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
+	if( $local_object ) {
+	    my @state_list = $local_object->get_states();
+	    $self->{disc_info}->{options} = \@state_list;
+	}
     } elsif( $base_type eq 'text' ) {
-        $self->{disc_info}->{command_topic} = "$topic_prefix/set";
+	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
     }
 
     $self->{is_local} = 1;
 
     if( $local_object ) {
-        # Tie mqtt object to local_object so state changes are sent to mqtt broker
-        $local_object->tie_items($self);
-        $local_object->{mqtt_Local_Item} = $self;
-        $self->{local_item} = $local_object;
+	# Tie mqtt object to local_object so state changes are sent to mqtt broker
+	$local_object->tie_items($self);
+	$local_object->{mqtt_Local_Item} = $self;
+	$self->{local_item} = $local_object;
     }
 
     if( $self->{local_item}  &&  $self->{local_item}->{device_id} ) {
-        $self->{disc_info}->{unique_id} = $self->{node_id} . '_' . $self->{local_item}->{device_id};
-        if( $self->{local_item}->{m_group} ) {
-            $self->{disc_info}->{unique_id} .= $self->{local_item}->{m_group};
-        }
+	$self->{disc_info}->{unique_id} = $self->{node_id} . '_' . $self->{local_item}->{device_id};
+	if( $self->{local_item}->{m_group} ) {
+	    $self->{disc_info}->{unique_id} .= $self->{local_item}->{m_group};
+	}
     } else {
-        $self->{disc_info}->{unique_id} = $self->{node_id} . '_' . $self->{mqtt_name};
-        $self->{disc_info}->{unique_id} =~ s/ /_/g;
+	$self->{disc_info}->{unique_id} = $self->{node_id} . '_' . $self->{mqtt_name};
+	$self->{disc_info}->{unique_id} =~ s/ /_/g;
     }
 
     if( ref $self->{local_item}->{mqtt_device_info} ) {
-        $self->{disc_info}->{device} = $self->{local_item}->{mqtt_device_info};
+	$self->{disc_info}->{device} = $self->{local_item}->{mqtt_device_info};
     }
 
     $self->create_discovery_message();
@@ -1120,27 +1120,27 @@ sub receive_mqtt_message {
     # The mqtt object will then send out the state message
 
     if( $self->{local_item} ) {
-        $obj_name = $self->{local_item}->get_object_name();
+	$obj_name = $self->{local_item}->get_object_name();
     } else {
-        $obj_name = $self->get_object_name();
+	$obj_name = $self->get_object_name();
     }
     if( $topic eq $self->{disc_info}->{state_topic} ) {
-        $self->debug( 1, "LocalItem $obj_name ignoring state topic message" );
+	$self->debug( 1, "LocalItem $obj_name ignoring state topic message" );
     } elsif( $topic eq $self->{disc_info}->{command_topic} ) {
-        if( $retained ) {
-            # command messages should never be retained, but just in case...
-            $self->log( "LocalItem received retained command message -- ignoring" );
-            return;
-        }
-        my $setval = $self->decode_mqtt_payload( $topic, $message, $retained );
-        if( defined $setval ) {
-            $self->debug( 1, "LocalItem MQTT to MH setting $obj_name::set($setval) based on received message '$message'" );
-            if( $self->{local_item} ) {
-                $self->{local_item}->set( $setval, 'mqtt' );
-            } else {
-                $self->SUPER::set( $setval, 'mqtt' );
-            }
-        }
+	if( $retained ) {
+	    # command messages should never be retained, but just in case...
+	    $self->log( "LocalItem received retained command message -- ignoring" );
+	    return;
+	}
+	my $setval = $self->decode_mqtt_payload( $topic, $message, $retained );
+	if( defined $setval ) {
+	    $self->debug( 1, "LocalItem MQTT to MH setting $obj_name::set($setval) based on received message '$message'" );
+	    if( $self->{local_item} ) {
+		$self->{local_item}->set( $setval, 'mqtt' );
+	    } else {
+		$self->SUPER::set( $setval, 'mqtt' );
+	    }
+	}
     } else {
         $self->debug( 2, "LocalItem unhandled message T:'$topic'  M:'$message'" );
     }
@@ -1159,14 +1159,14 @@ sub set {    ### LocalItem
     return if &main::check_for_tied_filters( $self, $setval );
 
     if( $self->{local_item} ) {
-        $obj_name = $self->{local_item}->get_object_name();
+	$obj_name = $self->{local_item}->get_object_name();
     } else {
-        $obj_name = $self->get_object_name();
+	$obj_name = $self->get_object_name();
     }
 
     if( $self->{local_item}  &&  $p_setby ne $self->{local_item} ) {
-        $self->error( "LocalItem $obj_name set($setval) called by other than tied local item -- $p_setby" );
-        return;
+	$self->error( "LocalItem $obj_name set($setval) called by other than tied local item -- $p_setby" );
+	return;
     }
 
     ###
@@ -1175,15 +1175,15 @@ sub set {    ### LocalItem
     my $topic = $self->{disc_info}->{state_topic};
     my $payload = $self->encode_mqtt_payload( $setval, $topic );
     if( $topic && defined ($payload)  ) {
-        # Note that outgoing state messages are marked to be retained, so that any client can get the latest state info
-        # when it starts up
-        $self->debug( 1, "MH to MQTT LocalItem ${obj_name} set($setval) publishing state message '$payload' to mqtt" );
-        $self->{has_published_state} = 1;
-        $self->transmit_mqtt_message( $topic, $payload, 1 );
+	# Note that outgoing state messages are marked to be retained, so that any client can get the latest state info
+	# when it starts up
+	$self->debug( 1, "MH to MQTT LocalItem ${obj_name} set($setval) publishing state message '$payload' to mqtt" );
+	$self->{has_published_state} = 1;
+	$self->transmit_mqtt_message( $topic, $payload, 1 );
     }
 
     if( !$self->{local_item} ) {
-        $self->SUPER::set( $setval, $p_setby );
+	$self->SUPER::set( $setval, $p_setby );
     }
 }
 
@@ -1195,24 +1195,24 @@ sub publish_state {
     my $obj_id;
 
     if( !$only_unpublished  ||  !$self->{has_published_state} ) {
-        my $local_item;
-        if( $self->{local_item} ) {
-            $local_item = $self->{local_item};
-        } else {
-            $local_item = $self;
-        }
-        my $current_state = $local_item->state;
-        my $self_name = $local_item->get_object_name();
-        if( defined $current_state ) {
-            if( !$local_item->can('is_responder') || $local_item->is_responder ) {
-                $self->debug( 1, "setting local object $self_name to current_state: $current_state" );
-                $local_item->set( $current_state );
-            } else {
-                $self->debug( 1, "object $self_name is not a responder" );
-            }
-        } else {
-            $self->debug( 1, "object $self_name has no state" );
-        }
+	my $local_item;
+	if( $self->{local_item} ) {
+	    $local_item = $self->{local_item};
+	} else {
+	    $local_item = $self;
+	}
+	my $current_state = $local_item->state;
+	my $self_name = $local_item->get_object_name();
+	if( defined $current_state ) {
+	    if( !$local_item->can('is_responder') || $local_item->is_responder ) {
+		$self->debug( 1, "setting local object $self_name to current_state: $current_state" );
+		$local_item->set( $current_state );
+	    } else {
+		$self->debug( 1, "object $self_name is not a responder" );
+	    }
+	} else {
+	    $self->debug( 1, "object $self_name has no state" );
+	}
     }
 }
 
@@ -1228,7 +1228,7 @@ sub publish_current_states {
 
     &mqtt::log( undef, "Publishing current state data for local objects" );
     foreach my $interface ( &mqtt::get_interface_list() ) {
-        $interface->publish_current_states( $only_unpublished );
+	$interface->publish_current_states( $only_unpublished );
     }
 }
 
@@ -1259,14 +1259,14 @@ sub new {   ### mqtt_BaseRemoteItem
     my $self = new mqtt_BaseItem( $interface, $mqtt_name, $type, $listentopics, $discoverable );
 
     if( $self->{mqtt_type} eq 'light' ) {
-        $self->set_states( "off", "20%", "40%", "50%", "60%", "80%", "on", "offline" );
+	$self->set_states( "off", "20%", "40%", "50%", "60%", "80%", "on", "offline" );
     } elsif( $self->{mqtt_type} eq 'binary_sensor' ) {
-        $self->set_states( "off", "on", "offline" );
+	$self->set_states( "off", "on", "offline" );
     } elsif( $self->{mqtt_type} eq 'sensor' ) {
     } elsif( $self->{mqtt_type} eq 'switch' ) {
-        $self->set_states( "off", "on", "offline" );
+	$self->set_states( "off", "on", "offline" );
     } elsif( $self->{mqtt_type} eq 'scene' ) {
-        $self->set_states( "off", "on", "offline" );
+	$self->set_states( "off", "on", "offline" );
     }
 
     bless $self, $class;
@@ -1302,63 +1302,63 @@ sub receive_mqtt_message {
     ||  $topic eq $self->{disc_info}->{white_value_command_topic}
     ||  $topic eq $self->{disc_info}->{xy_command_topic}
     ) {
-        $self->debug( 2, "remote item $self->{object_name} ignoring command topic message T:'$topic'" );
-        return;
+	$self->debug( 2, "remote item $self->{object_name} ignoring command topic message T:'$topic'" );
+	return;
     }
 
 
     if( $topic eq $self->{disc_info}->{state_topic} 
     ||  $topic eq $self->{disc_info}->{brightness_state_topic}
     ) {
-        if( $self->{disc_info}->{optimistic} eq 'true'  &&  $self->{pending_state} ) {
-            $self->debug( 2, "BaseRemoteItem $self->{object_name} ignored state message because device is optimistic" );
-            $self->{pending_state}    = undef;
-            $self->{pending_setby}    = undef;
-            $self->{pending_response} = undef;
-        } else {
-            if( $retained ) {
-                $p_setby = 'mqtt [retained]';
-            } elsif( $self->{pending_state} ) {
-                $setval = $self->{pending_state};
-                $p_setby = $self->{pending_setby};
-                $p_response = $self->{pending_response};
-                $self->{pending_state}    = undef;
-                $self->{pending_setby}    = undef;
-                $self->{pending_response} = undef;
-                $self->debug( 2, "Pending $self->{object_name}-->set( $setval, $p_setby, $p_response ) cleared" );
-            } else {
-                $p_setby = 'mqtt';
-            }
-            $setval = $self->decode_mqtt_payload( $topic, $message, $retained );
-            if( ref $setval ) {
-                $self->{state_obj} = $setval;
-                $setval = undef;
-            }
-            if( $setval ) {
-                $self->debug( 1, "remote item MQTT to MH $$self{mqtt_name} set($setval, '$p_setby')" );
-                $self->level( $setval ) if $self->can( 'level' );
-                $self->SUPER::set( $setval, $p_setby, $p_response );
-            }
-        }
-        return;
+	if( $self->{disc_info}->{optimistic} eq 'true'  &&  $self->{pending_state} ) {
+	    $self->debug( 2, "BaseRemoteItem $self->{object_name} ignored state message because device is optimistic" );
+	    $self->{pending_state}    = undef;
+	    $self->{pending_setby}    = undef;
+	    $self->{pending_response} = undef;
+	} else {
+	    if( $retained ) {
+		$p_setby = 'mqtt [retained]';
+	    } elsif( $self->{pending_state} ) {
+		$setval = $self->{pending_state};
+		$p_setby = $self->{pending_setby};
+		$p_response = $self->{pending_response};
+		$self->{pending_state}    = undef;
+		$self->{pending_setby}    = undef;
+		$self->{pending_response} = undef;
+		$self->debug( 2, "Pending $self->{object_name}-->set( $setval, $p_setby, $p_response ) cleared" );
+	    } else {
+		$p_setby = 'mqtt';
+	    }
+	    $setval = $self->decode_mqtt_payload( $topic, $message, $retained );
+	    if( ref $setval ) {
+		$self->{state_obj} = $setval;
+		$setval = undef;
+	    }
+	    if( $setval ) {
+		$self->debug( 1, "remote item MQTT to MH $$self{mqtt_name} set($setval, '$p_setby')" );
+		$self->level( $setval ) if $self->can( 'level' );
+		$self->SUPER::set( $setval, $p_setby, $p_response );
+	    }
+	}
+	return;
     }
     if( $topic eq $self->{disc_info}->{availability_topic} ) {
-        if( $retained ) {
-            $p_setby = 'mqtt [retained]';
-        } else {
-            $p_setby = 'mqtt';
-        }
-        if( $message eq $self->{disc_info}->{payload_available} ) {
-            if( !$retained ) {
-                $self->log( "$self->{object_name} now available" );
-            }
-        } elsif( $message eq $self->{disc_info}->{payload_not_available} ) {
-            $self->log( "$self->{mqtt_name} is not available" );
-            $self->SUPER::set( $message, $p_setby );
-        } else {
-            $self->error( "$self->{object_name} received unrecognized availability message: $message" );
-        }
-        return;
+	if( $retained ) {
+	    $p_setby = 'mqtt [retained]';
+	} else {
+	    $p_setby = 'mqtt';
+	}
+	if( $message eq $self->{disc_info}->{payload_available} ) {
+	    if( !$retained ) {
+		$self->log( "$self->{object_name} now available" );
+	    }
+	} elsif( $message eq $self->{disc_info}->{payload_not_available} ) {
+	    $self->log( "$self->{mqtt_name} is not available" );
+	    $self->SUPER::set( $message, $p_setby );
+	} else {
+	    $self->error( "$self->{object_name} received unrecognized availability message: $message" );
+	}
+	return;
     }
 
     $self->debug( 2, "BaseRemoteItem unhandled message T:'$topic'  M:'$message'" );
@@ -1370,13 +1370,13 @@ sub transmit_topic {
     my $obj_name = $self->get_object_name;
     my $topic = $self->{disc_info}->{$topicname};
     if( !$topic ) {
-        $self->debug( 2, "BaseRemoteItem $obj_name does not have topic:$topicname -- not publishing" );
-        return;
+	$self->debug( 2, "BaseRemoteItem $obj_name does not have topic:$topicname -- not publishing" );
+	return;
     }
     my $payload = $self->encode_mqtt_payload( $setval, $topic );
     if( defined $payload ) {
-        $self->debug( 1, "MH to MQTT BaseRemoteItem $obj_name::set($setval) publishing command '$payload' to mqtt" );
-        $self->transmit_mqtt_message( $topic, $payload, 0 );
+	$self->debug( 1, "MH to MQTT BaseRemoteItem $obj_name::set($setval) publishing command '$payload' to mqtt" );
+	$self->transmit_mqtt_message( $topic, $payload, 0 );
     }
 }
 
@@ -1394,7 +1394,7 @@ sub set {    ### BaseRemoteItem
 
     # Override any set_with_timer requests
     if ( $$self{set_timer} ) {
-        print( $self->get_object_name . " unsetting timer\n" ) if $main::Debug{set};
+	print( $self->get_object_name . " unsetting timer\n" ) if $main::Debug{set};
         &Timer::unset( $$self{set_timer} );
         delete $$self{set_timer};
     }
@@ -1404,29 +1404,29 @@ sub set {    ### BaseRemoteItem
     ###
 
     if( $self->{mqtt_type} eq 'light'  &&  $self->{disc_info}->{schema} ne 'json' ) {
-        if( !$self->{disc_info}->{on_command_type}
-        ||  $self->{disc_info}->{on_command_type} eq 'last'
-        ) {
-            $self->transmit_topic( 'brightness_command_topic', $setval );
-            $self->transmit_topic( 'command_topic', $setval );
-        } elsif( $self->{disc_info}->{on_command_type} eq 'first' ) {
-            $self->transmit_topic( 'command_topic', $setval );
-            $self->transmit_topic( 'brightness_command_topic', $setval );
-        } elsif( $self->{disc_info}->{on_command_type} eq 'brightness' ) {
-            $self->transmit_topic( 'brightness_command_topic', $setval );
-        }
+	if( !$self->{disc_info}->{on_command_type}
+	||  $self->{disc_info}->{on_command_type} eq 'last'
+	) {
+	    $self->transmit_topic( 'brightness_command_topic', $setval );
+	    $self->transmit_topic( 'command_topic', $setval );
+	} elsif( $self->{disc_info}->{on_command_type} eq 'first' ) {
+	    $self->transmit_topic( 'command_topic', $setval );
+	    $self->transmit_topic( 'brightness_command_topic', $setval );
+	} elsif( $self->{disc_info}->{on_command_type} eq 'brightness' ) {
+	    $self->transmit_topic( 'brightness_command_topic', $setval );
+	}
     } else {
-        $self->transmit_topic( 'command_topic', $setval );
+	$self->transmit_topic( 'command_topic', $setval );
     }
 
     $self->{pending_state}    = $setval;
     $self->{pending_setby}    = $p_setby;
     $self->{pending_response} = $p_response;
     if( $self->{disc_info}->{optimistic} eq 'true') {
-        $self->level( $setval ) if $self->can( 'level' );
-        $self->SUPER::set( $setval, $p_setby, $p_response );
+	$self->level( $setval ) if $self->can( 'level' );
+	$self->SUPER::set( $setval, $p_setby, $p_response );
     } else {
-        $self->debug( 2, "Pending $self->{object_name}-->set( $setval, $p_setby, $p_response )" );
+	$self->debug( 2, "Pending $self->{object_name}-->set( $setval, $p_setby, $p_response )" );
     }
 }
 
@@ -1435,7 +1435,7 @@ sub set {    ### BaseRemoteItem
 
     NOTE:  This timer functionality is required here because the Generic_Item timer
            is reset by Generic_Item set calls, and the set call for the Generic_Item
-           in this case is delayed until the state response is received from the mqtt device.
+	   in this case is delayed until the state response is received from the mqtt device.
 =cut
 
 sub set_with_timer {
@@ -1486,11 +1486,11 @@ sub make_topic {
     my (@topic_parts) = split( "/", $topicpattern );
     my $wildcard_count = 0;
     for( my $i=0; $i <= $#topic_parts; $i += 1 ) {
-        my $part = $topic_parts[$i];
-        if( $part eq '+' ) {
-            $topic_parts[$i] = $parms[$wildcard_count];
-            $wildcard_count += 1;
-        }
+	my $part = $topic_parts[$i];
+	if( $part eq '+' ) {
+	    $topic_parts[$i] = $parms[$wildcard_count];
+	    $wildcard_count += 1;
+	}
     }
     return join( '/', @topic_parts );
 }
@@ -1501,25 +1501,25 @@ sub new {      ### mqtt_RemoteItem
     my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
 
     if( !grep( /$base_type/, ('light','switch','sensor','binary_sensor') ) ) {
-        $interface->error( "Invalid InstMqttItem type '$type'" );
-        return;
+	$interface->error( "Invalid InstMqttItem type '$type'" );
+	return;
     }
 
     my $mqtt_name;
     my (@topic_parts) = split( "/", $topicpattern );
     my $wildcard_count = 0;
     for( my $i=0; $i <= $#topic_parts; $i += 1 ) {
-        my $part = $topic_parts[$i];
-        if( grep( /^$part$/, ('tele', 'stat', 'cmnd') ) ) {
-            $topic_parts[$i] = '+';
-        } elsif( $part eq '+' ) {
-            $wildcard_count += 1;
-        } else {
-            $mqtt_name = $part;
-        }
+	my $part = $topic_parts[$i];
+	if( grep( /^$part$/, ('tele', 'stat', 'cmnd') ) ) {
+	    $topic_parts[$i] = '+';
+	} elsif( $part eq '+' ) {
+	    $wildcard_count += 1;
+	} else {
+	    $mqtt_name = $part;
+	}
     }
     if( !$mqtt_name ) {
-        $interface->error( "Unrecognized topic pattern '$topicpattern' for device '$friendly_name'" );
+	$interface->error( "Unrecognized topic pattern '$topicpattern' for device '$friendly_name'" );
     }
 
     my $listen_topic = join( '/', @topic_parts );
@@ -1537,47 +1537,47 @@ sub new {      ### mqtt_RemoteItem
 
     $self->{disc_info} = {};
     if( !$friendly_name ) {
-        $friendly_name = $self->{mqtt_name};
-        $friendly_name =~ s/_/ /g;
+	$friendly_name = $self->{mqtt_name};
+	$friendly_name =~ s/_/ /g;
     }
     $self->{disc_info}->{name} = $friendly_name;
     if( $wildcard_count == 2 ) {
-        $self->{disc_info}->{availability_topic} = make_topic( $listen_topic, 'tele', 'LWT' );
-        $self->{disc_info}->{payload_available} = 'Online';
-        $self->{disc_info}->{payload_not_available} = 'Offline';
+	$self->{disc_info}->{availability_topic} = make_topic( $listen_topic, 'tele', 'LWT' );
+	$self->{disc_info}->{payload_available} = 'Online';
+	$self->{disc_info}->{payload_not_available} = 'Offline';
     }
     if( $base_type eq 'switch' ) {
-        if( $wildcard_count != 2 ) {
-            $self->error( "Don't know how to create switch topics for '$friendly_name'" );
-        }
-        $self->{disc_info}->{command_topic} = make_topic( $listen_topic, 'cmnd', 'POWER' );
-        $self->{disc_info}->{state_topic} = make_topic( $listen_topic, 'stat', 'POWER' );
+	if( $wildcard_count != 2 ) {
+	    $self->error( "Don't know how to create switch topics for '$friendly_name'" );
+	}
+	$self->{disc_info}->{command_topic} = make_topic( $listen_topic, 'cmnd', 'POWER' );
+	$self->{disc_info}->{state_topic} = make_topic( $listen_topic, 'stat', 'POWER' );
     } elsif( $base_type eq 'light' ) {
-        if( $wildcard_count != 2 ) {
-            $self->error( "Don't know how to create light topics for '$friendly_name'" );
-        }
-        $self->{disc_info}->{command_topic} = make_topic( $listen_topic, 'cmnd', 'POWER' );
-        $self->{disc_info}->{state_topic} = make_topic( $listen_topic, 'tele', 'STATE' );
-        $self->{disc_info}->{state_value_template} = '{{value_json.POWER}}';
-        $self->{disc_info}->{brightness_state_topic} = make_topic( $listen_topic, 'tele', 'STATE' );
-        $self->{disc_info}->{brightness_value_template} = '{{value_json.Dimmer}}';
-        $self->{disc_info}->{brightness_scale} = 100;
-        $self->{disc_info}->{brightness_command_topic} = make_topic( $listen_topic, 'cmnd', 'Dimmer' );
-        $self->{disc_info}->{on_command_type} = 'brightness';
+	if( $wildcard_count != 2 ) {
+	    $self->error( "Don't know how to create light topics for '$friendly_name'" );
+	}
+	$self->{disc_info}->{command_topic} = make_topic( $listen_topic, 'cmnd', 'POWER' );
+	$self->{disc_info}->{state_topic} = make_topic( $listen_topic, 'tele', 'STATE' );
+	$self->{disc_info}->{state_value_template} = '{{value_json.POWER}}';
+	$self->{disc_info}->{brightness_state_topic} = make_topic( $listen_topic, 'tele', 'STATE' );
+	$self->{disc_info}->{brightness_value_template} = '{{value_json.Dimmer}}';
+	$self->{disc_info}->{brightness_scale} = 100;
+	$self->{disc_info}->{brightness_command_topic} = make_topic( $listen_topic, 'cmnd', 'Dimmer' );
+	$self->{disc_info}->{on_command_type} = 'brightness';
     } elsif( $base_type eq 'binary_sensor' ) {
-        # Motion sensor config as defined here: https://blakadder.com/pir-in-tasmota/
-        $self->{disc_info}->{state_topic} = make_topic( $listen_topic, 'tele', 'MOTION' );
-        $self->{disc_info}->{payload_on} = 1;
-        $self->{disc_info}->{device_class} = $device_class;
-        $self->{disc_info}->{force_update} = 'true';
-        $self->{disc_info}->{off_delay} = 30;
+	# Motion sensor config as defined here: https://blakadder.com/pir-in-tasmota/
+	$self->{disc_info}->{state_topic} = make_topic( $listen_topic, 'tele', 'MOTION' );
+	$self->{disc_info}->{payload_on} = 1;
+	$self->{disc_info}->{device_class} = $device_class;
+	$self->{disc_info}->{force_update} = 'true';
+	$self->{disc_info}->{off_delay} = 30;
     } elsif( $base_type eq 'sensor' ) {
-        $self->{disc_info}->{state_topic} = make_topic( $listen_topic, 'tele', 'STATE' );
-        $self->{disc_info}->{device_class} = $device_class;
-        $self->{disc_info}->{force_update} = 'true';
+	$self->{disc_info}->{state_topic} = make_topic( $listen_topic, 'tele', 'STATE' );
+	$self->{disc_info}->{device_class} = $device_class;
+	$self->{disc_info}->{force_update} = 'true';
     } else {
-        $self->error( "TasmotaItem type '$type' not supported yet" );
-        return;
+	$self->error( "TasmotaItem type '$type' not supported yet" );
+	return;
     }
     $self->{disc_info}->{unique_id} = 'tasmota_' . $self->{mqtt_name};
     $self->{disc_info}->{unique_id} =~ s/ /_/g;
@@ -1613,8 +1613,8 @@ sub new {      ### mqtt_InstMqttItem
     my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
 
     if( !grep( /$base_type/, ('light','switch','binary_sensor','sensor','scene' ) ) ) {
-        $interface->error( "Invalid InstMqttItem type '$type'" );
-        return;
+	$interface->error( "Invalid InstMqttItem type '$type'" );
+	return;
     }
 
     my (@topic_parts) = split( "/", $topicpattern );
@@ -1622,7 +1622,7 @@ sub new {      ### mqtt_InstMqttItem
     my $mqtt_name = $topic_parts[1];
     my $topic_prefix = "$node_id/$mqtt_name";
     if( !$mqtt_name ) {
-        $interface->error( "Unrecognized topic pattern '$topicpattern' for device '$friendly_name'" );
+	$interface->error( "Unrecognized topic pattern '$topicpattern' for device '$friendly_name'" );
     }
     my $listen_topic = "$topic_prefix/+"; 
 
@@ -1641,28 +1641,28 @@ sub new {      ### mqtt_InstMqttItem
 
     $self->{disc_info} = {};
     if( !$friendly_name ) {
-        $friendly_name = $self->{mqtt_name};
-        $friendly_name =~ s/_/ /g;
+	$friendly_name = $self->{mqtt_name};
+	$friendly_name =~ s/_/ /g;
     }
     $self->{disc_info}->{name} = $friendly_name;
     if( $base_type eq 'scene' ) {
-        $self->{disc_info}->{command_topic} = "$node_id/modem/scene";
-        $self->{disc_info}->{optimistic} = 'true';
-        $self->{disc_info}->{payload_on} =  "{ \"cmd\" : \"ON\", \"name\" : \"$mqtt_name\" }";
-        $self->{disc_info}->{payload_off} =  "{ \"cmd\" : \"OFF\", \"name\" : \"$mqtt_name\" }";
+	$self->{disc_info}->{command_topic} = "$node_id/modem/scene";
+	$self->{disc_info}->{optimistic} = 'true';
+	$self->{disc_info}->{payload_on} =  "{ \"cmd\" : \"ON\", \"name\" : \"$mqtt_name\" }";
+	$self->{disc_info}->{payload_off} =  "{ \"cmd\" : \"OFF\", \"name\" : \"$mqtt_name\" }";
     } else {
-        $self->{disc_info}->{state_topic} = "$topic_prefix/state";
-        $self->{disc_info}->{command_topic} = "$topic_prefix/set";
-        if( $base_type eq 'light' ) {
-            $self->{disc_info}->{command_topic} = "$topic_prefix/level";
-            $self->{disc_info}->{schema} = 'json';
-            $self->{disc_info}->{brightness} = "true";
-            $self->{disc_info}->{brightness_scale} = 100;
-        } elsif( $base_type eq 'binary_sensor' ) {
-            $self->{disc_info}->{device_class} = $device_class;
-        } elsif( $base_type eq 'sensor' ) {
-            $self->{disc_info}->{device_class} = $device_class;
-        }
+	$self->{disc_info}->{state_topic} = "$topic_prefix/state";
+	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
+	if( $base_type eq 'light' ) {
+	    $self->{disc_info}->{command_topic} = "$topic_prefix/level";
+	    $self->{disc_info}->{schema} = 'json';
+	    $self->{disc_info}->{brightness} = "true";
+	    $self->{disc_info}->{brightness_scale} = 100;
+	} elsif( $base_type eq 'binary_sensor' ) {
+	    $self->{disc_info}->{device_class} = $device_class;
+	} elsif( $base_type eq 'sensor' ) {
+	    $self->{disc_info}->{device_class} = $device_class;
+	}
     }
     $self->{disc_info}->{unique_id} = $self->{mqtt_name};
     $self->{disc_info}->{unique_id} =~ s/ /_/g;
