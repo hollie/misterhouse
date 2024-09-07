@@ -76,6 +76,7 @@ Description:
             - light:  on, off and brightness
                     :rgb_color : for setting an RGB value
                     :effect    : for setting a lighting effect
+            - fan: on, off and speed (%)
             - cover: open,stop,close
                     :digital : for allowing granular setpoints
             - lock: lock, unlock
@@ -114,7 +115,10 @@ Description:
 	- ha_call_service also exists on the HA_Server class
 	    - this can be used to call services that are not entity services
 	    eg. $hasrv->ha_call_service( 'notify.mobile_app_my_phone', {title=>'HA notification', message=>'test message'} );
-
+	    - or add this to items.mht for controlling HA services, like an RF fan controlled by a broadlink item:
+	    GENERIC,   fan_light,
+	    CODE, $fan_light -> tie_event('$hasrv->ha_call_service( "remote.rm4pro.send_command", {device => "Fan", command=> "Light"})');
+	    CODE, $fan_light -> set_states ("on","off");
     
 
     Discovery:
@@ -355,7 +359,6 @@ sub new {
 	$self->log( "creating HA Server $name on $address" );
 
 	&::MainLoop_pre_add_hook( \&HA_Server::check_for_data, 1, $self );
-	# &::Reload_pre_add_hook( \&HA_Server::disconnect, 1, $self );
 	&::Reload_post_add_hook( \&HA_Server::generate_voice_commands, 1, $self );
 
 	$HA_Server_List{$name}	    = $self;
@@ -1044,6 +1047,8 @@ sub new {
         }
     } elsif( $domain eq 'lock' ) {
         $self->set_states( "unlocked", "locked" );      
+    } elsif( $domain eq 'fan' ) {
+        # placeholder in case we need to do something. States are set dynamically when the object is set      
     } elsif( $domain eq 'climate' ) {
     } elsif( $domain eq 'sensor'  ||  $domain eq 'binary_sensor' ) {
     } elsif( $domain eq 'select'  ||  $domain eq 'input_select' ) {
@@ -1213,15 +1218,38 @@ sub process_ha_message {
 	if( $p_setby eq 'ha_server_init' ) {
 	    $self->set_states( @{$new_state->{attributes}->{options}},"override=1" );
 	}
+    } elsif( $self->{domain} eq 'fan' ) {
+	my $level = $new_state->{state};
+	if( $new_state->{state} eq 'on' ){
+		$level = $new_state->{attributes}->{percentage} . "%" if( $new_state->{attributes}->{percentage} );
+		$level = "off" if ($level eq "0%");
+	}    
+	$self->debug( 1, "fan event for $self->{object_name} set to $new_state->{state} ($level)" );
+	$self->SUPER::set( $level, $p_setby, $p_response );
+	if( $p_setby eq 'ha_server_init' ) {
+	    #percentage_step gives the number of speed steps for the fan
+	    if (defined $new_state->{attributes}->{percentage_step}) {
+		my @states = ();
+		push @states, "off";
+		for ($i = $new_state->{attributes}->{percentage_step}; $i < 100; $i = $i + $new_state->{attributes}->{percentage_step}) {
+		next if ($i >96);
+		push @states,int($i) . "%";
+	    }
+	    push @states, "100%","on";
+		$self->set_states( @states,"override=1" );
+	    } else {
+		    $self->set_states( "on", "off","override=1" );
+	    }
+	}
     } elsif( $self->{domain} eq 'light' ) {
 	if (lc $self->{subtype} eq "rgb_color") {
 	    if( $new_state->{attributes}  &&  ref $new_state->{attributes}->{$self->{subtype}} ) {
-		#shouldn't join, but rgb is an array so for now create a string
-		my $string = join ',', @{$new_state->{attributes}->{ $self->{subtype} }}; 
-		$self->debug( 1, "handled subtype $self->{subtype} event for $self->{object_name} set to $string" );
-		$self->SUPER::set( $string, $p_setby, $p_response );
+		    #shouldn't join, but rgb is an array so for now create a string
+		    my $string = join ',', @{$new_state->{attributes}->{ $self->{subtype} }}; 
+		    $self->debug( 1, "handled subtype $self->{subtype} event for $self->{object_name} set to $string" );
+		    $self->SUPER::set( $string, $p_setby, $p_response );
 	    } else {
-		$self->debug( 1, "got light state for $self->{object_name} but no rgb_color attribute" );
+		    $self->debug( 1, "got light state for $self->{object_name} but no rgb_color attribute" );
 	    }
 	} elsif (lc $self->{subtype} eq "effect") {
 	    # update the set_states based on the effects_list array
@@ -1233,9 +1261,9 @@ sub process_ha_message {
 	} else {    
 	    my $level = $new_state->{state};
 	    if( $new_state->{state} eq 'on' ){
-		if( $new_state->{attributes}->{brightness} ) {
-		    $level = int( $new_state->{attributes}->{brightness} * 100 / 255 + .5);
-		}
+		    if( $new_state->{attributes}->{brightness} ) {
+			$level = int( $new_state->{attributes}->{brightness} * 100 / 255 + .5);
+		    }
 	    }    
 	    $self->debug( 1, "light event for $self->{object_name} set to $level" );
 	    $self->SUPER::set( $level, $p_setby, $p_response );
@@ -1244,7 +1272,7 @@ sub process_ha_message {
 	my $state;
 	foreach my $attrname (keys %{$new_state->{attributes}} ) {
 	    if( $self->{subtype} eq $attrname ) {
-		$state = $new_state->{attributes}->{$attrname};
+		    $state = $new_state->{attributes}->{$attrname};
 	    }
 	}
 	#Check for duplicates again as the $new state is inside the attributes
@@ -1267,11 +1295,11 @@ sub process_ha_message {
 	}
 	if( $p_setby eq 'ha_server_init' ) {
 	    if( $self->{subtype} eq 'hvac_mode' ) {
-		$self->set_states( @{$new_state->{attributes}->{hvac_modes}},"override=1" );
+		    $self->set_states( @{$new_state->{attributes}->{hvac_modes}},"override=1" );
 	    } elsif( $self->{subtype} eq 'fan_mode' ) {
-		$self->set_states( @{$new_state->{attributes}->{fan_modes}},"override=1" );
+		    $self->set_states( @{$new_state->{attributes}->{fan_modes}},"override=1" );
 	    } elsif( $self->{subtype} eq 'preset_mode' ) {
-		$self->set_states( @{$new_state->{attributes}->{preset_modes}},"override=1" );
+		    $self->set_states( @{$new_state->{attributes}->{preset_modes}},"override=1" );
 	    }
 	}
 	$self->SUPER::set( $state, $p_setby, $p_response );
@@ -1414,7 +1442,10 @@ sub ha_set_state {
         } elsif (lc $self->{domain} eq 'cover') {
             $service = 'set_cover_position';
             $service_data->{position} = $numval;
-	} elsif ( lc $self->{domain} eq 'number'  ||  lc $self->{domain} eq 'input_number' ) {
+        } elsif (lc $self->{domain} eq 'fan') {
+            $service = 'set_percentage';
+            $service_data->{percentage} = $numval;
+	    } elsif ( lc $self->{domain} eq 'number'  ||  lc $self->{domain} eq 'input_number' ) {
             $service = 'set_value';
             $service_data->{value} = $numval;
         } else {
