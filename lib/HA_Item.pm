@@ -1190,9 +1190,11 @@ sub process_ha_message {
 	$self->debug( 2, "Duplicate state $new_state->{state} ignored on $self->{object_name}" );
 	return;
     }
-    if( ( $p_setby eq 'ha_server_init' ) and ( lc( $self->state() ) eq lc( $new_state->{state} )) ) {
-	$self->debug( 2, "ha_server_init: Duplicate state $new_state->{state} ignored on $self->{object_name}" );
-	return;
+    if( $p_setby eq 'ha_server_init' ) {
+	if( defined $self->state()  &&  lc( $self->state() ) eq lc( $new_state->{state} ) ) {
+	    $self->debug( 2, "ha_server_init: Duplicate state $new_state->{state} ignored on $self->{object_name}" );
+	    return;
+	}
     }
     
     if( $self->{domain} eq 'switch'
