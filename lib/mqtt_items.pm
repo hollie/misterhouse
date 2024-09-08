@@ -1087,6 +1087,10 @@ sub new {     ### mqtt_LocalItem
 	$self->{disc_info}->{unique_id} =~ s/ /_/g;
     }
 
+    if( ref $self->{local_item}->{mqtt_device_info} ) {
+	$self->{disc_info}->{device} = $self->{local_item}->{mqtt_device_info};
+    }
+
     $self->create_discovery_message();
 
 
