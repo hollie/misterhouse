@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.2.200";
+var ia7_ver = "v2.2.202";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -1269,13 +1269,17 @@ var loadList = function() {
 var generateTooltips = function () {
     if ((show_tooltips) && (mobile_device() == "no") ){ //no sense in having tooltips on a touch device
 	    $(".btn").each(function( index ) {
+	    	//console.log($(this).text()+' 	>0 1='+$(this)[0].scrollWidth+' > 2='+$(this).outerWidth());
 	        if ($(this)[0].scrollWidth > 0) {
 	            //if scrollWidth is greater than outerWidth then bootstrap has truncated the button text
 		        if ($(this)[0].scrollWidth > $(this).outerWidth()) {
                     $(this).attr('data-toggle', 'tooltip');
                     $(this).attr('data-placement', 'auto bottom');
-                    $(this).attr('data-original-title', $(this).text());
-                    $(this).attr('title', $(this).text());
+                    var lngth = $(this).find('.object-state').text().length;
+                    var txt = $(this).text().slice(0,(-1 * lngth));
+                    //console.log("text="+$(this).text()+' objectstate='+$(this).find('.object-state').text()+' txt='+txt+' length='+lngth);
+                    $(this).attr('data-original-title', txt);
+                    $(this).attr('title', txt);
                 } else {
                     $(this).attr('data-original-title', '');
                     $(this).attr('title', '');                
