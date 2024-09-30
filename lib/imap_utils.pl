@@ -51,7 +51,7 @@ sub main::get_imap {
     $ssl = $parms{ssl} if ( defined $parms{ssl} );
     $ssl = 1           if ( lc $service eq "gmail" );
     $ssl = 1           if ( lc $service eq "ssl" );
-print "db ssl=$ssl\n";
+    #print "db ssl=$ssl\n";
     my $size = 0;
     $size = $main::config_parms{"net_mail_scan_size"}
       if ( defined $main::config_parms{"net_mail_scan_size"} );
@@ -434,17 +434,17 @@ sub _check_age {
     $year = $year - 1900;
     $epochtime = mktime( $sec, $min, $hour, $day, $monnum, $year );
 
-    print "db: imap_utils.pl: time=$time, epochtime=$epochtime";
+    #print "db: imap_utils.pl: time=$time, epochtime=$epochtime";
 
     $epochtime = $epochtime - 3600 if ( $dst and !$dst_disable );
     $epochtime = $epochtime + $offset;
 
     my $diff = ($time - $epochtime);
-    print ",epochtime after offset=$epochtime, diff=$diff\n";
+    #print ",epochtime after offset=$epochtime, diff=$diff\n";
 
     my $return = ( ( $time - $epochtime ) <= ( $age * 60 ) );
 
-    print "db: imap_utils.pl: diff=$diff, return=$return\n";
+    #print "db: imap_utils.pl: diff=$diff, return=$return\n";
     return $return;
 }
 
