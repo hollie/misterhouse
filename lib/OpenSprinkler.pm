@@ -462,7 +462,7 @@ sub print_info {
     $sens[3]      = "soil sensor";
 
     main::print_log( "[OpenSprinkler] MH Integration module v2. Opensprinkler device information:" );
-    main::print_log( "[OpenSprinkler] Hardware Version" . $self->{data}->{options}->{hwv} . " with firmware v" . $self->{data}->{options}->{fwv} );
+    main::print_log( "[OpenSprinkler] Hardware Version v" . $self->{data}->{options}->{hwv} . " with firmware v" . $self->{data}->{options}->{fwv} );
     main::print_log( "[OpenSprinkler] *******************************************************" );
     main::print_log( "[OpenSprinkler] * Note: Opensprinkler.pm is now depreciated in favour *");
     main::print_log( "[OpenSprinkler] *       of using Home Assistant for device access     *" );
@@ -485,8 +485,10 @@ sub print_info {
     main::print_log( "[OpenSprinkler] Password is " . $pwenabled[ $self->{data}->{options}->{ipas} ] );
     main::print_log( "[OpenSprinkler] Device ID " . $self->{data}->{options}->{devid} )
       if defined( $self->{data}->{options}->{devid} );
-    main::print_log( "[OpenSprinkler] LCD Contrast " . $self->{data}->{options}->{con} );
-    main::print_log( "[OpenSprinkler] LCD Backlight " . $self->{data}->{options}->{lit} );
+    main::print_log( "[OpenSprinkler] LCD Contrast " . $self->{data}->{options}->{con} ) 
+      if defined( $self->{data}->{options}->{con} );
+    main::print_log( "[OpenSprinkler] LCD Backlight " . $self->{data}->{options}->{lit} )
+      if defined( $self->{data}->{options}->{lit} );
     main::print_log( "[OpenSprinkler] LCD Dimming " . $self->{data}->{options}->{dim} );
     main::print_log( "[OpenSprinkler] Relay Pulse Time " . $self->{data}->{options}->{rlp} )
       if defined( $self->{data}->{options}->{rlp} );
