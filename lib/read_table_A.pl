@@ -1948,51 +1948,58 @@ sub read_table_A {
        
     }
     elsif( $type eq "MQTT_LOCALITEM" ) {
-	my ($object_name, $local_obj_name, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
+	my ($local_obj_name, $broker, $type, $topicprefix, $discoverable, $friendly_name);
+	($name, $local_obj_name, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
 	require mqtt_items;
 	if( $broker ) {
 	    $broker = '$' . $broker;
 	} else {
 	    $broker = 'undef';
 	}
-	$code .= "\$${object_name} = new mqtt_LocalItem( ${broker}, '$object_name', '$type', \$$local_obj_name, '$topicprefix', $discoverable, '$friendly_name' );\n";
+	$code .= "\$${name} = new mqtt_LocalItem( ${broker}, '$name', '$type', \$$local_obj_name, '$topicprefix', $discoverable, '$friendly_name' );\n";
     }
     elsif( $type eq "MQTT_REMOTEITEM" ) {
-	my ($object_name, $grouplist, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
+	my ($broker, $type, $topicprefix, $discoverable, $friendly_name);
+	($name, $grouplist, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
 	require mqtt_items;
-	$code .= "\$${object_name} = new mqtt_RemoteItem( \$${broker}, '$type', '$topicprefix', $discoverable, '$friendly_name' );\n";
+	$code .= "\$${name} = new mqtt_RemoteItem( \$${broker}, '$type', '$topicprefix', $discoverable, '$friendly_name' );\n";
     }
     elsif( $type eq "MQTT_INSTMQTT" ) {
-	my ($object_name, $grouplist, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
+	my ($broker, $type, $topicprefix, $discoverable, $friendly_name);
+	($name, $grouplist, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
 	require mqtt_items;
-	$code .= "\$${object_name} = new mqtt_InstMqttItem( \$${broker}, '$type', '$topicprefix', $discoverable, '$friendly_name' );\n";
+	$code .= "\$${name} = new mqtt_InstMqttItem( \$${broker}, '$type', '$topicprefix', $discoverable, '$friendly_name' );\n";
     }
     elsif( $type eq "MQTT_DISCOVERY" ) {
-	my ($object_name, $discovery_topic, $broker, $action) = @item_info;
+	my ($discovery_topic, $broker, $action);
+	($name, $discovery_topic, $broker, $action) = @item_info;
 	require mqtt_discovery;
 	require mqtt_items;
-	$code .= "\$${object_name} = new mqtt_Discovery( \$${broker}, '$object_name', '$discovery_topic', '$action' );  #noloop\n";
+	$code .= "\$${name} = new mqtt_Discovery( \$${broker}, '$name', '$discovery_topic', '$action' );  #noloop\n";
     }
     elsif( $type eq "MQTT_DISCOVEREDITEM" ) {
-	my ($object_name, $disc_name, $disc_topic, $disc_msg ) = $record =~ /MQTT_DISCOVEREDITEM\s*,\s*([^,]+),\s*([^,]+),\s*([^,]+)\,\s*(.*)$/;
-	$object_name =~ s/\s*$//;
+	my ($disc_name, $disc_topic, $disc_msg ); 
+	($name, $disc_name, $disc_topic, $disc_msg ) = $record =~ /MQTT_DISCOVEREDITEM\s*,\s*([^,]+),\s*([^,]+),\s*([^,]+)\,\s*(.*)$/;
+	$name =~ s/\s*$//;
 	$disc_name =~ s/\s*$//;
 	$disc_topic =~ s/\s*$//;
 	$disc_msg =~ s/\s*$//;
 	$disc_msg =~ s/\'/\\'/g;
-	$code .= "\$${object_name} = new mqtt_DiscoveredItem( \$${disc_name}, '$object_name', '$disc_topic', '$disc_msg' );\n";
+	$code .= "\$${name} = new mqtt_DiscoveredItem( \$${disc_name}, '$name', '$disc_topic', '$disc_msg' );\n";
     }
     #-------------- End MQTT Objects ----------------
     #-------------- Home Assistant Objects -----------------
     elsif( $type eq "HA_SERVER" ) {
-	my ($object_name, $address, $keepalive, $api_key) = @item_info;
+    my ($keepalive, $api_key);
+	($name, $address, $keepalive, $api_key, @other) = @item_info;
 	require HA_Item;
-	$code .= "\$${object_name} = new HA_Server( '$object_name', '$address', '$keepalive', '$api_key' );\n";
+	$code .= "\$${name} = new HA_Server( '$name', '$address', '$keepalive', '$api_key' );\n";
     }
     elsif( $type eq "HA_ITEM" ) {
-	my ($object_name, $domain, $entity, $ha_server, $group, $options) = @item_info;
+    my ($domain, $entity, $ha_server, $options);
+	($name, $domain, $entity, $ha_server, $grouplist, $options, @other) = @item_info;
 	require HA_Item;
-	$code .= "\$${object_name} = new HA_Item( '$domain', '$entity', \$$ha_server ";
+	$code .= "\$${name} = new HA_Item( '$domain', '$entity', \$$ha_server ";
 	$code .= ",'$options' " if ($options);
 	$code .= ");\n";
     }
@@ -2079,7 +2086,6 @@ sub read_table_A {
         $code2 =~ s/= *new \S+ *\(/-> add \(/ if $objects{$name}++;
         $code .= $code2;
     }
-
     # Process grouplist. This code was moved into a subroutine so it could be called by extension
     # modules, too.
     $code .= read_table_grouplist_A($name, $grouplist) if ($grouplist);
@@ -2168,7 +2174,6 @@ sub read_table_finish_A {
 sub read_table_grouplist_A {
 
     my($name, $grouplist) = @_;
-
     $grouplist = '' unless $grouplist;    # Avoid -w uninialized errors
     my $code = '';
     for my $group ( split( '\|', $grouplist ) ) {
