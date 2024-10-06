@@ -1995,6 +1995,9 @@ sub read_table_A {
 	$code .= "\$${object_name} = new HA_Item( '$domain', '$entity', \$$ha_server ";
 	$code .= ",'$options' " if ($options);
 	$code .= ");\n";
+
+        $name = $object_name;
+        $grouplist = $group;
     }
     #-------------- End Home Assistant Objects -----------------
     elsif ( $type =~ /PLCBUS_.*/ ) {
