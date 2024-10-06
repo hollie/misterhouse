@@ -523,7 +523,7 @@ sub check_for_data {
     and $self->{ws_client}
     ) {
         $self->{ws_client}->write( '{"id":' . ++$self->{next_id} . ', "type":"ping"}' );
-	$self->debug( 3, "Sent ping to HA" );
+        $self->debug(3, "Sent ping to HA" );
     }
 }
 
