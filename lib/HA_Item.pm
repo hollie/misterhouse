@@ -1469,6 +1469,10 @@ sub ha_set_state {
         } else {
             $service = 'open_cover';
         }
+    } elsif( lc $mode eq 'up'){
+            $service = 'open_cover';
+    } elsif( lc $mode eq 'down'){
+            $service = 'close_cover';
     } elsif( lc $mode eq 'closed' ) {
         $service = 'close_cover';
     } elsif( lc $mode eq 'stop' ) {
