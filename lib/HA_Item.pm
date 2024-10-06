@@ -513,12 +513,13 @@ sub check_for_data {
         }
     }
      
-    if( &::new_second($self->{keep_alive_time})
+    if( &::new_second($self->{keep_alive_timer})
     and $self->{authenticated}
     and $self->{socket_item} and $self->{socket_item}->active()
     and $self->{ws_client}
     ) {
         $self->{ws_client}->write( '{"id":' . ++$self->{next_id} . ', "type":"ping"}' );
+        $self->debug(3, "Sent ping to HA" );
     }
 }
 
