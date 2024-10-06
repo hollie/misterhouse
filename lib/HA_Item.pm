@@ -75,6 +75,7 @@ Description:
 	*** IMPORTANT *** :      the attribute name will be current_temperature
             - light:  on, off and brightness
                     :rgb_color : for setting an RGB value
+                    :hs_color  : for setting hue and saturation
                     :effect    : for setting a lighting effect
             - fan: on, off and speed (%)
             - cover: open,stop,close
@@ -82,7 +83,10 @@ Description:
             - lock: lock, unlock
             - switch: on,off
             - number: well, a number. Since MH doesn't allow text entry through the web interface, you should set_states(x,y,z) in usercode if the webUI is used for control
-            - sensor, binary_sensor:  usually a number value, not settable
+            - sensor: usually a number value, not settable
+            - binary_sensor: an on/off value, the type of sensor should be detected, but can be overriden if needed by declaring a subytpe. Supported device classes:
+                    : battery,battery_charging,co,cold,connectivity,door,garage_door,gas,heat,light,lock,moisture,motion,moving,occupancy
+                    : opening,plug,power,presence,problem,running,safety,smoke,sound,tamper,update,vibration,window
             - climate:
                     (settable subtypes)
                     :hvac_mode              # hvac mode
@@ -513,12 +517,13 @@ sub check_for_data {
         }
     }
      
-    if( &::new_second($self->{keep_alive_time})
+    if( &::new_second($self->{keep_alive_timer})
     and $self->{authenticated}
     and $self->{socket_item} and $self->{socket_item}->active()
     and $self->{ws_client}
     ) {
         $self->{ws_client}->write( '{"id":' . ++$self->{next_id} . ', "type":"ping"}' );
+	$self->debug( 3, "Sent ping to HA" );
     }
 }
 
@@ -660,6 +665,7 @@ sub set_object_state {
 	    $label .= " " . $subtype if ($subtype);
 	    $obj->set_label($label,1);
 	}
+	
     }
 }
 
@@ -1152,6 +1158,16 @@ sub set {
     $self->{ha_current_setparms} = undef;
 }
 
+sub set_mh_state {
+    my ($self, $state, $p_setby, $p_response ) = @_;
+
+    if( ($self->{duplicate_states} == 0) and ( lc( $self->state() ) eq lc( $state )) ) {
+	$self->debug( 1, "Duplicate state $state ignored on $self->{object_name}" );
+	return;
+    }
+    $self->SUPER::set( $state, $p_setby, $p_response );
+}
+
 =item C<process_ha_message(cmd, p_setby )>
 
     Process a message from HA, and set the local item to the corresponding value.
@@ -1186,26 +1202,33 @@ sub process_ha_message {
 	$self->{unavailable_count} = 0;
     }
     
-    if( ($self->{duplicate_states} == 0) and ( lc( $self->state() ) eq lc( $new_state->{state} )) ) {
-	$self->debug( 2, "Duplicate state $new_state->{state} ignored on $self->{object_name}" );
-	return;
-    }
-    if( $p_setby eq 'ha_server_init' ) {
-	if( defined $self->state()  &&  lc( $self->state() ) eq lc( $new_state->{state} ) ) {
-	    $self->debug( 2, "ha_server_init: Duplicate state $new_state->{state} ignored on $self->{object_name}" );
-	    return;
-	}
-    }
-    
     if( $self->{domain} eq 'switch'
     ||  $self->{domain} eq 'lock'
     ||  $self->{domain} eq 'sensor'
     ||  $self->{domain} eq 'number'  ||  $self->{domain} eq 'input_number'
     ||  $self->{domain} eq 'text'    ||  $self->{domain} eq 'input_text'
-    ||  $self->{domain} eq 'binary_sensor'
     ) {
 	$self->debug( 1, "$self->{domain} event for $self->{object_name} set to $new_state->{state}" );
-	$self->SUPER::set( $new_state->{state}, $p_setby, $p_response );
+	$self->set_mh_state( $new_state->{state}, $p_setby, $p_response );
+    } elsif( $self->{domain} eq 'binary_sensor' ) {
+	if( (defined $p_setby) && ($p_setby eq 'ha_server_init') ) {
+	    if( defined ( $self->{ha_state}->{attributes}->{device_class}) ) {
+		$self->debug( 1, "Found a device class for a binary sensor: $self->{ha_state}->{attributes}->{device_class} ");
+		if( ($self->{subtype})  and  ($self->{subtype} ne $self->{ha_state}->{attributes}->{device_class}) ) {
+		    $self->log( "WARNING: device class found ($self->{ha_state}->{attributes}->{device_class}), but object has a hardcoded subtype ($self->{subtype}) in object defintion. Not setting device class $self->{ha_state}->{attributes}->{device_class}" );
+		} else {
+		    $self->{subtype} = $self->{ha_state}->{attributes}->{device_class};
+		}
+	    }
+	}
+        if( $self->{subtype} ) {
+            my $map_state = $self->get_binary_sensor_mapped_state(lc $self->{subtype},$new_state->{state});
+            $self->debug( 1, "binary_sensor $self->{subtype} mapped event for $self->{object_name} set to $new_state->{state} (mapped to $map_state)" );
+ 	    $self->set_mh_state( $map_state, $p_setby, $p_response );
+ 	} else {
+	    $self->debug( 1, "binary_sensor unmapped event for $self->{object_name} set to $new_state->{state}" );
+	    $self->set_mh_state( $new_state->{state}, $p_setby, $p_response );
+	}             
     } elsif( $self->{domain} eq 'cover' ) {
 	my $level = $new_state->{state};
 	if (lc $self->{subtype} eq "digital") {
@@ -1217,10 +1240,10 @@ sub process_ha_message {
 	$level = "open" if ($level eq "100%");
 	$level = "closed" if ($level eq "0%");
 	$self->debug( 1, "cover:$self->{subtype} event for $self->{object_name} set to $level" );
-	$self->SUPER::set( $level, $p_setby, $p_response );
+	$self->set_mh_state( $level, $p_setby, $p_response );
     } elsif( $self->{domain} eq 'select'  ||  $self->{domain} eq 'input_select' ) {
 	$self->debug( 1, "$self->{domain} event for $self->{object_name} set to $new_state->{state}" );
-	$self->SUPER::set( $new_state->{state}, $p_setby, $p_response );
+	$self->set_mh_state( $new_state->{state}, $p_setby, $p_response );
 	if( $p_setby eq 'ha_server_init' ) {
 	    $self->set_states( @{$new_state->{attributes}->{options}},"override=1" );
 	}
@@ -1231,7 +1254,7 @@ sub process_ha_message {
 	    $level = "off" if ($level eq "0%");
 	}    
 	$self->debug( 1, "fan event for $self->{object_name} set to $new_state->{state} ($level)" );
-	$self->SUPER::set( $level, $p_setby, $p_response );
+	$self->set_mh_state( $level, $p_setby, $p_response );
 	if( $p_setby eq 'ha_server_init' ) {
 	    #percentage_step gives the number of speed steps for the fan
 	    if (defined $new_state->{attributes}->{percentage_step}) {
@@ -1248,14 +1271,14 @@ sub process_ha_message {
 	    }
 	}
     } elsif( $self->{domain} eq 'light' ) {
-	if (lc $self->{subtype} eq "rgb_color") {
+	if (lc $self->{subtype} eq "rgb_color" || lc $self->{subtype} eq "hs_color") {
 	    if( $new_state->{attributes}  &&  ref $new_state->{attributes}->{$self->{subtype}} ) {
 		#shouldn't join, but rgb is an array so for now create a string
 		my $string = join ',', @{$new_state->{attributes}->{ $self->{subtype} }}; 
 		$self->debug( 1, "handled subtype $self->{subtype} event for $self->{object_name} set to $string" );
-		$self->SUPER::set( $string, $p_setby, $p_response );
+		$self->set_mh_state( $string, $p_setby, $p_response );
 	    } else {
-		$self->debug( 1, "got light state for $self->{object_name} but no rgb_color attribute" );
+		$self->debug( 1, "got light state for $self->{object_name} but no rgb_color or hs_color attribute" );
 	    }
 	} elsif (lc $self->{subtype} eq "effect") {
 	    # update the set_states based on the effects_list array
@@ -1263,16 +1286,17 @@ sub process_ha_message {
 	    #override=1 is a way to bypass the returnif $main::reload in Generic Item set_state
 	    $self->set_states(@{$new_state->{attributes}->{effect_list}},"override=1");
 	    #the if clause prevents the state from disspearing if the aurora turns off.
-	    $self->SUPER::set( $setval->{attributes}->{effect}, $p_setby, $p_response ) if ($setval->{attributes}->{effect});
+	    $self->set_mh_state( $setval->{attributes}->{effect}, $p_setby, $p_response ) if ($setval->{attributes}->{effect});
 	} else {    
 	    my $level = $new_state->{state};
 	    if( $new_state->{state} eq 'on' ){
 		if( $new_state->{attributes}->{brightness} ) {
 		    $level = int( $new_state->{attributes}->{brightness} * 100 / 255 + .5);
+		    $level .= '%';
 		}
 	    }    
 	    $self->debug( 1, "light event for $self->{object_name} set to $level" );
-	    $self->SUPER::set( $level, $p_setby, $p_response );
+	    $self->set_mh_state( $level, $p_setby, $p_response );
 	}
     } elsif( $self->{domain} eq 'climate' ) {
 	my $state;
@@ -1281,12 +1305,6 @@ sub process_ha_message {
 		    $state = $new_state->{attributes}->{$attrname};
 	    }
 	}
-	#Check for duplicates again as the $new state is inside the attributes
-	if( ($self->{duplicate_states} == 0) and ( lc( $self->state() ) eq lc( $new_state->{state} )) ) {
-	    $self->debug( 2, "Duplicate climate state $new_state->{state} ignored on $self->{object_name}" );
-	    return;
-	}
-
 	if( !$state  &&  (!$self->{subtype}  ||  $self->{subtype} eq 'hvac_mode' ) ) {
 	    $state = $new_state->{state};
 	}
@@ -1301,14 +1319,14 @@ sub process_ha_message {
 	}
 	if( $p_setby eq 'ha_server_init' ) {
 	    if( $self->{subtype} eq 'hvac_mode' ) {
-		    $self->set_states( @{$new_state->{attributes}->{hvac_modes}},"override=1" );
+		$self->set_states( @{$new_state->{attributes}->{hvac_modes}},"override=1" );
 	    } elsif( $self->{subtype} eq 'fan_mode' ) {
-		    $self->set_states( @{$new_state->{attributes}->{fan_modes}},"override=1" );
+		$self->set_states( @{$new_state->{attributes}->{fan_modes}},"override=1" );
 	    } elsif( $self->{subtype} eq 'preset_mode' ) {
-		    $self->set_states( @{$new_state->{attributes}->{preset_modes}},"override=1" );
+		$self->set_states( @{$new_state->{attributes}->{preset_modes}},"override=1" );
 	    }
 	}
-	$self->SUPER::set( $state, $p_setby, $p_response );
+	$self->set_mh_state( $state, $p_setby, $p_response );
     }
 }
 
@@ -1434,7 +1452,8 @@ sub ha_set_state {
     my $cmd;
     my $service;
     my $service_data = {};
-
+	$self->debug( 1, "ha_set_state. Setting $self->{object_name} to $mode" );
+    
     $service = $mode;
     my ($numval) = $mode =~ /^([1-9]?[0-9]?[0-9])%?$/;
     if( defined $numval ) {
@@ -1469,6 +1488,10 @@ sub ha_set_state {
         } else {
             $service = 'open_cover';
         }
+    } elsif( lc $mode eq 'up' ) {
+        $service = 'open_cover';
+    } elsif( lc $mode eq 'down' ) {
+        $service = 'close_cover';
     } elsif( lc $mode eq 'closed' ) {
         $service = 'close_cover';
     } elsif( lc $mode eq 'stop' ) {
@@ -1480,6 +1503,9 @@ sub ha_set_state {
     } elsif( lc $mode =~ /\d+,\d+,\d+/ && $self->{subtype} eq 'rgb_color') {
         $service = 'turn_on';
         @{$service_data->{rgb_color}} = split /,/, $mode;
+    } elsif( lc $mode =~ /\d+,\d+/ && $self->{subtype} eq 'hs_color') {
+        $service = 'turn_on';
+        @{$service_data->{hs_color}} = split /,/, $mode;
     }  elsif(  $self->{subtype} eq 'effect') {
         $service = 'turn_on';
         $service_data->{effect} = $mode;    
@@ -1487,6 +1513,71 @@ sub ha_set_state {
     $self->ha_call_service( $service, $service_data );
 }
 
+sub get_binary_sensor_mapped_state {
+    my ($self, $class, $state) = @_;
+    my %map_table;
+    $map_table{battery}{on} = "low";
+    $map_table{battery}{off} = "normal";
+    $map_table{battery_charging}{on} = "charging";
+    $map_table{battery_charging}{off} = "not charging";
+    $map_table{co}{on} = "detected";
+    $map_table{co}{off} = "clear";
+    $map_table{cold}{on} = "cold";
+    $map_table{cold}{off} = "normal";
+    $map_table{connectivity}{on} = "connected";
+    $map_table{connectivity}{off} = "disconnected";
+    $map_table{door}{on} = "open";
+    $map_table{door}{off} = "closed";
+    $map_table{garage_door}{on} = "open";
+    $map_table{garage_door}{off} = "closed";
+    $map_table{gas}{on} = "detected";
+    $map_table{gas}{off} = "clear";
+    $map_table{heat}{on} = "hot";
+    $map_table{heat}{off} = "normal";
+    $map_table{light}{on} = "light";
+    $map_table{light}{off} = "dark";
+    $map_table{lock}{on} = "open";
+    $map_table{lock}{off} = "closed";
+    $map_table{moisture}{on} = "wet";
+    $map_table{moisture}{off} = "dry";
+    $map_table{motion}{on} = "motion";
+    $map_table{motion}{off} = "still";
+    $map_table{moving}{on} = "moving";
+    $map_table{moving}{off} = "stopped";
+    $map_table{occupancy}{on} = "occupied";
+    $map_table{occupancy}{off} = "empty";
+    $map_table{opening}{on} = "open";
+    $map_table{opening}{off} = "closed";
+    $map_table{plug}{on} = "connected";
+    $map_table{plug}{off} = "disconnected";
+    $map_table{power}{on} = "power";
+    $map_table{power}{off} = "no power";
+    $map_table{presence}{on} = "home";
+    $map_table{presence}{off} = "away";
+    $map_table{problem}{on} = "problem";
+    $map_table{problem}{off} = "ok";
+    $map_table{running}{on} = "running";
+    $map_table{running}{off} = "not running";
+    $map_table{safety}{on} = "unsafe";
+    $map_table{safety}{off} = "safe";
+    $map_table{smoke}{on} = "detected";
+    $map_table{smoke}{off} = "clear";
+    $map_table{sound}{on} = "detected";
+    $map_table{sound}{off} = "clear";
+    $map_table{tamper}{on} = "detected";
+    $map_table{tamper}{off} = "clear";
+    $map_table{update}{on} = "update available";
+    $map_table{update}{off} = "up-to-date";
+    $map_table{vibration}{on} = "detected";
+    $map_table{vibration}{off} = "clear";
+    $map_table{window}{on} = "open";
+    $map_table{window}{off} = "closed";
+    if (defined $map_table{$class}{$state}) {
+        return $map_table{$class}{$state};
+    } else {
+        return $state;
+    }
+} 
 
 =item C<is_dimmable()>
 
@@ -1563,7 +1654,39 @@ sub get_state_override {
     
     return $return;
 }
+=item C<get_state_override()>
 
+Fetch specific information about an HA entity. For example, a light that has an effects list would be
+my @effects = $object->get_entity_attributes('effects_list');
+Specifying no attribute will return a hash with everything. The attributes can be seen by using the voice_cmd in the web interface
+
+=cut
+sub get_entity_attributes {
+    my ($self,$attr) = @_;
+    $self->debug( 2, Dumper $self->{ha_state}->{attributes});
+    if (defined $attr) {
+        if (defined $self->{ha_state}->{attributes}->{$attr}) {
+            $self->debug( 1, "get_entity_attributes: attr=$attr. value=" . $self->{ha_state}->{attributes}->{$attr} .". return type is: [" . ref(\$self->{ha_state}->{attributes}->{$attr}) . " " . ref($self->{ha_state}->{attributes}->{$attr}) . "]");
+            if (ref($self->{ha_state}->{attributes}->{$attr}) eq "ARRAY") {
+                return  @{$self->{ha_state}->{attributes}->{$attr}};
+            } elsif (ref(\$self->{ha_state}->{attributes}->{$attr}) eq "SCALAR") {
+                return  $self->{ha_state}->{attributes}->{$attr};
+            } elsif (ref(\$self->{ha_state}->{attributes}->{$attr}) eq "HASH") {
+                return  $self->{ha_state}->{attributes}->{$attr};
+            } else {
+        	$self->error("get_entity_attributes unknown variable reference: " . ref($self->{ha_state}->{attributes}->{$attr}));
+        	return;
+            }            
+        } else {
+       	    $self->error("get_entity_attributes called on non-existant attribute [$attr]" );
+        }
+    
+    } else {
+        $self->debug( 1, "get_entity_attributes: return all: return type is: [" . ref(\$self->{ha_state}->{attributes}) . " " . ref($self->{ha_state}->{attributes}) . "]");
+        return $self->{ha_state}->{attributes} ;
+    }
+
+}
 # -[ Fini - HA_Item ]---------------------------------------------------------
 
 1;
