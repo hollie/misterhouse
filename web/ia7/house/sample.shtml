@@ -15,7 +15,7 @@
 
 	<div class="col-sm-4">
 	   <div style="vertical-align:middle">
-		<button entity='gen_door' class='btn btn-default btn-lg btn-list btn-popover btn-block btn-state-cmd navbutton-padding'>Garage Door<span class='pull-right'>loading...</span>
+		<button entity='gen_door' class='btn btn-default btn-lg btn-list btn-popover btn-block btn-state-cmd navbutton-padding'>Garage Door<span class='pull-right object-state'>loading...</span>
 		</button>
 	</div>
 	</div>
@@ -23,7 +23,7 @@
 
 	<div class="col-sm-4">
 		   <div style="vertical-align:middle">
-		<button entity='test_light' class='btn btn-default btn-lg btn-list btn-popover btn-block btn-state-cmd navbutton-padding'>Garage Light<span class='pull-right'>loading...</span>
+		<button entity='test_light' class='btn btn-default btn-lg btn-list btn-popover btn-block btn-state-cmd navbutton-padding'>Garage Light<span class='pull-right object-state'>loading...</span>
 		</button>
 		</div>
 	</div>

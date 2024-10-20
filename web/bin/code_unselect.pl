@@ -89,7 +89,7 @@ The following fils are all the code files in you code_dir list:  $config_parms{c
             $category =~ s/\s+$//;    # Drop trailing whitespace
 
             # Ignore $config_parm{$xyz} entries
-            while ( $line =~ /config_parms{([^\$]+)}/g ) {
+            while ( $line =~ /config_parms\{([^\$]+)\}/g ) {
                 $file_parms{$1}++ unless $standard_parms{$1};
             }
         }

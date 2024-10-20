@@ -240,7 +240,7 @@ my %cmd_to_hex = (
         cmd               => 0x1D,
         flags             => 0x00,
         data              => 0,
-        expected_response => ['report_only_on_pulse'],
+        expected_response => ['report_all_id_pulse', 'report_only_on_pulse'],
         home_cmd          => 1,
         description       => "(THE SAME USER AND THE SAME HOME) Check the Only ON ID PULSE in the same USER & HOME."
     },
@@ -606,7 +606,7 @@ sub _handle_REPORT_ALL_ID_PULSE($$$) {
         }
     }
     _logdd( "$home report_all_id_pulse 'd1d2': '" . bin_rep($d1) . bin_rep($d2) . "'" );
-    _log("$home present: $exist");
+    _log("$home present: '$exist'");
 }
 
 sub _check_external_plcbus_command_file() {
@@ -658,9 +658,9 @@ sub _is_current_command_complete() {
     }
     my $current = $self->{current_cmd};
     my $ok      = 1;
-    my $what;
+    my $what = "";
     if ( !$current->{echo_seen} ) {
-        $what = $what . "'echo' ";
+        $what .= "'echo' ";
         $ok   = 0;
     }
     if ( $current->{waits_for_ack} && !$current->{ack_seen} ) {
@@ -691,10 +691,9 @@ sub _is_current_command_complete() {
     }
 
     if (    ( $current->{cmd} eq "on" or $current->{cmd} eq "off" )
-        and $current->{three_phase} == 0
         and $current->{ack_seen} )
     {
-        _logdd("Considering 1-Phase command completed, because ACK was received");
+        _logdd("Considering command completed, because ACK was received");
         $ok = 1;
         $current->{completed} = 1;
         my $module =
@@ -1156,7 +1155,7 @@ sub decode_rx_tx_switch($$$$) {
 sub _split_homeunit {
     my ($address) = @_;
     die("$address is not a valid PLCBUS home unit address")
-      unless ( $address =~ /^([A-O])([0-9]{1,2})$/ );
+      unless ( $address =~ /^([A-P])([0-9]{1,2})$/ );
     return ( $1, $2 );
 }
 
@@ -1176,8 +1175,10 @@ sub get_cmd_list($) {
 my $homes = ();
 
 sub generate_code(@) {
-    my ( $self, $type, $address, $name, $grouplist, $scene_list ) = @_;
+    my ( $self, $type, $address, $name, $grouplist, $scene_list, $totaltime ) = @_;
     my ( $home, $unit ) = _split_homeunit($address);
+
+    _log("Got @_");
 
     my $home_name = "PLCBUS_$home";
     $grouplist  = "" unless $grouplist;
@@ -1259,11 +1260,15 @@ sub generate_code(@) {
         $more .= "     respond \"setting up preset dim and scenes\";\n";
         $more .= "     PLCBUS->instance()->setup_house();\n";
         $more .= " }\n";
+        $more .= "   \$PLCBUS_scan_only_on_house = new Voice_Cmd(\"PLCBUS scan house only on\");\n";
+        $more .= ::store_object_data( "\$PLCBUS_scan_only_on_house", 'Voice_Cmd', 'PLCBUS_House', 'PLCBUS_House' );
+        $more .= " if (my \$status = said \$PLCBUS_scan_only_on_house){\n";
+        $more .= "     respond \"scanning home codes A .. P for devices in  'on' state\";\n";
+        $more .= "     PLCBUS->instance()->scan_whole_house_for_on();\n";
+        $more .= " }\n";
+        $more .= "\n";
     }
 
-    # if ($more){
-    #     _logdd($more);
-    # }
     return ( $object, $grouplist, $more );
 }
 
@@ -1287,7 +1292,14 @@ sub setup_house {
 sub scan_whole_house {
     my ($self) = @_;
     foreach my $home ( "A" .. "P" ) {
-        $self->queue_command( { home => $home, unit => 0, cmd => 'report_all_id_pulse' } );
+        $self->queue_command( { home => $home, unit => 0, cmd => 'get_all_id_pulse' } );
+    }
+}
+
+sub scan_whole_house_for_on {
+    my ($self) = @_;
+    foreach my $home ( "A" .. "P" ) {
+        $self->queue_command( { home => $home, unit => 0, cmd => 'get_only_on_id_pulse' } );
     }
 }
 
@@ -1343,6 +1355,7 @@ started by this module
     plcbussrv_port=4567
     debug=plcbus:2|plcbus_module:2
     plcbus_logfile=1
+    plcbus_setup_voice_cmds=1
 
 =over
 
@@ -1381,6 +1394,14 @@ able to debug plcbus. All logmessages are written regardless of your 'debug='
 setting.
 
 if set to '0' or omitted, no logfile is created.
+
+=item B<plcbus_setup_voice_cmds>
+
+if set to anything but '0' the module creates a bunch of setup voice comands
+to program the devices. Since this may create quite a lot of commands it may 
+slow down misterhouse.
+
+if set to '0' or omitted only on/off voice commands are created.
 
 =back
 
@@ -1605,7 +1626,11 @@ sub new {
             $self->_log("Can not parse scenesetting '$s'. Requiered format: Sceneaddress:Dimlevel\@Faderate");
         }
     }
-    my @default_states = qw|on off bright dim status_req get_noise_strength get_signal_strength all_scenes_addrs_erase|;
+    my @default_states = qw|on off status_req|;
+    if ($::config_parms{plcbus_setup_voice_cmds})
+    {
+        push(@default_states, qw |bright dim get_noise_strength get_signal_strength all_scenes_addrs_erase|);
+    }
     $self->set_states(@default_states);
     $self->_logd("ctor $self->{name} home: $self->{home} unit: $self->{unit} scenes: $self->{scenes}");
     PLCBUS->instance()->add_device($self);
@@ -1617,7 +1642,7 @@ sub new {
 sub generate_voice_commands {
     my ($self) = @_;
     $self->_log("Generating Voice commands");
-    my $object_string;
+    my $object_string = "";
     my $name = $self->{name};
 
     my $varlist;
@@ -1633,9 +1658,13 @@ sub generate_voice_commands {
         $object_string .= "$vc_var_name -> tie_event('" . $voice_cmds->{$_}[1] . "');\n";
         $object_string .= ::store_object_data( "$vc_var_name", 'Voice_Cmd', 'PLCBUS_Devices', 'PLCBUS_Devices' );
     }
+
+    return if $object_string eq "";
+
+
     $object_string = "use vars qw($varlist);\n" . $object_string;
 
-    #    $self->_log("\n\n$object_string");
+    #$self->_log("\n\n$object_string");
 
     #Evaluate the resulting object generating string
     package main;
@@ -1649,16 +1678,26 @@ sub get_voice_cmds {
     my ($self)      = @_;
     my $object_name = $self->{name};
     my $level       = '[5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]';
-    my %voice_cmds  = (
-        'change_state' =>
-          [ '[on,off,status req,get signal strength,get noise strength,1 phase,3 phase,use mh ini phase mode]', "\$$object_name->set(\$state)" ],
-        'bright_cmd' => [ 'bright ' . $level . '%', "\$$object_name->command(\"bright\", \$state, 1)" ],
-        'dim_cmd'    => [ 'dim ' . $level . '%',    "\$$object_name->command(\"dim\", \$state, 1)" ],
-    );
+    my %voice_cmds  = ();
+    if ($::config_parms{plcbus_setup_voice_cmds})
+    {
+        %voice_cmds = (
+            'change_state' =>
+            [ '[on,off,status req,get signal strength,get noise strength,1 phase,3 phase,use mh ini phase mode]', "\$$object_name->set(\$state)" ],
+            'bright_cmd' => [ 'bright ' . $level . '%', "\$$object_name->command(\"bright\", \$state, 1)" ],
+            'dim_cmd'    => [ 'dim ' . $level . '%',    "\$$object_name->command(\"dim\", \$state, 1)" ],
+        );
 
-    for ( my $i = 5; $i <= 100; $i += 5 ) {
-        $voice_cmds{ 'bright_' . sprintf( "%03d", $i ) } =
-          [ 'presetdim to ' . $i . '% within [0,1,2,3,4,5,6,7,8,9,10]s', "\$$object_name->preset_dim_from_voice_cmd($i, \$state)" ];
+        for ( my $i = 5; $i <= 100; $i += 5 ) {
+            $voice_cmds{ 'bright_' . sprintf( "%03d", $i ) } =
+            [ 'presetdim to ' . $i . '% within [0,1,2,3,4,5,6,7,8,9,10]s', "\$$object_name->preset_dim_from_voice_cmd($i, \$state)" ];
+        }
+    }
+    else
+    {
+        %voice_cmds = (
+            'change_state' => [ '[on,off]', "\$$object_name->set(\$state)" ],
+        );
     }
 
     return \%voice_cmds;
@@ -1836,6 +1875,30 @@ sub setup {
 package PLCBUS_LightItem;
 @PLCBUS_LightItem::ISA = ('PLCBUS_Item');
 
+sub new {
+    my $class = shift;
+    my $self  = $class->SUPER::new(@_);
+    my @states = qw|on off status_req|;
+    if ($::config_parms{plcbus_setup_voice_cmds})
+    {
+        push(@states, qw |bright dim get_noise_strength get_signal_strength all_scenes_addrs_erase set_default_brightness|);
+    }
+    $self->set_states(@states);
+    return $self;
+}
+
+sub set {
+    my ( $self, $new_state, $setby, $respond ) = @_;
+    my $home = $self->{home};
+    my $unit = $self->{unit};
+    $new_state =~ s/ /_/g;
+    if ( $new_state eq 'set_default_brightness' ) {
+        $self->setup();
+        return;
+    }
+    PLCBUS_Item::set(@_);
+}
+
 sub setup {
     my ($self) = @_;
     my $home   = $self->{home};
@@ -1862,13 +1925,6 @@ package PLCBUS_2263;
 
 package PLCBUS_2268;
 @PLCBUS_2268::ISA = ('PLCBUS_Item');
-
-sub new {
-    my $class = shift;
-    my $self  = $class->SUPER::new(@_);
-    $self->set_states(qw |on off|);
-    return $self;
-}
 
 package PLCBUS_Shutter;
 @PLCBUS_Shutter::ISA = ('PLCBUS_Item');
@@ -1906,6 +1962,24 @@ sub _set {
     }
 
     PLCBUS_Item::_set( $self, $new_state, $setby, $respond );
+}
+
+sub get_voice_cmds 
+{
+    my ($self) = @_;
+    my %voice_cmds  = ();
+    if ($::config_parms{plcbus_setup_voice_cmds})
+    {
+        return PLCBUS_Item::get_voice_cmds($self);
+    }
+    else
+    {
+        my %voice_cmds  =
+        (
+            'change_state' => [ '[up,down]', "\$".$self->{name}."->set(\$state)" ],
+        );
+        return \%voice_cmds;
+    }
 }
 
 package PLCBUS_Scene;
@@ -1963,7 +2037,10 @@ sub get_voice_cmds {
     my $unit        = $self->{unit};
     my %voice_cmds  = ();
 
-    $voice_cmds{ 'program_sceneaddr_' . $object_name } = [ 'program scene', "\$$object_name->program_sceneaddr()" ];
+    if ($::config_parms{plcbus_setup_voice_cmds})
+    {
+        $voice_cmds{ 'program_sceneaddr_' . $object_name } = [ 'program scene', "\$$object_name->program_sceneaddr()" ];
+    }
 
     return \%voice_cmds;
 }

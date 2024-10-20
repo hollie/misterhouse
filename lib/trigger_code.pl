@@ -248,8 +248,10 @@ Here are the valid trigger types:
 # this routine does the heavy lifting re modifying, renaming, copying triggers
 sub trigger_set {
     my ( $trigger, $code, $type, $name, $replace, $triggered, $new_name ) = @_;
-
-    return unless $trigger and $code;
+    my $message = "OK";
+    
+    return "Error: no trigger" unless $trigger;
+    return "Error: no code" unless $code;
     $trigger =~ s/[;\s\r\n]*$//g;    # in case trigger file was edited on windows
     $code =~ s/[;\s\r\n]*$//g;       # So we can consistenly add ;\n when used
     $triggered = 0         unless $triggered;
@@ -268,7 +270,8 @@ sub trigger_set {
         $name =~ s/ \d+$//;
         my $i = 2;
         while ( exists $triggers{"$name $i"} ) { $i++; }
-        print_log "trigger $name already exists, adding '$i' to name";
+        $message .= "\nINFO: trigger $name already exists, adding '$i' to name\n";
+        &print_log($message);
         $name = "$name $i";
     }
     print_log "trigger_set: trigger=$trigger code=$code type=$type name=$name
@@ -279,7 +282,8 @@ sub trigger_set {
     eval $trigger;
     if ($@) {
         $triggers{$name}{'trigger_error'} = $@;
-        &print_log("Error: trigger '$name' has an error, disabling");
+        $message = "Error: trigger '$name' has an error, disabling";
+        &print_log($message);
         &print_log("  Code = $trigger");
         &print_log("  Result = $@");
     }
@@ -298,7 +302,7 @@ sub trigger_set {
     }
 
     $trigger_write_code_flag++ unless $Reload;
-    return;
+    return $message;
 }
 
 =item C<trigger_get(name}>
@@ -315,6 +319,22 @@ sub trigger_get {
     return $triggers{$name}{trigger}, $triggers{$name}{code},
       $triggers{$name}{type},          $triggers{$name}{triggered},
       $triggers{$name}{trigger_error}, $triggers{$name}{code_error};
+}
+
+=item C<trigger_code_flag(string}>
+
+Prevents a blacklist of commands from being entered.
+
+=cut
+
+sub trigger_code_flag {
+    my $code = shift;
+    my @blacklist = ("`", "unlink", "exec", "fork", "open", "die", "exit", "eval", "system");
+    return 0 if (defined $::config_parms{ignore_trigger_code_flag} and $::config_parms{ignore_trigger_code_flag} == 1);
+    foreach my $item (@blacklist) {
+        return $item if ($code =~ m/$item/);
+    }
+    return 0;
 }
 
 =item C<trigger_delete(name}>
@@ -357,8 +377,8 @@ sub trigger_rename {
     my $type      = $triggers{$name}{type};
     my $replace   = 1;
     my $triggered = $triggers{$name}{triggerd};
-    trigger_set( $trigger, $code, $type, $name, $replace, $triggered, $new_name );
-    return;
+    my $status = trigger_set( $trigger, $code, $type, $name, $replace, $triggered, $new_name );
+    return $status;
 }
 
 sub trigger_set_trigger {
@@ -369,8 +389,8 @@ sub trigger_set_trigger {
     my $type      = $triggers{$name}{type};
     my $replace   = 1;
     my $triggered = $triggers{$name}{triggered};
-    trigger_set( $trigger, $code, $type, $name, $replace, $triggered );
-    return;
+    my $status = trigger_set( $trigger, $code, $type, $name, $replace, $triggered );
+    return $status;
 }
 
 sub trigger_set_code {
@@ -381,8 +401,8 @@ sub trigger_set_code {
     my $type      = $triggers{$name}{type};
     my $replace   = 1;
     my $triggered = $triggers{$name}{triggered};
-    trigger_set( $trigger, $code, $type, $name, $replace, $triggered );
-    return;
+    my $status = trigger_set( $trigger, $code, $type, $name, $replace, $triggered );
+    return $status;
 }
 
 sub trigger_set_type {
@@ -393,8 +413,8 @@ sub trigger_set_type {
     my $type      = shift;
     my $replace   = 1;
     my $triggered = $triggers{$name}{triggered};
-    trigger_set( $trigger, $code, $type, $name, $replace, $triggered );
-    return;
+    my $status = trigger_set( $trigger, $code, $type, $name, $replace, $triggered );
+    return $status;
 }
 
 sub trigger_expire {

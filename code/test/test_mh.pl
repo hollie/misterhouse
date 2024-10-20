@@ -16,7 +16,7 @@ if ($Startup) {
 }
 
 sub shutdown {
-    print_log "Stopping self-test, exit...";
+    print_log "Stopping self-test code in code/test/test_mh.pl, going to exit Misterhouse now...";
     run_voice_cmd("Exit Mister House");
 }
 

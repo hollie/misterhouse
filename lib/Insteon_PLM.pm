@@ -81,6 +81,7 @@ sub serial_startup {
     if ( !defined($port) ) {
         main::print_log( "WARN: " . $instance . "_serial_port missing from INI params!" );
     }
+    $port = glob($port);
     my $speed = 19200;
 
     &::print_log("[Insteon_PLM] serial:$port:$speed");

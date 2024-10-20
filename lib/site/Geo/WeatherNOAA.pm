@@ -33,7 +33,7 @@ require Exporter;
 
 $VERSION = do { my @r = ( q$Revision: 4.40 $ =~ /\d+/g ); sprintf "%d." . "%02d" x $#r, @r };
 my $URL_BASE        = 'http://forecast.weather.gov/product.php?site=';
-my $ZONE_SEARCH_URL = 'http://forecast.weather.gov/zipcity.php';
+my $ZONE_SEARCH_URL = 'https://forecast.weather.gov/zipcity.php';
 
 use vars '$proxy_from_env';
 $proxy_from_env = 0;
@@ -386,8 +386,7 @@ sub get_zone {
     $UA->agent("WeatherNOAA/$VERSION");
 
     my $ua = LWP::UserAgent->new();
-    my $response =
-      $ua->post( $URL, { 'inputstring' => $CityState, 'siteid' => 'chr' } );
+    my $response = $ua->post( $URL, { 'inputstring' => $CityState, 'Go2' => 'Go' } );
     my $location = $response->header('Location');
 
     if ( $location =~ /&site=(...)&/ ) {
@@ -396,6 +395,7 @@ sub get_zone {
     else {
         return;
     }
+
 }
 
 sub get_url {

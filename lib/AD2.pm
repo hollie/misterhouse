@@ -788,7 +788,7 @@ sub GetStatusType {
    $message{cmd} = $AdemcoStr;
 
    # Panel Message Format
-   if ($AdemcoStr =~ /(!KPM:)?\[([\d-]*)\],(\d{3}),\[(.*)\],\"(.*)\"/) {
+   if ($AdemcoStr =~ /(!KPM:)?\[([\dABCDEF\-]*)\],(\d{3}),\[(.*)\],\"(.*)\"/) {
       $message{keypad} = 1;
 
       # Parse The Cmd into Message Parts

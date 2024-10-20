@@ -2,6 +2,8 @@
 # Interface Package #
 #####################
 
+=pod
+
 =head1 B<MySensors::Interface>
 
 =head2 SYNOPSIS
@@ -12,20 +14,36 @@ The current version supports Ethernet and serial gateways.
 
 The interface must be defined with 3 parameters: a type (serial or ethernet),
 an address (/dev/tty or an IP address:TCP port number) and a name used to
-easily identify the interface.
+easily identify the interface.  In an MHT file the order is name, type,
+address and (optionally) groups.
 
 The node must be defined with 3 parameters: a node ID, name and gateway
-object.
+object.  In an MHT file the order is node ID, object, then name, gateway,
+and (optionally) groups.
 
 The sensors must also be defined with 3 parameters: a sensor ID, name and
-node object.
+node object.  In an MHT file the order is node ID, object, then name, node,
+and (optionally) groups.
 
 Debugging information can be enabled by setting:
 debug=MySensors
 
 in a Misterhouse INI file.
 
-In user code:
+Define objects in an MHT file:
+
+# MYS gateways
+MYS_INTERFACE,          Basement_GW,            Basement Gateway, serial, /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AJ03J18F-if00-port0,       Basement
+
+# MYS nodes and sensors
+MYS_NODE,       0,      Basement_GW_ND,         Basement Gateway Node,                  $Basement_GW,           Basement
+MYS_BINARY,     1,      Humidifier_Flush_Pump,  Humidifier Flush Pump,                  $Basement_GW_ND,        Basement
+
+MYS_NODE,       2,      Basement_MS_ND,         Basement Motion Sensor Node,            $Basement_GW,           Basement
+MYS_MOTION,     0,      Basement_Laundry_MS,    Basement Laundry Motion Sensor,         $Basement_MS_ND,        Basement
+MYS_MOTION,     1,      Downstairs_Hallway_MS,  Downstairs Hallway Motion Sensor,       $Basement_MS_ND,        Basement
+
+or alternatively in user code:
 
     $basement_gateway = new MySensors::Interface(serial, "/dev/ttyACM0", "Basement Gateway");
     $media_room_gateway = new MySensors::Interface(ethernet, "192.168.0.22:5003", "Media Room Gateway");
@@ -33,7 +51,10 @@ In user code:
     $bedroom_node = new MySensors::Node(1, "Bedroom Node", $media_room_gateway);
 
     $bedroom_motion = new MySensors::Motion(1, "Bedroom Motion", $bedroom_node);
-    if (state_now($bedroom_motion) eq ON) { print_log "Motion detected in the bedroom" };
+
+Then to use the objects treat them as you would any other object based on a Generic_Item:
+
+    if (state_now($bedroom_motion) eq motion) { print_log "Motion detected in the bedroom" };
 
 =head2 DESCRIPTION
 
@@ -48,28 +69,40 @@ Maximum payload is 25 bytes
 Note that in MySensor terms the interface is known as a gateway, the sensor
 radio is known as a node and the sensors themselves are known as children. 
 
-Currently supports MySensors release 2.0
+Currently supports MySensors release 2.x
 
-Last modified: 2016-09-14 to fix some motion sensor bugs
+Last modified: 2018-02-08 to add custom sensors and update POD
 
 Known Limitations:
-1. The current implementation does not distinguish SET/REQ and treats them all
-as SET
-2. The current implementaton handles only a small number of the most common
-sensor types.  More may be added in the future.
-3. The current implementation does not distinguish SET/REQ subtypes which
-means any sensor that sends multiple subtypes will behave unpredictably.
-4. The current implementation assumes all subtypes are read/write.  This may
-cause problems if an input is written to.  For example, writing to most input
-pins will enable/disable the internal pullup resistor.  While this may be
-desirable in some cases it could result in unexpected behavior. 
-5. Minimal error trapping is done so errors in configuration or incompatible
+
+=over
+
+=item 1. Does not distinguish incoming SET/REQ and treats them all as SET
+
+=item 2. Handles only a small number of the most common sensor types.  More may be
+added in the future.
+
+=item 3. Does not distinguish SET/REQ subtypes for a single sensor which means any
+sensor that sends multiple subtypes will behave unpredictably
+
+=item 4. Assumes all subtypes are read/write which may cause problems if an input
+is written to.  For example, writing to most input pins will enable/disable
+the internal pullup resistor.  While this may be desirable in some cases it
+could result in unexpected behavior. 
+=cut
+
+=item 5. Minimal error trapping is done so errors in configuration or incompatible
 sensor implementations could cause unpredictable behavior or even crash
 Misterhouse.
-6. The current implementation does not use ACKs
-7. The current implementation does not handle units (or requests for units)
-8. The current implementation does not attempt to reconnect any port or socket
-disconnection
+
+=item 6. Does not handle units (or requests for units)
+
+=item 7. Does not attempt to reconnect any port or socket disconnection
+
+=item 8. Does not handle reloads so a restart might be required if files have
+changed
+
+=back
 
 =head2 INHERITS
 
@@ -86,6 +119,7 @@ package MySensors::Interface;
 use parent 'Generic_Item';
 
 use strict;
+use DateTime;
 
 # API details as of release 2.0
 # For more information see: https://www.mysensors.org/download/serial_api_20
@@ -465,6 +499,20 @@ sub parse_message {
                         "[MySensors] INFO: $$self{name} received battery level $data% from $$self{nodes}{$node_id}{name} (node ID: $node_id) child ID $child_id"
                     ) if $::Debug{mysensors};
 
+                    # Handle time requests.  Note that the time returned to MyS devices must be in local time but $Time is UTC.
+                }
+                elsif ( $subtype == 1 ) {
+
+                    # Time needs to be local to controller timezone so use the DateTime library to convert this
+                    my $dt = DateTime->now();
+                    my $tz = DateTime::TimeZone->new( name => "local" );
+                    $dt->add( seconds => $tz->offset_for_datetime($dt) );
+
+                    $self->send_message( $node_id, 255, 3, 0, 1, $dt->epoch );
+                    &::print_log(
+                        "[MySensors] INFO: $$self{name} received time request from $$self{nodes}{$node_id}{name} (node ID: $node_id) child ID $child_id.  Responded with time $main::Time."
+                    ) if $::Debug{mysensors};
+
                     # Handle heartbeat responses.  This is used to update the state log, and thus the idle_time, of an object.
                 }
                 elsif ( $subtype == 22 ) {
@@ -536,18 +584,34 @@ sub send_message {
     return 0;
 }
 
+=back
+
+=head2 CHILD PACKAGES
+
+The following are child packages to the interface
+
+All varieties of sensors are children of the MySensors::Sensor
+
+=cut
+
 ################
 # Node Package #
 ################
 
-# Note that the nodes are also Generic_Items not MySensors::Interfaces.  This
-# is similar to the Insteon design but not X10.
+=head3 NODE PACKAGE
+
+Note that the nodes are also Generic_Items not MySensors::Interfaces.  This
+is similar to the Insteon design but not X10.
+
+=cut
 
 package MySensors::Node;
 
 use strict;
 
 use parent 'Generic_Item';
+
+=over
 
 =item C<new()>
 
@@ -581,6 +645,8 @@ Adds a new child sensor to a node.
 
 Returns zero for success or the failed child_id otherwise.
 
+=back
+
 =cut
 
 sub add_sensor {
@@ -604,13 +670,19 @@ sub add_sensor {
 # Sensor Package #
 ##################
 
-# All varieties of sensors are children of the MySensors::Sensor
+=head3 SENSOR PACKAGE
+
+All sensors are children of the sensor package
+
+=cut
 
 package MySensors::Sensor;
 
 use strict;
 
 use parent 'Generic_Item';
+
+=over
 
 =item C<new()>
 
@@ -677,12 +749,10 @@ sub convert_data_to_state {
     if ( exists $$self{data_to_state}{$data} ) {
         $state = $$self{data_to_state}{$data};
 
-        # Some sensors return numerical values and for these the state and data are the same
     }
-    elsif (( $$self{type} == 0 )
-        || ( $$self{type} == 1 )
-        || ( $$self{type} == 3 ) )
-    {
+
+    # Assume all other sensors return numerical values and for these the state and data are the same
+    else {
         $state = $data;
     }
 
@@ -706,12 +776,10 @@ sub convert_state_to_data {
     if ( exists $$self{state_to_data}{$state} ) {
         $data = $$self{state_to_data}{$state};
 
-        # Some sensors return numerical values and for these the state and data are the same
     }
-    elsif (( $$self{type} == 0 )
-        || ( $$self{type} == 1 )
-        || ( $$self{type} == 3 ) )
-    {
+
+    # Assume all other sensors return numerical values and for these the state and data are the same
+    else {
         $data = $state;
     }
 
@@ -763,6 +831,8 @@ interface.
 
 Returns state
 
+=back
+
 =cut
 
 sub set_receive {
@@ -789,15 +859,23 @@ sub set_receive {
 # Door Package #
 ################
 
+=head3 DOOR PACKAGE
+
+=cut
+
 package MySensors::Door;
 
 use strict;
 
 use parent-norequire, 'MySensors::Sensor';
 
+=over
+
 =item C<new()>
 
 Instantiates a new door/window sensor.
+
+=back
 
 =cut
 
@@ -827,15 +905,23 @@ sub new {
 # Motion Sensor Package #
 #########################
 
+=head3 MOTION SENSOR PACKAGE
+
+=cut
+
 package MySensors::Motion;
 
 use strict;
 
 use parent-norequire, 'MySensors::Sensor';
 
+=over
+
 =item C<new()>
 
 Instantiates a new motion sensor.
+
+=back
 
 =cut
 
@@ -865,15 +951,23 @@ sub new {
 # Light Package #
 #################
 
+=head3 LIGHT PACKAGE
+
+=cut
+
 package MySensors::Light;
 
 use strict;
 
 use parent-norequire, 'MySensors::Sensor';
 
+=over
+
 =item C<new()>
 
 Instantiates a new light.
+
+=back
 
 =cut
 
@@ -903,15 +997,23 @@ sub new {
 # Binary Package #
 ##################
 
+=head3 BINARY PACKAGE
+
+=cut
+
 package MySensors::Binary;
 
 use strict;
 
 use parent-norequire, 'MySensors::Sensor';
 
+=over
+
 =item C<new()>
 
 Instantiates a new binary sensor.  This is an alias for a light.
+
+=back
 
 =cut
 
@@ -941,15 +1043,23 @@ sub new {
 # Temperature Package #
 #######################
 
+=head3 TEMPERATURE PACKAGE
+
+=cut
+
 package MySensors::Temperature;
 
 use strict;
 
 use parent-norequire, 'MySensors::Sensor';
 
+=over
+
 =item C<new()>
 
 Instantiates a new temperature sensor.
+
+=back
 
 =cut
 
@@ -974,15 +1084,23 @@ sub new {
 # Humidity Package #
 ####################
 
+=head3 HUMIDITY PACKAGE
+
+=cut
+
 package MySensors::Humidity;
 
 use strict;
 
 use parent-norequire, 'MySensors::Sensor';
 
+=over
+
 =item C<new()>
 
 Instantiates a new humidity sensor.
+
+=back
 
 =cut
 
@@ -1003,6 +1121,88 @@ sub new {
     return $self;
 }
 
+##################
+# Custom Package #
+##################
+
+=head3 CUSTOM PACKAGE
+
+=cut
+
+package MySensors::Custom;
+
+use strict;
+
+use parent-norequire, 'MySensors::Sensor';
+
+=over
+
+=item C<new()>
+
+Instantiates a new custom sensor.
+
+=back
+
+=cut
+
+sub new {
+    my $class = shift;
+
+    # Instantiate as a MySensors::Sensor first
+    my $self = $class->SUPER::new(@_);
+
+    # Custom are presentation type 23
+    $$self{type} = 23;
+
+    # Custom type sensors use the V_CUSTOM subtype
+    $$self{subtypes} = [48];
+
+    # Note: there are no predefined states or state mappings for custom sensors
+
+    return $self;
+}
+
+######################
+# Multimeter Package #
+######################
+
+=head3 MULTIMETER PACKAGE
+
+=cut
+
+package MySensors::Multimeter;
+
+use strict;
+
+use parent-norequire, 'MySensors::Sensor';
+
+=over
+
+=item C<new()>
+
+Instantiates a new multimeter sensor.
+
+=back
+
+=cut
+
+sub new {
+    my $class = shift;
+
+    # Instantiate as a MySensors::Sensor first
+    my $self = $class->SUPER::new(@_);
+
+    # Multimeter are presentation type 30
+    $$self{type} = 30;
+
+    # Multimeter type sensors use the V_IMPEDANCE, V_VOLTAGE and V_CURRENT subtypes
+    $$self{subtypes} = [ 14, 38, 39 ];
+
+    # Note: there are no predefined states or state mappings for multimeter sensors
+
+    return $self;
+}
+
 =head2 AUTHOR
 
 Jeff Siddall (news@siddall.name)
@@ -1016,3 +1216,4 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =cut
+

@@ -559,6 +559,17 @@ sub resume {
     return $_[0]->{resume};
 }
 
+=item C<is_dimmable()>
+
+Returns whether object is dimmable.
+
+=cut
+
+sub is_dimmable {
+    my ( $self ) = @_;
+    return 1;
+}
+
 =item C<level>
 
 Returns the current brightness level of the item, 0->100

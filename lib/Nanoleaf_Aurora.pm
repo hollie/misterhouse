@@ -1,6 +1,6 @@
 package Nanoleaf_Aurora;
 
-# v1.0.15
+# v3.0.2
 
 #if any effect is changed, by definition the static child should be set to off.
 #cmd data returns, need to check by command
@@ -31,6 +31,7 @@ use IO::Socket::INET;
 # the location URL and tokens are stored in the mh.ini file
 
 # Firmware supported
+# 2.2.0             - needs v1.1
 # 1.5.0 to 2.1.3    - yes
 # 1.4.39            - pass the option api=beta
 # 1.4.38 or earlier - no
@@ -41,6 +42,17 @@ use IO::Socket::INET;
 # $aurora_effects = new Nanoleaf_Aurora_Effects($aurora);
 # $aurora_static1 = new Nanoleaf_Aurora_Static($aurora, "effect string");
 # $aurora_comm    = new Nanoleaf_Aurora_Comm($aurora);
+
+#Set static string, ie "3 82 1 255 0 255 0 20 60 1 0 255 255 0 20 118 1 0 0 0 0 20",
+
+#<nPanels> = 3
+#<numFrames> = 1
+#Panel 1:
+#PanelId: 82, R:255, G:0, B:255, W:0, TransitionTime:20*0.1s
+#Panel 2:
+#PanelId: 60, R:0, G:255, B:255, W:0, TransitionTime:20*0.1s
+#Panel 3:
+#PanelId:118, R:0, G:0, B:0, W:0, TransitionTime:20*0.1s
 
 # MH.INI settings
 # If the token is auto generated, it will be written to the mh.ini. MH.INI settings can be used
@@ -80,26 +92,40 @@ our %rest;
 $rest{info}        = "";
 $rest{effects}     = "effects";
 $rest{auth}        = "new";
-$rest{on}          = "state/on";
-$rest{off}         = "state/on";
-$rest{set_effect}  = "effects/select";
+#$rest{on}          = "state/on";
+#$rest{off}         = "state/on";
+$rest{on}          = "state";
+$rest{off}         = "state";
+#$rest{set_effect}  = "effects/select";
+$rest{set_effect}  = "effects";
 $rest{set_static}  = "effects";
-$rest{brightness}  = "state/brightness";
-$rest{brightness2} = "state/brightness";
+$rest{set_hsb}     = "effects";
+#$rest{brightness}  = "state/brightness";
+#$rest{brightness2} = "state/brightness";
+$rest{brightness}  = "state";
+$rest{brightness2} = "state";
 $rest{get_static}  = "effects";
+$rest{get_hsb}     = "effects";
+$rest{get_rhythm}     = "effects";
 $rest{identify}    = "identify";
 
 our %opts;
 $opts{info}        = "-ua";
 $opts{auth}        = "-json -post '{}'";
-$opts{on}          = "-response_code -json -put '{\"on\":true}'";
-$opts{off}         = "-response_code -json -put '{\"on\":false}'";
+$opts{on}          = "-response_code -json -put '{\"on\":{\"value\":true}}'";
+$opts{off}         = "-response_code -json -put '{\"on\":{\"value\":false}}'";
 $opts{set_effect}  = "-response_code -json -put '{\"select\":";
 $opts{set_static}  = "-response_code -json -put '{\"write\":{\"command\":\"display\",\"version\":\"1.0\",\"animType\":\"static\",\"animData\":";
-$opts{brightness}  = "-response_code -json -put '{\"value\":";
-$opts{brightness2} = "-response_code -json -put '{\"increment\":";
+$opts{set_hsb}     = "-response_code -json -put '{\"write\":{\"command\":\"display\",\"version\":\"1.0\",\"animType\":\"solid\",\"palette\":";
+#$opts{brightness}  = "-response_code -json -put '{\"value\":";
+#$opts{brightness2} = "-response_code -json -put '{\"increment\":";
+$opts{brightness}  = "-response_code -json -put '{\"brightness\":{\"value\":";
+$opts{brightness2} = "-response_code -json -put '{\"brightness\":{\"increment\":";
 $opts{get_static}  = "-response_code -json -put '{\"write\":{\"command\":\"request\",\"version\":\"1.0\",\"animName\":\"*Static*\"}}'";
+$opts{get_hsb}     = "-response_code -json -put '{\"write\":{\"command\":\"request\",\"version\":\"1.0\",\"animName\":\"*Solid*\"}}'";
+$opts{get_rhythm}  = "-response_code -json -put '{\"write\":{\"command\":\"requestAll\",\"version\":\"2.0\"}}'";
 $opts{identify}    = "-response_code -json -put '{}'";
+
 
 my $api_path = "/api/v1";
 our %active_auroras = ();
@@ -121,7 +147,7 @@ sub new {
     $self->{updating}               = 0;
     $self->{data}->{retry}          = 0;
     $self->{status}                 = "";
-    $self->{module_version}         = "v1.0.15";
+    $self->{module_version}         = "v3.0.2";
     $self->{ssdp_timeout}           = 4000;
     $self->{last_static}            = "";
 
@@ -156,14 +182,16 @@ sub new {
     $self->{poll_process}->set_output( $self->{poll_data_file} );
     @{ $self->{cmd_queue} } = ();
     $self->{cmd_data_file} = "$::config_parms{data_dir}/Aurora_cmd_" . $self->{name} . ".data";
-    unlink "$::config_parms{data_dir}/Auroroa_cmd_" . $self->{name} . ".data";
+    unlink "$::config_parms{data_dir}/Aurora_cmd_" . $self->{name} . ".data";
     $self->{cmd_process} = new Process_Item;
     $self->{cmd_process}->set_output( $self->{cmd_data_file} );
+    $self->{init}      = 0;
+    $self->{init_rhythm} = 0;
+    $self->{init_data} = 0;
+    $self->{init_v_cmd} = 0;
     &::MainLoop_post_add_hook( \&Nanoleaf_Aurora::process_check, 0, $self );
     &::Reload_post_add_hook( \&Nanoleaf_Aurora::generate_voice_commands, 1, $self );
-    $self->get_data();
-    $self->{init}      = 0;
-    $self->{init_data} = 0;
+    $self->get_data();    
     #push( @{ $$self{states} }, 'off', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', 'on' );
     push( @{ $$self{states} }, 'off');
     for my $i (1..99) { push @{ $$self{states} }, "$i%"; }
@@ -215,11 +243,16 @@ sub get_data {
     }
     elsif ( $self->{token} and $self->{url} ) {
         $self->poll();
-
         if ( ( defined $self->{data}->{panels} ) and ( $self->{init} == 0 ) ) {
-            main::print_log( "[Aurora:" . $self->{name} . "] " . $self->{module_version} . " Configuration Loaded" );
+            if (($self->{data}->{rhythm}) and ($self->{init_rhythm} == 0)) {
+            #    #Find out which effects are Rhythm so do a requestAll on effects
+                $self->_push_JSON_data('get_rhythm');
+
+            } else {
+                main::print_log( "[Aurora:" . $self->{name} . "] " . $self->{module_version} . " Configuration Loaded" );
+                $self->print_info();
+            }
             $active_auroras{ $self->{url} } = 1;
-            $self->print_info();
             $self->{init} = 1;
         }
     }
@@ -310,6 +343,13 @@ sub process_check {
                     else {
                         $self->{data}->{panels}     = $data->{panelLayout}->{layout}->{numPanels};
                         $self->{data}->{panel_size} = $data->{panelLayout}->{layout}->{sideLength};
+                        $self->{data}->{rhythm}     = 0;
+			#print Dumper $data;
+                        if (defined $data->{rhythm}->{rhythmConnected} and $data->{rhythm}->{rhythmConnected} eq "true") {
+                            $self->{data}->{rhythm} = 1;       
+                        }                
+                        $self->{data}->{panels} = $self->{data}->{panels} - $self->{data}->{rhythm}; #Rhythm module counts as a panel
+                                         
                         for ( my $i = 0; $i < $self->{data}->{panels}; $i++ ) {
                             $self->{data}->{panel}->{ @{ $data->{panelLayout}->{layout}->{positionData} }[$i]->{panelId} }->{x} =
                               @{ $data->{panelLayout}->{layout}->{positionData} }[$i]->{x};
@@ -354,7 +394,7 @@ sub process_check {
         main::print_log( "[Aurora:" . $self->{name} . "] Background Command " . $self->{cmd_process_mode} . " process completed" )
           if ( $self->{debug} );
         $self->get_data();    #poll since the command is done to get a new state
-
+        $self->{data}->{info}->{palette} = 0; #assume this is not a solid effect change.
         my $file_data = &main::file_read( $self->{cmd_data_file} );
 
         my ($responsecode) = $file_data =~ /^RESPONSECODE:(\d+)\n/;
@@ -364,7 +404,7 @@ sub process_check {
         #print "success\n\n" if (($responsecode == 204) or ($responsecode == 200));
         my $com_status = "offline";
 
-        if ( ( $responsecode == 204 ) or ( $responsecode == 200 ) ) {
+        if ( ( $responsecode == 204 ) or ( $responsecode == 200 ) or ( $responsecode == 404) ) { #added 404 since a few calls can generate 404 if the data isn't present (like querying static without a static scene active)
             $com_status = "online";
 
             # Successful commands should be [200 OK, 204 No Content]
@@ -393,7 +433,7 @@ sub process_check {
 
                         #Process any returned data from a command straing
                         if ( $self->{cmd_process_mode} eq "get_static" ) {
-                            main::print_log( "[Aurora:" . $self->{name} . "] get_static returned" );
+                            main::print_log( "[Aurora:" . $self->{name} . "] get_static returned" ) if ( $self->{debug} );
                             $self->{last_static} = $data->{animData} if ( defined $data->{animData} );    #just checked controller so update the static string
                             if ( ( defined $self->{static_check}->{string} ) and ( $self->{static_check}->{string} eq $data->{animData} ) ) {
                                 $self->set_effect( $self->{static_check}->{effect} );
@@ -407,7 +447,44 @@ sub process_check {
                             }
 
                         }
-                    }
+                        if ( $self->{cmd_process_mode} eq "get_hsb" ) {
+                            main::print_log( "[Aurora:" . $self->{name} . "] get_hsb returned" )if ( $self->{debug} );
+                            #strangely, this query has proper hue/sat/brightness information and the general query doesn't
+#TODO, figure out brightness when a solid
+
+                            if (defined $data->{palette}) {        
+                                for ( my $i = 0; $i < @{$data->{palette}}; $i++ ) {
+                                    $self->{data}->{info}->{brightness}->{value2} .= ${$data->{palette}}[$i]->{brightness} . ",";
+                                    $self->{data}->{info}->{saturation}->{value2} .= ${$data->{palette}}[$i]->{saturation} . ",";
+                                    $self->{data}->{info}->{hue}->{value2} = ${$data->{palette}}[$i]->{hue} . ",";
+                                }
+                                chop($self->{data}->{info}->{brightness}->{value2});
+                                chop($self->{data}->{info}->{saturation}->{value2});
+                                chop($self->{data}->{info}->{hue}->{value2});
+    #print "B=".$self->{data}->{info}->{brightness}->{value2}." S=".$self->{data}->{info}->{saturation}->{value2}."H=".$self->{data}->{info}->{hue}->{value2} ."\n";
+                                $self->{data}->{info}->{palette} = 1;  
+                            } else {
+                                main::print_log( "[Aurora:" . $self->{name} . "] WARNING, no palette data returned from get_HSB call!" );          
+                            }             
+                        }
+ 
+                         if ( $self->{cmd_process_mode} eq "get_rhythm" ) {
+                             main::print_log( "[Aurora:" . $self->{name} . "] get_rhythm returned" ) if ( $self->{debug} );
+                             if (defined $data->{animations}) {
+                                for ( my $i = 0; $i < @{$data->{animations}}; $i++ ) {
+                                    $self->{data}->{rhythmdata}->{effects}->{${$data->{animations}}[$i]->{animName}} = 1 if (${$data->{animations}}[$i]->{pluginType} eq "rhythm");
+                                } 
+                             } else {
+                                    main::print_log( "[Aurora:" . $self->{name} . "] No Rhythm effects found" );
+                            }                               
+                            #print Dumper $self->{data}->{info}; 
+                            if ($self->{init_rhythm} == 0) {
+                                main::print_log( "[Aurora:" . $self->{name} . "] " . $self->{module_version} . " Configuration Loaded" );
+                                $self->print_info();
+                            }
+                            $self->{init_rhythm} = 1;   
+                        }                    
+                    }   
 
                     $self->poll;
                 }
@@ -459,6 +536,8 @@ sub _get_JSON_data {
     my $token = "";
     $token = "/" . $self->{token} if ( defined $self->{url} and lc $mode ne "auth" );
     my $cmd = "get_url $params " . '"' . $self->{url} . $self->{api_path} . "$token/$rest{$mode}" . '"';
+    main::print_log( "[Aurora:" . $self->{name} . "] DEBUG Preparing command $cmd..." ) if ( $self->{debug} );;
+
     if ( $self->{poll_process}->done() ) {
         $self->{poll_process}->set($cmd);
         $self->{poll_process}->start();
@@ -694,12 +773,22 @@ sub stop_timer {
 
 sub print_info {
     my ($self) = @_;
-
+    main::print_log( "[Aurora:" . $self->{name} . "] ********************************************************" );
+    main::print_log( "[Aurora:" . $self->{name} . "] * Note: Nanoleaf_Aurora.pm is now depreciated in favour *");
+    main::print_log( "[Aurora:" . $self->{name} . "] *       of using Home Assistant for device access       *" );
+    main::print_log( "[Aurora:" . $self->{name} . "] *********************************************************" );
     main::print_log( "[Aurora:" . $self->{name} . "] Name:              " . $self->{data}->{info}->{name} );
     main::print_log( "[Aurora:" . $self->{name} . "] Serial Number:     " . $self->{data}->{info}->{serialNo} );
     main::print_log( "[Aurora:" . $self->{name} . "] Manufacturer:      " . $self->{data}->{info}->{manufacturer} );
     main::print_log( "[Aurora:" . $self->{name} . "] Model:             " . $self->{data}->{info}->{model} );
     main::print_log( "[Aurora:" . $self->{name} . "] Firmware:          " . $self->{data}->{info}->{firmwareVersion} );
+    if ($self->{data}->{rhythm}) {
+        main::print_log( "[Aurora:" . $self->{name} . "] Rhythm Hardware:   " . $self->{data}->{info}->{rhythm}->{hardwareVersion} );
+        main::print_log( "[Aurora:" . $self->{name} . "] Rhythm Firmware:   " . $self->{data}->{info}->{rhythm}->{firmwareVersion} );
+    } else {
+        main::print_log( "[Aurora:" . $self->{name} . "] Rhythm Module:     Not Present");
+    }
+    
     main::print_log( "[Aurora:" . $self->{name} . "] Connected Panels:  " . $self->{data}->{panels} );
     main::print_log( "[Aurora:" . $self->{name} . "] Panel Size:        " . $self->{data}->{panel_size} );
     main::print_log( "[Aurora:" . $self->{name} . "] API Path:          " . $self->{api_path} );
@@ -714,8 +803,22 @@ sub print_info {
     else {
         main::print_log( "[Aurora:" . $self->{name} . "]    State:\t  OFF" );
     }
-    main::print_log(
-        "[Aurora:" . $self->{name} . "]    Mode:\t  " . $self->{data}->{info}->{state}->{colorMode} . " " . $self->{data}->{info}->{effects}->{select} );
+    main::print_log("[Aurora:" . $self->{name} . "]    Mode:\t  " . $self->{data}->{info}->{state}->{colorMode} . " " . $self->{data}->{info}->{effects}->{select} );
+
+    if  ($self->{data}->{info}->{palette} == 1) {
+    main::print_log( "[Aurora:"
+          . $self->{name}
+          . "]    Brightness:\t  "
+          . $self->{data}->{info}->{state}->{brightness}->{value2});
+    main::print_log( "[Aurora:"
+          . $self->{name}
+          . "]    Hue:\t\t  "
+          . $self->{data}->{info}->{state}->{hue}->{value2});
+    main::print_log( "[Aurora:"
+          . $self->{name}
+          . "]    Saturation:\t  "
+          . $self->{data}->{info}->{state}->{sat}->{value2});  
+    } else {
     main::print_log( "[Aurora:"
           . $self->{name}
           . "]    Brightness:\t  "
@@ -737,23 +840,28 @@ sub print_info {
           . $self->{data}->{info}->{state}->{sat}->{min} . "-"
           . $self->{data}->{info}->{state}->{sat}->{max}
           . "]" );
+    }
     main::print_log( "[Aurora:"
           . $self->{name}
           . "]    Color Temp:\t  "
-          . $self->{data}->{info}->{state}->{brightness}->{value} . "\t["
-          . $self->{data}->{info}->{state}->{brightness}->{min} . "-"
-          . $self->{data}->{info}->{state}->{brightness}->{max}
+          . $self->{data}->{info}->{state}->{ct}->{value} . "\t["
+          . $self->{data}->{info}->{state}->{ct}->{min} . "-"
+          . $self->{data}->{info}->{state}->{ct}->{max}
           . "]" );
     main::print_log( "[Aurora:" . $self->{name} . "] -- Active Effects --" );
     if ( defined $self->{data}->{info}->{effects}->{list} ) {
 
         foreach my $effect ( @{ $self->{data}->{info}->{effects}->{list} } ) {
-            main::print_log( "[Aurora:" . $self->{name} . "]   - $effect" );
+            my $type = "[ ]";
+            $type = "[R]" if (exists $self->{data}->{rhythmdata}->{effects}->{$effect});
+            main::print_log( "[Aurora:" . $self->{name} . "]   - $type $effect" );
         }
     }
     else {
         foreach my $effect ( @{ $self->{data}->{info}->{effects}->{effectsList} } ) {
-            main::print_log( "[Aurora:" . $self->{name} . "]   - $effect" );
+            my $type = "[ ]";
+            $type = "[R]" if (exists $self->{data}->{rhythmdata}->{effects}->{$effect});
+            main::print_log( "[Aurora:" . $self->{name} . "]   - $type $effect" );
         }
     }
     main::print_log( "[Aurora:" . $self->{name} . "] -- Layout --" );
@@ -815,7 +923,11 @@ sub process_data {
         }
         $self->{init_data} = 1;
     }
-
+    if (( lc $self->{data}->{info}->{effects}->{select} eq "*dynamic*" ) or ( lc $self->{data}->{info}->{effects}->{select} eq "*solid*" )) {
+        $self->{data}->{info}->{palette} = 1;
+    } else {
+        $self->{data}->{info}->{palette} = 0;
+    }
     if ( $self->{previous}->{info}->{firmwareVersion} ne $self->{data}->{info}->{firmwareVersion} ) {
         main::print_log(
             "[Aurora:" . $self->{name} . "] Firmware changed from $self->{previous}->{info}->{firmwareVersion} to $self->{data}->{info}->{firmwareVersion}" );
@@ -950,14 +1062,29 @@ sub get_effect {
 }
 
 sub get_effects {
-    my ($self) = @_;
+    my ($self,$type) = @_;
     my @effect_array = ();
-    
-    if ( defined $self->{data}->{info}->{effects}->{list} ) { #beta structure
-        @effect_array = @{ $self->{data}->{info}->{effects}->{list} };
-    } else {
-        @effect_array = @{ $self->{data}->{info}->{effects}->{effectsList} };
+    #print Dumper $self->{data};
+    $type = "" unless ((lc $type eq "all") or (lc $type eq "rhythm") or (lc $type eq "standard"));
+    if ( defined $self->{data}->{info}->{effects}->{list} ) {
+
+        foreach my $effect ( @{ $self->{data}->{info}->{effects}->{list} } ) {
+            push(@effect_array, $effect) if (
+              (($self->{data}->{rhythmdata}->{effects}->{$effect}) and (lc $type eq "rhythm")) or
+              ((lc $type eq "all") or ($type eq "")) or
+              ((!$self->{data}->{rhythmdata}->{effects}->{$effect}) and (lc $type eq "standard")));
+        }
     }
+    else {
+        foreach my $effect ( @{ $self->{data}->{info}->{effects}->{effectsList} } ) {
+            #print "**** $self->{data}->{rhythmdata}->{effects}->{$effect}, $effect, $type\n";
+            push(@effect_array, $effect) if (
+              (($self->{data}->{rhythmdata}->{effects}->{$effect}) and (lc $type eq "rhythm")) or
+              ((lc $type eq "all") or ($type eq "")) or
+              ((!$self->{data}->{rhythmdata}->{effects}->{$effect}) and (lc $type eq "standard")));
+        }
+    }
+
     return @effect_array;
 }
     
@@ -993,11 +1120,11 @@ sub set {
             $self->_push_JSON_data($mode);
         }
         elsif ( $mode =~ /^(\d+)/ ) {
-            my $params = $opts{brightness} . $1 . '}' . "'";
+            my $params = $opts{brightness} . $1 . '}}' . "'";
             $self->_push_JSON_data( 'brightness', $params );
         }
         elsif ( $mode =~ /^([-+]\d+)/ ) {
-            my $params = $opts{brightness2} . $1 . '}' . "'";
+            my $params = $opts{brightness2} . $1 . '}}' . "'";
             $self->_push_JSON_data( 'brightness2', $params );
         }
         else {
@@ -1028,6 +1155,17 @@ sub set_static {
 
 }
 
+#TODO set hue and Saturation directly
+sub set_hsb {
+    my ( $self, $hue, $saturation, $brightness ) = @_;
+
+    my $params = $opts{set_hsb} . '[{ "hue":' . $hue . ',"saturation":' . $saturation . ',"brightness":' . $brightness . "}],";
+    $params .= '"colorType": "HSB"}}' . "'";
+
+    $self->_push_JSON_data( 'set_hsb', $params );
+    return ('1');
+}
+
 sub check_static {
     my ( $self, $string, $prev_effect ) = @_;
 
@@ -1035,6 +1173,22 @@ sub check_static {
     $self->{static_check}->{effect} = $prev_effect;
     $self->_push_JSON_data('get_static');
     return ('1');
+}
+
+sub is_rhythm_active {
+    my ( $self) = @_;
+    my $return = 0;
+    $return = 1 if ($self->{data}->{info}->{rhythm}->{rhythmActive});
+    
+    return $return;
+}
+
+sub is_rhythm_effect {
+    my ( $self,$effect) = @_;
+    my $return = 0;
+    $return = 1 if ($self->{data}->{info}->{rhythmdata}->{effects}->{$effect});
+    
+    return $return;
 }
 
 sub print_static {
@@ -1050,6 +1204,39 @@ sub get_static {
 
     $self->_push_JSON_data('get_static');
     return ('1');
+}
+
+sub get_hsb {
+    my ($self) = @_;
+
+    $self->_push_JSON_data('get_hsb');
+    return ('1');
+}
+
+sub hue {
+    my ( $self) = @_;
+    my $return = $self->{data}->{info}->{state}->{hue}->{value};
+    $return = $self->{data}->{info}->{state}->{hue}->{value2} if ($self->{data}->{info}->{palette} == 1);
+    return $return;
+}
+
+sub saturation {
+    my ( $self) = @_;
+    my $return = $self->{data}->{info}->{state}->{sat}->{value};
+    $return = $self->{data}->{info}->{state}->{sat}->{value2} if ($self->{data}->{info}->{palette} == 1);
+    return $return;
+}
+
+sub brightness {
+    my ( $self) = @_;
+    my $return = $self->{data}->{info}->{state}->{brightness}->{value};
+    $return = $self->{data}->{info}->{state}->{brightness}->{value2} if ($self->{data}->{info}->{palette} == 1);
+    return $return;
+}
+
+sub ct {
+    my ( $self) = @_;
+    return $self->{data}->{info}->{state}->{brightness}->{value}
 }
 
 sub print_discovery_info {
@@ -1076,40 +1263,43 @@ sub identify {
 sub generate_voice_commands {
     my ($self) = @_;
 
-    my $object_string;
-    my $object_name = $self->get_object_name;
-    &main::print_log("Generating Voice commands for Nanoleaf Aurora Controller $object_name");
+    if ($self->{init_v_cmd} == 0) {
+        my $object_string;
+        my $object_name = $self->get_object_name;
+        $self->{init_v_cmd} = 1;
+        &main::print_log("Generating Voice commands for Nanoleaf Aurora Controller $object_name");
 
-    my $voice_cmds = $self->get_voice_cmds();
-    my $i          = 1;
-    foreach my $cmd ( keys %$voice_cmds ) {
+        my $voice_cmds = $self->get_voice_cmds();
+        my $i          = 1;
+        foreach my $cmd ( keys %$voice_cmds ) {
 
-        #get object name to use as part of variable in voice command
-        my $object_name_v = $object_name . '_' . $i . '_v';
-        $object_string .= "use vars '${object_name}_${i}_v';\n";
+            #get object name to use as part of variable in voice command
+            my $object_name_v = $object_name . '_' . $i . '_v';
+            $object_string .= "use vars '${object_name}_${i}_v';\n";
 
-        #Convert object name into readable voice command words
-        my $command = $object_name;
-        $command =~ s/^\$//;
-        $command =~ tr/_/ /;
+            #Convert object name into readable voice command words
+            my $command = $object_name;
+            $command =~ s/^\$//;
+            $command =~ tr/_/ /;
 
-        #Initialize the voice command with all of the possible device commands
-        $object_string .= $object_name . "_" . $i . "_v  = new Voice_Cmd '$command $cmd';\n";
+            #Initialize the voice command with all of the possible device commands
+            $object_string .= $object_name . "_" . $i . "_v  = new Voice_Cmd '$command $cmd';\n";
 
-        #Tie the proper routine to each voice command
-        $object_string .= $object_name . "_" . $i . "_v -> tie_event('" . $voice_cmds->{$cmd} . "');\n\n";    #, '$command $cmd');\n\n";
+            #Tie the proper routine to each voice command
+            $object_string .= $object_name . "_" . $i . "_v -> tie_event('" . $voice_cmds->{$cmd} . "');\n\n";    #, '$command $cmd');\n\n";
 
-        #Add this object to the list of Insteon Voice Commands on the Web Interface
-        $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'Nanoleaf_Aurora', 'Controller_commands' );
-        $i++;
+            #Add this object to the list of Insteon Voice Commands on the Web Interface
+            $object_string .= ::store_object_data( $object_name_v, 'Voice_Cmd', 'Nanoleaf_Aurora', 'Controller_commands' );
+            $i++;
+        }
+
+        #Evaluate the resulting object generating string
+        package main;
+        eval $object_string;
+        print "Error in nanoleaf_aurora_item_commands: $@\n" if $@;
+
+        package Nanoleaf_Aurora;
     }
-
-    #Evaluate the resulting object generating string
-    package main;
-    eval $object_string;
-    print "Error in nanoleaf_aurora_item_commands: $@\n" if $@;
-
-    package Nanoleaf_Aurora;
 }
 
 sub get_voice_cmds {
@@ -1171,8 +1361,8 @@ sub load_effects {
 }
 
 sub get_effects {
-    my ( $self ) = @_;
-    my @effects = $$self{master_object}->get_effects();
+    my ( $self,$type ) = @_;
+    my @effects = $$self{master_object}->get_effects("$type");
     
     return @effects;
 
@@ -1193,6 +1383,7 @@ sub new {
     $$self{loop}          = 0;
     $$self{string}        = $static_string if ( defined $static_string );
     $object->register( $self, 'static' );
+    $self->SUPER::set('off'); #turn off at initialization and then set when data comes in.
     return $self;
 
 }
@@ -1296,3 +1487,8 @@ sub set {
 # v1.0.12 - get_effects method to get array of available effects
 # v1.0.13 - ability to print and purge the command queue in case a network error prevents clearing, empty poll queue if max reached
 # v1.0.14 - commands now queue properly
+# v1.0.15 - fixed polling
+# v1.1.01 - firmware v2.2.0 and rhythm module
+# v1.1.03 - fixed a few typos
+# v2.0.00 - added in hue/Saturation ability
+# v3.0    - added rhythm attribute to get_effect.

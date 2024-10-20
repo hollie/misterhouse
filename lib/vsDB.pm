@@ -584,10 +584,11 @@ sub Sort {
     # obj->Sort($field);
     # if $field is ommited, or an invalid fieldname is used, defaults to
     # the left-most column.
-
+    # $sortMode 0 = alpha ascending, 1 = alpha descending, 2 = numeric ascending, 3 = numeric descending
+	
     my ($this)      = shift;
     my ($fieldName) = shift || '0';
-    my ($desc)      = shift || '0';
+    my ($sortMode)      = shift || '0';
     my ($delimiter) = $this->{'delimiter'};
 
     # can't append once we've changed the sort order
@@ -611,13 +612,16 @@ sub Sort {
         # custom sorting comparison routine
         my (@aVals) = split( $delimiter, $a );
         my (@bVals) = split( $delimiter, $b );
-        if ($desc) {
-            return $bVals[$fieldNumber] cmp $aVals[$fieldNumber];
-        }
-        else {
-            return $aVals[$fieldNumber] cmp $bVals[$fieldNumber];
-        }
-        undef(@aVals);
+		if ($sortMode eq "1") {				    		# alpha descending
+			return lc($bVals[$fieldNumber]) cmp lc($aVals[$fieldNumber]);
+		} elsif ($sortMode eq "2") {				    # numeric ascending
+			return $bVals[$fieldNumber] < $aVals[$fieldNumber];
+		} elsif ($sortMode eq "3") {				    # numeric descending
+			return $bVals[$fieldNumber] > $aVals[$fieldNumber];
+		} else {									    # alpha ascending
+			return lc($aVals[$fieldNumber]) cmp lc($bVals[$fieldNumber]); 
+		}        
+		undef(@aVals);
         undef(@bVals);
     } @$unsortedArray;
 

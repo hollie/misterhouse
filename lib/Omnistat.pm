@@ -1105,22 +1105,22 @@ sub set_background_color {
     $state = lc($state);
 
     my $background_hex = "0x00";
-    if ( $state = 'blue' ) {
+    if ( $state eq 'blue' ) {
         $background_hex = "0x44";
     }
-    elsif ( $state = 'green' ) {
+    elsif ( $state eq 'green' ) {
         $background_hex = "0x25";
     }
-    elsif ( $state = 'purple' ) {
+    elsif ( $state eq 'purple' ) {
         $background_hex = "0x5a";
     }
-    elsif ( $state = 'red' ) {
+    elsif ( $state eq 'red' ) {
         $background_hex = "0x01";
     }
-    elsif ( $state = 'orange' ) {
+    elsif ( $state eq 'orange' ) {
         $background_hex = "0x03";
     }
-    elsif ( $state = 'yellow' ) {
+    elsif ( $state eq 'yellow' ) {
         $background_hex = "0x05";
     }
     else {
@@ -1359,9 +1359,8 @@ sub get_temp {
 # **************************************
 sub get_humidity {
     my ($self) = @_;
-    my $temp = $self->read_cached_reg( "0xa2", 1 );
-    my $translated = translate_temp($temp);
-    return translate_temp($temp);
+    my $humid = $self->read_cached_reg( "0xa2", 1 );
+    return hex $humid;
 }
 
 # ********************************************************

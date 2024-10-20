@@ -41,6 +41,16 @@ back out to the powerline, use mh/code/common/x10_rf_relay.pl.
 
 Also see X10_W800.pm for a similar interface.
 
+This is how decoding works:
+CMxx: X10RF data from mochad: 15 1A 80 7F 09 00 
+X10_CMXX: reordered data: 01 fe a8 58
+x10_cmxx: this is x10 security data
+X10_CMXX: security: device_id = 0xa8, cmd = 0x01
+X10_CMXX: security: class_id = sensor, item_id = a8, state = NormalMax
+a8: x10sec_test set NormalMax
+CMxx: sending bytes to process, got state NormalMax
+CMxx: skipping decoded data received from mochad: 05/03 16:23:29 Rx RFSEC Addr: 15:09:00 Func: Contact_normal_max_DS10A
+
 =cut
 
 use strict;
@@ -127,7 +137,7 @@ sub check_for_data {
     foreach my $line ( split( /\n/, $buffer ) ) {
 
         if ( not $line =~ /.* Raw data received: / ) {
-            &::print_log("CMxx: decoded data received from mochad: $line")
+            &::print_log("CMxx: skipping decoded data received from mochad: $line")
               if $main::Debug{cmxx};
             return;
         }
@@ -149,7 +159,8 @@ sub check_for_data {
         # Data gets sent multiple times
         #  - Check time
         #  - Process data only on the 2nd occurance, to avoid noise (seems essential)
-        my $duplicate_threshold = 1;                        # 2nd occurance; set to 0 to omit duplicate check
+	#my $duplicate_threshold = 1;                        # 2nd occurance; set to 0 to omit duplicate check
+        my $duplicate_threshold = 0;                        # mochad does deduplication now
         my $duplicate_count     = duplicate_count($data);
         if ( $duplicate_count == $duplicate_threshold ) {
             my @bytes;
@@ -164,7 +175,10 @@ sub check_for_data {
                 $byteidx++;
             }
 
+	    # This calls X10_RF::decode_rf_bytes which in turn
+	    # calls rf_process_security and rf_set_RF_Item
             my $state = X10_RF::decode_rf_bytes( 'X10_CMxx', @bytes );
+	    &::print_log("CMxx: sent bytes to process, got state ".$state) if $main::Debug{cmxx};
 
             # If the decode_rf_bytes routine didn't like the data that it got,
             # we just drop the data (it's been preprocessed by mochad, so we can't hope to fix

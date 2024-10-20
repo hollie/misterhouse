@@ -574,7 +574,7 @@ sub android_page {
     # handle blank xsl name
     my $style;
     $style = qq|<?xml-stylesheet type="text/xsl" href="$xsl"?>| if $xsl;
-my $body = <<eof;
+    my $body = <<eof;
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 $style
 <misterhouse>
