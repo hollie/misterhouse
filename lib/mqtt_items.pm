@@ -619,6 +619,8 @@ sub decode_mqtt_payload {
         $msg = $value;
     } elsif( $$self{mqtt_type} eq 'text' ) {
         $msg = $value;
+    } elsif( $$self{mqtt_type} eq 'cover' ) {
+        $msg = $value;
     } else {
 	$self->debug( 2, "Unknown object type '$$self{mqtt_type}' on object '$$self{topic}'" );
 	$msg = $value_json;
@@ -658,6 +660,7 @@ sub encode_mqtt_payload {
     if( $self->{mqtt_type} eq 'sensor'
     ||  $self->{mqtt_type} eq 'select'
     ||  $self->{mqtt_type} eq 'text'
+    ||  $self->{mqtt_type} eq 'cover'
     ) {
 	$payload = $setval;
 	return $payload;
@@ -996,7 +999,11 @@ sub new {     ### mqtt_LocalItem
 
     my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
 
-    if( !grep( /^$base_type$/, ('light','switch','binary_sensor', 'sensor', 'scene', 'select', 'text' ) ) ) {
+    #auto populate type and class if the object has these elements embedded, but don't override explicitly set definitions
+    $base_type = $local_object->{mqttlocalitem}->{base_type} if ((defined $local_object->{mqttlocalitem}->{base_type} ) and (!$type));
+    $device_class = $local_object->{mqttlocalitem}->{device_class} if ((defined $local_object->{mqttlocalitem}->{device_class} ) and (!$device_class));
+       
+    if( !grep( /^$base_type$/, ('light','switch','binary_sensor', 'sensor', 'scene', 'select', 'text', 'cover' ) ) ) {
 	$interface->error( "Invalid mqtt type '$type'" );
 	return;
     }
@@ -1029,6 +1036,7 @@ sub new {     ### mqtt_LocalItem
 
     $self->{node_id} = $node_id;
     $self->debug( 1, "New mqtt_LocalItem( $interface->{instance}, '$mqtt_name', '$type', '$local_object', '$topicpattern', $discoverable, '$friendly_name' )" );
+    $self->debug( 1,"Base_type=[$base_type] Device_Class=[$device_class]");
 
     $self->{disc_info} = {};
     if( !$friendly_name ) {
@@ -1044,6 +1052,11 @@ sub new {     ### mqtt_LocalItem
 	$self->{disc_info}->{brightness_scale} = 100;
     } elsif( $base_type eq 'switch' ) {
 	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
+	} elsif( $base_type eq 'cover' ) {
+	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
+	if( $device_class ) {
+	    $self->{disc_info}->{device_class} = $device_class;
+	}
     } elsif( $base_type eq 'scene' ) {
 	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
 	delete $self->{disc_info}->{state_topic};
@@ -1500,7 +1513,7 @@ sub new {      ### mqtt_RemoteItem
 
     my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
 
-    if( !grep( /$base_type/, ('light','switch','sensor','binary_sensor') ) ) {
+    if( !grep( /$base_type/, ('light','switch','sensor','binary_sensor','cover') ) ) {
 	$interface->error( "Invalid InstMqttItem type '$type'" );
 	return;
     }
@@ -1612,7 +1625,7 @@ sub new {      ### mqtt_InstMqttItem
 
     my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
 
-    if( !grep( /$base_type/, ('light','switch','binary_sensor','sensor','scene' ) ) ) {
+    if( !grep( /$base_type/, ('light','switch','binary_sensor','sensor','scene', 'cover' ) ) ) {
 	$interface->error( "Invalid InstMqttItem type '$type'" );
 	return;
     }

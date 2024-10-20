@@ -66,12 +66,17 @@ sub new {
     $self->{control} = 0;
     $self->{sensor1} = 0;
     $self->{sensor2} = 0;
+    $self->{debug}   = 0;
+    #Add in a few data elements to make creating a MQTT for HA integration easier
+    $self->{mqttlocalitem}->{base_type} = 'cover';
+    $self->{mqttlocalitem}->{device_class} = 'garage';
     
     $self->{map}->{sensor1}->{open} = "open";
     $self->{map}->{sensor1}->{closed} = "closed";
     $self->{map}->{sensor2}->{open} = "open";
     $self->{map}->{sensor2}->{closed} = "closed";
     $self->{map}->{control}->{on} = "on";
+    
     @{ $$self{states} } = ( 'open', 'closed' );
 
     if (defined $control) {
