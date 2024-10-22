@@ -13,7 +13,6 @@ my ( $save_mute_esd, $save_change_volume, %pronouncable );
 my ( %voice_names, @voice_names, $voice_names_index, $VTxt_pid, $web_index );
 
 my $is_speaking_timer = new Timer;
-my $piper_process = new Process_Item;
 
 sub init {
     my ($engine) = @_;
