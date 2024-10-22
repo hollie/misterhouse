@@ -495,6 +495,35 @@ sub speak_text {
             }
         }
     }
+    elsif ( $speak_engine =~ /piper/ ) {
+
+		#There is a recursion to web_file. if a web_file is defined, then this runs once with the file defined
+		#and then a second time without the output file. This prevents the duplication?
+		return if ($parms{web_file} eq "web_file");
+
+    	print "*** PIPER ***\n\n" if $main::Debug{voice};
+    	print "to_file=$parms{to_file} text=$parms{text} async=$parms{async} play=$parms{play};\n" if $main::Debug{voice};
+    	my $cmd = 'echo "' . $parms{text} . '" |';
+    	$cmd .= $main::config_parms{piper_path} . "/piper -q";
+    	$cmd .= " --model " . $main::config_parms{piper_model_path} . "/" . $main::config_parms{piper_model};
+    	$cmd .= " --speaker " .  $main::config_parms{piper_speaker} if (defined  $main::config_parms{piper_speaker});
+    
+    	if (defined $parms{to_file}) {
+    		# create a file for mh to play
+    		#figure out how to fork this to prevent pauses?
+    	 	$cmd .= " --output_file " . $parms{to_file};
+    	 	print "cmd=$cmd\n" if $main::Debug{voice};
+    	 	$cmd .= " > /dev/null 2>&1";
+        	my $r = system $cmd;
+        	&main::print_log("Voice_Text.pm: piper: ERROR running command: $cmd") if $r != 0;
+    	 
+    	 	&web_hook_callback(%parms);
+    	 	
+    	} else {
+    	    &main::print_log("Voice_Text.pm: piper: Warning, no to_file found. Local play not supported");
+    		# just play the audio directly
+    	}
+    }
     elsif ( $speak_engine =~ /google/ ) {
 
         # Speak to tile using the Google TTS Engine
@@ -1072,6 +1101,7 @@ sub read_parms {
             next if /^\#/;
             ( $word, $phonemes ) = $_ =~ /^(\S+)\s+(.+)\s*$/;
             next unless $word;
+	    print "word=$word  phonemes=$phonemes\n" if $main::Debug{voice};
             $cnt++;
             $pronouncable{$word} = $phonemes;
         }
