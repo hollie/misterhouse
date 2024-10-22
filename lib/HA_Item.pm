@@ -109,6 +109,11 @@ Description:
                 - can use settable subtypes for modifications
                     eg.  $thermostat_preset_mode->set( "home" );
                     eg.  $thermostat_target_temp_low->set( 72 );
+	- options
+	    - delay_between_messages=n
+		- system will wait n seconds after the response from one message before the
+		  next message is sent
+		- OpenSprinkler is the only device we have seen to date that needs this
         - ha_call_service can be used to generically call a service on an entity
             - this can be used for 2 different things:
                 1. you can treat complex HA entities as a single MH item, and use
@@ -731,7 +736,12 @@ sub process_result {
 
     for my $obj ( @{ $self->{objects} } ) {
 	if( $obj->{msg_trk}->{pending_msgid} eq $result->{id} ) {
-	    if( !$obj->{msg_trk}->{serialize_on_state_change}  &&  !$obj->{msg_trk}->{serialize_on_delay} ) {
+	    if( $obj->{msg_trk}->{delay_between_messages} ) {
+		$obj->debug( 2, "Setting delay send timer on $obj->{object_name} to $obj->{msg_trk}->{delay_between_messages}s" );
+		$obj->{msg_trk}->{msg_delay_timer}->stop();
+		$obj->{msg_trk}->{msg_delay_timer}->set($obj->{msg_trk}->{delay_between_messages}, sub { $obj->ha_send_message() });
+		last;
+	    } else {
 		$obj->ha_send_message();
 	    }
 	}
@@ -1008,22 +1018,19 @@ sub new {
     $self->{duplicate_states} = 1;
     $self->{unavailable_count} = 0;
     $self->{msg_trk} = {};
-    $self->{msg_trk}->{msg_check_delay} = 5;
+    $self->{msg_trk}->{response_check_delay} = 5;
     @{$self->{msg_trk}->{pending_msg_queue}} = ();
     $self->{msg_trk}->{pending_msgid} = 0;
-    $self->{msg_trk}->{serialize_on_state_change} = 0;
-    $self->{msg_trk}->{serialize_on_delay} = 0;
+    $self->{msg_trk}->{delay_between_messages} = 0;
 
     if (defined $options) {
 	my @option_list = split( '\|', $options );
 	foreach my $option (@option_list) {
 	    if( $option eq 'no_duplicate_states' ) {
 		$self->{duplicate_states} = 0;
-	    } elsif( $option eq 'serialize_on_state_change' ) {
-		$self->{msg_trk}->{serialize_on_state_change} = 1;
-	    } elsif( my ($delay) = $option =~ m/serialize_on_delay\s*\=\s*(\d+)/ ) {
-		$self->{msg_trk}->{msg_check_delay} = $delay;
-		$self->{msg_trk}->{serialize_on_delay} = 1;
+	    } elsif( my ($delay) = $option =~ m/delay_between_messages\s*\=\s*(\d+)/ ) {
+		$self->{msg_trk}->{delay_between_messages} = $delay;
+		$self->{msg_trk}->{response_check_delay} += $delay;
 	    } else {
 		$self->error( "Invalid HA_Item option: '$option'. HA_Item entity $entity NOT created" );
 		return;
@@ -1096,7 +1103,8 @@ sub new {
 	$self->debug( 1, "$self->{entity_id} patterns: " . join( '|', @{$self->{entity_patterns}}) );
     }
 
-    $self->{msg_trk}->{msg_timer}		    = ::Timer::new();
+    $self->{msg_trk}->{msg_response_timer} = ::Timer::new();
+    $self->{msg_trk}->{msg_delay_timer}	= ::Timer::new();
     $self->{ha_server}->add( $self );
 
     return $self;
@@ -1188,7 +1196,7 @@ sub process_ha_message {
 	$p_response = $self->{ha_pending_setparms}->{mh_pending_response};
     }
     delete $self->{ha_pending_setparms};
-    if( $self->{msg_trk}->{serialize_on_state_change}  &&  !$self->{msg_trk}->{serialize_on_delay} ) {
+    if( !$self->{msg_trk}->{delay_between_messages} ) {
 	$self->ha_send_message();
     }
 
@@ -1392,16 +1400,16 @@ sub ha_send_message {
     $self->{ha_pending_setparms} = $ha_msg->{ha_setparms};
     delete $ha_msg->{ha_setparms};
 
-    $self->debug( 2, "sending command to HA: " . $self->dump( $ha_msg ) );
-    $self->{msg_trk}->{msg_timer}->stop();
-    $self->{msg_trk}->{msg_timer}->set($self->{msg_trk}->{msg_check_delay}, sub { &HA_Item::ha_check_message( $self, $ha_msg ) });
     $self->{msg_trk}->{pending_msgid} = $self->{ha_server}->ha_process_write( $ha_msg );
+    $self->debug( 2, "sent command to HA: " . $self->dump( $ha_msg ) );
+    $self->{msg_trk}->{msg_response_timer}->stop();
+    $self->{msg_trk}->{msg_response_timer}->set($self->{msg_trk}->{response_check_delay}, sub { &HA_Item::ha_check_message( $self, $ha_msg ) });
 }
 
 sub ha_check_message {
     my ($self, $ha_msg) = @_;
     if( $self->{msg_trk}->{pending_msgid} == $ha_msg->{id} ) {
-	$self->debug( 1, "$self->{object_name} message $ha_msg->{id} for entity '$ha_msg->{target}->{entity_id}' --  timer expired, sending next message" );
+	$self->error( "$self->{object_name} message $ha_msg->{id} for entity '$ha_msg->{target}->{entity_id}' --  response timer expired, sending next message" );
 	$self->ha_send_message();
     }
 }
