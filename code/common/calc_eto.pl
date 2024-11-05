@@ -1,5 +1,9 @@
 # Category = Irrigation
 
+# Fall 2024
+# v4.0
+# Included ability to write to Opensprinkler Home Assistant Object
+
 # April 2023
 # v3.0
 # -reverted to WU model and migrated to VisualCrossing
@@ -97,10 +101,11 @@ use List::Util qw(min max sum);
 #use Data::Dumper;
 use Time::Local;
 use Date::Calc qw(Day_of_Year);
-my $debug;
+my $debug = 0;
 my $msg_string;
 my $rrd = "";
 my $vc_eto = "";
+my $ha_send_email_on_fail = 0;
 
 $p_wu_forecast = new Process_Item
   qq[get_url --quiet "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/$config_parms{vc_location}?unitGroup=metric&key=$config_parms{vc_key}" "$config_parms{data_dir}/wuData/wu_data.json"];
@@ -129,12 +134,16 @@ my $eto_retries_today;
 $config_parms{eto_rainfallsatpoint} = 25     unless ( defined $config_parms{eto_rainfallsatpoint} );
 $config_parms{eto_minmax}           = "5,15" unless ( defined $config_parms{eto_minmax} );
 
+$debug = $Debug{eto} if defined $Debug{eto};
+
+$osp_ha_object = new HA_Item( 'switch', $config_parms{eto_HAopensprinkler_program_name} . "_program_enabled|" . $config_parms{eto_HAopensprinkler_program_name} . "_.*_station_duration|" . $config_parms{eto_HAopensprinkler_program_name} . "_.*day_enabled|" . $config_parms{eto_HAopensprinkler_program_name} . "_start.*_time_offset|" . $config_parms{eto_HAopensprinkler_program_name} . "_start.*_time_offset_type", $ha_house, "delay_between_messages=4" ) if ((defined $config_parms{eto_irrigation}) and (lc $config_parms{eto_irrigation} eq "opensprinkler-ha"));
+$ha_send_email_on_fail = 1 if ( defined $config_parms{eto_email} );
+
 my $eto_ready;
 
 if ( $Startup or $Reload ) {
     $eto_ready = 1;
-    $debug = 0;
-    print_log "[calc_eto] v3.0 Startup.";
+    print_log "[calc_eto] v4.0 Startup.";
     print_log "[calc_eto] DEBUG Enabled" if ($debug);
     print_log "[calc_eto] Checking Configuration...";
     mkdir "$eto_data_dir"                  unless ( -d "$eto_data_dir" );
@@ -257,9 +266,19 @@ if ( done_now $p_wu_forecast) {
                 if ( lc $config_parms{eto_irrigation} eq "opensprinkler" ) {
                     my $os_program = &get_object_by_name( $config_parms{eto_opensprinkler_program} );
                     my ( $run_times, $run_seconds ) = $program_data =~ /\[\[(.*)\],\[(.*)\]\]/;
-                    print_log "[calc_eto] Loading values $run_times,$run_seconds into program $config_parms{eto_opensprinkler_program}";
+                    print_log "[calc_eto] Loading values $run_times,$run_seconds into Opensprinkler program $config_parms{eto_opensprinkler_program}";
                     $os_program->set_program( $Day, $run_times, $run_seconds );
-                }    #elsif (other sprinkler system...)
+                    
+                } elsif  ( lc $config_parms{eto_irrigation} eq "opensprinkler-ha" ) {
+                     print_log "[calc_eto] Loading values program_data into Home Assistant program $config_parms{eto_opensprinkler_program}";
+                     my $ha_retries = 5;
+                     $ha_retries = $config_parms{eto_HAopensprinkler_retries} if (defined $config_parms{eto_HAopensprinkler_retries});
+                     my $ha_retry_delay = 120;
+                     $ha_retry_delay = $config_parms{eto_HAopensprinkler_retry_delay} if (defined $config_parms{eto_HAopensprinkler_retry_delay});
+                     update_osp_ha_entities( $program_data, $ha_retries, $ha_retry_delay );	
+                } else {
+                     print_log "[calc_eto] WARNING No irrigation system specified to upload program!";
+		}
             }
         }
         else {
@@ -1351,4 +1370,103 @@ sub main_calc_eto {
         net_mail_send( to => $config_parms{eto_email}, subject => "EvapoTranspiration Results for $Time_Now", text => $msg_string );
     }
     return ($rtime);
+}
+
+sub update_osp_ha_entities {
+    my ($program_string, $retry, $ha_retry_delay) = @_;
+    my $changes = 0;
+ 
+    my ( $run_times, $run_seconds ) = $program_string =~ /\[\[(.*)\],\[(.*)\]\]/;
+    print_log "[calc_eto] Update_osp_ha_entities: Loading values  [$run_times] : [$run_seconds] for $Day into HA Opensprinkler object. $retry Validations remaining";
+
+    #loop through days to set
+    foreach my $d ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday") {
+        my $value = "off";
+        $value = "on" if (lc $Day eq substr $d, 0, 3); #MH just has the first three letters for days 
+        my $state = $osp_ha_object->get_attr($config_parms{eto_HAopensprinkler_program_name} . "_" . $d . '_enabled');
+        $state = "" unless (defined $state);
+        if (lc $state ne lc $value) {
+            print_log '[calc_eto] $osprogram->set_attr("' . $config_parms{eto_HAopensprinkler_program_name} . "_" . $d . '_enabled",' . $value . '); ' if ($debug);
+            $osp_ha_object->set_attr($config_parms{eto_HAopensprinkler_program_name} . "_" . $d . '_enabled' , $value);
+	    $changes++;
+        } else {
+            print_log '[calc_eto] Current value for ' . $config_parms{eto_HAopensprinkler_program_name} . "_" . $d . '_enabled [' . $state . '] matches [' . $value . "] so dont change" if ($debug);
+        }
+    }   
+    
+    #loop through run_times. -1 means disable the start time
+    my $count = 0;    
+    my $program_disabled = 0;
+    foreach my $s ( split /,/,$run_times ) {
+       my $countname = $count;
+       $countname = "" if ($count == 0);
+       my $state = $osp_ha_object->get_attr($config_parms{eto_HAopensprinkler_program_name} . '_start' . $countname . '_time_offset');
+       my $state2 = $osp_ha_object->get_attr($config_parms{eto_HAopensprinkler_program_name} . '_start' . $countname . '_time_offset_type');
+       my $program = state $osp_ha_object;       
+       $state = "" unless (defined $state);
+       $state2 = "" unless (defined $state2);
+
+       if (($s eq "-1") or $program_disabled) { #if the first time is -1, then all times should be disabled.
+            if ($count == 0) {
+                $program_disabled = 1;
+            } else {
+                if (lc $state2 ne "disabled") {
+                    print_log '[calc_eto] $osprogram->set_attr(' . $config_parms{eto_HAopensprinkler_program_name} . '_start' . $countname . '_time_offset_type, "Disabled");' if ($debug) ;
+                    $osp_ha_object->set_attr($config_parms{eto_HAopensprinkler_program_name} . '_start' . $countname . '_time_offset_type', "Disabled");
+		   $changes++;
+                } else {
+                    print_log '[calc_eto] Current value for ' . $config_parms{eto_HAopensprinkler_program_name} . '_start' . $countname . '_time_offset_type [' . $state2 . '] matches [' . $s . "] so dont change" if ($debug);
+                }
+            }
+       } else {
+            if (lc $state2 eq "disabled") {
+                print_log '[calc_eto] $osprogram->set_attr(' . $config_parms{eto_HAopensprinkler_program_name} . '_start' . $countname . '_time_offset_type, "Midnight");' if ($debug);
+                $osp_ha_object->set_attr($config_parms{eto_HAopensprinkler_program_name} . '_start' . $countname . '_time_offset_type', "Midnight");
+           $changes++; 
+	}
+            if (lc $state ne lc $s) {
+                print_log '[calc_eto] $osprogram->set_attr("' . $config_parms{eto_HAopensprinkler_program_name} . '_start' . $countname . '_time_offset", ' . $s . '); ' if ($debug);
+                $osp_ha_object->set_attr($config_parms{eto_HAopensprinkler_program_name} . '_start' . $countname . '_time_offset', $s);
+		$changes++;
+            } else {
+                print_log '[calc_eto] Current value for ' . $config_parms{eto_HAopensprinkler_program_name} . '_start' . $countname . '_time_offset [' . $state . '] matches [' . $s . "] so dont change" if ($debug);
+
+            }
+        }
+        $count++;
+    }
+    
+    #loop through all the durations
+    $count = 0;
+    foreach my $r ( split /,/,$run_seconds) {     
+        $count++;
+        if (exists $config_parms{"eto_ha_s" . $count}) { 
+            my $state = $osp_ha_object->get_attr($config_parms{eto_HAopensprinkler_program_name} . "_" . $config_parms{"eto_ha_s" . $count} . "_station_duration");
+            $state = "" unless (defined $state);
+            my $m = int($r / 60);
+            $m++ if ($r > 0); # add a minute for rounding for non-zero duration stations
+            $m = 0 if ($program_disabled); #turn off all stations just in case
+            if (lc $state ne lc $m) {
+                print_log '[calc_eto] $osprogram->set_attr("' . $config_parms{eto_HAopensprinkler_program_name} . "_" . $config_parms{"eto_ha_s" . $count } . '_station_duration"' . ", $m); " if ($debug);
+                $osp_ha_object->set_attr($config_parms{eto_HAopensprinkler_program_name} . "_" . $config_parms{"eto_ha_s" . $count } . '_station_duration', $m);
+		$changes++;
+            } else {
+                print_log '[calc_eto] Current value for ' . $config_parms{eto_HAopensprinkler_program_name} . "_" . $config_parms{"eto_ha_s" . $count} .'_station_duration [' . $state . '] matches [' . $m . "] so dont change" if ($debug);
+            }
+        } else {
+           print_log 'print_log "[calc_eto] No ha entity name config_param for station ' . $count . '";' if ($debug);
+        }
+     }
+    $retry--;
+    my $eval_string = "&update_osp_ha_entities( '$program_string' , $retry )";
+    if ($changes and $retry) {
+    	print_log "[calc_eto] HA Program: Changes made: $changes. Validation Retries left: $retry";
+        eval_with_timer($eval_string,$ha_retry_delay);
+    } elsif ($changes and !$retry) {
+    	print_log "[calc_eto] HA Program: ERROR Changes made: $changes. No validation retries left, Program incomplete!";
+        net_mail_send( to => $config_parms{eto_email}, subject => "Calc_ETO failed to set HA Program", text => "Program String: $program_string" ) if ($ha_send_email_on_fail);
+    } else {    
+	print_log "[calc_eto] HA Program: SUCCESS Changes made: $changes. Program validated and Ready!";
+    }
+    return;     
 }
