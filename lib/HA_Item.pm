@@ -114,19 +114,19 @@ Description:
 		- system will wait n seconds after the response from one message before the
 		  next message is sent
 		- OpenSprinkler is the only device we have seen to date that needs this
-        - ha_call_service can be used to generically call a service on an entity
+        - ha_perform_action can be used to generically perform an action on an entity
             - this can be used for 2 different things:
                 1. you can treat complex HA entities as a single MH item, and use
-                   this function to call the various services on the HA entity
-                2. if the MH code doesn't implement all of the HA entity services, or there
-                   are custom services on the entity, then you can call them with this function
-            eg. $thermostat->ha_call_service( 'set_preset_mode', {preset_mode=>'away'} );
-	- ha_call_service also exists on the HA_Server class
-	    - this can be used to call services that are not entity services
-	    eg. $hasrv->ha_call_service( 'notify.mobile_app_my_phone', {title=>'HA notification', message=>'test message'} );
-	    - or add this to items.mht for controlling HA services, like an RF fan controlled by a broadlink item:
+                   this function to perform the various actions on the HA entity
+                2. if the MH code doesn't implement all of the HA entity actions, or there
+                   are custom actions on the entity, then you can call them with this function
+            eg. $thermostat->ha_perform_action( 'set_preset_mode', {preset_mode=>'away'} );
+	- ha_perform_action also exists on the HA_Server class
+	    - this can be used to perform actions that are not entity actions
+	    eg. $hasrv->ha_perform_action( 'notify.mobile_app_my_phone', {title=>'HA notification', message=>'test message'} );
+	    - or add this to items.mht for controlling HA actions, like an RF fan controlled by a broadlink item:
 	    GENERIC,   fan_light,
-	    CODE, $fan_light -> tie_event('$hasrv->ha_call_service( "remote.rm4pro.send_command", {device => "Fan", command=> "Light"})');
+	    CODE, $fan_light -> tie_event('$hasrv->ha_perform_action( "remote.rm4pro.send_command", {device => "Fan", command=> "Light"})');
 	    CODE, $fan_light -> set_states ("on","off");
     
 
@@ -608,29 +608,29 @@ sub ha_process_read {
     }
 }
 
-=item C<ha_call_service(service_name, service_data_hash )>
+=item C<ha_perform_action(action_name, action_data_hash )>
 
-    Will send a message to HA to run a service 'domain.service_name' passing in the
-    kwargs parameters specified in service_data_hash.
+    Will send a message to HA to perform an action 'domain.action_name' passing in the
+    kwargs parameters specified in action_data_hash.
 
 =cut
-sub ha_call_service {
-    my ($self, $service, $service_data) = @_;
+sub ha_perform_action {
+    my ($self, $action, $action_data) = @_;
     my $ha_msg = {};
     my $entity_id;
-    my $service_name;
+    my $action_name;
     my $domain;
 
     $ha_msg->{type} = 'call_service';
-    ($domain, $entity_id, $service_name) = $service =~ /^([^\.]+)\.([^\.]+)\.([^\.]+)$/;
+    ($domain, $entity_id, $action_name) = $action =~ /^([^\.]+)\.([^\.]+)\.([^\.]+)$/;
     if( $entity_id ) {
 	$entity_id = "$domain.$entity_id";
     } else {
-	($domain, $service_name) = $service =~ /^([^\.]+)\.([^\.]+)$/;
+	($domain, $action_name) = $action =~ /^([^\.]+)\.([^\.]+)$/;
 	if( $domain ) {
 	    $entity_id = undef;
 	} else {
-	    $self->error( "Invalid service name specified: $service" );
+	    $self->error( "Invalid action specified: $action" );
 	    return;
 	}
     }
@@ -639,12 +639,18 @@ sub ha_call_service {
 	$ha_msg->{target} = {};
 	$ha_msg->{target}->{entity_id} = $entity_id;
     }
-    $ha_msg->{service} = $service_name;
-    if( defined( $service_data )  &&  keys %$service_data) {
-        $ha_msg->{service_data} = $service_data;
+    $ha_msg->{service} = $action_name;
+    if( defined( $action_data )  &&  keys %$action_data) {
+        $ha_msg->{service_data} = $action_data;
     }
 
     $self->ha_process_write( $ha_msg );
+}
+
+# This function is provided for backwards compatibility
+sub ha_call_service {
+    my ($self, $action, $action_data) = @_;
+    return $self->ha_perform_action( $action, $action_data );
 }
 
 sub set_object_state {
@@ -728,6 +734,7 @@ sub process_result {
     my ( $self, $result ) = @_;
     my $handled = 0;
 
+    $self->debug( 3, "Processing result on HA request: " . $self->dump( $result, 3 ) );
     if( $result->{success} ) {
 	$self->debug( 1, "Received success on request $result->{id}" );
     } else {
@@ -1338,32 +1345,32 @@ sub process_ha_message {
     }
 }
 
-=item C<ha_call_service(service_name, service_data_hash )>
+=item C<ha_perform_action(action_name, action_data_hash )>
 
-    Will send a message to HA to run the service 'service_name' on the entity passing in the
-    kwargs parameters specified in service_data_hash.
+    Will send a message to HA to perform the action 'action_name' on the entity passing in the
+    kwargs parameters specified in action_data_hash.
     This will cause a state change to be sent to the HA entity mirrored by the item.
     Local state will not be changed until the state_change event is received back from the HA server.
 
 =cut
-sub ha_call_service {
-    my ($self, $service, $service_data) = @_;
+sub ha_perform_action {
+    my ($self, $action, $action_data) = @_;
     my $ha_msg = {};
     my $entity_id;
-    my $service_name;
+    my $action_name;
     my $domain;
 
     $ha_msg->{type} = 'call_service';
-    ($domain, $entity_id, $service_name) = $service =~ /^([^\.]+)\.([^\.]+)\.([^\.]+)$/;
+    ($domain, $entity_id, $action_name) = $action =~ /^([^\.]+)\.([^\.]+)\.([^\.]+)$/;
     if( $entity_id ) {
 	$entity_id = "$domain.$entity_id";
     } else {
-	($domain, $service_name) = $service =~ /^([^\.]+)\.([^\.]+)$/;
+	($domain, $action_name) = $action =~ /^([^\.]+)\.([^\.]+)$/;
 	if( $domain ) {
 	    $entity_id = undef;
 	} else {
 	    $entity_id = $self->{entity_id};
-	    $service_name = $service;
+	    $action_name = $action;
 	    $domain = $self->{domain};
 	}
     }
@@ -1372,12 +1379,18 @@ sub ha_call_service {
 	$ha_msg->{target} = {};
 	$ha_msg->{target}->{entity_id} = $entity_id;
     }
-    $ha_msg->{service} = $service_name;
-    if( defined( $service_data )  &&  keys %$service_data) {
-        $ha_msg->{service_data} = $service_data;
+    $ha_msg->{service} = $action_name;
+    if( defined( $action_data )  &&  keys %$action_data) {
+        $ha_msg->{service_data} = $action_data;
     }
 
     $self->ha_send_message( $ha_msg );
+}
+
+# This function is provided for backwards compatibility
+sub ha_call_service {
+    my ($self, $action, $action_data) = @_;
+    return $self->ha_perform_action( $action, $action_data );
 }
 
 sub ha_send_message {
@@ -1417,108 +1430,108 @@ sub ha_check_message {
 sub ha_set_select {
     my ($self, $mode) = @_;
     my $cmd;
-    my $service;
-    my $service_data = {};
+    my $action;
+    my $action_data = {};
 
-    $service = 'select_option';
-    $service_data->{option} = $mode;
-    $self->ha_call_service( $service, $service_data );
+    $action = 'select_option';
+    $action_data->{option} = $mode;
+    $self->ha_perform_action( $action, $action_data );
 }
 
 sub ha_set_climate {
     my ($self, $setval) = @_;
-    my $service_data = {};
-    my $service;
+    my $action_data = {};
+    my $action;
 
     if( $self->{subtype} eq 'onoff' ) {
         if( lc $setval eq 'turn_on' || lc $setval eq 'on' ) {
-            $service = 'turn_on';
+            $action = 'turn_on';
         } elsif( lc $setval eq 'turn_off' ||  lc $setval eq 'off' ) {
-            $service = 'turn_off';
+            $action = 'turn_off';
         } elsif( lc $setval eq 'toggle' ) {
-            $service = 'toggle';
+            $action = 'toggle';
         }
     } elsif( $self->{subtype} eq 'target_temp_low' ) {
-        $service_data->{target_temp_low} = $setval;
-        $service_data->{target_temp_high} = $self->{ha_state}->{attributes}->{target_temp_high};
+        $action_data->{target_temp_low} = $setval;
+        $action_data->{target_temp_high} = $self->{ha_state}->{attributes}->{target_temp_high};
     } elsif( $self->{subtype} eq 'target_temp_high' ) {
-        $service_data->{target_temp_high} = $setval;
-        $service_data->{target_temp_low} = $self->{ha_state}->{attributes}->{target_temp_low};
+        $action_data->{target_temp_high} = $setval;
+        $action_data->{target_temp_low} = $self->{ha_state}->{attributes}->{target_temp_low};
     } else {
-        my $service_name = $self->{subtype};
-        if( !service_name ) {
-            $service_name = 'hvac_mode';
+        my $action_name = $self->{subtype};
+        if( !action_name ) {
+            $action_name = 'hvac_mode';
         }
-        $service = "set_${service_name}";
-        $service_data->{$service_name} = $setval;
+        $action = "set_${action_name}";
+        $action_data->{$action_name} = $setval;
     }
-    $self->ha_call_service( $service, $service_data );
+    $self->ha_perform_action( $action, $action_data );
 }
 
 sub ha_set_state {
     my ($self, $mode) = @_;
     my $cmd;
-    my $service;
-    my $service_data = {};
+    my $action;
+    my $action_data = {};
 	$self->debug( 1, "ha_set_state. Setting $self->{object_name} to $mode" );
     
-    $service = $mode;
+    $action = $mode;
     my ($numval) = $mode =~ /^([1-9]?[0-9]?[0-9])%?$/;
     if( defined $numval ) {
         if (lc $self->{domain} eq 'light') {
 	    if( $numval == 0 ) {
-		$service = 'turn_off';
+		$action = 'turn_off';
 	    } else {
-		$service = 'turn_on';
-		$service_data->{brightness_pct} = $numval;
+		$action = 'turn_on';
+		$action_data->{brightness_pct} = $numval;
 	    }
         } elsif (lc $self->{domain} eq 'cover') {
-            $service = 'set_cover_position';
-            $service_data->{position} = $numval;
+            $action = 'set_cover_position';
+            $action_data->{position} = $numval;
         } elsif (lc $self->{domain} eq 'fan') {
-            $service = 'set_percentage';
-            $service_data->{percentage} = $numval;
+            $action = 'set_percentage';
+            $action_data->{percentage} = $numval;
 	    } elsif ( lc $self->{domain} eq 'number'  ||  lc $self->{domain} eq 'input_number' ) {
-            $service = 'set_value';
-            $service_data->{value} = $numval;
+            $action = 'set_value';
+            $action_data->{value} = $numval;
         } else {
 	    $self->error( "Numeric value set for domain that doesn't handle numbers" );
 	}
     } elsif( lc $mode eq 'on' ) {
-        $service = 'turn_on';
+        $action = 'turn_on';
     } elsif( lc $mode eq 'toggle' ) {
-        $service = 'toggle';
+        $action = 'toggle';
     } elsif( lc $mode eq 'off' ) {
-        $service = 'turn_off';
+        $action = 'turn_off';
     } elsif( lc $mode eq 'open' ) {
         if (lc $self->{domain} eq 'lock') {
-            $service = 'open';
+            $action = 'open';
         } else {
-            $service = 'open_cover';
+            $action = 'open_cover';
         }
     } elsif( lc $mode eq 'up' ) {
-        $service = 'open_cover';
+        $action = 'open_cover';
     } elsif( lc $mode eq 'down' ) {
-        $service = 'close_cover';
+        $action = 'close_cover';
     } elsif( lc $mode eq 'closed' ) {
-        $service = 'close_cover';
+        $action = 'close_cover';
     } elsif( lc $mode eq 'stop' ) {
-        $service = 'stop_cover';        
+        $action = 'stop_cover';
     } elsif( lc $mode eq 'locked' ) {
-        $service = 'lock';
+        $action = 'lock';
     } elsif( lc $mode eq 'unlocked' ) {
-        $service = 'unlock';
+        $action = 'unlock';
     } elsif( lc $mode =~ /\d+,\d+,\d+/ && $self->{subtype} eq 'rgb_color') {
-        $service = 'turn_on';
-        @{$service_data->{rgb_color}} = split /,/, $mode;
+        $action = 'turn_on';
+        @{$action_data->{rgb_color}} = split /,/, $mode;
     } elsif( lc $mode =~ /\d+,\d+/ && $self->{subtype} eq 'hs_color') {
-        $service = 'turn_on';
-        @{$service_data->{hs_color}} = split /,/, $mode;
+        $action = 'turn_on';
+        @{$action_data->{hs_color}} = split /,/, $mode;
     }  elsif(  $self->{subtype} eq 'effect') {
-        $service = 'turn_on';
-        $service_data->{effect} = $mode;    
+        $action = 'turn_on';
+        $action_data->{effect} = $mode;
     }          
-    $self->ha_call_service( $service, $service_data );
+    $self->ha_perform_action( $action, $action_data );
 }
 
 sub get_binary_sensor_mapped_state {
