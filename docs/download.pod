@@ -10,23 +10,37 @@ modify the code/common/mh_release.pl file to search the new format!!
 
 =head1 Current Stable
 
-B<Version 5.0> - released on 10/31/2017
+B<Version 6.0> - released on 11/11/2024
 
 =over
 
 =item Linux, Windows and MacOS
 
-L<https://api.github.com/repos/hollie/misterhouse/zipball/v3.1>
+L<https://api.github.com/repos/hollie/misterhouse/zipball/v6.0>
 
 The Windows only compiled version of Misterhouse is sadly no longer supported.
 
-Between formal releases, you can pick up the latest updates from: L<https://github.com/hollie/misterhouse> (not recommended for beginners!)
+Between formal releases, you can pick up the latest updates from: L<https://github.com/hollie/misterhouse>
 
 A large (30MB) zip of optional files (mainly sound files) is here: L<http://misterhouse.sf.net/misterhouse_misc.zip>
 
 =back
 
 =head1 Previous Stable
+
+B<Version 5.0> - released on 10/31/2017
+
+=over
+
+=item Linux, Windows and MacOS
+
+L<https://api.github.com/repos/hollie/misterhouse/zipball/v5.0>
+
+The Windows only compiled version of Misterhouse is sadly no longer supported.
+
+=back
+
+=head1Older Versions
 
 B<Version 4.2> - released on 03/08/2017
 
@@ -43,20 +57,6 @@ B<Version 4.2> - released on 03/08/2017
 =end HTML
 
 =back
-
-=head1 Older Versions
-
-=over
-
-=item * You can get older versions from Sourceforge (not recommended): 
-
-=begin HTML
-
-<strong>
-<a href='http://sourceforge.net/project/showfiles.php?group_id=1365&package_id=1347' target='_blank'>
-http://sourceforge.net/project/showfiles.php?group_id=1365&package_id=1347
-</a>
-</strong>
 
 =end HTML
 
