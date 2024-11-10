@@ -1,5 +1,5 @@
 <h1 style="text-align:left;float:left;margin-top:10px">v6.0</h1>
-<h3 style="text-align:right;float:right;margin-right:15px;">Released September 2024</h3>
+<h3 style="text-align:right;float:right;margin-right:15px;">Released 2021/11/11</h3>
 <hr style="clear:both;margin-right:15px"/>
 
 <div class="panel-group whatsnew-panel">
@@ -7,14 +7,23 @@
   <div class="panel panel-default">
     <div class="panel-heading">
       <h4 class="panel-title">
-        <a data-toggle="collapse" href="#collapse51_0">Home Assistant Integration</a>
+        <a data-toggle="collapse" href="#collapse60_0">Home Assistant Integration</a>
       </h4>
     </div>
-    <div id="collapse51_0" class="panel-collapse collapse">
+    <div id="collapse60_0" class="panel-collapse collapse">
       <div class="panel-body">
         <ul class="fa-ul">     
-         <li><i class="fa-li fa fa-chevron-right"></i>HA_Item allows to including HA items into Misterhouse 
-         <li><i class="fa-li fa fa-chevron-right"></i>MQTT updates (including discovery) allows to integration from MH into HA
+         <li><i class="fa-li fa fa-chevron-right"></i>DaveNeudoerffer  
+         <li><i class="fa-li fa fa-chevron-right"></i>HA_Server and HA_Item. A webservice bassed integration to integrate HA entities into Misterhouse.
+         <li><i class="fa-li fa fa-chevron-right"></i>Supported Items
+         <ul>
+            <li>Lights & Switches
+            <li>Sensors & Binary Sensors
+            <li>Fans
+            <li>Cover devices (Garage Door and Blinds)
+            <li>Number
+            <li>Climate
+            <li>There is a ha_perform_action method to directly call an action in Home Assistant
          </ul>    
       </div>
     </div>
@@ -22,22 +31,75 @@
   <div class="panel panel-default">
     <div class="panel-heading">
       <h4 class="panel-title">
-        <a data-toggle="collapse" href="#collapse51_1">5 years of Misc bugfixes</a>
+        <a data-toggle="collapse" href="#collapse60_1">Support for Piper speech engine</a>
       </h4>
     </div>
-    <div id="collapse51_1" class="panel-collapse collapse">
+    <div id="collapse60_1" class="panel-collapse collapse">
       <div class="panel-body">
         <ul class="fa-ul">     
-         <li><i class="fa-li fa fa-chevron-right"></i>See git log for details   
+         <li><i class="fa-li fa fa-chevron-right"></i>hplato   
+         <li><i class="fa-li fa fa-chevron-right"></i>Support for piper, including voices inside models. Only tested as a wav generator, direct sound output is not supported 
          </ul>    
       </div>
     </div>
   </div>
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse60_2">Generic Garage Door Item</a>
+      </h4>
+    </div>
+    <div id="collapse60_2" class="panel-collapse collapse">
+      <div class="panel-body">
+        <ul class="fa-ul">     
+         <li><i class="fa-li fa fa-chevron-right"></i>hplato  
+         <li><i class="fa-li fa fa-chevron-right"></i>A generic module that combines sensors and relays to control a garage door. Supports 2 sensors to provide additional states (opening and closing)      
+         </ul>    
+      </div>
+    </div>
+  </div>  
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse60_3">FullyKioskBrowser Support</a>
+      </h4>
+    </div>
+    <div id="collapse60_3" class="panel-collapse collapse">
+      <div class="panel-body">
+        <ul class="fa-ul">     
+         <li><i class="fa-li fa fa-chevron-right"></i>tobser  
+         <li><i class="fa-li fa fa-chevron-right"></i>Adds a module to remote control any Android device with FullyKioskBrowser installed (see https://www.fully-kiosk.com/)
+         <li><i class="fa-li fa fa-chevron-right"></i>Implemented Features
+         <ul>
+            <li>Turn display on/off
+            <li>Use text to speech on device
+            <li>With mqtt enalbed
+            <li>get remote on/off updates from device
+            <li>watch the battery level
+            <li>use device as a motion sensor
+         </ul>       
+         </ul>    
+      </div>
+    </div>
+  </div>    
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" href="#collapse60_4">Improved MQTT support</a>
+      </h4>
+    </div>
+    <div id="collapse60_4" class="panel-collapse collapse">
+      <div class="panel-body">
+        <ul class="fa-ul">     
+         <li><i class="fa-li fa fa-chevron-right"></i>DaveNeudoerffer  
+         <li><i class="fa-li fa fa-chevron-right"></i>Provides discovery services, and an easy method to expose MH objects to Home Assistant.
+         </ul>    
+      </div>
+    </div>
+  </div>    
 </div>
 
-
 <h1 style="text-align:left;float:left;margin-top:10px">v5.1</h1>
-<h3 style="text-align:right;float:right;margin-right:15px;"></h3>
 <hr style="clear:both;margin-right:15px"/>
 
 <div class="panel-group whatsnew-panel">
