@@ -1,5 +1,13 @@
 # Change Log
 
+## [6.0](https://github.com/hollie/misterhouse/tree/6.0) (2024-11-11)
+
+[Full Changelog](https://github.com/hollie/misterhouse/compare/v5.0...v6.0)
+
+- 582 Commits and 988 changed files
+- Notable changes: Home Assistant Integration, updated IA7 UI, piper voice support, mqtt improvements
+
+
 ## [5.0](https://github.com/hollie/misterhouse/tree/5.0) (2017-10-31)
 
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v4.2...v5.0)
