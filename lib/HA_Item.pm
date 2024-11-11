@@ -1259,7 +1259,7 @@ sub process_ha_message {
     } elsif( $self->{domain} eq 'select'  ||  $self->{domain} eq 'input_select' ) {
 	$self->debug( 1, "$self->{domain} event for $self->{object_name} set to $new_state->{state}" );
 	$self->set_mh_state( $new_state->{state}, $p_setby, $p_response );
-	if( $p_setby eq 'ha_server_init' ) {
+	if( $p_setby  &&  $p_setby eq 'ha_server_init' ) {
 	    $self->set_states( @{$new_state->{attributes}->{options}},"override=1" );
 	}
     } elsif( $self->{domain} eq 'fan' ) {
@@ -1270,7 +1270,7 @@ sub process_ha_message {
 	}    
 	$self->debug( 1, "fan event for $self->{object_name} set to $new_state->{state} ($level)" );
 	$self->set_mh_state( $level, $p_setby, $p_response );
-	if( $p_setby eq 'ha_server_init' ) {
+	if( $p_setby  &&  $p_setby eq 'ha_server_init' ) {
 	    #percentage_step gives the number of speed steps for the fan
 	    if (defined $new_state->{attributes}->{percentage_step}) {
 		my @states = ();
@@ -1332,7 +1332,7 @@ sub process_ha_message {
 	} else {
 	    $self->debug( 1, "climate $self->{object_name} default object set: $state" );
 	}
-	if( $p_setby eq 'ha_server_init' ) {
+	if( $p_setby  &&  $p_setby eq 'ha_server_init' ) {
 	    if( $self->{subtype} eq 'hvac_mode' ) {
 		$self->set_states( @{$new_state->{attributes}->{hvac_modes}},"override=1" );
 	    } elsif( $self->{subtype} eq 'fan_mode' ) {
