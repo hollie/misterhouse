@@ -1,14 +1,176 @@
-# Change Log
+# Changelog
 
-## [6.0](https://github.com/hollie/misterhouse/tree/6.0) (2024-11-11)
+## [v6.0](https://github.com/hollie/misterhouse/tree/v6.0) (2024-11-11)
 
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v5.0...v6.0)
 
-- 582 Commits and 988 changed files
-- Notable changes: Home Assistant Integration, updated IA7 UI, piper voice support, mqtt improvements
+**Closed issues:**
 
+- ia7 cannot display group when state value of a member is a number [\#852](https://github.com/hollie/misterhouse/issues/852)
+- Need help with install [\#792](https://github.com/hollie/misterhouse/issues/792)
+- perl issue: code select and unselect  [\#785](https://github.com/hollie/misterhouse/issues/785)
+- Perl errors with unescaped brace in regular expression [\#774](https://github.com/hollie/misterhouse/issues/774)
+- Oops1: Variable "$xml" is not imported at \(eval 640\) line 718 [\#744](https://github.com/hollie/misterhouse/issues/744)
+- High CPU usage when browsing in ia7 [\#678](https://github.com/hollie/misterhouse/issues/678)
+- sync links to PLM fails on all links [\#499](https://github.com/hollie/misterhouse/issues/499)
+- It was really hard to link an I2CS KPL. Eventually had to hardware reset it before mh could talk to it reliably [\#498](https://github.com/hollie/misterhouse/issues/498)
+- Sync all links failure [\#497](https://github.com/hollie/misterhouse/issues/497)
 
-## [5.0](https://github.com/hollie/misterhouse/tree/5.0) (2017-10-31)
+**Merged pull requests:**
+
+- Removed redundant debug message [\#927](https://github.com/hollie/misterhouse/pull/927) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- fixed test of uninitialized variable [\#926](https://github.com/hollie/misterhouse/pull/926) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- v6 updated docs [\#925](https://github.com/hollie/misterhouse/pull/925) ([hplato](https://github.com/hplato))
+- Upped version to 6.0 [\#924](https://github.com/hollie/misterhouse/pull/924) ([hplato](https://github.com/hplato))
+- Use new home assistant action nomenclature [\#923](https://github.com/hollie/misterhouse/pull/923) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- v4.0 - support for HA\_Item Opensprinkler item [\#922](https://github.com/hollie/misterhouse/pull/922) ([hplato](https://github.com/hplato))
+- added option delay\_between\_messages [\#921](https://github.com/hollie/misterhouse/pull/921) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Add support for piper speech engine [\#920](https://github.com/hollie/misterhouse/pull/920) ([hplato](https://github.com/hplato))
+- GarageDoor and mqtt cover [\#918](https://github.com/hollie/misterhouse/pull/918) ([hplato](https://github.com/hplato))
+- Fixed HA and MQTT item groups [\#917](https://github.com/hollie/misterhouse/pull/917) ([hplato](https://github.com/hplato))
+- added binary\_sensor processing and state mapping [\#916](https://github.com/hollie/misterhouse/pull/916) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- HA\_Item: handle up/down commands for covers [\#914](https://github.com/hollie/misterhouse/pull/914) ([tobser](https://github.com/tobser))
+- HA\_Item: fix ping [\#913](https://github.com/hollie/misterhouse/pull/913) ([tobser](https://github.com/tobser))
+- GarageDoor\_Item [\#912](https://github.com/hollie/misterhouse/pull/912) ([hplato](https://github.com/hplato))
+- fixed a few cosmetic items [\#911](https://github.com/hollie/misterhouse/pull/911) ([hplato](https://github.com/hplato))
+- v2.0.202 [\#910](https://github.com/hollie/misterhouse/pull/910) ([hplato](https://github.com/hplato))
+- Update whatsnew.shtml for v6 [\#909](https://github.com/hollie/misterhouse/pull/909) ([hplato](https://github.com/hplato))
+- HPlato: added fan support [\#908](https://github.com/hollie/misterhouse/pull/908) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Mqtt fix [\#907](https://github.com/hollie/misterhouse/pull/907) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Update VERSION [\#906](https://github.com/hollie/misterhouse/pull/906) ([hplato](https://github.com/hplato))
+- Updated generic\_item to allow for updating lables outside of the reload loop with an override option. [\#905](https://github.com/hollie/misterhouse/pull/905) ([hplato](https://github.com/hplato))
+- Nanoleaf aurora depreciation notice [\#904](https://github.com/hollie/misterhouse/pull/904) ([hplato](https://github.com/hplato))
+- Opensprinkler update [\#903](https://github.com/hollie/misterhouse/pull/903) ([hplato](https://github.com/hplato))
+- Depreciation Notice [\#902](https://github.com/hollie/misterhouse/pull/902) ([hplato](https://github.com/hplato))
+- Schulter ditra with depreciation notice [\#901](https://github.com/hollie/misterhouse/pull/901) ([hplato](https://github.com/hplato))
+- Added depreciation notice [\#900](https://github.com/hollie/misterhouse/pull/900) ([hplato](https://github.com/hplato))
+- Added depreciation notice. [\#899](https://github.com/hollie/misterhouse/pull/899) ([hplato](https://github.com/hplato))
+- Added text type [\#898](https://github.com/hollie/misterhouse/pull/898) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- HA integration fixes and additions [\#897](https://github.com/hollie/misterhouse/pull/897) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Override set\_label and set\_states Reload restriction [\#896](https://github.com/hollie/misterhouse/pull/896) ([hplato](https://github.com/hplato))
+- Opensprinkler firmware 220 support [\#895](https://github.com/hollie/misterhouse/pull/895) ([hplato](https://github.com/hplato))
+- Many changes and fixes -- initial implementation [\#894](https://github.com/hollie/misterhouse/pull/894) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Some debug messages [\#893](https://github.com/hollie/misterhouse/pull/893) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- bug fix on publishing discovery info [\#891](https://github.com/hollie/misterhouse/pull/891) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- v3.1.1, send up/down state to razberry for open/close [\#890](https://github.com/hollie/misterhouse/pull/890) ([hplato](https://github.com/hplato))
+- HPlato -- enhanced cover type to support partial opening and stop setval [\#889](https://github.com/hollie/misterhouse/pull/889) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- v3.1.0 - added config param to switch blind states from up/down to op… [\#887](https://github.com/hollie/misterhouse/pull/887) ([hplato](https://github.com/hplato))
+- More cleanup of debug and logging.  Added ability to statically decla… [\#886](https://github.com/hollie/misterhouse/pull/886) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Cleaned up logging and debugging, renamed multi\_switch to select [\#885](https://github.com/hollie/misterhouse/pull/885) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Ia7 - added in state\_override object method for supporting HA\_Item cover items [\#883](https://github.com/hollie/misterhouse/pull/883) ([hplato](https://github.com/hplato))
+- current version [\#882](https://github.com/hollie/misterhouse/pull/882) ([hplato](https://github.com/hplato))
+- add an eval to prevent crashes [\#880](https://github.com/hollie/misterhouse/pull/880) ([hplato](https://github.com/hplato))
+- some cleanup of the mqtt code [\#879](https://github.com/hollie/misterhouse/pull/879) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Change to the perl json encode fix [\#878](https://github.com/hollie/misterhouse/pull/878) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Mqtt fixes - fixed issue with perl encode\_json [\#877](https://github.com/hollie/misterhouse/pull/877) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- ia7 v2.2.100 - rgb fixes for HA items [\#876](https://github.com/hollie/misterhouse/pull/876) ([hplato](https://github.com/hplato))
+- Added subtype support to climate items, added ha\_call\_service function [\#875](https://github.com/hollie/misterhouse/pull/875) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Don't require changes to read\_table\_A when creating new device handlers [\#874](https://github.com/hollie/misterhouse/pull/874) ([bpmartin20](https://github.com/bpmartin20))
+- mh: replace stray "print" with "print\_log". [\#873](https://github.com/hollie/misterhouse/pull/873) ([bpmartin20](https://github.com/bpmartin20))
+- Update hollie with tasmota, razberry, eto updates. Prepare for release [\#871](https://github.com/hollie/misterhouse/pull/871) ([hplato](https://github.com/hplato))
+- Added HA\_Item.pm for Home Assistant integration [\#870](https://github.com/hollie/misterhouse/pull/870) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Fully kiosk browser [\#869](https://github.com/hollie/misterhouse/pull/869) ([tobser](https://github.com/tobser))
+- Added mode traits [\#868](https://github.com/hollie/misterhouse/pull/868) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Minor bug fixes Omnistat [\#867](https://github.com/hollie/misterhouse/pull/867) ([JASJeffSchmidt](https://github.com/JASJeffSchmidt))
+- Mqtt longer local topics [\#865](https://github.com/hollie/misterhouse/pull/865) ([bpmartin20](https://github.com/bpmartin20))
+- mqtt.pm: mask password in debug message, so it doesn't appear in logs [\#864](https://github.com/hollie/misterhouse/pull/864) ([bpmartin20](https://github.com/bpmartin20))
+- removed data::dumper::maxdepth setting [\#863](https://github.com/hollie/misterhouse/pull/863) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Update Pushsafer.pm [\#862](https://github.com/hollie/misterhouse/pull/862) ([appzer](https://github.com/appzer))
+- Mqtt fixes [\#861](https://github.com/hollie/misterhouse/pull/861) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Correct typos in raZberry.pm [\#858](https://github.com/hollie/misterhouse/pull/858) ([bpmartin20](https://github.com/bpmartin20))
+- Update mqtt.pm [\#857](https://github.com/hollie/misterhouse/pull/857) ([tbclark3](https://github.com/tbclark3))
+- Tasmota HTTP Item RRD dependancy checks [\#856](https://github.com/hollie/misterhouse/pull/856) ([hplato](https://github.com/hplato))
+- issue 852 [\#855](https://github.com/hollie/misterhouse/pull/855) ([hplato](https://github.com/hplato))
+- rob-vh eof fixes [\#854](https://github.com/hollie/misterhouse/pull/854) ([hplato](https://github.com/hplato))
+- indent eof statement as MH is funny about variables and position [\#853](https://github.com/hollie/misterhouse/pull/853) ([hplato](https://github.com/hplato))
+- Suppress warnings when using lowercase transfer-encoding header [\#851](https://github.com/hollie/misterhouse/pull/851) ([rudybrian](https://github.com/rudybrian))
+- Add support for FullyKioskBrowser [\#850](https://github.com/hollie/misterhouse/pull/850) ([tobser](https://github.com/tobser))
+- Add support for lowercase transfer-encoding header [\#849](https://github.com/hollie/misterhouse/pull/849) ([rudybrian](https://github.com/rudybrian))
+- moved old DateTime files to fallback folder [\#848](https://github.com/hollie/misterhouse/pull/848) ([CityDweller](https://github.com/CityDweller))
+- Handle newer decode\_json treatement of booleans [\#847](https://github.com/hollie/misterhouse/pull/847) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Always show error message on failed ajax requests [\#845](https://github.com/hollie/misterhouse/pull/845) ([tobser](https://github.com/tobser))
+- raZberry: Login again after session expires [\#844](https://github.com/hollie/misterhouse/pull/844) ([tobser](https://github.com/tobser))
+- Update master with tasmota and rrd updates [\#843](https://github.com/hollie/misterhouse/pull/843) ([hplato](https://github.com/hplato))
+- Revert "AoG support for the "Auth Code" OAuth flows." [\#842](https://github.com/hollie/misterhouse/pull/842) ([hplato](https://github.com/hplato))
+- Add workflow run when reopening pull request, to allow me to force a … [\#840](https://github.com/hollie/misterhouse/pull/840) ([hollie](https://github.com/hollie))
+- print ports in use before launching MisterHouse to see which ones are… [\#839](https://github.com/hollie/misterhouse/pull/839) ([hollie](https://github.com/hollie))
+- AoG support for the "Auth Code" OAuth flows. [\#837](https://github.com/hollie/misterhouse/pull/837) ([ebardsley](https://github.com/ebardsley))
+- Allow globs in serial port names. [\#836](https://github.com/hollie/misterhouse/pull/836) ([ebardsley](https://github.com/ebardsley))
+- Fixed memory leak for TCP write socket for Harmon Module [\#835](https://github.com/hollie/misterhouse/pull/835) ([waynieack](https://github.com/waynieack))
+- Added alexaForceLongFormat ini option [\#834](https://github.com/hollie/misterhouse/pull/834) ([waynieack](https://github.com/waynieack))
+- Fix for active Timer with code ref action on reload [\#833](https://github.com/hollie/misterhouse/pull/833) ([waynieack](https://github.com/waynieack))
+- Actions on google Updates [\#832](https://github.com/hollie/misterhouse/pull/832) ([waynieack](https://github.com/waynieack))
+- Mqtt items and discovery [\#831](https://github.com/hollie/misterhouse/pull/831) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Mqtt items and discovery [\#829](https://github.com/hollie/misterhouse/pull/829) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Process item kill with command and pid [\#824](https://github.com/hollie/misterhouse/pull/824) ([ggodart](https://github.com/ggodart))
+- Re adding occupied\_mode\_demo.pl [\#823](https://github.com/hollie/misterhouse/pull/823) ([ggodart](https://github.com/ggodart))
+- Minor cleanup and isdimmable fix [\#822](https://github.com/hollie/misterhouse/pull/822) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Customised print\_log [\#820](https://github.com/hollie/misterhouse/pull/820) ([ggodart](https://github.com/ggodart))
+- vsDB fix for numeric sort [\#818](https://github.com/hollie/misterhouse/pull/818) ([ggodart](https://github.com/ggodart))
+- raZberry v3.0.7 - fixed online status when good data received [\#817](https://github.com/hollie/misterhouse/pull/817) ([hplato](https://github.com/hplato))
+- Nanoleaf aurora [\#816](https://github.com/hollie/misterhouse/pull/816) ([hplato](https://github.com/hplato))
+- Tasmota http updates [\#815](https://github.com/hollie/misterhouse/pull/815) ([jsiddall](https://github.com/jsiddall))
+- Install GD module to avoid an error popping up in the testlog [\#814](https://github.com/hollie/misterhouse/pull/814) ([hollie](https://github.com/hollie))
+- Insteon scene fixes [\#813](https://github.com/hollie/misterhouse/pull/813) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Aog fixes [\#812](https://github.com/hollie/misterhouse/pull/812) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- Added support for Insteon outlet [\#811](https://github.com/hollie/misterhouse/pull/811) ([DaveNeudoerffer](https://github.com/DaveNeudoerffer))
+- adding wildcards and LWT to mqtt.pm [\#809](https://github.com/hollie/misterhouse/pull/809) ([ggodart](https://github.com/ggodart))
+- MQTT read\_table\_A.pl support [\#804](https://github.com/hollie/misterhouse/pull/804) ([jsiddall](https://github.com/jsiddall))
+- Add Tasmota over HTTP support [\#803](https://github.com/hollie/misterhouse/pull/803) ([jsiddall](https://github.com/jsiddall))
+- Add Kasa Smart support [\#802](https://github.com/hollie/misterhouse/pull/802) ([jsiddall](https://github.com/jsiddall))
+- add debug else to xAP message [\#801](https://github.com/hollie/misterhouse/pull/801) ([pmatis](https://github.com/pmatis))
+- bin: correct @INC in stand-alone Perl programs so lib/fallback is last [\#798](https://github.com/hollie/misterhouse/pull/798) ([bpmartin20](https://github.com/bpmartin20))
+- Update Venstar\_Colortouch.pm for new perl version. Add parameter to g… [\#797](https://github.com/hollie/misterhouse/pull/797) ([pmatis](https://github.com/pmatis))
+- Add HTTP 1.1 chunked POST support to http\_server.pl [\#796](https://github.com/hollie/misterhouse/pull/796) ([rudybrian](https://github.com/rudybrian))
+- Bond home Hub Integration [\#795](https://github.com/hollie/misterhouse/pull/795) ([waynieack](https://github.com/waynieack))
+- Master [\#794](https://github.com/hollie/misterhouse/pull/794) ([hplato](https://github.com/hplato))
+- Update CMxx to deal with newer mochad code [\#793](https://github.com/hollie/misterhouse/pull/793) ([marcmerlin](https://github.com/marcmerlin))
+- Yeelight [\#791](https://github.com/hollie/misterhouse/pull/791) ([hplato](https://github.com/hplato))
+- Ad2 [\#790](https://github.com/hollie/misterhouse/pull/790) ([waynieack](https://github.com/waynieack))
+- Alexa bridge Updates [\#789](https://github.com/hollie/misterhouse/pull/789) ([waynieack](https://github.com/waynieack))
+- update internet\_usgs.pl [\#787](https://github.com/hollie/misterhouse/pull/787) ([ricks03](https://github.com/ricks03))
+- Create fallback directory, and populate it with MH-supplied versions … [\#786](https://github.com/hollie/misterhouse/pull/786) ([bpmartin20](https://github.com/bpmartin20))
+- fix regulare expression to check content type [\#783](https://github.com/hollie/misterhouse/pull/783) ([tobser](https://github.com/tobser))
+- led\_level [\#782](https://github.com/hollie/misterhouse/pull/782) ([mhgithub20](https://github.com/mhgithub20))
+- Add beep\(\) method to Insteon::DimmableLight [\#781](https://github.com/hollie/misterhouse/pull/781) ([mhgithub20](https://github.com/mhgithub20))
+- v2.0.820 - fixed color sliders on all objects [\#779](https://github.com/hollie/misterhouse/pull/779) ([hplato](https://github.com/hplato))
+- ETO v2.0.1 - switched data provider to dark sky [\#778](https://github.com/hollie/misterhouse/pull/778) ([hplato](https://github.com/hplato))
+- prevent warning with alexa/echo [\#777](https://github.com/hollie/misterhouse/pull/777) ([tobser](https://github.com/tobser))
+- fix http redirect with nginx proxy [\#776](https://github.com/hollie/misterhouse/pull/776) ([tobser](https://github.com/tobser))
+- Fix unescaped braces in issue \#774 [\#775](https://github.com/hollie/misterhouse/pull/775) ([gac410](https://github.com/gac410))
+- Timer states [\#772](https://github.com/hollie/misterhouse/pull/772) ([hplato](https://github.com/hplato))
+- fixed queue printing [\#771](https://github.com/hollie/misterhouse/pull/771) ([hplato](https://github.com/hplato))
+- Ia7 [\#770](https://github.com/hollie/misterhouse/pull/770) ([hplato](https://github.com/hplato))
+-  CBus-\>CGate Socket checks [\#769](https://github.com/hollie/misterhouse/pull/769) ([jonwhitear](https://github.com/jonwhitear))
+- Multivoltage Device Registration fix [\#768](https://github.com/hollie/misterhouse/pull/768) ([jonwhitear](https://github.com/jonwhitear))
+- v2.0.750 - color slider control [\#766](https://github.com/hollie/misterhouse/pull/766) ([hplato](https://github.com/hplato))
+- Eto [\#765](https://github.com/hollie/misterhouse/pull/765) ([hplato](https://github.com/hplato))
+- Yeelight [\#764](https://github.com/hollie/misterhouse/pull/764) ([hplato](https://github.com/hplato))
+- Razberry [\#763](https://github.com/hollie/misterhouse/pull/763) ([hplato](https://github.com/hplato))
+- Integration with the Google Assistant via Actions on Google Smart Home provider [\#762](https://github.com/hollie/misterhouse/pull/762) ([peloy](https://github.com/peloy))
+- Make the self-test code more explicit so people are aware it is running [\#761](https://github.com/hollie/misterhouse/pull/761) ([hollie](https://github.com/hollie))
+- Ia7 v2.0.690 [\#760](https://github.com/hollie/misterhouse/pull/760) ([hplato](https://github.com/hplato))
+- v1.3 - better error recovery if bad WU data.. [\#759](https://github.com/hollie/misterhouse/pull/759) ([hplato](https://github.com/hplato))
+- Nanoleaf aurora [\#758](https://github.com/hollie/misterhouse/pull/758) ([hplato](https://github.com/hplato))
+- Weather noaa site lookup fix [\#757](https://github.com/hollie/misterhouse/pull/757) ([waynieack](https://github.com/waynieack))
+- Master [\#756](https://github.com/hollie/misterhouse/pull/756) ([hplato](https://github.com/hplato))
+- xml\_server.pl: Remove an extra blank line at the beginning of the response. [\#755](https://github.com/hollie/misterhouse/pull/755) ([ebardsley](https://github.com/ebardsley))
+- homebridge.pl: Use "http\_address" alongside "http\_port" to construct URLs. [\#754](https://github.com/hollie/misterhouse/pull/754) ([ebardsley](https://github.com/ebardsley))
+- ical2vsdb v5.1 - added in option to sort ical prior to MD5 hash to pr… [\#753](https://github.com/hollie/misterhouse/pull/753) ([hplato](https://github.com/hplato))
+- Nanoleaf v1.1.01 and ical2vsdb v5 [\#752](https://github.com/hollie/misterhouse/pull/752) ([hplato](https://github.com/hplato))
+- Mqtt reconnect  [\#751](https://github.com/hollie/misterhouse/pull/751) ([waynieack](https://github.com/waynieack))
+- http\_server: add support for X-Real-IP header [\#750](https://github.com/hollie/misterhouse/pull/750) ([tobser](https://github.com/tobser))
+- PLCBUS: more commands only visible in setup mode [\#749](https://github.com/hollie/misterhouse/pull/749) ([tobser](https://github.com/tobser))
+- Ia7 direct control for items with more than 2 states [\#748](https://github.com/hollie/misterhouse/pull/748) ([tobser](https://github.com/tobser))
+- MySensors updates [\#747](https://github.com/hollie/misterhouse/pull/747) ([jsiddall](https://github.com/jsiddall))
+- ia7 fix show slider for numeric state values without "%" [\#746](https://github.com/hollie/misterhouse/pull/746) ([tobser](https://github.com/tobser))
+- fix to the AlexaBridge/Hue emulation code that replaces underscores with spaces in device names before sending them to the Echo or discovering device [\#745](https://github.com/hollie/misterhouse/pull/745) ([waynieack](https://github.com/waynieack))
+- Added patch from Eloy Paris  [\#743](https://github.com/hollie/misterhouse/pull/743) ([waynieack](https://github.com/waynieack))
+- PLCBUS: Make creation of setup voice commands optional [\#742](https://github.com/hollie/misterhouse/pull/742) ([tobser](https://github.com/tobser))
+- raZberry: make razberry read table use 'poll/push' setting [\#741](https://github.com/hollie/misterhouse/pull/741) ([tobser](https://github.com/tobser))
+- skip empty group definition in items.mht [\#740](https://github.com/hollie/misterhouse/pull/740) ([tobser](https://github.com/tobser))
+
+## [v5.0](https://github.com/hollie/misterhouse/tree/v5.0) (2017-10-31)
 
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v4.2...v5.0)
 
@@ -87,6 +249,7 @@
 - Fix for specifying a multicast interface [\#677](https://github.com/hollie/misterhouse/pull/677) ([waynieack](https://github.com/waynieack))
 
 ## [v4.2](https://github.com/hollie/misterhouse/tree/v4.2) (2017-03-07)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v4.1...v4.2)
 
 **Implemented enhancements:**
@@ -200,9 +363,34 @@
 - Razberry - Zwave Lock child object added [\#566](https://github.com/hollie/misterhouse/pull/566) ([hplato](https://github.com/hplato))
 
 ## [v4.1](https://github.com/hollie/misterhouse/tree/v4.1) (2016-02-21)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v4.0...v4.1)
 
+**Implemented enhancements:**
+
+- Perltidy run [\#557](https://github.com/hollie/misterhouse/pull/557) ([hollie](https://github.com/hollie))
+- Perltidy helpers [\#555](https://github.com/hollie/misterhouse/pull/555) ([hollie](https://github.com/hollie))
+
+**Fixed bugs:**
+
+- Fix for continuous reconnect to Squeezeserver. [\#563](https://github.com/hollie/misterhouse/pull/563) ([hollie](https://github.com/hollie))
+- Modified the way of including the PLCBUS module.  [\#562](https://github.com/hollie/misterhouse/pull/562) ([hollie](https://github.com/hollie))
+
+**Merged pull requests:**
+
+- Various fixes for AD2.pm and New Harmon Kardon receiver module. [\#569](https://github.com/hollie/misterhouse/pull/569) ([waynieack](https://github.com/waynieack))
+- Typo fix in json\_server that removes trailing zeros [\#567](https://github.com/hollie/misterhouse/pull/567) ([hollie](https://github.com/hollie))
+- Added in RRDTool::Rawish dependancies into lib/site \(Capture::Tiny and File::Which\) [\#560](https://github.com/hollie/misterhouse/pull/560) ([hplato](https://github.com/hplato))
+- Only include the PLCBUS module if we actually need it. [\#558](https://github.com/hollie/misterhouse/pull/558) ([hollie](https://github.com/hollie))
+- syntax updates for arrays [\#549](https://github.com/hollie/misterhouse/pull/549) ([CityDweller](https://github.com/CityDweller))
+- Add support for enabling/disabling the pesky status LEDs on the Inste… [\#536](https://github.com/hollie/misterhouse/pull/536) ([Gribnif](https://github.com/Gribnif))
+- Plcbus support [\#529](https://github.com/hollie/misterhouse/pull/529) ([hollie](https://github.com/hollie))
+- Further work on the mqtt module [\#525](https://github.com/hollie/misterhouse/pull/525) ([hollie](https://github.com/hollie))
+- 1. I fixed the multiplexing of operations for PIO, SENSE, and LATCH for ... [\#505](https://github.com/hollie/misterhouse/pull/505) ([jduda](https://github.com/jduda))
+- Initial import of mqqt code from Neil [\#488](https://github.com/hollie/misterhouse/pull/488) ([hollie](https://github.com/hollie))
+
 ## [v4.0](https://github.com/hollie/misterhouse/tree/v4.0) (2016-02-17)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v3.1...v4.0)
 
 **Implemented enhancements:**
@@ -219,8 +407,6 @@
 - Insteon: Get rid of DeviceController Package [\#280](https://github.com/hollie/misterhouse/issues/280)
 - Insteon: Add Scan, Sync, and Delete Links on Next Connection to Deaf Devices [\#183](https://github.com/hollie/misterhouse/issues/183)
 - Insteon: Deaf Devices Lack Delete\_Orphans Capability [\#182](https://github.com/hollie/misterhouse/issues/182)
-- Perltidy run [\#557](https://github.com/hollie/misterhouse/pull/557) ([hollie](https://github.com/hollie))
-- Perltidy helpers [\#555](https://github.com/hollie/misterhouse/pull/555) ([hollie](https://github.com/hollie))
 - Ia7 [\#527](https://github.com/hollie/misterhouse/pull/527) ([hollie](https://github.com/hollie))
 - Ia7 [\#493](https://github.com/hollie/misterhouse/pull/493) ([hollie](https://github.com/hollie))
 - Major web interface rehaul [\#489](https://github.com/hollie/misterhouse/pull/489) ([hollie](https://github.com/hollie))
@@ -242,11 +428,8 @@
 - Can't locate "set\_receive" at /lib/X10\_Items.pm line 426 [\#434](https://github.com/hollie/misterhouse/issues/434)
 - weather\_pollen.pl Is No Longer Working [\#431](https://github.com/hollie/misterhouse/issues/431)
 - Stocks.pl Stopped Working [\#426](https://github.com/hollie/misterhouse/issues/426)
-- Error retrieving version? [\#420](https://github.com/hollie/misterhouse/issues/420)
 - Insteon: Warn if Device Lacks Responder Record; Don't Crash on is\_deaf Check [\#404](https://github.com/hollie/misterhouse/issues/404)
 - Insteon PLM Serial Connection Fails on Power Cycle [\#397](https://github.com/hollie/misterhouse/issues/397)
-- Fix for continuous reconnect to Squeezeserver. [\#563](https://github.com/hollie/misterhouse/pull/563) ([hollie](https://github.com/hollie))
-- Modified the way of including the PLCBUS module.  [\#562](https://github.com/hollie/misterhouse/pull/562) ([hollie](https://github.com/hollie))
 - Fix issue \#420 \(mh\_release.pl errors out on decode\_json\) [\#463](https://github.com/hollie/misterhouse/pull/463) ([hollie](https://github.com/hollie))
 
 **Closed issues:**
@@ -261,12 +444,7 @@
 
 **Merged pull requests:**
 
-- Various fixes for AD2.pm and New Harmon Kardon receiver module. [\#569](https://github.com/hollie/misterhouse/pull/569) ([waynieack](https://github.com/waynieack))
-- Typo fix in json\_server that removes trailing zeros [\#567](https://github.com/hollie/misterhouse/pull/567) ([hollie](https://github.com/hollie))
-- Added in RRDTool::Rawish dependancies into lib/site \(Capture::Tiny and File::Which\) [\#560](https://github.com/hollie/misterhouse/pull/560) ([hplato](https://github.com/hplato))
-- Only include the PLCBUS module if we actually need it. [\#558](https://github.com/hollie/misterhouse/pull/558) ([hollie](https://github.com/hollie))
 - Update Nest.pm to add in humidity and heating attributes and methods [\#552](https://github.com/hollie/misterhouse/pull/552) ([hplato](https://github.com/hplato))
-- syntax updates for arrays [\#549](https://github.com/hollie/misterhouse/pull/549) ([CityDweller](https://github.com/CityDweller))
 - Fixed a reference issue in json\_server.pl for older versions of perl [\#547](https://github.com/hollie/misterhouse/pull/547) ([hplato](https://github.com/hplato))
 - Updated USB\_UIRT to work with longer codes [\#546](https://github.com/hollie/misterhouse/pull/546) ([hplato](https://github.com/hplato))
 - Fixed crash when writing to the serial port [\#545](https://github.com/hollie/misterhouse/pull/545) ([hplato](https://github.com/hplato))
@@ -274,10 +452,7 @@
 - Updates the weather\_pollen.pl Script to Use Wunderground for Data [\#543](https://github.com/hollie/misterhouse/pull/543) ([JaredF](https://github.com/JaredF))
 - Add Voice Commands to Control LED on Insteon Motion Sensor [\#541](https://github.com/hollie/misterhouse/pull/541) ([JaredF](https://github.com/JaredF))
 - Ia7 [\#537](https://github.com/hollie/misterhouse/pull/537) ([hplato](https://github.com/hplato))
-- Add support for enabling/disabling the pesky status LEDs on the Inste… [\#536](https://github.com/hollie/misterhouse/pull/536) ([Gribnif](https://github.com/Gribnif))
-- Plcbus support [\#529](https://github.com/hollie/misterhouse/pull/529) ([hollie](https://github.com/hollie))
 - Add ssl\_ca\_path to jabber connection. [\#526](https://github.com/hollie/misterhouse/pull/526) ([tobser](https://github.com/tobser))
-- Further work on the mqtt module [\#525](https://github.com/hollie/misterhouse/pull/525) ([hollie](https://github.com/hollie))
 - Clean up pollen type text and fix bug seen with perl 5.20.2 [\#521](https://github.com/hollie/misterhouse/pull/521) ([JaredF](https://github.com/JaredF))
 - Ia7 [\#517](https://github.com/hollie/misterhouse/pull/517) ([hplato](https://github.com/hplato))
 - Opensprinkler [\#511](https://github.com/hollie/misterhouse/pull/511) ([hplato](https://github.com/hplato))
@@ -286,13 +461,11 @@
 - Venstar colortouch [\#508](https://github.com/hollie/misterhouse/pull/508) ([hplato](https://github.com/hplato))
 - Razberry [\#507](https://github.com/hollie/misterhouse/pull/507) ([hplato](https://github.com/hplato))
 - Ia7 [\#506](https://github.com/hollie/misterhouse/pull/506) ([hollie](https://github.com/hollie))
-- 1. I fixed the multiplexing of operations for PIO, SENSE, and LATCH for ... [\#505](https://github.com/hollie/misterhouse/pull/505) ([jduda](https://github.com/jduda))
 - Fix defined\(@array\) is deprecated at ../lib/Generic\_Item.pm line 904. [\#504](https://github.com/hollie/misterhouse/pull/504) ([marcmerlin](https://github.com/marcmerlin))
 - Show which dtr\_active command failed if it happens. [\#503](https://github.com/hollie/misterhouse/pull/503) ([marcmerlin](https://github.com/marcmerlin))
 - Ia7 [\#501](https://github.com/hollie/misterhouse/pull/501) ([hollie](https://github.com/hollie))
 - Added first support for Lux lights.  [\#492](https://github.com/hollie/misterhouse/pull/492) ([hollie](https://github.com/hollie))
 - Fix missing array dereference reported by Mike on the mailing list [\#491](https://github.com/hollie/misterhouse/pull/491) ([hollie](https://github.com/hollie))
-- Initial import of mqqt code from Neil [\#488](https://github.com/hollie/misterhouse/pull/488) ([hollie](https://github.com/hollie))
 - DST fix for some systems [\#487](https://github.com/hollie/misterhouse/pull/487) ([hplato](https://github.com/hplato))
 - Added a white space in the sensor matching to prevent TempSpare10 from m... [\#486](https://github.com/hollie/misterhouse/pull/486) ([hplato](https://github.com/hplato))
 - Insteon: Fix Error in KPL Button Dimming Function [\#483](https://github.com/hollie/misterhouse/pull/483) ([krkeegan](https://github.com/krkeegan))
@@ -341,10 +514,12 @@
 - Merge Master into Stable [\#394](https://github.com/hollie/misterhouse/pull/394) ([krkeegan](https://github.com/krkeegan))
 - Insteon\_MicroSwitch:  Add Complete Support for Insteon MicroSwitch [\#392](https://github.com/hollie/misterhouse/pull/392) ([krkeegan](https://github.com/krkeegan))
 - Cbus update to support current CGate [\#391](https://github.com/hollie/misterhouse/pull/391) ([krkeegan](https://github.com/krkeegan))
+- A few minor updates for Pushover support [\#390](https://github.com/hollie/misterhouse/pull/390) ([rudybrian](https://github.com/rudybrian))
 - Add Support for AD2\* Devices [\#389](https://github.com/hollie/misterhouse/pull/389) ([krkeegan](https://github.com/krkeegan))
 - Completely Rewritten Insteon Message Parser [\#388](https://github.com/hollie/misterhouse/pull/388) ([krkeegan](https://github.com/krkeegan))
 
 ## [v3.1](https://github.com/hollie/misterhouse/tree/v3.1) (2014-03-27)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/develop-ref...v3.1)
 
 **Implemented enhancements:**
@@ -398,7 +573,6 @@
 
 **Merged pull requests:**
 
-- A few minor updates for Pushover support [\#390](https://github.com/hollie/misterhouse/pull/390) ([rudybrian](https://github.com/rudybrian))
 - Insteon: Fix POD Documentation in Thermostat [\#387](https://github.com/hollie/misterhouse/pull/387) ([krkeegan](https://github.com/krkeegan))
 - X10: Retry if Message is Not Acked by PLM [\#386](https://github.com/hollie/misterhouse/pull/386) ([krkeegan](https://github.com/krkeegan))
 - Log @Inc Path on Startup Just Before Evaluating User Code [\#385](https://github.com/hollie/misterhouse/pull/385) ([krkeegan](https://github.com/krkeegan))
@@ -447,6 +621,7 @@
 - Insteon device log verbosity [\#288](https://github.com/hollie/misterhouse/pull/288) ([pmatis](https://github.com/pmatis))
 
 ## [develop-ref](https://github.com/hollie/misterhouse/tree/develop-ref) (2013-11-06)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v3.0...develop-ref)
 
 **Implemented enhancements:**
@@ -533,6 +708,7 @@
 - Insteon: Per Device Min/Max Hops Setting [\#164](https://github.com/hollie/misterhouse/pull/164) ([krkeegan](https://github.com/krkeegan))
 
 ## [v3.0](https://github.com/hollie/misterhouse/tree/v3.0) (2013-06-20)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2.200...v3.0)
 
 **Implemented enhancements:**
@@ -615,7 +791,6 @@
 - Merge i2 aldb support [\#190](https://github.com/hollie/misterhouse/pull/190) ([krkeegan](https://github.com/krkeegan))
 - Insteon: Catch Error if Device ID in All\_Link\_Failure Does Not Exist [\#189](https://github.com/hollie/misterhouse/pull/189) ([krkeegan](https://github.com/krkeegan))
 - Insteon: Fix Bug in PLM Sanity Check Which Caused Crash on X10 Messages [\#180](https://github.com/hollie/misterhouse/pull/180) ([krkeegan](https://github.com/krkeegan))
-- Insteon: Add Milliseconds Detail to Debug Level 4 Messages [\#179](https://github.com/hollie/misterhouse/pull/179) ([krkeegan](https://github.com/krkeegan))
 - Insteon: Catch and Log AllLink\_Cleanup\_Reports [\#173](https://github.com/hollie/misterhouse/pull/173) ([krkeegan](https://github.com/krkeegan))
 - Insteon: Fix Error in PLM Message Integrity Check Logic [\#171](https://github.com/hollie/misterhouse/pull/171) ([krkeegan](https://github.com/krkeegan))
 - Doc updates [\#167](https://github.com/hollie/misterhouse/pull/167) ([drobinson0919](https://github.com/drobinson0919))
@@ -658,6 +833,7 @@
 - Pocketsphinx Error Message Addition [\#97](https://github.com/hollie/misterhouse/pull/97) ([jduda](https://github.com/jduda))
 
 ## [v2.200](https://github.com/hollie/misterhouse/tree/v2.200) (2013-03-02)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/insteon_from_cvs...v2.200)
 
 **Implemented enhancements:**
@@ -672,7 +848,6 @@
 - Insteon: All-Link Handling is all Wrong [\#75](https://github.com/hollie/misterhouse/issues/75)
 - Insteon: Delete Orphan Links Log is Out of Sequence [\#61](https://github.com/hollie/misterhouse/issues/61)
 - Add\_Link Fails to Change ALDB Health from Empty to Good [\#59](https://github.com/hollie/misterhouse/issues/59)
-- Insteon: Validate Cmd1 Data for Peek Responses [\#56](https://github.com/hollie/misterhouse/issues/56)
 - Link to Interface and Unlink From Interface Don't Work [\#52](https://github.com/hollie/misterhouse/issues/52)
 - Insteon: Deleting a Controller Record from the PLM for an otherwise valid PLM Scene Causes an error [\#49](https://github.com/hollie/misterhouse/issues/49)
 - Insteon Delete Orphan Links Errors [\#28](https://github.com/hollie/misterhouse/issues/28)
@@ -729,15 +904,16 @@
 - updated xAP/xPL Items dcumentation with regard to setting heartbeat [\#21](https://github.com/hollie/misterhouse/pull/21) ([john-](https://github.com/john-))
 - Update android\_server with new features. [\#20](https://github.com/hollie/misterhouse/pull/20) ([jduda](https://github.com/jduda))
 - Remove Android\_Server reference from android\_server.pl [\#17](https://github.com/hollie/misterhouse/pull/17) ([jduda](https://github.com/jduda))
-- Jduda working [\#16](https://github.com/hollie/misterhouse/pull/16) ([jduda](https://github.com/jduda))
 - By Brian Paulsen \<brian@thepaulsens.com\> [\#15](https://github.com/hollie/misterhouse/pull/15) ([marcmerlin](https://github.com/marcmerlin))
 - Branch merge phase2 [\#14](https://github.com/hollie/misterhouse/pull/14) ([marcmerlin](https://github.com/marcmerlin))
 - Fix iphone auth error [\#13](https://github.com/hollie/misterhouse/pull/13) ([tmaclean](https://github.com/tmaclean))
 - Branch merge phase1 [\#12](https://github.com/hollie/misterhouse/pull/12) ([hollie](https://github.com/hollie))
 - Fix issue 10 [\#11](https://github.com/hollie/misterhouse/pull/11) ([hollie](https://github.com/hollie))
 - Add support for callerid pop up message and notification. [\#9](https://github.com/hollie/misterhouse/pull/9) ([jduda](https://github.com/jduda))
+- Reverted a commit that broke the xPL listening socket on some platforms [\#4](https://github.com/hollie/misterhouse/pull/4) ([hollie](https://github.com/hollie))
 
 ## [insteon_from_cvs](https://github.com/hollie/misterhouse/tree/insteon_from_cvs) (2012-11-06)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-105...insteon_from_cvs)
 
 **Fixed bugs:**
@@ -747,191 +923,249 @@
 **Merged pull requests:**
 
 - Add support for callerid pop up message and notification. [\#7](https://github.com/hollie/misterhouse/pull/7) ([jduda](https://github.com/jduda))
-- Reverted a commit that broke the xPL listening socket on some platforms [\#4](https://github.com/hollie/misterhouse/pull/4) ([hollie](https://github.com/hollie))
-
-## [v2-105](https://github.com/hollie/misterhouse/tree/v2-105) (2012-11-04)
-[Full Changelog](https://github.com/hollie/misterhouse/compare/v2-65...v2-105)
-
-**Merged pull requests:**
-
 -  Need to carry over cmd2 data for nacks. [\#2](https://github.com/hollie/misterhouse/pull/2) ([brainwarr](https://github.com/brainwarr))
 - Provide human readable NACK messages.  Implement Insteon get\_engine\_vers... [\#1](https://github.com/hollie/misterhouse/pull/1) ([brainwarr](https://github.com/brainwarr))
 
+## [v2-105](https://github.com/hollie/misterhouse/tree/v2-105) (2012-11-04)
+
+[Full Changelog](https://github.com/hollie/misterhouse/compare/v2-65...v2-105)
+
 ## [v2-65](https://github.com/hollie/misterhouse/tree/v2-65) (2008-02-22)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-104...v2-65)
 
 ## [v2-104](https://github.com/hollie/misterhouse/tree/v2-104) (2007-11-11)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-103...v2-104)
 
 ## [v2-103](https://github.com/hollie/misterhouse/tree/v2-103) (2006-10-07)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-102...v2-103)
 
 ## [v2-102](https://github.com/hollie/misterhouse/tree/v2-102) (2006-07-30)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-101...v2-102)
 
 ## [v2-101](https://github.com/hollie/misterhouse/tree/v2-101) (2006-01-29)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-100...v2-101)
 
 ## [v2-100](https://github.com/hollie/misterhouse/tree/v2-100) (2005-10-02)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-99...v2-100)
 
 ## [v2-99](https://github.com/hollie/misterhouse/tree/v2-99) (2005-05-22)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-98...v2-99)
 
 ## [v2-98](https://github.com/hollie/misterhouse/tree/v2-98) (2005-03-20)
-[Full Changelog](https://github.com/hollie/misterhouse/compare/v2-97...v2-98)
 
-## [v2-97](https://github.com/hollie/misterhouse/tree/v2-97) (2005-01-23)
-[Full Changelog](https://github.com/hollie/misterhouse/compare/v2-27...v2-97)
+[Full Changelog](https://github.com/hollie/misterhouse/compare/v2-27...v2-98)
 
 ## [v2-27](https://github.com/hollie/misterhouse/tree/v2-27) (2005-01-23)
-[Full Changelog](https://github.com/hollie/misterhouse/compare/v2-96...v2-27)
+
+[Full Changelog](https://github.com/hollie/misterhouse/compare/v2-97...v2-27)
+
+## [v2-97](https://github.com/hollie/misterhouse/tree/v2-97) (2005-01-23)
+
+[Full Changelog](https://github.com/hollie/misterhouse/compare/v2-96...v2-97)
 
 ## [v2-96](https://github.com/hollie/misterhouse/tree/v2-96) (2004-11-22)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-95...v2-96)
 
 ## [v2-95](https://github.com/hollie/misterhouse/tree/v2-95) (2004-09-25)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-94...v2-95)
 
 ## [v2-94](https://github.com/hollie/misterhouse/tree/v2-94) (2004-07-30)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-93...v2-94)
 
 ## [v2-93](https://github.com/hollie/misterhouse/tree/v2-93) (2004-07-18)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-92...v2-93)
 
 ## [v2-92](https://github.com/hollie/misterhouse/tree/v2-92) (2004-07-05)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-91...v2-92)
 
 ## [v2-91](https://github.com/hollie/misterhouse/tree/v2-91) (2004-06-06)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-90...v2-91)
 
 ## [v2-90](https://github.com/hollie/misterhouse/tree/v2-90) (2004-05-02)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-89...v2-90)
 
 ## [v2-89](https://github.com/hollie/misterhouse/tree/v2-89) (2004-04-25)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-88...v2-89)
 
 ## [v2-88](https://github.com/hollie/misterhouse/tree/v2-88) (2004-03-23)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-86-sync...v2-88)
 
 ## [v2-86-sync](https://github.com/hollie/misterhouse/tree/v2-86-sync) (2004-01-28)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-86...v2-86-sync)
 
 ## [v2-86](https://github.com/hollie/misterhouse/tree/v2-86) (2003-12-22)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-85...v2-86)
 
 ## [v2-85](https://github.com/hollie/misterhouse/tree/v2-85) (2003-12-01)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-83...v2-85)
 
 ## [v2-83](https://github.com/hollie/misterhouse/tree/v2-83) (2003-09-02)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-82...v2-83)
 
 ## [v2-82](https://github.com/hollie/misterhouse/tree/v2-82) (2003-07-06)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-80...v2-82)
 
 ## [v2-80](https://github.com/hollie/misterhouse/tree/v2-80) (2003-04-20)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-79...v2-80)
 
 ## [v2-79](https://github.com/hollie/misterhouse/tree/v2-79) (2003-03-09)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-77...v2-79)
 
 ## [v2-77](https://github.com/hollie/misterhouse/tree/v2-77) (2003-01-18)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-76...v2-77)
 
 ## [v2-76](https://github.com/hollie/misterhouse/tree/v2-76) (2003-01-12)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-75...v2-76)
 
 ## [v2-75](https://github.com/hollie/misterhouse/tree/v2-75) (2002-12-24)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-74...v2-75)
 
 ## [v2-74](https://github.com/hollie/misterhouse/tree/v2-74) (2002-12-02)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-73...v2-74)
 
 ## [v2-73](https://github.com/hollie/misterhouse/tree/v2-73) (2002-11-10)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-72...v2-73)
 
 ## [v2-72](https://github.com/hollie/misterhouse/tree/v2-72) (2002-10-13)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-71...v2-72)
 
 ## [v2-71](https://github.com/hollie/misterhouse/tree/v2-71) (2002-09-22)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-69...v2-71)
 
 ## [v2-69](https://github.com/hollie/misterhouse/tree/v2-69) (2002-07-01)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-68...v2-69)
 
 ## [v2-68](https://github.com/hollie/misterhouse/tree/v2-68) (2002-05-28)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-67...v2-68)
 
 ## [v2-67](https://github.com/hollie/misterhouse/tree/v2-67) (2002-05-04)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-66...v2-67)
 
 ## [v2-66](https://github.com/hollie/misterhouse/tree/v2-66) (2002-03-31)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-63...v2-66)
 
 ## [v2-63](https://github.com/hollie/misterhouse/tree/v2-63) (2002-01-19)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-62...v2-63)
 
 ## [v2-62](https://github.com/hollie/misterhouse/tree/v2-62) (2001-12-16)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-61...v2-62)
 
 ## [v2-61](https://github.com/hollie/misterhouse/tree/v2-61) (2001-11-18)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-60...v2-61)
 
 ## [v2-60](https://github.com/hollie/misterhouse/tree/v2-60) (2001-10-21)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-59...v2-60)
 
 ## [v2-59](https://github.com/hollie/misterhouse/tree/v2-59) (2001-09-23)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-57...v2-59)
 
 ## [v2-57](https://github.com/hollie/misterhouse/tree/v2-57) (2001-08-12)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-54...v2-57)
 
 ## [v2-54](https://github.com/hollie/misterhouse/tree/v2-54) (2001-06-27)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-52...v2-54)
 
 ## [v2-52](https://github.com/hollie/misterhouse/tree/v2-52) (2001-05-28)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-51...v2-52)
 
 ## [v2-51](https://github.com/hollie/misterhouse/tree/v2-51) (2001-05-06)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-49...v2-51)
 
 ## [v2-49](https://github.com/hollie/misterhouse/tree/v2-49) (2001-04-15)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-47...v2-49)
 
 ## [v2-47](https://github.com/hollie/misterhouse/tree/v2-47) (2001-03-24)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-45...v2-47)
 
 ## [v2-45](https://github.com/hollie/misterhouse/tree/v2-45) (2001-02-24)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-43...v2-45)
 
 ## [v2-43](https://github.com/hollie/misterhouse/tree/v2-43) (2001-02-04)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-41...v2-43)
 
 ## [v2-41](https://github.com/hollie/misterhouse/tree/v2-41) (2001-01-20)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-36...v2-41)
 
 ## [v2-36](https://github.com/hollie/misterhouse/tree/v2-36) (2000-12-03)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-34...v2-36)
 
 ## [v2-34](https://github.com/hollie/misterhouse/tree/v2-34) (2000-11-12)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-32...v2-34)
 
 ## [v2-32](https://github.com/hollie/misterhouse/tree/v2-32) (2000-10-22)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-29...v2-32)
 
 ## [v2-29](https://github.com/hollie/misterhouse/tree/v2-29) (2000-10-01)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-28...v2-29)
 
 ## [v2-28](https://github.com/hollie/misterhouse/tree/v2-28) (2000-09-09)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-24...v2-28)
 
 ## [v2-24](https://github.com/hollie/misterhouse/tree/v2-24) (2000-08-06)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/v2-22...v2-24)
 
 ## [v2-22](https://github.com/hollie/misterhouse/tree/v2-22) (2000-06-24)
+
 [Full Changelog](https://github.com/hollie/misterhouse/compare/start...v2-22)
 
 ## [start](https://github.com/hollie/misterhouse/tree/start) (2000-01-19)
 
+[Full Changelog](https://github.com/hollie/misterhouse/compare/bafa1e659041e2d3b317f673c15266e779a4e207...start)
 
-\* *This Change Log was automatically generated by [github_changelog_generator](https://github.com/skywinder/Github-Changelog-Generator)*
+
+
+\* *This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)*
