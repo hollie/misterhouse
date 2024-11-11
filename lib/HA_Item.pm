@@ -658,8 +658,6 @@ sub set_object_state {
 
     if( $obj->debuglevel( 3, 'ha_server' ) ) {
 	$obj->debug( 3, "handled event for $obj->{object_name} set by $p_setby to: ". $obj->dump($cmd, 3) );
-    } else {
-	$obj->debug( 2, "handled event for $obj->{object_name} set by $p_setby to: $cmd->{state}" );
     }
     $obj->process_ha_message( $cmd, $p_setby );
     if( $p_setby eq "ha_server_init" ) {
