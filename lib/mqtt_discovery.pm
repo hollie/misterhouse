@@ -114,7 +114,7 @@ sub new {   #### mqtt_DiscoveredItem
 	} else {
 	    $mqtt_type = $disc_type;
 	}
-    } elsif( grep( /^${disc_type}$/, ('light', 'switch', 'binary_sensor', 'sensor', 'scene', 'select') ) ) {
+    } elsif( grep( /^${disc_type}$/, ('light', 'switch', 'binary_sensor', 'sensor', 'scene', 'select', 'text', 'number') ) ) {
 	$mqtt_type = $disc_type;
     } else {
 	$disc_obj->debug( 1, "UNRECOGNIZED DISCOVERY TYPE: $disc_type" );
@@ -185,7 +185,7 @@ sub new {   #### mqtt_DiscoveredItem
     } else {
 	$obj_name .= $device_id;
     }
-    $obj_name =~ s/ /_/g;
+    $obj_name =~ s/[^\w]/_/g;
     $obj = ::get_object_by_name( $obj_name );
     if( $obj ) {
 	$disc_obj->error( "Trying to create object that already exists: $obj_name" );

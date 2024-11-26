@@ -355,6 +355,8 @@ EOF
         for (@parms1) {
             push( @parms2, "$1=s" ) if /^([^\s\#\=]+)\s*=/;
         }
+	my %parmsh = map{ $_, 1} @parms2;
+	@parms2 = keys %parmsh;
         use Getopt::Long;
         if ( !&GetOptions( \%config_parms_startup, "h", "help", "run=s", "run_parms=s", @parms2 )
             or ( $config_parms_startup{h} or $config_parms_startup{help} ) )

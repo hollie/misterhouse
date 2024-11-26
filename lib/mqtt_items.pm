@@ -619,6 +619,8 @@ sub decode_mqtt_payload {
         $msg = $value;
     } elsif( $$self{mqtt_type} eq 'text' ) {
         $msg = $value;
+    } elsif( $$self{mqtt_type} eq 'number' ) {
+        $msg = $value;
     } elsif( $$self{mqtt_type} eq 'cover' ) {
         $msg = $value;
     } else {
@@ -660,6 +662,7 @@ sub encode_mqtt_payload {
     if( $self->{mqtt_type} eq 'sensor'
     ||  $self->{mqtt_type} eq 'select'
     ||  $self->{mqtt_type} eq 'text'
+    ||  $self->{mqtt_type} eq 'number'
     ||  $self->{mqtt_type} eq 'cover'
     ) {
 	$payload = $setval;
@@ -984,6 +987,7 @@ package mqtt_LocalItem;
 use strict;
 
 use Data::Dumper;
+use Hash::Merge;
 
 @mqtt_LocalItem::ISA = ( 'mqtt_BaseItem' );
 
@@ -1003,7 +1007,7 @@ sub new {     ### mqtt_LocalItem
     $base_type = $local_object->{mqttlocalitem}->{base_type} if ((defined $local_object->{mqttlocalitem}->{base_type} ) and (!$type));
     $device_class = $local_object->{mqttlocalitem}->{device_class} if ((defined $local_object->{mqttlocalitem}->{device_class} ) and (!$device_class));
        
-    if( !grep( /^$base_type$/, ('light','switch','binary_sensor', 'sensor', 'scene', 'select', 'text', 'cover' ) ) ) {
+    if( !grep( /^$base_type$/, ('light','switch','binary_sensor', 'sensor', 'scene', 'select', 'text', 'number', 'cover' ) ) ) {
 	$interface->error( "Invalid mqtt type '$type'" );
 	return;
     }
@@ -1079,6 +1083,8 @@ sub new {     ### mqtt_LocalItem
 	}
     } elsif( $base_type eq 'text' ) {
 	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
+    } elsif( $base_type eq 'number' ) {
+	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
     }
 
     $self->{is_local} = 1;
@@ -1100,11 +1106,7 @@ sub new {     ### mqtt_LocalItem
 	$self->{disc_info}->{unique_id} =~ s/ /_/g;
     }
 
-    if( ref $self->{local_item}->{mqtt_device_info} ) {
-	$self->{disc_info}->{device} = $self->{local_item}->{mqtt_device_info};
-    }
-
-    $self->create_discovery_message();
+    # $self->create_discovery_message();
 
 
     # my $d = Data::Dumper->new( [$self] );
@@ -1114,6 +1116,26 @@ sub new {     ### mqtt_LocalItem
 
     # We may need flags to deal with XML, JSON or Text
     return $self;
+}
+
+sub add_discovery_info {
+    my ($self,$extra_disc_info) = @_;
+
+    my $merger = Hash::Merge->new( 'RIGHT_PRECEDENT' );
+    $self->{disc_info} = $merger->merge( $self->{disc_info}, $extra_disc_info );
+
+#    foreach my $key (keys %{$extra_disc_info}) {
+#	if( exists $extra_disc_info  &&  ref $extra_disc_info->{$key} eq 'HASH' ) {
+#	    if( !exists $self->{disc_info}->{$key} ) {
+#		$self->{disc_info}->{$key} = {};
+#	    }
+#	    for my $key2 (keys %{$extra_disc_info->{
+#
+#	if( exists $self->{disc_info}->{$key} ) {
+#	    $self->log( "Overriding $key in discovery info for: $self->{object_name}" );
+#	}
+#	$self->{disc_info}->{$key} = $extra_disc_info->{$key};
+#    }
 }
 
 =item C<receive_mqtt_message( topic, message, retained )>
@@ -1138,7 +1160,7 @@ sub receive_mqtt_message {
 	$obj_name = $self->get_object_name();
     }
     if( $topic eq $self->{disc_info}->{state_topic} ) {
-	$self->debug( 1, "LocalItem $obj_name ignoring state topic message" );
+	$self->debug( 2, "LocalItem $obj_name ignoring state topic message" );
     } elsif( $topic eq $self->{disc_info}->{command_topic} ) {
 	if( $retained ) {
 	    # command messages should never be retained, but just in case...
@@ -1595,7 +1617,7 @@ sub new {      ### mqtt_RemoteItem
     $self->{disc_info}->{unique_id} = 'tasmota_' . $self->{mqtt_name};
     $self->{disc_info}->{unique_id} =~ s/ /_/g;
 
-    $self->create_discovery_message();
+    # $self->create_discovery_message();
 
     # We may need flags to deal with XML, JSON or Text
     return $self;
@@ -1680,7 +1702,7 @@ sub new {      ### mqtt_InstMqttItem
     $self->{disc_info}->{unique_id} = $self->{mqtt_name};
     $self->{disc_info}->{unique_id} =~ s/ /_/g;
 
-    $self->create_discovery_message();
+    # $self->create_discovery_message();
 
 
     # $self->debug( 1, "InstMqttItem created: \n" . Dumper( $self ) );
