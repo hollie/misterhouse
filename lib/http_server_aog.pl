@@ -33,7 +33,7 @@ B<NONE>
 use Config;
 use MIME::Base64;
 use JSON qw(decode_json);
-use Storable;
+use Storable qw(nstore retrieve);
 use constant RANDBITS => $Config{randbits};
 use constant RAND_MAX => 2**RANDBITS;
 
@@ -271,7 +271,7 @@ EOF
 
             &aog_debug( 1, "token for user '$Authorized' did not exist; generated token '$token'" );
 
-            store $oauth_tokens, $::config_parms{'aog_oauth_tokens_file'};
+            nstore $oauth_tokens, $::config_parms{'aog_oauth_tokens_file'};
         }
 
         return http_redirect("$HTTP_ARGV{'redirect_uri'}#access_token=$token&token_type=bearer&state=$HTTP_ARGV{'state'}");

@@ -212,7 +212,7 @@ package AoGSmartHome_Items;
 @AoGSmartHome_Items::ISA = ('Generic_Item');
 
 use Data::Dumper;
-use Storable;
+use Storable qw(nstore retrieve);
 
 #--------------Logging and debugging functions----------------------------------------
 
@@ -1441,7 +1441,7 @@ sub uuid {
     my $idmap->{'idmap'} = $self->{'idmap'};
 
     my $file = $::config_parms{'data_dir'} . '/aogsmarthome_temp.saved_id';
-    store $idmap, $file;
+    nstore $idmap, $file;
 
     return $highid;
 
