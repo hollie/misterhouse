@@ -492,6 +492,7 @@ sub new {
     #  $self->set( 'on', $self );
 
     &::Reload_post_add_hook( \&mqtt::generate_voice_commands, 1, $self );
+    &::Reload_post_add_hook( \&mqtt::create_discovery_data, 1, $self );
 
     return $self;
 }
@@ -1175,6 +1176,7 @@ sub list_retained_topics {
     }
 
     foreach my $interface ( @interface_list ) {
+	$interface->log( "Listing retained topics for: $interface->{instance}" );
 	for my $topic ( keys %{$interface->{retained_topics}} ) {
 	    my $handled = $interface->{retained_topics}->{$topic};
 	    $interface->log( "$$interface{instance} retained topic: ($handled) $topic" );
@@ -1221,6 +1223,29 @@ sub cleanup_discovery_topics {
 }
 
 # ------------------------------------------------------------------------------
+
+=item C<(create_discovery_data())>
+
+Create discovery messages for each discoverable item.
+
+=cut
+
+sub create_discovery_data {
+    my ($self) = @_;
+    my $obj;
+
+    if( !$self->isConnected ) {
+	$self->error( "Unable to publish discovery data -- $self->{instance} not connected" );
+	return 0;
+    }
+    $self->log( "Creating and publishing discovery data for all discoverable objects" );
+    for my $obj ( @{ $self->{objects} } ) {
+	if( $obj->can( 'create_discovery_message' ) ) {
+	    $obj->create_discovery_message();
+	}
+    }
+    return 1;
+}
 
 =item C<(publish_discovery_data())>
 
