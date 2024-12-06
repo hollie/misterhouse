@@ -1332,7 +1332,7 @@ sub process_ha_message {
 	    if( (lc $self->{subtype} eq "target_temp_low") or (lc $self->{subtype} eq "target_temp_high") or (lc $self->{subtype} eq "temperature") ) {
 		my $temp_low;
 		my $temp_high;
-		if( $new_state->{state} < 40 ) {
+		if( $state < 40 ) {
 		    $temp_low = $new_state->{attributes}->{min_temp} || 10;
 		    $temp_high = $new_state->{attributes}->{max_temp} || 35;
 		    $temp_step = $new_state->{attributes}->{target_temp_step} || 0.5;
