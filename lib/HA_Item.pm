@@ -1328,6 +1328,26 @@ sub process_ha_message {
 	    $self->error( "climate state message did not contain state for $self->{object_name}" );
 	    return;
 	}
+	if( $p_setby  &&  $p_setby eq 'ha_server_init' ) {
+	    if( (lc $self->{subtype} eq "target_temp_low") or (lc $self->{subtype} eq "target_temp_high") or (lc $self->{subtype} eq "temperature") ) {
+		my $temp_low;
+		my $temp_high;
+		if( $new_state->{state} < 40 ) {
+		    $temp_low = $new_state->{attributes}->{min_temp} || 10;
+		    $temp_high = $new_state->{attributes}->{max_temp} || 35;
+		    $temp_step = $new_state->{attributes}->{target_temp_step} || 0.5;
+		} else {
+		    $temp_low = $new_state->{attributes}->{min_temp} || 45;
+		    $temp_high = $new_state->{attributes}->{max_temp} || 95;
+		    $temp_step = $new_state->{attributes}->{target_temp_step} || 1;
+		}
+		my @temp_list;
+		for( my $i=$temp_low; $i<=$temp_high; $i+=$temp_step ){
+		    push @temp_list, "$i";
+		}
+		$self->set_states( @temp_list,"override=1" );
+	    }
+	}
 	if( $self->{subtype} ) {
 	    $self->debug( 1, "climate $self->{object_name} set: $state" );
 	} else {
@@ -1453,9 +1473,11 @@ sub ha_set_climate {
             $action = 'toggle';
         }
     } elsif( $self->{subtype} eq 'target_temp_low' ) {
+	$action = 'set_temperature';
         $action_data->{target_temp_low} = $setval;
         $action_data->{target_temp_high} = $self->{ha_state}->{attributes}->{target_temp_high};
     } elsif( $self->{subtype} eq 'target_temp_high' ) {
+	$action = 'set_temperature';
         $action_data->{target_temp_high} = $setval;
         $action_data->{target_temp_low} = $self->{ha_state}->{attributes}->{target_temp_low};
     } else {
