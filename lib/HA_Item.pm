@@ -109,6 +109,7 @@ Description:
                 - can use settable subtypes for modifications
                     eg.  $thermostat_preset_mode->set( "home" );
                     eg.  $thermostat_target_temp_low->set( 72 );
+            - device_tracker:
 	- options
 	    - delay_between_messages=n
 		- system will wait n seconds after the response from one message before the
@@ -874,24 +875,16 @@ sub print_object_list {
 
 sub print_object_attrs {
     my ($self,$obj) = @_;
+    my $objname = $obj;
 
-    $obj =~ tr/-/_/;
-    $self->log( "Showing details for object $obj" );
-    $self->log( "-----------------------------");
-    my $object = main::get_object_by_name($obj);
-    $self->log( "Entity = " . $object->{entity_id}) if ( $object->{entity_id});
-    $self->log( "Subtype = " . $object->{subtype}) if ( $object->{subtype});
-    if( $object->{ha_state}  &&  $object->{ha_state}->{attributes} ) {
-	$self->log( "Showing HA entity attributes: \n" . $self->dump( $object->{ha_state}->{attributes}) );
+    $objname =~ tr/-/_/;
+    my $object = main::get_object_by_name($objname);
+    if( !$object ) {
+	$self->error( "print_object_attrs called on non-existent object: $obj" );
+	return;
     }
-    if( $object->{subitems} ) {
-	# $self->log( "Showing collected entity values in attr: \n" . $self->dump( $object->{attr} ) );
-	my $str='';
-	for my $attr_name ( sort keys %{$object->{subitems}} ) {
-	    $str .= "   $attr_name: $object->{subitems}->{$attr_name}->{entity_id}: " . $object->{subitems}->{$attr_name}->state() . "\n";
-	}
-	$self->log( "Showing sub-item values: \n$str" );
-    }
+
+    $object->print_attrs();
 }  
 
 
@@ -1068,6 +1061,7 @@ sub new {
     } elsif( $domain eq 'fan' ) {
         # placeholder in case we need to do something. States are set dynamically when the object is set      
     } elsif( $domain eq 'climate' ) {
+    } elsif( $domain eq 'device_tracker' ) {
     } elsif( $domain eq 'sensor'  ||  $domain eq 'binary_sensor' ) {
     } elsif( $domain eq 'select'  ||  $domain eq 'input_select' ) {
     } elsif( $domain eq 'text'    ||  $domain eq 'input_text' ) {
@@ -1100,6 +1094,11 @@ sub new {
     if( !$entity_name ) {
 	$entity_name = $self->{entity_patterns}[0];
     }
+
+    if( $entity_name ne lc( $entity_name ) ) {
+	$self->log( "Entity ids need to be all lower case -- '$entity_name' changed to lower case" );
+    }
+    $entity_name = lc( $entity_name );
 
     $self->{entity} = $entity_name;
     $self->{entity_id} = "${domain}.${entity_name}";
@@ -1145,8 +1144,9 @@ sub set_object_debug {
 =cut
 sub set {
     my ( $self, $setval, $p_setby, $p_response ) = @_;
+    my $p_setby_str = $p_setby || '';
 
-    $self->debug( 2, "$self->{object_name} set by $p_setby to: $setval" );
+    $self->debug( 2, "$self->{object_name} set by $p_setby_str to: $setval" );
 
     if( lc $self->{state} eq lc $setval ) {
 	# If the state is set to its current value, HA will not send back a state change
@@ -1165,6 +1165,8 @@ sub set {
 	$self->ha_set_select( $setval );
     } elsif( $self->{domain} eq 'climate' ) {
 	$self->ha_set_climate( $setval );
+    } elsif( $self->{domain} eq 'device_tracker' ) {
+	$self->error( "device_tracker entity type is read-only -- ignoring set call" );
     } else {
 	$self->ha_set_state( $setval );
     }
@@ -1178,6 +1180,7 @@ sub set_mh_state {
 	$self->debug( 1, "Duplicate state $state ignored on $self->{object_name}" );
 	return;
     }
+$self->debug( 1, "setting mh state to '$state'" );
     $self->SUPER::set( $state, $p_setby, $p_response );
 }
 
@@ -1208,9 +1211,9 @@ sub process_ha_message {
     if( $new_state->{state} eq 'unavailable' ) {
 	$self->debug( 1, "received 'unavailable' value for $self->{object_name}" );
 	$self->{unavailable_count} += 1;
-	if( $self->{unavailable_count} < 3 ) {
-	    return;
-	}
+	# if( $self->{unavailable_count} < 3 ) {
+	#     return;
+	# }
     } else {
 	$self->{unavailable_count} = 0;
     }
@@ -1220,6 +1223,7 @@ sub process_ha_message {
     ||  $self->{domain} eq 'sensor'
     ||  $self->{domain} eq 'number'  ||  $self->{domain} eq 'input_number'
     ||  $self->{domain} eq 'text'    ||  $self->{domain} eq 'input_text'
+    ||  $self->{domain} eq 'device_tracker' 
     ) {
 	$self->debug( 1, "$self->{domain} event for $self->{object_name} set to $new_state->{state}" );
 	$self->set_mh_state( $new_state->{state}, $p_setby, $p_response );
@@ -1324,6 +1328,26 @@ sub process_ha_message {
 	if( !$state  &&  $self->{subtype} ) {
 	    $self->error( "climate state message did not contain state for $self->{object_name}" );
 	    return;
+	}
+	if( $p_setby  &&  $p_setby eq 'ha_server_init' ) {
+	    if( (lc $self->{subtype} eq "target_temp_low") or (lc $self->{subtype} eq "target_temp_high") or (lc $self->{subtype} eq "temperature") ) {
+		my $temp_low;
+		my $temp_high;
+		if( $state < 40 ) {
+		    $temp_low = int( $new_state->{attributes}->{min_temp} ) || 10;
+		    $temp_high = int( $new_state->{attributes}->{max_temp} ) || 35;
+		    $temp_step = $new_state->{attributes}->{target_temp_step} || 0.5;
+		} else {
+		    $temp_low = int( $new_state->{attributes}->{min_temp} ) || 45;
+		    $temp_high = int( $new_state->{attributes}->{max_temp} ) || 95;
+		    $temp_step = $new_state->{attributes}->{target_temp_step} || 1;
+		}
+		my @temp_list;
+		for( my $i=$temp_low; $i<=$temp_high; $i+=$temp_step ){
+		    push @temp_list, "$i";
+		}
+		$self->set_states( @temp_list,"override=1" );
+	    }
 	}
 	if( $self->{subtype} ) {
 	    $self->debug( 1, "climate $self->{object_name} set: $state" );
@@ -1450,9 +1474,11 @@ sub ha_set_climate {
             $action = 'toggle';
         }
     } elsif( $self->{subtype} eq 'target_temp_low' ) {
+	$action = 'set_temperature';
         $action_data->{target_temp_low} = $setval;
         $action_data->{target_temp_high} = $self->{ha_state}->{attributes}->{target_temp_high};
     } elsif( $self->{subtype} eq 'target_temp_high' ) {
+	$action = 'set_temperature';
         $action_data->{target_temp_high} = $setval;
         $action_data->{target_temp_low} = $self->{ha_state}->{attributes}->{target_temp_low};
     } else {
@@ -1658,6 +1684,58 @@ sub set_attr {
 	return;
     }
     $self->{subitems}->{$attr}->set( $setval, $p_setby, $p_response );
+}
+
+=item C<get_subitem(name_of_attribute)>
+
+Returns the subitem MH item of an attribute inside a mulit-entity object
+
+=cut
+
+sub get_subitem {
+    my ($self,$attr) = @_;
+    
+    if( !$self->{subitems}->{$attr} ) {
+	$self->error("get_subitem called on non-existant attribute [$attr]" );
+	return;
+    }
+    return $self->{subitems}->{$attr};
+}
+
+=item C<print_attrs()>
+
+Prints the object and its attributes
+
+=cut
+
+sub print_attrs {
+    my ($self) = @_;
+    my $str = "";
+
+    $str .= "Showing details for object $self->{object_name}\n";
+    $str .= "-----------------------------\n";
+    $str .= "Entity = $self->{entity_id}\n";
+    $str .= "Current State = $self->{state}\n";
+    $str .= "Subtype = $self->{subtype}\n"  if ( $self->{subtype});
+    if( $self->{ha_state}  &&  $self->{ha_state}->{attributes} ) {
+	$str .= "Showing HA entity attributes: \n" . $self->dump( $self->{ha_state}->{attributes}) . "\n";
+    }
+    if( %{$self->{subitems}} ) {
+	$str .= "Showing sub-item values: \n";
+	for my $attr_name ( sort keys %{$self->{subitems}} ) {
+	    my $subitem = $self->{subitems}->{$attr_name};
+	    if( $subitem ) {
+		my $state = $subitem->state();
+		$state = '' if !$state;
+		$str .= "   $attr_name: $subitem->{entity_id}: $state\n";
+	    } else {
+		$str .= "   $attr_name has undefined subitem\n";
+	    }
+	}
+    }
+    $str .= "-----------------------------\n";
+    $self->log( $str );
+    print $str;
 }
 
 =item C<get_state_override()>
