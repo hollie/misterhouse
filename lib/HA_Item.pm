@@ -1144,8 +1144,9 @@ sub set_object_debug {
 =cut
 sub set {
     my ( $self, $setval, $p_setby, $p_response ) = @_;
+    my $p_setby_str = $p_setby || '';
 
-    $self->debug( 2, "$self->{object_name} set by $p_setby to: $setval" );
+    $self->debug( 2, "$self->{object_name} set by $p_setby_str to: $setval" );
 
     if( lc $self->{state} eq lc $setval ) {
 	# If the state is set to its current value, HA will not send back a state change
@@ -1333,12 +1334,12 @@ sub process_ha_message {
 		my $temp_low;
 		my $temp_high;
 		if( $state < 40 ) {
-		    $temp_low = $new_state->{attributes}->{min_temp} || 10;
-		    $temp_high = $new_state->{attributes}->{max_temp} || 35;
+		    $temp_low = int( $new_state->{attributes}->{min_temp} ) || 10;
+		    $temp_high = int( $new_state->{attributes}->{max_temp} ) || 35;
 		    $temp_step = $new_state->{attributes}->{target_temp_step} || 0.5;
 		} else {
-		    $temp_low = $new_state->{attributes}->{min_temp} || 45;
-		    $temp_high = $new_state->{attributes}->{max_temp} || 95;
+		    $temp_low = int( $new_state->{attributes}->{min_temp} ) || 45;
+		    $temp_high = int( $new_state->{attributes}->{max_temp} ) || 95;
 		    $temp_step = $new_state->{attributes}->{target_temp_step} || 1;
 		}
 		my @temp_list;
