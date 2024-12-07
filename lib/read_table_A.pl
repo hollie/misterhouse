@@ -55,7 +55,7 @@ sub read_table_A {
         $other,     $vcommand,   $occupancy, $network,
         $password,  $interface,  $additional_code
     );
-    my (@item_info) = split( ',\s*', $record );
+    my (@item_info) = split( '\s*,\s*', $record );
     my $type = uc shift @item_info;
 
     # -[ ZWave ]----------------------------------------------------------
