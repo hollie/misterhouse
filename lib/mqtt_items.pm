@@ -505,7 +505,7 @@ sub process_template {
 	$template =~ s/^\{\{value_json\.([a-zA-Z\-_]*)\}\}/\$value_json->\{\1\}/;
 	$template =~ s/^\{\{value_json\[\\?\'?([a-zA-Z\-_]*)\\?\'?\]\}\}/\$value_json->\{\1\}/;
 	if( $template !~ /^\$/ ) {
-	    $self->error( "unable to process template $template" );
+	    $self->log( "unable to process template $template" );
 	    return;
 	}
 	$self->debug( 2, "fishing template value out of json with '\$value = $template'" );
@@ -1383,11 +1383,11 @@ sub receive_mqtt_message {
 	} else {
 	    $p_setby = 'mqtt';
 	}
-	if( $message eq $self->{disc_info}->{payload_available} ) {
+	if( lc($message) eq lc($self->{disc_info}->{payload_available}) ) {
 	    if( !$retained ) {
 		$self->log( "$self->{object_name} now available" );
 	    }
-	} elsif( $message eq $self->{disc_info}->{payload_not_available} ) {
+	} elsif( lc($message) eq lc($self->{disc_info}->{payload_not_available}) ) {
 	    $self->log( "$self->{mqtt_name} is not available" );
 	    $self->SUPER::set( $message, $p_setby );
 	} else {
@@ -1578,8 +1578,8 @@ sub new {      ### mqtt_RemoteItem
     $self->{disc_info}->{name} = $friendly_name;
     if( $wildcard_count == 2 ) {
 	$self->{disc_info}->{availability_topic} = make_topic( $listen_topic, 'tele', 'LWT' );
-	$self->{disc_info}->{payload_available} = 'Online';
-	$self->{disc_info}->{payload_not_available} = 'Offline';
+	$self->{disc_info}->{payload_available} = 'online';
+	$self->{disc_info}->{payload_not_available} = 'offline';
     }
     if( $base_type eq 'switch' ) {
 	if( $wildcard_count != 2 ) {

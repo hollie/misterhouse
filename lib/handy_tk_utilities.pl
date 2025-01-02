@@ -943,7 +943,8 @@ sub tk_radiobutton {
             $widget = $Tk_objects{grid}->Radiobutton(
                 -text     => $text,
                 -variable => $pvar,
-                -value    => $value
+                -value    => $value,
+		-command  => $callback
             );
         }
         push( @widgets, $widget );
@@ -956,6 +957,92 @@ sub tk_radiobutton {
     #   &configure_element('frame', $Tk_objects{radiobutton}{$pvar});
     #   $Tk_objects{radiobutton}{$pvar}->grid(@widgets, -sticky => 'w');
 }
+
+=item C<tk_optionmenu>
+
+Use this function to create radio buttons in the mh tk grid.  If labels are not specified, the values are displayed.
+
+Usage:
+
+  &tk_optionmenu('Button label:', $state_based_object, ['value1', 'value2', 'value3']);
+  &tk_optionmenu('Button label:', \$variable, ['value1', 'value2', 'value3']);
+  &tk_optionmenu('Button label:', \$variable, ['value1', 'value2', 'value3'],
+                                               ['label1', 'label2', 'label3']);
+
+Examples:
+
+  &tk_optionmenu('Mode',  \$Save{mode}, ['normal', 'mute', 'offline']);
+  &tk_optionmenu('Debug', \$config_parms{debug}, [1, 0], ['On', 'Off']);
+  &tk_optionmenu('Tracking', \$config_parms{tracking_speakflag}, [0,1,2,3],
+                  ['None', 'GPS', 'WX', 'All']);
+  
+  my $alarm_states = "Disarmed,Disarming,Arming,Armed,Violated,Exit Delay,Entry Delay";
+  my @alarm_states = split ',', $alarm_states;
+  $alarm_status    = new Generic_Item;
+  &tk_optionmenu('Security Status', $alarm_status, [@alarm_states]);
+  
+  $v_alarm_status  = new Voice_Cmd "Set the alarm to [$alarm_states]";
+  $v_alarm_status -> tie_items($alarm_status);
+  
+  print_log "Alarm status changed to $state" if $state = state_now $alarm_status;
+
+
+See mh/code/examples/tk_examples.pl for more tk_*  examples.
+
+=cut
+
+sub tk_optionmenu {
+    return unless $Reload;
+
+    #   print "db5 Debug doing the optionmenu thing, l=@_, r=$Reload\n";
+
+    # Allow web widgets, even with -no_tk
+    push( @Tk_widgets, [ $Category, 'optionmenu', @_ ] );
+
+    return unless $MW and $Tk_objects{grid};
+    my ( $label, $pvar, $ptextvar, $pvalue, $ptext, $callback, $widget ) = @_;
+    $Tk_objects{optionmenu}{$pvar}->destroy
+      if $Tk_objects{optionmenu}{$pvar}
+      and Exists( $Tk_objects{optionmenu}{$pvar} );
+    my $options = [];
+    my @text = @$ptext
+      if $ptext;    # Copy, so we can do shift and still have the origial $ptext array available for html widget
+    my $text;
+    for my $value (@$pvalue) {
+        my $text = shift @text;
+        $text = $value unless defined $text;
+	push @$options, [$text=>$value];
+    }
+
+    # Check to see if $pvar is an object with the set method
+    #  - use set if we can, so state_now works on tk changes
+    if ( ref $pvar ne 'SCALAR' and $pvar->can('set') ) {
+	$widget = $Tk_objects{grid}->Optionmenu(
+	    -options => $options,
+	    -textvariable  => $ptextvar,
+	    -variable => \$pvar->{state},
+	    -command  => sub { $pvar->set(shift) }
+	);
+	print_log( "Setting drop down to item $pvar->{object_name}" );
+    }
+    else {
+	$widget = $Tk_objects{grid}->Optionmenu(
+	    -options => $options,
+	    -variable => $pvar,
+	    -textvariable  => $ptextvar,
+	    -command => $callback
+	);
+	print_log( "Setting drop down to regular variable" );
+    }
+
+    $Tk_objects{optionmenu}{$pvar} = $Tk_objects{grid}->Label( -text => $label )->grid( ($widget), -sticky => 'w' );
+
+    #   $Tk_objects{optionmenu}{$pvar} = $Tk_objects{grid}->Label(-text => $label);
+    #   &configure_element('frame', $Tk_objects{optionmenu}{$pvar});
+    #   $Tk_objects{optionmenu}{$pvar}->grid(@widgets, -sticky => 'w');
+}
+
+
 
 sub help_about {
     my $title =

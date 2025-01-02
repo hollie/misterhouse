@@ -94,8 +94,8 @@ Description:
                     :preset_mode
                     :fan_mode
                     :temperature            # setpoint for non-(auto/heatcool) hvac mode
-                    :target_temp_low        # heat setpoint
-                    :target_temp_high       # cool setpoint
+                    :target_temp_low        # heat setpoint -- will map to temperature when not heat_cool mode
+                    :target_temp_high       # cool setpoint -- will map to temperature when not heat_cool mode
                     :humidity               # humidity setpoint
                     :swing_mode
 
@@ -110,7 +110,12 @@ Description:
                     eg.  $thermostat_preset_mode->set( "home" );
                     eg.  $thermostat_target_temp_low->set( 72 );
             - device_tracker:
+            - weather: will populate the $Weather_Common elements, should make weather icon and outside temp visible on IA7
 	- options
+	    - check_response_delay=n
+	        - the timeout when waiting for a response
+		- will send the next message if the response is not received within n seconds
+		- default is 5 seconds
 	    - delay_between_messages=n
 		- system will wait n seconds after the response from one message before the
 		  next message is sent
@@ -732,16 +737,27 @@ sub parse_data_to_obj {
 sub process_result {
     my ( $self, $result ) = @_;
     my $handled = 0;
+    my $objname;
 
     $self->debug( 3, "Processing result on HA request: " . $self->dump( $result, 3 ) );
-    if( $result->{success} ) {
-	$self->debug( 1, "Received success on request $result->{id}" );
-    } else {
-	$self->error( "Received FAILURE on request $result->{id}: " . $self->dump( $result ) );
-    }
 
     for my $obj ( @{ $self->{objects} } ) {
 	if( $obj->{msg_trk}->{pending_msgid} eq $result->{id} ) {
+	    # report success or error for the parent item (we don't know which subtype sent the message)
+	    if( $obj->{msg_trk}->{item} ) {
+		$objname = $obj->{msg_trk}->{item}->{object_name};
+	    } elsif( $obj->{parent_item} ) {
+		$objname = $obj->{parent_item}->{object_name};
+	    } else {
+		$objname = $obj->{object_name};
+	    }
+	    if( $result->{success} ) {
+		$self->debug( 1, "Received success on request $result->{id} for $objname" );
+	    } else {
+		$self->error( "Received FAILURE on request $result->{id} for $objname: " . $self->dump( $result ) );
+	    }
+	    $obj->{msg_trk}->{item} = undef;
+	    $obj->{msg_trk}->{pending_msgid} = 0;
 	    if( $obj->{msg_trk}->{delay_between_messages} ) {
 		$obj->debug( 2, "Setting delay send timer on $obj->{object_name} to $obj->{msg_trk}->{delay_between_messages}s" );
 		$obj->{msg_trk}->{msg_delay_timer}->stop();
@@ -827,6 +843,7 @@ sub get_voice_cmds {
     my $objects = "[";    
     my %seen;
     for my $obj ( @{ $self->{objects} } ) {
+    next unless ($obj->{object_name});
 	next if $seen{$obj->{object_name}}++; #remove duplicate entity names
 	$objects .= $obj->{object_name} . ",";
     }
@@ -961,6 +978,8 @@ use warnings;
 
 use JSON qw( decode_json encode_json );   
 
+use Weather_Common;
+
 use Data::Dumper;
 
 sub log {
@@ -1023,12 +1042,15 @@ sub new {
 
     if (defined $options) {
 	my @option_list = split( '\|', $options );
+	my $delay;
 	foreach my $option (@option_list) {
 	    if( $option eq 'no_duplicate_states' ) {
 		$self->{duplicate_states} = 0;
-	    } elsif( my ($delay) = $option =~ m/delay_between_messages\s*\=\s*(\d+)/ ) {
+	    } elsif( ($delay) = $option =~ m/delay_between_messages\s*\=\s*(\d+)/ ) {
 		$self->{msg_trk}->{delay_between_messages} = $delay;
 		$self->{msg_trk}->{response_check_delay} += $delay;
+	    } elsif( ($delay) = $option =~ m/response_check_delay\s*\=\s*(\d+)/ ) {
+		$self->{msg_trk}->{response_check_delay} = $delay;
 	    } else {
 		$self->error( "Invalid HA_Item option: '$option'. HA_Item entity $entity NOT created" );
 		return;
@@ -1062,6 +1084,7 @@ sub new {
         # placeholder in case we need to do something. States are set dynamically when the object is set      
     } elsif( $domain eq 'climate' ) {
     } elsif( $domain eq 'device_tracker' ) {
+    } elsif( $domain eq 'weather' ) {
     } elsif( $domain eq 'sensor'  ||  $domain eq 'binary_sensor' ) {
     } elsif( $domain eq 'select'  ||  $domain eq 'input_select' ) {
     } elsif( $domain eq 'text'    ||  $domain eq 'input_text' ) {
@@ -1180,8 +1203,16 @@ sub set_mh_state {
 	$self->debug( 1, "Duplicate state $state ignored on $self->{object_name}" );
 	return;
     }
-$self->debug( 1, "setting mh state to '$state'" );
     $self->SUPER::set( $state, $p_setby, $p_response );
+}
+
+sub is_temp_subtype {
+    my ($self) = @_;
+
+    if( (lc $self->{subtype} eq "target_temp_low") or (lc $self->{subtype} eq "target_temp_high") or (lc $self->{subtype} eq "temperature") ) {
+	return 1;
+    }
+    return 0;
 }
 
 =item C<process_ha_message(cmd, p_setby )>
@@ -1198,18 +1229,19 @@ sub process_ha_message {
     # The cmd is an object representing the json new_state
 
     my $new_state = $cmd;
+    my $objname = $self->{object_name} || '<undefined>';
     $self->{ha_state} = $cmd;
     if( ref $self->{ha_pending_setparms} ) {
 	$p_setby = $self->{ha_pending_setparms}->{mh_pending_setby};
 	$p_response = $self->{ha_pending_setparms}->{mh_pending_response};
     }
     delete $self->{ha_pending_setparms};
-    if( !$self->{msg_trk}->{delay_between_messages} ) {
-	$self->ha_send_message();
-    }
+    # if( !$self->{msg_trk}->{delay_between_messages} ) {
+	# $self->ha_send_message();
+    # }
 
     if( $new_state->{state} eq 'unavailable' ) {
-	$self->debug( 1, "received 'unavailable' value for $self->{object_name}" );
+	$self->debug( 1, "received 'unavailable' value for $objname" );
 	$self->{unavailable_count} += 1;
 	# if( $self->{unavailable_count} < 3 ) {
 	#     return;
@@ -1225,7 +1257,7 @@ sub process_ha_message {
     ||  $self->{domain} eq 'text'    ||  $self->{domain} eq 'input_text'
     ||  $self->{domain} eq 'device_tracker' 
     ) {
-	$self->debug( 1, "$self->{domain} event for $self->{object_name} set to $new_state->{state}" );
+	$self->debug( 1, "$self->{domain} event for $objname set to $new_state->{state}" );
 	$self->set_mh_state( $new_state->{state}, $p_setby, $p_response );
     } elsif( $self->{domain} eq 'binary_sensor' ) {
 	if( (defined $p_setby) && ($p_setby eq 'ha_server_init') ) {
@@ -1240,12 +1272,46 @@ sub process_ha_message {
 	}
         if( $self->{subtype} ) {
             my $map_state = $self->get_binary_sensor_mapped_state(lc $self->{subtype},$new_state->{state});
-            $self->debug( 1, "binary_sensor $self->{subtype} mapped event for $self->{object_name} set to $new_state->{state} (mapped to $map_state)" );
+            $self->debug( 1, "binary_sensor $self->{subtype} mapped event for $objname set to $new_state->{state} (mapped to $map_state)" );
  	    $self->set_mh_state( $map_state, $p_setby, $p_response );
  	} else {
-	    $self->debug( 1, "binary_sensor unmapped event for $self->{object_name} set to $new_state->{state}" );
+	    $self->debug( 1, "binary_sensor unmapped event for $objname set to $new_state->{state}" );
 	    $self->set_mh_state( $new_state->{state}, $p_setby, $p_response );
 	}             
+    } elsif ( $self->{domain} eq 'weather' ) {
+        my %ha_weather;
+        $ha_weather{TempOutdoor} = $self->{ha_state}->{attributes}->{temperature};
+        $ha_weather{HumidOutdoor} = $self->{ha_state}->{attributes}->{humidity};
+        $ha_weather{LastUpdated} = $self->{ha_state}->{last_updated};
+        $ha_weather{WindAvgSpeed} = $self->{ha_state}->{attributes}->{wind_speed};
+        $ha_weather{WindAvgDir} = $self->{ha_state}->{attributes}->{wind_bearing};
+        $ha_weather{Conditions} = $new_state->{state};        
+        $ha_weather{DewOutdoor} = $self->{ha_state}->{attributes}->{dew_point};
+        $ha_weather{Barom} = $self->{ha_state}->{attributes}->{pressure};
+        $ha_weather{BaromSea} =  &Weather_Common::convert_local_barom_to_sea_mb($self->{ha_state}->{attributes}->{pressure});
+
+        $ha_weather{IsRaining} = 0;
+        $ha_weather{IsSnowing} = 0;
+        if ($self->{ha_state}->{attributes}->{cloud_coverage} > 90) {
+            $ha_weather{Clouds} = "overcast";
+         } elsif ($self->{ha_state}->{attributes}->{cloud_coverage} > 10) {
+             $ha_weather{Clouds} = "partly cloudy";
+         } else  {
+             $ha_weather{Clouds} = "clear";
+        }
+        if (( lc $new_state->{state} eq "snowy" ) || ( lc $new_state->{state} eq "snowy-rainy" )){
+            $ha_weather{IsSnowing} = 1;
+        }
+        if (( lc $new_state->{state} eq "hail" ) || ( lc $new_state->{state} eq "lightning-rainy" ) || ( lc $new_state->{state} eq "pouring" ) || ( lc $new_state->{state} eq "rainy" )){
+            $ha_weather{IsRaining} = 1;
+        }            
+	    $self->debug( 1, "weather event for $objname set to $new_state->{state}" );
+	    $self->debug( 1, "weather status for $objname: Temp=[" . $ha_weather{TempOutdoor} . "] clouds=[" . $ha_weather{Clouds} . "] Snowing=[" . $ha_weather{IsSnowing} . "] Raining=[" . $ha_weather{IsRaining} . "]" );	    
+	    $self->set_mh_state( $new_state->{state}, $p_setby, $p_response );	  
+	    $Weather_Common::weather_module_enabled=1;  
+        &Weather_Common::populate_internet_weather( \%ha_weather, "TempOutdoor HumidOutdoor WindAvgSpeed LastUpdated WindAvgSpeed WindAvgDir Conditions DewOutdoor Barom BaromSea Clouds IsRaining IsSnowing");
+        &Weather_Common::weather_updated;
+    
     } elsif( $self->{domain} eq 'cover' ) {
 	my $level = $new_state->{state};
 	if (lc $self->{subtype} eq "digital") {
@@ -1256,10 +1322,10 @@ sub process_ha_message {
 	}    
 	$level = "open" if ($level eq "100%");
 	$level = "closed" if ($level eq "0%");
-	$self->debug( 1, "cover:$self->{subtype} event for $self->{object_name} set to $level" );
+	$self->debug( 1, "cover:$self->{subtype} event for $objname set to $level" );
 	$self->set_mh_state( $level, $p_setby, $p_response );
     } elsif( $self->{domain} eq 'select'  ||  $self->{domain} eq 'input_select' ) {
-	$self->debug( 1, "$self->{domain} event for $self->{object_name} set to $new_state->{state}" );
+	$self->debug( 1, "$self->{domain} event for $objname set to $new_state->{state}" );
 	$self->set_mh_state( $new_state->{state}, $p_setby, $p_response );
 	if( $p_setby  &&  $p_setby eq 'ha_server_init' ) {
 	    $self->set_states( @{$new_state->{attributes}->{options}},"override=1" );
@@ -1270,7 +1336,7 @@ sub process_ha_message {
 	    $level = $new_state->{attributes}->{percentage} . "%" if( $new_state->{attributes}->{percentage} );
 	    $level = "off" if ($level eq "0%");
 	}    
-	$self->debug( 1, "fan event for $self->{object_name} set to $new_state->{state} ($level)" );
+	$self->debug( 1, "fan event for $objname set to $new_state->{state} ($level)" );
 	$self->set_mh_state( $level, $p_setby, $p_response );
 	if( $p_setby  &&  $p_setby eq 'ha_server_init' ) {
 	    #percentage_step gives the number of speed steps for the fan
@@ -1292,18 +1358,20 @@ sub process_ha_message {
 	    if( $new_state->{attributes}  &&  ref $new_state->{attributes}->{$self->{subtype}} ) {
 		#shouldn't join, but rgb is an array so for now create a string
 		my $string = join ',', @{$new_state->{attributes}->{ $self->{subtype} }}; 
-		$self->debug( 1, "handled subtype $self->{subtype} event for $self->{object_name} set to $string" );
+		$self->debug( 1, "handled subtype $self->{subtype} event for $objname set to $string" );
 		$self->set_mh_state( $string, $p_setby, $p_response );
 	    } else {
-		$self->debug( 1, "got light state for $self->{object_name} but no rgb_color or hs_color attribute" );
+		$self->debug( 1, "got light state for $objname but no rgb_color or hs_color attribute" );
 	    }
 	} elsif (lc $self->{subtype} eq "effect") {
 	    # update the set_states based on the effects_list array
 	    $self->debug( 1, "effect_list [" . join (',',@{$new_state->{attributes}->{effect_list}}) . "]" );
+	    $self->debug( 1, "effect=$new_state->{attributes}->{effect}" ) if ($new_state->{attributes}->{effect});
+
 	    #override=1 is a way to bypass the returnif $main::reload in Generic Item set_state
 	    $self->set_states(@{$new_state->{attributes}->{effect_list}},"override=1");
 	    #the if clause prevents the state from disspearing if the aurora turns off.
-	    $self->set_mh_state( $setval->{attributes}->{effect}, $p_setby, $p_response ) if ($setval->{attributes}->{effect});
+	    $self->set_mh_state( $new_state->{attributes}->{effect}, $p_setby, $p_response ) if ($new_state->{attributes}->{effect});
 	} else {    
 	    my $level = $new_state->{state};
 	    if( $new_state->{state} eq 'on' ){
@@ -1312,11 +1380,14 @@ sub process_ha_message {
 		    $level .= '%';
 		}
 	    }    
-	    $self->debug( 1, "light event for $self->{object_name} set to $level" );
+	    $self->debug( 1, "light event for $objname set to $level" );
 	    $self->set_mh_state( $level, $p_setby, $p_response );
 	}
     } elsif( $self->{domain} eq 'climate' ) {
 	my $state;
+	my $subtype = lc($self->{subtype});
+	my $hvac_mode = $new_state->{state};
+
 	foreach my $attrname (keys %{$new_state->{attributes}} ) {
 	    if( $self->{subtype} eq $attrname ) {
 		    $state = $new_state->{attributes}->{$attrname};
@@ -1325,15 +1396,23 @@ sub process_ha_message {
 	if( !$state  &&  (!$self->{subtype}  ||  $self->{subtype} eq 'hvac_mode' ) ) {
 	    $state = $new_state->{state};
 	}
-	if( !$state  &&  $self->{subtype} ) {
-	    $self->error( "climate state message did not contain state for $self->{object_name}" );
+	if( !$state  &&  $self->{subtype}  &&  !$self->is_temp_subtype() ) {
+	    $self->error( "climate state message did not contain state for $objname" );
 	    return;
 	}
+
+	# Set state_list for temp types
 	if( $p_setby  &&  $p_setby eq 'ha_server_init' ) {
-	    if( (lc $self->{subtype} eq "target_temp_low") or (lc $self->{subtype} eq "target_temp_high") or (lc $self->{subtype} eq "temperature") ) {
+	    if( $self->is_temp_subtype() ) {
 		my $temp_low;
 		my $temp_high;
-		if( $state < 40 ) {
+		my $temp = $state;
+		$temp = $new_state->{attributes}->{current_temperature} if !$temp;
+		$temp = $new_state->{attributes}->{temperature} if !$temp;
+		$temp = $new_state->{attributes}->{target_temp_low} if !$temp;
+		$temp = $new_state->{attributes}->{target_temp_high} if !$temp;
+		$temp = 0 if !$temp;
+		if( $temp < 40 ) {
 		    $temp_low = int( $new_state->{attributes}->{min_temp} ) || 10;
 		    $temp_high = int( $new_state->{attributes}->{max_temp} ) || 35;
 		    $temp_step = $new_state->{attributes}->{target_temp_step} || 0.5;
@@ -1349,11 +1428,7 @@ sub process_ha_message {
 		$self->set_states( @temp_list,"override=1" );
 	    }
 	}
-	if( $self->{subtype} ) {
-	    $self->debug( 1, "climate $self->{object_name} set: $state" );
-	} else {
-	    $self->debug( 1, "climate $self->{object_name} default object set: $state" );
-	}
+	# Set state_list for mode settings
 	if( $p_setby  &&  $p_setby eq 'ha_server_init' ) {
 	    if( $self->{subtype} eq 'hvac_mode' ) {
 		$self->set_states( @{$new_state->{attributes}->{hvac_modes}},"override=1" );
@@ -1361,7 +1436,43 @@ sub process_ha_message {
 		$self->set_states( @{$new_state->{attributes}->{fan_modes}},"override=1" );
 	    } elsif( $self->{subtype} eq 'preset_mode' ) {
 		$self->set_states( @{$new_state->{attributes}->{preset_modes}},"override=1" );
+	    } elsif( $self->{subtype} eq 'humidity' ) {
+		my @humid_list;
+	    for( my $i=0; $i<=60; $i+=1 ){
+		    push @humid_list, "$i";
+		}
+		$self->set_states( @humid_list,"override=1" );
 	    }
+	}
+
+	# Set temp subtypes
+        if( $self->is_temp_subtype() ) {
+	    if( $hvac_mode eq 'heat' ) {
+		if( $subtype eq 'target_temp_high' ) {
+		    $state = undef;
+		} elsif( $subtype eq 'target_temp_low' ) {
+		    $state = $new_state->{attributes}->{temperature};
+		}
+	    } elsif( $hvac_mode eq 'cool' ) {
+		if( $subtype eq 'target_temp_low' ) {
+		    $state = undef;
+		} elsif( $subtype eq 'target_temp_high' ) {
+		    $state = $new_state->{attributes}->{temperature};
+		}
+	    } elsif( $hvac_mode eq 'auto'  ||  $hvac_mode eq 'heat_cool' ) {
+		if( $subtype eq 'temperature' ) {
+		    $state = undef;
+		}
+	    } else {
+		$state = undef;
+	    }
+	}
+	if( $self->{subtype} and (!defined $state)) {
+	    $self->debug( 1, "climate $objname set: [UNDEFINED]" );	
+	} elsif( $self->{subtype} ) {
+	    $self->debug( 1, "climate $objname set: $state" );
+	} else {
+	    $self->debug( 1, "climate $objname default object set: $state" );
 	}
 	$self->set_mh_state( $state, $p_setby, $p_response );
     }
@@ -1420,13 +1531,14 @@ sub ha_send_message {
 
     if( $ha_msg ) {
 	$ha_msg->{ha_setparms} = $self->{ha_current_setparms};
+	$ha_msg->{item} = $self;
 	push @{$self->{msg_trk}->{pending_msg_queue}}, $ha_msg;
 	if( $self->{msg_trk}->{pending_msgid} ) {
 	    $self->debug( 1, "message to HA queued" );
 	    return;
 	}
     } else {
-	$self->{msg_trk}->{pending_msgid} = 0;
+	# $self->{msg_trk}->{pending_msgid} = 0;
     }
     $ha_msg = shift @{$self->{msg_trk}->{pending_msg_queue}};
     if( !$ha_msg ) {
@@ -1434,6 +1546,9 @@ sub ha_send_message {
     }
     $self->{ha_pending_setparms} = $ha_msg->{ha_setparms};
     delete $ha_msg->{ha_setparms};
+
+    $self->{msg_trk}->{item} = $ha_msg->{item};
+    delete $ha_msg->{item};
 
     $self->{msg_trk}->{pending_msgid} = $self->{ha_server}->ha_process_write( $ha_msg );
     $self->debug( 2, "sent command to HA: " . $self->dump( $ha_msg ) );
@@ -1444,7 +1559,7 @@ sub ha_send_message {
 sub ha_check_message {
     my ($self, $ha_msg) = @_;
     if( $self->{msg_trk}->{pending_msgid} == $ha_msg->{id} ) {
-	$self->error( "$self->{object_name} message $ha_msg->{id} for entity '$ha_msg->{target}->{entity_id}' --  response timer expired, sending next message" );
+	$self->error( "$self->{object_name} message $ha_msg->{id} for entity '$ha_msg->{target}->{entity_id}' --  response timer expired" );
 	$self->ha_send_message();
     }
 }
@@ -1464,6 +1579,7 @@ sub ha_set_climate {
     my ($self, $setval) = @_;
     my $action_data = {};
     my $action;
+    my $hvac_mode = lc($self->{ha_state}->{state});
 
     if( $self->{subtype} eq 'onoff' ) {
         if( lc $setval eq 'turn_on' || lc $setval eq 'on' ) {
@@ -1475,12 +1591,20 @@ sub ha_set_climate {
         }
     } elsif( $self->{subtype} eq 'target_temp_low' ) {
 	$action = 'set_temperature';
-        $action_data->{target_temp_low} = $setval;
-        $action_data->{target_temp_high} = $self->{ha_state}->{attributes}->{target_temp_high};
+	if( $hvac_mode eq 'heat_cool'  ||  $hvac_mode eq 'auto' ) {
+	    $action_data->{target_temp_low} = $setval;
+	    $action_data->{target_temp_high} = $self->{ha_state}->{attributes}->{target_temp_high};
+	} else {
+	    $action_data->{temperature} = $setval;
+	}
     } elsif( $self->{subtype} eq 'target_temp_high' ) {
 	$action = 'set_temperature';
-        $action_data->{target_temp_high} = $setval;
-        $action_data->{target_temp_low} = $self->{ha_state}->{attributes}->{target_temp_low};
+	if( $hvac_mode eq 'heat_cool'  ||  $hvac_mode eq 'auto' ) {
+	    $action_data->{target_temp_high} = $setval;
+	    $action_data->{target_temp_low} = $self->{ha_state}->{attributes}->{target_temp_low};
+	} else {
+	    $action_data->{temperature} = $setval;
+	}
     } else {
         my $action_name = $self->{subtype};
         if( !action_name ) {
@@ -1489,7 +1613,9 @@ sub ha_set_climate {
         $action = "set_${action_name}";
         $action_data->{$action_name} = $setval;
     }
-    $self->ha_perform_action( $action, $action_data );
+    if( $action ) {
+	$self->ha_perform_action( $action, $action_data );
+    }
 }
 
 sub ha_set_state {
