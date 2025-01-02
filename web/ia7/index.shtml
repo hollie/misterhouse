@@ -343,6 +343,36 @@
       border-color: #834087;
     }
     
+    .btn-undef {
+      color: #fff;
+      background-color: #666699;
+      border-color: #834087;
+    }
+    .btn-undef:hover,
+    .btn-undef:focus,
+    .btn-undef:active,
+    .btn-undef.active {
+      color: #fff !important;
+      background-color: #47476b;
+      border-color: #613064;
+    }
+    .btn-undef.disabled:hover,
+    .btn-undef.disabled:focus,
+    .btn-undef.disabled:active,
+    .btn-undef.disabled.active,
+    .btn-undef[disabled]:hover,
+    .btn-undef[disabled]:focus,
+    .btn-undef[disabled]:active,
+    .btn-undef[disabled].active,
+    fieldset[disabled] .btn-undef:hover,
+    fieldset[disabled] .btn-undef:focus,
+    fieldset[disabled] .btn-undef:active,
+    fieldset[disabled] .btn-undef.active {
+      color: #fff;
+      background-color: #666699;
+      border-color: #834087;
+    }    
+    
     html, body {
         max-width: 100%;
         overflow-x: hidden;
