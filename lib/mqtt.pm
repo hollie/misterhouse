@@ -1060,7 +1060,8 @@ sub get_voice_cmds {
         "$command -- List retained topics"  => "${object_name}->list_retained_topics()",
         "$command -- Publish discovery data"  => "${object_name}->publish_discovery_data()",
         "$command -- Publish current states of local items"  => "${object_name}->publish_current_states()",
-        "$command -- Cleanup discovery info and republish"  => "${object_name}->cleanup_discovery_topics()",
+        "$command -- Cleanup published info and republish"  => "${object_name}->cleanup_published_topics()",
+        "$command -- Cleanup only discovery info and republish"  => "${object_name}->cleanup_discovery_topics()",
         "$command -- Cleanup all retained topics on mqtt server and republish (BE CAREFUL)"  => "${object_name}->cleanup_all_retained_topics()",
 #         'List [all,active,inactive] ' . $command . ' objects to the print log'   => $self->get_object_name . '->print_object_list(SAID)',
 #         "Print $objects $command attributes to the print log"             => "${object_name}->print_object_attrs(SAID)",
@@ -1195,6 +1196,34 @@ sub cleanup_all_retained_topics {
     my ($self) = @_;
 
     $self->cleanup_retained_topics( '.*' );
+    $self->publish_discovery_data();
+    $self->publish_current_states();
+}
+
+=item C<(cleanup_published_topics())>
+
+This function will delete all retained topics on the mqtt server for published
+messages for LocalItems.  It is based on <node_id>s used by discoverable items.
+
+It will then republish discovery data and current item states.
+
+=cut
+
+sub cleanup_published_topics {
+    my ($self) = @_;
+    my $seen_disc = {};
+    my $seen_local = {};
+
+    for my $obj ( @{ $self->{objects} } ) {
+	if( $obj->{discoverable}  &&  $obj->{node_id}  &&  !$seen_disc->{$obj->{node_id}} ) {
+	    $seen_disc->{$obj->{node_id}} = 1;
+	    $self->cleanup_retained_topics( "$self->{discovery_prefix}/.*/$obj->{node_id}/.*" );
+	}
+        if( $self->isa('mqtt_LocalItem')  &&  $obj->{node_id}  &&  !$seen_local->{$obj->{node_id}} ) {
+	    $seen_local->{$obj->{node_id}} = 1;
+	    $self->cleanup_retained_topics( "$obj->{node_id}/.*" );
+	}
+    }
     $self->publish_discovery_data();
     $self->publish_current_states();
 }
