@@ -154,6 +154,7 @@ sub new {
     $$self{momentary_time} = 20         unless defined( $$self{momentary_time} );
     $$self{relay_mode}     = 'latching' unless defined( $$self{relay_mode} );
     $$self{momentary_timer} = new Timer;
+    $self->set_states( 'off', 'on' );
     return $self;
 }
 
