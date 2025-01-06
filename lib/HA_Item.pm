@@ -136,11 +136,19 @@ Description:
 
 	Handy ha_perform_action/ha_execute_script code examples:
 	    - Send message to mobile device: $hasrv->ha_perform_action( 'notify.mobile_app_my_phone', {title=>'HA notification', message=>'test message'} );
-	    - get weather forecast data: $hasrv->ha_perform_action( '
 	    - or add this to items.mht for controlling HA actions, like an RF fan controlled by a broadlink item:
 	    GENERIC,   fan_light,
 	    CODE, $fan_light -> tie_event('$hasrv->ha_perform_action( "remote.rm4pro.send_command", {device => "Fan", command=> "Light"})');
 	    CODE, $fan_light -> set_states ("on","off");
+	    - get weather forecast:
+	    items file:
+	        HA_ITEM, weather_forecast, weather, forecast_home, ha_cottage
+            user code:
+		$weather_forecast->ha_perform_action( 'get_forecasts', {'type'=>'hourly'}, \&weather_response_callback, "weather_parm" );
+		sub weather_response_callback {
+		    my ($parm, $response ) = @_;
+		    &print_log( "got response on weather request $parm: \n" . Dumper( $response ) );
+		}
     
 
     Discovery:
