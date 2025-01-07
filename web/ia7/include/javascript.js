@@ -1,5 +1,5 @@
 
-var ia7_ver = "v2.2.202";
+var ia7_ver = "v2.3.100";
 var coll_ver = "";
 var entity_store = {}; //global storage of entities
 var json_store = {};
@@ -1154,9 +1154,10 @@ var loadList = function() {
 				}
 				else {
 					// These are controllable MH objects
-					json_store.objects[entity] = json_store.objects[entity];
+//					json_store.objects[entity] = json_store.objects[entity];
+					var state = getState(json_store.objects[entity].state);
 					var name = entity;
-					var color = getButtonColor(json_store.objects[entity].state);
+					var color = getButtonColor(state);
 					if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
 					//Put objects into button
 					var dbl_btn = "";
@@ -1182,7 +1183,7 @@ var loadList = function() {
                     
 					button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' ";
 					button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover "+btn_direct+" btn-state-cmd navbutton-padding'>";
-					button_html += name+btn_rgb+dbl_btn+"<span class='pull-right object-state'>"+json_store.objects[entity].state+"</span></button></div>";
+					button_html += name+btn_rgb+dbl_btn+"<span class='pull-right object-state'>"+state+"</span></button></div>";
 					entity_arr.push(button_html);
 				}
 			}//entity each loop
@@ -1298,12 +1299,17 @@ var getButtonColor = function (state) {
 	} else {
 	    return "purple";
 	}
+	if (state == "uninitialized") {
+	    return "purple";
+	}
+	if (state == "undefined" || state == "unknown") {
+		return "undef";
+	}
+	
       if (state.match (/^(on|open|(dis|un)armed|ready|dry|up|100|online|unlocked|play|occupied|start)/) ) {
 		 color = "success";
       } else if (state.match (/^(motion|armed|wet|fault|down|offline|lock|error|stop)/) ) {
 		 color = "danger";
-	} else if (state == undefined || state == "unknown" ) {
-		 color = "purple";
       } else if (state.match(/^(low|med|^[1-9]+[0-9]*%$|light|heat|pause|setback)/) ) { 
 		 color = "warning";
       } else if (state.match (/^(cool|unoccupied)/) ) {
@@ -1326,6 +1332,16 @@ var getButtonColor = function (state) {
 	}
 	return color;
 };
+
+var getState = function (state) {
+	var nstate = state;
+	if (nstate == "") {
+	  nstate = "undefined"
+	} else if (nstate == undefined) {
+	  nstate = "uninitialized"
+	}
+	return nstate;
+}
 
 var filterSubstate = function (state, slider) {
  	// ideally the gear icon on the set page will remove the filter
@@ -1458,19 +1474,18 @@ var updateList = function(path) {
 					if (json.data[entity].type === undefined) continue;
                     if ($('button[entity="'+entity+'"]').hasClass('btn-voice-cmd')) continue; //don't change color for voice commands
 					var color;
-					if (json.data[entity].state === undefined) {
-					    color = "default";
-					} else {
-					    color = getButtonColor(json.data[entity].state);
-					}
+					var state; 
+					state = getState(json.data[entity].state);
+					color = getButtonColor(state);
 					var btn_rgb = "";
 					if (json.data[entity].rgb !== undefined) {
 						$('button[entity="'+entity+'"]').find('.object-color').css("color",'rgb('+json.data[entity].rgb+')');
 					}
-					$('button[entity="'+entity+'"]').find('.object-state').text(json.data[entity].state);
+					$('button[entity="'+entity+'"]').find('.object-state').text(state);
 					$('button[entity="'+entity+'"]').removeClass("btn-default");
 					$('button[entity="'+entity+'"]').removeClass("btn-success");
 					$('button[entity="'+entity+'"]').removeClass("btn-purple");
+					$('button[entity="'+entity+'"]').removeClass("btn-undef");					
 					$('button[entity="'+entity+'"]').removeClass("btn-warning");
 					$('button[entity="'+entity+'"]').removeClass("btn-danger");
 					$('button[entity="'+entity+'"]').removeClass("btn-info");
@@ -1520,10 +1535,12 @@ var updateItem = function(item,link,time) {
 				ajax_req_success("update_item");			
 				JSONStore(json);
 				requestTime = json_store.meta.time;
-				var color = getButtonColor(json.data[item].state);
-				$('button[entity="'+item+'"]').find('.object-state').text(json.data[item].state);
+				var state = getState(json.data[item].state)
+				var color = getButtonColor(state);
+				$('button[entity="'+item+'"]').find('.object-state').text(state);
 				$('button[entity="'+item+'"]').removeClass("btn-default");
 				$('button[entity="'+item+'"]').removeClass("btn-purple");
+				$('button[entity="'+item+'"]').removeClass("btn-undef");
 				$('button[entity="'+item+'"]').removeClass("btn-success");
 				$('button[entity="'+item+'"]').removeClass("btn-warning");
 				$('button[entity="'+item+'"]').removeClass("btn-danger");
@@ -1586,11 +1603,13 @@ var updateStaticPage = function(link,time) {
 				$('button[entity]').each(function(index) {
 					if ($(this).attr('entity') != '' && json.data[$(this).attr('entity')] != undefined ) { //need an entity item for this to work.
 						entity = $(this).attr('entity');
-						var color = getButtonColor(json.data[entity].state);
-						$('button[entity="'+entity+'"]').find('.object-state').text(json.data[entity].state);
+						var state = getState(json.data[entity].state);
+						var color = getButtonColor(state);
+						$('button[entity="'+entity+'"]').find('.object-state').text(state);
 						$('button[entity="'+entity+'"]').removeClass("btn-default");
 						$('button[entity="'+entity+'"]').removeClass("btn-success");
 						$('button[entity="'+entity+'"]').removeClass("btn-purple");
+						$('button[entity="'+entity+'"]').removeClass("btn-undef");
 						$('button[entity="'+entity+'"]').removeClass("btn-warning");
 						$('button[entity="'+entity+'"]').removeClass("btn-danger");
 						$('button[entity="'+entity+'"]').removeClass("btn-info");
@@ -1756,13 +1775,14 @@ var loadCollection = function(collection_keys) {
                 }
 
 				var name = item;
-				var color = getButtonColor(json_store.objects[item].state);
+				var state = getState(json_store.objects[item].state);
+				var color = getButtonColor(state);
 				if (json_store.objects[item].label !== undefined) name = json_store.objects[item].label;
 				var dbl_btn = "";
 				if (name.length < 30) dbl_btn = "<br>"; 
 				var button_html = "<div style='vertical-align:middle'><button entity='"+item+"' ";
 				button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover "+ btn_direct +" btn-state-cmd navbutton-padding'>";
-				button_html += name+dbl_btn+"<span class='pull-right object-state'>"+json_store.objects[item].state+"</span></button></div>";
+				button_html += name+dbl_btn+"<span class='pull-right object-state'>"+state+"</span></button></div>";
 			    button_html = "<div class='col-sm-4' colid='"+i+"'>" + button_html + "</div>";
 				entity_arr.push(button_html);
 				items += item+",";		
@@ -3271,15 +3291,15 @@ var floorplan = function(group,time) {
                                                                 html += "</div><div class='btn-group btn-block stategrp"+stategrp+"'>";
                                                                 buttons = 1;
                                                             }
-
-                                                            var color = getButtonColor(po_states[i]);
+															var state = getState(po_states[i]);
+                                                            var color = getButtonColor(state);
                                                             //TODO disabled override
                                                             var disabled = "";
-                                                            if (po_states[i] === json_store.objects[fp_entity].state) {
+                                                            if (state === json_store.objects[fp_entity].state) {
                                                                 disabled = "disabled";
                                                             }
                                                             html += "<button class='btn btn-state-cmd col-sm-6 col-xs-6 btn-"+color+" "+disabled+"'";
-                                                            var url= '/SET;none?select_item='+fp_entity+'&select_state='+po_states[i];
+                                                            var url= '/SET;none?select_item='+fp_entity+'&select_state='+state;
                                                             html += '">'+po_states[i]+'</button>';
                                                         }
                                                     }
@@ -3550,12 +3570,13 @@ var floorplan = function(group,time) {
 
 var get_fp_image = function(item,size,orientation) {
   	var image_name;
-	var image_color = getButtonColor(item.state);
+  	var state = getState(item.state);
+	var image_color = getButtonColor(state);
 	var baseimg_width = $(window).width();
   //	if (baseimg_width < 500) fp_icon_image_size = "32" // iphone scaling
 	//kvar fp_icon_image_size = "32"
  	if (item.fp_icons !== undefined) {
- 		if (item.fp_icons[item.state] !== undefined) return item.fp_icons[item.state];
+ 		if (item.fp_icons[state] !== undefined) return item.fp_icons[state];
  	}
  	if (item.fp_icon_set !== undefined) {
 		return "fp_"+item.fp_icon_set+"_"+image_color+"_"+fp_icon_image_size+".png";
@@ -3686,9 +3707,10 @@ var create_state_modal = function(entity) {
                         $('#control').find('.states').append("<div class='btn-group btn-block stategrp"+stategrp+"'></div>");
                         buttonlength = 1;
                     }
-                    var color = getButtonColor(modal_states[i])
-                    var disabled = ""
-                    if (modal_states[i] == json_store.objects[entity].state) {
+                    var state = getState(modal_states[i]);
+                    var color = getButtonColor(state);
+                    var disabled = "";
+                    if (state == getState(json_store.objects[entity].state)) {
                         disabled = "disabled";
                     }
                     //global override
@@ -3707,7 +3729,7 @@ var create_state_modal = function(entity) {
                     if (json_store.objects[entity].state_override) {
                         disabled = "";
                     }                  
-                $('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");					
+                $('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+state+"</button>");					
                 }
                 if (slider_active) {
                     if ($(".stategrp0").children().length == 0) {  
