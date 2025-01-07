@@ -120,20 +120,35 @@ Description:
 		- system will wait n seconds after the response from one message before the
 		  next message is sent
 		- OpenSprinkler is the only device we have seen to date that needs this
-        - ha_perform_action can be used to generically perform an action on an entity
+    Some useful functions:
+        - ha_perform_action on an HA_Item can be used to generically perform an action on an entity
             - this can be used for 2 different things:
                 1. you can treat complex HA entities as a single MH item, and use
                    this function to perform the various actions on the HA entity
                 2. if the MH code doesn't implement all of the HA entity actions, or there
                    are custom actions on the entity, then you can call them with this function
             eg. $thermostat->ha_perform_action( 'set_preset_mode', {preset_mode=>'away'} );
-	- ha_perform_action also exists on the HA_Server class
+	- ha_perform_action( $action, $data, \&callback, $callback_parm ) in HA_Server class
 	    - this can be used to perform actions that are not entity actions
-	    eg. $hasrv->ha_perform_action( 'notify.mobile_app_my_phone', {title=>'HA notification', message=>'test message'} );
+	- ha_execute_script( $ha_msg, \&callback, $parm) on HA_Server class
+	    - this is used to define and execute an HA script
+	    - callback will be called with the (success, response<hash>, callback_parm )
+
+	Handy ha_perform_action/ha_execute_script code examples:
+	    - Send message to mobile device: $hasrv->ha_perform_action( 'notify.mobile_app_my_phone', {title=>'HA notification', message=>'test message'} );
 	    - or add this to items.mht for controlling HA actions, like an RF fan controlled by a broadlink item:
 	    GENERIC,   fan_light,
 	    CODE, $fan_light -> tie_event('$hasrv->ha_perform_action( "remote.rm4pro.send_command", {device => "Fan", command=> "Light"})');
 	    CODE, $fan_light -> set_states ("on","off");
+	    - get weather forecast:
+	    items file:
+	        HA_ITEM, weather_forecast, weather, forecast_home, ha_server
+            user code:
+		$weather_forecast->ha_perform_action( 'get_forecasts', {'type'=>'hourly'}, \&weather_response_callback, "weather_parm" );
+		sub weather_response_callback {
+		    my ($parm, $response ) = @_;
+		    &print_log( "got response on weather request $parm: \n" . Dumper( $response ) );
+		}
     
 
     Discovery:
@@ -396,6 +411,7 @@ sub new {
 	$self->{next_ping}          = 0;
 	$self->{got_ping_response}  = 1;
 	$self->{ping_missed_count}  = 0;
+	$self->{pending_messages}   = {};
 
 	@{ $self->{unhandled_entities} } = ();
 	@{ $self->{objects} }	    = ();
@@ -614,19 +630,24 @@ sub ha_process_read {
     }
 }
 
-=item C<ha_perform_action(action_name, action_data_hash )>
+=item C<ha_perform_action(action_name, action_data_hash, callback, callback_parm )>
 
     Will send a message to HA to perform an action 'domain.action_name' passing in the
     kwargs parameters specified in action_data_hash.
+    return_response is a bool indicating whether a response is expected
+    callback is a function to call when the response is received:  callback( callback_parm, response )
 
 =cut
 sub ha_perform_action {
-    my ($self, $action, $action_data) = @_;
+    my ($self, $action, $action_data, $callback, $parm, $return_response) = @_;
     my $ha_msg = {};
     my $entity_id;
     my $action_name;
     my $domain;
 
+    if( !defined $return_response ) {
+	$return_response = defined $callback;
+    }
     $ha_msg->{type} = 'call_service';
     ($domain, $entity_id, $action_name) = $action =~ /^([^\.]+)\.([^\.]+)\.([^\.]+)$/;
     if( $entity_id ) {
@@ -649,14 +670,45 @@ sub ha_perform_action {
     if( defined( $action_data )  &&  keys %$action_data) {
         $ha_msg->{service_data} = $action_data;
     }
+    if( $return_response ) {
+	$ha_msg->{return_response} = JSON::true;
+    }
 
-    $self->ha_process_write( $ha_msg );
+    $pending_msg = {};
+    $pending_msg->{callback} = $callback;
+    $pending_msg->{callback_parm} = $parm;
+    $pending_msg->{msgid} = $self->ha_process_write( $ha_msg );
+    $self->{pending_messages}->{$pending_msg->{msgid}} = $pending_msg;
+
+    return $pending_msg->{msgid};
 }
 
 # This function is provided for backwards compatibility
 sub ha_call_service {
     my ($self, $action, $action_data) = @_;
     return $self->ha_perform_action( $action, $action_data );
+}
+
+=item C<ha_execute_script(ha_msg, callback, callback_parm )>
+
+    Will define and execute a script within home assistant.
+    Results can be handled by the callback function.
+
+=cut
+sub ha_execute_script {
+    my ($self, $ha_msg, $callback, $parm) = @_;
+    my $entity_id;
+    my $action_name;
+    my $domain;
+    my $pending_msg;
+
+    $ha_msg->{type} = 'execute_script' if !$ha_msg->{type};
+
+    $pending_msg = {};
+    $pending_msg->{callback} = $callback;
+    $pending_msg->{callback_parm} = $parm;
+    $pending_msg->{msgid} = $self->ha_process_write( $ha_msg );
+    $self->{pending_messages}->{$pending_msg->{msgid}} = $pending_msg;
 }
 
 sub set_object_state {
@@ -741,30 +793,66 @@ sub process_result {
 
     $self->debug( 3, "Processing result on HA request: " . $self->dump( $result, 3 ) );
 
-    for my $obj ( @{ $self->{objects} } ) {
-	if( $obj->{msg_trk}->{pending_msgid} eq $result->{id} ) {
-	    # report success or error for the parent item (we don't know which subtype sent the message)
-	    if( $obj->{msg_trk}->{item} ) {
-		$objname = $obj->{msg_trk}->{item}->{object_name};
-	    } elsif( $obj->{parent_item} ) {
-		$objname = $obj->{parent_item}->{object_name};
-	    } else {
-		$objname = $obj->{object_name};
-	    }
-	    if( $result->{success} ) {
-		$self->debug( 1, "Received success on request $result->{id} for $objname" );
-	    } else {
-		$self->error( "Received FAILURE on request $result->{id} for $objname: " . $self->dump( $result ) );
-	    }
-	    $obj->{msg_trk}->{item} = undef;
-	    $obj->{msg_trk}->{pending_msgid} = 0;
-	    if( $obj->{msg_trk}->{delay_between_messages} ) {
-		$obj->debug( 2, "Setting delay send timer on $obj->{object_name} to $obj->{msg_trk}->{delay_between_messages}s" );
-		$obj->{msg_trk}->{msg_delay_timer}->stop();
-		$obj->{msg_trk}->{msg_delay_timer}->set($obj->{msg_trk}->{delay_between_messages}, sub { $obj->ha_send_message() });
-		last;
-	    } else {
-		$obj->ha_send_message();
+    my $pending_msg = $self->{pending_messages}->{$result->{id}};
+
+    if( $pending_msg ) {
+	# Was a message sent right on the HA_Server entity
+	my $success;
+	my $response;
+	if( $result->{success} ) {
+	    $self->debug( 1, "Received success on request $result->{id}" );
+	    $response = $result->{result}->{response};
+	    $success = 1;
+	} else {
+	    $self->error( "Received FAILURE on request $result->{id}: " . $self->dump( $result ) );
+	    $response = $result->{error};
+	    $success = 0;
+	}
+	if( $pending_msg->{callback} ) {
+            my $response_str = $self->dump( $response, 4 );
+	    $self->debug( 3, "Calling response callback on msg $result->{id} ($success, response, parm) where response is:\n$response_str" );
+	    $pending_msg->{callback}->( $success, $response, $pending_msg->{callback_parm} );
+	}
+	delete $self->{pending_messages}->{$result->{id}};
+    } else {
+	# Was a message sent on an entity
+
+	for my $obj ( @{ $self->{objects} } ) {
+	    if( $obj->{msg_trk}->{pending_msgid} eq $result->{id} ) {
+		# report success or error for the parent item (we don't know which subtype sent the message)
+		if( $obj->{msg_trk}->{item} ) {
+		    $objname = $obj->{msg_trk}->{item}->{object_name};
+		} elsif( $obj->{parent_item} ) {
+		    $objname = $obj->{parent_item}->{object_name};
+		} else {
+		    $objname = $obj->{object_name};
+		}
+		my $success;
+		my $response;
+		if( $result->{success} ) {
+		    $self->debug( 1, "Received success on request $result->{id} for $objname" );
+		    $success = 1;
+		    $response = $result->{result}->{response};
+		} else {
+		    $self->error( "Received FAILURE on request $result->{id} for $objname: " . $self->dump( $result ) );
+		    $success = 0;
+		    $response = $result->{error};
+		}
+		if( $obj->{msg_trk}->{callback} ) {
+		    $obj->{msg_trk}->{callback}->( $success, $response, $obj->{msg_trk}->{callback_parm} );
+		}
+		$obj->{msg_trk}->{callback} = undef;
+		$obj->{msg_trk}->{callback_parm} = undef;
+		$obj->{msg_trk}->{item} = undef;
+		$obj->{msg_trk}->{pending_msgid} = 0;
+		if( $obj->{msg_trk}->{delay_between_messages} ) {
+		    $obj->debug( 2, "Setting delay send timer on $obj->{object_name} to $obj->{msg_trk}->{delay_between_messages}s" );
+		    $obj->{msg_trk}->{msg_delay_timer}->stop();
+		    $obj->{msg_trk}->{msg_delay_timer}->set($obj->{msg_trk}->{delay_between_messages}, sub { $obj->ha_send_message() });
+		    last;
+		} else {
+		    $obj->ha_send_message();
+		}
 	    }
 	}
     }
@@ -979,6 +1067,8 @@ use warnings;
 use JSON qw( decode_json encode_json );   
 
 use Weather_Common;
+use POSIX qw(strftime);
+use Time::Local;
 
 use Data::Dumper;
 
@@ -1034,6 +1124,7 @@ sub new {
     $self->{subtype} = $subtype;    
     $self->{duplicate_states} = 1;
     $self->{unavailable_count} = 0;
+    $self->{options} = {};
     $self->{msg_trk} = {};
     $self->{msg_trk}->{response_check_delay} = 5;
     @{$self->{msg_trk}->{pending_msg_queue}} = ();
@@ -1044,7 +1135,12 @@ sub new {
 	my @option_list = split( '\|', $options );
 	my $delay;
 	foreach my $option (@option_list) {
-	    if( $option eq 'no_duplicate_states' ) {
+	    if( (lc $domain eq "weather" ) ) {
+	        $self->{options}->{weather_noupdate} = 0;
+	        $self->{options}->{weather_primary} = 0;
+	        $self->{options}->{weather_primary} = $entity if ($option =~ m/primary/ );
+	        $self->{options}->{weather_noupdate} = 1 if ($option =~ m/noweatherupdate/ );
+	    } elsif( $option eq 'no_duplicate_states' ) {
 		$self->{duplicate_states} = 0;
 	    } elsif( ($delay) = $option =~ m/delay_between_messages\s*\=\s*(\d+)/ ) {
 		$self->{msg_trk}->{delay_between_messages} = $delay;
@@ -1060,7 +1156,16 @@ sub new {
     } else {
         $self->debug( 1, "New HA_Item ( $class, $domain, $entity, $subtype, [no options] )" );
     }
-    # $self->{attr} = {};
+    if (lc $domain eq 'weather') {
+        if (!defined $self->{ha_server}->{exclusive_objects}->{weather}) {
+            $self->{ha_server}->{exclusive_objects}->{weather} = $entity;
+        } elsif ($self->{options}->{weather_primary}) {
+            $self->{ha_server}->{exclusive_objects}->{weather} = $entity;
+        } else {
+    		$self->error( "Duplicate Weather object found. Will not update MH Weather_Common data from entity: $entity" ) unless ($self->{options}->{weather_noupdate});  
+    	} 
+    	$self->{options}->{weather_primary} = $self->{ha_server}->{exclusive_objects}->{weather};         
+    }
     $self->{subitems} = {};
     if( $domain eq 'switch' ) {
         $self->set_states( "off", "on" );
@@ -1178,6 +1283,7 @@ sub set {
 	$self->level( $setval ) if $self->can( 'level' );
 	$self->SUPER::set( $setval, $p_setby, $p_response );
     } else {
+	# Stash away setparms so we can use them in the SUPER::set call after the HA state change msg received
 	my $setparms = {};
 	$setparms->{mh_pending_setby} = $p_setby;
 	$setparms->{mh_pending_response} = $p_response;
@@ -1193,7 +1299,6 @@ sub set {
     } else {
 	$self->ha_set_state( $setval );
     }
-    $self->{ha_current_setparms} = undef;
 }
 
 sub set_mh_state {
@@ -1236,9 +1341,6 @@ sub process_ha_message {
 	$p_response = $self->{ha_pending_setparms}->{mh_pending_response};
     }
     delete $self->{ha_pending_setparms};
-    # if( !$self->{msg_trk}->{delay_between_messages} ) {
-	# $self->ha_send_message();
-    # }
 
     if( $new_state->{state} eq 'unavailable' ) {
 	$self->debug( 1, "received 'unavailable' value for $objname" );
@@ -1279,39 +1381,54 @@ sub process_ha_message {
 	    $self->set_mh_state( $new_state->{state}, $p_setby, $p_response );
 	}             
     } elsif ( $self->{domain} eq 'weather' ) {
-        my %ha_weather;
-        $ha_weather{TempOutdoor} = $self->{ha_state}->{attributes}->{temperature};
-        $ha_weather{HumidOutdoor} = $self->{ha_state}->{attributes}->{humidity};
-        $ha_weather{LastUpdated} = $self->{ha_state}->{last_updated};
-        $ha_weather{WindAvgSpeed} = $self->{ha_state}->{attributes}->{wind_speed};
-        $ha_weather{WindAvgDir} = $self->{ha_state}->{attributes}->{wind_bearing};
-        $ha_weather{Conditions} = $new_state->{state};        
-        $ha_weather{DewOutdoor} = $self->{ha_state}->{attributes}->{dew_point};
-        $ha_weather{Barom} = $self->{ha_state}->{attributes}->{pressure};
-        $ha_weather{BaromSea} =  &Weather_Common::convert_local_barom_to_sea_mb($self->{ha_state}->{attributes}->{pressure});
+        my $weather_update = 1;
+        
+        if ($self->{options}->{weather_noupdate}) {
+            $weather_update = 0;
+        } elsif ($self->{options}->{weather_primary} ne $self->{ha_server}->{exclusive_objects}->{weather}) {
+            $weather_update = 0;
+            $self->debug( 1, "Duplicate Weather object $objname, not updating weather_common as primary is " . $self->{options}->{weather_primary});
+        }
+        if ($weather_update) {
+            $self->debug( 1, "weather event for $objname set to $new_state->{state}" );
+            my %ha_weather;
+            $ha_weather{TempOutdoor} = $self->{ha_state}->{attributes}->{temperature};
+            $ha_weather{HumidOutdoor} = $self->{ha_state}->{attributes}->{humidity};
+            #Convert HA UTC time to something more user friendly
+            my ($year, $mon, $day, $hour, $min, $sec) = ((split /\D/,$self->{ha_state}->{last_updated})[0..5]);
+            my $time = timegm($sec, $min, $hour, $day, ($mon-1), $year);
+            $ha_weather{LastUpdated} = strftime "%Y-%m-%d %T %Z %z", localtime($time);
+            $ha_weather{LastUpdated_ms} = $time;
+            #$ha_weather{LastUpdated} = $self->{ha_state}->{last_updated};
+            $ha_weather{WindAvgSpeed} = $self->{ha_state}->{attributes}->{wind_speed};
+            $ha_weather{WindAvgDir} = $self->{ha_state}->{attributes}->{wind_bearing};
+            $ha_weather{Conditions} = $new_state->{state};        
+            $ha_weather{DewOutdoor} = $self->{ha_state}->{attributes}->{dew_point};
+            $ha_weather{Barom} = $self->{ha_state}->{attributes}->{pressure};
+            $ha_weather{BaromSea} =  &Weather_Common::convert_local_barom_to_sea_mb($self->{ha_state}->{attributes}->{pressure});
 
-        $ha_weather{IsRaining} = 0;
-        $ha_weather{IsSnowing} = 0;
-        if ($self->{ha_state}->{attributes}->{cloud_coverage} > 90) {
-            $ha_weather{Clouds} = "overcast";
-         } elsif ($self->{ha_state}->{attributes}->{cloud_coverage} > 10) {
-             $ha_weather{Clouds} = "partly cloudy";
-         } else  {
-             $ha_weather{Clouds} = "clear";
-        }
-        if (( lc $new_state->{state} eq "snowy" ) || ( lc $new_state->{state} eq "snowy-rainy" )){
-            $ha_weather{IsSnowing} = 1;
-        }
-        if (( lc $new_state->{state} eq "hail" ) || ( lc $new_state->{state} eq "lightning-rainy" ) || ( lc $new_state->{state} eq "pouring" ) || ( lc $new_state->{state} eq "rainy" )){
-            $ha_weather{IsRaining} = 1;
-        }            
-	    $self->debug( 1, "weather event for $objname set to $new_state->{state}" );
+            $ha_weather{IsRaining} = 0;
+            $ha_weather{IsSnowing} = 0;
+            if ($self->{ha_state}->{attributes}->{cloud_coverage} > 90) {
+                $ha_weather{Clouds} = "overcast";
+            } elsif ($self->{ha_state}->{attributes}->{cloud_coverage} > 10) {
+                $ha_weather{Clouds} = "partly cloudy";
+            } else  {
+                $ha_weather{Clouds} = "clear";
+            }
+            if (( lc $new_state->{state} eq "snowy" ) || ( lc $new_state->{state} eq "snowy-rainy" )){
+                $ha_weather{IsSnowing} = 1;
+            }
+            if (( lc $new_state->{state} eq "hail" ) || ( lc $new_state->{state} eq "lightning-rainy" ) || ( lc $new_state->{state} eq "pouring" ) || ( lc $new_state->{state} eq "rainy" )){
+                $ha_weather{IsRaining} = 1;
+            }
 	    $self->debug( 1, "weather status for $objname: Temp=[" . $ha_weather{TempOutdoor} . "] clouds=[" . $ha_weather{Clouds} . "] Snowing=[" . $ha_weather{IsSnowing} . "] Raining=[" . $ha_weather{IsRaining} . "]" );	    
-	    $self->set_mh_state( $new_state->{state}, $p_setby, $p_response );	  
 	    $Weather_Common::weather_module_enabled=1;  
-        &Weather_Common::populate_internet_weather( \%ha_weather, "TempOutdoor HumidOutdoor WindAvgSpeed LastUpdated WindAvgSpeed WindAvgDir Conditions DewOutdoor Barom BaromSea Clouds IsRaining IsSnowing");
-        &Weather_Common::weather_updated;
-    
+            &Weather_Common::populate_internet_weather( \%ha_weather, "TempOutdoor HumidOutdoor WindAvgSpeed LastUpdated LastUpdated_ms WindAvgSpeed WindAvgDir Conditions DewOutdoor Barom BaromSea Clouds IsRaining IsSnowing");
+            &Weather_Common::weather_updated;            
+        }            
+	$self->debug( 1, "weather event for $objname set to $new_state->{state}" );
+	$self->set_mh_state( $new_state->{state}, $p_setby, $p_response );	  
     } elsif( $self->{domain} eq 'cover' ) {
 	my $level = $new_state->{state};
 	if (lc $self->{subtype} eq "digital") {
@@ -1478,7 +1595,7 @@ sub process_ha_message {
     }
 }
 
-=item C<ha_perform_action(action_name, action_data_hash )>
+=item C<ha_perform_action(action_name, action_data_hash, response_expected, callback, callback_parm )>
 
     Will send a message to HA to perform the action 'action_name' on the entity passing in the
     kwargs parameters specified in action_data_hash.
@@ -1487,11 +1604,17 @@ sub process_ha_message {
 
 =cut
 sub ha_perform_action {
-    my ($self, $action, $action_data) = @_;
+    my ($self, $action, $action_data, $callback, $callback_parm, $return_response) = @_;
     my $ha_msg = {};
     my $entity_id;
     my $action_name;
     my $domain;
+
+    # $self->{ha_current_setparms} will be set if a state change is expected
+
+    if( !defined $return_response ) {
+	$return_response = defined $callback;
+    }
 
     $ha_msg->{type} = 'call_service';
     ($domain, $entity_id, $action_name) = $action =~ /^([^\.]+)\.([^\.]+)\.([^\.]+)$/;
@@ -1517,6 +1640,13 @@ sub ha_perform_action {
         $ha_msg->{service_data} = $action_data;
     }
 
+    $ha_msg->{return_response} = $return_response;
+    $ha_msg->{callback} = $callback;
+    $ha_msg->{callback_parm} = $callback_parm;
+    $ha_msg->{ha_setparms} = $self->{ha_current_setparms};
+    delete $self->{ha_current_setparms};
+    $ha_msg->{item} = $self;
+
     $self->ha_send_message( $ha_msg );
 }
 
@@ -1530,8 +1660,6 @@ sub ha_send_message {
     my ($self, $ha_msg) = @_;
 
     if( $ha_msg ) {
-	$ha_msg->{ha_setparms} = $self->{ha_current_setparms};
-	$ha_msg->{item} = $self;
 	push @{$self->{msg_trk}->{pending_msg_queue}}, $ha_msg;
 	if( $self->{msg_trk}->{pending_msgid} ) {
 	    $self->debug( 1, "message to HA queued" );
@@ -1544,11 +1672,22 @@ sub ha_send_message {
     if( !$ha_msg ) {
 	return;
     }
+
     $self->{ha_pending_setparms} = $ha_msg->{ha_setparms};
     delete $ha_msg->{ha_setparms};
 
     $self->{msg_trk}->{item} = $ha_msg->{item};
     delete $ha_msg->{item};
+
+    if( $ha_msg->{return_response} ) {
+	$ha_msg->{return_response} = JSON::true;
+    } else {
+	delete $ha_msg->{return_response};
+    }
+    $self->{msg_trk}->{callback} = $ha_msg->{callback};
+    delete $ha_msg->{callback};
+    $self->{msg_trk}->{callback_parm} = $ha_msg->{callback_parm};
+    delete $ha_msg->{callback_parm};
 
     $self->{msg_trk}->{pending_msgid} = $self->{ha_server}->ha_process_write( $ha_msg );
     $self->debug( 2, "sent command to HA: " . $self->dump( $ha_msg ) );
