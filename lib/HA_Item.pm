@@ -128,11 +128,11 @@ Description:
                 2. if the MH code doesn't implement all of the HA entity actions, or there
                    are custom actions on the entity, then you can call them with this function
             eg. $thermostat->ha_perform_action( 'set_preset_mode', {preset_mode=>'away'} );
-	- ha_perform_action( $action, $data, \&callback, $parm ) in HA_Server class
+	- ha_perform_action( $action, $data, \&callback, $callback_parm ) in HA_Server class
 	    - this can be used to perform actions that are not entity actions
 	- ha_execute_script( $ha_msg, \&callback, $parm) on HA_Server class
 	    - this is used to define and execute an HA script
-	    - callback will be called with the (msgid, response<hash> )
+	    - callback will be called with the (success, response<hash>, callback_parm )
 
 	Handy ha_perform_action/ha_execute_script code examples:
 	    - Send message to mobile device: $hasrv->ha_perform_action( 'notify.mobile_app_my_phone', {title=>'HA notification', message=>'test message'} );
@@ -142,7 +142,7 @@ Description:
 	    CODE, $fan_light -> set_states ("on","off");
 	    - get weather forecast:
 	    items file:
-	        HA_ITEM, weather_forecast, weather, forecast_home, ha_cottage
+	        HA_ITEM, weather_forecast, weather, forecast_home, ha_server
             user code:
 		$weather_forecast->ha_perform_action( 'get_forecasts', {'type'=>'hourly'}, \&weather_response_callback, "weather_parm" );
 		sub weather_response_callback {
@@ -639,12 +639,15 @@ sub ha_process_read {
 
 =cut
 sub ha_perform_action {
-    my ($self, $action, $action_data, $callback, $parm) = @_;
+    my ($self, $action, $action_data, $callback, $parm, $return_response) = @_;
     my $ha_msg = {};
     my $entity_id;
     my $action_name;
     my $domain;
 
+    if( !defined $return_response ) {
+	$return_response = defined $callback;
+    }
     $ha_msg->{type} = 'call_service';
     ($domain, $entity_id, $action_name) = $action =~ /^([^\.]+)\.([^\.]+)\.([^\.]+)$/;
     if( $entity_id ) {
@@ -667,7 +670,7 @@ sub ha_perform_action {
     if( defined( $action_data )  &&  keys %$action_data) {
         $ha_msg->{service_data} = $action_data;
     }
-    if( $callback ) {
+    if( $return_response ) {
 	$ha_msg->{return_response} = JSON::true;
     }
 
@@ -794,15 +797,21 @@ sub process_result {
 
     if( $pending_msg ) {
 	# Was a message sent right on the HA_Server entity
+	my $success;
+	my $response;
 	if( $result->{success} ) {
 	    $self->debug( 1, "Received success on request $result->{id}" );
-	    my $response = $result->{result}->{response};
-	    if( $pending_msg->{callback} ) {
-		$self->debug( 3, "Calling response callback on msg $result->{id}, " . $self->dump( $response, 5) );
-		$pending_msg->{callback}->( $pending_msg->{callback_parm}, $response );
-	    }
+	    $response = $result->{result}->{response};
+	    $success = 1;
 	} else {
 	    $self->error( "Received FAILURE on request $result->{id}: " . $self->dump( $result ) );
+	    $response = $result->{error};
+	    $success = 0;
+	}
+	if( $pending_msg->{callback} ) {
+            my $response_str = $self->dump( $response, 4 );
+	    $self->debug( 3, "Calling response callback on msg $result->{id} ($success, response, parm) where response is:\n$response_str" );
+	    $pending_msg->{callback}->( $success, $response, $pending_msg->{callback_parm} );
 	}
 	delete $self->{pending_messages}->{$result->{id}};
     } else {
@@ -818,13 +827,19 @@ sub process_result {
 		} else {
 		    $objname = $obj->{object_name};
 		}
+		my $success;
+		my $response;
 		if( $result->{success} ) {
 		    $self->debug( 1, "Received success on request $result->{id} for $objname" );
-		    if( $obj->{msg_trk}->{callback} ) {
-			$obj->{msg_trk}->{callback}->( $obj->{msg_trk}->{callback_parm}, $result->{result}->{response} );
-		    }
+		    $success = 1;
+		    $response = $result->{result}->{response};
 		} else {
 		    $self->error( "Received FAILURE on request $result->{id} for $objname: " . $self->dump( $result ) );
+		    $success = 0;
+		    $response = $result->{error};
+		}
+		if( $obj->{msg_trk}->{callback} ) {
+		    $obj->{msg_trk}->{callback}->( $success, $response, $obj->{msg_trk}->{callback_parm} );
 		}
 		$obj->{msg_trk}->{callback} = undef;
 		$obj->{msg_trk}->{callback_parm} = undef;
@@ -1589,13 +1604,17 @@ sub process_ha_message {
 
 =cut
 sub ha_perform_action {
-    my ($self, $action, $action_data, $callback, $callback_parm) = @_;
+    my ($self, $action, $action_data, $callback, $callback_parm, $return_response) = @_;
     my $ha_msg = {};
     my $entity_id;
     my $action_name;
     my $domain;
 
     # $self->{ha_current_setparms} will be set if a state change is expected
+
+    if( !defined $return_response ) {
+	$return_response = defined $callback;
+    }
 
     $ha_msg->{type} = 'call_service';
     ($domain, $entity_id, $action_name) = $action =~ /^([^\.]+)\.([^\.]+)\.([^\.]+)$/;
@@ -1621,6 +1640,7 @@ sub ha_perform_action {
         $ha_msg->{service_data} = $action_data;
     }
 
+    $ha_msg->{return_response} = $return_response;
     $ha_msg->{callback} = $callback;
     $ha_msg->{callback_parm} = $callback_parm;
     $ha_msg->{ha_setparms} = $self->{ha_current_setparms};
@@ -1659,8 +1679,10 @@ sub ha_send_message {
     $self->{msg_trk}->{item} = $ha_msg->{item};
     delete $ha_msg->{item};
 
-    if( $ha_msg->{callback} ) {
+    if( $ha_msg->{return_response} ) {
 	$ha_msg->{return_response} = JSON::true;
+    } else {
+	delete $ha_msg->{return_response};
     }
     $self->{msg_trk}->{callback} = $ha_msg->{callback};
     delete $ha_msg->{callback};
