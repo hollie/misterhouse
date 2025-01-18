@@ -62,7 +62,7 @@ Description:
     There are several classes implemented in mqtt_items.pm:
 
     mqtt_BaseItem:
-         - is the base class.
+         - is the base class
 
 	mqtt_LocalItem:
 	    - implements an mqtt mh item that is tied to a local item
