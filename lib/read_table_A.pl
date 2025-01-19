@@ -1948,21 +1948,24 @@ sub read_table_A {
        
     }
     elsif( $type eq "MQTT_LOCALITEM" ) {
-	my ($local_obj_name, $broker, $type, $topicprefix, $discoverable, $friendly_name);
-	($name, $local_obj_name, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
+	# $statetopic and $cmndtopic are optional and have defaults based on $type.
+	my ($local_obj_name, $broker, $type, $topicprefix, $discoverable, $friendly_name, $statetopic, $cmndtopic);
+	($name, $local_obj_name, $broker, $type, $topicprefix, $discoverable, $friendly_name, $statetopic, $cmndtopic) = @item_info;
 	require mqtt_items;
 	if( $broker ) {
 	    $broker = '$' . $broker;
 	} else {
 	    $broker = 'undef';
 	}
-	$code .= "\$${name} = new mqtt_LocalItem( ${broker}, '$name', '$type', \$$local_obj_name, '$topicprefix', $discoverable, '$friendly_name' );\n";
+	$code .= "\$${name} = new mqtt_LocalItem( ${broker}, '$name', '$type', \$$local_obj_name, '$topicprefix', $discoverable, '$friendly_name', '$statetopic', '$cmndtopic' );\n";
     }
     elsif( $type eq "MQTT_REMOTEITEM" ) {
-	my ($broker, $type, $topicprefix, $discoverable, $friendly_name);
-	($name, $grouplist, $broker, $type, $topicprefix, $discoverable, $friendly_name) = @item_info;
+	# $statetopic $cmndtopic are optional and have defaults based on $type.
+	($name, $grouplist) = @item_info;	# Need these to stay in scope, so we can assign groups.
+	my ($broker, $type, $topicprefix, $discoverable, $friendly_name, $statetopic, $cmndtopic);
+	($name, $grouplist, $broker, $type, $topicprefix, $discoverable, $friendly_name, $statetopic, $cmndtopic) = @item_info;
 	require mqtt_items;
-	$code .= "\$${name} = new mqtt_RemoteItem( \$${broker}, '$type', '$topicprefix', $discoverable, '$friendly_name' );\n";
+	$code .= "\$${name} = new mqtt_RemoteItem( \$${broker}, '$type', '$topicprefix', $discoverable, '$friendly_name', '$statetopic', '$cmndtopic');\n";
     }
     elsif( $type eq "MQTT_INSTMQTT" ) {
 	my ($broker, $type, $topicprefix, $discoverable, $friendly_name);

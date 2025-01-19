@@ -219,7 +219,10 @@ sub log {
 	}
 	&main::print_log( $prefix . substr($str,0,$i) );
 	$str = substr( $str, $i );
-	$prefix = '....  ';
+
+	# 2024-12: After first pass, add '....  ' once to indicate cont. line. Keep the
+	# original prefix so any log scanning programs have context. -BPM
+	$prefix .= '....  ' if ($prefix !~ /\.\.\.\.  $/);
     }
     &main::print_log( $prefix . $str );
 }
@@ -325,7 +328,7 @@ sub mqtt_connect() {
     ### 6) check for data
     $self->debug( 1, "$$self{instance} Initializing MQTT connection ...");
 
-    $self->set( 'on', $self );
+    $self->set( 'on', 'mqtt::mqtt_connect' );	# 2024-12: Replaced hex hash address with descriptive text in 2nd field.-BPM
 
 }
 
@@ -536,7 +539,7 @@ sub check_for_data {
 
                 # check the state to see if it's off already
 
-                $self->set( 'off', $self );
+                $self->set( 'off', 'mqtt::check_for_data' );	# 2024-12: Replaced hex object address with descriptive text in 2nd field.-BPM
             }
 
             # Skip if we're not connected
@@ -726,8 +729,8 @@ sub set {
         $self->debug( 1, "mqtt set $$self{instance}: [$xStr]");
         $self->debug( 1,
             $self->isa('mqtt')
-            ? "mqtt set $$self{instance}: isa mqtt"
-            : "mqtt set $$self{instance}: is nota mqtt"
+            ? "mqtt set $$self{instance}: is an mqtt object"
+            : "mqtt set $$self{instance}: is not an mqtt object"
         );
     }
 
@@ -769,11 +772,13 @@ sub set {
 sub pub_msg {
     my ( $self, %p_objects ) = @_;
 
+    my $Caller = ((caller(1))[3] // '[undef]');	# Who called us.
+
     # Check for connectivity
     if ( $self->isNotConnected() ) {
 
         # First say something
-        $self->error("$$self{instance} is not connected -- publish failed to $p_objects{topic}");
+        $self->error("$$self{instance} is not connected -- failed to publish to $p_objects{topic}=$p_objects{message}, Caller:$Caller");
 
         # Check_for_data should initiate reconnect
 
@@ -796,7 +801,13 @@ sub pub_msg {
 
         return;
     }
-    $self->debug( 1, "$$self{instance} Pub: R:$p_objects{retain} T:'$p_objects{topic}' M:'$p_objects{message}'" );
+    $self->debug( 1, "$$self{instance} Pub: R:$p_objects{retain} T:'$p_objects{topic}' M:'$p_objects{message}', Caller:$Caller" );
+
+    # Perform a sanity check. A bad topic can cause the MQTT server to hang up on us, losing subsequent messages for 20 seconds.
+    if ($p_objects{topic} =~ /[+# ]/) {
+        $self->error(qq<pub_msg rejecting message from $Caller -- topic name "$p_objects{topic}" is invalid.>);
+        return;
+    }
 
     $self->send_mqtt_msg(%p_objects);
 }

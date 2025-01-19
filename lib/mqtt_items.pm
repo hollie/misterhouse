@@ -62,7 +62,7 @@ Description:
     There are several classes implemented in mqtt_items.pm:
 
     mqtt_BaseItem:
-         - is the base class
+         - is the base class.
 
 	mqtt_LocalItem:
 	    - implements an mqtt mh item that is tied to a local item
@@ -110,7 +110,7 @@ Description:
 		  for this purpose.
 		- see https://github.com/TD22057/insteon-mqtt
 		- can publish HA discovery info, as insteon-mqtt does not implement discovery yet
-    
+
 
     Discovery (mqtt_discovery.pm):
     -----------------------------
@@ -220,9 +220,10 @@ Usage:
 	MQTT_INSTMQTT,	    bootroom_switch,	Lights,		mqtt_1, switch,		insteon/bootroom/+,			    1,		    Bootroom Light
 
 	# Define a Tasmota item.  Note that the topicpattern must be in the order that the device will
-	# send.  This is configured in the Tasmota MQTT configuration. 
+	# send.  This is configured in the Tasmota MQTT configuration. 'statetopic' and 'cmndtopic' are
+	# optional, and will default to good values for Tasmota, but maybe not for other devices.
 	#
-	# MQTT_REMOTEITEM,  name,		groups,		broker, type,		topicpattern,				    discoverable    Friendly Name
+	# MQTT_REMOTEITEM,  name,		groups,		broker, type,		topicpattern,				    discoverable    Friendly Name,	statetopic,	cmndtopic
 	MQTT_REMOTEITEM,    tas_outdoor_plug,	,		mqtt_1, switch,		tasmota_outdoor_plug/+/+,		    0,		    Tasmota Outdoor Plug
 
 
@@ -442,8 +443,8 @@ sub is_dimmable {
 
 =item C<level(p_level)>
 
-Stores and returns the objects current on_level as a percentage. If p_level 
-is ON and the device has a defined local_onlevel, the local_onlevel is stored 
+Stores and returns the objects current on_level as a percentage. If p_level
+is ON and the device has a defined local_onlevel, the local_onlevel is stored
 as the numeric level in memory.
 
 Returns [0-100]
@@ -495,6 +496,58 @@ sub transmit_mqtt_message {
     } else {
 	&mqtt::broadcast_mqtt_message( $topic, $msg, $retain );
     }
+}
+
+=item C<make_topic( $topicpattern, @parms )>
+
+    Make a topic based on a topic pattern and '+' wildcard replacement values.
+    Extra parameters are appended to the end.
+
+    Ex:
+
+        make_topic( '/mh/shop/+/+', 'command', 'power')	# returns '/mh/shop/command/power'
+        make_topic( '/aa/+/bb/+/cc', '1','2','3','4/5')	# returns 'aa/1/bb/2/cc/3/4/5'
+
+
+=cut
+
+sub make_topic {
+    my ( $self, $topicpattern, @parms ) = @_;
+    my $Caller = (caller())[3];
+
+    my (@topic_parts) = split( "/", $topicpattern );
+    my $wildcard_count = 0;
+    for( my $i=0; $i <= $#topic_parts; $i += 1 ) {
+        last if ($wildcard_count > $#parms);	# out of parms - must be done.
+	my $part = $topic_parts[$i];
+	if( $part eq '+' ) {
+	    $topic_parts[$i] = $parms[$wildcard_count];
+	    $wildcard_count += 1;
+	}
+    }
+
+    # Add any extra parms to the end. This allows for flexibility in .mht files, e.g.:
+    # a topic prefix of '/ha/mh/+/+' is the same as '/ha/mh'. Also allows sub-topics
+    # in the second format to be specified as 'command/power' instead of 'command:power',
+    # which is more intuitive for some.
+    push @topic_parts, @parms[$wildcard_count..$#parms]
+        if ($wildcard_count <= $#parms);
+
+    my $NewTopic = join( '/', @topic_parts );
+
+    # Help diagnose mis-constructed topics. Otherwise, the server just hangs up on us
+    # and we don't know why.
+    if ($NewTopic =~ /\+/) {
+        &main::print_log(		# Don't want to use print_log, but no $self available.
+               "[MQTT] Error: make_topic called by $Caller  with insufficient parms. "
+             . "Pattern=$topicpattern, parms="
+             . join(', ',@parms)
+             . "\n"
+        );
+        $NewTopic =~ s/\+/_UNKN_/g;	# This is the wrong topic now, but the MQTT server won't hang up at least.
+    }
+
+    return $NewTopic;
 }
 
 sub process_template {
@@ -654,10 +707,11 @@ sub encode_mqtt_payload {
     $value_on = 'ON' if !defined $value_on;
     $value_off = 'OFF' if !defined $value_off;
 
+    $setval =~ s/%$//;	# Strip % if present; make things simpler all around.
     $brightness_scale = $self->{disc_info}->{brightness_scale} || 255;
     my $level;
     if( $self->{mqtt_type} eq 'light' ) {
-	($level) = $setval =~ /^([1]?[0-9]?[0-9])%?$/;
+	($level) = $setval =~ /^(\d|\d\d|100)$/;	# 0-100. Old regex allowed 0-199%.
     }
     if( $self->{mqtt_type} eq 'sensor'
     ||  $self->{mqtt_type} eq 'select'
@@ -678,14 +732,14 @@ sub encode_mqtt_payload {
 	    $value = $value_on;
 	}
 	$brightness = int( ( $level * $brightness_scale / 100 ) + .5 );
-    } elsif( $setval eq 'on' ) {
+    } elsif( $setval =~ /^(on|on_fast|100)$/ ) {
 	$value = $value_on;
 	$brightness = $brightness_scale;
     } elsif( $setval eq 'off' ) {
 	$value = $value_off;
 	$brightness = 0;
     } else {
-	$self->error( "Unknown set value '$setval' for on/off/level mqtt type" );
+	$self->error( "$self->{mqtt_name}: Unknown set value '$setval' for mqtt type '$self->{mqtt_type}'" );
 	return;
     }
 
@@ -699,7 +753,7 @@ sub encode_mqtt_payload {
 		$payload = $brightness;
 	    }
 	}
-    } elsif( $self->{mqtt_type} eq 'switch' 
+    } elsif( $self->{mqtt_type} eq 'switch'
     ||       $self->{mqtt_type} eq 'binary_sensor'
     ||       $self->{mqtt_type} eq 'scene'
     ) {
@@ -953,10 +1007,11 @@ sub publish_discovery_message {
 
     $interface = $self->{interface};
     if( !$self->{interface}->isConnected() ) {
-	$self->error( "Unable to publish discovery data -- $interface->{instance} not connected" );
+	$self->error( "Unable to publish $self->{mqtt_name} discovery data -- $interface->{instance} not connected" );
 	return 0;
     }
     if( !$self->{interface}->{discovery_publish_prefix} ) {
+	$self->debug( 2, "Skipped: ".  $self->{mqtt_name} . ' -- interface has no discovery prefix.' );
 	return 0;
     }
     if( !$self->{discoverable} ) {
@@ -964,6 +1019,7 @@ sub publish_discovery_message {
 	return 0;
     }
     if( $self->{mqtt_type} eq 'discovery' ) {
+	$self->debug( 2, "Skipped: ".  $self->{mqtt_name} . ' -- discovery flag not set.' );
 	return 0;
     }
 
@@ -992,21 +1048,21 @@ use Hash::Merge;
 @mqtt_LocalItem::ISA = ( 'mqtt_BaseItem' );
 
 
-=item C<new(mqtt_interface, name, type, local_object, topic_prefix, discoverable, friendly_name)>
+=item C<new(mqtt_interface, name, type, local_object, topic_prefix, discoverable, friendly_name, state_topic, cmnd_topic)>
 
     Creates a MQTT Local Item/object that will publish state information of the local object and respond to mqtt commands for the object
 
 =cut
 
 sub new {     ### mqtt_LocalItem
-    my ( $class, $interface, $name, $type, $local_object, $topicpattern, $discoverable, $friendly_name ) = @_;
+    my ( $class, $interface, $name, $type, $local_object, $topicpattern, $discoverable, $friendly_name, $statetopic, $cmndtopic ) = @_;
 
     my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
 
     #auto populate type and class if the object has these elements embedded, but don't override explicitly set definitions
     $base_type = $local_object->{mqttlocalitem}->{base_type} if ((defined $local_object->{mqttlocalitem}->{base_type} ) and (!$type));
     $device_class = $local_object->{mqttlocalitem}->{device_class} if ((defined $local_object->{mqttlocalitem}->{device_class} ) and (!$device_class));
-       
+
     if( !grep( /^$base_type$/, ('light','switch','binary_sensor', 'sensor', 'scene', 'select', 'text', 'number', 'cover' ) ) ) {
 	$interface->error( "Invalid mqtt type '$type'" );
 	return;
@@ -1039,8 +1095,14 @@ sub new {     ### mqtt_LocalItem
     bless $self, $class;
 
     $self->{node_id} = $node_id;
-    $self->debug( 1, "New mqtt_LocalItem( $interface->{instance}, '$mqtt_name', '$type', '$local_object', '$topicpattern', $discoverable, '$friendly_name' )" );
-    $self->debug( 1,"Base_type=[$base_type] Device_Class=[$device_class]");
+    $self->debug( 1,
+        "New mqtt_LocalItem( $interface->{instance}, '$mqtt_name', '$type', '$local_object', "
+        . "'$topicpattern', $discoverable, '$friendly_name', "
+        . "'" . ($statetopic//'[undef]') . "', "
+        . "'" . ($cmndtopic//'[undef]')
+        . ", Base_type=[$base_type], Device_Class=[$device_class]"
+        . "' )"
+    );
 
     $self->{disc_info} = {};
     if( !$friendly_name ) {
@@ -1048,21 +1110,26 @@ sub new {     ### mqtt_LocalItem
 	$friendly_name =~ s/_/ /g;
     }
     $self->{disc_info}->{name} = $friendly_name;
-    $self->{disc_info}->{state_topic} = "$topic_prefix/state";
+    $statetopic ||= 'state';
+    $self->{disc_info}->{state_topic} = $self->make_topic($topic_prefix,split(':',$statetopic));
     if( $base_type eq 'light' ) {
-	$self->{disc_info}->{command_topic} = "$topic_prefix/level";
+	$cmndtopic ||= 'level';
+	$self->{disc_info}->{command_topic} = $self->make_topic($topic_prefix,split(':',$cmndtopic));
 	$self->{disc_info}->{schema} = 'json';
 	$self->{disc_info}->{brightness} = "true";
 	$self->{disc_info}->{brightness_scale} = 100;
     } elsif( $base_type eq 'switch' ) {
-	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
-	} elsif( $base_type eq 'cover' ) {
-	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
+	$cmndtopic ||= 'set';
+	$self->{disc_info}->{command_topic} = $self->make_topic($topic_prefix,split(':',$cmndtopic));
+    } elsif( $base_type eq 'cover' ) {
+	$cmndtopic ||= 'set';
+	$self->{disc_info}->{command_topic} = $self->make_topic($topic_prefix,split(':',$cmndtopic));
 	if( $device_class ) {
 	    $self->{disc_info}->{device_class} = $device_class;
 	}
     } elsif( $base_type eq 'scene' ) {
-	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
+	$cmndtopic ||= 'set';
+	$self->{disc_info}->{command_topic} = $self->make_topic($topic_prefix,split(':',$cmndtopic));
 	delete $self->{disc_info}->{state_topic};
     } elsif( $base_type eq 'binary_sensor' ) {
 	if( $device_class ) {
@@ -1076,15 +1143,18 @@ sub new {     ### mqtt_LocalItem
 	    $self->{disc_info}->{unit_of_measurement} = 'C';
 	}
     } elsif( $base_type eq 'select' ) {
-	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
+	$cmndtopic ||= 'set';
+	$self->{disc_info}->{command_topic} = $self->make_topic($topic_prefix,split(':',$cmndtopic));
 	if( $local_object ) {
 	    my @state_list = $local_object->get_states();
 	    $self->{disc_info}->{options} = \@state_list;
 	}
     } elsif( $base_type eq 'text' ) {
-	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
+	$cmndtopic ||= 'set';
+	$self->{disc_info}->{command_topic} = $self->make_topic($topic_prefix,split(':',$cmndtopic));
     } elsif( $base_type eq 'number' ) {
-	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
+	$cmndtopic ||= 'set';
+	$self->{disc_info}->{command_topic} = $self->make_topic($topic_prefix,split(':',$cmndtopic));
     }
 
     $self->{is_local} = 1;
@@ -1328,7 +1398,7 @@ sub receive_mqtt_message {
 
     $self->debug( 2, "remote item $self->{object_name} received message R:$retained T:$topic  M:$message" );
 
-    if( $topic eq $self->{disc_info}->{command_topic} 
+    if( $topic eq $self->{disc_info}->{command_topic}
     ||  $topic eq $self->{disc_info}->{brightness_command_topic}
     ||  $topic eq $self->{disc_info}->{color_temp_command_topic}
     ||  $topic eq $self->{disc_info}->{effect_command_topic}
@@ -1342,7 +1412,7 @@ sub receive_mqtt_message {
     }
 
 
-    if( $topic eq $self->{disc_info}->{state_topic} 
+    if( $topic eq $self->{disc_info}->{state_topic}
     ||  $topic eq $self->{disc_info}->{brightness_state_topic}
     ) {
 	if( $self->{disc_info}->{optimistic} eq 'true'  &&  $self->{pending_state} ) {
@@ -1509,29 +1579,16 @@ use Data::Dumper;
 @mqtt_RemoteItem::ISA = ( 'mqtt_BaseRemoteItem' );
 
 
-=item C<new(mqtt_interface, name, type, topicpattern, discoverable, friendly_name)>
+=item C<new(mqtt_interface, name, type, topicpattern, discoverable, friendly_name, statetopic, $cmndtopic)>
 
     Creates a MQTT RemoteItem/object that will mirror the state of the object, and send commands to it.
 
+    Note: statetopic and cmndtopic are all optional MQTT topics that have existing defaults.
+
 =cut
 
-sub make_topic {
-    my ( $topicpattern, @parms ) = @_;
-
-    my (@topic_parts) = split( "/", $topicpattern );
-    my $wildcard_count = 0;
-    for( my $i=0; $i <= $#topic_parts; $i += 1 ) {
-	my $part = $topic_parts[$i];
-	if( $part eq '+' ) {
-	    $topic_parts[$i] = $parms[$wildcard_count];
-	    $wildcard_count += 1;
-	}
-    }
-    return join( '/', @topic_parts );
-}
-
 sub new {      ### mqtt_RemoteItem
-    my ( $class, $interface, $type, $topicpattern, $discoverable, $friendly_name ) = @_;
+    my ( $class, $interface, $type, $topicpattern, $discoverable, $friendly_name, $statetopic, $cmndtopic ) = @_;
 
     my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
 
@@ -1577,41 +1634,47 @@ sub new {      ### mqtt_RemoteItem
     }
     $self->{disc_info}->{name} = $friendly_name;
     if( $wildcard_count == 2 ) {
-	$self->{disc_info}->{availability_topic} = make_topic( $listen_topic, 'tele', 'LWT' );
-	$self->{disc_info}->{payload_available} = 'online';
-	$self->{disc_info}->{payload_not_available} = 'offline';
+	$self->{disc_info}->{availability_topic} = $self->make_topic( $listen_topic, 'tele', 'LWT' );
+	$self->{disc_info}->{payload_available} = 'Online';
+	$self->{disc_info}->{payload_not_available} = 'Offline';
     }
     if( $base_type eq 'switch' ) {
-	if( $wildcard_count != 2 ) {
+	if( $wildcard_count != 2 and !$statetopic) {
 	    $self->error( "Don't know how to create switch topics for '$friendly_name'" );
 	}
-	$self->{disc_info}->{command_topic} = make_topic( $listen_topic, 'cmnd', 'POWER' );
-	$self->{disc_info}->{state_topic} = make_topic( $listen_topic, 'stat', 'POWER' );
+	$cmndtopic       ||= 'cmnd:POWER';	# Default is Tasmota norms to maintain backward compatibility.
+	$statetopic      ||= 'stat:POWER';	# Default is Tasmota norms to maintain backward compatibility.
+	$self->{disc_info}->{command_topic} = $self->make_topic( $listen_topic, split(':',$cmndtopic));
+	$self->{disc_info}->{state_topic} = $self->make_topic( $listen_topic, split(':',$statetopic));
     } elsif( $base_type eq 'light' ) {
 	if( $wildcard_count != 2 ) {
 	    $self->error( "Don't know how to create light topics for '$friendly_name'" );
 	}
-	$self->{disc_info}->{command_topic} = make_topic( $listen_topic, 'cmnd', 'POWER' );
-	$self->{disc_info}->{state_topic} = make_topic( $listen_topic, 'tele', 'STATE' );
+	$cmndtopic       ||= 'cmnd:POWER';	# Default is Tasmota norms to maintain backward compatibility.
+	$statetopic      ||= 'tele:STATE';	# Default is Tasmota norms to maintain backward compatibility.
+	$self->{disc_info}->{command_topic} = $self->make_topic( $listen_topic, split(':',$cmndtopic));
+	$self->{disc_info}->{state_topic} = $self->make_topic( $listen_topic, split(':',$statetopic));
 	$self->{disc_info}->{state_value_template} = '{{value_json.POWER}}';
-	$self->{disc_info}->{brightness_state_topic} = make_topic( $listen_topic, 'tele', 'STATE' );
+	$self->{disc_info}->{brightness_state_topic} = $self->make_topic( $listen_topic, 'tele', 'STATE' );
 	$self->{disc_info}->{brightness_value_template} = '{{value_json.Dimmer}}';
 	$self->{disc_info}->{brightness_scale} = 100;
-	$self->{disc_info}->{brightness_command_topic} = make_topic( $listen_topic, 'cmnd', 'Dimmer' );
+	$self->{disc_info}->{brightness_command_topic} = $self->make_topic( $listen_topic, 'cmnd', 'Dimmer' );
 	$self->{disc_info}->{on_command_type} = 'brightness';
     } elsif( $base_type eq 'binary_sensor' ) {
 	# Motion sensor config as defined here: https://blakadder.com/pir-in-tasmota/
-	$self->{disc_info}->{state_topic} = make_topic( $listen_topic, 'tele', 'MOTION' );
+	$statetopic      ||= 'tele:MOTION';	# Default is Tasmota norms to maintain backward compatibility.
+	$self->{disc_info}->{state_topic} = $self->make_topic( $listen_topic, split(':',$statetopic));	# Default is Tasmota norms to maintain backward compatibility.
 	$self->{disc_info}->{payload_on} = 1;
 	$self->{disc_info}->{device_class} = $device_class;
 	$self->{disc_info}->{force_update} = 'true';
 	$self->{disc_info}->{off_delay} = 30;
     } elsif( $base_type eq 'sensor' ) {
-	$self->{disc_info}->{state_topic} = make_topic( $listen_topic, 'tele', 'STATE' );
+	$statetopic      ||= 'tele:STATE';	# Default is Tasmota norms to maintain backward compatibility.
+	$self->{disc_info}->{state_topic} = $self->make_topic( $listen_topic, split(':',$statetopic));	# Default is Tasmota norms to maintain backward compatibility.
 	$self->{disc_info}->{device_class} = $device_class;
 	$self->{disc_info}->{force_update} = 'true';
     } else {
-	$self->error( "TasmotaItem type '$type' not supported yet" );
+	$self->error( "RemoteItem type '$type' not supported yet" );
 	return;
     }
     $self->{disc_info}->{unique_id} = 'tasmota_' . $self->{mqtt_name};
@@ -1659,7 +1722,7 @@ sub new {      ### mqtt_InstMqttItem
     if( !$mqtt_name ) {
 	$interface->error( "Unrecognized topic pattern '$topicpattern' for device '$friendly_name'" );
     }
-    my $listen_topic = "$topic_prefix/+"; 
+    my $listen_topic = "$topic_prefix/+";
 
     my $self = new mqtt_BaseRemoteItem( $interface, $mqtt_name, $base_type, $listen_topic, $discoverable );
 
@@ -1717,4 +1780,3 @@ sub new {      ### mqtt_InstMqttItem
 
 # -[ Fini ]---------------------------------------------------------------------
 1;
-
