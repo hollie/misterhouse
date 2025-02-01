@@ -735,7 +735,7 @@ sub encode_mqtt_payload {
     } elsif( $setval =~ /^(on|on_fast|100)$/ ) {
 	$value = $value_on;
 	$brightness = $brightness_scale;
-    } elsif( $setval eq 'off' ) {
+    } elsif( $setval =~ /^(off|off_fast|0)$/ ) {
 	$value = $value_off;
 	$brightness = 0;
     } else {
