@@ -1746,7 +1746,7 @@ sub ha_set_climate {
 	}
     } else {
         my $action_name = $self->{subtype};
-        if( !action_name ) {
+        if( !$action_name ) {
             $action_name = 'hvac_mode';
         }
         $action = "set_${action_name}";
