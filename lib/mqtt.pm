@@ -280,6 +280,7 @@ sub mqtt_connect() {
     # 20-12-2020 added registration of mqtt Last Will and Testament if defined in mh.ini
     $self->send_mqtt_msg(
         message_type     => MQTT_CONNECT,
+        client_id        => "misterhouse_$$",
         keep_alive_timer => $self->{keep_alive_timer},
 	user_name	 => $self->{user_name},
 	password	 => $self->{password},
