@@ -40,6 +40,15 @@ License:
 
 Usage:
 
+    ######################
+    NOTE:  mqtt_Item and MQTT_DEVICE are older technology.  They implement essentially a 1-1
+           object to mqtt message model.
+
+	   SEE mqtt_items.pm for MH item implementations where the MH item handles all messages
+	   for an mqtt device.  mqtt_items.pm uses the same mqtt server object.  See documentation
+	   in mqtt_items.pm.
+    ######################
+
     .mht file:
 
         # MQTT stuff
@@ -248,7 +257,7 @@ sub error {
 sub mqtt_connect() {
     my ($self) = @_;
 
-    $self->log( "$self->{instance} connect Socket ($$self{host}:$$self{port},$$self{keep_alive_timer}) Topic ($$self{topic}) ");
+    $self->log( "$self->{instance} connecting to ($$self{host}:$$self{port},$$self{keep_alive_timer}) Topic ($$self{topic}) ");
 
     ### 1) open a socket (host, port and keepalive
     my $socket = IO::Socket::INET->new(
@@ -262,7 +271,7 @@ sub mqtt_connect() {
 
     if ( !defined($socket) ) {
         if ($$self{recon_timer}->inactive) {
-            $self->debug( 1, "mqtt connection for $$self{instance} failed, I will try to reconnect in 20 seconds");
+            $self->debug( 1, "mqtt connection for $$self{instance} failed, will try to reconnect in 20 seconds");
             my $inst = $$self{instance};
             $$self{recon_timer}->set( 20, sub { $MQTT_Data{$inst}{self}->mqtt_connect() } );
             return;
@@ -1304,7 +1313,9 @@ sub publish_discovery_data {
     }
     $self->log( "Publishing discovery data" );
     for my $obj ( @{ $self->{objects} } ) {
-	$obj->publish_discovery_message();
+	if( $obj->can( 'publish_discovery_message' ) ) {
+	    $obj->publish_discovery_message();
+	}
     }
     return 1;
 }
