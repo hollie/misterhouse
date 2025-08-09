@@ -279,7 +279,7 @@ sub convert_level {
     my $level = 'ff';
     if ( defined($on_level) ) {
         $on_level =~ s/(\d+)%?/$1/;
-        $level = sprintf( '%02X', int( ( $on_level * 2.55 ) + .5 ) );
+        $level = sprintf('%02X', int($on_level / 100 * 255 + 0.5));
     }
     return $level;
 }
