@@ -1689,14 +1689,13 @@ fan device.  All other instances are handed off to the C<Insteon::BaseObject>.
 sub is_acknowledged {
     my ( $self, $p_ack ) = @_;
     my $parent = $self->get_root();
-    if ( $p_ack && $$parent{child_pending_state} ) {
-        my $child_obj = Insteon::get_object( $self->device_id, '02' );
+    my $child_obj = Insteon::get_object( $self->device_id, '02' );
+    if ( $p_ack  && $$child_obj{pending_state} ) {
         $child_obj->set_receive( $$child_obj{pending_state}, $$child_obj{pending_setby}, $$child_obj{pending_response} ) if defined $$child_obj{pending_state};
         $$child_obj{is_acknowledged}  = $p_ack;
         $$child_obj{pending_state}    = undef;
         $$child_obj{pending_setby}    = undef;
         $$child_obj{pending_response} = undef;
-        $$parent{child_pending_state} = undef;
         &::print_log( "[Insteon::FanLinc] received command/state acknowledge from " . $child_obj->{object_name} )
           if $self->debuglevel( 1, 'insteon' );
         return $$self{is_acknowledged};
