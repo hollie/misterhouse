@@ -943,7 +943,7 @@ sub parse_data_to_obj {
 
     $self->debug( 3, "Msg object: " . Dumper( $msg ) );
 
-    if( !length($msg->{message}) ) {
+    if( !length($msg->{message}) && $msg->{retain} ) {
 	# cleanup message -- ignore
 	return;
     }
