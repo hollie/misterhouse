@@ -119,7 +119,9 @@ Description:
 	    - delay_between_messages=n
 		- system will wait n seconds after the response from one message before the
 		  next message is sent
-		- OpenSprinkler is the only device we have seen to date that needs this
+		- the only devices we have seen to date that needs this
+		    - OpenSprinkler
+		    - ESPHome minisplit SLWF-01Pro
     Some useful functions:
         - ha_perform_action on an HA_Item can be used to generically perform an action on an entity
             - this can be used for 2 different things:
@@ -557,7 +559,7 @@ sub check_for_data {
 
 sub ha_process_write {
     my ($self, $data) = @_;
-    my $msgid;
+    my $msgid = 0;
 
     if( $data->{type} ne 'auth' ) {
 	$data->{id} = $msgid = ++$self->{next_id};
@@ -567,7 +569,7 @@ sub ha_process_write {
 	$self->error( "$self->{name} doing write, but socket is disconnected" );
         return;
     }
-    $self->debug( 1, "sending data to ha: $data" );
+    $self->debug( 1, "sending msg $msgid to ha: $data" );
     $self->{ws_client}->write( $data );
     return $msgid;
 }
@@ -834,7 +836,10 @@ sub process_result {
 		    $success = 1;
 		    $response = $result->{result}->{response};
 		} else {
-		    $self->error( "Received FAILURE on request $result->{id} for $objname: " . $self->dump( $result ) );
+		    my $errstr = "Received FAILURE on request $result->{id} for $objname -- ";
+		    $errstr .= "\nrequest:\n" . $self->dump( $obj->{msg_trk}->{pending_msg} );
+		    $errstr .= "\nresult:\n" .  $self->dump( $result );
+		    $self->error( $errstr );
 		    $success = 0;
 		    $response = $result->{error};
 		}
@@ -844,6 +849,7 @@ sub process_result {
 		$obj->{msg_trk}->{callback} = undef;
 		$obj->{msg_trk}->{callback_parm} = undef;
 		$obj->{msg_trk}->{item} = undef;
+		$obj->{msg_trk}->{pending_msg} = undef;
 		$obj->{msg_trk}->{pending_msgid} = 0;
 		if( $obj->{msg_trk}->{delay_between_messages} ) {
 		    $obj->debug( 2, "Setting delay send timer on $obj->{object_name} to $obj->{msg_trk}->{delay_between_messages}s" );
@@ -1162,7 +1168,7 @@ sub new {
         } elsif ($self->{options}->{weather_primary}) {
             $self->{ha_server}->{exclusive_objects}->{weather} = $entity;
         } else {
-    		$self->error( "Duplicate Weather object found. Will not update MH Weather_Common data from entity: $entity" ) unless ($self->{options}->{weather_noupdate});  
+    	    $self->error( "Duplicate Weather object found. Will not update MH Weather_Common data from entity: $entity" ) unless ($self->{options}->{weather_noupdate});
     	} 
     	$self->{options}->{weather_primary} = $self->{ha_server}->{exclusive_objects}->{weather};         
     }
@@ -1388,7 +1394,9 @@ sub process_ha_message {
         } elsif ($self->{options}->{weather_primary} ne $self->{ha_server}->{exclusive_objects}->{weather}) {
             $weather_update = 0;
             $self->debug( 1, "Duplicate Weather object $objname, not updating weather_common as primary is " . $self->{options}->{weather_primary});
-        }
+        } elsif ( !defined($new_state->{state})  ||  $new_state->{state} eq 'unavailable' ) {
+            $weather_update = 0;
+	}
         if ($weather_update) {
             $self->debug( 1, "weather event for $objname set to $new_state->{state}" );
             my %ha_weather;
@@ -1689,6 +1697,7 @@ sub ha_send_message {
     $self->{msg_trk}->{callback_parm} = $ha_msg->{callback_parm};
     delete $ha_msg->{callback_parm};
 
+    $self->{msg_trk}->{pending_msg} = $ha_msg;
     $self->{msg_trk}->{pending_msgid} = $self->{ha_server}->ha_process_write( $ha_msg );
     $self->debug( 2, "sent command to HA: " . $self->dump( $ha_msg ) );
     $self->{msg_trk}->{msg_response_timer}->stop();
