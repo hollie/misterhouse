@@ -330,7 +330,7 @@ sub set_state {
 	    $state = $state . '%';
 	}
 
-	$self->debug( 1, "setting object $realname to state '$state'" );
+	$self->debug( 1, "setting object $realname to state '$state' using '$sub' sub" );
 
 	$mh_object->$sub( $state, 'AoGSmartHome' );
 
