@@ -504,14 +504,21 @@ sub speak_text {
     	print "*** PIPER ***\n\n" if $main::Debug{voice};
     	print "to_file=$parms{to_file} text=$parms{text} async=$parms{async} play=$parms{play};\n" if $main::Debug{voice};
     	my $cmd = 'echo "' . $parms{text} . '" |';
-    	$cmd .= $main::config_parms{piper_path} . "/piper -q";
+    	$cmd .= $main::config_parms{piper_path} . "/piper";
+    	$cmd .= " -q" .  $main::config_parms{piper_quiet} if (defined  $main::config_parms{piper_quiet});    	
     	$cmd .= " --model " . $main::config_parms{piper_model_path} . "/" . $main::config_parms{piper_model};
     	$cmd .= " --speaker " .  $main::config_parms{piper_speaker} if (defined  $main::config_parms{piper_speaker});
     
     	if (defined $parms{to_file}) {
     		# create a file for mh to play
     		#figure out how to fork this to prevent pauses?
-    	 	$cmd .= " --output_file " . $parms{to_file};
+    		if (defined $main::config_parms{piper_sox_stereo} and $main::config_parms{piper_sox_stereo} > 0) {
+    		    print "piper sox conversion to stereo file enabled\n" if $main::Debug{voice};
+    			$cmd .= " --output_raw ";
+    			$cmd .= "| sox -t raw -b 16 -r 22.05k -e signed - -c 2 " . $parms{to_file};
+    		} else {
+    	 		$cmd .= " --output_file " . $parms{to_file};
+    	 	}
     	 	print "cmd=$cmd\n" if $main::Debug{voice};
     	 	$cmd .= " > /dev/null 2>&1";
         	my $r = system $cmd;
