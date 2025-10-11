@@ -216,14 +216,14 @@ Usage:
 	# Used to define mqtt items as published by insteon-mqtt project or as published
 	# by another instance of MisterHouse which has defined MQTT_LOCALITEMs.
 	#
-	# MQTT_INSTMQTT,    name,		groups,		broker, type,		topicpattern,				    discoverable    Friendly Name
+	# MQTT_INSTMQTT,    name,		groups,		broker, type,		topicpattern,				    discoverable    [Area:]Friendly Name
 	MQTT_INSTMQTT,	    bootroom_switch,	Lights,		mqtt_1, switch,		insteon/bootroom/+,			    1,		    Bootroom Light
 
 	# Define a Tasmota item.  Note that the topicpattern must be in the order that the device will
 	# send.  This is configured in the Tasmota MQTT configuration. 'statetopic' and 'cmndtopic' are
 	# optional, and will default to good values for Tasmota, but maybe not for other devices.
 	#
-	# MQTT_REMOTEITEM,  name,		groups,		broker, type,		topicpattern,				    discoverable    Friendly Name,	statetopic,	cmndtopic
+	# MQTT_REMOTEITEM,  name,		groups,		broker, type,		topicpattern,				    discoverable    [Area:]Friendly Name,	statetopic,	cmndtopic
 	MQTT_REMOTEITEM,    tas_outdoor_plug,	,		mqtt_1, switch,		tasmota_outdoor_plug/+/+,		    0,		    Tasmota Outdoor Plug
 
 
@@ -234,8 +234,8 @@ Usage:
 	# TopicPattern should be of the form "<node_id>/<mqtt name>/+".
 	# *** This can be used to publish local MH items to Home Assistant.
 	#
-	# MQTT_LOCALITEM,   name,		local item,	broker, type,		topicpattern,				    discoverable    Friendly Name
-	MQTT_LOCALITEM,	    bootroom_switch,	shed_light,	mqtt_1, switch,		insteon/bootroom/+,			    1,		    Bootroom Light
+	# MQTT_LOCALITEM,   name,		local item,	broker, type,		topicpattern,				    discoverable    [Area:]Friendly Name
+	MQTT_LOCALITEM,	    bootroom_switch,	shed_light,	mqtt_1, switch,		insteon/bootroom/+,			    1,		    Bootroom:Bootroom Light
 	#
 
 
@@ -413,6 +413,24 @@ sub dump {
     return $dumper->Dump();
 }
 
+
+sub split_friendly_name {
+    my ($friendly_name, $default_name) = @_;
+    my $area_name;
+
+    if( !$friendly_name ) {
+	$friendly_name = $default_name;
+	$friendly_name =~ s/_/ /g;
+    }
+    if( $friendly_name ) {
+	($area_name, $friendly_name) = split( ':', $friendly_name );
+	if( !defined $friendly_name ) {
+	    $friendly_name = $area_name;
+	    $area_name = undef;
+	}
+    }
+    return ($area_name, $friendly_name);
+}
 
 =item C<set_object_debug( level )>
 
@@ -701,6 +719,9 @@ sub encode_mqtt_payload {
     if( $topic eq $self->{disc_info}->{state_topic} ) {
 	$value_on = $self->{disc_info}->{state_on};
 	$value_off = $self->{disc_info}->{state_off};
+    } elsif( $topic eq $self->{disc_info}->{restart_topic} ) {
+	$payload = $setval;
+	return $payload;
     }
     $value_on = $self->{disc_info}->{payload_on} if !defined $value_on;
     $value_off = $self->{disc_info}->{payload_off} if !defined $value_off;
@@ -762,6 +783,17 @@ sub encode_mqtt_payload {
 	$self->error( "Unknown object type '$$self{mqtt_type}' on object '$$self{mqtt_name}'" );
     }
     return $payload;
+}
+
+=item C<add_discovery_info( extra_disc_info )>
+    Add the contents of the hash extra_disc_info to the discovery information for the object
+=cut
+
+sub add_discovery_info {
+    my ($self,$extra_disc_info) = @_;
+
+    my $merger = Hash::Merge->new( 'RIGHT_PRECEDENT' );
+    $self->{disc_info} = $merger->merge( $self->{disc_info}, $extra_disc_info );
 }
 
 my $short_name_map = {
@@ -1056,8 +1088,8 @@ use Hash::Merge;
 
 sub new {     ### mqtt_LocalItem
     my ( $class, $interface, $name, $type, $local_object, $topicpattern, $discoverable, $friendly_name, $statetopic, $cmndtopic ) = @_;
-
     my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
+    my $area_name;
 
     #auto populate type and class if the object has these elements embedded, but don't override explicitly set definitions
     $base_type = $local_object->{mqttlocalitem}->{base_type} if ((defined $local_object->{mqttlocalitem}->{base_type} ) and (!$type));
@@ -1104,12 +1136,12 @@ sub new {     ### mqtt_LocalItem
         . "' )"
     );
 
+    ($area_name,$friendly_name) = $self->split_friendly_name( $friendly_name, $mqtt_name );
     $self->{disc_info} = {};
-    if( !$friendly_name ) {
-	$friendly_name = $self->{mqtt_name};
-	$friendly_name =~ s/_/ /g;
-    }
     $self->{disc_info}->{name} = $friendly_name;
+    if( $area_name ) {
+	$self->{disc_info}->{device} = {name=>'$area_name', identifiers=>['$area_name'], suggested_area=>'$area_name'};
+    }
     $statetopic ||= 'state';
     $self->{disc_info}->{state_topic} = $self->make_topic($topic_prefix,split(':',$statetopic));
     if( $base_type eq 'light' ) {
@@ -1176,9 +1208,6 @@ sub new {     ### mqtt_LocalItem
 	$self->{disc_info}->{unique_id} =~ s/ /_/g;
     }
 
-    # $self->create_discovery_message();
-
-
     # my $d = Data::Dumper->new( [$self] );
     # $d->Maxdepth( 3 );
     # $self->debug( 3, "locale item created: \n" . $d->Dump );
@@ -1186,26 +1215,6 @@ sub new {     ### mqtt_LocalItem
 
     # We may need flags to deal with XML, JSON or Text
     return $self;
-}
-
-sub add_discovery_info {
-    my ($self,$extra_disc_info) = @_;
-
-    my $merger = Hash::Merge->new( 'RIGHT_PRECEDENT' );
-    $self->{disc_info} = $merger->merge( $self->{disc_info}, $extra_disc_info );
-
-#    foreach my $key (keys %{$extra_disc_info}) {
-#	if( exists $extra_disc_info  &&  ref $extra_disc_info->{$key} eq 'HASH' ) {
-#	    if( !exists $self->{disc_info}->{$key} ) {
-#		$self->{disc_info}->{$key} = {};
-#	    }
-#	    for my $key2 (keys %{$extra_disc_info->{
-#
-#	if( exists $self->{disc_info}->{$key} ) {
-#	    $self->log( "Overriding $key in discovery info for: $self->{object_name}" );
-#	}
-#	$self->{disc_info}->{$key} = $extra_disc_info->{$key};
-#    }
 }
 
 =item C<receive_mqtt_message( topic, message, retained )>
@@ -1589,8 +1598,8 @@ use Data::Dumper;
 
 sub new {      ### mqtt_RemoteItem
     my ( $class, $interface, $type, $topicpattern, $discoverable, $friendly_name, $statetopic, $cmndtopic ) = @_;
-
     my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
+    my $area_name;
 
     if( !grep( /$base_type/, ('light','switch','sensor','binary_sensor','cover') ) ) {
 	$interface->error( "Invalid InstMqttItem type '$type'" );
@@ -1602,7 +1611,7 @@ sub new {      ### mqtt_RemoteItem
     my $wildcard_count = 0;
     for( my $i=0; $i <= $#topic_parts; $i += 1 ) {
 	my $part = $topic_parts[$i];
-	if( grep( /^$part$/, ('tele', 'stat', 'cmnd') ) ) {
+	if( grep( /^${part}$/, ('tele', 'stat', 'cmnd') ) ) {
 	    $topic_parts[$i] = '+';
 	} elsif( $part eq '+' ) {
 	    $wildcard_count += 1;
@@ -1612,6 +1621,7 @@ sub new {      ### mqtt_RemoteItem
     }
     if( !$mqtt_name ) {
 	$interface->error( "Unrecognized topic pattern '$topicpattern' for device '$friendly_name'" );
+	return;
     }
 
     my $listen_topic = join( '/', @topic_parts );
@@ -1627,12 +1637,12 @@ sub new {      ### mqtt_RemoteItem
 
     $self->{discovered} = 0;
 
+    ($area_name,$friendly_name) = $self->split_friendly_name( $friendly_name, $mqtt_name );
     $self->{disc_info} = {};
-    if( !$friendly_name ) {
-	$friendly_name = $self->{mqtt_name};
-	$friendly_name =~ s/_/ /g;
-    }
     $self->{disc_info}->{name} = $friendly_name;
+    if( $area_name ) {
+	$self->{disc_info}->{device} = {name=>'$area_name', identifiers=>['$area_name'], suggested_area=>'$area_name'};
+    }
     if( $wildcard_count == 2 ) {
 	$self->{disc_info}->{availability_topic} = $self->make_topic( $listen_topic, 'tele', 'LWT' );
 	$self->{disc_info}->{payload_available} = 'Online';
@@ -1677,13 +1687,17 @@ sub new {      ### mqtt_RemoteItem
 	$self->error( "RemoteItem type '$type' not supported yet" );
 	return;
     }
-    $self->{disc_info}->{unique_id} = 'tasmota_' . $self->{mqtt_name};
+    $self->{disc_info}->{restart_topic} = $self->make_topic( $listen_topic, 'cmnd', 'restart' );
+    $self->{disc_info}->{unique_id} = 'mh_remoteitem_' . $self->{mqtt_name};
     $self->{disc_info}->{unique_id} =~ s/ /_/g;
-
-    # $self->create_discovery_message();
 
     # We may need flags to deal with XML, JSON or Text
     return $self;
+}
+
+sub restart {
+    my ($self) = @_;
+    $self->transmit_topic( 'restart_topic', 99 );
 }
 
 # -[ Fini - mqtt_RemoteItem ]---------------------------------------------------------
@@ -1707,8 +1721,8 @@ use Data::Dumper;
 
 sub new {      ### mqtt_InstMqttItem
     my ( $class, $interface, $type, $topicpattern, $discoverable, $friendly_name ) = @_;
-
     my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
+    my $area_name;
 
     if( !grep( /$base_type/, ('light','switch','binary_sensor','sensor','scene', 'cover' ) ) ) {
 	$interface->error( "Invalid InstMqttItem type '$type'" );
@@ -1736,13 +1750,12 @@ sub new {      ### mqtt_InstMqttItem
     $self->{node_id} = $node_id;
     $self->{discovered} = 0;
 
-
+    ($area_name,$friendly_name) = $self->split_friendly_name( $friendly_name, $mqtt_name );
     $self->{disc_info} = {};
-    if( !$friendly_name ) {
-	$friendly_name = $self->{mqtt_name};
-	$friendly_name =~ s/_/ /g;
-    }
     $self->{disc_info}->{name} = $friendly_name;
+    if( $area_name ) {
+	$self->{disc_info}->{device} = {name=>'$area_name', identifiers=>['$area_name'], suggested_area=>'$area_name'};
+    }
     if( $base_type eq 'scene' ) {
 	$self->{disc_info}->{command_topic} = "$node_id/modem/scene";
 	$self->{disc_info}->{optimistic} = 'true';
@@ -1764,9 +1777,6 @@ sub new {      ### mqtt_InstMqttItem
     }
     $self->{disc_info}->{unique_id} = $self->{mqtt_name};
     $self->{disc_info}->{unique_id} =~ s/ /_/g;
-
-    # $self->create_discovery_message();
-
 
     # $self->debug( 1, "InstMqttItem created: \n" . Dumper( $self ) );
 
