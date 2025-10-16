@@ -415,7 +415,7 @@ sub dump {
 
 
 sub split_friendly_name {
-    my ($friendly_name, $default_name) = @_;
+    my ($self, $friendly_name, $default_name) = @_;
     my $area_name;
 
     if( !$friendly_name ) {
@@ -1132,7 +1132,7 @@ sub new {     ### mqtt_LocalItem
         . "'$topicpattern', $discoverable, '$friendly_name', "
         . "'" . ($statetopic//'[undef]') . "', "
         . "'" . ($cmndtopic//'[undef]')
-        . ", Base_type=[$base_type], Device_Class=[$device_class]"
+        . "', Base_type=[$base_type], Device_Class=[$device_class]"
         . "' )"
     );
 
