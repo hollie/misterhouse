@@ -1140,7 +1140,7 @@ sub new {     ### mqtt_LocalItem
     $self->{disc_info} = {};
     $self->{disc_info}->{name} = $friendly_name;
     if( $area_name ) {
-	$self->{disc_info}->{device} = {name=>'$area_name', identifiers=>['$area_name'], suggested_area=>'$area_name'};
+	$self->{disc_info}->{device} = {name=>"$area_name", identifiers=>["$area_name"], suggested_area=>"$area_name"};
     }
     $statetopic ||= 'state';
     $self->{disc_info}->{state_topic} = $self->make_topic($topic_prefix,split(':',$statetopic));
@@ -1641,7 +1641,7 @@ sub new {      ### mqtt_RemoteItem
     $self->{disc_info} = {};
     $self->{disc_info}->{name} = $friendly_name;
     if( $area_name ) {
-	$self->{disc_info}->{device} = {name=>'$area_name', identifiers=>['$area_name'], suggested_area=>'$area_name'};
+	$self->{disc_info}->{device} = {name=>"$area_name", identifiers=>["$area_name"], suggested_area=>"$area_name"};
     }
     if( $wildcard_count == 2 ) {
 	$self->{disc_info}->{availability_topic} = $self->make_topic( $listen_topic, 'tele', 'LWT' );
@@ -1754,7 +1754,7 @@ sub new {      ### mqtt_InstMqttItem
     $self->{disc_info} = {};
     $self->{disc_info}->{name} = $friendly_name;
     if( $area_name ) {
-	$self->{disc_info}->{device} = {name=>'$area_name', identifiers=>['$area_name'], suggested_area=>'$area_name'};
+	$self->{disc_info}->{device} = {name=>"$area_name", identifiers=>["$area_name"], suggested_area=>"$area_name"};
     }
     if( $base_type eq 'scene' ) {
 	$self->{disc_info}->{command_topic} = "$node_id/modem/scene";
