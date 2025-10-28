@@ -8,7 +8,7 @@ $start_test_code_timer->set( 5, \&start_tests );    #noloop
 
 # Test get_url with a post parameter
 my $get_url_output = '/tmp/get_url_post.txt';
-my $get_url_test   = new Process_Item("get_url -post 'testparameter=1' http://httpbin.org/post $get_url_output");
+my $get_url_test   = new Process_Item("get_url -post 'testparameter=1' https://httpbin.org/post $get_url_output");
 
 if ($Startup) {
     $shutdown_timer->start();
