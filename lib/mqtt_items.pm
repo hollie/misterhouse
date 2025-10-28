@@ -234,7 +234,7 @@ Usage:
 	# TopicPattern should be of the form "<node_id>/<mqtt name>/+".
 	# *** This can be used to publish local MH items to Home Assistant.
 	# The optional Area: will set a suggested area on the mqtt item which may put the item into
-	#   that area in HA.
+	#   that area/device in HA.
 	#
 	# MQTT_LOCALITEM,   name,		local item,	broker, type,		topicpattern,				    discoverable    [Area:]Friendly Name
 	MQTT_LOCALITEM,	    bootroom_switch,	shed_light,	mqtt_1, switch,		insteon/bootroom/+,			    1,		    Bootroom:Bootroom Light
