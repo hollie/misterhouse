@@ -233,6 +233,8 @@ Usage:
         # Then you can create an mqtt item to publish its state and receive mqtt commands.
 	# TopicPattern should be of the form "<node_id>/<mqtt name>/+".
 	# *** This can be used to publish local MH items to Home Assistant.
+	# The optional Area: will set a suggested area on the mqtt item which may put the item into
+	#   that area/device in HA.
 	#
 	# MQTT_LOCALITEM,   name,		local item,	broker, type,		topicpattern,				    discoverable    [Area:]Friendly Name
 	MQTT_LOCALITEM,	    bootroom_switch,	shed_light,	mqtt_1, switch,		insteon/bootroom/+,			    1,		    Bootroom:Bootroom Light
@@ -1140,7 +1142,7 @@ sub new {     ### mqtt_LocalItem
     $self->{disc_info} = {};
     $self->{disc_info}->{name} = $friendly_name;
     if( $area_name ) {
-	$self->{disc_info}->{device} = {name=>'$area_name', identifiers=>['$area_name'], suggested_area=>'$area_name'};
+	$self->{disc_info}->{device} = {name=>"$area_name", identifiers=>["$area_name"], suggested_area=>"$area_name"};
     }
     $statetopic ||= 'state';
     $self->{disc_info}->{state_topic} = $self->make_topic($topic_prefix,split(':',$statetopic));
@@ -1641,7 +1643,7 @@ sub new {      ### mqtt_RemoteItem
     $self->{disc_info} = {};
     $self->{disc_info}->{name} = $friendly_name;
     if( $area_name ) {
-	$self->{disc_info}->{device} = {name=>'$area_name', identifiers=>['$area_name'], suggested_area=>'$area_name'};
+	$self->{disc_info}->{device} = {name=>"$area_name", identifiers=>["$area_name"], suggested_area=>"$area_name"};
     }
     if( $wildcard_count == 2 ) {
 	$self->{disc_info}->{availability_topic} = $self->make_topic( $listen_topic, 'tele', 'LWT' );
@@ -1754,7 +1756,7 @@ sub new {      ### mqtt_InstMqttItem
     $self->{disc_info} = {};
     $self->{disc_info}->{name} = $friendly_name;
     if( $area_name ) {
-	$self->{disc_info}->{device} = {name=>'$area_name', identifiers=>['$area_name'], suggested_area=>'$area_name'};
+	$self->{disc_info}->{device} = {name=>"$area_name", identifiers=>["$area_name"], suggested_area=>"$area_name"};
     }
     if( $base_type eq 'scene' ) {
 	$self->{disc_info}->{command_topic} = "$node_id/modem/scene";
