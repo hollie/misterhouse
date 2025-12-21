@@ -445,8 +445,12 @@ sub restore_string {
     # Allow for dynamicaly/user defined save data
     for my $restore_var ( @{ $$self{restore_data} } ) {
         my $restore_value = $self->{$restore_var};
-        $restore_string .= $self->{object_name} . "->{$restore_var} =" . " q~$restore_value~;\n"
-          if defined $restore_value;
+	if( ref($restore_value) eq 'HASH' ) {
+	    my $d = Data::Dumper->new( [$restore_value], ["$self->{object_name}" . "->{$restore_var}"] );
+	    $restore_string .= $d->Dump() . ";\n";
+	} elsif( defined $restore_value ) {
+	    $restore_string .= $self->{object_name} . "->{$restore_var} =" . " q~$restore_value~;\n"
+	}
     }
 
     return $restore_string;
