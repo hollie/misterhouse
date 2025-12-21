@@ -1245,6 +1245,8 @@ sub new {
     $self->{msg_trk}->{msg_delay_timer}	= ::Timer::new();
     $self->{ha_server}->add( $self );
 
+    $self->restore_data( 'ha_state' );
+
     return $self;
 }
 

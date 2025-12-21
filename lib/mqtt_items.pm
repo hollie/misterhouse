@@ -578,7 +578,7 @@ sub process_template {
 	$template =~ s/^\{\{value_json\.([a-zA-Z\-_]*)\}\}/\$value_json->\{\1\}/;
 	$template =~ s/^\{\{value_json\[\\?\'?([a-zA-Z\-_]*)\\?\'?\]\}\}/\$value_json->\{\1\}/;
 	if( $template !~ /^\$/ ) {
-	    $self->log( "unable to process template $template" );
+	    $self->debug( 1, "unable to process template $template" );
 	    return;
 	}
 	$self->debug( 2, "fishing template value out of json with '\$value = $template'" );
