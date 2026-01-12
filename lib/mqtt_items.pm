@@ -258,9 +258,9 @@ Usage:
 	# The optional Area: will set a suggested area on the mqtt item which may put the item into
 	#   that area/device in HA.
 	#
-	# MQTT_LOCALITEM,   name,		local item,	broker, type,		topicpattern,				    discoverable    [Area:]Friendly Name
-	MQTT_LOCALITEM,	    mqtt_shed_light,	shed_light,	mqtt_1, switch,		insteon/bootroom/+,			    1,		    Bootroom:Bootroom Light
-	MQTT_LOCALITEM,	    mqtt_outside_temp,	temp,		mqtt_1, sensor:temperature:measurement:C,	insteon/bootroom/+,			    1,		    Bootroom:Bootroom Light
+	# MQTT_LOCALITEM,   name,		local item,	broker, type,				topicpattern,		    discoverable    [Area:]Friendly Name
+	MQTT_LOCALITEM,	    mqtt_shed_light,	shed_light,	mqtt_1, switch,				insteon/shed_light/+,	    1,		    Shed:Shed Light
+	MQTT_LOCALITEM,	    mqtt_outside_temp,	temp,		mqtt_1, sensor:temperature:measurement:C,insteon/outside_temp/+,    1,		    Outside Temperature
 	#
 
 
