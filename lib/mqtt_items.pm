@@ -112,6 +112,27 @@ Description:
 		- can publish HA discovery info, as insteon-mqtt does not implement discovery yet
 
 
+    Supported mqtt types:
+    ---------------------
+    The supported types are:
+        - light
+	- switch
+	- binary_sensor
+	- sensor
+	- scene
+	- select
+	- text
+	- number
+	- cover
+    Note that these map to the Home Assistant types directly.
+    Also, the type can be enhanced in MH:
+
+	<type>:<device_class>:<state_class>:<unit_of_measurement>
+
+	- this helps with Home Assistant presentation and long-term statistics and history
+	- see home assistant doc for valid settings for device_class, state_class and unit_of_measurement
+
+
     Discovery (mqtt_discovery.pm):
     -----------------------------
 
@@ -233,11 +254,13 @@ Usage:
         # Then you can create an mqtt item to publish its state and receive mqtt commands.
 	# TopicPattern should be of the form "<node_id>/<mqtt name>/+".
 	# *** This can be used to publish local MH items to Home Assistant.
+	# *** Once created, you shouldn't need to reference the MQTT_LOCALITEM, just the regular item
 	# The optional Area: will set a suggested area on the mqtt item which may put the item into
 	#   that area/device in HA.
 	#
-	# MQTT_LOCALITEM,   name,		local item,	broker, type,		topicpattern,				    discoverable    [Area:]Friendly Name
-	MQTT_LOCALITEM,	    bootroom_switch,	shed_light,	mqtt_1, switch,		insteon/bootroom/+,			    1,		    Bootroom:Bootroom Light
+	# MQTT_LOCALITEM,   name,		local item,	broker, type,				topicpattern,		    discoverable    [Area:]Friendly Name
+	MQTT_LOCALITEM,	    mqtt_shed_light,	shed_light,	mqtt_1, switch,				insteon/shed_light/+,	    1,		    Shed:Shed Light
+	MQTT_LOCALITEM,	    mqtt_outside_temp,	temp,		mqtt_1, sensor:temperature:measurement:C,insteon/outside_temp/+,    1,		    Outside Temperature
 	#
 
 
@@ -1090,12 +1113,13 @@ use Hash::Merge;
 
 sub new {     ### mqtt_LocalItem
     my ( $class, $interface, $name, $type, $local_object, $topicpattern, $discoverable, $friendly_name, $statetopic, $cmndtopic ) = @_;
-    my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
+    my ($base_type, $device_class, $state_class, $unit_of_m) = $type =~ m/^([^:]*):?([^:]*):?([^:]*):?([^:]*)$/;
     my $area_name;
 
     #auto populate type and class if the object has these elements embedded, but don't override explicitly set definitions
     $base_type = $local_object->{mqttlocalitem}->{base_type} if ((defined $local_object->{mqttlocalitem}->{base_type} ) and (!$type));
     $device_class = $local_object->{mqttlocalitem}->{device_class} if ((defined $local_object->{mqttlocalitem}->{device_class} ) and (!$device_class));
+    $state_class = $local_object->{mqttlocalitem}->{state_class} if ((defined $local_object->{mqttlocalitem}->{state_class} ) and (!$state_class));
 
     if( !grep( /^$base_type$/, ('light','switch','binary_sensor', 'sensor', 'scene', 'select', 'text', 'number', 'cover' ) ) ) {
 	$interface->error( "Invalid mqtt type '$type'" );
@@ -1134,7 +1158,7 @@ sub new {     ### mqtt_LocalItem
         . "'$topicpattern', $discoverable, '$friendly_name', "
         . "'" . ($statetopic//'[undef]') . "', "
         . "'" . ($cmndtopic//'[undef]')
-        . "', Base_type=[$base_type], Device_Class=[$device_class]"
+        . "', Base_type=[$base_type], Device_Class=[$device_class], State_Class=[$state_class], Unit_of_Measurement=[$unit_of_m]"
         . "' )"
     );
 
@@ -1146,6 +1170,15 @@ sub new {     ### mqtt_LocalItem
     }
     $statetopic ||= 'state';
     $self->{disc_info}->{state_topic} = $self->make_topic($topic_prefix,split(':',$statetopic));
+    if( $device_class ) {
+	$self->{disc_info}->{device_class} = $device_class;
+    }
+    if( $state_class ) {
+	$self->{disc_info}->{state_class} = $state_class;
+    }
+    if( $unit_of_m ) {
+	$self->{disc_info}->{unit_of_measurement} = $unit_of_m;
+    }
     if( $base_type eq 'light' ) {
 	$cmndtopic ||= 'level';
 	$self->{disc_info}->{command_topic} = $self->make_topic($topic_prefix,split(':',$cmndtopic));
@@ -1158,23 +1191,20 @@ sub new {     ### mqtt_LocalItem
     } elsif( $base_type eq 'cover' ) {
 	$cmndtopic ||= 'set';
 	$self->{disc_info}->{command_topic} = $self->make_topic($topic_prefix,split(':',$cmndtopic));
-	if( $device_class ) {
-	    $self->{disc_info}->{device_class} = $device_class;
-	}
     } elsif( $base_type eq 'scene' ) {
 	$cmndtopic ||= 'set';
 	$self->{disc_info}->{command_topic} = $self->make_topic($topic_prefix,split(':',$cmndtopic));
 	delete $self->{disc_info}->{state_topic};
     } elsif( $base_type eq 'binary_sensor' ) {
-	if( $device_class ) {
-	    $self->{disc_info}->{device_class} = $device_class;
-	}
     } elsif( $base_type eq 'sensor' ) {
-	if( $device_class ) {
-	    $self->{disc_info}->{device_class} = $device_class;
-	}
 	if( $device_class eq 'temperature' ) {
-	    $self->{disc_info}->{unit_of_measurement} = 'C';
+	    $self->{disc_info}->{unit_of_measurement} //= 'C';
+	}
+	if( $device_class eq 'power' ) {
+	    $self->{disc_info}->{unit_of_measurement} //= 'kW';
+	}
+	if( $device_class eq 'energy' ) {
+	    $self->{disc_info}->{unit_of_measurement} //= 'kWh';
 	}
     } elsif( $base_type eq 'select' ) {
 	$cmndtopic ||= 'set';
@@ -1600,7 +1630,7 @@ use Data::Dumper;
 
 sub new {      ### mqtt_RemoteItem
     my ( $class, $interface, $type, $topicpattern, $discoverable, $friendly_name, $statetopic, $cmndtopic ) = @_;
-    my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
+    my ($base_type, $device_class, $state_class, $unit_of_m) = $type =~ m/^([^:]*):?([^:]*):?([^:]*):?([^:]*)$/;
     my $area_name;
 
     if( !grep( /$base_type/, ('light','switch','sensor','binary_sensor','cover') ) ) {
@@ -1650,6 +1680,15 @@ sub new {      ### mqtt_RemoteItem
 	$self->{disc_info}->{payload_available} = 'Online';
 	$self->{disc_info}->{payload_not_available} = 'Offline';
     }
+    if( $device_class ) {
+	$self->{disc_info}->{device_class} = $device_class;
+    }
+    if( $state_class ) {
+	$self->{disc_info}->{state_class} = $state_class;
+    }
+    if( $unit_of_m ) {
+	$self->{disc_info}->{unit_of_measurement} = $unit_of_m;
+    }
     if( $base_type eq 'switch' ) {
 	if( $wildcard_count != 2 and !$statetopic) {
 	    $self->error( "Don't know how to create switch topics for '$friendly_name'" );
@@ -1677,13 +1716,11 @@ sub new {      ### mqtt_RemoteItem
 	$statetopic      ||= 'tele:MOTION';	# Default is Tasmota norms to maintain backward compatibility.
 	$self->{disc_info}->{state_topic} = $self->make_topic( $listen_topic, split(':',$statetopic));	# Default is Tasmota norms to maintain backward compatibility.
 	$self->{disc_info}->{payload_on} = 1;
-	$self->{disc_info}->{device_class} = $device_class;
 	$self->{disc_info}->{force_update} = 'true';
 	$self->{disc_info}->{off_delay} = 30;
     } elsif( $base_type eq 'sensor' ) {
 	$statetopic      ||= 'tele:STATE';	# Default is Tasmota norms to maintain backward compatibility.
 	$self->{disc_info}->{state_topic} = $self->make_topic( $listen_topic, split(':',$statetopic));	# Default is Tasmota norms to maintain backward compatibility.
-	$self->{disc_info}->{device_class} = $device_class;
 	$self->{disc_info}->{force_update} = 'true';
     } else {
 	$self->error( "RemoteItem type '$type' not supported yet" );
@@ -1723,7 +1760,7 @@ use Data::Dumper;
 
 sub new {      ### mqtt_InstMqttItem
     my ( $class, $interface, $type, $topicpattern, $discoverable, $friendly_name ) = @_;
-    my ($base_type, $device_class) = $type =~ m/^([^:]*):?(.*)$/;
+    my ($base_type, $device_class, $state_class, $unit_of_m) = $type =~ m/^([^:]*):?([^:]*):?([^:]*):?([^:]*)$/;
     my $area_name;
 
     if( !grep( /$base_type/, ('light','switch','binary_sensor','sensor','scene', 'cover' ) ) ) {
@@ -1758,6 +1795,15 @@ sub new {      ### mqtt_InstMqttItem
     if( $area_name ) {
 	$self->{disc_info}->{device} = {name=>"$area_name", identifiers=>["$area_name"], suggested_area=>"$area_name"};
     }
+    if( $device_class ) {
+	$self->{disc_info}->{device_class} = $device_class;
+    }
+    if( $state_class ) {
+	$self->{disc_info}->{state_class} = $state_class;
+    }
+    if( $unit_of_m ) {
+	$self->{disc_info}->{unit_of_measurement} = $unit_of_m;
+    }
     if( $base_type eq 'scene' ) {
 	$self->{disc_info}->{command_topic} = "$node_id/modem/scene";
 	$self->{disc_info}->{optimistic} = 'true';
@@ -1772,9 +1818,7 @@ sub new {      ### mqtt_InstMqttItem
 	    $self->{disc_info}->{brightness} = "true";
 	    $self->{disc_info}->{brightness_scale} = 100;
 	} elsif( $base_type eq 'binary_sensor' ) {
-	    $self->{disc_info}->{device_class} = $device_class;
 	} elsif( $base_type eq 'sensor' ) {
-	    $self->{disc_info}->{device_class} = $device_class;
 	}
     }
     $self->{disc_info}->{unique_id} = $self->{mqtt_name};
