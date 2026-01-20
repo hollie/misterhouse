@@ -1480,7 +1480,7 @@ sub receive_mqtt_message {
 		$self->{state_obj} = $setval;
 		$setval = undef;
 	    }
-	    if( $setval ) {
+	    if( defined($setval) ) {
 		$self->debug( 1, "remote item MQTT to MH $$self{mqtt_name} set($setval, '$p_setby')" );
 		$self->level( $setval ) if $self->can( 'level' );
 		$self->SUPER::set( $setval, $p_setby, $p_response );
