@@ -1271,7 +1271,7 @@ sub receive_mqtt_message {
 	$obj_name = $self->get_object_name();
     }
     if( $topic eq $self->{disc_info}->{state_topic} ) {
-	$self->debug( 2, "LocalItem $obj_name ignoring state topic message" );
+	$self->debug( 2, "LocalItem $obj_name ignoring state topic message M:'$message'" );
     } elsif( $topic eq $self->{disc_info}->{command_topic} ) {
 	if( $retained ) {
 	    # command messages should never be retained, but just in case...
@@ -1480,7 +1480,7 @@ sub receive_mqtt_message {
 		$self->{state_obj} = $setval;
 		$setval = undef;
 	    }
-	    if( defined($setval) ) {
+	    if( defined($setval)  &&  $setval ne '' ) {
 		$self->debug( 1, "remote item MQTT to MH $$self{mqtt_name} set($setval, '$p_setby')" );
 		$self->level( $setval ) if $self->can( 'level' );
 		$self->SUPER::set( $setval, $p_setby, $p_response );

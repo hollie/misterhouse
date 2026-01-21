@@ -280,7 +280,10 @@ sub receive_mqtt_message {
     my $interface = $self->{interface};
 
     if( !$mqtt_msg ) {
-	$self->debug( 2, "INGNORING DISCOVERY CLEAN MESSAGE: $mqtt_topic -- M:'$mqtt_msg'" );
+	if( !defined( $mqtt_msg ) ) {
+	    $mqtt_msg = '<undef>';
+	}
+	$self->debug( 2, "IGNORING DISCOVERY CLEAN MESSAGE: $mqtt_topic -- M:'$mqtt_msg'" );
 	return;
     }
 
