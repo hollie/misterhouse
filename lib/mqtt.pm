@@ -54,7 +54,7 @@ Usage:
         # MQTT stuff
         CODE, require mqtt; #noloop
         #
-        CODE, $mqtt_1 = new mqtt('mqtt_1', '127.0.0.1', 1883, 'home/ha/#', "", "", 121);
+        CODE, $mqtt_1 = new mqtt('mqtt_1', '127.0.0.1', 1883, 'home/ha/#', "", "", 121, 'use_ha_device_disc=1');
         CODE, $mqtt_2 = new mqtt('mqtt_2', 'test.mosquitto.org', 1883, 'home/test/#', "", "", 122);
         CODE, $mqtt_3 = new mqtt('mqtt_3', '127.0.0.1', 1883, 'home/network/#', "", "", 122); #noloop
         #
@@ -82,7 +82,7 @@ Usage:
 
 Example initialization:
 
-    $myMQTT = new mqtt("MQTT",<host>,<port>,<topic>,<user>,<password>,<keepalive>);
+    $myMQTT = new mqtt("MQTT",<host>,<port>,<topic>,<user>,<password>,<keepalive>,<options>);
 
 Notes:
     - 
@@ -373,7 +373,7 @@ sub isNotConnected {
 =cut
 
 sub new {
-    my ( $class, $instance, $host, $port, $topic, $user, $password, $keep_alive_timer ) = @_;
+    my ( $class, $instance, $host, $port, $topic, $user, $password, $keep_alive_timer, $options ) = @_;
     my $self;
 
     if( !defined( $main::Debug{mqtt} ) ) {
@@ -437,6 +437,7 @@ sub new {
     }
 
     $self = {};
+    bless $self, $class;
 
     $$self{state}		= 'off';
     $$self{said}		= '';
@@ -453,13 +454,29 @@ sub new {
     $$self{user_name}		= $user;
     $$self{password}		= $password;
     $$self{keep_alive_timer}	= $keep_alive_timer;
-    $$self{init_v_cmd}		= 0;
+    $$self{use_ha_device_disc}	= 0;
+    if (defined $options) {
+	my $setting;
+	my @option_list = split( '\|', $options );
+	foreach my $option (@option_list) {
+	    if( $option eq 'use_ha_device_disc' ) {
+		$self->{use_ha_device_disc} = 1;
+	    } elsif( ($setting) = $option =~ m/use_ha_device_disc\s*\=\s*(\d+)/ ) {
+		$self->{use_ha_device_disc} = $setting;
+	    } elsif( ($setting) = $option =~ m/topic_prefix\s*\=\s*([^\s]+)/ ) {
+		$self->{topic_prefix} = $setting;
+	    } else {
+		$self->error( "Invalid MQTT option: '$option'. MQTT server $instance NOT created" );
+		return;
+	    }
+	}
+    }
 
+    $$self{init_v_cmd}		= 0;
     $$self{next_ping}		= 0;
     $$self{got_ping_response}	= 1; 
     $$self{ping_missed_count}	= 0;
 
-    bless $self, $class;
 
     # This is the little messages that appear when MH starts
     $self->log("Creating $instance on $host:$port topic:$topic");
@@ -473,14 +490,17 @@ sub new {
     $self->debug(1, "    Port       = $$self{port}");
     $self->debug(1, "    Topic      = $$self{topic}");
     $self->debug(1, "    User       = $$self{user_name}");
-    $self->debug(1, "    Password   = " .
+    $self->debug(1, "    Password   = ***" .
         (
               exists($INC{'Digest/MD5.pm'})
             ? "MD5:" . md5_hex($$self{password})
             : '[masked]'
 	)
     );
-    $self->debug(1, "    Keep Alive = $$self{keep_alive_timer}");
+    $self->debug(1, "    Keep Alive             = $$self{keep_alive_timer}");
+    $self->debug(1, "    Options                = $options");
+    $self->debug(1, "    Use HA Device Discovery= $$self{use_ha_device_disc}");
+    $self->debug(1, "    Topic Prefix           = $$self{topic_prefix}");
 
     ### ------------------------------------------------------------------------
     $self->mqtt_connect();
@@ -1388,13 +1408,13 @@ sub write_discovered_items {
     foreach my $interface ( &mqtt::get_interface_list() ) {
 	@sorted_list = sort { $a->get_object_name() cmp $b->get_object_name() } @{$interface->{objects}};
 	for my $obj ( @sorted_list ) {
-	    if( $obj->{discovered} ) {
+	    if( defined $obj->{disc_mode}  &&  $obj->{disc_mode} ne 'local' ) {
 		my $obj_name = $obj->get_object_name;
-		my $disc_obj_name = $obj->{disc_obj}->get_object_name;
-		my $disc_topic = "$obj->{disc_prefix}/$obj->{disc_topic}";
+		print "getting discovery object name for $obj_name\n";
+		my $disc_obj_name = $obj->{disc_interface}->get_object_name;
 		$obj_name =~ s/^\$//;
 		$disc_obj_name =~ s/^\$//;
-		print {$f} "MQTT_DISCOVEREDITEM, $obj_name, $disc_obj_name, $disc_topic, $obj->{disc_msg}\n";
+		print {$f} "MQTT_DISCOVEREDITEM, $obj_name, $disc_obj_name, $obj->{disc_topic}, $obj->{disc_msg}\n";
 	    }
 	}
     }

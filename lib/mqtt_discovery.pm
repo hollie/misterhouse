@@ -62,20 +62,27 @@ use mqtt_items;
 =cut
 
 sub new {   #### mqtt_DiscoveredItem
-    my ( $class, $disc_obj, $name, $disc_topic, $disc_msg ) = @_;
+    my ( $class, $disc_interface, $obj_name, $orig_disc_topic, $disc_msg ) = @_;
     my $obj;
-    my $obj_name;
-    my $interface = $disc_obj->{interface};
-    my $device_name;
+    my $interface = $disc_interface->{interface};
+    my $friendly_name;
     my $self;
     my $short_disc_topic;
     my $mqtt_type;
+    my $disc_topic;
     my $disc_prefix;
     my $disc_type;
     my $node_id;
     my $device_id;
+    my $disc_mode;
 
+    $disc_topic = $orig_disc_topic;
 
+    if( !$obj_name ) {
+	$disc_mode = 'dynamic';
+    } else {
+	$disc_mode = 'static';
+    }
     if( $disc_topic =~ m|.*/.*| ) {
 	($disc_prefix, $disc_type, $node_id, $device_id) = $disc_topic =~ m|^(.*)/([^/]*)/([^/]+)/([^/]+)/config$|;
 	if( $disc_prefix ) {
@@ -83,7 +90,7 @@ sub new {   #### mqtt_DiscoveredItem
 	} else {
 	    ($disc_prefix, $disc_type, $device_id) = $disc_topic =~ m|^(.*)/([^/]+)/([^/]+)/config$|;
 	    if( !$disc_prefix ) {
-		$disc_obj->error( "UNRECOGNIZED DISCOVERY MESSAGE -- can't parse: $disc_topic" );
+		$disc_interface->error( "UNRECOGNIZED DISCOVERY MESSAGE -- can't parse: $disc_topic" );
 		return;
 	    }
 	    $short_disc_topic = "$disc_type/$device_id/config";
@@ -91,45 +98,76 @@ sub new {   #### mqtt_DiscoveredItem
     } elsif( $disc_topic ) {
 	$disc_type = $disc_topic;
 	$short_disc_topic = '';
+	$disc_mode = 'local';
     } else {
-	$disc_obj->error( "UNRECOGNIZED DISCOVERY MESSAGE -- discovery topic not valid: $disc_topic" );
+	$disc_interface->error( "UNRECOGNIZED DISCOVERY MESSAGE -- discovery topic not valid: $disc_topic" );
 	return;
     }
 
     my $disc_info;
-    eval{ $disc_info = decode_json( $disc_msg ) };
-    if( !$disc_info ) {
-	$disc_obj->error( "UNRECOGNIZED DISCOVERY MESSAGE -- payload not json: $disc_topic -- M:'$disc_msg'" );
+    my $disc;
+    eval{ $disc = decode_json( $disc_msg ) };
+    if( !$disc ) {
+	$disc_interface->error( "UNRECOGNIZED DISCOVERY MESSAGE -- payload not json: $disc_topic -- M:'$disc_msg'" );
 	return;
     }
+    $disc_info = $disc;
 
-    &mqtt_BaseItem::normalize_discovery_info( $disc_info );
+    &mqtt_BaseItem::normalize_discovery_info( $disc );
 
-    $disc_obj->debug( 3, "processing discovery message payload:\n" . &mqtt_BaseItem::dump( undef, $disc_info, 3 ) );
+    $disc_interface->debug( 3, "processing discovery message payload:\n" . &mqtt_BaseItem::dump( undef, $disc_info, 3 ) );
+
+    my $listentopics = {};
 
     # map discovery type to mqtt object type
+    if( $disc_type eq 'device' ) {
+	if( !defined $disc_info->{device} ) {
+	    $disc_interface->error( "Device discovery' -- no device section found for T:'$disc_topic'" );
+	    return;
+	}
+	$friendly_name = $disc_info->{device}->{name};
+	$friendly_name //= $device_id;
+
+	foreach my $disc_parm ( keys %{$disc_info} ) {
+	    if( $disc_parm =~ /^.*_topic$/ ) {
+		$listentopics->{$disc_parm} = $disc_info->{$disc_parm};
+	    }
+	}
+	my $components = [keys %{$disc_info->{components}}];
+	if( scalar @$components == 0 ) {
+	    $disc_interface->error( "Device discovery for '$friendly_name' -- no components found" );
+	    return;
+	} else {
+	    $disc_interface->debug( 2, "Device discovery for '$friendly_name' -- component '$components->[0]' found" );
+	}
+	$disc_info = $disc_info->{components}->{$components->[0]};
+	$disc_type = $disc_info->{platform};
+    } else {
+	$friendly_name = $disc_info->{name};
+	$friendly_name //= $device_id;
+    }
     if( $disc_type eq 'light' ) {
 	if( $disc_info->{schema} eq 'template' ) {
-	    $disc_obj->log( "Discovery schema 'template' not supported for mqtt light $disc_info->{name}" );
+	    $disc_interface->log( "Discovery schema 'template' not supported for mqtt light $disc_info->{name}" );
 	} else {
 	    $mqtt_type = $disc_type;
 	}
     } elsif( grep( /^${disc_type}$/, ('light', 'switch', 'binary_sensor', 'sensor', 'scene', 'select', 'text', 'number') ) ) {
 	$mqtt_type = $disc_type;
     } else {
-	$disc_obj->debug( 1, "UNRECOGNIZED DISCOVERY TYPE: $disc_type" );
+	$disc_interface->debug( 1, "UNRECOGNIZED DISCOVERY TYPE: $disc_type" );
     }
 
     # Set the listentopics list to all discovery parms that end with _topic
     #
-    my @listentopics = ();
     foreach my $disc_parm ( keys %{$disc_info} ) {
 	if( $disc_parm =~ /^.*_topic$/ ) {
-	    push @listentopics, $disc_info->{$disc_parm};
+	    $listentopics->{$disc_parm} = $disc_info->{$disc_parm};
 	}
     }
-    if( $#listentopics < 0 ) {
-	$disc_obj->error( "UNRECOGNIZED DISCOVERY MESSAGE -- no listen topic: M:'$disc_msg" );
+    my $listentopicslist = [ values %{$listentopics} ];
+    if( scalar @$listentopicslist == 0 ) {
+	$disc_interface->error( "UNRECOGNIZED DISCOVERY MESSAGE -- no listen topic: M:'$disc_msg" );
 	return;
     } 
 
@@ -139,33 +177,27 @@ sub new {   #### mqtt_DiscoveredItem
     for $obj ( @{ $interface->{objects} } ) {
 	if( $obj->{disc_info}->{unique_id} eq $unique_id ) {
 	    if( $obj->{is_local} ) {
-		$disc_obj->debug( 1, "Ignoring discovery message received for local object: " . $obj->{local_item}->get_object_name );
+		$disc_interface->debug( 1, "Ignoring discovery message processed for local object: " . $obj->{local_item}->get_object_name );
 	    } else {
 		if( !$obj->{disc_topic} ) {
 		    # object explicitly declared
-		    $disc_obj->debug( 1, "Discovery message received for unique_id:($unique_id) for object that was explicitly created: " . $obj->get_object_name );
+		    $disc_interface->debug( 1, "Discovery message processed for unique_id:($unique_id) for object that was explicitly created: " . $obj->get_object_name );
 		} else {
-		    $disc_obj->debug( 1, "Discovery message received for unique_id:($unique_id) for object that already exists: " . $obj->get_object_name );
+		    $disc_interface->debug( 1, "Discovery message processed for unique_id:($unique_id) for object that already exists: " . $obj->get_object_name );
 		    # Update the discover message so that if discovered items are written out, they get the new ones
 		    $obj->{disc_msg} = $disc_msg;
-		    $obj->{disc_topic} = $short_disc_topic;
+		    $obj->{disc_topic} = $orig_disc_topic;
 		}
 	    }
 	    $found = 1;
 	} else {
-	    my $attr;
-	    if( $disc_info->{name} ) {
-		$attr = 'name';
-	    } else {
-		$attr = 'object_id';
-	    }
-	    if( $obj->{disc_info}->{$attr} eq $disc_info->{$attr} ) {
+	    if( $obj->{mqtt_friendly_name} eq $friendly_name ) {
 		$found = 1;
-		if( $obj->{discoverable}  ||  $obj->{mqtt_dynamic} ) {
+		if( $obj->{discoverable}  ||  $obj->{disc_mode} eq 'dynamic' ) {
 		    # Note that Home Assistant matches discovery objects up based on friendly name -- report error on duplicate friendly names
-		    $disc_obj->error( "Discovery message received for friendly_name ($disc_info->{$attr}) that already exists" );
+		    $disc_interface->error( "Discovery message processed for friendly_name ($friendly_name) that already exists" );
 		} else {
-		    $disc_obj->debug( 1, "Discovery message received for friendly_name ($disc_info->{$attr}) that has already been locally declared -- ignoring" );
+		    $disc_interface->debug( 1, "Discovery message processed for friendly_name ($friendly_name) that has already been locally declared -- ignoring" );
 		}
 	    }
 	}
@@ -174,45 +206,47 @@ sub new {   #### mqtt_DiscoveredItem
 	return;
     }
 
-    # create local MH object
-    $obj_name = 'mqttd_';
-    if( $node_id ) {
-	#  $node_id helps to identify the device
-	$obj_name .= "${node_id}_";
+    # create local MH object name
+    if( !$obj_name ) {
+	$obj_name = 'mqttd_';
+	if( $node_id ) {
+	    #  $node_id helps to identify the device
+	    $obj_name .= "${node_id}_";
+	}
+	if( $disc_info->{name} ) {
+	    $obj_name .= $disc_info->{name};
+	} else {
+	    $obj_name .= $device_id;
+	}
+	$obj_name =~ s/[^\w]/_/g;
     }
-    if( $disc_info->{name} ) {
-	$obj_name .= $disc_info->{name};
-    } else {
-	$obj_name .= $device_id;
-    }
-    $obj_name =~ s/[^\w]/_/g;
     $obj = ::get_object_by_name( $obj_name );
     if( $obj ) {
-	$disc_obj->error( "Trying to create object that already exists: $obj_name" );
+	$disc_interface->error( "Trying to create object that already exists: $obj_name" );
 	return;
     } 
 
+    # create local MH object
+
     # If we don't support the type, don't listen for changes
     if( !$mqtt_type ) {
-	@listentopics = ();
+	$listentopicslist = [];
     }
 
-    $self = new mqtt_BaseRemoteItem( $interface, $obj_name, $disc_type, \@listentopics, 0 );
+    $self = new mqtt_BaseRemoteItem( $interface, $obj_name, $disc_type, $listentopicslist, 0 );
 
     bless $self, $class;
 
-    $self->{disc_info}	= $disc_info;
-    $self->{disc_topic} = $short_disc_topic;
-    $self->{disc_prefix} = $disc_prefix;
-    $self->{disc_msg}	= $disc_msg;
-    $self->{disc_obj}	= $disc_obj;
-    if( $short_disc_topic ) {
-	$self->{discovered} = 1;
-    } else {
-	$self->{discovered} = 0;
-    }
+    $self->{disc}	    = $disc;
+    $self->{disc_info}	    = $disc_info;
+    $self->{disc_topic}	    = $orig_disc_topic;
+    $self->{disc_prefix}    = $disc_prefix;
+    $self->{disc_msg}	    = $disc_msg;
+    $self->{disc_interface} = $disc_interface;
+    $self->{disc_mode}	    = $disc_mode;
+    $self->{mqtt_friendly_name} = $friendly_name;
 
-    $self->debug( 1, "New mqtt_DiscoveredItem( \$$disc_obj->{mqtt_name}, '$name', '$disc_topic', '$disc_msg' )" );
+    $self->debug( 1, "New mqtt_DiscoveredItem( \$$disc_interface->{mqtt_name}, '$obj_name', '$disc_topic', '$disc_msg' )" );
 
     $self->debug( 3, "DiscoveryItem created: \n" . $self->dump( $self, 3 ) );
 
@@ -243,11 +277,13 @@ use JSON qw( decode_json encode_json );
 sub new {  ### mqtt_Discovery
     my ( $class, $interface, $name, $discovery_prefix, $action ) = @_;
 
+    $discovery_prefix //= $interface->{topic_prefix};
     if( $discovery_prefix  &&  !$action ) {
 	$action = 'both';
     }
     if( !$interface ) {
 	&mqtt::error( undef, "mqtt_Discovery must specify interface" );
+	return;
     }
     if( !grep( /^${action}$/, ('publish', 'subscribe', 'both', 'none') ) ) {
 	$interface->error( "Invalid discovery action specified '$action'" );
@@ -287,14 +323,13 @@ sub receive_mqtt_message {
 	return;
     }
 
-    $obj = new mqtt_DiscoveredItem( $self, undef, $mqtt_topic, $mqtt_msg );
+    $obj = new mqtt_DiscoveredItem( $self, undef, $mqtt_topic, $mqtt_msg, 'dynamic' );
 
     if( $obj ) {
 	my $obj_name = $obj->{mqtt_name};
 	$obj->{category} = "MQTT Discovered Items";
 	$obj->{filename} = "mqtt_discovery";
 	$obj->{object_name} = "\$$obj_name";
-	$obj->{mqtt_dynamic} = 1;
 	&main::register_object_by_name("\$$obj_name",$obj);
 	&mqtt::write_discovered_items();     # incase of autoupdate on the discovered items file
     }
