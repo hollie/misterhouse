@@ -195,7 +195,7 @@ sub new {   #### mqtt_DiscoveredItem
 		$found = 1;
 		if( $obj->{discoverable}  ||  $obj->{disc_mode} eq 'dynamic' ) {
 		    # Note that Home Assistant matches discovery objects up based on friendly name -- report error on duplicate friendly names
-		    $disc_interface->error( "Discovery message processed for friendly_name ($friendly_name) that already exists" );
+		    $disc_interface->error( "Discovery message processed for friendly_name ($friendly_name) that already exists: $obj->{object_name}" );
 		} else {
 		    $disc_interface->debug( 1, "Discovery message processed for friendly_name ($friendly_name) that has already been locally declared -- ignoring" );
 		}

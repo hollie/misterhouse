@@ -369,7 +369,7 @@ use Data::Dumper;
 
 
 
-=item C<new(mqtt_interface, name, type, state_topic, command_topic, listen_topic, discoverable, friendly_name )>
+=item C<new(mqtt_interface, name, type, state_topic, command_topic, listen_topic, discoverable )>
 
     Creates an MQTT Base Item.
 
@@ -455,61 +455,59 @@ sub set_discovery_names {
 	$friendly_name = $part3;
 	$area_name = $part1;
 	$device_name = $part2;
-	$device_id = $mqtt_name;
     } elsif( defined( $part2 ) ) {
-	if( $self->{interface}->{use_ha_device_disc} ) {
-	    $friendly_name = '';
-	    $device_name = "$part2";
-	    $device_id = $mqtt_name;
-	    $area_name = $part1;
-	} else {
-	    $friendly_name = $part2;
-	    $device_name = $part1;
-	    $device_id = $part1;
-	    $area_name = $part1;
-	}
+	$friendly_name = $part2;
+	$device_name = $part1;
     } else {
-	if( $self->{interface}->{use_ha_device_disc} ) {
-	    $friendly_name = '';
-	    $area_name = 'MH MQTT ' . $self->{node_id};
-	    $device_name = $part1;
-	    $device_id = $mqtt_name;
-	} else {
-	    $friendly_name = $part1;
-	}
+	$friendly_name = $part1;
     }
-
+    if( !$area_name  &&  !$device_name ) {
+	$area_name = "MH MQTT $self->{node_id}";
+    }
+    $self->{mqtt_friendly_name} = $friendly_name;
+    if( !$device_name ) {
+	$device_name = $friendly_name;
+	if( !$device_name ) {
+	    $device_name = $mqtt_name;
+	}
+	$device_id = $mqtt_name;
+	$friendly_name = '';
+    } else {
+	# device name specified -- need a unique device_id, can't use component mqtt_name
+	$device_id = lc( $device_name );
+	$device_id =~ s/[^\w]+/_/g;
+    }
     if( !ref $self->{disc} ) {
 	$self->{disc} = {};
     }
-    if( $self->{interface}->{use_ha_device_disc} ) {
-	my $area_id = lc($area_name);
-	$area_id =~ s/_/ /g;
+
+    if( $device_name ) {
 	$self->{disc}->{device} = {};
 	$self->{disc}->{device}->{name} = $device_name;
-	$self->{disc}->{device}->{identifiers} = $device_id;
+	if( $self->{interface}->{use_ha_device_disc} ) {
+	    $self->{disc}->{device}->{identifiers} = $device_id;
+	} else {
+	    $self->{disc}->{device}->{identifiers} = [$device_id];
+	}
 	$self->{disc}->{device}->{suggested_area} = $area_name if $area_name;
-	# $self->{disc}->{device}->{area_id} = $area_id if $area_id;
 	$self->{disc}->{origin} = {};
 	$self->{disc}->{origin}->{name} = "MisterHouse";
 	$self->{disc}->{origin}->{sw_version} = "6.0";
 	$self->{disc}->{origin}->{support_url} = 'https://github.com/hollie/misterhouse';
+    }
+    if( $self->{interface}->{use_ha_device_disc} ) {
 	$self->{disc}->{components} = {};
 	$self->{disc}->{components}->{$mqtt_name} = {};
 	$self->{disc_info} = $self->{disc}->{components}->{$mqtt_name};
 	$self->{disc_info}->{platform} = $self->{disc_type};
+	$self->{disc_info}->{name} = $friendly_name;
+	# $self->{disc_info}->{object_id} = $mqtt_name;
     } else {
-	if( $device_name ) {
-	    $self->{disc}->{device} = {};
-	    $self->{disc}->{device}->{name} = $device_name;
-	    $self->{disc}->{device}->{identifiers} = [$device_id];
-	    $self->{disc}->{device}->{suggested_area} = $area_name if $area_name;
-	}
 	$self->{disc_info} = $self->{disc};
+	$self->{disc_info}->{name} = $friendly_name;
+	# $self->{disc_info}->{object_id} = $mqtt_name;
     }
-    $self->{disc_info}->{name} = $friendly_name;
-    $self->{disc_info}->{object_id} = $mqtt_name;
-    $self->log( "'$full_name' turned into (fname:'$friendly_name', devname:'$device_name', areaname:'$area_name')" );
+    $self->log( "'$full_name' turned into (fname:'$friendly_name', devname:'$device_name', devid:'$device_id', areaname:'$area_name')" );
 }
 
 =item C<set_object_debug( level )>
@@ -904,7 +902,16 @@ sub add_discovery_info {
     my ($self,$extra_disc_info) = @_;
 
     my $merger = Hash::Merge->new( 'RIGHT_PRECEDENT' );
-    $self->{disc_info} = $merger->merge( $self->{disc_info}, $extra_disc_info );
+$self->log( "disc before adding extra discovery info: \n" . $self->dump($self->{disc}) );
+    my $new_disc_info = $merger->merge( $self->{disc_info}, $extra_disc_info );
+    if( $self->{disc_info} eq $self->{disc} ) {
+	$self->{disc_info} = $self->{disc} = $new_disc_info;
+    } elsif( $self->{disc_info} eq $self->{disc}->{components}->{$self->{mqtt_name}} ) {
+	$self->{disc_info} = $self->{disc}->{components}->{$self->{mqtt_name}} = $new_disc_info;
+    } else {
+	$self->error( "Unable to add discovery info" );
+    }
+$self->log( "disc after adding extra discovery info: \n" . $self->dump($self->{disc}) );
 }
 
 my $short_name_map = {
@@ -1406,7 +1413,7 @@ sub set {    ### LocalItem
 	$obj_name = $self->get_object_name();
     }
 
-    if( $self->{local_item}  &&  $p_setby ne $self->{local_item} ) {
+    if( $self->{local_item}  &&  $p_setby ne $self->{local_item}  &&  $p_setby ne $self ) {
 	$self->error( "LocalItem $obj_name set($setval) called by other than tied local item -- $p_setby" );
 	return;
     }
@@ -1444,20 +1451,26 @@ sub publish_state {
 
     if( !$only_unpublished  ||  !$self->{has_published_state} ) {
 	my $local_item;
+	my $self_name;
+	my $current_state;
 	if( $self->{local_item} ) {
 	    $local_item = $self->{local_item};
 	} else {
 	    $local_item = $self;
 	}
-	my $current_state = $local_item->state;
-	my $self_name = $local_item->get_object_name();
+	$current_state = $local_item->state;
+	$self_name = $local_item->get_object_name();
+	if( $self->{mqtt_type} eq 'scene'  ||  $self->{mqtt_type} eq 'scene_switch' ) {
+	    $self->debug( 1, "$self_name is a scene -- not publishing current state" );
+	    return;
+	}
+	if( $local_item->can('is_responder') && !$local_item->is_responder ) {
+	    $self->debug( 1, "object $self_name is not a responder -- not publishing current state" );
+	    return;
+	}
 	if( defined $current_state ) {
-	    if( !$local_item->can('is_responder') || $local_item->is_responder ) {
-		$self->debug( 1, "setting local object $self_name to current_state: $current_state" );
-		$local_item->set( $current_state );
-	    } else {
-		$self->debug( 1, "object $self_name is not a responder" );
-	    }
+	    $self->debug( 1, "publishing state for local object $self_name: $current_state" );
+	    $self->set( $current_state, $self );
 	} else {
 	    $self->debug( 1, "object $self_name has no state" );
 	}
