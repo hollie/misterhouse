@@ -57,7 +57,7 @@ use mqtt_items;
 
 =item C<new(mqtt_discovery_object, name, discovery_topic, discovery_msg)>
 
-    Crease a mqtt_BaseRemoteItem based on the discovery_topic and discovery_msg
+    Create a mqtt_BaseRemoteItem based on the discovery_topic and discovery_msg
 
 =cut
 

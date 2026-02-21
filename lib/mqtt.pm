@@ -1414,7 +1414,7 @@ sub write_discovered_items {
 		my $disc_obj_name = $obj->{disc_interface}->get_object_name;
 		$obj_name =~ s/^\$//;
 		$disc_obj_name =~ s/^\$//;
-		print {$f} "MQTT_DISCOVEREDITEM, $obj_name, $disc_obj_name, $obj->{disc_topic}, $obj->{disc_msg}\n";
+		print {$f} "MQTT_DISCOVEREDITEM, $obj_name, $disc_obj_name, $obj->{disc_topic}, $obj->{disc_msg}\n\n";
 	    }
 	}
     }
@@ -1557,7 +1557,8 @@ sub set {
         ###
         ### Incoming (MQTT to MH)
         ###
-        $self->debug( 1, "mqtt_Item nom to MQTT to MH " . $self->get_object_name() . "::set($msg, $p_setby)" );
+        $self->debug( 1, "mqtt_Item nom to MQTT to MH " . ($self->get_object_name()//'<undef>')
+	                 . "::set(" . ($msg//'<undef>') . ", $p_setby)" );
     }
     else {
         ###

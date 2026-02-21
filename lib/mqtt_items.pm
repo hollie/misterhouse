@@ -1747,7 +1747,7 @@ sub new {      ### mqtt_RemoteItem
     my ( $class, $interface, $type, $topicpattern, $discoverable, $friendly_name, $statetopic, $cmndtopic ) = @_;
     my ($base_type, $device_class, $state_class, $unit_of_m) = $type =~ m/^([^:]*):?([^:]*):?([^:]*):?([^:]*)$/;
 
-    if( !grep( /$base_type/, ('light','switch','sensor','binary_sensor','cover') ) ) {
+    if( !grep( /$base_type/, ('light','switch','sensor','binary_sensor','cover', 'text', 'number', 'select') ) ) {
 	$interface->error( "Invalid InstMqttItem type '$type'" );
 	return;
     }
@@ -1830,6 +1830,9 @@ sub new {      ### mqtt_RemoteItem
 	$statetopic      ||= 'tele:STATE';	# Default is Tasmota norms to maintain backward compatibility.
 	$self->{disc_info}->{state_topic} = $self->make_topic( $listen_topic, split(':',$statetopic));	# Default is Tasmota norms to maintain backward compatibility.
 	$self->{disc_info}->{force_update} = 'true';
+    } elsif( $base_type eq 'text'  ||  $base_type eq 'number'  ||  $base_type eq 'select' ) {
+	$self->{disc_info}->{command_topic} = $self->make_topic( $listen_topic, split(':',$cmndtopic));
+	$self->{disc_info}->{state_topic} = $self->make_topic( $listen_topic, split(':',$statetopic));
     } else {
 	$self->error( "RemoteItem type '$type' not supported yet" );
 	return;
