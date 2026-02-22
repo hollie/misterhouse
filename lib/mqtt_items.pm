@@ -507,7 +507,7 @@ sub set_discovery_names {
 	$self->{disc_info}->{name} = $friendly_name;
 	# $self->{disc_info}->{object_id} = $mqtt_name;
     }
-    $self->log( "'$full_name' turned into (fname:'$friendly_name', devname:'$device_name', devid:'$device_id', areaname:'$area_name')" );
+    # $self->log( "'$full_name' turned into (fname:'$friendly_name', devname:'$device_name', devid:'$device_id', areaname:'$area_name')" );
 }
 
 =item C<set_object_debug( level )>
@@ -902,7 +902,6 @@ sub add_discovery_info {
     my ($self,$extra_disc_info) = @_;
 
     my $merger = Hash::Merge->new( 'RIGHT_PRECEDENT' );
-$self->log( "disc before adding extra discovery info: \n" . $self->dump($self->{disc}) );
     my $new_disc_info = $merger->merge( $self->{disc_info}, $extra_disc_info );
     if( $self->{disc_info} eq $self->{disc} ) {
 	$self->{disc_info} = $self->{disc} = $new_disc_info;
@@ -911,7 +910,6 @@ $self->log( "disc before adding extra discovery info: \n" . $self->dump($self->{
     } else {
 	$self->error( "Unable to add discovery info" );
     }
-$self->log( "disc after adding extra discovery info: \n" . $self->dump($self->{disc}) );
 }
 
 my $short_name_map = {

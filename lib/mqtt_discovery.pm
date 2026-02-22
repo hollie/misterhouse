@@ -75,6 +75,9 @@ sub new {   #### mqtt_DiscoveredItem
     my $node_id;
     my $device_id;
     my $disc_mode;
+    my $disc_cmp;
+    my $disc;
+    my $device_name;
 
     $disc_topic = $orig_disc_topic;
 
@@ -104,51 +107,64 @@ sub new {   #### mqtt_DiscoveredItem
 	return;
     }
 
-    my $disc_info;
-    my $disc;
     eval{ $disc = decode_json( $disc_msg ) };
     if( !$disc ) {
 	$disc_interface->error( "UNRECOGNIZED DISCOVERY MESSAGE -- payload not json: $disc_topic -- M:'$disc_msg'" );
 	return;
     }
-    $disc_info = $disc;
 
     &mqtt_BaseItem::normalize_discovery_info( $disc );
 
-    $disc_interface->debug( 3, "processing discovery message payload:\n" . &mqtt_BaseItem::dump( undef, $disc_info, 3 ) );
+    $disc_interface->debug( 3, "processing discovery message payload:\n" . &mqtt_BaseItem::dump( undef, $disc, 3 ) );
 
     my $listentopics = {};
 
     # map discovery type to mqtt object type
     if( $disc_type eq 'device' ) {
-	if( !defined $disc_info->{device} ) {
+	if( !defined $disc->{device} ) {
 	    $disc_interface->error( "Device discovery' -- no device section found for T:'$disc_topic'" );
 	    return;
 	}
-	$friendly_name = $disc_info->{device}->{name};
-	$friendly_name //= $device_id;
+	$device_name = $disc->{device}->{name};
+	$device_name //= $device_id;
 
-	foreach my $disc_parm ( keys %{$disc_info} ) {
+	foreach my $disc_parm ( keys %{$disc} ) {
 	    if( $disc_parm =~ /^.*_topic$/ ) {
-		$listentopics->{$disc_parm} = $disc_info->{$disc_parm};
+		$listentopics->{$disc_parm} = $disc->{$disc_parm};
 	    }
 	}
-	my $components = [keys %{$disc_info->{components}}];
+	my $components = [keys %{$disc->{components}}];
 	if( scalar @$components == 0 ) {
-	    $disc_interface->error( "Device discovery for '$friendly_name' -- no components found" );
+	    $disc_interface->error( "Device discovery for '$device_name' -- no components found" );
+	    return;
+	} elsif( scalar @$components > 1 ) {
+	    $disc_interface->error( "Device discovery for '$device_name' -- more than one component found -- not supported" );
 	    return;
 	} else {
-	    $disc_interface->debug( 2, "Device discovery for '$friendly_name' -- component '$components->[0]' found" );
+	    $disc_interface->debug( 2, "Device discovery for '$device_name' -- component '$components->[0]' found" );
 	}
-	$disc_info = $disc_info->{components}->{$components->[0]};
-	$disc_type = $disc_info->{platform};
+	$disc_cmp = $disc->{components}->{$components->[0]};
+	$disc_type = $disc_cmp->{platform};
     } else {
-	$friendly_name = $disc_info->{name};
-	$friendly_name //= $device_id;
+	$disc_cmp = $disc;
+    }
+    if( $disc_cmp->{name} ||  (defined $disc_cmp->{name}  &&  $disc->{device}  && $disc->{device}->{name}) ) {
+	if( $disc->{device}  &&  $disc->{device}->{name} ) {
+	    $friendly_name = $disc->{device}->{name};
+	}
+	if( $disc_cmp->{name} ) {
+	    $friendly_name .= " $disc_cmp->{name}";
+	}
+    } elsif( $disc_cmp->{default_entity_id} ) {
+	($friendly_name) = $disc_cmp->{default_entity_id} =~ m/.*\.([\w]+)$/
+    } elsif( $node_id ) {
+	$friendly_name = "${node_id}_${device_id}";
+    } else {
+	$friendly_name = $device_id;
     }
     if( $disc_type eq 'light' ) {
-	if( $disc_info->{schema} eq 'template' ) {
-	    $disc_interface->log( "Discovery schema 'template' not supported for mqtt light $disc_info->{name}" );
+	if( $disc_cmp->{schema} eq 'template' ) {
+	    $disc_interface->log( "Discovery schema 'template' not supported for mqtt light $friendly_name" );
 	} else {
 	    $mqtt_type = $disc_type;
 	}
@@ -160,9 +176,14 @@ sub new {   #### mqtt_DiscoveredItem
 
     # Set the listentopics list to all discovery parms that end with _topic
     #
-    foreach my $disc_parm ( keys %{$disc_info} ) {
+    foreach my $disc_parm ( keys %{$disc} ) {
 	if( $disc_parm =~ /^.*_topic$/ ) {
-	    $listentopics->{$disc_parm} = $disc_info->{$disc_parm};
+	    $listentopics->{$disc_parm} = $disc->{$disc_parm};
+	}
+    }
+    foreach my $disc_parm ( keys %{$disc_cmp} ) {
+	if( $disc_parm =~ /^.*_topic$/ ) {
+	    $listentopics->{$disc_parm} = $disc_cmp->{$disc_parm};
 	}
     }
     my $listentopicslist = [ values %{$listentopics} ];
@@ -173,7 +194,7 @@ sub new {   #### mqtt_DiscoveredItem
 
     # Check for objects that already exist -- for example, if they were persisted in a .mht file
     my $found = 0;
-    my $unique_id = $disc_info->{unique_id}  ||  $device_id;
+    my $unique_id = $disc_cmp->{unique_id}  ||  $device_id;
     for $obj ( @{ $interface->{objects} } ) {
 	if( $obj->{disc_info}->{unique_id} eq $unique_id ) {
 	    if( $obj->{is_local} ) {
@@ -209,16 +230,22 @@ sub new {   #### mqtt_DiscoveredItem
     # create local MH object name
     if( !$obj_name ) {
 	$obj_name = 'mqttd_';
-	if( $node_id ) {
-	    #  $node_id helps to identify the device
-	    $obj_name .= "${node_id}_";
-	}
-	if( $disc_info->{name} ) {
-	    $obj_name .= $disc_info->{name};
+	if( $friendly_name ) {
+	    $obj_name .= $friendly_name;
 	} else {
-	    $obj_name .= $device_id;
+	    # for some mqtt systems, node_id is pretty narly -- use friendly name instead
+	    if( $node_id ) {
+		#  $node_id helps to identify the device
+		$obj_name .= "${node_id}_";
+	    }
+	    if( $disc_cmp->{name} ) {
+		$obj_name .= $disc_cmp->{name};
+	    } else {
+		$obj_name .= $device_id;
+	    }
 	}
-	$obj_name =~ s/[^\w]/_/g;
+	$obj_name =~ s/[^\w]+/_/g;
+	$obj_name = lc( $obj_name );
     }
     $obj = ::get_object_by_name( $obj_name );
     if( $obj ) {
@@ -238,7 +265,7 @@ sub new {   #### mqtt_DiscoveredItem
     bless $self, $class;
 
     $self->{disc}	    = $disc;
-    $self->{disc_info}	    = $disc_info;
+    $self->{disc_info}	    = $disc_cmp;
     $self->{disc_topic}	    = $orig_disc_topic;
     $self->{disc_prefix}    = $disc_prefix;
     $self->{disc_msg}	    = $disc_msg;
@@ -323,7 +350,7 @@ sub receive_mqtt_message {
 	return;
     }
 
-    $obj = new mqtt_DiscoveredItem( $self, undef, $mqtt_topic, $mqtt_msg, 'dynamic' );
+    $obj = new mqtt_DiscoveredItem( $self, undef, $mqtt_topic, $mqtt_msg );
 
     if( $obj ) {
 	my $obj_name = $obj->{mqtt_name};

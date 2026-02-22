@@ -834,7 +834,7 @@ sub pub_msg {
     $self->debug( 1, "$$self{instance} Pub: R:$p_objects{retain} T:'$p_objects{topic}' M:'$p_objects{message}', Caller:$Caller" );
 
     # Perform a sanity check. A bad topic can cause the MQTT server to hang up on us, losing subsequent messages for 20 seconds.
-    if ($p_objects{topic} =~ /[+# ]/) {
+    if ($p_objects{topic} =~ /[+#]/) {
         $self->error(qq<pub_msg rejecting message from $Caller -- topic name "$p_objects{topic}" is invalid.>);
         return;
     }
@@ -1415,6 +1415,43 @@ sub write_discovered_items {
 		$obj_name =~ s/^\$//;
 		$disc_obj_name =~ s/^\$//;
 		print {$f} "MQTT_DISCOVEREDITEM, $obj_name, $disc_obj_name, $obj->{disc_topic}, $obj->{disc_msg}\n\n";
+	    }
+	}
+    }
+    close( $f );
+}
+
+=item C<write_discovery_messages(filename)>
+
+    Writes out all mqtt items that have been discovered to a file with readable discovery messages.
+
+=cut
+
+sub write_discovery_messages {
+    my ($outfilename) = @_;
+    my $interface;
+    my $f;
+    my @sorted_list;
+    
+    if( !$outfilename ) {
+	return;
+    }
+    &mqtt::debug( undef, 1, "Writing discovery messages to '$outfilename'" );
+    if( !open( $f, "> ${outfilename}" ) ) {
+	&mqtt::error( undef, "Unable to open discovery target file '${outfilename}" );
+	return;
+    }
+    foreach my $interface ( &mqtt::get_interface_list() ) {
+	@sorted_list = sort { $a->get_object_name() cmp $b->get_object_name() } @{$interface->{objects}};
+	for my $obj ( @sorted_list ) {
+	    if( defined $obj->{disc_mode}  &&  $obj->{disc_mode} ne 'local' ) {
+		my $obj_name = $obj->get_object_name;
+		my $disc_obj_name = $obj->{disc_interface}->get_object_name;
+		$obj_name =~ s/^\$//;
+		$disc_obj_name =~ s/^\$//;
+		print {$f} "$disc_obj_name:$obj_name ($obj->{mqtt_friendly_name})  T:$obj->{disc_topic}\n";
+		my $dumper = Data::Dumper->new( [$obj->{disc}] );
+		print {$f} $dumper->Dump() . "\n\n";
 	    }
 	}
     }
