@@ -4000,7 +4000,11 @@ sub object_states_save {
     # Save Persistent data
     # Not sure why this does not work ... only the first gets saved??
     #   file_write "$restore_state_file.persistent", Data::Dumper->Dump([\%Persistent, \%Save], [qw(*Persistent *Save)]);
-    file_write "$restore_state_file.persistent", Data::Dumper->Dump( [ \%Persistent ], [qw(*Persistent)] ) . Data::Dumper->Dump( [ \%Save ], [qw(*Save)] );
+    my $d1 = Data::Dumper->new( [ \%Persistent ], [qw(*Persistent)] );
+    $d1->Maxdepth( 0 );
+    my $d2 = Data::Dumper->new( [ \%Save ], [qw(*Save)] );
+    $d2->Maxdepth( 0 );
+    file_write "$restore_state_file.persistent", $d1->Dump() . $d2->Dump();
 
     print " done\n" unless $config_parms{no_log} =~ /save_state/;
 

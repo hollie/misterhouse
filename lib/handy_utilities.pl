@@ -513,6 +513,42 @@ sub main::parse_arg_string {
     return @args;
 }
 
+#---------------------------------------------------------------------------
+#   Utility routine to parse mht args from read_table_A.
+#
+sub main::parse_table_parms {
+    my($positional_parms, $extra_keyword_parms, $args) = @_;
+    my $positional_done = 0;
+    my $parms = {};
+
+    # &main::print_log( "Parsing table parms:" . join ',',@{$args});
+    for( my $i=0; $i < scalar @{$args}; ++$i ) {
+	my $parm = $args->[$i];
+	my $keyword;
+	my $value;
+	$parm =~ s/^'(.*)'%/$1/;	# Strip quotes if any.
+	# Check each format, because initially read_table_A quotes, and later it doesn't.
+	if ($parm =~ /=>/) {
+	    ($keyword,$value) = split(/=>/,$parm);
+	    $positional_done = 1;
+	} else {
+	    if( $positional_done ) {
+		return "positional parm '$parm' used after keyword parm(s)";
+	    }
+	    if( $i >= scalar @{$positional_parms} ) {
+		return "too many positional parameters";
+	    }
+	    $keyword = $positional_parms->[$i];
+	    $value = $args->[$i];
+	}
+        if( !grep( /^$keyword$/, ( @{$positional_parms}, @{$extra_keyword_parms} ) ) ) {
+	    return "unknown parameter '$keyword'";
+	}
+	$parms->{$keyword} = $value;
+    }
+    return $parms;
+}
+
 sub main::plural {
     my ( $value, $des ) = @_;
     $des .= 's' if abs($value) != 1;
