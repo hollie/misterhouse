@@ -1928,9 +1928,11 @@ sub read_table_A {
         # MQTT_BROKER, name_of_broker
         # e.g.MQTT_BROKER, mqtt_1
         require 'mqtt.pm';
-        my ( $name, $topic, $host, $port, $username, $password, $keepalive, $options ) = @item_info;
+        my ( $name, $topic, $host, $port, $username, $password, $keepalive, @rest ) = @item_info;
 	$topic =~ s/\*/#/g;
-        $code .= sprintf( "\n\$%-35s = new mqtt(\"%s\", '$host', '$port', '$topic', '$username', '$password', $keepalive, '$options' );\n", $name, $name );
+        $code .= sprintf( "\n\$%-35s = new mqtt(\"%s\", '$host', '$port', '$topic', '$username', '$password', '$keepalive', ", $name, $name)
+	    . join(', ', map({"'$_'"} @rest))
+	    . ");\n";
     }
     elsif ( $type eq "MQTT_DEVICE" ) {
         # there is one record per mqtt device and it must be below the MQTT_BROKER definition
