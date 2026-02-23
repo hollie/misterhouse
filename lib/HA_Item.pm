@@ -1283,6 +1283,7 @@ sub set {
     my $p_setby_str = $p_setby || '';
 
     $self->debug( 2, "$self->{object_name} set by $p_setby_str to: $setval" );
+    return if &main::check_for_tied_filters( $self, $setval );
 
     if( lc $self->{state} eq lc $setval ) {
 	# If the state is set to its current value, HA will not send back a state change
@@ -1307,6 +1308,36 @@ sub set {
     } else {
 	$self->ha_set_state( $setval );
     }
+}
+
+=item C<set_with_timer(state, time, return_state, addition_return_states)>
+    Handle local set_with_timer calls
+
+    NOTE:  This timer functionality is required here because the Generic_Item timer
+           is reset by Generic_Item set calls, and the set call for the Generic_Item
+	   in this case is delayed until the state response is received from the mqtt device.
+=cut
+
+sub set_with_timer {
+    my ( $self, $state, $time, $return_state, $additional_return_states ) = @_;
+    return if &main::check_for_tied_filters( $self, $state );
+
+    $self->set($state) unless $state eq '';
+
+    return unless $time;
+
+    my $state_change = ( $state eq 'off' ) ? 'on' : 'off';
+    $state_change = $return_state if defined $return_state;
+    $state_change = $self->{state}
+      if $return_state and lc $return_state eq 'previous';
+
+    $state_change .= ';' . $additional_return_states
+      if $additional_return_states;
+
+    $$self{set_timer} = &Timer::new() unless $$self{set_timer};
+    my $object_name = $self->{object_name};
+    my $action      = "$object_name->set('$state_change')";
+    $$self{set_timer}->set( $time, $action );
 }
 
 sub set_mh_state {
