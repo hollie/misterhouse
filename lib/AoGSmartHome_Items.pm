@@ -269,7 +269,7 @@ sub error {
 sub dump {
     my( $self, $obj, $maxdepth ) = @_;
     $obj = $obj || $self;
-    $maxdepth = $maxdepth || 2;
+    $maxdepth = 4 if !defined($maxdepth);
     my $dumper = Data::Dumper->new( [$obj] );
     $dumper->Maxdepth( $maxdepth );
     return $dumper->Dump();
@@ -1122,35 +1122,36 @@ sub CtoF {
 
 sub execute_OnOff {
     my ( $self, $command ) = @_;
-
-    my $response = '   {
-    "ids": [';
-
+    my $response;
     my $turn_on;
+    my $on_val;
 
     if( $command->{'execution'}->[0]->{'params'}->{'on'} == 1
     ||  $command->{'execution'}->[0]->{'params'}->{'on'} eq "true"
     ) {
 	$turn_on = 1;
+	$on_val = 'true';
     } else {
 	$turn_on = 0;
+	$on_val = 'false';
     }
 
     foreach my $device ( @{ $command->{'devices'} } ) {
 	$self->debug( 1, "Received execute onoff command for $device->{'id'} -- " . $command->{'execution'}->[0]->{'params'}->{'on'} );
-        set_state( $self, $self->{'uuids'}->{$device->{'id'}}, $turn_on ? 'on' : 'off' );
-	$response .= qq["$device->{'id'}",];
-    }
-
-    # Remove extra ',' at the end
-    $response =~ s/,$//;
-
-    $response .= "],\n";
-
-    $response .= <<EOF;
-    "status": "SUCCESS"
-   },
+        set_state( $self, $self->{'uuids'}->{$device->{'id'}}, $turn_on ? ON : OFF );
+	$response .= <<EOF;
+    {
+	"ids": [
+	  "$device->{'id'}"
+	],
+	"status": "SUCCESS",
+	"states": {
+	  "on": $on_val,
+	  "online": true
+	}
+    },
 EOF
+    }
 
     return $response;
 }
