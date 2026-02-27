@@ -592,7 +592,7 @@ sub main::set_table_parm_value {
     my ($parms, $keyword, $value ) = @_;
 
     if( $main::Debug{misc} ) {
-	&main::print_log( "Setting parm $keyword to $value..." );
+	# &main::print_log( "Setting parm $keyword to $value..." );
     }
     if( $value =~ /^\$/ ) {
 	my $obj = &get_object_by_name( $value );
