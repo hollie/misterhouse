@@ -1209,7 +1209,26 @@ use Hash::Merge;
 =cut
 
 sub new {     ### mqtt_LocalItem
-    my ( $class, $interface, $name, $type, $local_object, $topicpattern, $discoverable, $friendly_name, $statetopic, $cmndtopic ) = @_;
+    my $class = shift;
+
+    my $positional_parms = [ qw( interface name type local_object topicpattern discoverable friendly_name statetopic cmndtopic ) ];
+    my $optional_parms = [];
+    my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
+    if( !ref $parms ) {
+	&mqtt::error( undef, "error parsing MQTT_LOCALITEM parameters: $parms -- mqtt item not created" );
+	return;
+    }
+
+    my $interface	= $parms->{interface};
+    my $name		= $parms->{name};
+    my $type		= $parms->{type};
+    my $local_object	= $parms->{local_object};
+    my $topicpattern	= $parms->{topicpattern};
+    my $discoverable	= $parms->{discoverable};
+    my $friendly_name	= $parms->{friendly_name};
+    my $statetopic	= $parms->{statetopic};
+    my $cmndtopic	= $parms->{cmndtopic};
+
     my ($base_type, $device_class, $state_class, $unit_of_m);
     my $node_id;
     my $mqtt_name;
@@ -1733,7 +1752,7 @@ use Data::Dumper;
 @mqtt_RemoteItem::ISA = ( 'mqtt_BaseRemoteItem' );
 
 
-=item C<new(mqtt_interface, name, type, topicpattern, discoverable, friendly_name, statetopic, $cmndtopic)>
+=item C<new(mqtt_interface, name, type, topicpattern, discoverable, friendly_name, statetopic, cmndtopic)>
 
     Creates a MQTT RemoteItem/object that will mirror the state of the object, and send commands to it.
 
@@ -1742,7 +1761,24 @@ use Data::Dumper;
 =cut
 
 sub new {      ### mqtt_RemoteItem
-    my ( $class, $interface, $type, $topicpattern, $discoverable, $friendly_name, $statetopic, $cmndtopic ) = @_;
+    my $class = shift;
+
+    my $positional_parms = [ qw( interface type topicpattern discoverable friendly_name statetopic cmndtopic ) ];
+    my $optional_parms = [ qw( grouplist ) ];
+    my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
+    if( !ref $parms ) {
+	&mqtt::error( undef, "error parsing MQTT_REMOTEITEM) parameters: $parms -- mqtt item not created" );
+	return;
+    }
+
+    my $interface	= $parms->{interface};
+    my $type		= $parms->{type};
+    my $topicpattern	= $parms->{topicpattern};
+    my $discoverable	= $parms->{discoverable};
+    my $friendly_name	= $parms->{friendly_name};
+    my $statetopic	= $parms->{statetopic};
+    my $cmndtopic	= $parms->{cmndtopic};
+
     my ($base_type, $device_class, $state_class, $unit_of_m) = $type =~ m/^([^:]*):?([^:]*):?([^:]*):?([^:]*)$/;
 
     if( !grep( /$base_type/, ('light','switch','sensor','binary_sensor','cover', 'text', 'number', 'select') ) ) {
@@ -1868,7 +1904,22 @@ use Data::Dumper;
 =cut
 
 sub new {      ### mqtt_InstMqttItem
-    my ( $class, $interface, $type, $topicpattern, $discoverable, $friendly_name ) = @_;
+    my $class = shift;
+
+    my $positional_parms = [ qw( interface type topicpattern discoverable friendly_name ) ];
+    my $optional_parms = [ qw( grouplist ) ];
+    my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
+    if( !ref $parms ) {
+	&mqtt::error( undef, "error parsing MQTT_INSTMQTTITEM) parameters: $parms -- mqtt item not created" );
+	return;
+    }
+
+    my $interface	= $parms->{interface};
+    my $type		= $parms->{type};
+    my $topicpattern	= $parms->{topicpattern};
+    my $discoverable	= $parms->{discoverable};
+    my $friendly_name	= $parms->{friendly_name};
+
     my ($base_type, $device_class, $state_class, $unit_of_m) = $type =~ m/^([^:]*):?([^:]*):?([^:]*):?([^:]*)$/;
 
     if( !grep( /$base_type/, ('light','switch','binary_sensor','sensor','scene', 'cover' ) ) ) {
@@ -1887,7 +1938,7 @@ sub new {      ### mqtt_InstMqttItem
 	$topic_prefix = '';
     }
     $topic_prefix .= "$node_id/$mqtt_name";
-$interface->debug( 1, "topicpattern:'$topicpattern' parsed to node_id:'$node_id' mqtt_name:'$mqtt_name' prefix:'$topic_prefix'" );
+    $interface->debug( 3, "topicpattern:'$topicpattern' parsed to node_id:'$node_id' mqtt_name:'$mqtt_name' prefix:'$topic_prefix'" );
     if( !$mqtt_name ) {
 	$interface->error( "Unrecognized topic pattern '$topicpattern' for device '$friendly_name'" );
     }

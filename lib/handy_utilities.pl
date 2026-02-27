@@ -517,21 +517,36 @@ sub main::parse_arg_string {
 #   Utility routine to parse mht args from read_table_A.
 #
 sub main::parse_table_parms {
-    my($positional_parms, $extra_keyword_parms, $args) = @_;
+    my($args, $positional_parms, $option_parms, $use_keywords) = @_;
     my $positional_done = 0;
+    my $positional_count = scalar @{$positional_parms};
     my $parms = {};
+    my $errstr;
 
-    # &main::print_log( "Parsing table parms:" . join ',',@{$args});
+    if( $main::Debug{misc} ) {
+        &main::print_log( "Parsing table parms:" . join ',',@{$args});
+    }
     for( my $i=0; $i < scalar @{$args}; ++$i ) {
 	my $parm = $args->[$i];
 	my $keyword;
 	my $value;
-	$parm =~ s/^'(.*)'%/$1/;	# Strip quotes if any.
+	$parm =~ s/^'(.*)'/$1/;	# Strip quotes if any.
 	# Check each format, because initially read_table_A quotes, and later it doesn't.
-	if ($parm =~ /=>/) {
-	    ($keyword,$value) = split(/=>/,$parm);
-	    $positional_done = 1;
+	if( $use_keywords  &&  ($parm =~ /=>/) ) {
+	    if( $i >= $positional_count
+	    ||  $i == 0
+	    ||  $i == 1
+	    || ($i == $positional_count-1  &&  $positional_parms->[$i] eq '<options>' )
+	    ) {
+		$positional_done = 1;
+	    } else {
+		return "keyword parm used before they are allowed";
+	    }
+	    ($keyword,$value) = split(/\s*=>\s*/,$parm);
 	} else {
+	    if( !$parm ) {
+		next;
+	    }
 	    if( $positional_done ) {
 		return "positional parm '$parm' used after keyword parm(s)";
 	    }
@@ -540,13 +555,66 @@ sub main::parse_table_parms {
 	    }
 	    $keyword = $positional_parms->[$i];
 	    $value = $args->[$i];
+	    if( $keyword eq '<options>' ) {
+		my @option_list = split( '\|', $value );
+		my $delay;
+		foreach my $option (@option_list) {
+		    if ($option =~ /=/) {
+			($keyword,$value) = split(/\s*=\s*/,$option);
+		    } else {
+			$keyword = $option;
+			$value = 1;
+		    }
+		    if( !grep( /^$keyword$/, ( @{$positional_parms}, @{$option_parms} ) ) ) {
+			return "unknown parameter option '$keyword'";
+		    }
+		    $errstr = &main::set_table_parm_value( $parms, $keyword, $value );
+		    return $errstr if $errstr;
+		}
+		$keyword = undef;
+	    }
 	}
-        if( !grep( /^$keyword$/, ( @{$positional_parms}, @{$extra_keyword_parms} ) ) ) {
-	    return "unknown parameter '$keyword'";
+	if( $keyword ) {
+	    if( !grep( /^$keyword$/, ( @{$positional_parms}, @{$option_parms} ) ) ) {
+		return "unknown parameter '$keyword'";
+	    }
+	    $errstr = &main::set_table_parm_value( $parms, $keyword, $value );
+	    return $errstr if $errstr;
 	}
-	$parms->{$keyword} = $value;
+    }
+    if( $main::Debug{misc} ) {
+	&main::print_log( "Parsed table parms into:" .  main::table_parms_to_str( $parms ) );
     }
     return $parms;
+}
+
+sub main::set_table_parm_value {
+    my ($parms, $keyword, $value ) = @_;
+
+    if( $main::Debug{misc} ) {
+	&main::print_log( "Setting parm $keyword to $value..." );
+    }
+    if( $value =~ /^\$/ ) {
+	my $obj = &get_object_by_name( $value );
+	if( !$obj ) {
+	    return "unable to find object '$value'";
+	}
+	$value = $obj;
+    }
+    $parms->{$keyword} = $value;
+    return;
+}
+
+sub main::table_parms_to_str {
+    my ($parms) = @_;
+    my $str = '';
+    for my $parm ( keys %$parms ) {
+	if( $str ) {
+	    $str .= ', ';
+	}
+	$str .= ${parm} . '=>' . $parms->{$parm};
+    }
+    return $str;
 }
 
 sub main::plural {

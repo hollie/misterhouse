@@ -302,7 +302,20 @@ use JSON qw( decode_json encode_json );
 =cut
 
 sub new {  ### mqtt_Discovery
-    my ( $class, $interface, $name, $discovery_prefix, $action ) = @_;
+    my $class = shift;
+
+    my $positional_parms = [ qw( interface name discovery_prefix action ) ];
+    my $optional_parms = [];
+    my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
+    if( !ref $parms ) {
+	&mqtt::error( undef, "error parsing MQTT_DISCOVERY parameters: $parms -- mqtt item not created" );
+	return;
+    }
+
+    my $interface	= $parms->{interface};
+    my $name		= $parms->{name};
+    my $discovery_prefix= $parms->{discovery_prefix};
+    my $action		= $parms->{action};
 
     $discovery_prefix //= $interface->{topic_prefix};
     if( $discovery_prefix  &&  !$action ) {
@@ -323,7 +336,7 @@ sub new {  ### mqtt_Discovery
 	$interface->{discovery_publish_prefix} = $discovery_prefix;
     }
     if( $action eq 'subscribe'  ||  $action eq 'both' ) {
-	$listentopics = "${discovery_prefix}/#";
+	$listentopics = "$discovery_prefix/#";
     }
 
     my $self = new mqtt_BaseItem( $interface, $name, 'discovery', $listentopics, 0 );

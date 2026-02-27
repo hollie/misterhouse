@@ -390,10 +390,10 @@ sub new {
 
     my $positional_parms = [ qw (name host port topic username password keepalive) ];
     my $extra_keyword_parms = [ qw (topic_prefix use_ha_device_disc) ];
-    my $parms = main::parse_table_parms( $positional_parms, $extra_keyword_parms, [@_] );
+    my $parms = main::parse_table_parms( [@_], $positional_parms, $extra_keyword_parms, 1 );
 
     if( !ref $parms ) {
-	&mqtt::error( undef, "error parsing mqtt parameters: $parms -- mqtt object not created" );
+	&mqtt::error( undef, "error parsing mqtt(MQTT_BROKER) parameters: $parms -- mqtt broker object not created" );
 	return;
     }
 
@@ -407,7 +407,7 @@ sub new {
     $parms->{topic}	= $parms->{topic}		|| $::config_parms{mqtt_topic}		|| '#';
     $parms->{host}	= $parms->{host}		|| $::config_parms{mqtt_host}		|| '127.0.0.1';
     $parms->{port}	= $parms->{port}		|| $::config_parms{mqtt_port}		|| 1883;
-    $parms->{user}	= $parms->{user}		|| $::config_parms{mqtt_username}	|| '';
+    $parms->{username}	= $parms->{username}		|| $::config_parms{mqtt_username}	|| '';
     $parms->{password}	= $parms->{password}	|| $::config_parms{mqtt_password}	|| '';
 
     $parms->{keepalive} = 120 if !defined( $parms->{keepalive} );    # retain a provided 0
@@ -1422,7 +1422,6 @@ sub write_discovered_items {
 	for my $obj ( @sorted_list ) {
 	    if( defined $obj->{disc_mode}  &&  $obj->{disc_mode} ne 'local' ) {
 		my $obj_name = $obj->get_object_name;
-		print "getting discovery object name for $obj_name\n";
 		my $disc_obj_name = $obj->{disc_interface}->get_object_name;
 		$obj_name =~ s/^\$//;
 		$disc_obj_name =~ s/^\$//;
@@ -1560,18 +1559,28 @@ use Data::Dumper;
 =cut
 
 sub new {
-    my ( $class, $instance, $topic, $qos, $retain ) = @_;
+    my $class = shift;
 
+    my $positional_parms = [ qw (instance topic qos retain) ];
+    my $extra_keyword_parms = [ qw( grouplist ) ];
+    my $parms = main::parse_table_parms( [@_], $positional_parms, $extra_keyword_parms, 1 );
+
+    if( !ref $parms ) {
+	&mqtt::error( undef, "error parsing mqtt(MQTT_BROKER) parameters: $parms -- mqtt broker object not created" );
+	return;
+    }
+
+    my $instance = $parms->{instance};
     my $self = new Generic_Item();
 
     bless $self, $class;
 
     $self->interface($instance) if defined $instance;
 
-    $$self{topic}   = $topic;
+    $$self{topic}   = $parms->{topic};
     $$self{message} = '';
-    $$self{retain}  = $retain || 0;
-    $$self{QOS}     = $qos    || 0;
+    $$self{retain}  = $parms->{retain} || 0;
+    $$self{QOS}     = $parms->{qos}    || 0;
 
     $$self{instance}->add($self);
 

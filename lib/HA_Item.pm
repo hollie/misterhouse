@@ -316,7 +316,7 @@ sub log {
     if( !defined( $prefix ) ) {
         $prefix = '[HA_Server]: ';
     }
-    $str = $self->break_long_str( $str, $prefix, 300 );
+    $str = HA_Server::break_long_str( $self, $str, $prefix, 300 );
 
     &main::print_log( $str );
     return $str;
@@ -358,26 +358,39 @@ sub dump {
 =cut
 
 sub new {
-    my ( $class, $name, $address, $keep_alive_timer, $api_key ) = @_;
+    my $class = shift;
+
+    my $positional_parms = [ 'name', 'address', 'keep_alive_time', 'api_key' ];
+    my $optional_parms = [];
+    my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
+
+    if( !ref $parms ) {
+	HA_Server::error( undef, "HA_Server parameter error: $parms -- item not created" );
+	return;
+    }
+
     my $self;
+    my $address = $parms->{address};
+    my $keep_alive_time = $parms->{keep_alive_time};
+    my $api_key = $parms->{api_key};
 
     if( !defined $main::Debug{ha_server} ) {
         $main::Debug{ha_server} = 0;
     }
 
-    $address            = $address  || $::config_parms{homeassistant_address}   || 'localhost:8123';
-    $api_key            = $api_key  || $::config_parms{homeassistant_api_key};
-    $keep_alive_timer   = $keep_alive_timer                                     || '10';
-    $keep_alive_timer += 0;
+    ${address}          = ${address}  || $::config_parms{homeassistant_address}   || 'localhost:8123';
+    ${api_key}          = ${api_key}  || $::config_parms{homeassistant_api_key};
+    ${keep_alive_timer} = ${keep_alive_timer}  // '10';
+    ${keep_alive_timer} += 0;
 
     foreach my $ha_server (values %HA_Server_List) {
-	if( $ha_server->{ip_address} eq $address ) {
+	if( $ha_server->{ip_address} eq ${address} ) {
 	    $self = $ha_server;
 	}
     }
 
     if( $self ) {
-	$self->log( "Existing HA Server $self->{name} found for $address -- reusing" );
+	$self->log( "Existing HA Server $self->{name} found for ${address} -- reusing" );
 	$self->remove_all_items();
 	@{ $self->{unhandled_entities} } = ();
 	if( !$self->{authenticated} ) {
@@ -388,24 +401,24 @@ sub new {
     } else {
 	$self = {};
 	bless $self, $class;
-	$self->log( "creating HA Server $name on $address" );
+	$self->log( "creating HA Server ${name} on ${address}" );
 
 	&::MainLoop_pre_add_hook( \&HA_Server::check_for_data, 1, $self );
 	&::Reload_post_add_hook( \&HA_Server::generate_voice_commands, 1, $self );
 
-	$HA_Server_List{$name}	    = $self;
+	$HA_Server_List{${name}}	    = $self;
 	$self->{connected}	    = 0;
 	$self->{authenticated}	    = 0;
 	$self->{state}              = 'off';
 	$self->{said}               = '';
 	$self->{state_now}          = 'off';
     
-	$self->{ip_address}         = $address;
-	$self->{keep_alive_timer}   = $keep_alive_timer;
+	$self->{ip_address}         = ${address};
+	$self->{keep_alive_timer}   = ${keep_alive_timer};
 	$self->{reconnect_timer}    = 10;
 	$self->{next_id}            = 20;
 	$self->{subscribe_id}       = 0;
-	$self->{api_key}            = $api_key;
+	$self->{api_key}            = ${api_key};
 	$self->{max_payload_size}   = $::config_parms{homeassistant_max_payload_size} || 2000000; #2M default Payload size
 	$self->{init_v_cmd}         = 0;
 	$self->{recon_timer}        = ::Timer::new();
@@ -419,7 +432,7 @@ sub new {
 	@{ $self->{objects} }	    = ();
     }
 
-    $self->{name}		= $name;
+    $self->{name}		= ${name};
 
     $self->connect();
 
@@ -1114,13 +1127,26 @@ sub dump {
 
 =cut
 
-sub new {
-    my ($class, $fulldomain, $entity, $ha_server, $options ) = @_;
+sub new {   # HA_Item
+    my $class = shift;
+
+    my $positional_parms = [ 'fulldomain', 'entity', 'ha_server', '<options>' ];
+    my $option_parms = [ 'grouplist', 'primary', 'weatherprimary', 'noweatherupdate', 'no_duplicate_states', 'delay_between_messages', 'response_check_delay' ];
+    my $parms = main::parse_table_parms( [@_], $positional_parms, $option_parms, 1 );
+
+    if( !ref $parms ) {
+	HA_Server::error( undef, "HA_Item parameter error: $parms -- item not created" );
+	return;
+    }
+
+    my $ha_server = $parms->{ha_server};
+    my $entity = $parms->{entity};
+    my $fulldomain = $parms->{fulldomain};
     my $self = new Generic_Item();
     bless $self, $class;
 
     if( !$ha_server ) {
-	&HA_Server::error( undef, "No homeassistant server set" );
+	HA_Server::error( undef, "No homeassistant server set" );
         return;
     }
     $self->{ha_server} = $ha_server;
@@ -1128,40 +1154,32 @@ sub new {
     $subtype = "" unless $subtype;
     $self->{domain} = $domain;
     $self->{subtype} = $subtype;    
-    $self->{duplicate_states} = 1;
     $self->{unavailable_count} = 0;
     $self->{options} = {};
     $self->{msg_trk} = {};
-    $self->{msg_trk}->{response_check_delay} = 5;
     @{$self->{msg_trk}->{pending_msg_queue}} = ();
     $self->{msg_trk}->{pending_msgid} = 0;
-    $self->{msg_trk}->{delay_between_messages} = 0;
-
-    if (defined $options) {
-	my @option_list = split( '\|', $options );
-	my $delay;
-	foreach my $option (@option_list) {
-	    if( (lc $domain eq "weather" ) ) {
-	        $self->{options}->{weather_noupdate} = 0;
-	        $self->{options}->{weather_primary} = 0;
-	        $self->{options}->{weather_primary} = $entity if ($option =~ m/primary/ );
-	        $self->{options}->{weather_noupdate} = 1 if ($option =~ m/noweatherupdate/ );
-	    } elsif( $option eq 'no_duplicate_states' ) {
-		$self->{duplicate_states} = 0;
-	    } elsif( ($delay) = $option =~ m/delay_between_messages\s*\=\s*(\d+)/ ) {
-		$self->{msg_trk}->{delay_between_messages} = $delay;
-		$self->{msg_trk}->{response_check_delay} += $delay;
-	    } elsif( ($delay) = $option =~ m/response_check_delay\s*\=\s*(\d+)/ ) {
-		$self->{msg_trk}->{response_check_delay} = $delay;
-	    } else {
-		$self->error( "Invalid HA_Item option: '$option'. HA_Item entity $entity NOT created" );
-		return;
-	    }
-	}
-        $self->debug( 1, "New HA_Item ( $class, $domain, $entity, $subtype, [$options] )" );
+    $self->{msg_trk}->{response_check_delay} = $parms->{response_check_delay} // 5;
+    $self->{msg_trk}->{delay_between_messages} = $parms->{delay_between_messages} // 0;
+    $self->{msg_trk}->{response_check_delay} += $self->{msg_trk}->{delay_between_messages};
+    if( $parms->{no_duplicate_states} ) {
+	$self->{duplicate_states} = 0;
     } else {
-        $self->debug( 1, "New HA_Item ( $class, $domain, $entity, $subtype, [no options] )" );
+	$self->{duplicate_states} = 1;
     }
+    if( lc $domain eq "weather" ) {
+	$self->{options}->{weather_primary} = 0;
+	$self->{options}->{weather_noupdate} = 0;
+	if( $parms->{primary}  ||  $parms->{weatherprimary} ) {
+	    $self->{options}->{weather_primary} = $entity;
+	}
+	if( $parms->{noweatherupdate} ) {
+	    $self->{options}->{weather_noupdate} = 1;
+	}
+    }
+
+    $self->debug( 1, "New HA_Item ( $class, " . main::table_parms_to_str( $parms ) . " )" );
+
     if (lc $domain eq 'weather') {
         if (!defined $self->{ha_server}->{exclusive_objects}->{weather}) {
             $self->{ha_server}->{exclusive_objects}->{weather} = $entity;
@@ -1283,6 +1301,7 @@ sub set {
     my $p_setby_str = $p_setby || '';
 
     $self->debug( 2, "$self->{object_name} set by $p_setby_str to: $setval" );
+    return if &main::check_for_tied_filters( $self, $setval );
 
     if( lc $self->{state} eq lc $setval ) {
 	# If the state is set to its current value, HA will not send back a state change
@@ -1307,6 +1326,36 @@ sub set {
     } else {
 	$self->ha_set_state( $setval );
     }
+}
+
+=item C<set_with_timer(state, time, return_state, addition_return_states)>
+    Handle local set_with_timer calls
+
+    NOTE:  This timer functionality is required here because the Generic_Item timer
+           is reset by Generic_Item set calls, and the set call for the Generic_Item
+	   in this case is delayed until the state response is received from the mqtt device.
+=cut
+
+sub set_with_timer {
+    my ( $self, $state, $time, $return_state, $additional_return_states ) = @_;
+    return if &main::check_for_tied_filters( $self, $state );
+
+    $self->set($state) unless $state eq '';
+
+    return unless $time;
+
+    my $state_change = ( $state eq 'off' ) ? 'on' : 'off';
+    $state_change = $return_state if defined $return_state;
+    $state_change = $self->{state}
+      if $return_state and lc $return_state eq 'previous';
+
+    $state_change .= ';' . $additional_return_states
+      if $additional_return_states;
+
+    $$self{set_timer} = &Timer::new() unless $$self{set_timer};
+    my $object_name = $self->{object_name};
+    my $action      = "$object_name->set('$state_change')";
+    $$self{set_timer}->set( $time, $action );
 }
 
 sub set_mh_state {
