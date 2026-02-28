@@ -304,7 +304,7 @@ use JSON qw( decode_json encode_json );
 sub new {  ### mqtt_Discovery
     my $class = shift;
 
-    my $positional_parms = [ qw( interface name discovery_prefix action ) ];
+    my $positional_parms = [ qw( interface:objref name discovery_prefix action ) ];
     my $optional_parms = [];
     my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
     if( !ref $parms ) {

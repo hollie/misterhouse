@@ -1561,7 +1561,7 @@ use Data::Dumper;
 sub new {
     my $class = shift;
 
-    my $positional_parms = [ qw (instance topic qos retain) ];
+    my $positional_parms = [ qw (instance:objref topic qos retain) ];
     my $extra_keyword_parms = [ qw( grouplist ) ];
     my $parms = main::parse_table_parms( [@_], $positional_parms, $extra_keyword_parms, 1 );
 

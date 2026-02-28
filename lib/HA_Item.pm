@@ -370,27 +370,28 @@ sub new {
     }
 
     my $self;
-    my $address = $parms->{address};
+    my $name		= $parms->{name};
+    my $address		= $parms->{address};
     my $keep_alive_time = $parms->{keep_alive_time};
-    my $api_key = $parms->{api_key};
+    my $api_key		= $parms->{api_key};
 
     if( !defined $main::Debug{ha_server} ) {
         $main::Debug{ha_server} = 0;
     }
 
-    ${address}          = ${address}  || $::config_parms{homeassistant_address}   || 'localhost:8123';
-    ${api_key}          = ${api_key}  || $::config_parms{homeassistant_api_key};
-    ${keep_alive_timer} = ${keep_alive_timer}  // '10';
-    ${keep_alive_timer} += 0;
+    $address          = $address  || $::config_parms{homeassistant_address}   || 'localhost:8123';
+    $api_key          = $api_key  || $::config_parms{homeassistant_api_key};
+    $keep_alive_timer = $keep_alive_timer  // '10';
+    $keep_alive_timer += 0;
 
     foreach my $ha_server (values %HA_Server_List) {
-	if( $ha_server->{ip_address} eq ${address} ) {
+	if( $ha_server->{ip_address} eq $address ) {
 	    $self = $ha_server;
 	}
     }
 
     if( $self ) {
-	$self->log( "Existing HA Server $self->{name} found for ${address} -- reusing" );
+	$self->log( "Existing HA Server $self->{name} found for $address -- reusing" );
 	$self->remove_all_items();
 	@{ $self->{unhandled_entities} } = ();
 	if( !$self->{authenticated} ) {
@@ -401,7 +402,7 @@ sub new {
     } else {
 	$self = {};
 	bless $self, $class;
-	$self->log( "creating HA Server ${name} on ${address}" );
+	$self->log( "creating HA Server $name on $address" );
 
 	&::MainLoop_pre_add_hook( \&HA_Server::check_for_data, 1, $self );
 	&::Reload_post_add_hook( \&HA_Server::generate_voice_commands, 1, $self );
@@ -413,12 +414,12 @@ sub new {
 	$self->{said}               = '';
 	$self->{state_now}          = 'off';
     
-	$self->{ip_address}         = ${address};
-	$self->{keep_alive_timer}   = ${keep_alive_timer};
+	$self->{ip_address}         = $address;
+	$self->{keep_alive_timer}   = $keep_alive_timer;
 	$self->{reconnect_timer}    = 10;
 	$self->{next_id}            = 20;
 	$self->{subscribe_id}       = 0;
-	$self->{api_key}            = ${api_key};
+	$self->{api_key}            = $api_key;
 	$self->{max_payload_size}   = $::config_parms{homeassistant_max_payload_size} || 2000000; #2M default Payload size
 	$self->{init_v_cmd}         = 0;
 	$self->{recon_timer}        = ::Timer::new();
@@ -1130,8 +1131,8 @@ sub dump {
 sub new {   # HA_Item
     my $class = shift;
 
-    my $positional_parms = [ 'fulldomain', 'entity', 'ha_server', '<options>' ];
-    my $option_parms = [ 'grouplist', 'primary', 'weatherprimary', 'noweatherupdate', 'no_duplicate_states', 'delay_between_messages', 'response_check_delay' ];
+    my $positional_parms = [ 'fulldomain', 'entity', 'ha_server', 'options:options' ];
+    my $option_parms = [ 'grouplist', 'primary', 'weatherprimary', 'noweatherupdate', 'no_duplicate_states', 'delay_between_messages:number', 'response_check_delay:number' ];
     my $parms = main::parse_table_parms( [@_], $positional_parms, $option_parms, 1 );
 
     if( !ref $parms ) {

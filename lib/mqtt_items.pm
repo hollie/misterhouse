@@ -1211,7 +1211,7 @@ use Hash::Merge;
 sub new {     ### mqtt_LocalItem
     my $class = shift;
 
-    my $positional_parms = [ qw( interface name type local_object topicpattern discoverable friendly_name statetopic cmndtopic ) ];
+    my $positional_parms = [ qw( interface:itemref name type local_object:itemref topicpattern discoverable friendly_name statetopic cmndtopic ) ];
     my $optional_parms = [];
     my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
     if( !ref $parms ) {
@@ -1763,7 +1763,7 @@ use Data::Dumper;
 sub new {      ### mqtt_RemoteItem
     my $class = shift;
 
-    my $positional_parms = [ qw( interface type topicpattern discoverable friendly_name statetopic cmndtopic ) ];
+    my $positional_parms = [ qw( interface:objref type topicpattern discoverable friendly_name statetopic cmndtopic ) ];
     my $optional_parms = [ qw( grouplist ) ];
     my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
     if( !ref $parms ) {
@@ -1906,7 +1906,7 @@ use Data::Dumper;
 sub new {      ### mqtt_InstMqttItem
     my $class = shift;
 
-    my $positional_parms = [ qw( interface type topicpattern discoverable friendly_name ) ];
+    my $positional_parms = [ qw( interface:objref type topicpattern discoverable friendly_name ) ];
     my $optional_parms = [ qw( grouplist ) ];
     my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
     if( !ref $parms ) {

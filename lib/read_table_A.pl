@@ -1946,7 +1946,7 @@ sub read_table_A {
         my ($MQTT_broker_name, $MQTT_topic);
         ( $name, $grouplist, $MQTT_broker_name, $MQTT_topic ) = @item_info;
        
-        $code .= sprintf( "\n\$%-35s = new mqtt_Item(\$%s\,\"%s\");\n",
+        $code .= sprintf( "\n\$%-35s = new mqtt_Item( \"%s\",\"%s\");\n",
             $name, $MQTT_broker_name, $MQTT_topic );
        
     }
@@ -1955,12 +1955,7 @@ sub read_table_A {
 	my ($local_obj_name, $broker, $type, $topicprefix, $discoverable, $friendly_name, $statetopic, $cmndtopic);
 	($name, $local_obj_name, $broker, $type, $topicprefix, $discoverable, $friendly_name, $statetopic, $cmndtopic) = @item_info;
 	require mqtt_items;
-	if( $broker ) {
-	    $broker = '$' . $broker;
-	} else {
-	    $broker = 'undef';
-	}
-	$code .= "\$${name} = new mqtt_LocalItem( ${broker}, '$name', '$type', \$$local_obj_name, '$topicprefix', '$discoverable', '$friendly_name', '$statetopic', '$cmndtopic' );\n";
+	$code .= "\$${name} = new mqtt_LocalItem( '$broker', '$name', '$type', '$local_obj_name', '$topicprefix', '$discoverable', '$friendly_name', '$statetopic', '$cmndtopic' );\n";
     }
     elsif( $type eq "MQTT_REMOTEITEM" ) {
 	# $statetopic $cmndtopic are optional and have defaults based on $type.
@@ -1968,20 +1963,20 @@ sub read_table_A {
 	my ($broker, $type, $topicprefix, $discoverable, $friendly_name, $statetopic, $cmndtopic);
 	($name, $grouplist, $broker, $type, $topicprefix, $discoverable, $friendly_name, $statetopic, $cmndtopic) = @item_info;
 	require mqtt_items;
-	$code .= "\$${name} = new mqtt_RemoteItem( \$${broker}, '$type', '$topicprefix', '$discoverable', '$friendly_name', '$statetopic', '$cmndtopic');\n";
+	$code .= "\$${name} = new mqtt_RemoteItem( '$broker', '$type', '$topicprefix', '$discoverable', '$friendly_name', '$statetopic', '$cmndtopic');\n";
     }
     elsif( $type eq "MQTT_INSTMQTT" ) {
 	my ($broker, $type, $topicpattern, $discoverable, $friendly_name);
 	($name, $grouplist, $broker, $type, $topicpattern, $discoverable, $friendly_name) = @item_info;
 	require mqtt_items;
-	$code .= "\$${name} = new mqtt_InstMqttItem( \$${broker}, '$type', '$topicpattern', '$discoverable', '$friendly_name' );\n";
+	$code .= "\$${name} = new mqtt_InstMqttItem( '$broker', '$type', '$topicpattern', '$discoverable', '$friendly_name' );\n";
     }
     elsif( $type eq "MQTT_DISCOVERY" ) {
 	my ($discovery_topic, $broker, $action);
 	($name, $discovery_topic, $broker, $action) = @item_info;
 	require mqtt_discovery;
 	require mqtt_items;
-	$code .= "\$${name} = new mqtt_Discovery( \$${broker}, '$name', '$discovery_topic', '$action' );  #noloop\n";
+	$code .= "\$${name} = new mqtt_Discovery( '$broker', '$name', '$discovery_topic', '$action' );  #noloop\n";
     }
     elsif( $type eq "MQTT_DISCOVEREDITEM" ) {
 	my ($disc_name, $disc_topic, $disc_msg ); 

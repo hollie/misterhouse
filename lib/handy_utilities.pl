@@ -39,6 +39,7 @@ sub Win32::Sound::Volume;
 
 package handy_utilities;
 use strict;
+use Scalar::Util qw(looks_like_number);
 
 sub main::batch {
     my (@cmds) = @_;
@@ -522,6 +523,7 @@ sub main::parse_table_parms {
     my $positional_count = scalar @{$positional_parms};
     my $parms = {};
     my $errstr;
+    my $keywords_list = [ @{$positional_parms}, @{$option_parms} ];
 
     if( $main::Debug{misc} ) {
         &main::print_log( "Parsing table parms:" . join ',',@{$args});
@@ -530,13 +532,15 @@ sub main::parse_table_parms {
 	my $parm = $args->[$i];
 	my $keyword;
 	my $value;
+	my $type;
+
 	$parm =~ s/^'(.*)'/$1/;	# Strip quotes if any.
 	# Check each format, because initially read_table_A quotes, and later it doesn't.
 	if( $use_keywords  &&  ($parm =~ /=>/) ) {
 	    if( $i >= $positional_count
 	    ||  $i == 0
 	    ||  $i == 1
-	    || ($i == $positional_count-1  &&  $positional_parms->[$i] eq '<options>' )
+	    || ($i == $positional_count-1  &&  $positional_parms->[$i] =~ /:options/ )
 	    ) {
 		$positional_done = 1;
 	    } else {
@@ -550,12 +554,12 @@ sub main::parse_table_parms {
 	    if( $positional_done ) {
 		return "positional parm '$parm' used after keyword parm(s)";
 	    }
-	    if( $i >= scalar @{$positional_parms} ) {
+	    if( $i >= $positional_count ) {
 		return "too many positional parameters";
 	    }
-	    $keyword = $positional_parms->[$i];
+	    ($keyword, $type) = split( /:/, $positional_parms->[$i] );
 	    $value = $args->[$i];
-	    if( $keyword eq '<options>' ) {
+	    if( $type eq 'options' ) {
 		my @option_list = split( '\|', $value );
 		my $delay;
 		foreach my $option (@option_list) {
@@ -565,20 +569,14 @@ sub main::parse_table_parms {
 			$keyword = $option;
 			$value = 1;
 		    }
-		    if( !grep( /^$keyword$/, ( @{$positional_parms}, @{$option_parms} ) ) ) {
-			return "unknown parameter option '$keyword'";
-		    }
-		    $errstr = &main::set_table_parm_value( $parms, $keyword, $value );
+		    $errstr = &main::set_table_parm_value( $parms, $keyword, $value, $keywords_list );
 		    return $errstr if $errstr;
 		}
 		$keyword = undef;
 	    }
 	}
 	if( $keyword ) {
-	    if( !grep( /^$keyword$/, ( @{$positional_parms}, @{$option_parms} ) ) ) {
-		return "unknown parameter '$keyword'";
-	    }
-	    $errstr = &main::set_table_parm_value( $parms, $keyword, $value );
+	    $errstr = &main::set_table_parm_value( $parms, $keyword, $value, $keywords_list );
 	    return $errstr if $errstr;
 	}
     }
@@ -589,17 +587,38 @@ sub main::parse_table_parms {
 }
 
 sub main::set_table_parm_value {
-    my ($parms, $keyword, $value ) = @_;
+    my ($parms, $keyword, $value, $keywords_list ) = @_;
+    my $type;
 
     if( $main::Debug{misc} ) {
-	# &main::print_log( "Setting parm $keyword to $value..." );
+	&main::print_log( "Setting parm $keyword to $value..." );
     }
-    if( $value =~ /^\$/ ) {
-	my $obj = &get_object_by_name( $value );
-	if( !$obj ) {
-	    return "unable to find object '$value'";
+    foreach my $k ( @{$keywords_list} ) {
+	($k,$type) = split( /:/, $k );
+        if( $k eq $keyword ) {
+	    $type ||= 'string';
+	    last;
 	}
-	$value = $obj;
+    }
+    if( !$type ) {
+	return "unknown parameter '$keyword'";
+    }
+    if( $type eq 'itemref'  ||  $type eq 'objref' ) {
+        if( $value  &&  !ref $value ) {
+	    my $obj;
+	    my $objname = "main::$value";
+            no strict;
+            $obj = ${${objname}};
+	    use strict;
+	    if( !$obj ) {
+		return "unable to find object '$value' for parameter '$keyword'";
+	    }
+	    $value = $obj;
+	}
+    } elsif( $type eq 'number' ) {
+        if( $value  &&  !looks_like_number( $value ) ) {
+	    return "'$keyword' parameter is not a number";
+	}
     }
     $parms->{$keyword} = $value;
     return;
