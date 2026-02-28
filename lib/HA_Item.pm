@@ -1131,7 +1131,7 @@ sub dump {
 sub new {   # HA_Item
     my $class = shift;
 
-    my $positional_parms = [ 'fulldomain', 'entity', 'ha_server', 'options:options' ];
+    my $positional_parms = [ 'domain', 'entity', 'ha_server:objref', 'options:options' ];
     my $option_parms = [ 'grouplist', 'primary', 'weatherprimary', 'noweatherupdate', 'no_duplicate_states', 'delay_between_messages:number', 'response_check_delay:number' ];
     my $parms = main::parse_table_parms( [@_], $positional_parms, $option_parms, 1 );
 
@@ -1142,7 +1142,7 @@ sub new {   # HA_Item
 
     my $ha_server = $parms->{ha_server};
     my $entity = $parms->{entity};
-    my $fulldomain = $parms->{fulldomain};
+    my $fulldomain = $parms->{domain};
     my $self = new Generic_Item();
     bless $self, $class;
 

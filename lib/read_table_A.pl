@@ -1928,11 +1928,12 @@ sub read_table_A {
         # MQTT_BROKER, name_of_broker
         # e.g.MQTT_BROKER, mqtt_1
         require 'mqtt.pm';
-        my ( $name, $topic, $host, $port, $username, $password, $keepalive, @rest ) = @item_info;
+        my ( $topic, $host, $port, $username, $password, $keepalive ) = @item_info;
+        ( $name, $topic, $host, $port, $username, $password, $keepalive, @other ) = @item_info;
 	$topic =~ s/\*/#/g;
 
-        $code .= sprintf( "\n\$%-35s = new mqtt(\"%s\", '$host', '$port', '$topic', '$username', '$password', '$keepalive', ", $name, $name)
-	    . join(', ', map({"'$_'"} @rest))
+        $code .= sprintf( "\n\$%-35s = new mqtt(\"%s\", '$host', '$port', '$topic', '$username', '$password', '$keepalive'", $name, $name)
+	    . tables_parms_format_other( [@other] )
 	    . ");\n";
     }
     elsif ( $type eq "MQTT_DEVICE" ) {
@@ -1944,39 +1945,49 @@ sub read_table_A {
         # config parameter mqtt_topic in the mh.ini file   
         require 'mqtt.pm';
         my ($MQTT_broker_name, $MQTT_topic);
-        ( $name, $grouplist, $MQTT_broker_name, $MQTT_topic ) = @item_info;
+        ( $name, $grouplist, $MQTT_broker_name, $MQTT_topic, @other ) = @item_info;
        
-        $code .= sprintf( "\n\$%-35s = new mqtt_Item( \"%s\",\"%s\");\n",
-            $name, $MQTT_broker_name, $MQTT_topic );
-       
+        $code .= sprintf( "\n\$%-35s = new mqtt_Item( \"%s\", \"%s\"", $name, $MQTT_broker_name, $MQTT_topic )
+	    . table_parms_format_other( [@other] )
+	    . ");\n";
     }
     elsif( $type eq "MQTT_LOCALITEM" ) {
 	# $statetopic and $cmndtopic are optional and have defaults based on $type.
 	my ($local_obj_name, $broker, $type, $topicprefix, $discoverable, $friendly_name, $statetopic, $cmndtopic);
-	($name, $local_obj_name, $broker, $type, $topicprefix, $discoverable, $friendly_name, $statetopic, $cmndtopic) = @item_info;
+	($name, $local_obj_name, $broker, $type, $topicprefix, $discoverable, $friendly_name, $statetopic, $cmndtopic, @other) = @item_info;
 	require mqtt_items;
-	$code .= "\$${name} = new mqtt_LocalItem( '$broker', '$name', '$type', '$local_obj_name', '$topicprefix', '$discoverable', '$friendly_name', '$statetopic', '$cmndtopic' );\n";
+	$code .= "\$${name} = new mqtt_LocalItem( '$broker', '$name', '$type', '$local_obj_name', '$topicprefix', '$discoverable', '$friendly_name', '$statetopic', '$cmndtopic'"
+	    . table_parms_format_other( [@other] )
+	    . ");\n";
     }
     elsif( $type eq "MQTT_REMOTEITEM" ) {
 	# $statetopic $cmndtopic are optional and have defaults based on $type.
-	($name, $grouplist) = @item_info;	# Need these to stay in scope, so we can assign groups.
-	my ($broker, $type, $topicprefix, $discoverable, $friendly_name, $statetopic, $cmndtopic);
-	($name, $grouplist, $broker, $type, $topicprefix, $discoverable, $friendly_name, $statetopic, $cmndtopic) = @item_info;
+	# ($name, $grouplist) = @item_info;	# Need these to stay in scope, so we can assign groups.
+	my ($extraparm, $broker, $type, $topicprefix, $discoverable, $friendly_name, $statetopic, $cmndtopic);
+	($name, $grouplist, $broker, $type, $topicprefix, $discoverable, $friendly_name, $statetopic, $cmndtopic, @other) = @item_info;
+	($grouplist, $extraparm) = &table_parms_get_grouplist( [@item_info], 2 );
 	require mqtt_items;
-	$code .= "\$${name} = new mqtt_RemoteItem( '$broker', '$type', '$topicprefix', '$discoverable', '$friendly_name', '$statetopic', '$cmndtopic');\n";
+	$code .= "\$${name} = new mqtt_RemoteItem( '$broker', '$type', '$topicprefix', '$discoverable', '$friendly_name', '$statetopic', '$cmndtopic'"
+	    . table_parms_format_other( [@other, $extraparm] )
+	    . ");\n";
     }
     elsif( $type eq "MQTT_INSTMQTT" ) {
-	my ($broker, $type, $topicpattern, $discoverable, $friendly_name);
-	($name, $grouplist, $broker, $type, $topicpattern, $discoverable, $friendly_name) = @item_info;
+	my ($extraparm, $broker, $type, $topicpattern, $discoverable, $friendly_name);
+	($name, $grouplist, $broker, $type, $topicpattern, $discoverable, $friendly_name, @other) = @item_info;
+	($grouplist, $extraparm) = &table_parms_get_grouplist( [@item_info], 2 );
 	require mqtt_items;
-	$code .= "\$${name} = new mqtt_InstMqttItem( '$broker', '$type', '$topicpattern', '$discoverable', '$friendly_name' );\n";
+	$code .= "\$${name} = new mqtt_InstMqttItem( '$broker', '$type', '$topicpattern', '$discoverable', '$friendly_name'"
+	    . table_parms_format_other( [@other, $extraparm] )
+	    . ");\n";
     }
     elsif( $type eq "MQTT_DISCOVERY" ) {
 	my ($discovery_topic, $broker, $action);
-	($name, $discovery_topic, $broker, $action) = @item_info;
+	($name, $discovery_topic, $broker, $action, @other) = @item_info;
 	require mqtt_discovery;
 	require mqtt_items;
-	$code .= "\$${name} = new mqtt_Discovery( '$broker', '$name', '$discovery_topic', '$action' );  #noloop\n";
+	$code .= "\$${name} = new mqtt_Discovery( '$broker', '$name', '$discovery_topic', '$action'"
+	    . table_parms_format_other( [@other] )
+	    . ");\n";
     }
     elsif( $type eq "MQTT_DISCOVEREDITEM" ) {
 	my ($disc_name, $disc_topic, $disc_msg ); 
@@ -1991,18 +2002,21 @@ sub read_table_A {
     #-------------- End MQTT Objects ----------------
     #-------------- Home Assistant Objects -----------------
     elsif( $type eq "HA_SERVER" ) {
-    my ($keepalive, $api_key);
+	my ($keepalive, $api_key);
 	($name, $address, $keepalive, $api_key, @other) = @item_info;
 	require HA_Item;
-	$code .= "\$${name} = new HA_Server( '$name', '$address', '$keepalive', '$api_key' );\n";
+	$code .= "\$${name} = new HA_Server( '$name', '$address', '$keepalive', '$api_key'"
+	    . table_parms_format_other( [@other] )
+	    . ");\n";
     }
     elsif( $type eq "HA_ITEM" ) {
-    my ($domain, $entity, $ha_server, $options);
+	my ($extraparm, $domain, $entity, $ha_server, $options);
 	($name, $domain, $entity, $ha_server, $grouplist, $options, @other) = @item_info;
+	($grouplist, $extraparm) = &table_parms_get_grouplist( [@item_info], 5 );
 	require HA_Item;
-	$code .= "\$${name} = new HA_Item( '$domain', '$entity', \$$ha_server ";
-	$code .= ",'$options' " if ($options);
-	$code .= ");\n";
+	$code .= "\$${name} = new HA_Item( '$domain', '$entity', '$ha_server', '$options'"
+	    . table_parms_format_other( [@other, $extraparm] )
+	    . ");\n";
     }
     #-------------- End Home Assistant Objects -----------------
     elsif ( $type =~ /PLCBUS_.*/ ) {

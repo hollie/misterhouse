@@ -527,6 +527,7 @@ sub main::parse_table_parms {
 
     if( $main::Debug{misc} ) {
         &main::print_log( "Parsing table parms:" . join ',',@{$args});
+        &main::print_log( "   Keywords_list:" . join ',',@{$keywords_list});
     }
     for( my $i=0; $i < scalar @{$args}; ++$i ) {
 	my $parm = $args->[$i];
@@ -537,15 +538,7 @@ sub main::parse_table_parms {
 	$parm =~ s/^'(.*)'/$1/;	# Strip quotes if any.
 	# Check each format, because initially read_table_A quotes, and later it doesn't.
 	if( $use_keywords  &&  ($parm =~ /=>/) ) {
-	    if( $i >= $positional_count
-	    ||  $i == 0
-	    ||  $i == 1
-	    || ($i == $positional_count-1  &&  $positional_parms->[$i] =~ /:options/ )
-	    ) {
-		$positional_done = 1;
-	    } else {
-		return "keyword parm used before they are allowed";
-	    }
+	    $positional_done = 1;
 	    ($keyword,$value) = split(/\s*=>\s*/,$parm);
 	} else {
 	    if( !$parm ) {
@@ -581,7 +574,7 @@ sub main::parse_table_parms {
 	}
     }
     if( $main::Debug{misc} ) {
-	&main::print_log( "Parsed table parms into:" .  main::table_parms_to_str( $parms ) );
+	&main::print_log( "   Parsed table parms into:" .  main::table_parms_to_str( $parms ) );
     }
     return $parms;
 }
@@ -589,13 +582,11 @@ sub main::parse_table_parms {
 sub main::set_table_parm_value {
     my ($parms, $keyword, $value, $keywords_list ) = @_;
     my $type;
+    my $key;
 
-    if( $main::Debug{misc} ) {
-	&main::print_log( "Setting parm $keyword to $value..." );
-    }
     foreach my $k ( @{$keywords_list} ) {
-	($k,$type) = split( /:/, $k );
-        if( $k eq $keyword ) {
+	($key,$type) = split( /:/, $k );
+        if( $key eq $keyword ) {
 	    $type ||= 'string';
 	    last;
 	}
@@ -603,7 +594,7 @@ sub main::set_table_parm_value {
     if( !$type ) {
 	return "unknown parameter '$keyword'";
     }
-    if( $type eq 'itemref'  ||  $type eq 'objref' ) {
+    if( $type eq 'objref' ) {
         if( $value  &&  !ref $value ) {
 	    my $obj;
 	    my $objname = "main::$value";
@@ -622,6 +613,40 @@ sub main::set_table_parm_value {
     }
     $parms->{$keyword} = $value;
     return;
+}
+
+sub main::table_parms_get_grouplist{
+    my ($parmslist, $index) = @_;
+    my $keyword;
+    my $value;
+    my $grouplist = '';
+    my $p;
+    my $extraparm;
+
+    if( $index <= scalar @{$parmslist}  &&  $parmslist->[$index-1] =~ /=>/ ) {
+	$extraparm = $parmslist->[$index-1];
+    }
+    if( $index > scalar @{$parmslist}  ||  $parmslist->[$index-1] =~ /=>/ ) {
+	foreach $p ( @{$parmslist} ) {
+	    ($keyword,$value) = split( /\s*=>\s*/, $p );
+	    if( $keyword eq 'grouplist' ) {
+		$grouplist = $value;
+		last;
+	    }
+	}
+    } else {
+	$grouplist = $parmslist->[$index-1];
+    }
+    return ($grouplist, $extraparm);
+}
+
+sub main::table_parms_format_other {
+    my ($otherlist) = @_;
+    my $str;
+    foreach my $p ( @{$otherlist} ) {
+	$str .= ", '$p'" if $p;
+    }
+    return $str;
 }
 
 sub main::table_parms_to_str {
