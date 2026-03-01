@@ -518,7 +518,7 @@ sub main::parse_arg_string {
 #   Utility routine to parse mht args from read_table_A.
 #
 sub main::parse_table_parms {
-    my($args, $positional_parms, $option_parms, $use_keywords) = @_;
+    my($args, $positional_parms, $option_parms ) = @_;
     my $positional_done = 0;
     my $positional_count = scalar @{$positional_parms};
     my $parms = {};
@@ -526,8 +526,8 @@ sub main::parse_table_parms {
     my $keywords_list = [ @{$positional_parms}, @{$option_parms} ];
 
     if( $main::Debug{misc} ) {
-        &main::print_log( "Parsing table parms:" . join ',',@{$args});
-        &main::print_log( "   Keywords_list:" . join ',',@{$keywords_list});
+        &main::print_log( "Parsing table parms:  " . join ',',@{$args});
+        &main::print_log( "   Keywords_list:  " . join ',',@{$keywords_list});
     }
     for( my $i=0; $i < scalar @{$args}; ++$i ) {
 	my $parm = $args->[$i];
@@ -537,7 +537,7 @@ sub main::parse_table_parms {
 
 	$parm =~ s/^'(.*)'/$1/;	# Strip quotes if any.
 	# Check each format, because initially read_table_A quotes, and later it doesn't.
-	if( $use_keywords  &&  ($parm =~ /=>/) ) {
+	if( $parm =~ /=>/ ) {
 	    $positional_done = 1;
 	    ($keyword,$value) = split(/\s*=>\s*/,$parm);
 	} else {
@@ -574,7 +574,7 @@ sub main::parse_table_parms {
 	}
     }
     if( $main::Debug{misc} ) {
-	&main::print_log( "   Parsed table parms into:" .  main::table_parms_to_str( $parms ) );
+	&main::print_log( "   Parsed table parms into:  " .  main::table_parms_to_str( $parms ) );
     }
     return $parms;
 }
@@ -615,38 +615,33 @@ sub main::set_table_parm_value {
     return;
 }
 
-sub main::table_parms_get_grouplist{
-    my ($parmslist, $index) = @_;
+
+# This function finds the grouplist item in the @item_info list.
+# It could be at the fixed position provided by the $position parameter (1 origin)
+# or it could be a keyword parm.
+# The list is modified by removing the grouplist parm.
+
+sub main::get_table_parm{
+    my ($parmslist, $parmname, $position) = @_;
     my $keyword;
     my $value;
-    my $grouplist = '';
-    my $p;
-    my $extraparm;
+    my $retval = '';
+    my $i;
 
-    if( $index <= scalar @{$parmslist}  &&  $parmslist->[$index-1] =~ /=>/ ) {
-	$extraparm = $parmslist->[$index-1];
-    }
-    if( $index > scalar @{$parmslist}  ||  $parmslist->[$index-1] =~ /=>/ ) {
-	foreach $p ( @{$parmslist} ) {
-	    ($keyword,$value) = split( /\s*=>\s*/, $p );
-	    if( $keyword eq 'grouplist' ) {
-		$grouplist = $value;
+    if( defined $position  &&  $position <= scalar @{$parmslist}  &&  !($parmslist->[$position-1] =~ /=>/) ) {
+	$retval = $parmslist->[$position-1];
+	splice( @{$parmslist}, $position-1, 1 );
+    } else {
+	for( $i=0, $i < scalar @{$parmslist}, ++$i ) {
+	    ($keyword,$value) = split( /\s*=>\s*/, $parmslist->[$i] );
+	    if( $keyword eq $parmname ) {
+		$retval = $value;
+		splice( @{$parmslist}, $i, 1 );
 		last;
 	    }
 	}
-    } else {
-	$grouplist = $parmslist->[$index-1];
     }
-    return ($grouplist, $extraparm);
-}
-
-sub main::table_parms_format_other {
-    my ($otherlist) = @_;
-    my $str;
-    foreach my $p ( @{$otherlist} ) {
-	$str .= ", '$p'" if $p;
-    }
-    return $str;
+    return $retval;
 }
 
 sub main::table_parms_to_str {

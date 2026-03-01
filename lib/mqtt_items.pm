@@ -1211,7 +1211,7 @@ use Hash::Merge;
 sub new {     ### mqtt_LocalItem
     my $class = shift;
 
-    my $positional_parms = [ qw( interface:objref name type local_object:objref topicpattern discoverable friendly_name statetopic cmndtopic ) ];
+    my $positional_parms = [ qw( broker:objref name type local_object_name:objref topicpattern discoverable friendly_name statetopic cmndtopic ) ];
     my $optional_parms = [];
     my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
     if( !ref $parms ) {
@@ -1219,10 +1219,10 @@ sub new {     ### mqtt_LocalItem
 	return;
     }
 
-    my $interface	= $parms->{interface};
+    my $interface	= $parms->{broker};
     my $name		= $parms->{name};
     my $type		= $parms->{type};
-    my $local_object	= $parms->{local_object};
+    my $local_object	= $parms->{local_object_name};
     my $topicpattern	= $parms->{topicpattern};
     my $discoverable	= $parms->{discoverable};
     my $friendly_name	= $parms->{friendly_name};
@@ -1763,7 +1763,7 @@ use Data::Dumper;
 sub new {      ### mqtt_RemoteItem
     my $class = shift;
 
-    my $positional_parms = [ qw( interface:objref type topicpattern discoverable friendly_name statetopic cmndtopic ) ];
+    my $positional_parms = [ qw( broker:objref type topicpattern discoverable friendly_name statetopic cmndtopic ) ];
     my $optional_parms = [ qw( grouplist ) ];
     my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
     if( !ref $parms ) {
@@ -1771,7 +1771,7 @@ sub new {      ### mqtt_RemoteItem
 	return;
     }
 
-    my $interface	= $parms->{interface};
+    my $interface	= $parms->{broker};
     my $type		= $parms->{type};
     my $topicpattern	= $parms->{topicpattern};
     my $discoverable	= $parms->{discoverable};
@@ -1782,7 +1782,7 @@ sub new {      ### mqtt_RemoteItem
     my ($base_type, $device_class, $state_class, $unit_of_m) = $type =~ m/^([^:]*):?([^:]*):?([^:]*):?([^:]*)$/;
 
     if( !grep( /$base_type/, ('light','switch','sensor','binary_sensor','cover', 'text', 'number', 'select') ) ) {
-	$interface->error( "Invalid InstMqttItem type '$type'" );
+	&mqtt::error( undef, "Invalid InstMqttItem type '$type'" );
 	return;
     }
 
@@ -1906,7 +1906,7 @@ use Data::Dumper;
 sub new {      ### mqtt_InstMqttItem
     my $class = shift;
 
-    my $positional_parms = [ qw( interface:objref type topicpattern discoverable friendly_name ) ];
+    my $positional_parms = [ qw( broker:objref type topicpattern discoverable friendly_name ) ];
     my $optional_parms = [ qw( grouplist ) ];
     my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
     if( !ref $parms ) {
@@ -1914,7 +1914,7 @@ sub new {      ### mqtt_InstMqttItem
 	return;
     }
 
-    my $interface	= $parms->{interface};
+    my $interface	= $parms->{broker};
     my $type		= $parms->{type};
     my $topicpattern	= $parms->{topicpattern};
     my $discoverable	= $parms->{discoverable};

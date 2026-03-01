@@ -346,13 +346,13 @@ sub dump {
 
 # ------------------------------------------------------------------------------
 
-=item C<new(ha_server, name, address, keep_alive_timer, api_key )>
+=item C<new(ha_server, name, address, keepalive_time, api_key )>
 
     Creates a HA_Server object that captures the connection to a single HomeAssistant server.
 
     name:               object name of the ha_server
     address:            tcp/ip address and port of the HA server
-    keep_alive_timer:   how long between ping requests to HA server (default 10s)
+    keepalive_time:	how long (s) between ping requests to HA server (default 10s)
     api_key:            long lived token obtained from HA server 
 
 =cut
@@ -360,7 +360,7 @@ sub dump {
 sub new {
     my $class = shift;
 
-    my $positional_parms = [ 'name', 'address', 'keep_alive_time', 'api_key' ];
+    my $positional_parms = [ 'name', 'address', 'keepalive_time', 'api_key' ];
     my $optional_parms = [];
     my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
 
@@ -372,17 +372,17 @@ sub new {
     my $self;
     my $name		= $parms->{name};
     my $address		= $parms->{address};
-    my $keep_alive_time = $parms->{keep_alive_time};
+    my $keepalive	= $parms->{keepalive_time};
     my $api_key		= $parms->{api_key};
 
     if( !defined $main::Debug{ha_server} ) {
         $main::Debug{ha_server} = 0;
     }
 
-    $address          = $address  || $::config_parms{homeassistant_address}   || 'localhost:8123';
-    $api_key          = $api_key  || $::config_parms{homeassistant_api_key};
-    $keep_alive_timer = $keep_alive_timer  // '10';
-    $keep_alive_timer += 0;
+    $address		= $address  || $::config_parms{homeassistant_address}   || 'localhost:8123';
+    $api_key		= $api_key  || $::config_parms{homeassistant_api_key};
+    $keepalive		= $keepalive  // '10';
+    $keepalive += 0;
 
     foreach my $ha_server (values %HA_Server_List) {
 	if( $ha_server->{ip_address} eq $address ) {
@@ -415,7 +415,7 @@ sub new {
 	$self->{state_now}          = 'off';
     
 	$self->{ip_address}         = $address;
-	$self->{keep_alive_timer}   = $keep_alive_timer;
+	$self->{keep_alive_timer}   = $keepalive;
 	$self->{reconnect_timer}    = 10;
 	$self->{next_id}            = 20;
 	$self->{subscribe_id}       = 0;
@@ -1131,8 +1131,8 @@ sub dump {
 sub new {   # HA_Item
     my $class = shift;
 
-    my $positional_parms = [ 'domain', 'entity', 'ha_server:objref', 'options:options' ];
-    my $option_parms = [ 'grouplist', 'primary', 'weatherprimary', 'noweatherupdate', 'no_duplicate_states', 'delay_between_messages:number', 'response_check_delay:number' ];
+    my $positional_parms = [ 'domain', 'ha_entity', 'ha_server:objref', 'options:options' ];
+    my $option_parms = [ 'primary', 'weatherprimary', 'noweatherupdate', 'no_duplicate_states', 'delay_between_messages:number', 'response_check_delay:number' ];
     my $parms = main::parse_table_parms( [@_], $positional_parms, $option_parms, 1 );
 
     if( !ref $parms ) {
@@ -1141,7 +1141,7 @@ sub new {   # HA_Item
     }
 
     my $ha_server = $parms->{ha_server};
-    my $entity = $parms->{entity};
+    my $entity = $parms->{ha_entity};
     my $fulldomain = $parms->{domain};
     my $self = new Generic_Item();
     bless $self, $class;
