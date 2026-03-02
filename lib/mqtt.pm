@@ -55,7 +55,7 @@ Usage:
         # MQTT stuff
         CODE, require mqtt; #noloop
         #
-        CODE, $mqtt_1 = new mqtt('mqtt_1', '127.0.0.1', 1883, 'home/ha/#', "", "", 121, 'use_ha_device_disc=1');
+        CODE, $mqtt_1 = new mqtt('mqtt_1', '127.0.0.1', 1883, 'home/ha/#', "", "", 121, 'topic_prefix=misterhouse');
         CODE, $mqtt_2 = new mqtt('mqtt_2', 'test.mosquitto.org', 1883, 'home/test/#', "", "", 122);
         CODE, $mqtt_3 = new mqtt('mqtt_3', '127.0.0.1', 1883, 'home/network/#', "", "", 122); #noloop
         #
@@ -86,12 +86,12 @@ Example initialization:
     When using positional parameters, the first seven parameters are required and in
     fixed positions, followed by any optional parameters in a named format, as follows:
 
-        $myMQTT = new mqtt(<name>,<host>,<port>,<topic>,<user>,<password>,<keepalive>, opt1=>value1, opt2=>value2...);
+        $myMQTT = new mqtt(<name>,<host>,<port>,<topic>,<user>,<password>,<keepalive_time>, opt1=>value1, opt2=>value2...);
 
     Alternatively, all parameters after the instance name can be named in a "keyword=>value" format. Valid 
     keywords are:
 
-        host, port, topic, user, password, keepalive, use_ha_device_disc, topic_prefix
+        host, port, topic, user, password, keepalive_time, use_ha_device_discovery, topic_prefix
 
     Example:
 
@@ -388,7 +388,7 @@ sub isNotConnected {
 sub new {
     my $class = shift;
 
-    my $positional_parms = [ qw (name host port topic username password keepalive) ];
+    my $positional_parms = [ qw (name host port topic username password keepalive_time) ];
     my $optional_parms = [ qw (topic_prefix use_ha_device_disc) ];
     my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms );
 

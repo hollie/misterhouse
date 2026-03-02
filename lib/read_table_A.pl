@@ -1924,12 +1924,13 @@ sub read_table_A {
     #-------------- MQTT Objects -----------------
     elsif ( $type eq "MQTT_BROKER" ) {
 	# MQTT_BROKER, <name>, <topic>, <host>, <port>, <username>, <password>, <keepalive_time>
-	#            optional: <topic_prefix>, <use_ha_device_disc>
+	#            optional: <grouplist>, <topic_prefix>, <use_ha_device_discovery>
         # there must be one record for the broker above any MQTT_DEVICE definitions
         # it takes the following format
         require 'mqtt.pm';
 	$grouplist = &get_table_parm( \@item_info, 'grouplist' );
 	$name = &get_table_parm( \@item_info, 'name', 1 );
+	# NOTE: we pull these parms out so we can change the order for the new() function
         my ( $topic, $host, $port, @other ) = @item_info;
 	$topic =~ s/\*/#/g;
         $other = join ', ', ( map { "'$_'" } @other );              # Quote data
@@ -1948,18 +1949,20 @@ sub read_table_A {
         $object = "mqtt_Item( $other )";
     }
     elsif( $type eq "MQTT_LOCALITEM" ) {
-	# MQTT_LOCALITEM, <name>, <local_object_name>, <broker>, <type>, <topicpattern>, <discoverable>, <friendly_name>, <statetopic>, <cmndtopic>
-	# $statetopic and $cmndtopic are optional and have defaults based on $type.
+	# MQTT_LOCALITEM, <name>, <reference_object_name>, <broker>, <type>, <topic_pattern>, <discoverable>, <friendly_name>, <state_topic>, <cmnd_topic>
+	#            optional: <grouplist>
+	# <state_topic> and <command_topic> are optional and have defaults based on <type>.
 	$grouplist = &get_table_parm( \@item_info, 'grouplist' );
 	$name = &get_table_parm( \@item_info, 'name', 1 );
-	my ($local_obj_name, $broker, $type, @other) = @item_info;
+	# NOTE: we pull these parms out so we can change the order for the new() function
+	my ($local_object_name, $broker, $type, @other) = @item_info;
 	require mqtt_items;
         $other = join ', ', ( map { "'$_'" } @other );              # Quote data
-	$object = "mqtt_LocalItem( '$broker', '$name', '$type', '$local_obj_name', $other )";
+	$object = "mqtt_LocalItem( '$broker', '$name', '$type', '$local_object_name', $other )";
     }
     elsif( $type eq "MQTT_REMOTEITEM" ) {
-	# MQTT_REMOTEITEM, <name>, <grouplist>, <broker>, <type>, <topicpattern>, <discoverable>, <friendly_name>, <statetopic>, <cmndtopic>
-	# $statetopic $cmndtopic are optional and have defaults based on $type.
+	# MQTT_REMOTEITEM, <name>, <grouplist>, <broker>, <type>, <topic_pattern>, <discoverable>, <friendly_name>, <state_topic>, <command_topic>
+	# <state_topic> and <command_topic> are optional and have defaults based on <type>.
 	$grouplist = &get_table_parm( \@item_info, 'grouplist', 2 );
 	$name = &get_table_parm( \@item_info, 'name', 1 );
 	require mqtt_items;
@@ -1967,7 +1970,7 @@ sub read_table_A {
 	$object = "mqtt_RemoteItem( $other )";
     }
     elsif( $type eq "MQTT_INSTMQTT" ) {
-	# MQTT_INSTMQTT, <name>, <grouplist>, <broker>, <type>, <topicpattern>, <discoverable>, <friendly_name>
+	# MQTT_INSTMQTT, <name>, <grouplist>, <broker>, <type>, <topic_pattern>, <discoverable>, <friendly_name>
 	$grouplist = &get_table_parm( \@item_info, 'grouplist', 2 );
 	$name = &get_table_parm( \@item_info, 'name', 1 );
 	require mqtt_items;
@@ -1976,8 +1979,10 @@ sub read_table_A {
     }
     elsif( $type eq "MQTT_DISCOVERY" ) {
 	# MQTT_DISCOVERY, <name>, <discovery_topic>, <broker>, <action>
+	#            optional: <grouplist>
 	$grouplist = &get_table_parm( \@item_info, 'grouplist' );
 	$name = &get_table_parm( \@item_info, 'name', 1 );
+	# NOTE: we pull these parms out so we can change the order for the new() function
 	my ($discovery_topic, $broker, @other) = @item_info;
 	require mqtt_discovery;
 	require mqtt_items;
@@ -1985,8 +1990,8 @@ sub read_table_A {
 	$object = "mqtt_Discovery( '$broker', '$name', '$discovery_topic', $other )";
     }
     elsif( $type eq "MQTT_DISCOVEREDITEM" ) {
-	# MQTT_DISCOVEREDITEM, <name>, <disc_name>, <disc_topic>, <disc_msg>
-	my ($disc_name, $disc_topic, $disc_msg ); 
+	# MQTT_DISCOVEREDITEM, <name>, <discovery_name>, <discovery_topic>, <discovery_message>
+	my ($disc_name, $disc_topic, $disc_msg );
 	($name, $disc_name, $disc_topic, $disc_msg ) = $record =~ /MQTT_DISCOVEREDITEM\s*,\s*([^,]+),\s*([^,]+),\s*([^,]+)\,\s*(.*)$/;
 	$name =~ s/\s*$//;
 	$disc_name =~ s/\s*$//;
@@ -2099,6 +2104,9 @@ sub read_table_A {
     }
     # Process grouplist. This code was moved into a subroutine so it could be called by extension
     # modules, too.
+    if( $grouplist eq 'MQTT_Group' ) {
+	main::print_log( "calling read_table_grouplist_A( '$name', '$grouplist' )" );
+    }
     $code .= read_table_grouplist_A($name, $grouplist) if ($grouplist);
 
     # Add in anything else some record-type above needed.

@@ -538,17 +538,17 @@ sub main::parse_table_parms {
 	$parm =~ s/^'(.*)'/$1/;	# Strip quotes if any.
 	# Check each format, because initially read_table_A quotes, and later it doesn't.
 	if( $parm =~ /=>/ ) {
-	    $positional_done = 1;
+	    # $positional_done = 1;
 	    ($keyword,$value) = split(/\s*=>\s*/,$parm);
 	} else {
 	    if( !$parm ) {
 		next;
 	    }
-	    if( $positional_done ) {
-		return "positional parm '$parm' used after keyword parm(s)";
-	    }
+	    #if( $positional_done ) {
+		#return "positional parm '$parm' used after keyword parm(s)";
+	    #}
 	    if( $i >= $positional_count ) {
-		return "too many positional parameters";
+		return "too many positional parameters parm '$parm'";
 	    }
 	    ($keyword, $type) = split( /:/, $positional_parms->[$i] );
 	    $value = $args->[$i];
@@ -616,24 +616,25 @@ sub main::set_table_parm_value {
 }
 
 
-# This function finds the grouplist item in the @item_info list.
+# This function finds the named parm in the @item_info list.
 # It could be at the fixed position provided by the $position parameter (1 origin)
 # or it could be a keyword parm.
-# The list is modified by removing the grouplist parm.
-
+# The callers list is **modified** by removing the named parm.
 sub main::get_table_parm{
     my ($parmslist, $parmname, $position) = @_;
     my $keyword;
     my $value;
-    my $retval = '';
+    my $retval;
     my $i;
 
+    main::print_log( "starting get_table_parm of '$parmname': " . join( ', ', @{$parmslist} ) );
     if( defined $position  &&  $position <= scalar @{$parmslist}  &&  !($parmslist->[$position-1] =~ /=>/) ) {
 	$retval = $parmslist->[$position-1];
 	splice( @{$parmslist}, $position-1, 1 );
     } else {
-	for( $i=0, $i < scalar @{$parmslist}, ++$i ) {
+	for( $i=0; $i < scalar @{$parmslist}; ++$i ) {
 	    ($keyword,$value) = split( /\s*=>\s*/, $parmslist->[$i] );
+	    main::print_log( "get_table_parm split i=$i '$parmslist->[$i]' keyword '$keyword' value '$value'" );
 	    if( $keyword eq $parmname ) {
 		$retval = $value;
 		splice( @{$parmslist}, $i, 1 );
@@ -641,6 +642,7 @@ sub main::get_table_parm{
 	    }
 	}
     }
+    main::print_log( "get_table_parm of '$parmname' returning '$retval': " . join( ', ', @{$parmslist} ) );
     return $retval;
 }
 

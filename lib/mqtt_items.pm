@@ -1198,11 +1198,12 @@ use strict;
 
 use Data::Dumper;
 use Hash::Merge;
+use Scalar::Util 'blessed';
 
 @mqtt_LocalItem::ISA = ( 'mqtt_BaseItem' );
 
 
-=item C<new(mqtt_interface, name, type, local_object, topicpattern, discoverable, friendly_name, state_topic, cmnd_topic)>
+=item C<new(mqtt_interface, name, type, local_object, topicpattern, discoverable, friendly_name, state_topic, command_topic)>
 
     Creates a MQTT Local Item/object that will publish state information of the local object and respond to mqtt commands for the object
 
@@ -1211,9 +1212,9 @@ use Hash::Merge;
 sub new {     ### mqtt_LocalItem
     my $class = shift;
 
-    my $positional_parms = [ qw( broker:objref name type local_object_name:objref topicpattern discoverable friendly_name statetopic cmndtopic ) ];
+    my $positional_parms = [ qw( broker:objref name type reference_object_name:objref topic_pattern discoverable friendly_name state_topic command_topic ) ];
     my $optional_parms = [];
-    my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
+    my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms );
     if( !ref $parms ) {
 	&mqtt::error( undef, "error parsing MQTT_LOCALITEM parameters: $parms -- mqtt item not created" );
 	return;
@@ -1222,18 +1223,23 @@ sub new {     ### mqtt_LocalItem
     my $interface	= $parms->{broker};
     my $name		= $parms->{name};
     my $type		= $parms->{type};
-    my $local_object	= $parms->{local_object_name};
-    my $topicpattern	= $parms->{topicpattern};
+    my $local_object	= $parms->{reference_object_name};
+    my $topicpattern	= $parms->{topic_pattern};
     my $discoverable	= $parms->{discoverable};
     my $friendly_name	= $parms->{friendly_name};
-    my $statetopic	= $parms->{statetopic};
-    my $cmndtopic	= $parms->{cmndtopic};
+    my $statetopic	= $parms->{state_topic};
+    my $cmndtopic	= $parms->{command_topic};
 
     my ($base_type, $device_class, $state_class, $unit_of_m);
     my $node_id;
     my $mqtt_name;
     my $topic_prefix;
     my $listen_topic;
+
+    if( !blessed($local_object)  ||  !$local_object->isa('Generic_Item') ) {
+	$interface->error( "local_object_name is not an MH item" );
+	return;
+    }
 
     ($base_type, $device_class, $state_class, $unit_of_m) = $type =~ m/^([^:]*):?([^:]*):?([^:]*):?([^:]*)$/;
 
@@ -1763,7 +1769,7 @@ use Data::Dumper;
 sub new {      ### mqtt_RemoteItem
     my $class = shift;
 
-    my $positional_parms = [ qw( broker:objref type topicpattern discoverable friendly_name statetopic cmndtopic ) ];
+    my $positional_parms = [ qw( broker:objref type topic_pattern discoverable friendly_name state_topic command_topic ) ];
     my $optional_parms = [ qw( grouplist ) ];
     my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
     if( !ref $parms ) {
@@ -1773,11 +1779,11 @@ sub new {      ### mqtt_RemoteItem
 
     my $interface	= $parms->{broker};
     my $type		= $parms->{type};
-    my $topicpattern	= $parms->{topicpattern};
+    my $topicpattern	= $parms->{topic_pattern};
     my $discoverable	= $parms->{discoverable};
     my $friendly_name	= $parms->{friendly_name};
-    my $statetopic	= $parms->{statetopic};
-    my $cmndtopic	= $parms->{cmndtopic};
+    my $statetopic	= $parms->{state_topic};
+    my $cmndtopic	= $parms->{command_topic};
 
     my ($base_type, $device_class, $state_class, $unit_of_m) = $type =~ m/^([^:]*):?([^:]*):?([^:]*):?([^:]*)$/;
 
@@ -1906,7 +1912,7 @@ use Data::Dumper;
 sub new {      ### mqtt_InstMqttItem
     my $class = shift;
 
-    my $positional_parms = [ qw( broker:objref type topicpattern discoverable friendly_name ) ];
+    my $positional_parms = [ qw( broker:objref type topic_pattern discoverable friendly_name ) ];
     my $optional_parms = [ qw( grouplist ) ];
     my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
     if( !ref $parms ) {
@@ -1916,7 +1922,7 @@ sub new {      ### mqtt_InstMqttItem
 
     my $interface	= $parms->{broker};
     my $type		= $parms->{type};
-    my $topicpattern	= $parms->{topicpattern};
+    my $topicpattern	= $parms->{topic_pattern};
     my $discoverable	= $parms->{discoverable};
     my $friendly_name	= $parms->{friendly_name};
 
