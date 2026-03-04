@@ -2089,9 +2089,6 @@ sub read_table_A {
     }
     # Process grouplist. This code was moved into a subroutine so it could be called by extension
     # modules, too.
-    if( $grouplist eq 'MQTT_Group' ) {
-	main::print_log( "calling read_table_grouplist_A( '$name', '$grouplist' )" );
-    }
     $code .= read_table_grouplist_A($name, $grouplist) if ($grouplist);
 
     # Add in anything else some record-type above needed.
