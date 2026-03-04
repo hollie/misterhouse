@@ -457,7 +457,7 @@ sub new {
 	&::MainLoop_pre_add_hook( \&HA_Server::check_for_data, 1, $self );
 	&::Reload_post_add_hook( \&HA_Server::generate_voice_commands, 1, $self );
 
-	$HA_Server_List{${name}}	    = $self;
+	$HA_Server_List{$name}	    = $self;
 	$self->{connected}	    = 0;
 	$self->{authenticated}	    = 0;
 	$self->{state}              = 'off';
@@ -483,7 +483,7 @@ sub new {
 	@{ $self->{objects} }	    = ();
     }
 
-    $self->{name}		= ${name};
+    $self->{name}		= $name;
 
     $self->connect();
 
@@ -1220,13 +1220,10 @@ sub new {   # HA_Item
     }
     if( lc $domain eq "weather" ) {
 	$self->{options}->{weather_primary} = 0;
-	$self->{options}->{weather_noupdate} = 0;
 	if( $parms->{primary}  ||  $parms->{weatherprimary} ) {
 	    $self->{options}->{weather_primary} = $entity;
 	}
-	if( $parms->{noweatherupdate} ) {
-	    $self->{options}->{weather_noupdate} = 1;
-	}
+	$self->{options}->{weather_noupdate} = $parms->{noweatherupdate};
     }
 
     $self->debug( 1, "New HA_Item ( $class, " . main::table_parms_to_str( $parms ) . " )" );
