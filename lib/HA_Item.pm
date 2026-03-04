@@ -36,15 +36,17 @@ Description:
     HA Items (HA_Item.pm)
     --------------------------
 
-    There are several HA entity types implemented in this module (see below).
+    This module implements MH items that mirror HA entities.
 
-    Each MH item can handle both commands and state messages to/from MQTT devices.
+    There are several HA entity types implemented (see below).
+
+    Each MH item can handle both commands and state messages to/from HA entities.
 
     There are two classes implemented in HA_Item.pm:
 
     HA_Server:
          - this class connects to and manages the connection to HomeAssistant server
-         - it uses a Socket_Item to manage the tcp/ip connection
+         - it uses a Socket_Item to manage the tcp/ip websocket connection
          - it uses perl module Protocol::WebSocket::Client to manage the websocket
          - if the socket drops, reconnects will be attempted every 10s until connection successful
          - sends a ping request every <keep_alive_timer> seconds -- default 10s
@@ -60,10 +62,17 @@ Description:
         - state changes from HA are monitored and reflected in the mh item state
         - the full HA state object is saved in {ha_state}
         - when the MH item is set locally, a state change is sent to HA
-            - state is not reflected locally until the state change is received back from HA
+            - *** state is not reflected locally until the state change is received back from HA
+
         *** IMPORTANT *** : not all HA Entity types are supported.
 
-        *** IMPORTANT *** : To mimic the MH 'one object one state' approach, subtypes are used in the domain based on HA attributes
+        *** IMPORTANT *** : HA entities are 1:1 with a state.  This matches well with MH Items.
+        *** IMPORTANT *** : HA also has a device concept.  Devices are composed of multiple entities.
+        *** IMPORTANT *** : BUT, some HA devices have attributes which are not entities.
+
+        *** IMPORTANT *** : To mimic the MH 'one object one state' approach, subtypes are
+	*** IMPORTANT *** : used in the domain based on HA attributes to pull out a single
+	*** IMPORTANT *** : device attribute into an MH item
         *** IMPORTANT *** :         OR
 	*** IMPORTANT *** : You can collect multiple entities into a single MH object
 	*** IMPORTANT *** :    - use one or more patterns to match HA entity names, separated by |
@@ -73,6 +82,8 @@ Description:
 	*** IMPORTANT *** :    - use a full regex -- if you bracket a portion, it will be the attr name
 	*** IMPORTANT *** :    - eg. ecowitt_weather_(.*) will match ecowitt_weather_current_temperature and the
 	*** IMPORTANT *** :      the attribute name will be current_temperature
+
+	HA Entity types supported:
             - light:  on, off and brightness
                     :rgb_color : for setting an RGB value
                     :hs_color  : for setting hue and saturation
@@ -110,18 +121,8 @@ Description:
                     eg.  $thermostat_preset_mode->set( "home" );
                     eg.  $thermostat_target_temp_low->set( 72 );
             - device_tracker:
-            - weather: will populate the $Weather_Common elements, should make weather icon and outside temp visible on IA7
-	- options
-	    - check_response_delay=n
-	        - the timeout when waiting for a response
-		- will send the next message if the response is not received within n seconds
-		- default is 5 seconds
-	    - delay_between_messages=n
-		- system will wait n seconds after the response from one message before the
-		  next message is sent
-		- the only devices we have seen to date that needs this
-		    - OpenSprinkler
-		    - ESPHome minisplit SLWF-01Pro
+            - weather: will populate the $Weather_Common elements, should make weather
+	      icon and outside temp visible on IA7
     Some useful functions:
         - ha_perform_action on an HA_Item can be used to generically perform an action on an entity
             - this can be used for 2 different things:
@@ -157,7 +158,7 @@ Description:
     ----------
 
     The HA_Server object will send out an HA entity state query on connection.
-    The response is processed for all entities that have had a local MH item defined.
+    The response is processed for all entities that have a local MH item defined.
 
     There are voice commands ceated to list HA entites -- handled, unhandled or all
 
@@ -181,17 +182,66 @@ Usage:
 
     .mht file:
 
-        # HA_SERVER,    obj name,       address,        keepalive,      api_key   
-        HA_SERVER,      ha_house,       10.3.1.20:8123, 10,             XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+	#########################################################################################################
+	# HA objects accept positional or named parameters.
+	# - Parameters with positions may be provide either by placing them in the specified position,
+	#   or by using the indicated name in a name=>value format.
+	# - Parameters without a position must be specified using the name=>value format.
+	# - It is easiest to position named parameters after the positional ones or to use all named parameters.
+	# - Positional parameters can be organized in a tabular format so that it is easy to
+	#   figure out what is what -- examples provided below.
+	#########################################################################################################
 
-        #HA_ITEM,       object_name,            domain[:subtype],   ha_entity,                  ha_server,  groups, options
+	###################################################
+	# HA_SERVER record creates object to connect to home assistant server
+	###################################################
+        #
+	# Position | Name		    | Default	| Function
+	#----------|------------------------|-----------|-------------------------------------------------------
+	#     1	   | name		    | -none-	| MH object name to create
+	#     2	   | address		    | -none-	| host:port address of HA server to connect to
+	#     3	   | keepalive_time	    | 10    	| time in seconds between keepalive messages
+	#     4	   | api_key		    | -none-	| api key for interacting with HA server (see above)
+	#	   | grouplist              | -none-	| MH groups the item belongs to
+	#
+	# Example .mht:
+	#
+	# HA_SERVER,	name,		address,        keepalive_time, api_key
+        HA_SERVER,      ha_house,       10.3.1.20:8123, 10,             XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+	HA_SERVER, ha_house, address=>10.3.1.20:8123, api_key=>XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+	###################################################
+	# HA_ITEM record creates an MH item that mirrors an HA entity
+	###################################################
+        #
+	# Position | Name		    | Default	| Function
+	#----------|------------------------|-----------|-------------------------------------------------------
+	#     1	   | name		    | -none-	| MH object name to create
+	#     2	   | domain		    | -none-	| domain[:subtype] of the HA entity
+	#     3	   | ha_entity		    | 10    	| name of the HA entity
+	#     4	   | ha_server		    | -none-	| name of the HA_SERVER object to use
+	#     5	   | grouplist              | -none-	| MH groups the item belongs to
+	#	   | weatherprimary	    | 0		| if item is a weather item, marks it as primary for MH
+	#	   | noweatherupdate	    | 0		| if item is a weather item, disables MH weather updates
+	#	   | check_response_delay   | 5		| amount of time (s) to wait for a response from HA
+	#	   |			    |		|    will send next message after delay(s)
+	#	   | delay_between_messages | 0		| some HA device implementations don't take kindly to rapid
+	#	   |			    |		|    fire messages.  This option sets a delay (s) between messages.
+	#	   |			    |		|    - the only devices we have seen to date that needs this
+	#	   |			    |		|        - OpenSprinkler; ESPHome minisplit SLWF-01Pro
+	#	   | no_duplicate_states    | 0		| prevent polled devices (like iot class) to update instelf
+	#	   |			    |		|    constantly 
+	 HA device implementations don't take kindly to rapid
+	#
+	# Example .mht:
+	#
+	#HA_ITEM,	name,			domain[:subtype],   ha_entity,                  ha_server,  groups
         HA_ITEM,        shed_counter_pots,      light,              shed_counter_pots,          ha_house
         HA_ITEM,        water,                  switch,             house_water_socket,         ha_house
         HA_ITEM,        thermostat,             climate,            family_room_thermostat,     ha_house
         HA_ITEM,        ecowitt_weather,        sensor,             hp2551bu_pro_v1_7_6_*|ecowitt_cottage_weather_*, ha_house
-        HA_ITEM,        led_strip,              light:rgb,          yeelight_012342,    ha_house, , no_duplicate_states
-
-    currently the only option is no_duplicate_states to prevent polled devices (like iot class) to update itself constantly with the current state
+	HA_ITEM,	led_strip,		light:rgb,	    yeelight_012342,		ha_house, , no_duplicate_states=>1
+	HA_ITEM, shed_light, domain=>light, ha_entity=>shed_light_entity, ha_server=>ha_house
 
     and misterhouse user code:
 
@@ -358,11 +408,11 @@ sub dump {
 =cut
 
 sub new {
-    my $class = shift;
+    my ($class, @parmslist) = @_;
 
-    my $positional_parms = [ 'name', 'address', 'keepalive_time', 'api_key' ];
-    my $optional_parms = [];
-    my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
+    my @positional_parms = ( 'name', 'address', 'keepalive_time', 'api_key' );
+    my @optional_parms = ();
+    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
 
     if( !ref $parms ) {
 	HA_Server::error( undef, "HA_Server parameter error: $parms -- item not created" );
@@ -1129,11 +1179,11 @@ sub dump {
 =cut
 
 sub new {   # HA_Item
-    my $class = shift;
+    my ($class, @parmslist) = @_;
 
-    my $positional_parms = [ 'domain', 'ha_entity', 'ha_server:objref', 'options:options' ];
-    my $option_parms = [ 'primary', 'weatherprimary', 'noweatherupdate', 'no_duplicate_states', 'delay_between_messages:number', 'response_check_delay:number' ];
-    my $parms = main::parse_table_parms( [@_], $positional_parms, $option_parms, 1 );
+    my @positional_parms = ( 'domain', 'ha_entity', 'ha_server:objref', 'options:options' );
+    my @option_parms = ( 'primary', 'weatherprimary', 'noweatherupdate', 'no_duplicate_states', 'delay_between_messages:number', 'response_check_delay:number' );
+    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@option_parms, 1 );
 
     if( !ref $parms ) {
 	HA_Server::error( undef, "HA_Item parameter error: $parms -- item not created" );

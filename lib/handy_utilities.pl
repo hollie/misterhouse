@@ -539,7 +539,7 @@ sub main::parse_table_parms {
 	# Check each format, because initially read_table_A quotes, and later it doesn't.
 	if( $parm =~ /=>/ ) {
 	    # $positional_done = 1;
-	    ($keyword,$value) = split(/\s*=>\s*/,$parm);
+	    ($keyword,$value) = split(/\s*=>\s*/,$parm,2);
 	} else {
 	    if( !$parm ) {
 		next;
@@ -557,7 +557,7 @@ sub main::parse_table_parms {
 		my $delay;
 		foreach my $option (@option_list) {
 		    if ($option =~ /=/) {
-			($keyword,$value) = split(/\s*=\s*/,$option);
+			($keyword,$value) = split(/\s*=\s*/,$option,2);
 		    } else {
 			$keyword = $option;
 			$value = 1;
@@ -627,14 +627,12 @@ sub main::get_table_parm{
     my $retval;
     my $i;
 
-    main::print_log( "starting get_table_parm of '$parmname': " . join( ', ', @{$parmslist} ) );
     if( defined $position  &&  $position <= scalar @{$parmslist}  &&  !($parmslist->[$position-1] =~ /=>/) ) {
 	$retval = $parmslist->[$position-1];
 	splice( @{$parmslist}, $position-1, 1 );
     } else {
 	for( $i=0; $i < scalar @{$parmslist}; ++$i ) {
-	    ($keyword,$value) = split( /\s*=>\s*/, $parmslist->[$i] );
-	    main::print_log( "get_table_parm split i=$i '$parmslist->[$i]' keyword '$keyword' value '$value'" );
+	    ($keyword,$value) = split( /\s*=>\s*/, $parmslist->[$i], 2 );
 	    if( $keyword eq $parmname ) {
 		$retval = $value;
 		splice( @{$parmslist}, $i, 1 );
@@ -642,7 +640,6 @@ sub main::get_table_parm{
 	    }
 	}
     }
-    main::print_log( "get_table_parm of '$parmname' returning '$retval': " . join( ', ', @{$parmslist} ) );
     return $retval;
 }
 

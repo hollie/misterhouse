@@ -381,16 +381,16 @@ sub isNotConnected {
 
 =item C<new()>
 
-    Used to send commands to the interface.
+    Class for MQTT_BROKER item.  Positional parameter order matches the .mht file.
 
 =cut
 
 sub new {
-    my $class = shift;
+    my ($class, @parmslist) = @_;
 
-    my $positional_parms = [ qw (name host port topic username password keepalive_time) ];
-    my $optional_parms = [ qw (topic_prefix use_ha_device_disc) ];
-    my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms );
+    my @positional_parms = qw (name host port topic username password keepalive_time);
+    my @optional_parms = qw (topic_prefix use_ha_device_disc);
+    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
 
     if( !ref $parms ) {
 	&mqtt::error( undef, "error parsing mqtt(MQTT_BROKER) parameters: $parms -- mqtt broker object not created" );
@@ -1089,8 +1089,7 @@ sub generate_voice_commands {
         package main;
         eval $object_string;
         print "Error in generating Voice Commands for mqtt interface: $@\n" if $@;
-
-        package HA_Server;
+        package mqtt;
     }
 }
 
@@ -1470,7 +1469,7 @@ sub write_discovery_messages {
 		$obj_name =~ s/^\$//;
 		$disc_obj_name =~ s/^\$//;
 		print {$f} "$disc_obj_name:$obj_name ($obj->{mqtt_friendly_name})  T:$obj->{disc_topic}\n";
-		my $dumper = Data::Dumper->new( [$obj->{disc}] );
+		my $dumper = Data::Dumper->new( [$obj->{disc}], ['$disc_msg'] );
 		print {$f} $dumper->Dump() . "\n\n";
 	    }
 	}
@@ -1568,11 +1567,11 @@ use Data::Dumper;
 =cut
 
 sub new {
-    my $class = shift;
+    my ($class, @parmslist) = @_;
 
-    my $positional_parms = [ qw (broker:objref topic qos retain) ];
-    my $optional_parms = [];
-    my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms );
+    my @positional_parms = qw (broker:objref topic qos retain);
+    my @optional_parms = ();
+    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
 
     if( !ref $parms ) {
 	&mqtt::error( undef, "error parsing mqtt(MQTT_BROKER) parameters: $parms -- mqtt broker object not created" );

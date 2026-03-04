@@ -50,13 +50,23 @@ Description:
     There are several generic functions in this module that will do things to/with
     all of the objects that are created for that mqtt server.
 
+    This is the original implementation, before MQTT Items were added.  
+
+    There is also an implementation of MQTT_DEVICE/mqtt_Item in that file.  
+    In this old model, this item has a 1:1 relationship with an mqtt message.
+    That does not match the item model of MH or the object model of mqtt.
+    Hence the implementation of MQTT Items below.
+    MQTT Items uses the mqtt object implemented in mqtt.pm but does not use the MQTT_DEVICE.
+
+
+
 
     MQTT Items (mqtt_items.pm)
     --------------------------
 
     There are several MQTT item types implemented in this module (see below).
 
-    Each item can handle both commands and state messages to/from MQTT devices.
+    Each item can handle both commands and state messages to or from MQTT devices.
     LWT messages can also be handled for remote items.
 
     There are several classes implemented in mqtt_items.pm:
@@ -65,7 +75,7 @@ Description:
          - is the base class.
 
 	mqtt_LocalItem:
-	    - implements an mqtt mh item that is tied to a local item
+	    - implements an mqtt mh item that is tied to a local reference item
 	    - when the local item changes state, this mqtt item will send mqtt state_topic messages
 	    - it will also listen for mqtt command_topic messages and set the state of the local item,
 	      if the set of the local item is successful, the mqtt item will send out the state_topic message
@@ -74,7 +84,7 @@ Description:
 	      that broker
 	    - if there is no broker specified, then the LocalItem will listen to all brokers
 	      for command messages, and broadcast state messages to all brokers
-	    - can publish HA discovery info -- a fairly simple discovery language is
+	    - can publish Home Assistant (HA) discovery info -- a fairly simple discovery language is
 	      used that is based on the insteon-mqtt project
 
 	mqtt_BaseRemoteItem:
@@ -84,7 +94,8 @@ Description:
 	    - when set is called, will send command_topic messages to change the state of a device
 	        - local state will not change until state_topic message is received unless
 		  the item is marked as optimistic or does not have a state_topic
-	    - will listen for state_topic messages with stata changes
+	    - will listen for state_topic messages with state changes and update
+	      the MH item
 	    - will also listen for last will and testiment (LWT) messages reporting
 	      when a device goes offline
 
@@ -100,16 +111,21 @@ Description:
 		  eliminating the need to statically define them, but you need to
 		  turn discovery on on your device (eg. Tasmota: SetOption19 1)
 		  -- note that the Tasmota discovery gear is not being developed anymore...
-		- can publish HA discovery info -- a simpler discovery message
-		  than the discontinued Tasmota discovery mentioned above
+		- can publish HA discovery info
+		  - this is a bit of a weird thing to do -- publish discovery info for a different device,
+		    but works when the device is not publishing discovery info, or that discovery info
+		    is bogus
+		  - it is a simpler discovery message than the discontinued Tasmota discovery mentioned above
 
 	    mqtt_InstMqttItem
 	        - implements a statically defined mh item for Insteon devices managed
-		  by insteon-mqtt OR another instance of MisterHouse (since the MH published
-		  MQTT messages are based on insteon-mqtt).  You could also use discovered items
-		  for this purpose.
+		  by insteon-mqtt
+		- OR can be used to reference a LOCALITEM device published in another instance of MisterHouse
+		  - (since the MH published MQTT messages are based on insteon-mqtt)
+		  - could also use discovered items for this purpose
 		- see https://github.com/TD22057/insteon-mqtt
 		- can publish HA discovery info, as insteon-mqtt does not implement discovery yet
+		  - update: I believe insteon-mqtt project does not publish discovery data for HA
 
 
     Supported mqtt types:
@@ -119,12 +135,14 @@ Description:
 	- switch
 	- binary_sensor
 	- sensor
-	- scene
 	- select
 	- text
 	- number
 	- cover
-    Note that these map to the Home Assistant types directly.
+	- scene
+	- scene_switch            (invented to map to something in HA that has on/off but no state)
+
+    Note that these (except scene_switch) map to the Home Assistant types directly.
     Also, the type can be enhanced in MH:
 
 	<type>:<device_class>:<state_class>:<unit_of_measurement>
@@ -143,27 +161,50 @@ Description:
     The discovery definitions are based on the Home Assistant Discovery info:
         https://www.home-assistant.io/docs/mqtt/discovery
 
-    There are several uses for mqtt discovery in MH:
-        - discover mqtt devices without having to statically define them in .mht files
-	- publish discovery information for locally defined devices.  This has multiple
-	  uses as well:
-	    - share device information with another MH instance
-	    - publish device information to Home Assistant.  This could be
-	      for environments where both are running, or used when
-	      transitioning one way or the other.
+    There are 2 main uses for mqtt discovery in MH:
+        1. discover mqtt devices without having to statically define them in .mht files
+	   - these might be actual devices or another controller that publishes mqtt info like HA, or
+	     the various zigbee2mqtt, zwave hs, instmqtt servers
+	2. publish discovery information for locally defined devices.  This has multiple
+	   uses as well:
+	     - share device information with another MH instance
+	     - publish device information to Home Assistant.  This could be
+	       for environments where both are running, or used when
+	       transitioning one way or the other.
 
 
     There are 2 classes implemented in mqtt_discovery.pm:
 
+	mqtt_DiscoveryBroker:
+	     This class acts as the manager for discovery data.
+	     It has 2 functions.
+	     The action parameter defines which ones it does -- publish, subscribe, both, none.
+
+	     Subscribe:
+	         - it defines a single mqtt_BaseItem that that listens for mqtt discovery messages
+	           based on an mqtt wildcard
+		 - creates mqtt_DiscoveredItems based on the discovery information that is received
+		 - you can then write out these items to a .mht file using the mqtt::write_discovered_items class function
+		     - note that the discovered items will not appear as fully referencable MH items
+		       until you restart MH once.
+	             - you can move items from the file written out by write_discovered_items
+		       into another .mht file.  When you do, change the discovery_topic to just
+		       the type -- this will prevent MH from writting it out with the other discovered
+		       items.
+	     Publish:
+	         - this class will setup publishing of discovery information for mqtt_LocalItems and
+	           even for any of the mqtt_BaseRemoteItems if they are created with the discovery flag set
+	         - this last part is useful if you have an mqtt device somewhere whose discovery
+		   info is not great, or doesn't publish discovery info
+		 - the discovery language used is based on Home Assistant documented discovery
+
 	mqtt_DiscoveredItem:
 	    This class extends the mqtt_BaseRemoteItem class and implements
 	    a mh item from a mqtt discovery message.
-	    It has been built to handle 2 types of discovery messages:
-		1. discovery messages as published by the below discovery
-		   class primarily for mqtt_LocalItems, but discovery info
-		   for RemoteItems and InstMqttItems can also be published.
-		   This allows easy sharing of device definitions between MH instances,
-		   and also allows Home Assistant to know about MH items.
+	    It has been built for multiple purposes:
+		1. discovery messages published by other mqtt controller/hubs like
+		   Home Assistant, zigbee2mqtt, instmqtt, zwave js.
+		   Most controllers use the HA documented discovery language.
 		2. discovery messages published by remote devices.
 		   It handles some Tasmota, IOT4 discovery messages published
 		   when Tasmota SetOption19 is set to 1, or HASS discovery turned on
@@ -175,30 +216,15 @@ Description:
 		   - I have implemented these devices based on HomeAssistant documentation
 		     for discovery and information on blakaddr.com
 		   - In order to implement this properly, we would need a templating engine in perl
-
-	    You can move one of the items from the file written out by write_discovered_items, or
-	    you could hand code an item of this type using a full discovery message.  When you are
-	    hand declaring an mqtt item using this format, change the discovery_topic to just
-	    the discovery_type -- that will internally mark it so that it is not written out
-	    next time write_discovered_items is called.
-	
-	mqtt_Discovery:
-	     This class has 2 functions.  The discovery_action parameter defines which ones
-	     it does -- publish, subscribe, both, none.
-
-	     Subscribe:
-	         - it defines a single mqtt_BaseItem that that listens for mqtt discovery messages
-	           based on an mqtt wildcard
-		 - creates mqtt_DiscoveredItems based on the discovery information that is received
-		 - you can then write out these items to a .mht file using the mqtt::write_discovered_items class function
-		     - note that the discovered items will not appear as fully referencable MH items
-		       until you restart MH once.
-	     Publish:
-	         - this class will setup publishing of discovery information for mqtt_LocalItems and
-	           even for any of the mqtt_BaseRemoteItems if they are created with the discovery flag set
-	         - this last part is useful if you have an mqtt device somewhere whose discovery
-		   info is not great, or doesn't publish discovery info
-
+		3. discovery messages coded by hand
+		   - use only the type instead of the discovery topic -- prevents MH from writing them out
+		   - this can be very useful when you have a remote device that mqtt_RemoteItem doesn't handle
+		     properly
+		   - discovery messages are coded in JSON, so this can be a bit of a arduous task
+		   - use
+		4. discovery messages as published by MH using the mqtt_DiscoveryBroker 
+		   to publish discovery messages primarily for mqtt_LocalItems.
+		   This allows easy sharing of device definitions between MH instances.
 
 
 License:
@@ -207,77 +233,217 @@ License:
 Usage:
 
     .mht file:
-	###################################################
-	# Broker record creates object to connect to mqtt server
-	###################################################
 
-	# MQTT_BROKER,	name,	   subscribe topic,	host/ip,	port,	user,	pwd,	keepalive
-	MQTT_BROKER,	mqtt_1,	   ,			localhost,	1883,	,	,	121
+
+	#########################################################################################################
+	# MQTT objects accept positional or named parameters.
+	# - Parameters with positions may be provide either by placing them in the specified position,
+	#   or by using the indicated name in a name=>value format.
+	# - Parameters without a position must be specified using the name=>value format.
+	# - It is easiest to position named parameters after the positional ones or to use all named parameters.
+	# - Positional parameters can be organized in a tabular format so that it is easy to
+	#   figure out what is what -- examples provided below.
+	#########################################################################################################
+
+
 
 	###################################################
-	# Use of Discovery functionality is optional
-	# - the most common use is to publish discovery info to home assistant
-	# - topic prefix is used for publishing discovery info -- it will prefix the discovery message and all topics
-	#     - it overrides the topic_prefix option on the mqtt_broker object
+	# MQTT_BROKER record creates object to connect to mqtt server
+	# - usually you only have one
 	###################################################
-
-	# MQTT_DISCOVERY,   obj name,		disc topic prefix,  broker,	publish|subscribe|both (default both)
-	MQTT_DISCOVERY,	    mqtt_discovery1,	app/misterhouse,    mqtt_1,	both
+        #
+	# Position | Name		    | Default	| Function
+	#----------|------------------------|-----------|-------------------------------------------------------
+	#     1	   | name		    | -none-	| MH object name to create
+	#     2	   | topic		    | #		| MQTT topic to subscribe to - default is all mqtt messages
+	#     3	   | host		    | -none-	| host name or ip address of MQTT server
+	#     4	   | port		    | -none-	| port of MQTT server
+	#     5	   | username		    | -none-	| username to use when connecting to MQTT server
+	#     6	   | password		    | -none-	| password to use when connecting to MQTT server
+	#     7	   | keepalive_time	    | -none-	| password to use when connecting to MQTT server
+	#	   | grouplist		    | -none-	| MH groups the item belongs to
+	#	   | topic_prefix	    | -none-	| prefix to use on MQTT topics created for LOCALITEMS
+	#	   | use_ha_device_discovery| -none-	| prefix to use on MQTT topics created for LOCALITEMS
+	#
+	# Example .mht:
+	#
+	# MQTT_BROKER,	name,	    topic,	host,	    port,	username,   password,	keepalive_time
+	MQTT_BROKER,	mqtt_1,	   ,		localhost,  1883,	,	    ,		121,   topic_prefix=misterhouse
+	MQTT_BROKER, mqtt_1, host=>localhost, port=>1883, keepalive_time=>121, topic_prefix=>misterhouse
+	#
+	#
+	# NOTE:  the positional paramaters to the new mqtt() are in a slightly different order
+	#     $mqtt_1 = new mqtt( <name>, <host>, <port>, <topic>, ... )
+	#         OR use keyword parms
+	#     $mqtt_1 = new mqtt( 'name=>mqtt_1', 'host=>localhost', 'port=>1883' );
 
 
 	###################################################
 	# Different Item types for different types of MQTT functionality
+	#    - remote items are used to define an MH item that tracks the state and controls
+	#      the state of an mqtt device
+	#    - local items are MH items that publish their state and receive mqtt
+	#      commands to modify the local state
 	#
+	###################################################
+	# Remote Items:
 	# TopicPattern should be of the form "<node_id>/<mqtt name>/+".
 	#    - It is best to use the same <node_id> for all items, but not necessary
 	#    - It helps identify your own discovery messages in a large mqtt system
 	###################################################
-
-	# Used to define mqtt items as published by insteon-mqtt project or as published
-	# by another instance of MisterHouse which has defined MQTT_LOCALITEMs.
+        #
+	###################################################
+	# MQTT_INSTMQTT 
+	#    - Used to define mqtt items as published by insteon-mqtt project or as published
+	#      by another instance of MisterHouse which has defined MQTT_LOCALITEMs or as published
+	#      by Home Assistant.
+	#    - Consider using discovery as an alternative to statically defined objects
+	###################################################
 	#
-	# MQTT_INSTMQTT,    name,		groups,		broker, type,		topicpattern,				    discoverable    [Area:]Friendly Name
+	# Position | Name		    | Default	| Function
+	#----------|------------------------|-----------|-------------------------------------------------------
+	#     1	   | name		    | -none-	| name of the MH item
+	#     2	   | grouplist		    | -none-	| MH groups the item belongs to
+	#     3	   | broker		    | -none-	| MH mqtt broker item -- object reference or name
+	#     4	   | type		    | -none-    | mqtt type of the mqtt device
+	#     5	   | topic_pattern	    | -none-	| pattern of the state and command messages for the device
+	#     6	   | discoverable   	    | 0    	| determines if discovery information will be published
+	#     7	   | friendly_name	    | -none-	| pretty name published as name of mqtt device
+	#
+	# Example .mht:
+	#
+	# MQTT_INSTMQTT,    name,		groups,		broker, type,		topic_pattern,				    discoverable    [Area:]Friendly Name
 	MQTT_INSTMQTT,	    bootroom_switch,	Lights,		mqtt_1, switch,		insteon/bootroom/+,			    1,		    Bootroom Light
 
-	# Define a Tasmota item.  Note that the topicpattern must be in the order that the device will
+	###################################################
+	# MQTT_REMOTEITEM
+	# Define a Tasmota item.  Note that the topic_pattern must be in the order that the device will
 	# send.  This is configured in the Tasmota MQTT configuration. 'statetopic' and 'cmndtopic' are
 	# optional, and will default to good values for Tasmota, but maybe not for other devices.
+	###################################################
 	#
-	# MQTT_REMOTEITEM,  name,		groups,		broker, type,		topicpattern,				    discoverable    [Area:]Friendly Name,	statetopic,	cmndtopic
+	# Position | Name		    | Default	| Function
+	#----------|------------------------|-----------|-------------------------------------------------------
+	#     1	   | name		    | -none-	| name of the MH item
+	#     2	   | grouplist		    | -none-	| MH groups the item belongs to
+	#     3	   | broker		    | -none-	| MH mqtt broker item -- object reference or name
+	#     4	   | type		    | -none-    | mqtt type of the mqtt device
+	#     5	   | topic_pattern	    | -none-	| pattern of the state and command messages for the device
+	#     6	   | discoverable   	    | 0    	| determines if discovery information will be published
+	#     7	   | friendly_name	    | -none-	| pretty name published as name of mqtt device
+	#     8	   | state_topic  	    | -none-	| override the state_topic created from the topic_pattern
+	#     9	   | command_topic	    | -none-	| override the command_topic created from the topic_pattern
+	#
+	# Example .mht:
+	#
+	# MQTT_REMOTEITEM,  name,		groups,		broker, type,		topic_pattern,				    discoverable    [Area:]Friendly Name,	statetopic,	cmndtopic
 	MQTT_REMOTEITEM,    tas_outdoor_plug,	,		mqtt_1, switch,		tasmota_outdoor_plug/+/+,		    0,		    Tasmota Outdoor Plug
 
 
-        # Say you have a local INSTEON item  (could be any kind of misterhouse item)
-	INSTEON_SWITCHLINC, 52.9E.DD,		shed_light,	Lights|Outside
-	#
-        # Then you can create an mqtt item to publish its state and receive mqtt commands.
-	# TopicPattern should be of the form "<node_id>/<mqtt name>/+".
-	# *** This can be used to publish local MH items to Home Assistant.
+	###################################################
+	# Local Items:
+	###################################################
+        # - Say you have a local item  (could be any kind of misterhouse item) called shed_light
+        # - you can then create an mqtt LocalItem to publish its state and receive mqtt commands.
+	###################################################
+        # MQTT_LOCALITEM
+	# - topic_pattern should be of the form "<node_id>/<mqtt name>/+".
+        # - the global topic prefix specified on the mqtt_broker object will be prepended (if it exists)
+	# *** This can be used to publish local MH items to Home Assistant or to any other mqtt controller
+        #     including another instance of MisterHouse
 	# *** Once created, you shouldn't need to reference the MQTT_LOCALITEM, just the regular item
-	# The optional Area: will set a suggested area on the mqtt item which may put the item into
-	#   that area in HA.
+	###################################################
 	#
-	# MQTT_LOCALITEM,   name,		local item,	broker, type,				topicpattern,		    discoverable    [Area:]Friendly Name
-	MQTT_LOCALITEM,	    mqtt_shed_light,	shed_light,	mqtt_1, switch,				insteon/shed_light/+,	    1,		    Shed:Shed Light
+	# Position | Name		    | Default	| Function
+	#----------|------------------------|-----------|-------------------------------------------------------
+	#     1	   | name		    | -none-	| name of the MH item for this mirror item
+	#     2	   | ref_item_name	    | -none-	| name of the local MH item being published to mqtt
+	#     3	   | broker		    | -none-	| MH mqtt broker item -- object reference or name
+	#     4	   | type		    | -none-    | mqtt type of the mqtt device
+	#     5	   | topic_pattern	    | -none-	| pattern of the state and command messages for the device
+	#          |			    |		|   should be of the form  "<node_id>/<mqtt name>/+".
+	#     6	   | discoverable   	    | 0    	| determines if discovery information will be published
+	#     7	   | friendly_name	    | -none-	| pretty name published as name of mqtt device
+	#          |			    |		|   can be preceeded with optional [[<area>:][<device_name>]:]
+	#          |			    |		|   <area> used as suggested_area for home assistant
+	#          |			    |		|   <device_name> used as name for device description
+	#     8	   | state_topic  	    | -none-	| override the state_topic created from the topic_pattern
+	#     9	   | command_topic	    | -none-	| override the command_topic created from the topic_pattern
+	#
+	# Example .mht:
+	#
+	# MQTT_LOCALITEM,   name,		ref item name,	broker, type,				topic_pattern,		    discoverable    [[Area]:[DeviceName]:]Friendly Name
+	MQTT_LOCALITEM,	    mqtt_shed_light,	shed_light,	mqtt_1, switch,				insteon/shed_light/+,	    1,		    Shed::Shed Light
 	MQTT_LOCALITEM,	    mqtt_outside_temp,	temp,		mqtt_1, sensor:temperature:measurement:C,insteon/outside_temp/+,    1,		    Outside Temperature
 	#
+        #
+	# NOTE:  the positional paramaters to the new mqtt() are in a slightly different order
+	#        so user code looks like:
+	#     $mqtt_shed_light = new mqtt_LocalItem( <broker>, <name>, <type>, <ref_item_name>, ... )
+	#         OR use keyword parms
+	#     $mqtt_shed_ligth = new mqtt_LocalItem( 'name=>mqtt_shed_light', 'broker=>mqtt_1', 'ref_item_name=>shed_light', 'type=>switch', 'topic_pattern=>insteon/shed_light/+' );
 
 
+
+	###################################################
+	# Use of Discovery functionality is optional
+	# - the most common use is to publish discovery info to home assistant
+	# - another common use is to consume discovery info published by home assistant or most mqtt devices
+	# - topic prefix is used for publishing discovery info -- it will prefix the discovery message and all topics
+	#     - it overrides the topic_prefix option on the mqtt_broker object
+	# - action can be publish|subscribe|both (default both)
+	###################################################
+	#
+	# Position | Name		    | Default	| Function
+	#----------|------------------------|-----------|-------------------------------------------------------
+	#     1	   | name		    | -none-	| name of the discovery broker item
+	#     2	   | ref_item_name	    | -none-	| name of the local MH item being published to mqtt
+	#     3	   | discovery_prefix	    | -none-	| topic prefix for discovery messages
+	#     4	   | broker		    | -none-    | name of mqtt broker this disovery will be associated with
+	#     5	   | action		    | both 	| publish|subscribe|both -- controls whether discovery info
+	#      	   |       		    |      	|   will be published, subscribed to or both
+	#
+	# MQTT_DISCOVERY,   name,		disc_topic_prefix,  broker,	action
+	MQTT_DISCOVERY,	    mqtt_discovery1,	homeassistant,	    mqtt_1,	both
+	#
+	# NOTE:  the positional paramaters to the new mqtt() are in a slightly different order
+	#        so user code looks like:
+	#     $mqtt_disc_1 = new mqtt_Discovery( <broker>, <name>, <discovery_prefix>, <action> )
+	#         OR use keyword parms
+	#     $mqtt_disc_1 = new mqtt( 'name=>mqtt_disc_1', 'broker=>mqtt_1', 'discovery_prefix=>homeassistant' );
 	
-    .mht generated file:
+        .mht Format A generated file:
 
-	# Discovery items are generated by the write_discovered_items function.
-	# You would not normally code these by hand.
+	# - if you have enabled subscribe to discovery, the discovery item will capture all
+	#   discovery messages (message topic ends with '/config/)
+	# - MQTT_DISCOVEREDITEMs can be written to a file by the mqtt::write_discovered_items function.
+	# - you can write this into a .mht file in your user code directory that will be
+	#   picked up on the next restart of MH
+	# - BUT, this can cause problems if your mqtt broker is down when you call the write_discovered_items
+	#   function because the file won't have your discovered items and MH may complain about items
+	#   you have referenced that don't exist
+	# - SO, you may want to move an MQTT_DISCOVEREDITEM from the generated file to
+	#   your regular .mht file
+	#   - if you do, change the discovery_topic to just the discovery_type
+	#     - that will override any discovered item with the same unique_id,
+	#       and will not be written out with write_discovered_items
+	#   - change the name of the item to whatever you want
 	#
-	# But if you want to move an item to your regular .mht file, change the discovery_topic to just
-	# the discovery_type.  That then will override any discovered item with the same unique_id,
-	# and will not be written out with write_discovered_items.
+	# - NOTE: you would not normally code these by hand, but you can...
+	#   - this allows you to declare a remote mqtt item using the full discovery message format,
+	#     rather than sticking with the rules in MQTT_REMOTEITEM or MQTT_INSTMQTT
 	#
-	# You could code one of these items by hand. This would also allow you to declare a remote
-	# mqtt item using the full discovery message format.
+	# Position | Name		    | Default	| Function
+	#----------|------------------------|-----------|-------------------------------------------------------
+	#     1	   | name		    | -none-	| name of the discovered item
+	#     2	   | disc_broker	    | -none-	| name of the discovery broker associated with this item
+	#     3	   | disc_topic		    | -none-	| full discovery topic for this item
+	#      	   |           		    |       	|   replace with just type to hand code one of these
+	#     4	   | disc_message	    | -none-    | discovery message associated with this item
 	#
-	# MQTT_DISCOVEREDITEM,	name,			    discovery_obj,	discovery_topic/discovery_type,			    discovery_message
-	MQTT_DISCOVEREDITEM,	mqtt_tasmota_outdoor_plug,  mqtt_discovery,	 homeassistant/switch/877407_RL_1/config,   {"name":"Tasmota Outside Plug","cmd_t":"~cmnd/POWER","stat_t":"~tele/STATE","val_tpl":"{{value_json.POWER}}","pl_off":"OFF","pl_on":"ON","avty_t":"~tele/LWT","pl_avail":"Online","pl_not_avail":"Offline","uniq_id":"877407_RL_1","device":{"identifiers":["877407"],"connections":[["mac","D8:F1:5B:87:74:07"]]},"~":"tasmota_outdoor_plug/"}
+	# Example of automatically produced discovered item
+	# MQTT_DISCOVEREDITEM,	name,			    disc_broker,	disc_topic,				    disc_message
+	MQTT_DISCOVEREDITEM,	mqtt_tasmota_outdoor_plug,  mqtt_disc_1,	 homeassistant/switch/877407_RL_1/config,   {"name":"Tasmota Outside Plug","cmd_t":"~cmnd/POWER","stat_t":"~tele/STATE","val_tpl":"{{value_json.POWER}}","pl_off":"OFF","pl_on":"ON","avty_t":"~tele/LWT","pl_avail":"Online","pl_not_avail":"Offline","uniq_id":"877407_RL_1","device":{"identifiers":["877407"],"connections":[["mac","D8:F1:5B:87:74:07"]]},"~":"tasmota_outdoor_plug/"}
 
 
     and misterhouse user code:
@@ -1210,11 +1376,11 @@ use Scalar::Util 'blessed';
 =cut
 
 sub new {     ### mqtt_LocalItem
-    my $class = shift;
+    my ($class, @parmslist) = @_;
 
-    my $positional_parms = [ qw( broker:objref name type reference_object_name:objref topic_pattern discoverable friendly_name state_topic command_topic ) ];
-    my $optional_parms = [];
-    my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms );
+    my @positional_parms = qw( broker:objref name type ref_item_name:objref topic_pattern discoverable friendly_name state_topic command_topic );
+    my @optional_parms = ();
+    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
     if( !ref $parms ) {
 	&mqtt::error( undef, "error parsing MQTT_LOCALITEM parameters: $parms -- mqtt item not created" );
 	return;
@@ -1223,7 +1389,7 @@ sub new {     ### mqtt_LocalItem
     my $interface	= $parms->{broker};
     my $name		= $parms->{name};
     my $type		= $parms->{type};
-    my $local_object	= $parms->{reference_object_name};
+    my $local_object	= $parms->{ref_item_name};
     my $topicpattern	= $parms->{topic_pattern};
     my $discoverable	= $parms->{discoverable};
     my $friendly_name	= $parms->{friendly_name};
@@ -1235,11 +1401,6 @@ sub new {     ### mqtt_LocalItem
     my $mqtt_name;
     my $topic_prefix;
     my $listen_topic;
-
-    if( !blessed($local_object)  ||  !$local_object->isa('Generic_Item') ) {
-	$interface->error( "local_object_name is not an MH item" );
-	return;
-    }
 
     ($base_type, $device_class, $state_class, $unit_of_m) = $type =~ m/^([^:]*):?([^:]*):?([^:]*):?([^:]*)$/;
 
@@ -1767,11 +1928,11 @@ use Data::Dumper;
 =cut
 
 sub new {      ### mqtt_RemoteItem
-    my $class = shift;
+    my ($class, @parmslist) = @_;
 
-    my $positional_parms = [ qw( broker:objref type topic_pattern discoverable friendly_name state_topic command_topic ) ];
-    my $optional_parms = [ qw( grouplist ) ];
-    my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
+    my @positional_parms = qw( broker:objref type topic_pattern discoverable friendly_name state_topic command_topic );
+    my @optional_parms = qw( grouplist );
+    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
     if( !ref $parms ) {
 	&mqtt::error( undef, "error parsing MQTT_REMOTEITEM) parameters: $parms -- mqtt item not created" );
 	return;
@@ -1910,11 +2071,11 @@ use Data::Dumper;
 =cut
 
 sub new {      ### mqtt_InstMqttItem
-    my $class = shift;
+    my ($class, @parmslist) = @_;
 
-    my $positional_parms = [ qw( broker:objref type topic_pattern discoverable friendly_name ) ];
-    my $optional_parms = [ qw( grouplist ) ];
-    my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
+    my @positional_parms = qw( broker:objref type topic_pattern discoverable friendly_name );
+    my @optional_parms = qw( grouplist );
+    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
     if( !ref $parms ) {
 	&mqtt::error( undef, "error parsing MQTT_INSTMQTTITEM) parameters: $parms -- mqtt item not created" );
 	return;

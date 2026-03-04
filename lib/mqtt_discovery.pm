@@ -62,7 +62,22 @@ use mqtt_items;
 =cut
 
 sub new {   #### mqtt_DiscoveredItem
-    my ( $class, $disc_interface, $obj_name, $orig_disc_topic, $disc_msg ) = @_;
+    my ( $class, @parmslist ) = @_;
+
+    my @positional_parms = qw( disc_broker:objref name disc_topic disc_message );
+    my @optional_parms = qw();
+    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
+    if( !ref $parms ) {
+	&mqtt::error( undef, "error parsing MQTT_DISCOVERYITEM parameters: $parms -- mqtt discoveryitem not created" );
+	return;
+    }
+
+
+    my $disc_interface	= $parms->{disc_broker};
+    my $obj_name	= $parms->{name};
+    my $orig_disc_topic	= $parms->{disc_topic};
+    my $disc_msg	= $parms->{disc_message};
+
     my $obj;
     my $interface = $disc_interface->{interface};
     my $friendly_name;
@@ -294,19 +309,19 @@ use JSON qw( decode_json encode_json );
 
 @mqtt_Discovery::ISA = ( 'mqtt_BaseItem' );
 
-=item C<new(mqtt_interface, name, discovery_topic, create_discovered_objs)>
+=item C<new(mqtt_interface, name, discovery_prefix, action)>
 
-    Creates a MQTT Discovery object that will handle mqtt discovery messages and create local objects.
-    Then use class function write_discovered_items to write them out to a .mht file.
+    Creates an mqtt discovery broker object that is used to manage publish and subscribing to
+    discovery messages.
 
 =cut
 
 sub new {  ### mqtt_Discovery
-    my $class = shift;
+    my ($class, @parmslist ) = @_;
 
-    my $positional_parms = [ qw( interface:objref name discovery_prefix action ) ];
-    my $optional_parms = [];
-    my $parms = main::parse_table_parms( [@_], $positional_parms, $optional_parms, 1 );
+    my @positional_parms = qw( interface:objref name discovery_prefix action );
+    my @optional_parms = ();
+    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
     if( !ref $parms ) {
 	&mqtt::error( undef, "error parsing MQTT_DISCOVERY parameters: $parms -- mqtt item not created" );
 	return;

@@ -1923,10 +1923,7 @@ sub read_table_A {
     #-------------- End AoGSmartHome Objects ----------------
     #-------------- MQTT Objects -----------------
     elsif ( $type eq "MQTT_BROKER" ) {
-	# MQTT_BROKER, <name>, <topic>, <host>, <port>, <username>, <password>, <keepalive_time>
-	#            optional: <grouplist>, <topic_prefix>, <use_ha_device_discovery>
-        # there must be one record for the broker above any MQTT_DEVICE definitions
-        # it takes the following format
+        # there must be one record for the broker above any other MQTT definitions
         require 'mqtt.pm';
 	$grouplist = &get_table_parm( \@item_info, 'grouplist' );
 	$name = &get_table_parm( \@item_info, 'name', 1 );
@@ -1937,11 +1934,11 @@ sub read_table_A {
         $object = "mqtt('$name', '$host', '$port', '$topic', $other )";
     }
     elsif ( $type eq "MQTT_DEVICE" ) {
-	# MQTT_DEVICE, <name>, <grouplist>, <broker>, <topic>, <qos>, <retain>
-        # there is one record per mqtt device and it must be below the MQTT_BROKER definition
-        # it takes the following form
+	# this is an old implementation
+	# there is one item per mqtt message and it must be below the MQTT_BROKER definition
         # if the device is to transmit to MH, its topic must match the
-        # config parameter mqtt_topic in the mh.ini file   
+        #   config parameter mqtt_topic in the mh.ini file
+	# ==> RECOMMEND not using this item type, use ITEM types below
         require 'mqtt.pm';
 	$grouplist = &get_table_parm( \@item_info, 'grouplist', 2 );
 	$name = &get_table_parm( \@item_info, 'name', 1 );
@@ -1949,9 +1946,6 @@ sub read_table_A {
         $object = "mqtt_Item( $other )";
     }
     elsif( $type eq "MQTT_LOCALITEM" ) {
-	# MQTT_LOCALITEM, <name>, <reference_object_name>, <broker>, <type>, <topic_pattern>, <discoverable>, <friendly_name>, <state_topic>, <cmnd_topic>
-	#            optional: <grouplist>
-	# <state_topic> and <command_topic> are optional and have defaults based on <type>.
 	$grouplist = &get_table_parm( \@item_info, 'grouplist' );
 	$name = &get_table_parm( \@item_info, 'name', 1 );
 	# NOTE: we pull these parms out so we can change the order for the new() function
@@ -1961,8 +1955,6 @@ sub read_table_A {
 	$object = "mqtt_LocalItem( '$broker', '$name', '$type', '$local_object_name', $other )";
     }
     elsif( $type eq "MQTT_REMOTEITEM" ) {
-	# MQTT_REMOTEITEM, <name>, <grouplist>, <broker>, <type>, <topic_pattern>, <discoverable>, <friendly_name>, <state_topic>, <command_topic>
-	# <state_topic> and <command_topic> are optional and have defaults based on <type>.
 	$grouplist = &get_table_parm( \@item_info, 'grouplist', 2 );
 	$name = &get_table_parm( \@item_info, 'name', 1 );
 	require mqtt_items;
@@ -1970,7 +1962,6 @@ sub read_table_A {
 	$object = "mqtt_RemoteItem( $other )";
     }
     elsif( $type eq "MQTT_INSTMQTT" ) {
-	# MQTT_INSTMQTT, <name>, <grouplist>, <broker>, <type>, <topic_pattern>, <discoverable>, <friendly_name>
 	$grouplist = &get_table_parm( \@item_info, 'grouplist', 2 );
 	$name = &get_table_parm( \@item_info, 'name', 1 );
 	require mqtt_items;
@@ -1978,19 +1969,16 @@ sub read_table_A {
 	$object = "mqtt_InstMqttItem( $other )";
     }
     elsif( $type eq "MQTT_DISCOVERY" ) {
-	# MQTT_DISCOVERY, <name>, <discovery_topic>, <broker>, <action>
-	#            optional: <grouplist>
 	$grouplist = &get_table_parm( \@item_info, 'grouplist' );
 	$name = &get_table_parm( \@item_info, 'name', 1 );
-	# NOTE: we pull these parms out so we can change the order for the new() function
-	my ($discovery_topic, $broker, @other) = @item_info;
 	require mqtt_discovery;
 	require mqtt_items;
+	# NOTE: we pull these parms out so we can change the order for the new() function
+        my ($discovery_topic, $broker, @other) = @item_info;
         $other = join ', ', ( map { "'$_'" } @other );              # Quote data
 	$object = "mqtt_Discovery( '$broker', '$name', '$discovery_topic', $other )";
     }
     elsif( $type eq "MQTT_DISCOVEREDITEM" ) {
-	# MQTT_DISCOVEREDITEM, <name>, <discovery_name>, <discovery_topic>, <discovery_message>
 	my ($disc_name, $disc_topic, $disc_msg );
 	($name, $disc_name, $disc_topic, $disc_msg ) = $record =~ /MQTT_DISCOVEREDITEM\s*,\s*([^,]+),\s*([^,]+),\s*([^,]+)\,\s*(.*)$/;
 	$name =~ s/\s*$//;
@@ -2003,7 +1991,6 @@ sub read_table_A {
     #-------------- End MQTT Objects ----------------
     #-------------- Home Assistant Objects -----------------
     elsif( $type eq "HA_SERVER" ) {
-	# HA_SERVER, <name>, <address>, <keepalive_time>, <api_key>
 	$grouplist = &get_table_parm( \@item_info, 'grouplist' );
 	$name = &get_table_parm( \@item_info, 'name', 1 );
 	require HA_Item;
@@ -2011,8 +1998,6 @@ sub read_table_A {
 	$object = "HA_Server( '$name', $other )";
     }
     elsif( $type eq "HA_ITEM" ) {
-	# HA_ITEM, <name>, <domain>, <ha_entity>, <ha_server>, <grouplist>
-        #      optional: <weatherprimary>, <noweatherupdate>, <no_duplicate_states>, <delay_between_messages>, <response_check_delay>
 	$grouplist = &get_table_parm( \@item_info, 'grouplist', 5 );
 	$name = &get_table_parm( \@item_info, 'name', 1 );
 	require HA_Item;
