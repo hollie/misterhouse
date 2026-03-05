@@ -597,10 +597,8 @@ sub main::set_table_parm_value {
     if( $type eq 'objref' ) {
         if( $value  &&  !ref $value ) {
 	    my $obj;
-	    my $objname = "main::$value";
-            no strict;
-            $obj = ${${objname}};
-	    use strict;
+	    my $objname = "\$main::$value";
+            eval "\$obj = $objname";
 	    if( !$obj ) {
 		return "unable to find object '$value' for parameter '$keyword'";
 	    }
