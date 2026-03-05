@@ -39,6 +39,7 @@ sub Win32::Sound::Volume;
 
 package handy_utilities;
 use strict;
+use Scalar::Util qw(looks_like_number);
 
 sub main::batch {
     my (@cmds) = @_;
@@ -517,36 +518,139 @@ sub main::parse_arg_string {
 #   Utility routine to parse mht args from read_table_A.
 #
 sub main::parse_table_parms {
-    my($positional_parms, $extra_keyword_parms, $args) = @_;
+    my($args, $positional_parms, $option_parms ) = @_;
     my $positional_done = 0;
+    my $positional_count = scalar @{$positional_parms};
     my $parms = {};
+    my $errstr;
+    my $keywords_list = [ @{$positional_parms}, @{$option_parms} ];
 
-    # &main::print_log( "Parsing table parms:" . join ',',@{$args});
+    if( $main::Debug{misc} ) {
+        &main::print_log( "Parsing table parms:  " . join ',',@{$args});
+        &main::print_log( "   Keywords_list:  " . join ',',@{$keywords_list});
+    }
     for( my $i=0; $i < scalar @{$args}; ++$i ) {
 	my $parm = $args->[$i];
 	my $keyword;
 	my $value;
-	$parm =~ s/^'(.*)'%/$1/;	# Strip quotes if any.
+	my $type;
+
+	$parm =~ s/^'(.*)'/$1/;	# Strip quotes if any.
 	# Check each format, because initially read_table_A quotes, and later it doesn't.
-	if ($parm =~ /=>/) {
-	    ($keyword,$value) = split(/=>/,$parm);
-	    $positional_done = 1;
+	if( $parm =~ /=>/ ) {
+	    # $positional_done = 1;
+	    ($keyword,$value) = split(/\s*=>\s*/,$parm,2);
 	} else {
-	    if( $positional_done ) {
-		return "positional parm '$parm' used after keyword parm(s)";
+	    if( !$parm ) {
+		next;
 	    }
-	    if( $i >= scalar @{$positional_parms} ) {
-		return "too many positional parameters";
+	    #if( $positional_done ) {
+		#return "positional parm '$parm' used after keyword parm(s)";
+	    #}
+	    if( $i >= $positional_count ) {
+		return "too many positional parameters parm '$parm'";
 	    }
-	    $keyword = $positional_parms->[$i];
+	    ($keyword, $type) = split( /:/, $positional_parms->[$i] );
 	    $value = $args->[$i];
+	    if( $type eq 'options' ) {
+		my @option_list = split( '\|', $value );
+		my $delay;
+		foreach my $option (@option_list) {
+		    if ($option =~ /=/) {
+			($keyword,$value) = split(/\s*=\s*/,$option,2);
+		    } else {
+			$keyword = $option;
+			$value = 1;
+		    }
+		    $errstr = &main::set_table_parm_value( $parms, $keyword, $value, $keywords_list );
+		    return $errstr if $errstr;
+		}
+		$keyword = undef;
+	    }
 	}
-        if( !grep( /^$keyword$/, ( @{$positional_parms}, @{$extra_keyword_parms} ) ) ) {
-	    return "unknown parameter '$keyword'";
+	if( $keyword ) {
+	    $errstr = &main::set_table_parm_value( $parms, $keyword, $value, $keywords_list );
+	    return $errstr if $errstr;
 	}
-	$parms->{$keyword} = $value;
+    }
+    if( $main::Debug{misc} ) {
+	&main::print_log( "   Parsed table parms into:  " .  main::table_parms_to_str( $parms ) );
     }
     return $parms;
+}
+
+sub main::set_table_parm_value {
+    my ($parms, $keyword, $value, $keywords_list ) = @_;
+    my $type;
+    my $key;
+
+    foreach my $k ( @{$keywords_list} ) {
+	($key,$type) = split( /:/, $k );
+        if( $key eq $keyword ) {
+	    $type ||= 'string';
+	    last;
+	}
+    }
+    if( !$type ) {
+	return "unknown parameter '$keyword'";
+    }
+    if( $type eq 'objref' ) {
+        if( $value  &&  !ref $value ) {
+	    my $obj;
+	    my $objname = "\$main::$value";
+            eval "\$obj = $objname";
+	    if( !$obj ) {
+		return "unable to find object '$value' for parameter '$keyword'";
+	    }
+	    $value = $obj;
+	}
+    } elsif( $type eq 'number' ) {
+        if( $value  &&  !looks_like_number( $value ) ) {
+	    return "'$keyword' parameter is not a number";
+	}
+    }
+    $parms->{$keyword} = $value;
+    return;
+}
+
+
+# This function finds the named parm in the @item_info list.
+# It could be at the fixed position provided by the $position parameter (1 origin)
+# or it could be a keyword parm.
+# The callers list is **modified** by removing the named parm.
+sub main::get_table_parm{
+    my ($parmslist, $parmname, $position) = @_;
+    my $keyword;
+    my $value;
+    my $retval;
+    my $i;
+
+    if( defined $position  &&  $position <= scalar @{$parmslist}  &&  !($parmslist->[$position-1] =~ /=>/) ) {
+	$retval = $parmslist->[$position-1];
+	splice( @{$parmslist}, $position-1, 1 );
+    } else {
+	for( $i=0; $i < scalar @{$parmslist}; ++$i ) {
+	    ($keyword,$value) = split( /\s*=>\s*/, $parmslist->[$i], 2 );
+	    if( $keyword eq $parmname ) {
+		$retval = $value;
+		splice( @{$parmslist}, $i, 1 );
+		last;
+	    }
+	}
+    }
+    return $retval;
+}
+
+sub main::table_parms_to_str {
+    my ($parms) = @_;
+    my $str = '';
+    for my $parm ( keys %$parms ) {
+	if( $str ) {
+	    $str .= ', ';
+	}
+	$str .= ${parm} . '=>' . $parms->{$parm};
+    }
+    return $str;
 }
 
 sub main::plural {
