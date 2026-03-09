@@ -2118,7 +2118,7 @@ sub read_table_finish_A {
         #Loop through the controller hash
         if ( exists $scene_build_controllers{$scene} ) {
             foreach my $scene_controller (
-                keys %{ $scene_build_controllers{$scene} } )
+                sort (keys %{ $scene_build_controllers{$scene} }) )	# 2026-03: Add sort to ease test verifications.
             {
                 if ( $objects{$scene_controller} ) {
 
