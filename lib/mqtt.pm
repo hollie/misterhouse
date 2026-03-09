@@ -55,7 +55,7 @@ Usage:
         # MQTT stuff
         CODE, require mqtt; #noloop
         #
-        CODE, $mqtt_1 = new mqtt('mqtt_1', '127.0.0.1', 1883, 'home/ha/#', "", "", 121, 'use_ha_device_disc=1');
+        CODE, $mqtt_1 = new mqtt('mqtt_1', '127.0.0.1', 1883, 'home/ha/#', "", "", 121, 'topic_prefix=misterhouse');
         CODE, $mqtt_2 = new mqtt('mqtt_2', 'test.mosquitto.org', 1883, 'home/test/#', "", "", 122);
         CODE, $mqtt_3 = new mqtt('mqtt_3', '127.0.0.1', 1883, 'home/network/#', "", "", 122); #noloop
         #
@@ -86,12 +86,12 @@ Example initialization:
     When using positional parameters, the first seven parameters are required and in
     fixed positions, followed by any optional parameters in a named format, as follows:
 
-        $myMQTT = new mqtt(<name>,<host>,<port>,<topic>,<user>,<password>,<keepalive>, opt1=>value1, opt2=>value2...);
+        $myMQTT = new mqtt(<name>,<host>,<port>,<topic>,<user>,<password>,<keepalive_time>, opt1=>value1, opt2=>value2...);
 
     Alternatively, all parameters after the instance name can be named in a "keyword=>value" format. Valid 
     keywords are:
 
-        host, port, topic, user, password, keepalive, use_ha_device_disc, topic_prefix
+        host, port, topic, user, password, keepalive_time, use_ha_device_discovery, topic_prefix
 
     Example:
 
@@ -381,36 +381,45 @@ sub isNotConnected {
 
 =item C<new()>
 
-    Used to send commands to the interface.
+    Class for MQTT_BROKER item.  Positional parameter order matches the .mht file.
 
 =cut
 
 sub new {
-    my $class = shift;
+    my ($class, @parmslist) = @_;
 
-    my $positional_parms = [ qw (name host port topic username password keepalive) ];
-    my $extra_keyword_parms = [ qw (topic_prefix use_ha_device_disc) ];
-    my $parms = main::parse_table_parms( $positional_parms, $extra_keyword_parms, [@_] );
+    my @positional_parms = qw (name host port topic username password keepalive_time);
+    my @optional_parms = qw (topic_prefix use_ha_device_disc);
+    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
 
     if( !ref $parms ) {
-	&mqtt::error( undef, "error parsing mqtt parameters: $parms -- mqtt object not created" );
+	&mqtt::error( undef, "error parsing mqtt(MQTT_BROKER) parameters: $parms -- mqtt broker object not created" );
 	return;
     }
 
     my $self;
+    my $name		    = $parms->{name};
+    my $topic		    = $parms->{topic};
+    my $host		    = $parms->{host};
+    my $port		    = $parms->{port};
+    my $username	    = $parms->{username};
+    my $password	    = $parms->{password};
+    my $keepalive	    = $parms->{keepalive_time};
+    my $use_ha_device_disc  = $parms->{user_ha_device_disc};
+    my $topic_prefix	    = $parms->{topic_prefix};
 
     if( !defined( $main::Debug{mqtt} ) ) {
 	$main::Debug{mqtt} = 0;
     }
 
     # 20-12-2020 edit to enable MH to monitor all mqtt topics especially for wildcards e.g. LWT
-    $parms->{topic}	= $parms->{topic}		|| $::config_parms{mqtt_topic}		|| '#';
-    $parms->{host}	= $parms->{host}		|| $::config_parms{mqtt_host}		|| '127.0.0.1';
-    $parms->{port}	= $parms->{port}		|| $::config_parms{mqtt_port}		|| 1883;
-    $parms->{user}	= $parms->{user}		|| $::config_parms{mqtt_username}	|| '';
-    $parms->{password}	= $parms->{password}	|| $::config_parms{mqtt_password}	|| '';
+    $topic	= $topic	|| $::config_parms{mqtt_topic}		|| '#';
+    $host	= $host		|| $::config_parms{mqtt_host}		|| '127.0.0.1';
+    $port	= $port		|| $::config_parms{mqtt_port}		|| 1883;
+    $username	= $username	|| $::config_parms{mqtt_username}	|| '';
+    $password	= $password	|| $::config_parms{mqtt_password}	|| '';
 
-    $parms->{keepalive} = 120 if !defined( $parms->{keepalive} );    # retain a provided 0
+    $keepalive = 120 if !defined($keepalive)  ||  $keepalive eq '';    # retain a provided 0
    
     # If we have already created a socket and have an existing instance then
     # return the existing instance. MQTT doesn't like having 2 sockets to the
@@ -418,11 +427,11 @@ sub new {
     # But what should I do about the new topic. I'll need to subscribe to the
     # topic before returning the existing instance
     foreach my $inst ( keys %MQTT_Data ) {
-        if ( "$MQTT_Data{$inst}{self}{host}" eq "$parms->{host}" ) {
-            if ( "$MQTT_Data{$inst}{self}{port}" eq "$parms->{port}" ) {
+        if ( "$MQTT_Data{$inst}{self}{host}" eq "$host" ) {
+            if ( "$MQTT_Data{$inst}{self}{port}" eq "$port" ) {
 
                 # subscribe to the topic if it doesn't already exist
-                if ( "$MQTT_Data{$inst}{self}{topic}" ne "$parms->{topic}" ) {
+                if ( "$MQTT_Data{$inst}{self}{topic}" ne "$topic" ) {
 
                     # Old, existing instace with the same host and port info
                     $self = $MQTT_Data{$inst}{self};
@@ -432,7 +441,7 @@ sub new {
                         $self,
                         message_type => MQTT_SUBSCRIBE,
                         message_id   => $msg_id++,
-                        topics       => [ map { [ $_ => MQTT_QOS_AT_MOST_ONCE ] } $parms->{topic} ]
+                        topics       => [ map { [ $_ => MQTT_QOS_AT_MOST_ONCE ] } $topic ]
                     );
 
                     ### 5) Check for ACK or fail
@@ -441,12 +450,12 @@ sub new {
 		    if( !$msg ) {
 			$self->log( "$inst Received: " . "No Subscription Ack" );
 		    } else {
-			$self->log( 1, "$inst Subscription 2 ($parms->{topic}) acknowledged: " . $msg->string );
+			$self->log( 1, "$inst Subscription 2 ($topic) acknowledged: " . $msg->string );
 		    }
                 }
 
                 # This is the little messages that appear when MH starts
-                &mqtt::log( undef, "Reusing $inst (instead of $parms->{name}) on $parms->{host}:$parms->{port} $parms->{topic}");
+                &mqtt::log( undef, "Reusing $inst (instead of $name) on $host:$port $topic");
 
                 ###
                 ### Ran into an issue doing it this way, it renames the object to the last
@@ -469,22 +478,22 @@ sub new {
     $self->{command_stack}	= [];
     $self->{retained_topics}	= {};
 
-    $$self{instance}		= $parms->{name};
+    $$self{instance}		= $name;
     $$self{recon_timer}		= ::Timer::new();
-    $$self{host}		= $parms->{host};
-    $$self{port}		= $parms->{port};
-    $$self{topic}		= $parms->{topic};
-    $$self{user_name}		= $parms->{username};
-    $$self{password}		= $parms->{password};
-    $$self{keep_alive_timer}	= $parms->{keepalive};
+    $$self{host}		= $host;
+    $$self{port}		= $port;
+    $$self{topic}		= $topic;
+    $$self{user_name}		= $username;
+    $$self{password}		= $password;
+    $$self{keep_alive_timer}	= $keepalive;
     $$self{use_ha_device_disc}	= 0;
 
     #
-    if (defined($parms->{use_ha_device_disc}) ) {
-    	$$self{use_ha_device_disc} = $parms->{use_ha_device_disc};
+    if (defined($use_ha_device_disc) ) {
+    	$$self{use_ha_device_disc} = $use_ha_device_disc;
     }
-    if (defined($parms->{topic_prefix})) {
-	$$self{topic_prefix} = $parms->{topic_prefix};
+    if (defined($topic_prefix)) {
+	$$self{topic_prefix} = $topic_prefix;
     }
 
     $$self{init_v_cmd}		= 0;
@@ -493,13 +502,13 @@ sub new {
     $$self{ping_missed_count}	= 0;
 
     # This is the little messages that appear when MH starts
-    $self->log("Creating $parms->{name} on $parms->{host}:$parms->{port} topic:$parms->{topic}");
+    $self->log("Creating $name on $host:$port topic:$topic");
 
     $self->set_states( "off", "on" );
 
-    $MQTT_Data{$parms->{name}}{self} = $self;
+    $MQTT_Data{$name}{self} = $self;
 
-    $self->debug(1, "Opening MQTT ($parms->{name}) connection to $$self{host}/$$self{port}/$$self{topic}");
+    $self->debug(1, "Opening MQTT ($name) connection to $$self{host}/$$self{port}/$$self{topic}");
     $self->debug(1, "    Host       = $$self{host}");
     $self->debug(1, "    Port       = $$self{port}");
     $self->debug(1, "    Topic      = $$self{topic}");
@@ -524,7 +533,7 @@ sub new {
     }
 
     # Hey what happens when we fail ?
-    #$MQTT_Data{$parms->{name}}{self} = $self;
+    #$MQTT_Data{$name}{self} = $self;
     if ( 1 == scalar( keys %MQTT_Data ) ) {    # Add hooks on first call only
         $self->log("added MQTT check_for_data ...");
         &::MainLoop_pre_add_hook( \&mqtt::check_for_data, 1 );
@@ -1080,8 +1089,7 @@ sub generate_voice_commands {
         package main;
         eval $object_string;
         print "Error in generating Voice Commands for mqtt interface: $@\n" if $@;
-
-        package HA_Server;
+        package mqtt;
     }
 }
 
@@ -1422,7 +1430,6 @@ sub write_discovered_items {
 	for my $obj ( @sorted_list ) {
 	    if( defined $obj->{disc_mode}  &&  $obj->{disc_mode} ne 'local' ) {
 		my $obj_name = $obj->get_object_name;
-		print "getting discovery object name for $obj_name\n";
 		my $disc_obj_name = $obj->{disc_interface}->get_object_name;
 		$obj_name =~ s/^\$//;
 		$disc_obj_name =~ s/^\$//;
@@ -1462,7 +1469,7 @@ sub write_discovery_messages {
 		$obj_name =~ s/^\$//;
 		$disc_obj_name =~ s/^\$//;
 		print {$f} "$disc_obj_name:$obj_name ($obj->{mqtt_friendly_name})  T:$obj->{disc_topic}\n";
-		my $dumper = Data::Dumper->new( [$obj->{disc}] );
+		my $dumper = Data::Dumper->new( [$obj->{disc}], ['$disc_msg'] );
 		print {$f} $dumper->Dump() . "\n\n";
 	    }
 	}
@@ -1560,8 +1567,21 @@ use Data::Dumper;
 =cut
 
 sub new {
-    my ( $class, $instance, $topic, $qos, $retain ) = @_;
+    my ($class, @parmslist) = @_;
 
+    my @positional_parms = qw (broker:objref topic qos retain);
+    my @optional_parms = ();
+    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
+
+    if( !ref $parms ) {
+	&mqtt::error( undef, "error parsing mqtt(MQTT_BROKER) parameters: $parms -- mqtt broker object not created" );
+	return;
+    }
+
+    my $instance= $parms->{broker};
+    my $topic	= $parms->{topic};
+    my $retain	= $parms->{retain};
+    my $qos	= $parms->{qos};
     my $self = new Generic_Item();
 
     bless $self, $class;
