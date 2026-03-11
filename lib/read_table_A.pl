@@ -2118,14 +2118,13 @@ sub read_table_finish_A {
         #Loop through the controller hash
         if ( exists $scene_build_controllers{$scene} ) {
             foreach my $scene_controller (
-                keys %{ $scene_build_controllers{$scene} } )
+                sort (keys %{ $scene_build_controllers{$scene} } ) )
             {
                 if ( $objects{$scene_controller} ) {
 
                     #Make a link to each responder in the responder hash
-                    while ( my ( $scene_responder, $responder_data ) =
-                        each( %{ $scene_build_responders{$scene} } ) )
-                    {
+                    foreach my $scene_responder ( sort ( keys ( %{ $scene_build_responders{$scene} } ) ) ) {
+			my $responder_data = $scene_build_responders{$scene}{$scene_responder};
                         my ( $on_level, $ramp_rate ) =
                           split( ',', $responder_data );
 
