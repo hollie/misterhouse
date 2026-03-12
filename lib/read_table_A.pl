@@ -2217,6 +2217,16 @@ sub read_table_grouplist_A {
 }
 
 
+sub read_table_preprocess_A {
+# Preprocess lines to implement continuation lines and symbol substitution.
+#
+# See handy_utilities.pl::main::mht_preprocess_line_continuation for 
+# details on line continuation.
+#
+    my($file,$arrayref,$start,$stop) = @_;
+    main::mht_preprocess_line_continuation($file, $arrayref, $start, $stop);
+    #main::mht_preprocess_symbol_substitution($file, $arrayref, $start, $stop);
+}
 
 #This is called inside each definition, this is using SCENE_BUILD as an example:
 # Called with :
@@ -2326,88 +2336,3 @@ sub validate_def {
 }
 
 1;
-
-#
-# $Log: read_table_A.pl,v $
-# Revision 1.29  2006/01/29 20:30:17  winter
-# *** empty log message ***
-#
-# Revision 1.28  2005/10/02 17:24:47  winter
-# *** empty log message ***
-#
-# Revision 1.27  2005/05/22 18:13:07  winter
-# *** empty log message ***
-#
-# Revision 1.26  2005/03/20 19:02:02  winter
-# *** empty log message ***
-#
-# Revision 1.25  2004/11/22 22:57:26  winter
-# *** empty log message ***
-#
-# Revision 1.24  2004/07/18 22:16:37  winter
-# *** empty log message ***
-#
-# Revision 1.23  2004/06/06 21:38:44  winter
-# *** empty log message ***
-#
-# Revision 1.22  2004/03/23 01:58:08  winter
-# *** empty log message ***
-#
-# Revision 1.21  2003/12/22 00:25:06  winter
-#  - 2.86 release
-#
-# Revision 1.20  2003/11/23 20:26:02  winter
-#  - 2.84 release
-#
-# Revision 1.19  2003/09/02 02:48:46  winter
-#  - 2.83 release
-#
-# Revision 1.18  2003/07/06 17:55:12  winter
-#  - 2.82 release
-#
-# Revision 1.17  2003/01/12 20:39:21  winter
-#  - 2.76 release
-#
-# Revision 1.16  2002/12/24 03:05:08  winter
-# - 2.75 release
-#
-# Revision 1.15  2002/11/10 01:59:57  winter
-# - 2.73 release
-#
-# Revision 1.14  2002/08/22 13:45:50  winter
-# - 2.70 release
-#
-# Revision 1.13  2002/08/22 04:33:20  winter
-# - 2.70 release
-#
-# Revision 1.12  2002/05/28 13:07:52  winter
-# - 2.68 release
-#
-# Revision 1.11  2001/11/18 22:51:43  winter
-# - 2.61 release
-#
-# Revision 1.10  2001/10/21 01:22:33  winter
-# - 2.60 release
-#
-# Revision 1.9  2001/08/12 04:02:58  winter
-# - 2.57 update
-#
-# Revision 1.8  2001/03/24 18:08:38  winter
-# - 2.47 release
-#
-# Revision 1.7  2001/02/04 20:31:31  winter
-# - 2.43 release
-#
-# Revision 1.6  2000/12/21 18:54:15  winter
-# - 2.38 release
-#
-# Revision 1.5  2000/12/03 19:38:55  winter
-# - 2.36 release
-#
-# Revision 1.4  2000/10/22 16:48:29  winter
-# - 2.32 release
-#
-# Revision 1.3  2000/10/01 23:29:40  winter
-# - 2.29 release
-#
-#

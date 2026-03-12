@@ -480,6 +480,121 @@ sub main::memory_used {
     return ( $perf_mem_virt / 1024000, $perf_mem_real / 1024000, $perf_cpu / 10**7 );
 }
 
+sub main::mht_preprocess_line_continuation {
+    #
+    # mht_preprocess_line_continuation: recombine mht file lines split by line-continuation.
+    #
+    # This is a support utility, intended to be called by mht processing routines like
+    # read_table_A.pl. The purpose of this routine is to find lines from an mht file
+    # that the user has chosen to split across multiple lines, and merge them back into
+    # single lines that the regular line processing code can process. It can be implemented
+    # in any read_table_X.pl routine (where X is some arbitrary format name used in the
+    # mht file format declaration (e.g. "Format=X") by including the following subroutine:
+    #
+    #    sub read_table_preprocess_X {
+    #        my($file,$arrayref,$start,$stop) = @_;
+    #        main::mht_preprocess_line_continuation($file, $arrayref, $start, $stop);
+    #    }
+    #
+    # See lib/read_table_A.pl for a working example.
+    #
+    # Here's the short version on how line continuation works:
+    #
+    # Users break a long line in their mht file on a whitespace, and indent the 
+    # continuation line with whitespace.
+    #
+    # Here's the long version, including what to do  if they don't have a whitespace
+    # to break on ...
+    #
+    # Continuation line process:
+    #   1. If a line begins in column 1, it's a primary line. Otherwise it's
+    #      a continuation line.
+    #   2. Continuation lines start with whitespace. The leading whitespace is
+    #      removed. Normally, the continuation line is then appended to the 
+    #      primary line, separated by a single space. Normally people break 
+    #      lines on whitespace, and since bin/mh automatically removes trailing
+    #      whitespace and we remove the leading whitespace, inserting a space
+    #      is necessary to maintain that break.
+    #   3. If a user needs to break a line on a non-whitespace character, and
+    #      so does not want us to insert a space between the primary and 
+    #      continuation lines, they can indicate this by starting the continuation
+    #      line with whitespace *and* a backslash. Both the leading whitespace and
+    #      the backslash will be removed, and the two line concatenated without
+    #      any additional space.
+    #   4. Similarly, if a user needs more than one space between their primary
+    #      line and the continuation line, use the backslash again, followed by
+    #      however much additional whitespace they want.
+    #
+    # Steps 3 and 4 permits the remainder to be appended with no intervening space, or
+    # with many whitespace characters if they follow the backslash.
+    #
+    # I doubt that #3 and #4 will ever be used, but it's available if a need ever
+    # develops.
+    #
+    # Examples, shown with column 1 here--+
+    #                                     |
+    #      +------------------------------+
+    #      |
+    #      v
+    #      abc def	      # primary line
+    #      ghi jkl	      # another primary line
+    #
+    #      abc            # primary line.
+    #          def	      # continuation line.
+    #                     # Yields: "abc def" with a single space.
+    #
+    #      abc            # primary line
+    #          \def       # continuation with leading backslash
+    #                     # Yields: "abcdef"
+    #
+    #      abc            # primary line
+    #          \    def   # continuation that wants much whitespace
+    #                     # Yields: "abc    def"
+    #
+    my ($file,$arrayref,$start,$stop) = @_;
+    $start //= 0;
+    $stop //= $#{$arrayref};
+    my $line_start;
+    foreach my $index ($start..$stop) {
+	my $linenum = $index + 1;		# For diagnostic messages, etc.
+	next if ($arrayref->[$index] =~ /^(#.*|\s*)$/);		# Ignore blank lines and whole line comments.
+	$arrayref->[$index] =~ s/\s*#.*//;	# Remove trailing comments. This is what bin/mh does, so we have to match.
+	$arrayref->[$index] =~ s/\s*$//;	# Remove trailing whitespace.
+        my $line = $arrayref->[$index];
+
+        # Skip blank lines.
+        next if ($line =~ /^\s*$/);	# Comment or blank line. No action.
+
+	# Is this a primary line or a continuation line?
+        if ($line =~ /^\S/) {
+            # It's a primary line.
+            $line_start = $index;	# Remember where it starts.
+        }
+        else {			
+            # It's a continuation line.
+            $line =~ s/^\s*//;		# Remove the leading whitespace.
+ 
+            # Now check for a now-leading \ -- indicates not to insert whitespace
+            if ($line =~ /^\\(.*)/) {
+		# Leading backslash. Remove it, and don't prepend a space.
+		$line = $1;
+            }
+            else {
+                # No leading backslash. Insert one leading space before appending to
+                # the primary line (or a prior continuation line).
+		$line = " $line";
+            }
+
+            # Append this to primary line so far.
+            $arrayref->[$line_start] .= $line;
+
+            # And delete the continuation line by making it blank.
+            $arrayref->[$index] = '';	# Replace the continuation line with a blank line.
+
+        }   # End continuation-line processing.
+    }
+}
+
 sub main::my_use {
     my ($module) = @_;
     eval "use $module";
