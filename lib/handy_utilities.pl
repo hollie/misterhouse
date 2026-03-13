@@ -492,19 +492,50 @@ sub main::mht_preprocess_line_continuation {
     # mht file format declaration (e.g. "Format=X") by including the following subroutine:
     #
     #    sub read_table_preprocess_X {
-    #        my($file,$arrayref,$start,$stop) = @_;
-    #        main::mht_preprocess_line_continuation($file, $arrayref, $start, $stop);
+    #        main::mht_preprocess_line_continuation(@_);
     #    }
     #
     # See lib/read_table_A.pl for a working example.
     #
+    # Calling parameters
+    # ------------------
+    # The calling parameters are passed in key-value pairs, in any order.
+    # The relevant keys are:
+    #
+    #     arrayref:  a reference to an array of lines from the file
+    #     start:     the array index of the first element of arrayref to be
+    #                processed by this routine. Defaults to "0".
+    #     stop:      the array index of the last element of the arrayref to
+    #                be processed by this routine. Defaults to the last element
+    #                of arrayref.
+    #
+    # Other key-value pairs may be provided, but are ignored. bin/mh calls individual
+    # read_table_X.pl preprocessing subroutines with these key-value pairs, which can
+    # then be passed directly to this routine.
+    #
+    # Example call:
+    #    main::mht_preprocess_line_continuation(
+    #        arrayref=>\@lines, start=>3, stop=>5
+    #    );
+    #
+    # Using line-continuation in an .mht file
+    # ---------------------------------------
+    #
     # Here's the short version on how line continuation works:
     #
     # Users break a long line in their mht file on a whitespace, and indent the 
-    # continuation line with whitespace.
+    # continuation line with whitespace. For example:
     #
-    # Here's the long version, including what to do  if they don't have a whitespace
-    # to break on ...
+    #    # Before:
+    #    mydevice, parm1, parm2, parm3, parm4, ...
+    #    # After:
+    #    mydevice, parm1, parm2,
+    #        parm3, parm4, ...
+    # 
+    # More detailed examples appear below.
+    #
+    # Here's the long version, including what to do if they don't have a whitespace
+    # to break on.
     #
     # Continuation line process:
     #   1. If a line begins in column 1, it's a primary line. Otherwise it's
@@ -531,6 +562,10 @@ sub main::mht_preprocess_line_continuation {
     # I doubt that #3 and #4 will ever be used, but it's available if a need ever
     # develops.
     #
+    #
+    # Examples:
+    # ---------
+    #
     # Examples, shown with column 1 here--+
     #                                     |
     #      +------------------------------+
@@ -551,49 +586,170 @@ sub main::mht_preprocess_line_continuation {
     #          \    def   # continuation that wants much whitespace
     #                     # Yields: "abc    def"
     #
-    my ($file,$arrayref,$start,$stop) = @_;
-    $start //= 0;
-    $stop //= $#{$arrayref};
-    my $line_start;
-    foreach my $index ($start..$stop) {
-	my $linenum = $index + 1;		# For diagnostic messages, etc.
-	next if ($arrayref->[$index] =~ /^(#.*|\s*)$/);		# Ignore blank lines and whole line comments.
-	$arrayref->[$index] =~ s/\s*#.*//;	# Remove trailing comments. This is what bin/mh does, so we have to match.
-	$arrayref->[$index] =~ s/\s*$//;	# Remove trailing whitespace.
-        my $line = $arrayref->[$index];
+    
+    # Process the calling args.
+    my %parms;
+    if (@_/2 == int(@_/2)) {
+        %parms = @_;
+    }
+    else {
+        # Odd number of parms, can't be right.
+        &main::print_log("Error: main::mht_preprocess_line_continuation called with misformed "
+            . "key value pairs (odd number of parms) - aborting call.");
+        return undef;
+    }
 
-        # Skip blank lines.
+    # Set the defaults and validate.
+    unless (ref($parms{arrayref}) eq 'ARRAY') {
+        &main::print_log("Error: In calling main::mht_preprocess_line_continuation, the supplied array "
+            . "reference does not point to an array. Processing aborted.");
+        return undef;
+    }
+    $parms{start} //= 0;
+    $parms{stop} //= $#{$parms{arrayref}};
+
+    # Loop through the lines, identifying primary and continuation lines.
+    my $line_start;
+    foreach my $index ($parms{start}..$parms{stop}) {
+        my $linenum = $index + 1;		# For diagnostic messages, etc.
+        next if ($parms{arrayref}->[$index] =~ /^(#.*|\s*)$/);		# Ignore blank lines and whole line comments.
+        $parms{arrayref}->[$index] =~ s/\s*#.*//;	# Remove trailing comments. This is what bin/mh does, so we have to match.
+        $parms{arrayref}->[$index] =~ s/\s*$//;	# Remove trailing whitespace.
+        my $line = $parms{arrayref}->[$index];
+
+        # Skip blank and comment lines.
         next if ($line =~ /^\s*$/);	# Comment or blank line. No action.
 
-	# Is this a primary line or a continuation line?
+        # Is this a primary line or a continuation line?
         if ($line =~ /^\S/) {
-            # It's a primary line.
+            # It's a primary line. Note its location.
             $line_start = $index;	# Remember where it starts.
         }
         else {			
-            # It's a continuation line.
+            # It's a continuation line. Append it to the preceding primary line.
             $line =~ s/^\s*//;		# Remove the leading whitespace.
  
             # Now check for a now-leading \ -- indicates not to insert whitespace
             if ($line =~ /^\\(.*)/) {
-		# Leading backslash. Remove it, and don't prepend a space.
-		$line = $1;
+                # Leading backslash. Remove it, and don't prepend a space.
+	        $line = $1;
             }
             else {
                 # No leading backslash. Insert one leading space before appending to
                 # the primary line (or a prior continuation line).
-		$line = " $line";
+        	$line = " $line";
             }
 
             # Append this to primary line so far.
-            $arrayref->[$line_start] .= $line;
+            $parms{arrayref}->[$line_start] .= $line;
 
             # And delete the continuation line by making it blank.
-            $arrayref->[$index] = '';	# Replace the continuation line with a blank line.
+            $parms{arrayref}->[$index] = '';	# Replace the continuation line with a blank line.
 
         }   # End continuation-line processing.
     }
 }
+
+sub main::mht_preprocess_symbol_substitution {
+    #
+    # mht_preprocess_symbol_substitution: All users to create shorthand symbols that
+    # can be used to hold frequently used strings. Then look for those symbols and
+    # replace them with the supplied string.
+    #
+    # Calling parameters
+    # ------------------
+    # The calling parameters are passed in key-value pairs, in any order.
+    # The relevant keys are:
+    #
+    #     arrayref:  a reference to an array of lines from the file
+    #     start:     the array index of the first element of arrayref to be
+    #                processed by this routine. Defaults to "0".
+    #     stop:      the array index of the last element of the arrayref to
+    #                be processed by this routine. Defaults to the last element
+    #                of arrayref.
+    #     dictref:   an optional reference to a hash of predefined key-value pairs
+    #                that the caller wishes to provide to make available, typically
+    #                containing information it has access to that a user writing an
+    #                .mht file would like to access (e.g. "__FILE__", perhaps). The
+    #                "__" prefix and suffix are reserved for use by the caller for 
+    #                this purpose.
+    #
+    # Other key-value pairs may be provided, but are ignored. bin/mh calls individual
+    # read_table_X.pl preprocessing subroutines with the first three of these key-value
+    # pairs, which can then be passed directly to this routine.
+    #
+    # Example call:
+    #    main::mht_preprocess_symbol_substitution(
+    #        arrayref=>\@lines, start=>3, stop=>5,
+    #        dictref=>{__FILE__=>$file, __FORMAT__=$format} # Define 2 symbols
+    #    );
+    #
+    # Example:
+    # --------
+    #
+    #   # First, define %FR% as a symbol, and provide it with a substitution value.
+    #   Define %FR%=apps/zwave-js-ui/Family_Room		# Define %FR%.
+    #   # Now use %FR% in four different lines. Less typing, fewer errors, one place
+    #   # to update if needed. ->------------------------------------------------------v
+    #   MQTT_LOCALITEM,	family_room_ceiling, Family_Room_Ceiling, mqttserver, light,  %FR%_Ceiling/+/+, 0, Family_Room_Ceiling,	state:power, cmnd:power
+    #   MQTT_LOCALITEM,	family_room_lamps,   Family_Room_Lamps,   mqttserver, switch, %FR%_Lamps/+/+,   0, Family_Room_Lamps,   state:power, cmnd:power
+    #   MQTT_LOCALITEM,	family_room_TV,	     Family_Room_TV,      mqttserver, switch, %FR%_TV/+/+,      0, Family_Room_TV,      state:power, cmnd:power
+    #   MQTT_LOCALITEM,	family_room_Amp,     Family_Room_Amp,     mqttserver, switch, %FR%_Amp/+/+,     0, Family_Room_Amp,     state:power, cmnd:power
+    #
+    # Defined symbols only apply to the file they're in. Leading/trailing % in symbol names
+    # in this example are of no significance, they're just a way to avoid matching with
+    # naturally occuring strings. Symbol names starting and ending with two underscores are
+    # reserved for the caller of this routine.
+
+    #   
+    # Process the calling args.
+    my %parms;
+    if (@_/2 == int(@_/2)) {
+        %parms = @_;
+    }
+    else {
+        # Using positional parms.
+        # Odd number of parms, can't be right.
+        &main::print_log("Error: main::mht_preprocess_symbol_substitution called with misformed "
+            . "key value pairs (odd number of parms) - aborting call.");
+        return undef;
+    }
+
+    # Set the defaults and validate.
+    unless (ref($parms{arrayref}) eq 'ARRAY') {
+        &main::print_log("Error: In calling main::mht_preprocess_line_continuation, the supplied array "
+            . "reference does not point to an array. Processing aborted.");
+        return undef;
+    }
+    $parms{start} //= 0;
+    $parms{stop} //= $#{$parms{arrayref}};
+
+    my %Symbols;
+    # Copy the caller's dictionary of provided symbols if there is one.
+    %Symbols = %{$parms{dictref}} if (defined($parms{dictref}));
+    my $linenum = $parms{start};
+    foreach my $line (@{$parms{arrayref}}[$parms{start}..$parms{stop}]) {
+        $linenum++;
+        next if ($line =~ /^\s*(#.*)?$/);	# Ignore blank lines and comments.
+        if ($line =~ /^define\s+([^=\s]+)=(.*?)\s*$/i) {
+            # A new definition.
+            my($symbol,$value) = ($1, $2);
+            if ($symbol =~ /^__.*__$/) {
+        	&main::print_log("Error: file $parms{file} line $linenum: attempt to assign value to reserved symbol - ignored");
+            }
+            else {
+                $Symbols{$symbol}=$value;
+            }
+            $line='';	# Delete definition statement, so it doesn't get processed in mhp.
+        }
+        else {
+            foreach (sort(keys(%Symbols))) {
+                $line =~ s/$_/$Symbols{$_}/g;
+            }
+        }
+    }
+}
+
 
 sub main::my_use {
     my ($module) = @_;

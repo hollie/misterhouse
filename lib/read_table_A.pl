@@ -4,26 +4,89 @@ use strict;
 
 # Format = A
 #
+# Example entry.
+# --------------
+#
 # This is Bill Sobel's (bsobel@vipmail.com) table definition
 #
 # Type         Address/Info            Name                                    Groups                                      Other Info
 #
 #X10I,           J1,                     Outside_Front_Light_Coaches,            Outside|Front|Light|NightLighting
 #
-# See mh/code/test/test.mht for an example.
+# The more generalized format is "TYPE, PARM1, PARM2, ...".
 #
-# The more generalized format is "TYPE, PARM1, PARM2, ...". There are lots
-# of types hardcoded below. However, read_table_A is also now extensible, so
-# we don't need to modify it for every new record type. Instead, just create
-# a .pm module in an accessible library that matches the lowercase of the
-# "TYPE" field (e.g. "type.pm") that has a "new" method. read_table_A will 
+# See mh/code/test/test.mht for more examples.
+#
+# Continuation lines.
+# -------------------
+#
+# Long lines may be split across two (or more) lines as follows:
+# 1) Break the long line on a whitespace character
+# 2) Indent the second line with one or more whitespace characters
+# Example: The above sample line, split into three lines:
+#
+#X10I,           J1,
+#    Outside_Front_Light_Coaches,
+#    Outside|Front|Light|NightLighting
+#
+# Note: the exact amount of whitespace at the break is not normally
+# preserved, but see below.
+#
+#
+# Special or difficult cases for line splitting: 
+# If the line has no whitespace to split on, or if the exact amount of 
+# whitespace is important (e.g. "my    data"), 
+# 1) split the line wherever necessary/desired
+# 2) start the continuation line with some whitespace and a backslash. The
+# whitespace and backslash will be removed, and anything after it
+# including any exact amount of whitespace, will be retained.
+#
+# Example (pseudo-data):
+#
+# Before:
+# myline the following four spaces->    <-must be preserved.
+#
+# After splitting the line:
+# myline the following four spaces->
+#   \    <-must be preserved.
+#
+# In the above, the two space and backslash are removed, the four spaces
+# after the backslash are retained to produce the original line.
+#
+# Symbol substitution.
+# --------------------
+#
+# Symbol substitution is now supported. Symbol substitution allows a repeated
+# character string to be assigned once to a symbolic name, and then the
+# symbolic name can be used as a stand-in for the string. This can ease 
+# maintenance, as changes to the string only need to be applied in one
+# place. Assignments occur with a "Define" statement. ("Define" is case-
+# insensitive, the rest of the statement is case sensitive.) The format
+# is "Define symbol=string", where "symbol" is any desired character string
+# not containing '=', and "string" is the string to be assigned to it.
+# It is recommended but not required that the symbol begin and end with 
+# an unusual character, to avoid having the symbol match naturally occuring
+# text later in the file.
+#
+# Example:
+#
+# Define %mqtt_topic%=app/zwave-js-ui/Main_Office
+# MQTT_REMOTEITEM,  Lobby_Motion, , mqttserver, text, %mqtt_topic%/Sensor ...
+# MQTT_REMOTEITEM,  Lobby_Lights, , mqttserver, text, %mqtt_topic%/Light ...
+# MQTT_REMOTEITEM,  Loading_Dock, , mqttserver, text, %mqtt_topic%/Dock ...
+#
+#
+# Extensibility:
+# --------------
+# There are lots of types hardcoded below. However, read_table_A is also now
+# extensible, sowe don't need to modify it for every new record type. Instead,
+# just create a .pm module in an accessible library that matches the lowercase
+# of the "TYPE" field (e.g. "type.pm") that has a "new" method. read_table_A will 
 # load the module and write the code to invoke the new method with the 
 # provided parameters. If the module also has an "init" method, it will be
 # invoked after the "new" method returns, as some MH operations can't be
 # performed until *after* new returns and instantiation completes. See 
 # "lib/read_table_a_sample.pm" for an example module.
-
-#print_log "Using read_table_A.pl";
 
 my ( %groups, %objects, %packages, %addresses, %scene_build_controllers, %scene_build_responders );
 
@@ -2223,9 +2286,8 @@ sub read_table_preprocess_A {
 # See handy_utilities.pl::main::mht_preprocess_line_continuation for 
 # details on line continuation.
 #
-    my($file,$arrayref,$start,$stop) = @_;
-    main::mht_preprocess_line_continuation($file, $arrayref, $start, $stop);
-    #main::mht_preprocess_symbol_substitution($file, $arrayref, $start, $stop);
+    main::mht_preprocess_line_continuation(@_);
+    main::mht_preprocess_symbol_substitution(@_);
 }
 
 #This is called inside each definition, this is using SCENE_BUILD as an example:
