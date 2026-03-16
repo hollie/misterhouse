@@ -5627,7 +5627,6 @@ sub read_table_files {
                     file     => \$file,	            # Our filename, in case they care
                     format   => \$format,           # The format for that section.
                 );";
-                eval "&$subr_name(\$file, \\\@lines, $section_start+1, $#lines);";
             }
         }
 
