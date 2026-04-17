@@ -412,10 +412,10 @@ sub new {
 
     my @positional_parms = ( 'name', 'address', 'keepalive_time', 'api_key' );
     my @optional_parms = ();
-    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
+    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
 
-    if( !ref $parms ) {
-	HA_Server::error( undef, "HA_Server parameter error: $parms -- item not created" );
+    if( $errstr ) {
+	HA_Server::error( undef, "HA_Server parameter error: $errstr -- item not created" );
 	return;
     }
 
@@ -1183,10 +1183,10 @@ sub new {   # HA_Item
 
     my @positional_parms = ( 'domain', 'ha_entity', 'ha_server:objref', 'options:options' );
     my @option_parms = ( 'primary', 'weatherprimary', 'noweatherupdate', 'no_duplicate_states', 'delay_between_messages:number', 'response_check_delay:number' );
-    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@option_parms, 1 );
+    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@option_parms, 1 );
 
-    if( !ref $parms ) {
-	HA_Server::error( undef, "HA_Item parameter error: $parms -- item not created" );
+    if( $errstr ) {
+	HA_Server::error( undef, "HA_Item parameter error: $errstr -- item not created" );
 	return;
     }
 

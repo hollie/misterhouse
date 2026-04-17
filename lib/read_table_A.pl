@@ -102,15 +102,33 @@ sub read_table_init_A {
     %scene_build_responders  = ();
 }
 
+sub read_table_A_process_line {
+    my ($record) = @_;
+    my $record_raw;
+
+    $record =~ s/\n\s*([^\\])/\n\1/g;	    # remove white space at beginning of line if line doesn't start with '\'
+    $record =~ s/\n\s*\\/\n/g;		    # remove white space up to '\'
+
+    $record_raw = $record;
+
+    $record =~ s/\s*#[^\n]*\n/\n/g;	    # remove comments at end of lines except last line
+    $record =~ s/\n//g;			    # remove remaining newlines
+    $record =~ s/\s*#.*$//;		    # remove comment on last line
+
+    return ($record, $record_raw);
+}
 
 sub read_table_A {
     my ($record) = @_;
-    my $record_raw = $record;
+    my $record_raw;
 
-    if ( $record =~ /^#/ or $record =~ /^\s*$/ ) {
+    ($record,$record_raw) = read_table_A_process_line( $record );
+
+    if ( $record =~ /^\s*$/ ) {
         return;
     }
-    $record =~ s/\s*#.*$//;
+
+    &parse_table_debug( "Read_table_A processing record '$record'" );
 
     my (
         $code,      $address,    $name,      $object,
@@ -594,8 +612,18 @@ sub read_table_A {
     elsif ( $type eq "CODE" ) {
 	#<,CODE,Code>#
         # This is for simple one line additions such as setting an attribute or adding an image.
-        ($object) = "$record_raw" =~ /CODE,\s+(.*)/;
+	$object = $record_raw;
+        $object =~ s/^CODE\s*,//;
         $code   = "$object\n";
+        $object = '';
+    }
+    elsif ( $type eq "CODE_NOW" ) {
+	#<CODE_NOW,Code>#
+        # This is for running code during the .mht file processing -- can use for debugging file processing
+	$object = $record_raw;
+        $object =~ s/^CODE_NOW\s*,//;
+	eval( $object );
+        $code   = '';
         $object = '';
     }
     elsif ( $type eq "LIGHT" ) {
@@ -2042,14 +2070,22 @@ sub read_table_A {
 	$object = "mqtt_Discovery( '$broker', '$name', '$discovery_topic', $other )";
     }
     elsif( $type eq "MQTT_DISCOVEREDITEM" ) {
-	my ($disc_name, $disc_topic, $disc_msg );
-	($name, $disc_name, $disc_topic, $disc_msg ) = $record =~ /MQTT_DISCOVEREDITEM\s*,\s*([^,]+),\s*([^,]+),\s*([^,]+)\,\s*(.*)$/;
-	$name =~ s/\s*$//;
-	$disc_name =~ s/\s*$//;
-	$disc_topic =~ s/\s*$//;
-	$disc_msg =~ s/\s*$//;
-	$disc_msg =~ s/\'/\\'/g;
-	$object = "mqtt_DiscoveredItem( \$${disc_name}, '$name', '$disc_topic', '$disc_msg' );\n";
+	&parse_table_debug( "MQTT_DISCOVEREDITEM table entry '$record_raw'" );
+	# NOTE: $record_raw can have newlines -- be careful with $ in pattern matches
+	my $str = $record_raw;
+	$str =~ s/^MQTT_DISCOVEREDITEM\s*,//;
+	my ($errstr,$parms) = &split_table_parms( $str );
+	if( $errstr ) {
+	    print "ERROR: parsing MQTT_DISCOVEREDITEM: $errstr\n";
+	} else {
+	    $grouplist = &get_table_parm( $parms, 'grouplist' );
+	    $name = &get_table_parm( $parms, 'name', 1 );
+	    # NOTE: we pull these parms out so we can change the order for the new() function
+	    my ($disc_name, @other) = @{$parms};
+	    $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+	    $object = "mqtt_DiscoveredItem( \$$disc_name, '$name', $other );";
+	    &parse_table_debug( "MQTT_DISCOVEREDITEM object: $object" );
+	}
     }
     #-------------- End MQTT Objects ----------------
     #-------------- Home Assistant Objects -----------------

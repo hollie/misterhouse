@@ -91,7 +91,7 @@ Example initialization:
     Alternatively, all parameters after the instance name can be named in a "keyword=>value" format. Valid 
     keywords are:
 
-        host, port, topic, user, password, keepalive_time, use_ha_device_discovery, topic_prefix
+        host, port, topic, user, password, keepalive_time, topic_prefix
 
     Example:
 
@@ -208,6 +208,8 @@ use Time::HiRes;
 
 use Data::Dumper;
 
+use JSON qw( decode_json encode_json );     #
+
 eval "use bytes";    # Not on all installs, so eval to avoid errors
 
 eval "use Digest::MD5 qw(md5_hex)";    # Not sure if this is on all installs, so eval to avoid errors
@@ -229,6 +231,7 @@ sub dump() {
 sub log {
     my ($self, $str, $prefix) = @_;
     my $maxlength = 300;
+    my $cont_lines = 0;
 
     $prefix = $prefix || '[MQTT]: ';
     while( length( $str ) > $maxlength ) {
@@ -237,14 +240,23 @@ sub log {
 	for( $i=0; $i<length($str) && $l<$maxlength; ++$i,++$l ) {
 	    if( substr( $str, $i, 1 ) eq "\n" ) {
 		$l = 0;
+		$cont_lines = 0;
 	    }
 	}
+	if( $l == $maxlength ) {
+	    ++$cont_lines;
+	}
 	&main::print_log( $prefix . substr($str,0,$i) );
+	if( $cont_lines == 2 ) {
+	    $str = '<truncated>';
+	    last;
+	}
+
 	$str = substr( $str, $i );
 
 	# 2024-12: After first pass, add '....  ' once to indicate cont. line. Keep the
 	# original prefix so any log scanning programs have context. -BPM
-	$prefix .= '....  ' if ($prefix !~ /\.\.\.\.  $/);
+	$prefix = $prefix . '....  ' if ($prefix !~ /\.\.\.\.  $/);
     }
     &main::print_log( $prefix . $str );
 }
@@ -263,6 +275,39 @@ sub error {
 }
 
 # ------------------------------------------------------------------------------
+
+=item <mqtt_subscribe()>
+=cut
+
+sub mqtt_subscribe() {
+    my ($self) = @_;
+    my $msg;
+
+    ### 4) Send a subscribe '#' (we'll have many of these, one for each device)
+    ###    I don't know if this is a good idea or not but that's what I intend to do for now
+    $self->send_mqtt_msg(
+        message_type => MQTT_SUBSCRIBE,
+        message_id   => $msg_id++,
+	cleanSession => 'true',
+        topics       => [ map { [ $_ => MQTT_QOS_AT_MOST_ONCE ] } $self->{topic} ]
+    );
+
+    ### 5) Check for ACK or fail
+    $msg = $self->read_mqtt_msg( $blocking_read_timeout );
+    if( !$msg ) {
+        $self->log( "$$self{instance} Received: " . "No subscription Ack" );
+    }
+    if ( $main::Debug{mqtt} ) {
+        my $s =
+          defined( $$msg{string} )
+          ? "($$msg{string})"
+          : '(--No $$msg{string}--)';
+        ###
+        ### IF we're not getting $$msg{string} then what are we getting ?
+        ###
+        $self->log( "$$self{instance} Subscription 1 ($$self{topic}) acknowledged: " . "$s" );    # @FIXME: Use of uninitialized value
+    }
+}
 
 =item <mqtt_connect()>
 =cut
@@ -324,29 +369,8 @@ sub mqtt_connect() {
     # We should actually get a SubAck but who is checking (yes, I know I should)
     $self->debug( 1, "$$self{instance} Received: " . $msg->string );
 
-    ### 4) Send a subscribe '#' (we'll have many of these, one for each device)
-    ###    I don't know if this is a good idea or not but that's what I intend to do for now
-    $self->send_mqtt_msg(
-        message_type => MQTT_SUBSCRIBE,
-        message_id   => $msg_id++,
-        topics       => [ map { [ $_ => MQTT_QOS_AT_MOST_ONCE ] } $self->{topic} ]
-    );
-
-    ### 5) Check for ACK or fail
-    $msg = $self->read_mqtt_msg( $blocking_read_timeout );
-    if( !$msg ) {
-        $self->log( "$$self{instance} Received: " . "No subscription Ack" );
-    }
-    if ( $main::Debug{mqtt} ) {
-        my $s =
-          defined( $$msg{string} )
-          ? "($$msg{string})"
-          : '(--No $$msg{string}--)';
-        ###
-        ### IF we're not getting $$msg{string} then what are we getting ?
-        ###
-        $self->log( "$$self{instance} Subscription 1 ($$self{topic}) acknowledged: " . "$s" );    # @FIXME: Use of uninitialized value
-    }
+    ### 4,5) subscribe and receive ack
+    $self->mqtt_subscribe();
 
     ### 6) check for data
     $self->debug( 1, "$$self{instance} Initializing MQTT connection ...");
@@ -389,11 +413,11 @@ sub new {
     my ($class, @parmslist) = @_;
 
     my @positional_parms = qw (name host port topic username password keepalive_time);
-    my @optional_parms = qw (topic_prefix use_ha_device_disc);
-    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
+    my @optional_parms = qw (topic_prefix);
+    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
 
-    if( !ref $parms ) {
-	&mqtt::error( undef, "error parsing mqtt(MQTT_BROKER) parameters: $parms -- mqtt broker object not created" );
+    if( $errstr ) {
+	&mqtt::error( undef, "error parsing mqtt(MQTT_BROKER) parameters: $errstr -- mqtt broker object not created" );
 	return;
     }
 
@@ -405,7 +429,6 @@ sub new {
     my $username	    = $parms->{username};
     my $password	    = $parms->{password};
     my $keepalive	    = $parms->{keepalive_time};
-    my $use_ha_device_disc  = $parms->{user_ha_device_disc};
     my $topic_prefix	    = $parms->{topic_prefix};
 
     if( !defined( $main::Debug{mqtt} ) ) {
@@ -483,15 +506,12 @@ sub new {
     $$self{host}		= $host;
     $$self{port}		= $port;
     $$self{topic}		= $topic;
+    $$self{ignore_topics}	= [];
     $$self{user_name}		= $username;
     $$self{password}		= $password;
     $$self{keep_alive_timer}	= $keepalive;
-    $$self{use_ha_device_disc}	= 0;
 
     #
-    if (defined($use_ha_device_disc) ) {
-    	$$self{use_ha_device_disc} = $use_ha_device_disc;
-    }
     if (defined($topic_prefix)) {
 	$$self{topic_prefix} = $topic_prefix;
     }
@@ -521,7 +541,6 @@ sub new {
 	)
     );
     $self->debug(1, "    Keep Alive             = $$self{keep_alive_timer}");
-    $self->debug(1, "    Use HA Device Discovery= $$self{use_ha_device_disc}");
     $self->debug(1, "    Topic Prefix           = $$self{topic_prefix}");
 
     ### ------------------------------------------------------------------------
@@ -617,8 +636,7 @@ sub check_for_data {
                 ###
                 ### Someone published something, deal with it
                 ###
-		$self->debug( 1, "$inst Rcv'd: R:$$msg{retain} T:'$$msg{topic}' M:'$$msg{message}'"  );
-		# $self->debug( 1, "$inst Rcv'd: S:'" . $msg->string . "'", 3 );
+		$self->debug( 1, "$inst Rcv'd: R:$msg->{retain} T:'$msg->{topic}' M:'$msg->{message}'"  );
 
                 ###
                 ### So we want the topic and the message
@@ -962,6 +980,52 @@ sub remove_item {
 
 # ------------------------------------------------------------------------------
 
+=item C<(add_ignore_topic)>
+=cut
+
+sub add_ignore_topic {
+    my ( $self, $topic ) = @_;
+
+    push @{$self->{ignore_topics}}, $topic;
+    $self->log( "$self->{instance} ignoring topic '$topic'" );
+}
+
+# ------------------------------------------------------------------------------
+
+sub topic_match {
+    my ($self, $topic, $pattern) = @_;
+    my $orig_pattern = $pattern;
+    my $counter;
+
+    # check if this pattern has wildcard chars, and if so replace the wildcard characters
+    # with the corresponding pieces from the topic
+    if (   index( $pattern, "\+" ) >= 0
+	|| index( $pattern, "\#" ) >= 0 )
+    {
+	my @split_topic = split( "/", $topic );
+	my @split_pattern   = split( "/", $pattern );
+	$counter        = 0;
+	foreach (@split_pattern) {
+	    if ( $split_pattern[$counter] eq "+"  &&  defined $split_topic[$counter] ) {
+		$pattern =~ s/\+/$split_topic[$counter]/;
+	    }
+	    if ( $split_pattern[$counter] eq "#" ) {
+		if( index( $pattern, '#' ) < length( $topic ) ) {
+		    $pattern = substr( $pattern, 0, index( $pattern, "#" ) ) . substr( $topic, index( $pattern, "#" ) );
+		}
+		last;
+	    }
+	    $counter++;
+	}
+    }
+
+    # the edited pattern is now ready to compare with the topic
+    if ( $pattern eq $topic ) {
+	return 1;
+    }
+    return 0;
+}
+
 =item C<parse_data_to_obj()>
     Take the data and parse it to the MH obj()
 
@@ -981,13 +1045,25 @@ sub remove_item {
 
 sub parse_data_to_obj {
     my ( $self, $msg, $p_setby ) = @_;
+    my $pattern;
 
     $self->debug( 3, "Msg object: " . Dumper( $msg ) );
 
-    if( !length($msg->{message}) && $msg->{retain} ) {
+    if( !length($msg->{message}) ) {
 	# cleanup message -- ignore
+	delete $self->{retained_topics}->{$msg->{topic}};
+	$self->debug( 2, "DELETING RETAINED TOPIC '$msg->{topic}'" );
 	return;
     }
+
+    # Check if topic matches any ignore_topics
+    for $pattern (@{$self->{ignore_topics}}) {
+	if( $self->topic_match( $msg->{topic}, $pattern ) ) {
+	    $self->debug( 1, "topic '$msg->{topic}' ignored" );
+	    return;
+	}
+    }
+
 
     # 20-12-2020 added support for wildcard mqtt devices e.g. in items.mht
     # MQTT_DEVICE, MQTT_test_wildcard, , mqtt_1, tele/+/LWT
@@ -996,9 +1072,7 @@ sub parse_data_to_obj {
     # NOTE, use of multi level wildcards can consume a lot of CPU
     # it also exits the loop if it finds a match for speed when there is a large number of mqtt devices
 
-    my ( @split_incoming, @split_device, $counter, $device_topic, $message_handled );
-    #
-    $message_handled = 0;
+    my $message_handled = 0;
     for my $obj ( @{ $$self{objects} } ) {
 	# 2021/2/4 -- added support for a mqtt object to listen for a list of topics
 	my @topiclist;
@@ -1007,31 +1081,10 @@ sub parse_data_to_obj {
 	} else {
 	    @topiclist = ( $obj->{topic} );
 	}
-        for $device_topic (@topiclist) {
+        for $pattern (@topiclist) {
 	    # check if this mqtt device is a wildcard, and if so replace the wildcard characters
 	    # with the incoming message topic pieces
-	    if (   index( $device_topic, "\+" ) >= 0
-		|| index( $device_topic, "\#" ) >= 0 )
-	    {
-		@split_incoming = split( "/", $msg->{topic} );
-		@split_device   = split( "/", $device_topic );
-		$counter        = 0;
-		foreach (@split_device) {
-		    if ( $split_device[$counter] eq "+"  &&  defined $split_incoming[$counter] ) {
-			$device_topic =~ s/\+/$split_incoming[$counter]/;
-		    }
-		    if ( $split_device[$counter] eq "#" ) {
-			if( index( $device_topic, '#' ) < length( $msg->{topic} ) ) {
-			    $device_topic = substr( $device_topic, 0, index( $device_topic, "#" ) ) . substr( $$msg{topic}, index( $device_topic, "#" ) );
-			}
-			last;
-		    }
-		    $counter++;
-		}
-	    }
-    
-	    # the edited device topic is now ready to compare with the incoming message topic
-	    if ( $device_topic eq $msg->{topic} ) {
+	    if( $self->topic_match( $msg->{topic}, $pattern ) ) {
 		if( $obj->can( 'receive_mqtt_message' ) ) {
 		    $obj->receive_mqtt_message( $msg->{topic}, $msg->{message}, $msg->{retain} );
 		} else {
@@ -1063,7 +1116,7 @@ sub generate_voice_commands {
         my $object_string;
         my $object_name = $self->get_object_name;
         $self->{init_v_cmd} = 1;
-        &main::print_log("Generating Voice commands for MQTT Server $object_name");
+        $self->log( "Generating Voice commands for MQTT Server $object_name" );
 
         my $voice_cmds = $self->get_voice_cmds();
         my $i          = 1;
@@ -1119,11 +1172,12 @@ sub get_voice_cmds {
 	);
     my %voice_cmds = (
         "$command -- List retained topics"  => "${object_name}->list_retained_topics()",
-        "$command -- Publish discovery data"  => "${object_name}->publish_discovery_data()",
-        "$command -- Publish current states of local items"  => "${object_name}->publish_current_states()",
         "$command -- Cleanup published info and republish"  => "${object_name}->cleanup_published_topics()",
         "$command -- Cleanup only discovery info and republish"  => "${object_name}->cleanup_discovery_topics()",
         "$command -- Cleanup all retained topics on mqtt server and republish (BE CAREFUL)"  => "${object_name}->cleanup_all_retained_topics()",
+        "$command -- Publish discovery data"  => "${object_name}->publish_discovery_data()",
+        "$command -- Publish current states of local items"  => "${object_name}->publish_current_states()",
+        "$command -- Resubscribe to mqtt topics"  => "${object_name}->mqtt_subscribe()",
 #         'List [all,active,inactive] ' . $command . ' objects to the print log'   => $self->get_object_name . '->print_object_list(SAID)',
 #         "Print $objects $command attributes to the print log"             => "${object_name}->print_object_attrs(SAID)",
     );
@@ -1158,6 +1212,7 @@ sub get_interface_list {
     for my $inst (keys %MQTT_Data) {
 	push @interfaces, $MQTT_Data{$inst}{self};
     }
+    @interfaces = sort {$a->get_object_name() cmp $b->get_object_name() } @interfaces;
     return ( @interfaces );
 }
 
@@ -1172,7 +1227,7 @@ This function is used to delete retained topics from the broker.  It will
 publish an empty message to all retained topics matching a pattern in the
 pattern list that misterhouse has received from this broker.
 
-Using the pattern '.*' will remove all retained topics.  BE CAREFUL.  This will
+Using the pattern '.*' will remove all retained topics.  **BE CAREFUL**.  This will
 remove all retained topics whether you published them or not.  Thus discovery
 messages and current state messages for all mqtt objects in your system will
 be deleted from the mqtt server. Pretty much all mqtt devices will eventually
@@ -1257,8 +1312,7 @@ sub cleanup_all_retained_topics {
     my ($self) = @_;
 
     $self->cleanup_retained_topics( '.*' );
-    $self->publish_discovery_data();
-    $self->publish_current_states();
+    &main::run_after_delay( 2, "\$" . $self->{instance} . "->publish_all_data()" );
 }
 
 =item C<(cleanup_published_topics())>
@@ -1285,8 +1339,7 @@ sub cleanup_published_topics {
 	    $self->cleanup_retained_topics( "$obj->{node_id}/.*" );
 	}
     }
-    $self->publish_discovery_data();
-    $self->publish_current_states();
+    &main::run_after_delay( 2, "\$" . $self->{instance} . "->publish_all_data()" );
 }
 
 =item C<(cleanup_discovery_topics())>
@@ -1308,8 +1361,7 @@ sub cleanup_discovery_topics {
 	    $self->cleanup_retained_topics( "$self->{discovery_prefix}/.*/$obj->{node_id}/.*" );
 	}
     }
-    $self->publish_discovery_data();
-    $self->publish_current_states();
+    &main::run_after_delay( 2, "\$" . $self->{instance} . "->publish_all_data()" );
 }
 
 # ------------------------------------------------------------------------------
@@ -1390,6 +1442,18 @@ sub publish_current_states {
     }
 }
 
+=item C<(publish_all_data( only_unpublished ))>
+    Function to publish the discovery info and current states of all local mqtt objects for this mqtt server
+=cut
+
+sub publish_all_data {
+    my( $self, $only_unpublished ) = @_;
+
+    $self->publish_discovery_data( $only_unpublished );
+    $self->publish_current_states( $only_unpublished );
+    &main::run_after_delay( 3, "\$" . $self->{instance} . "->mqtt_subscribe()" );
+}
+
 =item C<write_discovered_items(filename, autoupdate)>
 
     Writes out all mqtt items that have been discovered to a .mqt file.
@@ -1433,7 +1497,10 @@ sub write_discovered_items {
 		my $disc_obj_name = $obj->{disc_interface}->get_object_name;
 		$obj_name =~ s/^\$//;
 		$disc_obj_name =~ s/^\$//;
-		print {$f} "MQTT_DISCOVEREDITEM, $obj_name, $disc_obj_name, $obj->{disc_topic}, $obj->{disc_msg}\n\n";
+		my $disc_text = JSON->new->pretty->canonical->encode( $obj->{disc} );
+		$disc_text =~ s/^/    /;
+		$disc_text =~ s/\n/\n    /g;
+		print {$f} "MQTT_DISCOVEREDITEM, $obj_name, $disc_obj_name, $obj->{disc_topic}, \n$disc_text\n\n";
 	    }
 	}
     }
@@ -1571,10 +1638,10 @@ sub new {
 
     my @positional_parms = qw (broker:objref topic qos retain);
     my @optional_parms = ();
-    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
+    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
 
-    if( !ref $parms ) {
-	&mqtt::error( undef, "error parsing mqtt(MQTT_BROKER) parameters: $parms -- mqtt broker object not created" );
+    if( $errstr ) {
+	&mqtt::error( undef, "error parsing mqtt(MQTT_BROKER) parameters: $errstr -- mqtt broker object not created" );
 	return;
     }
 

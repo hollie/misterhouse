@@ -64,11 +64,11 @@ use mqtt_items;
 sub new {   #### mqtt_DiscoveredItem
     my ( $class, @parmslist ) = @_;
 
-    my @positional_parms = qw( disc_broker:objref name disc_topic disc_message );
+    my @positional_parms = qw( disc_broker:objref name disc_topic disc_message:json );
     my @optional_parms = qw();
-    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
-    if( !ref $parms ) {
-	&mqtt::error( undef, "error parsing MQTT_DISCOVERYITEM parameters: $parms -- mqtt discoveryitem not created" );
+    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
+    if( $errstr ) {
+	&mqtt::error( undef, "error parsing MQTT_DISCOVERYITEM parameters: $errstr -- mqtt discoveryitem not created" );
 	return;
     }
 
@@ -101,8 +101,8 @@ sub new {   #### mqtt_DiscoveredItem
     } else {
 	$disc_mode = 'static';
     }
-    if( $disc_topic =~ m|.*/.*| ) {
-	($disc_prefix, $disc_type, $node_id, $device_id) = $disc_topic =~ m|^(.*)/([^/]*)/([^/]+)/([^/]+)/config$|;
+    if( $disc_topic =~ m|/| ) {
+	($disc_prefix, $disc_type, $node_id, $device_id) = $disc_topic =~ m|^(.*)/([^/]+)/([^/]+)/([^/]+)/config$|;
 	if( $disc_prefix ) {
 	    $short_disc_topic = "$disc_type/$node_id/$device_id/config";
 	} else {
@@ -163,17 +163,22 @@ sub new {   #### mqtt_DiscoveredItem
     } else {
 	$disc_cmp = $disc;
     }
-    if( $disc_cmp->{name} ||  (defined $disc_cmp->{name}  &&  $disc->{device}  && $disc->{device}->{name}) ) {
+    if( $disc_cmp->{name}
+    ||  (defined $disc_cmp->{name}  &&  $disc->{device}  && $disc->{device}->{name})
+    ) {
 	if( $disc->{device}  &&  $disc->{device}->{name} ) {
 	    $friendly_name = $disc->{device}->{name};
 	}
 	if( $disc_cmp->{name} ) {
-	    $friendly_name .= " $disc_cmp->{name}";
+	    if( $friendly_name ) {
+		$friendly_name .= ' ';
+	    }
+	    $friendly_name .= $disc_cmp->{name};
 	}
     } elsif( $disc_cmp->{default_entity_id} ) {
 	($friendly_name) = $disc_cmp->{default_entity_id} =~ m/.*\.([\w]+)$/
     } elsif( $node_id ) {
-	$friendly_name = "${node_id}_${device_id}";
+	$friendly_name = "${node_id} ${device_id}";
     } else {
 	$friendly_name = $device_id;
     }
@@ -245,10 +250,11 @@ sub new {   #### mqtt_DiscoveredItem
     # create local MH object name
     if( !$obj_name ) {
 	$obj_name = 'mqttd_';
+	# for some mqtt systems, node_id is pretty narly -- use friendly name instead
+	# ... but friendly_names are necessarily unique
 	if( $friendly_name ) {
 	    $obj_name .= $friendly_name;
 	} else {
-	    # for some mqtt systems, node_id is pretty narly -- use friendly name instead
 	    if( $node_id ) {
 		#  $node_id helps to identify the device
 		$obj_name .= "${node_id}_";
@@ -289,7 +295,7 @@ sub new {   #### mqtt_DiscoveredItem
     $self->{mqtt_friendly_name} = $friendly_name;
 
     $self->debug( 1, "New mqtt_DiscoveredItem( \$$disc_interface->{mqtt_name}, '$obj_name', '$disc_topic', '$disc_msg' )" );
-
+    $self->debug( 2, "    friendly_name:${friendly_name}  node_id:${node_id}  cmp_name:$disc_cmp->{name}" );
     $self->debug( 3, "DiscoveryItem created: \n" . $self->dump( $self, 3 ) );
 
     # We may need flags to deal with XML, JSON or Text
@@ -320,22 +326,19 @@ sub new {  ### mqtt_Discovery
     my ($class, @parmslist ) = @_;
 
     my @positional_parms = qw( interface:objref name discovery_prefix action );
-    my @optional_parms = ();
-    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
-    if( !ref $parms ) {
-	&mqtt::error( undef, "error parsing MQTT_DISCOVERY parameters: $parms -- mqtt item not created" );
+    my @optional_parms = qw ( disc_language );
+    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
+    if( $errstr ) {
+	&mqtt::error( undef, "error parsing MQTT_DISCOVERY parameters: $errstr -- mqtt item not created" );
 	return;
     }
 
     my $interface	= $parms->{interface};
     my $name		= $parms->{name};
     my $discovery_prefix= $parms->{discovery_prefix};
-    my $action		= $parms->{action};
+    my $action		= $parms->{action}		||  'both';
+    my $disc_language	= $parms->{disc_language}	||  'ha_raw_entity';
 
-    $discovery_prefix //= $interface->{topic_prefix};
-    if( $discovery_prefix  &&  !$action ) {
-	$action = 'both';
-    }
     if( !$interface ) {
 	&mqtt::error( undef, "mqtt_Discovery must specify interface" );
 	return;
@@ -343,12 +346,21 @@ sub new {  ### mqtt_Discovery
     if( !grep( /^${action}$/, ('publish', 'subscribe', 'both', 'none') ) ) {
 	$interface->error( "Invalid discovery action specified '$action'" );
     }
+    if( !grep( /^${disc_language}$/, ('ha_raw_entity', 'ha_device_info') ) ) {
+	$interface->error( "Invalid discovery language specified '$disc_language'" );
+    }
 
     $interface->debug( 1, "New mqtt_Discovery( $interface->{instance}, '$name', '$discovery_prefix', '$action' )" );
 
+    #######
+    # Setup what to do based on action
+    #######
+
     my $listentopics = [];
     if( $action eq 'publish'  ||  $action eq 'both' ) {
+	$interface->{publish_discovery} = 1;
 	$interface->{discovery_publish_prefix} = $discovery_prefix;
+	$interface->{disc_language} = $disc_language;
     }
     if( $action eq 'subscribe'  ||  $action eq 'both' ) {
 	$listentopics = "$discovery_prefix/#";
