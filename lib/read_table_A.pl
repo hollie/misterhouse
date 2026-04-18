@@ -103,32 +103,36 @@ sub read_table_init_A {
 }
 
 sub read_table_A_process_line {
-    my ($record) = @_;
-    my $record_raw;
+    my ($record_raw) = @_;
+    my $record;
 
-    $record =~ s/\n\s*([^\\])/\n\1/g;	    # remove white space at beginning of line if line doesn't start with '\'
-    $record =~ s/\n\s*\\/\n/g;		    # remove white space up to '\'
+    # Note -- perl '\s' matches newlines so need to be careful in its use here until newlines
+    # are eliminated from the string
 
-    $record_raw = $record;
+    $record_raw =~ s/\n[\ \t]+([^\\])/\n\1/g;	# remove white space at beginning of line if line doesn't start with '\'
+    $record_raw =~ s/\n[\ \t]+\\/\n/g;		# remove white space up to '\'
 
-    $record =~ s/\s*#[^\n]*\n/\n/g;	    # remove comments at end of lines except last line
-    $record =~ s/\n//g;			    # remove remaining newlines
-    $record =~ s/\s*#.*$//;		    # remove comment on last line
+    $record = $record_raw;
+
+    $record =~ s/[\ \t]*#[^\n]*\n//g;		# remove comments at end of lines except last line
+    $record =~ s/\n//g;				# remove remaining newlines
+    $record =~ s/\s*#.*$//;			# remove comment on last line
 
     return ($record, $record_raw);
 }
 
 sub read_table_A {
-    my ($record) = @_;
+    my ($line) = @_;
+    my $record;
     my $record_raw;
 
-    ($record,$record_raw) = read_table_A_process_line( $record );
+    ($record,$record_raw) = read_table_A_process_line( $line );
 
     if ( $record =~ /^\s*$/ ) {
         return;
     }
 
-    &parse_table_debug( "Read_table_A processing record '$record'" );
+    &parse_table_debug( 1, "Read_table_A processing record '$record'" );
 
     my (
         $code,      $address,    $name,      $object,
@@ -2070,7 +2074,7 @@ sub read_table_A {
 	$object = "mqtt_Discovery( '$broker', '$name', '$discovery_topic', $other )";
     }
     elsif( $type eq "MQTT_DISCOVEREDITEM" ) {
-	&parse_table_debug( "MQTT_DISCOVEREDITEM table entry '$record_raw'" );
+	&parse_table_debug( 2, "MQTT_DISCOVEREDITEM table entry '$record_raw'" );
 	# NOTE: $record_raw can have newlines -- be careful with $ in pattern matches
 	my $str = $record_raw;
 	$str =~ s/^MQTT_DISCOVEREDITEM\s*,//;
@@ -2084,7 +2088,7 @@ sub read_table_A {
 	    my ($disc_name, @other) = @{$parms};
 	    $other = join ', ', ( map { "'$_'" } @other );              # Quote data
 	    $object = "mqtt_DiscoveredItem( \$$disc_name, '$name', $other );";
-	    &parse_table_debug( "MQTT_DISCOVEREDITEM object: $object" );
+	    &parse_table_debug( 2, "MQTT_DISCOVEREDITEM object: $object" );
 	}
     }
     #-------------- End MQTT Objects ----------------

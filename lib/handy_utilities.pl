@@ -542,15 +542,12 @@ sub main::mht_preprocess_line_continuation {
     #      a continuation line.
     #   2. Continuation lines start with whitespace. The leading whitespace is
     #      removed. Normally, the continuation line is then appended to the 
-    #      primary line, separated by a single space. Normally people break 
-    #      lines on whitespace, and since bin/mh automatically removes trailing
-    #      whitespace and we remove the leading whitespace, inserting a space
-    #      is necessary to maintain that break.
-    #   3. If a user needs to break a line on a non-whitespace character, and
-    #      so does not want us to insert a space between the primary and 
-    #      continuation lines, they can indicate this by starting the continuation
+    #      primary line. Normally people break lines between items, which
+    #      are comma separated, so the white space is not relevant.
+    #   3. If a user needs to break a line on a non-whitespace character,
+    #      they can indicate this by starting the continuation
     #      line with whitespace *and* a backslash. Both the leading whitespace and
-    #      the backslash will be removed, and the two line concatenated without
+    #      the backslash will be removed, and the two lines concatenated without
     #      any additional space.
     #   4. Similarly, if a user needs more than one space between their primary
     #      line and the continuation line, use the backslash again, followed by
@@ -574,17 +571,13 @@ sub main::mht_preprocess_line_continuation {
     #      abc def	      # primary line
     #      ghi jkl	      # another primary line
     #
-    #      abc            # primary line.
+    #      abc,           # primary line.
     #          def	      # continuation line.
-    #                     # Yields: "abc def" with a single space.
+    #                     # Yields: "abc,def" with a single space.
     #
-    #      abc            # primary line
-    #          \def       # continuation with leading backslash
-    #                     # Yields: "abcdef"
-    #
-    #      abc            # primary line
-    #          \    def   # continuation that wants much whitespace
-    #                     # Yields: "abc    def"
+    #      abc,           # primary line
+    #          \  def       # continuation with leading backslash
+    #                     # Yields: "abc  def"   (quotes used for clarity only)
     #
     
     # Process the calling args.
@@ -612,14 +605,13 @@ sub main::mht_preprocess_line_continuation {
     my $line_start;
     foreach my $index ($parms{start}..$parms{stop}) {
         my $linenum = $index + 1;		# For diagnostic messages, etc.
-        next if ($parms{arrayref}->[$index] =~ /^(#.*|\s*)$/);		# Ignore blank lines and whole line comments.
-        # $parms{arrayref}->[$index] =~ s/\s*#.*//;	# Remove trailing comments. This is what bin/mh does, so we have to match.
-        $parms{arrayref}->[$index] =~ s/\s*$//;	# Remove trailing whitespace.
         my $line = $parms{arrayref}->[$index];
 
-        # Skip blank and comment lines.
-        next if ($line =~ /^\s*$/);	# blank line. No action.
-        # next if ($line =~ /^\s*#/);	# Comment. No action.
+	# Note that end of comments (including whole line comments), blank lines and
+	# end of line whitespace are all handled in read_table_A
+
+	# Question:  should a blank line terminate the contuation??  If you really
+	#            wanted a blank line, you could use '\'
 
         # Is this a primary line or a continuation line?
         if ($line =~ /^\S/) {
@@ -630,7 +622,7 @@ sub main::mht_preprocess_line_continuation {
             # It's a continuation line.
             # Append this to primary line so far.
 	    # Leave in the newlines, so the end of line comments can be removed properly
-	    #   by split_table_parms.
+	    #   by read_table_A and split_table_parms.
 
             $parms{arrayref}->[$line_start] .= "\n$line";
 
@@ -780,9 +772,9 @@ sub main::parse_arg_string {
 #   Utility routine to parse mht args from read_table_A.
 #
 sub main::parse_table_debug {
-    my ($str) = @_;
-    if( $main::Debug{table_parms} ) {
-        &main::print_log( $str );
+    my ($level, $str) = @_;
+    if( $level <= $main::Debug{table_parms} ) {
+        &main::print_log( "[PARSE]: $str" );
     }
 }
 
@@ -798,7 +790,7 @@ sub main::split_table_parms {
     my $strlen = length( $str );
     my $parmstr;
 
-    main::parse_table_debug( "Splitting table parms str '$str'" );
+    main::parse_table_debug( 2, "Splitting table parms str '$str'" );
 
     # change newlines to carriage return so single char processing is easier
     $str =~ s/\n/\r/g;
@@ -868,7 +860,7 @@ sub main::split_table_parms {
 	    }
 	}
     }
-    main::parse_table_debug( "Split parms returning" . join ',',map {"'$_'"} @{$parms} );
+    main::parse_table_debug( 2, "Split parms returning: " . join ',',map {"'$_'"} @{$parms} );
     return (undef, $parms); 
 }
 
@@ -881,8 +873,8 @@ sub main::parse_table_parms {
     my $keywords_list = [ @{$positional_parms}, @{$option_parms} ];
 
     $parmstr = join ',',@{$args};
-    &main::parse_table_debug( "Parsing table parms:  $parmstr" );
-    &main::parse_table_debug( "   Keywords_list:  " . join ',',@{$keywords_list} );
+    &main::parse_table_debug( 1, "Parsing table parms:  $parmstr" );
+    &main::parse_table_debug( 1, "   Keywords_list:  " . join ',',@{$keywords_list} );
     for( my $i=0; ; ++$i ) {
 	my $parm;
 	my $keyword;
@@ -929,7 +921,7 @@ sub main::parse_table_parms {
 	    return ($errstr) if $errstr;
 	}
     }
-    &main::parse_table_debug( "   Parsed table parms into:  " .  main::table_parms_to_str( $parms ) );
+    &main::parse_table_debug( 2, "   Parsed table parms into:  " .  main::table_parms_to_str( $parms ) );
     return (undef,$parms);
 }
 
@@ -950,7 +942,7 @@ sub main::set_table_parm_value {
     }
     $type = lc( $type );
 
-    &main::parse_table_debug( "   Setting parm '$keyword' to '$value' -- type: $type" );
+    &main::parse_table_debug( 1, "   Setting parm '$keyword' to '$value' -- type: $type" );
 
     if( !ref $value ) {
 	$value =~ s/\s*$//;
