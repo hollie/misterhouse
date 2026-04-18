@@ -542,16 +542,14 @@ sub main::mht_preprocess_line_continuation {
     #      a continuation line.
     #   2. Continuation lines start with whitespace. The leading whitespace is
     #      removed. Normally, the continuation line is then appended to the 
-    #      primary line. Normally people break lines between items, which
-    #      are comma separated, so the white space is not relevant.
-    #   3. If a user needs to break a line on a non-whitespace character,
-    #      they can indicate this by starting the continuation
-    #      line with whitespace *and* a backslash. Both the leading whitespace and
-    #      the backslash will be removed, and the two lines concatenated without
-    #      any additional space.
-    #   4. Similarly, if a user needs more than one space between their primary
-    #      line and the continuation line, use the backslash again, followed by
-    #      however much additional whitespace they want.
+    #      primary line. People typically break lines between items, where
+    #      whitespace is not significant, so the removed whitespace is not an issue.
+    #   3. If a user needs to break a line on white space and preserve the whitespace,
+    #      they should:
+    #          a. Start the continuation with whitespace, which will be removed.
+    #          b. Then insert a backslash followed by the required amount of 
+    #             whitespace. The backslash will also be removed, but the whitespace
+    #             following the backslash will be retained. See the example below.
     #
     # Steps 3 and 4 permits the remainder to be appended with no intervening space, or
     # with many whitespace characters if they follow the backslash.
@@ -609,9 +607,6 @@ sub main::mht_preprocess_line_continuation {
 
 	# Note that end of comments (including whole line comments), blank lines and
 	# end of line whitespace are all handled in read_table_A
-
-	# Question:  should a blank line terminate the contuation??  If you really
-	#            wanted a blank line, you could use '\'
 
         # Is this a primary line or a continuation line?
         if ($line =~ /^\S/) {

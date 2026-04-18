@@ -617,7 +617,7 @@ sub read_table_A {
 	#<,CODE,Code>#
         # This is for simple one line additions such as setting an attribute or adding an image.
 	$object = $record_raw;
-        $object =~ s/^CODE\s*,//;
+        $object =~ s/^CODE\s*,\s*//;
         $code   = "$object\n";
         $object = '';
     }
@@ -625,7 +625,7 @@ sub read_table_A {
 	#<CODE_NOW,Code>#
         # This is for running code during the .mht file processing -- can use for debugging file processing
 	$object = $record_raw;
-        $object =~ s/^CODE_NOW\s*,//;
+        $object =~ s/^CODE_NOW\s*,\s*//;
 	eval( $object );
         $code   = '';
         $object = '';
