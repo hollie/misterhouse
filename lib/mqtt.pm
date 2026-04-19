@@ -529,10 +529,10 @@ sub new {
     $MQTT_Data{$name}{self} = $self;
 
     $self->debug(1, "Opening MQTT ($name) connection to $$self{host}/$$self{port}/$$self{topic}");
-    $self->debug(1, "    Host       = $$self{host}");
-    $self->debug(1, "    Port       = $$self{port}");
-    $self->debug(1, "    Topic      = $$self{topic}");
-    $self->debug(1, "    User       = $$self{user_name}");
+    $self->debug(1, "    Host       = " . ($$self{host}//'[undef]') );
+    $self->debug(1, "    Port       = " . ($$self{port}//'[undef]') );
+    $self->debug(1, "    Topic      = " . ($$self{topic}//'[undef]') );
+    $self->debug(1, "    User       = " . ($$self{user_name}//'[undef]') );
     $self->debug(1, "    Password   = ***" .
         (
               exists($INC{'Digest/MD5.pm'})
@@ -540,8 +540,8 @@ sub new {
             : '[masked]'
 	)
     );
-    $self->debug(1, "    Keep Alive             = $$self{keep_alive_timer}");
-    $self->debug(1, "    Topic Prefix           = $$self{topic_prefix}");
+    $self->debug(1, "    Keep Alive             = " . ($$self{keep_alive_timer}//'[undef]'));
+    $self->debug(1, "    Topic Prefix           = " . ($$self{topic_prefix}//'[undef]'));
 
     ### ------------------------------------------------------------------------
     $self->mqtt_connect();
