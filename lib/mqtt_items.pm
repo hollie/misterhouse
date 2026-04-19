@@ -141,6 +141,7 @@ Description:
 	- cover
 	- scene
 	- scene_switch            (invented to map to something in HA that has on/off but no state)
+	- button
 
     Note that these (except scene_switch) map to the Home Assistant types directly.
     Also, the type can be enhanced in MH:
@@ -263,7 +264,6 @@ Usage:
 	#     7	   | keepalive_time	    | -none-	| password to use when connecting to MQTT server
 	#	   | grouplist		    | -none-	| MH groups the item belongs to
 	#	   | topic_prefix	    | -none-	| prefix to use on MQTT topics created for LOCALITEMS
-	#	   | use_ha_device_discovery| -none-	| prefix to use on MQTT topics created for LOCALITEMS
 	#
 	# Example .mht:
 	#
@@ -375,9 +375,13 @@ Usage:
 	# MQTT_LOCALITEM,   name,		ref item name,	broker, type,				topic_pattern,		    discoverable    [[Area]:[DeviceName]:]Friendly Name
 	MQTT_LOCALITEM,	    mqtt_shed_light,	shed_light,	mqtt_1, switch,				insteon/shed_light/+,	    1,		    Shed::Shed Light
 	MQTT_LOCALITEM,	    mqtt_outside_temp,	temp,		mqtt_1, sensor:temperature:measurement:C,insteon/outside_temp/+,    1,		    Outside Temperature
+
+	GENERIC,	    my_number
+	MQTT_LOCALITEM,	    mqtt_my_number,	my_number,	mqtt_1, number,				mh/my_number,		    1,		    My Number
+	CODE, $mqtt_my_number->add_discovery_info( {min => 20, max => 40, step => .5, mode => 'box'} );  #noloop
 	#
         #
-	# NOTE:  the positional paramaters to the new mqtt() are in a slightly different order
+	# NOTE:  the positional paramaters to the new mqtt_localitem() are in a slightly different order
 	#        so user code looks like:
 	#     $mqtt_shed_light = new mqtt_LocalItem( <broker>, <name>, <type>, <ref_item_name>, ... )
 	#         OR use keyword parms
@@ -557,7 +561,7 @@ sub new {   ### mqtt_BaseItem
     $self->{topic}		    = $listentopics;
     $self->{disc_type}		    = $type;
 
-#     if( !grep( /^$type$/, ('light', 'switch', 'binary_sensor', 'sensor', 'scene', 'select') ) ) {
+#     if( !grep( /^$type$/, ('light', 'switch', 'binary_sensor', 'sensor', 'scene', 'button', 'select') ) ) {
 # 	$self->error( "UNKNOWN DEVICE TYPE: '$self->{mqtt_name}':$self->{mqtt_type}" );
 # 	return;
 #     }
@@ -610,6 +614,7 @@ sub set_discovery_names {
     my $device_name;
     my $friendly_name;
     my $device_id;
+    my $obj_name;
 
     if( !$full_name ) {
 	$full_name = $mqtt_name;
@@ -631,26 +636,36 @@ sub set_discovery_names {
 	$area_name = "MH MQTT $self->{node_id}";
     }
     $self->{mqtt_friendly_name} = $friendly_name;
-    if( !$device_name ) {
-	$device_name = $friendly_name;
-	if( !$device_name ) {
-	    $device_name = $mqtt_name;
+    $obj_name = $friendly_name || $mqtt_name;
+    $self->{mqtt_disc_language} = $self->{interface}->{disc_language};
+#    if( !$self->{mqtt_disc_language} ) {
+#	if( $self->{mqtt_type} eq 'scene'  ||  $self->{mqtt_type} eq 'button' ) {
+#	    $self->{mqtt_disc_language} = 'ha_raw_entity';
+#	} else {
+#	    $self->{mqtt_disc_language} = $self->{interface}->{disc_language};
+#	}
+#    }
+    if( $self->{mqtt_disc_language} eq 'ha_device_info'  ||  $self->{mqtt_disc_language} eq 'ha_device_type' ) {
+	if( $device_name ) {
+	    # device name specified -- need a unique device_id, can't use component mqtt_name
+	    $device_id = lc( $device_name );
+	    $device_id =~ s/[^\w]+/_/g;
+	} else {
+	    $device_name = $obj_name;
+	    $device_id = $mqtt_name;
+	    $obj_name = '';
 	}
-	$device_id = $mqtt_name;
-	$friendly_name = '';
-    } else {
-	# device name specified -- need a unique device_id, can't use component mqtt_name
-	$device_id = lc( $device_name );
-	$device_id =~ s/[^\w]+/_/g;
     }
     if( !ref $self->{disc} ) {
 	$self->{disc} = {};
     }
 
-    if( $device_name ) {
+    if( $self->{mqtt_disc_language} eq 'ha_device_info'
+    ||  $self->{mqtt_disc_language} eq 'ha_device_type'
+    ) {
 	$self->{disc}->{device} = {};
 	$self->{disc}->{device}->{name} = $device_name;
-	if( $self->{interface}->{use_ha_device_disc} ) {
+	if( $self->{mqtt_disc_language} eq 'ha_device_type' ) {
 	    $self->{disc}->{device}->{identifiers} = $device_id;
 	} else {
 	    $self->{disc}->{device}->{identifiers} = [$device_id];
@@ -661,19 +676,19 @@ sub set_discovery_names {
 	$self->{disc}->{origin}->{sw_version} = "6.0";
 	$self->{disc}->{origin}->{support_url} = 'https://github.com/hollie/misterhouse';
     }
-    if( $self->{interface}->{use_ha_device_disc} ) {
+    if( $self->{mqtt_disc_language} eq 'ha_device_type' ) {
 	$self->{disc}->{components} = {};
 	$self->{disc}->{components}->{$mqtt_name} = {};
 	$self->{disc_info} = $self->{disc}->{components}->{$mqtt_name};
 	$self->{disc_info}->{platform} = $self->{disc_type};
-	$self->{disc_info}->{name} = $friendly_name;
+	$self->{disc_info}->{name} = $obj_name;
 	# $self->{disc_info}->{object_id} = $mqtt_name;
     } else {
 	$self->{disc_info} = $self->{disc};
-	$self->{disc_info}->{name} = $friendly_name;
+	$self->{disc_info}->{name} = $obj_name;
 	# $self->{disc_info}->{object_id} = $mqtt_name;
     }
-    # $self->log( "'$full_name' turned into (fname:'$friendly_name', devname:'$device_name', devid:'$device_id', areaname:'$area_name')" );
+    # $self->log( "'$full_name' turned into (fname:'$friendly_name', devname:'$device_name', devid:'$device_id', areaname:'$area_name'), type:'$self->{mqtt_type}'" );
 }
 
 =item C<set_object_debug( level )>
@@ -905,7 +920,11 @@ sub decode_mqtt_payload {
     if( $topic eq $self->{disc_info}->{command_topic} ) {
 	$value = $payload;
     }
-    $self->debug( 3, "payload '$payload' decoded to: '$value'" );
+    if( !$value && !$brightness ) {
+        $self->debug( 1, "Unknown topic: '$topic' for $$self{mqtt_type}:$$self{mqtt_name} device" );
+        return;
+    }
+    $self->debug( 3, "payload '$payload' decoded to: '$value'  brightness: $brightness" );
 
     # if( $$self{mqtt_type} eq 'binary_sensor'  ||  $$self{mqtt_type} eq 'sensor' ) {
     #	if( $retained ) {
@@ -940,6 +959,7 @@ sub decode_mqtt_payload {
 	}
     } elsif( $$self{mqtt_type} eq 'switch'
     ||       $$self{mqtt_type} eq 'scene'
+    ||       $$self{mqtt_type} eq 'button'
     ||       $$self{mqtt_type} eq 'scene_switch'
     ) {
 	$msg = 'on' if $value eq $value_on;
@@ -973,7 +993,8 @@ sub decode_mqtt_payload {
 	$msg = $value_json;
     }
     if( $msg eq $unset_value ) {
-        $self->error( "Unable to decode mqtt message for $$self{mqtt_name} type:$$self{mqtt_type} message:'$payload'" );
+        $self->error( "Unable to decode mqtt message for $$self{mqtt_name} type:$$self{mqtt_type} topic:$topic message:'$payload'" );
+&main::write_file( 'c:\tmp\json.out', $payload );
 	# $self->error( Dumper( $self ) );
 	$msg = undef;
     }
@@ -1051,6 +1072,7 @@ sub encode_mqtt_payload {
     } elsif( $self->{mqtt_type} eq 'switch'
     ||       $self->{mqtt_type} eq 'binary_sensor'
     ||       $self->{mqtt_type} eq 'scene'
+    ||       $self->{mqtt_type} eq 'button'
     ||       $self->{mqtt_type} eq 'scene_switch'
     ) {
 	$payload = $value;
@@ -1297,7 +1319,7 @@ sub create_discovery_message {
 	my $disc_msg;
     
 	$disc_topic = "$self->{interface}->{discovery_publish_prefix}/";
-	if( $self->{interface}->{use_ha_device_disc} ) {
+	if( $self->{mqtt_disc_language} eq 'ha_device_type' ) {
 	    $disc_topic .= "device/";
 	} else {
 	    $disc_topic .= "$self->{disc_type}/";
@@ -1305,7 +1327,7 @@ sub create_discovery_message {
 	if( $self->{node_id} ) {
 	    $disc_topic .= "$self->{node_id}/";
 	}
-	if( $self->{interface}->{use_ha_device_disc} ) {
+	if( $self->{mqtt_disc_language} eq 'ha_device_type' ) {
 	    $disc_topic .= "$self->{disc}->{device}->{identifiers}/config";
 	} else {
 	    $disc_topic .= "$self->{disc_info}->{unique_id}/config";
@@ -1329,6 +1351,9 @@ sub publish_discovery_message {
     $interface = $self->{interface};
     if( !$self->{interface}->isConnected() ) {
 	$self->error( "Unable to publish $self->{mqtt_name} discovery data -- $interface->{instance} not connected" );
+	return 0;
+    }
+    if( !$self->{interface}->{publish_discovery} ) {
 	return 0;
     }
     if( !$self->{interface}->{discovery_publish_prefix} ) {
@@ -1379,10 +1404,10 @@ sub new {     ### mqtt_LocalItem
     my ($class, @parmslist) = @_;
 
     my @positional_parms = qw( broker:objref name type ref_item_name:objref topic_pattern discoverable friendly_name state_topic command_topic );
-    my @optional_parms = ();
-    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
-    if( !ref $parms ) {
-	&mqtt::error( undef, "error parsing MQTT_LOCALITEM parameters: $parms -- mqtt item not created" );
+    my @optional_parms = qw( disc_language );
+    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
+    if( $errstr ) {
+	&mqtt::error( undef, "error parsing MQTT_LOCALITEM parameters: $errstr -- mqtt item not created" );
 	return;
     }
 
@@ -1419,7 +1444,7 @@ sub new {     ### mqtt_LocalItem
         . "' )"
     );
 
-    if( !grep( /^$base_type$/, ('light','switch','binary_sensor', 'sensor', 'scene', 'scene_switch', 'select', 'text', 'number', 'cover' ) ) ) {
+    if( !grep( /^$base_type$/, ('light','switch','binary_sensor', 'sensor', 'scene', 'scene_switch', 'button', 'select', 'text', 'number', 'cover' ) ) ) {
 	$interface->error( "Invalid mqtt type '$type'" );
 	return;
     }
@@ -1482,7 +1507,7 @@ sub new {     ### mqtt_LocalItem
     } elsif( $base_type eq 'scene_switch' ) {
 	# $self->{disc_info}->{optimistic} = 'true';
 	# delete $self->{disc_info}->{state_topic};
-    } elsif( $base_type eq 'scene' ) {
+    } elsif( $base_type eq 'scene'  ||  $base_type eq 'button' ) {
 	$self->{disc_info}->{payload_on} = 'ON';
 	delete $self->{disc_info}->{state_topic};
     } elsif( $base_type eq 'cover' ) {
@@ -1527,6 +1552,7 @@ sub new {     ### mqtt_LocalItem
 	$self->{disc_info}->{unique_id} =~ s/ /_/g;
     }
 
+    $self->debug( 2, "    mqtt_disc_language:$self->{mqtt_disc_language}" );
     # my $d = Data::Dumper->new( [$self] );
     # $d->Maxdepth( 3 );
     # $self->debug( 3, "locale item created: \n" . $d->Dump );
@@ -1611,7 +1637,7 @@ sub set {    ### LocalItem
 	# Note that outgoing state messages are marked to be retained, so that any client can get the latest state info
 	# when it starts up
 	my $retain = 1;
-	if( $self->{disc_type} eq 'scene' ) {
+	if( $self->{disc_type} eq 'scene'  ||  $self->{disc_type} eq 'button' ) {
 	    $retain = 0;
 	}
 	$self->debug( 1, "MH to MQTT LocalItem ${obj_name} set($setval) publishing state message '$payload' to mqtt" );
@@ -1644,8 +1670,11 @@ sub publish_state {
 	}
 	$current_state = $local_item->state;
 	$self_name = $local_item->get_object_name();
-	if( $self->{mqtt_type} eq 'scene'  ||  $self->{mqtt_type} eq 'scene_switch' ) {
-	    $self->debug( 1, "$self_name is a scene -- not publishing current state" );
+	if( $self->{mqtt_type} eq 'scene'
+	||  $self->{mqtt_type} eq 'scene_switch'
+	||  $self->{mqtt_type} eq 'button'
+	) {
+	    $self->debug( 1, "$self_name is a stateless type -- not publishing current state" );
 	    return;
 	}
 	if( $local_item->can('is_responder') && !$local_item->is_responder ) {
@@ -1711,6 +1740,8 @@ sub new {   ### mqtt_BaseRemoteItem
     } elsif( $self->{mqtt_type} eq 'switch' ) {
 	$self->set_states( "off", "on", "offline" );
     } elsif( $self->{mqtt_type} eq 'scene' ) {
+	$self->set_states( "off", "on", "offline" );
+    } elsif( $self->{mqtt_type} eq 'button' ) {
 	$self->set_states( "off", "on", "offline" );
     }
 
@@ -1932,9 +1963,9 @@ sub new {      ### mqtt_RemoteItem
 
     my @positional_parms = qw( broker:objref type topic_pattern discoverable friendly_name state_topic command_topic );
     my @optional_parms = qw( grouplist );
-    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
-    if( !ref $parms ) {
-	&mqtt::error( undef, "error parsing MQTT_REMOTEITEM) parameters: $parms -- mqtt item not created" );
+    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
+    if( $errstr ) {
+	&mqtt::error( undef, "error parsing MQTT_REMOTEITEM) parameters: $errstr -- mqtt item not created" );
 	return;
     }
 
@@ -1949,7 +1980,7 @@ sub new {      ### mqtt_RemoteItem
     my ($base_type, $device_class, $state_class, $unit_of_m) = $type =~ m/^([^:]*):?([^:]*):?([^:]*):?([^:]*)$/;
 
     if( !grep( /$base_type/, ('light','switch','sensor','binary_sensor','cover', 'text', 'number', 'select') ) ) {
-	&mqtt::error( undef, "Invalid InstMqttItem type '$type'" );
+	&mqtt::error( undef, "Invalid RemoteItem type '$type'" );
 	return;
     }
 
@@ -2075,9 +2106,9 @@ sub new {      ### mqtt_InstMqttItem
 
     my @positional_parms = qw( broker:objref type topic_pattern discoverable friendly_name );
     my @optional_parms = qw( grouplist );
-    my $parms = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
-    if( !ref $parms ) {
-	&mqtt::error( undef, "error parsing MQTT_INSTMQTTITEM) parameters: $parms -- mqtt item not created" );
+    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
+    if( $errstr ) {
+	&mqtt::error( undef, "error parsing MQTT_INSTMQTTITEM) parameters: $errstr -- mqtt item not created" );
 	return;
     }
 
@@ -2089,7 +2120,7 @@ sub new {      ### mqtt_InstMqttItem
 
     my ($base_type, $device_class, $state_class, $unit_of_m) = $type =~ m/^([^:]*):?([^:]*):?([^:]*):?([^:]*)$/;
 
-    if( !grep( /$base_type/, ('light','switch','binary_sensor','sensor','scene', 'cover' ) ) ) {
+    if( !grep( /$base_type/, ('light','switch','binary_sensor','sensor','scene', 'button', 'cover' ) ) ) {
 	$interface->error( "Invalid InstMqttItem type '$type'" );
 	return;
     }
@@ -2098,14 +2129,14 @@ sub new {      ### mqtt_InstMqttItem
     my $mqtt_name;
     my $node_id;
     my $topic_prefix;
-    ($work, $mqtt_name) = $work =~ m|^(.*)/([^/]+)/?\+?$|;
+    ($work, $mqtt_name) = $work =~ m|^(.*)/([^/\+]+)/?\+?$|;
     ($topic_prefix, $node_id) = $work =~ m|^(.*/)([^/]+)$|;
     if( !$node_id ) {
 	$node_id = $work;
 	$topic_prefix = '';
     }
     $topic_prefix .= "$node_id/$mqtt_name";
-    $interface->debug( 3, "topicpattern:'$topicpattern' parsed to node_id:'$node_id' mqtt_name:'$mqtt_name' prefix:'$topic_prefix'" );
+    $interface->debug( 2, "topicpattern:'$topicpattern' parsed to node_id:'$node_id' mqtt_name:'$mqtt_name' prefix:'$topic_prefix'" );
     if( !$mqtt_name ) {
 	$interface->error( "Unrecognized topic pattern '$topicpattern' for device '$friendly_name'" );
     }
@@ -2135,6 +2166,11 @@ sub new {      ### mqtt_InstMqttItem
     }
     if( $base_type eq 'scene' ) {
 	$self->{disc_info}->{command_topic} = "$node_id/modem/scene";
+	$self->{disc_info}->{optimistic} = 'true';
+	$self->{disc_info}->{payload_on} =  "{ \"cmd\" : \"ON\", \"name\" : \"$mqtt_name\" }";
+	$self->{disc_info}->{payload_off} =  "{ \"cmd\" : \"OFF\", \"name\" : \"$mqtt_name\" }";
+    } elsif( $base_type eq 'button' ) {
+	$self->{disc_info}->{command_topic} = "$topic_prefix/fire";
 	$self->{disc_info}->{optimistic} = 'true';
 	$self->{disc_info}->{payload_on} =  "{ \"cmd\" : \"ON\", \"name\" : \"$mqtt_name\" }";
 	$self->{disc_info}->{payload_off} =  "{ \"cmd\" : \"OFF\", \"name\" : \"$mqtt_name\" }";

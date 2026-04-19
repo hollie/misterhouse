@@ -542,19 +542,14 @@ sub main::mht_preprocess_line_continuation {
     #      a continuation line.
     #   2. Continuation lines start with whitespace. The leading whitespace is
     #      removed. Normally, the continuation line is then appended to the 
-    #      primary line, separated by a single space. Normally people break 
-    #      lines on whitespace, and since bin/mh automatically removes trailing
-    #      whitespace and we remove the leading whitespace, inserting a space
-    #      is necessary to maintain that break.
-    #   3. If a user needs to break a line on a non-whitespace character, and
-    #      so does not want us to insert a space between the primary and 
-    #      continuation lines, they can indicate this by starting the continuation
-    #      line with whitespace *and* a backslash. Both the leading whitespace and
-    #      the backslash will be removed, and the two line concatenated without
-    #      any additional space.
-    #   4. Similarly, if a user needs more than one space between their primary
-    #      line and the continuation line, use the backslash again, followed by
-    #      however much additional whitespace they want.
+    #      primary line. People typically break lines between items, where
+    #      whitespace is not significant, so the removed whitespace is not an issue.
+    #   3. If a user needs to break a line on white space and preserve the whitespace,
+    #      they should:
+    #          a. Start the continuation with whitespace, which will be removed.
+    #          b. Then insert a backslash followed by the required amount of 
+    #             whitespace. The backslash will also be removed, but the whitespace
+    #             following the backslash will be retained. See the example below.
     #
     # Steps 3 and 4 permits the remainder to be appended with no intervening space, or
     # with many whitespace characters if they follow the backslash.
@@ -574,17 +569,13 @@ sub main::mht_preprocess_line_continuation {
     #      abc def	      # primary line
     #      ghi jkl	      # another primary line
     #
-    #      abc            # primary line.
+    #      abc,           # primary line.
     #          def	      # continuation line.
-    #                     # Yields: "abc def" with a single space.
+    #                     # Yields: "abc,def" with a single space.
     #
-    #      abc            # primary line
-    #          \def       # continuation with leading backslash
-    #                     # Yields: "abcdef"
-    #
-    #      abc            # primary line
-    #          \    def   # continuation that wants much whitespace
-    #                     # Yields: "abc    def"
+    #      abc,           # primary line
+    #          \  def       # continuation with leading backslash
+    #                     # Yields: "abc  def"   (quotes used for clarity only)
     #
     
     # Process the calling args.
@@ -612,13 +603,10 @@ sub main::mht_preprocess_line_continuation {
     my $line_start;
     foreach my $index ($parms{start}..$parms{stop}) {
         my $linenum = $index + 1;		# For diagnostic messages, etc.
-        next if ($parms{arrayref}->[$index] =~ /^(#.*|\s*)$/);		# Ignore blank lines and whole line comments.
-        $parms{arrayref}->[$index] =~ s/\s*#.*//;	# Remove trailing comments. This is what bin/mh does, so we have to match.
-        $parms{arrayref}->[$index] =~ s/\s*$//;	# Remove trailing whitespace.
         my $line = $parms{arrayref}->[$index];
 
-        # Skip blank and comment lines.
-        next if ($line =~ /^\s*$/);	# Comment or blank line. No action.
+	# Note that end of comments (including whole line comments), blank lines and
+	# end of line whitespace are all handled in read_table_A
 
         # Is this a primary line or a continuation line?
         if ($line =~ /^\S/) {
@@ -626,22 +614,12 @@ sub main::mht_preprocess_line_continuation {
             $line_start = $index;	# Remember where it starts.
         }
         else {			
-            # It's a continuation line. Append it to the preceding primary line.
-            $line =~ s/^\s*//;		# Remove the leading whitespace.
- 
-            # Now check for a now-leading \ -- indicates not to insert whitespace
-            if ($line =~ /^\\(.*)/) {
-                # Leading backslash. Remove it, and don't prepend a space.
-	        $line = $1;
-            }
-            else {
-                # No leading backslash. Insert one leading space before appending to
-                # the primary line (or a prior continuation line).
-        	$line = " $line";
-            }
-
+            # It's a continuation line.
             # Append this to primary line so far.
-            $parms{arrayref}->[$line_start] .= $line;
+	    # Leave in the newlines, so the end of line comments can be removed properly
+	    #   by read_table_A and split_table_parms.
+
+            $parms{arrayref}->[$line_start] .= "\n$line";
 
             # And delete the continuation line by making it blank.
             $parms{arrayref}->[$index] = '';	# Replace the continuation line with a blank line.
@@ -788,41 +766,135 @@ sub main::parse_arg_string {
 #---------------------------------------------------------------------------
 #   Utility routine to parse mht args from read_table_A.
 #
+sub main::parse_table_debug {
+    my ($level, $str) = @_;
+    if( $level <= $main::Debug{table_parms} ) {
+        &main::print_log( "[PARSE]: $str" );
+    }
+}
+
+sub main::split_table_parms {
+    my ($str) = @_;
+    my $parms = [];
+    my $start_pos = 0;
+    my $depth = 0;
+    my $in_json_string = 0;
+    my $in_json = 0;
+    my $in_comment = 0;
+    my $json_escaped = 0;
+    my $strlen = length( $str );
+    my $parmstr;
+
+    main::parse_table_debug( 2, "Splitting table parms str '$str'" );
+
+    # change newlines to carriage return so single char processing is easier
+    $str =~ s/\n/\r/g;
+
+    # Iterate through the string character by character starting from the first {
+    for (my $i = 0; ; $i++) {
+        my $char = substr($str, $i, 1);
+
+	if( (!$in_json && $char eq ',')
+	||  $i == $strlen
+	) {
+	    $parmstr = substr( $str, $start_pos, $i-$start_pos );
+	    $parmstr =~ s/^\s*//;
+	    $parmstr =~ s/\s*$//;
+	    $parmstr =~ s/'/\\'/g;
+	    push @{$parms}, $parmstr;
+	    if( $i == $strlen ) {
+		last;
+	    }
+	    $start_pos = $i + 1;
+	}
+
+	if( $in_comment ) {
+	    substr( $str, $i, 1, ' ' );
+	    if( $char eq "\r" ) {
+		$in_comment = 0;
+	    }
+	    next;
+	}
+	if( !$in_json_string  &&  $char eq '#' ) {
+	    substr( $str, $i, 1, ' ' );
+	    $in_comment = 1;
+	    next;
+	}
+	if( $char eq "\r" ) {
+	    substr( $str, $i, 1, ' ' );
+	    next;
+	}
+	if( !$in_json ) {
+	    if( $char eq '{' ) {
+		$in_json = 1;
+		next;
+	    }
+	} else {
+	    if( $in_json_string  &&  $char eq '\\' ) {
+		$json_escaped = 1;
+		next;
+	    }
+	    if( $json_escaped ) {
+		$json_escaped = 0;
+		next;
+	    }
+	    if( $char eq '"') {
+		$in_json_string = !$in_json_string;
+		next;
+	    }
+	    if( !$in_json_string) {
+		if ($char eq '{') {
+		    $depth++;
+		} elsif ($char eq '}') {
+		    $depth--;
+		    if ($depth < 0) {
+			$in_json = 0; # Found the matching end!
+		    }
+		}
+		next;
+	    }
+	}
+    }
+    main::parse_table_debug( 2, "Split parms returning: " . join ',',map {"'$_'"} @{$parms} );
+    return (undef, $parms); 
+}
+
 sub main::parse_table_parms {
     my($args, $positional_parms, $option_parms ) = @_;
-    my $positional_done = 0;
     my $positional_count = scalar @{$positional_parms};
     my $parms = {};
     my $errstr;
+    my $parmstr;
     my $keywords_list = [ @{$positional_parms}, @{$option_parms} ];
 
-    if( $main::Debug{misc} ) {
-        &main::print_log( "Parsing table parms:  " . join ',',@{$args});
-        &main::print_log( "   Keywords_list:  " . join ',',@{$keywords_list});
-    }
-    for( my $i=0; $i < scalar @{$args}; ++$i ) {
-	my $parm = $args->[$i];
+    $parmstr = join ',',@{$args};
+    &main::parse_table_debug( 1, "Parsing table parms:  $parmstr" );
+    &main::parse_table_debug( 1, "   Keywords_list:  " . join ',',@{$keywords_list} );
+    for( my $i=0; ; ++$i ) {
+	my $parm;
 	my $keyword;
 	my $value;
 	my $type;
 
-	$parm =~ s/^'(.*)'/$1/;	# Strip quotes if any.
+	if( $i == scalar @{$args} ) {
+	    last;
+	}
+	$parm = $args->[$i];
+	if( !ref $parm ) {
+	    $parm =~ s/^\s*'(.*)'\s*$/$1/;	# Strip quotes if any.
+	}
+
 	# Check each format, because initially read_table_A quotes, and later it doesn't.
-	if( $parm =~ /=>/ ) {
-	    # $positional_done = 1;
-	    ($keyword,$value) = split(/\s*=>\s*/,$parm,2);
-	} else {
-	    if( !$parm ) {
-		next;
-	    }
-	    #if( $positional_done ) {
-		#return "positional parm '$parm' used after keyword parm(s)";
-	    #}
+	if( !$parm ) {
+	    next;
+	}
+	($keyword,$value) = $parm =~ m/^\s*([^=\{\"\,\s]+)\s*=>\s*(.*)\s*$/;
+	if( !$keyword ) {
 	    if( $i >= $positional_count ) {
-		return "too many positional parameters parm '$parm'";
+		return ("too many positional parameters parm '$parm'");
 	    }
 	    ($keyword, $type) = split( /:/, $positional_parms->[$i] );
-	    $value = $args->[$i];
+	    $value = $parm;
 	    if( $type eq 'options' ) {
 		my @option_list = split( '\|', $value );
 		my $delay;
@@ -834,20 +906,18 @@ sub main::parse_table_parms {
 			$value = 1;
 		    }
 		    $errstr = &main::set_table_parm_value( $parms, $keyword, $value, $keywords_list );
-		    return $errstr if $errstr;
+		    return ($errstr) if $errstr;
 		}
 		$keyword = undef;
 	    }
 	}
 	if( $keyword ) {
 	    $errstr = &main::set_table_parm_value( $parms, $keyword, $value, $keywords_list );
-	    return $errstr if $errstr;
+	    return ($errstr) if $errstr;
 	}
     }
-    if( $main::Debug{misc} ) {
-	&main::print_log( "   Parsed table parms into:  " .  main::table_parms_to_str( $parms ) );
-    }
-    return $parms;
+    &main::parse_table_debug( 2, "   Parsed table parms into:  " .  main::table_parms_to_str( $parms ) );
+    return (undef,$parms);
 }
 
 sub main::set_table_parm_value {
@@ -865,6 +935,13 @@ sub main::set_table_parm_value {
     if( !$type ) {
 	return "unknown parameter '$keyword'";
     }
+    $type = lc( $type );
+
+    &main::parse_table_debug( 1, "   Setting parm '$keyword' to '$value' -- type: $type" );
+
+    if( !ref $value ) {
+	$value =~ s/\s*$//;
+    }
     if( $type eq 'objref' ) {
         if( $value  &&  !ref $value ) {
 	    my $obj;
@@ -881,7 +958,7 @@ sub main::set_table_parm_value {
 	}
     }
     $parms->{$keyword} = $value;
-    return;
+    return undef;
 }
 
 
@@ -919,10 +996,14 @@ sub main::table_parms_to_str {
 	if( $str ) {
 	    $str .= ', ';
 	}
-	$str .= ${parm} . '=>' . $parms->{$parm};
+	my $value = $parms->{$parm};
+	$value =~ s/\'/\\'/g;
+	$str .= "'${parm} => $value'";
     }
     return $str;
 }
+
+#------------------------------------------------------------------------
 
 sub main::plural {
     my ( $value, $des ) = @_;
