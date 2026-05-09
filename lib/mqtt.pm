@@ -1403,7 +1403,7 @@ sub publish_discovery_data {
 	$self->error( "Unable to publish discovery data -- $self->{instance} not connected" );
 	return 0;
     }
-    $self->log( "Publishing discovery data" );
+    $self->log( "$self->{instance} publishing discovery data" );
     for my $obj ( @{ $self->{objects} } ) {
 	if( $obj->can( 'publish_discovery_message' ) ) {
 	    $obj->publish_discovery_message();
@@ -1434,7 +1434,7 @@ sub publish_current_states {
     my $hass_type;
     my $obj_id;
 
-    $self->log( "$self->{name} publishing current state data for local objects" );
+    $self->log( "$self->{instance} publishing current state data for local objects" );
     for my $obj ( @{ $self->{objects} } ) {
 	if( $obj->can( 'publish_state' ) ) {
 	    $obj->publish_state( $only_unpublished );
@@ -1490,7 +1490,7 @@ sub write_discovered_items {
     }
     print {$f} "Format = A\n\n";
     foreach my $interface ( &mqtt::get_interface_list() ) {
-	@sorted_list = sort { $a->get_object_name() cmp $b->get_object_name() } @{$interface->{objects}};
+	@sorted_list = sort { ($a->get_object_name()//'') cmp ($b->get_object_name()//'') } @{$interface->{objects}};
 	for my $obj ( @sorted_list ) {
 	    if( defined $obj->{disc_mode}  &&  $obj->{disc_mode} ne 'local' ) {
 		my $obj_name = $obj->get_object_name;
