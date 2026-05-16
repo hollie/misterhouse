@@ -140,8 +140,9 @@ Description:
 	- number
 	- cover
 	- scene
-	- scene_switch            (invented to map to something in HA that has on/off but no state)
 	- button
+	- scene_switch            (invented to map to something in HA that has on/off but no state)
+	                          (MH scenes can have off states -- use scene_switch if that is the case)
 
     Note that these (except scene_switch) map to the Home Assistant types directly.
     Also, the type can be enhanced in MH:
@@ -558,8 +559,12 @@ sub new {   ### mqtt_BaseItem
     $self->{mqtt_name}		    = $mqtt_name;
     $self->{mqtt_type}		    = $type;
     $self->{discoverable}	    = $discoverable;
-    $self->{topic}		    = $listentopics;
     $self->{disc_type}		    = $type;
+    if( ref $listentopics eq 'ARRAY' ) {
+	$self->{topic}		    = $listentopics;
+    } else {
+	$self->{topic}		    = [ $listentopics ];
+    }
 
 #     if( !grep( /^$type$/, ('light', 'switch', 'binary_sensor', 'sensor', 'scene', 'button', 'select') ) ) {
 # 	$self->error( "UNKNOWN DEVICE TYPE: '$self->{mqtt_name}':$self->{mqtt_type}" );
@@ -607,6 +612,11 @@ sub dump {
     return $dumper->Dump();
 }
 
+sub add_listen_topic {
+    my ($self, $topic) = @_;
+
+    push @{$self->{topic}}, $topic;
+}
 
 sub set_discovery_names {
     my ($self, $full_name, $mqtt_name) = @_;
@@ -994,7 +1004,6 @@ sub decode_mqtt_payload {
     }
     if( $msg eq $unset_value ) {
         $self->error( "Unable to decode mqtt message for $$self{mqtt_name} type:$$self{mqtt_type} topic:$topic message:'$payload'" );
-&main::write_file( 'c:\tmp\json.out', $payload );
 	# $self->error( Dumper( $self ) );
 	$msg = undef;
     }
@@ -1505,8 +1514,6 @@ sub new {     ### mqtt_LocalItem
 	$self->{disc_info}->{brightness_scale} = 100;
     } elsif( $base_type eq 'switch' ) {
     } elsif( $base_type eq 'scene_switch' ) {
-	# $self->{disc_info}->{optimistic} = 'true';
-	# delete $self->{disc_info}->{state_topic};
     } elsif( $base_type eq 'scene'  ||  $base_type eq 'button' ) {
 	$self->{disc_info}->{payload_on} = 'ON';
 	delete $self->{disc_info}->{state_topic};
@@ -1548,7 +1555,7 @@ sub new {     ### mqtt_LocalItem
 	    $self->{disc_info}->{unique_id} .= $self->{local_item}->{m_group};
 	}
     } else {
-	$self->{disc_info}->{unique_id} = $self->{node_id} . '_' . $self->{mqtt_name};
+	$self->{disc_info}->{unique_id} = $self->{mqtt_name};
 	$self->{disc_info}->{unique_id} =~ s/ /_/g;
     }
 
@@ -1633,11 +1640,17 @@ sub set {    ### LocalItem
     ###
     my $topic = $self->{disc_info}->{state_topic};
     my $payload = $self->encode_mqtt_payload( $setval, $topic );
-    if( $self->{mqtt_type} ne 'scene_switch'  &&  $topic  &&  defined ($payload)  ) {
+    if( $topic  &&  defined ($payload)  ) {
+
 	# Note that outgoing state messages are marked to be retained, so that any client can get the latest state info
-	# when it starts up
+	# when it starts up.
+	# For scenes and buttons, do not set the retain flag.
+
 	my $retain = 1;
-	if( $self->{disc_type} eq 'scene'  ||  $self->{disc_type} eq 'button' ) {
+	if( $self->{mqtt_type} eq 'scene_switch'
+	||  $self->{disc_type} eq 'scene'
+	||  $self->{disc_type} eq 'button'
+	) {
 	    $retain = 0;
 	}
 	$self->debug( 1, "MH to MQTT LocalItem ${obj_name} set($setval) publishing state message '$payload' to mqtt" );
@@ -1740,6 +1753,8 @@ sub new {   ### mqtt_BaseRemoteItem
     } elsif( $self->{mqtt_type} eq 'switch' ) {
 	$self->set_states( "off", "on", "offline" );
     } elsif( $self->{mqtt_type} eq 'scene' ) {
+	$self->set_states( "off", "on", "offline" );
+    } elsif( $self->{mqtt_type} eq 'scene_switch' ) {
 	$self->set_states( "off", "on", "offline" );
     } elsif( $self->{mqtt_type} eq 'button' ) {
 	$self->set_states( "off", "on", "offline" );
@@ -2120,7 +2135,7 @@ sub new {      ### mqtt_InstMqttItem
 
     my ($base_type, $device_class, $state_class, $unit_of_m) = $type =~ m/^([^:]*):?([^:]*):?([^:]*):?([^:]*)$/;
 
-    if( !grep( /$base_type/, ('light','switch','binary_sensor','sensor','scene', 'button', 'cover' ) ) ) {
+    if( !grep( /$base_type/, ('light','switch','binary_sensor','sensor','scene', 'scene_switch', 'button', 'cover' ) ) ) {
 	$interface->error( "Invalid InstMqttItem type '$type'" );
 	return;
     }
@@ -2129,13 +2144,15 @@ sub new {      ### mqtt_InstMqttItem
     my $mqtt_name;
     my $node_id;
     my $topic_prefix;
+    my $topic_prefix_start;
     ($work, $mqtt_name) = $work =~ m|^(.*)/([^/\+]+)/?\+?$|;
-    ($topic_prefix, $node_id) = $work =~ m|^(.*/)([^/]+)$|;
+    ($topic_prefix_start, $node_id) = $work =~ m|^(.*/)([^/]+)$|;
     if( !$node_id ) {
 	$node_id = $work;
-	$topic_prefix = '';
+	$topic_prefix_start = '';
     }
-    $topic_prefix .= "$node_id/$mqtt_name";
+    $topic_prefix_start .= "$node_id";
+    $topic_prefix = "$topic_prefix_start/$mqtt_name";
     $interface->debug( 2, "topicpattern:'$topicpattern' parsed to node_id:'$node_id' mqtt_name:'$mqtt_name' prefix:'$topic_prefix'" );
     if( !$mqtt_name ) {
 	$interface->error( "Unrecognized topic pattern '$topicpattern' for device '$friendly_name'" );
@@ -2165,15 +2182,16 @@ sub new {      ### mqtt_InstMqttItem
 	$self->{disc_info}->{unit_of_measurement} = $unit_of_m;
     }
     if( $base_type eq 'scene' ) {
-	$self->{disc_info}->{command_topic} = "$node_id/modem/scene";
+	$self->{disc_info}->{command_topic} = "$topic_prefix_start/modem/scene";
+	$self->add_listen_topic( $self->{disc_info}->{command_topic} );
 	$self->{disc_info}->{optimistic} = 'true';
 	$self->{disc_info}->{payload_on} =  "{ \"cmd\" : \"ON\", \"name\" : \"$mqtt_name\" }";
 	$self->{disc_info}->{payload_off} =  "{ \"cmd\" : \"OFF\", \"name\" : \"$mqtt_name\" }";
+    } elsif( $base_type eq 'scene_switch' ) {
+	$self->{disc_info}->{command_topic} = "$topic_prefix/set";
     } elsif( $base_type eq 'button' ) {
-	$self->{disc_info}->{command_topic} = "$topic_prefix/fire";
+	$self->{disc_info}->{command_topic} = "$topic_prefix/press";
 	$self->{disc_info}->{optimistic} = 'true';
-	$self->{disc_info}->{payload_on} =  "{ \"cmd\" : \"ON\", \"name\" : \"$mqtt_name\" }";
-	$self->{disc_info}->{payload_off} =  "{ \"cmd\" : \"OFF\", \"name\" : \"$mqtt_name\" }";
     } else {
 	$self->{disc_info}->{state_topic} = "$topic_prefix/state";
 	$self->{disc_info}->{command_topic} = "$topic_prefix/set";

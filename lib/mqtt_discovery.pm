@@ -234,7 +234,7 @@ sub new {   #### mqtt_DiscoveredItem
 	} else {
 	    if( $obj->{mqtt_friendly_name} eq $friendly_name ) {
 		$found = 1;
-		if( $obj->{discoverable}  ||  $obj->{disc_mode} eq 'dynamic' ) {
+		if( $obj->{disc_mode} eq 'dynamic' ) {
 		    # Note that Home Assistant matches discovery objects up based on friendly name -- report error on duplicate friendly names
 		    $disc_interface->error( "Discovery message processed for friendly_name ($friendly_name) that already exists: $obj->{object_name}" );
 		} else {
