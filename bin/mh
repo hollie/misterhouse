@@ -789,6 +789,7 @@ sub setup {
     # For misc. net functions (e.g. net_mail_read)
     require 'handy_net_utilities.pl';
     require 'handy_tk_utilities.pl';
+    require 'parm_parser.pm';
 
     #   require 'console_utils.pl';
     require 'http_server.pl';
@@ -5657,7 +5658,7 @@ sub read_table_files {
                     print "Error in &read_table_init_$format: $@\n" if $@;
                 }
 
-                print TABLE_OUT eval "&read_table_$format(\$line)";
+                print TABLE_OUT eval "&read_table_$format(\$line, \$index)";
                 print "Error in &read_table_$format: $@\n" if $@;
             }
             else {	# Don't silently drop data lines before the first format declaration.

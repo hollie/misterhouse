@@ -1629,20 +1629,52 @@ sub user_data {
     return \%{ $$self{user_data} };
 }
 
-=item C<debuglevel([level], [debug_group])>
+=item C<debuglevel([level], [debug_group], [object_authoritative])>
 
 Returns 1 if debug_group or this device is at least debug level 'level', otherwise returns 0.
+If object_authoritative is true, and there is an object debug level set, then the group is ignored.
 
 =cut
 
 sub debuglevel {
-    my ( $object, $debug_level, $debug_group ) = @_;
-    $debug_level = 1 unless $debug_level;
+    my ( $self, $debug_level, $debug_group, $object_authoritative ) = @_;
     my $objname;
-    $objname = lc $object->get_object_name if defined $object;
+    my $objlevel;
+
+    $debug_level = 1 unless $debug_level;
+    $objname = lc $self->get_object_name if defined $self;
+    $objlevel = $main::Debug{$objname} if defined $objname;
+    if( defined $objlevel ) {
+	return 1 if $objlevel >= $debug_level;
+	return 0 if $object_authoritative;
+    }
+
     return 1 if $main::Debug{$debug_group} >= $debug_level;
-    return 1 if defined $objname && $main::Debug{$objname} >= $debug_level;
     return 0;
+}
+
+=item C<set_debug_level( level )>
+
+Turns on debugging for the object, sets debug level.
+If level is undefined, the debugging is turned off.
+Use 0 to turn off debugging for this object when using object_authoritative.
+
+NOTE:  This function assumes $self->{object_name} has been set.  If you want to call
+       this in the new function for an item, then set the object_name yourself before calling.
+
+=cut
+
+sub set_debug_level {
+    my( $self, $level) = @_;
+    my $objname = lc($self->get_object_name());
+
+    if( !defined $level ) {
+	delete $main::Debug{$objname} if $objname;
+    } elsif( !($level =~ /^\d+$/) ) {
+        &main::print_log( "Error: Debug level set to non-numeric for $objname" );
+    } else {
+	$main::Debug{$objname} = $level if $objname;
+    }
 }
 
 =item C<sort_order($ref_list_of_member_names)>

@@ -190,6 +190,7 @@ Usage:
 	# - It is easiest to position named parameters after the positional ones or to use all named parameters.
 	# - Positional parameters can be organized in a tabular format so that it is easy to
 	#   figure out what is what -- examples provided below.
+	# - parameter support is provided by parm_parser.pm -- see for further doc
 	#########################################################################################################
 
 	###################################################
@@ -211,7 +212,9 @@ Usage:
 	HA_SERVER, ha_house, address=>10.3.1.20:8123, api_key=>XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 	###################################################
-	# HA_ITEM record creates an MH item that mirrors an HA entity
+	# HA_ITEM
+	#     - creates an MH item that mirrors an HA entity
+	#     - DEFAULTS are supported -- see parm_parser.pm
 	###################################################
         #
 	# Position | Name		    | Default	| Function
@@ -220,7 +223,7 @@ Usage:
 	#     2	   | domain		    | -none-	| domain[:subtype] of the HA entity
 	#     3	   | ha_entity		    | 10    	| name of the HA entity
 	#     4	   | ha_server		    | -none-	| name of the HA_SERVER object to use
-	#     5	   | grouplist              | -none-	| MH groups the item belongs to
+	#     5	   | **grouplist            | -none-	| MH groups the item belongs to
 	#	   | weatherprimary	    | 0		| if item is a weather item, marks it as primary for MH
 	#	   | noweatherupdate	    | 0		| if item is a weather item, disables MH weather updates
 	#	   | check_response_delay   | 5		| amount of time (s) to wait for a response from HA
@@ -231,7 +234,6 @@ Usage:
 	#	   |			    |		|        - OpenSprinkler; ESPHome minisplit SLWF-01Pro
 	#	   | no_duplicate_states    | 0		| prevent polled devices (like iot class) to update instelf
 	#	   |			    |		|    constantly 
-	 HA device implementations don't take kindly to rapid
 	#
 	# Example .mht:
 	#
@@ -376,7 +378,9 @@ sub debug {
     my( $self, $level, $str ) = @_;
     if( $self->debuglevel( $level, 'ha_server' ) ) {
         $self->log( $str, "[HA_Server D$level]: " );
+	return 1;
     }
+    return 0;
 }
 
 sub error {
@@ -396,6 +400,22 @@ sub dump {
 
 # ------------------------------------------------------------------------------
 
+our $parm_parser;
+
+sub process_parms {
+    # This is a class function -- no $self passed in
+    my ($context, $parmlist) = @_;
+
+    if( !$parm_parser ) {
+	my $positional_parms_new = [ 'name', 'address', 'keepalive_time', 'api_key' ];
+	my $positional_parms_rta = $positoinal_parms_new;
+	my $optional_parms       = [ 'grouplist', 'debug' ];
+	my $support_defaults     = 0;
+	$parm_parser = new parm_parser( 'HA_SERVER', $positional_parms_rta, $positional_parms_new, $optional_parms, $support_defaults );
+    }
+    return $parm_parser->parse_parms( $context, $parmlist );
+}
+
 =item C<new(ha_server, name, address, keepalive_time, api_key )>
 
     Creates a HA_Server object that captures the connection to a single HomeAssistant server.
@@ -407,17 +427,11 @@ sub dump {
 
 =cut
 
-sub new {
+sub new {       # HA_SERVER
     my ($class, @parmslist) = @_;
 
-    my @positional_parms = ( 'name', 'address', 'keepalive_time', 'api_key' );
-    my @optional_parms = ();
-    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
-
-    if( $errstr ) {
-	HA_Server::error( undef, "HA_Server parameter error: $errstr -- item not created" );
-	return;
-    }
+    my $parms = HA_Server::process_parms( {caller=>'new'}, \@parmslist );
+    return if !$parms;
 
     my $self;
     my $name		= $parms->{name};
@@ -452,6 +466,10 @@ sub new {
     } else {
 	$self = {};
 	bless $self, $class;
+
+	$self->{object_name} = '$' . $parms->{name}  if $parms->{name};
+	$self->set_debug_level($parms->{debug}) if defined $parms->{debug};
+
 	$self->log( "creating HA Server $name on $address" );
 
 	&::MainLoop_pre_add_hook( \&HA_Server::check_for_data, 1, $self );
@@ -780,9 +798,7 @@ sub ha_execute_script {
 sub set_object_state {
     my ( $self, $obj, $cmd, $p_setby ) = @_;
 
-    if( $obj->debuglevel( 3, 'ha_server' ) ) {
-	$obj->debug( 3, "handled event for $obj->{object_name} set by $p_setby to: ". $obj->dump($cmd, 3) );
-    }
+    $obj->debug( 3, "handled event for $obj->{object_name} set by $p_setby to: ". $obj->dump($cmd, 3) );
     $obj->process_ha_message( $cmd, $p_setby );
     if( $p_setby eq "ha_server_init" ) {
 	$obj->{ha_init} = 1;
@@ -806,11 +822,8 @@ sub parse_data_to_obj {
     my ( $self, $cmd, $p_setby ) = @_;
     my $handled = 0;
 
-    if( $self->debuglevel( 3, 'ha_server' ) ) {
-	$self->debug( 3, "Msg object: " . $self->dump( $cmd, 3 ) );
-    } else {
-	$self->debug( 2, "Msg object: entity_id: $cmd->{entity_id}   state: $cmd->{state}" );
-    }
+    $self->debug( 2, "Event received: entity_id: $cmd->{entity_id}   state: $cmd->{state}" );
+    $self->debug( 3, "    Msg object: " . $self->dump( $cmd, 3 ) );
 
     my ($cmd_domain,$cmd_entity) = split( '\.', $cmd->{entity_id} );
     for my $obj ( @{ $self->{objects} } ) {
@@ -1142,6 +1155,7 @@ use Time::Local;
 
 use Data::Dumper;
 
+
 sub log {
     my( $self, $str ) = @_;
     $self->{ha_server}->log( $str, "[HA_Item]:" );
@@ -1156,7 +1170,9 @@ sub debug {
     my( $self, $level, $str ) = @_;
     if( $self->debuglevel( $level, 'ha_server' ) ) {
         $self->{ha_server}->log( $str, "[HA_Item D$level]: " );
+	return 1;
     }
+    return 0;
 }
 
 sub dump {
@@ -1166,6 +1182,22 @@ sub dump {
     my $dumper = Data::Dumper->new( [$obj] );
     $dumper->Maxdepth( $maxdepth );
     return $dumper->Dump();
+}
+
+our $parm_parser;		# Package variable - in our name space but shared by all instances.
+
+sub process_parms {
+    # This is a class function -- no $self passed in
+    my ($context, $parmlist) = @_;
+
+    if( !$parm_parser ) {
+	my $positional_parms_new = [ 'domain', 'ha_entity', 'ha_server:objref', 'options:options' ];
+	my $positional_parms_rta = [ 'name', 'domain', 'ha_entity', 'ha_server:objref', 'grouplist', 'options:options' ];
+	my $optional_parms       = [ 'primary', 'weatherprimary', 'noweatherupdate', 'no_duplicate_states', 'delay_between_messages:number', 'response_check_delay:number', 'debug' ];
+	my $support_defaults     = 1;
+	$parm_parser = new parm_parser( 'HA_ITEM', $positional_parms_rta, $positional_parms_new, $optional_parms, $support_defaults );
+    }
+    return $parm_parser->parse_parms( $context, $parmlist );
 }
 
 =item C<new(HA_Item, domain, entity, ha_server )>
@@ -1181,23 +1213,20 @@ sub dump {
 sub new {   # HA_Item
     my ($class, @parmslist) = @_;
 
-    my @positional_parms = ( 'domain', 'ha_entity', 'ha_server:objref', 'options:options' );
-    my @option_parms = ( 'primary', 'weatherprimary', 'noweatherupdate', 'no_duplicate_states', 'delay_between_messages:number', 'response_check_delay:number' );
-    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@option_parms, 1 );
+    my $parms = HA_Item::process_parms( {caller=>'new'}, \@parmslist );
+    return if !$parms;
 
-    if( $errstr ) {
-	HA_Server::error( undef, "HA_Item parameter error: $errstr -- item not created" );
-	return;
-    }
-
+    my $name = $parms->{name};
     my $ha_server = $parms->{ha_server};
     my $entity = $parms->{ha_entity};
     my $fulldomain = $parms->{domain};
     my $self = new Generic_Item();
     bless $self, $class;
 
+    $self->{object_name} = '$' . $parms->{name}  if $parms->{name};
+    $self->set_debug_level($parms->{debug}) if defined $parms->{debug};
     if( !$ha_server ) {
-	HA_Server::error( undef, "No homeassistant server set" );
+	$self->error( "$name no homeassistant server set" );
         return;
     }
     $self->{ha_server} = $ha_server;
@@ -1226,7 +1255,7 @@ sub new {   # HA_Item
 	$self->{options}->{weather_noupdate} = $parms->{noweatherupdate};
     }
 
-    $self->debug( 1, "New HA_Item ( $class, " . main::table_parms_to_str( $parms ) . " )" );
+    $self->debug( 1, "New HA_Item ( $class, " . main::parms_to_str( $parms ) . " )" );
 
     if (lc $domain eq 'weather') {
         if (!defined $self->{ha_server}->{exclusive_objects}->{weather}) {
@@ -1323,19 +1352,6 @@ sub set_parent {
     $self->{msg_trk} = $parent_item->{msg_trk};
 }
 
-
-=item C<set_object_debug( level )>
-
-Turns on debugging for the object, sets debug level.
-
-=cut
-
-sub set_object_debug {
-    my( $self, $level ) = @_;
-    my $objname = lc $self->get_object_name();
-    $level = 1 if !defined $level;
-    $main::Debug{$objname} = $level;
-}
 
 =item C<set(setval, p_setby, p_response )>
 
@@ -1516,13 +1532,15 @@ sub process_ha_message {
 
             $ha_weather{IsRaining} = 0;
             $ha_weather{IsSnowing} = 0;
-            if ($self->{ha_state}->{attributes}->{cloud_coverage} > 90) {
-                $ha_weather{Clouds} = "overcast";
-            } elsif ($self->{ha_state}->{attributes}->{cloud_coverage} > 10) {
-                $ha_weather{Clouds} = "partly cloudy";
-            } else  {
-                $ha_weather{Clouds} = "clear";
-            }
+	    if( $self->{ha_state}->{attributes}->{cloud_coverage} ) {
+		if ($self->{ha_state}->{attributes}->{cloud_coverage} > 90) {
+		    $ha_weather{Clouds} = "overcast";
+		} elsif ($self->{ha_state}->{attributes}->{cloud_coverage} > 10) {
+		    $ha_weather{Clouds} = "partly cloudy";
+		} else  {
+		    $ha_weather{Clouds} = "clear";
+		}
+	    }
             if (( lc $new_state->{state} eq "snowy" ) || ( lc $new_state->{state} eq "snowy-rainy" )){
                 $ha_weather{IsSnowing} = 1;
             }
@@ -1806,7 +1824,8 @@ sub ha_send_message {
 sub ha_check_message {
     my ($self, $ha_msg) = @_;
     if( $self->{msg_trk}->{pending_msgid} == $ha_msg->{id} ) {
-	$self->error( "$self->{object_name} message $ha_msg->{id} for entity '$ha_msg->{target}->{entity_id}' --  response timer expired" );
+	my $entity_id = $ha_msg->{target}->{entity_id} || '<none>';
+	$self->error( "$self->{object_name} message $ha_msg->{id} for entity '$entity_id' --  response timer expired" );
 	$self->ha_send_message();
     }
 }

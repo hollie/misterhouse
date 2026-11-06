@@ -50,15 +50,13 @@ Description:
     There are several generic functions in this module that will do things to/with
     all of the objects that are created for that mqtt server.
 
-    This is the original implementation, before MQTT Items were added.  
+    This is the original implementation, before MQTT Items were added.
 
-    There is also an implementation of MQTT_DEVICE/mqtt_Item in that file.  
+    There is also an implementation of MQTT_DEVICE/mqtt_Item in that file.
     In this old model, this item has a 1:1 relationship with an mqtt message.
     That does not match the item model of MH or the object model of mqtt.
     Hence the implementation of MQTT Items below.
     MQTT Items uses the mqtt object implemented in mqtt.pm but does not use the MQTT_DEVICE.
-
-
 
 
     MQTT Items (mqtt_items.pm)
@@ -121,11 +119,11 @@ Description:
 	        - implements a statically defined mh item for Insteon devices managed
 		  by insteon-mqtt
 		- OR can be used to reference a LOCALITEM device published in another instance of MisterHouse
-		  - (since the MH published MQTT messages are based on insteon-mqtt)
+		  - (since the MH published MQTT messages are based on insteon-mqtt/HomeAssistant)
 		  - could also use discovered items for this purpose
 		- see https://github.com/TD22057/insteon-mqtt
 		- can publish HA discovery info, as insteon-mqtt does not implement discovery yet
-		  - update: I believe insteon-mqtt project does not publish discovery data for HA
+		  - update: I believe insteon-mqtt project does now publish discovery data for HA
 
 
     Supported mqtt types:
@@ -164,7 +162,7 @@ Description:
         https://www.home-assistant.io/docs/mqtt/discovery
 
     There are 2 main uses for mqtt discovery in MH:
-        1. discover mqtt devices without having to statically define them in .mht files
+        1. discover (subscribe to) mqtt devices without having to statically define them in .mht files
 	   - these might be actual devices or another controller that publishes mqtt info like HA, or
 	     the various zigbee2mqtt, zwave hs, instmqtt servers
 	2. publish discovery information for locally defined devices.  This has multiple
@@ -193,12 +191,20 @@ Description:
 		       into another .mht file.  When you do, change the discovery_topic to just
 		       the type -- this will prevent MH from writting it out with the other discovered
 		       items.
+		     - ALSO, be careful of the define and DEFAULTS substitution stuff with discovered_items,
+		       as discovered_items are written out with the full JSON for the discovery.  If the JSON
+		       contains a string that contains a %xyz% and xyz matches a define you have in your .mht
+		       file, then an unwanted substitution may occur.  You can solve this by putting the
+		       DISCOVERDITEM in a .mht file either before and defines or in a separate .mht file
+		       that has no defines.
 	     Publish:
-	         - this class will setup publishing of discovery information for mqtt_LocalItems and
+	         - this class will also setup publishing of discovery information for mqtt_LocalItems and
 	           even for any of the mqtt_BaseRemoteItems if they are created with the discovery flag set
-	         - this last part is useful if you have an mqtt device somewhere whose discovery
-		   info is not great, or doesn't publish discovery info
+	             - this last part is useful if you have an mqtt device somewhere whose discovery
+		       info is not great, or doesn't publish discovery info
 		 - the discovery language used is based on Home Assistant documented discovery
+		     - home assistant objects have gone through some changes
+		     - the style of discovery message can be specified
 
 	mqtt_DiscoveredItem:
 	    This class extends the mqtt_BaseRemoteItem class and implements
@@ -224,7 +230,7 @@ Description:
 		     properly
 		   - discovery messages are coded in JSON, so this can be a bit of a arduous task
 		   - use
-		4. discovery messages as published by MH using the mqtt_DiscoveryBroker 
+		4. discovery messages as published by MH using the mqtt_DiscoveryBroker
 		   to publish discovery messages primarily for mqtt_LocalItems.
 		   This allows easy sharing of device definitions between MH instances.
 
@@ -238,33 +244,28 @@ Usage:
 
 
 	#########################################################################################################
-	# MQTT objects accept positional or named parameters.
-	# - Parameters with positions may be provide either by placing them in the specified position,
-	#   or by using the indicated name in a name=>value format.
-	# - Parameters without a position must be specified using the name=>value format.
-	# - It is easiest to position named parameters after the positional ones or to use all named parameters.
-	# - Positional parameters can be organized in a tabular format so that it is easy to
-	#   figure out what is what -- examples provided below.
+	# MQTT objects use the parm_parser class -- see parm_parser.pm for documentation
+	# on specifying parameters.
 	#########################################################################################################
 
-
-
 	###################################################
-	# MQTT_BROKER record creates object to connect to mqtt server
-	# - usually you only have one
+	# MQTT_BROKER item creates object to connect to mqtt server
+	#   - usually you only have one
+	#   - DEFAULTS are not supported (see parm_parser.pm)
 	###################################################
-        #
+	#
 	# Position | Name		    | Default	| Function
+	# fA | new |
 	#----------|------------------------|-----------|-------------------------------------------------------
-	#     1	   | name		    | -none-	| MH object name to create
-	#     2	   | topic		    | #		| MQTT topic to subscribe to - default is all mqtt messages
-	#     3	   | host		    | -none-	| host name or ip address of MQTT server
-	#     4	   | port		    | -none-	| port of MQTT server
-	#     5	   | username		    | -none-	| username to use when connecting to MQTT server
-	#     6	   | password		    | -none-	| password to use when connecting to MQTT server
-	#     7	   | keepalive_time	    | -none-	| password to use when connecting to MQTT server
-	#	   | grouplist		    | -none-	| MH groups the item belongs to
-	#	   | topic_prefix	    | -none-	| prefix to use on MQTT topics created for LOCALITEMS
+	#  1 |  1  | name		    | -none-	| MH object name to create
+	#  2 |  4  | topic		    | #		| MQTT topic to subscribe to - default is all mqtt messages
+	#  3 |  2  | host		    | -none-	| host name or ip address of MQTT server
+	#  4 |  3  | port		    | -none-	| port of MQTT server
+	#  5 |  5  | username		    | -none-	| username to use when connecting to MQTT server
+	#  6 |  6  | password		    | -none-	| password to use when connecting to MQTT server
+	#  7 |  7  | keepalive_time	    | -none-	| password to use when connecting to MQTT server
+	#  - |  -  | grouplist		    | -none-	| MH groups the item belongs to
+	#  - |  -  | topic_prefix	    | -none-	| prefix to use on MQTT topics created for LOCALITEMS
 	#
 	# Example .mht:
 	#
@@ -282,7 +283,7 @@ Usage:
 	###################################################
 	# Different Item types for different types of MQTT functionality
 	#    - remote items are used to define an MH item that tracks the state and controls
-	#      the state of an mqtt device
+	#      the state of an mqtt device or mqtt object published by another controller
 	#    - local items are MH items that publish their state and receive mqtt
 	#      commands to modify the local state
 	#
@@ -292,24 +293,27 @@ Usage:
 	#    - It is best to use the same <node_id> for all items, but not necessary
 	#    - It helps identify your own discovery messages in a large mqtt system
 	###################################################
-        #
+	#
 	###################################################
-	# MQTT_INSTMQTT 
+	# MQTT_INSTMQTT
 	#    - Used to define mqtt items as published by insteon-mqtt project or as published
 	#      by another instance of MisterHouse which has defined MQTT_LOCALITEMs or as published
 	#      by Home Assistant.
 	#    - Consider using discovery as an alternative to statically defined objects
+	#    - DEFAULTS are supported (see parm_parser.pm)
 	###################################################
 	#
 	# Position | Name		    | Default	| Function
 	#----------|------------------------|-----------|-------------------------------------------------------
-	#     1	   | name		    | -none-	| name of the MH item
-	#     2	   | grouplist		    | -none-	| MH groups the item belongs to
+	#     1	   | **name		    | -none-	| name of the MH item
+	#     2	   | **grouplist	    | -none-	| MH groups the item belongs to
 	#     3	   | broker		    | -none-	| MH mqtt broker item -- object reference or name
 	#     4	   | type		    | -none-    | mqtt type of the mqtt device
 	#     5	   | topic_pattern	    | -none-	| pattern of the state and command messages for the device
 	#     6	   | discoverable   	    | 0    	| determines if discovery information will be published
 	#     7	   | friendly_name	    | -none-	| pretty name published as name of mqtt device
+	#     -    | debug                  | 0         | set the debug message level (1,2,...) for this object
+	#     -    | defaults_action        | 0         | If name is DEFAULT/DEFAULTS, perform these actions. See parm_parser.pm
 	#
 	# Example .mht:
 	#
@@ -318,58 +322,92 @@ Usage:
 
 	###################################################
 	# MQTT_REMOTEITEM
-	# Define a Tasmota item.  Note that the topic_pattern must be in the order that the device will
-	# send.  This is configured in the Tasmota MQTT configuration. 'statetopic' and 'cmndtopic' are
-	# optional, and will default to good values for Tasmota, but maybe not for other devices.
+	#     - Define a Tasmota item.
+	#     - Note that the topic_pattern must be in the order that the device will send.
+	#       This is configured in the Tasmota MQTT configuration. 'statetopic' and 'cmndtopic' are
+	#       optional, and will default to good values for Tasmota, but maybe not for other devices.
+	#     - DEFAULTS are supported (see parm_parser.pm)
 	###################################################
 	#
 	# Position | Name		    | Default	| Function
 	#----------|------------------------|-----------|-------------------------------------------------------
-	#     1	   | name		    | -none-	| name of the MH item
-	#     2	   | grouplist		    | -none-	| MH groups the item belongs to
+	#     1	   | **name		    | -none-	| name of the MH item. DEFAULTS are supported.
+	#     2	   | **grouplist	    | -none-	| MH groups the item belongs to
 	#     3	   | broker		    | -none-	| MH mqtt broker item -- object reference or name
 	#     4	   | type		    | -none-    | mqtt type of the mqtt device
 	#     5	   | topic_pattern	    | -none-	| pattern of the state and command messages for the device
 	#     6	   | discoverable   	    | 0    	| determines if discovery information will be published
-	#     7	   | friendly_name	    | -none-	| pretty name published as name of mqtt device
+	#     7	   | friendly_name	    | <name>	| pretty name published as name of mqtt device. If not
+	#      	   |              	    |       	| specified, it defaults to the value of the name parameter
 	#     8	   | state_topic  	    | -none-	| override the state_topic created from the topic_pattern
 	#     9	   | command_topic	    | -none-	| override the command_topic created from the topic_pattern
+	#     -    | encode_payload         | -none-    | override default encode logic with a user-supplied routine
+	#          |                        |           | instead. See examples below.
+	#     -    | decode_payload         | -none-    | override default decode logic with a user-supplied routine
+	#          |                        |           | instead. See examples below.
+	#     -    | debug                  | 0         | set the debug message level (1,2,...) for this object
+	#     -    | defaults_action        | 0         | If name is DEFAULT/DEFAULTS, perform these actions. See parm_parser.pm
 	#
 	# Example .mht:
 	#
-	# MQTT_REMOTEITEM,  name,		groups,		broker, type,		topic_pattern,				    discoverable    [Area:]Friendly Name,	statetopic,	cmndtopic
-	MQTT_REMOTEITEM,    tas_outdoor_plug,	,		mqtt_1, switch,		tasmota_outdoor_plug/+/+,		    0,		    Tasmota Outdoor Plug
+	#MQTT_REMOTEITEM,  name,		groups,		broker, type,		topic_pattern,		    discoverable    [Area:]Friendly Name,	statetopic,	cmndtopic
+	MQTT_REMOTEITEM,    tas_outdoor_plug,	,		mqtt_1, switch,		tasmota_outdoor_plug/+/+,   0,		    Tasmota Outdoor Plug
 
+	#  - With DEFAULTS
+	MQTT_REMOTEITEM,    DEFAULTS,		,		mqtt_1, switch,		%name%/+/+,		    0
+	MQTT_REMOTEITEM,    tas_porch_switch
+
+	# Using "encode_payload" and "decode_payload":
+	# Examples of encode_payload/decode_payload using in-line subroutines appear below.
+	# Calling arguments to these routines are:  "$self,$topic,$payload,$direction" meaning the remote
+	# object, the MQTT topic, the payload to be encoded/decoded, and on of the keywords 'encode' or 'decode'.
+	# ** Important: when using an in-line subroutine commas may *not* be used in the code due to
+	# limitations in read_table_A.pl's parsing routines. **
+	MQTT_REMOTEITEM, test_remote, , mqtt_1, switch, app/mh/test_remote/+, 0, test_remote, state, cmnd, encode_payload=>sub {return $_[2]+80;}, decode_payload=>sub {return int($_[2]-80+.5);},
+	#
+	# Example encode_payload/decode_payload using an external routine. External routines are assumed to be
+	# in main:: another package is explicitly identified. Use these for non-trivial logic, like decoding JSON,
+	# complex conditionals, etc. Calling args are the same as above.
+	MQTT_REMOTEITEM, test_remote3, , mqtt_1, switch, app/mh/test_remote3/+, 0, test_remote, state, cmnd, encode_payload=>MyTransEncode, decode_payload=>MyTransDecode
 
 	###################################################
 	# Local Items:
 	###################################################
-        # - Say you have a local item  (could be any kind of misterhouse item) called shed_light
-        # - you can then create an mqtt LocalItem to publish its state and receive mqtt commands.
+	# - Say you have a local item  (could be any kind of misterhouse item) called shed_light
+	# - you can then create an mqtt LocalItem to publish its state and receive mqtt commands.
 	###################################################
-        # MQTT_LOCALITEM
-	# - topic_pattern should be of the form "<node_id>/<mqtt name>/+".
-        # - the global topic prefix specified on the mqtt_broker object will be prepended (if it exists)
-	# *** This can be used to publish local MH items to Home Assistant or to any other mqtt controller
-        #     including another instance of MisterHouse
-	# *** Once created, you shouldn't need to reference the MQTT_LOCALITEM, just the regular item
+	# MQTT_LOCALITEM
+	#     - topic_pattern should be of the form "<node_id>/<mqtt name>/+".
+	#     - the global topic prefix specified on the mqtt_broker object will be prepended (if it exists)
+	#     *** This can be used to publish local MH items to Home Assistant or to any other mqtt controller
+	#         including another instance of MisterHouse
+	#     *** Once created, you shouldn't need to reference the MQTT_LOCALITEM, just the regular item
+	#     - DEFAULTS are supported (see parm_parser.pm)
 	###################################################
 	#
-	# Position | Name		    | Default	| Function
+	# Position |			    |		|
+	# fA | new | Name		    | Default	| Function
 	#----------|------------------------|-----------|-------------------------------------------------------
-	#     1	   | name		    | -none-	| name of the MH item for this mirror item
-	#     2	   | ref_item_name	    | -none-	| name of the local MH item being published to mqtt
-	#     3	   | broker		    | -none-	| MH mqtt broker item -- object reference or name
-	#     4	   | type		    | -none-    | mqtt type of the mqtt device
-	#     5	   | topic_pattern	    | -none-	| pattern of the state and command messages for the device
-	#          |			    |		|   should be of the form  "<node_id>/<mqtt name>/+".
-	#     6	   | discoverable   	    | 0    	| determines if discovery information will be published
-	#     7	   | friendly_name	    | -none-	| pretty name published as name of mqtt device
-	#          |			    |		|   can be preceeded with optional [[<area>:][<device_name>]:]
-	#          |			    |		|   <area> used as suggested_area for home assistant
-	#          |			    |		|   <device_name> used as name for device description
-	#     8	   | state_topic  	    | -none-	| override the state_topic created from the topic_pattern
-	#     9	   | command_topic	    | -none-	| override the command_topic created from the topic_pattern
+	#  1 |  2  | name		    | -none-	| name of this MH item. DEFAULTS are supported -- see parm_parser.pm
+	#  2 |  4  | ref_item_name	    | -none-	| name of the underlying MH item with values to be published
+	#  3 | 	1  | broker		    | -none-	| MH mqtt broker item -- object reference or name
+	#  4 |  3  | type		    | -none-    | mqtt type of the mqtt device
+	#  5 |  5  | topic_pattern	    | -none-	| pattern of the state and command messages for the device
+	#    |     |			    |		|   should be of the form  "<node_id>/<mqtt name>/+".
+	#  6 |	6  | discoverable   	    | 0    	| determines if discovery information will be published
+	#  7 |	7  | friendly_name	    | -none-	| pretty name published as name of mqtt device
+	#    |     |			    |		|   can be preceeded with optional [[<area>:][<device_name>]:]
+	#    |     |			    |		|   <area> used as suggested_area for home assistant
+	#    |     |			    |		|   <device_name> used as name for device description
+	#    |     |			    |		| If not provided defaults to name (position 1).
+	#  8 |  8  | state_topic  	    | -none-	| override the state_topic created from the topic_pattern
+	#  9 |  9  | command_topic	    | -none-	| override the command_topic created from the topic_pattern
+	#  - |  -  | encode_payload         | -none-    | override default encode logic with a user-supplied routine
+	#    |     |                        |           | instead. Calls are the same as in MQTT_REMOTEITEM above.
+	#  - |  -  | decode_payload         | -none-    | override default decode logic with a user-supplied routine
+	#    |     |                        |           | instead. Calls are the same as in MQTT_REMOTEITEM above.
+	#  - |  -  | debug                  | 0         | set the debug message level (1,2,...) for this object
+	#  - |  -  | defaults_action        | 0         | If name is DEFAULT/DEFAULTS, perform these actions -- see parm_parser.pm
 	#
 	# Example .mht:
 	#
@@ -381,7 +419,7 @@ Usage:
 	MQTT_LOCALITEM,	    mqtt_my_number,	my_number,	mqtt_1, number,				mh/my_number,		    1,		    My Number
 	CODE, $mqtt_my_number->add_discovery_info( {min => 20, max => 40, step => .5, mode => 'box'} );  #noloop
 	#
-        #
+	#
 	# NOTE:  the positional paramaters to the new mqtt_localitem() are in a slightly different order
 	#        so user code looks like:
 	#     $mqtt_shed_light = new mqtt_LocalItem( <broker>, <name>, <type>, <ref_item_name>, ... )
@@ -392,33 +430,41 @@ Usage:
 
 	###################################################
 	# Use of Discovery functionality is optional
-	# - the most common use is to publish discovery info to home assistant
-	# - another common use is to consume discovery info published by home assistant or most mqtt devices
-	# - topic prefix is used for publishing discovery info -- it will prefix the discovery message and all topics
-	#     - it overrides the topic_prefix option on the mqtt_broker object
-	# - action can be publish|subscribe|both (default both)
+	###################################################
+	# MQTT_DISCOVERY
+	#     - the most common use is to publish discovery info to home assistant
+	#     - another common use is to consume discovery info published by home assistant or most mqtt devices
+	#     - topic prefix is used for publishing discovery info -- it will prefix the discovery message and all topics
+	#         - it overrides the topic_prefix option on the mqtt_broker object
+	#     - action can be publish|subscribe|both (default both)
+	#     - DEFAULTS are NOT supported (see parm_parser.pm)
 	###################################################
 	#
-	# Position | Name		    | Default	| Function
+	# Position |			    |		|
+	# fA | new | Name		    | Default	| Function
 	#----------|------------------------|-----------|-------------------------------------------------------
-	#     1	   | name		    | -none-	| name of the discovery broker item
-	#     2	   | ref_item_name	    | -none-	| name of the local MH item being published to mqtt
-	#     3	   | discovery_prefix	    | -none-	| topic prefix for discovery messages
-	#     4	   | broker		    | -none-    | name of mqtt broker this disovery will be associated with
-	#     5	   | action		    | both 	| publish|subscribe|both -- controls whether discovery info
-	#      	   |       		    |      	|   will be published, subscribed to or both
+	#  1 |  2  | name		    | -none-	| name of the discovery broker item
+	#    | 	   |     		    |       	|   DEFAULTS NOT supported
+	#  2 |  3  | discovery_prefix	    | -none-	| topic prefix for discovery messages
+	#  3 |  1  | broker		    | -none-    | name of mqtt broker this disovery will be associated with
+	#  4 |  4  | action		    | both 	| publish|subscribe|both -- controls whether discovery info
+	#    | 	   |       		    |      	|   will be published, subscribed to or both
+	#  - |  -  | disc_language	    | ha_raw_entity |  specify the type of discovery message to publish -- options
+	#    |	   |			    |		|      are ha_raw_entity and ha_device_info
 	#
 	# MQTT_DISCOVERY,   name,		disc_topic_prefix,  broker,	action
 	MQTT_DISCOVERY,	    mqtt_discovery1,	homeassistant,	    mqtt_1,	both
 	#
-	# NOTE:  the positional paramaters to the new mqtt() are in a slightly different order
+	# NOTE:  the positional paramaters to the new mqtt_Discovery() are in a slightly different order
 	#        so user code looks like:
 	#     $mqtt_disc_1 = new mqtt_Discovery( <broker>, <name>, <discovery_prefix>, <action> )
 	#         OR use keyword parms
 	#     $mqtt_disc_1 = new mqtt( 'name=>mqtt_disc_1', 'broker=>mqtt_1', 'discovery_prefix=>homeassistant' );
-	
-        .mht Format A generated file:
-
+	###################################################
+        #
+        # .mht Format A generated file:
+	# -----------------------------
+	#
 	# - if you have enabled subscribe to discovery, the discovery item will capture all
 	#   discovery messages (message topic ends with '/config/)
 	# - MQTT_DISCOVEREDITEMs can be written to a file by the mqtt::write_discovered_items function.
@@ -430,21 +476,28 @@ Usage:
 	# - SO, you may want to move an MQTT_DISCOVEREDITEM from the generated file to
 	#   your regular .mht file
 	#   - if you do, change the discovery_topic to just the discovery_type
-	#     - that will override any discovered item with the same unique_id,
-	#       and will not be written out with write_discovered_items
-	#   - change the name of the item to whatever you want
+	#       - that will override any discovered item with the same unique_id,
+	#         and will not be written out with write_discovered_items
+	#       - change the name of the item to whatever you want
 	#
-	# - NOTE: you would not normally code these by hand, but you can...
-	#   - this allows you to declare a remote mqtt item using the full discovery message format,
-	#     rather than sticking with the rules in MQTT_REMOTEITEM or MQTT_INSTMQTT
+	###################################################
+	# MQTT_DISCOVEREDITEM
+	#     - NOTE: you would not normally code these by hand, but you can...
+	#         - this allows you to declare a remote mqtt item using the full discovery message format,
+	#           rather than sticking with the rules in MQTT_REMOTEITEM or MQTT_INSTMQTT
+	#     - DEFAULTS are supported (see parm_parser.pm)
+	###################################################
 	#
-	# Position | Name		    | Default	| Function
+	# Position |			    |		|
+	# fA | new | Name		    | Default	| Function
 	#----------|------------------------|-----------|-------------------------------------------------------
-	#     1	   | name		    | -none-	| name of the discovered item
-	#     2	   | disc_broker	    | -none-	| name of the discovery broker associated with this item
-	#     3	   | disc_topic		    | -none-	| full discovery topic for this item
-	#      	   |           		    |       	|   replace with just type to hand code one of these
-	#     4	   | disc_message	    | -none-    | discovery message associated with this item
+	#  1 |  2  | name		    | -none-	| name of the discovered item
+	#  2 |  1  | disc_broker	    | -none-	| name of the discovery broker associated with this item
+	#  3 |  3  | disc_topic		    | -none-	| full discovery topic for this item
+	#    | 	   |           		    |       	|   replace with just type to hand code one of these
+	#  4 |  4  | disc_message	    | -none-    | discovery message associated with this item
+	#  - |  -  | debug                  | 0         | set the debug message level (1,2,...) for this object
+	#  - |  -  | defaults_action        | 0         | If name is DEFAULT/DEFAULTS, perform these actions. See parm_parser.pm
 	#
 	# Example of automatically produced discovered item
 	# MQTT_DISCOVEREDITEM,	name,			    disc_broker,	disc_topic,				    disc_message
@@ -567,8 +620,8 @@ sub new {   ### mqtt_BaseItem
     }
 
 #     if( !grep( /^$type$/, ('light', 'switch', 'binary_sensor', 'sensor', 'scene', 'button', 'select') ) ) {
-# 	$self->error( "UNKNOWN DEVICE TYPE: '$self->{mqtt_name}':$self->{mqtt_type}" );
-# 	return;
+#	$self->error( "UNKNOWN DEVICE TYPE: '$self->{mqtt_name}':$self->{mqtt_type}" );
+#	return;
 #     }
 
     if( $self->{mqtt_type} eq 'scene_switch' ) {
@@ -598,7 +651,8 @@ sub error {
 
 sub debug {
     my( $self, $level, $str ) = @_;
-    if( $self->debuglevel( $level, 'mqtt' ) ) {
+    my $object_authoritative = 1;
+    if ( $self->debuglevel( $level, 'mqtt', $object_authoritative ) ) {
 	$self->{interface}->log( $str, "[MQTT D$level]: " );
     }
 }
@@ -699,19 +753,6 @@ sub set_discovery_names {
 	# $self->{disc_info}->{object_id} = $mqtt_name;
     }
     # $self->log( "'$full_name' turned into (fname:'$friendly_name', devname:'$device_name', devid:'$device_id', areaname:'$area_name'), type:'$self->{mqtt_type}'" );
-}
-
-=item C<set_object_debug( level )>
-
-Turns on debugging for the object, sets debug level.
-
-=cut
-
-sub set_object_debug {
-    my( $self, $level ) = @_;
-    my $objname = lc $self->get_object_name();
-    $level = 1 if !defined $level;
-    $main::Debug{$objname} = $level;
 }
 
 =item C<is_dimmable()>
@@ -825,8 +866,8 @@ sub make_topic {
     # Help diagnose mis-constructed topics. Otherwise, the server just hangs up on us
     # and we don't know why.
     if ($NewTopic =~ /\+/) {
-        &main::print_log(		# Don't want to use print_log, but no $self available.
-               "[MQTT] Error: make_topic called by $Caller  with insufficient parms. "
+        $self->error(
+               "make_topic called by $Caller with insufficient parms. "
              . "Pattern=$topicpattern, parms="
              . join(', ',@parms)
              . "\n"
@@ -870,7 +911,13 @@ sub process_template {
 	    # return;
 	# }
     } else {
-	my ($true_val, $expr, $false_val) = $template =~ m/^[\{\s]*([^\s]+)\s+if\s+(.*)else\s+([^\s]+)[\s\}]*$/;
+	my ($true_val, $expr, $false_val) = $template =~ m/^[\{\s]*([^\s]+)\s+if\s+(.+)\s+else\s+([^\s]+)[\s\}]*$/;
+	if( $true_val eq 'None' ) {
+	    $true_val = 'undef';
+	}
+	if( $false_val eq 'None' ) {
+	    $false_val = 'undef';
+	}
 	if( $true_val ) {
 	    $template = "\$value = $expr ? $true_val : $false_val";
 	} else {
@@ -886,6 +933,39 @@ sub process_template {
     return $value;
 }
 
+#
+# Convert encode_payload/decode_payload parms to code references.
+#
+sub payload_parms  {
+    my($self,$parms) = @_;
+    foreach my $operation (qw(encode decode)) {
+	if (my $sub = $parms->{"${operation}_payload"}) {
+	    my $IsInline = ($sub =~ /^\s*sub\s*\{/)//0;
+	    # They provided encode_payload or decode_payload parms. Validate and store it.
+	    no strict 'refs';
+	    # If sub isn't local code (e.g. "sub {...}") or qualified with a package name, assume main::.
+	    $sub = "main::$sub" unless ($IsInline or $sub =~ /^\w*::/);
+	    my $ref;
+	    if ( $IsInline ) {
+		$ref = eval " $sub ; ";			# Just compile the anonymous subroutine string
+	    }
+	    else {
+		$ref =eval { \&{$sub} };			# Take a reference to the named subroutine
+	    };
+	    if ($@) {
+		$self->error(qq[Error trying to evaluate $self->{object_name} parameter ${operation}_payload=>'$sub']);
+		$self->error("Returned error follows:\n" . ($@ =~ s/^/\t/gmr));
+		$self->error("** Remember ** Commas may not be used in in-line subroutines without quoting the sub, or use an external subroutine instead.")
+			if ($IsInline);
+		$ref = undef;
+		return undef;	# We failed. Indicate error.
+	    }
+	    $self->{user_subs}{"payload_$operation"} = $ref;	# Save the ref. Note "$operation_payload" parm -> "payload_$operation"
+	}
+    }
+    return 1;	# We finished normally. OK to proceed.
+}
+
 sub decode_mqtt_payload {
     my( $self, $topic, $payload, $retained ) = @_;
     my $msg;
@@ -895,6 +975,7 @@ sub decode_mqtt_payload {
     my $brightness;
     my $value_on;
     my $value_off;
+    my $user_sub;		# User-supplide decode routine.
 
     $msg = $unset_value;
     if( $topic eq $self->{disc_info}->{state_topic} ) {
@@ -905,6 +986,20 @@ sub decode_mqtt_payload {
     $value_off = $self->{disc_info}->{payload_off} if !defined $value_off;
     $value_on = 'ON' if !defined $value_on;
     $value_off = 'OFF' if !defined $value_off;
+
+    # If they provided a decode routine, use it.
+    $user_sub = $self->{user_subs}{payload_decode};
+    if ($user_sub) {
+        $msg = eval {&{$user_sub}($self,$topic,$payload,'decode')};
+	if ($@) {
+	    $self->error("Error calling decode_payload routine for $self->{object_name}\n");
+	    $self->error("Returned error follows:\n" . ($@ =~ s/^/\t/gmr));
+	}
+	elsif(defined($msg)) {
+		return $msg;
+	}
+	# If they returned undef, that means we should fall through to the default logic for this type instead.
+    }
 
     if( $payload =~ /^\s*{/ ) {
 	eval{ $value_json = decode_json( $payload ) };
@@ -931,7 +1026,7 @@ sub decode_mqtt_payload {
 	$value = $payload;
     }
     if( !$value && !$brightness ) {
-        $self->debug( 1, "Unknown topic: '$topic' for $$self{mqtt_type}:$$self{mqtt_name} device" );
+        $self->debug( 1, "Unrecognized $$self{mqtt_type} value '$payload' received for topic '$topic' in $$self{mqtt_name} device" );
         return;
     }
     $self->debug( 3, "payload '$payload' decoded to: '$value'  brightness: $brightness" );
@@ -1018,6 +1113,20 @@ sub encode_mqtt_payload {
     my $brightness_scale;
     my $value_on;
     my $value_off;
+    my $user_sub;		# User-supplide encode routine.
+
+    # If they provided an encode routine, use it.
+    $user_sub = $self->{user_subs}{payload_encode};
+    if ($user_sub) {
+        $payload = eval {&{$user_sub}($self,$topic,$setval,'encode')};
+	if ($@) {
+	    $self->error("Error '$@' calling encode_payload routine for $self->{object_name}\n");
+	}
+	elsif(defined($payload)) {
+	    return $payload;
+	}
+	# If they returned undef, that means we should fall through to the default logic for this type instead.
+    }
 
     $payload = undef;
     if( $topic eq $self->{disc_info}->{state_topic} ) {
@@ -1326,7 +1435,7 @@ sub create_discovery_message {
     if( !$self->isa('mqtt_DiscoveredItem') ) {
 	my $disc_topic;
 	my $disc_msg;
-    
+
 	$disc_topic = "$self->{interface}->{discovery_publish_prefix}/";
 	if( $self->{mqtt_disc_language} eq 'ha_device_type' ) {
 	    $disc_topic .= "device/";
@@ -1402,26 +1511,38 @@ use Scalar::Util 'blessed';
 
 @mqtt_LocalItem::ISA = ( 'mqtt_BaseItem' );
 
-
 =item C<new(mqtt_interface, name, type, local_object, topicpattern, discoverable, friendly_name, state_topic, command_topic)>
 
     Creates a MQTT Local Item/object that will publish state information of the local object and respond to mqtt commands for the object
+    Supports named parameters and DEFAULTS.
 
 =cut
+
+our $parm_parser;
+
+sub process_parms {
+    # This is a class function -- no $self passed in
+    my ($context, $parmlist) = @_;
+
+    if( !$parm_parser ) {
+	my $positional_parms_rta = [ qw( name ref_item_name:objref broker:objref type topic_pattern discoverable friendly_name state_topic command_topic ) ];
+	my $positional_parms_new = [ qw( broker:objref name type ref_item_name:objref topic_pattern discoverable friendly_name state_topic command_topic ) ];
+	my $optional_parms       = [ qw( name grouplist disc_language encode_payload decode_payload debug) ];
+	my $support_defaults     = 1;
+	$parm_parser = new parm_parser( 'MQTT_LOCALITEM', $positional_parms_rta, $positional_parms_new, $optional_parms, $support_defaults );
+    }
+    return $parm_parser->parse_parms( $context, $parmlist );
+}
 
 sub new {     ### mqtt_LocalItem
     my ($class, @parmslist) = @_;
 
-    my @positional_parms = qw( broker:objref name type ref_item_name:objref topic_pattern discoverable friendly_name state_topic command_topic );
-    my @optional_parms = qw( disc_language );
-    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
-    if( $errstr ) {
-	&mqtt::error( undef, "error parsing MQTT_LOCALITEM parameters: $errstr -- mqtt item not created" );
-	return;
-    }
+    my $parms = mqtt_LocalItem::process_parms( {caller=>'new'}, \@parmslist );
+    return if !$parms;
 
-    my $interface	= $parms->{broker};
+    # Assign some short-hand names for things.
     my $name		= $parms->{name};
+    my $interface	= $parms->{broker};
     my $type		= $parms->{type};
     my $local_object	= $parms->{ref_item_name};
     my $topicpattern	= $parms->{topic_pattern};
@@ -1429,6 +1550,7 @@ sub new {     ### mqtt_LocalItem
     my $friendly_name	= $parms->{friendly_name};
     my $statetopic	= $parms->{state_topic};
     my $cmndtopic	= $parms->{command_topic};
+
 
     my ($base_type, $device_class, $state_class, $unit_of_m);
     my $node_id;
@@ -1444,25 +1566,22 @@ sub new {     ### mqtt_LocalItem
     $state_class = $local_object->{mqttlocalitem}->{state_class} if ((defined $local_object->{mqttlocalitem}->{state_class} ) and (!$state_class));
     $unit_of_m = $local_object->{mqttlocalitem}->{unit_of_measurement} if ((defined $local_object->{mqttlocalitem}->{unit_of_measurement} ) and (!$unit_of_m));
 
-    $interface->debug( 1,
-        "New mqtt_LocalItem( $interface->{instance}, '$mqtt_name', '$type', '$local_object', "
-        . "'$topicpattern', $discoverable, '$friendly_name', "
-        . "'" . ($statetopic//'[undef]') . "', "
-        . "'" . ($cmndtopic//'[undef]')
-        . "', Base_type=[$base_type], Device_Class=[$device_class], State_Class=[$state_class], Unit_of_Measurement=[$unit_of_m]"
-        . "' )"
-    );
+    $interface->debug( 1, qq[new mqtt_LocalItem "$name"]);
+    foreach (sort(keys(%$parms))) {
+	$interface->debug( 2, sprintf("    %-16s: %s",$_, $parms->{$_}));
+    }
 
     if( !grep( /^$base_type$/, ('light','switch','binary_sensor', 'sensor', 'scene', 'scene_switch', 'button', 'select', 'text', 'number', 'cover' ) ) ) {
-	$interface->error( "Invalid mqtt type '$type'" );
+	$interface->error( "MQTT_LOCALITEM $name has invalid mqtt_type '$type'");
 	return;
     }
 
     if( $local_object  &&  !ref $local_object ) {
-	$interface->error( "Invalid local object: $local_object" );
+	$interface->error( "MQTT_LOCALITEM $name has invalid local_object '$local_object'");
 	return;
     }
 
+    # Process the topic pattern.
     $topicpattern =~ s"/[+#]?$"";	# Remove trailing slash and wildcard, if present.
     my (@topic_parts) = split( "/", $topicpattern, 2 );
     if( $#topic_parts == 1 ) {
@@ -1474,7 +1593,7 @@ sub new {     ### mqtt_LocalItem
 	$topic_prefix = $mqtt_name;
     }
     if( !$mqtt_name ) {
-	$interface->error( "Invalid topic pattern '$topicpattern' on object '$name'" );
+	&interface->error( "MQTT_LOCALITEM $name has invalid topic pattern '$topicpattern'");
 	return;
     }
     if( $interface->{topic_prefix} ) {
@@ -1488,9 +1607,17 @@ sub new {     ### mqtt_LocalItem
 
     bless $self, $class;
 
+    $self->{object_name} = '$' . $parms->{name}  if $parms->{name};
+    $self->set_debug_level($parms->{debug}) if defined $parms->{debug};
+
     $self->{node_id} = $node_id;
     $self->set_discovery_names( $friendly_name, $mqtt_name );
 
+    # Process encode_payload and decode_payload parms if present. Do this early, so we can flag
+    # syntax errors that might otherwise get blamed on other parameters.
+    $self->payload_parms($parms);
+
+    # Start setting up discovery data.
     $statetopic ||= 'state';
     $self->{disc_info}->{state_topic} = $self->make_topic($topic_prefix,split(':',$statetopic));
     if( $device_class ) {
@@ -1565,6 +1692,7 @@ sub new {     ### mqtt_LocalItem
     # $self->debug( 3, "locale item created: \n" . $d->Dump );
 
 
+
     # We may need flags to deal with XML, JSON or Text
     return $self;
 }
@@ -1600,7 +1728,7 @@ sub receive_mqtt_message {
 	}
 	my $setval = $self->decode_mqtt_payload( $topic, $message, $retained );
 	if( defined $setval ) {
-	    $self->debug( 1, "LocalItem MQTT to MH setting $obj_name::set($setval) based on received message '$message'" );
+	    $self->debug( 1, "LocalItem MQTT to MH setting $obj_name::set('$setval','mqtt') based on received message '$message'" );
 	    if( $self->{local_item} ) {
 		$self->{local_item}->set( $setval, 'mqtt' );
 	    } else {
@@ -1826,7 +1954,7 @@ sub receive_mqtt_message {
 		$setval = undef;
 	    }
 	    if( defined($setval)  &&  $setval ne '' ) {
-		$self->debug( 1, "remote item MQTT to MH $$self{mqtt_name} set($setval, '$p_setby')" );
+		$self->debug( 1, "Setting remote item '$self->{object_name}' to '$setval' per '$p_setby'" );
 		$self->level( $setval ) if $self->can( 'level' );
 		$self->SUPER::set( $setval, $p_setby, $p_response );
 	    }
@@ -1879,13 +2007,13 @@ sub transmit_topic {
 sub set {    ### BaseRemoteItem
     my ( $self, $setval, $p_setby, $p_response ) = @_;
 
-    print( "BaseRemoteItem set($setval, $p_setby) called\n" ) if $main::Debug{set};
+    $self->debug( 3, "BaseRemoteItem $self->{object_name} set($setval, $p_setby) called\n" );
     return if &main::check_for_tied_filters( $self, $setval );
-    print( "BaseRemoteItem set($setval, $p_setby) passed filters\n" ) if $main::Debug{set};
+    $self->debug( 3, "BaseRemoteItem $self->{object_name} set($setval, $p_setby) passed filters\n" );
 
     # Override any set_with_timer requests
     if ( $$self{set_timer} ) {
-	print( $self->get_object_name . " unsetting timer\n" ) if $main::Debug{set};
+	$self->debug( 3, $self->get_object_name . " unsetting timer\n" );
         &Timer::unset( $$self{set_timer} );
         delete $$self{set_timer};
     }
@@ -1973,17 +2101,30 @@ use Data::Dumper;
 
 =cut
 
+our $parm_parser;		# Package variable - in our name space but shared by all instances.
+
+sub process_parms {
+    # This is a class function -- no $self passed in
+    my ($context, $parmlist) = @_;
+
+    if( !$parm_parser ) {
+	my $positional_parms_new = [ qw( broker:objref type topic_pattern discoverable friendly_name state_topic command_topic ) ];
+	my $positional_parms_rta = [ qw( name grouplist ), (@$positional_parms_new) ];
+	my $optional_parms       = [ qw( decode_payload encode_payload debug) ];
+	my $support_defaults     = 1;
+	$parm_parser = new parm_parser( 'MQTT_REMOTEITEM', $positional_parms_rta, $positional_parms_new, $optional_parms, $support_defaults );
+    }
+    return $parm_parser->parse_parms( $context, $parmlist );
+}
+
 sub new {      ### mqtt_RemoteItem
     my ($class, @parmslist) = @_;
 
-    my @positional_parms = qw( broker:objref type topic_pattern discoverable friendly_name state_topic command_topic );
-    my @optional_parms = qw( grouplist );
-    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
-    if( $errstr ) {
-	&mqtt::error( undef, "error parsing MQTT_REMOTEITEM) parameters: $errstr -- mqtt item not created" );
-	return;
-    }
+    my $parms = mqtt_RemoteItem::process_parms( {caller=>'new'}, \@parmslist );
+    return if !$parms;
 
+    # Assign some short-hand names for things.
+    my $name		= $parms->{name};
     my $interface	= $parms->{broker};
     my $type		= $parms->{type};
     my $topicpattern	= $parms->{topic_pattern};
@@ -1994,8 +2135,13 @@ sub new {      ### mqtt_RemoteItem
 
     my ($base_type, $device_class, $state_class, $unit_of_m) = $type =~ m/^([^:]*):?([^:]*):?([^:]*):?([^:]*)$/;
 
+    $interface->debug( 1, qq[new mqtt_RemoteItem "$name"]);
+    foreach (sort(keys(%$parms))) {
+	$interface->debug( 2, sprintf("    %-16s: %s",$_, $parms->{$_}));
+    }
+
     if( !grep( /$base_type/, ('light','switch','sensor','binary_sensor','cover', 'text', 'number', 'select') ) ) {
-	&mqtt::error( undef, "Invalid RemoteItem type '$type'" );
+	$interface->error( "Invalid RemoteItem type '$type'" );
 	return;
     }
 
@@ -2013,7 +2159,7 @@ sub new {      ### mqtt_RemoteItem
 	}
     }
     if( !$mqtt_name ) {
-	$interface->error( "Unrecognized topic pattern '$topicpattern' for device '$friendly_name'" );
+	$interface->error( "Unrecognized topic pattern '$topicpattern' for device '$name'");
 	return;
     }
 
@@ -2026,10 +2172,16 @@ sub new {      ### mqtt_RemoteItem
 
     bless $self, $class;
 
-    $self->debug( 1, "New mqtt_RemoteItem( $interface->{instance}, '$mqtt_name', '$type', '$topicpattern', $discoverable, '$friendly_name' )" );
+    $self->{object_name} = '$' . $parms->{name}  if $parms->{name};
+    $self->set_debug_level($parms->{debug}) if defined $parms->{debug};
 
     $self->set_discovery_names( $friendly_name, $mqtt_name );
 
+    # Process encode_payload and decode_payload parms if present. Do this early, so we can flag
+    # syntax errors that might otherwise get blamed on other parameters.
+    return unless ($self->payload_parms($parms));
+
+    # Set up discovery.
     if( $wildcard_count == 2 ) {
 	$self->{disc_info}->{availability_topic} = $self->make_topic( $listen_topic, 'tele', 'LWT' );
 	$self->{disc_info}->{payload_available} = 'Online';
@@ -2081,7 +2233,7 @@ sub new {      ### mqtt_RemoteItem
 	$self->{disc_info}->{command_topic} = $self->make_topic( $listen_topic, split(':',$cmndtopic));
 	$self->{disc_info}->{state_topic} = $self->make_topic( $listen_topic, split(':',$statetopic));
     } else {
-	$self->error( "RemoteItem type '$type' not supported yet" );
+	$self->error( "RemoteItem $name has type '$type' not supported yet" );
 	return;
     }
     $self->{disc_info}->{restart_topic} = $self->make_topic( $listen_topic, 'cmnd', 'restart' );
@@ -2109,24 +2261,35 @@ use Data::Dumper;
 
 @mqtt_InstMqttItem::ISA = ( 'mqtt_BaseRemoteItem' );
 
-
 =item C<new(mqtt_interface, name, type, topicpattern, discoverable, friendly_name)>
 
     Creates a MQTT BaseRemoteItem/object that will mirror the state of the object, and send commands to it.
 
 =cut
 
+our $parm_parser;		# Package variable - in our name space but shared by all instances.
+
+sub process_parms {
+    # This is a class function -- no $self passed in
+    my ($context, $parmlist) = @_;
+
+    if( !$parm_parser ) {
+	my $positional_parms_new = [ qw( broker:objref type topic_pattern discoverable friendly_name ) ];
+	my $positional_parms_rta = [ qw( name grouplist ), (@$positional_parms_new) ];
+	my $optional_parms   = [ qw( encode_payload decode_payload debug) ];
+	my $support_defaults = 1;
+	$parm_parser = new parm_parser( 'MQTT_INSTMQTT', $positional_parms_rta, $positional_parms_new, $optional_parms, $support_defaults );
+    }
+    return $parm_parser->parse_parms( $context, $parmlist );
+}
+
 sub new {      ### mqtt_InstMqttItem
     my ($class, @parmslist) = @_;
 
-    my @positional_parms = qw( broker:objref type topic_pattern discoverable friendly_name );
-    my @optional_parms = qw( grouplist );
-    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
-    if( $errstr ) {
-	&mqtt::error( undef, "error parsing MQTT_INSTMQTTITEM) parameters: $errstr -- mqtt item not created" );
-	return;
-    }
+    my $parms = mqtt_InstMqttItem::process_parms( {caller=>'new'}, \@parmslist );
+    return if !$parms;
 
+    my $name		= $parms->{name};
     my $interface	= $parms->{broker};
     my $type		= $parms->{type};
     my $topicpattern	= $parms->{topic_pattern};
@@ -2166,11 +2329,18 @@ sub new {      ### mqtt_InstMqttItem
 
     bless $self, $class;
 
+    $self->{object_name} = '$' . $parms->{name}  if $parms->{name};
+    $self->set_debug_level($parms->{debug}) if defined $parms->{debug};
+
     $self->debug( 1, "New mqtt_InstMqttItem( $interface->{instance}, '$mqtt_name', '$type', '$topicpattern', $discoverable, '$friendly_name' )" );
 
     $self->{node_id} = $node_id;
 
     $self->set_discovery_names( $friendly_name, $mqtt_name );
+
+    # Process encode_payload and decode_payload parms if present. Do this early, so we can flag
+    # syntax errors that might otherwise get blamed on other parameters.
+    $self->payload_parms($parms);
 
     if( $device_class ) {
 	$self->{disc_info}->{device_class} = $device_class;

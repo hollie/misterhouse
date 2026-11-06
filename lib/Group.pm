@@ -71,15 +71,22 @@ sub new {
 sub add {
     my ( $self, @items ) = @_;
     my @item_states = ();
+    my @new_items;
 
     # No way to get $self->{object_name} here (it is saved later in user_code)
     # Not much use without it ... who would do this anyway :)
     #   &main::display("Warning, Group contains itself! $self.  Bad idea.") if grep $_ eq $self, @items;
 
-    push( @{ $$self{members} }, @items );
+    # Only add items that aren't already there
+    for my $ref (@items) {
+	if( $ref  &&  !grep { $_ eq $ref } @{$self->{members}} ) {
+	    push @new_items, $ref;
+	}
+    }
+    push @{$self->{members}}, @new_items;
 
     # This allows us to monitor changed members
-    for my $ref (@items) {
+    for my $ref (@new_items) {
         $ref->tie_items( $self, undef, 'member changed' );
 
         if ( $ref->isa('X10_Item') ) {
