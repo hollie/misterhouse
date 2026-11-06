@@ -221,8 +221,6 @@ my $blocking_read_timeout = .5;
 my %MQTT_Data;
 my $init_global_v_cmd = 0;
 
-# $main::Debug{mqtt} = 0;
-
 # ------------------------------------------------------------------------------
 sub dump() {
     &main::print_log( "*** mqtt Dumper (MQTT_Data):\n" . Dumper( \%MQTT_Data ) . "***" );
@@ -263,7 +261,8 @@ sub log {
 
 sub debug {
     my( $self, $level, $str ) = @_;
-    if( $main::Debug{mqtt} >= $level ) {
+    my $object_authoritative = 1;
+    if ( $self->debuglevel( $level, 'mqtt', $object_authoritative ) ) {
 	$level = 'D' if $level == 0;
 	&mqtt::log( $self, $str, "[MQTT D$level]: " );
     }
@@ -361,8 +360,9 @@ sub mqtt_connect() {
     my $msg = $self->read_mqtt_msg( $blocking_read_timeout );
     if ( !$msg ) {
         $self->error("mqtt $$self{instance} No ConnAck ");
-
-        #exit 1;
+	close( $socket );
+	my $inst = $$self{instance};
+	$self->{recon_timer}->set( 20, sub { $MQTT_Data{$inst}{self}->mqtt_connect() } );
         return;
     }
 
@@ -397,8 +397,8 @@ sub isConnected {
 
 sub isNotConnected {
     my ($self) = @_;
-    unless ( defined($$self{socket} ) ) { return 1 }
-    return !$$self{socket}->connected;
+    unless ( defined($$self{socket} ) ) { return 'socket undefined' }
+    return ($$self{socket}->connected ? 0 : 'socket disconnected');
 }
 
 # ------------------------------------------------------------------------------
@@ -409,19 +409,30 @@ sub isNotConnected {
 
 =cut
 
-sub new {
+our $parm_parser;
+
+sub process_parms {
+    # This is a class function -- no $self passed in
+    my ($context, $parmlist) = @_;
+
+    if( !$parm_parser ) {
+	my $positional_parms_rta = [ qw (name topic host port username password keepalive_time) ];
+	my $positional_parms_new = [ qw (name host port topic username password keepalive_time) ];
+	my $optional_parms       = [ qw (topic_prefix grouplist debug) ];
+	my $support_defaults     = 0;
+	$parm_parser = new parm_parser( 'MQTT_BROKER', $positional_parms_rta, $positional_parms_new, $optional_parms, $support_defaults );
+    }
+    return $parm_parser->parse_parms( $context, $parmlist );
+}
+
+sub new {       # mqtt (MQTT_BROKER)
     my ($class, @parmslist) = @_;
 
-    my @positional_parms = qw (name host port topic username password keepalive_time);
-    my @optional_parms = qw (topic_prefix);
-    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
-
-    if( $errstr ) {
-	&mqtt::error( undef, "error parsing mqtt(MQTT_BROKER) parameters: $errstr -- mqtt broker object not created" );
-	return;
-    }
+    my $parms = mqtt::process_parms( {caller=>'new'}, \@parmslist );
+    return if !$parms;
 
     my $self;
+    my $interface;
     my $name		    = $parms->{name};
     my $topic		    = $parms->{topic};
     my $host		    = $parms->{host};
@@ -435,7 +446,8 @@ sub new {
 	$main::Debug{mqtt} = 0;
     }
 
-    # 20-12-2020 edit to enable MH to monitor all mqtt topics especially for wildcards e.g. LWT
+# 20-12-2020 edit to enable MH to monitor all mqtt topics especially for wildcards e.g. LWT
+    $topic      =~ s/\*/#/g if defined $topic;
     $topic	= $topic	|| $::config_parms{mqtt_topic}		|| '#';
     $host	= $host		|| $::config_parms{mqtt_host}		|| '127.0.0.1';
     $port	= $port		|| $::config_parms{mqtt_port}		|| 1883;
@@ -450,30 +462,28 @@ sub new {
     # But what should I do about the new topic. I'll need to subscribe to the
     # topic before returning the existing instance
     foreach my $inst ( keys %MQTT_Data ) {
-        if ( "$MQTT_Data{$inst}{self}{host}" eq "$host" ) {
-            if ( "$MQTT_Data{$inst}{self}{port}" eq "$port" ) {
+	$interface = $MQTT_Data{$inst}{self};
+        if ( "$interface->{host}" eq "$host" ) {
+            if ( "$interface->{port}" eq "$port" ) {
 
                 # subscribe to the topic if it doesn't already exist
-                if ( "$MQTT_Data{$inst}{self}{topic}" ne "$topic" ) {
-
-                    # Old, existing instace with the same host and port info
-                    $self = $MQTT_Data{$inst}{self};
+                if ( "$interface->{topic}" ne "$topic" ) {
 
                     # Subscribe to the new topic
                     send_mqtt_msg(
-                        $self,
+                        $interface,
                         message_type => MQTT_SUBSCRIBE,
                         message_id   => $msg_id++,
                         topics       => [ map { [ $_ => MQTT_QOS_AT_MOST_ONCE ] } $topic ]
                     );
 
                     ### 5) Check for ACK or fail
-                    $self->{buf} = '';
-		    my $msg = $self->read_mqtt_msg( $blocking_read_timeout );
+                    $interface->{buf} = '';
+		    my $msg = $interface->read_mqtt_msg( $blocking_read_timeout );
 		    if( !$msg ) {
-			$self->log( "$inst Received: " . "No Subscription Ack" );
+			$interface->log( "$inst Received: " . "No Subscription Ack" );
 		    } else {
-			$self->log( 1, "$inst Subscription 2 ($topic) acknowledged: " . $msg->string );
+			$interface->log( 1, "$inst Subscription 2 ($topic) acknowledged: " . $msg->string );
 		    }
                 }
 
@@ -486,13 +496,16 @@ sub new {
                 ### I guess what I need to to create a new object but copy everything from the
                 ### previous one
                 ###
-                return $MQTT_Data{$inst}{self};
+                return $interface;
             }
         }
     }
 
     $self = {};
     bless $self, $class;
+
+    $self->{object_name} = '$' . $parms->{name}  if $parms->{name};
+    $self->set_debug_level($parms->{debug}) if defined $parms->{debug};
 
     $$self{state}		= 'off';
     $$self{said}		= '';
@@ -510,6 +523,7 @@ sub new {
     $$self{user_name}		= $username;
     $$self{password}		= $password;
     $$self{keep_alive_timer}	= $keepalive;
+    $$self{object}		= [];
 
     #
     if (defined($topic_prefix)) {
@@ -594,7 +608,7 @@ sub check_for_data {
         ### MQTT stuff below
 
         # Check for connectivity
-        if ( $self->isNotConnected() ) {
+        if ( my $reason = $self->isNotConnected() ) {
             ###
             ### This needs a lot of work
             ###
@@ -603,7 +617,7 @@ sub check_for_data {
 		my $inst = $self->{instance};
 
 		if ($$self{recon_timer}->inactive) {
-            		$self->log("$inst connection failed ($$self{host}/$$self{port}/$$self{topic}), I will try to reconnect in 20 seconds");
+			$self->error(qq[$inst connection failed ($$self{host}/$$self{port}/$$self{topic}) with error "$reason". I will try to reconnect in 20 seconds]);
             		$$self{recon_timer}->set(20, sub { $MQTT_Data{$inst}{self}->mqtt_connect() });
 		}
 
@@ -636,7 +650,8 @@ sub check_for_data {
                 ###
                 ### Someone published something, deal with it
                 ###
-		$self->debug( 1, "$inst Rcv'd: R:$msg->{retain} T:'$msg->{topic}' M:'$msg->{message}'"  );
+		# 2026-09-01: Downgrade Rcv'd debug level. At level 1, we need to don't know every little thing.
+		$self->debug( 2, "$inst Rcv'd: R:$msg->{retain} T:'$msg->{topic}' M:'$msg->{message}'"  );
 
                 ###
                 ### So we want the topic and the message
@@ -645,7 +660,7 @@ sub check_for_data {
                 ###
                 ### We also need the instance to know who set the obj
                 ###
-                $self->parse_data_to_obj( $msg, $inst, $self );
+                $self->parse_data_to_obj( $msg, $inst );
 
             }
             elsif ( $msg->message_type == MQTT_PINGRESP ) {
@@ -841,13 +856,11 @@ sub set {
 sub pub_msg {
     my ( $self, %p_objects ) = @_;
 
-    my $Caller = ((caller(1))[3] // '[undef]');	# Who called us.
-
     # Check for connectivity
-    if ( $self->isNotConnected() ) {
+    if ( my $reason = $self->isNotConnected() ) {
 
         # First say something
-        $self->error("$$self{instance} is not connected -- failed to publish to $p_objects{topic}=$p_objects{message}, Caller:$Caller");
+        $self->error(qq[$$self{instance} is not connected -- failed to publish "$p_objects{message}" to "$p_objects{topic}" with error $reason]);
 
         # Check_for_data should initiate reconnect
 
@@ -870,13 +883,17 @@ sub pub_msg {
 
         return;
     }
-    $self->debug( 1, "$$self{instance} Pub: R:$p_objects{retain} T:'$p_objects{topic}' M:'$p_objects{message}', Caller:$Caller" );
 
     # Perform a sanity check. A bad topic can cause the MQTT server to hang up on us, losing subsequent messages for 20 seconds.
     if ($p_objects{topic} =~ /[+#]/) {
-        $self->error(qq<pub_msg rejecting message from $Caller -- topic name "$p_objects{topic}" is invalid.>);
+        $self->error(qq<pub_msg rejecting message -- topic name "$p_objects{topic}" is invalid.>);
         return;
     }
+
+    my $Caller = ((caller(2))[3] // '[undef]') . '->' . ((caller(1))[3] // '[undef]');	# Who called us.
+    $self->debug( 1, 
+	sprintf("%s Publish R:%-1s T:%-36s, M:%-16s, Caller: %s", $$self{instance}, "$p_objects{retain}", "'$p_objects{topic}'", "'$p_objects{message}'", $Caller )
+    );
 
     $self->send_mqtt_msg(%p_objects);
 }
@@ -1475,7 +1492,6 @@ sub write_discovered_items {
     if( !$outfilename ) {
 	return;
     }
-    &mqtt::debug( undef, 1, "Writing discovered items to '$outfilename'" );
     if( defined $autoupdate ) {
 	# only change autoupdate file if $autoupdate is actually defined
 	if( $autoupdate ) {
@@ -1490,13 +1506,17 @@ sub write_discovered_items {
     }
     print {$f} "Format = A\n\n";
     foreach my $interface ( &mqtt::get_interface_list() ) {
+	$interface->debug( 1, "Writing discovered items for interface $interface->{instance} to '$outfilename'" );
 	@sorted_list = sort { ($a->get_object_name()//'') cmp ($b->get_object_name()//'') } @{$interface->{objects}};
 	for my $obj ( @sorted_list ) {
 	    if( defined $obj->{disc_mode}  &&  $obj->{disc_mode} ne 'local' ) {
 		my $obj_name = $obj->get_object_name;
-		my $disc_obj_name = $obj->{disc_interface}->get_object_name;
 		$obj_name =~ s/^\$//;
-		$disc_obj_name =~ s/^\$//;
+ 		my $disc_obj_name = '';
+		if( $obj->{disc_interface} ) {
+		    $disc_obj_name = $obj->{disc_interface}->get_object_name;
+		    $disc_obj_name =~ s/^\$//;
+		}
 		my $disc_text = JSON->new->pretty->canonical->encode( $obj->{disc} );
 		$disc_text =~ s/^/    /;
 		$disc_text =~ s/\n/\n    /g;
@@ -1522,12 +1542,12 @@ sub write_discovery_messages {
     if( !$outfilename ) {
 	return;
     }
-    &mqtt::debug( undef, 1, "Writing discovery messages to '$outfilename'" );
     if( !open( $f, "> ${outfilename}" ) ) {
 	&mqtt::error( undef, "Unable to open discovery target file '${outfilename}" );
 	return;
     }
     foreach my $interface ( &mqtt::get_interface_list() ) {
+	$interface->debug( 1, "Writing discovery messages for $interface->{instance} to '$outfilename'" );
 	@sorted_list = sort { $a->get_object_name() cmp $b->get_object_name() } @{$interface->{objects}};
 	for my $obj ( @sorted_list ) {
 	    if( defined $obj->{disc_mode}  &&  $obj->{disc_mode} ne 'local' ) {
@@ -1557,6 +1577,7 @@ sub publish_mqtt_message {
     my ($self, $topic, $msg, $retain ) = @_;
 
     $retain = 0 if !defined($retain);
+
     $self->pub_msg( 
 	message_type => MQTT_PUBLISH,
 	retain       => $retain,
@@ -1633,17 +1654,27 @@ use Data::Dumper;
     );
 =cut
 
-sub new {
+our $parm_parser;
+
+sub process_parms {
+    # This is a class function -- no $self passed in
+    my ($context, $parmlist) = @_;
+
+    if( !$parm_parser ) {
+	my $positional_parms_new = [ qw (broker:objref topic qos retain) ];
+	my $positional_parms_rta = [ qw (name grouplist), (@$positional_parms_new) ];
+	my $optional_parms       = [ qw (name grouplist debug) ];
+	my $support_defaults     = 1;
+	$parm_parser = new parm_parser( 'MQTT_DEVICE', $positional_parms_rta, $positional_parms_new, $optional_parms, $support_defaults );
+    }
+    return $parm_parser->parse_parms( $context, $parmlist );
+}
+
+sub new {     # mqtt_Item
     my ($class, @parmslist) = @_;
 
-    my @positional_parms = qw (broker:objref topic qos retain);
-    my @optional_parms = ();
-    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
-
-    if( $errstr ) {
-	&mqtt::error( undef, "error parsing mqtt(MQTT_BROKER) parameters: $errstr -- mqtt broker object not created" );
-	return;
-    }
+    my $parms = mqtt_Item::process_parms( {caller=>'new'}, \@parmslist );
+    return if !$parms;
 
     my $instance= $parms->{broker};
     my $topic	= $parms->{topic};
@@ -1653,12 +1684,15 @@ sub new {
 
     bless $self, $class;
 
+    $self->{object_name} = '$' . $parms->{name}  if $parms->{name};
+    $self->set_debug_level($parms->{debug}) if defined $parms->{debug};
     $self->interface($instance) if defined $instance;
 
-    $$self{topic}   = $topic;
-    $$self{message} = '';
-    $$self{retain}  = $retain || 0;
-    $$self{QOS}     = $qos    || 0;
+    $self->{topic}   = $topic;
+    $self->{message} = '';
+    $self->{retain}  = $retain || 0;
+    $self->{QOS}     = $qos    || 0;
+
 
     $$self{instance}->add($self);
 
@@ -1689,23 +1723,24 @@ sub set {
     #return if (ref $p_setby and $p_setby->can('get_set_by') and
     #	       $p_setby->{set_by} eq $self);
 
-    if ( defined($p_setby) && $p_setby eq $self->interface() ) {
+
+    # Just do these in one place to simplify the logic.
+    $p_setby	//= '<undef>';
+    $msg	//= '<undef>';
+    my $object_name = $self->get_object_name() // '<undef>';
+
+    $self->debug( 1, qq[set $object_name called with parms:] . join(', ', map { $_//'<undef>' } @_));
+    if ( $p_setby eq $self->interface() ) {
         ###
         ### Incoming (MQTT to MH)
         ###
-        $self->debug( 1, "mqtt_Item nom to MQTT to MH " . ($self->get_object_name()//'<undef>')
-	                 . "::set(" . ($msg//'<undef>') . ", $p_setby)" );
+        $self->debug( 1, "mqtt_Item::set: from MQTT to MH, object=$object_name, setby=$p_setby, message=$msg" );
     }
     else {
         ###
         ### Outgoing (MH to MQTT)
         ###
-	if ( defined( $self->get_object_name() ) ) {
-	    $self->debug( 1, "mqtt_Item nom to MH to MQTT (" . $self->get_object_name() . ") no p_setby ::set($msg, $p_setby)" );
-	}
-	else {
-	    $self->debug( 1, "mqtt_Item nom to MH to MQTT () no p_setby ::set($msg, $p_setby)" );
-	}
+	$self->debug( 1, "mqtt_Item::set: from MH to MQTT, object=$object_name, setby=$p_setby, message=$msg" );
         ###
         ### I need the instance socket, the obj's topic and message
         ### in order to send the message
@@ -1718,7 +1753,7 @@ sub set {
         );
     }
 
-    $self->SUPER::set( $msg, $p_setby, $p_response ) if defined $msg;
+    $self->SUPER::set( $msg, $p_setby, $p_response ) unless ($msg eq '<undef>');
 }
 
 # -[ Fini - mqtt_Item ]---------------------------------------------------------

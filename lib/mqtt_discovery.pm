@@ -54,6 +54,21 @@ use mqtt_items;
 
 @mqtt_DiscoveredItem::ISA = ( 'mqtt_BaseRemoteItem' );
 
+our $parm_parser;		# Package variable - in our name space but shared by all instances.
+
+sub process_parms {
+    # This is a class function -- no $self passed in
+    my ($context, $parmlist) = @_;
+
+    if( !$parm_parser ) {
+	my $positional_parms_new = [ qw( disc_broker:objref name disc_topic disc_message:json ) ];
+	my $positional_parms_rta = [ qw( name disc_broker:objref disc_topic disc_message:json ) ];
+	my $optional_parms       = [ qw( grouplist decode_payload encode_payload debug) ];
+	my $support_defaults     = 1;
+	$parm_parser = new parm_parser( 'MQTT_DISCOVEREDITEM', $positional_parms_rta, $positional_parms_new, $optional_parms, $support_defaults );
+    }
+    return $parm_parser->parse_parms( $context, $parmlist );
+}
 
 =item C<new(mqtt_discovery_object, name, discovery_topic, discovery_msg)>
 
@@ -64,14 +79,8 @@ use mqtt_items;
 sub new {   #### mqtt_DiscoveredItem
     my ( $class, @parmslist ) = @_;
 
-    my @positional_parms = qw( disc_broker:objref name disc_topic disc_message:json );
-    my @optional_parms = qw();
-    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
-    if( $errstr ) {
-	&mqtt::error( undef, "error parsing MQTT_DISCOVERYITEM parameters: $errstr -- mqtt discoveryitem not created" );
-	return;
-    }
-
+    my $parms = mqtt_DiscoveredItem::process_parms( {caller=>'new'}, \@parmslist );
+    return if !$parms;
 
     my $disc_interface	= $parms->{disc_broker};
     my $obj_name	= $parms->{name};
@@ -188,7 +197,7 @@ sub new {   #### mqtt_DiscoveredItem
 	} else {
 	    $mqtt_type = $disc_type;
 	}
-    } elsif( grep( /^${disc_type}$/, ('light', 'switch', 'binary_sensor', 'sensor', 'scene', 'select', 'text', 'number') ) ) {
+    } elsif( grep( /^${disc_type}$/, ('light', 'switch', 'binary_sensor', 'sensor', 'button', 'scene', 'select', 'text', 'number') ) ) {
 	$mqtt_type = $disc_type;
     } else {
 	$disc_interface->debug( 1, "UNRECOGNIZED DISCOVERY TYPE: $disc_type" );
@@ -249,12 +258,16 @@ sub new {   #### mqtt_DiscoveredItem
 
     # create local MH object name
     if( !$obj_name ) {
-	$obj_name = 'mqttd_';
 	# for some mqtt systems, node_id is pretty narly -- use friendly name instead
-	# ... but friendly_names are necessarily unique
+	# ... but friendly_names are not necessarily unique
 	if( $friendly_name ) {
-	    $obj_name .= $friendly_name;
-	} else {
+	    $obj_name = 'mqttd_' . $friendly_name;
+	    $obj_name =~ s/[^\w]+/_/g;
+	    $obj_name = lc( $obj_name );
+	    $obj = ::get_object_by_name( $obj_name );
+	}
+	if( !$friendly_name  ||  $obj ) {
+	    $obj_name = 'mqttd_';
 	    if( $node_id ) {
 		#  $node_id helps to identify the device
 		$obj_name .= "${node_id}_";
@@ -285,6 +298,9 @@ sub new {   #### mqtt_DiscoveredItem
 
     bless $self, $class;
 
+    $self->{object_name} = '$' . $parms->{name}  if $parms->{name};
+    $self->set_debug_level($parms->{debug}) if defined $parms->{debug};
+
     $self->{disc}	    = $disc;
     $self->{disc_info}	    = $disc_cmp;
     $self->{disc_topic}	    = $orig_disc_topic;
@@ -294,8 +310,28 @@ sub new {   #### mqtt_DiscoveredItem
     $self->{disc_mode}	    = $disc_mode;
     $self->{mqtt_friendly_name} = $friendly_name;
 
-    $self->debug( 1, "New mqtt_DiscoveredItem( \$$disc_interface->{mqtt_name}, '$obj_name', '$disc_topic', '$disc_msg' )" );
-    $self->debug( 2, "    friendly_name:${friendly_name}  node_id:${node_id}  cmp_name:$disc_cmp->{name}" );
+    if( $self->{disc_info}->{availability_topic}  &&  !$self->{disc_info}->{payload_available} ) {
+	$self->{disc_info}->{payload_available} = 'online';
+    }
+    if( $self->{disc_info}->{availability_topic}  &&  !$self->{disc_info}->{payload_not_available} ) {
+	$self->{disc_info}->{payload_not_available} = 'offline';
+    }
+
+    # Process encode_payload and decode_payload parms if present
+    return unless ($self->payload_parms($parms));
+
+    $self->debug( 1, qq[new mqtt_DiscoveredItem "$obj_name"]);
+    foreach (sort(keys(%$parms))) {
+	if( $_ ne 'disc_message' ) {
+	    $self->debug( 2, sprintf("    %-16s: %s",$_, $parms->{$_}));
+	}
+    }
+    $self->debug( 2, sprintf("    %-16s: JSON",'disc_message') );
+    my $disc_text = JSON->new->pretty->canonical->encode( $disc );
+    my (@lines) = split( /\n/, $disc_text );
+    for my $line (@lines) {
+	$self->debug( 2, sprintf("    %-16s%s",'', $line) );
+    }
     $self->debug( 3, "DiscoveryItem created: \n" . $self->dump( $self, 3 ) );
 
     # We may need flags to deal with XML, JSON or Text
@@ -315,6 +351,22 @@ use JSON qw( decode_json encode_json );
 
 @mqtt_Discovery::ISA = ( 'mqtt_BaseItem' );
 
+our $parm_parser;
+
+sub process_parms {
+    # This is a class function -- no $self passed in
+    my ($context, $parmlist) = @_;
+
+    if( !$parm_parser ) {
+	my $positional_parms_new = [ qw( broker:objref name discovery_prefix action ) ];
+	my $positional_parms_rta = [ qw( name discovery_prefix broker:objref action ) ];
+	my $optional_parms       = [ qw ( disc_language grouplist debug ) ];
+	my $support_defaults     = 0;
+	$parm_parser = new parm_parser( 'MQTT_DISCOVERY', $positional_parms_rta, $positional_parms_new, $optional_parms, $support_defaults );
+    }
+    return $parm_parser->parse_parms( $context, $parmlist );
+}
+
 =item C<new(mqtt_interface, name, discovery_prefix, action)>
 
     Creates an mqtt discovery broker object that is used to manage publish and subscribing to
@@ -325,15 +377,10 @@ use JSON qw( decode_json encode_json );
 sub new {  ### mqtt_Discovery
     my ($class, @parmslist ) = @_;
 
-    my @positional_parms = qw( interface:objref name discovery_prefix action );
-    my @optional_parms = qw ( disc_language );
-    my ($errstr,$parms) = main::parse_table_parms( \@parmslist, \@positional_parms, \@optional_parms );
-    if( $errstr ) {
-	&mqtt::error( undef, "error parsing MQTT_DISCOVERY parameters: $errstr -- mqtt item not created" );
-	return;
-    }
+    my $parms = mqtt_Discovery::process_parms( {caller=>'new'}, \@parmslist );
+    return if !$parms;
 
-    my $interface	= $parms->{interface};
+    my $interface	= $parms->{broker};
     my $name		= $parms->{name};
     my $discovery_prefix= $parms->{discovery_prefix};
     my $action		= $parms->{action}		||  'both';
@@ -344,13 +391,17 @@ sub new {  ### mqtt_Discovery
 	return;
     }
     if( !grep( /^${action}$/, ('publish', 'subscribe', 'both', 'none') ) ) {
-	$interface->error( "Invalid discovery action specified '$action'" );
+	&mqtt::error( undef, "Invalid discovery action specified '$action'" );
     }
     if( !grep( /^${disc_language}$/, ('ha_raw_entity', 'ha_device_info') ) ) {
-	$interface->error( "Invalid discovery language specified '$disc_language'" );
+	&mqtt::error( undef, "Invalid discovery language specified '$disc_language'" );
     }
 
-    $interface->debug( 1, "New mqtt_Discovery( $interface->{instance}, '$name', '$discovery_prefix', '$action' )" );
+    $interface->debug( 1, qq[new mqtt_Discovery "$name"]);
+    foreach (sort(keys(%$parms))) {
+	$interface->debug( 2, sprintf("    %-16s: %s",$_, $parms->{$_}));
+    }
+
 
     #######
     # Setup what to do based on action
@@ -369,6 +420,9 @@ sub new {  ### mqtt_Discovery
     my $self = new mqtt_BaseItem( $interface, $name, 'discovery', $listentopics, 0 );
 
     bless $self, $class;
+
+    $self->{object_name} = '$' . $parms->{name}  if $parms->{name};
+    $self->set_debug_level($parms->{debug}) if defined $parms->{debug};
 
     return $self;
 }
