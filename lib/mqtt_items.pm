@@ -1062,9 +1062,10 @@ sub decode_mqtt_payload {
 		$msg = 'on';
 	    }
 	}
+    } elsif( $$self{mqtt_type} eq 'button' ) {
+	$msg = 'on' if $value eq 'PRESS';
     } elsif( $$self{mqtt_type} eq 'switch'
     ||       $$self{mqtt_type} eq 'scene'
-    ||       $$self{mqtt_type} eq 'button'
     ||       $$self{mqtt_type} eq 'scene_switch'
     ) {
 	$msg = 'on' if $value eq $value_on;
@@ -1187,10 +1188,11 @@ sub encode_mqtt_payload {
 		$payload = $value;
 	    }
 	}
+    } elsif( $self->{mqtt_type} eq 'button' ) {
+	$payload = 'PRESS';
     } elsif( $self->{mqtt_type} eq 'switch'
     ||       $self->{mqtt_type} eq 'binary_sensor'
     ||       $self->{mqtt_type} eq 'scene'
-    ||       $self->{mqtt_type} eq 'button'
     ||       $self->{mqtt_type} eq 'scene_switch'
     ) {
 	$payload = $value;

@@ -408,7 +408,7 @@ sub process_parms {
 
     if( !$parm_parser ) {
 	my $positional_parms_new = [ 'name', 'address', 'keepalive_time', 'api_key' ];
-	my $positional_parms_rta = $positoinal_parms_new;
+	my $positional_parms_rta = $positional_parms_new;
 	my $optional_parms       = [ 'grouplist', 'debug' ];
 	my $support_defaults     = 0;
 	$parm_parser = new parm_parser( 'HA_SERVER', $positional_parms_rta, $positional_parms_new, $optional_parms, $support_defaults );
@@ -726,27 +726,35 @@ sub ha_perform_action {
     my ($self, $action, $action_data, $callback, $parm, $return_response) = @_;
     my $ha_msg = {};
     my $entity_id;
+    my $device_id;
     my $action_name;
     my $domain;
+    my $name;
 
     if( !defined $return_response ) {
 	$return_response = defined $callback;
     }
     $ha_msg->{type} = 'call_service';
-    ($domain, $entity_id, $action_name) = $action =~ /^([^\.]+)\.([^\.]+)\.([^\.]+)$/;
-    if( $entity_id ) {
-	$entity_id = "$domain.$entity_id";
-    } else {
-	($domain, $action_name) = $action =~ /^([^\.]+)\.([^\.]+)$/;
-	if( $domain ) {
-	    $entity_id = undef;
+    ($domain, $device_id, $action_name) = $action =~ /^device\.([^\.]+)\.([^\.]+)\.([^\.]+)$/;
+    if( !defined $device_id ) {
+	($domain, $entity_id, $action_name) = $action =~ /^([^\.]+)\.([^\.]+)\.([^\.]+)$/;
+        if( $entity_id ) {
+	    $entity_id = "$domain.$entity_id";
 	} else {
-	    $self->error( "Invalid action specified: $action" );
-	    return;
+	    ($domain, $action_name) = $action =~ /^([^\.]+)\.([^\.]+)$/;
+	    if( $domain ) {
+		$entity_id = undef;
+	    } else {
+		$self->error( "Invalid action specified: $action" );
+		return;
+	    }
 	}
     }
     $ha_msg->{domain} = $domain;
-    if( $entity_id ) {
+    if( $device_id ) {
+	$ha_msg->{target} = {};
+	$ha_msg->{target}->{device_id} = $device_id;
+    } elsif( $entity_id ) {
 	$ha_msg->{target} = {};
 	$ha_msg->{target}->{entity_id} = $entity_id;
     }
