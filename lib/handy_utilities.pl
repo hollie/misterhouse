@@ -617,7 +617,7 @@ sub main::mht_preprocess_line_continuation {
             # It's a continuation line.
             # Append this to primary line so far.
 	    # Leave in the newlines, so the end of line comments can be removed properly
-	    #   by read_table_A and split_table_parms.
+	    #   by read_table_A and split_table_string.
 
             $parms{arrayref}->[$line_start] .= "\n$line";
 
@@ -763,245 +763,6 @@ sub main::parse_arg_string {
     return @args;
 }
 
-#---------------------------------------------------------------------------
-#   Utility routine to parse mht args from read_table_A.
-#
-sub main::parse_table_debug {
-    my ($level, $str) = @_;
-    if( $level <= $main::Debug{table_parms} ) {
-        &main::print_log( "[PARSE]: $str" );
-    }
-}
-
-sub main::split_table_parms {
-    my ($str) = @_;
-    my $parms = [];
-    my $start_pos = 0;
-    my $depth = 0;
-    my $in_json_string = 0;
-    my $in_json = 0;
-    my $in_comment = 0;
-    my $json_escaped = 0;
-    my $strlen = length( $str );
-    my $parmstr;
-
-    main::parse_table_debug( 2, "Splitting table parms str '$str'" );
-
-    # change newlines to carriage return so single char processing is easier
-    $str =~ s/\n/\r/g;
-
-    # Iterate through the string character by character starting from the first {
-    for (my $i = 0; ; $i++) {
-        my $char = substr($str, $i, 1);
-
-	if( (!$in_json && $char eq ',')
-	||  $i == $strlen
-	) {
-	    $parmstr = substr( $str, $start_pos, $i-$start_pos );
-	    $parmstr =~ s/^\s*//;
-	    $parmstr =~ s/\s*$//;
-	    $parmstr =~ s/'/\\'/g;
-	    push @{$parms}, $parmstr;
-	    if( $i == $strlen ) {
-		last;
-	    }
-	    $start_pos = $i + 1;
-	}
-
-	if( $in_comment ) {
-	    substr( $str, $i, 1, ' ' );
-	    if( $char eq "\r" ) {
-		$in_comment = 0;
-	    }
-	    next;
-	}
-	if( !$in_json_string  &&  $char eq '#' ) {
-	    substr( $str, $i, 1, ' ' );
-	    $in_comment = 1;
-	    next;
-	}
-	if( $char eq "\r" ) {
-	    substr( $str, $i, 1, ' ' );
-	    next;
-	}
-	if( !$in_json ) {
-	    if( $char eq '{' ) {
-		$in_json = 1;
-		next;
-	    }
-	} else {
-	    if( $in_json_string  &&  $char eq '\\' ) {
-		$json_escaped = 1;
-		next;
-	    }
-	    if( $json_escaped ) {
-		$json_escaped = 0;
-		next;
-	    }
-	    if( $char eq '"') {
-		$in_json_string = !$in_json_string;
-		next;
-	    }
-	    if( !$in_json_string) {
-		if ($char eq '{') {
-		    $depth++;
-		} elsif ($char eq '}') {
-		    $depth--;
-		    if ($depth < 0) {
-			$in_json = 0; # Found the matching end!
-		    }
-		}
-		next;
-	    }
-	}
-    }
-    main::parse_table_debug( 2, "Split parms returning: " . join ',',map {"'$_'"} @{$parms} );
-    return (undef, $parms); 
-}
-
-sub main::parse_table_parms {
-    my($args, $positional_parms, $option_parms ) = @_;
-    my $positional_count = scalar @{$positional_parms};
-    my $parms = {};
-    my $errstr;
-    my $parmstr;
-    my $keywords_list = [ @{$positional_parms}, @{$option_parms} ];
-
-    $parmstr = join ',',@{$args};
-    &main::parse_table_debug( 1, "Parsing table parms:  $parmstr" );
-    &main::parse_table_debug( 1, "   Keywords_list:  " . join ',',@{$keywords_list} );
-    for( my $i=0; ; ++$i ) {
-	my $parm;
-	my $keyword;
-	my $value;
-	my $type;
-
-	if( $i == scalar @{$args} ) {
-	    last;
-	}
-	$parm = $args->[$i];
-	if( !ref $parm ) {
-	    $parm =~ s/^\s*'(.*)'\s*$/$1/;	# Strip quotes if any.
-	}
-
-	# Check each format, because initially read_table_A quotes, and later it doesn't.
-	if( !$parm ) {
-	    next;
-	}
-	($keyword,$value) = $parm =~ m/^\s*([^=\{\"\,\s]+)\s*=>\s*(.*)\s*$/;
-	if( !$keyword ) {
-	    if( $i >= $positional_count ) {
-		return ("too many positional parameters parm '$parm'");
-	    }
-	    ($keyword, $type) = split( /:/, $positional_parms->[$i] );
-	    $value = $parm;
-	    if( $type eq 'options' ) {
-		my @option_list = split( '\|', $value );
-		my $delay;
-		foreach my $option (@option_list) {
-		    if ($option =~ /=/) {
-			($keyword,$value) = split(/\s*=\s*/,$option,2);
-		    } else {
-			$keyword = $option;
-			$value = 1;
-		    }
-		    $errstr = &main::set_table_parm_value( $parms, $keyword, $value, $keywords_list );
-		    return ($errstr) if $errstr;
-		}
-		$keyword = undef;
-	    }
-	}
-	if( $keyword ) {
-	    $errstr = &main::set_table_parm_value( $parms, $keyword, $value, $keywords_list );
-	    return ($errstr) if $errstr;
-	}
-    }
-    &main::parse_table_debug( 2, "   Parsed table parms into:  " .  main::table_parms_to_str( $parms ) );
-    return (undef,$parms);
-}
-
-sub main::set_table_parm_value {
-    my ($parms, $keyword, $value, $keywords_list ) = @_;
-    my $type;
-    my $key;
-
-    foreach my $k ( @{$keywords_list} ) {
-	($key,$type) = split( /:/, $k );
-        if( $key eq $keyword ) {
-	    $type ||= 'string';
-	    last;
-	}
-    }
-    if( !$type ) {
-	return "unknown parameter '$keyword'";
-    }
-    $type = lc( $type );
-
-    &main::parse_table_debug( 1, "   Setting parm '$keyword' to '$value' -- type: $type" );
-
-    if( !ref $value ) {
-	$value =~ s/\s*$//;
-    }
-    if( $type eq 'objref' ) {
-        if( $value  &&  !ref $value ) {
-	    my $obj;
-	    my $objname = "\$main::$value";
-            eval "\$obj = $objname";
-	    if( !$obj ) {
-		return "unable to find object '$value' for parameter '$keyword'";
-	    }
-	    $value = $obj;
-	}
-    } elsif( $type eq 'number' ) {
-        if( $value  &&  !looks_like_number( $value ) ) {
-	    return "'$keyword' parameter is not a number";
-	}
-    }
-    $parms->{$keyword} = $value;
-    return undef;
-}
-
-
-# This function finds the named parm in the @item_info list.
-# It could be at the fixed position provided by the $position parameter (1 origin)
-# or it could be a keyword parm.
-# The callers list is **modified** by removing the named parm.
-sub main::get_table_parm{
-    my ($parmslist, $parmname, $position) = @_;
-    my $keyword;
-    my $value;
-    my $retval;
-    my $i;
-
-    if( defined $position  &&  $position <= scalar @{$parmslist}  &&  !($parmslist->[$position-1] =~ /=>/) ) {
-	$retval = $parmslist->[$position-1];
-	splice( @{$parmslist}, $position-1, 1 );
-    } else {
-	for( $i=0; $i < scalar @{$parmslist}; ++$i ) {
-	    ($keyword,$value) = split( /\s*=>\s*/, $parmslist->[$i], 2 );
-	    if( $keyword eq $parmname ) {
-		$retval = $value;
-		splice( @{$parmslist}, $i, 1 );
-		last;
-	    }
-	}
-    }
-    return $retval;
-}
-
-sub main::table_parms_to_str {
-    my ($parms) = @_;
-    my $str = '';
-    for my $parm ( keys %$parms ) {
-	if( $str ) {
-	    $str .= ', ';
-	}
-	my $value = $parms->{$parm};
-	$value =~ s/\'/\\'/g;
-	$str .= "'${parm} => $value'";
-    }
-    return $str;
-}
 
 #------------------------------------------------------------------------
 
@@ -1103,6 +864,7 @@ sub main::read_mh_opts {
             $$ref_parms{$parm} = $value;
         }
     }
+    package handy_utilities;
 
     return @parm_files;
 }
@@ -2631,4 +2393,3 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =cut
-

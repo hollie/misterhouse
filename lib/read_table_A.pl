@@ -17,6 +17,12 @@ use strict;
 #
 # See mh/code/test/test.mht for more examples.
 #
+# Quoting of values
+# -----------------
+#
+# Values can be quoted with backticks.
+# ITEM,	    name,  encode_payload => `sub {return uc($_[2]);}`
+#
 # Continuation lines.
 # -------------------
 #
@@ -89,6 +95,7 @@ use strict;
 # "lib/read_table_a_sample.pm" for an example module.
 
 my ( %groups, %objects, %packages, %addresses, %scene_build_controllers, %scene_build_responders );
+my $rta_context = {};
 
 sub read_table_init_A {
 
@@ -121,26 +128,33 @@ sub read_table_A_process_line {
     return ($record, $record_raw);
 }
 
+# Quote a list of items and return as a comma separated list.
+# Escape the appropriate characters for a perl string.
+
+
 sub read_table_A {
-    my ($line) = @_;
+    my ($line, $line_number) = @_;
     my $record;
     my $record_raw;
 
+    $rta_context->{line_number} = $line_number;
     ($record,$record_raw) = read_table_A_process_line( $line );
 
     if ( $record =~ /^\s*$/ ) {
         return;
     }
 
-    &parse_table_debug( 1, "Read_table_A processing record '$record'" );
+    &parse_parms_debug( 1, "Read_table_A processing record '$record'" );
 
     my (
         $code,      $address,    $name,      $object,
         $grouplist, $comparison, $limit,     @other,
         $other,     $vcommand,   $occupancy, $network,
-        $password,  $interface,  $additional_code
+        $password,  $interface,  $additional_code,
     );
-    my (@item_info) = split( '\s*,\s*', $record );
+
+    my (@item_info) = split_table_string( $record_raw );
+    # my (@item_info) = split( '\s*,\s*', $record );
     my $type = uc shift @item_info;
 
     # -[ ZWave ]----------------------------------------------------------
@@ -148,14 +162,14 @@ sub read_table_A {
         require 'ZWave_Items.pm';
         require 'ZWave_RZC0P.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );      # Quote data
+        $other = &quote_list_data( @other );      
         $object = "ZWave_Light_Item('$address', $other)";
     }
     elsif ( $type eq "ZWAVE_APPLIANCE" ) {
         require 'ZWave_Items.pm';
         require 'ZWave_RZC0P.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+        $other = &quote_list_data( @other );          
         $object = "ZWave_Appliance_Item('$address', $other)";
     }
 
@@ -164,25 +178,25 @@ sub read_table_A {
         require Clipsal_CBus;
         require Clipsal_CBus::CGate;
         ( $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+        $other = &quote_list_data( @other );          
         $object = "Clipsal_CBus::CGate('Clipsal_CBus_Cgate',$other)";
     }
     elsif ( $type eq "CBUS_GROUP" ) {
         require Clipsal_CBus::Group;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = &quote_list_data( @other );              
         $object = "Clipsal_CBus::Group('$address','$name',$other)";
     }
     elsif ( $type eq "CBUS_TRIGGER" ) {
         require Clipsal_CBus::TriggerGroup;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = &quote_list_data( @other );              
         $object = "Clipsal_CBus::TriggerGroup('$address','$name',$other)";
     }
     elsif ( $type eq "CBUS_UNIT" ) {
         require Clipsal_CBus::Unit;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = &quote_list_data( @other );              
         $object = "Clipsal_CBus::Unit('$address','$name',$other)";
     }
 
@@ -191,33 +205,33 @@ sub read_table_A {
 	#<,UPBPIM,Name,NetworkID,Password,Address>#
         require 'UPBPIM.pm';
         ( $name, $network, $password, $address, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = &quote_list_data( @other );              
         $object = "UPBPIM('UPBPIM', $network,$password,$address)";
     }
     elsif ( $type eq "UPBD" ) {
 	#<,UPBD,Name,Interface,NetworkID,Address,Groups>#
         require 'UPB_Device.pm';
         ( $name, $object, $network, $address, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = &quote_list_data( @other );              
         $object = "UPB_Device(\$$object, $network,$address)";
     }
     elsif ( $type eq "UPBL" ) {
 	#<,UPBL,Name,Interface,NetworkID,Address,Groups>#
         require 'UPB_Link.pm';
         ( $name, $object, $network, $address, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = &quote_list_data( @other );              
         $object = "UPB_Link(\$$object, $network,$address)";
     }
     elsif ( $type eq "UPBRAIN8" ) {
         require 'UPB_Rain8.pm';
         ( $name, $object, $network, $address, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = &quote_list_data( @other );              
         $object = "UPB_Rain8(\$$object, $network,$address)";
     }
     elsif ( $type eq "UPBT" ) {
         require 'UPB_Thermostat.pm';
         ( $name, $object, $network, $address, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = &quote_list_data( @other );              
         $object = "UPB_Thermostat(\$$object, $network,$address)";
     }
 
@@ -226,7 +240,7 @@ sub read_table_A {
 	#<,INSTEON_PLM,Name>#
         require Insteon_PLM;
         ( $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = &quote_list_data( @other );              
         $object = "Insteon_PLM('Insteon_PLM',$other)";
     }
     elsif ( $type eq "INSTEON_LAMPLINC" ) {
@@ -239,7 +253,7 @@ sub read_table_A {
           )
         {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+            $other = &quote_list_data( @other );          
             $object = "Insteon::LampLinc(\'$address\',$other)";
         }
     }
@@ -253,7 +267,7 @@ sub read_table_A {
           )
         {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );        # Quote data
+            $other = &quote_list_data( @other );        
             $object = "Insteon::BulbLinc(\'$address\',$other)";
         }
     }
@@ -267,7 +281,7 @@ sub read_table_A {
           )
         {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+            $other = &quote_list_data( @other );          
             $object = "Insteon::ApplianceLinc(\'$address\',$other)";
         }
     }
@@ -281,7 +295,7 @@ sub read_table_A {
           )
         {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+            $other = &quote_list_data( @other );          
             $object = "Insteon::SwitchLinc(\'$address\',$other)";
         }
     }
@@ -295,7 +309,7 @@ sub read_table_A {
           )
         {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+            $other = &quote_list_data( @other );    
             $object = "Insteon::SwitchLincRelay(\'$address\',$other)";
         }
     }
@@ -314,7 +328,7 @@ sub read_table_A {
           )
         {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+            $other = &quote_list_data( @other );          
             $object = "Insteon::KeyPadLinc(\'$address\', $other)";
         }
     }
@@ -333,7 +347,7 @@ sub read_table_A {
           )
         {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+            $other = &quote_list_data( @other );    
             $object = "Insteon::KeyPadLincRelay(\'$address\', $other)";
         }
     }
@@ -341,21 +355,21 @@ sub read_table_A {
 	#<,INSTEON_REMOTELINC,Address,Name,Groups>#
         require Insteon::Controller;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = &quote_list_data( @other );           
         $object = "Insteon::RemoteLinc(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_MOTIONSENSOR" ) {
 	#<,INSTEON_MOTIONSENSOR,Address,Name,Groups>#
         require Insteon::Security;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );             # Quote data
+        $other = &quote_list_data( @other );             
         $object = "Insteon::MotionSensor(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_TRIGGERLINC" ) {
 	#<,INSTEON_TRIGGERLINC,Address,Name,Groups>#
         require Insteon::Security;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );             # Quote data
+        $other = &quote_list_data( @other );             
         $object = "Insteon::TriggerLinc(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_IOLINC" ) {
@@ -368,7 +382,7 @@ sub read_table_A {
           )
         {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );         # Quote data
+            $other = &quote_list_data( @other );         
             $object = "Insteon::IOLinc(\'$address\', $other)";
         }
     }
@@ -387,7 +401,7 @@ sub read_table_A {
            )
         {
             ($address, $name, $grouplist, @other) = @item_info;
-            $other = join ', ', (map {"'$_'"} @other); # Quote data
+	    $other = &quote_list_data( @other );      
             $object = "Insteon::EZIO8SA(\'$address\', $other)";
         }
     }
@@ -395,7 +409,7 @@ sub read_table_A {
 	#<,INSTEON_EZIO8SA_RELAY,Address,Name,Groups>#
         require Insteon::EZIO8SA;
         ($address, $object, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
+	$other = &quote_list_data( @other );      
         $object = "Insteon::EZIO8SA_relay($address, $object, $other)";
     }
     elsif ( $type eq "INSTEON_EZIO8SA_INPUT" ) {
@@ -413,7 +427,7 @@ sub read_table_A {
            )
         {
             ($address, $name, $grouplist, @other) = @item_info;
-            $other = join ', ', (map {"'$_'"} @other); # Quote data
+	    $other = &quote_list_data( @other );      
             $object = "Insteon::SwitchLincRelay(\'$address\',$other)";
         }
     }
@@ -421,21 +435,21 @@ sub read_table_A {
 	#<,INSTEON_FANLINC,Address,Name,Groups>#
         require Insteon::Lighting;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );             # Quote data
+        $other = &quote_list_data( @other );             
         $object = "Insteon::FanLinc(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_OUTLETLINC" ) {
 	#<,INSTEON_OUTLETLINC,Address,Name,Groups>#
         require Insteon::Lighting;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );             # Quote data
+        $other = &quote_list_data( @other );             
         $object = "Insteon::OutletLinc(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_ICONTROLLER" ) {
 	#<,SCENE_MEMBER,MemberName,LinkName,OnLevel,RampRate>#
         require Insteon::BaseInsteon;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );             # Quote data
+        $other = &quote_list_data( @other );             
         my ( $deviceid, $groupid ) = $address =~ /(\S+):(\S+)/;
         if ($groupid) {
             $object =
@@ -450,42 +464,42 @@ sub read_table_A {
 	#<,INSTEON_THERMOSTAT,Address,Name,Groups>#
         require Insteon::Thermostat;
         ( $address, $name, $grouplist, $object, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = &quote_list_data( @other );           
         $object = "Insteon::Thermostat(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_IRRIGATION" ) {
 	#<,INSTEON_IRRIGATION,Address,Name,Groups>#
         require Insteon::Irrigation;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = &quote_list_data( @other );           
         $object = "Insteon::Irrigation(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_SYNCHROLINC" ) {
 	#<,INSTEON_SYNCHROLINC,Address,Name,Groups>#
         require Insteon::Energy;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );            # Quote data
+        $other = &quote_list_data( @other );            
         $object = "Insteon::SynchroLinc(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_IMETER" ) {
 	#<,INSTEON_IMETER,Address,Name,Groups>#
         require Insteon::Energy;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );            # Quote data
+        $other = &quote_list_data( @other );            
         $object = "Insteon::iMeter(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_MICROSWITCH" ) {
 	#<,INSTEON_MICROSWITCH,Address,Name,Groups>#
         require Insteon::Lighting;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );            # Quote data
+        $other = &quote_list_data( @other );            
         $object = "Insteon::MicroSwitch(\'$address\', $other)";
     }
     elsif ( $type eq "INSTEON_MICROSWITCHRELAY" ) {
 	#<,INSTEON_MICROSWITCHRELAY,Address,Name,Groups>#
         require Insteon::Lighting;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = &quote_list_data( @other );              
         $object = "Insteon::MicroSwitchRelay(\'$address\', $other)";
     }
 
@@ -494,14 +508,14 @@ sub read_table_A {
 	#<Froggy Rita (FROG),FROG,Address,Name,Groups,Options>#
         require 'FroggyRita.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = &quote_list_data( @other );              
         $object = "FroggyRita('$address', $other)";
     }
     elsif ( $type eq "X10A" ) {
 	#<X10 Appliance (X10A),X10A,Address,Name,Groups,Interface>#
         if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+            $other = &quote_list_data( @other );          
             $object = "X10_Appliance('$address', $other)";
         }
     }
@@ -509,27 +523,27 @@ sub read_table_A {
 	#<X10 Light (X10I),X10I,Address,Name,Groups,Interface,Options>#
         if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+            $other = &quote_list_data( @other );          
             $object = "X10_Item('$address', $other)";
         }
     }
     elsif ( $type eq "X10TR" ) {
 	#<X10 Transmitter (X10TR),X10TR,Address,Name,Groups,Interface,Options>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = &quote_list_data( @other );              
         $object = "X10_Transmitter('$address', $other)";
     }
     elsif ( $type eq "X10O" ) {
 	#<X10 Ote (X10O),X10O,Address,Name,Groups,Interface,Options>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = &quote_list_data( @other );              
         $object = "X10_Ote('$address', $other)";
     }
     elsif ( $type eq "X10SL" ) {
 	#<X10 SwitchLinc (X10SL),X10SL,Address,Name,Groups,Interface,Options>#
         if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );
+            $other = &quote_list_data( @other );
             $object = "X10_Switchlinc('$address', $other)";
         }
     }
@@ -538,28 +552,28 @@ sub read_table_A {
         if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
 
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );
+            $other = &quote_list_data( @other );
             $object = "X10_Appliancelinc('$address', $other)";
         }
     }
     elsif ( $type eq "X10KL" ) {
 	#<X10 Keypadlinc (X10KL),X10KL,Address,Name,Groups,Interface,Options>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );
+        $other = &quote_list_data( @other );
         $object = "X10_Keypadlinc('$address', $other)";
     }
     elsif ( $type eq "X10LL" ) {
 	#<X10 Lamplinc (X10LL),X10LL,Address,Name,Groups,Interface,Options>#
         if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );
+            $other = &quote_list_data( @other );
             $object = "X10_Lamplinc('$address', $other)";
         }
     }
     elsif ( $type eq "X10RL" ) {
 	#<X10 Relaylinc (X10RL),X10RL,Address,Name,Groups,Interface,Options>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );
+        $other = &quote_list_data( @other );
         $object = "X10_Relaylinc('$address', $other)";
     }
     elsif ( $type eq "X106BUTTON" ) {
@@ -570,34 +584,34 @@ sub read_table_A {
     elsif ( $type eq "X10G" ) {
 	#<X10 Garage Door (X10G),X10G,Address,Name,Groups,Interface,Options>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );     # Quote data
+        $other = &quote_list_data( @other );     
         $object = "X10_Garage_Door('$address', $other)";
     }
     elsif ( $type eq "X10S" ) {
 	#<X10 Irrigation (X10S),X10S,Address,Name,Groups,Interface,Options>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = &quote_list_data( @other );              
         $object = "X10_IrrigationController('$address', $other)";
     }
     elsif ( $type eq "X10T" ) {
 	#<X10 RCS (X10T),X10T,Address,Name,Groups,Interface,Options>#
         require 'RCS_Item.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = &quote_list_data( @other );              
         $object = "RCS_Item('$address', $other)";
     }
     elsif ( $type eq "X10MS" ) {
 	#<X10 Motion Sensor (X10MS),X10MS,Address,Name,Groups,Type>#
         if ( validate_def( $type, 2, [ 'x10_address', 'name' ], \@item_info ) ) {
             ( $address, $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+            $other = &quote_list_data( @other );          
             $object = "X10_Sensor('$address', '$name', $other)";
         }
     }
     elsif ( $type eq "RF" ) {
 	#<,RF,>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
+        $other = &quote_list_data( @other );              
         $object = "RF_Item('$address', '$name', $other)";
     }
     elsif ( $type eq "COMPOOL" ) {
@@ -633,6 +647,7 @@ sub read_table_A {
     elsif ( $type eq "LIGHT" ) {
 	#<,LIGHT,>#
         require 'Light_Item.pm';
+	my @testother;
         ( $object, $name, $grouplist, @other ) = @item_info;
         if ($object) {
             $object = "Light_Item(\$$object, $other)";
@@ -777,83 +792,83 @@ sub read_table_A {
 	#<,SG485LCD,>#
         require 'Stargate485.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );       # Quote data
+        $other = &quote_list_data( @other );       
         $object = "StargateLCDKeypad('$address', $other)";
     }
     elsif ( $type eq "SG485RCSTHRM" ) {
 	#<,SG485RCSTHRM,>#
         require 'Stargate485.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = &quote_list_data( @other );           
         $object = "StargateRCSThermostat('$address', $other)";
     }
     elsif ( $type eq "STARGATEDIN" ) {
 	#<,STARGATEDIN,>#
         require 'Stargate.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = &quote_list_data( @other );           
         $object = "StargateDigitalInput('$address', $other)";
     }
     elsif ( $type eq "STARGATEVAR" ) {
 	#<,STARGATEVAR,>#
         require 'Stargate.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = &quote_list_data( @other );           
         $object = "StargateVariable('$address', $other)";
     }
     elsif ( $type eq "STARGATEFLAG" ) {
 	#<,STARGATEFLAG,>#
         require 'Stargate.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = &quote_list_data( @other );           
         $object = "StargateFlag('$address', $other)";
     }
     elsif ( $type eq "STARGATERELAY" ) {
 	#<,STARGATERELAY,>#
         require 'Stargate.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = &quote_list_data( @other );           
         $object = "StargateRelay('$address', $other)";
     }
     elsif ( $type eq "STARGATETHERM" ) {
 	#<,STARGATETHERM,>#
         require 'Stargate.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = &quote_list_data( @other );           
         $object = "StargateThermostat('$address', $other)";
     }
     elsif ( $type eq "STARGATEPHONE" ) {
 	#<,STARGATEPHONE,>#
         require 'Stargate.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = &quote_list_data( @other );           
         $object = "StargateTelephone('$address', $other)";
     }
     elsif ( $type eq "STARGATEIR" ) {
 	#<,STARGATEIR,>#
         require 'Stargate.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = &quote_list_data( @other );           
         $object = "StargateIR('$address', $other)";
     }
     elsif ( $type eq "STARGATEASCII" ) {
 	#<,STARGATEASCII,>#
         require 'Stargate.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = &quote_list_data( @other );           
         $object = "StargateASCII('$address', $other)";
     }
     elsif ( $type eq "XANTECH" ) {
 	#<,XANTECH,>#
         require 'Xantech.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = &quote_list_data( @other );           
         $object = "Xantech_Zone('$address', $other)";
     }
     elsif ( $type eq "SERIAL" ) {
 	#<,SERIAL,String,Name,Groups,State,Port>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );           # Quote data
+        $other = &quote_list_data( @other );           
         $object = "Serial_Item('$address', $other)";
     }
     elsif ( $type eq "VOICE" ) {
@@ -877,7 +892,7 @@ sub read_table_A {
     elsif ( $type eq "IBUTTON" ) {
 	#<,IBUTTON,ID,Name,Port,Channel>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         $object = "iButton('$address', $other)";
     }
 
@@ -887,7 +902,7 @@ sub read_table_A {
 	#<,WAKEONLAN,MACADDRESS,Name,Grouplist>#
         require 'WakeOnLan.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         $object = "WakeOnLan('$address', $other)";
     }
     ##NETWORK, ipaddress, Name, Grouplist, ping delay (seconds), MAC Address (optional)
@@ -895,7 +910,7 @@ sub read_table_A {
 	#<,WAKEONLAN,IP,Name,Grouplist,PingDelay,MACADDRESS>#
         require 'Network_Item.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         $object = "Network_Item('$address', $other)";
     }
 
@@ -905,14 +920,14 @@ sub read_table_A {
 	#<,YACCLIENT,MachineName,Name,Grouplist>#
         require 'CID_Server.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         $object = "CID_Server_YAC('$address', $other)";
     }
     ##ZONE,      4,     Stairway_motion,            Inside|Hall|Sensors
     elsif ( $type eq "ZONE" ) {
 	#<Caddx (ZONE),ZONE,Address,Name,Grouplist,Other>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "Sensor_Zone('$address',$other)";
         }
@@ -927,14 +942,14 @@ sub read_table_A {
 	#<,FANLIGHT,>#
         require 'Fan_Control.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         $object = "Fan_Light('$address', $other)";
     }
     elsif ( $type eq 'FANMOTOR' ) {
 	#<,FANMOTOR,>#
         require 'Fan_Control.pm';
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         $object = "Fan_Motor('$address', $other)";
     }
     elsif ( $type eq "PA" ) {
@@ -993,7 +1008,7 @@ sub read_table_A {
             $code .= sprintf "\$%-35s -> hidden(1);\n", $name . '_obj';
         }
         elsif ( lc $pa_type eq 'x10' ) {
-            $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+            $other = &quote_list_data( @other );    
             $code .= sprintf "\$%-35s = new X10_Appliance('%s','%s');\n",
               $name . '_obj', $address, $serial;
             $code .= sprintf "\$%-35s -> hidden(1);\n", $name . '_obj';
@@ -1069,14 +1084,14 @@ sub read_table_A {
 	#<EIB Value (EIB5),EIB5,Address,Name,Groups,Mode>#
 	#<EIB Drive (EIB7),EIB7,Address,Name,Groups>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         $object = $type . "_Item('$address', $other)";
     }
     elsif ( $type eq "ZM_ZONE" ) {
 	#<ZoneMinder xAP (ZM_ZONE),ZM_ZONE,Address,Name,MonitorName,Groups>#
         my $monitor_name;
         ( $address, $name, $monitor_name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ( !$packages{ZoneMinder_xAP}++ ) { # first time for this object type?
             $code .= "use ZoneMinder_xAP;\n";
         }
@@ -1090,7 +1105,7 @@ sub read_table_A {
     elsif ( $type eq "ZM_MONITOR" ) {
 	#<ZoneMinder xAP (ZM_MONITOR),ZM_MONITOR,Address,Name,Groups>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "ZM_MonitorItem('$address',$other)";
         }
@@ -1117,13 +1132,13 @@ sub read_table_A {
             # then, this is a more simple way of associating an analog sensor item to an existing object
             $xc_name = $address;
             ( $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+            $other = &quote_list_data( @other );    
             $code .= sprintf "\n\$%-35s = new AnalogSensor_Item(\$%s, %s);\n",
               $name, $xc_name, $other;
         }
         else {
             ( $name, $xc_name, $grouplist, $sensor_type, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+            $other = &quote_list_data( @other );    
             if ( lc $name eq 'auto' ) {                       #new
                 $name = $xc_name . "_" . $sensor_type . "_" . $address;
                 $name =~ s/\./_/g;    #strip out all the periods from xap names
@@ -1153,14 +1168,14 @@ sub read_table_A {
             # then, this is a more simple way of associating an analog sensor item to an existing object
             $xc_name = $address;
             ( $name, $grouplist, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+            $other = &quote_list_data( @other );    
             $code .=
               sprintf "\n\$%-35s = new AnalogRangeSensor_Item(\$%s, %s);\n",
               $name, $xc_name, $other;
         }
         else {
             ( $name, $xc_name, $grouplist, $sensor_type, @other ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+            $other = &quote_list_data( @other );    
             if ( lc $name eq 'auto' ) {                       #new
                 $name = $xc_name . "_" . $sensor_type . "_" . $address;
                 $name =~ s/\./_/g;    #strip out all the periods from xap names
@@ -1181,7 +1196,7 @@ sub read_table_A {
 	#<xAP Analog Sensor AVG (ANALOG_AVERAGE),ANALOG_SENSOR_R,Identifier,Name,Conduit,Groups,Type,Tokens>#
         #ANALOG_SENSOR, xap source, object name, xap conduit name, groups, xap sensor type, tokens...
         ( $sensor_name, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ( !$packages{AnalogSensor_Item}++ )
         {    # first time for this object type?
             $code .= "use AnalogSensor_Item;\n";
@@ -1200,7 +1215,7 @@ sub read_table_A {
     elsif ( $type eq "OWX" ) {
 	#<xAP OneWire (OWX),OWX,>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "OneWire_xAP('$address', $other)";
         }
@@ -1217,7 +1232,7 @@ sub read_table_A {
 	#<xAP SysDiag (SDX),SDX,XapInstance,Name,PsixcServerName>#
         #SDX, xap instance, object name, psixc server name
         ( $address, $name, $server, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ( !$packages{SysDiag_xAP}++ ) {    # first time for this object type?
             $code .= "use SysDiag_xAP;\n";
         }
@@ -1231,7 +1246,7 @@ sub read_table_A {
     elsif ( $type eq "BSC" ) {
 	#<,BSC,>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "BSC_Item('$address',$other)";
         }
@@ -1245,7 +1260,7 @@ sub read_table_A {
     elsif ( $type eq "XPL_SENSOR" ) {
 	#<,XPL_SENSOR,>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "xPL_Sensor('$address',$other)";
         }
@@ -1259,7 +1274,7 @@ sub read_table_A {
     elsif ( $type eq "XPL_UPS" ) {
 	#<,XPL_UPS,>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "xPL_UPS('$address',$other)";
         }
@@ -1273,7 +1288,7 @@ sub read_table_A {
     elsif ( $type eq "XPL_X10SECURITY" ) {
 	#<,XPL_X10SECURITY,>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "xPL_X10Security('$address',$other)";
         }
@@ -1287,7 +1302,7 @@ sub read_table_A {
     elsif ( $type eq "XPL_X10BASIC" ) {
 	#<,XPL_X10BASIC,>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "xPL_X10Basic('$address',$other)";
         }
@@ -1301,7 +1316,7 @@ sub read_table_A {
     elsif ( $type eq "XPL_IRRIGATEWAY" ) {
 	 #<xPL Irrigation Gateway (XPL_IRRIGATEWAY),XPL_IRRIGATEWAY,>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "xPL_IrrigationGateway('$address',$other)";
         }
@@ -1315,7 +1330,7 @@ sub read_table_A {
     elsif ( $type eq "XPL_IRRIVALVE" ) {
 	#<xPL Irrigation Valve (XPL_IRRIVALVE),XPL_IRRIVALVE,>#
         ( $address, $name, $object, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "xPL_IrrigationValve('$address',\$$object,$other)";
         }
@@ -1329,7 +1344,7 @@ sub read_table_A {
     elsif ( $type eq "XPL_IRRIQUEUE" ) {
 	#<xPL Irrigation Queue (XPL_IRRIQUEUE),XPL_IRRIQUEUE,>#
         ( $address, $name, $grouplist, $object, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "xPL_IrrigationQueue('$address',\$$object,$other)";
         }
@@ -1343,7 +1358,7 @@ sub read_table_A {
     elsif ( $type eq "XPL_LIGHTGATEWAY" ) {
 	#<,XPL_LIGHTGATEWAY,>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "xPL_LightGateway('$address',$other)";
         }
@@ -1357,7 +1372,7 @@ sub read_table_A {
     elsif ( $type eq "XPL_LIGHT" ) {
 	#<,XPL_LIGHT,>#
         ( $address, $name, $object, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "xPL_Light('$address',\$$object,$other)";
         }
@@ -1371,7 +1386,7 @@ sub read_table_A {
     elsif ( $type eq "XPL_PLUGWISEGATEWAY" ) {
 	#<,XPL_PLUGWISEGATEWAY,>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "xPL_PlugwiseGateway('$address',$other)";
         }
@@ -1385,7 +1400,7 @@ sub read_table_A {
     elsif ( $type eq "XPL_PLUGWISE" ) {
 	#<,XPL_PLUGWISE,>#
         ( $address, $name, $object, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "xPL_Plugwise('$address',\$$object,$other)";
         }
@@ -1399,7 +1414,7 @@ sub read_table_A {
     elsif ( $type eq "XPL_SQUEEZEBOX" ) {
 	#<,XPL_SQUEEZEBOX,>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "xPL_Squeezebox('$address',$other)";
         }
@@ -1413,7 +1428,7 @@ sub read_table_A {
     elsif ( $type eq "XPL_SECURITYGATEWAY" ) {
 	#<,XPL_SECURITYGATEWAY,>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "xPL_SecurityGateway('$address',$other)";
         }
@@ -1427,7 +1442,7 @@ sub read_table_A {
     elsif ( $type eq "XPL_ZONE" ) {
 	#<,XPL_ZONE,>#
         ( $address, $name, $object, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "xPL_Zone('$address',\$$object,$other)";
         }
@@ -1441,7 +1456,7 @@ sub read_table_A {
     elsif ( $type eq "XPL_AREA" ) {
 	#<,XPL_AREA,>#
         ( $address, $name, $object, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "xPL_Area('$address',\$$object,$other)";
         }
@@ -1455,7 +1470,7 @@ sub read_table_A {
     elsif ( $type eq "X10_SCENE" ) {
 	#<,X10_SCENE,>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "X10SL_Scene('$address',$other)";
         }
@@ -1468,7 +1483,7 @@ sub read_table_A {
     }
     elsif ( $type eq "SCENE" ) {
         ( $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "Scene($other)";
         }
@@ -1483,7 +1498,7 @@ sub read_table_A {
 	#<,X10_SCENE_MEMBER,>#
         my ( $scene_name, $on_level, $ramp_rate );
         ( $name, $scene_name, $on_level, $ramp_rate ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ( !$packages{X10_Scene}++ ) {    # first time for this object type?
             $code .= "use X10_Scene;\n";
         }
@@ -1515,7 +1530,7 @@ sub read_table_A {
           )
         {
             ( $name, $scene_name, $on_level, $ramp_rate ) = @item_info;
-            $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+            $other = &quote_list_data( @other );    
 
             if ( !$packages{Scene}++ ) {    # first time for this object type?
                 $code .= "use Scene;\n";
@@ -1584,7 +1599,7 @@ sub read_table_A {
     elsif ( $type eq "PHILIPS_HUE" ) {
 	#<,PHILIPS_HUE,>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "Philips_Hue('$address',$other)";
         }
@@ -1598,7 +1613,7 @@ sub read_table_A {
     elsif ( $type eq "PHILIPS_LUX" ) {
 	#<,PHILIPS_LUX,>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "Philips_Lux('$address',$other)";
         }
@@ -1614,7 +1629,7 @@ sub read_table_A {
 	#<Razberry Z-Wave(RAZBERRY_CONTROLLER),RAZBERRY_CONTROLLER,IpAddress,Controller_name,Groups,Poll (time/push),Options>#
         my $poll;
         ( $address, $name, $grouplist, $poll, @other ) = @item_info;
-        $other = join ',', ( map { "$_" } @other );       # Quote data
+        $other = join ',', ( map { "$_" } @other );       
         $poll = "'" . $poll . "'" if (defined $poll);
         $other =~ s/^[\'\"]//; #strip out quotes in case they are included
         $other =~ s/[\'\"]$//;
@@ -1637,7 +1652,7 @@ sub read_table_A {
 	#<Razberry Z-Wave(RAZBERRY_DIMMER),RAZBERRY_DIMMER,Device_id,Name,Groups,Controller,Options>#
         my ( $devid, $controller );
         ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
      		$object = "raZberry_dimmer(\$" . $controller . ",'$devid','$other')";
         }
@@ -1649,7 +1664,7 @@ sub read_table_A {
 	#<Razberry Z-Wave(RAZBERRY_SWITCH),RAZBERRY_SWITCH,Device_id,Name,Groups,Controller,Options>#
         my ( $devid, $controller );
         ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
      		$object = "raZberry_switch(\$" . $controller . ",'$devid','$other')";
         }
@@ -1662,7 +1677,7 @@ sub read_table_A {
         my ( $devid, $controller );
         ( $devid, $name, $grouplist, $controller, $other ) = @item_info;
 
-        #$other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        #$other = &quote_list_data( @other );    
         if ($other) {
      		$object = "raZberry_blind(\$" . $controller . ",'$devid','$other')";
         }
@@ -1674,7 +1689,7 @@ sub read_table_A {
 	#<Razberry Z-Wave(RAZBERRY_LOCK),RAZBERRY_LOCK,Device_id,Name,Groups,Controller,Options>#
         my ( $devid, $controller );
         ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
      		$object = "raZberry_lock(\$" . $controller . ",'$devid','$other')";
         }
@@ -1686,7 +1701,7 @@ sub read_table_A {
 	#<Razberry Z-Wave(RAZBERRY_THERMOSTAT),RAZBERRY_THERMOSTAT,Device_id,Name,Groups,Controller,Options>#
         my ( $devid, $controller );
         ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
      		$object = "raZberry_thermostat(\$" . $controller . ",'$devid','$other')";
         }
@@ -1698,7 +1713,7 @@ sub read_table_A {
 	#<Razberry Z-Wave(RAZBERRY_TEMP_SENSOR),RAZBERRY_TEMP_SENSOR,Device_id,Name,Groups,Controller,Options>#
         my ( $devid, $controller );
         ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
      		$object = "raZberry_temp_sensor(\$" . $controller . ",'$devid','$other')";
         }
@@ -1710,7 +1725,7 @@ sub read_table_A {
 	#<Razberry Z-Wave(RAZBERRY_BINARY_SENSOR),RAZBERRY_BINARY_SENSOR,Device_id,Name,Groups,Controller,Options>#
         my ( $devid, $controller );
         ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
      		$object = "raZberry_binary_sensor(\$" . $controller . ",'$devid','$other')";
         }
@@ -1722,7 +1737,7 @@ sub read_table_A {
 	#<Razberry Z-Wave(RAZBERRY_BATTERY),RAZBERRY_BATTERY,Device_id,Name,Groups,Controller,Options>#
         my ( $devid, $controller );
         ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "raZberry_battery(\$" . $controller . ",'$devid','$other')";
         }
@@ -1734,7 +1749,7 @@ sub read_table_A {
 	#<Razberry Z-Wave(RAZBERRY_GENERIC),RAZBERRY_GENERIC,Device_id (Full Device ID),Name,Groups,Controller,Options>#
         my ( $devid, $controller );
         ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "raZberry_generic(\$" . $controller . ",'$devid','$other')";
         }
@@ -1746,7 +1761,7 @@ sub read_table_A {
 	#<Razberry Z-Wave(RAZBERRY_VOLTAGE),RAZBERRY_VOLTAGE,Device_id (Major Number),Name,Groups,Controller,Options>#
         my ( $devid, $controller );
         ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "raZberry_voltage(\$" . $controller . ",'$devid','$other')";
         }
@@ -1758,7 +1773,7 @@ sub read_table_A {
 	#<Razberry Z-Wave(RAZBERRY_MOTION),RAZBERRY_MOTION,Device_id (Full Device ID),Name,Groups,Controller,Options>#
         my ( $devid, $controller );
         ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "raZberry_motion(\$" . $controller . ",'$devid','$other')";
         }
@@ -1770,7 +1785,7 @@ sub read_table_A {
 	#<Razberry Z-Wave(RAZBERRY_GENERIC),RAZBERRY_GENERIC,Device_id (Full Device ID),Name,Groups,Controller,Options>#
         my ( $devid, $controller );
         ( $devid, $name, $grouplist, $controller, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         if ($other) {
             $object = "raZberry_brightness(\$" . $controller . ",'$devid','$other')";
         }
@@ -1786,7 +1801,7 @@ sub read_table_A {
         require 'MySensors.pm';
         my ( $gw_type, $long_name, $port );
         ( $name, $long_name, $gw_type, $port, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );      # Quote data
+        $other = &quote_list_data( @other );      
         $object = "MySensors::Interface('$gw_type', '$port', '$long_name', $other)";
     }
     elsif ( $type eq "MYS_NODE" ) {
@@ -1794,7 +1809,7 @@ sub read_table_A {
         require 'MySensors.pm';
         my ( $parent, $long_name );
         ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+        $other = &quote_list_data( @other );          
         $object = "MySensors::Node($address, '$long_name', $parent, $other)";
     }
     elsif ( $type eq "MYS_BINARY" ) {
@@ -1802,7 +1817,7 @@ sub read_table_A {
         require 'MySensors.pm';
         my ( $parent, $long_name );
         ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+        $other = &quote_list_data( @other );          
         $object = "MySensors::Binary($address, '$long_name', $parent, $other)";
     }
     elsif ( $type eq "MYS_DOOR" ) {
@@ -1810,7 +1825,7 @@ sub read_table_A {
         require 'MySensors.pm';
         my ( $parent, $long_name );
         ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+        $other = &quote_list_data( @other );          
         $object = "MySensors::Door($address, '$long_name', $parent, $other)";
     }
     elsif ( $type eq "MYS_MOTION" ) {
@@ -1818,7 +1833,7 @@ sub read_table_A {
         require 'MySensors.pm';
         my ( $parent, $long_name );
         ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+        $other = &quote_list_data( @other );          
         $object = "MySensors::Motion($address, '$long_name', $parent, $other)";
     }
     elsif ( $type eq "MYS_TEMPERATURE" ) {
@@ -1826,7 +1841,7 @@ sub read_table_A {
         require 'MySensors.pm';
         my ( $parent, $long_name );
         ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );          # Quote data
+        $other = &quote_list_data( @other );          
         $object = "MySensors::Temperature($address, '$long_name', $parent, $other)";
     }
     elsif ( $type eq "MYS_HUMIDITY" ) {
@@ -1834,7 +1849,7 @@ sub read_table_A {
         require 'MySensors.pm';
         my ( $parent, $long_name );
         ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );                                 # Quote data
+        $other = &quote_list_data( @other );                                 
         $object = "MySensors::Humidity($address, '$long_name', $parent, $other)";
     }
     elsif ( $type eq "MYS_MULTIMETER" ) {
@@ -1842,7 +1857,7 @@ sub read_table_A {
         require 'MySensors.pm';
         my ( $parent, $long_name );
         ( $address, $name, $long_name, $parent, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );                                 # Quote data
+        $other = &quote_list_data( @other );                                 
         $object = "MySensors::Multimeter($address, '$long_name', $parent, $other)";
     }
 			
@@ -1852,7 +1867,7 @@ sub read_table_A {
         require AD2;
         my ($instance);
         ( $name, $instance, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         $object = "AD2('$instance','$other')";
     }
     elsif ( $type eq "AD2_DOOR_ITEM" ) {
@@ -1861,7 +1876,7 @@ sub read_table_A {
         my ( $instance, $expander, $relay, $wireless, $zone, $partition );
         ( $name, $instance, $zone, $partition, $address, $grouplist, @other ) =
           @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         my ( $map, $address ) = split( '=', $address );
         $expander = $address if ( uc($map) eq "EXP" );
         $relay    = $address if ( uc($map) eq "REL" );
@@ -1875,7 +1890,7 @@ sub read_table_A {
         my ( $instance, $expander, $relay, $wireless, $zone, $partition );
         ( $name, $instance, $zone, $partition, $address, $grouplist, @other ) =
           @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         my ( $map, $address ) = split( '=', $address );
         $expander = $address if ( uc($map) eq "EXP" );
         $relay    = $address if ( uc($map) eq "REL" );
@@ -1889,7 +1904,7 @@ sub read_table_A {
         my ( $instance, $expander, $relay, $wireless, $zone, $partition );
         ( $name, $instance, $zone, $partition, $address, $grouplist, @other ) =
           @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         my ( $map, $address ) = split( '=', $address );
         $expander = $address if ( uc($map) eq "EXP" );
         $relay    = $address if ( uc($map) eq "REL" );
@@ -1903,7 +1918,7 @@ sub read_table_A {
         my ( $instance, $number );
         ( $name, $instance, $number, $address, $grouplist, @other ) =
           @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         $object = "AD2_Partition('$instance','$number','$address','$other')";
     }
     elsif ( $type eq "AD2_OUTPUT" ) {
@@ -1911,7 +1926,7 @@ sub read_table_A {
         require AD2;
         my ( $instance, $output );
         ( $name, $instance, $output, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );            # Quote data
+        $other = &quote_list_data( @other );            
         $object = "AD2_Output('$instance','$output','$other')";
     }
 
@@ -1944,7 +1959,7 @@ sub read_table_A {
         if ($sub =~ /run_voice_cmd/) { $realname =~ s/_/ /g }
         unless ( ($sub =~ /run_voice_cmd/) || ($sub =~ /&/) ) { $realname = "\$$realname" }
         unless ( $sub =~ /&/ ) { $sub = "'".$sub."'" }
-        my $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        my $other = &quote_list_data( @other );    
         if ( !$packages{AlexaBridge}++ ) { # first time for this object type?
             $code .= "use AlexaBridge;\n";
         }
@@ -1959,7 +1974,7 @@ sub read_table_A {
 	$code .= '#noloop=start'."\n";
         my ($instance);
         ( $name, $instance, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         $object = "BondHome('$instance','$other')".';'."\n".'#noloop=stop'."\n";
     }
     elsif ( $type eq "BONDHOME_DEVICE" ) {
@@ -1968,7 +1983,7 @@ sub read_table_A {
 	$code .= '#noloop=start'."\n";
 	my ($instance, $bonddevname);
         ( $name, $instance, $bonddevname, $grouplist, @other ) = @item_info;
-	$other = join ', ', ( map { "'$_'" } @other );
+	$other = &quote_list_data( @other );
         $object = "BondHome_Device('$instance','$bonddevname')".';'."\n".'#noloop=stop'."\n";
 	$code .= '#noloop=stop'."\n";
     }
@@ -1978,7 +1993,7 @@ sub read_table_A {
 	$code .= '#noloop=start'."\n";
         my ($instance);
         ( $name, $instance, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );
+        $other = &quote_list_data( @other );
         $object = "BondHome_Manual('$instance')".';'."\n".'#noloop=stop'."\n";
 	$code .= '#noloop=stop'."\n";
     }
@@ -2008,7 +2023,7 @@ sub read_table_A {
         $statesub =~ s%^\\\\&%\\&%; # "\\&my_subroutine" -> "\&my_subroutine"
         $statesub = "'$statesub'" if $statesub !~ /&/;
         $realname = "\$$realname" if $realname;
-        my $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        my $other = &quote_list_data( @other );    
         if (!$packages{AoGSmartHome_Items}++ ) { # first time for this object type?
             $code .= "use AoGSmartHome_Items;\n";
         }
@@ -2020,92 +2035,97 @@ sub read_table_A {
     elsif ( $type eq "MQTT_BROKER" ) {
         # there must be one record for the broker above any other MQTT definitions
         require 'mqtt.pm';
-	$grouplist = &get_table_parm( \@item_info, 'grouplist' );
-	$name = &get_table_parm( \@item_info, 'name', 1 );
-	# NOTE: we pull these parms out so we can change the order for the new() function
-        my ( $topic, $host, $port, @other ) = @item_info;
-	$topic =~ s/\*/#/g;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
-        $object = "mqtt('$name', '$host', '$port', '$topic', $other )";
+        require 'mqtt_items.pm';
+	my $parms = mqtt::process_parms( $rta_context, \@item_info );
+	if( $parms ) {
+	    $grouplist = $parms->{grouplist};
+	    $name = $parms->{name};
+	    $other = make_parm_string( $parms );
+	    $object = "mqtt( $other )";
+	}
     }
     elsif ( $type eq "MQTT_DEVICE" ) {
-	# this is an old implementation
-	# there is one item per mqtt message and it must be below the MQTT_BROKER definition
-        # if the device is to transmit to MH, its topic must match the
+	# This is an old implementation
+	# There is one item per mqtt message and it must be below the MQTT_BROKER definition
+        # If the device is to transmit to MH, its topic must match the
         #   config parameter mqtt_topic in the mh.ini file
 	# ==> RECOMMEND not using this item type, use ITEM types below
         require 'mqtt.pm';
-	$grouplist = &get_table_parm( \@item_info, 'grouplist', 2 );
-	$name = &get_table_parm( \@item_info, 'name', 1 );
-        $other = join ', ', ( map { "'$_'" } @item_info );              # Quote data
-        $object = "mqtt_Item( $other )";
+	my $parms = mqtt_Item::process_parms( $rta_context, \@item_info );
+	if( $parms ) {
+	    $grouplist = $parms->{grouplist};
+	    $name = $parms->{name};
+	    $other = make_parm_string( $parms );
+	    $object = "mqtt_Item( $other )";
+	}
     }
     elsif( $type eq "MQTT_LOCALITEM" ) {
-	$grouplist = &get_table_parm( \@item_info, 'grouplist' );
-	$name = &get_table_parm( \@item_info, 'name', 1 );
-	# NOTE: we pull these parms out so we can change the order for the new() function
-	my ($local_object_name, $broker, $type, @other) = @item_info;
-	require mqtt_items;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
-	$object = "mqtt_LocalItem( '$broker', '$name', '$type', '$local_object_name', $other )";
+	my $parms = mqtt_LocalItem::process_parms( $rta_context, \@item_info );
+	if( $parms ) {
+	    $grouplist = $parms->{grouplist};
+	    $name = $parms->{name};
+	    $other = make_parm_string( $parms );
+	    $object = "mqtt_LocalItem( $other )";
+	}
     }
     elsif( $type eq "MQTT_REMOTEITEM" ) {
-	$grouplist = &get_table_parm( \@item_info, 'grouplist', 2 );
-	$name = &get_table_parm( \@item_info, 'name', 1 );
-	require mqtt_items;
-        $other = join ', ', ( map { "'$_'" } @item_info );              # Quote data
-	$object = "mqtt_RemoteItem( $other )";
+	my $parms = mqtt_RemoteItem::process_parms( $rta_context, \@item_info );
+	if( $parms ) {
+	    $grouplist = $parms->{grouplist};
+	    $name = $parms->{name};
+	    $other = make_parm_string( $parms );
+	    $object = "mqtt_RemoteItem( $other )";
+	}
     }
     elsif( $type eq "MQTT_INSTMQTT" ) {
-	$grouplist = &get_table_parm( \@item_info, 'grouplist', 2 );
-	$name = &get_table_parm( \@item_info, 'name', 1 );
-	require mqtt_items;
-        $other = join ', ', ( map { "'$_'" } @item_info );              # Quote data
-	$object = "mqtt_InstMqttItem( $other )";
+	my $parms = mqtt_InstMqttItem::process_parms( $rta_context, \@item_info );
+	if( $parms ) {
+	    $grouplist = $parms->{grouplist};
+	    $name = $parms->{name};
+	    $other = make_parm_string( $parms );
+	    $object = "mqtt_InstMqttItem( $other )";
+	}
     }
     elsif( $type eq "MQTT_DISCOVERY" ) {
-	$grouplist = &get_table_parm( \@item_info, 'grouplist' );
-	$name = &get_table_parm( \@item_info, 'name', 1 );
 	require mqtt_discovery;
 	require mqtt_items;
-	# NOTE: we pull these parms out so we can change the order for the new() function
-        my ($discovery_topic, $broker, @other) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );              # Quote data
-	$object = "mqtt_Discovery( '$broker', '$name', '$discovery_topic', $other )";
+	my $parms = mqtt_Discovery::process_parms( $rta_context, \@item_info );
+	if( $parms ) {
+	    $grouplist = $parms->{grouplist};
+	    $name = $parms->{name};
+	    $other = make_parm_string( $parms );
+	    $object = "mqtt_Discovery( $other )";
+	}
     }
     elsif( $type eq "MQTT_DISCOVEREDITEM" ) {
-	&parse_table_debug( 2, "MQTT_DISCOVEREDITEM table entry '$record_raw'" );
-	# NOTE: $record_raw can have newlines -- be careful with $ in pattern matches
-	my $str = $record_raw;
-	$str =~ s/^MQTT_DISCOVEREDITEM\s*,//;
-	my ($errstr,$parms) = &split_table_parms( $str );
-	if( $errstr ) {
-	    print "ERROR: parsing MQTT_DISCOVEREDITEM: $errstr\n";
-	} else {
-	    $grouplist = &get_table_parm( $parms, 'grouplist' );
-	    $name = &get_table_parm( $parms, 'name', 1 );
-	    # NOTE: we pull these parms out so we can change the order for the new() function
-	    my ($disc_name, @other) = @{$parms};
-	    $other = join ', ', ( map { "'$_'" } @other );              # Quote data
-	    $object = "mqtt_DiscoveredItem( \$$disc_name, '$name', $other );";
-	    &parse_table_debug( 2, "MQTT_DISCOVEREDITEM object: $object" );
+	my $parms = mqtt_DiscoveredItem::process_parms( $rta_context, \@item_info );
+	if( $parms ) {
+	    $grouplist = $parms->{grouplist};
+	    $name = $parms->{name};
+	    $other = make_parm_string( $parms );
+	    $object = "mqtt_DiscoveredItem( $other )";
 	}
     }
     #-------------- End MQTT Objects ----------------
     #-------------- Home Assistant Objects -----------------
     elsif( $type eq "HA_SERVER" ) {
-	$grouplist = &get_table_parm( \@item_info, 'grouplist' );
-	$name = &get_table_parm( \@item_info, 'name', 1 );
 	require HA_Item;
-        $other = join ', ', ( map { "'$_'" } @item_info );              # Quote data
-	$object = "HA_Server( '$name', $other )";
+	my $parms = HA_Server::process_parms( $rta_context, \@item_info );
+	if( $parms ) {
+	    $grouplist = $parms->{grouplist};
+	    $name = $parms->{name};
+	    $other = make_parm_string( $parms );
+	    $object = "HA_Server( $other )";
+	}
     }
     elsif( $type eq "HA_ITEM" ) {
-	$grouplist = &get_table_parm( \@item_info, 'grouplist', 5 );
-	$name = &get_table_parm( \@item_info, 'name', 1 );
-	require HA_Item;
-        $other = join ', ', ( map { "'$_'" } @item_info );              # Quote data
-	$object = "HA_Item( $other )";
+	my $parms = HA_Item::process_parms( $rta_context, \@item_info );
+	if( $parms ) {
+	    $grouplist = $parms->{grouplist};
+	    $name = $parms->{name};
+	    $other = make_parm_string( $parms );
+	    $object = "HA_Item( $other )";
+	}
     }
     #-------------- End Home Assistant Objects -----------------
     elsif ( $type =~ /PLCBUS_.*/ ) {
@@ -2117,7 +2137,7 @@ sub read_table_A {
     elsif ( $type eq "WINK" ) {
 	#<,WINK,>#
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ', ', ( map { "'$_'" } @other );    # Quote data
+        $other = &quote_list_data( @other );    
         $object = "Wink('$address',$other)";
         if ( !$packages{Wink}++ ) {                       # first time for this object type?
             $code .= "use Wink;\n";
@@ -2139,7 +2159,7 @@ sub read_table_A {
         require Tasmota_HTTP_Item;
         my ( $output );
         ( $address, $name, $output, $grouplist, @other ) = @item_info;
-        $other = join ',',  @other ;    # Quote data
+        $other = join ',',  @other ;    
         $other =~ s/^[\'\"]//; #strip out quotes in case they are included
         $other =~ s/[\'\"]$//;
         $object = "Tasmota_HTTP::Switch('$address', '$output', '$other')";
@@ -2148,7 +2168,7 @@ sub read_table_A {
         require Tasmota_HTTP_Item;
         my ( $output );
         ( $address, $name, $output, $grouplist, @other ) = @item_info;
-        $other = join ',', @other;    # Quote data
+        $other = join ',', @other;    
         $other =~ s/^[\'\"]//; #strip out quotes in case they are included
         $other =~ s/[\'\"]$//;
         $object = "Tasmota_HTTP::Switch_PowerMon('$address', '$output', '$other')";
@@ -2156,7 +2176,7 @@ sub read_table_A {
     elsif ( $type eq "TASMOTA_HTTP_FAN" ) {
         require Tasmota_HTTP_Item;
         ( $address, $name, $grouplist, @other ) = @item_info;
-        $other = join ',',  @other ;    # Quote data
+        $other = join ',',  @other ;    
         $other =~ s/^[\'\"]//; #strip out quotes in case they are included
         $other =~ s/[\'\"]$//;
         $object = "Tasmota_HTTP::Fan('$address', '$other')";
@@ -2186,17 +2206,18 @@ sub read_table_A {
     }
 
     if ($object) {
-        my $code2 = sprintf "\n\$%-35s =  new %s;\n", $name, $object;
-        $code2 =~ s/= *new \S+ *\(/-> add \(/ if $objects{$name}++;
-        $code .= $code2;
+	my $code2 = sprintf "\n\$%-35s =  new %s;\n", $name, $object;
+	$code2 =~ s/= *new \S+ *\(/-> add \(/ if $objects{$name}++;
+	$code .= $code2;
     }
+
     # Process grouplist. This code was moved into a subroutine so it could be called by extension
     # modules, too.
     $code .= read_table_grouplist_A($name, $grouplist) if ($grouplist);
 
     # Add in anything else some record-type above needed.
     if ($additional_code) {
-        $code .= $additional_code;
+	$code .= $additional_code;
     }
 
     return $code;
@@ -2273,6 +2294,8 @@ sub read_table_finish_A {
 }
 
 
+#--------------------------------------------------------------------------------------------
+# This sub may be called by read_table_A extensions to process the grouplist parm.
 
 sub read_table_grouplist_A {
 
@@ -2326,6 +2349,19 @@ sub read_table_preprocess_A {
 # See handy_utilities.pl::main::mht_preprocess_line_continuation for 
 # details on line continuation.
 #
+    my %parms;
+    if (@_/2 == int(@_/2)) {
+        %parms = @_;
+    }
+    else {
+        # Odd number of parms, can't be right.
+        &main::print_log("Error: main::mht_preprocess_line_continuation called with misformed "
+            . "key value pairs (odd number of parms) - aborting call.");
+        return undef;
+    }
+    $rta_context->{filename} = $parms{file};
+    $rta_context->{caller} = 'rta';
+
     main::mht_preprocess_line_continuation(@_);
     main::mht_preprocess_symbol_substitution(@_);
 }
